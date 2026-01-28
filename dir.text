@@ -1,4 +1,4 @@
-hellorun/
+helloRun/
   src/
     config/
       db.js
@@ -63,4 +63,10 @@ hellorun/
       img/
     server.js
   .env
+  .gitignore
   package.json
+  dir.text
+  dns.txt
+  wireframe.txt
+  node_modules/
+  .git/

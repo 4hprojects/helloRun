@@ -23,95 +23,61 @@ exports.getSignup = (req, res) => {
 
 exports.postSignup = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, confirmPassword } = req.body;
+    const { firstName, lastName, email, password } = req.body;
 
-    // Validation
-    if (!firstName || !lastName || !email || !password || !confirmPassword) {
-      return res.render('auth/signup', {
-        title: 'Sign Up - helloRun',
-        error: 'All fields are required',
-        emailExists: false,
-        email: email || null
-      });
-    }
-
-    if (password !== confirmPassword) {
-      return res.render('auth/signup', {
-        title: 'Sign Up - helloRun',
-        error: 'Passwords do not match',
-        emailExists: false,
-        email: email || null
-      });
-    }
-
-    if (!passwordService.validatePassword(password)) {
-      return res.render('auth/signup', {
-        title: 'Sign Up - helloRun',
-        error: 'Password must be at least 8 characters and contain one uppercase letter, one lowercase letter, and one number',
-        emailExists: false,
-        email: email || null
-      });
-    }
-
-    // Check if email exists
+    // Check if user exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
       return res.render('auth/signup', {
-        title: 'Sign Up - helloRun',
+        title: 'Sign Up - HelloRun',
         error: null,
         emailExists: true,
         email: email,
-        authProvider: existingUser.authProvider
+        authProvider: existingUser.authProvider || 'local'
       });
     }
+
+    // Generate unique userId
+    const userId = await counterService.getNextUserId();
 
     // Hash password
     const passwordHash = await passwordService.hashPassword(password);
 
-    // Generate verification token
-    const { token, expires } = tokenService.generateEmailVerificationToken();
-
-    // Create user (userId will be auto-assigned)
-    const user = await User.create({
+    // Create new user
+    const user = new User({
+      userId,
       firstName,
       lastName,
       email: email.toLowerCase(),
-      authProvider: 'local',
       passwordHash,
-      role: 'runner',
-      emailVerified: false,
-      emailVerificationToken: token,
-      emailVerificationExpires: expires
+      authProvider: 'local'
     });
 
-    console.log(`New user created: ${user.userIdFormatted} (${user.email})`);
-
-    // Send verification email
-    const emailResult = await emailService.sendVerificationEmail(user, token);
-    
-    if (!emailResult.success) {
-      console.error('Failed to send verification email:', emailResult.error);
-      // Don't fail signup, just warn user
-    }
-
-    // Increment email count
-    user.incrementVerificationEmailCount();
     await user.save();
 
-    // Show verification sent page
+    // Generate verification token
+    const verificationToken = emailService.generateVerificationToken();
+    
+    user.emailVerificationToken = verificationToken;
+    user.emailVerificationExpires = Date.now() + parseInt(process.env.EMAIL_VERIFICATION_EXPIRY);
+    await user.save();
+
+    // Send verification email
+    await emailService.sendVerificationEmail(user, verificationToken);
+
     res.render('auth/verify-email-sent', {
-      title: 'Verify Your Email - helloRun',
+      title: 'Verify Your Email - HelloRun',
       email: user.email,
-      emailSent: emailResult.success
+      emailSent: true  // Add this line
     });
 
   } catch (error) {
     console.error('Signup error:', error);
     res.render('auth/signup', {
-      title: 'Sign Up - helloRun',
-      error: error.message || 'An error occurred. Please try again.',
+      title: 'Sign Up - HelloRun',
+      error: 'An error occurred during signup. Please try again.',
       emailExists: false,
-      email: req.body.email || null
+      email: req.body.email || ''
     });
   }
 };
