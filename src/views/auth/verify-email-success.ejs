@@ -1,0 +1,31 @@
+<!-- filepath: c:\Users\Kayla Ryhs\Desktop\PersonalProjects\helloRun\hellorun\src\views\auth\verify-email-success.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <%- include('../layouts/nav', { user: null }) %>
+
+  <main class="auth-page">
+    <div class="auth-container">
+      <div class="success-message">
+        <h1>✅ Email Verified!</h1>
+        
+        <p>Your email <strong><%= email %></strong> has been successfully verified.</p>
+        
+        <p>You can now log in to your helloRun account.</p>
+        
+        <a href="/login?email=<%= encodeURIComponent(email) %>" class="btn">
+          Go to Login
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+</body>
+</html>

@@ -1,0 +1,116 @@
+<!-- filepath: c:\Users\Kayla Ryhs\Desktop\PersonalProjects\helloRun\hellorun\src\views\auth\signup.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/signup.css">
+</head>
+<body>
+  <%- include('../layouts/nav', { user: null }) %>
+
+  <main class="auth-page">
+    <div class="auth-container">
+      <h1>Sign Up</h1>
+      
+      <% if (emailExists) { %>
+        <div class="email-exists-notice">
+          <h3>⚠️ Account Already Exists</h3>
+          <p>An account with <strong><%= email %></strong> already exists.</p>
+          <% if (authProvider === 'local') { %>
+            <p>This account uses email/password authentication.</p>
+            <div class="action-buttons">
+              <a href="/login?email=<%= encodeURIComponent(email) %>" class="btn btn-primary">
+                Go to Login
+              </a>
+              <a href="/forgot-password?email=<%= encodeURIComponent(email) %>" class="btn btn-secondary">
+                Forgot Password?
+              </a>
+            </div>
+          <% } else { %>
+            <p>This account is registered with <strong><%= authProvider %></strong>.</p>
+            <div class="action-buttons">
+              <a href="/auth/<%= authProvider %>" class="btn btn-primary">
+                Sign in with <%= authProvider.charAt(0).toUpperCase() + authProvider.slice(1) %>
+              </a>
+            </div>
+          <% } %>
+          <p class="back-link">
+            <a href="/signup">← Try a different email</a>
+          </p>
+        </div>
+      <% } else { %>
+        <% if (error) { %>
+          <div class="error"><%= error %></div>
+        <% } %>
+        
+        <form action="/signup" method="POST" id="signupForm">
+          <div class="form-group">
+            <label for="firstName">First Name</label>
+            <input type="text" id="firstName" name="firstName" required>
+          </div>
+          <div class="form-group">
+            <label for="lastName">Last Name</label>
+            <input type="text" id="lastName" name="lastName" required>
+          </div>
+          <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" value="<%= email || '' %>" required>
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="password-input-wrapper">
+              <input type="password" id="password" name="password" required>
+              <button type="button" class="toggle-password" data-target="password">
+                <span class="show-password">👁️</span>
+                <span class="hide-password" style="display: none;">👁️‍🗨️</span>
+              </button>
+            </div>
+            <div class="password-requirements">
+              <p class="requirement-title">Password must contain:</p>
+              <ul class="requirements-list">
+                <li class="requirement" data-requirement="minLength">
+                  <span class="icon">❌</span>
+                  <span>At least 8 characters</span>
+                </li>
+                <li class="requirement" data-requirement="hasUppercase">
+                  <span class="icon">❌</span>
+                  <span>One uppercase letter (A-Z)</span>
+                </li>
+                <li class="requirement" data-requirement="hasLowercase">
+                  <span class="icon">❌</span>
+                  <span>One lowercase letter (a-z)</span>
+                </li>
+                <li class="requirement" data-requirement="hasNumber">
+                  <span class="icon">❌</span>
+                  <span>One number (0-9)</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="confirmPassword">Confirm Password</label>
+            <div class="password-input-wrapper">
+              <input type="password" id="confirmPassword" name="confirmPassword" required>
+              <button type="button" class="toggle-password" data-target="confirmPassword">
+                <span class="show-password">👁️</span>
+                <span class="hide-password" style="display: none;">👁️‍🗨️</span>
+              </button>
+            </div>
+            <small class="password-match-message"></small>
+          </div>
+          <button type="submit" class="btn" id="submitBtn">Sign Up</button>
+        </form>
+        <p>Already have an account? <a href="/login">Login</a></p>
+      <% } %>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <% if (!emailExists) { %>
+    <script src="/js/signup.js"></script>
+  <% } %>
+</body>
+</html>

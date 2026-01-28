@@ -1,0 +1,193 @@
+How we will build helloRun step-by-step
+Phase 0: Project skeleton (MVC baseline)
+
+Goal: You can run the app locally with pages loading.
+
+What you build:
+
+Express server
+
+EJS views (or any templating you want)
+
+MVC folders
+
+MongoDB connection
+
+Base layout + simple pages
+
+Folder structure (MVC):
+
+hellorun/
+  src/
+    config/
+      db.js
+      session.js
+    controllers/
+      auth.controller.js
+      page.controller.js
+    middleware/
+      auth.middleware.js
+      role.middleware.js
+    models/
+      User.js
+      OrganiserApplication.js
+      Event.js
+      Registration.js
+      Submission.js
+    routes/
+      auth.routes.js
+      page.routes.js
+      organiser.routes.js
+      event.routes.js
+      admin.routes.js
+    services/
+      password.service.js
+      upload.service.js
+    views/
+      layouts/
+        main.ejs
+      pages/
+        home.ejs
+        events.ejs
+      auth/
+        login.ejs
+        signup.ejs
+    public/
+      css/
+      js/
+      img/
+    app.js
+  .env
+  package.json
+
+
+What you will have after Phase 0:
+
+/ home page
+
+/events events page (static placeholder)
+
+/login and /signup pages (UI only for now)
+
+Phase 1: Auth (MongoDB) with one-method-per-user
+
+Goal: Users can sign up and log in.
+
+We start with email + password first (fastest).
+Google sign-in comes after the base flow works.
+
+Feature 1A: Email/password signup
+
+Create User model
+
+Hash password
+
+Block duplicate email
+
+Save authProvider: "local"
+
+Feature 1B: Login/logout
+
+Verify password
+
+Create session cookie
+
+Logout clears session
+
+Feature 1C: Protect routes
+
+Middleware: requireAuth
+
+Middleware: requireRole("admin"), requireRole("organiser")
+
+User model fields (minimum):
+
+email (unique)
+
+name fields
+
+authProvider: "local" or "google"
+
+passwordHash (only if local)
+
+role: "runner" default
+
+createdAt
+
+Rule you chose:
+
+If a user exists with authProvider="google", they cannot set a local password.
+
+If a user exists with authProvider="local", they cannot switch to google.
+
+Phase 2: Organiser application + manual approval
+
+Goal: Runner can apply. Admin can approve.
+
+Feature 2A: Runner applies
+
+Create organiser application form
+
+Upload ID and org proof (store file URLs)
+
+Status pending
+
+Feature 2B: Admin reviews
+
+Admin list page for applications
+
+Approve sets user role to organiser
+
+Reject stores reason
+
+Phase 3: Event creation (organiser)
+
+Goal: Approved organisers can publish events.
+
+Feature 3A: Create event
+
+Create draft
+
+Publish event
+
+Store payment instructions (organiser collects directly)
+
+Feature 3B: Events list + event details
+
+Public list
+
+Details page includes “Join event”
+
+Phase 4: Registration + payment proof
+
+Goal: Runner joins event and uploads proof.
+
+Feature 4A: Join event
+
+Registration created
+
+Payment status pending_verification
+
+Feature 4B: Organiser verifies payment
+
+Approve or reject
+
+Runner can submit result only after verified
+
+Phase 5: Submissions + approval
+
+Goal: Runner submits run proof, organiser approves, certificate becomes available.
+
+Feature 5A: Submit result
+
+Distance, time, date
+
+Proof upload
+
+Status pending
+
+Feature 5B: Organiser approves
+
+Status approved
+
+Mark completion

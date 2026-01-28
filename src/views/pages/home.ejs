@@ -1,0 +1,45 @@
+<!-- filepath: c:\Users\Kayla Ryhs\Desktop\PersonalProjects\helloRun\hellorun\src\views\pages\home.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <%- include('../layouts/nav', { user }) %>
+
+  <main class="home">
+    <section class="hero">
+      <h1>Welcome to helloRun</h1>
+      <p>Join virtual running events from anywhere in the world</p>
+      <a href="/events" class="btn">Browse Events</a>
+    </section>
+
+    <section class="features">
+      <h2>How It Works</h2>
+      <div class="feature-grid">
+        <div class="feature">
+          <h3>🏃 Join Events</h3>
+          <p>Browse and register for virtual running events</p>
+        </div>
+        <div class="feature">
+          <h3>📸 Submit Results</h3>
+          <p>Upload your run proof and get verified</p>
+        </div>
+        <div class="feature">
+          <h3>🏆 Earn Certificates</h3>
+          <p>Receive digital certificates for completed events</p>
+        </div>
+        <div class="feature">
+          <h3>📅 Organize Events</h3>
+          <p>Become an organizer and create your own events</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+</body>
+</html>
