@@ -1,45 +1,62 @@
-<!-- filepath: c:\Users\Kayla Ryhs\Desktop\PersonalProjects\helloRun\hellorun\src\views\auth\resend-verification.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
+  <title>Resend Verification - HelloRun</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-  <%- include('../layouts/nav', { user: null }) %>
-
+  <%- include('../layouts/nav') %>
+  
   <main class="auth-page">
     <div class="auth-container">
-      <h1>Resend Verification Email</h1>
-      
-      <% if (success) { %>
-        <div class="success">
-          ✅ Verification email sent to <strong><%= email %></strong>
-          <p style="margin-top: 10px;">Please check your inbox and spam folder.</p>
+      <div class="auth-card">
+        <div class="auth-icon">
+          <i data-lucide="mail-check"></i>
         </div>
-        <a href="/login" class="btn" style="margin-top: 20px;">Go to Login</a>
-      <% } else { %>
-        <% if (error) { %>
-          <div class="error"><%= error %></div>
+        <h1>Resend Verification Email</h1>
+        <p class="auth-subtitle">Enter your email address and we'll send you a new verification link.</p>
+        
+        <% if (locals.error) { %>
+          <div class="alert alert-error">
+            <i data-lucide="alert-circle"></i>
+            <span><%= error %></span>
+          </div>
         <% } %>
         
-        <p>Enter your email address to receive a new verification link.</p>
-        
-        <form action="/resend-verification" method="POST">
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" value="<%= email || '' %>" required>
+        <% if (locals.success) { %>
+          <div class="alert alert-success">
+            <i data-lucide="check-circle"></i>
+            <span><%= success %></span>
           </div>
-          <button type="submit" class="btn">Send Verification Email</button>
+        <% } %>
+        
+        <form action="/resend-verification" method="POST" class="auth-form">
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" required placeholder="Enter your email">
+          </div>
+          
+          <button type="submit" class="btn btn-full">Resend Verification Email</button>
         </form>
         
-        <p><a href="/login">← Back to Login</a></p>
-      <% } %>
+        <p class="auth-switch">
+          Already verified? <a href="/login">Log in</a>
+        </p>
+      </div>
     </div>
   </main>
-
+  
   <%- include('../layouts/footer') %>
+  
+  <script src="/js/main.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
 </body>
 </html>

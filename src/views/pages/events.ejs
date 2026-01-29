@@ -1,23 +1,41 @@
-<!-- filepath: c:\Users\Kayla Ryhs\Desktop\PersonalProjects\helloRun\hellorun\src\views\pages\events.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= title %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-  <%- include('../layouts/nav', { user }) %>
+  <%- include('../layouts/nav') %>
+  
+  <main class="events-page">
+    <section class="page-header">
+      <div class="container">
+        <h1>Virtual Running Events</h1>
+        <p>Join exciting virtual runs and challenges from anywhere in the world</p>
+      </div>
+    </section>
 
-  <main class="events">
-    <h1>Upcoming Events</h1>
-    <div class="events-placeholder">
-      <p>No events available yet.</p>
-      <p>Check back soon for exciting virtual running events!</p>
-    </div>
+    <section class="events-list">
+      <div class="container">
+        <div class="events-grid">
+          <!-- Event cards will be dynamically populated here -->
+          <p>Events coming soon...</p>
+        </div>
+      </div>
+    </section>
   </main>
-
+  
   <%- include('../layouts/footer') %>
+  
+  <script src="/js/main.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
 </body>
 </html>

@@ -1,193 +1,405 @@
 How we will build helloRun step-by-step
-Phase 0: Project skeleton (MVC baseline)
+
+Phase 0: Project skeleton (MVC baseline) ✅ COMPLETED
 
 Goal: You can run the app locally with pages loading.
 
-What you build:
-
-Express server
-
-EJS views (or any templating you want)
-
-MVC folders
-
-MongoDB connection
-
-Base layout + simple pages
+What you built:
+✅ Express server
+✅ EJS views with layouts
+✅ MVC folders structure
+✅ MongoDB connection
+✅ Base layout + navigation + footer components
+✅ Mobile-responsive navigation with hamburger menu
+✅ Lucide icons integration
 
 Folder structure (MVC):
-
 hellorun/
   src/
     config/
-      db.js
-      session.js
+      db.js ✅
+      session.js ✅
     controllers/
-      auth.controller.js
-      page.controller.js
+      auth.controller.js ✅
+      page.controller.js ✅
     middleware/
-      auth.middleware.js
-      role.middleware.js
+      auth.middleware.js ✅
+      role.middleware.js ✅
     models/
-      User.js
-      OrganiserApplication.js
-      Event.js
-      Registration.js
-      Submission.js
+      User.js ✅
+      Counter.js ✅
+      OrganiserApplication.js ✅
+      Event.js ✅
+      Registration.js ✅
+      Submission.js ✅
     routes/
-      auth.routes.js
-      page.routes.js
-      organiser.routes.js
-      event.routes.js
-      admin.routes.js
+      auth.routes.js ✅
+      page.routes.js ✅
+      organiser.routes.js ✅
+      event.routes.js ✅
+      admin.routes.js ✅
     services/
-      password.service.js
-      upload.service.js
+      password.service.js ✅
+      email.service.js ✅
+      counter.service.js ✅
+      token.service.js ✅
+      upload.service.js ✅
+    scripts/
+      initCounter.js ✅
+      migrateUserIds.js ✅
     views/
       layouts/
-        main.ejs
+        main.ejs ✅
+        nav.ejs ✅
+        footer.ejs ✅
       pages/
-        home.ejs
-        events.ejs
+        index.ejs ✅
+        events.ejs ✅
       auth/
-        login.ejs
-        signup.ejs
+        login.ejs ✅
+        signup.ejs ✅
+        forgot-password.ejs ✅
+        reset-password.ejs ✅
+        reset-password-expired.ejs ✅
+        reset-email-sent.ejs ✅
+        reset-success.ejs ✅
+        resend-verification.ejs ✅
+        verify-email-sent.ejs ✅
+        verify-email-success.ejs ✅
+        verify-email-expired.ejs ✅
+      error.ejs ✅
     public/
       css/
+        style.css ✅
+        login.css ✅
+        signup.css ✅
       js/
-      img/
-    app.js
-  .env
-  package.json
+        main.js ✅ (mobile menu, Lucide icons)
+        auth.js ✅ (password visibility toggle)
+        signup.js ✅
+      images/
+        helloRun-icon.webp ✅
+      sitemap.xml ✅
+      robots.txt ✅
+    server.js ✅
+  .env ✅
+  .gitignore ✅
+  package.json ✅
+  dir.text ✅
+  dns.txt ✅
+  wireframe.txt ✅
+  sitemap.md ✅
 
+What you have after Phase 0:
+✅ / home page (fully styled with hero, features, audience sections)
+✅ /events events page (UI ready for dynamic content)
+✅ /login and /signup pages (fully functional UI)
+✅ Complete password reset flow (forgot, reset, success, expired)
+✅ Complete email verification flow (sent, success, expired, resend)
+✅ Error page
+✅ Responsive navigation with mobile menu
+✅ Footer with links
+✅ SEO ready (sitemap.xml, robots.txt)
 
-What you will have after Phase 0:
+---
 
-/ home page
+Phase 1: Auth (MongoDB) with email verification 🔄 IN PROGRESS
 
-/events events page (static placeholder)
+Goal: Users can sign up, verify email, and log in securely.
 
-/login and /signup pages (UI only for now)
+Feature 1A: Email/password signup ✅ COMPLETED
+✅ Create User model with email verification fields
+✅ Hash password with bcrypt
+✅ Block duplicate email
+✅ Save authProvider: "local"
+✅ Generate email verification token
+✅ Send verification email via Resend
 
-Phase 1: Auth (MongoDB) with one-method-per-user
+Feature 1B: Email verification ✅ COMPLETED
+✅ Verify email token
+✅ Mark user as verified
+✅ Handle expired tokens
+✅ Resend verification email
 
-Goal: Users can sign up and log in.
+Feature 1C: Password reset ✅ COMPLETED
+✅ Request password reset
+✅ Generate reset token
+✅ Send reset email
+✅ Verify reset token
+✅ Update password
+✅ Handle expired tokens
 
-We start with email + password first (fastest).
-Google sign-in comes after the base flow works.
+Feature 1D: Login/logout ⏳ NEXT
+⏳ Verify email is verified before login
+⏳ Verify password
+⏳ Create session cookie
+⏳ Logout clears session
+⏳ Remember me functionality
 
-Feature 1A: Email/password signup
+Feature 1E: Protect routes ⏳ PENDING
+⏳ Middleware: requireAuth
+⏳ Middleware: requireRole("admin")
+⏳ Middleware: requireRole("organiser")
+⏳ Redirect to login if not authenticated
 
-Create User model
+User model fields (current):
+✅ userId (custom format: HR000001)
+✅ email (unique)
+✅ firstName
+✅ lastName
+✅ authProvider: "local" or "google"
+✅ passwordHash (only if local)
+✅ role: "runner" (default), "organiser", "admin"
+✅ emailVerified (boolean)
+✅ emailVerificationToken
+✅ emailVerificationExpires
+✅ passwordResetToken
+✅ passwordResetExpires
+✅ createdAt
+✅ updatedAt
 
-Hash password
+Rule enforced:
+✅ Users with authProvider="google" cannot set local password
+✅ Users with authProvider="local" cannot switch to google
 
-Block duplicate email
+---
 
-Save authProvider: "local"
+Phase 2: Organiser application + manual approval 📋 PENDING
 
-Feature 1B: Login/logout
+Goal: Runner can apply to become organiser. Admin can approve.
 
-Verify password
+Feature 2A: Runner applies ⏳ TODO
+⏳ Create organiser application form
+⏳ Upload ID and organization proof
+⏳ Store application with status: "pending"
+⏳ Send confirmation email
 
-Create session cookie
+Feature 2B: Admin reviews ⏳ TODO
+⏳ Admin dashboard page
+⏳ List all applications
+⏳ Approve: sets user role to "organiser"
+⏳ Reject: stores reason and notifies applicant
+⏳ Email notifications for approval/rejection
 
-Logout clears session
+OrganiserApplication model needs:
+⏳ userId (reference)
+⏳ businessName
+⏳ businessType
+⏳ idProofUrl
+⏳ orgProofUrl
+⏳ status: "pending", "approved", "rejected"
+⏳ rejectionReason
+⏳ reviewedBy (admin userId)
+⏳ reviewedAt
+⏳ createdAt
 
-Feature 1C: Protect routes
+---
 
-Middleware: requireAuth
+Phase 3: Event creation (organiser) 📅 PENDING
 
-Middleware: requireRole("admin"), requireRole("organiser")
+Goal: Approved organisers can create and publish events.
 
-User model fields (minimum):
+Feature 3A: Create event ⏳ TODO
+⏳ Organiser dashboard
+⏳ Create event form
+⏳ Draft mode
+⏳ Publish event
+⏳ Store payment instructions
+⏳ Upload event banner/images
+⏳ Set event categories (5K, 10K, Half Marathon, etc.)
 
-email (unique)
+Feature 3B: Events list + event details ⏳ TODO
+⏳ Public events list page (filter by category, date, status)
+⏳ Event details page
+⏳ "Join Event" registration button
+⏳ Display organiser info
+⏳ Display payment instructions
+⏳ Show participant count
 
-name fields
+Event model needs:
+⏳ eventId (custom format)
+⏳ organiserId (userId reference)
+⏳ title
+⏳ description
+⏳ category (5K, 10K, etc.)
+⏳ startDate
+⏳ endDate
+⏳ registrationDeadline
+⏳ fee
+⏳ paymentInstructions
+⏳ bannerUrl
+⏳ status: "draft", "published", "closed", "cancelled"
+⏳ maxParticipants
+⏳ currentParticipants
+⏳ createdAt
+⏳ updatedAt
 
-authProvider: "local" or "google"
+---
 
-passwordHash (only if local)
+Phase 4: Registration + payment proof 💳 PENDING
 
-role: "runner" default
+Goal: Runner joins event and uploads payment proof for verification.
 
-createdAt
+Feature 4A: Join event ⏳ TODO
+⏳ Registration form
+⏳ Upload payment proof
+⏳ Create registration with status: "pending_verification"
+⏳ Email confirmation to runner
+⏳ Notification to organiser
 
-Rule you chose:
+Feature 4B: Organiser verifies payment ⏳ TODO
+⏳ Organiser view registrations
+⏳ View payment proof
+⏳ Approve registration (status: "verified")
+⏳ Reject with reason
+⏳ Email notification to runner
+⏳ Runner can only submit results after verification
 
-If a user exists with authProvider="google", they cannot set a local password.
+Registration model needs:
+⏳ registrationId (custom format)
+⏳ eventId (reference)
+⏳ userId (reference)
+⏳ paymentProofUrl
+⏳ paymentStatus: "pending_verification", "verified", "rejected"
+⏳ rejectionReason
+⏳ verifiedBy (organiser userId)
+⏳ verifiedAt
+⏳ createdAt
 
-If a user exists with authProvider="local", they cannot switch to google.
+---
 
-Phase 2: Organiser application + manual approval
-
-Goal: Runner can apply. Admin can approve.
-
-Feature 2A: Runner applies
-
-Create organiser application form
-
-Upload ID and org proof (store file URLs)
-
-Status pending
-
-Feature 2B: Admin reviews
-
-Admin list page for applications
-
-Approve sets user role to organiser
-
-Reject stores reason
-
-Phase 3: Event creation (organiser)
-
-Goal: Approved organisers can publish events.
-
-Feature 3A: Create event
-
-Create draft
-
-Publish event
-
-Store payment instructions (organiser collects directly)
-
-Feature 3B: Events list + event details
-
-Public list
-
-Details page includes “Join event”
-
-Phase 4: Registration + payment proof
-
-Goal: Runner joins event and uploads proof.
-
-Feature 4A: Join event
-
-Registration created
-
-Payment status pending_verification
-
-Feature 4B: Organiser verifies payment
-
-Approve or reject
-
-Runner can submit result only after verified
-
-Phase 5: Submissions + approval
+Phase 5: Submissions + approval 🏃 PENDING
 
 Goal: Runner submits run proof, organiser approves, certificate becomes available.
 
-Feature 5A: Submit result
+Feature 5A: Submit result ⏳ TODO
+⏳ Submission form (distance, time, date)
+⏳ Upload proof (screenshot, photo)
+⏳ Create submission with status: "pending"
+⏳ Email notification to organiser
 
-Distance, time, date
+Feature 5B: Organiser approves ⏳ TODO
+⏳ View all submissions for event
+⏳ Review proof
+⏳ Approve submission (status: "approved")
+⏳ Reject with reason
+⏳ Mark completion
+⏳ Generate certificate
 
-Proof upload
+Feature 5C: Certificates ⏳ TODO
+⏳ Auto-generate certificate PDF
+⏳ Runner can download certificate
+⏳ Display on runner dashboard
+⏳ Email certificate to runner
 
-Status pending
+Submission model needs:
+⏳ submissionId (custom format)
+⏳ registrationId (reference)
+⏳ eventId (reference)
+⏳ userId (reference)
+⏳ distance
+⏳ time
+⏳ completionDate
+⏳ proofUrl
+⏳ status: "pending", "approved", "rejected"
+⏳ rejectionReason
+⏳ certificateUrl
+⏳ reviewedBy (organiser userId)
+⏳ reviewedAt
+⏳ createdAt
 
-Feature 5B: Organiser approves
+---
 
-Status approved
+Phase 6: Dashboards & Analytics 📊 PENDING
 
-Mark completion
+Goal: Users see their progress, organisers see event metrics.
+
+Feature 6A: Runner Dashboard ⏳ TODO
+⏳ Upcoming events
+⏳ Past events
+⏳ Activity log
+⏳ Certificates earned
+⏳ Progress statistics
+
+Feature 6B: Organiser Dashboard ⏳ TODO
+⏳ Event overview
+⏳ Participant statistics
+⏳ Pending registrations count
+⏳ Pending submissions count
+⏳ Revenue tracking
+
+Feature 6C: Admin Dashboard ⏳ TODO
+⏳ Platform statistics
+⏳ User growth
+⏳ Event trends
+⏳ Pending applications
+⏳ System health
+
+---
+
+Phase 7: Additional Pages & Features 🌟 PENDING
+
+Feature 7A: Static Pages ⏳ TODO
+⏳ /about - About HelloRun
+⏳ /how-it-works - Platform guide
+⏳ /contact - Contact form
+⏳ /faq - Frequently asked questions
+⏳ /blog - Running tips and articles
+⏳ /privacy - Privacy policy
+⏳ /terms - Terms of service
+
+Feature 7B: Search & Filters ⏳ TODO
+⏳ Search events
+⏳ Filter by category
+⏳ Filter by date range
+⏳ Filter by location (if applicable)
+
+Feature 7C: Notifications ⏳ TODO
+⏳ In-app notifications
+⏳ Email preferences
+⏳ Notification history
+
+---
+
+Phase 8: Google OAuth (Optional) 🔐 PENDING
+
+Goal: Users can sign up/login with Google.
+
+⏳ Google OAuth setup
+⏳ Passport.js integration
+⏳ Merge accounts (if email exists)
+⏳ Handle authProvider: "google"
+
+---
+
+Phase 9: Testing & Optimization 🧪 PENDING
+
+⏳ Unit tests for services
+⏳ Integration tests for routes
+⏳ Performance optimization
+⏳ Security audit
+⏳ Mobile responsiveness testing
+⏳ Cross-browser testing
+⏳ Load testing
+
+---
+
+Phase 10: Deployment 🚀 PENDING
+
+⏳ Set up production database
+⏳ Configure environment variables
+⏳ Set up SSL certificate
+⏳ Deploy to hosting platform
+⏳ Configure domain (hellorun.online)
+⏳ Set up monitoring
+⏳ Set up backups
+⏳ Launch!
+
+---
+
+CURRENT STATUS: Phase 1 (Auth) - 75% Complete
+NEXT STEPS: 
+1. Complete login/logout functionality
+2. Implement route protection middleware
+3. Test complete auth flow
+4. Move to Phase 2 (Organiser applications)

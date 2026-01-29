@@ -1,116 +1,443 @@
-<!-- filepath: c:\Users\Kayla Ryhs\Desktop\PersonalProjects\helloRun\hellorun\src\views\auth\signup.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
+  <title>Sign Up - HelloRun</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/signup.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-  <%- include('../layouts/nav', { user: null }) %>
-
-  <main class="auth-page">
-    <div class="auth-container">
-      <h1>Sign Up</h1>
-      
-      <% if (emailExists) { %>
-        <div class="email-exists-notice">
-          <h3>⚠️ Account Already Exists</h3>
-          <p>An account with <strong><%= email %></strong> already exists.</p>
-          <% if (authProvider === 'local') { %>
-            <p>This account uses email/password authentication.</p>
-            <div class="action-buttons">
-              <a href="/login?email=<%= encodeURIComponent(email) %>" class="btn btn-primary">
-                Go to Login
-              </a>
-              <a href="/forgot-password?email=<%= encodeURIComponent(email) %>" class="btn btn-secondary">
-                Forgot Password?
-              </a>
-            </div>
-          <% } else { %>
-            <p>This account is registered with <strong><%= authProvider %></strong>.</p>
-            <div class="action-buttons">
-              <a href="/auth/<%= authProvider %>" class="btn btn-primary">
-                Sign in with <%= authProvider.charAt(0).toUpperCase() + authProvider.slice(1) %>
-              </a>
+  <%- include('../layouts/nav') %>
+  
+  <main class="compact-auth-page">
+    <div class="compact-auth-container">
+      <div class="compact-auth-card">
+        <!-- LEFT PANEL: Header -->
+        <div class="auth-header">
+          <h1>Create Your Account</h1>
+          <p class="auth-subtitle">Join HelloRun and start your running journey</p>
+        </div>
+        
+        <!-- RIGHT PANEL: Form -->
+        <div class="auth-form-wrapper">
+          <!-- Display server-side errors -->
+          <% if (locals.error) { %>
+            <div class="compact-alert alert-error">
+              <i data-lucide="alert-circle"></i>
+              <%= error %>
             </div>
           <% } %>
-          <p class="back-link">
-            <a href="/signup">← Try a different email</a>
+          
+          <!-- Display success messages -->
+          <% if (locals.success) { %>
+            <div class="compact-alert alert-info">
+              <i data-lucide="check-circle"></i>
+              <%= success %>
+            </div>
+          <% } %>
+          
+          <form action="/signup" method="POST" class="compact-auth-form" id="signupForm" novalidate>
+            <div class="compact-form-row">
+              <div class="input-group compact-input-group">
+                <input 
+                  type="text" 
+                  id="firstName" 
+                  name="firstName" 
+                  value="<%= locals.formData && locals.formData.firstName || '' %>"
+                  required
+                  minlength="2"
+                  maxlength="50"
+                  autocomplete="given-name">
+                <label for="firstName">First Name <span class="required">*</span></label>
+                <small class="form-error" id="firstNameError"></small>
+              </div>
+              
+              <div class="input-group compact-input-group">
+                <input 
+                  type="text" 
+                  id="lastName" 
+                  name="lastName" 
+                  value="<%= locals.formData && locals.formData.lastName || '' %>"
+                  required
+                  minlength="2"
+                  maxlength="50"
+                  autocomplete="family-name">
+                <label for="lastName">Last Name <span class="required">*</span></label>
+                <small class="form-error" id="lastNameError"></small>
+              </div>
+            </div>
+            
+            <div class="input-group compact-input-group">
+              <input 
+                type="email" 
+                id="email" 
+                name="email" 
+                value="<%= locals.formData && locals.formData.email || '' %>"
+                required
+                autocomplete="email">
+              <label for="email">Email Address <span class="required">*</span></label>
+              <small class="form-error" id="emailError"></small>
+            </div>
+            
+            <!-- Password Field -->
+            <div class="input-group compact-input-group password-group">
+              <div class="password-wrapper">
+                <input 
+                  type="password" 
+                  id="password"
+                  name="password" 
+                  required
+                  minlength="8"
+                  autocomplete="new-password">
+                <button type="button" class="toggle-password" data-target="password" aria-label="Toggle password visibility">
+                  <i data-lucide="eye" class="eye-icon"></i>
+                </button>
+              </div>
+              <label for="password">Password <span class="required">*</span></label>
+              <small class="form-hint">Min. 8 characters with uppercase, lowercase, and number</small>
+              <small class="form-error" id="passwordError"></small>
+              
+              <div class="password-strength" id="passwordStrength" style="display: none;">
+                <div class="strength-bar">
+                  <div class="strength-fill" id="strengthFill"></div>
+                </div>
+                <small class="strength-text" id="strengthText"></small>
+              </div>
+            </div>
+            
+            <!-- Confirm Password Field -->
+            <div class="input-group compact-input-group password-group">
+              <div class="password-wrapper">
+                <input 
+                  type="password" 
+                  id="confirmPassword"
+                  name="confirmPassword" 
+                  required
+                  autocomplete="new-password">
+                <button type="button" class="toggle-password" data-target="confirmPassword" aria-label="Toggle password visibility">
+                  <i data-lucide="eye" class="eye-icon"></i>
+                </button>
+              </div>
+              <label for="confirmPassword">Confirm Password <span class="required">*</span></label>
+              <small class="form-error" id="confirmPasswordError"></small>
+            </div>
+            
+            <div class="input-group compact-input-group">
+              <select id="role" name="role" required>
+                <option value=""></option>
+                <option value="runner" <%= locals.formData && locals.formData.role === 'runner' ? 'selected' : '' %>>Runner</option>
+                <option value="organiser" <%= locals.formData && locals.formData.role === 'organiser' ? 'selected' : '' %>>Event Organizer</option>
+              </select>
+              <label for="role">I am a: <span class="required">*</span></label>
+              <small class="form-error" id="roleError"></small>
+            </div>
+            
+            <!-- Terms and Conditions Checkbox -->
+            <div class="checkbox-group" id="termsGroup">
+              <input 
+                type="checkbox" 
+                id="agreeTerms" 
+                name="agreeTerms" 
+                required>
+              <label for="agreeTerms">
+                I agree to the <a href="/terms" target="_blank">Terms and Conditions</a> and <a href="/privacy" target="_blank">Privacy Policy</a> <span class="required">*</span>
+              </label>
+            </div>
+            <small class="checkbox-error" id="termsError"></small>
+            
+            <button type="submit" class="btn btn-primary btn-full" id="submitBtn">
+              <span class="btn-text">Create Account</span>
+              <span class="btn-loader" style="display: none;">
+                <i data-lucide="loader-2" class="spin"></i> Creating account...
+              </span>
+            </button>
+          </form>
+          
+          <p class="auth-switch">
+            Already have an account? <a href="/login">Log in</a>
           </p>
         </div>
-      <% } else { %>
-        <% if (error) { %>
-          <div class="error"><%= error %></div>
-        <% } %>
-        
-        <form action="/signup" method="POST" id="signupForm">
-          <div class="form-group">
-            <label for="firstName">First Name</label>
-            <input type="text" id="firstName" name="firstName" required>
-          </div>
-          <div class="form-group">
-            <label for="lastName">Last Name</label>
-            <input type="text" id="lastName" name="lastName" required>
-          </div>
-          <div class="form-group">
-            <label for="email">Email</label>
-            <input type="email" id="email" name="email" value="<%= email || '' %>" required>
-          </div>
-          <div class="form-group">
-            <label for="password">Password</label>
-            <div class="password-input-wrapper">
-              <input type="password" id="password" name="password" required>
-              <button type="button" class="toggle-password" data-target="password">
-                <span class="show-password">👁️</span>
-                <span class="hide-password" style="display: none;">👁️‍🗨️</span>
-              </button>
-            </div>
-            <div class="password-requirements">
-              <p class="requirement-title">Password must contain:</p>
-              <ul class="requirements-list">
-                <li class="requirement" data-requirement="minLength">
-                  <span class="icon">❌</span>
-                  <span>At least 8 characters</span>
-                </li>
-                <li class="requirement" data-requirement="hasUppercase">
-                  <span class="icon">❌</span>
-                  <span>One uppercase letter (A-Z)</span>
-                </li>
-                <li class="requirement" data-requirement="hasLowercase">
-                  <span class="icon">❌</span>
-                  <span>One lowercase letter (a-z)</span>
-                </li>
-                <li class="requirement" data-requirement="hasNumber">
-                  <span class="icon">❌</span>
-                  <span>One number (0-9)</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="confirmPassword">Confirm Password</label>
-            <div class="password-input-wrapper">
-              <input type="password" id="confirmPassword" name="confirmPassword" required>
-              <button type="button" class="toggle-password" data-target="confirmPassword">
-                <span class="show-password">👁️</span>
-                <span class="hide-password" style="display: none;">👁️‍🗨️</span>
-              </button>
-            </div>
-            <small class="password-match-message"></small>
-          </div>
-          <button type="submit" class="btn" id="submitBtn">Sign Up</button>
-        </form>
-        <p>Already have an account? <a href="/login">Login</a></p>
-      <% } %>
+      </div>
     </div>
   </main>
-
+  
   <%- include('../layouts/footer') %>
-  <% if (!emailExists) { %>
-    <script src="/js/signup.js"></script>
-  <% } %>
+  
+  <script src="/js/main.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      lucide.createIcons();
+      
+      // ========================================
+      // FLOATING LABELS
+      // ========================================
+      const inputGroups = document.querySelectorAll('.input-group');
+      
+      inputGroups.forEach(group => {
+        const input = group.querySelector('input, select');
+        
+        if (input) {
+          // Check if input has value on load
+          if (input.value.trim() !== '' || (input.tagName === 'SELECT' && input.value !== '')) {
+            group.classList.add('filled');
+          }
+          
+          // Focus event
+          input.addEventListener('focus', function() {
+            group.classList.add('focused');
+          });
+          
+          // Blur event
+          input.addEventListener('blur', function() {
+            group.classList.remove('focused');
+            if (this.value.trim() !== '' || (this.tagName === 'SELECT' && this.value !== '')) {
+              group.classList.add('filled');
+            } else {
+              group.classList.remove('filled');
+            }
+          });
+          
+          // For select elements
+          if (input.tagName === 'SELECT') {
+            input.addEventListener('change', function() {
+              if (this.value !== '') {
+                group.classList.add('filled');
+              } else {
+                group.classList.remove('filled');
+              }
+            });
+          }
+        }
+      });
+
+      // ========================================
+      // PASSWORD TOGGLE
+      // ========================================
+      document.querySelectorAll('.toggle-password').forEach(button => {
+        button.addEventListener('click', function(e) {
+          e.preventDefault();
+          
+          const targetId = this.getAttribute('data-target');
+          const passwordInput = document.getElementById(targetId);
+          const icon = this.querySelector('.eye-icon');
+          
+          console.log('Toggle clicked for:', targetId);
+          console.log('Password input:', passwordInput);
+          console.log('Icon:', icon);
+          
+          if (!passwordInput) {
+            console.error('Password input not found for ID:', targetId);
+            return;
+          }
+          
+          if (!icon) {
+            console.error('Eye icon not found in button');
+            return;
+          }
+          
+          // Toggle visibility
+          if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.setAttribute('data-lucide', 'eye-off');
+            console.log('Changed to visible');
+          } else {
+            passwordInput.type = 'password';
+            icon.setAttribute('data-lucide', 'eye');
+            console.log('Changed to hidden');
+          }
+          
+          // Re-create icons
+          lucide.createIcons();
+        });
+      });
+
+      // ========================================
+      // PASSWORD STRENGTH INDICATOR
+      // ========================================
+      const passwordInput = document.getElementById('password');
+      const strengthBar = document.getElementById('passwordStrength');
+      const strengthFill = document.getElementById('strengthFill');
+      const strengthText = document.getElementById('strengthText');
+      
+      if (passwordInput && strengthBar && strengthFill && strengthText) {
+        passwordInput.addEventListener('input', function() {
+          const password = this.value;
+          
+          if (password.length === 0) {
+            strengthBar.style.display = 'none';
+            return;
+          }
+          
+          strengthBar.style.display = 'block';
+          
+          let strength = 0;
+          
+          // Check criteria
+          if (password.length >= 8) strength++;
+          if (/[A-Z]/.test(password)) strength++;
+          if (/[a-z]/.test(password)) strength++;
+          if (/[0-9]/.test(password)) strength++;
+          if (/[^A-Za-z0-9]/.test(password)) strength++;
+          
+          // Update UI based on strength
+          const strengthLevels = [
+            { width: '20%', color: '#ef4444', text: 'Very Weak' },
+            { width: '20%', color: '#ef4444', text: 'Very Weak' },
+            { width: '40%', color: '#f97316', text: 'Weak' },
+            { width: '60%', color: '#eab308', text: 'Fair' },
+            { width: '80%', color: '#3b82f6', text: 'Good' },
+            { width: '100%', color: '#10b981', text: 'Strong' }
+          ];
+          
+          const level = strengthLevels[strength];
+          strengthFill.style.width = level.width;
+          strengthFill.style.backgroundColor = level.color;
+          strengthText.textContent = level.text;
+          strengthText.style.color = level.color;
+        });
+      }
+
+      // ========================================
+      // REAL-TIME PASSWORD MATCH VALIDATION
+      // ========================================
+      const confirmPassword = document.getElementById('confirmPassword');
+      
+      if (confirmPassword && passwordInput) {
+        confirmPassword.addEventListener('input', function() {
+          const confirmError = document.getElementById('confirmPasswordError');
+          
+          if (this.value && passwordInput.value !== this.value) {
+            confirmError.textContent = 'Passwords do not match';
+            confirmError.classList.add('show');
+            this.classList.add('error');
+          } else {
+            confirmError.textContent = '';
+            confirmError.classList.remove('show');
+            this.classList.remove('error');
+          }
+        });
+      }
+
+      // ========================================
+      // FORM VALIDATION
+      // ========================================
+      const form = document.getElementById('signupForm');
+      const submitBtn = document.getElementById('submitBtn');
+      
+      if (form) {
+        form.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          // Clear previous errors
+          document.querySelectorAll('.form-error').forEach(el => {
+            el.textContent = '';
+            el.classList.remove('show');
+          });
+          document.querySelectorAll('.checkbox-error').forEach(el => {
+            el.textContent = '';
+            el.classList.remove('show');
+          });
+          document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+
+          let isValid = true;
+
+          // Validate first name
+          const firstName = document.getElementById('firstName');
+          if (!firstName.value.trim() || firstName.value.trim().length < 2) {
+            showError('firstNameError', 'First name must be at least 2 characters');
+            firstName.classList.add('error');
+            isValid = false;
+          }
+
+          // Validate last name
+          const lastName = document.getElementById('lastName');
+          if (!lastName.value.trim() || lastName.value.trim().length < 2) {
+            showError('lastNameError', 'Last name must be at least 2 characters');
+            lastName.classList.add('error');
+            isValid = false;
+          }
+
+          // Validate email
+          const email = document.getElementById('email');
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(email.value)) {
+            showError('emailError', 'Please enter a valid email address');
+            email.classList.add('error');
+            isValid = false;
+          }
+
+          // Validate password strength
+          let strength = 0;
+          const pwd = passwordInput.value;
+          if (pwd.length >= 8) strength++;
+          if (/[A-Z]/.test(pwd)) strength++;
+          if (/[a-z]/.test(pwd)) strength++;
+          if (/[0-9]/.test(pwd)) strength++;
+          
+          if (strength < 4) {
+            showError('passwordError', 'Password must contain uppercase, lowercase, and a number');
+            passwordInput.classList.add('error');
+            isValid = false;
+          }
+
+          // Validate password match
+          if (passwordInput.value !== confirmPassword.value) {
+            showError('confirmPasswordError', 'Passwords do not match');
+            confirmPassword.classList.add('error');
+            isValid = false;
+          }
+
+          // Validate role
+          const role = document.getElementById('role');
+          if (!role.value) {
+            showError('roleError', 'Please select a role');
+            role.classList.add('error');
+            isValid = false;
+          }
+
+          // Validate terms checkbox
+          const agreeTerms = document.getElementById('agreeTerms');
+          const termsGroup = document.getElementById('termsGroup');
+          if (!agreeTerms.checked) {
+            showCheckboxError('termsError', 'You must agree to the Terms and Conditions');
+            termsGroup.classList.add('error');
+            isValid = false;
+          }
+
+          if (isValid) {
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.querySelector('.btn-text').style.display = 'none';
+            submitBtn.querySelector('.btn-loader').style.display = 'flex';
+            
+            // Submit form
+            form.submit();
+          }
+        });
+      }
+
+      function showError(elementId, message) {
+        const errorElement = document.getElementById(elementId);
+        if (errorElement) {
+          errorElement.textContent = message;
+          errorElement.classList.add('show');
+        }
+      }
+
+      function showCheckboxError(elementId, message) {
+        const errorElement = document.getElementById(elementId);
+        if (errorElement) {
+          errorElement.textContent = message;
+          errorElement.classList.add('show');
+        }
+      }
+    });
+  </script>
 </body>
 </html>

@@ -37,7 +37,7 @@ helloRun/
         nav.ejs
         footer.ejs
       pages/
-        home.ejs
+        index.ejs
         events.ejs
       auth/
         login.ejs
@@ -58,9 +58,11 @@ helloRun/
         login.css
         signup.css
       js/
+        main.js
         auth.js
         signup.js
-      img/
+      images/
+        helloRun-icon.webp
     server.js
   .env
   .gitignore

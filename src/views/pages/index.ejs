@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  
+  <main class="home">
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="container">
+        <h1>Run anywhere. Track everything. Celebrate progress together.</h1>
+        <p>HelloRun helps you join virtual runs, log activities, and stay motivated with a community that moves with you.</p>
+        <a href="/events" class="btn">Start Your First Run Today</a>
+      </div>
+    </section>
+
+    <!-- What HelloRun Does -->
+    <section class="features">
+      <div class="container">
+        <h2>What HelloRun Does</h2>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i data-lucide="activity"></i>
+            </div>
+            <h3>Join Virtual Fun Runs</h3>
+            <p>Participate in exciting virtual challenges and fun runs from anywhere in the world.</p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i data-lucide="bar-chart-3"></i>
+            </div>
+            <h3>Track Your Activities</h3>
+            <p>Log runs, walks, and activities at your own pace. No GPS required - submit results online.</p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i data-lucide="trending-up"></i>
+            </div>
+            <h3>See Your Progress</h3>
+            <p>View all your milestones and achievements in one centralized location.</p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i data-lucide="users"></i>
+            </div>
+            <h3>Connect with Community</h3>
+            <p>Engage with organizers and fellow runners. Share experiences and stay motivated together.</p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i data-lucide="zap"></i>
+            </div>
+            <h3>Simple & Focused</h3>
+            <p>Focus on moving, not managing tools. Our platform keeps everything streamlined.</p>
+          </div>
+          
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i data-lucide="award"></i>
+            </div>
+            <h3>Earn Recognition</h3>
+            <p>Get digital certificates and badges for showing up and completing challenges.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Why HelloRun -->
+    <section class="why-hellorun">
+      <div class="container">
+        <h2>Why HelloRun</h2>
+        <div class="why-content">
+          <p>HelloRun is about movement, momentum, and shared progress. You're not just tracking distance - you're joining a conversation around consistency, health, and achievement.</p>
+          
+          <div class="quote-box">
+            <p>You run on your own schedule.<br>You still feel part of something bigger.</p>
+          </div>
+          
+          <p>HelloRun keeps it simple so you focus on moving, not managing tools. Our platform creates a friendly, social space where running is simple, inclusive, and goal-driven.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- For Runners & Organizers -->
+    <section class="audience">
+      <div class="container">
+        <h2>Built for Everyone in the Running Community</h2>
+        <div class="audience-grid">
+          <div class="audience-card">
+            <h3>For Runners</h3>
+            <ul>
+              <li>Log your activity anywhere, anytime</li>
+              <li>Track progress with beautiful visualizations</li>
+              <li>Earn recognition for showing up consistently</li>
+              <li>Join challenges that match your pace</li>
+              <li>Connect with like-minded runners</li>
+            </ul>
+            <a href="/signup/runner" class="btn">Start Running</a>
+          </div>
+          
+          <div class="audience-card">
+            <h3>For Organizers</h3>
+            <ul>
+              <li>Create events in minutes</li>
+              <li>Manage participants with ease</li>
+              <li>Let runners submit results online</li>
+              <li>Track event analytics</li>
+              <li>Build your running community</li>
+            </ul>
+            <a href="/signup/organizer" class="btn btn-secondary">Create Events</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-content">
+          <h2>Ready to Move With Us?</h2>
+          <div class="cta-tagline">Move. Log. Finish.</div>
+          <p>Join thousands of runners who are already tracking their progress, celebrating achievements, and building meaningful connections through movement.</p>
+          <a href="/signup" class="btn">Start Your Running Journey Today</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  
+  <script src="/js/main.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

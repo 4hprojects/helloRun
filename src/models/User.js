@@ -91,6 +91,14 @@ const userSchema = new mongoose.Schema({
   lastPasswordResetSent: {
     type: Date,
     default: null
+  },
+  passwordResetEmailCount: {
+    type: Number,
+    default: 0
+  },
+  passwordResetEmailResetDate: {
+    type: Date,
+    default: Date.now
   }
 }, {
   timestamps: true
@@ -152,6 +160,31 @@ userSchema.methods.incrementVerificationEmailCount = function() {
   
   if (!this.verificationEmailResetDate) {
     this.verificationEmailResetDate = new Date();
+  }
+};
+
+// Method to check if user can receive password reset email
+userSchema.methods.canReceivePasswordResetEmail = function() {
+  const now = new Date();
+  const maxEmailsPerDay = parseInt(process.env.MAX_PASSWORD_RESET_EMAILS_PER_DAY) || 3;
+  
+  // Reset counter if 24 hours passed
+  if (this.passwordResetEmailResetDate && 
+      now - this.passwordResetEmailResetDate > 24 * 60 * 60 * 1000) {
+    this.passwordResetEmailCount = 0;
+    this.passwordResetEmailResetDate = now;
+  }
+  
+  return this.passwordResetEmailCount < maxEmailsPerDay;
+};
+
+// Method to increment password reset email count
+userSchema.methods.incrementPasswordResetEmailCount = function() {
+  this.passwordResetEmailCount += 1;
+  this.lastPasswordResetSent = new Date();
+  
+  if (!this.passwordResetEmailResetDate) {
+    this.passwordResetEmailResetDate = new Date();
   }
 };
 

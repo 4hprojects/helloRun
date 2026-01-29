@@ -1,8 +1,5 @@
 exports.getHome = (req, res) => {
-  res.render('pages/home', { 
-    title: 'Home - helloRun',
-    user: req.session.user || null
-  });
+  res.render('pages/index', { title: 'helloRun - Virtual Running Events', user: req.user });
 };
 
 exports.getEvents = (req, res) => {

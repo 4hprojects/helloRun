@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /organizer
+Disallow: /my-*
+Disallow: /api/
+
+Sitemap: https://hellorun.online/sitemap.xml

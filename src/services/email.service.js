@@ -1,138 +1,133 @@
 const crypto = require('crypto');
 const { Resend } = require('resend');
 
-class EmailService {
-  constructor() {
-    // Initialize Resend
-    if (!process.env.RESEND_API_KEY) {
-      console.error('❌ RESEND_API_KEY not found in environment variables');
-      throw new Error('Email service not configured');
-    }
-    
-    this.resend = new Resend(process.env.RESEND_API_KEY);
-    
-    // Choose email based on environment
-    this.fromEmail = process.env.NODE_ENV === 'production' 
-      ? process.env.EMAIL_FROM_PROD 
-      : process.env.EMAIL_FROM_DEV;
-    
-    this.fromName = process.env.EMAIL_FROM_NAME || 'HelloRun';
-    
-    console.log(`📧 Email Service initialized (Resend)`);
-    console.log(`📧 Environment: ${process.env.NODE_ENV}`);
-    console.log(`📧 Sending from: ${this.fromEmail}`);
-  }
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-  generateVerificationToken() {
-    return crypto.randomBytes(32).toString('hex');
-  }
-
-  async sendEmail(mailOptions) {
+const emailService = {
+  /**
+   * Send email verification email
+   */
+  async sendVerificationEmail(to, firstName, verificationUrl) {
     try {
-      const result = await this.resend.emails.send(mailOptions);
-      console.log(`✅ Email sent via Resend to ${mailOptions.to}`);
-      return { success: true, result };
+      const { data, error } = await resend.emails.send({
+        from: process.env.EMAIL_FROM || 'noreply@hellorun.online',
+        to: to, // ✅ Make sure 'to' is passed correctly
+        subject: 'Verify Your HelloRun Account',
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+              .button { display: inline-block; background: #FA9A4B; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+              .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>🏃 Welcome to HelloRun!</h1>
+              </div>
+              <div class="content">
+                <h2>Hi ${firstName},</h2>
+                <p>Thanks for signing up! Please verify your email address to get started.</p>
+                <p>Click the button below to verify your account:</p>
+                <a href="${verificationUrl}" class="button">Verify Email Address</a>
+                <p>Or copy and paste this link into your browser:</p>
+                <p style="word-break: break-all; color: #FA9A4B;">${verificationUrl}</p>
+                <p><strong>This link will expire in 48 hours.</strong></p>
+                <p>If you didn't create an account, you can safely ignore this email.</p>
+              </div>
+              <div class="footer">
+                <p>© 2026 HelloRun. All rights reserved.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `,
+      });
+
+      if (error) {
+        console.error('❌ Resend error:', error);
+        throw error;
+      }
+
+      console.log('✅ Email sent via Resend to', to); // ✅ Fixed logging
+      return data;
     } catch (error) {
-      console.error(`❌ Error sending email via Resend:`, error);
-      console.error('Error details:', error.message);
-      return { success: false, error: error.message };
+      console.error('❌ Email sending failed:', error);
+      throw error;
     }
-  }
+  },
 
-  async sendVerificationEmail(user, token) {
-    const verificationUrl = `${process.env.APP_URL}/auth/verify-email?token=${token}`;
-    const expiryHours = parseInt(process.env.EMAIL_VERIFICATION_EXPIRY) / (1000 * 60 * 60);
-
-    const mailOptions = {
-      from: `${this.fromName} <${this.fromEmail}>`,
-      to: user.email,
-      subject: 'Verify Your Email - HelloRun',
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: ${process.env.BRAND_PRIMARY_COLOR}; color: white; padding: 20px; text-align: center; }
-            .content { padding: 20px; background-color: #f9f9f9; }
-            .button { display: inline-block; padding: 12px 24px; background-color: ${process.env.BRAND_PRIMARY_COLOR}; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0; }
-            .footer { padding: 20px; text-align: center; font-size: 12px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Welcome to HelloRun!</h1>
+  /**
+   * Send password reset email
+   */
+  async sendPasswordResetEmail(to, firstName, resetUrl) {
+    try {
+      const { data, error } = await resend.emails.send({
+        from: process.env.EMAIL_FROM || 'noreply@hellorun.online',
+        to: to,
+        subject: 'Reset Your HelloRun Password',
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+              .header { background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 8px 8px; }
+              .button { display: inline-block; background: #FA9A4B; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+              .warning { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+              .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #666; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>🔒 Password Reset Request</h1>
+              </div>
+              <div class="content">
+                <h2>Hi ${firstName},</h2>
+                <p>We received a request to reset your HelloRun password.</p>
+                <p>Click the button below to reset your password:</p>
+                <a href="${resetUrl}" class="button">Reset Password</a>
+                <p>Or copy and paste this link into your browser:</p>
+                <p style="word-break: break-all; color: #FA9A4B;">${resetUrl}</p>
+                <div class="warning">
+                  <strong>⚠️ Security Notice:</strong>
+                  <ul>
+                    <li>This link will expire in 1 hour</li>
+                    <li>If you didn't request this, please ignore this email</li>
+                    <li>Your password won't change unless you click the link above</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="footer">
+                <p>© 2026 HelloRun. All rights reserved.</p>
+              </div>
             </div>
-            <div class="content">
-              <p>Hi ${user.firstName},</p>
-              <p>Thank you for signing up! Please verify your email address to activate your account.</p>
-              <p>Click the button below to verify your email:</p>
-              <a href="${verificationUrl}" class="button">Verify Email</a>
-              <p>Or copy and paste this link into your browser:</p>
-              <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
-              <p>This link will expire in ${expiryHours} hours.</p>
-              <p>If you didn't create an account, please ignore this email.</p>
-            </div>
-            <div class="footer">
-              <p>&copy; ${new Date().getFullYear()} HelloRun. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
-    };
+          </body>
+          </html>
+        `,
+      });
 
-    return await this.sendEmail(mailOptions);
-  }
+      if (error) {
+        console.error('❌ Resend error:', error);
+        throw error;
+      }
 
-  async sendPasswordResetEmail(user, token) {
-    const resetUrl = `${process.env.APP_URL}/auth/reset-password?token=${token}`;
-    const expiryMinutes = parseInt(process.env.PASSWORD_RESET_EXPIRY) / (1000 * 60);
+      console.log('✅ Password reset email sent to', to);
+      return data;
+    } catch (error) {
+      console.error('❌ Email sending failed:', error);
+      throw error;
+    }
+  },
+};
 
-    const mailOptions = {
-      from: `${this.fromName} <${this.fromEmail}>`,
-      to: user.email,
-      subject: 'Reset Your Password - HelloRun',
-      html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background-color: ${process.env.BRAND_PRIMARY_COLOR}; color: white; padding: 20px; text-align: center; }
-            .content { padding: 20px; background-color: #f9f9f9; }
-            .button { display: inline-block; padding: 12px 24px; background-color: ${process.env.BRAND_PRIMARY_COLOR}; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0; }
-            .footer { padding: 20px; text-align: center; font-size: 12px; color: #666; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Password Reset Request</h1>
-            </div>
-            <div class="content">
-              <p>Hi ${user.firstName},</p>
-              <p>We received a request to reset your password. Click the button below to create a new password:</p>
-              <a href="${resetUrl}" class="button">Reset Password</a>
-              <p>Or copy and paste this link into your browser:</p>
-              <p style="word-break: break-all; color: #666;">${resetUrl}</p>
-              <p>This link will expire in ${expiryMinutes} minutes.</p>
-              <p>If you didn't request a password reset, please ignore this email.</p>
-            </div>
-            <div class="footer">
-              <p>&copy; ${new Date().getFullYear()} HelloRun. All rights reserved.</p>
-            </div>
-          </div>
-        </body>
-        </html>
-      `,
-    };
-
-    return await this.sendEmail(mailOptions);
-  }
-}
-
-module.exports = new EmailService();
+module.exports = emailService;

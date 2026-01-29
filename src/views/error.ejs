@@ -1,21 +1,46 @@
-<!-- filepath: c:\Users\Kayla Ryhs\Desktop\PersonalProjects\helloRun\hellorun\src\views\error.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %></title>
+  <title>Error - HelloRun</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-  <%- include('layouts/nav', { user }) %>
-
+  <%- include('./layouts/nav') %>
+  
   <main class="error-page">
-    <h1><%= title %></h1>
-    <p><%= message %></p>
-    <a href="/" class="btn">Go Home</a>
+    <div class="error-container">
+      <div class="error-card">
+        <div class="error-icon">
+          <i data-lucide="alert-triangle"></i>
+        </div>
+        <h1><%= status || 'Error' %></h1>
+        <h2><%= message || 'Something went wrong' %></h2>
+        
+        <% if (locals.error && process.env.NODE_ENV === 'development') { %>
+          <div class="error-details">
+            <pre><%= error.stack %></pre>
+          </div>
+        <% } %>
+        
+        <div class="error-actions">
+          <a href="/" class="btn btn-full">Go to Homepage</a>
+          <a href="javascript:history.back()" class="btn btn-secondary btn-full">Go Back</a>
+        </div>
+      </div>
+    </div>
   </main>
-
-  <%- include('layouts/footer') %>
+  
+  <%- include('./layouts/footer') %>
+  
+  <script src="/js/main.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
 </body>
 </html>
