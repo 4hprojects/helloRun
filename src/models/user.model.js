@@ -1,6 +1,12 @@
-const mongoose = require('mongoose'); // ✅ ADD THIS LINE
+const mongoose = require('mongoose');
+const Counter = require('./counter.model');
 
 const userSchema = new mongoose.Schema({
+  userId: {
+    type: Number,
+    unique: true,
+    // ✅ REMOVE 'required: true' - let the pre-save hook handle it
+  },
   firstName: {
     type: String,
     required: true,
@@ -18,7 +24,7 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    unique: true,
+    unique: true, // ✅ Keep this, remove schema.index() below
     lowercase: true,
     trim: true
   },
@@ -68,10 +74,46 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Virtual for user ID formatted
-userSchema.virtual('userIdFormatted').get(function() {
-  return `USER-${this._id.toString().slice(-6).toUpperCase()}`;
+// ✅ Auto-increment userId before validation (not after)
+userSchema.pre('validate', async function(next) {
+  // Only generate userId for new documents
+  if (this.isNew && !this.userId) {
+    try {
+      const counter = await Counter.findByIdAndUpdate(
+        'userId',
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+      );
+      this.userId = counter.seq;
+      next();
+    } catch (error) {
+      next(error);
+    }
+  } else {
+    next();
+  }
 });
+
+// ✅ Virtual for user-friendly formatted ID
+userSchema.virtual('userIdFormatted').get(function() {
+  // Format: USER001234 (6 digits, zero-padded)
+  return `USER${String(this.userId).padStart(6, '0')}`;
+});
+
+// ✅ Virtual for short display ID
+userSchema.virtual('userIdShort').get(function() {
+  // Format: #1234
+  return `#${this.userId}`;
+});
+
+// Ensure virtuals are included in JSON output
+userSchema.set('toJSON', { virtuals: true });
+userSchema.set('toObject', { virtuals: true });
+
+// ❌ REMOVE THESE - Duplicate index definitions
+// userSchema.index({ email: 1 }, { unique: true });
+// userSchema.index({ userId: 1 }, { unique: true });
+// ✅ Already defined with 'unique: true' in schema fields above
 
 // Method to check if user can receive verification email (rate limiting)
 userSchema.methods.canReceiveVerificationEmail = function() {
