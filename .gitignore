@@ -29,7 +29,7 @@ Thumbs.db
 dist/
 build/
 
-# Uploads
+# Uploads (keep folder structure but ignore uploaded files)
 public/uploads/organizer-docs/*
 !public/uploads/organizer-docs/.gitkeep
 
