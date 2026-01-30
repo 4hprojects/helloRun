@@ -1,0 +1,19 @@
+1. User Signs Up → Choose Role (Runner/Organizer)
+   ↓
+2. Email Verification Sent
+   ↓
+3. User Clicks Verification Link
+   ↓
+4. Email Verified ✓
+   ↓
+5. IF Runner → Redirect to Home
+   IF Organizer → Redirect to /organizer/complete-profile
+   ↓
+6. Organizer Fills Business Info + Uploads Documents
+   ↓
+7. Application Submitted (status: pending)
+   ↓
+8. Admin Reviews Application
+   ↓
+9. IF Approved → User can create events
+   IF Rejected → User sees reason, can reapply

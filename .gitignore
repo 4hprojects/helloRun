@@ -30,8 +30,8 @@ dist/
 build/
 
 # Uploads
-uploads/
-public/uploads/
+public/uploads/organizer-docs/*
+!public/uploads/organizer-docs/.gitkeep
 
 # Session store
 sessions/

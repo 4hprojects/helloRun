@@ -33,20 +33,20 @@ hellorun/
       Registration.js ✅
       Submission.js ✅
     routes/
-      auth.routes.js ✅
+      authRoutes.js ✅
       page.routes.js ✅
-      organiser.routes.js ✅
+      organizer.routes.js ✅ (NEW - just created)
       event.routes.js ✅
       admin.routes.js ✅
     services/
       password.service.js ✅
       email.service.js ✅
       counter.service.js ✅
-      token.service.js ✅
-      upload.service.js ✅
+      upload.service.js ✅ (NEW - just created)
     scripts/
       initCounter.js ✅
       migrateUserIds.js ✅
+      drop-userId-index.js ✅
     views/
       layouts/
         main.ejs ✅
@@ -64,9 +64,13 @@ hellorun/
         reset-email-sent.ejs ✅
         reset-success.ejs ✅
         resend-verification.ejs ✅
-        verify-email-sent.ejs ✅
+        verify-email-sent.ejs ✅ (NEW - just created)
         verify-email-success.ejs ✅
         verify-email-expired.ejs ✅
+        verify-email-result.ejs ✅ (NEW - just created)
+      organizer/
+        complete-profile.ejs ✅ (NEW - placeholder created)
+        application-status.ejs ✅ (NEW - placeholder created)
       error.ejs ✅
     public/
       css/
@@ -76,15 +80,19 @@ hellorun/
       js/
         main.js ✅ (mobile menu, Lucide icons)
         auth.js ✅ (password visibility toggle)
-        signup.js ✅
+        signup.js ✅ (password strength, validation)
       images/
         helloRun-icon.webp ✅
+      uploads/
+        organizer-docs/ ✅ (NEW - created for document uploads)
       sitemap.xml ✅
       robots.txt ✅
     server.js ✅
   .env ✅
+  .env.example ✅
   .gitignore ✅
   package.json ✅
+  README.md ✅
   dir.text ✅
   dns.txt ✅
   wireframe.txt ✅
@@ -103,95 +111,223 @@ What you have after Phase 0:
 
 ---
 
-Phase 1: Auth (MongoDB) with email verification 🔄 IN PROGRESS
+Phase 1: Auth (MongoDB) with email verification ✅ COMPLETED (100%)
 
 Goal: Users can sign up, verify email, and log in securely.
 
 Feature 1A: Email/password signup ✅ COMPLETED
 ✅ Create User model with email verification fields
+✅ Auto-increment userId (U000001, U000002, etc.)
+✅ Counter model for sequential IDs
 ✅ Hash password with bcrypt
 ✅ Block duplicate email
-✅ Save authProvider: "local"
-✅ Generate email verification token
+✅ Save role: "runner" or "organiser"
+✅ Generate email verification token (24 hours expiry)
 ✅ Send verification email via Resend
+✅ Password strength validation (real-time)
+✅ Password visibility toggle
+✅ Floating label inputs
+✅ Client-side validation
+✅ Server-side validation
+✅ Terms & Conditions agreement
+✅ Both /signup and /register routes work (POST & GET)
+✅ Redirect to "verify-email-sent" page after signup
+✅ Role selection during signup (runner/organiser)
 
 Feature 1B: Email verification ✅ COMPLETED
 ✅ Verify email token
-✅ Mark user as verified
+✅ Mark user as verified (emailVerified = true)
 ✅ Handle expired tokens
 ✅ Resend verification email
+✅ Rate limiting (1 email per hour)
+✅ Track verification email count
+✅ Beautiful email templates
+✅ Professional email design with gradient
+✅ Role-aware verification flow:
+  - Runners → Redirect to home (/?verified=true)
+  - Organisers → Redirect to /organizer/complete-profile
+✅ Auto-login after email verification
+✅ Session management on verification
 
 Feature 1C: Password reset ✅ COMPLETED
 ✅ Request password reset
-✅ Generate reset token
-✅ Send reset email
+✅ Generate reset token (1 hour expiry)
+✅ Send reset email via Resend
 ✅ Verify reset token
 ✅ Update password
 ✅ Handle expired tokens
+✅ Rate limiting (3 resets per 24 hours)
+✅ Email notifications
+✅ Confirmation email after password reset
 
-Feature 1D: Login/logout ⏳ NEXT
-⏳ Verify email is verified before login
-⏳ Verify password
-⏳ Create session cookie
-⏳ Logout clears session
-⏳ Remember me functionality
+Feature 1D: Login/logout ✅ COMPLETED
+✅ Login page UI
+✅ Verify email is verified before login
+✅ Verify password with bcrypt
+✅ Create session cookie
+✅ Session management
+✅ Logout clears session
+✅ Redirect to home after login
+✅ Role-based dashboard routing (future)
 
-Feature 1E: Protect routes ⏳ PENDING
-⏳ Middleware: requireAuth
-⏳ Middleware: requireRole("admin")
-⏳ Middleware: requireRole("organiser")
-⏳ Redirect to login if not authenticated
+Feature 1E: Protect routes ✅ COMPLETED
+✅ Middleware: requireAuth
+✅ Middleware: requireRole("admin")
+✅ Middleware: requireRole("organiser")
+✅ Middleware: requireApprovedOrganizer
+✅ Redirect to login if not authenticated
+✅ Created auth.middleware.js with all role checks
 
 User model fields (current):
-✅ userId (custom format: HR000001)
-✅ email (unique)
-✅ firstName
-✅ lastName
-✅ authProvider: "local" or "google"
-✅ passwordHash (only if local)
+✅ userId (auto-increment: 1, 2, 3...)
+✅ userIdFormatted (virtual: U000001)
+✅ email (unique, indexed)
+✅ firstName (2-50 chars)
+✅ lastName (2-50 chars)
+✅ passwordHash (hashed with bcrypt, 8+ chars, uppercase, lowercase, number)
 ✅ role: "runner" (default), "organiser", "admin"
 ✅ emailVerified (boolean)
-✅ emailVerificationToken
+✅ emailVerificationToken (24 hours expiry)
 ✅ emailVerificationExpires
-✅ passwordResetToken
+✅ passwordResetToken (1 hour expiry)
 ✅ passwordResetExpires
+✅ passwordResetEmailCount (rate limiting)
+✅ passwordResetEmailLastSent
+✅ organizerApplicationId (reference to OrganiserApplication) ✅ NEW
+✅ organizerStatus: "not_applied", "pending", "approved", "rejected" ✅ NEW
 ✅ createdAt
-✅ updatedAt
+✅ updatedAt (auto-updated)
+
+User model methods (NEW):
+✅ canApplyAsOrganizer() - checks if can apply to be organizer
+✅ hasActiveApplication() - checks if has pending application
+✅ isApprovedOrganizer() - checks if approved organizer
+✅ canReceivePasswordResetEmail() - rate limiting check
+✅ incrementPasswordResetEmailCount() - tracks reset attempts
 
 Rule enforced:
-✅ Users with authProvider="google" cannot set local password
-✅ Users with authProvider="local" cannot switch to google
+✅ Email must be unique across all users
+✅ Password must meet strength requirements (8+ chars, uppercase, lowercase, number)
+✅ Email verification required before login
+✅ Organisers can also participate as runners (dual capability)
+✅ organizerStatus separate from role (allows pending state)
+
+Technical Stack (Phase 1):
+✅ bcryptjs (password hashing)
+✅ express-session (session management)
+✅ Resend API (email service)
+✅ crypto (token generation)
+✅ Mongoose (MongoDB ODM)
+✅ Counter model (auto-increment IDs)
+✅ multer (file uploads) ✅ NEW
 
 ---
 
-Phase 2: Organiser application + manual approval 📋 PENDING
+Phase 2: Organiser application + manual approval 🔄 IN PROGRESS (30%)
 
 Goal: Runner can apply to become organiser. Admin can approve.
 
-Feature 2A: Runner applies ⏳ TODO
-⏳ Create organiser application form
-⏳ Upload ID and organization proof
-⏳ Store application with status: "pending"
-⏳ Send confirmation email
+Feature 2A: Organiser signup flow ✅ COMPLETED
+✅ User signs up and selects "Event Organizer" role
+✅ Email verification sent (same as runner)
+✅ After verification, redirect to /organizer/complete-profile
+✅ Upload service created (multer configuration)
+✅ File validation (PDF, JPEG, PNG only, max 5MB)
+✅ Secure file storage in /public/uploads/organizer-docs/
+✅ Organizer routes created (/organizer/*)
+✅ OrganiserApplication model created with fields:
+  - applicationId (auto-increment: APP000001)
+  - userId (reference)
+  - businessName
+  - businessType (individual, company, ngo, sports_club)
+  - contactPhone
+  - businessRegistrationNumber
+  - businessAddress
+  - idProofUrl (required)
+  - businessProofUrl (required)
+  - additionalInfo
+  - status: pending, under_review, approved, rejected
+  - rejectionReason
+  - reviewedBy (admin reference)
+  - reviewedAt
+  - submittedAt
+  - createdAt, updatedAt
 
-Feature 2B: Admin reviews ⏳ TODO
+Feature 2B: Document upload & profile completion ⏳ IN PROGRESS (50%)
+✅ Upload service configured (multer)
+✅ File type validation (PDF, JPG, PNG)
+✅ File size validation (max 5MB)
+✅ Secure filename generation (userId_timestamp_random)
+✅ Storage directory created
+✅ Organizer routes skeleton created
+⏳ Complete profile form UI (NEXT - needs full form)
+⏳ File upload with drag-and-drop
+⏳ File preview before upload
+⏳ Progress indicators
+⏳ Form validation (business info)
+⏳ Submit application handler
+⏳ Email notification on submission
+
+Feature 2C: Admin reviews ⏳ TODO
 ⏳ Admin dashboard page
 ⏳ List all applications
-⏳ Approve: sets user role to "organiser"
+⏳ Filter by status (pending, approved, rejected)
+⏳ View application details
+⏳ View uploaded documents
+⏳ Approve: sets user role to "organiser" + organizerStatus to "approved"
 ⏳ Reject: stores reason and notifies applicant
 ⏳ Email notifications for approval/rejection
+⏳ Admin routes (/admin/applications)
 
-OrganiserApplication model needs:
-⏳ userId (reference)
-⏳ businessName
-⏳ businessType
-⏳ idProofUrl
-⏳ orgProofUrl
-⏳ status: "pending", "approved", "rejected"
-⏳ rejectionReason
-⏳ reviewedBy (admin userId)
-⏳ reviewedAt
-⏳ createdAt
+Feature 2D: Application status page ⏳ TODO
+✅ Basic placeholder created
+⏳ Show current status (pending, approved, rejected)
+⏳ Show submission date
+⏳ Show estimated review time
+⏳ If rejected: show reason + option to reapply
+⏳ If approved: congratulations + link to create event
+
+OrganiserApplication model: ✅ CREATED
+✅ All fields defined
+✅ Auto-increment applicationId
+✅ Indexes on userId, status, createdAt
+✅ Timestamps enabled
+✅ Counter integration
+
+Upload service: ✅ CREATED
+✅ uploadOrganizerDocs middleware
+✅ File type validation
+✅ File size validation
+✅ Secure storage
+✅ Unique filename generation
+✅ deleteFile helper
+✅ validateFiles helper
+
+Environment variables added:
+✅ UPLOAD_MAX_SIZE=5242880
+✅ UPLOAD_ALLOWED_TYPES=image/jpeg,image/png,application/pdf
+✅ ADMIN_EMAIL
+✅ ORGANIZER_REVIEW_TIME_DAYS=3
+
+Files structure updated:
+✅ src/models/OrganiserApplication.js
+✅ src/services/upload.service.js
+✅ src/routes/organizer.routes.js
+✅ src/middleware/auth.middleware.js (updated)
+✅ src/views/organizer/complete-profile.ejs (placeholder)
+✅ src/views/organizer/application-status.ejs (placeholder)
+✅ public/uploads/organizer-docs/ (directory)
+✅ .gitignore updated for uploads
+
+NEXT IMMEDIATE STEPS FOR PHASE 2:
+1. ⏳ Create complete-profile form UI with document upload
+2. ⏳ Implement POST /organizer/complete-profile handler
+3. ⏳ Add email templates (application-submitted, approved, rejected)
+4. ⏳ Update email.service.js with new methods
+5. ⏳ Create admin dashboard for reviewing applications
+6. ⏳ Create admin views for reviewing applications
+7. ⏳ Test full organizer application flow
+8. ⏳ Deploy Phase 2 to production
 
 ---
 
@@ -389,7 +525,7 @@ Phase 10: Deployment 🚀 PENDING
 ⏳ Set up production database
 ⏳ Configure environment variables
 ⏳ Set up SSL certificate
-⏳ Deploy to hosting platform
+⏳ Deploy to hosting platform (Render)
 ⏳ Configure domain (hellorun.online)
 ⏳ Set up monitoring
 ⏳ Set up backups
@@ -397,9 +533,60 @@ Phase 10: Deployment 🚀 PENDING
 
 ---
 
-CURRENT STATUS: Phase 1 (Auth) - 75% Complete
-NEXT STEPS: 
-1. Complete login/logout functionality
-2. Implement route protection middleware
-3. Test complete auth flow
-4. Move to Phase 2 (Organiser applications)
+CURRENT STATUS: Phase 2 (Organiser Applications) - 30% Complete
+
+COMPLETED FEATURES (Phase 1 & 2A):
+✅ Complete user authentication system
+✅ Email verification with role-aware routing
+✅ Password reset with rate limiting
+✅ Session management
+✅ Route protection middleware
+✅ User model with organizer fields
+✅ OrganiserApplication model
+✅ Upload service with file validation
+✅ Organizer routes skeleton
+✅ Basic organizer views (placeholders)
+✅ Both /signup and /register routes
+✅ verify-email-sent page
+✅ Role-based email verification flow
+
+IN PROGRESS:
+🔄 Complete profile form UI with document upload (40%)
+🔄 Application submission handler (0%)
+🔄 Email notifications for applications (0%)
+
+NEXT IMMEDIATE STEPS:
+1. Create complete-profile.ejs full form UI
+2. Add drag-and-drop file upload
+3. Implement POST /organizer/complete-profile handler
+4. Add email templates (submitted, approved, rejected)
+5. Update email.service.js
+6. Create admin dashboard for reviewing applications
+7. Test end-to-end organizer application flow
+
+TECHNICAL DEBT / NOTES:
+- Need to initialize Counter for organiserApplication
+- File uploads stored locally (consider cloud storage for production)
+- Admin email notifications need to be tested
+- Consider adding file size warnings on upload
+- May need to add virus scanning for uploaded files (production)
+
+DEPLOYMENT STATUS:
+- Development: ✅ Working (localhost:3000)
+- Production (Render): ⚠️ Phase 1 deployed, Phase 2 pending
+- Domain: hellorun.online
+- Database: MongoDB Atlas (Cluster0)
+- Email Service: Resend API (verified domain: hellorun.online)
+
+REPOSITORY:
+- GitHub: https://github.com/4hprojects/helloRun
+- Last Push: January 30, 2026
+- Branch: main
+
+DEPENDENCIES ADDED:
+✅ multer (file uploads)
+✅ bcryptjs (password hashing)
+✅ express-session (sessions)
+✅ resend (email service)
+✅ mongoose (MongoDB ODM)
+✅ crypto (built-in - token generation)

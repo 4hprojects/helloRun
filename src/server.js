@@ -22,7 +22,8 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Routes
 app.use('/', require('./routes/page.routes'));
-app.use('/', require('./routes/auth.routes'));
+app.use('/', require('./routes/authRoutes'));
+app.use('/organizer', require('./routes/organizer.routes'));
 
 // Start server
 const PORT = process.env.PORT || 3000;

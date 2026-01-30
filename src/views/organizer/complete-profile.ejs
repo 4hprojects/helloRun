@@ -1,0 +1,29 @@
+<!-- filepath: c:\Users\Kayla Ryhs\Desktop\PersonalProjects\helloRun\src\views\organizer\complete-profile.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Complete Organizer Profile - HelloRun</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  
+  <main style="padding: 2rem;">
+    <div style="max-width: 800px; margin: 0 auto;">
+      <h1>Complete Your Organizer Profile</h1>
+      <p>Welcome, <%= user.firstName %>!</p>
+      <p>This page will contain the document upload form.</p>
+      <p><strong>Coming soon:</strong></p>
+      <ul>
+        <li>Business information form</li>
+        <li>Document upload (ID proof, business registration)</li>
+        <li>Submit for admin review</li>
+      </ul>
+    </div>
+  </main>
+  
+  <%- include('../layouts/footer') %>
+</body>
+</html>

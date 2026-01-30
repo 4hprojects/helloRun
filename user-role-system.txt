@@ -1,0 +1,10 @@
+// User can have ONE primary role but organizers have RUNNER privileges by default
+role: 'runner'          // Can participate in events
+role: 'organiser'       // Can create events + participate in events (has runner privileges)
+role: 'admin'           // Can do everything
+
+// Organizer Status (separate from role)
+organizerStatus: 'not_applied'  // Runner who hasn't applied
+organizerStatus: 'pending'      // Applied, waiting for approval
+organizerStatus: 'approved'     // Can create events + participate
+organizerStatus: 'rejected'     // Application rejected

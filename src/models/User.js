@@ -3,23 +3,8 @@ const counterService = require('../services/counter.service');
 
 const userSchema = new mongoose.Schema({
   userId: {
-    type: Number,
-    unique: true,
-    required: function() {
-      // Only required for new documents
-      return this.isNew;
-    },
-    sparse: true // Allow null/undefined for existing users
-  },
-  firstName: {
     type: String,
-    required: true,
-    trim: true
-  },
-  lastName: {
-    type: String,
-    required: true,
-    trim: true
+    unique: true
   },
   email: {
     type: String,
@@ -28,75 +13,60 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   },
-  authProvider: {
-    type: String,
-    enum: ['local', 'google'],
-    required: true,
-    default: 'local'
-  },
   passwordHash: {
     type: String,
-    required: function() {
-      return this.authProvider === 'local';
-    }
-  },
-  googleId: {
-    type: String,
-    sparse: true,
-    unique: true
+    required: true
   },
   role: {
     type: String,
     enum: ['runner', 'organiser', 'admin'],
     default: 'runner'
   },
-  profilePicture: {
+  firstName: {
     type: String,
-    default: null
+    trim: true
   },
-  // Email verification
+  lastName: {
+    type: String,
+    trim: true
+  },
   emailVerified: {
     type: Boolean,
     default: false
   },
   emailVerificationToken: {
-    type: String,
-    default: null
+    type: String
   },
   emailVerificationExpires: {
-    type: Date,
-    default: null
+    type: Date
   },
-  lastVerificationEmailSent: {
-    type: Date,
-    default: null
-  },
-  verificationEmailCount: {
-    type: Number,
-    default: 0
-  },
-  verificationEmailResetDate: {
-    type: Date,
-    default: Date.now
-  },
-  // Password reset
   passwordResetToken: {
-    type: String,
-    default: null
+    type: String
   },
   passwordResetExpires: {
-    type: Date,
-    default: null
-  },
-  lastPasswordResetSent: {
-    type: Date,
-    default: null
+    type: Date
   },
   passwordResetEmailCount: {
     type: Number,
     default: 0
   },
-  passwordResetEmailResetDate: {
+  passwordResetEmailLastSent: {
+    type: Date
+  },
+  
+  // NEW: Organizer Application Fields
+  organizerApplicationId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'OrganiserApplication',
+    default: null
+  },
+  organizerStatus: {
+    type: String,
+    enum: ['not_applied', 'pending', 'approved', 'rejected'],
+    default: 'not_applied'
+  },
+  
+  createdAt: {
     type: Date,
     default: Date.now
   }
@@ -104,88 +74,68 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Virtual field for formatted userId
-userSchema.virtual('userIdFormatted').get(function() {
-  if (!this.userId) return 'N/A';
-  return counterService.formatUserId(this.userId);
-});
-
-// Ensure virtuals are included in JSON
-userSchema.set('toJSON', { virtuals: true });
-userSchema.set('toObject', { virtuals: true });
-
-// Auto-assign userId before saving new user
+// Auto-generate userId before saving
 userSchema.pre('save', async function(next) {
-  // Only assign userId if it's a new user and userId not set
-  if (this.isNew && !this.userId) {
-    try {
-      this.userId = await counterService.getNextUserId();
-    } catch (error) {
-      return next(error);
-    }
+  if (!this.userId) {
+    const count = await counterService.getNextSequence('user');
+    this.userId = `U${String(count).padStart(6, '0')}`;
   }
-  
-  // Prevent mixing auth providers
-  if (this.isNew) {
-    const existingUser = await mongoose.model('User').findOne({ email: this.email });
-    if (existingUser && existingUser.authProvider !== this.authProvider) {
-      const error = new Error(`This email is already registered with ${existingUser.authProvider} authentication`);
-      error.code = 'AUTH_PROVIDER_MISMATCH';
-      return next(error);
-    }
-  }
-  
   next();
 });
 
-// Method to check if user can receive verification email
-userSchema.methods.canReceiveVerificationEmail = function() {
-  const now = new Date();
-  const maxEmailsPerDay = parseInt(process.env.MAX_VERIFICATION_EMAILS_PER_DAY) || 3;
-  
-  // Reset counter if 24 hours passed
-  if (this.verificationEmailResetDate && 
-      now - this.verificationEmailResetDate > 24 * 60 * 60 * 1000) {
-    this.verificationEmailCount = 0;
-    this.verificationEmailResetDate = now;
-  }
-  
-  return this.verificationEmailCount < maxEmailsPerDay;
-};
-
-// Method to increment verification email count
-userSchema.methods.incrementVerificationEmailCount = function() {
-  this.verificationEmailCount += 1;
-  this.lastVerificationEmailSent = new Date();
-  
-  if (!this.verificationEmailResetDate) {
-    this.verificationEmailResetDate = new Date();
-  }
-};
-
-// Method to check if user can receive password reset email
+// Password reset email rate limiting
 userSchema.methods.canReceivePasswordResetEmail = function() {
   const now = new Date();
-  const maxEmailsPerDay = parseInt(process.env.MAX_PASSWORD_RESET_EMAILS_PER_DAY) || 3;
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   
-  // Reset counter if 24 hours passed
-  if (this.passwordResetEmailResetDate && 
-      now - this.passwordResetEmailResetDate > 24 * 60 * 60 * 1000) {
-    this.passwordResetEmailCount = 0;
-    this.passwordResetEmailResetDate = now;
+  if (!this.passwordResetEmailLastSent || this.passwordResetEmailLastSent < oneDayAgo) {
+    return true;
   }
   
-  return this.passwordResetEmailCount < maxEmailsPerDay;
+  return this.passwordResetEmailCount < 3;
 };
 
-// Method to increment password reset email count
 userSchema.methods.incrementPasswordResetEmailCount = function() {
-  this.passwordResetEmailCount += 1;
-  this.lastPasswordResetSent = new Date();
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   
-  if (!this.passwordResetEmailResetDate) {
-    this.passwordResetEmailResetDate = new Date();
+  if (!this.passwordResetEmailLastSent || this.passwordResetEmailLastSent < oneDayAgo) {
+    this.passwordResetEmailCount = 1;
+  } else {
+    this.passwordResetEmailCount += 1;
   }
+  
+  this.passwordResetEmailLastSent = now;
+};
+
+// NEW: Organizer Application Methods
+userSchema.methods.canApplyAsOrganizer = function() {
+  return (this.role === 'runner' || this.role === 'organiser') && 
+         this.emailVerified && 
+         this.organizerStatus === 'not_applied';
+};
+
+userSchema.methods.hasActiveApplication = function() {
+  return this.organizerStatus === 'pending';
+};
+
+userSchema.methods.isApprovedOrganizer = function() {
+  return this.role === 'organiser' && 
+         this.organizerStatus === 'approved';
+};
+
+// Update the methods:
+
+// Check if user can participate in events (runners AND organizers)
+userSchema.methods.canParticipateInEvents = function() {
+  return this.emailVerified && (this.role === 'runner' || this.role === 'organiser' || this.role === 'admin');
+};
+
+// Check if user can create events (only approved organizers)
+userSchema.methods.canCreateEvents = function() {
+  return this.role === 'organiser' && 
+         this.organizerStatus === 'approved' &&
+         this.emailVerified;
 };
 
 module.exports = mongoose.model('User', userSchema);

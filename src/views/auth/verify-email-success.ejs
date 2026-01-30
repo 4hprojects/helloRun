@@ -9,31 +9,600 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .success-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #FFF5EB 0%, #FFE8D6 100%);
+      position: relative;
+      overflow: hidden;
+      padding: 0;
+    }
+
+    /* Animated background elements */
+    .success-page::before,
+    .success-page::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(250, 154, 75, 0.1) 0%, rgba(224, 164, 106, 0.1) 100%);
+      animation: float 6s ease-in-out infinite;
+    }
+
+    .success-page::before {
+      width: 400px;
+      height: 400px;
+      top: -200px;
+      right: -100px;
+      animation-delay: 0s;
+    }
+
+    .success-page::after {
+      width: 500px;
+      height: 500px;
+      bottom: -250px;
+      left: -150px;
+      animation-delay: 3s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      50% { transform: translate(30px, -30px) rotate(180deg); }
+    }
+
+    .success-container {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      min-height: 100vh;
+      background: white;
+      box-shadow: 0 0 60px rgba(0, 0, 0, 0.15);
+    }
+
+    /* LEFT PANEL - Illustration/Branding */
+    .success-left-panel {
+      background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%);
+      padding: 60px 50px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: white;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .success-left-panel::before,
+    .success-left-panel::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .success-left-panel::before {
+      width: 300px;
+      height: 300px;
+      top: -100px;
+      left: -100px;
+    }
+
+    .success-left-panel::after {
+      width: 250px;
+      height: 250px;
+      bottom: -80px;
+      right: -80px;
+    }
+
+    .success-illustration {
+      position: relative;
+      z-index: 1;
+      margin-bottom: 40px;
+    }
+
+    .success-icon {
+      width: 160px;
+      height: 160px;
+      margin: 0 auto;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      animation: scaleIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      border: 4px solid rgba(255, 255, 255, 0.3);
+    }
+
+    @keyframes scaleIn {
+      0% {
+        transform: scale(0);
+        opacity: 0;
+      }
+      50% {
+        transform: scale(1.1);
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .success-icon::before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      animation: pulse 2s ease-out infinite;
+    }
+
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        opacity: 0.3;
+      }
+      100% {
+        transform: scale(1.5);
+        opacity: 0;
+      }
+    }
+
+    .success-icon i {
+      color: white;
+      width: 80px;
+      height: 80px;
+      stroke-width: 2.5;
+      position: relative;
+      z-index: 1;
+    }
+
+    .left-panel-content h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 16px;
+      animation: slideUp 0.6s ease-out 0.2s both;
+    }
+
+    .left-panel-content p {
+      font-size: 1.125rem;
+      line-height: 1.6;
+      opacity: 0.95;
+      animation: slideUp 0.6s ease-out 0.3s both;
+    }
+
+    .verified-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      padding: 12px 20px;
+      border-radius: 50px;
+      font-weight: 600;
+      font-size: 0.9375rem;
+      margin-top: 24px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      animation: slideUp 0.6s ease-out 0.4s both;
+    }
+
+    .verified-badge i {
+      width: 20px;
+      height: 20px;
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* RIGHT PANEL - Content */
+    .success-right-panel {
+      padding: 60px 50px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: white;
+      animation: slideIn 0.6s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .success-right-panel h2 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin-bottom: 12px;
+      animation: slideUp 0.6s ease-out 0.3s both;
+    }
+
+    .success-subtitle {
+      font-size: 1rem;
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 32px;
+      animation: slideUp 0.6s ease-out 0.4s both;
+    }
+
+    /* Features list */
+    .success-features {
+      margin-bottom: 40px;
+      animation: slideUp 0.6s ease-out 0.5s both;
+    }
+
+    .success-features h3 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .success-features h3 i {
+      width: 22px;
+      height: 22px;
+      color: #FA9A4B;
+    }
+
+    .features-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 16px;
+    }
+
+    .features-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      background: #f9fafb;
+      border-radius: 12px;
+      font-size: 0.9375rem;
+      color: #4b5563;
+      transition: all 0.3s ease;
+    }
+
+    .features-list li:hover {
+      background: #f0fdf4;
+      transform: translateX(4px);
+    }
+
+    .features-list li i {
+      width: 20px;
+      height: 20px;
+      color: #10b981;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Action buttons */
+    .success-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      animation: slideUp 0.6s ease-out 0.6s both;
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%);
+      color: white;
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 1.0625rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(250, 154, 75, 0.3);
+    }
+
+    .btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(250, 154, 75, 0.4);
+    }
+
+    .btn-success i {
+      width: 20px;
+      height: 20px;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: #666;
+      padding: 14px 32px;
+      border-radius: 12px;
+      font-weight: 500;
+      font-size: 0.9375rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+      border: 2px solid #e5e7eb;
+    }
+
+    .btn-secondary:hover {
+      background: #f9fafb;
+      border-color: #d1d5db;
+    }
+
+    .btn-secondary i {
+      width: 18px;
+      height: 18px;
+    }
+
+    /* Confetti animation */
+    .confetti {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      background: #FA9A4B;
+      animation: confetti-fall 3s linear forwards;
+      pointer-events: none;
+      z-index: 9999;
+    }
+
+    @keyframes confetti-fall {
+      0% {
+        transform: translateY(-100vh) rotate(0deg);
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(100vh) rotate(720deg);
+        opacity: 0;
+      }
+    }
+
+    /* MOBILE RESPONSIVENESS - Compact Single Column */
+    @media (max-width: 968px) {
+      .success-container {
+        grid-template-columns: 1fr;
+        min-height: auto;
+        box-shadow: none;
+      }
+
+      .success-left-panel {
+        padding: 40px 24px;
+        min-height: auto;
+      }
+
+      .success-icon {
+        width: 120px;
+        height: 120px;
+      }
+
+      .success-icon i {
+        width: 60px;
+        height: 60px;
+      }
+
+      .left-panel-content h1 {
+        font-size: 2rem;
+      }
+
+      .left-panel-content p {
+        font-size: 1rem;
+      }
+
+      .verified-badge {
+        font-size: 0.875rem;
+        padding: 10px 16px;
+      }
+
+      .success-right-panel {
+        padding: 40px 24px;
+      }
+
+      .success-right-panel h2 {
+        font-size: 1.5rem;
+      }
+
+      .success-subtitle {
+        font-size: 0.9375rem;
+        margin-bottom: 24px;
+      }
+
+      .success-features {
+        margin-bottom: 32px;
+      }
+
+      .success-features h3 {
+        font-size: 1rem;
+      }
+
+      .features-list {
+        gap: 12px;
+      }
+
+      .features-list li {
+        padding: 12px;
+        font-size: 0.875rem;
+      }
+
+      .features-list li i {
+        width: 18px;
+        height: 18px;
+      }
+
+      .btn-success,
+      .btn-secondary {
+        font-size: 1rem;
+        padding: 14px 24px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .success-left-panel {
+        padding: 32px 20px;
+      }
+
+      .success-icon {
+        width: 100px;
+        height: 100px;
+      }
+
+      .success-icon i {
+        width: 50px;
+        height: 50px;
+      }
+
+      .left-panel-content h1 {
+        font-size: 1.75rem;
+      }
+
+      .success-right-panel {
+        padding: 32px 20px;
+      }
+
+      .success-right-panel h2 {
+        font-size: 1.25rem;
+      }
+    }
+  </style>
 </head>
 <body>
-  <%- include('../layouts/nav') %>
-  
-  <main class="auth-page">
-    <div class="auth-container">
-      <div class="auth-card">
-        <div class="auth-icon success">
-          <i data-lucide="check-circle"></i>
+  <main class="success-page">
+    <div class="success-container">
+      
+      <!-- LEFT PANEL - Illustration/Branding -->
+      <div class="success-left-panel">
+        <div class="success-illustration">
+          <div class="success-icon">
+            <i data-lucide="check-circle"></i>
+          </div>
         </div>
-        <h1>Email Verified!</h1>
-        <p class="auth-subtitle">Your email has been successfully verified. You can now log in to your account.</p>
         
-        <div class="auth-actions">
-          <a href="/login" class="btn btn-full">Go to Login</a>
+        <div class="left-panel-content">
+          <h1>Email Verified!</h1>
+          <p>You're all set to start your running journey with HelloRun</p>
+          
+          <% if (email) { %>
+          <div class="verified-badge">
+            <i data-lucide="mail-check"></i>
+            <%= email %>
+          </div>
+          <% } %>
         </div>
       </div>
+
+      <!-- RIGHT PANEL - Content & Actions -->
+      <div class="success-right-panel">
+        <h2>Welcome to HelloRun! 🎉</h2>
+        <p class="success-subtitle">
+          Your account is now active and ready to use. Here's what you can do next:
+        </p>
+
+        <!-- What's Next Section -->
+        <div class="success-features">
+          <h3>
+            <i data-lucide="sparkles"></i>
+            Get Started
+          </h3>
+          <ul class="features-list">
+            <li>
+              <i data-lucide="log-in"></i>
+              <span>Log in to your account and complete your profile</span>
+            </li>
+            <li>
+              <i data-lucide="calendar"></i>
+              <span>Browse and join upcoming running events</span>
+            </li>
+            <li>
+              <i data-lucide="trophy"></i>
+              <span>Submit your results and earn certificates</span>
+            </li>
+            <li>
+              <i data-lucide="users"></i>
+              <span>Connect with the running community</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="success-actions">
+          <a href="/login" class="btn-success">
+            <i data-lucide="log-in"></i>
+            Continue to Login
+          </a>
+          <a href="/" class="btn-secondary">
+            <i data-lucide="home"></i>
+            Back to Home
+          </a>
+        </div>
+      </div>
+
     </div>
   </main>
-  
-  <%- include('../layouts/footer') %>
   
   <script src="/js/main.js"></script>
   <script>
     lucide.createIcons();
+
+    // Confetti effect
+    function createConfetti() {
+      const colors = ['#FA9A4B', '#E0A46A', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
+      const confettiCount = 60;
+      
+      for (let i = 0; i < confettiCount; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDelay = Math.random() * 2 + 's';
+        confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        
+        // Random shapes
+        if (Math.random() > 0.5) {
+          confetti.style.borderRadius = '50%';
+        }
+        
+        document.body.appendChild(confetti);
+        
+        // Remove after animation
+        setTimeout(() => confetti.remove(), 5000);
+      }
+    }
+
+    // Trigger confetti on page load
+    window.addEventListener('load', () => {
+      setTimeout(createConfetti, 300);
+    });
   </script>
 </body>
 </html>
