@@ -12,6 +12,7 @@ What you built:
 ✅ Base layout + navigation + footer components
 ✅ Mobile-responsive navigation with hamburger menu
 ✅ Lucide icons integration
+✅ Google Analytics integration (GA4) ✅
 
 Folder structure (MVC):
 hellorun/
@@ -35,14 +36,14 @@ hellorun/
     routes/
       authRoutes.js ✅
       page.routes.js ✅
-      organizer.routes.js ✅ (NEW - just created)
+      organizer.routes.js ✅
       event.routes.js ✅
       admin.routes.js ✅
     services/
       password.service.js ✅
       email.service.js ✅
       counter.service.js ✅
-      upload.service.js ✅ (NEW - just created)
+      upload.service.js ✅
     scripts/
       initCounter.js ✅
       migrateUserIds.js ✅
@@ -50,50 +51,55 @@ hellorun/
     views/
       layouts/
         main.ejs ✅
-        nav.ejs ✅
+        head.ejs ✅ (reusable head with GA)
+        nav.ejs ✅ (updated with Blog link)
         footer.ejs ✅
       pages/
-        index.ejs ✅
-        events.ejs ✅
+        index.ejs ✅ (updated to use head.ejs)
+        events.ejs ✅ (updated to use head.ejs)
       auth/
-        login.ejs ✅
-        signup.ejs ✅
-        forgot-password.ejs ✅
-        reset-password.ejs ✅
-        reset-password-expired.ejs ✅
-        reset-email-sent.ejs ✅
-        reset-success.ejs ✅
-        resend-verification.ejs ✅
-        verify-email-sent.ejs ✅ (NEW - just created)
-        verify-email-success.ejs ✅
-        verify-email-expired.ejs ✅
-        verify-email-result.ejs ✅ (NEW - just created)
+        login.ejs ✅ (updated to use head.ejs, improved UI)
+        signup.ejs ✅ (updated to use head.ejs)
+        forgot-password.ejs ✅ (updated to use head.ejs, improved compact UI)
+        reset-password.ejs ✅ (updated to use head.ejs)
+        reset-password-expired.ejs ✅ (updated to use head.ejs)
+        reset-email-sent.ejs ✅ (updated to use head.ejs)
+        reset-success.ejs ✅ (updated to use head.ejs)
+        resend-verification.ejs ✅ (updated to use head.ejs)
+        verify-email-sent.ejs ✅ (updated to use head.ejs)
+        verify-email-success.ejs ✅ (updated to use head.ejs)
+        verify-email-expired.ejs ✅ (updated to use head.ejs)
+        verify-email-result.ejs ✅ (updated to use head.ejs)
+        complete-profile.ejs ✅ (updated to use head.ejs)
       organizer/
-        complete-profile.ejs ✅ (NEW - placeholder created)
-        application-status.ejs ✅ (NEW - placeholder created)
+        application-status.ejs ✅ (updated to use head.ejs)
+      admin/
+        applications-list.ejs ✅ (updated to use head.ejs)
+        application-details.ejs ✅ (updated to use head.ejs)
       error.ejs ✅
     public/
       css/
         style.css ✅
-        login.css ✅
+        login.css ✅ (improved with better password toggle)
         signup.css ✅
+        forgot-password.css ✅ (NEW - compact design)
       js/
         main.js ✅ (mobile menu, Lucide icons)
-        auth.js ✅ (password visibility toggle)
+        auth.js ✅ (improved password toggle, fixed duplicate code)
         signup.js ✅ (password strength, validation)
       images/
         helloRun-icon.webp ✅
       uploads/
-        organizer-docs/ ✅ (NEW - created for document uploads)
-      sitemap.xml ✅
+        organizer-docs/ ✅
+      sitemap.xml ✅ (updated with blog categories and latest dates)
       robots.txt ✅
     server.js ✅
   .env ✅
-  .env.example ✅
+  .env.example ✅ (updated with GA_MEASUREMENT_ID)
   .gitignore ✅
   package.json ✅
   README.md ✅
-  dir.text ✅
+  dir.text ✅ (updated with all files)
   dns.txt ✅
   wireframe.txt ✅
   sitemap.md ✅
@@ -101,13 +107,15 @@ hellorun/
 What you have after Phase 0:
 ✅ / home page (fully styled with hero, features, audience sections)
 ✅ /events events page (UI ready for dynamic content)
-✅ /login and /signup pages (fully functional UI)
+✅ /login and /signup pages (fully functional UI with improved password toggle)
+✅ /forgot-password page (compact UI, no scrolling required) ✅ NEW
 ✅ Complete password reset flow (forgot, reset, success, expired)
 ✅ Complete email verification flow (sent, success, expired, resend)
 ✅ Error page
-✅ Responsive navigation with mobile menu
+✅ Responsive navigation with mobile menu and Blog link ✅ UPDATED
 ✅ Footer with links
-✅ SEO ready (sitemap.xml, robots.txt)
+✅ SEO ready (sitemap.xml updated with blog categories, robots.txt)
+✅ Google Analytics 4 tracking on all pages
 
 ---
 
@@ -125,7 +133,7 @@ Feature 1A: Email/password signup ✅ COMPLETED
 ✅ Generate email verification token (24 hours expiry)
 ✅ Send verification email via Resend
 ✅ Password strength validation (real-time)
-✅ Password visibility toggle
+✅ Password visibility toggle (improved with better UX) ✅ UPDATED
 ✅ Floating label inputs
 ✅ Client-side validation
 ✅ Server-side validation
@@ -159,16 +167,17 @@ Feature 1C: Password reset ✅ COMPLETED
 ✅ Rate limiting (3 resets per 24 hours)
 ✅ Email notifications
 ✅ Confirmation email after password reset
+✅ Improved forgot-password UI (compact, modern design) ✅ NEW
 
 Feature 1D: Login/logout ✅ COMPLETED
-✅ Login page UI
+✅ Login page UI (improved password toggle) ✅ UPDATED
 ✅ Verify email is verified before login
 ✅ Verify password with bcrypt
 ✅ Create session cookie
 ✅ Session management
 ✅ Logout clears session
 ✅ Redirect to home after login
-✅ Role-based dashboard routing (future)
+✅ Role-based dashboard routing
 
 Feature 1E: Protect routes ✅ COMPLETED
 ✅ Middleware: requireAuth
@@ -193,12 +202,12 @@ User model fields (current):
 ✅ passwordResetExpires
 ✅ passwordResetEmailCount (rate limiting)
 ✅ passwordResetEmailLastSent
-✅ organizerApplicationId (reference to OrganiserApplication) ✅ NEW
-✅ organizerStatus: "not_applied", "pending", "approved", "rejected" ✅ NEW
+✅ organizerApplicationId (reference to OrganiserApplication)
+✅ organizerStatus: "not_applied", "pending", "approved", "rejected"
 ✅ createdAt
 ✅ updatedAt (auto-updated)
 
-User model methods (NEW):
+User model methods:
 ✅ canApplyAsOrganizer() - checks if can apply to be organizer
 ✅ hasActiveApplication() - checks if has pending application
 ✅ isApprovedOrganizer() - checks if approved organizer
@@ -219,7 +228,7 @@ Technical Stack (Phase 1):
 ✅ crypto (token generation)
 ✅ Mongoose (MongoDB ODM)
 ✅ Counter model (auto-increment IDs)
-✅ multer (file uploads) ✅ NEW
+✅ multer (file uploads)
 
 ---
 
@@ -280,7 +289,7 @@ Feature 2C: Admin reviews ⏳ TODO
 ⏳ Admin routes (/admin/applications)
 
 Feature 2D: Application status page ⏳ TODO
-✅ Basic placeholder created
+✅ Basic placeholder created (updated to use head.ejs)
 ⏳ Show current status (pending, approved, rejected)
 ⏳ Show submission date
 ⏳ Show estimated review time
@@ -308,28 +317,72 @@ Environment variables added:
 ✅ UPLOAD_ALLOWED_TYPES=image/jpeg,image/png,application/pdf
 ✅ ADMIN_EMAIL
 ✅ ORGANIZER_REVIEW_TIME_DAYS=3
+✅ GA_MEASUREMENT_ID=G-QJZPYEBCVS
 
 Files structure updated:
 ✅ src/models/OrganiserApplication.js
 ✅ src/services/upload.service.js
 ✅ src/routes/organizer.routes.js
 ✅ src/middleware/auth.middleware.js (updated)
-✅ src/views/organizer/complete-profile.ejs (placeholder)
-✅ src/views/organizer/application-status.ejs (placeholder)
+✅ src/views/layouts/head.ejs (reusable head with Google Analytics)
+✅ src/views/layouts/nav.ejs (updated with Blog link and role-based routing) ✅ UPDATED
+✅ src/views/auth/login.ejs (improved password toggle) ✅ UPDATED
+✅ src/views/auth/forgot-password.ejs (compact UI) ✅ NEW
+✅ src/views/organizer/complete-profile.ejs (updated to use head.ejs)
+✅ src/views/organizer/application-status.ejs (updated to use head.ejs)
+✅ src/views/admin/applications-list.ejs (updated to use head.ejs)
+✅ src/views/admin/application-details.ejs (updated to use head.ejs)
+✅ All auth views updated to use head.ejs
+✅ All page views updated to use head.ejs
+✅ public/css/login.css (improved password toggle styling) ✅ UPDATED
+✅ public/css/forgot-password.css (NEW - compact design) ✅ NEW
+✅ public/js/auth.js (fixed duplicate password toggle code) ✅ UPDATED
 ✅ public/uploads/organizer-docs/ (directory)
+✅ public/sitemap.xml (updated with blog categories) ✅ UPDATED
 ✅ .gitignore updated for uploads
 
-NEXT IMMEDIATE STEPS FOR PHASE 2:
-1. ⏳ Create complete-profile form UI with document upload
-2. ⏳ Implement POST /organizer/complete-profile handler
-3. ⏳ Add email templates (application-submitted, approved, rejected)
-4. ⏳ Update email.service.js with new methods
-5. ⏳ Create admin dashboard for reviewing applications
-6. ⏳ Create admin views for reviewing applications
-7. ⏳ Test full organizer application flow
-8. ⏳ Deploy Phase 2 to production
+Google Analytics Integration: ✅ COMPLETED
+✅ Google Analytics 4 property created (HelloRun)
+✅ Measurement ID: G-QJZPYEBCVS
+✅ head.ejs layout created with GA tracking code
+✅ All 19 pages updated to use head.ejs partial
+✅ GA code loads conditionally (only when GA_MEASUREMENT_ID is set)
+✅ Environment variable configured (.env and .env.example)
+✅ Tracks all pageviews automatically
+✅ Ready for production deployment
 
----
+Pages with Google Analytics: ✅ ALL PAGES
+✅ index.ejs
+✅ events.ejs
+✅ login.ejs (improved UI) ✅ UPDATED
+✅ signup.ejs
+✅ forgot-password.ejs (improved compact UI) ✅ UPDATED
+✅ reset-password.ejs
+✅ reset-password-expired.ejs
+✅ reset-email-sent.ejs
+✅ reset-success.ejs
+✅ resend-verification.ejs
+✅ verify-email-sent.ejs
+✅ verify-email-success.ejs
+✅ verify-email-expired.ejs
+✅ verify-email-result.ejs
+✅ complete-profile.ejs
+✅ application-status.ejs
+✅ applications-list.ejs
+✅ application-details.ejs
+✅ error.ejs
+
+NEXT IMMEDIATE STEPS FOR PHASE 2:
+1. Create complete-profile.ejs full form UI
+2. Add drag-and-drop file upload
+3. Implement POST /organizer/complete-profile handler
+4. Add email templates (submitted, approved, rejected)
+5. Update email.service.js
+6. Create admin dashboard for reviewing applications
+7. Test end-to-end organizer application flow
+8. Deploy to production with Google Analytics enabled
+
+--
 
 Phase 3: Event creation (organiser) 📅 PENDING
 
@@ -480,17 +533,196 @@ Feature 7A: Static Pages ⏳ TODO
 ⏳ /how-it-works - Platform guide
 ⏳ /contact - Contact form
 ⏳ /faq - Frequently asked questions
-⏳ /blog - Running tips and articles
 ⏳ /privacy - Privacy policy
 ⏳ /terms - Terms of service
 
-Feature 7B: Search & Filters ⏳ TODO
+Feature 7B: Blog System 📝 PENDING (PLANNED)
+
+Goal: Provide running tips, articles, and community content to engage users and improve SEO.
+
+Navigation Integration: ✅ COMPLETED
+✅ Blog link added to nav.ejs
+✅ Positioned between Events and About
+✅ Role-based dashboard routing in navigation
+✅ Blog categories added to sitemap.xml
+
+Blog Features to implement:
+⏳ Blog List Page (/blog)
+  - Display published posts in card grid
+  - Filter by category (training, nutrition, gear, motivation, race-tips, injury-prevention, general)
+  - Search functionality
+  - Pagination (10 posts per page)
+  - Featured posts section
+  - Category chips/tags
+  - Sort by: latest, popular, most viewed
+
+
+⏳ Blog Post Detail (/blog/:slug)
+  - Full post content with rich formatting
+  - Author information (name, bio, avatar)
+  - Publication date and read time
+  - Category and tags
+  - View counter
+  - Share buttons (social media)
+  - Related posts section (same category)
+  - Previous/Next post navigation
+  - Comments section (optional - Phase 2)
+
+⏳ Admin: Create/Edit Post (/admin/blog/new, /admin/blog/edit/:id)
+  - Rich text editor (TinyMCE or Quill)
+  - Upload featured image
+  - Auto-generate slug from title (editable)
+  - Add/edit title and excerpt
+  - Select category (dropdown)
+  - Add tags (multi-select)
+  - Save as draft or publish
+  - Schedule publication (future date)
+  - Preview mode
+  - SEO meta fields (title, description, keywords)
+
+⏳ Admin: Manage Posts (/admin/blog)
+  - List all posts (drafts, published, archived)
+  - Filter by status and category
+  - Search posts
+  - Bulk actions (delete, archive)
+  - Quick edit (status, category)
+  - View analytics (views, engagement)
+
+BlogPost Model Structure:
+⏳ postId (auto-increment: 1, 2, 3...)
+⏳ postIdFormatted (virtual: POST000001)
+⏳ slug (unique, URL-friendly, auto-generated from title)
+⏳ title (required, 5-200 chars)
+⏳ excerpt (required, max 200 chars, for preview cards)
+⏳ content (required, rich HTML content)
+⏳ featuredImage (URL to uploaded image)
+⏳ authorId (reference to User model)
+⏳ category (enum: training, nutrition, gear, motivation, race-tips, injury-prevention, general)
+⏳ tags (array of strings, e.g., ["5K", "beginners", "hydration"])
+⏳ status (enum: draft, published, archived)
+⏳ publishedAt (Date, null if draft)
+⏳ scheduledFor (Date, for scheduled posts)
+⏳ views (Number, default: 0)
+⏳ readTime (Number, in minutes, auto-calculated from content length)
+⏳ seoTitle (optional, for SEO optimization)
+⏳ seoDescription (optional, for meta description)
+⏳ seoKeywords (array of strings)
+⏳ createdAt (auto-timestamp)
+⏳ updatedAt (auto-timestamp)
+
+BlogPost Model Methods:
+⏳ generateSlug() - creates URL-friendly slug from title
+⏳ calculateReadTime() - estimates reading time based on word count
+⏳ incrementViews() - atomic view counter increment
+⏳ isPublished() - checks if status is published and publishedAt is past
+⏳ getRelatedPosts() - finds posts in same category
+
+Blog Categories:
+⏳ Training - Training plans, workout tips, pacing strategies
+⏳ Nutrition - Diet advice, hydration, supplements, pre/post-run meals
+⏳ Gear - Shoe reviews, running watches, apparel, accessories
+⏳ Motivation - Inspirational stories, mental strategies, goal setting
+⏳ Race Tips - Event preparation, race day strategies, recovery
+⏳ Injury Prevention - Stretching, strengthening, common injuries, recovery
+⏳ General - Community updates, platform news, announcements
+
+Blog Routes:
+⏳ GET /blog - Blog list page (public)
+⏳ GET /blog/category/:category - Filtered by category (public)
+⏳ GET /blog/:slug - Single post page (public)
+⏳ GET /admin/blog - Manage all posts (admin only)
+⏳ GET /admin/blog/new - Create new post form (admin only)
+⏳ POST /admin/blog/new - Submit new post (admin only)
+⏳ GET /admin/blog/edit/:id - Edit post form (admin only)
+⏳ PUT /admin/blog/edit/:id - Update post (admin only)
+⏳ DELETE /admin/blog/:id - Delete post (admin only)
+⏳ POST /blog/:slug/view - Increment view count (public)
+
+Blog Views to create:
+⏳ src/views/blog/list.ejs - Blog listing with filters
+⏳ src/views/blog/post.ejs - Single post detail
+⏳ src/views/admin/blog/manage.ejs - Admin post management
+⏳ src/views/admin/blog/create.ejs - Create/edit post form
+⏳ src/views/blog/partials/post-card.ejs - Reusable post card component
+
+Blog Controllers:
+⏳ src/controllers/blog.controller.js
+  - getAllPosts() - list with filters, search, pagination
+  - getPostBySlug() - single post with related posts
+  - getPostsByCategory() - filtered by category
+  - createPost() - admin create new post
+  - updatePost() - admin update post
+  - deletePost() - admin delete post
+  - incrementViewCount() - track post views
+
+Blog Service:
+⏳ src/services/blog.service.js
+  - generateSlug(title) - creates unique slug
+  - calculateReadTime(content) - estimates reading time
+  - uploadFeaturedImage() - handles image uploads
+  - getRelatedPosts(postId, category, limit) - fetch related posts
+
+Environment Variables (Blog):
+⏳ BLOG_POSTS_PER_PAGE=10
+⏳ BLOG_EXCERPT_LENGTH=200
+⏳ BLOG_FEATURED_IMAGE_MAX_SIZE=2097152 (2MB)
+
+Dependencies to add:
+⏳ slugify (for URL-friendly slugs)
+⏳ tinymce or quill (rich text editor)
+⏳ marked or showdown (optional: if using Markdown instead of HTML)
+
+SEO Benefits:
+⏳ Fresh content for better Google ranking
+⏳ Long-tail keyword opportunities
+⏳ Backlink potential from running community
+⏳ Increased time on site
+⏳ Social media sharing potential
+⏳ Establishes HelloRun as running authority
+
+Blog Content Ideas (initial posts):
+⏳ "10 Tips for Your First Virtual 5K"
+⏳ "How to Track Your Running Progress"
+⏳ "Best Running Apps for Virtual Races"
+⏳ "Nutrition Guide for Long Distance Runners"
+⏳ "Choosing the Right Running Shoes"
+⏳ "Staying Motivated When Running Alone"
+⏳ "Common Running Injuries and Prevention"
+⏳ "Race Day Checklist for Virtual Events"
+
+Implementation Priority:
+1. ⏳ Create BlogPost model with Counter integration
+2. ⏳ Set up blog routes (public and admin)
+3. ⏳ Create blog.controller.js with CRUD operations
+4. ⏳ Build blog list page UI
+5. ⏳ Build single post page UI
+6. ⏳ Build admin create/edit form with rich text editor
+7. ⏳ Build admin post management page
+8. ⏳ Add image upload for featured images
+9. ⏳ Implement search and filters
+10. ⏳ Add pagination
+11. ⏳ Add view counter
+12. ⏳ Add related posts
+13. ⏳ SEO optimization (meta tags, structured data)
+14. ⏳ Social media sharing buttons
+15. ⏳ Write initial blog posts (5-10 articles)
+
+NOTES:
+- Blog can be written by admins initially
+- Future: Allow approved organizers to contribute guest posts
+- Consider adding comments system (Phase 2 - using Disqus or custom)
+- Consider RSS feed for blog subscribers
+- Analytics: Track most popular posts, categories, search terms
+- Mobile-first design for blog pages
+
+Feature 7C: Search & Filters ⏳ TODO
 ⏳ Search events
 ⏳ Filter by category
 ⏳ Filter by date range
 ⏳ Filter by location (if applicable)
+⏳ Search blog posts (added with blog feature)
 
-Feature 7C: Notifications ⏳ TODO
+Feature 7D: Notifications ⏳ TODO
 ⏳ In-app notifications
 ⏳ Email preferences
 ⏳ Notification history
@@ -517,6 +749,7 @@ Phase 9: Testing & Optimization 🧪 PENDING
 ⏳ Mobile responsiveness testing
 ⏳ Cross-browser testing
 ⏳ Load testing
+⏳ Blog post search performance optimization
 
 ---
 
@@ -529,6 +762,8 @@ Phase 10: Deployment 🚀 PENDING
 ⏳ Configure domain (hellorun.online)
 ⏳ Set up monitoring
 ⏳ Set up backups
+⏳ Launch blog with initial content
+⏳ Submit sitemap to Google (including blog posts)
 ⏳ Launch!
 
 ---
@@ -538,7 +773,7 @@ CURRENT STATUS: Phase 2 (Organiser Applications) - 30% Complete
 COMPLETED FEATURES (Phase 1 & 2A):
 ✅ Complete user authentication system
 ✅ Email verification with role-aware routing
-✅ Password reset with rate limiting
+✅ Password reset with rate limiting (improved UI) ✅ UPDATED
 ✅ Session management
 ✅ Route protection middleware
 ✅ User model with organizer fields
@@ -549,6 +784,12 @@ COMPLETED FEATURES (Phase 1 & 2A):
 ✅ Both /signup and /register routes
 ✅ verify-email-sent page
 ✅ Role-based email verification flow
+✅ Google Analytics 4 integration on all pages
+✅ Reusable head.ejs layout
+✅ Improved password toggle functionality ✅ NEW
+✅ Compact forgot-password page (no scrolling) ✅ NEW
+✅ Navigation with Blog link ✅ NEW
+✅ Sitemap updated with blog categories ✅ NEW
 
 IN PROGRESS:
 🔄 Complete profile form UI with document upload (40%)
@@ -563,24 +804,37 @@ NEXT IMMEDIATE STEPS:
 5. Update email.service.js
 6. Create admin dashboard for reviewing applications
 7. Test end-to-end organizer application flow
+8. Deploy to production with Google Analytics enabled
+
+FUTURE FEATURES (Planned):
+📝 Blog System (Phase 7B) - Navigation ready, routes pending
+🔍 Enhanced search across events and blog posts
+💬 Comments system for blog posts (optional)
+📰 RSS feed for blog subscribers
+🎨 Rich content editor for blog posts
+📊 Blog analytics and engagement tracking
 
 TECHNICAL DEBT / NOTES:
 - Need to initialize Counter for organiserApplication
+- Need to initialize Counter for blogPost (when implementing blog)
 - File uploads stored locally (consider cloud storage for production)
 - Admin email notifications need to be tested
 - Consider adding file size warnings on upload
 - May need to add virus scanning for uploaded files (production)
+- Google Analytics will only track on production when GA_MEASUREMENT_ID is set
+- Blog feature will significantly improve SEO and user engagement
 
 DEPLOYMENT STATUS:
 - Development: ✅ Working (localhost:3000)
-- Production (Render): ⚠️ Phase 1 deployed, Phase 2 pending
+- Production (Render): ⚠️ Phase 1 deployed, Phase 2 + GA pending
 - Domain: hellorun.online
 - Database: MongoDB Atlas (Cluster0)
 - Email Service: Resend API (verified domain: hellorun.online)
+- Analytics: Google Analytics 4 (Property: HelloRun, ID: G-QJZPYEBCVS)
 
 REPOSITORY:
 - GitHub: https://github.com/4hprojects/helloRun
-- Last Push: January 30, 2026
+- Last Push: January 31, 2026 (UI/UX improvements and blog navigation)
 - Branch: main
 
 DEPENDENCIES ADDED:
@@ -590,3 +844,24 @@ DEPENDENCIES ADDED:
 ✅ resend (email service)
 ✅ mongoose (MongoDB ODM)
 ✅ crypto (built-in - token generation)
+
+DEPENDENCIES TO ADD (Future):
+⏳ slugify (for blog post URLs)
+⏳ tinymce or quill (rich text editor for blog)
+⏳ marked or showdown (optional: Markdown support)
+
+NEW FEATURES ADDED (January 31, 2026):
+✅ Google Analytics 4 tracking
+✅ Reusable head.ejs layout
+✅ All pages refactored to use head.ejs
+✅ Environment variable for GA_MEASUREMENT_ID
+✅ Conditional GA loading (dev vs production)
+✅ Improved password toggle (fixed duplicate code, better UX) ✅ NEW
+✅ Compact forgot-password page with modern UI ✅ NEW
+✅ Blog link in navigation ✅ NEW
+✅ Role-based dashboard routing in nav ✅ NEW
+✅ Updated sitemap.xml with blog categories ✅ NEW
+✅ forgot-password.css (external CSS file) ✅ NEW
+✅ Improved login.css (better password toggle styling) ✅ NEW
+✅ Fixed auth.js duplicate code ✅ NEW
+📝 Blog system planned and navigation ready (Phase 7B)

@@ -345,13 +345,13 @@ router.get('/verify-email/:token', async (req, res) => {
     // Log user in
     req.session.userId = user._id;
 
-    // Check if user selected organizer role and needs to complete profile
-    if (user.role === 'organiser' && user.organizerStatus === 'not_applied') {
-      return res.redirect('/organizer/complete-profile');
-    }
-
-    // Regular runner - redirect to home
-    res.redirect('/?verified=true');
+    // Show success page for EVERYONE
+    res.render('auth/verify-email-success', {
+      email: user.email,
+      firstName: user.firstName,
+      role: user.role,
+      isOrganizer: user.role === 'organiser'
+    });
   } catch (error) {
     console.error('Email verification error:', error);
     res.render('auth/verify-email-result', {

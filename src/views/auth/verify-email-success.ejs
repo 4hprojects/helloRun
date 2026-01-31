@@ -10,15 +10,23 @@
   <link rel="stylesheet" href="/css/style.css">
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
-    .success-page {
+    body {
+      margin: 0;
+      padding: 0;
       min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .success-page {
+      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
       background: linear-gradient(135deg, #FFF5EB 0%, #FFE8D6 100%);
+      padding: 40px 20px;
       position: relative;
       overflow: hidden;
-      padding: 0;
     }
 
     /* Animated background elements */
@@ -27,48 +35,59 @@
       content: '';
       position: absolute;
       border-radius: 50%;
-      background: linear-gradient(135deg, rgba(250, 154, 75, 0.1) 0%, rgba(224, 164, 106, 0.1) 100%);
-      animation: float 6s ease-in-out infinite;
+      background: linear-gradient(135deg, rgba(250, 154, 75, 0.08) 0%, rgba(224, 164, 106, 0.08) 100%);
+      animation: float 8s ease-in-out infinite;
     }
 
     .success-page::before {
-      width: 400px;
-      height: 400px;
-      top: -200px;
-      right: -100px;
-      animation-delay: 0s;
+      width: 300px;
+      height: 300px;
+      top: -100px;
+      right: -50px;
     }
 
     .success-page::after {
-      width: 500px;
-      height: 500px;
-      bottom: -250px;
-      left: -150px;
-      animation-delay: 3s;
+      width: 350px;
+      height: 350px;
+      bottom: -100px;
+      left: -80px;
+      animation-delay: 4s;
     }
 
     @keyframes float {
       0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      50% { transform: translate(30px, -30px) rotate(180deg); }
+      50% { transform: translate(20px, -20px) rotate(180deg); }
     }
 
     .success-container {
       position: relative;
       z-index: 1;
       width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      min-height: 100vh;
+      max-width: 900px;
       background: white;
-      box-shadow: 0 0 60px rgba(0, 0, 0, 0.15);
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      overflow: hidden;
+      animation: slideUp 0.6s ease-out;
     }
 
-    /* LEFT PANEL - Illustration/Branding */
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* LEFT PANEL - Icon Section */
     .success-left-panel {
       background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%);
-      padding: 60px 50px;
+      padding: 40px 30px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -79,38 +98,21 @@
       overflow: hidden;
     }
 
-    .success-left-panel::before,
-    .success-left-panel::after {
+    .success-left-panel::before {
       content: '';
       position: absolute;
+      width: 200px;
+      height: 200px;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.1);
-    }
-
-    .success-left-panel::before {
-      width: 300px;
-      height: 300px;
-      top: -100px;
-      left: -100px;
-    }
-
-    .success-left-panel::after {
-      width: 250px;
-      height: 250px;
-      bottom: -80px;
-      right: -80px;
-    }
-
-    .success-illustration {
-      position: relative;
-      z-index: 1;
-      margin-bottom: 40px;
+      top: -80px;
+      left: -60px;
     }
 
     .success-icon {
-      width: 160px;
-      height: 160px;
-      margin: 0 auto;
+      width: 120px;
+      height: 120px;
+      margin: 0 auto 20px;
       background: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(10px);
       border-radius: 50%;
@@ -118,8 +120,8 @@
       align-items: center;
       justify-content: center;
       position: relative;
-      animation: scaleIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-      border: 4px solid rgba(255, 255, 255, 0.3);
+      animation: scaleIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      border: 3px solid rgba(255, 255, 255, 0.3);
     }
 
     @keyframes scaleIn {
@@ -127,7 +129,7 @@
         transform: scale(0);
         opacity: 0;
       }
-      50% {
+      60% {
         transform: scale(1.1);
       }
       100% {
@@ -152,15 +154,15 @@
         opacity: 0.3;
       }
       100% {
-        transform: scale(1.5);
+        transform: scale(1.4);
         opacity: 0;
       }
     }
 
     .success-icon i {
       color: white;
-      width: 80px;
-      height: 80px;
+      width: 60px;
+      height: 60px;
       stroke-width: 2.5;
       position: relative;
       z-index: 1;
@@ -168,43 +170,45 @@
 
     .left-panel-content h1 {
       font-family: 'Poppins', sans-serif;
-      font-size: 2.5rem;
+      font-size: 1.875rem;
       font-weight: 800;
-      margin-bottom: 16px;
-      animation: slideUp 0.6s ease-out 0.2s both;
+      margin: 0 0 8px 0;
+      animation: fadeIn 0.6s ease-out 0.2s both;
     }
 
     .left-panel-content p {
-      font-size: 1.125rem;
-      line-height: 1.6;
+      font-size: 0.9375rem;
+      line-height: 1.5;
       opacity: 0.95;
-      animation: slideUp 0.6s ease-out 0.3s both;
+      margin: 0 0 16px 0;
+      animation: fadeIn 0.6s ease-out 0.3s both;
     }
 
     .verified-badge {
       display: inline-flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       background: rgba(255, 255, 255, 0.2);
       backdrop-filter: blur(10px);
-      padding: 12px 20px;
+      padding: 8px 14px;
       border-radius: 50px;
       font-weight: 600;
-      font-size: 0.9375rem;
-      margin-top: 24px;
+      font-size: 0.8125rem;
       border: 2px solid rgba(255, 255, 255, 0.3);
-      animation: slideUp 0.6s ease-out 0.4s both;
+      animation: fadeIn 0.6s ease-out 0.4s both;
+      word-break: break-all;
     }
 
     .verified-badge i {
-      width: 20px;
-      height: 20px;
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
     }
 
-    @keyframes slideUp {
+    @keyframes fadeIn {
       from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(10px);
       }
       to {
         opacity: 1;
@@ -214,62 +218,33 @@
 
     /* RIGHT PANEL - Content */
     .success-right-panel {
-      padding: 60px 50px;
+      padding: 40px 35px;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      background: white;
-      animation: slideIn 0.6s ease-out;
-    }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateX(30px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
     }
 
     .success-right-panel h2 {
       font-family: 'Poppins', sans-serif;
-      font-size: 1.75rem;
+      font-size: 1.5rem;
       font-weight: 700;
       color: #1a1a1a;
-      margin-bottom: 12px;
-      animation: slideUp 0.6s ease-out 0.3s both;
+      margin: 0 0 8px 0;
+      animation: fadeIn 0.6s ease-out 0.3s both;
     }
 
     .success-subtitle {
-      font-size: 1rem;
+      font-size: 0.9375rem;
       color: #666;
-      line-height: 1.6;
-      margin-bottom: 32px;
-      animation: slideUp 0.6s ease-out 0.4s both;
+      line-height: 1.5;
+      margin: 0 0 24px 0;
+      animation: fadeIn 0.6s ease-out 0.4s both;
     }
 
-    /* Features list */
+    /* Features list - Compact */
     .success-features {
-      margin-bottom: 40px;
-      animation: slideUp 0.6s ease-out 0.5s both;
-    }
-
-    .success-features h3 {
-      font-size: 1.125rem;
-      font-weight: 600;
-      color: #1a1a1a;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .success-features h3 i {
-      width: 22px;
-      height: 22px;
-      color: #FA9A4B;
+      margin-bottom: 24px;
+      animation: fadeIn 0.6s ease-out 0.5s both;
     }
 
     .features-list {
@@ -277,49 +252,48 @@
       padding: 0;
       margin: 0;
       display: grid;
-      gap: 16px;
+      gap: 10px;
     }
 
     .features-list li {
       display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 16px;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
       background: #f9fafb;
-      border-radius: 12px;
-      font-size: 0.9375rem;
+      border-radius: 10px;
+      font-size: 0.875rem;
       color: #4b5563;
       transition: all 0.3s ease;
     }
 
     .features-list li:hover {
       background: #f0fdf4;
-      transform: translateX(4px);
+      transform: translateX(3px);
     }
 
     .features-list li i {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       color: #10b981;
       flex-shrink: 0;
-      margin-top: 2px;
     }
 
-    /* Action buttons */
+    /* Action buttons - Compact */
     .success-actions {
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      animation: slideUp 0.6s ease-out 0.6s both;
+      gap: 10px;
+      animation: fadeIn 0.6s ease-out 0.6s both;
     }
 
     .btn-success {
       background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%);
       color: white;
-      padding: 16px 32px;
-      border-radius: 12px;
+      padding: 14px 24px;
+      border-radius: 10px;
       font-weight: 600;
-      font-size: 1.0625rem;
+      font-size: 0.9375rem;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
@@ -328,31 +302,31 @@
       transition: all 0.3s ease;
       border: none;
       cursor: pointer;
-      box-shadow: 0 4px 12px rgba(250, 154, 75, 0.3);
+      box-shadow: 0 4px 12px rgba(250, 154, 75, 0.25);
     }
 
     .btn-success:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px rgba(250, 154, 75, 0.4);
+      box-shadow: 0 6px 16px rgba(250, 154, 75, 0.35);
     }
 
     .btn-success i {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
     }
 
     .btn-secondary {
       background: transparent;
       color: #666;
-      padding: 14px 32px;
-      border-radius: 12px;
+      padding: 12px 24px;
+      border-radius: 10px;
       font-weight: 500;
-      font-size: 0.9375rem;
+      font-size: 0.875rem;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
       transition: all 0.3s ease;
       border: 2px solid #e5e7eb;
     }
@@ -363,15 +337,15 @@
     }
 
     .btn-secondary i {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
     }
 
-    /* Confetti animation */
+    /* Confetti */
     .confetti {
       position: fixed;
-      width: 10px;
-      height: 10px;
+      width: 8px;
+      height: 8px;
       background: #FA9A4B;
       animation: confetti-fall 3s linear forwards;
       pointer-events: none;
@@ -389,87 +363,16 @@
       }
     }
 
-    /* MOBILE RESPONSIVENESS - Compact Single Column */
+    /* MOBILE RESPONSIVENESS */
     @media (max-width: 968px) {
       .success-container {
         grid-template-columns: 1fr;
-        min-height: auto;
-        box-shadow: none;
+        max-width: 500px;
+        border-radius: 16px;
       }
 
       .success-left-panel {
-        padding: 40px 24px;
-        min-height: auto;
-      }
-
-      .success-icon {
-        width: 120px;
-        height: 120px;
-      }
-
-      .success-icon i {
-        width: 60px;
-        height: 60px;
-      }
-
-      .left-panel-content h1 {
-        font-size: 2rem;
-      }
-
-      .left-panel-content p {
-        font-size: 1rem;
-      }
-
-      .verified-badge {
-        font-size: 0.875rem;
-        padding: 10px 16px;
-      }
-
-      .success-right-panel {
-        padding: 40px 24px;
-      }
-
-      .success-right-panel h2 {
-        font-size: 1.5rem;
-      }
-
-      .success-subtitle {
-        font-size: 0.9375rem;
-        margin-bottom: 24px;
-      }
-
-      .success-features {
-        margin-bottom: 32px;
-      }
-
-      .success-features h3 {
-        font-size: 1rem;
-      }
-
-      .features-list {
-        gap: 12px;
-      }
-
-      .features-list li {
-        padding: 12px;
-        font-size: 0.875rem;
-      }
-
-      .features-list li i {
-        width: 18px;
-        height: 18px;
-      }
-
-      .btn-success,
-      .btn-secondary {
-        font-size: 1rem;
-        padding: 14px 24px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .success-left-panel {
-        padding: 32px 20px;
+        padding: 30px 24px;
       }
 
       .success-icon {
@@ -483,39 +386,122 @@
       }
 
       .left-panel-content h1 {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
+      }
+
+      .left-panel-content p {
+        font-size: 0.875rem;
+      }
+
+      .verified-badge {
+        font-size: 0.75rem;
+        padding: 6px 12px;
       }
 
       .success-right-panel {
-        padding: 32px 20px;
+        padding: 30px 24px;
       }
 
       .success-right-panel h2 {
         font-size: 1.25rem;
       }
+
+      .success-subtitle {
+        font-size: 0.875rem;
+        margin-bottom: 20px;
+      }
+
+      .success-features {
+        margin-bottom: 20px;
+      }
+
+      .features-list {
+        gap: 8px;
+      }
+
+      .features-list li {
+        padding: 8px 10px;
+        font-size: 0.8125rem;
+      }
+
+      .features-list li i {
+        width: 16px;
+        height: 16px;
+      }
+
+      .btn-success {
+        font-size: 0.875rem;
+        padding: 12px 20px;
+      }
+
+      .btn-secondary {
+        font-size: 0.8125rem;
+        padding: 10px 20px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .success-page {
+        padding: 20px 16px;
+      }
+
+      .success-container {
+        border-radius: 12px;
+      }
+
+      .success-left-panel {
+        padding: 24px 20px;
+      }
+
+      .success-icon {
+        width: 80px;
+        height: 80px;
+      }
+
+      .success-icon i {
+        width: 40px;
+        height: 40px;
+      }
+
+      .left-panel-content h1 {
+        font-size: 1.25rem;
+      }
+
+      .success-right-panel {
+        padding: 24px 20px;
+      }
+
+      .success-right-panel h2 {
+        font-size: 1.125rem;
+      }
+
+      .verified-badge {
+        font-size: 0.6875rem;
+        padding: 5px 10px;
+      }
     }
   </style>
 </head>
 <body>
+  <%- include('../layouts/nav') %>
+  
   <main class="success-page">
     <div class="success-container">
       
-      <!-- LEFT PANEL - Illustration/Branding -->
+      <!-- LEFT PANEL - Icon Section -->
       <div class="success-left-panel">
-        <div class="success-illustration">
-          <div class="success-icon">
-            <i data-lucide="check-circle"></i>
-          </div>
+        <div class="success-icon">
+          <i data-lucide="check-circle"></i>
         </div>
         
         <div class="left-panel-content">
           <h1>Email Verified!</h1>
-          <p>You're all set to start your running journey with HelloRun</p>
+          <p>You're all set to start your running journey</p>
           
-          <% if (email) { %>
+          <% if (locals.email) { %>
           <div class="verified-badge">
             <i data-lucide="mail-check"></i>
-            <%= email %>
+            <span><%= email %></span>
           </div>
           <% } %>
         </div>
@@ -523,43 +509,43 @@
 
       <!-- RIGHT PANEL - Content & Actions -->
       <div class="success-right-panel">
-        <h2>Welcome to HelloRun! 🎉</h2>
+        <h2>Welcome<% if (locals.firstName) { %>, <%= firstName %><% } %>! </h2>
         <p class="success-subtitle">
-          Your account is now active and ready to use. Here's what you can do next:
+          Your account is now active. Here's what you can do next:
         </p>
 
-        <!-- What's Next Section -->
+        <!-- What's Next Section - Compact -->
         <div class="success-features">
-          <h3>
-            <i data-lucide="sparkles"></i>
-            Get Started
-          </h3>
           <ul class="features-list">
             <li>
-              <i data-lucide="log-in"></i>
-              <span>Log in to your account and complete your profile</span>
-            </li>
-            <li>
               <i data-lucide="calendar"></i>
-              <span>Browse and join upcoming running events</span>
+              <span>Browse and join events</span>
             </li>
             <li>
               <i data-lucide="trophy"></i>
-              <span>Submit your results and earn certificates</span>
+              <span>Submit results & earn certificates</span>
             </li>
             <li>
               <i data-lucide="users"></i>
-              <span>Connect with the running community</span>
+              <span>Connect with runners</span>
             </li>
           </ul>
         </div>
 
         <!-- Action Buttons -->
         <div class="success-actions">
-          <a href="/login" class="btn-success">
-            <i data-lucide="log-in"></i>
-            Continue to Login
-          </a>
+          <% if (locals.isOrganizer) { %>
+            <a href="/organizer/complete-profile" class="btn-success">
+              <i data-lucide="briefcase"></i>
+              Complete Organizer Profile
+            </a>
+          <% } else { %>
+            <a href="/login" class="btn-success">
+              <i data-lucide="log-in"></i>
+              Continue to Login
+            </a>
+          <% } %>
+          
           <a href="/" class="btn-secondary">
             <i data-lucide="home"></i>
             Back to Home
@@ -570,6 +556,8 @@
     </div>
   </main>
   
+  <%- include('../layouts/footer') %>
+  
   <script src="/js/main.js"></script>
   <script>
     lucide.createIcons();
@@ -577,31 +565,27 @@
     // Confetti effect
     function createConfetti() {
       const colors = ['#FA9A4B', '#E0A46A', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
-      const confettiCount = 60;
+      const confettiCount = 40;
       
       for (let i = 0; i < confettiCount; i++) {
         const confetti = document.createElement('div');
         confetti.className = 'confetti';
         confetti.style.left = Math.random() * 100 + '%';
         confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
-        confetti.style.animationDelay = Math.random() * 2 + 's';
-        confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        confetti.style.animationDelay = Math.random() * 1.5 + 's';
+        confetti.style.animationDuration = (Math.random() * 1.5 + 2) + 's';
         
-        // Random shapes
         if (Math.random() > 0.5) {
           confetti.style.borderRadius = '50%';
         }
         
         document.body.appendChild(confetti);
-        
-        // Remove after animation
-        setTimeout(() => confetti.remove(), 5000);
+        setTimeout(() => confetti.remove(), 4000);
       }
     }
 
-    // Trigger confetti on page load
     window.addEventListener('load', () => {
-      setTimeout(createConfetti, 300);
+      setTimeout(createConfetti, 200);
     });
   </script>
 </body>

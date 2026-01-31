@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: 'Email Verification - helloRun' }) %>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  
+  <main class="auth-page">
+    <section class="auth-section">
+      <div class="auth-container">
+        <div class="auth-content">
+          <h1 class="auth-title">Email Verification</h1>
+          <p class="auth-subtitle">Please verify your email address to continue.</p>
+          <form>
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Verify</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  
+  <script src="/js/main.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

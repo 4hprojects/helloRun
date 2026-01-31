@@ -2,15 +2,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Application Status - HelloRun</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <%- include('../layouts/head', { title: 'Application Status - helloRun' }) %>
 </head>
 <body>
   <%- include('../layouts/nav') %>
   
-  <main style="padding: 2rem;">
+  <main class="status-page">
     <div style="max-width: 800px; margin: 0 auto;">
       <h1>Organizer Application Status</h1>
       <p>Status: <%= user.organizerStatus %></p>
@@ -23,7 +20,12 @@
       <% } %>
     </div>
   </main>
-  
+
   <%- include('../layouts/footer') %>
+  
+  <script src="/js/main.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
 </body>
 </html>

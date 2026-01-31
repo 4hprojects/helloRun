@@ -13,10 +13,17 @@
     <div class="nav-links">
       <a href="/">Home</a>
       <a href="/events">Events</a>
+      <a href="/blog">Blog</a>
       <a href="/about">About</a>
       <% if (locals.user) { %>
-        <a href="/dashboard" class="btn">Dashboard</a>
-        <a href="/logout">Logout</a>
+        <% if (locals.user.role === 'admin') { %>
+          <a href="/admin/dashboard">Admin</a>
+        <% } else if (locals.user.role === 'organiser' || locals.user.organizerStatus === 'approved') { %>
+          <a href="/organizer/dashboard">Dashboard</a>
+        <% } else { %>
+          <a href="/dashboard">Dashboard</a>
+        <% } %>
+        <a href="/logout" class="nav-logout">Logout</a>
       <% } else { %>
         <a href="/login" class="btn">Get Started</a>
       <% } %>

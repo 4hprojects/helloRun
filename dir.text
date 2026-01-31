@@ -13,29 +13,27 @@ helloRun/
       User.js
       Counter.js
       OrganiserApplication.js
-      Event.js
-      Registration.js
       Submission.js
     routes/
-      authRoutes.js
-      page.routes.js
-      organizer.routes.js
-      event.routes.js
       admin.routes.js
+      authRoutes.js
+      organizer.routes.js
+      page.routes.js
     services/
-      password.service.js
-      email.service.js
-      counter.service.js
       upload.service.js
+      email.service.js
+      password.service.js
+      counter.service.js
     scripts/
+      drop-userId-index.js
       initCounter.js
       migrateUserIds.js
-      drop-userId-index.js
     views/
       layouts/
-        main.ejs
+        head.ejs
         nav.ejs
         footer.ejs
+        main.ejs
       pages/
         index.ejs
         events.ejs
@@ -52,23 +50,19 @@ helloRun/
         verify-email-success.ejs
         verify-email-expired.ejs
         verify-email-result.ejs
-      organizer/
         complete-profile.ejs
+      organizer/
         application-status.ejs
       admin/
         applications-list.ejs
         application-details.ejs
-      emails/
-        organizer-application-submitted.ejs
-        organizer-application-approved.ejs
-        organizer-application-rejected.ejs
-        admin-new-application.ejs
       error.ejs
     public/
       css/
         style.css
         login.css
         signup.css
+        forgot-password.css
       js/
         main.js
         auth.js
@@ -77,9 +71,8 @@ helloRun/
         helloRun-icon.webp
       uploads/
         organizer-docs/
-          .gitkeep
-      sitemap.xml
       robots.txt
+      sitemap.xml
     server.js
   .env
   .env.example

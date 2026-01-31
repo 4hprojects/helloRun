@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: 'Complete Profile - helloRun' }) %>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  
+  <main class="auth-page">
+    <section class="auth-page__content">
+      <h1 class="auth-page__title">Complete Profile</h1>
+      <p class="auth-page__description">Welcome to helloRun! Please complete your profile to get started.</p>
+      <form>
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input type="text" id="name" name="name" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" required>
+        </div>
+        <div class="form-group">
+          <label for="address">Address</label>
+          <input type="text" id="address" name="address" required>
+        </div>
+        <button type="submit">Complete Profile</button>
+      </form>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  
+  <script src="/js/main.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

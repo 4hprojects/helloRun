@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: 'Login - helloRun' }) %>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  
+  <main class="auth-page">
+    <section class="auth-page__content">
+      <h1 class="auth-page__title">Login</h1>
+      <form class="auth-page__form">
+        <div class="auth-page__field">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        <div class="auth-page__field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required>
+        </div>
+        <button type="submit">Login</button>
+      </form>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  
+  <script src="/js/main.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

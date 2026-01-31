@@ -42,13 +42,16 @@ document.addEventListener('DOMContentLoaded', function() {
   // ========================================
   // PASSWORD TOGGLE (Works on any page)
   // ========================================
-  document.querySelectorAll('.toggle-password').forEach(button => {
+  const toggleButtons = document.querySelectorAll('.toggle-password');
+  
+  toggleButtons.forEach(button => {
     button.addEventListener('click', function(e) {
       e.preventDefault();
       
       const targetId = this.getAttribute('data-target');
       const passwordInput = document.getElementById(targetId);
-      const icon = this.querySelector('.eye-icon');
+      const showIcon = this.querySelector('.show-password');
+      const hideIcon = this.querySelector('.hide-password');
       
       // Safety checks
       if (!passwordInput) {
@@ -56,20 +59,25 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       
-      if (!icon) {
-        console.error('Eye icon not found in button');
+      if (!showIcon || !hideIcon) {
+        console.error('Eye icons not found in button');
         return;
       }
       
       // Toggle visibility
       if (passwordInput.type === 'password') {
         passwordInput.type = 'text';
-        icon.setAttribute('data-lucide', 'eye-off');
+        showIcon.style.display = 'none';
+        hideIcon.style.display = 'block';
+        this.setAttribute('aria-label', 'Hide password');
       } else {
         passwordInput.type = 'password';
-        icon.setAttribute('data-lucide', 'eye');
+        showIcon.style.display = 'block';
+        hideIcon.style.display = 'none';
+        this.setAttribute('aria-label', 'Show password');
       }
       
+      // Re-create icons to ensure they display correctly
       lucide.createIcons();
     });
   });
