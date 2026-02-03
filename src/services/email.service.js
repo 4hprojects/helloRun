@@ -3,6 +3,9 @@ const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Logo URL from GitHub
+const LOGO_URL = 'https://raw.githubusercontent.com/4hprojects/helloRun/main/src/public/images/helloRun-icon.webp';
+
 // Send password reset email
 exports.sendPasswordResetEmail = async (email, resetToken, firstName) => {
   const resetUrl = `${process.env.APP_URL}/reset-password/${resetToken}`;
@@ -38,11 +41,23 @@ exports.sendPasswordResetEmail = async (email, resetToken, firstName) => {
               padding: 40px 20px;
               text-align: center;
             }
+            .header-content {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+            }
+            .logo {
+              width: 48px;
+              height: 48px;
+              vertical-align: middle;
+            }
             .header h1 {
               color: #ffffff;
               margin: 0;
               font-size: 28px;
               font-weight: 700;
+              display: inline;
             }
             .content {
               padding: 40px 30px;
@@ -124,7 +139,10 @@ exports.sendPasswordResetEmail = async (email, resetToken, firstName) => {
         <body>
           <div class="email-container">
             <div class="header">
-              <h1>🏃 HelloRun</h1>
+              <div class="header-content">
+                <img src="${LOGO_URL}" alt="HelloRun" class="logo" />
+                <h1>HelloRun</h1>
+              </div>
             </div>
             
             <div class="content">
@@ -217,11 +235,23 @@ exports.sendPasswordResetConfirmation = async (email, firstName) => {
               padding: 40px 20px;
               text-align: center;
             }
+            .header-content {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+            }
+            .logo {
+              width: 48px;
+              height: 48px;
+              vertical-align: middle;
+            }
             .header h1 {
               color: #ffffff;
               margin: 0;
               font-size: 28px;
               font-weight: 700;
+              display: inline;
             }
             .content {
               padding: 40px 30px;
@@ -295,7 +325,10 @@ exports.sendPasswordResetConfirmation = async (email, firstName) => {
         <body>
           <div class="email-container">
             <div class="header">
-              <h1>🏃 HelloRun</h1>
+              <div class="header-content">
+                <img src="${LOGO_URL}" alt="HelloRun" class="logo" />
+                <h1>HelloRun</h1>
+              </div>
             </div>
             
             <div class="content">
@@ -353,7 +386,7 @@ exports.sendPasswordResetConfirmation = async (email, firstName) => {
   }
 };
 
-// Send email verification (for future use)
+// Send email verification
 exports.sendVerificationEmail = async (email, verificationToken, firstName, role) => {
   const verificationUrl = `${process.env.APP_URL}/verify-email/${verificationToken}`;
   
@@ -392,11 +425,23 @@ exports.sendVerificationEmail = async (email, verificationToken, firstName, role
               padding: 40px 20px;
               text-align: center;
             }
+            .header-content {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 15px;
+            }
+            .logo {
+              width: 48px;
+              height: 48px;
+              vertical-align: middle;
+            }
             .header h1 {
               color: #ffffff;
               margin: 0;
               font-size: 28px;
               font-weight: 700;
+              display: inline;
             }
             .content {
               padding: 40px 30px;
@@ -475,7 +520,10 @@ exports.sendVerificationEmail = async (email, verificationToken, firstName, role
         <body>
           <div class="email-container">
             <div class="header">
-              <h1>🏃 HelloRun</h1>
+              <div class="header-content">
+                <img src="${LOGO_URL}" alt="HelloRun" class="logo" />
+                <h1>HelloRun</h1>
+              </div>
             </div>
             
             <div class="content">
@@ -506,6 +554,13 @@ exports.sendVerificationEmail = async (email, verificationToken, firstName, role
             <div class="footer">
               <p><strong>HelloRun</strong></p>
               <p>Your running journey companion</p>
+              <p style="margin-top: 20px;">
+                <a href="${process.env.APP_URL}">Visit HelloRun</a> • 
+                <a href="${process.env.APP_URL}/support">Support</a>
+              </p>
+              <p style="margin-top: 20px; font-size: 12px;">
+                This is an automated email. Please do not reply.
+              </p>
             </div>
           </div>
         </body>
