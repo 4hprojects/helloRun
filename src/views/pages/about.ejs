@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: 'About Us - helloRun' }) %>
+  <link rel="stylesheet" href="/css/about.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  
+  <main class="about-page">
+    <section class="about-hero">
+      <div class="container">
+        <h1>Movement Meets Momentum</h1>
+        <p class="lead">A running community built for real people who show up and move forward.</p>
+      </div>
+    </section>
+
+    <section class="about-content">
+      <div class="container">
+        <div class="about-intro">
+          <p>Welcome to <strong>HelloRun.online</strong> — where movement meets momentum in a running community built for real people who show up and move forward. One recent survey found that people who join run challenges are <strong>twice as likely to stay consistent</strong> with activity tracking and personal goals. That's the kind of progress we're focused on.</p>
+          
+          <p>HelloRun isn't just about logging miles or tracking runs. It's about shared progress, staying motivated, and being part of a running community that actually moves with you. You run on your own schedule. You still feel part of something bigger. You get simple tools that help you log your run, track your progress, and connect with others without the noise of complicated apps.</p>
+        </div>
+
+        <div class="about-features">
+          <h2>Here you can:</h2>
+          <div class="features-grid">
+            <div class="feature-card">
+              <div class="feature-icon">
+                <i data-lucide="target"></i>
+              </div>
+              <h3>Join Virtual Runs</h3>
+              <p>Join virtual runs and run challenges that inspire consistency.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon">
+                <i data-lucide="activity"></i>
+              </div>
+              <h3>Track Your Pace</h3>
+              <p>Track runs, walks, and activities at your pace, with or without GPS.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon">
+                <i data-lucide="upload"></i>
+              </div>
+              <h3>Submit Results</h3>
+              <p>Submit results online and see your milestones in one place.</p>
+            </div>
+
+            <div class="feature-card">
+              <div class="feature-icon">
+                <i data-lucide="users"></i>
+              </div>
+              <h3>Celebrate Together</h3>
+              <p>Celebrate progress with a community that recognises commitment.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="about-mission">
+          <blockquote>
+            <p>You show up. We help you stay visible. You build momentum. Friends and organisers can follow your journey, send encouragement, and build events that bring everyone together.</p>
+          </blockquote>
+          
+          <p class="mission-statement">This is where your run becomes more than distance. It becomes <strong>progress</strong>, <strong>visibility</strong>, and <strong>connection</strong>. Move. Log your activity. See real progress. That's HelloRun.</p>
+        </div>
+
+        <div class="about-cta">
+          <h2>Ready to get started?</h2>
+          <p>Join our community and start tracking your progress today.</p>
+          <a href="/register" class="btn-primary">Join HelloRun</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  
+  <script src="/js/main.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

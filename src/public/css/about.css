@@ -1,0 +1,272 @@
+/* About Page Styles - Compact & Mobile-Friendly */
+
+.about-page {
+  min-height: calc(100vh - 140px);
+}
+
+/* Hero Section */
+.about-hero {
+  background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%);
+  color: white;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.about-hero h1 {
+  font-family: 'Poppins', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+  line-height: 1.2;
+}
+
+.about-hero .lead {
+  font-size: 1.125rem;
+  font-weight: 400;
+  opacity: 0.95;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Container */
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Content Section */
+.about-content {
+  padding: 3rem 1rem;
+}
+
+.about-intro {
+  margin-bottom: 3rem;
+}
+
+.about-intro p {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: #334155;
+  margin-bottom: 1.25rem;
+}
+
+.about-intro strong {
+  color: #FA9A4B;
+  font-weight: 600;
+}
+
+/* Features Section */
+.about-features {
+  margin-bottom: 3rem;
+}
+
+.about-features h2 {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.feature-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 10px;
+  border: 2px solid #f1f5f9;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.feature-card:hover {
+  border-color: #FA9A4B;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(250, 154, 75, 0.15);
+}
+
+.feature-icon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.feature-icon i {
+  width: 28px;
+  height: 28px;
+  color: white;
+}
+
+.feature-card h3 {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.625rem;
+}
+
+.feature-card p {
+  font-size: 0.9375rem;
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Mission Section */
+.about-mission {
+  background: #f8fafc;
+  padding: 2.5rem 2rem;
+  border-radius: 12px;
+  border-left: 4px solid #FA9A4B;
+  margin-bottom: 3rem;
+}
+
+.about-mission blockquote {
+  margin: 0 0 1.5rem 0;
+  padding: 0;
+  border: none;
+}
+
+.about-mission blockquote p {
+  font-size: 1.125rem;
+  line-height: 1.7;
+  color: #475569;
+  font-style: italic;
+  margin: 0;
+}
+
+.mission-statement {
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: #334155;
+  margin: 0;
+}
+
+.mission-statement strong {
+  color: #FA9A4B;
+  font-weight: 600;
+}
+
+/* CTA Section */
+.about-cta {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+}
+
+.about-cta h2 {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 0.625rem;
+}
+
+.about-cta p {
+  font-size: 1.0625rem;
+  color: #64748b;
+  margin-bottom: 1.5rem;
+}
+
+.btn-primary {
+  display: inline-block;
+  padding: 0.875rem 2rem;
+  background: #FA9A4B;
+  color: white;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: 'Poppins', sans-serif;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(250, 154, 75, 0.25);
+}
+
+.btn-primary:hover {
+  background: #E0A46A;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(250, 154, 75, 0.35);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .about-hero {
+    padding: 2.5rem 1rem;
+  }
+
+  .about-hero h1 {
+    font-size: 2rem;
+  }
+
+  .about-hero .lead {
+    font-size: 1rem;
+  }
+
+  .about-content {
+    padding: 2rem 1rem;
+  }
+
+  .about-intro p {
+    font-size: 1rem;
+  }
+
+  .about-features h2 {
+    font-size: 1.5rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .feature-card {
+    padding: 1.25rem;
+  }
+
+  .about-mission {
+    padding: 1.75rem 1.25rem;
+  }
+
+  .about-mission blockquote p {
+    font-size: 1rem;
+  }
+
+  .about-cta {
+    padding: 2rem 1.25rem;
+  }
+
+  .about-cta h2 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .about-hero h1 {
+    font-size: 1.75rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-mission {
+    padding: 1.5rem 1rem;
+  }
+
+  .btn-primary {
+    width: 100%;
+  }
+}

@@ -4,42 +4,42 @@
   <!-- Main Pages -->
   <url>
     <loc>https://hellorun.online/</loc>
-    <lastmod>2026-01-31</lastmod>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   
   <url>
     <loc>https://hellorun.online/events</loc>
-    <lastmod>2026-01-31</lastmod>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   
   <url>
     <loc>https://hellorun.online/blog</loc>
-    <lastmod>2026-01-31</lastmod>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
   
   <url>
     <loc>https://hellorun.online/about</loc>
-    <lastmod>2026-01-31</lastmod>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>
   
   <url>
     <loc>https://hellorun.online/how-it-works</loc>
-    <lastmod>2026-01-31</lastmod>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
     <loc>https://hellorun.online/contact</loc>
-    <lastmod>2026-01-31</lastmod>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
@@ -47,64 +47,191 @@
   <!-- Authentication Pages (Public) -->
   <url>
     <loc>https://hellorun.online/login</loc>
-    <lastmod>2026-01-31</lastmod>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
     <loc>https://hellorun.online/signup</loc>
-    <lastmod>2026-01-31</lastmod>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   
   <url>
     <loc>https://hellorun.online/forgot-password</loc>
-    <lastmod>2026-01-31</lastmod>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   
-  <!-- Blog Categories (To be added when blog is implemented) -->
+  <!-- Blog Posts - SEO Optimized -->
   <url>
-    <loc>https://hellorun.online/blog/category/training</loc>
-    <lastmod>2026-01-31</lastmod>
+    <loc>https://hellorun.online/blog/what-is-virtual-run-philippines</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/how-virtual-run-works</loc>
+    <lastmod>2026-02-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/best-virtual-run-platforms-philippines</loc>
+    <lastmod>2026-01-30</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/virtual-run-tracking-apps</loc>
+    <lastmod>2026-01-28</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/virtual-run-medals-certificates</loc>
+    <lastmod>2026-01-26</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/virtual-5k-run-beginners</loc>
+    <lastmod>2026-01-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/register-virtual-run-online</loc>
+    <lastmod>2026-01-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/virtual-run-vs-treadmill</loc>
+    <lastmod>2026-01-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/upcoming-virtual-run-philippines-2026</loc>
+    <lastmod>2026-01-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/virtual-run-charity-events</loc>
+    <lastmod>2026-01-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/best-shoes-virtual-marathon</loc>
+    <lastmod>2026-01-12</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/find-virtual-run-near-me</loc>
+    <lastmod>2026-01-10</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <!-- Blog Categories -->
+  <url>
+    <loc>https://hellorun.online/blog/category/getting-started</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
-    <loc>https://hellorun.online/blog/category/nutrition</loc>
-    <lastmod>2026-01-31</lastmod>
+    <loc>https://hellorun.online/blog/category/how-to-guide</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
-    <loc>https://hellorun.online/blog/category/gear</loc>
-    <lastmod>2026-01-31</lastmod>
+    <loc>https://hellorun.online/blog/category/philippines</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/category/technology</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
-    <loc>https://hellorun.online/blog/category/motivation</loc>
-    <lastmod>2026-01-31</lastmod>
+    <loc>https://hellorun.online/blog/category/rewards</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
-    <loc>https://hellorun.online/blog/category/race-tips</loc>
-    <lastmod>2026-01-31</lastmod>
+    <loc>https://hellorun.online/blog/category/beginner-guide</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   
   <url>
-    <loc>https://hellorun.online/blog/category/injury-prevention</loc>
-    <lastmod>2026-01-31</lastmod>
+    <loc>https://hellorun.online/blog/category/registration</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/category/comparison</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/category/events</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/category/charity</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/category/gear-guide</loc>
+    <lastmod>2026-02-03</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <url>
+    <loc>https://hellorun.online/blog/category/local-events</loc>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
@@ -112,26 +239,23 @@
   <!-- Information Pages -->
   <url>
     <loc>https://hellorun.online/faq</loc>
-    <lastmod>2026-01-31</lastmod>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   
   <url>
     <loc>https://hellorun.online/privacy</loc>
-    <lastmod>2026-01-31</lastmod>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   
   <url>
     <loc>https://hellorun.online/terms</loc>
-    <lastmod>2026-01-31</lastmod>
+    <lastmod>2026-02-03</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
-  
-  <!-- Note: Individual blog posts will be added dynamically when blog feature is implemented -->
-  <!-- Format: https://hellorun.online/blog/:slug -->
   
 </urlset>
