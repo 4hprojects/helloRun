@@ -11,21 +11,28 @@ helloRun/
       role.middleware.js
     models/
       User.js
+      user.model.js
       Counter.js
+      counter.model.js
+      Event.js
+      Registration.js
       OrganiserApplication.js
       Submission.js
     routes/
       admin.routes.js
+      auth.routes.js
       authRoutes.js
+      event.routes.js
+      organiser.routes.js
       organizer.routes.js
       page.routes.js
     services/
       upload.service.js
       email.service.js
       password.service.js
+      token.service.js
       counter.service.js
     scripts/
-      drop-userId-index.js
       initCounter.js
       migrateUserIds.js
     views/
@@ -37,6 +44,7 @@ helloRun/
       pages/
         index.ejs
         events.ejs
+        login.ejs
       auth/
         login.ejs
         signup.ejs
@@ -53,6 +61,7 @@ helloRun/
         complete-profile.ejs
       organizer/
         application-status.ejs
+        complete-profile.ejs
       admin/
         applications-list.ejs
         application-details.ejs
@@ -63,10 +72,12 @@ helloRun/
         login.css
         signup.css
         forgot-password.css
+        reset-password.css
       js/
         main.js
         auth.js
         signup.js
+        reset-password.js
       images/
         helloRun-icon.webp
       uploads/
@@ -74,6 +85,10 @@ helloRun/
       robots.txt
       sitemap.xml
     server.js
+  controllers/
+  hellorun/
+  js/
+    signup.js
   .env
   .env.example
   .gitignore
@@ -84,5 +99,10 @@ helloRun/
   dns.txt
   wireframe.txt
   sitemap.md
+  organiser_flow.txt
+  user-role-system.txt
+  sitetheme.txt
+  seo key words.txt
+  current-dir.txt
   node_modules/
   .git/

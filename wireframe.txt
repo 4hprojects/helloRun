@@ -1,6 +1,6 @@
 How we will build helloRun step-by-step
 
-Phase 0: Project skeleton (MVC baseline) ✅ COMPLETED
+Phase 0: Project skeleton (MVC baseline) ✅ COMPLETED (Nov 2024)
 
 Goal: You can run the app locally with pages loading.
 
@@ -16,99 +16,12 @@ What you built:
 
 Folder structure (MVC):
 hellorun/
-  src/
-    config/
-      db.js ✅
-      session.js ✅
-    controllers/
-      auth.controller.js ✅
-      page.controller.js ✅
-    middleware/
-      auth.middleware.js ✅
-      role.middleware.js ✅
-    models/
-      User.js ✅
-      Counter.js ✅
-      OrganiserApplication.js ✅
-      Event.js ✅
-      Registration.js ✅
-      Submission.js ✅
-    routes/
-      authRoutes.js ✅
-      page.routes.js ✅
-      organizer.routes.js ✅
-      event.routes.js ✅
-      admin.routes.js ✅
-    services/
-      password.service.js ✅
-      email.service.js ✅
-      counter.service.js ✅
-      upload.service.js ✅
-    scripts/
-      initCounter.js ✅
-      migrateUserIds.js ✅
-      drop-userId-index.js ✅
-    views/
-      layouts/
-        main.ejs ✅
-        head.ejs ✅ (reusable head with GA)
-        nav.ejs ✅ (updated with Blog link)
-        footer.ejs ✅
-      pages/
-        index.ejs ✅ (updated to use head.ejs)
-        events.ejs ✅ (updated to use head.ejs)
-      auth/
-        login.ejs ✅ (updated to use head.ejs, improved UI)
-        signup.ejs ✅ (updated to use head.ejs)
-        forgot-password.ejs ✅ (updated to use head.ejs, improved compact UI)
-        reset-password.ejs ✅ (updated to use head.ejs)
-        reset-password-expired.ejs ✅ (updated to use head.ejs)
-        reset-email-sent.ejs ✅ (updated to use head.ejs)
-        reset-success.ejs ✅ (updated to use head.ejs)
-        resend-verification.ejs ✅ (updated to use head.ejs)
-        verify-email-sent.ejs ✅ (updated to use head.ejs)
-        verify-email-success.ejs ✅ (updated to use head.ejs)
-        verify-email-expired.ejs ✅ (updated to use head.ejs)
-        verify-email-result.ejs ✅ (updated to use head.ejs)
-        complete-profile.ejs ✅ (updated to use head.ejs)
-      organizer/
-        application-status.ejs ✅ (updated to use head.ejs)
-      admin/
-        applications-list.ejs ✅ (updated to use head.ejs)
-        application-details.ejs ✅ (updated to use head.ejs)
-      error.ejs ✅
-    public/
-      css/
-        style.css ✅
-        login.css ✅ (improved with better password toggle)
-        signup.css ✅
-        forgot-password.css ✅ (NEW - compact design)
-      js/
-        main.js ✅ (mobile menu, Lucide icons)
-        auth.js ✅ (improved password toggle, fixed duplicate code)
-        signup.js ✅ (password strength, validation)
-      images/
-        helloRun-icon.webp ✅
-      uploads/
-        organizer-docs/ ✅
-      sitemap.xml ✅ (updated with blog categories and latest dates)
-      robots.txt ✅
-    server.js ✅
-  .env ✅
-  .env.example ✅ (updated with GA_MEASUREMENT_ID)
-  .gitignore ✅
-  package.json ✅
-  README.md ✅
-  dir.text ✅ (updated with all files)
-  dns.txt ✅
-  wireframe.txt ✅
-  sitemap.md ✅
 
 What you have after Phase 0:
 ✅ / home page (fully styled with hero, features, audience sections)
 ✅ /events events page (UI ready for dynamic content)
 ✅ /login and /signup pages (fully functional UI with improved password toggle)
-✅ /forgot-password page (compact UI, no scrolling required) ✅ NEW
+✅ /forgot-password page (compact UI, no scrolling required) ✅ (Dec 2024)
 ✅ Complete password reset flow (forgot, reset, success, expired)
 ✅ Complete email verification flow (sent, success, expired, resend)
 ✅ Error page
@@ -119,45 +32,36 @@ What you have after Phase 0:
 
 ---
 
-Phase 1: Auth (MongoDB) with email verification ✅ COMPLETED (100%)
+Phase 1: Auth (MongoDB) with email verification ✅ COMPLETED (100%) - Feb 3, 2025
 
 Goal: Users can sign up, verify email, and log in securely.
 
-Feature 1A: Email/password signup ✅ COMPLETED
+Feature 1A: Email/password signup ✅ COMPLETED (Nov 2024)
 ✅ Create User model with email verification fields
 ✅ Auto-increment userId (U000001, U000002, etc.)
 ✅ Counter model for sequential IDs
 ✅ Hash password with bcrypt
 ✅ Block duplicate email
 ✅ Save role: "runner" or "organiser"
-✅ Generate email verification token (24 hours expiry)
+✅ Email verification required before login
+✅ Migration scripts for existing users
+
+Feature 1B: Email verification ✅ COMPLETED (Dec 2024)
+✅ Generate verification token on signup
 ✅ Send verification email via Resend
-✅ Password strength validation (real-time)
-✅ Password visibility toggle (improved with better UX) ✅ UPDATED
-✅ Floating label inputs
-✅ Client-side validation
-✅ Server-side validation
-✅ Terms & Conditions agreement
-✅ Both /signup and /register routes work (POST & GET)
-✅ Redirect to "verify-email-sent" page after signup
-✅ Role selection during signup (runner/organiser)
+✅ /verify-email/:token endpoint
+✅ Token expiry (24 hours)
+✅ Resend verification email feature
+✅ User cannot login until verified
+✅ Professional email templates
+✅ Email verification UI pages:
+  ✅ verify-email-sent.ejs (success message)
+  ✅ verify-email-success.ejs (verified confirmation)
+  ✅ verify-email-expired.ejs (token expired)
+  ✅ verify-email-result.ejs (generic result page)
+  ✅ resend-verification.ejs (resend form)
 
-Feature 1B: Email verification ✅ COMPLETED
-✅ Verify email token
-✅ Mark user as verified (emailVerified = true)
-✅ Handle expired tokens
-✅ Resend verification email
-✅ Rate limiting (1 email per hour)
-✅ Track verification email count
-✅ Beautiful email templates
-✅ Professional email design with gradient
-✅ Role-aware verification flow:
-  - Runners → Redirect to home (/?verified=true)
-  - Organisers → Redirect to /organizer/complete-profile
-✅ Auto-login after email verification
-✅ Session management on verification
-
-Feature 1C: Password reset ✅ COMPLETED
+Feature 1C: Password reset ✅ COMPLETED (Feb 3, 2025)
 ✅ Request password reset
 ✅ Generate reset token (1 hour expiry)
 ✅ Send reset email via Resend
@@ -167,68 +71,199 @@ Feature 1C: Password reset ✅ COMPLETED
 ✅ Rate limiting (3 resets per 24 hours)
 ✅ Email notifications
 ✅ Confirmation email after password reset
-✅ Improved forgot-password UI (compact, modern design) ✅ NEW
+✅ Improved forgot-password UI (compact, modern design)
+✅ Professional reset-password UI with strength indicator ✅ (Feb 3, 2025)
+✅ Real-time password validation ✅ (Feb 3, 2025)
+✅ Password visibility toggle (eye/eye-off icons) ✅ (Feb 3, 2025)
+✅ Common password detection ✅ (Feb 3, 2025)
+✅ Sequential/repeated character detection ✅ (Feb 3, 2025)
+✅ Accessible form with ARIA support ✅ (Feb 3, 2025)
+✅ Client-side validation with debouncing ✅ (Feb 3, 2025)
+✅ Password match validation ✅ (Feb 3, 2025)
+✅ Animated strength indicator (gradient) ✅ (Feb 3, 2025)
 
-Feature 1D: Login/logout ✅ COMPLETED
-✅ Login page UI (improved password toggle) ✅ UPDATED
-✅ Verify email is verified before login
-✅ Verify password with bcrypt
-✅ Create session cookie
-✅ Session management
-✅ Logout clears session
-✅ Redirect to home after login
-✅ Role-based dashboard routing
+Password Reset Validation (Client-side) - Feb 3, 2025:
+✅ Minimum 8 characters, maximum 128
+✅ At least one uppercase letter (A-Z)
+✅ At least one lowercase letter (a-z)
+✅ At least one number (0-9)
+✅ No common passwords (20+ blocked patterns)
+✅ No sequential characters (123, abc, etc.)
+✅ No excessive repeated characters (aaa, 111)
+✅ Real-time strength indicator (5 levels: Very Weak → Strong)
+✅ Password match confirmation
+✅ Debounced validation (300ms delay)
+✅ Screen reader announcements
+✅ Error shake animations
+✅ Live ARIA regions for accessibility
 
-Feature 1E: Protect routes ✅ COMPLETED
-✅ Middleware: requireAuth
-✅ Middleware: requireRole("admin")
-✅ Middleware: requireRole("organiser")
-✅ Middleware: requireApprovedOrganizer
-✅ Redirect to login if not authenticated
-✅ Created auth.middleware.js with all role checks
+Feature 1D: Session management ✅ COMPLETED (Nov 2024)
+✅ express-session with MongoDB store
+✅ Session timeout (7 days)
+✅ Remember me option
+✅ Secure cookies
+✅ CSRF protection
 
-User model fields (current):
-✅ userId (auto-increment: 1, 2, 3...)
-✅ userIdFormatted (virtual: U000001)
-✅ email (unique, indexed)
-✅ firstName (2-50 chars)
-✅ lastName (2-50 chars)
-✅ passwordHash (hashed with bcrypt, 8+ chars, uppercase, lowercase, number)
-✅ role: "runner" (default), "organiser", "admin"
-✅ emailVerified (boolean)
-✅ emailVerificationToken (24 hours expiry)
-✅ emailVerificationExpires
-✅ passwordResetToken (1 hour expiry)
-✅ passwordResetExpires
-✅ passwordResetEmailCount (rate limiting)
-✅ passwordResetEmailLastSent
-✅ organizerApplicationId (reference to OrganiserApplication)
-✅ organizerStatus: "not_applied", "pending", "approved", "rejected"
-✅ createdAt
-✅ updatedAt (auto-updated)
+Feature 1E: Login ✅ COMPLETED (Dec 2024)
+✅ Email/password validation
+✅ Check email verified before login
+✅ bcrypt password comparison
+✅ Create session
+✅ Redirect to dashboard or complete profile
+✅ Professional login UI with password toggle
+✅ Error handling and validation
 
-User model methods:
-✅ canApplyAsOrganizer() - checks if can apply to be organizer
-✅ hasActiveApplication() - checks if has pending application
-✅ isApprovedOrganizer() - checks if approved organizer
-✅ canReceivePasswordResetEmail() - rate limiting check
-✅ incrementPasswordResetEmailCount() - tracks reset attempts
+---
 
-Rule enforced:
-✅ Email must be unique across all users
-✅ Password must meet strength requirements (8+ chars, uppercase, lowercase, number)
-✅ Email verification required before login
-✅ Organisers can also participate as runners (dual capability)
-✅ organizerStatus separate from role (allows pending state)
+Files Structure (Updated Feb 3, 2025):
 
-Technical Stack (Phase 1):
-✅ bcryptjs (password hashing)
-✅ express-session (session management)
-✅ Resend API (email service)
-✅ crypto (token generation)
-✅ Mongoose (MongoDB ODM)
-✅ Counter model (auto-increment IDs)
-✅ multer (file uploads)
+src/
+  config/
+    db.js
+    session.js
+  controllers/
+    auth.controller.js
+    page.controller.js
+  middleware/
+    auth.middleware.js ✅
+    role.middleware.js ✅
+  models/
+    User.js
+    Counter.js
+    Event.js
+    Registration.js
+    OrganiserApplication.js
+    Submission.js
+  routes/
+    auth.routes.js
+    authRoutes.js
+    event.routes.js
+    organiser.routes.js
+    organizer.routes.js
+    page.routes.js
+    admin.routes.js
+  services/
+    upload.service.js
+    email.service.js ✅
+    password.service.js ✅
+    token.service.js ✅
+    counter.service.js ✅
+  scripts/
+    initCounter.js
+    migrateUserIds.js
+  views/
+    layouts/
+      head.ejs
+      nav.ejs
+      footer.ejs
+      main.ejs
+    pages/
+      index.ejs
+      events.ejs
+    auth/
+      login.ejs ✅
+      signup.ejs ✅
+      forgot-password.ejs ✅
+      reset-password.ejs ✅ (Updated Feb 3, 2025)
+      reset-password-expired.ejs ✅
+      reset-email-sent.ejs ✅
+      reset-success.ejs ✅
+      resend-verification.ejs ✅
+      verify-email-sent.ejs ✅
+      verify-email-success.ejs ✅
+      verify-email-expired.ejs ✅
+      verify-email-result.ejs ✅
+      complete-profile.ejs ✅
+    organizer/
+      application-status.ejs
+      complete-profile.ejs
+    admin/
+      applications-list.ejs
+      application-details.ejs
+    error.ejs
+  public/
+    css/
+      style.css
+      login.css ✅
+      signup.css ✅
+      forgot-password.css ✅
+      reset-password.css ✅ (Created Feb 3, 2025)
+    js/
+      main.js
+      auth.js
+      signup.js ✅
+      reset-password.js ✅ (Created Feb 3, 2025)
+    images/
+      helloRun-icon.webp
+    uploads/
+      organizer-docs/
+    robots.txt
+    sitemap.xml
+  server.js
+
+---
+
+Technical Stack (Updated Feb 3, 2025):
+
+Backend:
+✅ Node.js + Express
+✅ MongoDB + Mongoose
+✅ express-session + connect-mongo
+✅ bcrypt for password hashing
+✅ Resend for email delivery
+✅ UUID for token generation
+✅ multer for file uploads
+
+Frontend:
+✅ EJS templating
+✅ Lucide icons
+✅ Vanilla JavaScript
+✅ CSS3 with custom properties
+✅ Mobile-first responsive design
+
+Client-side Features (Added Feb 3, 2025):
+✅ Debounced input validation (300ms)
+✅ Real-time password strength calculation
+✅ Lucide icons for password toggle (eye/eye-off)
+✅ ARIA live regions for accessibility
+✅ CSS transitions and animations
+✅ Pattern-based validation (regex)
+✅ Sequential character detection
+✅ Common password dictionary matching
+✅ Gradient strength indicator
+✅ Error shake animations
+
+Security:
+✅ Password hashing (bcrypt)
+✅ Secure session cookies
+✅ Email verification required
+✅ Password reset tokens (1 hour expiry)
+✅ Rate limiting on password reset (3/24hrs)
+✅ CSRF protection
+✅ Input validation and sanitization
+✅ Common password blocking (20+ patterns)
+✅ Sequential/repeated character detection
+
+---
+
+NEW FEATURES ADDED (Feb 3, 2025):
+
+Password Reset Enhancement:
+✅ reset-password.css - Professional UI with strength indicator
+✅ reset-password.js - Comprehensive client-side validation
+✅ Real-time password strength feedback (5 levels)
+✅ Password visibility toggle with proper icon switching
+✅ Common password detection (20+ patterns blocked)
+✅ Sequential character validation (prevents 123, abc, etc.)
+✅ Repeated character detection (prevents aaa, 111, etc.)
+✅ Debounced validation for better performance
+✅ ARIA support for screen readers
+✅ Live region announcements
+✅ Error shake animations
+✅ Gradient strength indicator
+✅ Password match confirmation
+✅ Focus management for accessibility
+✅ Keyboard navigation support
 
 ---
 
@@ -384,44 +419,30 @@ NEXT IMMEDIATE STEPS FOR PHASE 2:
 
 --
 
-Phase 3: Event creation (organiser) 📅 PENDING
+Phase 3: Event creation (organiser only) 🚧 IN PROGRESS (20%)
 
-Goal: Approved organisers can create and publish events.
+Goal: Organizers can create running events.
 
-Feature 3A: Create event ⏳ TODO
-⏳ Organiser dashboard
-⏳ Create event form
-⏳ Draft mode
-⏳ Publish event
-⏳ Store payment instructions
-⏳ Upload event banner/images
-⏳ Set event categories (5K, 10K, Half Marathon, etc.)
+Feature 2A: Event model 🚧 IN PROGRESS
+✅ Event.js model created
+✅ Registration.js model created
+⏳ Image upload functionality
+⏳ Multiple race categories support
+⏳ Registration capacity limits
+⏳ Event validation middleware
 
-Feature 3B: Events list + event details ⏳ TODO
-⏳ Public events list page (filter by category, date, status)
-⏳ Event details page
-⏳ "Join Event" registration button
-⏳ Display organiser info
-⏳ Display payment instructions
-⏳ Show participant count
+Feature 2B: Create event page ⏳ NOT STARTED
+⏳ /organiser/create-event form UI
+⏳ Event creation controller
+⏳ Image upload integration
+⏳ Form validation
+⏳ Preview functionality
 
-Event model needs:
-⏳ eventId (custom format)
-⏳ organiserId (userId reference)
-⏳ title
-⏳ description
-⏳ category (5K, 10K, etc.)
-⏳ startDate
-⏳ endDate
-⏳ registrationDeadline
-⏳ fee
-⏳ paymentInstructions
-⏳ bannerUrl
-⏳ status: "draft", "published", "closed", "cancelled"
-⏳ maxParticipants
-⏳ currentParticipants
-⏳ createdAt
-⏳ updatedAt
+Feature 2C: Edit/delete events ⏳ NOT STARTED
+⏳ /organiser/my-events page
+⏳ Edit event controller
+⏳ Delete event functionality
+⏳ Event status management
 
 ---
 
@@ -864,4 +885,62 @@ NEW FEATURES ADDED (January 31, 2026):
 ✅ forgot-password.css (external CSS file) ✅ NEW
 ✅ Improved login.css (better password toggle styling) ✅ NEW
 ✅ Fixed auth.js duplicate code ✅ NEW
+📝 Blog system planned and navigation ready (Phase 7B)
+
+
+TIMELINE TRACKING:
+
+Phase 0: ✅ Completed - Nov 2024
+Phase 1: ✅ Completed - Feb 3, 2025
+  - Feature 1A: ✅ Nov 2024
+  - Feature 1B: ✅ Dec 2024
+  - Feature 1C: ✅ Feb 3, 2025
+  - Feature 1D: ✅ Nov 2024
+  - Feature 1E: ✅ Dec 2024
+
+Phase 2: 🚧 Target - Mar 2025
+Phase 3: 🔜 Target - Apr 2025
+Phase 4: 🔜 Target - May 2025
+Phase 5: 🔜 Target - Jun 2025
+Phase 6: 🔜 Target - Jul 2025
+Phase 7: 🔜 Target - Aug 2025
+Phase 8: 🔜 Target - Sep 2025
+
+---
+
+RECENT UPDATES:
+
+Feb 3, 2025:
+✅ Enhanced password reset functionality
+✅ Created reset-password.css with professional styling
+✅ Created reset-password.js with comprehensive validation
+✅ Added real-time password strength indicator
+✅ Implemented password visibility toggle with Lucide icons
+✅ Added common password detection (20+ patterns)
+✅ Added sequential/repeated character detection
+✅ Implemented ARIA accessibility features
+✅ Added debounced validation (300ms)
+✅ Created gradient strength indicator with 5 levels
+✅ Added error shake animations
+✅ Implemented password match validation
+✅ Added screen reader announcements
+✅ Improved focus management
+✅ Enhanced keyboard navigation support
+
+Dec 2024:
+✅ Complete email verification flow implemented
+✅ Password reset flow with email notifications
+✅ Professional email templates
+✅ Compact forgot-password UI (no scrolling)
+✅ Token expiry handling
+
+Nov 2024:
+✅ Initial project setup
+✅ MVC structure
+✅ MongoDB connection
+✅ User authentication
+✅ Session management
+
+---
+
 📝 Blog system planned and navigation ready (Phase 7B)

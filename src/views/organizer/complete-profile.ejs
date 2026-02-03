@@ -2,28 +2,297 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Complete Organizer Profile - HelloRun</title>
-  <link rel="stylesheet" href="/css/style.css">
+  <%- include('../layouts/head', { title: 'Complete Your Profile - helloRun' }) %>
+  <link rel="stylesheet" href="/css/complete-profile.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
   
-  <main style="padding: 2rem;">
-    <div style="max-width: 800px; margin: 0 auto;">
-      <h1>Complete Your Organizer Profile</h1>
-      <p>Welcome, <%= user.firstName %>!</p>
-      <p>This page will contain the document upload form.</p>
-      <p><strong>Coming soon:</strong></p>
-      <ul>
-        <li>Business information form</li>
-        <li>Document upload (ID proof, business registration)</li>
-        <li>Submit for admin review</li>
-      </ul>
+  <main class="complete-profile-page">
+    <div class="profile-container">
+      <!-- Progress Header -->
+      <div class="progress-header">
+        <div class="header-icon-wrapper">
+          <i data-lucide="user-check"></i>
+        </div>
+        <h1>Complete Your Organizer Profile</h1>
+        <p class="subtitle">We need a few more details to review your application</p>
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <p class="progress-text" id="progressText">0% Complete</p>
+      </div>
+
+      <!-- Display Errors -->
+      <% if (locals.error) { %>
+        <div class="alert alert-error">
+          <i data-lucide="alert-circle"></i>
+          <span><%= error %></span>
+        </div>
+      <% } %>
+
+      <!-- Display Success -->
+      <% if (locals.success) { %>
+        <div class="alert alert-success">
+          <i data-lucide="check-circle"></i>
+          <span><%= success %></span>
+        </div>
+      <% } %>
+
+      <!-- Form -->
+      <form action="/organizer/complete-profile" method="POST" enctype="multipart/form-data" id="completeProfileForm" novalidate>
+        
+        <!-- SECTION 1: Business Information -->
+        <div class="form-section" id="section1">
+          <div class="section-header">
+            <div class="section-number">1</div>
+            <div class="section-title">
+              <h2>Business Information</h2>
+              <p>Tell us about your organization</p>
+            </div>
+            <div class="section-status" id="section1Status">
+              <i data-lucide="circle" class="status-icon incomplete"></i>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <!-- Business Name -->
+            <div class="form-group full-width">
+              <label for="businessName" class="required">Business/Organization Name</label>
+              <input 
+                type="text" 
+                id="businessName" 
+                name="businessName" 
+                class="form-input" 
+                placeholder="e.g., Marathon Runners Club"
+                minlength="3"
+                maxlength="100"
+                required
+              >
+              <span class="field-error" id="businessNameError"></span>
+              <span class="field-hint">This will be displayed on your event listings</span>
+            </div>
+
+            <!-- Business Type -->
+            <div class="form-group">
+              <label for="businessType" class="required">Business Type</label>
+              <select id="businessType" name="businessType" class="form-input" required>
+                <option value="">Select business type</option>
+                <option value="individual">Individual Event Organizer</option>
+                <option value="company">Registered Company</option>
+                <option value="ngo">Non-Profit Organization (NGO)</option>
+                <option value="sports_club">Sports Club/Association</option>
+              </select>
+              <span class="field-error" id="businessTypeError"></span>
+            </div>
+
+            <!-- Contact Phone -->
+            <div class="form-group">
+              <label for="contactPhone" class="required">Contact Phone</label>
+              <input 
+                type="tel" 
+                id="contactPhone" 
+                name="contactPhone" 
+                class="form-input" 
+                placeholder="+1 (555) 123-4567"
+                pattern="[\+]?[0-9\s\-\(\)]+"
+                required
+              >
+              <span class="field-error" id="contactPhoneError"></span>
+            </div>
+
+            <!-- Business Registration Number (Conditional) -->
+            <div class="form-group conditional-field" id="businessRegNumberGroup">
+              <label for="businessRegNumber">Business Registration Number</label>
+              <input 
+                type="text" 
+                id="businessRegNumber" 
+                name="businessRegNumber" 
+                class="form-input" 
+                placeholder="e.g., 12345678"
+              >
+              <span class="field-error" id="businessRegNumberError"></span>
+              <span class="field-hint">Required for companies and NGOs</span>
+            </div>
+
+            <!-- Business Address -->
+            <div class="form-group full-width">
+              <label for="businessAddress" class="required">Business Address</label>
+              <textarea 
+                id="businessAddress" 
+                name="businessAddress" 
+                class="form-input" 
+                rows="3" 
+                placeholder="Enter your complete business address"
+                maxlength="500"
+                required
+              ></textarea>
+              <span class="field-error" id="businessAddressError"></span>
+              <span class="char-count"><span id="addressCharCount">0</span>/500</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 2: Document Upload -->
+        <div class="form-section" id="section2">
+          <div class="section-header">
+            <div class="section-number">2</div>
+            <div class="section-title">
+              <h2>Required Documents</h2>
+              <p>Upload proof of identity and business registration</p>
+            </div>
+            <div class="section-status" id="section2Status">
+              <i data-lucide="circle" class="status-icon incomplete"></i>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <!-- ID Proof Upload -->
+            <div class="form-group full-width">
+              <label class="required">Identity Proof</label>
+              <p class="upload-hint">Accepted: National ID, Passport, or Driver's License (PDF, JPG, PNG - Max 5MB)</p>
+              
+              <div class="upload-zone" id="idProofZone" data-field="idProof">
+                <input 
+                  type="file" 
+                  id="idProof" 
+                  name="idProof" 
+                  accept=".pdf,.jpg,.jpeg,.png" 
+                  class="file-input"
+                  required
+                >
+                <div class="upload-placeholder">
+                  <i data-lucide="upload-cloud" class="upload-icon"></i>
+                  <p class="upload-text"><strong>Click to upload</strong> or drag and drop</p>
+                  <p class="upload-subtext">PDF, JPG, PNG (max. 5MB)</p>
+                </div>
+                <div class="file-preview" id="idProofPreview" style="display: none;">
+                  <div class="preview-content">
+                    <i data-lucide="file-text" class="file-icon"></i>
+                    <div class="file-info">
+                      <p class="file-name" id="idProofName"></p>
+                      <p class="file-size" id="idProofSize"></p>
+                    </div>
+                    <button type="button" class="remove-file" data-target="idProof" aria-label="Remove file">
+                      <i data-lucide="x"></i>
+                    </button>
+                  </div>
+                  <div class="upload-progress" id="idProofProgress" style="display: none;">
+                    <div class="progress-bar-small">
+                      <div class="progress-fill-small" id="idProofProgressFill"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <span class="field-error" id="idProofError"></span>
+            </div>
+
+            <!-- Business Proof Upload (Conditional) -->
+            <div class="form-group full-width conditional-field" id="businessProofGroup">
+              <label>Business Registration Certificate</label>
+              <p class="upload-hint">Required for companies and NGOs (PDF, JPG, PNG - Max 5MB)</p>
+              
+              <div class="upload-zone" id="businessProofZone" data-field="businessProof">
+                <input 
+                  type="file" 
+                  id="businessProof" 
+                  name="businessProof" 
+                  accept=".pdf,.jpg,.jpeg,.png" 
+                  class="file-input"
+                >
+                <div class="upload-placeholder">
+                  <i data-lucide="upload-cloud" class="upload-icon"></i>
+                  <p class="upload-text"><strong>Click to upload</strong> or drag and drop</p>
+                  <p class="upload-subtext">PDF, JPG, PNG (max. 5MB)</p>
+                </div>
+                <div class="file-preview" id="businessProofPreview" style="display: none;">
+                  <div class="preview-content">
+                    <i data-lucide="file-text" class="file-icon"></i>
+                    <div class="file-info">
+                      <p class="file-name" id="businessProofName"></p>
+                      <p class="file-size" id="businessProofSize"></p>
+                    </div>
+                    <button type="button" class="remove-file" data-target="businessProof" aria-label="Remove file">
+                      <i data-lucide="x"></i>
+                    </button>
+                  </div>
+                  <div class="upload-progress" id="businessProofProgress" style="display: none;">
+                    <div class="progress-bar-small">
+                      <div class="progress-fill-small" id="businessProofProgressFill"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <span class="field-error" id="businessProofError"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- SECTION 3: Additional Information -->
+        <div class="form-section" id="section3">
+          <div class="section-header">
+            <div class="section-number">3</div>
+            <div class="section-title">
+              <h2>Additional Information</h2>
+              <p>Tell us more about your experience (optional)</p>
+            </div>
+            <div class="section-status" id="section3Status">
+              <i data-lucide="circle" class="status-icon optional"></i>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label for="additionalInfo">Tell us about your event organizing experience</label>
+              <textarea 
+                id="additionalInfo" 
+                name="additionalInfo" 
+                class="form-input" 
+                rows="5" 
+                placeholder="Share any previous experience organizing events, your goals, or why you'd like to use helloRun..."
+                maxlength="1000"
+              ></textarea>
+              <span class="char-count"><span id="additionalInfoCharCount">0</span>/1000</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Section -->
+        <div class="submit-section">
+          <div class="terms-notice">
+            <i data-lucide="info"></i>
+            <p>By submitting this application, you agree to our <a href="/terms" target="_blank">Terms of Service</a> and confirm that all information provided is accurate.</p>
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-large" id="submitBtn" disabled>
+            <span class="btn-text">
+              <i data-lucide="send"></i>
+              Submit Application
+            </span>
+            <span class="btn-loading" style="display: none;">
+              <span class="spinner"></span>
+              Submitting...
+            </span>
+          </button>
+
+          <p class="submit-hint">
+            <i data-lucide="clock"></i>
+            Applications are typically reviewed within 3 business days
+          </p>
+        </div>
+
+      </form>
     </div>
   </main>
-  
+
   <%- include('../layouts/footer') %>
+
+  <script src="/js/complete-profile.js"></script>
+  <script>
+    // Initialize Lucide icons
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+    });
+  </script>
 </body>
 </html>
