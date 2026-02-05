@@ -1,3 +1,38 @@
+// Add this NEW middleware at the top
+exports.setUserContext = async (req, res, next) => {
+  if (req.session.userId) {
+    try {
+      const User = require('../models/User');
+      const user = await User.findById(req.session.userId).select('-password');
+      
+      if (user) {
+        res.locals.user = user;
+        res.locals.isAuthenticated = true;
+        res.locals.isOrganizer = user.role === 'organiser';
+        res.locals.isAdmin = user.role === 'admin';
+        res.locals.isApprovedOrganizer = user.organizerStatus === 'approved';
+      } else {
+        // User not found, clear session
+        res.locals.user = null;
+        res.locals.isAuthenticated = false;
+        req.session.destroy();
+      }
+    } catch (error) {
+      console.error('Error fetching user:', error);
+      res.locals.user = null;
+      res.locals.isAuthenticated = false;
+    }
+  } else {
+    res.locals.user = null;
+    res.locals.isAuthenticated = false;
+    res.locals.isOrganizer = false;
+    res.locals.isAdmin = false;
+    res.locals.isApprovedOrganizer = false;
+  }
+  next();
+};
+
+// Existing middleware
 exports.requireAuth = (req, res, next) => {
   if (!req.session.userId) {
     return res.redirect('/login');

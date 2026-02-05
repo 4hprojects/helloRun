@@ -10,8 +10,8 @@ router.post('/signup', authController.postSignup);
 router.get('/login', authController.getLogin);
 router.post('/login', authController.postLogin);
 
-// Logout
-router.get('/logout', authController.logout);
+// Logout route - accept POST
+router.post('/logout', authController.logout);
 
 // Email verification
 router.get('/verify-email/:token', authController.verifyEmail);

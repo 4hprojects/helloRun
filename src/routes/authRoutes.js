@@ -21,7 +21,19 @@ router.post('/login', async (req, res) => {
     if (!user) {
       return res.render('auth/login', {
         error: 'Invalid email or password',
-        success: null
+        success: null,
+        showResendLink: false,
+        userEmail: null
+      });
+    }
+
+    // Check if email is verified
+    if (!user.emailVerified) {
+      return res.render('auth/login', {
+        error: 'Please verify your email before logging in.',
+        success: null,
+        showResendLink: true,
+        userEmail: user.email
       });
     }
 
@@ -29,17 +41,50 @@ router.post('/login', async (req, res) => {
     if (!isMatch) {
       return res.render('auth/login', {
         error: 'Invalid email or password',
-        success: null
+        success: null,
+        showResendLink: false,
+        userEmail: null
       });
     }
 
+    // Create session
     req.session.userId = user._id;
-    res.redirect('/');
+    req.session.role = user.role;
+    
+    // Add success flash message with user's name
+    req.session.loginSuccess = true;
+    req.session.userName = user.firstName;
+
+    // Redirect based on role and organizer status
+    if (user.role === 'organiser') {
+      // If organizer application is pending review
+      if (user.organizerStatus === 'pending') {
+        return res.redirect('/organizer/application-status');
+      }
+      
+      // If organizer is approved
+      if (user.organizerStatus === 'approved') {
+        // TODO: Phase 6B - Redirect to /organiser/dashboard when built
+        // Temporary: redirect to events page
+        return res.redirect('/events');
+      }
+      
+      // If organizer hasn't completed profile yet
+      return res.redirect('/organizer/complete-profile');
+    }
+
+    // For runners
+    // TODO: Phase 6A - Redirect to /dashboard when built
+    // Temporary: redirect to events page
+    return res.redirect('/events');
+
   } catch (error) {
     console.error('Login error:', error);
     res.render('auth/login', {
       error: 'An error occurred. Please try again.',
-      success: null
+      success: null,
+      showResendLink: false,
+      userEmail: null
     });
   }
 });
@@ -360,6 +405,18 @@ router.get('/verify-email/:token', async (req, res) => {
       isOrganizer: false
     });
   }
+});
+
+// Logout Handler (POST) - should already be at root level
+router.post('/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Logout error:', err);
+      return res.redirect('/');
+    }
+    res.clearCookie('connect.sid'); // Clear session cookie
+    res.redirect('/');
+  });
 });
 
 module.exports = router;

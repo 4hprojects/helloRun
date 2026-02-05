@@ -1,4 +1,4 @@
-<!-- filepath: c:\Users\Kayla Ryhs\Desktop\PersonalProjects\helloRun\hellorun\src\views\layouts\nav.ejs -->
+<!-- filepath: src/views/layouts/nav.ejs -->
 <nav class="nav">
   <div class="nav-container">
     <a href="/" class="logo">
@@ -15,17 +15,39 @@
       <a href="/events">Events</a>
       <a href="/blog">Blog</a>
       <a href="/about">About</a>
-      <% if (locals.user) { %>
-        <% if (locals.user.role === 'admin') { %>
+      
+      <% if (locals.isAuthenticated && locals.user) { %>
+        <!-- Logged In State -->
+        
+        <!-- Dashboard Link (role-based) -->
+        <% if (locals.isAdmin) { %>
           <a href="/admin/dashboard">Admin</a>
-        <% } else if (locals.user.role === 'organiser' || locals.user.organizerStatus === 'approved') { %>
-          <a href="/organizer/dashboard">Dashboard</a>
+        <% } else if (locals.isApprovedOrganizer) { %>
+          <!-- TODO: Phase 6B - Create /organiser/dashboard -->
+          <a href="/events">Dashboard</a>
+        <% } else if (locals.isOrganizer) { %>
+          <a href="/organizer/complete-profile">Complete Profile</a>
         <% } else { %>
-          <a href="/dashboard">Dashboard</a>
+          <!-- TODO: Phase 6A - Create /dashboard -->
+          <a href="/events">My Events</a>
         <% } %>
-        <a href="/logout" class="nav-logout">Logout</a>
+        
+        <!-- User Menu -->
+        <div class="user-menu">
+          <span class="user-greeting">Hi, <%= locals.user.firstName %>!</span>
+          
+          <!-- Logout Form (POST request) -->
+          <form action="/logout" method="POST" class="logout-form">
+            <button type="submit" class="btn-logout">
+              <i data-lucide="log-out"></i>
+              Logout
+            </button>
+          </form>
+        </div>
+        
       <% } else { %>
-        <a href="/login" class="btn">Get Started</a>
+        <!-- Logged Out State -->
+        <a href="/login" class="btn btn-primary">Get Started</a>
       <% } %>
     </div>
   </div>

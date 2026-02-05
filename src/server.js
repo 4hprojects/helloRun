@@ -4,6 +4,7 @@ const session = require('express-session');
 const path = require('path');
 const connectDB = require('./config/db');
 const sessionConfig = require('./config/session');
+const { setUserContext } = require('./middleware/auth.middleware');
 
 const app = express();
 
@@ -16,13 +17,16 @@ app.use(express.urlencoded({ extended: true }));
 app.use(session(sessionConfig));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Set user context for all routes
+app.use(setUserContext);
+
 // View engine
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // Routes
 app.use('/', require('./routes/page.routes'));
-app.use('/', require('./routes/authRoutes'));
+app.use('/', require('./routes/authRoutes')); // Remove /auth prefix
 app.use('/organizer', require('./routes/organizer.routes'));
 
 // Start server

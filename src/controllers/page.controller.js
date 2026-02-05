@@ -3,8 +3,17 @@ exports.getHome = (req, res) => {
 };
 
 exports.getEvents = (req, res) => {
-  res.render('pages/events', { 
-    title: 'Events - helloRun',
-    user: req.session.user || null
+  // Check for login success message
+  const loginSuccess = req.session.loginSuccess || false;
+  const userName = req.session.userName || null;
+  
+  // Clear the flash message after reading
+  delete req.session.loginSuccess;
+  delete req.session.userName;
+  
+  res.render('pages/events', { // ✅ Fixed: Added 'pages/' prefix
+    title: 'Running Events - HelloRun',
+    loginSuccess,
+    userName
   });
 };

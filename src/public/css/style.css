@@ -768,3 +768,77 @@ label .required {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* User Menu Styles - Add after existing nav styles */
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.user-greeting {
+  color: var(--dark-gray);
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.logout-form {
+  margin: 0;
+  padding: 0;
+}
+
+.btn-logout {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: 2px solid var(--orange);
+  color: var(--orange);
+  padding: 0.5rem 1rem;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: var(--heading-font);
+  white-space: nowrap;
+}
+
+.btn-logout:hover {
+  background: var(--orange);
+  color: var(--white);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(250, 154, 75, 0.3);
+}
+
+.btn-logout i {
+  width: 16px;
+  height: 16px;
+}
+
+/* Mobile Navigation Updates for User Menu */
+@media (max-width: 768px) {
+  .user-menu {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    gap: 0.5rem;
+    margin-left: 0;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  .user-greeting {
+    text-align: center;
+    padding: 0.5rem;
+    background: rgba(250, 154, 75, 0.05);
+    border-radius: var(--radius-sm);
+  }
+  
+  .btn-logout {
+    width: 100%;
+    justify-content: center;
+  }
+}

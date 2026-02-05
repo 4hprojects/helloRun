@@ -73,6 +73,7 @@ helloRun/
         signup.css
         forgot-password.css
         reset-password.css
+        events.css          ← NEW (Feb 5, 2026)
       js/
         main.js
         auth.js
@@ -95,9 +96,9 @@ helloRun/
   package.json
   package-lock.json
   README.md
-  dir.text
+  dir.txt               ← UPDATED (Feb 5, 2026)
   dns.txt
-  wireframe.txt
+  wireframe.txt         ← to be updated (Feb 5, 2026)
   sitemap.md
   organiser_flow.txt
   user-role-system.txt

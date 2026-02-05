@@ -2,23 +2,84 @@
 <html lang="en">
 <head>
   <%- include('../layouts/head', { title: 'Browse Events - helloRun' }) %>
+  <link rel="stylesheet" href="/css/events.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
   
   <main class="events-page">
-    <section class="page-header">
+    <!-- Login Success Message -->
+    <% if (loginSuccess && userName) { %>
+    <div class="login-success-banner">
+      <div class="container">
+        <p>Welcome back, <%= userName %>! 🎉</p>
+      </div>
+    </div>
+    <% } %>
+
+    <!-- Hero Section -->
+    <section class="events-hero">
       <div class="container">
         <h1>Virtual Running Events</h1>
-        <p>Join exciting virtual runs and challenges from anywhere in the world</p>
+        
+        <% if (locals.isAuthenticated) { %>
+          <!-- Logged In Users -->
+          <% if (locals.isApprovedOrganizer) { %>
+            <p>Browse events or create your own virtual running challenge</p>
+            <div class="hero-actions">
+              <a href="/events" class="btn btn-secondary">Browse Events</a>
+              <!-- TODO: Phase 3 - Link to /organiser/create-event when ready -->
+              <a href="#" class="btn" onclick="alert('Event creation coming soon in Phase 3!'); return false;">Create Event</a>
+            </div>
+          <% } else if (locals.isOrganizer) { %>
+            <p>Complete your organizer profile to start creating events</p>
+            <div class="hero-actions">
+              <a href="/organizer/complete-profile" class="btn">Complete Profile</a>
+            </div>
+          <% } else { %>
+            <!-- Regular Runner -->
+            <p>Find your next virtual running challenge and join the community</p>
+            <div class="hero-actions">
+              <a href="#events-list" class="btn">Browse Events</a>
+            </div>
+          <% } %>
+        <% } else { %>
+          <!-- Logged Out Users -->
+          <p>Join exciting virtual runs and challenges from anywhere in the world</p>
+          <div class="hero-actions">
+            <a href="/login" class="btn">Get Started</a>
+            <a href="#events-list" class="btn btn-secondary">Browse Events</a>
+          </div>
+        <% } %>
       </div>
     </section>
 
-    <section class="events-list">
+    <!-- Events List Section -->
+    <section class="events-list" id="events-list">
       <div class="container">
+        <h2>Upcoming Events</h2>
+        
+        <% if (!locals.isAuthenticated) { %>
+        <div class="auth-prompt">
+          <p><i data-lucide="info"></i> <a href="/login">Sign in</a> to register for events and track your progress</p>
+        </div>
+        <% } %>
+        
         <div class="events-grid">
-          <!-- Event cards will be dynamically populated here -->
-          <p>Events coming soon...</p>
+          <!-- Event cards will be dynamically populated here in Phase 3 -->
+          <div class="no-events-message">
+            <i data-lucide="calendar-x"></i>
+            <h3>No Events Yet</h3>
+            <p>Events will be available once organizers create them.</p>
+            
+            <% if (locals.isApprovedOrganizer) { %>
+              <p><strong>You're an approved organizer!</strong> Be the first to create an event.</p>
+              <!-- TODO: Phase 3 - Link to /organiser/create-event -->
+              <a href="#" class="btn" onclick="alert('Event creation coming soon in Phase 3!'); return false;">Create First Event</a>
+            <% } else if (!locals.isAuthenticated) { %>
+              <p>Want to organize events? <a href="/signup">Sign up as an organizer</a></p>
+            <% } %>
+          </div>
         </div>
       </div>
     </section>

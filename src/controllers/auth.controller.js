@@ -232,17 +232,34 @@ exports.postLogin = async (req, res) => {
 
     // 5. Create session
     req.session.userId = user._id;
-    req.session.userRole = user.role;
-    req.session.userEmail = user.email;
+    req.session.role = user.role;
+    
+    // Add success flash message with user's name
+    req.session.loginSuccess = true;
+    req.session.userName = user.firstName;
 
-    // 6. Redirect based on role
-    if (user.role === 'admin') {
-      return res.redirect('/admin/dashboard');
-    } else if (user.role === 'organiser') {
-      return res.redirect('/organizer/dashboard');
-    } else {
-      return res.redirect('/dashboard');
+    // Redirect based on role and organizer status
+    if (user.role === 'organiser') {
+      // If organizer application is pending review
+      if (user.organizerStatus === 'pending') {
+        return res.redirect('/organizer/application-status');
+      }
+      
+      // If organizer is approved
+      if (user.organizerStatus === 'approved') {
+        // TODO: Phase 6B - Redirect to /organiser/dashboard when built
+        // Temporary: redirect to events page
+        return res.redirect('/events');
+      }
+      
+      // If organizer hasn't completed profile yet
+      return res.redirect('/organizer/complete-profile');
     }
+
+    // For runners
+    // TODO: Phase 6A - Redirect to /dashboard when built
+    // Temporary: redirect to events page
+    return res.redirect('/events');
 
   } catch (error) {
     console.error('❌ Login error:', error);
