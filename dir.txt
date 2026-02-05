@@ -24,17 +24,18 @@ helloRun/
       authRoutes.js
       event.routes.js
       organiser.routes.js
-      organizer.routes.js
+      organizer.routes.js         ← UPDATED (Feb 5, 2026)
       page.routes.js
     services/
-      upload.service.js
-      email.service.js
+      upload.service.js           ← UPDATED (Feb 5, 2026)
+      email.service.js            ← UPDATED (Feb 5, 2026)
       password.service.js
       token.service.js
       counter.service.js
     scripts/
       initCounter.js
       migrateUserIds.js
+      setup-uploads.js            ← NEW (Feb 5, 2026)
     views/
       layouts/
         head.ejs
@@ -60,8 +61,8 @@ helloRun/
         verify-email-result.ejs
         complete-profile.ejs
       organizer/
-        application-status.ejs
-        complete-profile.ejs
+        application-status.ejs    ← NEW (Feb 5, 2026)
+        complete-profile.ejs      ← NEW (Feb 5, 2026)
       admin/
         applications-list.ejs
         application-details.ejs
@@ -73,32 +74,41 @@ helloRun/
         signup.css
         forgot-password.css
         reset-password.css
-        events.css          ← NEW (Feb 5, 2026)
+        events.css                ← NEW (Feb 5, 2026)
+        complete-profile.css      ← NEW (Feb 5, 2026)
+        application-status.css    ← NEW (Feb 5, 2026)
       js/
         main.js
         auth.js
         signup.js
         reset-password.js
+        complete-profile.js       ← NEW (Feb 5, 2026)
       images/
         helloRun-icon.webp
-      uploads/
-        organizer-docs/
+      uploads/                    ← NEW (Feb 5, 2026)
+        .gitkeep                  ← NEW (Feb 5, 2026)
+        organizer-docs/           ← UPDATED (Feb 5, 2026)
+          .gitkeep                ← NEW (Feb 5, 2026)
+        event-images/             ← NEW (Feb 5, 2026)
+          .gitkeep                ← NEW (Feb 5, 2026)
+        profile-photos/           ← NEW (Feb 5, 2026)
+          .gitkeep                ← NEW (Feb 5, 2026)
       robots.txt
       sitemap.xml
-    server.js
+    server.js                     ← REVIEWED (Feb 5, 2026)
   controllers/
   hellorun/
   js/
     signup.js
   .env
   .env.example
-  .gitignore
-  package.json
+  .gitignore                      ← UPDATED (Feb 5, 2026)
+  package.json                    ← UPDATED (Feb 5, 2026)
   package-lock.json
   README.md
-  dir.txt               ← UPDATED (Feb 5, 2026)
+  dir.txt                         ← UPDATED (Feb 5, 2026)
   dns.txt
-  wireframe.txt         ← to be updated (Feb 5, 2026)
+  wireframe.txt                   ← to be updated (Feb 5, 2026)
   sitemap.md
   organiser_flow.txt
   user-role-system.txt
@@ -107,3 +117,77 @@ helloRun/
   current-dir.txt
   node_modules/
   .git/
+
+================================================================================
+CHANGELOG - February 5, 2026
+================================================================================
+
+📦 ORGANIZER APPLICATION SYSTEM IMPLEMENTATION
+
+✨ NEW FILES (13):
+  1. src/scripts/setup-uploads.js
+  2. src/views/organizer/complete-profile.ejs
+  3. src/views/organizer/application-status.ejs
+  4. src/public/css/complete-profile.css
+  5. src/public/css/application-status.css
+  6. src/public/js/complete-profile.js
+  7. src/public/uploads/.gitkeep
+  8. src/public/uploads/organizer-docs/.gitkeep
+  9. src/public/uploads/event-images/.gitkeep
+  10. src/public/uploads/profile-photos/.gitkeep
+
+✏️ UPDATED FILES (6):
+  1. src/routes/organizer.routes.js
+     - Added POST /complete-profile with file upload
+     - Added GET /application-status
+     - Added GET /complete-profile
+  
+  2. src/services/upload.service.js
+     - Enhanced Multer configuration
+     - Added file validation helpers
+     - Added file deletion utilities
+     - Added error handling
+  
+  3. src/services/email.service.js
+     - Added sendApplicationSubmittedEmail()
+     - Added sendApplicationApprovedEmail()
+     - Added sendApplicationRejectedEmail()
+  
+  4. .gitignore
+     - Added upload directory rules
+     - Preserved .gitkeep files
+  
+  5. package.json
+     - Added "setup" script
+     - Added "postinstall" script
+  
+  6. src/server.js
+     - Reviewed for static file serving (no changes needed)
+
+📁 NEW DIRECTORIES (4):
+  1. src/public/uploads/
+  2. src/public/uploads/organizer-docs/
+  3. src/public/uploads/event-images/
+  4. src/public/uploads/profile-photos/
+
+🎯 FEATURES IMPLEMENTED:
+  ✅ Multi-step organizer profile completion form
+  ✅ Drag-and-drop file upload (ID proof + Business proof)
+  ✅ Client-side validation (file type, size, form fields)
+  ✅ Server-side validation and security checks
+  ✅ Application submission and database storage
+  ✅ Application status tracking page with timeline
+  ✅ Email notifications (submitted/approved/rejected)
+  ✅ Upload directory structure and automation
+  ✅ Responsive design (mobile-friendly)
+
+🔜 PENDING TASKS:
+  - Task 6: Admin Panel for Application Review
+  - Task 7: Application Approval/Rejection Flow
+  - Task 8: Email Notifications Integration Testing
+
+📊 FILES AFFECTED: 19 total
+  - New: 13 files
+  - Updated: 6 files
+
+================================================================================
