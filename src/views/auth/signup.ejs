@@ -7,7 +7,7 @@
     <%- include('../layouts/head', { title: 'Sign Up - helloRun' }) %>
 </head>
 <body>
-  <%- include('../layouts/nav') %>
+  <%- include('../layouts/nav', { isAuthPage: true }) %>
   
   <main class="compact-auth-page">
     <div class="compact-auth-container">
@@ -165,6 +165,32 @@
   
   <script src="/js/main.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <script>
+    // ========================================
+    // MOBILE MENU TOGGLE
+    // ========================================
+    document.addEventListener('DOMContentLoaded', () => {
+      const menuToggle = document.querySelector('.menu-toggle');
+      const navLinks = document.querySelector('.nav-links');
+
+      if (menuToggle && navLinks) {
+        menuToggle.addEventListener('click', () => {
+          navLinks.classList.toggle('active');
+          menuToggle.classList.toggle('active');
+        });
+
+        // Close menu when a link is clicked
+        navLinks.querySelectorAll('a').forEach(link => {
+          link.addEventListener('click', () => {
+            navLinks.classList.remove('active');
+            menuToggle.classList.remove('active');
+          });
+        });
+      }
+    });
+  </script>
+
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       lucide.createIcons();

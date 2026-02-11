@@ -1,5 +1,5 @@
 <!-- filepath: src/views/layouts/nav.ejs -->
-<nav class="nav">
+<nav class="nav <% if (locals.isAuthPage) { %>nav-auth<% } %>">
   <div class="nav-container">
     <a href="/" class="logo">
       <img src="/images/helloRun-icon.webp" alt="HelloRun Logo" class="logo-icon">
@@ -11,6 +11,7 @@
     </button>
     
     <div class="nav-links">
+      <!-- Always show these links -->
       <a href="/">Home</a>
       <a href="/events">Events</a>
       <a href="/blog">Blog</a>

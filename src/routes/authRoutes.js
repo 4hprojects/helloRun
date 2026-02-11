@@ -55,29 +55,22 @@ router.post('/login', async (req, res) => {
     req.session.loginSuccess = true;
     req.session.userName = user.firstName;
 
-    // Redirect based on role and organizer status
-    if (user.role === 'organiser') {
-      // If organizer application is pending review
+    // Role-based redirect
+    if (req.session.role === 'organiser') {
       if (user.organizerStatus === 'pending') {
         return res.redirect('/organizer/application-status');
-      }
-      
-      // If organizer is approved
-      if (user.organizerStatus === 'approved') {
+      } else if (user.organizerStatus === 'approved') {
         // TODO: Phase 6B - Redirect to /organiser/dashboard when built
         // Temporary: redirect to events page
         return res.redirect('/events');
+      } else {
+        return res.redirect('/organizer/complete-profile');
       }
-      
-      // If organizer hasn't completed profile yet
-      return res.redirect('/organizer/complete-profile');
     }
-
-    // For runners
-    // TODO: Phase 6A - Redirect to /dashboard when built
-    // Temporary: redirect to events page
-    return res.redirect('/events');
-
+    
+    // For runners - redirect to runner dashboard
+    return res.redirect('/runner/dashboard');
+    
   } catch (error) {
     console.error('Login error:', error);
     res.render('auth/login', {
@@ -416,6 +409,18 @@ router.post('/logout', (req, res) => {
     }
     res.clearCookie('connect.sid'); // Clear session cookie
     res.redirect('/');
+  });
+});
+
+// Runner Dashboard
+router.get('/runner/dashboard', (req, res) => {
+  if (!req.session.userId || req.session.role !== 'runner') {
+    return res.redirect('/login');
+  }
+  
+  res.render('runner/dashboard', {
+    user: req.session.user,
+    userName: req.session.userName
   });
 });
 

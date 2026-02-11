@@ -138,4 +138,5 @@ userSchema.methods.canCreateEvents = function() {
          this.emailVerified;
 };
 
-module.exports = mongoose.model('User', userSchema);
+// Check if model exists before creating it
+module.exports = mongoose.models.User || mongoose.model('User', userSchema);

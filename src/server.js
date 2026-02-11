@@ -50,13 +50,14 @@ app.use((req, res, next) => {
 
 // Routes
 app.use('/', require('./routes/index.routes'));
-app.use('/auth', require('./routes/auth.routes'));
+app.use('/', require('./routes/authRoutes'));
 app.use('/organizer', require('./routes/organizer.routes'));
 
 // 404 Handler
 app.use((req, res) => {
   res.status(404).render('error', {
     title: '404 - Page Not Found',
+    status: 404,
     message: 'The page you are looking for does not exist.'
   });
 });
@@ -66,9 +67,11 @@ app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).render('error', {
     title: 'Server Error',
+    status: 500,
     message: process.env.NODE_ENV === 'development' 
       ? err.message 
-      : 'Something went wrong. Please try again later.'
+      : 'Something went wrong. Please try again later.',
+    error: process.env.NODE_ENV === 'development' ? err : null
   });
 });
 

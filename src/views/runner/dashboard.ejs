@@ -1,0 +1,104 @@
+<!-- filepath: c:\Users\Kayla Ryhs\Desktop\PersonalProjects\helloRun\src\views\runner\dashboard.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="/css/runner-dashboard.css">
+  <%- include('../layouts/head', { title: 'Dashboard - helloRun' }) %>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  
+  <main class="dashboard-container">
+    <div class="dashboard-header">
+      <div class="header-content">
+        <h1>Welcome back, <%= userName %>! 👋</h1>
+        <p class="header-subtitle">Ready to run?</p>
+      </div>
+      <form action="/logout" method="POST" class="logout-form">
+        <button type="submit" class="btn btn-logout">
+          <i data-lucide="log-out"></i>
+          Logout
+        </button>
+      </form>
+    </div>
+
+    <div class="dashboard-grid">
+      
+      <!-- Upcoming Events -->
+      <section class="dashboard-card">
+        <div class="card-header">
+          <h2>
+            <i data-lucide="calendar"></i>
+            Upcoming Events
+          </h2>
+        </div>
+        <div class="card-content placeholder">
+          <p>Your upcoming running events will appear here.</p>
+          <a href="/events" class="btn btn-secondary">Browse Events</a>
+        </div>
+      </section>
+
+      <!-- Past Events -->
+      <section class="dashboard-card">
+        <div class="card-header">
+          <h2>
+            <i data-lucide="history"></i>
+            Past Events
+          </h2>
+        </div>
+        <div class="card-content placeholder">
+          <p>Your completed running events will appear here.</p>
+        </div>
+      </section>
+
+      <!-- Activity Log -->
+      <section class="dashboard-card">
+        <div class="card-header">
+          <h2>
+            <i data-lucide="activity"></i>
+            Activity Log
+          </h2>
+        </div>
+        <div class="card-content placeholder">
+          <p>Your recent activities will appear here.</p>
+        </div>
+      </section>
+
+      <!-- Certificates Earned -->
+      <section class="dashboard-card">
+        <div class="card-header">
+          <h2>
+            <i data-lucide="award"></i>
+            Certificates Earned
+          </h2>
+        </div>
+        <div class="card-content placeholder">
+          <p>Your earned certificates will appear here.</p>
+        </div>
+      </section>
+
+      <!-- Progress Statistics -->
+      <section class="dashboard-card">
+        <div class="card-header">
+          <h2>
+            <i data-lucide="bar-chart-3"></i>
+            Progress Statistics
+          </h2>
+        </div>
+        <div class="card-content placeholder">
+          <p>Your running statistics will appear here.</p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  
+  <script src="/js/main.js"></script>
+  <script src="/js/runner-dashboard.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
