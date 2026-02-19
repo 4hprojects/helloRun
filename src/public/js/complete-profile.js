@@ -1,432 +1,680 @@
-document.addEventListener('DOMContentLoaded', function() {
-  
-  // ========================================
-  // STATE MANAGEMENT
-  // ========================================
-  let currentStep = 1;
-  const totalSteps = 3;
-  let uploadedFiles = {
-    idProof: null,
-    businessProof: null
-  };
+/* ==========================================
+   COMPLETE PROFILE FORM - MAIN LOGIC
+   ========================================== */
 
-  // ========================================
-  // DOM ELEMENTS
-  // ========================================
-  const form = document.getElementById('completeProfileForm');
-  const prevBtn = document.getElementById('prevBtn');
-  const nextBtn = document.getElementById('nextBtn');
-  const submitBtn = document.getElementById('submitBtn');
-  const progressSteps = document.querySelectorAll('.progress-step');
-  const formSections = document.querySelectorAll('.form-section');
-  const inputGroups = document.querySelectorAll('.input-group');
+class CompleteProfileForm {
+  constructor() {
+    this.form = document.getElementById('completeProfileForm');
+    this.currentStep = 1;
+    this.totalSteps = 3;
+    this.uploadedFiles = {
+      idProof: null,
+      businessProof: null
+    };
+    this.formData = new FormData();
+    this.isSubmitting = false;
 
-  // ========================================
-  // FLOATING LABELS
-  // ========================================
-  inputGroups.forEach(group => {
-    const input = group.querySelector('input, select, textarea');
-    const label = group.querySelector('label');
-    
-    if (!input || !label) return;
-
-    // Check if input has value on page load
-    function checkFilled() {
-      if (input.value.trim() !== '') {
-        group.classList.add('filled');
-      } else {
-        group.classList.remove('filled');
-      }
-    }
-
-    // Focus event
-    input.addEventListener('focus', () => {
-      group.classList.add('focused');
-    });
-
-    // Blur event
-    input.addEventListener('blur', () => {
-      group.classList.remove('focused');
-      checkFilled();
-    });
-
-    // Input event for real-time checking
-    input.addEventListener('input', checkFilled);
-    
-    // Change event for select elements
-    if (input.tagName === 'SELECT') {
-      input.addEventListener('change', checkFilled);
-    }
-
-    // Initial check
-    checkFilled();
-  });
-
-  // ========================================
-  // STEP NAVIGATION
-  // ========================================
-  function updateStepDisplay() {
-    // Update progress circles
-    progressSteps.forEach((step, index) => {
-      const stepNumber = index + 1;
-      step.classList.remove('active', 'completed');
-      
-      if (stepNumber < currentStep) {
-        step.classList.add('completed');
-      } else if (stepNumber === currentStep) {
-        step.classList.add('active');
-      }
-    });
-
-    // Update form sections
-    formSections.forEach((section, index) => {
-      section.classList.remove('active');
-      if (index + 1 === currentStep) {
-        section.classList.add('active');
-      }
-    });
-
-    // Update button visibility
-    prevBtn.style.display = currentStep === 1 ? 'none' : 'flex';
-    nextBtn.style.display = currentStep === totalSteps ? 'none' : 'flex';
-    submitBtn.style.display = currentStep === totalSteps ? 'flex' : 'none';
-
-    // Scroll to top of form
-    document.querySelector('.auth-form-wrapper').scrollTop = 0;
+    this.init();
   }
 
-  function validateStep(step) {
+  init() {
+    if (!this.form) {
+      console.error('Form not found');
+      return;
+    }
+
+    this.setupEventListeners();
+    this.initializeLucideIcons();
+  }
+
+  /**
+   * Setup all event listeners
+   */
+  setupEventListeners() {
+    // File upload zones - drag and drop
+    document.querySelectorAll('.file-upload-zone').forEach(zone => {
+      zone.addEventListener('dragover', (e) => this.handleDragOver(e, zone));
+      zone.addEventListener('dragleave', (e) => this.handleDragLeave(e, zone));
+      zone.addEventListener('drop', (e) => this.handleDrop(e, zone));
+      zone.addEventListener('click', () => this.handleZoneClick(zone));
+    });
+
+    // File inputs
+    document.querySelectorAll('input[type="file"]').forEach(input => {
+      input.addEventListener('change', (e) => this.handleFileSelect(e));
+    });
+
+    // Form submission
+    this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+
+    // Form reset
+    document.querySelectorAll('button[type="reset"]').forEach(btn => {
+      btn.addEventListener('click', () => this.handleReset());
+    });
+
+    // Navigation buttons
+    const nextButtons = document.querySelectorAll('[data-action="next"]');
+    const prevButtons = document.querySelectorAll('[data-action="prev"]');
+
+    nextButtons.forEach(btn => {
+      btn.addEventListener('click', () => this.nextStep());
+    });
+
+    prevButtons.forEach(btn => {
+      btn.addEventListener('click', () => this.prevStep());
+    });
+
+    // Character count for textarea
+    const additionalInfoTextarea = document.getElementById('additionalInfo');
+    if (additionalInfoTextarea) {
+      additionalInfoTextarea.addEventListener('input', (e) => {
+        this.updateCharCount(e.target);
+      });
+    }
+  }
+
+  /**
+   * Initialize Lucide Icons
+   */
+  initializeLucideIcons() {
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  }
+
+  /* ==========================================
+     FILE UPLOAD HANDLERS
+     ========================================== */
+
+  /**
+   * Handle drag over event
+   */
+  handleDragOver(e, zone) {
+    e.preventDefault();
+    e.stopPropagation();
+    zone.classList.add('dragover');
+  }
+
+  /**
+   * Handle drag leave event
+   */
+  handleDragLeave(e, zone) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Only remove class if leaving the zone entirely
+    if (e.target === zone) {
+      zone.classList.remove('dragover');
+    }
+  }
+
+  /**
+   * Handle drop event
+   */
+  handleDrop(e, zone) {
+    e.preventDefault();
+    e.stopPropagation();
+    zone.classList.remove('dragover');
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      const fieldName = zone.dataset.field;
+      const fileInput = document.getElementById(fieldName);
+      
+      // Set files to the input
+      fileInput.files = files;
+      
+      // Trigger change event
+      const changeEvent = new Event('change', { bubbles: true });
+      fileInput.dispatchEvent(changeEvent);
+    }
+  }
+
+  /**
+   * Handle zone click to open file picker
+   */
+  handleZoneClick(zone) {
+    const fieldName = zone.dataset.field;
+    const fileInput = document.getElementById(fieldName);
+    fileInput.click();
+  }
+
+  /**
+   * Handle file selection (from input or drag-drop)
+   */
+  handleFileSelect(e) {
+    const input = e.target;
+    const fieldName = input.name;
+    const files = input.files;
+
+    if (files.length === 0) {
+      return;
+    }
+
+    const file = files[0];
+    const zone = document.getElementById(`${fieldName}-drag-zone`);
+    const previewContainer = document.getElementById(`${fieldName}-preview`);
+    const errorContainer = document.getElementById(`${fieldName}-error`);
+
+    // Clear previous errors
+    if (errorContainer) {
+      errorContainer.textContent = '';
+      errorContainer.style.display = 'none';
+    }
+
+    // Validate file
+    const validation = this.validateFile(file, fieldName);
+    if (!validation.valid) {
+      this.showError(fieldName, validation.error);
+      input.value = '';
+      return;
+    }
+
+    // Store file
+    this.uploadedFiles[fieldName] = file;
+    this.formData.set(fieldName, file);
+
+    // Display preview
+    this.displayFilePreview(file, fieldName, previewContainer, zone);
+
+    // Clear error state
+    this.clearError(fieldName);
+  }
+
+  /**
+   * Validate file (type, size)
+   */
+  validateFile(file, fieldName) {
+    const maxSize = parseInt(process.env.UPLOAD_MAX_SIZE) || 5242880; // 5MB
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+
+    // Check file type
+    if (!allowedTypes.includes(file.type)) {
+      return {
+        valid: false,
+        error: 'Invalid file type. Please upload PDF, JPG, or PNG files only.'
+      };
+    }
+
+    // Check file size
+    if (file.size > maxSize) {
+      const maxSizeMB = Math.round(maxSize / 1024 / 1024);
+      return {
+        valid: false,
+        error: `File size exceeds ${maxSizeMB}MB limit.`
+      };
+    }
+
+    return { valid: true };
+  }
+
+  /**
+   * Display file preview
+   */
+  displayFilePreview(file, fieldName, previewContainer, zone) {
+    const isImage = file.type.startsWith('image/');
+    const isPDF = file.type === 'application/pdf';
+    const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+
+    let previewHTML = `
+      <div class="file-preview-item">
+        <div class="file-preview-thumbnail">
+    `;
+
+    if (isImage) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = previewContainer.querySelector('.file-preview-thumbnail img');
+        if (img) {
+          img.src = e.target.result;
+        }
+      };
+      reader.readAsDataURL(file);
+      previewHTML += `<img src="" alt="Preview" />`;
+    } else if (isPDF) {
+      previewHTML += `
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+          <polyline points="14 2 14 8 20 8"></polyline>
+        </svg>
+      `;
+    }
+
+    previewHTML += `
+        </div>
+        <div class="file-preview-info">
+          <div class="file-preview-name">${this.truncateFilename(file.name)}</div>
+          <div class="file-preview-size">${fileSizeMB} MB</div>
+        </div>
+        <button type="button" class="file-preview-remove" onclick="completeProfileForm.removeFile('${fieldName}')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            <line x1="10" y1="11" x2="10" y2="17"></line>
+            <line x1="14" y1="11" x2="14" y2="17"></line>
+          </svg>
+          Remove
+        </button>
+      </div>
+    `;
+
+    if (previewContainer) {
+      previewContainer.innerHTML = previewHTML;
+      previewContainer.classList.add('show');
+      zone.style.display = 'none';
+
+      // Re-initialize icons
+      this.initializeLucideIcons();
+    }
+  }
+
+  /**
+   * Remove uploaded file
+   */
+  removeFile(fieldName) {
+    const input = document.getElementById(fieldName);
+    const previewContainer = document.getElementById(`${fieldName}-preview`);
+    const zone = document.getElementById(`${fieldName}-drag-zone`);
+
+    input.value = '';
+    this.uploadedFiles[fieldName] = null;
+    this.formData.delete(fieldName);
+
+    if (previewContainer) {
+      previewContainer.innerHTML = '';
+      previewContainer.classList.remove('show');
+    }
+
+    if (zone) {
+      zone.style.display = 'block';
+    }
+
+    // Trigger revalidation
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  /**
+   * Truncate long filenames
+   */
+  truncateFilename(filename, maxLength = 30) {
+    if (filename.length <= maxLength) {
+      return filename;
+    }
+    const ext = filename.split('.').pop();
+    const name = filename.substring(0, maxLength - ext.length - 3);
+    return name + '...' + ext;
+  }
+
+  /* ==========================================
+     FORM VALIDATION
+     ========================================== */
+
+  /**
+   * Validate form fields
+   */
+  validateFormStep(stepNumber) {
+    const section = document.querySelector(`[data-section="${stepNumber}"]`);
+    if (!section) return true;
+
+    const fields = section.querySelectorAll('input[required], select[required], textarea[required]');
     let isValid = true;
 
-    if (step === 1) {
-      // Validate Business Information
-      const businessName = document.getElementById('businessName');
-      const businessType = document.getElementById('businessType');
-      const contactPhone = document.getElementById('contactPhone');
-
-      // Business Name
-      if (!businessName.value.trim()) {
-        showError(businessName, 'Business name is required');
-        isValid = false;
-      } else if (businessName.value.trim().length < 3) {
-        showError(businessName, 'Business name must be at least 3 characters');
-        isValid = false;
-      } else {
-        clearError(businessName);
-      }
-
-      // Business Type
-      if (!businessType.value) {
-        showError(businessType, 'Please select a business type');
+    fields.forEach(field => {
+      if (field.type === 'file') {
+        const fieldName = field.name;
+        if (!this.uploadedFiles[fieldName]) {
+          this.showError(fieldName, 'Please upload a file');
+          isValid = false;
+        }
+      } else if (field.type === 'checkbox') {
+        if (!field.checked) {
+          this.showError(field.id, 'Please accept the terms');
+          isValid = false;
+        }
+      } else if (field.value.trim() === '') {
+        this.showError(field.id, 'This field is required');
         isValid = false;
       } else {
-        clearError(businessType);
+        // Additional validation based on field type
+        if (field.type === 'email') {
+          if (!this.isValidEmail(field.value)) {
+            this.showError(field.id, 'Please enter a valid email');
+            isValid = false;
+          }
+        }
+
+        if (field.type === 'tel') {
+          if (!this.isValidPhone(field.value)) {
+            this.showError(field.id, 'Please enter a valid phone number');
+            isValid = false;
+          }
+        }
+
+        if (field.name === 'businessName') {
+          if (field.value.trim().length < 2) {
+            this.showError(field.id, 'Business name must be at least 2 characters');
+            isValid = false;
+          }
+        }
       }
-
-      // Contact Phone
-      const phoneRegex = /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/;
-      if (!contactPhone.value.trim()) {
-        showError(contactPhone, 'Contact phone is required');
-        isValid = false;
-      } else if (!phoneRegex.test(contactPhone.value.trim())) {
-        document.getElementById('phoneError').classList.add('show');
-        contactPhone.classList.add('error');
-        isValid = false;
-      } else {
-        document.getElementById('phoneError').classList.remove('show');
-        clearError(contactPhone);
-      }
-
-    } else if (step === 2) {
-      // Validate Documents
-      const idProofError = document.getElementById('idProofError');
-      const businessProofError = document.getElementById('businessProofError');
-
-      if (!uploadedFiles.idProof) {
-        idProofError.classList.add('show');
-        isValid = false;
-      } else {
-        idProofError.classList.remove('show');
-      }
-
-      if (!uploadedFiles.businessProof) {
-        businessProofError.classList.add('show');
-        isValid = false;
-      } else {
-        businessProofError.classList.remove('show');
-      }
-
-    } else if (step === 3) {
-      // Validate Terms
-      const terms = document.getElementById('terms');
-      const termsError = document.getElementById('termsError');
-
-      if (!terms.checked) {
-        termsError.classList.add('show');
-        isValid = false;
-      } else {
-        termsError.classList.remove('show');
-      }
-    }
+    });
 
     return isValid;
   }
 
-  function showError(input, message) {
-    input.classList.add('error');
-    // You can add custom error message display if needed
+  /**
+   * Validate email format
+   */
+  isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   }
 
-  function clearError(input) {
-    input.classList.remove('error');
+  /**
+   * Validate phone format (basic)
+   */
+  isValidPhone(phone) {
+    // Allow various phone formats
+    const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+    return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 7;
   }
 
-  // Next button handler
-  nextBtn.addEventListener('click', () => {
-    if (validateStep(currentStep)) {
-      currentStep++;
-      updateStepDisplay();
-      lucide.createIcons(); // Reinitialize icons after DOM update
-    }
-  });
+  /**
+   * Show error message
+   */
+  showError(fieldId, message) {
+    const field = document.getElementById(fieldId);
+    const errorContainer = document.getElementById(`${fieldId}-error`);
 
-  // Previous button handler
-  prevBtn.addEventListener('click', () => {
-    currentStep--;
-    updateStepDisplay();
-    lucide.createIcons();
-  });
-
-  // ========================================
-  // FILE UPLOAD HANDLING
-  // ========================================
-  function setupFileUpload(inputId, zoneId, previewId, thumbnailId, nameId, sizeId, removeId) {
-    const input = document.getElementById(inputId);
-    const zone = document.getElementById(zoneId);
-    const preview = document.getElementById(previewId);
-    const thumbnail = document.getElementById(thumbnailId);
-    const nameEl = document.getElementById(nameId);
-    const sizeEl = document.getElementById(sizeId);
-    const removeBtn = document.getElementById(removeId);
-
-    // Drag and drop events
-    zone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      zone.classList.add('drag-over');
-    });
-
-    zone.addEventListener('dragleave', () => {
-      zone.classList.remove('drag-over');
-    });
-
-    zone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      zone.classList.remove('drag-over');
-      
-      const files = e.dataTransfer.files;
-      if (files.length > 0) {
-        handleFileSelect(files[0], inputId);
+    if (field) {
+      const group = field.closest('.input-group');
+      if (group) {
+        group.classList.add('error');
       }
-    });
-
-    // File input change
-    input.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        handleFileSelect(e.target.files[0], inputId);
-      }
-    });
-
-    // Handle file selection
-    function handleFileSelect(file, fileType) {
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-      if (!allowedTypes.includes(file.type)) {
-        alert('Invalid file type. Please upload JPEG, PNG, or PDF files only.');
-        return;
-      }
-
-      // Validate file size (5MB)
-      const maxSize = 5 * 1024 * 1024; // 5MB in bytes
-      if (file.size > maxSize) {
-        alert('File size exceeds 5MB. Please upload a smaller file.');
-        return;
-      }
-
-      // Store file
-      uploadedFiles[fileType] = file;
-
-      // Update preview
-      nameEl.textContent = file.name;
-      sizeEl.textContent = formatFileSize(file.size);
-
-      // Show thumbnail
-      if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          thumbnail.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-        };
-        reader.readAsDataURL(file);
-      } else {
-        thumbnail.innerHTML = '<i data-lucide="file-text"></i>';
-        lucide.createIcons();
-      }
-
-      // Show preview, hide upload zone
-      zone.style.display = 'none';
-      preview.classList.add('show');
-
-      // Clear error if exists
-      document.getElementById(fileType + 'Error').classList.remove('show');
-
-      lucide.createIcons();
     }
 
-    // Remove file
-    removeBtn.addEventListener('click', () => {
-      uploadedFiles[inputId] = null;
-      input.value = '';
-      zone.style.display = 'block';
-      preview.classList.remove('show');
-      thumbnail.innerHTML = '<i data-lucide="file"></i>';
-      lucide.createIcons();
-    });
-
-    // Format file size
-    function formatFileSize(bytes) {
-      if (bytes === 0) return '0 Bytes';
-      const k = 1024;
-      const sizes = ['Bytes', 'KB', 'MB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    if (errorContainer) {
+      errorContainer.textContent = message;
+      errorContainer.style.display = 'block';
     }
   }
 
-  // Setup both file uploads
-  setupFileUpload(
-    'idProof', 
-    'idProofZone', 
-    'idProofPreview', 
-    'idProofThumbnail', 
-    'idProofName', 
-    'idProofSize', 
-    'idProofRemove'
-  );
+  /**
+   * Clear error message
+   */
+  clearError(fieldId) {
+    const field = document.getElementById(fieldId);
+    const errorContainer = document.getElementById(`${fieldId}-error`);
 
-  setupFileUpload(
-    'businessProof', 
-    'businessProofZone', 
-    'businessProofPreview', 
-    'businessProofThumbnail', 
-    'businessProofName', 
-    'businessProofSize', 
-    'businessProofRemove'
-  );
+    if (field) {
+      const group = field.closest('.input-group');
+      if (group) {
+        group.classList.remove('error');
+      }
+    }
 
-  // ========================================
-  // FORM SUBMISSION
-  // ========================================
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
+    if (errorContainer) {
+      errorContainer.textContent = '';
+      errorContainer.style.display = 'none';
+    }
+  }
 
-    // Final validation
-    if (!validateStep(3)) {
+  /**
+   * Clear all errors
+   */
+  clearAllErrors() {
+    document.querySelectorAll('.input-group').forEach(group => {
+      group.classList.remove('error');
+    });
+
+    document.querySelectorAll('[id$="-error"]').forEach(errorEl => {
+      errorEl.textContent = '';
+      errorEl.style.display = 'none';
+    });
+  }
+
+  /* ==========================================
+     MULTI-STEP FORM NAVIGATION
+     ========================================== */
+
+  /**
+   * Move to next step
+   */
+  nextStep() {
+    // Validate current step
+    if (!this.validateFormStep(this.currentStep)) {
       return;
     }
 
+    // Move to next step
+    if (this.currentStep < this.totalSteps) {
+      this.goToStep(this.currentStep + 1);
+    }
+  }
+
+  /**
+   * Move to previous step
+   */
+  prevStep() {
+    if (this.currentStep > 1) {
+      this.goToStep(this.currentStep - 1);
+    }
+  }
+
+  /**
+   * Go to specific step
+   */
+  goToStep(stepNumber) {
+    if (stepNumber < 1 || stepNumber > this.totalSteps) {
+      return;
+    }
+
+    // Hide current section
+    const currentSection = document.querySelector(`[data-section="${this.currentStep}"]`);
+    if (currentSection) {
+      currentSection.classList.remove('active');
+    }
+
+    // Show new section
+    const newSection = document.querySelector(`[data-section="${stepNumber}"]`);
+    if (newSection) {
+      newSection.classList.add('active');
+    }
+
+    // Update progress indicator
+    this.updateProgressBar(stepNumber);
+
+    // Update current step
+    this.currentStep = stepNumber;
+
+    // Scroll to form top
+    this.form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /**
+   * Update progress bar visualization
+   */
+  updateProgressBar(stepNumber) {
+    const progressSteps = document.querySelectorAll('.progress-step');
+    const progressContainer = document.querySelector('.progress-steps');
+
+    progressSteps.forEach((step, index) => {
+      const stepNum = index + 1;
+      if (stepNum <= stepNumber) {
+        step.classList.add('active');
+      } else {
+        step.classList.remove('active');
+      }
+    });
+
+    // Update progress line
+    if (progressContainer) {
+      progressContainer.classList.remove('step-1', 'step-2', 'step-3');
+      progressContainer.classList.add(`step-${stepNumber}`);
+    }
+  }
+
+  /* ==========================================
+     CHARACTER COUNT
+     ========================================== */
+
+  /**
+   * Update character count for textarea
+   */
+  updateCharCount(textarea) {
+    const count = textarea.value.length;
+    const countEl = textarea.parentElement.querySelector('.char-count span');
+    if (countEl) {
+      countEl.textContent = count;
+    }
+  }
+
+  /* ==========================================
+     FORM SUBMISSION
+     ========================================== */
+
+  /**
+   * Handle form submission
+   */
+  async handleSubmit(e) {
+    e.preventDefault();
+
+    // Validate all steps
+    for (let step = 1; step <= this.totalSteps; step++) {
+      if (!this.validateFormStep(step)) {
+        this.goToStep(step);
+        return;
+      }
+    }
+
+    // Check both files are selected
+    if (!this.uploadedFiles.idProof || !this.uploadedFiles.businessProof) {
+      alert('Please upload both ID proof and business proof documents');
+      return;
+    }
+
+    await this.submitForm();
+  }
+
+  /**
+   * Submit form via AJAX
+   */
+  async submitForm() {
+    if (this.isSubmitting) {
+      return;
+    }
+
+    this.isSubmitting = true;
+    const submitBtn = document.querySelector('button[type="submit"]');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoader = submitBtn.querySelector('.btn-loader');
+
     // Show loading state
     submitBtn.disabled = true;
-    submitBtn.classList.add('loading');
+    if (btnText) btnText.style.display = 'none';
+    if (btnLoader) btnLoader.style.display = 'flex';
 
     try {
-      // Create FormData
-      const formData = new FormData();
-      
-      // Add text fields
-      formData.append('businessName', document.getElementById('businessName').value.trim());
-      formData.append('businessType', document.getElementById('businessType').value);
-      formData.append('contactPhone', document.getElementById('contactPhone').value.trim());
-      formData.append('businessRegistrationNumber', document.getElementById('businessRegistrationNumber').value.trim());
-      formData.append('businessAddress', document.getElementById('businessAddress').value.trim());
-      formData.append('additionalInfo', document.getElementById('additionalInfo').value.trim());
-      
-      // Add files
-      if (uploadedFiles.idProof) {
-        formData.append('idProof', uploadedFiles.idProof);
+      // Collect form data
+      const formDataToSend = new FormData(this.form);
+
+      // Add files if not already added
+      if (this.uploadedFiles.idProof) {
+        formDataToSend.set('idProof', this.uploadedFiles.idProof);
       }
-      if (uploadedFiles.businessProof) {
-        formData.append('businessProof', uploadedFiles.businessProof);
+      if (this.uploadedFiles.businessProof) {
+        formDataToSend.set('businessProof', this.uploadedFiles.businessProof);
       }
 
       // Submit form
       const response = await fetch('/organizer/complete-profile', {
         method: 'POST',
-        body: formData
+        body: formDataToSend
       });
 
       const data = await response.json();
 
       if (response.ok) {
         // Show success message
-        document.getElementById('successMessage').classList.add('show');
-        
+        this.showSuccessMessage();
+
+        // Reset form
+        this.form.reset();
+        this.uploadedFiles = {
+          idProof: null,
+          businessProof: null
+        };
+
         // Redirect after 2 seconds
         setTimeout(() => {
           window.location.href = '/organizer/application-status';
         }, 2000);
       } else {
-        // Show error
-        alert(data.error || 'An error occurred. Please try again.');
-        submitBtn.disabled = false;
-        submitBtn.classList.remove('loading');
+        // Show error message
+        alert(data.message || 'An error occurred while submitting the form');
+        console.error('Form submission error:', data);
       }
-
     } catch (error) {
-      console.error('Submission error:', error);
-      alert('Network error. Please check your connection and try again.');
+      console.error('Form submission error:', error);
+      alert('Failed to submit the form. Please try again.');
+    } finally {
+      // Hide loading state
+      this.isSubmitting = false;
       submitBtn.disabled = false;
-      submitBtn.classList.remove('loading');
+      if (btnText) btnText.style.display = 'inline';
+      if (btnLoader) btnLoader.style.display = 'none';
     }
-  });
+  }
 
-  // ========================================
-  // REAL-TIME VALIDATION
-  // ========================================
-  
-  // Phone validation
-  const contactPhone = document.getElementById('contactPhone');
-  contactPhone.addEventListener('input', () => {
-    const phoneRegex = /^[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}$/;
-    const phoneError = document.getElementById('phoneError');
-    
-    if (contactPhone.value.trim() && !phoneRegex.test(contactPhone.value.trim())) {
-      phoneError.classList.add('show');
-      contactPhone.classList.add('error');
-    } else {
-      phoneError.classList.remove('show');
-      contactPhone.classList.remove('error');
+  /**
+   * Show success message
+   */
+  showSuccessMessage() {
+    const successMessage = document.getElementById('successMessage');
+    if (successMessage) {
+      successMessage.classList.add('show');
+      successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  });
+  }
 
-  // Business name validation
-  const businessName = document.getElementById('businessName');
-  businessName.addEventListener('input', () => {
-    if (businessName.value.trim().length > 0 && businessName.value.trim().length < 3) {
-      businessName.classList.add('error');
-    } else {
-      businessName.classList.remove('error');
-    }
-  });
+  /**
+   * Handle form reset
+   */
+  handleReset() {
+    // Clear file inputs
+    document.querySelectorAll('input[type="file"]').forEach(input => {
+      input.value = '';
+    });
 
-  // Character counter for additional info
-  const additionalInfo = document.getElementById('additionalInfo');
-  const maxChars = 500;
-  
-  additionalInfo.addEventListener('input', () => {
-    const remaining = maxChars - additionalInfo.value.length;
-    // You can add a character counter display here if needed
-  });
+    // Clear stored files
+    this.uploadedFiles = {
+      idProof: null,
+      businessProof: null
+    };
 
-  // Initialize Lucide icons
-  lucide.createIcons();
-  
+    // Reset file previews
+    document.querySelectorAll('[id$="-preview"]').forEach(preview => {
+      preview.innerHTML = '';
+      preview.classList.remove('show');
+    });
+
+    // Show all upload zones
+    document.querySelectorAll('.file-upload-zone').forEach(zone => {
+      zone.style.display = 'block';
+    });
+
+    // Clear all errors
+    this.clearAllErrors();
+
+    // Reset to step 1
+    this.goToStep(1);
+  }
+}
+
+/* ==========================================
+   INITIALIZE FORM ON DOM READY
+   ========================================== */
+
+document.addEventListener('DOMContentLoaded', () => {
+  window.completeProfileForm = new CompleteProfileForm();
 });

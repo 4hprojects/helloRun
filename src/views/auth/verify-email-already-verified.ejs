@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: 'Verification Link Expired - helloRun' }) %>
+  <%- include('../layouts/head', { title: 'Email Already Verified - helloRun' }) %>
   <link rel="stylesheet" href="/css/email-verification.css">
 </head>
 <body>
@@ -10,21 +10,23 @@
   <main class="auth-page">
     <div class="auth-container">
       <div class="auth-card">
-        <div class="auth-icon error">
-          <i data-lucide="clock"></i>
+        <div class="auth-icon success">
+          <i data-lucide="check-circle"></i>
         </div>
         
-        <h1>Verification Link Expired</h1>
-        <p class="auth-subtitle">This email verification link has expired. Don't worry, we can send you a new one!</p>
+        <h1>Email Already Verified</h1>
+        <p class="auth-subtitle">Your email has already been verified. You're all set!</p>
         
         <div class="auth-info">
           <p><strong>Email:</strong> <%= email %></p>
-          <p><small>Verification links expire after 24 hours for security.</small></p>
+          <% if (firstName) { %>
+            <p class="mt-20"><strong>Welcome back, <%= firstName %>! 👋</strong></p>
+          <% } %>
         </div>
         
         <div class="auth-actions">
-          <a href="/resend-verification?email=<%= email %>" class="btn btn-full">Request New Link</a>
-          <a href="/login" class="btn btn-secondary btn-full">Back to Login</a>
+          <a href="/login" class="btn btn-full">Go to Login</a>
+          <a href="/" class="btn btn-secondary btn-full">Back to Home</a>
         </div>
       </div>
     </div>

@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const passwordService = require('../services/password.service');
 const emailService = require('../services/email.service');
+const crypto = require('crypto');
 
 // Login Page
 router.get('/login', (req, res) => {
@@ -349,53 +350,115 @@ router.post('/reset-password/:token', async (req, res) => {
   }
 });
 
-// Email Verification Handler
+// Email Verification Handler - Handles all scenarios
 router.get('/verify-email/:token', async (req, res) => {
   try {
     const { token } = req.params;
-    const hashedToken = passwordService.hashToken(token);
-    
-    const user = await User.findOne({
-      emailVerificationToken: hashedToken,
-      emailVerificationExpires: { $gt: Date.now() }
-    });
+    const email = req.query.email || null;
 
-    if (!user) {
+    // SCENARIO 5: Handle null/malformed token
+    if (!token || token.trim() === '') {
+      console.warn('[Email Verification] Empty token provided');
       return res.render('auth/verify-email-result', {
         success: false,
-        message: 'Email verification link is invalid or has expired.',
-        isOrganizer: false
+        message: 'Invalid verification link.',
+        isOrganizer: false,
+        showResendButton: true,
+        email: email
       });
     }
 
-    // Mark email as verified
-    await User.updateOne(
-      { _id: user._id },
+    // Hash the token for database lookup
+    const hashedToken = passwordService.hashToken(token);
+
+    // Find user by verification token
+    const user = await User.findOne({
+      emailVerificationToken: hashedToken
+    });
+
+    // SCENARIO 4: Token doesn't exist in database
+    if (!user) {
+      console.warn(`[Email Verification] Token not found in database: ${token.substring(0, 10)}...`);
+      
+      // SCENARIO 3 & 6: Check if email was provided and user exists with that email
+      if (email) {
+        const userByEmail = await User.findOne({ email: email.toLowerCase() });
+        
+        if (userByEmail) {
+          // User exists - check if already verified
+          if (userByEmail.emailVerified === true) {
+            console.info(`[Email Verification] Email already verified: ${email}`);
+            return res.render('auth/verify-email-already-verified', {
+              email: email,
+              firstName: userByEmail.firstName
+            });
+          } else if (!userByEmail.emailVerificationToken) {
+            // Token was cleared but email not verified - likely expired
+            console.info(`[Email Verification] Token expired/cleared for: ${email}`);
+            return res.render('auth/verify-email-expired', {
+              email: email
+            });
+          }
+        }
+      }
+
+      // Generic invalid link response
+      return res.render('auth/verify-email-result', {
+        success: false,
+        message: 'Invalid verification link.',
+        isOrganizer: false,
+        showResendButton: true,
+        email: email
+      });
+    }
+
+    // User found by token - now check expiration
+    const now = Date.now();
+    const expiresAt = user.emailVerificationExpires?.getTime?.() || user.emailVerificationExpires;
+
+    // SCENARIO 2: Token exists but IS expired
+    if (expiresAt && expiresAt < now) {
+      console.warn(`[Email Verification] Token expired for user: ${user.email}`);
+      return res.render('auth/verify-email-expired', {
+        email: user.email
+      });
+    }
+
+    // SCENARIO 1: Valid token + Not expired → Verify email ✅
+    console.info(`[Email Verification] Successfully verified email: ${user.email}`);
+    
+    // Update user: mark as verified, clear token
+    await User.findByIdAndUpdate(
+      user._id,
       {
         $set: {
           emailVerified: true,
           emailVerificationToken: null,
           emailVerificationExpires: null
         }
-      }
+      },
+      { new: true }
     );
 
-    // Log user in
+    // Set session
     req.session.userId = user._id;
 
-    // Show success page for EVERYONE
+    // SCENARIO 7: Render success page
     res.render('auth/verify-email-success', {
       email: user.email,
       firstName: user.firstName,
       role: user.role,
       isOrganizer: user.role === 'organiser'
     });
+
   } catch (error) {
-    console.error('Email verification error:', error);
-    res.render('auth/verify-email-result', {
+    console.error('[Email Verification] Unexpected error:', error);
+    res.status(500).render('auth/verify-email-result', {
       success: false,
-      message: 'An error occurred. Please try again.',
-      isOrganizer: false
+      message: 'An error occurred during email verification. Please try again.',
+      isOrganizer: false,
+      showResendButton: true,
+      email: req.query.email || null
     });
   }
 });
@@ -422,6 +485,147 @@ router.get('/runner/dashboard', (req, res) => {
     user: req.session.user,
     userName: req.session.userName
   });
+});
+
+// ============================================================================
+// EMAIL RESEND VERIFICATION ROUTES
+// ============================================================================
+
+// Resend Verification Page
+router.get('/resend-verification', (req, res) => {
+  console.log('📄 GET /resend-verification - Showing form');
+  res.render('auth/resend-verification', {
+    success: req.query.success || null,
+    error: req.query.error || null,
+    prefillEmail: req.query.email || ''
+  });
+});
+
+// Resend Verification Form Handler
+router.post('/resend-verification', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    console.log('========================================');
+    console.log('🔍 RESEND VERIFICATION REQUEST');
+    console.log('========================================');
+    console.log('📧 Raw email from form:', email);
+    console.log('📧 Email type:', typeof email);
+    
+    // ✅ Validate & trim email
+    if (!email || typeof email !== 'string') {
+      console.warn('❌ VALIDATION FAILED: Email is missing or not a string');
+      return res.render('auth/resend-verification', {
+        error: 'Email is required.',
+        prefillEmail: ''
+      });
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    console.log('✅ Trimmed & lowercased email:', trimmedEmail);
+
+    // ✅ Case-insensitive search
+    console.log('🔎 Searching database for user...');
+    
+    const user = await User.findOne({ 
+      email: { $regex: `^${trimmedEmail}$`, $options: 'i' } 
+    });
+
+    console.log('---');
+    if (!user) {
+      console.warn('❌ USER NOT FOUND in database');
+      console.log('---');
+      console.log('💡 Debugging tips:');
+      console.log('   - Searched for:', trimmedEmail);
+      
+      // Debug: Find all users
+      const allUsers = await User.find({}, 'email emailVerified');
+      console.log('📋 All users in database:');
+      allUsers.forEach((u, index) => {
+        console.log(`   ${index + 1}. ${u.email} (verified: ${u.emailVerified})`);
+      });
+      
+      return res.render('auth/resend-verification', {
+        error: 'Email not found. Please check your email address.',
+        prefillEmail: trimmedEmail
+      });
+    }
+
+    console.log('✅ USER FOUND!');
+    console.log('---');
+    console.log('👤 User Details:');
+    console.log('   - Email:', user.email);
+    console.log('   - Name:', user.firstName, user.lastName);
+    console.log('   - Email Verified:', user.emailVerified);
+    console.log('   - Has token:', !!user.emailVerificationToken);
+    console.log('   - Token expires:', user.emailVerificationExpires);
+    console.log('---');
+
+    // ✅ Check if already verified
+    if (user.emailVerified) {
+      console.warn('⚠️  EMAIL ALREADY VERIFIED');
+      console.log('---');
+      return res.render('auth/resend-verification', {
+        error: 'This email is already verified. Please log in.',
+        prefillEmail: trimmedEmail
+      });
+    }
+
+    console.log('✅ Email not yet verified - proceeding to resend');
+
+    // ✅ Generate new token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    
+    console.log('🔐 Generated new verification token');
+    console.log('   - Token (first 20 chars):', verificationToken.substring(0, 20) + '...');
+    console.log('   - Expires at:', verificationExpires);
+
+    // ✅ Hash token (using your password service)
+    const hashedToken = passwordService.hashToken(verificationToken);
+
+    // ✅ Update user with new token
+    user.emailVerificationToken = hashedToken;
+    user.emailVerificationExpires = verificationExpires;
+    await user.save();
+    
+    console.log('💾 Token saved to database');
+    console.log('   - Hashed token (first 20 chars):', hashedToken.substring(0, 20) + '...');
+
+    // ✅ Send verification email
+    console.log('📨 Sending verification email...');
+    await emailService.sendVerificationEmail(
+      user.email,
+      verificationToken,
+      user.role,
+      user.firstName
+    );
+    
+    console.log('✅ Verification email sent successfully!');
+
+    // ✅ Success response
+    console.log('---');
+    console.log('✅ RESEND VERIFICATION SUCCESS');
+    console.log('========================================');
+    
+    return res.render('auth/resend-verification', {
+      success: 'Verification email sent! Check your inbox and spam folder.',
+      prefillEmail: trimmedEmail
+    });
+
+  } catch (error) {
+    console.error('========================================');
+    console.error('❌ RESEND VERIFICATION ERROR');
+    console.error('========================================');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('========================================');
+    
+    return res.render('auth/resend-verification', {
+      error: 'Something went wrong. Please try again later.',
+      prefillEmail: req.body.email || ''
+    });
+  }
 });
 
 module.exports = router;

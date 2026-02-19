@@ -1,64 +1,175 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  
-  <link rel="stylesheet" href="/css/login.css">
   <%- include('../layouts/head', { title: 'Login - helloRun' }) %>
-
+  <link rel="stylesheet" href="/css/login.css">
 </head>
 <body>
-  <%- include('../layouts/nav') %>
+  <%- include('../layouts/nav', { isAuthPage: true }) %>
   
   <main class="auth-page">
     <div class="auth-container">
-      <div class="auth-card">
-        <h1>Welcome Back</h1>
-        <p class="auth-subtitle">Log in to continue your running journey</p>
-        
-        <% if (locals.error) { %>
-          <div class="alert alert-error">
-            <i data-lucide="alert-circle"></i>
-            <span><%= error %></span>
-          </div>
-        <% } %>
-        
-        <form action="/login" method="POST" class="auth-form">
-          <div class="form-group">
-            <input type="email" id="email" name="email" placeholder=" " required>
-            <label for="email">Email</label>
+      
+      <!-- LEFT PANEL: Signup Encouragement -->
+      <div class="auth-panel auth-panel-left">
+        <div class="panel-content">
+          
+          <!-- Logo Section -->
+          <div class="logo-section">
+            <img src="/images/helloRun-icon.webp" alt="helloRun logo" class="panel-logo">
+            
           </div>
           
-          <div class="form-group">
-            <div class="password-input">
-              <input type="password" id="password" name="password" placeholder=" " required>
-              <label for="password">Password</label>
-              <button type="button" class="toggle-password" data-target="password">
-                <i data-lucide="eye" class="show-password"></i>
-                <i data-lucide="eye-off" class="hide-password" style="display: none;"></i>
-              </button>
-            </div>
-          </div>
+          <!-- Headline -->
+          <h3 class="panel-headline">New to HelloRun?</h3>
+          <p class="panel-subheading">Join thousands of runners competing in virtual events</p>
           
-          <div class="form-footer">
-            <a href="/forgot-password" class="forgot-link">Forgot password?</a>
-          </div>
+          <!-- Features List -->
+          <ul class="features-list">
+            <li class="feature-item">
+              <span class="feature-checkmark">✓</span>
+              <span class="feature-text">Create unlimited events</span>
+            </li>
+            <li class="feature-item">
+              <span class="feature-checkmark">✓</span>
+              <span class="feature-text">Join exciting races</span>
+            </li>
+            <li class="feature-item">
+              <span class="feature-checkmark">✓</span>
+              <span class="feature-text">Track your progress</span>
+            </li>
+            <li class="feature-item">
+              <span class="feature-checkmark">✓</span>
+              <span class="feature-text">Earn certificates</span>
+            </li>
+          </ul>
           
-          <button type="submit" class="btn btn-full">Log In</button>
-        </form>
-        
-        <p class="auth-switch">
-          Don't have an account? <a href="/signup">Sign up</a>
-        </p>
+          <!-- CTA Button -->
+          <a href="/signup" class="btn btn-cta">Get Started</a>
+          
+          <!-- Helper Text -->
+          <p class="panel-helper-text">Already have an account? Login on the right →</p>
+          
+        </div>
       </div>
+      
+      <!-- RIGHT PANEL: Login Form -->
+      <div class="auth-panel auth-panel-right">
+        <div class="panel-content">
+          
+          <!-- Header -->
+          <h1 class="form-title">Welcome Back</h1>
+          <p class="form-subtitle">Log in to continue your running journey</p>
+          
+          <!-- Error Message -->
+          <% if (locals.error) { %>
+            <div class="alert alert-error">
+              <svg data-lucide="alert-circle" width="20" height="20"></svg>
+              <span><%= error %></span>
+            </div>
+          <% } %>
+          
+          <!-- Login Form -->
+          <form action="/login" method="POST" class="auth-form">
+            
+            <!-- Email Input -->
+            <div class="form-group">
+              <input 
+                type="email" 
+                id="email" 
+                name="email" 
+                placeholder=" " 
+                required
+                aria-label="Email address"
+                value="<%= locals.email || '' %>"
+              >
+              <label for="email">Email</label>
+            </div>
+            
+            <!-- Password Input with Toggle -->
+            <div class="form-group">
+              <div class="password-input">
+                <input 
+                  type="password" 
+                  id="password" 
+                  name="password" 
+                  placeholder=" " 
+                  required
+                  aria-label="Password"
+                >
+                <label for="password">Password</label>
+                <button 
+                  type="button" 
+                  class="toggle-password" 
+                  data-target="password"
+                  aria-label="Toggle password visibility"
+                  tabindex="0"
+                >
+                  <svg data-lucide="eye" class="show-password" width="20" height="20"></svg>
+                  <svg data-lucide="eye-off" class="hide-password" width="20" height="20" style="display: none;"></svg>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Form Footer -->
+            <div class="form-footer">
+              <a href="/forgot-password" class="forgot-link">Forgot password?</a>
+            </div>
+            
+            <!-- Login Button -->
+            <button type="submit" class="btn btn-primary">Log In</button>
+            
+          </form>
+          
+          <!-- Signup Link -->
+          <p class="form-switch">
+            Don't have an account? <a href="/signup" class="signup-link">Sign up</a>
+          </p>
+          
+        </div>
+      </div>
+      
     </div>
   </main>
   
   <%- include('../layouts/footer') %>
   
+  <!-- Scripts -->
   <script src="/js/main.js"></script>
   <script src="/js/auth.js"></script>
   <script>
+    // Initialize Lucide icons
     lucide.createIcons();
+
+    // Form Validation and Feedback
+    const form = document.querySelector('.auth-form');
+    
+    form.addEventListener('submit', function(e) {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      
+      // Basic validation
+      if (!email || !password) {
+        e.preventDefault();
+        alert('Please fill in all fields');
+        return false;
+      }
+      
+      // Email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        e.preventDefault();
+        alert('Please enter a valid email address');
+        return false;
+      }
+    });
+
+    // Add loading state to button on submit
+    form.addEventListener('submit', function() {
+      const submitBtn = this.querySelector('.btn-primary');
+      submitBtn.classList.add('loading');
+      submitBtn.disabled = true;
+    });
   </script>
 </body>
 </html>

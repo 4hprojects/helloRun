@@ -7,75 +7,65 @@ const mongoose = require('mongoose');
 
 const app = express();
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-})
-.then(() => console.log('✓ MongoDB connected'))
-.catch(err => console.error('MongoDB connection error:', err));
+// ===== STEP 1: MIDDLEWARE (MUST BE FIRST) =====
+console.log('📦 Loading middleware...');
 
-// View engine setup
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
-// Middleware
+// ✅ CRITICAL: Body parser BEFORE everything
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static files
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI,
-    touchAfter: 24 * 3600
-  }),
-  cookie: {
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production'
-  }
-}));
-
-// Make user available to all views
+// ✅ Debug middleware - log what's being received
 app.use((req, res, next) => {
-  res.locals.user = req.session.userId ? req.session.user : null;
+  if (req.method === 'POST') {
+    console.log('📨 Received POST:', req.url);
+    console.log('📦 Body:', req.body);
+  }
   next();
 });
 
-// Routes
-app.use('/', require('./routes/index.routes'));
-app.use('/', require('./routes/authRoutes'));
-app.use('/organizer', require('./routes/organizer.routes'));
+// ✅ Static files
+app.use(express.static(path.join(__dirname, 'public')));
 
-// 404 Handler
+// ===== STEP 2: VIEW ENGINE =====
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// ===== STEP 3: DATABASE CONNECTION =====
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✓ MongoDB connected'))
+  .catch(err => console.error('MongoDB connection error:', err));
+
+// ===== STEP 4: SESSION =====
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  resave: false,
+  saveUninitialized: true,
+  store: new MongoStore({
+    mongoUrl: process.env.MONGODB_URI,
+    touchAfter: 24 * 3600 // Lazy session update
+  })
+}));
+
+// ===== STEP 5: ROUTES (AFTER ALL MIDDLEWARE) =====
+console.log('🔀 Loading routes...');
+const authRoutes = require('./routes/authRoutes');
+const pageRoutes = require('./routes/pageRoutes');
+app.use('/', authRoutes);
+app.use('/', pageRoutes);
+
+// ===== STEP 6: 404 HANDLER (LAST) =====
 app.use((req, res) => {
-  res.status(404).render('error', {
-    title: '404 - Page Not Found',
-    status: 404,
-    message: 'The page you are looking for does not exist.'
-  });
+  console.log('⚠️  404 Not Found:', req.method, req.url);
+  res.status(404).send('<h1>404 - Page Not Found</h1>');
 });
 
-// Error Handler
+// ===== STEP 7: ERROR HANDLER =====
 app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(500).render('error', {
-    title: 'Server Error',
-    status: 500,
-    message: process.env.NODE_ENV === 'development' 
-      ? err.message 
-      : 'Something went wrong. Please try again later.',
-    error: process.env.NODE_ENV === 'development' ? err : null
-  });
+  console.error('❌ Error:', err.message);
+  res.status(500).send('<h1>500 - Server Error</h1>');
 });
 
-// Start server
+// ===== STEP 8: START SERVER =====
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`✓ Server running on http://localhost:${PORT}`);

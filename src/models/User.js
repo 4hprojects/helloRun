@@ -1,10 +1,14 @@
 const mongoose = require('mongoose');
 const counterService = require('../services/counter.service');
 
+// ❌ REMOVE THIS LINE - should only be in server.js
+// mongoose.connect(process.env.MONGODB_URI);
+
 const userSchema = new mongoose.Schema({
   userId: {
     type: String,
-    unique: true
+    unique: true,
+    sparse: true   // ← Add this instead of index: true
   },
   email: {
     type: String,
@@ -54,7 +58,7 @@ const userSchema = new mongoose.Schema({
     type: Date
   },
   
-  // NEW: Organizer Application Fields
+  // Organizer Application Fields
   organizerApplicationId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'OrganiserApplication',
@@ -74,11 +78,18 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Auto-generate userId before saving
+// ✅ FIXED: Use counterService.formatUserId() properly
 userSchema.pre('save', async function(next) {
-  if (!this.userId) {
-    const count = await counterService.getNextSequence('user');
-    this.userId = `U${String(count).padStart(6, '0')}`;
+  // Only generate userId for NEW documents that don't have one
+  if (this.isNew && !this.userId) {
+    try {
+      const count = await counterService.getNextSequence('userId');
+      this.userId = counterService.formatUserId(count);
+      console.log('Generated userId:', this.userId);
+    } catch (error) {
+      console.error('Error generating userId:', error);
+      return next(error);
+    }
   }
   next();
 });
@@ -108,7 +119,7 @@ userSchema.methods.incrementPasswordResetEmailCount = function() {
   this.passwordResetEmailLastSent = now;
 };
 
-// NEW: Organizer Application Methods
+// Organizer Application Methods
 userSchema.methods.canApplyAsOrganizer = function() {
   return (this.role === 'runner' || this.role === 'organiser') && 
          this.emailVerified && 
@@ -124,19 +135,14 @@ userSchema.methods.isApprovedOrganizer = function() {
          this.organizerStatus === 'approved';
 };
 
-// Update the methods:
-
-// Check if user can participate in events (runners AND organizers)
 userSchema.methods.canParticipateInEvents = function() {
   return this.emailVerified && (this.role === 'runner' || this.role === 'organiser' || this.role === 'admin');
 };
 
-// Check if user can create events (only approved organizers)
 userSchema.methods.canCreateEvents = function() {
   return this.role === 'organiser' && 
          this.organizerStatus === 'approved' &&
          this.emailVerified;
 };
 
-// Check if model exists before creating it
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);

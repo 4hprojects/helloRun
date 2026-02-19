@@ -1,55 +1,510 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: 'Resend Verification - helloRun' }) %>
+  <%- include('../layouts/head', { title: 'Resend Verification Email - helloRun' }) %>
+  <style>
+    /* ===== GLOBAL DESIGN TOKENS ===== */
+    :root {
+      --warm-beige: #faf0e6;
+      --orange: #fa9a4b;
+      --soft-orange: #f7b26a;
+      --dark-gray: #2d2d2d;
+      --medium-gray: #666;
+      --light-gray: #f5f5f5;
+      --radius-lg: 12px;
+      --radius-md: 6px;
+      --shadow-lg: 0 4px 12px rgba(0,0,0,0.05);
+      --error-red: #c62828;
+      --success-green: #2e7d32;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, var(--warm-beige) 0%, #f5e8dc 100%);
+    }
+
+    .resend-verification-page {
+      padding: 2rem 1rem;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .resend-verification-container {
+      max-width: 480px;
+      width: 100%;
+    }
+
+    .resend-verification-card {
+      background: white;
+      border-radius: var(--radius-lg);
+      padding: 2rem;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+    }
+
+    .resend-verification-icon {
+      width: 70px;
+      height: 70px;
+      margin: 0 auto 1.5rem;
+      background: rgba(250, 154, 75, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: float 3s ease-in-out infinite;
+    }
+
+    .resend-verification-icon svg {
+      width: 40px;
+      height: 40px;
+      color: var(--orange);
+      stroke-width: 1.5;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0px);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    .resend-verification-card h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--dark-gray);
+      margin: 0 0 0.5rem;
+    }
+
+    .resend-verification-subtitle {
+      font-size: 0.95rem;
+      color: var(--medium-gray);
+      margin: 0 0 1.5rem;
+      line-height: 1.5;
+    }
+
+    .alert {
+      margin-bottom: 1rem;
+      padding: 0.875rem;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-left: 4px solid transparent;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .alert svg {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+      stroke-width: 2;
+    }
+
+    .alert-error {
+      background: #ffebee;
+      color: var(--error-red);
+      border-left-color: var(--error-red);
+    }
+
+    .alert-success {
+      background: #e6f7e6;
+      color: var(--success-green);
+      border-left-color: var(--success-green);
+    }
+
+    .resend-verification-form {
+      margin: 1.5rem 0;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+      position: relative;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--dark-gray);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      font-size: 0.95rem;
+      border: 2px solid #ddd;
+      border-radius: var(--radius-md);
+      transition: all 0.2s ease;
+      background: white;
+      line-height: 1.5;
+    }
+
+    .form-group input::placeholder {
+      color: #bbb;
+      font-size: 0.9rem;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--orange);
+      box-shadow: 0 0 0 4px rgba(250, 154, 75, 0.15);
+      background: #fffbf7;
+    }
+
+    .form-group input:hover:not(:focus) {
+      border-color: #ccc;
+    }
+
+    .form-group.error input {
+      border-color: var(--error-red);
+      background-color: #fff2f2;
+    }
+
+    .form-group.error input:focus {
+      box-shadow: 0 0 0 4px rgba(198, 40, 40, 0.15);
+    }
+
+    .error-message {
+      color: var(--error-red);
+      font-size: 0.8rem;
+      margin-top: 0.3rem;
+      display: none;
+      font-weight: 500;
+    }
+
+    .form-group.error .error-message {
+      display: block;
+      animation: slideInError 0.2s ease-out;
+    }
+
+    @keyframes slideInError {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .input-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 2.15rem;
+      width: 18px;
+      height: 18px;
+      color: #aaa;
+      pointer-events: none;
+      transition: color 0.2s ease;
+    }
+
+    .form-group.error .input-icon {
+      color: var(--error-red);
+    }
+
+    .form-group input:focus ~ .input-icon {
+      color: var(--orange);
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: var(--orange);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      margin-top: 0.5rem;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--soft-orange);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(250, 154, 75, 0.3);
+    }
+
+    .btn-primary:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--orange);
+      outline-offset: 2px;
+    }
+
+    .btn-primary.loading {
+      color: transparent;
+    }
+
+    .btn-primary.loading::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border: 2.5px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .help-text {
+      font-size: 0.8rem;
+      color: var(--medium-gray);
+      margin-top: 1rem;
+      line-height: 1.5;
+      font-style: italic;
+    }
+
+    .form-footer {
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px solid #eee;
+      font-size: 0.9rem;
+      color: var(--medium-gray);
+    }
+
+    .form-footer a {
+      color: var(--orange);
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .form-footer a:hover {
+      color: var(--soft-orange);
+      text-decoration: underline;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .resend-verification-page {
+        padding: 1.5rem 1rem;
+      }
+      .resend-verification-card {
+        padding: 1.5rem;
+      }
+      .resend-verification-card h1 {
+        font-size: 1.35rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .resend-verification-page {
+        padding: 1rem;
+      }
+      .resend-verification-card {
+        padding: 1.2rem;
+        border-radius: var(--radius-md);
+      }
+      .resend-verification-card h1 {
+        font-size: 1.2rem;
+        margin-bottom: 0.3rem;
+      }
+      .btn-primary {
+        min-height: 40px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <%- include('../layouts/nav') %>
-  
-  <main class="auth-page">
-    <div class="auth-container">
-      <div class="auth-card">
-        <div class="auth-icon">
-          <i data-lucide="mail-check"></i>
+  <%- include('../layouts/nav', { isAuthPage: true }) %>
+
+  <main class="resend-verification-page">
+    <div class="resend-verification-container">
+      <div class="resend-verification-card">
+        
+        <!-- Icon -->
+        <div class="resend-verification-icon">
+          <svg data-lucide="mail"></svg>
         </div>
-        <h1>Resend Verification Email</h1>
-        <p class="auth-subtitle">Enter your email address and we'll send you a new verification link.</p>
-        
-        <% if (locals.error) { %>
-          <div class="alert alert-error">
-            <i data-lucide="alert-circle"></i>
-            <span><%= error %></span>
-          </div>
-        <% } %>
-        
+
+        <!-- Heading -->
+        <h1>Resend verification link</h1>
+        <p class="resend-verification-subtitle">
+          Enter your email address and we'll send you a new verification link
+        </p>
+
+        <!-- Success Alert -->
         <% if (locals.success) { %>
-          <div class="alert alert-success">
-            <i data-lucide="check-circle"></i>
+          <div class="alert alert-success" role="status">
+            <svg data-lucide="check-circle"></svg>
             <span><%= success %></span>
           </div>
         <% } %>
-        
-        <form action="/resend-verification" method="POST" class="auth-form">
-          <div class="form-group">
-            <label for="email">Email Address</label>
-            <input type="email" id="email" name="email" required placeholder="Enter your email">
+
+        <!-- Error Alert -->
+        <% if (locals.error) { %>
+          <div class="alert alert-error" role="alert">
+            <svg data-lucide="alert-circle"></svg>
+            <span><%= error %></span>
           </div>
+        <% } %>
+
+        <!-- Form -->
+        <form action="/resend-verification" method="POST" class="resend-verification-form" id="resendForm" novalidate>
           
-          <button type="submit" class="btn btn-full">Resend Verification Email</button>
+          <div class="form-group">
+            <label for="email">Email address</label>
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              placeholder="you@example.com"
+              required
+              value="<%= locals.prefillEmail || '' %>"
+              autocomplete="email"
+              aria-describedby="email-error"
+              <% if (locals.success) { %>disabled<% } %>
+            >
+            <svg data-lucide="mail" class="input-icon"></svg>
+            <span class="error-message" id="email-error"></span>
+          </div>
+
+          <button type="submit" class="btn-primary" id="submitBtn" <% if (locals.success) { %>disabled<% } %>>
+            <% if (locals.success) { %>
+              ✓ Verification link sent
+            <% } else { %>
+              Send verification link
+            <% } %>
+          </button>
+
+          <% if (locals.success) { %>
+            <p class="help-text">
+              💡 Didn't receive it? Wait a few minutes, check your spam folder, then 
+              <a href="/resend-verification" style="color: var(--orange); font-weight: 600; text-decoration: none;">try again</a>
+            </p>
+          <% } else { %>
+            <p class="help-text">
+              💡 Didn't receive the email? Check your spam folder or wait a few minutes
+            </p>
+          <% } %>
         </form>
-        
-        <p class="auth-switch">
-          Already verified? <a href="/login">Log in</a>
-        </p>
+
+        <!-- Footer -->
+        <div class="form-footer">
+          Already verified? <a href="/login">Go back to login</a>
+        </div>
+
       </div>
     </div>
   </main>
-  
+
   <%- include('../layouts/footer') %>
-  
+
+  <!-- Scripts -->
   <script src="/js/main.js"></script>
   <script>
-    lucide.createIcons();
+    // Initialize Lucide icons
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+
+    (function() {
+      const form = document.getElementById('resendForm');
+      if (!form) return;
+
+      const submitBtn = document.getElementById('submitBtn');
+      const emailInput = document.getElementById('email');
+      const emailError = document.getElementById('email-error');
+      const formGroup = emailInput?.closest('.form-group');
+
+      // Auto-focus email input
+      emailInput?.focus();
+
+      // Real-time validation
+      emailInput?.addEventListener('input', function() {
+        formGroup.classList.remove('error');
+        emailError.textContent = '';
+      });
+
+      emailInput?.addEventListener('focus', function() {
+        formGroup.classList.remove('error');
+      });
+
+      // Form submission
+      form.addEventListener('submit', function(e) {
+        if (!form.checkValidity()) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (emailInput && !emailInput.validity.valid) {
+            formGroup.classList.add('error');
+            
+            if (emailInput.validity.valueMissing) {
+              emailError.textContent = 'Email address is required';
+            } else if (emailInput.validity.typeMismatch) {
+              emailError.textContent = 'Please enter a valid email address';
+            } else {
+              emailError.textContent = 'Invalid email format';
+            }
+            
+            emailInput.focus();
+          }
+          return;
+        }
+
+        // Show loading state
+        submitBtn.classList.add('loading');
+        submitBtn.disabled = true;
+        emailInput.readOnly = true;  // ← Use readOnly instead of disabled
+      });
+
+      emailInput?.addEventListener('invalid', function(e) {
+        e.preventDefault();
+      });
+    })();
   </script>
 </body>
 </html>

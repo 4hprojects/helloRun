@@ -1,4 +1,5 @@
-<!-- filepath: src/views/layouts/nav.ejs -->
+<!-- filepath: c:\Users\Kayla\Desktop\PersonalProjects\helloRun\src\views\layouts\nav.ejs -->
+<!-- Navigation Bar -->
 <nav class="nav <% if (locals.isAuthPage) { %>nav-auth<% } %>">
   <div class="nav-container">
     <a href="/" class="logo">
@@ -48,7 +49,10 @@
         
       <% } else { %>
         <!-- Logged Out State -->
-        <a href="/login" class="btn btn-primary">Get Started</a>
+        <!-- Hide "Get Started" on auth pages (login, signup, etc.) -->
+        <% if (!locals.isAuthPage) { %>
+          <a href="/login" class="btn btn-primary">Get Started</a>
+        <% } %>
       <% } %>
     </div>
   </div>

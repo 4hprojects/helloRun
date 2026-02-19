@@ -9,350 +9,246 @@
   
   <main class="status-page">
     <div class="status-container">
-      <div class="status-card">
+      
+      <!-- Header Section -->
+      <div class="status-header">
+        <div class="header-content">
+          <h1>Your Organizer Application</h1>
+          <p class="header-subtitle">Application ID: <span class="application-id"><%= application.applicationId %></span></p>
+        </div>
+        <div class="header-icon">
+          <% if (application.status === 'pending') { %>
+            <svg data-lucide="clock" width="48" height="48"></svg>
+          <% } else if (application.status === 'under_review') { %>
+            <svg data-lucide="eye" width="48" height="48"></svg>
+          <% } else if (application.status === 'approved') { %>
+            <svg data-lucide="check-circle" width="48" height="48"></svg>
+          <% } else if (application.status === 'rejected') { %>
+            <svg data-lucide="alert-circle" width="48" height="48"></svg>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Status Card -->
+      <div class="status-card status-card-<%= application.status %>">
+        <div class="status-badge status-badge-<%= application.status %>">
+          <% if (application.status === 'pending') { %>
+            <span>Pending Review</span>
+          <% } else if (application.status === 'under_review') { %>
+            <span>Under Review</span>
+          <% } else if (application.status === 'approved') { %>
+            <span>Approved</span>
+          <% } else if (application.status === 'rejected') { %>
+            <span>Rejected</span>
+          <% } %>
+        </div>
+
+        <div class="status-message">
+          <% if (application.status === 'pending') { %>
+            <h2>Your application is waiting to be reviewed</h2>
+            <p>Thank you for submitting your organizer application! Our team will review your documents and get back to you shortly.</p>
+          <% } else if (application.status === 'under_review') { %>
+            <h2>Your application is under review</h2>
+            <p>We're currently reviewing your submitted documents. This usually takes <%= reviewDays %> business days.</p>
+          <% } else if (application.status === 'approved') { %>
+            <h2 class="success-message">Congratulations! Your application has been approved</h2>
+            <p>You're now verified as an organizer on helloRun. You can start creating and managing your first event!</p>
+          <% } else if (application.status === 'rejected') { %>
+            <h2 class="error-message">Your application was not approved</h2>
+            <p>Unfortunately, your application did not meet our verification requirements at this time. See the details below for more information.</p>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="timeline-section">
+        <h2 class="section-title">Application Timeline</h2>
         
-        <!-- HEADER -->
-        <div class="status-header">
-          <div class="status-header-content">
-            <div class="status-icon">
-              <% if (application.status === 'approved') { %>
-                <i data-lucide="check-circle"></i>
-              <% } else if (application.status === 'rejected') { %>
-                <i data-lucide="x-circle"></i>
+        <div class="timeline">
+          <!-- Submitted -->
+          <div class="timeline-item completed">
+            <div class="timeline-marker">
+              <svg data-lucide="check" width="20" height="20"></svg>
+            </div>
+            <div class="timeline-content">
+              <h3>Application Submitted</h3>
+              <p class="timeline-date"><%= submittedDate %></p>
+              <p class="timeline-description"><%= daysAgo %> day<%= daysAgo !== 1 ? 's' : '' %> ago</p>
+            </div>
+          </div>
+
+          <!-- Under Review -->
+          <div class="timeline-item <%= application.status !== 'pending' ? 'completed' : 'active' %>">
+            <div class="timeline-marker">
+              <% if (application.status !== 'pending') { %>
+                <svg data-lucide="check" width="20" height="20"></svg>
               <% } else { %>
-                <i data-lucide="clock"></i>
+                <div class="timeline-loader"></div>
               <% } %>
             </div>
-            
-            <h1>Organizer Application</h1>
-            <p>Track your application progress and view details</p>
-            
-            <div class="status-badge <%= application.status %>">
-              <% if (application.status === 'pending') { %>
-                <i data-lucide="clock"></i>
-                <span>Pending Review</span>
-              <% } else if (application.status === 'approved') { %>
-                <i data-lucide="check-circle"></i>
-                <span>Approved</span>
+            <div class="timeline-content">
+              <h3>Under Review</h3>
+              <p class="timeline-description">Our team is reviewing your documents</p>
+              <% if (application.status === 'pending' || application.status === 'under_review') { %>
+                <p class="timeline-estimate">Expected by <strong><%= estimatedDate %></strong></p>
+              <% } %>
+            </div>
+          </div>
+
+          <!-- Decision -->
+          <div class="timeline-item <%= (application.status === 'approved' || application.status === 'rejected') ? 'completed' : '' %>">
+            <div class="timeline-marker">
+              <% if (application.status === 'approved') { %>
+                <svg data-lucide="check-circle" width="20" height="20"></svg>
               <% } else if (application.status === 'rejected') { %>
-                <i data-lucide="x-circle"></i>
-                <span>Rejected</span>
-              <% } else if (application.status === 'under-review') { %>
-                <i data-lucide="eye"></i>
-                <span>Under Review</span>
+                <svg data-lucide="x-circle" width="20" height="20"></svg>
+              <% } else { %>
+                <div class="timeline-dot"></div>
+              <% } %>
+            </div>
+            <div class="timeline-content">
+              <h3>Review Decision</h3>
+              <% if (application.status === 'approved') { %>
+                <p class="timeline-description">✓ Your application was approved</p>
+                <p class="timeline-date"><%= application.reviewedAt ? new Date(application.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Recently' %></p>
+              <% } else if (application.status === 'rejected') { %>
+                <p class="timeline-description">✗ Your application was not approved</p>
+                <p class="timeline-date"><%= application.reviewedAt ? new Date(application.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Recently' %></p>
+              <% } else { %>
+                <p class="timeline-description">Awaiting decision</p>
               <% } %>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- CONTENT -->
-        <div class="status-content">
-          
-          <!-- Application Details -->
-          <div class="application-details">
-            <h2>
-              <i data-lucide="file-text"></i>
-              Application Details
-            </h2>
-            
-            <div class="detail-grid">
-              <div class="detail-item">
-                <span class="detail-label">Application ID</span>
-                <span class="detail-value highlight"><%= application.applicationId %></span>
-              </div>
-              
-              <div class="detail-item">
-                <span class="detail-label">Business Name</span>
-                <span class="detail-value"><%= application.businessName %></span>
-              </div>
-              
-              <div class="detail-item">
-                <span class="detail-label">Business Type</span>
-                <span class="detail-value">
-                  <% 
-                    const typeMap = {
-                      'individual': 'Individual',
-                      'company': 'Company',
-                      'ngo': 'NGO/Non-Profit',
-                      'sports_club': 'Sports Club'
-                    };
-                  %>
-                  <%= typeMap[application.businessType] || application.businessType %>
-                </span>
-              </div>
-              
-              <div class="detail-item">
-                <span class="detail-label">Contact Phone</span>
-                <span class="detail-value"><%= application.contactPhone %></span>
-              </div>
-              
-              <div class="detail-item">
-                <span class="detail-label">Submitted On</span>
-                <span class="detail-value">
-                  <%= new Date(application.submittedAt).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  }) %>
-                </span>
-              </div>
-              
-              <% if (application.reviewedAt) { %>
-              <div class="detail-item">
-                <span class="detail-label">Reviewed On</span>
-                <span class="detail-value">
-                  <%= new Date(application.reviewedAt).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  }) %>
-                </span>
-              </div>
-              <% } %>
-            </div>
+      <!-- Application Details -->
+      <div class="details-section">
+        <h2 class="section-title">Application Details</h2>
+        
+        <div class="details-grid">
+          <div class="detail-item">
+            <label>Business Name</label>
+            <p><%= application.businessName %></p>
           </div>
 
-          <!-- Timeline -->
-          <div class="status-timeline">
-            <h2>
-              <i data-lucide="activity"></i>
-              Application Progress
-            </h2>
-            
-            <div class="timeline">
-              <!-- Step 1: Submitted -->
-              <div class="timeline-item completed">
-                <div class="timeline-dot">
-                  <i data-lucide="check"></i>
-                </div>
-                <div class="timeline-content">
-                  <div class="timeline-title">Application Submitted</div>
-                  <div class="timeline-description">
-                    Your application and documents have been received successfully.
-                  </div>
-                  <div class="timeline-date">
-                    <i data-lucide="calendar"></i>
-                    <%= new Date(application.submittedAt).toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    }) %>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Step 2: Under Review -->
-              <div class="timeline-item <%= application.status !== 'pending' ? 'completed' : 'active' %>">
-                <div class="timeline-dot">
-                  <i data-lucide="<%= application.status !== 'pending' ? 'check' : 'eye' %>"></i>
-                </div>
-                <div class="timeline-content">
-                  <div class="timeline-title">Under Review</div>
-                  <div class="timeline-description">
-                    Our team is reviewing your documents and business information. This typically takes 1-3 business days.
-                  </div>
-                  <% if (application.status !== 'pending' && application.reviewedAt) { %>
-                  <div class="timeline-date">
-                    <i data-lucide="calendar"></i>
-                    <%= new Date(application.reviewedAt).toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    }) %>
-                  </div>
-                  <% } %>
-                </div>
-              </div>
-
-              <!-- Step 3: Decision -->
-              <div class="timeline-item <%= application.status === 'approved' || application.status === 'rejected' ? 'completed' : '' %>">
-                <div class="timeline-dot">
-                  <% if (application.status === 'approved') { %>
-                    <i data-lucide="check-circle"></i>
-                  <% } else if (application.status === 'rejected') { %>
-                    <i data-lucide="x-circle"></i>
-                  <% } else { %>
-                    <i data-lucide="flag"></i>
-                  <% } %>
-                </div>
-                <div class="timeline-content">
-                  <div class="timeline-title">
-                    <% if (application.status === 'approved') { %>
-                      Application Approved! 🎉
-                    <% } else if (application.status === 'rejected') { %>
-                      Application Decision
-                    <% } else { %>
-                      Decision Pending
-                    <% } %>
-                  </div>
-                  <div class="timeline-description">
-                    <% if (application.status === 'approved') { %>
-                      Congratulations! Your application has been approved. You can now create and manage events.
-                    <% } else if (application.status === 'rejected') { %>
-                      After careful review, we're unable to approve your application at this time. Please see the reason below.
-                    <% } else { %>
-                      You'll receive an email notification once a decision has been made on your application.
-                    <% } %>
-                  </div>
-                  <% if (application.status !== 'pending' && application.reviewedAt) { %>
-                  <div class="timeline-date">
-                    <i data-lucide="calendar"></i>
-                    <%= new Date(application.reviewedAt).toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    }) %>
-                  </div>
-                  <% } %>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Rejection Reason (if rejected) -->
-          <% if (application.status === 'rejected' && application.rejectionReason) { %>
-          <div class="info-box error">
+          <div class="detail-item">
+            <label>Business Type</label>
             <p>
-              <i data-lucide="alert-circle"></i>
-              <span><strong>Rejection Reason:</strong> <%= application.rejectionReason %></span>
+              <% 
+                const typeMap = {
+                  'individual': 'Individual/Solo Organizer',
+                  'company': 'Company/Commercial',
+                  'ngo': 'Non-Profit/NGO',
+                  'sports_club': 'Sports Club/Association'
+                };
+              %>
+              <%= typeMap[application.businessType] || application.businessType %>
             </p>
           </div>
-          <% } %>
 
-          <!-- Additional Info (if provided) -->
-          <% if (application.additionalInfo && application.additionalInfo.trim()) { %>
-          <div class="info-box info" style="margin-top: 1.5rem;">
-            <p>
-              <i data-lucide="info"></i>
-              <span><strong>Your Message:</strong> <%= application.additionalInfo %></span>
-            </p>
-          </div>
-          <% } %>
-
-          <!-- Submitted Documents -->
-          <div class="documents-section">
-            <h2>
-              <i data-lucide="paperclip"></i>
-              Submitted Documents
-            </h2>
-            
-            <div class="documents-grid">
-              <!-- ID Proof -->
-              <div class="document-card">
-                <div class="document-header">
-                  <div class="document-icon">
-                    <i data-lucide="credit-card"></i>
-                  </div>
-                  <div class="document-info">
-                    <h3>ID Proof</h3>
-                    <p class="document-type">Government issued ID</p>
-                  </div>
-                </div>
-                <div class="document-actions">
-                  <a href="<%= application.idProofUrl %>" target="_blank" class="btn-view">
-                    <i data-lucide="eye"></i>
-                    View
-                  </a>
-                  <a href="<%= application.idProofUrl %>" download class="btn-download">
-                    <i data-lucide="download"></i>
-                    Download
-                  </a>
-                </div>
-              </div>
-
-              <!-- Business Proof -->
-              <div class="document-card">
-                <div class="document-header">
-                  <div class="document-icon">
-                    <i data-lucide="briefcase"></i>
-                  </div>
-                  <div class="document-info">
-                    <h3>Business Proof</h3>
-                    <p class="document-type">Registration/License</p>
-                  </div>
-                </div>
-                <div class="document-actions">
-                  <a href="<%= application.businessProofUrl %>" target="_blank" class="btn-view">
-                    <i data-lucide="eye"></i>
-                    View
-                  </a>
-                  <a href="<%= application.businessProofUrl %>" download class="btn-download">
-                    <i data-lucide="download"></i>
-                    Download
-                  </a>
-                </div>
-              </div>
-            </div>
+          <div class="detail-item">
+            <label>Contact Phone</label>
+            <p><a href="tel:<%= application.contactPhone %>"><%= application.contactPhone %></a></p>
           </div>
 
-          <!-- Info Messages -->
-          <% if (application.status === 'pending') { %>
-          <div class="info-box warning">
+          <div class="detail-item">
+            <label>Business Registration Number</label>
+            <p><%= application.businessRegistrationNumber || 'Not provided' %></p>
+          </div>
+
+          <div class="detail-item full-width">
+            <label>Business Address</label>
+            <p><%= application.businessAddress || 'Not provided' %></p>
+          </div>
+
+          <div class="detail-item full-width">
+            <label>Additional Information</label>
+            <p><%= application.additionalInfo || 'Not provided' %></p>
+          </div>
+
+          <div class="detail-item">
+            <label>Submission Date</label>
+            <p><%= submittedDate %></p>
+          </div>
+
+          <div class="detail-item">
+            <label>Application Status</label>
             <p>
-              <i data-lucide="clock"></i>
-              <span>
-                <strong>What's next?</strong> Our team is reviewing your application. 
-                You'll receive an email notification once a decision has been made. 
-                This process typically takes 1-3 business days.
+              <span class="status-badge status-badge-<%= application.status %>">
+                <% if (application.status === 'pending') { %>
+                  Pending Review
+                <% } else if (application.status === 'under_review') { %>
+                  Under Review
+                <% } else if (application.status === 'approved') { %>
+                  Approved
+                <% } else if (application.status === 'rejected') { %>
+                  Rejected
+                <% } %>
               </span>
             </p>
           </div>
-          <% } else if (application.status === 'approved') { %>
-          <div class="info-box success">
-            <p>
-              <i data-lucide="check-circle"></i>
-              <span>
-                <strong>Congratulations!</strong> Your organizer account is now active. 
-                You can start creating events and managing registrations.
-              </span>
-            </p>
-          </div>
-          <% } %>
+        </div>
+      </div>
 
-          <!-- Action Buttons -->
-          <div class="status-actions">
-            <% if (application.status === 'approved') { %>
-              <a href="/organizer/create-event" class="btn-primary">
-                <i data-lucide="plus-circle"></i>
-                Create Your First Event
-              </a>
-              <a href="/organizer/dashboard" class="btn-secondary">
-                <i data-lucide="layout-dashboard"></i>
-                Go to Dashboard
-              </a>
-            <% } else if (application.status === 'rejected') { %>
-              <a href="/organizer/complete-profile" class="btn-primary">
-                <i data-lucide="refresh-cw"></i>
-                Submit New Application
-              </a>
-              <a href="/support" class="btn-secondary">
-                <i data-lucide="help-circle"></i>
-                Contact Support
-              </a>
-            <% } else { %>
-              <a href="/" class="btn-secondary">
-                <i data-lucide="home"></i>
-                Back to Home
-              </a>
-            <% } %>
+      <!-- Rejection Reason (if rejected) -->
+      <% if (application.status === 'rejected' && application.rejectionReason) { %>
+        <div class="rejection-section">
+          <div class="rejection-header">
+            <svg data-lucide="alert-triangle" width="24" height="24"></svg>
+            <h3>Rejection Reason</h3>
           </div>
+          <p class="rejection-reason"><%= application.rejectionReason %></p>
+        </div>
+      <% } %>
 
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <% if (application.status === 'approved') { %>
+          <a href="/organizer/create-event" class="btn btn-primary">
+            <svg data-lucide="plus" width="18" height="18"></svg>
+            Create Your First Event
+          </a>
+          <a href="/organizer/events" class="btn btn-secondary">
+            <svg data-lucide="list" width="18" height="18"></svg>
+            View My Events
+          </a>
+        <% } else if (application.status === 'rejected') { %>
+          <a href="/organizer/complete-profile" class="btn btn-primary">
+            <svg data-lucide="refresh-cw" width="18" height="18"></svg>
+            Reapply
+          </a>
+          <a href="/" class="btn btn-secondary">
+            <svg data-lucide="home" width="18" height="18"></svg>
+            Back to Home
+          </a>
+        <% } else { %>
+          <a href="/" class="btn btn-secondary">
+            <svg data-lucide="home" width="18" height="18"></svg>
+            Back to Home
+          </a>
+          <button class="btn btn-ghost" onclick="location.reload()">
+            <svg data-lucide="refresh-cw" width="18" height="18"></svg>
+            Refresh Status
+          </button>
+        <% } %>
+      </div>
+
+      <!-- Info Box -->
+      <div class="info-box">
+        <svg data-lucide="info" width="20" height="20"></svg>
+        <div class="info-content">
+          <p>
+            <strong>Need help?</strong> If you have questions about your application status, 
+            please <a href="mailto:<%= process.env.ADMIN_EMAIL %>">contact our support team</a>.
+          </p>
         </div>
       </div>
     </div>
   </main>
 
   <%- include('../layouts/footer') %>
-  
-  <script src="/js/main.js"></script>
-  <script>
-    lucide.createIcons();
-  </script>
+
+  <script src="/js/application-status.js"></script>
 </body>
 </html>

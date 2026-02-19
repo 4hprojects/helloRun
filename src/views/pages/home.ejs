@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: 'helloRun – Find Your Next Virtual Race' }) %>
+  <link rel="stylesheet" href="/css/helloRun.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+
+  <%- include('../layouts/nav') %>
+
+  <main class="home">
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <div class="container hero-container">
+        <div class="hero-text">
+          <h1 class="hero-title">Run anywhere. <span class="highlight">Compete everywhere.</span></h1>
+          <p class="hero-subtitle">
+            helloRun helps you join virtual runs, log activities, and stay motivated with a community that moves with you.
+          </p>
+          <div class="hero-stats">
+            <div class="stat-item">
+              <i class="fas fa-calendar-check stat-icon"></i>
+              <span class="stat-label">Regular events</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-users stat-icon"></i>
+              <span class="stat-label">Active community</span>
+            </div>
+            <div class="stat-item">
+              <i class="fas fa-globe stat-icon"></i>
+              <span class="stat-label">Worldwide</span>
+            </div>
+          </div>
+          <div class="hero-buttons">
+            <a href="/events" class="btn btn-primary">Browse Events</a>
+            <a href="#how-it-works" class="btn btn-outline">How it works →</a>
+          </div>
+        </div>
+        <div class="hero-visual">
+          <div class="visual-placeholder">
+            <img src="/images/helloRun-icon.webp" alt="helloRun – Virtual Running Platform" class="hero-logo">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- What helloRun Does -->
+    <section class="features">
+      <div class="container">
+        <h2 class="section-title">What <span class="highlight">helloRun</span> does</h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-running"></i></div>
+            <h3>Join Virtual Fun Runs</h3>
+            <p>Participate in exciting virtual challenges and fun runs from anywhere in the world.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+            <h3>Track Your Activities</h3>
+            <p>Log runs, walks, and activities at your own pace. No GPS required – submit results online.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-trophy"></i></div>
+            <h3>See Your Progress</h3>
+            <p>View all your milestones and achievements in one centralized location.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-users"></i></div>
+            <h3>Connect with Community</h3>
+            <p>Engage with organizers and fellow runners. Share experiences and stay motivated together.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-bolt"></i></div>
+            <h3>Simple & Focused</h3>
+            <p>Focus on moving, not managing tools. Our platform keeps everything streamlined.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-award"></i></div>
+            <h3>Earn Recognition</h3>
+            <p>Get digital certificates and badges for showing up and completing challenges.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Why helloRun -->
+    <section class="why-hellorun">
+      <div class="container">
+        <h2 class="section-title">Why <span class="highlight">helloRun</span></h2>
+        <div class="why-content">
+          <p>helloRun is about movement, momentum, and shared progress. You're not just tracking distance – you're joining a conversation around consistency, health, and achievement.</p>
+          <div class="quote-box">
+            <i class="fas fa-quote-left quote-icon"></i>
+            <p>You run on your own schedule.<br>You still feel part of something bigger.</p>
+          </div>
+          <p>helloRun keeps it simple so you focus on moving, not managing tools. Our platform creates a friendly, social space where running is simple, inclusive, and goal-driven.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works" class="how-it-works">
+      <div class="container">
+        <h2 class="section-title">From start to finish in <span class="highlight">three steps</span></h2>
+        <div class="steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <h4>Choose an event</h4>
+            <p>Browse upcoming virtual races – from 5Ks to marathons – and register in seconds.</p>
+          </div>
+          <div class="step">
+            <div class="step-number">2</div>
+            <h4>Run & track</h4>
+            <p>Use any running app or log manually. We accept results from any device.</p>
+          </div>
+          <div class="step">
+            <div class="step-number">3</div>
+            <h4>See your rank</h4>
+            <p>Your time appears on the leaderboard instantly. Celebrate your finish and aim higher.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- For Runners & Organizers -->
+    <section class="audience">
+      <div class="container">
+        <h2 class="section-title">Built for everyone in the <span class="highlight">running community</span></h2>
+        <div class="audience-grid">
+          <div class="audience-card">
+            <div class="audience-icon"><i class="fas fa-running"></i></div>
+            <h3>For Runners</h3>
+            <ul>
+              <li>Log your activity anywhere, anytime</li>
+              <li>Track progress with beautiful visualizations</li>
+              <li>Earn recognition for showing up consistently</li>
+              <li>Join challenges that match your pace</li>
+              <li>Connect with like-minded runners</li>
+            </ul>
+            <a href="/signup" class="btn btn-primary">Start Running</a>
+          </div>
+          <div class="audience-card">
+            <div class="audience-icon"><i class="fas fa-clipboard-list"></i></div>
+            <h3>For Organizers</h3>
+            <ul>
+              <li>Create events in minutes</li>
+              <li>Manage participants with ease</li>
+              <li>Let runners submit results online</li>
+              <li>Track event analytics</li>
+              <li>Build your running community</li>
+            </ul>
+            <a href="/signup" class="btn btn-outline">Create Events</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Testimonial -->
+    <section class="testimonial">
+      <div class="container">
+        <div class="testimonial-card">
+          <i class="fas fa-quote-left quote-icon"></i>
+          <p class="testimonial-text">
+            "helloRun changed the way I train. The real‑time rankings push me to give my best, even when I'm running alone. I've already signed up for three events!"
+          </p>
+          <div class="testimonial-author">
+            <img src="https://ui-avatars.com/api/?name=Henson+Sagorsor&size=50&background=fa9a4b&color=fff" alt="Henson Sagorsor" class="author-avatar">
+            <div>
+              <strong>Henson Sagorsor</strong>
+              <span>member since 2026</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Final Call to Action -->
+    <section class="cta-section">
+      <div class="container">
+        <h2>Ready to move with us?</h2>
+        <div class="cta-tagline">Move. Log. Finish.</div>
+        <p>Join a growing community of runners already tracking their progress and celebrating achievements through movement.</p>
+        <a href="/signup" class="btn btn-primary btn-large">Start running today</a>
+      </div>
+    </section>
+
+  </main>
+
+  <%- include('../layouts/footer') %>
+
+  <script src="/js/main.js"></script>
+  <script>if(window.lucide) lucide.createIcons();</script>
+</body>
+</html>
