@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const counterService = require('../services/counter.service');
+const { getNextSequence } = require('../utils/counter');
 
 const organiserApplicationSchema = new mongoose.Schema({
   applicationId: {
@@ -87,7 +87,7 @@ const organiserApplicationSchema = new mongoose.Schema({
 // Auto-generate applicationId before saving
 organiserApplicationSchema.pre('save', async function(next) {
   if (!this.applicationId) {
-    const count = await counterService.getNextSequence('organiserApplication');
+    const count = await getNextSequence('organiserApplication');
     this.applicationId = `APP${String(count).padStart(6, '0')}`;
   }
   next();

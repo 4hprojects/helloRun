@@ -1,58 +1,50 @@
 <!-- filepath: c:\Users\Kayla\Desktop\PersonalProjects\helloRun\src\views\layouts\nav.ejs -->
 <!-- Navigation Bar -->
-<nav class="nav <% if (locals.isAuthPage) { %>nav-auth<% } %>">
+<nav class="nav <% if (locals.isAuthPage) { %>nav-auth<% } %>" role="navigation" aria-label="Main navigation">
   <div class="nav-container">
-    <a href="/" class="logo">
-      <img src="/images/helloRun-icon.webp" alt="HelloRun Logo" class="logo-icon">
+    <a href="/" class="logo" aria-label="HelloRun Home">
+      <img src="/images/helloRun-icon.webp" alt="" class="logo-icon">
       <span>HelloRun</span>
     </a>
     
-    <button class="menu-toggle" aria-label="Toggle menu">
+    <button class="menu-toggle" aria-label="Toggle menu" aria-expanded="false">
       <i data-lucide="menu"></i>
     </button>
     
-    <div class="nav-links">
-      <!-- Always show these links -->
+    <div class="nav-links" id="nav-links">
       <a href="/">Home</a>
       <a href="/events">Events</a>
       <a href="/blog">Blog</a>
-      <a href="/about">About</a>
-      
-      <% if (locals.isAuthenticated && locals.user) { %>
-        <!-- Logged In State -->
-        
-        <!-- Dashboard Link (role-based) -->
+      <a href="/leaderboard">Leaderboard</a>
+
+      <% if (locals.isAuthenticated) { %>
+        <!-- Role-based dashboard link -->
         <% if (locals.isAdmin) { %>
           <a href="/admin/dashboard">Admin</a>
         <% } else if (locals.isApprovedOrganizer) { %>
-          <!-- TODO: Phase 6B - Create /organiser/dashboard -->
-          <a href="/events">Dashboard</a>
+          <a href="/organizer/dashboard">Dashboard</a>
         <% } else if (locals.isOrganizer) { %>
-          <a href="/organizer/complete-profile">Complete Profile</a>
+          <a href="/organizer/application-status">My Application</a>
         <% } else { %>
-          <!-- TODO: Phase 6A - Create /dashboard -->
-          <a href="/events">My Events</a>
+          <a href="/runner/dashboard">Dashboard</a>
         <% } %>
-        
-        <!-- User Menu -->
-        <div class="user-menu">
-          <span class="user-greeting">Hi, <%= locals.user.firstName %>!</span>
-          
-          <!-- Logout Form (POST request) -->
+
+        <!-- User menu -->
+        <div class="nav-user" aria-label="User menu">
+          <span class="nav-username">Hi, <%= locals.user ? locals.user.firstName : 'User' %></span>
           <form action="/logout" method="POST" class="logout-form">
-            <button type="submit" class="btn-logout">
-              <i data-lucide="log-out"></i>
+            <button type="submit" class="nav-logout-btn">
+              <i data-lucide="log-out" style="width:16px;height:16px;"></i>
               Logout
             </button>
           </form>
         </div>
-        
       <% } else { %>
-        <!-- Logged Out State -->
-        <!-- Hide "Get Started" on auth pages (login, signup, etc.) -->
-        <% if (!locals.isAuthPage) { %>
-          <a href="/login" class="btn btn-primary">Get Started</a>
-        <% } %>
+        <!-- Guest buttons -->
+        <div class="nav-auth-buttons">
+          <a href="/login" class="nav-login-btn">Login</a>
+          <a href="/signup" class="nav-signup-btn">Sign Up</a>
+        </div>
       <% } %>
     </div>
   </div>

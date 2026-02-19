@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-dashboard.css">
+  <meta name="description" content="Manage your running events on helloRun.">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="dashboard-page" id="main-content">
+    <div class="dashboard-container">
+
+      <!-- Welcome Header -->
+      <header class="dashboard-header">
+        <div class="header-left">
+          <h1>Welcome back, <%= user.firstName || 'Organizer' %>!</h1>
+          <p class="header-subtitle">
+            <span class="verified-badge">
+              <i data-lucide="shield-check"></i>
+              Verified Organizer
+            </span>
+            <span class="header-separator">•</span>
+            <span>Approved on <%= approvedDate %></span>
+          </p>
+        </div>
+        <div class="header-right">
+          <a href="/organizer/create-event" class="btn btn-create">
+            <i data-lucide="plus"></i>
+            Create Event
+          </a>
+        </div>
+      </header>
+
+      <!-- Stats Cards -->
+      <section class="stats-section" aria-label="Dashboard Statistics">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-events">
+              <i data-lucide="calendar"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value"><%= stats.totalEvents %></span>
+              <span class="stat-label">Total Events</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-active">
+              <i data-lucide="activity"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value"><%= stats.activeEvents %></span>
+              <span class="stat-label">Active Events</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-registrations">
+              <i data-lucide="users"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value"><%= stats.totalRegistrations %></span>
+              <span class="stat-label">Total Registrations</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-upcoming">
+              <i data-lucide="clock"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value"><%= stats.upcomingEvents %></span>
+              <span class="stat-label">Upcoming Events</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Content Grid -->
+      <div class="dashboard-grid">
+
+        <!-- Left Column -->
+        <div class="dashboard-main">
+
+          <!-- Quick Actions -->
+          <section class="dashboard-section" aria-labelledby="actions-heading">
+            <h2 id="actions-heading" class="section-heading">
+              <i data-lucide="zap"></i>
+              Quick Actions
+            </h2>
+            <div class="actions-grid">
+              <% quickActions.forEach(action => { %>
+                <a href="<%= action.href %>" class="action-card">
+                  <div class="action-icon">
+                    <i data-lucide="<%= action.icon %>"></i>
+                  </div>
+                  <div class="action-info">
+                    <h3><%= action.label %></h3>
+                    <p><%= action.description %></p>
+                  </div>
+                  <i data-lucide="chevron-right" class="action-arrow"></i>
+                </a>
+              <% }); %>
+            </div>
+          </section>
+
+          <!-- Recent Events -->
+          <section class="dashboard-section" aria-labelledby="events-heading">
+            <div class="section-header">
+              <h2 id="events-heading" class="section-heading">
+                <i data-lucide="calendar"></i>
+                My Events
+              </h2>
+              <% if (recentEvents.length > 0) { %>
+                <a href="/organizer/events" class="view-all-link">
+                  View All <i data-lucide="arrow-right"></i>
+                </a>
+              <% } %>
+            </div>
+
+            <% if (recentEvents.length > 0) { %>
+              <div class="events-list">
+                <% recentEvents.forEach(event => { %>
+                  <div class="event-card">
+                    <div class="event-date-badge">
+                      <span class="event-month"><%= new Date(event.date).toLocaleDateString('en-US', { month: 'short' }) %></span>
+                      <span class="event-day"><%= new Date(event.date).getDate() %></span>
+                    </div>
+                    <div class="event-info">
+                      <h3><%= event.name %></h3>
+                      <p class="event-meta">
+                        <i data-lucide="map-pin"></i> <%= event.location %>
+                        <span class="meta-separator">•</span>
+                        <i data-lucide="users"></i> <%= event.registrations || 0 %> registered
+                      </p>
+                    </div>
+                    <span class="event-status event-status-<%= event.status %>"><%= event.status %></span>
+                  </div>
+                <% }); %>
+              </div>
+            <% } else { %>
+              <div class="empty-state">
+                <div class="empty-icon">
+                  <i data-lucide="calendar-plus"></i>
+                </div>
+                <h3>No events yet</h3>
+                <p>Create your first running event and start accepting registrations!</p>
+                <a href="/organizer/create-event" class="btn btn-create-sm">
+                  <i data-lucide="plus"></i>
+                  Create Your First Event
+                </a>
+              </div>
+            <% } %>
+          </section>
+        </div>
+
+        <!-- Right Column - Sidebar -->
+        <aside class="dashboard-sidebar">
+
+          <!-- Organizer Profile Card -->
+          <div class="sidebar-card profile-card">
+            <div class="profile-avatar">
+              <span class="avatar-initials"><%= (user.firstName || 'O').charAt(0).toUpperCase() %><%= (user.lastName || 'R').charAt(0).toUpperCase() %></span>
+            </div>
+            <h3><%= user.firstName %> <%= user.lastName %></h3>
+            <p class="profile-email"><%= user.email %></p>
+            <div class="profile-details">
+              <div class="profile-detail-item">
+                <i data-lucide="briefcase"></i>
+                <span><%= application.businessName %></span>
+              </div>
+              <div class="profile-detail-item">
+                <i data-lucide="phone"></i>
+                <span><%= application.contactPhone %></span>
+              </div>
+              <div class="profile-detail-item">
+                <i data-lucide="hash"></i>
+                <span>ID: <%= application.applicationId %></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Getting Started Checklist -->
+          <div class="sidebar-card checklist-card">
+            <h3>
+              <i data-lucide="list-checks"></i>
+              Getting Started
+            </h3>
+            <ul class="checklist">
+              <li class="checklist-item completed">
+                <i data-lucide="check-circle-2"></i>
+                <span>Create your account</span>
+              </li>
+              <li class="checklist-item completed">
+                <i data-lucide="check-circle-2"></i>
+                <span>Verify your email</span>
+              </li>
+              <li class="checklist-item completed">
+                <i data-lucide="check-circle-2"></i>
+                <span>Complete organizer application</span>
+              </li>
+              <li class="checklist-item completed">
+                <i data-lucide="check-circle-2"></i>
+                <span>Get approved</span>
+              </li>
+              <li class="checklist-item <%= stats.totalEvents > 0 ? 'completed' : '' %>">
+                <i data-lucide="<%= stats.totalEvents > 0 ? 'check-circle-2' : 'circle' %>"></i>
+                <span>Create your first event</span>
+              </li>
+              <li class="checklist-item <%= stats.totalRegistrations > 0 ? 'completed' : '' %>">
+                <i data-lucide="<%= stats.totalRegistrations > 0 ? 'check-circle-2' : 'circle' %>"></i>
+                <span>Get your first registration</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Help & Resources -->
+          <div class="sidebar-card resources-card">
+            <h3>
+              <i data-lucide="life-buoy"></i>
+              Help & Resources
+            </h3>
+            <ul class="resource-links">
+              <li>
+                <a href="/about">
+                  <i data-lucide="book-open"></i>
+                  Event Creation Guide
+                </a>
+              </li>
+              <li>
+                <a href="/about">
+                  <i data-lucide="help-circle"></i>
+                  FAQ
+                </a>
+              </li>
+              <li>
+                <a href="mailto:<%= typeof adminEmail !== 'undefined' ? adminEmail : 'hellorunonline@gmail.com' %>">
+                  <i data-lucide="mail"></i>
+                  Contact Support
+                </a>
+              </li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

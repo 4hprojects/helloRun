@@ -822,16 +822,102 @@ label .required {
   height: 16px;
 }
 
-/* Mobile Navigation Updates for User Menu */
+/* Nav User Section */
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: 0.5rem;
+  padding-left: 1rem;
+  border-left: 1px solid #e0e0e0;
+}
+
+.nav-username {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--dark-gray);
+  white-space: nowrap;
+}
+
+.nav-logout-btn {
+  background: transparent;
+  color: var(--orange);
+  border: 2px solid var(--orange);
+  padding: 0.4rem 0.9rem;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: 'Inter', sans-serif;
+}
+
+.nav-logout-btn:hover {
+  background: var(--orange);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(250, 154, 75, 0.3);
+}
+
+.nav-login-btn,
+.nav-signup-btn {
+  padding: 0.5rem 1.2rem;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.nav-login-btn {
+  color: var(--dark-gray);
+  border: 2px solid #e0e0e0;
+}
+
+.nav-login-btn:hover {
+  border-color: var(--orange);
+  color: var(--orange);
+  background: rgba(250, 154, 75, 0.05);
+}
+
+.nav-signup-btn {
+  background: linear-gradient(135deg, var(--orange), var(--soft-orange));
+  color: white;
+  border: none;
+}
+
+.nav-signup-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(250, 154, 75, 0.3);
+  color: white;
+}
+
+/* Nav Auth Buttons Group */
+.nav-auth-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: 0.5rem;
+  padding-left: 1rem;
+  border-left: 1px solid #e0e0e0;
+}
+
+.logout-form {
+  margin: 0;
+  padding: 0;
+  display: inline;
+}
+
+/* Mobile Nav Auth */
 @media (max-width: 768px) {
-  .user-menu {
-    flex-direction: column;
-    align-items: stretch;
-    width: 100%;
-    gap: 0.5rem;
+  .nav-user {
+    border-left: none;
+    padding-left: 0;
     margin-left: 0;
-    padding-top: 1rem;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    padding-top: 0.75rem;
+    border-top: 1px solid #e0e0e0;
+    width: 100%;
+    justify-content: space-between;
   }
   
   .user-greeting {

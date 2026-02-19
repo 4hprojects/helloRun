@@ -1,22 +1,24 @@
 How we will build helloRun step-by-step
 
 ===========================================
-PROJECT OVERVIEW & STATUS (Feb 5, 2026)
+PROJECT OVERVIEW & STATUS (Feb 19, 2026)
 ===========================================
 
 COMPLETED PHASES:
 ✅ Phase 0: Project Skeleton (Nov 2024) - 100%
 ✅ Phase 1: Authentication System (Feb 2025) - 100%
+✅ Phase 2A: Organizer Signup Flow - 100%
+✅ Phase 2B: Organizer Application Forms & Status - 100%
 
 IN PROGRESS:
-🔄 Phase 2: Organizer Applications (30% complete)
+🔄 Phase 2C: Admin Application Review Dashboard (Ready to start)
 
 UPCOMING PHASES:
 ⏳ Phase 3: Event Creation & Management (20% scaffolded)
 ⏳ Phase 4: Registration System (10% scaffolded)
-⏳ Phase 5: Submission & Results (0%)
+⏳ Phase 5: Submission, Results & Leaderboard (0%)
 ⏳ Phase 6: Dashboards (0%)
-⏳ Phase 7: Additional Features (Blog ready, 0% implemented)
+⏳ Phase 7: Additional Features (Blog planned, 0% implemented)
 ⏳ Phase 8: Google OAuth (Optional)
 ⏳ Phase 9: Testing & Optimization
 ⏳ Phase 10: Production Deployment
@@ -25,7 +27,7 @@ QUICK STATS:
 - Total Users: TBD (after deployment)
 - Total Events: 0 (awaiting Phase 3)
 - Platform Status: Development
-- Last Major Update: Feb 5, 2026 (Login Flow Enhancement)
+- Last Major Update: Feb 19, 2026 (Auth middleware rewrite, nav auth toggle, redirectIfAuth, leaderboard nav + placeholder)
 
 ---
 
@@ -41,22 +43,19 @@ What you built:
 ✅ Base layout + navigation + footer components
 ✅ Mobile-responsive navigation with hamburger menu
 ✅ Lucide icons integration
-✅ Google Analytics integration (GA4) ✅
-
-Folder structure (MVC):
-hellorun/
+✅ Google Analytics integration (GA4)
 
 What you have after Phase 0:
 ✅ / home page (fully styled with hero, features, audience sections)
 ✅ /events events page (UI ready for dynamic content)
 ✅ /login and /signup pages (fully functional UI with improved password toggle)
-✅ /forgot-password page (compact UI, no scrolling required) ✅ (Dec 2024)
+✅ /forgot-password page (compact UI, no scrolling required)
 ✅ Complete password reset flow (forgot, reset, success, expired)
 ✅ Complete email verification flow (sent, success, expired, resend)
 ✅ Error page
-✅ Responsive navigation with mobile menu and Blog link ✅ UPDATED
+✅ Responsive navigation with mobile menu
 ✅ Footer with links
-✅ SEO ready (sitemap.xml updated with blog categories, robots.txt)
+✅ SEO ready (sitemap.xml, robots.txt)
 ✅ Google Analytics 4 tracking on all pages
 
 ---
@@ -83,12 +82,6 @@ Feature 1B: Email verification ✅ COMPLETED (Dec 2024)
 ✅ Resend verification email feature
 ✅ User cannot login until verified
 ✅ Professional email templates
-✅ Email verification UI pages:
-  ✅ verify-email-sent.ejs (success message)
-  ✅ verify-email-success.ejs (verified confirmation)
-  ✅ verify-email-expired.ejs (token expired)
-  ✅ verify-email-result.ejs (generic result page)
-  ✅ resend-verification.ejs (resend form)
 
 Feature 1C: Password reset ✅ COMPLETED (Feb 3, 2025)
 ✅ Request password reset
@@ -100,31 +93,15 @@ Feature 1C: Password reset ✅ COMPLETED (Feb 3, 2025)
 ✅ Rate limiting (3 resets per 24 hours)
 ✅ Email notifications
 ✅ Confirmation email after password reset
-✅ Improved forgot-password UI (compact, modern design)
-✅ Professional reset-password UI with strength indicator ✅ (Feb 3, 2025)
-✅ Real-time password validation ✅ (Feb 3, 2025)
-✅ Password visibility toggle (eye/eye-off icons) ✅ (Feb 3, 2025)
-✅ Common password detection ✅ (Feb 3, 2025)
-✅ Sequential/repeated character detection ✅ (Feb 3, 2025)
-✅ Accessible form with ARIA support ✅ (Feb 3, 2025)
-✅ Client-side validation with debouncing ✅ (Feb 3, 2025)
-✅ Password match validation ✅ (Feb 3, 2025)
-✅ Animated strength indicator (gradient) ✅ (Feb 3, 2025)
-
-Password Reset Validation (Client-side) - Feb 3, 2025:
-✅ Minimum 8 characters, maximum 128
-✅ At least one uppercase letter (A-Z)
-✅ At least one lowercase letter (a-z)
-✅ At least one number (0-9)
-✅ No common passwords (20+ blocked patterns)
-✅ No sequential characters (123, abc, etc.)
-✅ No excessive repeated characters (aaa, 111)
-✅ Real-time strength indicator (5 levels: Very Weak → Strong)
-✅ Password match confirmation
-✅ Debounced validation (300ms delay)
-✅ Screen reader announcements
-✅ Error shake animations
-✅ Live ARIA regions for accessibility
+✅ Professional reset-password UI with strength indicator
+✅ Real-time password validation
+✅ Password visibility toggle (eye/eye-off icons)
+✅ Common password detection
+✅ Sequential/repeated character detection
+✅ Accessible form with ARIA support
+✅ Client-side validation with debouncing
+✅ Password match validation
+✅ Animated strength indicator (gradient)
 
 Feature 1D: Session management ✅ COMPLETED (Nov 2024)
 ✅ express-session with MongoDB store
@@ -141,11 +118,126 @@ Feature 1E: Login ✅ COMPLETED (Dec 2024)
 ✅ Redirect to dashboard or complete profile
 ✅ Professional login UI with password toggle
 ✅ Error handling and validation
+✅ Logged-in users redirected away from /login and /signup (Feb 19, 2026)
 
 ---
 
-Files Structure (Updated Feb 3, 2025):
-should match dir.txt
+Phase 2: Organiser application + manual approval 🔄 IN PROGRESS (80%)
+
+Goal: Runner can apply to become organiser. Admin can approve.
+
+Feature 2A: Organiser signup flow ✅ COMPLETED
+✅ User signs up and selects "Event Organizer" role
+✅ Email verification sent (same as runner)
+✅ After verification, redirect to /organizer/complete-profile
+✅ Upload service created (multer configuration)
+✅ File validation (PDF, JPEG, PNG only, max 5MB)
+✅ Secure file storage in /public/uploads/organizer-docs/
+
+Feature 2B: Document upload & profile completion ✅ COMPLETED (Feb 14, 2026)
+✅ 3-step form wizard (Business Info → Documents → Review & Confirm)
+✅ Drag-and-drop file upload with preview
+✅ File type validation (PDF, JPG, PNG)
+✅ File size validation (max 5MB)
+✅ AJAX form submission
+✅ Application status tracking page with timeline
+✅ Auto-refresh status every 5 minutes
+✅ Copy application ID to clipboard
+✅ Email notification on submission
+✅ Mobile responsive design
+✅ Accessibility features
+
+Feature 2C: Admin reviews ⏳ READY TO START
+⏳ Admin dashboard page
+⏳ List all applications
+⏳ Filter by status (pending, approved, rejected)
+⏳ View application details
+⏳ View uploaded documents
+⏳ Approve/reject with email notifications
+⏳ Admin routes (/admin/applications)
+Estimated: 2-3 hours
+
+---
+
+Phase 3: Event creation (organiser only) 🚧 SCAFFOLDED (20%)
+
+Goal: Organizers can create running events.
+
+✅ Event.js model created
+✅ Registration.js model created
+⏳ Create event page UI
+⏳ Event creation controller
+⏳ Image upload integration
+⏳ Edit/delete events
+⏳ Event status management
+
+---
+
+Phase 4: Registration + payment proof 💳 PENDING
+
+Goal: Runner joins event and uploads payment proof for verification.
+⏳ Registration form
+⏳ Upload payment proof
+⏳ Organiser verifies payment
+⏳ Email notifications
+
+---
+
+Phase 5: Submissions, Results & Leaderboard 🏃 PENDING
+
+Goal: Runner submits run proof, organiser approves, certificate generated, leaderboard populated.
+⏳ Submit result (distance, time, proof)
+⏳ Organiser review and approve
+⏳ Auto-generate certificate PDF
+⏳ Download certificate
+⏳ Leaderboard page (top runners, fastest times, event rankings)
+⏳ Filter leaderboard by event, distance, category
+⏳ Public leaderboard (visible to all users)
+✅ /leaderboard route + placeholder page (Feb 19, 2026)
+✅ Nav link added (Feb 19, 2026)
+
+---
+
+Phase 6: Dashboards & Analytics 📊 PENDING
+
+⏳ Runner Dashboard (upcoming events, past events, certificates)
+⏳ Organiser Dashboard (event overview, participant stats)
+⏳ Admin Dashboard (platform stats, user growth, pending applications)
+
+---
+
+Phase 7: Additional Pages & Features 🌟 PENDING
+
+⏳ Static pages (/about, /how-it-works, /contact, /faq, /privacy, /terms)
+⏳ Blog system (model, CRUD, categories, SEO)
+⏳ Search & filters
+⏳ Notifications system
+
+---
+
+Phase 8: Google OAuth (Optional) 🔐 PENDING
+⏳ Passport.js integration
+⏳ Merge accounts (if email exists)
+
+---
+
+Phase 9: Testing & Optimization 🧪 PENDING
+⏳ Unit & integration tests
+⏳ Performance & security audit
+⏳ Cross-browser & mobile testing
+
+---
+
+Phase 10: Deployment 🚀 PENDING
+⏳ Production database, SSL, domain (hellorun.online)
+⏳ Monitoring, backups, launch
+
+---
+
+===========================================
+FILES STRUCTURE (Updated Feb 19, 2026)
+===========================================
+
 src/
   config/
     db.js
@@ -154,86 +246,118 @@ src/
     auth.controller.js
     page.controller.js
   middleware/
-    auth.middleware.js ✅
-    role.middleware.js ✅
+    auth.middleware.js             ← REWRITTEN Feb 19 (populateAuthLocals, redirectIfAuth, requireAuth, requireAdmin, requireOrganizer, requireApprovedOrganizer)
+    role.middleware.js
   models/
     User.js
+    user.model.js
     Counter.js
+    counter.model.js
     Event.js
     Registration.js
     OrganiserApplication.js
     Submission.js
   routes/
-    auth.routes.js
-    authRoutes.js
-    event.routes.js
-    organiser.routes.js
-    organizer.routes.js
-    page.routes.js
-    admin.routes.js
+    authRoutes.js                 ← ALL auth routes (login, signup, register, verify, reset, logout)
+    pageRoutes.js                 ← Public pages (home, events, blog, about, leaderboard)
+    organizer.routes.js           ← Organizer profile & application (Phase 2B)
+    event.routes.js               ← Phase 3 (scaffolded)
+    admin.routes.js               ← Phase 2C (pending)
   services/
     upload.service.js
-    email.service.js ✅
-    password.service.js ✅
-    token.service.js ✅
-    counter.service.js ✅
+    email.service.js
+    password.service.js
+    token.service.js
+    counter.service.js
   scripts/
     initCounter.js
     migrateUserIds.js
+    setup-uploads.js
+    clean-users.js
   views/
     layouts/
-      head.ejs
-      nav.ejs
+      head.ejs                     ← Reusable head with GA
+      nav.ejs                      ← Auth-aware nav with Blog + Leaderboard links
       footer.ejs
       main.ejs
     pages/
+      home.ejs                     ← Full landing page (hero, features, how-it-works, CTA)
+      events.ejs                   ← Auth-based content
+      blog.ejs                     ← Placeholder
+      about.ejs                    ← Placeholder
+      leaderboard.ejs              ← Placeholder (Phase 5 data)
       index.ejs
-      events.ejs
     auth/
-      login.ejs ✅
-      signup.ejs ✅
-      forgot-password.ejs ✅
-      reset-password.ejs ✅ (Updated Feb 3, 2025)
-      reset-password-expired.ejs ✅
-      reset-email-sent.ejs ✅
-      reset-success.ejs ✅
-      resend-verification.ejs ✅
-      verify-email-sent.ejs ✅
-      verify-email-success.ejs ✅
-      verify-email-expired.ejs ✅
-      verify-email-result.ejs ✅
-      complete-profile.ejs ✅
+      login.ejs
+      signup.ejs
+      forgot-password.ejs
+      reset-password.ejs
+      reset-password-expired.ejs
+      reset-email-sent.ejs
+      reset-success.ejs
+      resend-verification.ejs
+      verify-email-sent.ejs
+      verify-email-success.ejs
+      verify-email-expired.ejs
+      verify-email-result.ejs
     organizer/
-      application-status.ejs
-      complete-profile.ejs
+      complete-profile.ejs         ← 3-step form wizard
+      application-status.ejs       ← Status tracking with timeline
     admin/
-      applications-list.ejs
-      application-details.ejs
+      applications-list.ejs        ← PENDING Phase 2C
+      application-details.ejs      ← PENDING Phase 2C
     error.ejs
   public/
     css/
-      style.css
-      login.css ✅
-      signup.css ✅
-      forgot-password.css ✅
-      reset-password.css ✅ (Created Feb 3, 2025)
-      events.css ✅ (Created Feb 5, 2026)
+      style.css                    ← Global styles + nav user menu
+      helloRun.css                 ← Landing page styles
+      login.css
+      signup.css
+      forgot-password.css
+      reset-password.css
+      events.css
+      complete-profile.css
+      application-status.css
+      verify-email-sent.css
     js/
       main.js
       auth.js
-      signup.js ✅
-      reset-password.js ✅ (Created Feb 3, 2025)
+      signup.js
+      reset-password.js
+      complete-profile.js
+      application-status.js
     images/
       helloRun-icon.webp
     uploads/
+      .gitkeep
       organizer-docs/
+      event-images/
+      profile-photos/
     robots.txt
     sitemap.xml
   server.js
 
+.env
+.env.example
+.gitignore
+package.json
+package-lock.json
+README.md
+dir.txt
+wireframe.txt
+dns.txt
+sitemap.md
+organiser_flow.txt
+user-role-system.txt
+sitetheme.txt
+seo keywords.txt
+current-dir.txt
+
 ---
 
-Technical Stack (Updated Feb 3, 2025):
+===========================================
+TECHNICAL STACK (Updated Feb 19, 2026)
+===========================================
 
 Backend:
 ✅ Node.js + Express
@@ -251,18 +375,6 @@ Frontend:
 ✅ CSS3 with custom properties
 ✅ Mobile-first responsive design
 
-Client-side Features (Added Feb 3, 2025):
-✅ Debounced input validation (300ms)
-✅ Real-time password strength calculation
-✅ Lucide icons for password toggle (eye/eye-off)
-✅ ARIA live regions for accessibility
-✅ CSS transitions and animations
-✅ Pattern-based validation (regex)
-✅ Sequential character detection
-✅ Common password dictionary matching
-✅ Gradient strength indicator
-✅ Error shake animations
-
 Security:
 ✅ Password hashing (bcrypt)
 ✅ Secure session cookies
@@ -271,551 +383,78 @@ Security:
 ✅ Rate limiting on password reset (3/24hrs)
 ✅ CSRF protection
 ✅ Input validation and sanitization
-✅ Common password blocking (20+ patterns)
-✅ Sequential/repeated character detection
+✅ Common password blocking
+✅ Auth middleware (populateAuthLocals, redirectIfAuth, requireAuth, role guards)
 
 ---
 
-NEW FEATURES ADDED (Feb 3, 2025):
+===========================================
+AUTH MIDDLEWARE (Updated Feb 19, 2026)
+===========================================
 
-Password Reset Enhancement:
-✅ reset-password.css - Professional UI with strength indicator
-✅ reset-password.js - Comprehensive client-side validation
-✅ Real-time password strength feedback (5 levels)
-✅ Password visibility toggle with proper icon switching
-✅ Common password detection (20+ patterns blocked)
-✅ Sequential character validation (prevents 123, abc, etc.)
-✅ Repeated character detection (prevents aaa, 111, etc.)
-✅ Debounced validation for better performance
-✅ ARIA support for screen readers
-✅ Live region announcements
-✅ Error shake animations
-✅ Gradient strength indicator
-✅ Password match confirmation
-✅ Focus management for accessibility
-✅ Keyboard navigation support
+File: src/middleware/auth.middleware.js
 
----
+Exports:
+  populateAuthLocals    - Sets res.locals for all views (isAuthenticated, user, isAdmin, isOrganizer, isApprovedOrganizer, isAuthPage)
+  redirectIfAuth        - Redirects logged-in users away from /login, /signup (to role-based dashboard)
+  requireAuth           - Protects routes requiring login (redirects to /login)
+  requireAdmin          - Protects admin-only routes
+  requireOrganizer      - Protects organiser-only routes
+  requireApprovedOrganizer - Protects approved-organiser-only routes
 
-Phase 2: Organiser application + manual approval 🔄 IN PROGRESS (30%)
-
-Goal: Runner can apply to become organiser. Admin can approve.
-
-Feature 2A: Organiser signup flow ✅ COMPLETED
-✅ User signs up and selects "Event Organizer" role
-✅ Email verification sent (same as runner)
-✅ After verification, redirect to /organizer/complete-profile
-✅ Upload service created (multer configuration)
-✅ File validation (PDF, JPEG, PNG only, max 5MB)
-✅ Secure file storage in /public/uploads/organizer-docs/
-✅ Organizer routes created (/organizer/*)
-✅ OrganiserApplication model created with fields:
-  - applicationId (auto-increment: APP000001)
-  - userId (reference)
-  - businessName
-  - businessType (individual, company, ngo, sports_club)
-  - contactPhone
-  - businessRegistrationNumber
-  - businessAddress
-  - idProofUrl (required)
-  - businessProofUrl (required)
-  - additionalInfo
-  - status: pending, under_review, approved, rejected
-  - rejectionReason
-  - reviewedBy (admin reference)
-  - reviewedAt
-  - submittedAt
-  - createdAt, updatedAt
-
-Feature 2B: Document upload & profile completion ⏳ IN PROGRESS (50%)
-✅ Upload service configured (multer)
-✅ File type validation (PDF, JPG, PNG)
-✅ File size validation (max 5MB)
-✅ Secure filename generation (userId_timestamp_random)
-✅ Storage directory created
-✅ Organizer routes skeleton created
-⏳ Complete profile form UI (NEXT - needs full form)
-⏳ File upload with drag-and-drop
-⏳ File preview before upload
-⏳ Progress indicators
-⏳ Form validation (business info)
-⏳ Submit application handler
-⏳ Email notification on submission
-
-Feature 2C: Admin reviews ⏳ TODO
-⏳ Admin dashboard page
-⏳ List all applications
-⏳ Filter by status (pending, approved, rejected)
-⏳ View application details
-⏳ View uploaded documents
-⏳ Approve: sets user role to "organiser" + organizerStatus to "approved"
-⏳ Reject: stores reason and notifies applicant
-⏳ Email notifications for approval/rejection
-⏳ Admin routes (/admin/applications)
-
-Feature 2D: Application status page ⏳ TODO
-✅ Basic placeholder created (updated to use head.ejs)
-⏳ Show current status (pending, approved, rejected)
-⏳ Show submission date
-⏳ Show estimated review time
-⏳ If rejected: show reason + option to reapply
-⏳ If approved: congratulations + link to create event
-
-OrganiserApplication model: ✅ CREATED
-✅ All fields defined
-✅ Auto-increment applicationId
-✅ Indexes on userId, status, createdAt
-✅ Timestamps enabled
-✅ Counter integration
-
-Upload service: ✅ CREATED
-✅ uploadOrganizerDocs middleware
-✅ File type validation
-✅ File size validation
-✅ Secure storage
-✅ Unique filename generation
-✅ deleteFile helper
-✅ validateFiles helper
-
-Environment variables added:
-✅ UPLOAD_MAX_SIZE=5242880
-✅ UPLOAD_ALLOWED_TYPES=image/jpeg,image/png,application/pdf
-✅ ADMIN_EMAIL
-✅ ORGANIZER_REVIEW_TIME_DAYS=3
-✅ GA_MEASUREMENT_ID=G-QJZPYEBCVS
-
-Files structure updated:
-✅ src/models/OrganiserApplication.js
-✅ src/services/upload.service.js
-✅ src/routes/organizer.routes.js
-✅ src/middleware/auth.middleware.js (updated)
-✅ src/views/layouts/head.ejs (reusable head with Google Analytics)
-✅ src/views/layouts/nav.ejs (updated with Blog link and role-based routing) ✅ UPDATED
-✅ src/views/auth/login.ejs (improved password toggle) ✅ UPDATED
-✅ src/views/auth/forgot-password.ejs (compact UI) ✅ NEW
-✅ src/views/organizer/complete-profile.ejs (updated to use head.ejs)
-✅ src/views/organizer/application-status.ejs (updated to use head.ejs)
-✅ src/views/admin/applications-list.ejs (updated to use head.ejs)
-✅ src/views/admin/application-details.ejs (updated to use head.ejs)
-✅ All auth views updated to use head.ejs
-✅ All page views updated to use head.ejs
-✅ public/css/login.css (improved password toggle styling) ✅ UPDATED
-✅ public/css/forgot-password.css (NEW - compact design) ✅ NEW
-✅ public/js/auth.js (fixed duplicate password toggle code) ✅ UPDATED
-✅ public/uploads/organizer-docs/ (directory)
-✅ public/sitemap.xml (updated with blog categories) ✅ UPDATED
-✅ .gitignore updated for uploads
-
-Google Analytics Integration: ✅ COMPLETED
-✅ Google Analytics 4 property created (HelloRun)
-✅ Measurement ID: G-QJZPYEBCVS
-✅ head.ejs layout created with GA tracking code
-✅ All 19 pages updated to use head.ejs partial
-✅ GA code loads conditionally (only when GA_MEASUREMENT_ID is set)
-✅ Environment variable configured (.env and .env.example)
-✅ Tracks all pageviews automatically
-✅ Ready for production deployment
-
-Pages with Google Analytics: ✅ ALL PAGES
-✅ index.ejs
-✅ events.ejs
-✅ login.ejs (improved UI) ✅ UPDATED
-✅ signup.ejs
-✅ forgot-password.ejs (improved compact UI) ✅ UPDATED
-✅ reset-password.ejs
-✅ reset-password-expired.ejs ✅
-✅ reset-email-sent.ejs ✅
-✅ reset-success.ejs ✅
-✅ resend-verification.ejs ✅
-✅ verify-email-sent.ejs ✅
-✅ verify-email-success.ejs ✅
-✅ verify-email-expired.ejs ✅
-✅ verify-email-result.ejs ✅
-✅ complete-profile.ejs ✅
-✅ application-status.ejs
-✅ applications-list.ejs
-✅ application-details.ejs
-✅ error.ejs
-
-NEXT IMMEDIATE STEPS FOR PHASE 2:
-1. Create complete-profile.ejs full form UI
-2. Add drag-and-drop file upload
-3. Implement POST /organizer/complete-profile handler
-4. Add email templates (submitted, approved, rejected)
-5. Update email.service.js
-6. Create admin dashboard for reviewing applications
-7. Test end-to-end organizer application flow
-8. Deploy to production with Google Analytics enabled
-
---
-
-Phase 3: Event creation (organiser only) 🚧 IN PROGRESS (20%)
-
-Goal: Organizers can create running events.
-
-Feature 2A: Event model 🚧 IN PROGRESS
-✅ Event.js model created
-✅ Registration.js model created
-⏳ Image upload functionality
-⏳ Multiple race categories support
-⏳ Registration capacity limits
-⏳ Event validation middleware
-
-Feature 2B: Create event page ⏳ NOT STARTED
-⏳ /organiser/create-event form UI
-⏳ Event creation controller
-⏳ Image upload integration
-⏳ Form validation
-⏳ Preview functionality
-
-Feature 2C: Edit/delete events ⏳ NOT STARTED
-⏳ /organiser/my-events page
-⏳ Edit event controller
-⏳ Delete event functionality
-⏳ Event status management
+Usage in server.js:
+  app.use(populateAuthLocals)  ← BEFORE all routes
+  
+Usage in routes:
+  router.get('/login', redirectIfAuth, ...)
+  router.get('/dashboard', requireAuth, ...)
+  router.get('/admin/*', requireAdmin, ...)
 
 ---
 
-Phase 4: Registration + payment proof 💳 PENDING
+===========================================
+NAVIGATION BEHAVIOR (Updated Feb 19, 2026)
+===========================================
 
-Goal: Runner joins event and uploads payment proof for verification.
+Logged Out:
+  [Logo] [Home] [Events] [Blog] [Leaderboard] [Login] [Sign Up]
 
-Feature 4A: Join event ⏳ TODO
-⏳ Registration form
-⏳ Upload payment proof
-⏳ Create registration with status: "pending_verification"
-⏳ Email confirmation to runner
-⏳ Notification to organiser
+Logged In (Runner):
+  [Logo] [Home] [Events] [Blog] [Leaderboard] [Dashboard] [Hi, Name] [Logout]
 
-Feature 4B: Organiser verifies payment ⏳ TODO
-⏳ Organiser view registrations
-⏳ View payment proof
-⏳ Approve registration (status: "verified")
-⏳ Reject with reason
-⏳ Email notification to runner
-⏳ Runner can only submit results after verification
+Logged In (Pending Organizer):
+  [Logo] [Home] [Events] [Blog] [Leaderboard] [My Application] [Hi, Name] [Logout]
 
-Registration model needs:
-⏳ registrationId (custom format)
-⏳ eventId (reference)
-⏳ userId (reference)
-⏳ paymentProofUrl
-⏳ paymentStatus: "pending_verification", "verified", "rejected"
-⏳ rejectionReason
-⏳ verifiedBy (organiser userId)
-⏳ verifiedAt
-⏳ createdAt
+Logged In (Approved Organizer):
+  [Logo] [Home] [Events] [Blog] [Leaderboard] [Dashboard] [Hi, Name] [Logout]
+
+Logged In (Admin):
+  [Logo] [Home] [Events] [Blog] [Leaderboard] [Admin] [Hi, Name] [Logout]
+
+Auth Page Redirect:
+  Logged-in user visits /login or /signup → redirected to role-based dashboard
 
 ---
 
-Phase 5: Submissions + approval 🏃 PENDING
+===========================================
+TIMELINE TRACKING (Updated Feb 19, 2026)
+===========================================
 
-Goal: Runner submits run proof, organiser approves, certificate becomes available.
+Phase 0:  ✅ Completed - Nov 2024
+Phase 1:  ✅ Completed - Feb 2025
+Phase 2A: ✅ Completed - Dec 2024
+Phase 2B: ✅ Completed - Feb 14, 2026
+Phase 2C: 🔄 Ready to start (~2-3 hours)
+Phase 3:  🔜 After Phase 2C
+Phase 4:  🔜 After Phase 3
+Phase 5:  🔜 After Phase 4 (includes Leaderboard)
+Phase 6:  🔜 After Phase 5
+Phase 7:  🔜 After Phase 6
+Phase 8:  🔜 Optional
+Phase 9:  🔜 Before launch
+Phase 10: 🔜 Launch
 
-Feature 5A: Submit result ⏳ TODO
-⏳ Submission form (distance, time, date)
-⏳ Upload proof (screenshot, photo)
-⏳ Create submission with status: "pending"
-⏳ Email notification to organiser
-
-Feature 5B: Organiser approves ⏳ TODO
-⏳ View all submissions for event
-⏳ Review proof
-⏳ Approve submission (status: "approved")
-⏳ Reject with reason
-⏳ Mark completion
-⏳ Generate certificate
-
-Feature 5C: Certificates ⏳ TODO
-⏳ Auto-generate certificate PDF
-⏳ Runner can download certificate
-⏳ Display on runner dashboard
-⏳ Email certificate to runner
-
-Submission model needs:
-⏳ submissionId (custom format)
-⏳ registrationId (reference)
-⏳ eventId (reference)
-⏳ userId (reference)
-⏳ distance
-⏳ time
-⏳ completionDate
-⏳ proofUrl
-⏳ status: "pending", "approved", "rejected"
-⏳ rejectionReason
-⏳ certificateUrl
-⏳ reviewedBy (organiser userId)
-⏳ reviewedAt
-⏳ createdAt
-
----
-
-Phase 6: Dashboards & Analytics 📊 PENDING
-
-Goal: Users see their progress, organisers see event metrics.
-
-Feature 6A: Runner Dashboard ⏳ TODO
-⏳ Upcoming events
-⏳ Past events
-⏳ Activity log
-⏳ Certificates earned
-⏳ Progress statistics
-
-Feature 6B: Organiser Dashboard ⏳ TODO
-⏳ Event overview
-⏳ Participant statistics
-⏳ Pending registrations count
-⏳ Pending submissions count
-⏳ Revenue tracking
-
-Feature 6C: Admin Dashboard ⏳ TODO
-⏳ Platform statistics
-⏳ User growth
-⏳ Event trends
-⏳ Pending applications
-⏳ System health
-
----
-
-Phase 7: Additional Pages & Features 🌟 PENDING
-
-Feature 7A: Static Pages ⏳ TODO
-⏳ /about - About HelloRun
-⏳ /how-it-works - Platform guide
-⏳ /contact - Contact form
-⏳ /faq - Frequently asked questions
-⏳ /privacy - Privacy policy
-⏳ /terms - Terms of service
-
-Feature 7B: Blog System 📝 PENDING (PLANNED)
-
-Goal: Provide running tips, articles, and community content to engage users and improve SEO.
-
-Navigation Integration: ✅ COMPLETED
-✅ Blog link added to nav.ejs
-✅ Positioned between Events and About
-✅ Role-based dashboard routing in navigation
-✅ Blog categories added to sitemap.xml
-
-Blog Features to implement:
-⏳ Blog List Page (/blog)
-  - Display published posts in card grid
-  - Filter by category (training, nutrition, gear, motivation, race-tips, injury-prevention, general)
-  - Search functionality
-  - Pagination (10 posts per page)
-  - Featured posts section
-  - Category chips/tags
-  - Sort by: latest, popular, most viewed
-
-
-⏳ Blog Post Detail (/blog/:slug)
-  - Full post content with rich formatting
-  - Author information (name, bio, avatar)
-  - Publication date and read time
-  - Category and tags
-  - View counter
-  - Share buttons (social media)
-  - Related posts section (same category)
-  - Previous/Next post navigation
-  - Comments section (optional - Phase 2)
-
-⏳ Admin: Create/Edit Post (/admin/blog/new, /admin/blog/edit/:id)
-  - Rich text editor (TinyMCE or Quill)
-  - Upload featured image
-  - Auto-generate slug from title (editable)
-  - Add/edit title and excerpt
-  - Select category (dropdown)
-  - Add tags (multi-select)
-  - Save as draft or publish
-  - Schedule publication (future date)
-  - Preview mode
-  - SEO meta fields (title, description, keywords)
-
-⏳ Admin: Manage Posts (/admin/blog)
-  - List all posts (drafts, published, archived)
-  - Filter by status and category
-  - Search posts
-  - Bulk actions (delete, archive)
-  - Quick edit (status, category)
-  - View analytics (views, engagement)
-
-BlogPost Model Structure:
-⏳ postId (auto-increment: 1, 2, 3...)
-⏳ postIdFormatted (virtual: POST000001)
-⏳ slug (unique, URL-friendly, auto-generated from title)
-⏳ title (required, 5-200 chars)
-⏳ excerpt (required, max 200 chars, for preview cards)
-⏳ content (required, rich HTML content)
-⏳ featuredImage (URL to uploaded image)
-⏳ authorId (reference to User model)
-⏳ category (enum: training, nutrition, gear, motivation, race-tips, injury-prevention, general)
-⏳ tags (array of strings, e.g., ["5K", "beginners", "hydration"])
-⏳ status (enum: draft, published, archived)
-⏳ publishedAt (Date, null if draft)
-⏳ scheduledFor (Date, for scheduled posts)
-⏳ views (Number, default: 0)
-⏳ readTime (Number, in minutes, auto-calculated from content length)
-⏳ seoTitle (optional, for SEO optimization)
-⏳ seoDescription (optional, for meta description)
-⏳ seoKeywords (array of strings)
-⏳ createdAt (auto-timestamp)
-⏳ updatedAt (auto-timestamp)
-
-BlogPost Model Methods:
-⏳ generateSlug() - creates URL-friendly slug from title
-⏳ calculateReadTime() - estimates reading time based on word count
-⏳ incrementViews() - atomic view counter increment
-⏳ isPublished() - checks if status is published and publishedAt is past
-⏳ getRelatedPosts() - finds posts in same category
-
-Blog Categories:
-⏳ Training - Training plans, workout tips, pacing strategies
-⏳ Nutrition - Diet advice, hydration, supplements, pre/post-run meals
-⏳ Gear - Shoe reviews, running watches, apparel, accessories
-⏳ Motivation - Inspirational stories, mental strategies, goal setting
-⏳ Race Tips - Event preparation, race day strategies, recovery
-⏳ Injury Prevention - Stretching, strengthening, common injuries, recovery
-⏳ General - Community updates, platform news, announcements
-
-Blog Routes:
-⏳ GET /blog - Blog list page (public)
-⏳ GET /blog/category/:category - Filtered by category (public)
-⏳ GET /blog/:slug - Single post page (public)
-⏳ GET /admin/blog - Manage all posts (admin only)
-⏳ GET /admin/blog/new - Create new post form (admin only)
-⏳ POST /admin/blog/new - Submit new post (admin only)
-⏳ GET /admin/blog/edit/:id - Edit post form (admin only)
-⏳ PUT /admin/blog/edit/:id - Update post (admin only)
-⏳ DELETE /admin/blog/:id - Delete post (admin only)
-⏳ POST /blog/:slug/view - Increment view count (public)
-
-Blog Views to create:
-⏳ src/views/blog/list.ejs - Blog listing with filters
-⏳ src/views/blog/post.ejs - Single post detail
-⏳ src/views/admin/blog/manage.ejs - Admin post management
-⏳ src/views/admin/blog/create.ejs - Create/edit post form
-⏳ src/views/blog/partials/post-card.ejs - Reusable post card component
-
-Blog Controllers:
-⏳ src/controllers/blog.controller.js
-  - getAllPosts() - list with filters, search, pagination
-  - getPostBySlug() - single post with related posts
-  - getPostsByCategory() - filtered by category
-  - createPost() - admin create new post
-  - updatePost() - admin update post
-  - deletePost() - admin delete post
-  - incrementViewCount() - track post views
-
-Blog Service:
-⏳ src/services/blog.service.js
-  - generateSlug(title) - creates unique slug
-  - calculateReadTime(content) - estimates reading time
-  - uploadFeaturedImage() - handles image uploads
-  - getRelatedPosts(postId, category, limit) - fetch related posts
-
-Environment Variables (Blog):
-⏳ BLOG_POSTS_PER_PAGE=10
-⏳ BLOG_EXCERPT_LENGTH=200
-⏳ BLOG_FEATURED_IMAGE_MAX_SIZE=2097152 (2MB)
-
-Dependencies to add:
-⏳ slugify (for URL-friendly slugs)
-⏳ tinymce or quill (rich text editor)
-⏳ marked or showdown (optional: if using Markdown instead of HTML)
-
-SEO Benefits:
-⏳ Fresh content for better Google ranking
-⏳ Long-tail keyword opportunities
-⏳ Backlink potential from running community
-⏳ Increased time on site
-⏳ Social media sharing potential
-⏳ Establishes HelloRun as running authority
-
-Blog Content Ideas (initial posts):
-⏳ "10 Tips for Your First Virtual 5K"
-⏳ "How to Track Your Running Progress"
-⏳ "Best Running Apps for Virtual Races"
-⏳ "Nutrition Guide for Long Distance Runners"
-⏳ "Choosing the Right Running Shoes"
-⏳ "Staying Motivated When Running Alone"
-⏳ "Common Running Injuries and Prevention"
-⏳ "Race Day Checklist for Virtual Events"
-
-Implementation Priority:
-1. ⏳ Create BlogPost model with Counter integration
-2. ⏳ Set up blog routes (public and admin)
-3. ⏳ Create blog.controller.js with CRUD operations
-4. ⏳ Build blog list page UI
-5. ⏳ Build single post page UI
-6. ⏳ Build admin create/edit form with rich text editor
-7. ⏳ Build admin post management page
-8. ⏳ Add image upload for featured images
-9. ⏳ Implement search and filters
-10. ⏳ Add pagination
-11. ⏳ Add view counter
-12. ⏳ Add related posts
-13. ⏳ SEO optimization (meta tags, structured data)
-14. ⏳ Social media sharing buttons
-15. ⏳ Write initial blog posts (5-10 articles)
-
-NOTES:
-- Blog can be written by admins initially
-- Future: Allow approved organizers to contribute guest posts
-- Consider adding comments system (Phase 2 - using Disqus or custom)
-- Consider RSS feed for blog subscribers
-- Analytics: Track most popular posts, categories, search terms
-- Mobile-first design for blog pages
-
-Feature 7C: Search & Filters ⏳ TODO
-⏳ Search events
-⏳ Filter by category
-⏳ Filter by date range
-⏳ Filter by location (if applicable)
-⏳ Search blog posts (added with blog feature)
-
-Feature 7D: Notifications ⏳ TODO
-⏳ In-app notifications
-⏳ Email preferences
-⏳ Notification history
-
----
-
-Phase 8: Google OAuth (Optional) 🔐 PENDING
-
-Goal: Users can sign up/login with Google.
-
-⏳ Google OAuth setup
-⏳ Passport.js integration
-⏳ Merge accounts (if email exists)
-⏳ Handle authProvider: "google"
-
----
-
-Phase 9: Testing & Optimization 🧪 PENDING
-
-⏳ Unit tests for services
-⏳ Integration tests for routes
-⏳ Performance optimization
-⏳ Security audit
-⏳ Mobile responsiveness testing
-⏳ Cross-browser testing
-⏳ Load testing
-⏳ Blog post search performance optimization
-
----
-
-Phase 10: Deployment 🚀 PENDING
-
-⏳ Set up production database
-⏳ Configure environment variables
-⏳ Set up SSL certificate
-⏳ Deploy to hosting platform (Render)
-⏳ Configure domain (hellorun.online)
-⏳ Set up monitoring
-⏳ Set up backups
-⏳ Launch blog with initial content
-⏳ Submit sitemap to Google (including blog posts)
-⏳ Launch!
+Estimated remaining: ~20 hours
 
 ---
 
@@ -840,8 +479,8 @@ PRE-DEPLOYMENT REQUIREMENTS:
   □ MongoDB Atlas cluster configured
   □ Production database created
   □ Database user with proper permissions
-  □ IP whitelist configured (or 0.0.0.0/0 for cloud hosting)
-  □ Indexes created (userId, email, etc.)
+  □ IP whitelist configured
+  □ Indexes created
   □ Counter collection initialized
 
 □ Email Service
@@ -849,992 +488,75 @@ PRE-DEPLOYMENT REQUIREMENTS:
   □ Domain verified (hellorun.online)
   □ DNS records configured (SPF, DKIM)
   □ Email templates tested
-  □ Rate limits understood
-
-□ File Storage
-  □ Decide: Local vs Cloud (S3/Cloudinary)
-  □ Configure upload service accordingly
-  □ Set max file sizes
-  □ Configure file type restrictions
-  □ Test file upload/download
 
 □ Security Hardening
-  □ Rate limiting implemented (express-rate-limit)
+  □ Rate limiting (express-rate-limit)
   □ Helmet.js for security headers
-  □ CORS configured properly
-  □ Input sanitization (express-validator)
-  □ XSS prevention
-  □ SQL injection prevention (N/A - NoSQL)
-  □ CSRF tokens on forms
+  □ CORS configured
+  □ Input sanitization
   □ Secure session cookies (secure: true, httpOnly: true)
-  □ Environment variables never committed
 
 □ SSL/HTTPS
-  □ SSL certificate obtained (Let's Encrypt or hosting provider)
-  □ HTTPS redirect configured
-  □ Mixed content warnings resolved
+  □ SSL certificate
+  □ HTTPS redirect
   □ Secure cookies enabled
 
 □ Domain & DNS
   □ Domain purchased (hellorun.online)
-  □ DNS A record points to hosting IP
+  □ DNS A record configured
   □ WWW subdomain configured
-  □ SSL certificate covers both www and non-www
-  □ Email DNS records (MX, SPF, DKIM)
 
 □ Analytics & Monitoring
-  □ Google Analytics 4 tracking verified
+  □ Google Analytics 4 verified
   □ Google Search Console configured
-  □ Sitemap submitted to Google
+  □ Sitemap submitted
   □ Error tracking (Sentry or similar)
-  □ Uptime monitoring (UptimeRobot or similar)
-  □ Performance monitoring
-  □ Log aggregation
-
-DEPLOYMENT STEPS:
-□ Code Preparation
-  □ All features tested locally
-  □ No console.log() in production
-  □ NODE_ENV checks in place
-  □ Static assets optimized (minified CSS/JS)
-  □ Images compressed
-  □ Git repository clean (no secrets)
-
-□ Hosting Platform (Render/Railway/Heroku)
-  □ Account created
-  □ New web service created
-  □ Repository connected (GitHub)
-  □ Build command configured (npm install)
-  □ Start command configured (node src/server.js)
-  □ Environment variables set
-  □ Auto-deploy enabled (optional)
-
-□ Database Connection
-  □ MongoDB Atlas connection string added
-  □ Database accessible from hosting IP
-  □ Test connection successful
-  □ Collections created
-  □ Counters initialized
-
-□ First Deployment
-  □ Push code to repository
-  □ Trigger deployment
-  □ Check build logs for errors
-  □ Verify server starts successfully
-  □ Test homepage loads
-
-POST-DEPLOYMENT VERIFICATION:
-□ Functionality Testing
-  □ Homepage loads correctly
-  □ Navigation works
-  □ Static assets load (CSS, JS, images)
-  □ Google Analytics tracking
-  □ User signup flow
-  □ Email verification received
-  □ Login successful
-  □ Session persistence
-  □ Password reset flow
-  □ Organizer application flow
-  □ File uploads work
-  □ Admin dashboard accessible
-  □ Logout works
-
-□ Security Testing
-  □ HTTPS enforced
-  □ Security headers present (check securityheaders.com)
-  □ XSS attempts blocked
-  □ CSRF protection working
-  □ Rate limiting active
-  □ Session cookies secure
-
-□ Performance Testing
-  □ Page load times acceptable (<3s)
-  □ Images optimized
-  □ CSS/JS minified
-  □ Database queries optimized
-  □ No memory leaks
-  □ Handles concurrent users
-
-□ SEO Verification
-  □ Sitemap accessible (/sitemap.xml)
-  □ Robots.txt accessible (/robots.txt)
-  □ Meta tags present
-  □ Google Search Console configured
-  □ Sitemap submitted to Google
-  □ Google Analytics tracking
-
-MONITORING & MAINTENANCE:
-□ Set up monitoring alerts
-  □ Server downtime alerts
-  □ Error rate threshold alerts
-  □ Database connection alerts
-  □ Disk space alerts
-
-□ Regular Maintenance
-  □ Weekly: Check error logs
-  □ Monthly: Review analytics
-  □ Monthly: Security updates (npm audit)
-  □ Quarterly: Performance review
-  □ Quarterly: User feedback review
-
-□ Backup Strategy
-  □ Daily database backups
-  □ Weekly full backup
-  □ Backup retention policy (30 days)
-  □ Test restore procedure
-
-ROLLBACK PLAN:
-□ Keep previous version available
-□ Document rollback steps
-□ Database migration rollback scripts
-□ Quick restore procedure documented
-
-LAUNCH CHECKLIST:
-□ All Phase 2 features complete
-□ All tests passing
-□ Performance benchmarks met
-□ Security audit complete
-□ Backup system tested
-□ Monitoring active
-□ Support email configured
-□ Launch announcement ready
-□ Social media posts scheduled
-□ Blog post about launch
-
----
-
-CURRENT STATUS: Phase 2 (Organiser Applications) - 30% Complete
-
-COMPLETED FEATURES (Phase 1 & 2A):
-✅ Complete user authentication system
-✅ Email verification with role-aware routing
-✅ Password reset with rate limiting (improved UI) ✅ UPDATED
-✅ Session management
-✅ Route protection middleware
-✅ User model with organizer fields
-✅ OrganiserApplication model
-✅ Upload service with file validation
-✅ Organizer routes skeleton
-✅ Basic organizer views (placeholders)
-✅ Both /signup and /register routes
-✅ verify-email-sent page
-✅ Role-based email verification flow
-✅ Google Analytics 4 integration on all pages
-✅ Reusable head.ejs layout
-✅ Improved password toggle functionality ✅ NEW
-✅ Compact forgot-password page (no scrolling) ✅ NEW
-✅ Navigation with Blog link ✅ NEW
-✅ Sitemap updated with blog categories ✅ NEW
-✅ forgot-password.css (external CSS file) ✅ NEW
-✅ Improved login.css (better password toggle styling) ✅ NEW
-✅ Fixed auth.js duplicate code ✅ NEW
-📝 Blog system planned and navigation ready (Phase 7B)
-
-
-TIMELINE TRACKING:
-
-Phase 0: ✅ Completed - Nov 2024
-Phase 1: ✅ Completed - Feb 3, 2025
-  - Feature 1A: ✅ Nov 2024
-  - Feature 1B: ✅ Dec 2024
-  - Feature 1C: ✅ Feb 3, 2025
-  - Feature 1D: ✅ Nov 2024
-  - Feature 1E: ✅ Dec 2024
-
-Phase 2: 🚧 Target - Mar 2025
-Phase 3: 🔜 Target - Apr 2025
-Phase 4: 🔜 Target - May 2025
-Phase 5: 🔜 Target - Jun 2025
-Phase 6: 🔜 Target - Jul 2025
-Phase 7: 🔜 Target - Aug 2025
-Phase 8: 🔜 Target - Sep 2025
+  □ Uptime monitoring
 
 ---
 
 ===========================================
-RECENT UPDATES (Newest First)
+BLOG SYSTEM PLAN (Phase 7B - Future)
 ===========================================
 
-Feb 5, 2026 - Session: Login Flow & Navigation Enhancement ✅ COMPLETED
-Goal: Fix login redirects, enhance navigation, and improve user experience post-login
+BlogPost Model:
+⏳ postId, slug, title, excerpt, content, featuredImage
+⏳ authorId, category, tags, status (draft/published/archived)
+⏳ publishedAt, views, readTime, SEO fields
 
-✅ Task 1: Updated Login Redirect Logic
-  - Modified auth.controller.js login flow
-  - Runners redirect to /events after login (temporary, Phase 6A dashboard pending)
-  - Approved organizers redirect to /events (temporary, Phase 6B dashboard pending)
-  - Pending organizers redirect to /organizer/application-status
-  - Incomplete organizers redirect to /organizer/complete-profile
-  - Added clear TODO comments for Phase 6A (runner dashboard) and 6B (organizer dashboard)
-  - Fixed authRoutes.js login handler with proper redirect logic
+Categories:
+⏳ Training, Nutrition, Gear, Motivation, Race Tips, Injury Prevention, General
 
-✅ Task 2: Added Login Success Indicators
-  - Implemented session flash messages (loginSuccess, userName)
-  - Added welcome banner on events page: "Welcome back, [FirstName]! 🎉"
-  - Success banner with green gradient and slideDown animation
-  - Flash message automatically cleared after display
-  - Updated page.controller.js to handle flash data
+Routes:
+⏳ GET /blog, GET /blog/:slug (public)
+⏳ GET/POST /admin/blog/* (admin CRUD)
 
-✅ Task 3: Updated Navigation Based on Login State
-  - Enhanced auth.middleware.js with setUserContext middleware
-  - Middleware populates res.locals.user for all routes
-  - Sets res.locals.isAuthenticated, isOrganizer, isAdmin, isApprovedOrganizer
-  - Updated nav.ejs with conditional rendering
-  - Shows "Hi, [FirstName]!" greeting when logged in
-  - Added logout button (POST form for security)
-  - Hides Login/Signup buttons when authenticated
-  - Role-based navigation links (Admin, Dashboard, Complete Profile, My Events)
-  - Added user menu styles to style.css
-  - Mobile-responsive user menu (stacks vertically)
-  - Fixed null reference error with && locals.user safety check
-  - Changed logout form action to match new route prefix
-
-✅ Task 4: Created Logout Functionality
-  - Implemented POST /logout route in authRoutes.js
-  - Destroys session completely
-  - Clears session cookie (connect.sid)
-  - Redirects to home page after logout
-  - Error handling for failed logout
-  - Secure logout (POST method prevents CSRF)
-
-✅ Task 5: Added Auth Status to Events Page
-  - Conditional hero content based on authentication state
-  - Role-based CTAs:
-    * Approved organizers: "Create Event" button (Phase 3 TODO with alert)
-    * Pending organizers: "Complete Profile" button
-    * Runners: "Browse Events" button
-    * Logged-out users: "Get Started" + "Browse Events" buttons
-  - Auth prompt banner for logged-out users (orange border, info icon)
-  - Personalized "No Events" message based on user role
-  - Created comprehensive events.css with:
-    * Login success banner (green gradient, animation)
-    * Events hero section (blue gradient)
-    * Hero actions (flex layout, responsive buttons)
-    * Auth prompt styling (orange accent)
-    * No events message (dashed border placeholder)
-    * Mobile-responsive breakpoints (768px, 480px)
-  - All text encourages appropriate next actions per role
-
-✅ Route Prefix Fix: Cleaner URLs
-  - Changed auth routes from /auth/* to /* in server.js
-  - Routes now work as: /login, /signup, /logout (instead of /auth/login, etc.)
-  - Updated nav.ejs logout form action accordingly
-  - Cleaner, more intuitive URL structure
-
-Files Modified (Feb 5, 2026):
-✅ src/controllers/auth.controller.js - Login redirect logic with role-based routing
-✅ src/controllers/page.controller.js - Flash message handling for login success
-✅ src/middleware/auth.middleware.js - setUserContext middleware implementation
-✅ src/routes/authRoutes.js - Login handler with complete redirect logic, logout route
-✅ src/routes/page.routes.js - Uses page.controller for events route
-✅ src/views/layouts/nav.ejs - Conditional navigation, user menu, logout form
-✅ src/views/pages/events.ejs - Auth-based hero content, welcome banner, role CTAs
-✅ src/public/css/style.css - User menu styles (greeting, logout button, mobile)
-✅ src/public/css/events.css - Complete events page styling (NEW FILE)
-✅ src/server.js - Route prefix configuration (removed /auth prefix)
-✅ dir.txt - Updated with events.css (NEW)
-✅ wireframe.txt - Session documentation (THIS UPDATE)
-
-Option A Implementation Summary: ✅ COMPLETED
-Decision: Quick fix approach - redirect to /events temporarily
-✅ No 404 errors on login
-✅ Clean user experience without dashboards
-✅ Clear TODO markers for Phase 6 implementation
-✅ All login flows working correctly
-✅ Session management functional
-✅ Navigation adapts to user state
-✅ Logout functionality complete
-✅ Mobile-responsive design
-✅ Accessibility considerations (ARIA, keyboard nav)
-
-Login Flow After This Session:
-✅ Runner (verified) → /events with welcome banner
-✅ Organizer (not completed profile) → /organizer/complete-profile
-✅ Organizer (pending application) → /organizer/application-status
-✅ Organizer (approved) → /events with "Create Event" CTA
-✅ All users see appropriate navigation based on role
-✅ Logout works and clears session properly
-
-Testing Checklist (Task 6 - Manual Testing):
-□ Runner signup → verify → login → redirects to /events ✅
-□ Login shows welcome banner with user's name
-□ Navigation shows "Hi, [Name]!" and Logout button
-□ Organizer (incomplete) redirects to complete-profile
-□ Organizer (pending) redirects to application-status
-□ Organizer (approved) sees "Create Event" option on /events
-□ Logout clears session and redirects to home
-□ Protected routes redirect to /login when not authenticated
-□ Events page shows correct content for logged-in users
-□ Events page shows correct content for logged-out users
-□ Mobile navigation works correctly
-□ Logout button works on mobile
-□ All redirects work without errors
-□ Session persists across page loads
-
-Known Issues / Future Improvements:
-- Phase 6A: Need to build /dashboard for runners
-- Phase 6B: Need to build /organiser/dashboard for approved organizers
-- "Create Event" button shows alert (Phase 3 not implemented yet)
-- Dashboards will make login flow more complete
-- Consider adding user avatar in navigation
-- Consider adding dropdown menu for user actions
-- May need notification badge for pending actions
-
-CURRENT STATUS: Phase 1 Login Flow - ✅ 100% Complete (Feb 5, 2026)
-Phase 2 (Organiser Applications) - 30% Complete
-
-NEXT IMMEDIATE STEPS (Phase 2 Continuation):
-1. Build complete-profile.ejs full form UI
-2. Implement drag-and-drop file upload
-3. Add POST /organizer/complete-profile handler
-4. Add email templates (submitted, approved, rejected)
-5. Build admin dashboard for reviewing applications
-6. Test end-to-end organizer application flow
-7. Move to Phase 3 (Event Creation) after Phase 2 complete
-
-Technical Stack Confirmed Working:
-✅ Express.js with EJS templating
-✅ MongoDB with Mongoose ODM
-✅ express-session with connect-mongo
-✅ bcrypt password hashing
-✅ Resend email service
-✅ Middleware chain (setUserContext → routes)
-✅ Session flash messages
-✅ Role-based routing
-✅ Responsive CSS with mobile-first approach
-✅ Lucide icons integration
-
-Session Duration: ~2 hours
-Tasks Completed: 5/8 (Tasks 1-5)
-Code Quality: Production-ready
-Documentation: Complete
-
----
-
-Feb 14, 2026 - Session: Phase 2B & 2C - Organizer Applications (Forms & Admin Dashboard)
-Goal: Build complete organizer application form, application status page, and admin review system
-
-✅ TASK 1: Complete Profile Form UI - complete-profile.ejs
-  - 3-step form wizard (Business Info → Documents → Review & Confirm)
-  - Step 1: Business Information
-    * Business Name (required, min 2 chars)
-    * Business Type (individual, company, ngo, sports_club)
-    * Contact Phone (required, min 7 digits)
-    * Business Registration Number (optional)
-    * Business Address (optional, max 500 chars)
-    * Progress indicator showing Step 1 of 3
-  - Step 2: Document Upload
-    * ID Proof upload (PDF, JPG, PNG only, max 5MB)
-    * Business Proof upload (PDF, JPG, PNG only, max 5MB)
-    * Drag-and-drop file zones with visual feedback
-    * File preview thumbnails
-    * Upload requirements text
-    * Error containers for file validation
-  - Step 3: Review & Confirm
-    * Additional Information (optional, max 500 chars)
-    * Character counter (0/500)
-    * Terms & Conditions checkbox
-    * Submit Application button with loading state
-  - Left Panel: Header with features list
-    - Feature icons using Lucide
-    - Review timeline information (3 business days)
-    - Call to action messaging
-  - Form Navigation
-    * Previous/Next buttons on each step
-    * Disabled Previous button on step 1
-    * Active step highlighting in progress indicator
-  - Success Message
-    * Hidden by default, shown on successful submission
-    * Green badge with check icon
-    * "Application submitted successfully! Redirecting..."
-
-✅ TASK 2: Complete Profile Styling - complete-profile.css
-  - Root color variables (Orange #FA9A4B, Blue #8FD5EC, Beige #F2EAD3)
-  - Spacing and shadow system
-  - Layout
-    * Compact auth page with card design
-    * Two-column layout (left: header, right: form)
-    * Responsive: stacks on mobile
-  - Form Sections
-    * Tab-like sections with active/inactive states
-    * Smooth transitions between steps
-    * Animated section entry (slideInUp)
-  - Step Navigation
-    * Visual progress indicator (circles 1, 2, 3)
-    * Active step highlighted in orange
-    * Connecting lines between steps
-    * Responsive: horizontal on desktop, stacked on mobile
-  - File Upload Zones
-    * Dashed border style
-    * Hover effects (background color change)
-    * Upload icon (cloud with arrow up)
-    * Text prompts ("Drag and drop file here")
-    * File requirements display
-    * Drag-over state (blue highlight)
-  - Form Inputs
-    * Label positioning with floating animation
-    * Text, select, textarea, file inputs
-    * Error message containers (red text, red left border)
-    * Form hints with info icons
-    * Required field indicators (red asterisk)
-    * Character counter for textarea
-  - Buttons
-    * Primary (orange) and Secondary (blue) styles
-    * Hover effects (slightly darker, lift animation)
-    * Loading state with spinner animation
-    * Disabled state (opacity 0.5)
-  - Mobile Responsive
-    * Breakpoints: 768px (tablet), 480px (mobile)
-    * Stacked layout on mobile
-    * Full-width form inputs
-    * Adjusted spacing and padding
-    * Touch-friendly button sizes
-  - Animations
-    * Form section fade-in
-    * Button hover lift (transform: translateY(-2px))
-    * Loading spinner spin animation (360deg)
-    * Error shake animation on validation fail
-  - Color Scheme
-    * Primary Orange: #FA9A4B (CTA buttons, accents)
-    * Primary Blue: #8FD5EC (info, secondary actions)
-    * Neutral Beige: #F2EAD3 (background accents)
-    * Danger Red: #f56565 (error states)
-    * Success Green: #48bb78 (success messages)
-
-✅ TASK 3: Complete Profile Form Logic - complete-profile.js
-  - Class: CompleteProfileForm
-    * Constructor initializes form
-    * Manages current step state
-    * Handles all user interactions
-  - Methods
-    * init() - Setup event listeners, initialize form
-    * setupEventListeners() - Button clicks, form inputs
-    * goToStep(stepNumber) - Navigate between steps
-    * validateStep(stepNumber) - Client-side validation
-    * showError(fieldId, message) - Display field errors
-    * clearError(fieldId) - Clear error messages
-    * handleFileUpload(event, fieldId) - Handle file uploads
-    * showFilePreview(file, fieldId) - Display uploaded file preview
-    * validateFiles(files) - Check file types and sizes
-    * validateEmail(email) - Check email format
-    * validatePhone(phone) - Check phone format
-    * handleSubmit(event) - Submit form via AJAX
-    * showLoadingState() - Disable form during submission
-    * showSuccessMessage() - Display success message
-  - Drag-and-Drop
-    * dragenter, dragover, dragleave events
-    * Add/remove visual feedback
-    * Drop event handler for files
-    * File validation on drop
-    * Multiple file rejection
-  - Form Validation (Client-side)
-    * Step 1: Business Name (2+ chars), Business Type (required), Phone (valid format), Registration number (optional), Address (max 500 chars)
-    * Step 2: Both files required, valid types, under 5MB each
-    * Step 3: Agree to terms is required
-    * Real-time error display
-    * Clear error on field change
-  - File Preview
-    * Show file name, size, icon
-    * For images: show thumbnail preview
-    * For PDFs: show file icon
-    * Remove file button
-  - AJAX Submission
-    * FormData API for file upload
-    * POST to /organizer/complete-profile
-    * Handle response JSON
-    * Show success message with 2s delay
-    * Redirect to /organizer/application-status
-    * Display error messages from server
-    * Re-enable form on error
-  - Accessibility
-    * ARIA labels on form inputs
-    * Error announcements for screen readers
-    * Keyboard navigation support
-    * Focus management
-    * Semantic HTML structure
-
-✅ TASK 4: Application Status Page - application-status.ejs
-  - Header Section
-    * Page title: "Your Organizer Application"
-    * Application ID display (clickable to copy)
-    * Status icon based on current status (clock, eye, check, error)
-    * Beige background box for icon
-  - Status Card
-    * Prominent badge showing status (Pending Review, Under Review, Approved, Rejected)
-    * Color-coded borders (orange for pending, green for approved, red for rejected)
-    * Status message (different messaging per status)
-    * For pending/under review: "Thank you, review in progress..."
-    * For approved: "Congratulations! You're now verified..."
-    * For rejected: "Unfortunately, your application did not meet requirements..."
-  - Timeline Section
-    * Visual timeline with 3 stages: Submitted → Under Review → Decision
-    * Completed steps show check icon in green circle
-    * Active step shows loading spinner in orange circle
-    * Future steps show gray dots
-    * Vertical line connecting steps (green when completed, gray when pending)
-    * Each stage shows:
-      - Title (Application Submitted, Under Review, Review Decision)
-      - Status message
-      - Date submitted (for completed)
-      - Estimated date (for pending)
-      - X days ago notation
-  - Application Details Section
-    * Card layout with gridded details
-    * Details displayed:
-      - Business Name
-      - Business Type (formatted: "Individual/Solo Organizer", etc.)
-      - Contact Phone (clickable link)
-      - Business Registration Number
-      - Business Address (full width)
-      - Additional Information (full width)
-      - Submission Date
-      - Application Status (with badge)
-    * Each detail has gray background and left border
-    * Labels in small caps
-  - Rejection Section (conditional, only if rejected)
-    * Red border and red background tint
-    * Alert icon
-    * Heading: "Rejection Reason"
-    * Reason text in bordered box
-    * Clear explanation of why rejected
-  - Action Buttons (context-aware)
-    * If Approved:
-      - "Create Your First Event" (primary, orange)
-      - "View My Events" (secondary, blue)
-    * If Rejected:
-      - "Reapply" (primary, orange)
-      - "Back to Home" (secondary, blue)
-    * If Pending/Under Review:
-      - "Back to Home" (secondary, blue)
-      - "Refresh Status" (ghost, no fill)
-  - Info Box
-    * Beige background
-    * Info icon
-    * Text: "Need help? Contact our support team" (with email link)
-    * Helpful support guidance
-  - Mobile Responsive
-    * Stacked layout on mobile
-    * Full-width buttons
-    * Adjusted spacing
-    * Timeline still vertical on mobile
-    * Details grid single column on mobile
-
-✅ TASK 5: Application Status Styling - application-status.css
-  - Root Variables
-    * Primary Orange: #FA9A4B
-    * Primary Blue: #8FD5EC
-    * Neutral Beige: #F2EAD3
-    * Neutral Dark: #2d3748
-    * Neutral Light: #f7fafc
-    * Success Green: #48bb78
-    * Error Red: #f56565
-    * Warning Orange: #ed8936
-  - Layout
-    * Full-height page with gradient background (blue to light)
-    * Max-width 900px centered container
-    * Flex column layout with gaps
-  - Status Card Variants
-    * Pending/Under Review: Orange left border, orange tinted background
-    * Approved: Green left border, green tinted background
-    * Rejected: Red left border, red tinted background
-  - Status Badge
-    * Inline-block with padding
-    * Rounded corners (20px)
-    * Text uppercase, bold, smaller font
-    * Color-matched borders (orange, green, red)
-    * 15% opacity backgrounds
-  - Timeline
-    * Flex column layout
-    * Vertical connecting line (2px)
-    * Timeline items with markers
-    * Completed: Green circle with check icon
-    * Active: Orange circle with loading spinner
-    * Future: Gray dot
-  - Progress Steps
-    * Section with title and border separator
-    * Details grid (2 columns on desktop, 1 on mobile)
-    * Each detail has label, value, background
-    * Full-width items for addresses/notes
-  - Animations
-    * SlideInUp animation on page load
-    * Smooth transitions on all interactive elements
-    * Loading spinner animation (continuous rotation)
-    * Button hover lift effect
-    * Success message slide-in
-  - Mobile Responsive
-    * Breakpoints: 768px (tablet), 480px (mobile)
-    * Stacked layout
-    * Full-width buttons
-    * Single column details grid
-    * Adjusted padding and margins
-    * Readable font sizes on small screens
-
-✅ TASK 6: Application Status Scripts - application-status.js
-  - Class: ApplicationStatusPage
-    * Constructor initializes page
-    * Auto-refresh on pending status
-  - Methods
-    * init() - Setup page
-    * initializeLucideIcons() - Load icons
-    * setupEventListeners() - Click handlers
-    * startAutoRefresh() - Auto-refresh every 5 minutes if pending
-    * copyApplicationId() - Copy ID to clipboard
-    * showCopyNotification() - Show "copied!" message
-  - Auto-Refresh Feature
-    * Detects if status is "pending" or "under review"
-    * Auto-refreshes page every 5 minutes
-    * User can manually refresh button
-    * Helps users stay updated on application progress
-  - Copy to Clipboard
-    * Click application ID to copy
-    * Show temporary notification "Application ID copied!"
-    * Use Clipboard API
-    * Fallback if API unavailable
-  - Lucide Icons
-    * Initialize on page load
-    * Status icons (clock, eye, check, alert)
-    * Timeline icons (check, X, dots)
-    * Action button icons (plus, list, refresh, home)
-    * Info box icon (info)
-
-✅ TASK 7: Backend Route Handlers - organizer.routes.js (Updated)
-  - GET /organizer/complete-profile
-    * Authenticate user (requireAuth middleware)
-    * Verify user is organizer role
-    * Check for existing approved application (redirect if already approved)
-    * Render complete-profile.ejs view
-    * Pass ORGANIZER_REVIEW_TIME_DAYS to view
-    * Handle 404 and 403 errors
-  - POST /organizer/complete-profile
-    * Authentication check (requireAuth)
-    * User exists check
-    * Role verification (organizer only)
-    * Existing application check (prevent duplicates)
-    * Request body validation
-      - businessName (min 2 chars)
-      - businessType (enum validation)
-      - contactPhone (format validation)
-      - businessAddress (max 500 chars)
-      - additionalInfo (max 500 chars)
-      - agreeTerms (required checkbox)
-    * File upload validation
-      - Both files required
-      - Type validation (PDF, JPG, PNG only)
-      - Size validation (max 5MB)
-    * Create OrganiserApplication document
-      - Auto-generate applicationId
-      - Save all fields
-      - Set status to "pending"
-      - Record submittedAt timestamp
-    * Update User document
-      - Set organizerApplicationId reference
-      - Set organizerStatus to "pending"
-    * Send email
-      - sendApplicationSubmittedEmail with applicationId
-      - Notify user of submission
-    * JSON response
-      - success: true
-      - message: "Application submitted successfully!"
-      - applicationId: for user reference
-      - redirectUrl: /organizer/application-status
-    * Error handling
-      - Validation errors in JSON
-      - File errors with cleanup
-      - Database errors with file cleanup
-      - Email errors (don't fail submission)
-  - GET /organizer/application-status
-    * Authenticate user
-    * Fetch user's application
-    * If no application: redirect to complete-profile
-    * Calculate days since submission
-    * Calculate estimated review completion date
-    * Render application-status.ejs view
-    * Pass all data: application, dates, status
-    * Handle 404 errors
-  - Helper Functions
-    * isValidPhone() - Phone format validation (at least 7 digits)
-    * validateFiles() - Check type and size of uploaded files
-    * Error handling middleware
-    * Async/await with try-catch blocks
-    * Comprehensive logging
-
-✅ TASK 8: Database & Models (Already Complete)
-  - OrganiserApplication Model: ✅ Complete
-    * applicationId (auto-increment APP000001)
-    * userId (reference)
-    * businessName
-    * businessType (enum)
-    * contactPhone
-    * businessRegistrationNumber
-    * businessAddress
-    * idProofUrl
-    * businessProofUrl
-    * additionalInfo
-    * status: pending, approved, rejected
-    * rejectionReason
-    * reviewedBy (admin)
-    * reviewedAt
-    * submittedAt
-    * createdAt, updatedAt
-    * Indexes on userId, status, createdAt
-  - User Model Updates: ✅ Complete
-    * organizerApplicationId reference
-    * organizerStatus field
-    * Helper methods:
-      - canApplyAsOrganizer()
-      - hasActiveApplication()
-      - isApprovedOrganizer()
-      - canCreateEvents()
-  - Counter Model: ✅ Complete
-    * _id: counterId (string)
-    * sequence: auto-incrementing number
-
-✅ TASK 9: Email Service Updates
-  - Email Templates Implemented
-    * sendApplicationSubmittedEmail()
-      - To: applicant email
-      - Subject: "Your Organizer Application Submitted - helloRun"
-      - Body: Confirms submission, shows applicationId, review timeline
-      - CTA: Link to view application status
-    * Ready for admin approval/rejection emails (Phase 2C)
-      - sendApplicationApprovedEmail()
-      - sendApplicationRejectedEmail()
-      - sendApplicationUnderReviewEmail() (optional)
-  - All templates use professional design
-  - Include application tracking ID
-  - Clear next steps messaging
-
-✅ TASK 10: Upload Service (Already Complete)
-  - Multer configuration
-    * uploadOrganizerDocs middleware
-    * Field names: idProof, businessProof
-    * Destination: /public/uploads/organizer-docs/
-    * File type whitelist: .pdf, .jpg, .jpeg, .png
-    * Size limit: 5MB
-  - File validation
-    * validateFiles() -checks MIME types
-    * File size enforcement
-    * Filename sanitization
-    * Secure random filename generation
-  - File management
-    * deleteFiles() - cleanup on error
-    * Storage optimization
-
-✓ TASK 11: Organizer Routes Integration
-  - Routes registered in server.js
-    * app.use('/organizer', require('./routes/organizer.routes.js'))
-  - All routes protected with requireAuth middleware
-  - Proper error handling and redirects
-  - Session data integration
-  - Role-based access control
-
-✓ TASK 12: Data Flow Testing (Prepared for testing)
-  - Form submission → validation → file upload → database save → email send → redirect
-  - Error handling at each step
-  - User feedback on success/failure
-  - Proper state management
-
-FILES CREATED/UPDATED (Feb 14, 2026):
-
-NEW FILES:
-✅ src/views/organizer/complete-profile.ejs (full form UI with 3 steps)
-✅ src/public/css/complete-profile.css (professional styling, 600+ lines)
-✅ src/public/js/complete-profile.js (form validation, file handling, AJAX)
-✅ src/views/organizer/application-status.ejs (status page with timeline)
-✅ src/public/css/application-status.css (status page styling, 800+ lines)
-✅ src/public/js/application-status.js (auto-refresh, copy ID)
-
-UPDATED FILES:
-✅ src/routes/organizer.routes.js (complete backend handlers for both features)
-✅ src/models/OrganiserApplication.js (if not already complete)
-✅ src/services/email.service.js (add email templates if not already there)
-
-PARTIALLY IMPLEMENTED (Ready for Phase 2C):
-⏳ src/views/admin/applications-list.ejs (admin dashboard - PHASE 2C)
-⏳ src/views/admin/application-details.ejs (admin review page - PHASE 2C)
-⏳ src/routes/admin.routes.js (admin review handlers - PHASE 2C)
-
-FILES STRUCTURE (Updated):
-src/
-  ├── models/
-  │   ├── User.js ✅
-  │   ├── Counter.js ✅
-  │   ├── OrganiserApplication.js ✅
-  │   └── Event.js
-  ├── services/
-  │   ├── counter.service.js ✅
-  │   ├── email.service.js ✅ (needs app submitted template)
-  │   └── upload.service.js ✅
-  ├── routes/
-  │   ├── organizer.routes.js ✅ (UPDATED with full handlers)
-  │   └── admin.routes.js (PENDING)
-  ├── middleware/
-  │   └── auth.middleware.js ✅
-  ├── views/
-  │   ├── organizer/
-  │   │   ├── complete-profile.ejs ✅ (NEW)
-  │   │   └── application-status.ejs ✅
-  │   └── admin/
-  │       ├── applications-list.ejs ⏳ (PENDING)
-  │       └── application-details.ejs ⏳ (PENDING)
-  └── public/
-      ├── css/
-      │   ├── complete-profile.css ✅ (NEW)
-      │   └── application-status.css ✅ (NEW)
-      └── js/
-          ├── complete-profile.js ✅ (NEW)
-          └── application-status.js ✅ (NEW)
-
-PHASE 2B (COMPLETE PROFILE) - ✅ 100% COMPLETE
-✅ Form UI with 3-step wizard
-✅ Professional styling (600+ lines CSS)
-✅ Client-side validation and file handling
-✅ Drag-and-drop file upload
-✅ File preview before submission
-✅ AJAX form submission
-✅ Backend route handlers
-✅ Database integration
-✅ Email notifications
-✅ Error handling with file cleanup
-✅ Success messages and redirects
-✅ Mobile responsive design
-✅ Accessibility features
-✅ Loading states and animations
-
-PHASE 2B FEATURES IMPLEMENTED:
-✅ 3-step form wizard (Business Info → Documents → Review)
-✅ Business information validation (name, type, phone, address)
-✅ File upload with drag-and-drop
-✅ File type validation (PDF, JPG, PNG)
-✅ File size validation (max 5MB)
-✅ File preview functionality
-✅ Terms & conditions agreement
-✅ Form state management
-✅ Error display (per-field error messages)
-✅ Success message on submission
-✅ Auto-redirect to status page
-✅ Mobile responsive with all features working
-✅ Accessibility support (ARIA, keyboard nav)
-✅ Loading spinner during submission
-✅ Form re-enable on error
-
-PHASE 2B APPLICATION STATUS - ✅ 100% COMPLETE
-✅ Display application status (Pending, Under Review, Approved, Rejected)
-✅ Show submission date and timeline
-✅ Show estimated review completion
-✅ Display all application details
-✅ Show rejection reason (if rejected)
-✅ Context-aware action buttons
-✅ Auto-refresh every 5 minutes (if pending)
-✅ Copy application ID to clipboard
-✅ Professional timeline visualization
-✅ Color-coded status badges
-✅ Mobile responsive layout
-✅ Lucide icon integration
-✅ Success, warning, and error states
-✅ Accessibility features
-
-TESTING CHECKLIST (Feb 14, 2026):
-□ Form validation working (all fields)
-□ File upload via drag-and-drop
-□ File type validation (accept PDF, JPG, PNG only)
-□ File size validation (reject >5MB)
-□ File preview showing correctly
-□ Form submission via AJAX
-□ Success message display
-□ Redirect to status page after submission
-□ Status page loads correctly
-□ Auto-refresh every 5 minutes (if pending)
-□ Copy application ID works
-□ Rejection reason displays (if applicable)
-□ Action buttons show correct options per status
-□ Mobile responsive layout
-□ All error messages displaying
-□ Form re-enables on error
-□ Styles load correctly (no CSS issues)
-□ Lucide icons render properly
-
-NEXT PHASE (Phase 2C - Admin Dashboard):
-⏳ Admin applications list page
-⏳ Admin application detail page with document preview
-⏳ Approve/reject buttons with modal
-⏳ Rejection reason form
-⏳ Send approval/rejection emails
-⏳ Admin routes and middleware
-⏳ Admin dashboard styling
-⏳ Filter/search applications
-⏳ Application count badges
-⏳ Document viewer/downloader
-
-SUMMARY - PHASE 2B (Complete Form + Status) ✅ COMPLETE:
-- Total lines of code: ~2000+
-- New files created: 6
-- Files updated: 1
-- CSS lines: 1400+
-- JavaScript lines: 500+
-- EJS templates: 2
-- Forms working end-to-end: YES
-- Database integration: YES
-- Email notifications: YES
-- Mobile responsive: YES
-- Accessibility ready: YES
-- Production ready: YES (minus admin review)
-
-ESTIMATED TIME TO COMPLETE PHASE 2C: 2-3 hours
-- Admin list: 1 hour (similar to complete-profile)
-- Admin detail + review: 1 hour
-- Email templates: 30 minutes
-- Testing: 1 hour
-
-CURRENT PROJECT STATUS (Feb 14, 2026):
-Phase 0: ✅ Complete (Nov 2024)
-Phase 1: ✅ Complete (Feb 2025)
-Phase 2A: ✅ Complete (Dec 2024)
-Phase 2B: ✅ COMPLETE (Feb 14, 2026) ← NEW
-Phase 2C: ⏳ Ready to start (Admin Dashboard - 3hrs)
-Phase 3: 🔜 Event Creation (after Phase 2C complete)
-Phase 4-10: 🔜 Future phases
+Dependencies to add:
+⏳ slugify, rich text editor (TinyMCE or Quill)
 
 ---
 
 ===========================================
-CHANGELOG - February 17, 2026
+LEADERBOARD PLAN (Phase 5 - Future)
 ===========================================
 
-🧹 CLEANUP: AUTHENTICATION ROUTES CONSOLIDATION
+Data Source: Approved submissions from Phase 5
 
-✅ REMOVED FILES (1):
-  - src/routes/auth.routes.js (incomplete, causing duplication)
-
-✅ CONSOLIDATED FILES (1):
-  - src/routes/authRoutes.js (now contains ALL authentication routes)
-
-CONSOLIDATION DETAILS:
-  ✅ Deleted duplicate auth.routes.js file
-  ✅ All routes now in authRoutes.js with clear section headers
-  ✅ No code changes needed in server.js
-  ✅ All references already correct
-  ✅ Single source of truth for authentication
-
-FILES AFFECTED: 1 (auth.routes.js - DELETED)
-STATUS: ✅ COMPLETE
-
-ROUTING STRUCTURE (Updated):
-src/routes/
-├── authRoutes.js           ✅ CONSOLIDATED (ALL AUTH)
-├── organizer.routes.js     ✅ (Organizer forms & status - Phase 2B)
-├── event.routes.js         ⏳ (Phase 3)
-├── page.routes.js          ✅ (Static pages)
-└── admin.routes.js         ⏳ (Phase 2C - applications admin)
-
-RECOMMENDED NEXT STEP:
-Consider consolidating organiser.routes.js and organizer.routes.js
-(similar filename convention issue to fix later)
+Features:
+⏳ Top runners by total distance
+⏳ Fastest times per event
+⏳ Event-specific rankings
+⏳ Filter by distance category (5K, 10K, 21K, 42K)
+⏳ Filter by event
+⏳ Filter by time period (weekly, monthly, all-time)
+⏳ Public page (visible to all, no login required)
+✅ /leaderboard route + placeholder page (Feb 19, 2026)
+✅ Nav link added (Feb 19, 2026)
 
 ---
 
 ===========================================
-EXISTING CHANGELOG - February 14, 2026
+DETAILED CHANGELOGS → See dir.txt
 ===========================================
-
-[KEEP ALL EXISTING CONTENT BELOW THIS LINE]
-...existing code...
+All session-by-session changelogs are maintained in dir.txt.
+This file (wireframe.txt) focuses on phase plans, architecture, and status tracking.

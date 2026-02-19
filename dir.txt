@@ -7,7 +7,7 @@ helloRun/
       auth.controller.js
       page.controller.js
     middleware/
-      auth.middleware.js
+      auth.middleware.js             ← REWRITTEN (Feb 19, 2026) - Consolidated: populateAuthLocals, redirectIfAuth, requireAuth, requireAdmin, requireOrganizer, requireApprovedOrganizer
       role.middleware.js
     models/
       User.js
@@ -19,11 +19,11 @@ helloRun/
       OrganiserApplication.js
       Submission.js
     routes/
-      authRoutes.js                 ← CONSOLIDATED (Feb 17, 2026) - ALL AUTH ROUTES
+      authRoutes.js                 ← UPDATED (Feb 19, 2026) - Added redirectIfAuth middleware on login/signup routes
       event.routes.js
       organiser.routes.js
       organizer.routes.js           ← Event creation & organizer profile (Feb 14, 2026)
-      page.routes.js                ← UPDATED (Feb 17, 2026) - Added /, /events, /blog, /about
+      pageRoutes.js                 ← UPDATED (Feb 19, 2026) - Added /leaderboard route
       admin.routes.js               ← PENDING Phase 2C
     services/
       upload.service.js             ← Updated (Feb 5, 2026)
@@ -39,7 +39,7 @@ helloRun/
     views/
       layouts/
         head.ejs                     ← Reusable head with GA (Feb 5, 2026)
-        nav.ejs                      ← Updated with user menu (Feb 5, 2026)
+        nav.ejs                      ← UPDATED (Feb 19, 2026) - Added Blog + Leaderboard links, role-based nav, auth-aware Login/Logout toggle
         footer.ejs
         main.ejs
       pages/
@@ -47,6 +47,7 @@ helloRun/
         events.ejs                   ← Updated with auth-based content (Feb 5, 2026)
         blog.ejs                     ← NEW (Feb 17, 2026) - Placeholder
         about.ejs                    ← NEW (Feb 17, 2026) - Placeholder
+        leaderboard.ejs              ← NEW (Feb 19, 2026) - Placeholder (Phase 5 data)
         index.ejs
       auth/
         login.ejs
@@ -70,7 +71,7 @@ helloRun/
       error.ejs
     public/
       css/
-        style.css                    ← Updated with nav menu styles (Feb 5, 2026)
+        style.css                    ← UPDATED (Feb 19, 2026) - Nav user menu styles, auth buttons, mobile responsive nav, logout button
         helloRun.css                 ← UPDATED (Feb 19, 2026) - Landing page styles, button contrast, mobile responsive
         login.css
         signup.css
@@ -108,7 +109,7 @@ helloRun/
   README.md
   dir.txt                            ← UPDATED (Feb 19, 2026)
   dns.txt
-  wireframe.txt                      ← UPDATED (Feb 17, 2026)
+  wireframe.txt                      ← UPDATED (Feb 19, 2026)
   sitemap.md
   organiser_flow.txt
   user-role-system.txt
@@ -119,7 +120,79 @@ helloRun/
   .git/
 
 ================================================================================
-CHANGELOG - February 19, 2026 (LATEST)
+CHANGELOG - February 19, 2026 (Session 3 - LATEST)
+================================================================================
+
+🏆 NAV UPDATE: BLOG + LEADERBOARD LINKS
+
+✏️ UPDATED FILES (2):
+  1. src/views/layouts/nav.ejs
+     - Added Blog link (/blog) in public nav links
+     - Added Leaderboard link (/leaderboard) in public nav links
+     - Both visible to all users (logged in and logged out)
+
+  2. src/routes/pageRoutes.js
+     - Added GET /leaderboard route (placeholder page)
+
+✨ NEW FILES (1):
+  1. src/views/pages/leaderboard.ejs
+     - Placeholder page with "Coming soon" message
+     - Will be populated with real data in Phase 5 (Submissions & Results)
+
+================================================================================
+CHANGELOG - February 19, 2026 (Session 2)
+================================================================================
+
+🔧 AUTH MIDDLEWARE REWRITE & NAV FIX
+
+✏️ UPDATED FILES (4):
+  1. src/middleware/auth.middleware.js (FULL REWRITE)
+     - Removed old duplicate exports.setUserContext / exports.requireAuth pattern
+     - Single `const User = require(...)` at top of file (fixed User is not defined)
+     - Consolidated into clean named functions:
+       • populateAuthLocals - Sets res.locals for nav (isAuthenticated, isAdmin, isOrganizer, etc.)
+       • redirectIfAuth - Redirects logged-in users away from login/signup to their dashboard
+       • requireAuth - Protects routes requiring login
+       • requireAdmin - Protects admin-only routes
+       • requireOrganizer - Protects organiser-only routes
+       • requireApprovedOrganizer - Protects approved-organiser-only routes
+     - Single module.exports at bottom (no more exports.xxx conflicts)
+
+  2. src/routes/authRoutes.js
+     - Added `redirectIfAuth` middleware to GET/POST login, signup, register routes
+     - Logged-in users redirected to role-based dashboard instead of seeing login page
+     - Added `handleRegistration` function definition before router.post references
+
+  3. src/views/layouts/nav.ejs
+     - Role-based dashboard links (Admin → /admin/dashboard, Organizer → /organizer/dashboard, Runner → /runner/dashboard)
+     - Pending organizer → /organizer/application-status
+     - Auth-aware: shows Login/Sign Up when logged out, Hi [Name] + Logout when logged in
+     - Added aria labels for accessibility
+     - Logout icon with lucide icons
+
+  4. src/public/css/style.css
+     - .nav-user styles (border-left separator, username, logout button)
+     - .nav-auth-buttons styles (Login/Sign Up button group)
+     - .nav-login-btn / .nav-signup-btn styles
+     - .nav-logout-btn with orange outline, hover fill
+     - Mobile responsive nav-user and nav-auth-buttons (768px breakpoint)
+     - .logout-form inline display
+
+🐛 BUGS FIXED:
+  ✅ User is not defined in populateAuthLocals (missing require at top of file)
+  ✅ requireAuth is not defined (old exports pattern conflicting with module.exports)
+  ✅ Nav always showing Login/Sign Up even when logged in (populateAuthLocals crashing)
+  ✅ Logged-in users could access /login and /signup pages (added redirectIfAuth)
+  ✅ handleRegistration is not defined (function defined after reference)
+
+🗑️ REMOVED:
+  - src/routes/index.routes.js (dead file)
+  - src/routes/index.js (dead file)
+  - Old exports.setUserContext pattern from auth.middleware.js
+  - Old exports.requireAuth pattern from auth.middleware.js
+
+================================================================================
+CHANGELOG - February 19, 2026 (Session 1)
 ================================================================================
 
 🎨 HOME PAGE & UI IMPROVEMENTS
@@ -252,7 +325,7 @@ CURRENT STATUS SUMMARY
 ================================================================================
 
 PROJECT STATUS: Development Phase 2B Complete (Feb 19, 2026)
-LAST MAJOR UPDATE: Feb 19, 2026 - Home Page UI, Button Contrast & Mobile Responsive
+LAST MAJOR UPDATE: Feb 19, 2026 - Auth middleware rewrite, nav auth toggle, redirectIfAuth, Blog + Leaderboard nav links
 NEXT PHASE: Phase 2C - Admin Application Review Dashboard
 
 COMPLETED WORK:
@@ -262,12 +335,19 @@ COMPLETED WORK:
   ✅ Phase 2B: Organizer application forms & status tracking
   ✅ UI/UX improvements for verify email pages
   ✅ Route organization and consolidation
-  ✅ Page routes for nav links (home, events, blog, about)
+  ✅ Page routes for nav links (home, events, blog, about, leaderboard)
   ✅ Form spam prevention on resend verification
   ✅ Home page landing with hero logo, features, how-it-works, testimonial, CTA
   ✅ Button contrast improvements (WCAG AA)
   ✅ Mobile responsive home page (768px & 480px breakpoints)
   ✅ Hero button clickability fix (z-index)
+  ✅ Auth middleware fully rewritten (no more User is not defined)
+  ✅ Nav shows Login/Sign Up when logged out, Hi [Name] + Logout when logged in
+  ✅ Logged-in users redirected from login/signup to dashboard
+  ✅ Role-based nav links (Admin, Organizer, Runner dashboards)
+  ✅ Dead route files cleaned up (index.routes.js, index.js)
+  ✅ Blog link in navigation
+  ✅ Leaderboard placeholder page + nav link
 
 IN PROGRESS:
   🔄 Phase 2C: Admin dashboard for application review (Ready to start)
@@ -283,12 +363,14 @@ QUALITY METRICS:
   ✅ No 404 errors on navigation links
   ✅ Form spam prevention implemented
   ✅ WCAG AA button contrast compliance
+  ✅ Auth middleware consolidated (single file, no duplicates)
+  ✅ Proper auth state in nav across all pages
 
 ESTIMATED TIMELINE:
   Phase 2C (Admin): 2-3 hours
   Phase 3 (Events): 4-6 hours
   Phase 4 (Registration): 3-4 hours
-  Phase 5 (Submissions): 3-4 hours
+  Phase 5 (Submissions + Leaderboard): 4-5 hours
   Phase 6 (Dashboards): 4-6 hours
   Total remaining: ~20 hours
 
@@ -310,6 +392,15 @@ AUTHENTICATION (Phase 1) ✅ COMPLETE:
   ✅ Rate limiting on password reset
   ✅ Logout functionality
   ✅ Improved verify email pages (compact UI)
+  ✅ Logged-in users redirected from login/signup to dashboard
+
+AUTH MIDDLEWARE ✅ COMPLETE:
+  ✅ populateAuthLocals - Sets isAuthenticated, user, isAdmin, isOrganizer, isApprovedOrganizer for all views
+  ✅ redirectIfAuth - Prevents logged-in users from accessing auth pages
+  ✅ requireAuth - Protects authenticated-only routes
+  ✅ requireAdmin - Protects admin-only routes
+  ✅ requireOrganizer - Protects organiser-only routes
+  ✅ requireApprovedOrganizer - Protects approved-organiser-only routes
 
 ORGANIZER APPLICATIONS (Phase 2) ✅ 80% COMPLETE:
   ✅ User selects "Organizer" role on signup
@@ -328,17 +419,26 @@ ORGANIZER APPLICATIONS (Phase 2) ✅ 80% COMPLETE:
   ⏳ Approve/reject functionality (Phase 2C)
   ⏳ Approval/rejection emails (Phase 2C)
 
-PAGES & NAVIGATION:
+NAVIGATION ✅ COMPLETE:
+  ✅ Responsive navigation with hamburger menu
+  ✅ Auth-aware: Login/Sign Up (logged out) ↔ Hi [Name] + Logout (logged in)
+  ✅ Public links: Home, Events, Blog, Leaderboard (visible to all)
+  ✅ Role-based dashboard links:
+    • Admin → /admin/dashboard
+    • Approved Organizer → /organizer/dashboard
+    • Pending Organizer → /organizer/application-status
+    • Runner → /runner/dashboard
+  ✅ Accessibility (aria-label, aria-expanded)
+  ✅ Mobile responsive (768px breakpoint)
+
+PAGES ✅ COMPLETE:
   ✅ Home page (full landing: hero, features, how-it-works, testimonial, CTA)
   ✅ Hero section with helloRun-icon.webp logo
   ✅ Accessible buttons with WCAG AA contrast
   ✅ Events page (with auth-based content)
   ✅ Blog page (placeholder)
   ✅ About page (placeholder)
-  ✅ Responsive navigation with hamburger menu
-  ✅ User greeting when logged in
-  ✅ Logout button in navigation
-  ✅ Role-based navigation links
+  ✅ Leaderboard page (placeholder — data from Phase 5)
   ✅ No 404 errors on nav links
   ✅ Mobile responsive (768px & 480px breakpoints)
 
@@ -346,7 +446,7 @@ PENDING FEATURES:
   ⏳ Phase 2C: Admin dashboard for application review
   ⏳ Phase 3: Event creation and management
   ⏳ Phase 4: Registration system
-  ⏳ Phase 5: Submission and results
+  ⏳ Phase 5: Submission, results, and leaderboard data
   ⏳ Phase 6: Runner and organizer dashboards
   ⏳ Phase 7: Blog system and additional features
   ⏳ Phase 8: Google OAuth integration

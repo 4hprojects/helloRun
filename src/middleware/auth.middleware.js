@@ -1,26 +1,56 @@
-// Add this NEW middleware at the top
-exports.setUserContext = async (req, res, next) => {
-  if (req.session.userId) {
+const User = require('../models/User');
+
+/**
+ * Redirect already-authenticated users away from login/signup
+ */
+function redirectIfAuth(req, res, next) {
+  if (req.session && req.session.userId) {
+    // Redirect based on role
+    if (req.session.role === 'admin') {
+      return res.redirect('/admin/dashboard');
+    } else if (req.session.role === 'organiser') {
+      return res.redirect('/organizer/dashboard');
+    } else {
+      return res.redirect('/runner/dashboard');
+    }
+  }
+  next();
+}
+
+/**
+ * Populate res.locals with auth state for all views (nav, etc.)
+ * Must be registered BEFORE all routes in server.js
+ */
+async function populateAuthLocals(req, res, next) {
+  res.locals.isAuthPage = ['/login', '/signup', '/register', '/forgot-password'].some(
+    path => req.path.startsWith(path)
+  );
+
+  if (req.session && req.session.userId) {
     try {
-      const User = require('../models/User');
-      const user = await User.findById(req.session.userId).select('-password');
-      
+      const user = await User.findById(req.session.userId).select('-passwordHash');
+
       if (user) {
         res.locals.user = user;
         res.locals.isAuthenticated = true;
         res.locals.isOrganizer = user.role === 'organiser';
         res.locals.isAdmin = user.role === 'admin';
-        res.locals.isApprovedOrganizer = user.organizerStatus === 'approved';
+        res.locals.isApprovedOrganizer = user.role === 'organiser' && user.organizerStatus === 'approved';
       } else {
-        // User not found, clear session
+        req.session.destroy(() => {});
         res.locals.user = null;
         res.locals.isAuthenticated = false;
-        req.session.destroy();
+        res.locals.isOrganizer = false;
+        res.locals.isAdmin = false;
+        res.locals.isApprovedOrganizer = false;
       }
     } catch (error) {
-      console.error('Error fetching user:', error);
+      console.error('Error in populateAuthLocals:', error);
       res.locals.user = null;
       res.locals.isAuthenticated = false;
+      res.locals.isOrganizer = false;
+      res.locals.isAdmin = false;
+      res.locals.isApprovedOrganizer = false;
     }
   } else {
     res.locals.user = null;
@@ -29,58 +59,67 @@ exports.setUserContext = async (req, res, next) => {
     res.locals.isAdmin = false;
     res.locals.isApprovedOrganizer = false;
   }
-  next();
-};
 
-// Existing middleware
-exports.requireAuth = (req, res, next) => {
-  if (!req.session.userId) {
+  next();
+}
+
+/**
+ * Require authenticated user
+ */
+function requireAuth(req, res, next) {
+  if (!req.session || !req.session.userId) {
     return res.redirect('/login');
   }
   next();
-};
+}
 
-exports.requireAdmin = async (req, res, next) => {
-  if (!req.session.userId) {
+/**
+ * Require admin role
+ */
+async function requireAdmin(req, res, next) {
+  if (!req.session || !req.session.userId) {
     return res.redirect('/login');
   }
-  
-  const User = require('../models/User');
   const user = await User.findById(req.session.userId);
-  
   if (!user || user.role !== 'admin') {
     return res.status(403).send('Access denied');
   }
-  
   next();
-};
+}
 
-exports.requireOrganizer = async (req, res, next) => {
-  if (!req.session.userId) {
+/**
+ * Require organiser role
+ */
+async function requireOrganizer(req, res, next) {
+  if (!req.session || !req.session.userId) {
     return res.redirect('/login');
   }
-  
-  const User = require('../models/User');
   const user = await User.findById(req.session.userId);
-  
   if (!user || user.role !== 'organiser') {
     return res.status(403).send('Access denied');
   }
-  
   next();
-};
+}
 
-exports.requireApprovedOrganizer = async (req, res, next) => {
-  if (!req.session.userId) {
+/**
+ * Require approved organiser
+ */
+async function requireApprovedOrganizer(req, res, next) {
+  if (!req.session || !req.session.userId) {
     return res.redirect('/login');
   }
-  
-  const User = require('../models/User');
   const user = await User.findById(req.session.userId);
-  
-  if (!user || !user.isApprovedOrganizer()) {
+  if (!user || user.role !== 'organiser' || user.organizerStatus !== 'approved') {
     return res.status(403).send('Access denied - Organizer approval required');
   }
-  
   next();
+}
+
+module.exports = {
+  populateAuthLocals,
+  redirectIfAuth,
+  requireAuth,
+  requireAdmin,
+  requireOrganizer,
+  requireApprovedOrganizer
 };

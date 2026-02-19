@@ -18,7 +18,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
   if (req.method === 'POST') {
     console.log('📨 Received POST:', req.url);
-    console.log('📦 Body:', req.body);
+    // Log body without sensitive fields
+    const safeBody = { ...req.body };
+    delete safeBody.password;
+    delete safeBody.confirmPassword;
+    delete safeBody.currentPassword;
+    delete safeBody.newPassword;
+    console.log('📦 Body:', safeBody);
   }
   next();
 });
@@ -46,12 +52,19 @@ app.use(session({
   })
 }));
 
-// ===== STEP 5: ROUTES (AFTER ALL MIDDLEWARE) =====
+// ===== ROUTES =====
 console.log('🔀 Loading routes...');
+const { populateAuthLocals } = require('./middleware/auth.middleware');
 const authRoutes = require('./routes/authRoutes');
 const pageRoutes = require('./routes/pageRoutes');
+const organizerRoutes = require('./routes/organizer.routes');
+
+// Auth locals for all views (BEFORE routes)
+app.use(populateAuthLocals);
+
 app.use('/', authRoutes);
 app.use('/', pageRoutes);
+app.use('/organizer', organizerRoutes);
 
 // ===== STEP 6: 404 HANDLER (LAST) =====
 app.use((req, res) => {

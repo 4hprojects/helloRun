@@ -1,14 +1,11 @@
 const mongoose = require('mongoose');
-const counterService = require('../services/counter.service');
 
-// ❌ REMOVE THIS LINE - should only be in server.js
-// mongoose.connect(process.env.MONGODB_URI);
-
+// ── User Schema ──
 const userSchema = new mongoose.Schema({
   userId: {
     type: String,
     unique: true,
-    sparse: true   // ← Add this instead of index: true
+    sparse: true
   },
   email: {
     type: String,
@@ -57,7 +54,7 @@ const userSchema = new mongoose.Schema({
   passwordResetEmailLastSent: {
     type: Date
   },
-  
+
   // Organizer Application Fields
   organizerApplicationId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -69,7 +66,7 @@ const userSchema = new mongoose.Schema({
     enum: ['not_applied', 'pending', 'approved', 'rejected'],
     default: 'not_applied'
   },
-  
+
   createdAt: {
     type: Date,
     default: Date.now
@@ -78,13 +75,12 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// ✅ FIXED: Use counterService.formatUserId() properly
+// Auto-generate userId for new users
 userSchema.pre('save', async function(next) {
-  // Only generate userId for NEW documents that don't have one
   if (this.isNew && !this.userId) {
     try {
-      const count = await counterService.getNextSequence('userId');
-      this.userId = counterService.formatUserId(count);
+      const count = await getNextSequence('userId');
+      this.userId = formatUserId(count);
       console.log('Generated userId:', this.userId);
     } catch (error) {
       console.error('Error generating userId:', error);
@@ -98,31 +94,31 @@ userSchema.pre('save', async function(next) {
 userSchema.methods.canReceivePasswordResetEmail = function() {
   const now = new Date();
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  
+
   if (!this.passwordResetEmailLastSent || this.passwordResetEmailLastSent < oneDayAgo) {
     return true;
   }
-  
+
   return this.passwordResetEmailCount < 3;
 };
 
 userSchema.methods.incrementPasswordResetEmailCount = function() {
   const now = new Date();
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  
+
   if (!this.passwordResetEmailLastSent || this.passwordResetEmailLastSent < oneDayAgo) {
     this.passwordResetEmailCount = 1;
   } else {
     this.passwordResetEmailCount += 1;
   }
-  
+
   this.passwordResetEmailLastSent = now;
 };
 
 // Organizer Application Methods
 userSchema.methods.canApplyAsOrganizer = function() {
-  return (this.role === 'runner' || this.role === 'organiser') && 
-         this.emailVerified && 
+  return (this.role === 'runner' || this.role === 'organiser') &&
+         this.emailVerified &&
          this.organizerStatus === 'not_applied';
 };
 
@@ -131,7 +127,7 @@ userSchema.methods.hasActiveApplication = function() {
 };
 
 userSchema.methods.isApprovedOrganizer = function() {
-  return this.role === 'organiser' && 
+  return this.role === 'organiser' &&
          this.organizerStatus === 'approved';
 };
 
@@ -140,7 +136,7 @@ userSchema.methods.canParticipateInEvents = function() {
 };
 
 userSchema.methods.canCreateEvents = function() {
-  return this.role === 'organiser' && 
+  return this.role === 'organiser' &&
          this.organizerStatus === 'approved' &&
          this.emailVerified;
 };

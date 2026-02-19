@@ -1,30 +1,30 @@
 /* ==========================================
-   APPLICATION STATUS PAGE STYLING
+   APPLICATION STATUS PAGE - REFINED
    Theme: Orange (#FA9A4B) + Blue (#8FD5EC)
    ========================================== */
 
-/* ROOT VARIABLES */
 :root {
   --color-primary-orange: #FA9A4B;
-  --color-primary-orange-dark: #E0A46A;
+  --color-primary-orange-dark: #E8883A;
   --color-primary-blue: #8FD5EC;
   --color-primary-blue-dark: #78C0E9;
   --color-neutral-beige: #F2EAD3;
-  --color-neutral-dark: #2d3748;
-  --color-neutral-light: #f7fafc;
-  --color-border: #e2e8f0;
-  --color-error: #f56565;
-  --color-success: #48bb78;
-  --color-warning: #ed8936;
-  
+  --color-neutral-dark: #2D3748;
+  --color-neutral-light: #F7FAFC;
+  --color-border: #E2E8F0;
+  --color-error: #F56565;
+  --color-success: #48BB78;
+  --color-warning: #ED8936;
+  --color-info: #4299E1;
+
   --spacing-xs: 0.25rem;
   --spacing-sm: 0.5rem;
   --spacing-md: 1rem;
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
   --spacing-2xl: 2.5rem;
-  
-  --transition: all 0.3s ease;
+
+  --transition: all 0.2s ease;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
@@ -93,6 +93,11 @@
   background: var(--color-neutral-beige);
   border-radius: 12px;
   color: var(--color-primary-orange);
+  transition: transform 0.3s ease;
+}
+
+.header-icon:hover {
+  transform: scale(1.05);
 }
 
 .header-icon svg {
@@ -110,6 +115,11 @@
   box-shadow: var(--shadow-md);
   border-left: 5px solid var(--color-border);
   animation: slideInUp 0.5s ease;
+  transition: box-shadow 0.3s ease;
+}
+
+.status-card:hover {
+  box-shadow: var(--shadow-lg);
 }
 
 /* Status card variants */
@@ -230,6 +240,11 @@
   align-items: flex-start;
 }
 
+.timeline-item:focus-within .timeline-marker {
+  outline: 2px solid var(--color-primary-orange);
+  outline-offset: 2px;
+}
+
 .timeline-item.completed .timeline-marker {
   background: var(--color-success);
   border-color: var(--color-success);
@@ -240,7 +255,7 @@
   background: var(--color-primary-orange);
   border-color: var(--color-primary-orange);
   color: white;
-  box-shadow: 0 0 0 6px rgba(250, 154, 75, 0.1);
+  box-shadow: 0 0 0 6px rgba(250, 154, 75, 0.15);
 }
 
 .timeline-marker {
@@ -308,7 +323,7 @@
   color: var(--color-primary-blue);
   margin-top: var(--spacing-sm);
   padding-top: var(--spacing-sm);
-  border-top: 1px solid var(--color-border);
+  border-top: 1px dashed var(--color-border);
 }
 
 /* ==========================================
@@ -355,6 +370,11 @@
   border-radius: 6px;
   border-left: 3px solid var(--color-primary-blue);
   word-break: break-word;
+  transition: background 0.2s ease;
+}
+
+.detail-item p:hover {
+  background: #edf2f7;
 }
 
 .detail-item a {
@@ -444,7 +464,6 @@
   transition: var(--transition);
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: var(--spacing-sm);
   font-family: 'Inter', sans-serif;
   text-decoration: none;
@@ -496,6 +515,36 @@
 .btn-ghost:hover {
   background-color: rgba(250, 154, 75, 0.1);
   transform: translateY(-2px);
+}
+
+.btn-refresh {
+  background: var(--color-primary-orange);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-refresh:hover {
+  background: var(--color-primary-orange-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(250, 154, 75, 0.3);
+}
+
+.btn-refresh:active {
+  transform: translateY(0);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-primary-orange);
+  outline-offset: 2px;
 }
 
 /* ==========================================
@@ -574,6 +623,18 @@
 
 .status-card {
   animation: slideInUp 0.5s ease;
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ==========================================
@@ -747,7 +808,6 @@
   .detail-item p {
     font-size: 0.95rem;
     padding: var(--spacing-md);
-    margin-bottom: var(--spacing-xs);
   }
 
   .rejection-section {

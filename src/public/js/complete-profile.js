@@ -1,5 +1,5 @@
 /* ==========================================
-   COMPLETE PROFILE FORM - MAIN LOGIC
+   COMPLETE PROFILE FORM - MAIN LOGIC (REFINED)
    ========================================== */
 
 class CompleteProfileForm {
@@ -25,6 +25,17 @@ class CompleteProfileForm {
 
     this.setupEventListeners();
     this.initializeLucideIcons();
+    this.setupRealTimeValidation();
+    this.setupClickableSteps();
+  }
+
+  /**
+   * Initialize Lucide Icons
+   */
+  initializeLucideIcons() {
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
   }
 
   /**
@@ -47,22 +58,20 @@ class CompleteProfileForm {
     // Form submission
     this.form.addEventListener('submit', (e) => this.handleSubmit(e));
 
-    // Form reset
-    document.querySelectorAll('button[type="reset"]').forEach(btn => {
-      btn.addEventListener('click', () => this.handleReset());
-    });
-
     // Navigation buttons
-    const nextButtons = document.querySelectorAll('[data-action="next"]');
-    const prevButtons = document.querySelectorAll('[data-action="prev"]');
+    const nextBtn = document.getElementById('nextBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const submitBtn = document.getElementById('submitBtn');
 
-    nextButtons.forEach(btn => {
-      btn.addEventListener('click', () => this.nextStep());
-    });
+    if (nextBtn) nextBtn.addEventListener('click', () => this.nextStep());
+    if (prevBtn) prevBtn.addEventListener('click', () => this.prevStep());
 
-    prevButtons.forEach(btn => {
-      btn.addEventListener('click', () => this.prevStep());
-    });
+    // File remove buttons
+    const idProofRemove = document.getElementById('idProofRemove');
+    const businessProofRemove = document.getElementById('businessProofRemove');
+
+    if (idProofRemove) idProofRemove.addEventListener('click', () => this.removeFile('idProof'));
+    if (businessProofRemove) businessProofRemove.addEventListener('click', () => this.removeFile('businessProof'));
 
     // Character count for textarea
     const additionalInfoTextarea = document.getElementById('additionalInfo');
@@ -71,46 +80,129 @@ class CompleteProfileForm {
         this.updateCharCount(e.target);
       });
     }
+
+    // Terms checkbox
+    const termsCheckbox = document.getElementById('terms');
+    if (termsCheckbox) {
+      termsCheckbox.addEventListener('change', () => {
+        this.clearError('terms');
+      });
+    }
   }
 
   /**
-   * Initialize Lucide Icons
+   * Make progress steps clickable
    */
-  initializeLucideIcons() {
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
+  setupClickableSteps() {
+    document.querySelectorAll('.progress-step').forEach(step => {
+      step.addEventListener('click', () => {
+        const stepNum = parseInt(step.dataset.step, 10);
+        if (stepNum && stepNum !== this.currentStep) {
+          // Validate all steps up to the target step before allowing navigation
+          if (stepNum < this.currentStep) {
+            // Going back is always allowed
+            this.goToStep(stepNum);
+          } else {
+            // Going forward: validate each intermediate step
+            let valid = true;
+            for (let s = this.currentStep; s < stepNum; s++) {
+              if (!this.validateFormStep(s)) {
+                valid = false;
+                this.goToStep(s); // show the step that failed
+                break;
+              }
+            }
+            if (valid) this.goToStep(stepNum);
+          }
+        }
+      });
+    });
+  }
+
+  /**
+   * Real-time validation on input fields
+   */
+  setupRealTimeValidation() {
+    const fields = this.form.querySelectorAll('input, select, textarea');
+    fields.forEach(field => {
+      field.addEventListener('input', () => {
+        this.validateField(field);
+      });
+      field.addEventListener('blur', () => {
+        this.validateField(field);
+      });
+    });
+  }
+
+  /**
+   * Validate a single field
+   * @returns {boolean} true if valid
+   */
+  validateField(field) {
+    const fieldId = field.id;
+    if (!fieldId) return true;
+
+    // Clear existing error
+    this.clearError(fieldId);
+
+    let isValid = true;
+    let errorMessage = '';
+
+    if (field.required && !field.value.trim() && field.type !== 'file' && field.type !== 'checkbox') {
+      isValid = false;
+      errorMessage = 'This field is required';
+    } else if (field.type === 'email' && field.value) {
+      if (!this.isValidEmail(field.value)) {
+        isValid = false;
+        errorMessage = 'Please enter a valid email';
+      }
+    } else if (field.type === 'tel' && field.value) {
+      if (!this.isValidPhone(field.value)) {
+        isValid = false;
+        errorMessage = 'Please enter a valid phone number';
+      }
+    } else if (field.name === 'businessName' && field.value && field.value.trim().length < 2) {
+      isValid = false;
+      errorMessage = 'Business name must be at least 2 characters';
     }
+
+    if (!isValid) {
+      this.showError(fieldId, errorMessage);
+    }
+
+    // Toggle valid/invalid class on parent group
+    const group = field.closest('.input-group');
+    if (group) {
+      if (isValid && field.value.trim() !== '') {
+        group.classList.add('valid');
+        group.classList.remove('error');
+      } else {
+        group.classList.remove('valid');
+        if (!isValid) group.classList.add('error');
+      }
+    }
+
+    return isValid;
   }
 
   /* ==========================================
      FILE UPLOAD HANDLERS
      ========================================== */
 
-  /**
-   * Handle drag over event
-   */
   handleDragOver(e, zone) {
     e.preventDefault();
     e.stopPropagation();
     zone.classList.add('dragover');
   }
 
-  /**
-   * Handle drag leave event
-   */
   handleDragLeave(e, zone) {
     e.preventDefault();
     e.stopPropagation();
-    
-    // Only remove class if leaving the zone entirely
     if (e.target === zone) {
       zone.classList.remove('dragover');
     }
   }
 
-  /**
-   * Handle drop event
-   */
   handleDrop(e, zone) {
     e.preventDefault();
     e.stopPropagation();
@@ -118,77 +210,55 @@ class CompleteProfileForm {
 
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      const fieldName = zone.dataset.field;
-      const fileInput = document.getElementById(fieldName);
-      
-      // Set files to the input
-      fileInput.files = files;
-      
-      // Trigger change event
-      const changeEvent = new Event('change', { bubbles: true });
-      fileInput.dispatchEvent(changeEvent);
+      const fileInput = zone.querySelector('input[type="file"]');
+      if (fileInput) {
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(files[0]);
+        fileInput.files = dataTransfer.files;
+        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
     }
   }
 
-  /**
-   * Handle zone click to open file picker
-   */
   handleZoneClick(zone) {
-    const fieldName = zone.dataset.field;
-    const fileInput = document.getElementById(fieldName);
-    fileInput.click();
+    const fileInput = zone.querySelector('input[type="file"]');
+    if (fileInput) fileInput.click();
   }
 
-  /**
-   * Handle file selection (from input or drag-drop)
-   */
   handleFileSelect(e) {
     const input = e.target;
     const fieldName = input.name;
     const files = input.files;
 
-    if (files.length === 0) {
-      return;
-    }
+    if (files.length === 0) return;
 
     const file = files[0];
-    const zone = document.getElementById(`${fieldName}-drag-zone`);
-    const previewContainer = document.getElementById(`${fieldName}-preview`);
-    const errorContainer = document.getElementById(`${fieldName}-error`);
+    const zone = document.getElementById(`${fieldName}Zone`);
+    const previewContainer = document.getElementById(`${fieldName}Preview`);
+    const errorContainer = document.getElementById(`${fieldName}Error`);
 
     // Clear previous errors
-    if (errorContainer) {
-      errorContainer.textContent = '';
-      errorContainer.style.display = 'none';
-    }
+    if (errorContainer) errorContainer.style.display = 'none';
 
     // Validate file
-    const validation = this.validateFile(file, fieldName);
+    const validation = this.validateFile(file);
     if (!validation.valid) {
-      this.showError(fieldName, validation.error);
+      this.showFileError(fieldName, validation.error);
       input.value = '';
       return;
     }
 
     // Store file
     this.uploadedFiles[fieldName] = file;
-    this.formData.set(fieldName, file);
 
     // Display preview
     this.displayFilePreview(file, fieldName, previewContainer, zone);
-
-    // Clear error state
-    this.clearError(fieldName);
   }
 
-  /**
-   * Validate file (type, size)
-   */
-  validateFile(file, fieldName) {
-    const maxSize = parseInt(process.env.UPLOAD_MAX_SIZE) || 5242880; // 5MB
+  validateFile(file) {
+    const maxSize = 5 * 1024 * 1024; // 5MB
     const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
 
-    // Check file type
     if (!allowedTypes.includes(file.type)) {
       return {
         valid: false,
@@ -196,7 +266,6 @@ class CompleteProfileForm {
       };
     }
 
-    // Check file size
     if (file.size > maxSize) {
       const maxSizeMB = Math.round(maxSize / 1024 / 1024);
       return {
@@ -208,228 +277,178 @@ class CompleteProfileForm {
     return { valid: true };
   }
 
-  /**
-   * Display file preview
-   */
+  showFileError(fieldName, message) {
+    const errorContainer = document.getElementById(`${fieldName}Error`);
+    if (errorContainer) {
+      const span = errorContainer.querySelector('span');
+      if (span) span.textContent = message;
+      errorContainer.style.display = 'flex';
+    }
+  }
+
   displayFilePreview(file, fieldName, previewContainer, zone) {
-    const isImage = file.type.startsWith('image/');
-    const isPDF = file.type === 'application/pdf';
     const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+    const nameEl = document.getElementById(`${fieldName}Name`);
+    const sizeEl = document.getElementById(`${fieldName}Size`);
+    const thumbnailEl = document.getElementById(`${fieldName}Thumbnail`);
 
-    let previewHTML = `
-      <div class="file-preview-item">
-        <div class="file-preview-thumbnail">
-    `;
+    if (nameEl) nameEl.textContent = this.truncateFilename(file.name);
+    if (sizeEl) sizeEl.textContent = `${fileSizeMB} MB`;
 
-    if (isImage) {
+    if (file.type.startsWith('image/') && thumbnailEl) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const img = previewContainer.querySelector('.file-preview-thumbnail img');
-        if (img) {
-          img.src = e.target.result;
-        }
+        thumbnailEl.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+        lucide.createIcons(); // Recreate icons if any were replaced
       };
       reader.readAsDataURL(file);
-      previewHTML += `<img src="" alt="Preview" />`;
-    } else if (isPDF) {
-      previewHTML += `
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-          <polyline points="14 2 14 8 20 8"></polyline>
-        </svg>
-      `;
+    } else if (thumbnailEl) {
+      thumbnailEl.innerHTML = '<i data-lucide="file-text"></i>';
+      lucide.createIcons();
     }
-
-    previewHTML += `
-        </div>
-        <div class="file-preview-info">
-          <div class="file-preview-name">${this.truncateFilename(file.name)}</div>
-          <div class="file-preview-size">${fileSizeMB} MB</div>
-        </div>
-        <button type="button" class="file-preview-remove" onclick="completeProfileForm.removeFile('${fieldName}')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="3 6 5 6 21 6"></polyline>
-            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            <line x1="10" y1="11" x2="10" y2="17"></line>
-            <line x1="14" y1="11" x2="14" y2="17"></line>
-          </svg>
-          Remove
-        </button>
-      </div>
-    `;
 
     if (previewContainer) {
-      previewContainer.innerHTML = previewHTML;
+      previewContainer.style.display = 'flex';
       previewContainer.classList.add('show');
-      zone.style.display = 'none';
-
-      // Re-initialize icons
-      this.initializeLucideIcons();
     }
+    if (zone) zone.style.display = 'none';
+
+    // Update review panel if on step 3
+    if (this.currentStep === 3) this.updateReviewSummary();
   }
 
-  /**
-   * Remove uploaded file
-   */
   removeFile(fieldName) {
     const input = document.getElementById(fieldName);
-    const previewContainer = document.getElementById(`${fieldName}-preview`);
-    const zone = document.getElementById(`${fieldName}-drag-zone`);
+    const previewContainer = document.getElementById(`${fieldName}Preview`);
+    const zone = document.getElementById(`${fieldName}Zone`);
 
-    input.value = '';
+    if (input) input.value = '';
     this.uploadedFiles[fieldName] = null;
-    this.formData.delete(fieldName);
 
     if (previewContainer) {
-      previewContainer.innerHTML = '';
+      previewContainer.style.display = 'none';
       previewContainer.classList.remove('show');
     }
+    if (zone) zone.style.display = '';
 
-    if (zone) {
-      zone.style.display = 'block';
-    }
-
-    // Trigger revalidation
-    input.dispatchEvent(new Event('change', { bubbles: true }));
+    if (this.currentStep === 3) this.updateReviewSummary();
   }
 
-  /**
-   * Truncate long filenames
-   */
   truncateFilename(filename, maxLength = 30) {
-    if (filename.length <= maxLength) {
-      return filename;
-    }
+    if (filename.length <= maxLength) return filename;
     const ext = filename.split('.').pop();
     const name = filename.substring(0, maxLength - ext.length - 3);
     return name + '...' + ext;
   }
 
   /* ==========================================
-     FORM VALIDATION
+     FORM VALIDATION (Step-level)
      ========================================== */
 
-  /**
-   * Validate form fields
-   */
   validateFormStep(stepNumber) {
     const section = document.querySelector(`[data-section="${stepNumber}"]`);
     if (!section) return true;
 
-    const fields = section.querySelectorAll('input[required], select[required], textarea[required]');
     let isValid = true;
 
+    // Step 2: Validate file uploads explicitly
+    if (stepNumber === 2) {
+      if (!this.uploadedFiles.idProof) {
+        this.showFileError('idProof', 'Please upload your ID proof document');
+        isValid = false;
+      }
+      if (!this.uploadedFiles.businessProof) {
+        this.showFileError('businessProof', 'Please upload your business proof document');
+        isValid = false;
+      }
+    }
+
+    // Validate required text/select fields
+    const fields = section.querySelectorAll('input[required]:not([type="file"]):not([type="checkbox"]), select[required], textarea[required]');
+
     fields.forEach(field => {
-      if (field.type === 'file') {
-        const fieldName = field.name;
-        if (!this.uploadedFiles[fieldName]) {
-          this.showError(fieldName, 'Please upload a file');
-          isValid = false;
-        }
-      } else if (field.type === 'checkbox') {
-        if (!field.checked) {
-          this.showError(field.id, 'Please accept the terms');
-          isValid = false;
-        }
-      } else if (field.value.trim() === '') {
+      if (!field.value.trim()) {
         this.showError(field.id, 'This field is required');
+        const group = field.closest('.input-group');
+        if (group) group.classList.add('error');
         isValid = false;
       } else {
-        // Additional validation based on field type
-        if (field.type === 'email') {
-          if (!this.isValidEmail(field.value)) {
-            this.showError(field.id, 'Please enter a valid email');
-            isValid = false;
-          }
-        }
-
-        if (field.type === 'tel') {
-          if (!this.isValidPhone(field.value)) {
-            this.showError(field.id, 'Please enter a valid phone number');
-            isValid = false;
-          }
-        }
-
-        if (field.name === 'businessName') {
-          if (field.value.trim().length < 2) {
-            this.showError(field.id, 'Business name must be at least 2 characters');
-            isValid = false;
-          }
-        }
+        const fieldValid = this.validateField(field);
+        if (!fieldValid) isValid = false;
       }
     });
+
+    // Step 3: Validate terms checkbox
+    if (stepNumber === 3) {
+      const termsCheckbox = section.querySelector('input[type="checkbox"][required]');
+      if (termsCheckbox && !termsCheckbox.checked) {
+        this.showError('terms', 'You must accept the terms and conditions');
+        isValid = false;
+      }
+    }
 
     return isValid;
   }
 
-  /**
-   * Validate email format
-   */
   isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   }
 
-  /**
-   * Validate phone format (basic)
-   */
   isValidPhone(phone) {
-    // Allow various phone formats
-    const phoneRegex = /^[\d\s\-\+\(\)]+$/;
-    return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 7;
+    const digits = phone.replace(/\D/g, '');
+    return digits.length >= 7 && digits.length <= 15;
   }
 
-  /**
-   * Show error message
-   */
   showError(fieldId, message) {
     const field = document.getElementById(fieldId);
-    const errorContainer = document.getElementById(`${fieldId}-error`);
+    const errorContainer = document.getElementById(`${fieldId}-error`) || document.getElementById(`${fieldId}Error`);
 
     if (field) {
       const group = field.closest('.input-group');
       if (group) {
         group.classList.add('error');
+        group.classList.remove('valid');
       }
     }
 
     if (errorContainer) {
-      errorContainer.textContent = message;
-      errorContainer.style.display = 'block';
+      const span = errorContainer.querySelector('span');
+      if (span) span.textContent = message;
+      errorContainer.style.display = 'flex';
+      errorContainer.classList.add('show');
     }
   }
 
-  /**
-   * Clear error message
-   */
   clearError(fieldId) {
     const field = document.getElementById(fieldId);
-    const errorContainer = document.getElementById(`${fieldId}-error`);
+    const errorContainer = document.getElementById(`${fieldId}-error`) || document.getElementById(`${fieldId}Error`);
 
     if (field) {
       const group = field.closest('.input-group');
       if (group) {
         group.classList.remove('error');
+        // Keep valid class only if field has value
+        if (field.value.trim() !== '') {
+          group.classList.add('valid');
+        } else {
+          group.classList.remove('valid');
+        }
       }
     }
 
     if (errorContainer) {
-      errorContainer.textContent = '';
       errorContainer.style.display = 'none';
+      errorContainer.classList.remove('show');
     }
   }
 
-  /**
-   * Clear all errors
-   */
   clearAllErrors() {
     document.querySelectorAll('.input-group').forEach(group => {
-      group.classList.remove('error');
+      group.classList.remove('error', 'valid');
     });
-
-    document.querySelectorAll('[id$="-error"]').forEach(errorEl => {
-      errorEl.textContent = '';
-      errorEl.style.display = 'none';
+    document.querySelectorAll('[id$="Error"], [id$="-error"]').forEach(el => {
+      el.style.display = 'none';
+      el.classList.remove('show');
     });
   }
 
@@ -437,105 +456,170 @@ class CompleteProfileForm {
      MULTI-STEP FORM NAVIGATION
      ========================================== */
 
-  /**
-   * Move to next step
-   */
   nextStep() {
-    // Validate current step
-    if (!this.validateFormStep(this.currentStep)) {
-      return;
-    }
-
-    // Move to next step
+    if (!this.validateFormStep(this.currentStep)) return;
     if (this.currentStep < this.totalSteps) {
       this.goToStep(this.currentStep + 1);
     }
   }
 
-  /**
-   * Move to previous step
-   */
   prevStep() {
-    if (this.currentStep > 1) {
-      this.goToStep(this.currentStep - 1);
-    }
+    if (this.currentStep > 1) this.goToStep(this.currentStep - 1);
   }
 
-  /**
-   * Go to specific step
-   */
   goToStep(stepNumber) {
-    if (stepNumber < 1 || stepNumber > this.totalSteps) {
-      return;
-    }
+    if (stepNumber < 1 || stepNumber > this.totalSteps) return;
 
     // Hide current section
     const currentSection = document.querySelector(`[data-section="${this.currentStep}"]`);
-    if (currentSection) {
-      currentSection.classList.remove('active');
-    }
+    if (currentSection) currentSection.classList.remove('active');
 
     // Show new section
     const newSection = document.querySelector(`[data-section="${stepNumber}"]`);
-    if (newSection) {
-      newSection.classList.add('active');
-    }
+    if (newSection) newSection.classList.add('active');
 
-    // Update progress indicator
+    // Update progress indicators
     this.updateProgressBar(stepNumber);
+
+    // Update navigation buttons
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (prevBtn) prevBtn.style.display = stepNumber > 1 ? 'inline-flex' : 'none';
+    if (nextBtn) nextBtn.style.display = stepNumber < this.totalSteps ? 'inline-flex' : 'none';
+    if (submitBtn) submitBtn.style.display = stepNumber === this.totalSteps ? 'inline-flex' : 'none';
 
     // Update current step
     this.currentStep = stepNumber;
 
+    // If moving to step 3, update review summary
+    if (stepNumber === 3) this.updateReviewSummary();
+
     // Scroll to form top
     this.form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Focus first input in new section
+    const firstInput = newSection.querySelector('input, select, textarea');
+    if (firstInput) firstInput.focus();
   }
 
-  /**
-   * Update progress bar visualization
-   */
   updateProgressBar(stepNumber) {
     const progressSteps = document.querySelectorAll('.progress-step');
-    const progressContainer = document.querySelector('.progress-steps');
-
     progressSteps.forEach((step, index) => {
       const stepNum = index + 1;
-      if (stepNum <= stepNumber) {
+      if (stepNum === stepNumber) {
         step.classList.add('active');
-      } else {
+        step.classList.remove('completed');
+      } else if (stepNum < stepNumber) {
+        step.classList.add('completed');
         step.classList.remove('active');
+      } else {
+        step.classList.remove('active', 'completed');
       }
     });
+  }
 
-    // Update progress line
-    if (progressContainer) {
-      progressContainer.classList.remove('step-1', 'step-2', 'step-3');
-      progressContainer.classList.add(`step-${stepNumber}`);
+  /* ==========================================
+     REVIEW SUMMARY (Step 3)
+     ========================================== */
+
+  updateReviewSummary() {
+    const reviewContainer = document.getElementById('reviewSummary');
+    if (!reviewContainer) return;
+
+    // Gather data
+    const businessName = document.getElementById('businessName')?.value || '';
+    const businessType = document.getElementById('businessType')?.value || '';
+    const contactPhone = document.getElementById('contactPhone')?.value || '';
+    const registrationNumber = document.getElementById('businessRegistrationNumber')?.value || '';
+    const address = document.getElementById('businessAddress')?.value || '';
+    const additionalInfo = document.getElementById('additionalInfo')?.value || '';
+
+    const idProofFile = this.uploadedFiles.idProof;
+    const businessProofFile = this.uploadedFiles.businessProof;
+
+    // Build HTML
+    let html = `
+      <div class="review-panel">
+        <h4><i data-lucide="briefcase"></i> Business Information</h4>
+        <div class="review-grid">
+          <div class="review-item">
+            <span class="review-label">Business Name</span>
+            <span class="review-value ${!businessName ? 'empty' : ''}">${businessName || 'Not provided'}</span>
+          </div>
+          <div class="review-item">
+            <span class="review-label">Business Type</span>
+            <span class="review-value ${!businessType ? 'empty' : ''}">${businessType ? this.getBusinessTypeLabel(businessType) : 'Not provided'}</span>
+          </div>
+          <div class="review-item">
+            <span class="review-label">Contact Phone</span>
+            <span class="review-value ${!contactPhone ? 'empty' : ''}">${contactPhone || 'Not provided'}</span>
+          </div>
+          <div class="review-item">
+            <span class="review-label">Registration Number</span>
+            <span class="review-value ${!registrationNumber ? 'empty' : ''}">${registrationNumber || 'Not provided'}</span>
+          </div>
+          <div class="review-item">
+            <span class="review-label">Business Address</span>
+            <span class="review-value ${!address ? 'empty' : ''}">${address || 'Not provided'}</span>
+          </div>
+        </div>
+    `;
+
+    if (additionalInfo) {
+      html += `
+        <div class="review-item" style="margin-top: var(--spacing-md);">
+          <span class="review-label">Additional Info</span>
+          <span class="review-value">${additionalInfo}</span>
+        </div>
+      `;
     }
+
+    html += `
+        <h4 style="margin-top: var(--spacing-lg);"><i data-lucide="file-text"></i> Uploaded Documents</h4>
+        <div class="review-files">
+          <div class="review-file">
+            <i data-lucide="${idProofFile ? 'check-circle' : 'x-circle'}"></i>
+            <span>ID Proof: ${idProofFile ? idProofFile.name : 'Not uploaded'}</span>
+          </div>
+          <div class="review-file">
+            <i data-lucide="${businessProofFile ? 'check-circle' : 'x-circle'}"></i>
+            <span>Business Proof: ${businessProofFile ? businessProofFile.name : 'Not uploaded'}</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    reviewContainer.innerHTML = html;
+    lucide.createIcons(); // Recreate icons inside review
+  }
+
+  getBusinessTypeLabel(value) {
+    const map = {
+      individual: 'Individual',
+      company: 'Company',
+      ngo: 'NGO/Non-Profit',
+      sports_club: 'Sports Club'
+    };
+    return map[value] || value;
   }
 
   /* ==========================================
      CHARACTER COUNT
      ========================================== */
 
-  /**
-   * Update character count for textarea
-   */
   updateCharCount(textarea) {
     const count = textarea.value.length;
+    const max = textarea.getAttribute('maxlength') || 500;
     const countEl = textarea.parentElement.querySelector('.char-count span');
-    if (countEl) {
-      countEl.textContent = count;
-    }
+    if (countEl) countEl.textContent = `${count}/${max}`;
   }
 
   /* ==========================================
      FORM SUBMISSION
      ========================================== */
 
-  /**
-   * Handle form submission
-   */
   async handleSubmit(e) {
     e.preventDefault();
 
@@ -547,38 +631,19 @@ class CompleteProfileForm {
       }
     }
 
-    // Check both files are selected
-    if (!this.uploadedFiles.idProof || !this.uploadedFiles.businessProof) {
-      alert('Please upload both ID proof and business proof documents');
-      return;
-    }
-
     await this.submitForm();
   }
 
-  /**
-   * Submit form via AJAX
-   */
   async submitForm() {
-    if (this.isSubmitting) {
-      return;
-    }
+    if (this.isSubmitting) return;
 
     this.isSubmitting = true;
     const submitBtn = document.querySelector('button[type="submit"]');
-    const btnText = submitBtn.querySelector('.btn-text');
-    const btnLoader = submitBtn.querySelector('.btn-loader');
-
-    // Show loading state
+    submitBtn.classList.add('loading');
     submitBtn.disabled = true;
-    if (btnText) btnText.style.display = 'none';
-    if (btnLoader) btnLoader.style.display = 'flex';
 
     try {
-      // Collect form data
       const formDataToSend = new FormData(this.form);
-
-      // Add files if not already added
       if (this.uploadedFiles.idProof) {
         formDataToSend.set('idProof', this.uploadedFiles.idProof);
       }
@@ -586,7 +651,6 @@ class CompleteProfileForm {
         formDataToSend.set('businessProof', this.uploadedFiles.businessProof);
       }
 
-      // Submit form
       const response = await fetch('/organizer/complete-profile', {
         method: 'POST',
         body: formDataToSend
@@ -595,86 +659,35 @@ class CompleteProfileForm {
       const data = await response.json();
 
       if (response.ok) {
-        // Show success message
         this.showSuccessMessage();
-
-        // Reset form
         this.form.reset();
-        this.uploadedFiles = {
-          idProof: null,
-          businessProof: null
-        };
-
-        // Redirect after 2 seconds
+        this.uploadedFiles = { idProof: null, businessProof: null };
         setTimeout(() => {
           window.location.href = '/organizer/application-status';
         }, 2000);
       } else {
-        // Show error message
-        alert(data.message || 'An error occurred while submitting the form');
-        console.error('Form submission error:', data);
+        alert(data.message || 'An error occurred');
       }
     } catch (error) {
-      console.error('Form submission error:', error);
-      alert('Failed to submit the form. Please try again.');
+      console.error('Submission error:', error);
+      alert('Failed to submit. Please try again.');
     } finally {
-      // Hide loading state
       this.isSubmitting = false;
+      submitBtn.classList.remove('loading');
       submitBtn.disabled = false;
-      if (btnText) btnText.style.display = 'inline';
-      if (btnLoader) btnLoader.style.display = 'none';
     }
   }
 
-  /**
-   * Show success message
-   */
   showSuccessMessage() {
-    const successMessage = document.getElementById('successMessage');
-    if (successMessage) {
-      successMessage.classList.add('show');
-      successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const successMsg = document.getElementById('successMessage');
+    if (successMsg) {
+      successMsg.classList.add('show');
+      successMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  }
-
-  /**
-   * Handle form reset
-   */
-  handleReset() {
-    // Clear file inputs
-    document.querySelectorAll('input[type="file"]').forEach(input => {
-      input.value = '';
-    });
-
-    // Clear stored files
-    this.uploadedFiles = {
-      idProof: null,
-      businessProof: null
-    };
-
-    // Reset file previews
-    document.querySelectorAll('[id$="-preview"]').forEach(preview => {
-      preview.innerHTML = '';
-      preview.classList.remove('show');
-    });
-
-    // Show all upload zones
-    document.querySelectorAll('.file-upload-zone').forEach(zone => {
-      zone.style.display = 'block';
-    });
-
-    // Clear all errors
-    this.clearAllErrors();
-
-    // Reset to step 1
-    this.goToStep(1);
   }
 }
 
-/* ==========================================
-   INITIALIZE FORM ON DOM READY
-   ========================================== */
-
+// Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
   window.completeProfileForm = new CompleteProfileForm();
 });

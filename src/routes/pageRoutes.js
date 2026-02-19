@@ -1,32 +1,29 @@
 const express = require('express');
 const router = express.Router();
+const pageController = require('../controllers/page.controller');
 
 router.get('/', (req, res) => {
   res.render('pages/home', {
-    user: req.session?.user || null,
-    isAuthenticated: !!req.session?.user
+    title: 'helloRun - Virtual Running Events'
   });
 });
 
-router.get('/events', (req, res) => {
-  res.render('pages/events', {
-    user: req.session?.user || null,
-    isAuthenticated: !!req.session?.user
-  });
-});
+router.get('/events', pageController.getEvents);
 
 router.get('/blog', (req, res) => {
   res.render('pages/blog', {
-    user: req.session?.user || null,
-    isAuthenticated: !!req.session?.user
+    title: 'Blog - helloRun'
   });
 });
 
 router.get('/about', (req, res) => {
   res.render('pages/about', {
-    user: req.session?.user || null,
-    isAuthenticated: !!req.session?.user
+    title: 'About - helloRun'
   });
+});
+
+router.get('/leaderboard', (req, res) => {
+  res.render('pages/leaderboard', { title: 'Leaderboard - helloRun' });
 });
 
 module.exports = router;

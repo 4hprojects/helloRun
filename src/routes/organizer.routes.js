@@ -7,6 +7,114 @@ const emailService = require('../services/email.service');
 const { requireAuth } = require('../middleware/auth.middleware');
 
 /* ==========================================
+   GET: Organizer Dashboard
+   ========================================== */
+
+router.get('/dashboard', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId);
+
+    if (!user) {
+      return res.status(404).render('error', {
+        title: '404 - User Not Found',
+        status: 404,
+        message: 'User account not found.'
+      });
+    }
+
+    // Only organiser role can access
+    if (user.role !== 'organiser') {
+      return res.status(403).render('error', {
+        title: '403 - Access Denied',
+        status: 403,
+        message: 'Only organizers can access this page.'
+      });
+    }
+
+    // Get application info
+    const application = await OrganiserApplication.findOne({
+      userId: req.session.userId
+    });
+
+    // If no application, redirect to complete profile
+    if (!application) {
+      return res.redirect('/organizer/complete-profile');
+    }
+
+    // If application is pending, redirect to status page
+    if (application.status === 'pending' || application.status === 'under_review') {
+      return res.redirect('/organizer/application-status');
+    }
+
+    // If rejected, redirect to status page
+    if (application.status === 'rejected') {
+      return res.redirect('/organizer/application-status');
+    }
+
+    // Build dashboard data
+    const dashboardData = {
+      title: 'Organizer Dashboard - helloRun',
+      user: user,
+      application: application,
+      adminEmail: process.env.ADMIN_EMAIL || 'hellorunonline@gmail.com',
+      stats: {
+        totalEvents: 0,
+        activeEvents: 0,
+        totalRegistrations: 0,
+        upcomingEvents: 0
+      },
+      recentEvents: [],
+      quickActions: [
+        {
+          icon: 'plus-circle',
+          label: 'Create Event',
+          href: '/organizer/create-event',
+          description: 'Set up a new running event'
+        },
+        {
+          icon: 'calendar',
+          label: 'My Events',
+          href: '/organizer/events',
+          description: 'Manage your events'
+        },
+        {
+          icon: 'users',
+          label: 'Participants',
+          href: '/organizer/participants',
+          description: 'View registrations'
+        },
+        {
+          icon: 'settings',
+          label: 'Settings',
+          href: '/organizer/settings',
+          description: 'Account settings'
+        }
+      ],
+      approvedDate: application.reviewedAt
+        ? new Date(application.reviewedAt).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })
+        : new Date(application.submittedAt).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })
+    };
+
+    res.render('organizer/dashboard', dashboardData);
+  } catch (error) {
+    console.error('Error loading organizer dashboard:', error);
+    res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading the dashboard.'
+    });
+  }
+});
+
+/* ==========================================
    GET: Complete Profile Page
    ========================================== */
 
@@ -111,7 +219,7 @@ router.post(
         businessRegistrationNumber,
         businessAddress,
         additionalInfo,
-        agreeTerms
+        terms: agreeTerms
       } = req.body;
 
       // Validate required fields
@@ -125,7 +233,7 @@ router.post(
         errors.businessType = 'Please select a valid business type';
       }
 
-      if (!contactPhone || !this.isValidPhone(contactPhone)) {
+      if (!contactPhone || !isValidPhone(contactPhone)) {
         errors.contactPhone = 'Please provide a valid phone number';
       }
 
@@ -158,8 +266,8 @@ router.post(
         });
       }
 
-      const idProofFile = req.files.idProof;
-      const businessProofFile = req.files.businessProof;
+      const idProofFile = req.files.idProof ? req.files.idProof[0] : null;
+      const businessProofFile = req.files.businessProof ? req.files.businessProof[0] : null;
 
       if (!idProofFile) {
         return res.status(400).json({
@@ -175,8 +283,7 @@ router.post(
         });
       }
 
-      // Validate file types and sizes
-      const fileValidation = this.validateFiles([idProofFile, businessProofFile]);
+      const fileValidation = validateFiles([idProofFile, businessProofFile]);
       if (!fileValidation.valid) {
         // Delete uploaded files on validation failure
         uploadService.deleteFiles([idProofFile.filename, businessProofFile.filename]);
@@ -255,9 +362,9 @@ router.post(
       // Attempt to delete uploaded files if they exist
       if (req.files) {
         const filenames = [];
-        if (req.files.idProof) filenames.push(req.files.idProof.filename);
-        if (req.files.businessProof) filenames.push(req.files.businessProof.filename);
-        
+        if (req.files.idProof && req.files.idProof[0]) filenames.push(req.files.idProof[0].filename);
+        if (req.files.businessProof && req.files.businessProof[0]) filenames.push(req.files.businessProof[0].filename);
+
         if (filenames.length > 0) {
           uploadService.deleteFiles(filenames);
         }
@@ -320,7 +427,8 @@ router.get('/application-status', requireAuth, async (req, res) => {
         month: 'long',
         day: 'numeric'
       }),
-      reviewDays: reviewDays
+      reviewDays: reviewDays,
+      adminEmail: process.env.ADMIN_EMAIL || 'hellorunonline@gmail.com'
     });
   } catch (error) {
     console.error('Error loading application status:', error);
@@ -377,9 +485,5 @@ function validateFiles(files) {
 
   return { valid: true };
 }
-
-// Make helper functions available to route handlers
-router.isValidPhone = isValidPhone;
-router.validateFiles = validateFiles;
 
 module.exports = router;

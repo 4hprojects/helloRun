@@ -4,17 +4,18 @@ const User = require('../models/User');
 const passwordService = require('../services/password.service');
 const emailService = require('../services/email.service');
 const crypto = require('crypto');
+const { redirectIfAuth } = require('../middleware/auth.middleware');
 
-// Login Page
-router.get('/login', (req, res) => {
+// Login Page - redirect if already logged in
+router.get('/login', redirectIfAuth, (req, res) => {
   res.render('auth/login', {
     error: null,
     success: null
   });
 });
 
-// Login Form Handler
-router.post('/login', async (req, res) => {
+// Login Form Handler - redirect if already logged in
+router.post('/login', redirectIfAuth, async (req, res) => {
   try {
     const { email, password } = req.body;
     
@@ -51,6 +52,8 @@ router.post('/login', async (req, res) => {
     // Create session
     req.session.userId = user._id;
     req.session.role = user.role;
+    req.session.userName = user.firstName;
+    req.session.user = user;
     
     // Add success flash message with user's name
     req.session.loginSuccess = true;
@@ -61,9 +64,7 @@ router.post('/login', async (req, res) => {
       if (user.organizerStatus === 'pending') {
         return res.redirect('/organizer/application-status');
       } else if (user.organizerStatus === 'approved') {
-        // TODO: Phase 6B - Redirect to /organiser/dashboard when built
-        // Temporary: redirect to events page
-        return res.redirect('/events');
+        return res.redirect('/organizer/dashboard');
       } else {
         return res.redirect('/organizer/complete-profile');
       }
@@ -83,104 +84,97 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Register/Signup Page (both routes point to signup.ejs)
-router.get('/register', (req, res) => {
+// Register/Signup Page - redirect if already logged in
+router.get('/register', redirectIfAuth, (req, res) => {
   res.render('auth/signup', {
     error: null,
     success: null
   });
 });
 
-router.get('/signup', (req, res) => {
+router.get('/signup', redirectIfAuth, (req, res) => {
   res.render('auth/signup', {
     error: null,
     success: null
   });
 });
 
-// Register Form Handler - POST /register
-router.post('/register', async (req, res) => {
+// Registration handler function
+async function handleRegistration(req, res) {
   try {
-    const { email, password, firstName, lastName, role } = req.body;
-    
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    const { firstName, lastName, email, password, confirmPassword, role } = req.body;
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
       return res.render('auth/signup', {
-        error: 'Email already exists.',
+        error: 'Passwords do not match.',
         success: null
       });
     }
 
-    const passwordHash = await passwordService.hashPassword(password);
-    const verificationToken = passwordService.generateResetToken();
-    const hashedVerificationToken = passwordService.hashToken(verificationToken);
-
-    const newUser = new User({ 
-      email, 
-      passwordHash,
-      firstName,
-      lastName,
-      role: role || 'runner',
-      emailVerified: false,
-      emailVerificationToken: hashedVerificationToken,
-      emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      organizerStatus: 'not_applied'
-    });
-    
-    await newUser.save();
-    await emailService.sendVerificationEmail(email, verificationToken, firstName, role);
-
-    res.redirect(`/verify-email-sent?email=${encodeURIComponent(email)}`);
-  } catch (error) {
-    console.error('Register error:', error);
-    res.render('auth/signup', {
-      error: 'An error occurred. Please try again.',
-      success: null
-    });
-  }
-});
-
-// ADD THIS: Signup Form Handler - POST /signup (same as /register)
-router.post('/signup', async (req, res) => {
-  try {
-    const { email, password, firstName, lastName, role } = req.body;
-    
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    // Validate password strength
+    if (!passwordService.validatePassword(password)) {
       return res.render('auth/signup', {
-        error: 'Email already exists.',
+        error: 'Password must be at least 8 characters with uppercase, lowercase, and number.',
         success: null
       });
     }
 
-    const passwordHash = await passwordService.hashPassword(password);
-    const verificationToken = passwordService.generateResetToken();
-    const hashedVerificationToken = passwordService.hashToken(verificationToken);
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+      return res.render('auth/signup', {
+        error: 'An account with this email already exists.',
+        success: null
+      });
+    }
 
-    const newUser = new User({ 
-      email, 
-      passwordHash,
+    // Hash password
+    const passwordHash = await passwordService.hashPassword(password);
+
+    // Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = passwordService.hashToken(verificationToken);
+
+    // Create user
+    const userRole = role === 'organiser' ? 'organiser' : 'runner';
+    const newUser = new User({
       firstName,
       lastName,
-      role: role || 'runner',
+      email: email.toLowerCase(),
+      passwordHash,
+      role: userRole,
       emailVerified: false,
-      emailVerificationToken: hashedVerificationToken,
+      emailVerificationToken: hashedToken,
       emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      organizerStatus: 'not_applied'
+      organizerStatus: userRole === 'organiser' ? 'incomplete' : undefined
     });
-    
-    await newUser.save();
-    await emailService.sendVerificationEmail(email, verificationToken, firstName, role);
 
-    res.redirect(`/verify-email-sent?email=${encodeURIComponent(email)}`);
+    await newUser.save();
+
+    // Send verification email
+    await emailService.sendVerificationEmail(
+      newUser.email,
+      verificationToken,
+      newUser.role,
+      newUser.firstName
+    );
+
+    // Redirect to verification sent page
+    res.redirect(`/verify-email-sent?email=${encodeURIComponent(newUser.email)}`);
+
   } catch (error) {
-    console.error('Register error:', error);
+    console.error('Registration error:', error);
     res.render('auth/signup', {
-      error: 'An error occurred. Please try again.',
+      error: 'An error occurred during registration. Please try again.',
       success: null
     });
   }
-});
+}
+
+// Shared registration handler - redirect if already logged in
+router.post('/register', redirectIfAuth, handleRegistration);
+router.post('/signup', redirectIfAuth, handleRegistration);
 
 // Verification email sent page
 router.get('/verify-email-sent', (req, res) => {
@@ -476,14 +470,21 @@ router.post('/logout', (req, res) => {
 });
 
 // Runner Dashboard
-router.get('/runner/dashboard', (req, res) => {
-  if (!req.session.userId || req.session.role !== 'runner') {
+router.get('/runner/dashboard', async (req, res) => {
+  if (!req.session.userId) {
     return res.redirect('/login');
   }
-  
+
+  const User = require('../models/User');
+  const user = await User.findById(req.session.userId);
+
+  if (!user || user.role !== 'runner') {
+    return res.redirect('/login');
+  }
+
   res.render('runner/dashboard', {
-    user: req.session.user,
-    userName: req.session.userName
+    user: user,
+    userName: user.firstName
   });
 });
 
