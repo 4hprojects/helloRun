@@ -102,7 +102,7 @@ helloRun/
       sitemap.xml
     server.js                        ← Updated route registration (Feb 5, 2026)
   .env
-  .env.example
+  ads.txt                           ← NEW (Feb 20, 2026) - Google AdSense authorized seller file
   .gitignore                         ← Updated (Feb 5, 2026)
   package.json                       ← Last updated (Feb 5, 2026)
   package-lock.json
