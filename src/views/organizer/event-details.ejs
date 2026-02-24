@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/event-manage.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="manage-page">
+    <section class="manage-shell">
+      <header class="manage-header">
+        <div>
+          <h1><%= event.title %></h1>
+          <p>Event details and configuration snapshot.</p>
+        </div>
+        <div class="header-actions">
+          <a href="/organizer/events" class="btn btn-secondary">Back to Events</a>
+          <a href="/organizer/events/<%= event._id %>/edit" class="btn">Edit Event</a>
+          <a href="/organizer/events/<%= event._id %>/registrants" class="btn btn-secondary">View Registrants</a>
+        </div>
+      </header>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <div class="detail-grid">
+        <article class="detail-card">
+          <h3>Timeline</h3>
+          <p><strong>Created:</strong> <%= event.createdAt ? new Date(event.createdAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Last Updated:</strong> <%= event.updatedAt ? new Date(event.updatedAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Registration Opens:</strong> <%= event.registrationOpenAt ? new Date(event.registrationOpenAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Registration Closes:</strong> <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleString('en-US') : 'N/A' %></p>
+        </article>
+
+        <article class="detail-card">
+          <h3>Basic</h3>
+          <p><strong>Status:</strong> <span class="status status-<%= event.status %>"><%= event.status %></span></p>
+          <p><strong>Event Type:</strong> <%= event.eventType %></p>
+          <p><strong>Allowed Modes:</strong> <%= (event.eventTypesAllowed || []).join(', ') || 'N/A' %></p>
+          <p><strong>Race Distances:</strong> <%= (event.raceDistances || []).join(', ') || 'N/A' %></p>
+          <p><strong>Slug:</strong> <code><%= event.slug %></code></p>
+        </article>
+
+        <article class="detail-card">
+          <h3>Dates</h3>
+          <p><strong>Registration Open:</strong> <%= event.registrationOpenAt ? new Date(event.registrationOpenAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Registration Close:</strong> <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Event Start:</strong> <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Event End:</strong> <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleString('en-US') : 'N/A' %></p>
+        </article>
+
+        <article class="detail-card">
+          <h3>Location</h3>
+          <p><strong>Venue:</strong> <%= event.venueName || 'N/A' %></p>
+          <p><strong>Address:</strong> <%= event.venueAddress || 'N/A' %></p>
+          <p><strong>City/Province:</strong> <%= [event.city, event.province].filter(Boolean).join(', ') || 'N/A' %></p>
+          <p><strong>Country:</strong> <%= event.country || 'N/A' %></p>
+          <p><strong>Geo:</strong> <%= event.geo && typeof event.geo.lat === 'number' && typeof event.geo.lng === 'number' ? `${event.geo.lat}, ${event.geo.lng}` : 'N/A' %></p>
+        </article>
+
+        <article class="detail-card">
+          <h3>Virtual Rules</h3>
+          <p><strong>Virtual Window Start:</strong> <%= event.virtualWindow?.startAt ? new Date(event.virtualWindow.startAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Virtual Window End:</strong> <%= event.virtualWindow?.endAt ? new Date(event.virtualWindow.endAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Proof Types:</strong> <%= (event.proofTypesAllowed || []).join(', ') || 'N/A' %></p>
+        </article>
+
+        <article class="detail-card detail-card-full">
+          <h3>Description</h3>
+          <p><%= event.description %></p>
+        </article>
+
+        <article class="detail-card detail-card-full">
+          <h3>Audit</h3>
+          <p><strong>Event ID:</strong> <code><%= event._id %></code></p>
+          <p><strong>Organizer ID:</strong> <code><%= event.organizerId %></code></p>
+        </article>
+      </div>
+
+      <section class="status-panel">
+        <h3>Status Actions</h3>
+        <p>Allowed flow: <strong>Draft -> Published -> Closed</strong>.</p>
+
+        <div class="status-actions">
+          <% if (event.status === 'draft') { %>
+            <form method="POST" action="/organizer/events/<%= event._id %>/status" onsubmit="return confirm('Publish this event now?');">
+              <input type="hidden" name="nextStatus" value="published">
+              <button type="submit" class="btn">Publish Event</button>
+            </form>
+          <% } %>
+
+          <% if (event.status === 'published') { %>
+            <form method="POST" action="/organizer/events/<%= event._id %>/status" onsubmit="return confirm('Close this event? This action is final in current flow.');">
+              <input type="hidden" name="nextStatus" value="closed">
+              <button type="submit" class="btn btn-secondary">Close Event</button>
+            </form>
+          <% } %>
+
+          <% if (event.status === 'closed') { %>
+            <p class="status-locked">This event is closed and can no longer transition status.</p>
+          <% } %>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

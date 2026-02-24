@@ -18,6 +18,8 @@
       <a href="/leaderboard">Leaderboard</a>
 
       <% if (locals.isAuthenticated) { %>
+        <a href="/my-registrations">My Registrations</a>
+
         <!-- Role-based dashboard link -->
         <% if (locals.isAdmin) { %>
           <a href="/admin/dashboard">Admin</a>

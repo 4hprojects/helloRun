@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/events.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="event-details-page">
+    <section class="event-details-shell">
+      <a href="/events" class="btn btn-secondary">Back to Events</a>
+
+      <header class="event-details-header">
+        <h1><%= event.title %></h1>
+        <div class="event-chip-row">
+          <span class="event-chip"><%= event.eventType || 'event' %></span>
+          <span class="event-chip event-chip-muted"><%= (event.eventTypesAllowed || []).join(' / ') || 'N/A' %></span>
+        </div>
+      </header>
+
+      <% if (event.bannerImageUrl) { %>
+        <img class="event-details-banner" src="<%= event.bannerImageUrl %>" alt="<%= event.title %> banner">
+      <% } %>
+
+      <section class="event-details-grid">
+        <article class="event-details-card">
+          <h3>Schedule</h3>
+          <p><strong>Registration Closes:</strong> <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleString('en-US') : 'TBA' %></p>
+          <p><strong>Event Starts:</strong> <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'TBA' %></p>
+          <p><strong>Event Ends:</strong> <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleString('en-US') : 'TBA' %></p>
+          <p><strong>Race Distances:</strong> <%= (event.raceDistances || []).join(', ') || 'TBA' %></p>
+        </article>
+
+        <article class="event-details-card">
+          <h3>Location</h3>
+          <p><strong>Venue:</strong> <%= event.venueName || 'TBA' %></p>
+          <p><strong>Address:</strong> <%= event.venueAddress || 'TBA' %></p>
+          <p><strong>City/Country:</strong> <%= [event.city, countryName(event.country)].filter(Boolean).join(', ') || 'TBA' %></p>
+        </article>
+      </section>
+
+      <section class="event-details-card event-details-description">
+        <h3>Description</h3>
+        <p><%= event.description || 'No description provided.' %></p>
+      </section>
+
+      <section class="event-cta-row">
+        <a href="/events/<%= event.slug %>/register" class="btn">Register for This Event</a>
+        <% if (locals.isAuthenticated) { %>
+          <a href="/my-registrations" class="btn btn-secondary">My Registrations</a>
+        <% } %>
+      </section>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

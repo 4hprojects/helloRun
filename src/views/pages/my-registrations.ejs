@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/events.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="my-reg-page">
+    <section class="my-reg-shell">
+      <header class="my-reg-header">
+        <h1>My Registrations</h1>
+        <p>Track your registered events and confirmation details.</p>
+      </header>
+
+      <% if (registrations && registrations.length) { %>
+        <div class="my-reg-grid">
+          <% registrations.forEach((registration) => { %>
+            <article class="my-reg-card">
+              <h3>
+                <% if (registration.eventId && registration.eventId.slug) { %>
+                  <a href="/events/<%= registration.eventId.slug %>"><%= registration.eventId.title %></a>
+                <% } else { %>
+                  Event unavailable
+                <% } %>
+              </h3>
+              <p><strong>Confirmation:</strong> <code><%= registration.confirmationCode %></code></p>
+              <p><strong>Distance:</strong> <%= registration.raceDistance || 'N/A' %></p>
+              <p><strong>Mode:</strong> <%= registration.participationMode %></p>
+              <p><strong>Status:</strong> <%= registration.status %></p>
+              <p><strong>Payment:</strong> <%= registration.paymentStatus %></p>
+              <p><strong>Registered:</strong> <%= registration.registeredAt ? new Date(registration.registeredAt).toLocaleString('en-US') : 'N/A' %></p>
+              <% if (registration.eventId) { %>
+                <p><strong>Event Start:</strong> <%= registration.eventId.eventStartAt ? new Date(registration.eventId.eventStartAt).toLocaleString('en-US') : 'TBA' %></p>
+                <p><strong>Location:</strong> <%= [registration.eventId.venueName, registration.eventId.city, countryName(registration.eventId.country)].filter(Boolean).join(', ') || 'TBA' %></p>
+              <% } %>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="no-events-message">
+          <i data-lucide="clipboard-list"></i>
+          <h3>No registrations yet</h3>
+          <p>Browse published events and register to see them here.</p>
+          <a href="/events" class="btn">Browse Events</a>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

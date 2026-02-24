@@ -1193,3 +1193,56 @@ exports.sendApplicationRejectedEmail = async (email, firstName, reason) => {
     throw error;
   }
 };
+
+// Send event registration confirmation email
+exports.sendEventRegistrationConfirmationEmail = async (
+  email,
+  firstName,
+  eventTitle,
+  confirmationCode,
+  participationMode,
+  eventStartAt,
+  raceDistance
+) => {
+  try {
+    const eventDateText = eventStartAt
+      ? new Date(eventStartAt).toLocaleString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit'
+        })
+      : 'TBA';
+
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: `Registration Confirmed: ${eventTitle}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#0f172a;">You're Registered!</h2>
+          <p>Hi ${firstName || 'Runner'},</p>
+          <p>Your registration for <strong>${eventTitle}</strong> is confirmed.</p>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin:16px 0;">
+              <p style="margin:0 0 6px;"><strong>Confirmation Code:</strong> ${confirmationCode}</p>
+              <p style="margin:0 0 6px;"><strong>Race Distance:</strong> ${raceDistance || 'N/A'}</p>
+              <p style="margin:0 0 6px;"><strong>Participation Mode:</strong> ${participationMode}</p>
+            <p style="margin:0;"><strong>Event Start:</strong> ${eventDateText}</p>
+          </div>
+          <p>You can sign in to your helloRun account anytime for updates.</p>
+          <p style="margin-top:20px;color:#64748b;font-size:13px;">This is an automated email. Please do not reply.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send event registration confirmation email');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Email service error:', error);
+    throw error;
+  }
+};

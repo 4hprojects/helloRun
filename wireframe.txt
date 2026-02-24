@@ -1,7 +1,47 @@
+===========================================
+STATUS UPDATE (Feb 24, 2026 - Phase 4 Kickoff)
+===========================================
+
+Current reality after latest implementation:
+
+IN PROGRESS:
+- Phase 3: Event Creation & Management (advanced beyond scaffold; working organizer flows + public published event viewing)
+- Phase 4: Registration System (account-required registration flow implemented, payment-proof flow pending)
+
+Completed in this session:
+- Public events listing now shows published events from DB
+- Public event details page implemented (/events/:slug)
+- Registration routes implemented:
+  - GET /events/:slug/register (auth required)
+  - POST /events/:slug/register (auth required)
+- Guard rules implemented:
+  - published event required
+  - registration window open required
+  - allowed participation mode required
+  - duplicate registration blocked
+- Login return path implemented for protected registration page
+- Registration model implemented with unique event+user index and confirmation code
+- Registration confirmation email integrated (graceful failure)
+- My Registrations page implemented (/my-registrations)
+
+Still pending for Phase 4 completion:
+- Payment proof upload and verification workflow
+- Organizer-side payment verification screens
+- Full registration/payment status lifecycle polish
+
+Manual smoke checklist (latest):
+[ ] Published events appear on /events
+[ ] Draft/closed events are not publicly accessible by slug
+[ ] Login redirect+return for register route works
+[ ] New registration succeeds once per account per event
+[ ] Duplicate registration is blocked
+[ ] Registration appears in /my-registrations
+
+---
 How we will build helloRun step-by-step
 
 ===========================================
-PROJECT OVERVIEW & STATUS (Feb 19, 2026)
+PROJECT OVERVIEW & STATUS (Feb 24, 2026)
 ===========================================
 
 COMPLETED PHASES:
@@ -11,10 +51,9 @@ COMPLETED PHASES:
 ✅ Phase 2B: Organizer Application Forms & Status - 100%
 
 IN PROGRESS:
-🔄 Phase 2C: Admin Application Review Dashboard (Ready to start)
+🔄 Phase 3: Event Creation & Management (20% scaffolded)
 
 UPCOMING PHASES:
-⏳ Phase 3: Event Creation & Management (20% scaffolded)
 ⏳ Phase 4: Registration System (10% scaffolded)
 ⏳ Phase 5: Submission, Results & Leaderboard (0%)
 ⏳ Phase 6: Dashboards (0%)
@@ -27,7 +66,7 @@ QUICK STATS:
 - Total Users: TBD (after deployment)
 - Total Events: 0 (awaiting Phase 3)
 - Platform Status: Development
-- Last Major Update: Feb 19, 2026 (Auth middleware rewrite, nav auth toggle, redirectIfAuth, leaderboard nav + placeholder)
+- Last Major Update: Feb 24, 2026 (Phase 2C admin review hardening completed)
 
 ---
 
@@ -122,7 +161,7 @@ Feature 1E: Login ✅ COMPLETED (Dec 2024)
 
 ---
 
-Phase 2: Organiser application + manual approval 🔄 IN PROGRESS (80%)
+Phase 2: Organiser application + manual approval ✅ COMPLETED (100%)
 
 Goal: Runner can apply to become organiser. Admin can approve.
 
@@ -147,15 +186,15 @@ Feature 2B: Document upload & profile completion ✅ COMPLETED (Feb 14, 2026)
 ✅ Mobile responsive design
 ✅ Accessibility features
 
-Feature 2C: Admin reviews ⏳ READY TO START
-⏳ Admin dashboard page
-⏳ List all applications
-⏳ Filter by status (pending, approved, rejected)
-⏳ View application details
-⏳ View uploaded documents
-⏳ Approve/reject with email notifications
-⏳ Admin routes (/admin/applications)
-Estimated: 2-3 hours
+Feature 2C: Admin reviews ✅ COMPLETED (Feb 24, 2026)
+✅ Admin dashboard page
+✅ List all applications
+✅ Filter by status (pending, under_review, approved, rejected)
+✅ View application details
+✅ View uploaded documents
+✅ Approve/reject with email notifications
+✅ Admin routes (/admin/applications)
+Delivered: controller + UI + email integration + validation hardening (Feb 24, 2026)
 
 ---
 
@@ -262,7 +301,7 @@ src/
     pageRoutes.js                 ← Public pages (home, events, blog, about, leaderboard)
     organizer.routes.js           ← Organizer profile & application (Phase 2B)
     event.routes.js               ← Phase 3 (scaffolded)
-    admin.routes.js               ← Phase 2C (pending)
+    admin.routes.js               ← Phase 2C completed (Feb 24, 2026)
   services/
     upload.service.js
     email.service.js
@@ -304,8 +343,8 @@ src/
       complete-profile.ejs         ← 3-step form wizard
       application-status.ejs       ← Status tracking with timeline
     admin/
-      applications-list.ejs        ← PENDING Phase 2C
-      application-details.ejs      ← PENDING Phase 2C
+      applications-list.ejs        ← Phase 2C completed (Feb 24, 2026)
+      application-details.ejs      ← Phase 2C completed (Feb 24, 2026)
     error.ejs
   public/
     css/
@@ -437,14 +476,14 @@ Auth Page Redirect:
 ---
 
 ===========================================
-TIMELINE TRACKING (Updated Feb 19, 2026)
+TIMELINE TRACKING (Updated Feb 24, 2026)
 ===========================================
 
 Phase 0:  ✅ Completed - Nov 2024
 Phase 1:  ✅ Completed - Feb 2025
 Phase 2A: ✅ Completed - Dec 2024
 Phase 2B: ✅ Completed - Feb 14, 2026
-Phase 2C: 🔄 Ready to start (~2-3 hours)
+Phase 2C: ✅ Completed - Feb 24, 2026
 Phase 3:  🔜 After Phase 2C
 Phase 4:  🔜 After Phase 3
 Phase 5:  🔜 After Phase 4 (includes Leaderboard)
@@ -454,7 +493,7 @@ Phase 8:  🔜 Optional
 Phase 9:  🔜 Before launch
 Phase 10: 🔜 Launch
 
-Estimated remaining: ~20 hours
+Estimated remaining: ~17-18 hours
 
 ---
 
@@ -560,3 +599,5 @@ DETAILED CHANGELOGS → See dir.txt
 ===========================================
 All session-by-session changelogs are maintained in dir.txt.
 This file (wireframe.txt) focuses on phase plans, architecture, and status tracking.
+
+

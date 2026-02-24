@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/event-manage.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="manage-page">
+    <section class="manage-shell">
+      <header class="manage-header">
+        <div>
+          <h1>Event Preview</h1>
+          <p>Preview only. This event has not been saved yet.</p>
+        </div>
+        <div class="header-actions">
+          <a href="/organizer/create-event" class="btn btn-secondary">Back to Create</a>
+          <button type="button" class="btn" onclick="window.close()">Close Preview</button>
+        </div>
+      </header>
+
+      <% const errorMessages = Object.values(errors || {}); %>
+      <% if (errorMessages.length) { %>
+        <div class="page-message page-message-error">
+          <strong>This preview has validation issues:</strong>
+          <ul>
+            <% errorMessages.forEach((errorText) => { %>
+              <li><%= errorText %></li>
+            <% }); %>
+          </ul>
+        </div>
+      <% } else { %>
+        <div class="page-message page-message-success">
+          <strong>Looks good:</strong> this event is valid based on current create-event rules.
+        </div>
+      <% } %>
+
+      <div class="detail-grid">
+        <article class="detail-card">
+          <h3>Basic</h3>
+          <p><strong>Status on Save:</strong> <span class="status status-<%= previewEvent.actionType === 'publish' ? 'published' : 'draft' %>"><%= previewEvent.actionType === 'publish' ? 'published' : 'draft' %></span></p>
+          <p><strong>Title:</strong> <%= previewEvent.title || 'N/A' %></p>
+          <p><strong>Organizer:</strong> <%= previewEvent.organiserName || 'Will use account name' %></p>
+          <p><strong>Event Type:</strong> <%= previewEvent.eventType || 'N/A' %></p>
+          <p><strong>Allowed Modes:</strong> <%= (previewEvent.eventTypesAllowed || []).join(', ') || 'N/A' %></p>
+          <p><strong>Race Distances:</strong> <%= (previewEvent.raceDistances || []).join(', ') || 'N/A' %></p>
+        </article>
+
+        <article class="detail-card">
+          <h3>Dates</h3>
+          <p><strong>Registration Open:</strong> <%= previewEvent.registrationOpenAt ? new Date(previewEvent.registrationOpenAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Registration Close:</strong> <%= previewEvent.registrationCloseAt ? new Date(previewEvent.registrationCloseAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Event Start:</strong> <%= previewEvent.eventStartAt ? new Date(previewEvent.eventStartAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Event End:</strong> <%= previewEvent.eventEndAt ? new Date(previewEvent.eventEndAt).toLocaleString('en-US') : 'N/A' %></p>
+        </article>
+
+        <article class="detail-card">
+          <h3>Location</h3>
+          <p><strong>Venue:</strong> <%= previewEvent.venueName || 'N/A' %></p>
+          <p><strong>Address:</strong> <%= previewEvent.venueAddress || 'N/A' %></p>
+          <p><strong>City/Province:</strong> <%= [previewEvent.city, previewEvent.province].filter(Boolean).join(', ') || 'N/A' %></p>
+          <p><strong>Country:</strong> <%= previewEvent.country || 'N/A' %></p>
+          <p><strong>Geo:</strong> <%= previewEvent.geo && Number.isFinite(previewEvent.geo.lat) && Number.isFinite(previewEvent.geo.lng) ? `${previewEvent.geo.lat}, ${previewEvent.geo.lng}` : 'N/A' %></p>
+        </article>
+
+        <article class="detail-card">
+          <h3>Virtual Rules</h3>
+          <p><strong>Virtual Window Start:</strong> <%= previewEvent.virtualWindow?.startAt ? new Date(previewEvent.virtualWindow.startAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Virtual Window End:</strong> <%= previewEvent.virtualWindow?.endAt ? new Date(previewEvent.virtualWindow.endAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Proof Types:</strong> <%= (previewEvent.proofTypesAllowed || []).join(', ') || 'N/A' %></p>
+        </article>
+
+        <article class="detail-card detail-card-full">
+          <h3>Description</h3>
+          <p><%= previewEvent.description || 'N/A' %></p>
+        </article>
+
+        <article class="detail-card">
+          <h3>Branding</h3>
+          <p><strong>Banner URL:</strong> <%= previewEvent.bannerImageUrl || 'N/A' %></p>
+          <p><strong>Logo URL:</strong> <%= previewEvent.logoUrl || 'N/A' %></p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

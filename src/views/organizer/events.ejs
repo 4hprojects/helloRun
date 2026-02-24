@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: 'My Events - helloRun' }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="events-page">
+    <section class="events-shell">
+      <header class="events-header">
+        <div>
+          <h1>My Events</h1>
+          <p>Track all events you created, including drafts and published runs.</p>
+        </div>
+        <a href="/organizer/create-event" class="btn">Create New Event</a>
+      </header>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <form method="GET" action="/organizer/events" class="filter-bar">
+        <label for="q">Search</label>
+        <input id="q" name="q" type="search" placeholder="Title, slug, city, venue" value="<%= searchQuery || '' %>">
+
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          <option value="" <%= !selectedStatus ? 'selected' : '' %>>All</option>
+          <option value="draft" <%= selectedStatus === 'draft' ? 'selected' : '' %>>Draft</option>
+          <option value="published" <%= selectedStatus === 'published' ? 'selected' : '' %>>Published</option>
+          <option value="closed" <%= selectedStatus === 'closed' ? 'selected' : '' %>>Closed</option>
+        </select>
+
+        <label for="sort">Sort</label>
+        <select id="sort" name="sort">
+          <option value="newest" <%= selectedSort === 'newest' ? 'selected' : '' %>>Newest</option>
+          <option value="oldest" <%= selectedSort === 'oldest' ? 'selected' : '' %>>Oldest</option>
+          <option value="start_asc" <%= selectedSort === 'start_asc' ? 'selected' : '' %>>Event Start (Soonest)</option>
+          <option value="start_desc" <%= selectedSort === 'start_desc' ? 'selected' : '' %>>Event Start (Latest)</option>
+        </select>
+
+        <button type="submit" class="btn btn-secondary">Apply</button>
+        <a href="/organizer/events" class="btn btn-secondary">Reset</a>
+      </form>
+
+      <% if (events && events.length > 0) { %>
+        <div class="events-grid">
+          <% events.forEach(event => { %>
+            <article class="event-card">
+              <div class="event-card-top">
+                <h3><%= event.title %></h3>
+                <span class="status-badge status-<%= event.status %>"><%= event.status %></span>
+              </div>
+
+              <p class="event-meta">
+                <i data-lucide="calendar"></i>
+                <span>
+                  <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'Start date TBA' %>
+                </span>
+              </p>
+
+              <p class="event-meta">
+                <i data-lucide="map-pin"></i>
+                <span><%= [event.venueName, event.city, event.country].filter(Boolean).join(', ') || 'Location TBA' %></span>
+              </p>
+
+              <p class="event-description"><%= event.description %></p>
+
+              <div class="event-footer">
+                <small>Slug: <code><%= event.slug %></code></small>
+                <small>Created: <%= new Date(event.createdAt).toLocaleDateString('en-US') %></small>
+              </div>
+
+              <div class="event-actions">
+                <a href="/organizer/events/<%= event._id %>" class="btn btn-secondary btn-sm">View</a>
+                <a href="/organizer/events/<%= event._id %>/edit" class="btn btn-secondary btn-sm">Edit</a>
+                <a href="/organizer/events/<%= event._id %>/registrants" class="btn btn-secondary btn-sm">Registrants</a>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <i data-lucide="calendar-plus"></i>
+          <% if (selectedStatus || searchQuery) { %>
+            <h3>No matching events</h3>
+            <p>Try changing your filters or search text.</p>
+            <a href="/organizer/events" class="btn btn-secondary">Clear Filters</a>
+          <% } else { %>
+            <h3>No events yet</h3>
+            <p>Create your first event to start accepting runners.</p>
+            <a href="/organizer/create-event" class="btn">Create Event</a>
+          <% } %>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

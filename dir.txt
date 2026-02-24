@@ -1,3 +1,131 @@
+================================================================================
+CHANGELOG - February 24, 2026 (Session: Phase 4 Kickoff - Account Registration Flow)
+================================================================================
+
+SESSION UPDATE: Published events are now viewable publicly, and account-required event registration is implemented (initial pass).
+
+PHASE STATUS SNAPSHOT:
+  - Phase 3 (Event Creation & Management): In progress, major working baseline complete (create/edit/list/details/status + public published view)
+  - Phase 4 (Registration System): In progress (account-required registration flow now implemented)
+
+IMPLEMENTED IN THIS PASS:
+  1. Public published event viewing
+     - /events now lists only published events
+     - /events/:slug shows public event details
+     - draft/closed events are blocked from public details
+
+  2. Account-required event registration
+     - GET /events/:slug/register (requires login)
+     - POST /events/:slug/register (requires login)
+     - If not logged in: redirect to login, then return to intended register page
+
+  3. Registration guards and rules
+     - Event must be published
+     - Registration window must be open
+     - Participation mode must be allowed by event type/modes
+     - One registration per user per event (duplicate blocked)
+     - Registration email is enforced from logged-in helloRun account
+
+  4. Data + email integration
+     - Registration model implemented with unique indexes and confirmation code
+     - Confirmation email added (graceful failure: DB success does not roll back on email send failure)
+
+  5. User registration visibility
+     - Added /my-registrations (auth required)
+     - Added "My Registrations" navigation and page entry links
+
+MANUAL SMOKE CHECKLIST (Published Events + Registration):
+  [ ] /events shows published events only
+  [ ] /events/:slug returns 404 for draft/closed/unavailable events
+  [ ] Logged-out user opening /events/:slug/register is redirected to /login
+  [ ] After login, user returns to intended /events/:slug/register page
+  [ ] Eligible account can register once successfully
+  [ ] Duplicate registration attempt is blocked with clear message
+  [ ] Invalid participation mode is blocked
+  [ ] Closed registration window is blocked
+  [ ] Confirmation code appears after successful registration
+  [ ] Confirmation email send is attempted (without breaking successful registration on failure)
+  [ ] /my-registrations displays newly created registration record
+================================================================================
+CHANGELOG - February 24, 2026 (Session: Organizer Phase 3 Polish)
+================================================================================
+
+SESSION UPDATE: Organizer event management polish (search/sort, timeline metadata, preview hardening)
+
+UPDATED FILES (8):
+  1. src/routes/organizer.routes.js
+     - Added GET /organizer/preview-event for create-form preview rendering
+     - Added organizer events list query support:
+       - status: draft | published | closed
+       - q: free-text search (title, organiserName, slug, venue, city, country)
+       - sort: newest | oldest | start_asc | start_desc
+     - Added safe regex escaping for text search
+     - Normalized proofTypesAllowed input to allowed values only (gps, photo, manual)
+     - Hardened persistence by event type:
+       - onsite: clears virtual proof rules
+       - virtual/hybrid: keeps virtual fields
+
+  2. src/views/organizer/create-event.ejs
+     - Kept event type as dropdown (virtual, onsite, hybrid)
+     - Fixed branding preview JS to avoid null-image runtime errors
+     - Preview button now lands on working /organizer/preview-event route
+
+  3. src/views/organizer/event-preview.ejs (NEW)
+     - Added full event preview page for unsaved form data
+     - Shows validation summary and schema-aligned field snapshot
+
+  4. src/views/organizer/edit-event.ejs
+     - Refactored to sectioned layout aligned with create form
+     - Added event type conditional sections (location and virtual rules)
+
+  5. src/views/organizer/events.ejs
+     - Added search input and sort dropdown in filter bar
+     - Added no-match empty state for filtered searches
+
+  6. src/public/css/organizer-events.css
+     - Added search input sizing rules in filter bar
+
+  7. src/views/organizer/event-details.ejs
+     - Added timeline metadata card (created, updated, registration checkpoints)
+     - Added audit card (eventId, organizerId)
+
+  8. src/public/css/event-manage.css
+     - Added safer code wrapping for long IDs
+
+MANUAL SMOKE CHECKLIST (Organizer Events):
+  [ ] Approved organizer can open /organizer/create-event
+  [ ] Event Type dropdown values are exactly: virtual, onsite, hybrid
+  [ ] Preview button opens /organizer/preview-event and shows validation state
+  [ ] Save Draft creates event with status=draft
+  [ ] Publish creates event with status=published
+  [ ] /organizer/events supports:
+      - status filter
+      - text query q
+      - sort option changes ordering
+  [ ] /organizer/events empty filtered results show "No matching events"
+  [ ] /organizer/events/:id shows Timeline + Audit sections
+  [ ] Draft -> Published transition works when event data is valid
+  [ ] Published -> Closed transition works
+  [ ] Invalid transition attempts are blocked with clear message
+================================================================================
+CHANGELOG - February 24, 2026
+================================================================================
+? SESSION UPDATE: PHASE 2C ADMIN REVIEW HARDENING COMPLETE
+? UPDATED FILES (6):
+  1. src/controllers/admin.controller.js - Full review logic, status transition guards, reject validation, admin-safe 404/500 rendering, query filter support
+  2. src/routes/admin.routes.js - Cleaned route comments, confirmed requireAdmin coverage
+  3. src/views/admin/applications-list.ejs - Added status filter, free-text search, improved table + empty state
+  4. src/views/admin/application-details.ejs - Added review action panel, rejection reason constraints, reviewed metadata, safer document links
+  5. src/views/admin/dashboard.ejs - Added actionable metrics cards + filtered CTAs
+  6. src/public/css/admin.css (NEW) - Dedicated admin styling for dashboard/list/detail views
+? PHASE 2C DELIVERABLES COMPLETED:
+  ? Admin list filters: status + search query
+  ? Approve/reject flow hardened with valid status transitions
+  ? Rejection reason server-side validation (min/max)
+  ? User status/role consistency updates on decision
+  ? Real email notifications via email.service with graceful failure handling
+  ? Improved admin UX and feedback messaging
+
 helloRun/
   src/
     config/
@@ -24,7 +152,7 @@ helloRun/
       organiser.routes.js
       organizer.routes.js           ← Event creation & organizer profile (Feb 14, 2026)
       pageRoutes.js                 ← UPDATED (Feb 19, 2026) - Added /leaderboard route
-      admin.routes.js               ← PENDING Phase 2C
+      admin.routes.js               ← UPDATED (Feb 24, 2026) - Phase 2C admin review routes + protections
     services/
       upload.service.js             ← Updated (Feb 5, 2026)
       email.service.js              ← Updated (Feb 5, 2026)
@@ -66,8 +194,8 @@ helloRun/
         complete-profile.ejs         ← NEW (Feb 14, 2026) - 3-step form wizard
         application-status.ejs       ← NEW (Feb 14, 2026) - Status tracking page
       admin/
-        applications-list.ejs        ← PENDING Phase 2C
-        application-details.ejs      ← PENDING Phase 2C
+        applications-list.ejs        ← UPDATED (Feb 24, 2026) - Filters, search, statuses, admin UI polish
+        application-details.ejs      ← UPDATED (Feb 24, 2026) - Review panel, validation, safe doc links
       error.ejs
     public/
       css/
@@ -324,9 +452,9 @@ CHANGELOG - February 5, 2026
 CURRENT STATUS SUMMARY
 ================================================================================
 
-PROJECT STATUS: Development Phase 2B Complete (Feb 19, 2026)
-LAST MAJOR UPDATE: Feb 19, 2026 - Auth middleware rewrite, nav auth toggle, redirectIfAuth, Blog + Leaderboard nav links
-NEXT PHASE: Phase 2C - Admin Application Review Dashboard
+PROJECT STATUS: Development Phase 2C Complete (Feb 24, 2026)
+LAST MAJOR UPDATE: Feb 24, 2026 - Phase 2C admin review hardening (controller, UI, filters, email integration)
+NEXT PHASE: Phase 3 - Event Creation & Management
 
 COMPLETED WORK:
   ✅ Phase 0: Basic project structure
@@ -350,7 +478,7 @@ COMPLETED WORK:
   ✅ Leaderboard placeholder page + nav link
 
 IN PROGRESS:
-  🔄 Phase 2C: Admin dashboard for application review (Ready to start)
+  🔄 Phase 3: Event creation and management (scaffold completion + CRUD)
 
 QUALITY METRICS:
   ✅ Code organized with clear comments
@@ -367,15 +495,14 @@ QUALITY METRICS:
   ✅ Proper auth state in nav across all pages
 
 ESTIMATED TIMELINE:
-  Phase 2C (Admin): 2-3 hours
   Phase 3 (Events): 4-6 hours
   Phase 4 (Registration): 3-4 hours
   Phase 5 (Submissions + Leaderboard): 4-5 hours
   Phase 6 (Dashboards): 4-6 hours
-  Total remaining: ~20 hours
+  Total remaining: ~17-18 hours
 
 ================================================================================
-COMPLETE FEATURE LIST (As of Feb 19, 2026)
+COMPLETE FEATURE LIST (As of Feb 24, 2026)
 ================================================================================
 
 AUTHENTICATION (Phase 1) ✅ COMPLETE:
@@ -402,7 +529,7 @@ AUTH MIDDLEWARE ✅ COMPLETE:
   ✅ requireOrganizer - Protects organiser-only routes
   ✅ requireApprovedOrganizer - Protects approved-organiser-only routes
 
-ORGANIZER APPLICATIONS (Phase 2) ✅ 80% COMPLETE:
+ORGANIZER APPLICATIONS (Phase 2) ✅ 100% COMPLETE:
   ✅ User selects "Organizer" role on signup
   ✅ Email verification required before application
   ✅ 3-step application form
@@ -415,9 +542,9 @@ ORGANIZER APPLICATIONS (Phase 2) ✅ 80% COMPLETE:
   ✅ Auto-refresh status every 5 minutes
   ✅ Copy application ID to clipboard
   ✅ Email notification on submission
-  ⏳ Admin application review dashboard (Phase 2C)
-  ⏳ Approve/reject functionality (Phase 2C)
-  ⏳ Approval/rejection emails (Phase 2C)
+  ✅ Admin application review dashboard (Phase 2C)
+  ✅ Approve/reject functionality (Phase 2C)
+  ✅ Approval/rejection emails (Phase 2C)
 
 NAVIGATION ✅ COMPLETE:
   ✅ Responsive navigation with hamburger menu
@@ -443,7 +570,6 @@ PAGES ✅ COMPLETE:
   ✅ Mobile responsive (768px & 480px breakpoints)
 
 PENDING FEATURES:
-  ⏳ Phase 2C: Admin dashboard for application review
   ⏳ Phase 3: Event creation and management
   ⏳ Phase 4: Registration system
   ⏳ Phase 5: Submission, results, and leaderboard data
@@ -454,3 +580,6 @@ PENDING FEATURES:
   ⏳ Phase 10: Production deployment
 
 ================================================================================
+
+
+

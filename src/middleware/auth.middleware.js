@@ -68,6 +68,9 @@ async function populateAuthLocals(req, res, next) {
  */
 function requireAuth(req, res, next) {
   if (!req.session || !req.session.userId) {
+    if (req.session) {
+      req.session.returnTo = req.originalUrl;
+    }
     return res.redirect('/login');
   }
   next();

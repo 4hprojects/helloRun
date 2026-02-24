@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/events.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="event-register-page">
+    <section class="event-register-shell">
+      <header class="event-register-header">
+        <a href="/events/<%= event.slug %>" class="btn btn-secondary">Back to Event</a>
+        <h1>Register: <%= event.title %></h1>
+      </header>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <% if (existingRegistration) { %>
+        <section class="registration-summary registration-summary-success">
+          <h2><%= justRegistered ? 'Registration Confirmed' : 'Already Registered' %></h2>
+          <p>Your account is registered for this event.</p>
+          <div class="registration-summary-grid">
+            <p><strong>Confirmation Code:</strong> <code><%= existingRegistration.confirmationCode %></code></p>
+            <p><strong>Race Distance:</strong> <%= existingRegistration.raceDistance || 'N/A' %></p>
+            <p><strong>Participation Mode:</strong> <%= existingRegistration.participationMode %></p>
+            <p><strong>Status:</strong> <%= existingRegistration.status %></p>
+            <p><strong>Payment Status:</strong> <%= existingRegistration.paymentStatus %></p>
+            <p><strong>Registered At:</strong> <%= existingRegistration.registeredAt ? new Date(existingRegistration.registeredAt).toLocaleString('en-US') : 'N/A' %></p>
+          </div>
+        </section>
+      <% } %>
+
+      <% if (registrationWindowError) { %>
+        <div class="page-message page-message-error"><%= registrationWindowError %></div>
+      <% } %>
+
+      <% if (errors && errors.base) { %>
+        <div class="page-message page-message-error"><%= errors.base %></div>
+      <% } %>
+
+      <% if (!existingRegistration) { %>
+      <form method="POST" action="/events/<%= event.slug %>/register" class="event-register-form" id="eventRegisterForm">
+        <div class="register-grid">
+          <div class="form-group <%= errors.firstName ? 'has-error' : '' %>">
+            <label for="firstName">First Name *</label>
+            <input id="firstName" name="firstName" type="text" value="<%= formData.firstName %>" <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
+            <% if (errors.firstName) { %><small class="error-text"><%= errors.firstName %></small><% } %>
+          </div>
+
+          <div class="form-group <%= errors.lastName ? 'has-error' : '' %>">
+            <label for="lastName">Last Name *</label>
+            <input id="lastName" name="lastName" type="text" value="<%= formData.lastName %>" <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
+            <% if (errors.lastName) { %><small class="error-text"><%= errors.lastName %></small><% } %>
+          </div>
+
+          <div class="form-group <%= errors.email ? 'has-error' : '' %>">
+            <label for="email">Email *</label>
+            <input id="email" name="email" type="email" value="<%= formData.email %>" readonly <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
+            <small class="field-hint">Registration uses your helloRun account email.</small>
+            <% if (errors.email) { %><small class="error-text"><%= errors.email %></small><% } %>
+          </div>
+
+          <div class="form-group">
+            <label for="mobile">Mobile</label>
+            <input id="mobile" name="mobile" type="text" value="<%= formData.mobile %>" <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
+            <% if (errors.mobile) { %><small class="error-text"><%= errors.mobile %></small><% } %>
+          </div>
+
+          <div class="form-group <%= errors.country ? 'has-error' : '' %>">
+            <label for="country">Country</label>
+            <select id="country" name="country" <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
+              <option value="">Select country (optional)</option>
+              <% (countries || []).forEach((item) => { %>
+                <option value="<%= item.code %>" <%= formData.country === item.code ? 'selected' : '' %>><%= item.name %></option>
+              <% }) %>
+            </select>
+            <% if (errors.country) { %><small class="error-text"><%= errors.country %></small><% } %>
+          </div>
+
+          <div class="form-group <%= errors.participationMode ? 'has-error' : '' %>">
+            <label for="participationMode">Participation Mode *</label>
+            <select id="participationMode" name="participationMode" <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
+              <% allowedModes.forEach((mode) => { %>
+                <option value="<%= mode %>" <%= formData.participationMode === mode ? 'selected' : '' %>><%= mode %></option>
+              <% }) %>
+            </select>
+            <% if (errors.participationMode) { %><small class="error-text"><%= errors.participationMode %></small><% } %>
+          </div>
+
+          <div class="form-group <%= errors.raceDistance ? 'has-error' : '' %>">
+            <label for="raceDistance">Race Distance *</label>
+            <select id="raceDistance" name="raceDistance" <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
+              <% allowedRaceDistances.forEach((distance) => { %>
+                <option value="<%= distance %>" <%= formData.raceDistance === distance ? 'selected' : '' %>><%= distance %></option>
+              <% }) %>
+            </select>
+            <% if (errors.raceDistance) { %><small class="error-text"><%= errors.raceDistance %></small><% } %>
+          </div>
+        </div>
+
+        <div class="register-actions">
+          <% if (!existingRegistration && !registrationWindowError) { %>
+            <button type="submit" class="btn" id="confirmRegistrationBtn">Confirm Registration</button>
+          <% } %>
+          <a href="/events/<%= event.slug %>" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+      <% } else { %>
+        <div class="register-actions">
+          <a href="/events/<%= event.slug %>" class="btn btn-secondary">Back to Event</a>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    const form = document.getElementById('eventRegisterForm');
+    const submitBtn = document.getElementById('confirmRegistrationBtn');
+    if (form && submitBtn) {
+      form.addEventListener('submit', (event) => {
+        if (!confirm('Confirm your registration for this event?')) {
+          event.preventDefault();
+          return;
+        }
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting...';
+      });
+    }
+  </script>
+</body>
+</html>

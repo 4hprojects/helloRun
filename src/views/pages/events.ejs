@@ -1,18 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: 'Events - helloRun' }) %>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/events.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  <main style="padding: 2rem; text-align: center; min-height: 60vh; display: flex; align-items: center; justify-content: center;">
-    <div>
-      <h1>Events 🏅</h1>
-      <p>Coming soon — browse running events near you.</p>
-    </div>
+
+  <% if (loginSuccess && userName) { %>
+    <section class="login-success-banner">
+      <div class="container">
+        <p>Welcome back, <strong><%= userName %></strong>.</p>
+      </div>
+    </section>
+  <% } %>
+
+  <main>
+    <section class="events-hero">
+      <h1>Published Events</h1>
+      <p>Explore active helloRun races and pick your next challenge.</p>
+      <% if (locals.isAuthenticated) { %>
+        <div class="hero-actions">
+          <a href="/my-registrations" class="btn btn-secondary">My Registrations</a>
+        </div>
+      <% } %>
+    </section>
+
+    <section class="events-list">
+      <div class="container">
+        <h2>Browse Events</h2>
+
+        <% if (events && events.length) { %>
+          <div class="events-grid">
+            <% events.forEach((event) => { %>
+              <article class="event-card">
+                <% if (event.bannerImageUrl) { %>
+                  <a href="/events/<%= event.slug %>" class="event-banner-link" aria-label="View <%= event.title %>">
+                    <img class="event-banner" src="<%= event.bannerImageUrl %>" alt="<%= event.title %> banner">
+                  </a>
+                <% } %>
+
+                <div class="event-card-content">
+                  <div class="event-chip-row">
+                    <span class="event-chip"><%= event.eventType || 'event' %></span>
+                    <span class="event-chip event-chip-muted"><%= (event.eventTypesAllowed || []).join(' / ') || 'N/A' %></span>
+                  </div>
+
+                  <h3><a href="/events/<%= event.slug %>"><%= event.title %></a></h3>
+
+                  <p class="event-meta">
+                    <i data-lucide="calendar"></i>
+                    <span><%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'Start date TBA' %></span>
+                  </p>
+
+                  <p class="event-meta">
+                    <i data-lucide="map-pin"></i>
+                    <span><%= [event.venueName, event.city, event.countryLabel].filter(Boolean).join(', ') || 'Location TBA' %></span>
+                  </p>
+
+                  <p class="event-meta">
+                    <i data-lucide="flag"></i>
+                    <span><%= (event.raceDistances || []).join(', ') || 'Distances TBA' %></span>
+                  </p>
+
+                  <p class="event-description"><%= event.description || 'No event description available.' %></p>
+
+                  <div class="event-actions">
+                    <a href="/events/<%= event.slug %>" class="btn">View Event</a>
+                  </div>
+                </div>
+              </article>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <div class="no-events-message">
+            <i data-lucide="calendar-x"></i>
+            <h3>No published events yet</h3>
+            <p>Check back soon for newly published races.</p>
+          </div>
+        <% } %>
+      </div>
+    </section>
   </main>
+
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if(window.lucide) lucide.createIcons();</script>
+  <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

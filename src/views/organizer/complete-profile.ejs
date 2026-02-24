@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: 'Application Status - helloRun' }) %>
-  <link rel="stylesheet" href="/css/application-status.css">
+  <%- include('../layouts/head', { title: 'Complete Profile - helloRun' }) %>
+  <link rel="stylesheet" href="/css/complete-profile.css">
   <meta name="description" content="Track your organizer application status on helloRun.">
 </head>
 <body>
@@ -11,236 +11,440 @@
   <main class="status-page" id="main-content">
     <div class="status-container">
       
-      <!-- Header Section with Accessible Icon -->
-      <header class="status-header">
-        <div class="header-content">
-          <h1>Your Organizer Application</h1>
-          <p class="header-subtitle">Application ID: <span class="application-id" aria-label="Application identifier"><%= application.applicationId %></span></p>
-        </div>
-        <div class="header-icon" aria-hidden="true">
-          <% if (application.status === 'pending') { %>
-            <svg data-lucide="clock" width="48" height="48" aria-label="Pending"></svg>
-          <% } else if (application.status === 'under_review') { %>
-            <svg data-lucide="eye" width="48" height="48" aria-label="Under review"></svg>
-          <% } else if (application.status === 'approved') { %>
-            <svg data-lucide="check-circle" width="48" height="48" aria-label="Approved"></svg>
-          <% } else if (application.status === 'rejected') { %>
-            <svg data-lucide="alert-circle" width="48" height="48" aria-label="Rejected"></svg>
-          <% } %>
-        </div>
-      </header>
-
-      <!-- Status Card -->
-      <section class="status-card status-card-<%= application.status %>" aria-labelledby="status-heading">
-        <div class="status-badge status-badge-<%= application.status %>">
-          <% if (application.status === 'pending') { %>
-            <span>Pending Review</span>
-          <% } else if (application.status === 'under_review') { %>
-            <span>Under Review</span>
-          <% } else if (application.status === 'approved') { %>
-            <span>Approved</span>
-          <% } else if (application.status === 'rejected') { %>
-            <span>Rejected</span>
-          <% } %>
-        </div>
-
-        <div class="status-message">
-          <% if (application.status === 'pending') { %>
-            <h2 id="status-heading">Your application is waiting to be reviewed</h2>
-            <p>Thank you for submitting your organizer application! Our team will review your documents and get back to you within <strong><%= reviewDays %> business days</strong>.</p>
-          <% } else if (application.status === 'under_review') { %>
-            <h2 id="status-heading">Your application is under review</h2>
-            <p>We're currently reviewing your submitted documents. This usually takes <strong><%= reviewDays %> business days</strong>. You'll receive an email once a decision is made.</p>
-          <% } else if (application.status === 'approved') { %>
-            <h2 id="status-heading" class="success-message">Congratulations! Your application has been approved</h2>
-            <p>You're now a verified organizer on helloRun. You can start creating and managing your first event right away.</p>
-          <% } else if (application.status === 'rejected') { %>
-            <h2 id="status-heading" class="error-message">Your application was not approved</h2>
-            <p>Unfortunately, your application did not meet our verification requirements at this time. See the details below for more information.</p>
-          <% } %>
-        </div>
-      </section>
-
-      <!-- Timeline -->
-      <section class="timeline-section" aria-labelledby="timeline-heading">
-        <h2 class="section-title" id="timeline-heading">Application Timeline</h2>
-        
-        <div class="timeline">
-          <!-- Submitted -->
-          <div class="timeline-item completed">
-            <div class="timeline-marker" aria-hidden="true">
-              <svg data-lucide="check" width="20" height="20"></svg>
-            </div>
-            <div class="timeline-content">
-              <h3>Application Submitted</h3>
-              <p class="timeline-date"><%= submittedDate %></p>
-              <p class="timeline-description"><%= daysAgo %> day<%= daysAgo !== 1 ? 's' : '' %> ago</p>
-            </div>
-          </div>
-
-          <!-- Under Review -->
-          <div class="timeline-item <%= application.status !== 'pending' ? 'completed' : 'active' %>">
-            <div class="timeline-marker" aria-hidden="true">
-              <% if (application.status !== 'pending') { %>
-                <svg data-lucide="check" width="20" height="20"></svg>
-              <% } else { %>
-                <div class="timeline-loader" role="status" aria-label="Loading indicator"></div>
-              <% } %>
-            </div>
-            <div class="timeline-content">
-              <h3>Under Review</h3>
-              <p class="timeline-description">Our team is reviewing your documents</p>
-              <% if (application.status === 'pending' || application.status === 'under_review') { %>
-                <p class="timeline-estimate">Expected by <strong><%= estimatedDate %></strong></p>
-              <% } %>
-            </div>
-          </div>
-
-          <!-- Decision -->
-          <div class="timeline-item <%= (application.status === 'approved' || application.status === 'rejected') ? 'completed' : '' %>">
-            <div class="timeline-marker" aria-hidden="true">
-              <% if (application.status === 'approved') { %>
-                <svg data-lucide="check-circle" width="20" height="20"></svg>
-              <% } else if (application.status === 'rejected') { %>
-                <svg data-lucide="x-circle" width="20" height="20"></svg>
-              <% } else { %>
-                <div class="timeline-dot" aria-hidden="true"></div>
-              <% } %>
-            </div>
-            <div class="timeline-content">
-              <h3>Review Decision</h3>
-              <% if (application.status === 'approved') { %>
-                <p class="timeline-description">✓ Your application was approved</p>
-                <p class="timeline-date"><%= application.reviewedAt ? new Date(application.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Recently' %></p>
-              <% } else if (application.status === 'rejected') { %>
-                <p class="timeline-description">✗ Your application was not approved</p>
-                <p class="timeline-date"><%= application.reviewedAt ? new Date(application.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Recently' %></p>
-              <% } else { %>
-                <p class="timeline-description">Awaiting decision</p>
-              <% } %>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Application Details -->
-      <section class="details-section" aria-labelledby="details-heading">
-        <h2 class="section-title" id="details-heading">Application Details</h2>
-        
-        <div class="details-grid">
-          <div class="detail-item">
-            <label>Business Name</label>
-            <p><%= application.businessName %></p>
-          </div>
-
-          <div class="detail-item">
-            <label>Business Type</label>
-            <p>
-              <% 
-                const typeMap = {
-                  'individual': 'Individual/Solo Organizer',
-                  'company': 'Company/Commercial',
-                  'ngo': 'Non-Profit/NGO',
-                  'sports_club': 'Sports Club/Association'
-                };
-              %>
-              <%= typeMap[application.businessType] || application.businessType %>
+      <!-- ========== STATUS VIEW (Application Exists) ========== -->
+      <% if (application) { %>
+        <!-- Header with Application ID and Copy -->
+        <header class="status-header">
+          <div class="header-content">
+            <h1>Your Organizer Application</h1>
+            <p class="header-subtitle">
+              Application ID: 
+              <span class="application-id" id="applicationId"><%= application.applicationId %></span>
+              <button type="button" class="copy-id-btn" aria-label="Copy application ID" title="Copy to clipboard">
+                <svg data-lucide="copy" width="18" height="18" aria-hidden="true"></svg>
+              </button>
             </p>
           </div>
+          <div class="header-icon" aria-hidden="true">
+            <% if (application.status === 'pending') { %>
+              <svg data-lucide="clock" width="48" height="48"></svg>
+            <% } else if (application.status === 'under_review') { %>
+              <svg data-lucide="eye" width="48" height="48"></svg>
+            <% } else if (application.status === 'approved') { %>
+              <svg data-lucide="check-circle" width="48" height="48"></svg>
+            <% } else if (application.status === 'rejected') { %>
+              <svg data-lucide="alert-circle" width="48" height="48"></svg>
+            <% } %>
+          </div>
+        </header>
 
-          <div class="detail-item">
-            <label>Contact Phone</label>
-            <p><a href="tel:<%= application.contactPhone %>" aria-label="Call <%= application.contactPhone %>"><%= application.contactPhone %></a></p>
+        <!-- Status Card (prominent status display) -->
+        <section class="status-card status-card-<%= application.status %>" aria-labelledby="status-heading">
+          <div class="status-badge status-badge-<%= application.status %>">
+            <% if (application.status === 'pending') { %>
+              <span>Pending Review</span>
+            <% } else if (application.status === 'under_review') { %>
+              <span>Under Review</span>
+            <% } else if (application.status === 'approved') { %>
+              <span>Approved</span>
+            <% } else if (application.status === 'rejected') { %>
+              <span>Rejected</span>
+            <% } %>
           </div>
 
-          <div class="detail-item">
-            <label>Business Registration Number</label>
-            <p><%= application.businessRegistrationNumber || 'Not provided' %></p>
+          <div class="status-message">
+            <% if (application.status === 'pending') { %>
+              <h2 id="status-heading">Your application is waiting to be reviewed</h2>
+              <p>Thank you for submitting your organizer application! Our team will review your documents and get back to you within <strong><%= reviewDays %> business days</strong>.</p>
+            <% } else if (application.status === 'under_review') { %>
+              <h2 id="status-heading">Your application is under review</h2>
+              <p>We're currently reviewing your submitted documents. This usually takes <strong><%= reviewDays %> business days</strong>. You'll receive an email once a decision is made.</p>
+            <% } else if (application.status === 'approved') { %>
+              <h2 id="status-heading" class="success-message">Congratulations! Your application has been approved</h2>
+              <p>You're now a verified organizer on helloRun. You can start creating and managing your first event right away.</p>
+            <% } else if (application.status === 'rejected') { %>
+              <h2 id="status-heading" class="error-message">Your application was not approved</h2>
+              <p>Unfortunately, your application did not meet our verification requirements at this time. See the details below for more information.</p>
+            <% } %>
           </div>
-
-          <div class="detail-item full-width">
-            <label>Business Address</label>
-            <p><%= application.businessAddress || 'Not provided' %></p>
-          </div>
-
-          <div class="detail-item full-width">
-            <label>Additional Information</label>
-            <p><%= application.additionalInfo || 'Not provided' %></p>
-          </div>
-
-          <div class="detail-item">
-            <label>Submission Date</label>
-            <p><%= submittedDate %></p>
-          </div>
-
-          <div class="detail-item">
-            <label>Application Status</label>
-            <p>
-              <span class="status-badge status-badge-<%= application.status %>">
-                <% if (application.status === 'pending') { %>
-                  Pending Review
-                <% } else if (application.status === 'under_review') { %>
-                  Under Review
-                <% } else if (application.status === 'approved') { %>
-                  Approved
-                <% } else if (application.status === 'rejected') { %>
-                  Rejected
-                <% } %>
-              </span>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Rejection Reason (if rejected) -->
-      <% if (application.status === 'rejected' && application.rejectionReason) { %>
-        <section class="rejection-section" aria-labelledby="rejection-heading">
-          <div class="rejection-header">
-            <svg data-lucide="alert-triangle" width="24" height="24" aria-hidden="true"></svg>
-            <h3 id="rejection-heading">Rejection Reason</h3>
-          </div>
-          <p class="rejection-reason"><%= application.rejectionReason %></p>
         </section>
+
+        <!-- Application Timeline -->
+        <section class="timeline-section" aria-labelledby="timeline-heading">
+          <h2 class="section-title" id="timeline-heading">Application Timeline</h2>
+          
+          <div class="timeline">
+            <!-- Submitted -->
+            <div class="timeline-item completed">
+              <div class="timeline-marker" aria-hidden="true">
+                <svg data-lucide="check" width="20" height="20"></svg>
+              </div>
+              <div class="timeline-content">
+                <h3>Application Submitted</h3>
+                <% if (submittedDate) { %>
+                  <p class="timeline-date"><%= submittedDate %></p>
+                <% } %>
+                <p class="timeline-description"><%= daysAgo %> day<%= daysAgo !== 1 ? 's' : '' %> ago</p>
+              </div>
+            </div>
+
+            <!-- Under Review -->
+            <div class="timeline-item <%= application.status !== 'pending' ? 'completed' : 'active' %>">
+              <div class="timeline-marker" aria-hidden="true">
+                <% if (application.status !== 'pending') { %>
+                  <svg data-lucide="check" width="20" height="20"></svg>
+                <% } else { %>
+                  <div class="timeline-loader" role="status" aria-label="Loading indicator"></div>
+                <% } %>
+              </div>
+              <div class="timeline-content">
+                <h3>Under Review</h3>
+                <p class="timeline-description">Our team is reviewing your documents</p>
+                <% if (application.status === 'pending' || application.status === 'under_review') { %>
+                  <p class="timeline-estimate">Expected by <strong><%= estimatedDate %></strong></p>
+                <% } %>
+              </div>
+            </div>
+
+            <!-- Decision -->
+            <div class="timeline-item <%= (application.status === 'approved' || application.status === 'rejected') ? 'completed' : '' %>">
+              <div class="timeline-marker" aria-hidden="true">
+                <% if (application.status === 'approved') { %>
+                  <svg data-lucide="check-circle" width="20" height="20"></svg>
+                <% } else if (application.status === 'rejected') { %>
+                  <svg data-lucide="x-circle" width="20" height="20"></svg>
+                <% } else { %>
+                  <div class="timeline-dot" aria-hidden="true"></div>
+                <% } %>
+              </div>
+              <div class="timeline-content">
+                <h3>Review Decision</h3>
+                <% if (application.status === 'approved') { %>
+                  <p class="timeline-description">✓ Your application was approved</p>
+                  <p class="timeline-date"><%= application.reviewedAt ? new Date(application.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Recently' %></p>
+                <% } else if (application.status === 'rejected') { %>
+                  <p class="timeline-description">✗ Your application was not approved</p>
+                  <p class="timeline-date"><%= application.reviewedAt ? new Date(application.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Recently' %></p>
+                <% } else { %>
+                  <p class="timeline-description">Awaiting decision</p>
+                <% } %>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Application Details (grouped into cards) -->
+        <section class="details-section" aria-labelledby="details-heading">
+          <h2 class="section-title" id="details-heading">Application Details</h2>
+          
+          <div class="details-grid">
+            <!-- Business Info Card -->
+            <div class="detail-card">
+              <h3 class="detail-card-title">
+                <svg data-lucide="briefcase" width="20" height="20" aria-hidden="true"></svg>
+                Business Information
+              </h3>
+              <div class="detail-card-content">
+                <div class="detail-item">
+                  <span class="detail-label">Business Name</span>
+                  <span class="detail-value"><%= application.businessName %></span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Business Type</span>
+                  <span class="detail-value">
+                    <% 
+                      const typeMap = {
+                        'individual': 'Individual/Solo Organizer',
+                        'company': 'Company/Commercial',
+                        'ngo': 'Non-Profit/NGO',
+                        'sports_club': 'Sports Club/Association'
+                      };
+                    %>
+                    <%= typeMap[application.businessType] || application.businessType %>
+                  </span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Business Registration</span>
+                  <span class="detail-value"><%= application.businessRegistrationNumber || 'Not provided' %></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contact Card -->
+            <div class="detail-card">
+              <h3 class="detail-card-title">
+                <svg data-lucide="phone" width="20" height="20" aria-hidden="true"></svg>
+                Contact Information
+              </h3>
+              <div class="detail-card-content">
+                <div class="detail-item">
+                  <span class="detail-label">Phone</span>
+                  <span class="detail-value"><a href="tel:<%= application.contactPhone %>"><%= application.contactPhone %></a></span>
+                </div>
+                <div class="detail-item full-width">
+                  <span class="detail-label">Address</span>
+                  <span class="detail-value"><%= application.businessAddress || 'Not provided' %></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Additional Info Card -->
+            <div class="detail-card">
+              <h3 class="detail-card-title">
+                <svg data-lucide="file-text" width="20" height="20" aria-hidden="true"></svg>
+                Additional Information
+              </h3>
+              <div class="detail-card-content">
+                <div class="detail-item full-width">
+                  <span class="detail-label">Notes</span>
+                  <span class="detail-value"><%= application.additionalInfo || 'Not provided' %></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Status & Dates Card -->
+            <div class="detail-card">
+              <h3 class="detail-card-title">
+                <svg data-lucide="calendar" width="20" height="20" aria-hidden="true"></svg>
+                Application Timeline
+              </h3>
+              <div class="detail-card-content">
+                <div class="detail-item">
+                  <span class="detail-label">Submitted</span>
+                  <span class="detail-value"><%= submittedDate %></span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">Current Status</span>
+                  <span class="detail-value">
+                    <span class="status-badge status-badge-<%= application.status %>">
+                      <% if (application.status === 'pending') { %>Pending<% } 
+                         else if (application.status === 'under_review') { %>Under Review<% }
+                         else if (application.status === 'approved') { %>Approved<% }
+                         else if (application.status === 'rejected') { %>Rejected<% } %>
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Rejection Reason (if rejected) -->
+        <% if (application.status === 'rejected' && application.rejectionReason) { %>
+          <section class="rejection-section" aria-labelledby="rejection-heading">
+            <div class="rejection-header">
+              <svg data-lucide="alert-triangle" width="24" height="24" aria-hidden="true"></svg>
+              <h3 id="rejection-heading">Rejection Reason</h3>
+            </div>
+            <div class="rejection-content">
+              <p><%= application.rejectionReason %></p>
+            </div>
+          </section>
+        <% } %>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <% if (application.status === 'approved') { %>
+            <a href="/organizer/create-event" class="btn btn-primary">
+              <svg data-lucide="plus" width="18" height="18" aria-hidden="true"></svg>
+              Create Your First Event
+            </a>
+            <a href="/organizer/dashboard" class="btn btn-secondary">
+              <svg data-lucide="layout-dashboard" width="18" height="18" aria-hidden="true"></svg>
+              Go to Dashboard
+            </a>
+          <% } else if (application.status === 'rejected') { %>
+            <a href="/organizer/complete-profile" class="btn btn-primary">
+              <svg data-lucide="refresh-cw" width="18" height="18" aria-hidden="true"></svg>
+              Reapply
+            </a>
+            <a href="/" class="btn btn-secondary">
+              <svg data-lucide="home" width="18" height="18" aria-hidden="true"></svg>
+              Back to Home
+            </a>
+          <% } else { %>
+            <button class="btn btn-refresh" id="refreshStatusBtn" aria-label="Refresh page to check latest status">
+              <svg data-lucide="refresh-cw" width="18" height="18" aria-hidden="true"></svg>
+              Refresh Status
+            </button>
+            <a href="/" class="btn btn-secondary">
+              <svg data-lucide="home" width="18" height="18" aria-hidden="true"></svg>
+              Back to Home
+            </a>
+          <% } %>
+        </div>
+
+      <!-- ========== FORM VIEW (No Application) ========== -->
+      <% } else { %>
+        <form id="organizerApplicationForm" class="application-form" enctype="multipart/form-data" method="POST" action="/organizer/complete-profile" novalidate>
+          
+          <!-- Progress Steps (clickable via JS) -->
+          <div class="progress-steps" role="tablist" aria-label="Application steps">
+            <div class="progress-step active" data-step="1" role="tab" aria-selected="true" aria-controls="step1" id="step1-tab" tabindex="0">
+              <span class="progress-step-circle">1</span>
+              <span class="progress-step-label">Business Info</span>
+            </div>
+            <div class="progress-step" data-step="2" role="tab" aria-selected="false" aria-controls="step2" id="step2-tab" tabindex="-1">
+              <span class="progress-step-circle">2</span>
+              <span class="progress-step-label">Documents</span>
+            </div>
+            <div class="progress-step" data-step="3" role="tab" aria-selected="false" aria-controls="step3" id="step3-tab" tabindex="-1">
+              <span class="progress-step-circle">3</span>
+              <span class="progress-step-label">Review & Submit</span>
+            </div>
+          </div>
+
+          <!-- Step 1: Business Info -->
+          <section class="form-section active" data-section="1" id="step1" role="tabpanel" aria-labelledby="step1-tab">
+            <h2 class="section-title">
+              <svg data-lucide="briefcase" width="20" height="20" aria-hidden="true"></svg>
+              Business Information
+            </h2>
+            
+            <div class="form-row">
+              <div class="input-group">
+                <input type="text" id="businessName" name="businessName" required maxlength="100" autocomplete="organization" placeholder=" ">
+                <label for="businessName">Business Name <span class="required">*</span></label>
+                <div class="input-error" id="businessName-error" role="alert"></div>
+              </div>
+
+              <div class="input-group">
+                <select id="businessType" name="businessType" required>
+                  <option value="" disabled selected hidden></option>
+                  <option value="individual">Individual/Solo Organizer</option>
+                  <option value="company">Company/Commercial</option>
+                  <option value="ngo">Non-Profit/NGO</option>
+                  <option value="sports_club">Sports Club/Association</option>
+                </select>
+                <label for="businessType">Business Type <span class="required">*</span></label>
+                <div class="input-error" id="businessType-error" role="alert"></div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="input-group">
+                <input type="tel" id="contactPhone" name="contactPhone" required maxlength="20" autocomplete="tel" placeholder=" ">
+                <label for="contactPhone">Contact Phone <span class="required">*</span></label>
+                <div class="input-error" id="contactPhone-error" role="alert"></div>
+              </div>
+
+              <div class="input-group">
+                <input type="text" id="businessRegistrationNumber" name="businessRegistrationNumber" maxlength="50" placeholder=" ">
+                <label for="businessRegistrationNumber">Business Registration Number (optional)</label>
+              </div>
+            </div>
+
+            <div class="input-group">
+              <input type="text" id="businessAddress" name="businessAddress" required maxlength="200" autocomplete="street-address" placeholder=" ">
+              <label for="businessAddress">Business Address <span class="required">*</span></label>
+              <div class="input-error" id="businessAddress-error" role="alert"></div>
+            </div>
+
+            <div class="input-group">
+              <textarea id="additionalInfo" name="additionalInfo" maxlength="500" rows="3" placeholder=" "></textarea>
+              <label for="additionalInfo">Additional Information (optional)</label>
+              <div class="char-count"><span>0</span>/500</div>
+            </div>
+          </section>
+
+          <!-- Step 2: Document Upload -->
+          <section class="form-section" data-section="2" id="step2" role="tabpanel" aria-labelledby="step2-tab" hidden>
+            <h2 class="section-title">
+              <svg data-lucide="upload-cloud" width="20" height="20" aria-hidden="true"></svg>
+              Upload Documents
+            </h2>
+            
+            <div class="input-group">
+              <label for="idProof">ID Proof (PDF, JPG, PNG, max 5MB) <span class="required">*</span></label>
+              <div class="file-upload-zone" id="idProofZone" tabindex="0" role="button" aria-label="Upload ID proof">
+                <input type="file" id="idProof" name="idProof" accept=".pdf,.jpg,.jpeg,.png" required>
+                <svg data-lucide="upload" width="24" height="24" aria-hidden="true"></svg>
+                <span>Drag & drop or click to upload</span>
+                <span class="file-types">PDF, JPG, PNG up to 5MB</span>
+              </div>
+              <div class="file-preview" id="idProofPreview" hidden>
+                <div class="file-preview-item">
+                  <div class="file-preview-thumbnail" id="idProofThumbnail"></div>
+                  <div class="file-preview-info">
+                    <div class="file-preview-name" id="idProofName"></div>
+                    <div class="file-preview-size" id="idProofSize"></div>
+                  </div>
+                  <button type="button" class="file-preview-remove" id="idProofRemove" aria-label="Remove file">
+                    <svg data-lucide="x" width="16" height="16" aria-hidden="true"></svg>
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <div class="input-error" id="idProof-error" role="alert"></div>
+            </div>
+
+            <div class="input-group">
+              <label for="businessProof">Business Proof (PDF, JPG, PNG, max 5MB) <span class="required">*</span></label>
+              <div class="file-upload-zone" id="businessProofZone" tabindex="0" role="button" aria-label="Upload business proof">
+                <input type="file" id="businessProof" name="businessProof" accept=".pdf,.jpg,.jpeg,.png" required>
+                <svg data-lucide="upload" width="24" height="24" aria-hidden="true"></svg>
+                <span>Drag & drop or click to upload</span>
+                <span class="file-types">PDF, JPG, PNG up to 5MB</span>
+              </div>
+              <div class="file-preview" id="businessProofPreview" hidden>
+                <div class="file-preview-item">
+                  <div class="file-preview-thumbnail" id="businessProofThumbnail"></div>
+                  <div class="file-preview-info">
+                    <div class="file-preview-name" id="businessProofName"></div>
+                    <div class="file-preview-size" id="businessProofSize"></div>
+                  </div>
+                  <button type="button" class="file-preview-remove" id="businessProofRemove" aria-label="Remove file">
+                    <svg data-lucide="x" width="16" height="16" aria-hidden="true"></svg>
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <div class="input-error" id="businessProof-error" role="alert"></div>
+            </div>
+          </section>
+
+          <!-- Step 3: Review & Submit -->
+          <section class="form-section" data-section="3" id="step3" role="tabpanel" aria-labelledby="step3-tab" hidden>
+            <h2 class="section-title">
+              <svg data-lucide="check-square" width="20" height="20" aria-hidden="true"></svg>
+              Review & Submit
+            </h2>
+            
+            <div class="review-panel" id="reviewSummary">
+              <!-- Dynamically populated by JS -->
+            </div>
+
+            <div class="terms-group">
+              <input type="checkbox" id="terms" name="terms" required>
+              <label for="terms">
+                I confirm that the above information is accurate and agree to the 
+                <a href="/terms" target="_blank">terms and conditions</a>.
+                <span class="required">*</span>
+              </label>
+              <div class="input-error" id="terms-error" role="alert"></div>
+            </div>
+
+            <div class="success-message" id="formSuccessMessage" hidden>
+              <svg data-lucide="check-circle" width="20" height="20" aria-hidden="true"></svg>
+              <span>Application submitted! Redirecting...</span>
+            </div>
+          </section>
+
+          <!-- Navigation Buttons -->
+          <div class="form-navigation">
+            <button type="button" id="prevBtn" class="btn btn-secondary" disabled>Previous</button>
+            <button type="button" id="nextBtn" class="btn btn-primary">Next</button>
+            <button type="submit" id="submitBtn" class="btn btn-success" hidden>Submit Application</button>
+          </div>
+        </form>
       <% } %>
 
-      <!-- Action Buttons -->
-      <div class="action-buttons">
-        <% if (application.status === 'approved') { %>
-          <a href="/organizer/create-event" class="btn btn-primary">
-            <svg data-lucide="plus" width="18" height="18" aria-hidden="true"></svg>
-            Create Your First Event
-          </a>
-          <a href="/organizer/dashboard" class="btn btn-secondary">
-            <svg data-lucide="layout-dashboard" width="18" height="18" aria-hidden="true"></svg>
-            Go to Dashboard
-          </a>
-        <% } else if (application.status === 'rejected') { %>
-          <a href="/organizer/complete-profile" class="btn btn-primary">
-            <svg data-lucide="refresh-cw" width="18" height="18" aria-hidden="true"></svg>
-            Reapply
-          </a>
-          <a href="/" class="btn btn-secondary">
-            <svg data-lucide="home" width="18" height="18" aria-hidden="true"></svg>
-            Back to Home
-          </a>
-        <% } else { %>
-          <button class="btn btn-refresh" onclick="location.reload()" aria-label="Refresh page to check latest status">
-            <svg data-lucide="refresh-cw" width="18" height="18" aria-hidden="true"></svg>
-            Refresh Status
-          </button>
-          <a href="/" class="btn btn-secondary">
-            <svg data-lucide="home" width="18" height="18" aria-hidden="true"></svg>
-            Back to Home
-          </a>
-        <% } %>
-      </div>
-
-      <!-- Info Box / Support -->
+      <!-- Support Information (common to both views) -->
       <aside class="info-box" aria-label="Support information">
         <svg data-lucide="info" width="20" height="20" aria-hidden="true"></svg>
         <div class="info-content">
           <p>
-            <strong>Need help?</strong> If you have questions about your application status, 
+            <strong>Need help?</strong> If you have questions about your application, 
             please <a href="mailto:<%= typeof adminEmail !== 'undefined' ? adminEmail : 'hellorunonline@gmail.com' %>">contact our support team</a>.
           </p>
         </div>
@@ -250,6 +454,6 @@
 
   <%- include('../layouts/footer') %>
 
-  <script src="/js/application-status.js"></script>
+  <script src="/js/complete-profile.js"></script>
 </body>
 </html>

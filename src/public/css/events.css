@@ -121,6 +121,273 @@
   margin-top: 2rem;
 }
 
+.event-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 8px 25px rgba(15, 23, 42, 0.06);
+}
+
+.event-banner-link {
+  display: block;
+}
+
+.event-banner {
+  display: block;
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+}
+
+.event-card-content {
+  padding: 1rem;
+}
+
+.event-chip-row {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.event-chip {
+  border-radius: 999px;
+  background: #fde68a;
+  color: #92400e;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.event-chip-muted {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.event-card h3 {
+  margin: 0 0 0.45rem;
+  font-size: 1.15rem;
+}
+
+.event-card h3 a {
+  color: #111827;
+  text-decoration: none;
+}
+
+.event-card h3 a:hover {
+  text-decoration: underline;
+}
+
+.event-description {
+  color: #475569;
+  margin-top: 0.65rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.event-actions {
+  margin-top: 0.85rem;
+}
+
+.event-details-page {
+  background: #f8fafc;
+  min-height: calc(100vh - 220px);
+  padding: 1.75rem 1rem;
+}
+
+.event-details-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  padding: 1.1rem;
+}
+
+.event-details-header {
+  margin: 1rem 0;
+}
+
+.event-details-header h1 {
+  margin-bottom: 0.45rem;
+}
+
+.event-details-banner {
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+.event-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.event-details-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.85rem;
+}
+
+.event-details-card h3 {
+  margin-bottom: 0.5rem;
+}
+
+.event-details-card p {
+  margin: 0.35rem 0;
+  color: #334155;
+}
+
+.event-details-description {
+  margin-top: 0.8rem;
+}
+
+.event-cta-row {
+  margin-top: 1rem;
+}
+
+.event-register-page {
+  background: #f8fafc;
+  min-height: calc(100vh - 220px);
+  padding: 1.75rem 1rem;
+}
+
+.event-register-shell {
+  max-width: 860px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  padding: 1rem;
+}
+
+.event-register-header h1 {
+  margin: 0.7rem 0 0.35rem;
+}
+
+.event-register-form {
+  margin-top: 0.6rem;
+}
+
+.register-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.has-error input,
+.has-error select {
+  border-color: #dc2626;
+}
+
+.error-text {
+  display: block;
+  margin-top: 0.25rem;
+  color: #991b1b;
+  font-size: 0.82rem;
+}
+
+.register-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.my-reg-page {
+  background: #f8fafc;
+  min-height: calc(100vh - 220px);
+  padding: 1.75rem 1rem;
+}
+
+.my-reg-shell {
+  max-width: 980px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  padding: 1rem;
+}
+
+.my-reg-header h1 {
+  margin-bottom: 0.2rem;
+}
+
+.my-reg-header p {
+  color: #475569;
+}
+
+.my-reg-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.my-reg-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.8rem;
+  background: #fff;
+}
+
+.my-reg-card h3 {
+  margin-bottom: 0.45rem;
+}
+
+.my-reg-card h3 a {
+  color: #111827;
+  text-decoration: none;
+}
+
+.my-reg-card h3 a:hover {
+  text-decoration: underline;
+}
+
+.my-reg-card p {
+  margin: 0.3rem 0;
+  color: #334155;
+}
+
+.registration-summary {
+  border: 1px solid #86efac;
+  background: #f0fdf4;
+  border-radius: 12px;
+  padding: 0.85rem;
+  margin-bottom: 0.9rem;
+}
+
+.registration-summary h2 {
+  margin-bottom: 0.3rem;
+  font-size: 1.1rem;
+  color: #14532d;
+}
+
+.registration-summary p {
+  margin: 0.2rem 0;
+  color: #166534;
+}
+
+.registration-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem 0.75rem;
+  margin-top: 0.65rem;
+}
+
+.registration-summary code {
+  word-break: break-all;
+}
+
 /* No Events Message */
 .no-events-message {
   grid-column: 1 / -1;
@@ -186,6 +453,22 @@
   .events-grid {
     grid-template-columns: 1fr;
     gap: 1.5rem;
+  }
+
+  .event-details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .register-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .registration-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .my-reg-grid {
+    grid-template-columns: 1fr;
   }
   
   .auth-prompt {

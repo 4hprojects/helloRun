@@ -2,14 +2,100 @@
 <html lang="en">
 <head>
   <%- include('../layouts/head', { title: 'Organizer Applications - helloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
   
   <main class="admin-page">
-    <section class="section">
-      <h2>Organizer Applications</h2>
-      <p>Organizer applications are used to manage and track the progress of various projects and initiatives.</p>
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>Organizer Applications</h2>
+          <p>Review submitted applications and take approval decisions.</p>
+        </div>
+        <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+      </div>
+
+      <form class="admin-filters" method="GET" action="/admin/applications">
+        <div class="filter-field">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="">All statuses</option>
+            <option value="pending" <%= filters && filters.status === 'pending' ? 'selected' : '' %>>Pending</option>
+            <option value="under_review" <%= filters && filters.status === 'under_review' ? 'selected' : '' %>>Under Review</option>
+            <option value="approved" <%= filters && filters.status === 'approved' ? 'selected' : '' %>>Approved</option>
+            <option value="rejected" <%= filters && filters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+          </select>
+        </div>
+
+        <div class="filter-field filter-grow">
+          <label for="q">Search</label>
+          <input
+            id="q"
+            type="text"
+            name="q"
+            value="<%= filters ? filters.q : '' %>"
+            placeholder="Application ID, business, applicant, email"
+          >
+        </div>
+
+        <div class="filter-actions">
+          <button type="submit" class="btn">Apply Filters</button>
+          <a href="/admin/applications" class="btn btn-secondary">Reset</a>
+        </div>
+      </form>
+
+      <% if (applications && applications.length > 0) { %>
+        <div class="results-meta">
+          <strong><%= applications.length %></strong> application<%= applications.length === 1 ? '' : 's' %> found
+        </div>
+
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Application ID</th>
+              <th>Applicant</th>
+              <th>Email</th>
+              <th>Business Name</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th>Reviewed</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% applications.forEach(app => { %>
+              <tr>
+                <td class="mono"><%= app.applicationId || 'N/A' %></td>
+                <td>
+                  <%= app.userId ? (app.userId.firstName + ' ' + app.userId.lastName) : 'N/A' %>
+                </td>
+                <td>
+                  <%= app.userId ? app.userId.email : 'N/A' %>
+                </td>
+                <td><%= app.businessName %></td>
+                <td>
+                  <span class="status-badge status-badge-<%= app.status %>">
+                    <%= app.status.replace('_', ' ') %>
+                  </span>
+                </td>
+                <td><%= app.submittedAt ? new Date(app.submittedAt).toLocaleDateString('en-US') : 'N/A' %></td>
+                <td><%= app.reviewedAt ? new Date(app.reviewedAt).toLocaleDateString('en-US') : '-' %></td>
+                <td>
+                  <a href="/admin/applications/<%= app._id %>" class="btn btn-sm">View</a>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <div class="empty-state">
+          <h3>No applications match this filter</h3>
+          <p>Try changing status/search filters or reset to view all applications.</p>
+          <a href="/admin/applications" class="btn btn-secondary">View All Applications</a>
+        </div>
+      <% } %>
     </section>
   </main>
 

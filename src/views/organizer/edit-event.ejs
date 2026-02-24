@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/create-event.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="create-event-page">
+    <section class="create-event-shell">
+      <header class="page-header">
+        <h1>Edit Event</h1>
+        <p>Update event details using the same schema rules as event creation.</p>
+      </header>
+
+      <% if (message) { %>
+        <div class="status-note status-note-<%= message.type %>" role="status">
+          <i data-lucide="<%= message.type === 'success' ? 'check-circle' : 'alert-circle' %>"></i>
+          <div>
+            <strong><%= message.type === 'success' ? 'Success' : 'Attention' %></strong>
+            <p><%= message.text %></p>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (Object.keys(errors || {}).length) { %>
+        <div class="form-errors" role="alert">
+          <strong>Please fix the highlighted fields before saving.</strong>
+        </div>
+      <% } %>
+
+      <form class="create-event-form" method="POST" action="/organizer/events/<%= event._id %>/edit" novalidate>
+        <div class="form-section">
+          <div class="section-title">Core Details</div>
+          <div class="form-grid">
+            <div class="form-group <%= errors.title ? 'has-error' : '' %>">
+              <label for="title">Event Title *</label>
+              <input id="title" name="title" type="text" value="<%= formData.title %>">
+              <% if (errors.title) { %><small class="error-text"><%= errors.title %></small><% } %>
+            </div>
+
+            <div class="form-group">
+              <label for="organiserName">Organizer Name</label>
+              <input id="organiserName" name="organiserName" type="text" value="<%= formData.organiserName %>">
+            </div>
+
+            <div class="form-group form-group-full <%= errors.description ? 'has-error' : '' %>">
+              <label for="description">Description *</label>
+              <textarea id="description" name="description" rows="4"><%= formData.description %></textarea>
+              <% if (errors.description) { %><small class="error-text"><%= errors.description %></small><% } %>
+            </div>
+
+            <div class="form-group form-group-full <%= errors.eventType ? 'has-error' : '' %>">
+              <label for="eventType">Event Type *</label>
+              <select id="eventType" name="eventType" required>
+                <option value="">Select event type</option>
+                <option value="virtual" <%= formData.eventType === 'virtual' ? 'selected' : '' %>>Virtual (Virtual run only)</option>
+                <option value="onsite" <%= formData.eventType === 'onsite' ? 'selected' : '' %>>On-site (On-site only)</option>
+                <option value="hybrid" <%= formData.eventType === 'hybrid' ? 'selected' : '' %>>Hybrid (Both virtual and on-site)</option>
+              </select>
+              <% if (errors.eventType) { %><small class="error-text"><%= errors.eventType %></small><% } %>
+            </div>
+
+            <div class="form-group form-group-full <%= errors.raceDistances ? 'has-error' : '' %>">
+              <label>Race Distances *</label>
+              <div class="checkbox-row">
+                <% const selectedDistances = formData.raceDistancePresets || []; %>
+                <label><input type="checkbox" name="raceDistancePresets" value="3K" <%= selectedDistances.includes('3K') ? 'checked' : '' %>> 3K</label>
+                <label><input type="checkbox" name="raceDistancePresets" value="5K" <%= selectedDistances.includes('5K') ? 'checked' : '' %>> 5K</label>
+                <label><input type="checkbox" name="raceDistancePresets" value="10K" <%= selectedDistances.includes('10K') ? 'checked' : '' %>> 10K</label>
+                <label><input type="checkbox" name="raceDistancePresets" value="21K" <%= selectedDistances.includes('21K') ? 'checked' : '' %>> 21K</label>
+              </div>
+              <label for="raceDistanceCustom" style="margin-top:0.5rem;">Custom Distances (comma-separated)</label>
+              <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" placeholder="e.g., 42K, 50K">
+              <small class="field-hint">Final values are normalized like 3K, 5K, 10K.</small>
+              <% if (errors.raceDistances) { %><small class="error-text"><%= errors.raceDistances %></small><% } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">Schedule</div>
+          <div class="form-grid">
+            <div class="form-group <%= errors.registrationOpenAt ? 'has-error' : '' %>">
+              <label for="registrationOpenAt">Registration Open *</label>
+              <input id="registrationOpenAt" name="registrationOpenAt" type="datetime-local" value="<%= formData.registrationOpenAt %>">
+              <% if (errors.registrationOpenAt) { %><small class="error-text"><%= errors.registrationOpenAt %></small><% } %>
+            </div>
+
+            <div class="form-group <%= errors.registrationCloseAt ? 'has-error' : '' %>">
+              <label for="registrationCloseAt">Registration Close *</label>
+              <input id="registrationCloseAt" name="registrationCloseAt" type="datetime-local" value="<%= formData.registrationCloseAt %>">
+              <% if (errors.registrationCloseAt) { %><small class="error-text"><%= errors.registrationCloseAt %></small><% } %>
+            </div>
+
+            <div class="form-group <%= errors.eventStartAt ? 'has-error' : '' %>">
+              <label for="eventStartAt">Event Start *</label>
+              <input id="eventStartAt" name="eventStartAt" type="datetime-local" value="<%= formData.eventStartAt %>">
+              <% if (errors.eventStartAt) { %><small class="error-text"><%= errors.eventStartAt %></small><% } %>
+            </div>
+
+            <div class="form-group <%= errors.eventEndAt ? 'has-error' : '' %>">
+              <label for="eventEndAt">Event End *</label>
+              <input id="eventEndAt" name="eventEndAt" type="datetime-local" value="<%= formData.eventEndAt %>">
+              <% if (errors.eventEndAt) { %><small class="error-text"><%= errors.eventEndAt %></small><% } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section location-section" style="display: none;">
+          <div class="section-title">Location (required for on-site/hybrid)</div>
+          <div class="form-grid">
+            <div class="form-group <%= errors.venueName ? 'has-error' : '' %>">
+              <label for="venueName">Venue Name</label>
+              <input id="venueName" name="venueName" type="text" value="<%= formData.venueName %>">
+              <% if (errors.venueName) { %><small class="error-text"><%= errors.venueName %></small><% } %>
+            </div>
+
+            <div class="form-group <%= errors.city ? 'has-error' : '' %>">
+              <label for="city">City</label>
+              <input id="city" name="city" type="text" value="<%= formData.city %>">
+              <% if (errors.city) { %><small class="error-text"><%= errors.city %></small><% } %>
+            </div>
+
+            <div class="form-group form-group-full <%= errors.venueAddress ? 'has-error' : '' %>">
+              <label for="venueAddress">Venue Address</label>
+              <input id="venueAddress" name="venueAddress" type="text" value="<%= formData.venueAddress %>">
+              <% if (errors.venueAddress) { %><small class="error-text"><%= errors.venueAddress %></small><% } %>
+            </div>
+
+            <div class="form-group">
+              <label for="province">Province/State</label>
+              <input id="province" name="province" type="text" value="<%= formData.province %>">
+            </div>
+
+            <div class="form-group <%= errors.country ? 'has-error' : '' %>">
+              <label for="country">Country</label>
+              <% const countryCodes = (countries || []).map((item) => item.code); %>
+              <select id="country" name="country">
+                <option value="">Select country</option>
+                <% (countries || []).forEach((item) => { %>
+                  <option value="<%= item.code %>" <%= formData.country === item.code ? 'selected' : '' %>><%= item.name %></option>
+                <% }); %>
+                <% if (formData.country && !countryCodes.includes(formData.country)) { %>
+                  <option value="<%= formData.country %>" selected><%= formData.country %> (legacy)</option>
+                <% } %>
+              </select>
+              <% if (errors.country) { %><small class="error-text"><%= errors.country %></small><% } %>
+            </div>
+
+            <div class="form-group <%= errors.geoLat ? 'has-error' : '' %>">
+              <label for="geoLat">Latitude (optional)</label>
+              <input id="geoLat" name="geoLat" type="text" value="<%= formData.geoLat %>">
+              <% if (errors.geoLat) { %><small class="error-text"><%= errors.geoLat %></small><% } %>
+            </div>
+
+            <div class="form-group <%= errors.geoLng ? 'has-error' : '' %>">
+              <label for="geoLng">Longitude (optional)</label>
+              <input id="geoLng" name="geoLng" type="text" value="<%= formData.geoLng %>">
+              <% if (errors.geoLng) { %><small class="error-text"><%= errors.geoLng %></small><% } %>
+              <% if (errors.geo) { %><small class="error-text"><%= errors.geo %></small><% } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section virtual-section" style="display: none;">
+          <div class="section-title">Virtual Rules (required for virtual/hybrid)</div>
+          <div class="form-grid">
+            <div class="form-group <%= errors.virtualStartAt ? 'has-error' : '' %>">
+              <label for="virtualStartAt">Virtual Window Start</label>
+              <input id="virtualStartAt" name="virtualStartAt" type="datetime-local" value="<%= formData.virtualStartAt %>">
+              <% if (errors.virtualStartAt) { %><small class="error-text"><%= errors.virtualStartAt %></small><% } %>
+            </div>
+
+            <div class="form-group <%= errors.virtualEndAt ? 'has-error' : '' %>">
+              <label for="virtualEndAt">Virtual Window End</label>
+              <input id="virtualEndAt" name="virtualEndAt" type="datetime-local" value="<%= formData.virtualEndAt %>">
+              <% if (errors.virtualEndAt) { %><small class="error-text"><%= errors.virtualEndAt %></small><% } %>
+            </div>
+
+            <div class="form-group form-group-full <%= errors.proofTypesAllowed ? 'has-error' : '' %>">
+              <label>Proof Types Allowed</label>
+              <div class="checkbox-row">
+                <% const selectedProofs = formData.proofTypesAllowed || []; %>
+                <label><input type="checkbox" name="proofTypesAllowed" value="gps" <%= selectedProofs.includes('gps') ? 'checked' : '' %>> GPS</label>
+                <label><input type="checkbox" name="proofTypesAllowed" value="photo" <%= selectedProofs.includes('photo') ? 'checked' : '' %>> Photo</label>
+                <label><input type="checkbox" name="proofTypesAllowed" value="manual" <%= selectedProofs.includes('manual') ? 'checked' : '' %>> Manual</label>
+              </div>
+              <% if (errors.proofTypesAllowed) { %><small class="error-text"><%= errors.proofTypesAllowed %></small><% } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <div class="section-title">Branding</div>
+          <div class="form-grid">
+            <div class="form-group <%= errors.bannerImageUrl ? 'has-error' : '' %>">
+              <label for="bannerImageUrl">Banner Image URL</label>
+              <input id="bannerImageUrl" name="bannerImageUrl" type="url" value="<%= formData.bannerImageUrl %>">
+              <% if (errors.bannerImageUrl) { %><small class="error-text"><%= errors.bannerImageUrl %></small><% } %>
+            </div>
+
+            <div class="form-group <%= errors.logoUrl ? 'has-error' : '' %>">
+              <label for="logoUrl">Logo URL</label>
+              <input id="logoUrl" name="logoUrl" type="url" value="<%= formData.logoUrl %>">
+              <% if (errors.logoUrl) { %><small class="error-text"><%= errors.logoUrl %></small><% } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <a href="/organizer/events/<%= event._id %>" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    const eventTypeSelect = document.getElementById('eventType');
+    const locationSection = document.querySelector('.location-section');
+    const virtualSection = document.querySelector('.virtual-section');
+
+    function toggleSections() {
+      const val = eventTypeSelect.value;
+      locationSection.style.display = (val === 'onsite' || val === 'hybrid') ? 'block' : 'none';
+      virtualSection.style.display = (val === 'virtual' || val === 'hybrid') ? 'block' : 'none';
+    }
+
+    if (eventTypeSelect) {
+      eventTypeSelect.addEventListener('change', toggleSections);
+      toggleSections();
+    }
+  </script>
+</body>
+</html>

@@ -58,6 +58,7 @@ const { populateAuthLocals } = require('./middleware/auth.middleware');
 const authRoutes = require('./routes/authRoutes');
 const pageRoutes = require('./routes/pageRoutes');
 const organizerRoutes = require('./routes/organizer.routes');
+const adminRoutes = require('./routes/admin.routes');
 
 // Auth locals for all views (BEFORE routes)
 app.use(populateAuthLocals);
@@ -65,6 +66,7 @@ app.use(populateAuthLocals);
 app.use('/', authRoutes);
 app.use('/', pageRoutes);
 app.use('/organizer', organizerRoutes);
+app.use('/admin', adminRoutes);
 
 // ===== STEP 6: 404 HANDLER (LAST) =====
 app.use((req, res) => {

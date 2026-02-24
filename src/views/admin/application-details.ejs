@@ -2,14 +2,149 @@
 <html lang="en">
 <head>
   <%- include('../layouts/head', { title: 'Application Details - helloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
   
   <main class="admin-page">
-    <section class="section">
-      <h2>Application Details</h2>
-      <p>Here you can view and manage the details of the application.</p>
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>Application Details</h2>
+          <p>Review documents and finalize the organizer application status.</p>
+        </div>
+        <a href="/admin/applications" class="btn btn-secondary">Back to Applications</a>
+      </div>
+
+      <% if (application) { %>
+        <% const isFinalized = application.status === 'approved' || application.status === 'rejected'; %>
+
+        <% if (message) { %>
+          <div class="admin-alert admin-alert-<%= message.type %>">
+            <%= message.text %>
+          </div>
+        <% } %>
+
+        <div class="application-meta-grid">
+          <div class="meta-card">
+            <p class="meta-label">Application ID</p>
+            <p class="meta-value mono"><%= application.applicationId || application._id %></p>
+          </div>
+          <div class="meta-card">
+            <p class="meta-label">Current Status</p>
+            <p class="meta-value">
+              <span class="status-badge status-badge-<%= application.status %>">
+                <%= application.status.replace('_', ' ') %>
+              </span>
+            </p>
+          </div>
+          <div class="meta-card">
+            <p class="meta-label">Submitted</p>
+            <p class="meta-value"><%= application.submittedAt ? new Date(application.submittedAt).toLocaleString('en-US') : 'N/A' %></p>
+          </div>
+          <div class="meta-card">
+            <p class="meta-label">Reviewed</p>
+            <p class="meta-value"><%= application.reviewedAt ? new Date(application.reviewedAt).toLocaleString('en-US') : 'Not reviewed yet' %></p>
+          </div>
+          <div class="meta-card">
+            <p class="meta-label">Reviewed By</p>
+            <p class="meta-value">
+              <% if (application.reviewedBy) { %>
+                <%= application.reviewedBy.firstName %> <%= application.reviewedBy.lastName %> (<%= application.reviewedBy.email %>)
+              <% } else { %>
+                Not assigned
+              <% } %>
+            </p>
+          </div>
+        </div>
+
+        <div class="details-grid">
+          <article class="detail-card">
+            <h3>Applicant Info</h3>
+            <ul>
+              <li><strong>Name:</strong> <%= application.userId ? (application.userId.firstName + ' ' + application.userId.lastName) : 'N/A' %></li>
+              <li><strong>Email:</strong> <%= application.userId ? application.userId.email : 'N/A' %></li>
+              <li><strong>User Role:</strong> <%= application.userId ? application.userId.role : 'N/A' %></li>
+              <li><strong>Organizer Status:</strong> <%= application.userId ? application.userId.organizerStatus : 'N/A' %></li>
+            </ul>
+          </article>
+
+          <article class="detail-card">
+            <h3>Business Info</h3>
+            <ul>
+              <li><strong>Business Name:</strong> <%= application.businessName %></li>
+              <li><strong>Business Type:</strong> <%= application.businessType %></li>
+              <li><strong>Contact Phone:</strong> <%= application.contactPhone %></li>
+              <li><strong>Registration Number:</strong> <%= application.businessRegistrationNumber || 'N/A' %></li>
+              <li><strong>Address:</strong> <%= application.businessAddress || 'N/A' %></li>
+            </ul>
+          </article>
+
+          <article class="detail-card">
+            <h3>Documents</h3>
+            <ul>
+              <li>
+                <strong>ID Proof:</strong>
+                <a href="<%= application.idProofUrl %>" target="_blank" rel="noopener noreferrer">Open document</a>
+              </li>
+              <li>
+                <strong>Business Proof:</strong>
+                <a href="<%= application.businessProofUrl %>" target="_blank" rel="noopener noreferrer">Open document</a>
+              </li>
+            </ul>
+          </article>
+
+          <article class="detail-card detail-card-full">
+            <h3>Additional Info</h3>
+            <p><%= application.additionalInfo || 'N/A' %></p>
+
+            <% if (application.status === 'rejected' && application.rejectionReason) { %>
+              <div class="rejection-box">
+                <strong>Rejection Reason</strong>
+                <p><%= application.rejectionReason %></p>
+              </div>
+            <% } %>
+          </article>
+        </div>
+
+        <section class="review-actions">
+          <h3>Review Action Panel</h3>
+
+          <% if (isFinalized) { %>
+            <p class="action-note">This application is finalized and cannot be updated again.</p>
+          <% } else { %>
+            <p class="action-note">Only pending or under-review applications can be approved or rejected.</p>
+          <% } %>
+
+          <div class="action-form-row">
+            <form action="/admin/applications/<%= application._id %>/approve" method="POST" onsubmit="return confirm('Approve this organizer application?');">
+              <button type="submit" class="btn btn-success" <%= isFinalized ? 'disabled' : '' %>>Approve Application</button>
+            </form>
+          </div>
+
+          <form
+            class="reject-form"
+            action="/admin/applications/<%= application._id %>/reject"
+            method="POST"
+            onsubmit="return confirm('Reject this organizer application?');"
+          >
+            <label for="rejectionReason">Rejection Reason (minimum 15 characters)</label>
+            <textarea
+              id="rejectionReason"
+              name="rejectionReason"
+              minlength="15"
+              maxlength="500"
+              placeholder="Provide a clear reason so the applicant can fix and reapply."
+              required
+              <%= isFinalized ? 'disabled' : '' %>
+            ><%= typeof rejectionReasonDraft !== 'undefined' ? rejectionReasonDraft : '' %></textarea>
+            <button type="submit" class="btn btn-danger" <%= isFinalized ? 'disabled' : '' %>>Reject Application</button>
+          </form>
+        </section>
+      <% } else { %>
+        <p>Application not found.</p>
+      <% } %>
     </section>
   </main>
 

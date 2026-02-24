@@ -59,6 +59,12 @@ router.post('/login', redirectIfAuth, async (req, res) => {
     req.session.loginSuccess = true;
     req.session.userName = user.firstName;
 
+    const returnTo = req.session.returnTo;
+    if (returnTo && typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+      delete req.session.returnTo;
+      return res.redirect(returnTo);
+    }
+
     // Role-based redirect
     if (req.session.role === 'organiser') {
       if (user.organizerStatus === 'pending') {

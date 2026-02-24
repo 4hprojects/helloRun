@@ -1,0 +1,55 @@
+<!-- filepath: c:\Users\Kayla Ryhs\Desktop\PersonalProjects\helloRun\src\views\admin\dashboard.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: 'Admin Dashboard - helloRun' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <h2>Admin Dashboard</h2>
+
+      <div class="dashboard-grid">
+        <article class="metric-card">
+          <p class="metric-label">Pending Applications</p>
+          <p class="metric-value"><%= stats.pendingApplications %></p>
+          <a href="/admin/applications?status=pending" class="metric-link">Review Pending</a>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Total Applications</p>
+          <p class="metric-value"><%= stats.totalApplications %></p>
+          <a href="/admin/applications" class="metric-link">View All</a>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Approved</p>
+          <p class="metric-value"><%= stats.approvedApplications %></p>
+          <a href="/admin/applications?status=approved" class="metric-link">View Approved</a>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Rejected</p>
+          <p class="metric-value"><%= stats.rejectedApplications %></p>
+          <a href="/admin/applications?status=rejected" class="metric-link">View Rejected</a>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Total Users</p>
+          <p class="metric-value"><%= stats.totalUsers %></p>
+          <p class="metric-helper">Platform accounts</p>
+        </article>
+      </div>
+
+      <nav class="admin-menu">
+        <a href="/admin/applications" class="btn">Organizer Applications</a>
+      </nav>
+    </section>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

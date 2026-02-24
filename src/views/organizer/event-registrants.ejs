@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="events-page">
+    <section class="events-shell">
+      <header class="events-header">
+        <div>
+          <h1>Registrants: <%= event.title %></h1>
+          <p>View participants registered for this event.</p>
+        </div>
+        <div class="header-actions">
+          <a href="/organizer/events/<%= event._id %>" class="btn btn-secondary">Back to Event</a>
+          <a href="/organizer/events" class="btn btn-secondary">My Events</a>
+        </div>
+      </header>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <section class="registrant-summary">
+        <div class="summary-card">
+          <strong>Total Registrants</strong>
+          <span><%= summary.totalRegistrants %></span>
+        </div>
+        <div class="summary-card">
+          <strong>Virtual</strong>
+          <span><%= summary.virtualCount %></span>
+        </div>
+        <div class="summary-card">
+          <strong>On-site</strong>
+          <span><%= summary.onsiteCount %></span>
+        </div>
+      </section>
+
+      <form method="GET" action="/organizer/events/<%= event._id %>/registrants" class="filter-bar">
+        <label for="q">Search</label>
+        <input id="q" name="q" type="search" placeholder="Code, name, email" value="<%= searchQuery || '' %>">
+
+        <label for="mode">Mode</label>
+        <select id="mode" name="mode">
+          <option value="" <%= !selectedMode ? 'selected' : '' %>>All</option>
+          <option value="virtual" <%= selectedMode === 'virtual' ? 'selected' : '' %>>Virtual</option>
+          <option value="onsite" <%= selectedMode === 'onsite' ? 'selected' : '' %>>On-site</option>
+        </select>
+
+        <label for="distance">Distance</label>
+        <select id="distance" name="distance">
+          <option value="" <%= !selectedDistance ? 'selected' : '' %>>All</option>
+          <% (eventRaceDistances || []).forEach((distance) => { %>
+            <option value="<%= distance %>" <%= selectedDistance === distance ? 'selected' : '' %>><%= distance %></option>
+          <% }) %>
+        </select>
+
+        <button type="submit" class="btn btn-secondary">Apply</button>
+        <a href="/organizer/events/<%= event._id %>/registrants" class="btn btn-secondary">Reset</a>
+      </form>
+
+      <% if (registrations && registrations.length) { %>
+        <div class="registrants-table-wrap">
+          <table class="registrants-table">
+            <thead>
+              <tr>
+                <th>Confirmation</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Mobile</th>
+                <th>Country</th>
+                <th>Mode</th>
+                <th>Distance</th>
+                <th>Status</th>
+                <th>Registered At</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% registrations.forEach((registration) => { %>
+                <tr>
+                  <td><code><%= registration.confirmationCode %></code></td>
+                  <td><%= [registration.participant?.firstName, registration.participant?.lastName].filter(Boolean).join(' ') || 'N/A' %></td>
+                  <td><%= registration.participant?.email || 'N/A' %></td>
+                  <td><%= registration.participant?.mobile || 'N/A' %></td>
+                  <td><%= registration.participant?.countryLabel || registration.participant?.country || 'N/A' %></td>
+                  <td><span class="mode-badge mode-<%= registration.participationMode %>"><%= registration.participationMode %></span></td>
+                  <td><%= registration.raceDistance || 'N/A' %></td>
+                  <td><%= registration.status %></td>
+                  <td><%= registration.registeredAt ? new Date(registration.registeredAt).toLocaleString('en-US') : 'N/A' %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <i data-lucide="users"></i>
+          <h3>No registrants found</h3>
+          <p>No registrations match your current filters.</p>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

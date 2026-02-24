@@ -1,693 +1,594 @@
 /* ==========================================
-   COMPLETE PROFILE FORM - MAIN LOGIC (REFINED)
+   APPLICATION STATUS PAGE – INTERACTIONS
    ========================================== */
 
-class CompleteProfileForm {
+/**
+ * Main Application Class
+ * Handles both status view and multi‑step form
+ */
+class ApplicationStatusPage {
   constructor() {
-    this.form = document.getElementById('completeProfileForm');
-    this.currentStep = 1;
-    this.totalSteps = 3;
-    this.uploadedFiles = {
-      idProof: null,
-      businessProof: null
-    };
-    this.formData = new FormData();
-    this.isSubmitting = false;
-
     this.init();
   }
 
   init() {
-    if (!this.form) {
-      console.error('Form not found');
-      return;
-    }
-
-    this.setupEventListeners();
-    this.initializeLucideIcons();
-    this.setupRealTimeValidation();
-    this.setupClickableSteps();
+    this.initLucideIcons();
+    this.initCopyButton();
+    this.initAutoRefresh();
+    this.initMultiStepForm();
   }
 
   /**
    * Initialize Lucide Icons
    */
-  initializeLucideIcons() {
+  initLucideIcons() {
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    } else {
+      // Retry after a short delay if lucide not loaded yet
+      setTimeout(() => {
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      }, 200);
+    }
+  }
+
+  /**
+   * Copy Application ID to clipboard (status view)
+   */
+  initCopyButton() {
+    const copyBtn = document.querySelector('.copy-id-btn');
+    if (!copyBtn) return;
+
+    copyBtn.addEventListener('click', async () => {
+      const appId = document.querySelector('.application-id')?.textContent;
+      if (!appId) return;
+
+      try {
+        await navigator.clipboard.writeText(appId);
+        this.showNotification('Application ID copied!', 'success');
+      } catch (err) {
+        console.error('Copy failed:', err);
+        this.showNotification('Failed to copy', 'error');
+      }
+    });
+  }
+
+  /**
+   * Auto‑refresh status for pending/under review (status view)
+   */
+  initAutoRefresh() {
+    const statusBadge = document.querySelector('.status-badge');
+    if (!statusBadge) return;
+
+    const status = statusBadge.textContent.toLowerCase();
+    const isPending = status.includes('pending') || status.includes('under review');
+
+    if (isPending) {
+      // Refresh every 5 minutes only if page is visible
+      setInterval(() => {
+        if (!document.hidden) {
+          location.reload();
+        }
+      }, 5 * 60 * 1000);
+    }
+  }
+
+  /**
+   * Show a temporary notification
+   * @param {string} message - Notification text
+   * @param {string} type - 'success' or 'error'
+   */
+  showNotification(message, type = 'success') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+    notification.setAttribute('role', 'alert');
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+      notification.remove();
+    }, 3000);
+  }
+
+  /**
+   * Initialize multi‑step form (if present)
+   */
+  initMultiStepForm() {
+    const form = document.getElementById('organizerApplicationForm');
+    if (!form) return;
+
+    this.form = form;
+    this.steps = Array.from(form.querySelectorAll('.form-section'));
+    this.progressSteps = Array.from(form.querySelectorAll('.progress-step'));
+    this.prevBtn = document.getElementById('prevBtn');
+    this.nextBtn = document.getElementById('nextBtn');
+    this.submitBtn = document.getElementById('submitBtn');
+    this.currentStep = 0; // 0‑based
+
+    // Validation rules per step
+    this.validators = {
+      0: () => this.validateStep1(),
+      1: () => this.validateStep2(),
+      2: () => this.validateStep3()
+    };
+
+    this.setupFormEvents();
+    this.updateStepVisibility();
+    this.setupFileUploads();
+    this.setupRealTimeValidation();
+  }
+
+  /**
+   * Set up event listeners for the form
+   */
+  setupFormEvents() {
+    // Progress step clicks
+    this.progressSteps.forEach((step, index) => {
+      step.addEventListener('click', () => this.goToStep(index));
+      step.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.goToStep(index);
+        }
+      });
+    });
+
+    // Navigation buttons
+    this.prevBtn.addEventListener('click', () => this.goToStep(this.currentStep - 1));
+    this.nextBtn.addEventListener('click', () => this.goToStep(this.currentStep + 1));
+
+    // Form submission
+    this.form.addEventListener('submit', (e) => this.handleSubmit(e));
+  }
+
+  /**
+   * Navigate to a specific step
+   * @param {number} stepIndex - 0‑based step index
+   */
+  goToStep(stepIndex) {
+    if (stepIndex < 0 || stepIndex >= this.steps.length) return;
+
+    // Validate current step before moving forward
+    if (stepIndex > this.currentStep) {
+      if (!this.validators[this.currentStep]()) {
+        this.showStepErrors(this.currentStep);
+        return;
+      }
+    }
+
+    // If moving to review step, populate summary
+    if (stepIndex === 2) {
+      this.populateReviewSummary();
+    }
+
+    this.currentStep = stepIndex;
+    this.updateStepVisibility();
+    this.focusOnStep();
+  }
+
+  /**
+   * Update UI based on current step
+   */
+  updateStepVisibility() {
+    // Show/hide sections
+    this.steps.forEach((step, index) => {
+      step.classList.toggle('active', index === this.currentStep);
+      step.hidden = index !== this.currentStep;
+    });
+
+    // Update progress steps
+    this.progressSteps.forEach((step, index) => {
+      step.classList.toggle('active', index === this.currentStep);
+      step.classList.toggle('completed', index < this.currentStep);
+      step.setAttribute('aria-selected', index === this.currentStep);
+      step.setAttribute('tabindex', index === this.currentStep ? '0' : '-1');
+    });
+
+    // Update navigation buttons
+    this.prevBtn.disabled = this.currentStep === 0;
+    this.nextBtn.hidden = this.currentStep === 2;
+    this.submitBtn.hidden = this.currentStep !== 2;
+  }
+
+  /**
+   * Move focus to the current step heading for accessibility
+   */
+  focusOnStep() {
+    const heading = this.steps[this.currentStep].querySelector('h2');
+    if (heading) {
+      heading.setAttribute('tabindex', '-1');
+      heading.focus();
+    }
+  }
+
+  /**
+   * Show error messages for a specific step
+   * @param {number} stepIndex
+   */
+  showStepErrors(stepIndex) {
+    const step = this.steps[stepIndex];
+    const inputs = step.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+      if (!input.checkValidity()) {
+        this.showFieldError(input, input.validationMessage);
+      }
+    });
+  }
+
+  /* ----- Validation Helpers ----- */
+  validateStep1() {
+    let isValid = true;
+    const requiredFields = [
+      'businessName',
+      'businessType',
+      'contactPhone',
+      'businessAddress'
+    ];
+
+    requiredFields.forEach(id => {
+      const field = document.getElementById(id);
+      if (!field || !field.value.trim()) {
+        this.showFieldError(field, `${field.labels?.[0]?.textContent.replace('*', '').trim()} is required`);
+        isValid = false;
+      } else {
+        this.clearFieldError(field);
+      }
+    });
+
+    // Additional validation (e.g., phone format) can be added here
+    return isValid;
+  }
+
+  validateStep2() {
+    let isValid = true;
+    const fileFields = ['idProof', 'businessProof'];
+
+    fileFields.forEach(id => {
+      const field = document.getElementById(id);
+      const preview = document.getElementById(`${id}Preview`);
+      const hasFile = field.files.length > 0 || (preview && !preview.hidden);
+
+      if (!hasFile) {
+        this.showFieldError(field, 'This file is required');
+        isValid = false;
+      } else {
+        this.clearFieldError(field);
+      }
+    });
+
+    return isValid;
+  }
+
+  validateStep3() {
+    const terms = document.getElementById('terms');
+    if (!terms.checked) {
+      this.showFieldError(terms, 'You must agree to the terms and conditions');
+      return false;
+    }
+    this.clearFieldError(terms);
+    return true;
+  }
+
+  /**
+   * Show error for a specific field
+   * @param {HTMLElement} field - Input/select/textarea element
+   * @param {string} message - Error message
+   */
+  showFieldError(field, message) {
+    const container = field.closest('.input-group') || field.closest('.terms-group');
+    if (!container) return;
+
+    const errorDiv = container.querySelector('.input-error');
+    if (!errorDiv) return;
+
+    errorDiv.textContent = message;
+    errorDiv.classList.add('show');
+    field.setAttribute('aria-invalid', 'true');
+    field.setAttribute('aria-describedby', errorDiv.id);
+  }
+
+  /**
+   * Clear error for a field
+   * @param {HTMLElement} field
+   */
+  clearFieldError(field) {
+    const container = field.closest('.input-group') || field.closest('.terms-group');
+    if (!container) return;
+
+    const errorDiv = container.querySelector('.input-error');
+    if (errorDiv) {
+      errorDiv.textContent = '';
+      errorDiv.classList.remove('show');
+    }
+    field.removeAttribute('aria-invalid');
+    field.removeAttribute('aria-describedby');
+  }
+
+  /**
+   * Set up real‑time validation on blur and input
+   */
+  setupRealTimeValidation() {
+    const fields = this.form.querySelectorAll('input, select, textarea');
+    fields.forEach(field => {
+      field.addEventListener('blur', () => {
+        if (field.validity) {
+          if (!field.checkValidity()) {
+            this.showFieldError(field, field.validationMessage);
+          } else {
+            this.clearFieldError(field);
+          }
+        }
+      });
+
+      // For checkboxes and file inputs, validate on change
+      if (field.type === 'checkbox' || field.type === 'file') {
+        field.addEventListener('change', () => {
+          if (!field.checkValidity()) {
+            this.showFieldError(field, field.validationMessage);
+          } else {
+            this.clearFieldError(field);
+          }
+        });
+      }
+    });
+
+    // Additional real‑time validation for text fields (optional)
+    // could be added here
+  }
+
+  /* ----- File Upload Handling ----- */
+  setupFileUploads() {
+    ['idProof', 'businessProof'].forEach(id => {
+      this.setupFileUpload(id);
+    });
+  }
+
+  setupFileUpload(inputId) {
+    const input = document.getElementById(inputId);
+    const zone = document.getElementById(`${inputId}Zone`);
+    const preview = document.getElementById(`${inputId}Preview`);
+    const nameSpan = document.getElementById(`${inputId}Name`);
+    const sizeSpan = document.getElementById(`${inputId}Size`);
+    const thumbnail = document.getElementById(`${inputId}Thumbnail`);
+    const removeBtn = document.getElementById(`${inputId}Remove`);
+
+    if (!input || !zone) return;
+
+    // Click zone to trigger file input
+    zone.addEventListener('click', () => input.click());
+
+    // Keyboard activation
+    zone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        input.click();
+      }
+    });
+
+    // Drag & drop
+    zone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      zone.classList.add('dragover');
+    });
+
+    zone.addEventListener('dragleave', () => {
+      zone.classList.remove('dragover');
+    });
+
+    zone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        input.files = e.dataTransfer.files;
+        this.handleFileSelect(input, preview, nameSpan, sizeSpan, thumbnail, removeBtn);
+      }
+    });
+
+    // File selection via input
+    input.addEventListener('change', () => {
+      this.handleFileSelect(input, preview, nameSpan, sizeSpan, thumbnail, removeBtn);
+    });
+
+    // Remove button
+    if (removeBtn) {
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.clearFileInput(input, preview, nameSpan, sizeSpan, thumbnail);
+      });
+    }
+  }
+
+  /**
+   * Handle file selection: update preview, validate size/type
+   */
+  handleFileSelect(input, preview, nameSpan, sizeSpan, thumbnail, removeBtn) {
+    const file = input.files[0];
+    if (!file) {
+      this.clearFileInput(input, preview, nameSpan, sizeSpan, thumbnail);
+      return;
+    }
+
+    // Validate size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      this.showFieldError(input, 'File size must be less than 5MB');
+      this.clearFileInput(input, preview, nameSpan, sizeSpan, thumbnail);
+      return;
+    }
+
+    // Validate type
+    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      this.showFieldError(input, 'Only PDF, JPG, PNG files are allowed');
+      this.clearFileInput(input, preview, nameSpan, sizeSpan, thumbnail);
+      return;
+    }
+
+    this.clearFieldError(input);
+
+    // Update preview
+    nameSpan.textContent = file.name;
+    sizeSpan.textContent = this.formatFileSize(file.size);
+    preview.hidden = false;
+
+    // Generate thumbnail for images
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        thumbnail.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+      };
+      reader.readAsDataURL(file);
+    } else {
+      // PDF icon or generic file icon
+      thumbnail.innerHTML = '<svg data-lucide="file-text" width="24" height="24"></svg>';
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+  }
+
+  /**
+   * Clear file input and hide preview
+   */
+  clearFileInput(input, preview, nameSpan, sizeSpan, thumbnail) {
+    input.value = ''; // Reset file input
+    preview.hidden = true;
+    nameSpan.textContent = '';
+    sizeSpan.textContent = '';
+    thumbnail.innerHTML = '';
+  }
+
+  /**
+   * Format file size in human readable form
+   * @param {number} bytes
+   * @returns {string}
+   */
+  formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+
+  /* ----- Review Summary (Step 3) ----- */
+  populateReviewSummary() {
+    const summary = document.getElementById('reviewSummary');
+    if (!summary) return;
+
+    const formData = new FormData(this.form);
+    const businessName = formData.get('businessName') || 'Not provided';
+    const businessType = formData.get('businessType') || 'Not selected';
+    const contactPhone = formData.get('contactPhone') || 'Not provided';
+    const businessReg = formData.get('businessRegistrationNumber') || 'Not provided';
+    const businessAddress = formData.get('businessAddress') || 'Not provided';
+    const additionalInfo = formData.get('additionalInfo') || 'Not provided';
+
+    // Map business type to display text
+    const typeMap = {
+      'individual': 'Individual/Solo Organizer',
+      'company': 'Company/Commercial',
+      'ngo': 'Non-Profit/NGO',
+      'sports_club': 'Sports Club/Association'
+    };
+    const businessTypeDisplay = typeMap[businessType] || businessType;
+
+    // File names
+    const idProofFile = document.getElementById('idProof').files[0];
+    const businessProofFile = document.getElementById('businessProof').files[0];
+    const idProofName = idProofFile ? idProofFile.name : 'Not uploaded';
+    const businessProofName = businessProofFile ? businessProofFile.name : 'Not uploaded';
+
+    summary.innerHTML = `
+      <div class="review-panel">
+        <h4><svg data-lucide="briefcase" width="18" height="18"></svg> Business Information</h4>
+        <div class="review-grid">
+          <div class="review-item">
+            <span class="review-label">Business Name</span>
+            <span class="review-value">${this.escapeHtml(businessName)}</span>
+          </div>
+          <div class="review-item">
+            <span class="review-label">Business Type</span>
+            <span class="review-value">${this.escapeHtml(businessTypeDisplay)}</span>
+          </div>
+          <div class="review-item">
+            <span class="review-label">Contact Phone</span>
+            <span class="review-value">${this.escapeHtml(contactPhone)}</span>
+          </div>
+          <div class="review-item">
+            <span class="review-label">Registration Number</span>
+            <span class="review-value">${this.escapeHtml(businessReg)}</span>
+          </div>
+          <div class="review-item full-width">
+            <span class="review-label">Business Address</span>
+            <span class="review-value">${this.escapeHtml(businessAddress)}</span>
+          </div>
+          <div class="review-item full-width">
+            <span class="review-label">Additional Information</span>
+            <span class="review-value">${this.escapeHtml(additionalInfo)}</span>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 1.5rem;"><svg data-lucide="upload-cloud" width="18" height="18"></svg> Uploaded Documents</h4>
+        <div class="review-files">
+          <div class="review-file">
+            <svg data-lucide="file" width="18" height="18"></svg>
+            <span>ID Proof: ${this.escapeHtml(idProofName)}</span>
+          </div>
+          <div class="review-file">
+            <svg data-lucide="file" width="18" height="18"></svg>
+            <span>Business Proof: ${this.escapeHtml(businessProofName)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Reinitialize Lucide icons in the new content
     if (typeof lucide !== 'undefined') {
       lucide.createIcons();
     }
   }
 
   /**
-   * Setup all event listeners
+   * Simple escape to prevent XSS
    */
-  setupEventListeners() {
-    // File upload zones - drag and drop
-    document.querySelectorAll('.file-upload-zone').forEach(zone => {
-      zone.addEventListener('dragover', (e) => this.handleDragOver(e, zone));
-      zone.addEventListener('dragleave', (e) => this.handleDragLeave(e, zone));
-      zone.addEventListener('drop', (e) => this.handleDrop(e, zone));
-      zone.addEventListener('click', () => this.handleZoneClick(zone));
-    });
-
-    // File inputs
-    document.querySelectorAll('input[type="file"]').forEach(input => {
-      input.addEventListener('change', (e) => this.handleFileSelect(e));
-    });
-
-    // Form submission
-    this.form.addEventListener('submit', (e) => this.handleSubmit(e));
-
-    // Navigation buttons
-    const nextBtn = document.getElementById('nextBtn');
-    const prevBtn = document.getElementById('prevBtn');
-    const submitBtn = document.getElementById('submitBtn');
-
-    if (nextBtn) nextBtn.addEventListener('click', () => this.nextStep());
-    if (prevBtn) prevBtn.addEventListener('click', () => this.prevStep());
-
-    // File remove buttons
-    const idProofRemove = document.getElementById('idProofRemove');
-    const businessProofRemove = document.getElementById('businessProofRemove');
-
-    if (idProofRemove) idProofRemove.addEventListener('click', () => this.removeFile('idProof'));
-    if (businessProofRemove) businessProofRemove.addEventListener('click', () => this.removeFile('businessProof'));
-
-    // Character count for textarea
-    const additionalInfoTextarea = document.getElementById('additionalInfo');
-    if (additionalInfoTextarea) {
-      additionalInfoTextarea.addEventListener('input', (e) => {
-        this.updateCharCount(e.target);
-      });
-    }
-
-    // Terms checkbox
-    const termsCheckbox = document.getElementById('terms');
-    if (termsCheckbox) {
-      termsCheckbox.addEventListener('change', () => {
-        this.clearError('terms');
-      });
-    }
+  escapeHtml(unsafe) {
+    return unsafe
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
   }
 
-  /**
-   * Make progress steps clickable
-   */
-  setupClickableSteps() {
-    document.querySelectorAll('.progress-step').forEach(step => {
-      step.addEventListener('click', () => {
-        const stepNum = parseInt(step.dataset.step, 10);
-        if (stepNum && stepNum !== this.currentStep) {
-          // Validate all steps up to the target step before allowing navigation
-          if (stepNum < this.currentStep) {
-            // Going back is always allowed
-            this.goToStep(stepNum);
-          } else {
-            // Going forward: validate each intermediate step
-            let valid = true;
-            for (let s = this.currentStep; s < stepNum; s++) {
-              if (!this.validateFormStep(s)) {
-                valid = false;
-                this.goToStep(s); // show the step that failed
-                break;
-              }
-            }
-            if (valid) this.goToStep(stepNum);
-          }
-        }
-      });
-    });
-  }
-
-  /**
-   * Real-time validation on input fields
-   */
-  setupRealTimeValidation() {
-    const fields = this.form.querySelectorAll('input, select, textarea');
-    fields.forEach(field => {
-      field.addEventListener('input', () => {
-        this.validateField(field);
-      });
-      field.addEventListener('blur', () => {
-        this.validateField(field);
-      });
-    });
-  }
-
-  /**
-   * Validate a single field
-   * @returns {boolean} true if valid
-   */
-  validateField(field) {
-    const fieldId = field.id;
-    if (!fieldId) return true;
-
-    // Clear existing error
-    this.clearError(fieldId);
-
-    let isValid = true;
-    let errorMessage = '';
-
-    if (field.required && !field.value.trim() && field.type !== 'file' && field.type !== 'checkbox') {
-      isValid = false;
-      errorMessage = 'This field is required';
-    } else if (field.type === 'email' && field.value) {
-      if (!this.isValidEmail(field.value)) {
-        isValid = false;
-        errorMessage = 'Please enter a valid email';
-      }
-    } else if (field.type === 'tel' && field.value) {
-      if (!this.isValidPhone(field.value)) {
-        isValid = false;
-        errorMessage = 'Please enter a valid phone number';
-      }
-    } else if (field.name === 'businessName' && field.value && field.value.trim().length < 2) {
-      isValid = false;
-      errorMessage = 'Business name must be at least 2 characters';
-    }
-
-    if (!isValid) {
-      this.showError(fieldId, errorMessage);
-    }
-
-    // Toggle valid/invalid class on parent group
-    const group = field.closest('.input-group');
-    if (group) {
-      if (isValid && field.value.trim() !== '') {
-        group.classList.add('valid');
-        group.classList.remove('error');
-      } else {
-        group.classList.remove('valid');
-        if (!isValid) group.classList.add('error');
-      }
-    }
-
-    return isValid;
-  }
-
-  /* ==========================================
-     FILE UPLOAD HANDLERS
-     ========================================== */
-
-  handleDragOver(e, zone) {
-    e.preventDefault();
-    e.stopPropagation();
-    zone.classList.add('dragover');
-  }
-
-  handleDragLeave(e, zone) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.target === zone) {
-      zone.classList.remove('dragover');
-    }
-  }
-
-  handleDrop(e, zone) {
-    e.preventDefault();
-    e.stopPropagation();
-    zone.classList.remove('dragover');
-
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      const fileInput = zone.querySelector('input[type="file"]');
-      if (fileInput) {
-        const dataTransfer = new DataTransfer();
-        dataTransfer.items.add(files[0]);
-        fileInput.files = dataTransfer.files;
-        fileInput.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-    }
-  }
-
-  handleZoneClick(zone) {
-    const fileInput = zone.querySelector('input[type="file"]');
-    if (fileInput) fileInput.click();
-  }
-
-  handleFileSelect(e) {
-    const input = e.target;
-    const fieldName = input.name;
-    const files = input.files;
-
-    if (files.length === 0) return;
-
-    const file = files[0];
-    const zone = document.getElementById(`${fieldName}Zone`);
-    const previewContainer = document.getElementById(`${fieldName}Preview`);
-    const errorContainer = document.getElementById(`${fieldName}Error`);
-
-    // Clear previous errors
-    if (errorContainer) errorContainer.style.display = 'none';
-
-    // Validate file
-    const validation = this.validateFile(file);
-    if (!validation.valid) {
-      this.showFileError(fieldName, validation.error);
-      input.value = '';
-      return;
-    }
-
-    // Store file
-    this.uploadedFiles[fieldName] = file;
-
-    // Display preview
-    this.displayFilePreview(file, fieldName, previewContainer, zone);
-  }
-
-  validateFile(file) {
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-
-    if (!allowedTypes.includes(file.type)) {
-      return {
-        valid: false,
-        error: 'Invalid file type. Please upload PDF, JPG, or PNG files only.'
-      };
-    }
-
-    if (file.size > maxSize) {
-      const maxSizeMB = Math.round(maxSize / 1024 / 1024);
-      return {
-        valid: false,
-        error: `File size exceeds ${maxSizeMB}MB limit.`
-      };
-    }
-
-    return { valid: true };
-  }
-
-  showFileError(fieldName, message) {
-    const errorContainer = document.getElementById(`${fieldName}Error`);
-    if (errorContainer) {
-      const span = errorContainer.querySelector('span');
-      if (span) span.textContent = message;
-      errorContainer.style.display = 'flex';
-    }
-  }
-
-  displayFilePreview(file, fieldName, previewContainer, zone) {
-    const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
-    const nameEl = document.getElementById(`${fieldName}Name`);
-    const sizeEl = document.getElementById(`${fieldName}Size`);
-    const thumbnailEl = document.getElementById(`${fieldName}Thumbnail`);
-
-    if (nameEl) nameEl.textContent = this.truncateFilename(file.name);
-    if (sizeEl) sizeEl.textContent = `${fileSizeMB} MB`;
-
-    if (file.type.startsWith('image/') && thumbnailEl) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        thumbnailEl.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
-        lucide.createIcons(); // Recreate icons if any were replaced
-      };
-      reader.readAsDataURL(file);
-    } else if (thumbnailEl) {
-      thumbnailEl.innerHTML = '<i data-lucide="file-text"></i>';
-      lucide.createIcons();
-    }
-
-    if (previewContainer) {
-      previewContainer.style.display = 'flex';
-      previewContainer.classList.add('show');
-    }
-    if (zone) zone.style.display = 'none';
-
-    // Update review panel if on step 3
-    if (this.currentStep === 3) this.updateReviewSummary();
-  }
-
-  removeFile(fieldName) {
-    const input = document.getElementById(fieldName);
-    const previewContainer = document.getElementById(`${fieldName}Preview`);
-    const zone = document.getElementById(`${fieldName}Zone`);
-
-    if (input) input.value = '';
-    this.uploadedFiles[fieldName] = null;
-
-    if (previewContainer) {
-      previewContainer.style.display = 'none';
-      previewContainer.classList.remove('show');
-    }
-    if (zone) zone.style.display = '';
-
-    if (this.currentStep === 3) this.updateReviewSummary();
-  }
-
-  truncateFilename(filename, maxLength = 30) {
-    if (filename.length <= maxLength) return filename;
-    const ext = filename.split('.').pop();
-    const name = filename.substring(0, maxLength - ext.length - 3);
-    return name + '...' + ext;
-  }
-
-  /* ==========================================
-     FORM VALIDATION (Step-level)
-     ========================================== */
-
-  validateFormStep(stepNumber) {
-    const section = document.querySelector(`[data-section="${stepNumber}"]`);
-    if (!section) return true;
-
-    let isValid = true;
-
-    // Step 2: Validate file uploads explicitly
-    if (stepNumber === 2) {
-      if (!this.uploadedFiles.idProof) {
-        this.showFileError('idProof', 'Please upload your ID proof document');
-        isValid = false;
-      }
-      if (!this.uploadedFiles.businessProof) {
-        this.showFileError('businessProof', 'Please upload your business proof document');
-        isValid = false;
-      }
-    }
-
-    // Validate required text/select fields
-    const fields = section.querySelectorAll('input[required]:not([type="file"]):not([type="checkbox"]), select[required], textarea[required]');
-
-    fields.forEach(field => {
-      if (!field.value.trim()) {
-        this.showError(field.id, 'This field is required');
-        const group = field.closest('.input-group');
-        if (group) group.classList.add('error');
-        isValid = false;
-      } else {
-        const fieldValid = this.validateField(field);
-        if (!fieldValid) isValid = false;
-      }
-    });
-
-    // Step 3: Validate terms checkbox
-    if (stepNumber === 3) {
-      const termsCheckbox = section.querySelector('input[type="checkbox"][required]');
-      if (termsCheckbox && !termsCheckbox.checked) {
-        this.showError('terms', 'You must accept the terms and conditions');
-        isValid = false;
-      }
-    }
-
-    return isValid;
-  }
-
-  isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
-
-  isValidPhone(phone) {
-    const digits = phone.replace(/\D/g, '');
-    return digits.length >= 7 && digits.length <= 15;
-  }
-
-  showError(fieldId, message) {
-    const field = document.getElementById(fieldId);
-    const errorContainer = document.getElementById(`${fieldId}-error`) || document.getElementById(`${fieldId}Error`);
-
-    if (field) {
-      const group = field.closest('.input-group');
-      if (group) {
-        group.classList.add('error');
-        group.classList.remove('valid');
-      }
-    }
-
-    if (errorContainer) {
-      const span = errorContainer.querySelector('span');
-      if (span) span.textContent = message;
-      errorContainer.style.display = 'flex';
-      errorContainer.classList.add('show');
-    }
-  }
-
-  clearError(fieldId) {
-    const field = document.getElementById(fieldId);
-    const errorContainer = document.getElementById(`${fieldId}-error`) || document.getElementById(`${fieldId}Error`);
-
-    if (field) {
-      const group = field.closest('.input-group');
-      if (group) {
-        group.classList.remove('error');
-        // Keep valid class only if field has value
-        if (field.value.trim() !== '') {
-          group.classList.add('valid');
-        } else {
-          group.classList.remove('valid');
-        }
-      }
-    }
-
-    if (errorContainer) {
-      errorContainer.style.display = 'none';
-      errorContainer.classList.remove('show');
-    }
-  }
-
-  clearAllErrors() {
-    document.querySelectorAll('.input-group').forEach(group => {
-      group.classList.remove('error', 'valid');
-    });
-    document.querySelectorAll('[id$="Error"], [id$="-error"]').forEach(el => {
-      el.style.display = 'none';
-      el.classList.remove('show');
-    });
-  }
-
-  /* ==========================================
-     MULTI-STEP FORM NAVIGATION
-     ========================================== */
-
-  nextStep() {
-    if (!this.validateFormStep(this.currentStep)) return;
-    if (this.currentStep < this.totalSteps) {
-      this.goToStep(this.currentStep + 1);
-    }
-  }
-
-  prevStep() {
-    if (this.currentStep > 1) this.goToStep(this.currentStep - 1);
-  }
-
-  goToStep(stepNumber) {
-    if (stepNumber < 1 || stepNumber > this.totalSteps) return;
-
-    // Hide current section
-    const currentSection = document.querySelector(`[data-section="${this.currentStep}"]`);
-    if (currentSection) currentSection.classList.remove('active');
-
-    // Show new section
-    const newSection = document.querySelector(`[data-section="${stepNumber}"]`);
-    if (newSection) newSection.classList.add('active');
-
-    // Update progress indicators
-    this.updateProgressBar(stepNumber);
-
-    // Update navigation buttons
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-    const submitBtn = document.getElementById('submitBtn');
-
-    if (prevBtn) prevBtn.style.display = stepNumber > 1 ? 'inline-flex' : 'none';
-    if (nextBtn) nextBtn.style.display = stepNumber < this.totalSteps ? 'inline-flex' : 'none';
-    if (submitBtn) submitBtn.style.display = stepNumber === this.totalSteps ? 'inline-flex' : 'none';
-
-    // Update current step
-    this.currentStep = stepNumber;
-
-    // If moving to step 3, update review summary
-    if (stepNumber === 3) this.updateReviewSummary();
-
-    // Scroll to form top
-    this.form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    // Focus first input in new section
-    const firstInput = newSection.querySelector('input, select, textarea');
-    if (firstInput) firstInput.focus();
-  }
-
-  updateProgressBar(stepNumber) {
-    const progressSteps = document.querySelectorAll('.progress-step');
-    progressSteps.forEach((step, index) => {
-      const stepNum = index + 1;
-      if (stepNum === stepNumber) {
-        step.classList.add('active');
-        step.classList.remove('completed');
-      } else if (stepNum < stepNumber) {
-        step.classList.add('completed');
-        step.classList.remove('active');
-      } else {
-        step.classList.remove('active', 'completed');
-      }
-    });
-  }
-
-  /* ==========================================
-     REVIEW SUMMARY (Step 3)
-     ========================================== */
-
-  updateReviewSummary() {
-    const reviewContainer = document.getElementById('reviewSummary');
-    if (!reviewContainer) return;
-
-    // Gather data
-    const businessName = document.getElementById('businessName')?.value || '';
-    const businessType = document.getElementById('businessType')?.value || '';
-    const contactPhone = document.getElementById('contactPhone')?.value || '';
-    const registrationNumber = document.getElementById('businessRegistrationNumber')?.value || '';
-    const address = document.getElementById('businessAddress')?.value || '';
-    const additionalInfo = document.getElementById('additionalInfo')?.value || '';
-
-    const idProofFile = this.uploadedFiles.idProof;
-    const businessProofFile = this.uploadedFiles.businessProof;
-
-    // Build HTML
-    let html = `
-      <div class="review-panel">
-        <h4><i data-lucide="briefcase"></i> Business Information</h4>
-        <div class="review-grid">
-          <div class="review-item">
-            <span class="review-label">Business Name</span>
-            <span class="review-value ${!businessName ? 'empty' : ''}">${businessName || 'Not provided'}</span>
-          </div>
-          <div class="review-item">
-            <span class="review-label">Business Type</span>
-            <span class="review-value ${!businessType ? 'empty' : ''}">${businessType ? this.getBusinessTypeLabel(businessType) : 'Not provided'}</span>
-          </div>
-          <div class="review-item">
-            <span class="review-label">Contact Phone</span>
-            <span class="review-value ${!contactPhone ? 'empty' : ''}">${contactPhone || 'Not provided'}</span>
-          </div>
-          <div class="review-item">
-            <span class="review-label">Registration Number</span>
-            <span class="review-value ${!registrationNumber ? 'empty' : ''}">${registrationNumber || 'Not provided'}</span>
-          </div>
-          <div class="review-item">
-            <span class="review-label">Business Address</span>
-            <span class="review-value ${!address ? 'empty' : ''}">${address || 'Not provided'}</span>
-          </div>
-        </div>
-    `;
-
-    if (additionalInfo) {
-      html += `
-        <div class="review-item" style="margin-top: var(--spacing-md);">
-          <span class="review-label">Additional Info</span>
-          <span class="review-value">${additionalInfo}</span>
-        </div>
-      `;
-    }
-
-    html += `
-        <h4 style="margin-top: var(--spacing-lg);"><i data-lucide="file-text"></i> Uploaded Documents</h4>
-        <div class="review-files">
-          <div class="review-file">
-            <i data-lucide="${idProofFile ? 'check-circle' : 'x-circle'}"></i>
-            <span>ID Proof: ${idProofFile ? idProofFile.name : 'Not uploaded'}</span>
-          </div>
-          <div class="review-file">
-            <i data-lucide="${businessProofFile ? 'check-circle' : 'x-circle'}"></i>
-            <span>Business Proof: ${businessProofFile ? businessProofFile.name : 'Not uploaded'}</span>
-          </div>
-        </div>
-      </div>
-    `;
-
-    reviewContainer.innerHTML = html;
-    lucide.createIcons(); // Recreate icons inside review
-  }
-
-  getBusinessTypeLabel(value) {
-    const map = {
-      individual: 'Individual',
-      company: 'Company',
-      ngo: 'NGO/Non-Profit',
-      sports_club: 'Sports Club'
-    };
-    return map[value] || value;
-  }
-
-  /* ==========================================
-     CHARACTER COUNT
-     ========================================== */
-
-  updateCharCount(textarea) {
-    const count = textarea.value.length;
-    const max = textarea.getAttribute('maxlength') || 500;
-    const countEl = textarea.parentElement.querySelector('.char-count span');
-    if (countEl) countEl.textContent = `${count}/${max}`;
-  }
-
-  /* ==========================================
-     FORM SUBMISSION
-     ========================================== */
-
+  /* ----- Form Submission ----- */
   async handleSubmit(e) {
     e.preventDefault();
 
-    // Validate all steps
-    for (let step = 1; step <= this.totalSteps; step++) {
-      if (!this.validateFormStep(step)) {
-        this.goToStep(step);
-        return;
-      }
+    if (!this.validateStep3()) {
+      return;
     }
 
-    await this.submitForm();
-  }
+    // Show loading state
+    this.submitBtn.classList.add('loading');
+    this.submitBtn.disabled = true;
 
-  async submitForm() {
-    if (this.isSubmitting) return;
-
-    this.isSubmitting = true;
-    const submitBtn = document.querySelector('button[type="submit"]');
-    submitBtn.classList.add('loading');
-    submitBtn.disabled = true;
-
-    try {
-      const formDataToSend = new FormData(this.form);
-      if (this.uploadedFiles.idProof) {
-        formDataToSend.set('idProof', this.uploadedFiles.idProof);
-      }
-      if (this.uploadedFiles.businessProof) {
-        formDataToSend.set('businessProof', this.uploadedFiles.businessProof);
-      }
-
-      const response = await fetch('/organizer/complete-profile', {
-        method: 'POST',
-        body: formDataToSend
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        this.showSuccessMessage();
-        this.form.reset();
-        this.uploadedFiles = { idProof: null, businessProof: null };
-        setTimeout(() => {
-          window.location.href = '/organizer/application-status';
-        }, 2000);
-      } else {
-        alert(data.message || 'An error occurred');
-      }
-    } catch (error) {
-      console.error('Submission error:', error);
-      alert('Failed to submit. Please try again.');
-    } finally {
-      this.isSubmitting = false;
-      submitBtn.classList.remove('loading');
-      submitBtn.disabled = false;
-    }
-  }
-
-  showSuccessMessage() {
-    const successMsg = document.getElementById('successMessage');
+    // Show success message (simulate, actual submission is via form action)
+    const successMsg = document.getElementById('formSuccessMessage');
     if (successMsg) {
-      successMsg.classList.add('show');
-      successMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      successMsg.hidden = false;
     }
+
+    // Actually submit the form after a short delay (to show message)
+    setTimeout(() => {
+      this.form.submit();
+    }, 1000);
   }
 }
 
-// Initialize on DOM ready
+/**
+ * Initialize page when DOM is ready
+ */
 document.addEventListener('DOMContentLoaded', () => {
-  window.completeProfileForm = new CompleteProfileForm();
+  window.applicationStatusPage = new ApplicationStatusPage();
 });
+
+// Add basic notification styles dynamically (optional, but included in CSS)
+// The CSS already includes .notification styles? We should ensure they exist.
+// We'll add a style block if not present (but we assume CSS already covers it).
+// For safety, we can add minimal inline styles if needed, but better to rely on CSS.
