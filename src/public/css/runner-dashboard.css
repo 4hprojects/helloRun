@@ -100,6 +100,10 @@ body {
   margin-bottom: 40px;
 }
 
+.profile-card {
+  grid-column: 1 / -1;
+}
+
 /* Dashboard Cards */
 .dashboard-card {
   background: var(--bg-white);
@@ -161,6 +165,92 @@ body {
 
 .card-content .btn {
   margin-top: auto;
+}
+
+.profile-card .card-content {
+  min-height: auto;
+  align-items: stretch;
+  text-align: left;
+}
+
+.profile-form {
+  width: 100%;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-field-full {
+  grid-column: 1 / -1;
+}
+
+.form-field span {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.form-field input,
+.form-field select {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--text-primary);
+  background-color: #fff;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.15);
+}
+
+.form-field input[readonly] {
+  background-color: var(--bg-light);
+  color: var(--text-secondary);
+}
+
+.profile-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.error-text {
+  font-size: 12px;
+  color: var(--danger-color);
+}
+
+.page-message {
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.page-message-success {
+  background-color: #e6f7ee;
+  border: 1px solid #6fcf97;
+  color: #116a3a;
+}
+
+.page-message-error {
+  background-color: #ffecec;
+  border: 1px solid #ff8a8a;
+  color: #a91515;
 }
 
 /* Secondary Button */
@@ -226,6 +316,10 @@ body {
   .card-content {
     min-height: 120px;
   }
+
+  .profile-card .card-content {
+    min-height: auto;
+  }
 }
 
 @media (max-width: 480px) {
@@ -268,4 +362,102 @@ body {
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Runner dashboard data cards */
+.profile-completeness {
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.profile-completeness-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: #e8eef5;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-color), var(--primary-dark));
+}
+
+.missing-fields {
+  margin-top: 6px;
+  margin-bottom: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.card-content-list {
+  align-items: stretch;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.item-list {
+  list-style: none;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 10px;
+  align-items: center;
+}
+
+.item-row small {
+  display: block;
+  color: var(--text-secondary);
+}
+
+.item-row code {
+  font-size: 12px;
+}
+
+.item-actions {
+  display: flex;
+  align-items: center;
+}
+
+.item-list.compact .item-row {
+  padding: 8px 10px;
+}
+
+.item-list.compact .item-row span {
+  font-weight: 700;
+}
+
+.btn-warning {
+  padding: 8px 10px;
+  background: #f59e0b;
+  color: #1a1a1a;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.btn-warning:hover {
+  background: #d97706;
+  color: #fff;
 }

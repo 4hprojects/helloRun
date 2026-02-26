@@ -31,6 +31,45 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  mobile: {
+    type: String,
+    trim: true,
+    maxlength: 25,
+    default: ''
+  },
+  country: {
+    type: String,
+    trim: true,
+    maxlength: 100,
+    default: ''
+  },
+  dateOfBirth: {
+    type: Date,
+    default: null
+  },
+  gender: {
+    type: String,
+    enum: ['male', 'female', 'non_binary', 'prefer_not_to_say', ''],
+    default: ''
+  },
+  emergencyContactName: {
+    type: String,
+    trim: true,
+    maxlength: 120,
+    default: ''
+  },
+  emergencyContactNumber: {
+    type: String,
+    trim: true,
+    maxlength: 25,
+    default: ''
+  },
+  runningGroup: {
+    type: String,
+    trim: true,
+    maxlength: 120,
+    default: ''
+  },
   emailVerified: {
     type: Boolean,
     default: false

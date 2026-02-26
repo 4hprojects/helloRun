@@ -44,40 +44,22 @@
       <% if (!existingRegistration) { %>
       <form method="POST" action="/events/<%= event.slug %>/register" class="event-register-form" id="eventRegisterForm">
         <div class="register-grid">
-          <div class="form-group <%= errors.firstName ? 'has-error' : '' %>">
-            <label for="firstName">First Name *</label>
-            <input id="firstName" name="firstName" type="text" value="<%= formData.firstName %>" <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
-            <% if (errors.firstName) { %><small class="error-text"><%= errors.firstName %></small><% } %>
-          </div>
-
-          <div class="form-group <%= errors.lastName ? 'has-error' : '' %>">
-            <label for="lastName">Last Name *</label>
-            <input id="lastName" name="lastName" type="text" value="<%= formData.lastName %>" <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
-            <% if (errors.lastName) { %><small class="error-text"><%= errors.lastName %></small><% } %>
-          </div>
-
-          <div class="form-group <%= errors.email ? 'has-error' : '' %>">
-            <label for="email">Email *</label>
-            <input id="email" name="email" type="email" value="<%= formData.email %>" readonly <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
-            <small class="field-hint">Registration uses your helloRun account email.</small>
-            <% if (errors.email) { %><small class="error-text"><%= errors.email %></small><% } %>
-          </div>
-
-          <div class="form-group">
-            <label for="mobile">Mobile</label>
-            <input id="mobile" name="mobile" type="text" value="<%= formData.mobile %>" <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
-            <% if (errors.mobile) { %><small class="error-text"><%= errors.mobile %></small><% } %>
-          </div>
-
-          <div class="form-group <%= errors.country ? 'has-error' : '' %>">
-            <label for="country">Country</label>
-            <select id="country" name="country" <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
-              <option value="">Select country (optional)</option>
-              <% (countries || []).forEach((item) => { %>
-                <option value="<%= item.code %>" <%= formData.country === item.code ? 'selected' : '' %>><%= item.name %></option>
-              <% }) %>
-            </select>
-            <% if (errors.country) { %><small class="error-text"><%= errors.country %></small><% } %>
+          <div class="form-group form-group-full">
+            <label>Runner Profile Snapshot</label>
+            <div class="registration-summary registration-summary-info">
+              <p><strong>Name:</strong> <%= [formData.firstName, formData.lastName].filter(Boolean).join(' ') || 'Not set' %></p>
+              <p><strong>Email:</strong> <%= formData.email || 'Not set' %></p>
+              <p><strong>Mobile:</strong> <%= formData.mobile || 'Not set' %></p>
+              <p><strong>Country:</strong> <%= formData.country || 'Not set' %></p>
+              <p><strong>Date of Birth:</strong> <%= formData.dateOfBirth || 'Not set' %></p>
+              <p><strong>Gender:</strong> <%= formData.gender || 'Not set' %></p>
+              <p><strong>Emergency Contact:</strong> <%= formData.emergencyContactName && formData.emergencyContactNumber ? `${formData.emergencyContactName} (${formData.emergencyContactNumber})` : 'Not set' %></p>
+              <p><strong>Running Group:</strong> <%= formData.runningGroup || 'Not set' %></p>
+            </div>
+            <small class="field-hint">
+              Profile details are pulled from your dashboard and saved as a registration snapshot.
+              <a href="/runner/dashboard">Update profile</a>
+            </small>
           </div>
 
           <div class="form-group <%= errors.participationMode ? 'has-error' : '' %>">
@@ -98,6 +80,67 @@
               <% }) %>
             </select>
             <% if (errors.raceDistance) { %><small class="error-text"><%= errors.raceDistance %></small><% } %>
+          </div>
+
+          <% if (requiresEmergencyContact) { %>
+            <div class="form-group <%= errors.emergencyContactName ? 'has-error' : '' %>">
+              <label for="emergencyContactName">Emergency Contact Name *</label>
+              <input
+                id="emergencyContactName"
+                name="emergencyContactName"
+                type="text"
+                value="<%= formData.emergencyContactName || '' %>"
+                <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>
+              >
+              <% if (errors.emergencyContactName) { %><small class="error-text"><%= errors.emergencyContactName %></small><% } %>
+            </div>
+
+            <div class="form-group <%= errors.emergencyContactNumber ? 'has-error' : '' %>">
+              <label for="emergencyContactNumber">Emergency Contact Number *</label>
+              <input
+                id="emergencyContactNumber"
+                name="emergencyContactNumber"
+                type="text"
+                value="<%= formData.emergencyContactNumber || '' %>"
+                <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>
+              >
+              <% if (errors.emergencyContactNumber) { %><small class="error-text"><%= errors.emergencyContactNumber %></small><% } %>
+            </div>
+          <% } %>
+
+          <div class="form-group form-group-full <%= (errors.waiverAccepted || errors.waiverSignature) ? 'has-error' : '' %>">
+            <label>Waiver and Signature *</label>
+            <div class="waiver-section">
+              <div class="waiver-content">
+                <%- waiverHtml %>
+              </div>
+
+              <div class="waiver-actions">
+                <label class="waiver-checkbox-row" for="waiverAccepted">
+                  <input
+                    type="checkbox"
+                    id="waiverAccepted"
+                    name="waiverAccepted"
+                    value="1"
+                    <%= formData.waiverAccepted ? 'checked' : '' %>
+                    <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>
+                  >
+                  <span>I agree to the waiver (version <%= waiverVersion %>).</span>
+                </label>
+                <% if (errors.waiverAccepted) { %><small class="error-text"><%= errors.waiverAccepted %></small><% } %>
+
+                <label for="waiverSignature">Digital Signature (type your full account name) *</label>
+                <input
+                  id="waiverSignature"
+                  name="waiverSignature"
+                  type="text"
+                  value="<%= formData.waiverSignature || '' %>"
+                  placeholder="Type your full name"
+                  <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>
+                >
+                <% if (errors.waiverSignature) { %><small class="error-text"><%= errors.waiverSignature %></small><% } %>
+              </div>
+            </div>
           </div>
         </div>
 

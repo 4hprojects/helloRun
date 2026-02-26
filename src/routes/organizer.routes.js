@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const XLSX = require('xlsx');
 const User = require('../models/User');
 const Event = require('../models/Event');
 const Registration = require('../models/Registration');
@@ -9,6 +10,7 @@ const uploadService = require('../services/upload.service');
 const emailService = require('../services/email.service');
 const { requireAuth, requireApprovedOrganizer } = require('../middleware/auth.middleware');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
+const { DEFAULT_WAIVER_TEMPLATE, normalizeWaiverTemplate } = require('../utils/waiver');
 
 const countries = getCountries();
 const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K']);
@@ -169,6 +171,7 @@ router.get('/create-event', requireApprovedOrganizer, async (req, res) => {
       errors: {},
       formData: getCreateEventFormData(),
       countries,
+      defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
       message: getPageMessage(req.query)
     });
   } catch (error) {
@@ -324,7 +327,6 @@ router.get('/events/:id', requireApprovedOrganizer, async (req, res) => {
         message: 'Event not found or you do not have access.'
       });
     }
-
     return res.render('organizer/event-details', {
       title: `Event Details - ${event.title}`,
       user,
@@ -364,33 +366,14 @@ router.get('/events/:id/registrants', requireApprovedOrganizer, async (req, res)
         message: 'Event not found or you do not have access.'
       });
     }
-
-    const selectedMode = ['virtual', 'onsite'].includes(req.query.mode)
-      ? req.query.mode
-      : '';
-    const eventRaceDistances = Array.isArray(event.raceDistances) ? event.raceDistances : [];
-    const selectedDistance = eventRaceDistances.includes(req.query.distance)
-      ? req.query.distance
-      : '';
-    const searchQuery = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 80) : '';
-
-    const query = { eventId: event._id };
-    if (selectedMode) {
-      query.participationMode = selectedMode;
-    }
-    if (selectedDistance) {
-      query.raceDistance = selectedDistance;
-    }
-    if (searchQuery) {
-      const safePattern = new RegExp(escapeRegex(searchQuery), 'i');
-      query.$or = [
-        { confirmationCode: safePattern },
-        { 'participant.firstName': safePattern },
-        { 'participant.lastName': safePattern },
-        { 'participant.email': safePattern },
-        { raceDistance: safePattern }
-      ];
-    }
+    const filterContext = getRegistrantFilterContext(event, req.query);
+    const {
+      query,
+      selectedMode,
+      selectedDistance,
+      eventRaceDistances,
+      searchQuery
+    } = filterContext;
 
     const registrationsRaw = await Registration.find(query)
       .sort({ registeredAt: -1 })
@@ -400,8 +383,11 @@ router.get('/events/:id/registrants', requireApprovedOrganizer, async (req, res)
       ...item,
       participant: {
         ...item.participant,
-        countryLabel: getCountryName(item.participant?.country)
-      }
+        countryLabel: getCountryName(item.participant?.country),
+        genderLabel: formatGenderLabel(item.participant?.gender),
+        ageLabel: formatAgeFromDateOfBirth(item.participant?.dateOfBirth)
+      },
+      waiverAcceptedAtLabel: formatDateTime(item.waiver?.acceptedAt)
     }));
 
     const [totalRegistrants, virtualCount, onsiteCount] = await Promise.all([
@@ -419,6 +405,7 @@ router.get('/events/:id/registrants', requireApprovedOrganizer, async (req, res)
       selectedDistance,
       eventRaceDistances,
       searchQuery,
+      exportQuery: buildRegistrantExportQuery(filterContext),
       summary: {
         totalRegistrants,
         virtualCount,
@@ -432,6 +419,101 @@ router.get('/events/:id/registrants', requireApprovedOrganizer, async (req, res)
       title: 'Server Error',
       status: 500,
       message: 'An error occurred while loading event registrants.'
+    });
+  }
+});
+
+router.get('/events/:id/registrants/export', requireApprovedOrganizer, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId);
+    if (!user) {
+      return res.status(404).render('error', {
+        title: '404 - User Not Found',
+        status: 404,
+        message: 'User account not found.'
+      });
+    }
+
+    const event = await getOwnedEventOrNull(req.params.id, user._id);
+    if (!event) {
+      return res.status(404).render('error', {
+        title: '404 - Event Not Found',
+        status: 404,
+        message: 'Event not found or you do not have access.'
+      });
+    }
+
+    const { query } = getRegistrantFilterContext(event, req.query);
+    const registrations = await Registration.find(query).sort({ registeredAt: -1 }).lean();
+    const { headers, rows } = getRegistrantExportData(registrations);
+
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map(csvEscape).join(','))
+      .join('\n');
+
+    const safeSlug = String(event.slug || 'event').replace(/[^a-zA-Z0-9-_]/g, '');
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const filename = `${safeSlug}-registrants-${timestamp}.csv`;
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename=\"${filename}\"`);
+    return res.status(200).send(csvContent);
+  } catch (error) {
+    console.error('Error exporting event registrants CSV:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while exporting registrants.'
+    });
+  }
+});
+
+router.get('/events/:id/registrants/export-xlsx', requireApprovedOrganizer, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId);
+    if (!user) {
+      return res.status(404).render('error', {
+        title: '404 - User Not Found',
+        status: 404,
+        message: 'User account not found.'
+      });
+    }
+
+    const event = await getOwnedEventOrNull(req.params.id, user._id);
+    if (!event) {
+      return res.status(404).render('error', {
+        title: '404 - Event Not Found',
+        status: 404,
+        message: 'Event not found or you do not have access.'
+      });
+    }
+
+    const { query } = getRegistrantFilterContext(event, req.query);
+    const registrations = await Registration.find(query).sort({ registeredAt: -1 }).lean();
+    const { headers, rows } = getRegistrantExportData(registrations);
+
+    const worksheetData = [headers, ...rows];
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Registrants');
+
+    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const safeSlug = String(event.slug || 'event').replace(/[^a-zA-Z0-9-_]/g, '');
+    const timestamp = new Date().toISOString().slice(0, 10);
+    const filename = `${safeSlug}-registrants-${timestamp}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename=\"${filename}\"`);
+    return res.status(200).send(buffer);
+  } catch (error) {
+    console.error('Error exporting event registrants XLSX:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while exporting registrants.'
     });
   }
 });
@@ -459,6 +541,13 @@ router.get('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
         message: 'Event not found or you do not have access.'
       });
     }
+    if (event.status === 'closed') {
+      const query = new URLSearchParams({
+        type: 'error',
+        msg: 'Closed events cannot be edited.'
+      });
+      return res.redirect(`/organizer/events/${event._id}?${query.toString()}`);
+    }
 
     return res.render('organizer/edit-event', {
       title: `Edit Event - ${event.title}`,
@@ -467,6 +556,7 @@ router.get('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
       errors: {},
       formData: getCreateEventFormDataFromEvent(event),
       countries,
+      defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
       message: getPageMessage(req.query)
     });
   } catch (error) {
@@ -502,6 +592,13 @@ router.post('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
         message: 'Event not found or you do not have access.'
       });
     }
+    if (event.status === 'closed') {
+      const query = new URLSearchParams({
+        type: 'error',
+        msg: 'Closed events cannot be edited.'
+      });
+      return res.redirect(`/organizer/events/${event._id}?${query.toString()}`);
+    }
 
     const formData = getCreateEventFormData(req.body);
     const validationErrors = validateCreateEventForm(formData);
@@ -514,6 +611,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
         errors: validationErrors,
         formData,
         countries,
+        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
         message: null
       });
     }
@@ -551,6 +649,14 @@ router.post('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
     event.proofTypesAllowed = isVirtualMode ? formData.proofTypesAllowed : [];
     event.bannerImageUrl = formData.bannerImageUrl || '';
     event.logoUrl = formData.logoUrl || '';
+    const normalizedWaiverTemplate = normalizeWaiverTemplate(formData.waiverTemplate);
+    const previousWaiverTemplate = normalizeWaiverTemplate(event.waiverTemplate || DEFAULT_WAIVER_TEMPLATE);
+    if (previousWaiverTemplate !== normalizedWaiverTemplate) {
+      event.waiverVersion = Number(event.waiverVersion || 1) + 1;
+    } else if (!event.waiverVersion) {
+      event.waiverVersion = 1;
+    }
+    event.waiverTemplate = normalizedWaiverTemplate;
 
     await event.save();
 
@@ -655,6 +761,7 @@ router.post('/create-event', requireApprovedOrganizer, async (req, res) => {
         errors: validationErrors,
         formData,
         countries,
+        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
         message: null
       });
     }
@@ -697,7 +804,9 @@ router.post('/create-event', requireApprovedOrganizer, async (req, res) => {
         ? formData.proofTypesAllowed
         : [],
       bannerImageUrl: formData.bannerImageUrl || '',
-      logoUrl: formData.logoUrl || ''
+      logoUrl: formData.logoUrl || '',
+      waiverTemplate: normalizeWaiverTemplate(formData.waiverTemplate),
+      waiverVersion: 1
     });
 
     await event.save();
@@ -1101,6 +1210,111 @@ function normalizeRaceDistances(presetValues, customDistancesRaw) {
   return Array.from(new Set([...presetDistances, ...customDistances].filter(Boolean)));
 }
 
+function getRegistrantFilterContext(event, queryParams = {}) {
+  const selectedMode = ['virtual', 'onsite'].includes(queryParams.mode)
+    ? queryParams.mode
+    : '';
+  const eventRaceDistances = Array.isArray(event.raceDistances) ? event.raceDistances : [];
+  const selectedDistance = eventRaceDistances.includes(queryParams.distance)
+    ? queryParams.distance
+    : '';
+  const searchQuery = typeof queryParams.q === 'string' ? queryParams.q.trim().slice(0, 80) : '';
+
+  const query = { eventId: event._id };
+  if (selectedMode) {
+    query.participationMode = selectedMode;
+  }
+  if (selectedDistance) {
+    query.raceDistance = selectedDistance;
+  }
+  if (searchQuery) {
+    const safePattern = new RegExp(escapeRegex(searchQuery), 'i');
+    query.$or = [
+      { confirmationCode: safePattern },
+      { 'participant.firstName': safePattern },
+      { 'participant.lastName': safePattern },
+      { 'participant.email': safePattern },
+      { 'participant.emergencyContactName': safePattern },
+      { 'participant.emergencyContactNumber': safePattern },
+      { 'participant.runningGroup': safePattern },
+      { raceDistance: safePattern }
+    ];
+  }
+
+  return {
+    query,
+    selectedMode,
+    selectedDistance,
+    eventRaceDistances,
+    searchQuery
+  };
+}
+
+function buildRegistrantExportQuery(filterContext) {
+  const params = new URLSearchParams();
+  if (filterContext.selectedMode) params.set('mode', filterContext.selectedMode);
+  if (filterContext.selectedDistance) params.set('distance', filterContext.selectedDistance);
+  if (filterContext.searchQuery) params.set('q', filterContext.searchQuery);
+  return params.toString();
+}
+
+function getRegistrantExportData(registrations = []) {
+  const headers = [
+    'Confirmation Code',
+    'First Name',
+    'Last Name',
+    'Email',
+    'Mobile',
+    'Country',
+    'Date of Birth',
+    'Gender',
+    'Emergency Contact Name',
+    'Emergency Contact Number',
+    'Running Group',
+    'Waiver Version',
+    'Waiver Signature',
+    'Waiver Accepted At',
+    'Participation Mode',
+    'Race Distance',
+    'Status',
+    'Payment Status',
+    'Registered At'
+  ];
+
+  const rows = registrations.map((registration) => {
+    const participant = registration.participant || {};
+    return [
+      registration.confirmationCode || '',
+      participant.firstName || '',
+      participant.lastName || '',
+      participant.email || '',
+      participant.mobile || '',
+      getCountryName(participant.country) || participant.country || '',
+      formatDateOnly(participant.dateOfBirth) || '',
+      formatGenderLabel(participant.gender) || '',
+      participant.emergencyContactName || '',
+      participant.emergencyContactNumber || '',
+      participant.runningGroup || '',
+      registration.waiver?.version || '',
+      registration.waiver?.signature || '',
+      registration.waiver?.acceptedAt ? new Date(registration.waiver.acceptedAt).toISOString() : '',
+      registration.participationMode || '',
+      registration.raceDistance || '',
+      registration.status || '',
+      registration.paymentStatus || '',
+      registration.registeredAt ? new Date(registration.registeredAt).toISOString() : ''
+    ];
+  });
+
+  return { headers, rows };
+}
+
+function csvEscape(value) {
+  const raw = String(value ?? '');
+  const escaped = raw.replace(/"/g, '""');
+  return `"${escaped}"`;
+}
+
 function escapeRegex(input) {
   return String(input || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
@@ -1108,6 +1322,9 @@ function escapeRegex(input) {
 function getCreateEventFormData(body = {}) {
   const raceDistancePresets = normalizeArray(body.raceDistancePresets).map(normalizeRaceDistanceLabel).filter(Boolean);
   const raceDistances = normalizeRaceDistances(body.raceDistancePresets, body.raceDistanceCustom);
+  const waiverTemplateRaw = typeof body.waiverTemplate === 'string'
+    ? body.waiverTemplate
+    : DEFAULT_WAIVER_TEMPLATE;
   return {
     title: (body.title || '').trim(),
     organiserName: (body.organiserName || '').trim(),
@@ -1132,6 +1349,7 @@ function getCreateEventFormData(body = {}) {
     raceDistanceCustom: String(body.raceDistanceCustom || '').trim(),
     bannerImageUrl: (body.bannerImageUrl || '').trim(),
     logoUrl: (body.logoUrl || '').trim(),
+    waiverTemplate: normalizeWaiverTemplate(waiverTemplateRaw),
     actionType: body.actionType === 'publish' ? 'publish' : 'draft'
   };
 }
@@ -1178,6 +1396,7 @@ function getCreateEventFormDataFromEvent(event) {
     raceDistanceCustom,
     bannerImageUrl: event.bannerImageUrl || '',
     logoUrl: event.logoUrl || '',
+    waiverTemplate: normalizeWaiverTemplate(event.waiverTemplate || DEFAULT_WAIVER_TEMPLATE),
     actionType: event.status === 'published' ? 'publish' : 'draft'
   };
 }
@@ -1186,6 +1405,52 @@ function parseDateSafe(value) {
   if (!value) return null;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDateOnly(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
+function formatDateTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('en-US');
+}
+
+function formatGenderLabel(value) {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  if (normalized === 'prefer_not_to_say') return 'Prefer not to say';
+  if (normalized === 'non_binary') return 'Non-binary';
+  if (normalized === 'male') return 'Male';
+  if (normalized === 'female') return 'Female';
+  return normalized;
+}
+
+function formatAgeFromDateOfBirth(value) {
+  if (!value) return '';
+  const birthDate = new Date(value);
+  if (Number.isNaN(birthDate.getTime())) return '';
+
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  const dayDiff = today.getDate() - birthDate.getDate();
+
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    age -= 1;
+  }
+
+  if (age < 0 || age > 130) return '';
+  return String(age);
 }
 
 function isValidUrl(url) {
@@ -1293,6 +1558,11 @@ function validateCreateEventForm(formData) {
   }
   if (!isValidUrl(formData.logoUrl)) {
     errors.logoUrl = 'Logo URL must be a valid URL.';
+  }
+  if (!formData.waiverTemplate || formData.waiverTemplate.length < 200) {
+    errors.waiverTemplate = 'Waiver template must be at least 200 characters.';
+  } else if (formData.waiverTemplate.length > 20000) {
+    errors.waiverTemplate = 'Waiver template must be 20,000 characters or less.';
   }
 
   return errors;

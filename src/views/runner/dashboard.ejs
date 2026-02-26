@@ -1,4 +1,3 @@
-<!-- filepath: c:\Users\Kayla Ryhs\Desktop\PersonalProjects\helloRun\src\views\runner\dashboard.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,11 +6,11 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  
+
   <main class="dashboard-container">
     <div class="dashboard-header">
       <div class="header-content">
-        <h1>Welcome back, <%= userName %>! 👋</h1>
+        <h1>Welcome back, <%= userName %>!</h1>
         <p class="header-subtitle">Ready to run?</p>
       </div>
       <form action="/logout" method="POST" class="logout-form">
@@ -22,9 +21,122 @@
       </form>
     </div>
 
+    <% if (message) { %>
+      <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+    <% } %>
+
     <div class="dashboard-grid">
-      
-      <!-- Upcoming Events -->
+      <section class="dashboard-card profile-card">
+        <div class="card-header">
+          <h2>
+            <i data-lucide="user"></i>
+            Personal Information
+          </h2>
+        </div>
+        <div class="card-content">
+          <div class="profile-completeness">
+            <div class="profile-completeness-header">
+              <strong>Profile Completeness</strong>
+              <span><%= profileCompleteness.percent %>%</span>
+            </div>
+            <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= profileCompleteness.percent %>">
+              <div class="progress-fill" style="width: <%= profileCompleteness.percent %>%"></div>
+            </div>
+            <small>
+              Completed <%= profileCompleteness.completedCount %> of <%= profileCompleteness.requiredCount %> recommended fields.
+            </small>
+            <% if (profileCompleteness.missingFields.length) { %>
+              <p class="missing-fields">
+                Missing: <%= profileCompleteness.missingFields.join(', ') %>
+              </p>
+            <% } %>
+          </div>
+
+          <form method="POST" action="/runner/profile" class="profile-form" id="runnerProfileForm">
+            <div class="form-grid">
+              <label class="form-field">
+                <span>First Name *</span>
+                <input type="text" name="firstName" value="<%= profileData.firstName || '' %>" required>
+                <% if (errors.firstName) { %><small class="error-text"><%= errors.firstName %></small><% } %>
+              </label>
+
+              <label class="form-field">
+                <span>Last Name *</span>
+                <input type="text" name="lastName" value="<%= profileData.lastName || '' %>" required>
+                <% if (errors.lastName) { %><small class="error-text"><%= errors.lastName %></small><% } %>
+              </label>
+
+              <label class="form-field">
+                <span>Email</span>
+                <input type="email" value="<%= user.email || '' %>" readonly>
+              </label>
+
+              <label class="form-field">
+                <span>Mobile</span>
+                <input type="text" name="mobile" value="<%= profileData.mobile || '' %>" placeholder="e.g. +1 555 123 4567">
+                <% if (errors.mobile) { %><small class="error-text"><%= errors.mobile %></small><% } %>
+              </label>
+
+              <label class="form-field">
+                <span>Country</span>
+                <select name="country">
+                  <option value="">Select country (optional)</option>
+                  <% (countries || []).forEach((item) => { %>
+                    <option value="<%= item.code %>" <%= profileData.country === item.code ? 'selected' : '' %>><%= item.name %></option>
+                  <% }) %>
+                </select>
+                <% if (errors.country) { %><small class="error-text"><%= errors.country %></small><% } %>
+              </label>
+
+              <label class="form-field">
+                <span>Date of Birth</span>
+                <input type="date" name="dateOfBirth" value="<%= profileData.dateOfBirth || '' %>" max="<%= new Date().toISOString().slice(0, 10) %>">
+                <% if (errors.dateOfBirth) { %><small class="error-text"><%= errors.dateOfBirth %></small><% } %>
+              </label>
+
+              <label class="form-field">
+                <span>Gender</span>
+                <select name="gender">
+                  <option value="" <%= !profileData.gender ? 'selected' : '' %>>Not set</option>
+                  <option value="prefer_not_to_say" <%= profileData.gender === 'prefer_not_to_say' ? 'selected' : '' %>>Prefer not to say</option>
+                  <option value="male" <%= profileData.gender === 'male' ? 'selected' : '' %>>Male</option>
+                  <option value="female" <%= profileData.gender === 'female' ? 'selected' : '' %>>Female</option>
+                  <option value="non_binary" <%= profileData.gender === 'non_binary' ? 'selected' : '' %>>Non-binary</option>
+                </select>
+                <% if (errors.gender) { %><small class="error-text"><%= errors.gender %></small><% } %>
+              </label>
+
+              <label class="form-field">
+                <span>Emergency Contact Name</span>
+                <input type="text" name="emergencyContactName" value="<%= profileData.emergencyContactName || '' %>">
+                <% if (errors.emergencyContactName) { %><small class="error-text"><%= errors.emergencyContactName %></small><% } %>
+              </label>
+
+              <label class="form-field">
+                <span>Emergency Contact Number</span>
+                <input type="text" name="emergencyContactNumber" value="<%= profileData.emergencyContactNumber || '' %>">
+                <% if (errors.emergencyContactNumber) { %><small class="error-text"><%= errors.emergencyContactNumber %></small><% } %>
+              </label>
+
+              <label class="form-field form-field-full">
+                <span>Running Group (Optional)</span>
+                <input type="text" name="runningGroup" list="running-group-options" value="<%= profileData.runningGroup || '' %>" placeholder="Search or type a running group">
+                <datalist id="running-group-options">
+                  <% (runningGroups || []).forEach((groupName) => { %>
+                    <option value="<%= groupName %>"></option>
+                  <% }) %>
+                </datalist>
+                <% if (errors.runningGroup) { %><small class="error-text"><%= errors.runningGroup %></small><% } %>
+              </label>
+            </div>
+
+            <div class="profile-actions">
+              <button type="submit" class="btn-secondary" id="saveProfileBtn">Save Profile</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
       <section class="dashboard-card">
         <div class="card-header">
           <h2>
@@ -32,13 +144,37 @@
             Upcoming Events
           </h2>
         </div>
-        <div class="card-content placeholder">
-          <p>Your upcoming running events will appear here.</p>
-          <a href="/events" class="btn btn-secondary">Browse Events</a>
+        <div class="card-content card-content-list">
+          <% if (cards.upcoming && cards.upcoming.length) { %>
+            <ul class="item-list">
+              <% cards.upcoming.forEach((item) => { %>
+                <li class="item-row">
+                  <div>
+                    <strong>
+                      <% if (item.slug) { %>
+                        <a href="/events/<%= item.slug %>"><%= item.title %></a>
+                      <% } else { %>
+                        <%= item.title %>
+                      <% } %>
+                    </strong>
+                    <small><%= item.startAtLabel %> | <%= item.distance %> | <%= item.mode %></small>
+                    <small>Confirmation: <code><%= item.confirmationCode %></code></small>
+                  </div>
+                  <div class="item-actions">
+                    <% if (item.isUnpaid) { %>
+                      <a href="/my-registrations" class="btn btn-warning">Continue Payment</a>
+                    <% } %>
+                  </div>
+                </li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <p>No upcoming events yet.</p>
+            <a href="/events" class="btn btn-secondary" data-dashboard-action="browse-events">Browse Events</a>
+          <% } %>
         </div>
       </section>
 
-      <!-- Past Events -->
       <section class="dashboard-card">
         <div class="card-header">
           <h2>
@@ -46,12 +182,31 @@
             Past Events
           </h2>
         </div>
-        <div class="card-content placeholder">
-          <p>Your completed running events will appear here.</p>
+        <div class="card-content card-content-list">
+          <% if (cards.past && cards.past.length) { %>
+            <ul class="item-list">
+              <% cards.past.forEach((item) => { %>
+                <li class="item-row">
+                  <div>
+                    <strong>
+                      <% if (item.slug) { %>
+                        <a href="/events/<%= item.slug %>"><%= item.title %></a>
+                      <% } else { %>
+                        <%= item.title %>
+                      <% } %>
+                    </strong>
+                    <small><%= item.startAtLabel %> | <%= item.distance %> | <%= item.mode %></small>
+                    <small>Status: <%= item.status %></small>
+                  </div>
+                </li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <p>No past events yet.</p>
+          <% } %>
         </div>
       </section>
 
-      <!-- Activity Log -->
       <section class="dashboard-card">
         <div class="card-header">
           <h2>
@@ -59,12 +214,25 @@
             Activity Log
           </h2>
         </div>
-        <div class="card-content placeholder">
-          <p>Your recent activities will appear here.</p>
+        <div class="card-content card-content-list">
+          <% if (cards.activity && cards.activity.length) { %>
+            <ul class="item-list">
+              <% cards.activity.forEach((item) => { %>
+                <li class="item-row">
+                  <div>
+                    <strong>Registered: <%= item.eventTitle %></strong>
+                    <small><%= item.atLabel %></small>
+                    <small>Code: <code><%= item.confirmationCode %></code></small>
+                  </div>
+                </li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <p>No activity yet.</p>
+          <% } %>
         </div>
       </section>
 
-      <!-- Certificates Earned -->
       <section class="dashboard-card">
         <div class="card-header">
           <h2>
@@ -72,12 +240,12 @@
             Certificates Earned
           </h2>
         </div>
-        <div class="card-content placeholder">
-          <p>Your earned certificates will appear here.</p>
+        <div class="card-content">
+          <p>Certificates will be available after result approvals (Phase 5).</p>
+          <p><strong>Current:</strong> 0 certificates</p>
         </div>
       </section>
 
-      <!-- Progress Statistics -->
       <section class="dashboard-card">
         <div class="card-header">
           <h2>
@@ -85,16 +253,34 @@
             Progress Statistics
           </h2>
         </div>
-        <div class="card-content placeholder">
-          <p>Your running statistics will appear here.</p>
+        <div class="card-content card-content-list">
+          <ul class="item-list compact">
+            <li class="item-row"><strong>Total Registrations</strong><span><%= stats.total %></span></li>
+            <li class="item-row"><strong>Upcoming</strong><span><%= stats.upcoming %></span></li>
+            <li class="item-row"><strong>Past</strong><span><%= stats.past %></span></li>
+            <li class="item-row"><strong>Unpaid</strong><span><%= stats.unpaid %></span></li>
+            <li class="item-row"><strong>Paid</strong><span><%= stats.paid %></span></li>
+          </ul>
+          <a href="/my-registrations" class="btn btn-secondary">Open My Registrations</a>
         </div>
       </section>
 
+      <section class="dashboard-card">
+        <div class="card-header">
+          <h2>
+            <i data-lucide="users"></i>
+            Running Groups
+          </h2>
+        </div>
+        <div class="card-content">
+          <p>Running groups (create/join) coming soon.</p>
+        </div>
+      </section>
     </div>
   </main>
 
   <%- include('../layouts/footer') %>
-  
+
   <script src="/js/main.js"></script>
   <script src="/js/runner-dashboard.js"></script>
   <script>

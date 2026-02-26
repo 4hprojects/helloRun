@@ -1,275 +1,319 @@
+﻿===========================================
+DOCUMENT ROLE (SOURCE OF TRUTH)
 ===========================================
-STATUS UPDATE (Feb 24, 2026 - Phase 4 Kickoff)
+- Purpose: Product planning, roadmap, detailed tasks, and phase accomplishments.
+- Update cadence: When priorities change or a milestone is completed.
+- Changelog reference: See dir.txt for repository-level change history.
+
+===========================================
+STATUS UPDATE (Feb 26, 2026 - Runner Dashboard Data + Refactor)
 ===========================================
 
 Current reality after latest implementation:
 
 IN PROGRESS:
-- Phase 3: Event Creation & Management (advanced beyond scaffold; working organizer flows + public published event viewing)
-- Phase 4: Registration System (account-required registration flow implemented, payment-proof flow pending)
+- Phase 3: Event Creation & Management (advanced)
+- Phase 4: Registration System (account flow active; payment-proof still pending)
+- Phase 6: Dashboards (runner dashboard now partially data-driven)
 
-Completed in this session:
-- Public events listing now shows published events from DB
-- Public event details page implemented (/events/:slug)
-- Registration routes implemented:
-  - GET /events/:slug/register (auth required)
-  - POST /events/:slug/register (auth required)
-- Guard rules implemented:
-  - published event required
-  - registration window open required
-  - allowed participation mode required
-  - duplicate registration blocked
-- Login return path implemented for protected registration page
-- Registration model implemented with unique event+user index and confirmation code
-- Registration confirmation email integrated (graceful failure)
-- My Registrations page implemented (/my-registrations)
+Completed in this cycle:
+- Runner dashboard now uses real registration data cards:
+  - Upcoming events (based on eventStartAt)
+  - Past events
+  - Activity log (recent registrations)
+  - Progress statistics (total/upcoming/past/unpaid/paid)
+- Continue Payment placeholder CTA added:
+  - shown only when paymentStatus is unpaid
+  - links to /my-registrations for now
+- Profile completeness flow added:
+  - percentage progress bar
+  - required-field completion count
+  - missing fields list
+- Runner routes/controller refactor completed:
+  - moved runner dashboard/profile handlers out of authRoutes.js
+  - created dedicated:
+    - src/routes/runner.routes.js
+    - src/controllers/runner.controller.js
+    - src/services/runner-data.service.js
+- Runner data source unified:
+  - shared registration fetch service now reused by:
+    - /runner/dashboard
+    - /my-registrations
+- Running group feature placeholder added on dashboard:
+  - "Running groups (create/join) coming soon."
 
-Still pending for Phase 4 completion:
-- Payment proof upload and verification workflow
-- Organizer-side payment verification screens
-- Full registration/payment status lifecycle polish
+Still pending from this scope:
+- Payment proof upload + organizer verification workflow (Phase 4)
+- Runner activity expansion beyond registration events (future)
+- Running group backend (create/join/search) implementation (future)
 
 Manual smoke checklist (latest):
-[ ] Published events appear on /events
-[ ] Draft/closed events are not publicly accessible by slug
-[ ] Login redirect+return for register route works
-[ ] New registration succeeds once per account per event
-[ ] Duplicate registration is blocked
-[ ] Registration appears in /my-registrations
+[ ] Runner dashboard loads without errors for users with 0 registrations
+[ ] Upcoming/Past split follows eventStartAt correctly
+[ ] Continue Payment appears only for unpaid registrations
+[ ] Profile completeness percentage and missing fields are accurate
+[ ] /my-registrations and /runner/dashboard show consistent registration data
+[ ] Runner profile update works via new runner routes/controller
+
+---
+===========================================
+CURRENT ACTIVE BACKLOG (Next 2 Sprints)
+===========================================
+
+Sprint A (Immediate):
+1. Phase 4 payment proof upload flow (runner side)
+2. Organizer payment verification flow (approve/reject + notes)
+3. Payment status lifecycle polish in runner and organizer views
+4. Smoke tests for registration, waiver, and export flows
+
+Sprint B (After Payment Flow):
+1. Runner dashboard iteration 2:
+   - richer activity feed (beyond registration events)
+   - certificate/stat cards backed by real Phase 5 data when available
+2. Running group foundation (placeholder currently in UI):
+   - define data model and create/join/search behavior
+3. Test coverage:
+   - runner profile update
+   - runner dashboard data grouping
+   - payment workflow regressions
+
+Notes:
+- dir.txt should record file-level implementation history only.
+- wireframe.txt remains the master planning and task document.
 
 ---
 How we will build helloRun step-by-step
 
 ===========================================
-PROJECT OVERVIEW & STATUS (Feb 24, 2026)
+PROJECT OVERVIEW & STATUS (Feb 26, 2026)
 ===========================================
 
 COMPLETED PHASES:
-✅ Phase 0: Project Skeleton (Nov 2024) - 100%
-✅ Phase 1: Authentication System (Feb 2025) - 100%
-✅ Phase 2A: Organizer Signup Flow - 100%
-✅ Phase 2B: Organizer Application Forms & Status - 100%
+[DONE] Phase 0: Project Skeleton (Nov 2024) - 100%
+[DONE] Phase 1: Authentication System (Feb 2025) - 100%
+[DONE] Phase 2A: Organizer Signup Flow - 100%
+[DONE] Phase 2B: Organizer Application Forms & Status - 100%
 
 IN PROGRESS:
-🔄 Phase 3: Event Creation & Management (20% scaffolded)
+[IN_PROGRESS] Phase 3: Event Creation & Management (20% scaffolded)
+[IN_PROGRESS] Phase 6: Dashboards (runner dashboard data cards + profile completeness implemented)
 
 UPCOMING PHASES:
-⏳ Phase 4: Registration System (10% scaffolded)
-⏳ Phase 5: Submission, Results & Leaderboard (0%)
-⏳ Phase 6: Dashboards (0%)
-⏳ Phase 7: Additional Features (Blog planned, 0% implemented)
-⏳ Phase 8: Google OAuth (Optional)
-⏳ Phase 9: Testing & Optimization
-⏳ Phase 10: Production Deployment
+[PENDING] Phase 4: Registration System (10% scaffolded)
+[PENDING] Phase 5: Submission, Results & Leaderboard (0%)
+[PENDING] Phase 7: Additional Features (Blog planned, 0% implemented)
+[PENDING] Phase 8: Google OAuth (Optional)
+[PENDING] Phase 9: Testing & Optimization
+[PENDING] Phase 10: Production Deployment
 
 QUICK STATS:
 - Total Users: TBD (after deployment)
 - Total Events: 0 (awaiting Phase 3)
 - Platform Status: Development
-- Last Major Update: Feb 24, 2026 (Phase 2C admin review hardening completed)
+- Last Major Update: Feb 26, 2026 (Runner dashboard data cards + runner route/controller refactor)
 
 ---
 
-Phase 0: Project skeleton (MVC baseline) ✅ COMPLETED (Nov 2024)
+Phase 0: Project skeleton (MVC baseline) [DONE] COMPLETED (Nov 2024)
 
 Goal: You can run the app locally with pages loading.
 
 What you built:
-✅ Express server
-✅ EJS views with layouts
-✅ MVC folders structure
-✅ MongoDB connection
-✅ Base layout + navigation + footer components
-✅ Mobile-responsive navigation with hamburger menu
-✅ Lucide icons integration
-✅ Google Analytics integration (GA4)
+[DONE] Express server
+[DONE] EJS views with layouts
+[DONE] MVC folders structure
+[DONE] MongoDB connection
+[DONE] Base layout + navigation + footer components
+[DONE] Mobile-responsive navigation with hamburger menu
+[DONE] Lucide icons integration
+[DONE] Google Analytics integration (GA4)
 
 What you have after Phase 0:
-✅ / home page (fully styled with hero, features, audience sections)
-✅ /events events page (UI ready for dynamic content)
-✅ /login and /signup pages (fully functional UI with improved password toggle)
-✅ /forgot-password page (compact UI, no scrolling required)
-✅ Complete password reset flow (forgot, reset, success, expired)
-✅ Complete email verification flow (sent, success, expired, resend)
-✅ Error page
-✅ Responsive navigation with mobile menu
-✅ Footer with links
-✅ SEO ready (sitemap.xml, robots.txt)
-✅ Google Analytics 4 tracking on all pages
+[DONE] / home page (fully styled with hero, features, audience sections)
+[DONE] /events events page (UI ready for dynamic content)
+[DONE] /login and /signup pages (fully functional UI with improved password toggle)
+[DONE] /forgot-password page (compact UI, no scrolling required)
+[DONE] Complete password reset flow (forgot, reset, success, expired)
+[DONE] Complete email verification flow (sent, success, expired, resend)
+[DONE] Error page
+[DONE] Responsive navigation with mobile menu
+[DONE] Footer with links
+[DONE] SEO ready (sitemap.xml, robots.txt)
+[DONE] Google Analytics 4 tracking on all pages
 
 ---
 
-Phase 1: Auth (MongoDB) with email verification ✅ COMPLETED (100%) - Feb 3, 2025
+Phase 1: Auth (MongoDB) with email verification [DONE] COMPLETED (100%) - Feb 3, 2025
 
 Goal: Users can sign up, verify email, and log in securely.
 
-Feature 1A: Email/password signup ✅ COMPLETED (Nov 2024)
-✅ Create User model with email verification fields
-✅ Auto-increment userId (U000001, U000002, etc.)
-✅ Counter model for sequential IDs
-✅ Hash password with bcrypt
-✅ Block duplicate email
-✅ Save role: "runner" or "organiser"
-✅ Email verification required before login
-✅ Migration scripts for existing users
+Feature 1A: Email/password signup [DONE] COMPLETED (Nov 2024)
+[DONE] Create User model with email verification fields
+[DONE] Auto-increment userId (U000001, U000002, etc.)
+[DONE] Counter model for sequential IDs
+[DONE] Hash password with bcrypt
+[DONE] Block duplicate email
+[DONE] Save role: "runner" or "organiser"
+[DONE] Email verification required before login
+[DONE] Migration scripts for existing users
 
-Feature 1B: Email verification ✅ COMPLETED (Dec 2024)
-✅ Generate verification token on signup
-✅ Send verification email via Resend
-✅ /verify-email/:token endpoint
-✅ Token expiry (24 hours)
-✅ Resend verification email feature
-✅ User cannot login until verified
-✅ Professional email templates
+Feature 1B: Email verification [DONE] COMPLETED (Dec 2024)
+[DONE] Generate verification token on signup
+[DONE] Send verification email via Resend
+[DONE] /verify-email/:token endpoint
+[DONE] Token expiry (24 hours)
+[DONE] Resend verification email feature
+[DONE] User cannot login until verified
+[DONE] Professional email templates
 
-Feature 1C: Password reset ✅ COMPLETED (Feb 3, 2025)
-✅ Request password reset
-✅ Generate reset token (1 hour expiry)
-✅ Send reset email via Resend
-✅ Verify reset token
-✅ Update password
-✅ Handle expired tokens
-✅ Rate limiting (3 resets per 24 hours)
-✅ Email notifications
-✅ Confirmation email after password reset
-✅ Professional reset-password UI with strength indicator
-✅ Real-time password validation
-✅ Password visibility toggle (eye/eye-off icons)
-✅ Common password detection
-✅ Sequential/repeated character detection
-✅ Accessible form with ARIA support
-✅ Client-side validation with debouncing
-✅ Password match validation
-✅ Animated strength indicator (gradient)
+Feature 1C: Password reset [DONE] COMPLETED (Feb 3, 2025)
+[DONE] Request password reset
+[DONE] Generate reset token (1 hour expiry)
+[DONE] Send reset email via Resend
+[DONE] Verify reset token
+[DONE] Update password
+[DONE] Handle expired tokens
+[DONE] Rate limiting (3 resets per 24 hours)
+[DONE] Email notifications
+[DONE] Confirmation email after password reset
+[DONE] Professional reset-password UI with strength indicator
+[DONE] Real-time password validation
+[DONE] Password visibility toggle (eye/eye-off icons)
+[DONE] Common password detection
+[DONE] Sequential/repeated character detection
+[DONE] Accessible form with ARIA support
+[DONE] Client-side validation with debouncing
+[DONE] Password match validation
+[DONE] Animated strength indicator (gradient)
 
-Feature 1D: Session management ✅ COMPLETED (Nov 2024)
-✅ express-session with MongoDB store
-✅ Session timeout (7 days)
-✅ Remember me option
-✅ Secure cookies
-✅ CSRF protection
+Feature 1D: Session management [DONE] COMPLETED (Nov 2024)
+[DONE] express-session with MongoDB store
+[DONE] Session timeout (7 days)
+[DONE] Remember me option
+[DONE] Secure cookies
+[DONE] CSRF protection
 
-Feature 1E: Login ✅ COMPLETED (Dec 2024)
-✅ Email/password validation
-✅ Check email verified before login
-✅ bcrypt password comparison
-✅ Create session
-✅ Redirect to dashboard or complete profile
-✅ Professional login UI with password toggle
-✅ Error handling and validation
-✅ Logged-in users redirected away from /login and /signup (Feb 19, 2026)
+Feature 1E: Login [DONE] COMPLETED (Dec 2024)
+[DONE] Email/password validation
+[DONE] Check email verified before login
+[DONE] bcrypt password comparison
+[DONE] Create session
+[DONE] Redirect to dashboard or complete profile
+[DONE] Professional login UI with password toggle
+[DONE] Error handling and validation
+[DONE] Logged-in users redirected away from /login and /signup (Feb 19, 2026)
 
 ---
 
-Phase 2: Organiser application + manual approval ✅ COMPLETED (100%)
+Phase 2: Organiser application + manual approval [DONE] COMPLETED (100%)
 
 Goal: Runner can apply to become organiser. Admin can approve.
 
-Feature 2A: Organiser signup flow ✅ COMPLETED
-✅ User signs up and selects "Event Organizer" role
-✅ Email verification sent (same as runner)
-✅ After verification, redirect to /organizer/complete-profile
-✅ Upload service created (multer configuration)
-✅ File validation (PDF, JPEG, PNG only, max 5MB)
-✅ Secure file storage in /public/uploads/organizer-docs/
+Feature 2A: Organiser signup flow [DONE] COMPLETED
+[DONE] User signs up and selects "Event Organizer" role
+[DONE] Email verification sent (same as runner)
+[DONE] After verification, redirect to /organizer/complete-profile
+[DONE] Upload service created (multer configuration)
+[DONE] File validation (PDF, JPEG, PNG only, max 5MB)
+[DONE] Secure file storage in /public/uploads/organizer-docs/
 
-Feature 2B: Document upload & profile completion ✅ COMPLETED (Feb 14, 2026)
-✅ 3-step form wizard (Business Info → Documents → Review & Confirm)
-✅ Drag-and-drop file upload with preview
-✅ File type validation (PDF, JPG, PNG)
-✅ File size validation (max 5MB)
-✅ AJAX form submission
-✅ Application status tracking page with timeline
-✅ Auto-refresh status every 5 minutes
-✅ Copy application ID to clipboard
-✅ Email notification on submission
-✅ Mobile responsive design
-✅ Accessibility features
+Feature 2B: Document upload & profile completion [DONE] COMPLETED (Feb 14, 2026)
+[DONE] 3-step form wizard (Business Info -> Documents -> Review & Confirm)
+[DONE] Drag-and-drop file upload with preview
+[DONE] File type validation (PDF, JPG, PNG)
+[DONE] File size validation (max 5MB)
+[DONE] AJAX form submission
+[DONE] Application status tracking page with timeline
+[DONE] Auto-refresh status every 5 minutes
+[DONE] Copy application ID to clipboard
+[DONE] Email notification on submission
+[DONE] Mobile responsive design
+[DONE] Accessibility features
 
-Feature 2C: Admin reviews ✅ COMPLETED (Feb 24, 2026)
-✅ Admin dashboard page
-✅ List all applications
-✅ Filter by status (pending, under_review, approved, rejected)
-✅ View application details
-✅ View uploaded documents
-✅ Approve/reject with email notifications
-✅ Admin routes (/admin/applications)
+Feature 2C: Admin reviews [DONE] COMPLETED (Feb 24, 2026)
+[DONE] Admin dashboard page
+[DONE] List all applications
+[DONE] Filter by status (pending, under_review, approved, rejected)
+[DONE] View application details
+[DONE] View uploaded documents
+[DONE] Approve/reject with email notifications
+[DONE] Admin routes (/admin/applications)
 Delivered: controller + UI + email integration + validation hardening (Feb 24, 2026)
 
 ---
 
-Phase 3: Event creation (organiser only) 🚧 SCAFFOLDED (20%)
+Phase 3: Event creation (organiser only) [SCAFFOLDED] SCAFFOLDED (20%)
 
 Goal: Organizers can create running events.
 
-✅ Event.js model created
-✅ Registration.js model created
-⏳ Create event page UI
-⏳ Event creation controller
-⏳ Image upload integration
-⏳ Edit/delete events
-⏳ Event status management
+[DONE] Event.js model created
+[DONE] Registration.js model created
+[PENDING] Create event page UI
+[PENDING] Event creation controller
+[PENDING] Image upload integration
+[PENDING] Edit/delete events
+[PENDING] Event status management
 
 ---
 
-Phase 4: Registration + payment proof 💳 PENDING
+Phase 4: Registration + payment proof [PAYMENT] PENDING
 
 Goal: Runner joins event and uploads payment proof for verification.
-⏳ Registration form
-⏳ Upload payment proof
-⏳ Organiser verifies payment
-⏳ Email notifications
+[PENDING] Registration form
+[PENDING] Upload payment proof
+[PENDING] Organiser verifies payment
+[PENDING] Email notifications
 
 ---
 
-Phase 5: Submissions, Results & Leaderboard 🏃 PENDING
+Phase 5: Submissions, Results & Leaderboard [RUNNER] PENDING
 
 Goal: Runner submits run proof, organiser approves, certificate generated, leaderboard populated.
-⏳ Submit result (distance, time, proof)
-⏳ Organiser review and approve
-⏳ Auto-generate certificate PDF
-⏳ Download certificate
-⏳ Leaderboard page (top runners, fastest times, event rankings)
-⏳ Filter leaderboard by event, distance, category
-⏳ Public leaderboard (visible to all users)
-✅ /leaderboard route + placeholder page (Feb 19, 2026)
-✅ Nav link added (Feb 19, 2026)
+[PENDING] Submit result (distance, time, proof)
+[PENDING] Organiser review and approve
+[PENDING] Auto-generate certificate PDF
+[PENDING] Download certificate
+[PENDING] Leaderboard page (top runners, fastest times, event rankings)
+[PENDING] Filter leaderboard by event, distance, category
+[PENDING] Public leaderboard (visible to all users)
+[DONE] /leaderboard route + placeholder page (Feb 19, 2026)
+[DONE] Nav link added (Feb 19, 2026)
 
 ---
 
-Phase 6: Dashboards & Analytics 📊 PENDING
+Phase 6: Dashboards & Analytics [ANALYTICS] IN PROGRESS (runner module foundation)
 
-⏳ Runner Dashboard (upcoming events, past events, certificates)
-⏳ Organiser Dashboard (event overview, participant stats)
-⏳ Admin Dashboard (platform stats, user growth, pending applications)
-
----
-
-Phase 7: Additional Pages & Features 🌟 PENDING
-
-⏳ Static pages (/about, /how-it-works, /contact, /faq, /privacy, /terms)
-⏳ Blog system (model, CRUD, categories, SEO)
-⏳ Search & filters
-⏳ Notifications system
+[PENDING] Runner Dashboard (upcoming events, past events, certificates)
+[PENDING] Organiser Dashboard (event overview, participant stats)
+[PENDING] Admin Dashboard (platform stats, user growth, pending applications)
 
 ---
 
-Phase 8: Google OAuth (Optional) 🔐 PENDING
-⏳ Passport.js integration
-⏳ Merge accounts (if email exists)
+Phase 7: Additional Pages & Features [FEATURES] PENDING
+
+[PENDING] Static pages (/about, /how-it-works, /contact, /faq, /privacy, /terms)
+[PENDING] Blog system (model, CRUD, categories, SEO)
+[PENDING] Search & filters
+[PENDING] Notifications system
 
 ---
 
-Phase 9: Testing & Optimization 🧪 PENDING
-⏳ Unit & integration tests
-⏳ Performance & security audit
-⏳ Cross-browser & mobile testing
+Phase 8: Google OAuth (Optional) [SECURITY] PENDING
+[PENDING] Passport.js integration
+[PENDING] Merge accounts (if email exists)
 
 ---
 
-Phase 10: Deployment 🚀 PENDING
-⏳ Production database, SSL, domain (hellorun.online)
-⏳ Monitoring, backups, launch
+Phase 9: Testing & Optimization [TESTING] PENDING
+[PENDING] Unit & integration tests
+[PENDING] Performance & security audit
+[PENDING] Cross-browser & mobile testing
+
+---
+
+Phase 10: Deployment [DEPLOY] PENDING
+[PENDING] Production database, SSL, domain (hellorun.online)
+[PENDING] Monitoring, backups, launch
 
 ---
 
@@ -285,7 +329,7 @@ src/
     auth.controller.js
     page.controller.js
   middleware/
-    auth.middleware.js             ← REWRITTEN Feb 19 (populateAuthLocals, redirectIfAuth, requireAuth, requireAdmin, requireOrganizer, requireApprovedOrganizer)
+    auth.middleware.js             <- REWRITTEN Feb 19 (populateAuthLocals, redirectIfAuth, requireAuth, requireAdmin, requireOrganizer, requireApprovedOrganizer)
     role.middleware.js
   models/
     User.js
@@ -297,11 +341,11 @@ src/
     OrganiserApplication.js
     Submission.js
   routes/
-    authRoutes.js                 ← ALL auth routes (login, signup, register, verify, reset, logout)
-    pageRoutes.js                 ← Public pages (home, events, blog, about, leaderboard)
-    organizer.routes.js           ← Organizer profile & application (Phase 2B)
-    event.routes.js               ← Phase 3 (scaffolded)
-    admin.routes.js               ← Phase 2C completed (Feb 24, 2026)
+    authRoutes.js                 <- ALL auth routes (login, signup, register, verify, reset, logout)
+    pageRoutes.js                 <- Public pages (home, events, blog, about, leaderboard)
+    organizer.routes.js           <- Organizer profile & application (Phase 2B)
+    event.routes.js               <- Phase 3 (scaffolded)
+    admin.routes.js               <- Phase 2C completed (Feb 24, 2026)
   services/
     upload.service.js
     email.service.js
@@ -315,16 +359,16 @@ src/
     clean-users.js
   views/
     layouts/
-      head.ejs                     ← Reusable head with GA
-      nav.ejs                      ← Auth-aware nav with Blog + Leaderboard links
+      head.ejs                     <- Reusable head with GA
+      nav.ejs                      <- Auth-aware nav with Blog + Leaderboard links
       footer.ejs
       main.ejs
     pages/
-      home.ejs                     ← Full landing page (hero, features, how-it-works, CTA)
-      events.ejs                   ← Auth-based content
-      blog.ejs                     ← Placeholder
-      about.ejs                    ← Placeholder
-      leaderboard.ejs              ← Placeholder (Phase 5 data)
+      home.ejs                     <- Full landing page (hero, features, how-it-works, CTA)
+      events.ejs                   <- Auth-based content
+      blog.ejs                     <- Placeholder
+      about.ejs                    <- Placeholder
+      leaderboard.ejs              <- Placeholder (Phase 5 data)
       index.ejs
     auth/
       login.ejs
@@ -340,16 +384,16 @@ src/
       verify-email-expired.ejs
       verify-email-result.ejs
     organizer/
-      complete-profile.ejs         ← 3-step form wizard
-      application-status.ejs       ← Status tracking with timeline
+      complete-profile.ejs         <- 3-step form wizard
+      application-status.ejs       <- Status tracking with timeline
     admin/
-      applications-list.ejs        ← Phase 2C completed (Feb 24, 2026)
-      application-details.ejs      ← Phase 2C completed (Feb 24, 2026)
+      applications-list.ejs        <- Phase 2C completed (Feb 24, 2026)
+      application-details.ejs      <- Phase 2C completed (Feb 24, 2026)
     error.ejs
   public/
     css/
-      style.css                    ← Global styles + nav user menu
-      helloRun.css                 ← Landing page styles
+      style.css                    <- Global styles + nav user menu
+      helloRun.css                 <- Landing page styles
       login.css
       signup.css
       forgot-password.css
@@ -399,31 +443,31 @@ TECHNICAL STACK (Updated Feb 19, 2026)
 ===========================================
 
 Backend:
-✅ Node.js + Express
-✅ MongoDB + Mongoose
-✅ express-session + connect-mongo
-✅ bcrypt for password hashing
-✅ Resend for email delivery
-✅ UUID for token generation
-✅ multer for file uploads
+[DONE] Node.js + Express
+[DONE] MongoDB + Mongoose
+[DONE] express-session + connect-mongo
+[DONE] bcrypt for password hashing
+[DONE] Resend for email delivery
+[DONE] UUID for token generation
+[DONE] multer for file uploads
 
 Frontend:
-✅ EJS templating
-✅ Lucide icons
-✅ Vanilla JavaScript
-✅ CSS3 with custom properties
-✅ Mobile-first responsive design
+[DONE] EJS templating
+[DONE] Lucide icons
+[DONE] Vanilla JavaScript
+[DONE] CSS3 with custom properties
+[DONE] Mobile-first responsive design
 
 Security:
-✅ Password hashing (bcrypt)
-✅ Secure session cookies
-✅ Email verification required
-✅ Password reset tokens (1 hour expiry)
-✅ Rate limiting on password reset (3/24hrs)
-✅ CSRF protection
-✅ Input validation and sanitization
-✅ Common password blocking
-✅ Auth middleware (populateAuthLocals, redirectIfAuth, requireAuth, role guards)
+[DONE] Password hashing (bcrypt)
+[DONE] Secure session cookies
+[DONE] Email verification required
+[DONE] Password reset tokens (1 hour expiry)
+[DONE] Rate limiting on password reset (3/24hrs)
+[DONE] CSRF protection
+[DONE] Input validation and sanitization
+[DONE] Common password blocking
+[DONE] Auth middleware (populateAuthLocals, redirectIfAuth, requireAuth, role guards)
 
 ---
 
@@ -442,7 +486,7 @@ Exports:
   requireApprovedOrganizer - Protects approved-organiser-only routes
 
 Usage in server.js:
-  app.use(populateAuthLocals)  ← BEFORE all routes
+  app.use(populateAuthLocals)  <- BEFORE all routes
   
 Usage in routes:
   router.get('/login', redirectIfAuth, ...)
@@ -471,7 +515,7 @@ Logged In (Admin):
   [Logo] [Home] [Events] [Blog] [Leaderboard] [Admin] [Hi, Name] [Logout]
 
 Auth Page Redirect:
-  Logged-in user visits /login or /signup → redirected to role-based dashboard
+  Logged-in user visits /login or /signup -> redirected to role-based dashboard
 
 ---
 
@@ -479,19 +523,19 @@ Auth Page Redirect:
 TIMELINE TRACKING (Updated Feb 24, 2026)
 ===========================================
 
-Phase 0:  ✅ Completed - Nov 2024
-Phase 1:  ✅ Completed - Feb 2025
-Phase 2A: ✅ Completed - Dec 2024
-Phase 2B: ✅ Completed - Feb 14, 2026
-Phase 2C: ✅ Completed - Feb 24, 2026
-Phase 3:  🔜 After Phase 2C
-Phase 4:  🔜 After Phase 3
-Phase 5:  🔜 After Phase 4 (includes Leaderboard)
-Phase 6:  🔜 After Phase 5
-Phase 7:  🔜 After Phase 6
-Phase 8:  🔜 Optional
-Phase 9:  🔜 Before launch
-Phase 10: 🔜 Launch
+Phase 0:  [DONE] Completed - Nov 2024
+Phase 1:  [DONE] Completed - Feb 2025
+Phase 2A: [DONE] Completed - Dec 2024
+Phase 2B: [DONE] Completed - Feb 14, 2026
+Phase 2C: [DONE] Completed - Feb 24, 2026
+Phase 3:  [NEXT] After Phase 2C
+Phase 4:  [NEXT] After Phase 3
+Phase 5:  [NEXT] After Phase 4 (includes Leaderboard)
+Phase 6:  [NEXT] After Phase 5
+Phase 7:  [NEXT] After Phase 6
+Phase 8:  [NEXT] Optional
+Phase 9:  [NEXT] Before launch
+Phase 10: [NEXT] Launch
 
 Estimated remaining: ~17-18 hours
 
@@ -502,55 +546,55 @@ DEPLOYMENT CHECKLIST (Production Ready)
 ===========================================
 
 PRE-DEPLOYMENT REQUIREMENTS:
-□ Environment Variables
-  □ NODE_ENV=production
-  □ PORT (assigned by hosting)
-  □ MONGODB_URI (production database)
-  □ SESSION_SECRET (strong, random)
-  □ RESEND_API_KEY (production)
-  □ EMAIL_FROM (verified domain)
-  □ GA_MEASUREMENT_ID
-  □ ADMIN_EMAIL
-  □ UPLOAD_MAX_SIZE
-  □ UPLOAD_ALLOWED_TYPES
+[ ] Environment Variables
+  [ ] NODE_ENV=production
+  [ ] PORT (assigned by hosting)
+  [ ] MONGODB_URI (production database)
+  [ ] SESSION_SECRET (strong, random)
+  [ ] RESEND_API_KEY (production)
+  [ ] EMAIL_FROM (verified domain)
+  [ ] GA_MEASUREMENT_ID
+  [ ] ADMIN_EMAIL
+  [ ] UPLOAD_MAX_SIZE
+  [ ] UPLOAD_ALLOWED_TYPES
 
-□ Database Setup
-  □ MongoDB Atlas cluster configured
-  □ Production database created
-  □ Database user with proper permissions
-  □ IP whitelist configured
-  □ Indexes created
-  □ Counter collection initialized
+[ ] Database Setup
+  [ ] MongoDB Atlas cluster configured
+  [ ] Production database created
+  [ ] Database user with proper permissions
+  [ ] IP whitelist configured
+  [ ] Indexes created
+  [ ] Counter collection initialized
 
-□ Email Service
-  □ Resend account verified
-  □ Domain verified (hellorun.online)
-  □ DNS records configured (SPF, DKIM)
-  □ Email templates tested
+[ ] Email Service
+  [ ] Resend account verified
+  [ ] Domain verified (hellorun.online)
+  [ ] DNS records configured (SPF, DKIM)
+  [ ] Email templates tested
 
-□ Security Hardening
-  □ Rate limiting (express-rate-limit)
-  □ Helmet.js for security headers
-  □ CORS configured
-  □ Input sanitization
-  □ Secure session cookies (secure: true, httpOnly: true)
+[ ] Security Hardening
+  [ ] Rate limiting (express-rate-limit)
+  [ ] Helmet.js for security headers
+  [ ] CORS configured
+  [ ] Input sanitization
+  [ ] Secure session cookies (secure: true, httpOnly: true)
 
-□ SSL/HTTPS
-  □ SSL certificate
-  □ HTTPS redirect
-  □ Secure cookies enabled
+[ ] SSL/HTTPS
+  [ ] SSL certificate
+  [ ] HTTPS redirect
+  [ ] Secure cookies enabled
 
-□ Domain & DNS
-  □ Domain purchased (hellorun.online)
-  □ DNS A record configured
-  □ WWW subdomain configured
+[ ] Domain & DNS
+  [ ] Domain purchased (hellorun.online)
+  [ ] DNS A record configured
+  [ ] WWW subdomain configured
 
-□ Analytics & Monitoring
-  □ Google Analytics 4 verified
-  □ Google Search Console configured
-  □ Sitemap submitted
-  □ Error tracking (Sentry or similar)
-  □ Uptime monitoring
+[ ] Analytics & Monitoring
+  [ ] Google Analytics 4 verified
+  [ ] Google Search Console configured
+  [ ] Sitemap submitted
+  [ ] Error tracking (Sentry or similar)
+  [ ] Uptime monitoring
 
 ---
 
@@ -559,19 +603,19 @@ BLOG SYSTEM PLAN (Phase 7B - Future)
 ===========================================
 
 BlogPost Model:
-⏳ postId, slug, title, excerpt, content, featuredImage
-⏳ authorId, category, tags, status (draft/published/archived)
-⏳ publishedAt, views, readTime, SEO fields
+[PENDING] postId, slug, title, excerpt, content, featuredImage
+[PENDING] authorId, category, tags, status (draft/published/archived)
+[PENDING] publishedAt, views, readTime, SEO fields
 
 Categories:
-⏳ Training, Nutrition, Gear, Motivation, Race Tips, Injury Prevention, General
+[PENDING] Training, Nutrition, Gear, Motivation, Race Tips, Injury Prevention, General
 
 Routes:
-⏳ GET /blog, GET /blog/:slug (public)
-⏳ GET/POST /admin/blog/* (admin CRUD)
+[PENDING] GET /blog, GET /blog/:slug (public)
+[PENDING] GET/POST /admin/blog/* (admin CRUD)
 
 Dependencies to add:
-⏳ slugify, rich text editor (TinyMCE or Quill)
+[PENDING] slugify, rich text editor (TinyMCE or Quill)
 
 ---
 
@@ -582,22 +626,28 @@ LEADERBOARD PLAN (Phase 5 - Future)
 Data Source: Approved submissions from Phase 5
 
 Features:
-⏳ Top runners by total distance
-⏳ Fastest times per event
-⏳ Event-specific rankings
-⏳ Filter by distance category (5K, 10K, 21K, 42K)
-⏳ Filter by event
-⏳ Filter by time period (weekly, monthly, all-time)
-⏳ Public page (visible to all, no login required)
-✅ /leaderboard route + placeholder page (Feb 19, 2026)
-✅ Nav link added (Feb 19, 2026)
+[PENDING] Top runners by total distance
+[PENDING] Fastest times per event
+[PENDING] Event-specific rankings
+[PENDING] Filter by distance category (5K, 10K, 21K, 42K)
+[PENDING] Filter by event
+[PENDING] Filter by time period (weekly, monthly, all-time)
+[PENDING] Public page (visible to all, no login required)
+[DONE] /leaderboard route + placeholder page (Feb 19, 2026)
+[DONE] Nav link added (Feb 19, 2026)
 
 ---
 
 ===========================================
-DETAILED CHANGELOGS → See dir.txt
+DETAILED CHANGELOGS -> See dir.txt
 ===========================================
 All session-by-session changelogs are maintained in dir.txt.
 This file (wireframe.txt) focuses on phase plans, architecture, and status tracking.
+
+
+
+
+
+
 
 

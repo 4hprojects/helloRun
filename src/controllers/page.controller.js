@@ -2,7 +2,9 @@ const Event = require('../models/Event');
 const User = require('../models/User');
 const Registration = require('../models/Registration');
 const emailService = require('../services/email.service');
+const { getRunnerRegistrations } = require('../services/runner-data.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
+const { renderWaiverTemplate } = require('../utils/waiver');
 
 const countries = getCountries();
 
@@ -70,7 +72,9 @@ exports.getEventRegistrationForm = async (req, res) => {
   try {
     const [event, user] = await Promise.all([
       getPublishedEventBySlug(req.params.slug),
-      User.findById(req.session.userId).select('firstName lastName email mobile country role organizerStatus emailVerified')
+      User.findById(req.session.userId).select(
+        'firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup role organizerStatus emailVerified'
+      )
     ]);
 
     if (!event) {
@@ -91,6 +95,8 @@ exports.getEventRegistrationForm = async (req, res) => {
     const registrationWindowError = getRegistrationWindowError(event) || getRegistrationConfigurationError(event);
     const allowedModes = getAllowedParticipationModes(event);
     const allowedRaceDistances = getAllowedRaceDistances(event);
+    const profileSnapshot = getRegistrationProfileSnapshot(user);
+    const requiresEmergencyContact = !profileSnapshot.emergencyContactName || !profileSnapshot.emergencyContactNumber;
     const existing = await Registration.findOne({ eventId: event._id, userId: user._id })
       .select('confirmationCode participationMode raceDistance status paymentStatus registeredAt');
 
@@ -103,14 +109,18 @@ exports.getEventRegistrationForm = async (req, res) => {
       errors: {},
       message: getPageMessage(req.query),
       formData: getRegistrationFormData({
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email || '',
-        mobile: user.mobile || '',
-        country: normalizeCountryCode(user.country),
+        ...profileSnapshot,
         participationMode: allowedModes[0] || '',
-        raceDistance: allowedRaceDistances[0] || ''
+        raceDistance: allowedRaceDistances[0] || '',
+        waiverAccepted: false,
+        waiverSignature: ''
       }),
+      requiresEmergencyContact,
+      waiverHtml: renderWaiverTemplate(event.waiverTemplate, {
+        organizerName: event.organiserName,
+        eventTitle: event.title
+      }),
+      waiverVersion: Number(event.waiverVersion || 1),
       registrationWindowError,
       existingRegistration: existing || null,
       justRegistered: req.query.registered === '1'
@@ -129,7 +139,9 @@ exports.postEventRegistration = async (req, res) => {
   try {
     const [event, user] = await Promise.all([
       getPublishedEventBySlug(req.params.slug),
-      User.findById(req.session.userId).select('firstName lastName email mobile country role organizerStatus emailVerified')
+      User.findById(req.session.userId).select(
+        'firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup role organizerStatus emailVerified'
+      )
     ]);
 
     if (!event) {
@@ -149,10 +161,18 @@ exports.postEventRegistration = async (req, res) => {
 
     const allowedModes = getAllowedParticipationModes(event);
     const allowedRaceDistances = getAllowedRaceDistances(event);
+    const profileSnapshot = getRegistrationProfileSnapshot(user);
+    const requiresEmergencyContact = !profileSnapshot.emergencyContactName || !profileSnapshot.emergencyContactNumber;
+    const emergencyContactName = profileSnapshot.emergencyContactName || String(req.body.emergencyContactName || '').trim();
+    const emergencyContactNumber = profileSnapshot.emergencyContactNumber || String(req.body.emergencyContactNumber || '').trim();
     const formData = getRegistrationFormData({
-      ...req.body,
-      email: user.email,
-      country: normalizeCountryCode(req.body.country)
+      ...profileSnapshot,
+      emergencyContactName,
+      emergencyContactNumber,
+      participationMode: req.body.participationMode,
+      raceDistance: req.body.raceDistance,
+      waiverAccepted: req.body.waiverAccepted,
+      waiverSignature: req.body.waiverSignature
     });
 
     const existingRegistration = await Registration.findOne({ eventId: event._id, userId: user._id })
@@ -170,7 +190,11 @@ exports.postEventRegistration = async (req, res) => {
       formData,
       allowedModes,
       allowedRaceDistances,
-      registrationWindowError
+      registrationWindowError,
+      {
+        requiresEmergencyContact,
+        expectedSignatureName: `${profileSnapshot.firstName} ${profileSnapshot.lastName}`
+      }
     );
 
     if (Object.keys(validationErrors).length > 0) {
@@ -183,6 +207,12 @@ exports.postEventRegistration = async (req, res) => {
         errors: validationErrors,
         message: null,
         formData,
+        requiresEmergencyContact,
+        waiverHtml: renderWaiverTemplate(event.waiverTemplate, {
+          organizerName: event.organiserName,
+          eventTitle: event.title
+        }),
+        waiverVersion: Number(event.waiverVersion || 1),
         registrationWindowError,
         existingRegistration: null,
         justRegistered: false
@@ -190,6 +220,10 @@ exports.postEventRegistration = async (req, res) => {
     }
 
     const confirmationCode = await generateConfirmationCode();
+    const renderedWaiver = renderWaiverTemplate(event.waiverTemplate, {
+      organizerName: event.organiserName,
+      eventTitle: event.title
+    });
 
     const registration = new Registration({
       eventId: event._id,
@@ -199,7 +233,20 @@ exports.postEventRegistration = async (req, res) => {
         lastName: formData.lastName,
         email: formData.email,
         mobile: formData.mobile,
-        country: formData.country
+        country: formData.country,
+        dateOfBirth: formData.dateOfBirth ? new Date(`${formData.dateOfBirth}T00:00:00.000Z`) : null,
+        gender: formData.gender,
+        emergencyContactName: formData.emergencyContactName,
+        emergencyContactNumber: formData.emergencyContactNumber,
+        runningGroup: formData.runningGroup
+      },
+      waiver: {
+        accepted: true,
+        version: Number(event.waiverVersion || 1),
+        signature: formData.waiverSignature,
+        acceptedAt: new Date(),
+        templateSnapshot: String(event.waiverTemplate || ''),
+        renderedSnapshot: renderedWaiver
       },
       participationMode: formData.participationMode,
       raceDistance: formData.raceDistance,
@@ -264,17 +311,14 @@ exports.getMyRegistrations = async (req, res) => {
       return res.redirect('/login');
     }
 
-    const registrations = await Registration.find({ userId: user._id })
-      .populate({
-        path: 'eventId',
-        select: 'title slug status eventStartAt eventEndAt city country venueName'
-      })
-      .sort({ registeredAt: -1 });
+    const registrations = await getRunnerRegistrations(user._id);
 
     return res.render('pages/my-registrations', {
       title: 'My Registrations - helloRun',
       registrations,
-      countryName: getCountryName
+      countryName: getCountryName,
+      genderLabel: formatGenderLabel,
+      dateLabel: formatDateOnly
     });
   } catch (error) {
     console.error('Error loading my registrations:', error);
@@ -300,8 +344,15 @@ function getRegistrationFormData(body = {}) {
     email: String(body.email || '').trim().toLowerCase(),
     mobile: String(body.mobile || '').trim(),
     country: normalizeCountryCode(body.country),
+    dateOfBirth: formatDateForInput(body.dateOfBirth),
+    gender: String(body.gender || '').trim(),
+    emergencyContactName: String(body.emergencyContactName || '').trim(),
+    emergencyContactNumber: String(body.emergencyContactNumber || '').trim(),
+    runningGroup: String(body.runningGroup || '').trim(),
     participationMode: String(body.participationMode || '').trim(),
-    raceDistance: String(body.raceDistance || '').trim().toUpperCase()
+    raceDistance: String(body.raceDistance || '').trim().toUpperCase(),
+    waiverAccepted: body.waiverAccepted === '1' || body.waiverAccepted === 'true' || body.waiverAccepted === true || body.waiverAccepted === 'on',
+    waiverSignature: String(body.waiverSignature || '').trim()
   };
 }
 
@@ -351,28 +402,36 @@ function getRegistrationConfigurationError(event) {
   return null;
 }
 
-function validateRegistrationForm(formData, allowedModes, allowedRaceDistances, registrationWindowError) {
+function validateRegistrationForm(
+  formData,
+  allowedModes,
+  allowedRaceDistances,
+  registrationWindowError,
+  options = {}
+) {
   const errors = {};
+  const requiresEmergencyContact = !!options.requiresEmergencyContact;
+  const expectedSignatureName = String(options.expectedSignatureName || '').trim();
+  const allowedGenderValues = new Set(['', 'male', 'female', 'non_binary', 'prefer_not_to_say']);
 
   if (registrationWindowError) {
     errors.base = registrationWindowError;
     return errors;
   }
 
-  if (!formData.firstName || formData.firstName.length < 2) {
-    errors.firstName = 'First name must be at least 2 characters.';
-  } else if (formData.firstName.length > 60) {
-    errors.firstName = 'First name must be 60 characters or less.';
+  const missingProfileFields = [];
+  if (!formData.firstName || formData.firstName.length < 2 || formData.firstName.length > 60) {
+    missingProfileFields.push('first name');
   }
-  if (!formData.lastName || formData.lastName.length < 2) {
-    errors.lastName = 'Last name must be at least 2 characters.';
-  } else if (formData.lastName.length > 60) {
-    errors.lastName = 'Last name must be 60 characters or less.';
+  if (!formData.lastName || formData.lastName.length < 2 || formData.lastName.length > 60) {
+    missingProfileFields.push('last name');
   }
-
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!formData.email || !emailRegex.test(formData.email)) {
-    errors.email = 'Enter a valid email address.';
+    missingProfileFields.push('email');
+  }
+  if (missingProfileFields.length > 0) {
+    errors.base = `Your profile is missing valid ${missingProfileFields.join(', ')}. Update your dashboard profile, then try again.`;
   }
 
   if (formData.mobile && !/^[\d\s\-()+]{7,25}$/.test(formData.mobile)) {
@@ -384,6 +443,43 @@ function validateRegistrationForm(formData, allowedModes, allowedRaceDistances, 
   } else if (formData.country && !isValidCountryCode(formData.country)) {
     errors.country = 'Select a valid country.';
   }
+  if (formData.dateOfBirth) {
+    const dateOfBirth = new Date(`${formData.dateOfBirth}T00:00:00.000Z`);
+    if (Number.isNaN(dateOfBirth.getTime())) {
+      errors.dateOfBirth = 'Enter a valid date of birth.';
+    } else if (dateOfBirth > new Date()) {
+      errors.dateOfBirth = 'Date of birth cannot be in the future.';
+    }
+  }
+  if (!allowedGenderValues.has(formData.gender)) {
+    errors.gender = 'Select a valid gender option.';
+  }
+  if (formData.runningGroup.length > 120) {
+    errors.runningGroup = 'Running group must be 120 characters or less.';
+  }
+  if (formData.emergencyContactName && formData.emergencyContactName.length > 120) {
+    errors.emergencyContactName = 'Emergency contact name must be 120 characters or less.';
+  }
+  if (requiresEmergencyContact && !formData.emergencyContactName) {
+    errors.emergencyContactName = 'Emergency contact name is required. Update it on your dashboard or add it here.';
+  }
+  if (formData.emergencyContactNumber && !/^[\d\s\-()+]{7,25}$/.test(formData.emergencyContactNumber)) {
+    errors.emergencyContactNumber = 'Enter a valid emergency contact number.';
+  }
+  if (requiresEmergencyContact && !formData.emergencyContactNumber) {
+    errors.emergencyContactNumber = 'Emergency contact number is required. Update it on your dashboard or add it here.';
+  }
+  if (!formData.waiverAccepted) {
+    errors.waiverAccepted = 'You must agree to the waiver before registering.';
+  }
+  if (!formData.waiverSignature) {
+    errors.waiverSignature = 'Digital signature is required.';
+  } else if (
+    expectedSignatureName &&
+    normalizePersonName(formData.waiverSignature) !== normalizePersonName(expectedSignatureName)
+  ) {
+    errors.waiverSignature = 'Signature must exactly match your account full name.';
+  }
 
   if (!allowedModes.includes(formData.participationMode)) {
     errors.participationMode = 'Select a valid participation mode for this event.';
@@ -393,6 +489,59 @@ function validateRegistrationForm(formData, allowedModes, allowedRaceDistances, 
   }
 
   return errors;
+}
+
+function formatDateForInput(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const utcYear = date.getUTCFullYear();
+  const utcMonth = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const utcDay = String(date.getUTCDate()).padStart(2, '0');
+  return `${utcYear}-${utcMonth}-${utcDay}`;
+}
+
+function getRegistrationProfileSnapshot(user) {
+  return {
+    firstName: String(user.firstName || '').trim(),
+    lastName: String(user.lastName || '').trim(),
+    email: String(user.email || '').trim().toLowerCase(),
+    mobile: String(user.mobile || '').trim(),
+    country: normalizeCountryCode(user.country),
+    dateOfBirth: formatDateForInput(user.dateOfBirth),
+    gender: String(user.gender || '').trim(),
+    emergencyContactName: String(user.emergencyContactName || '').trim(),
+    emergencyContactNumber: String(user.emergencyContactNumber || '').trim(),
+    runningGroup: String(user.runningGroup || '').trim()
+  };
+}
+
+function normalizePersonName(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
+function formatGenderLabel(value) {
+  const normalized = String(value || '').trim();
+  if (!normalized) return 'N/A';
+  if (normalized === 'prefer_not_to_say') return 'Prefer not to say';
+  if (normalized === 'non_binary') return 'Non-binary';
+  if (normalized === 'male') return 'Male';
+  if (normalized === 'female') return 'Female';
+  return normalized;
+}
+
+function formatDateOnly(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
 }
 
 function getUserRegistrationEligibilityError(user) {

@@ -15,6 +15,12 @@
           <p>View participants registered for this event.</p>
         </div>
         <div class="header-actions">
+          <a href="/organizer/events/<%= event._id %>/registrants/export<%= exportQuery ? `?${exportQuery}` : '' %>" class="btn">
+            Export CSV
+          </a>
+          <a href="/organizer/events/<%= event._id %>/registrants/export-xlsx<%= exportQuery ? `?${exportQuery}` : '' %>" class="btn">
+            Export XLSX
+          </a>
           <a href="/organizer/events/<%= event._id %>" class="btn btn-secondary">Back to Event</a>
           <a href="/organizer/events" class="btn btn-secondary">My Events</a>
         </div>
@@ -41,7 +47,7 @@
 
       <form method="GET" action="/organizer/events/<%= event._id %>/registrants" class="filter-bar">
         <label for="q">Search</label>
-        <input id="q" name="q" type="search" placeholder="Code, name, email" value="<%= searchQuery || '' %>">
+        <input id="q" name="q" type="search" placeholder="Code, name, email, group, emergency contact" value="<%= searchQuery || '' %>">
 
         <label for="mode">Mode</label>
         <select id="mode" name="mode">
@@ -72,6 +78,11 @@
                 <th>Email</th>
                 <th>Mobile</th>
                 <th>Country</th>
+                <th>Age</th>
+                <th>Gender</th>
+                <th>Emergency Contact</th>
+                <th>Running Group</th>
+                <th>Waiver</th>
                 <th>Mode</th>
                 <th>Distance</th>
                 <th>Status</th>
@@ -86,6 +97,25 @@
                   <td><%= registration.participant?.email || 'N/A' %></td>
                   <td><%= registration.participant?.mobile || 'N/A' %></td>
                   <td><%= registration.participant?.countryLabel || registration.participant?.country || 'N/A' %></td>
+                  <td><%= registration.participant?.ageLabel || 'N/A' %></td>
+                  <td><%= registration.participant?.genderLabel || 'N/A' %></td>
+                  <td>
+                    <%= registration.participant?.emergencyContactName || 'N/A' %>
+                    <% if (registration.participant?.emergencyContactNumber) { %>
+                      <br>
+                      <small><%= registration.participant.emergencyContactNumber %></small>
+                    <% } %>
+                  </td>
+                  <td><%= registration.participant?.runningGroup || 'N/A' %></td>
+                  <td>
+                    v<%= registration.waiver?.version || 'N/A' %>
+                    <br>
+                    <small><%= registration.waiver?.signature || 'No signature' %></small>
+                    <% if (registration.waiverAcceptedAtLabel) { %>
+                      <br>
+                      <small><%= registration.waiverAcceptedAtLabel %></small>
+                    <% } %>
+                  </td>
                   <td><span class="mode-badge mode-<%= registration.participationMode %>"><%= registration.participationMode %></span></td>
                   <td><%= registration.raceDistance || 'N/A' %></td>
                   <td><%= registration.status %></td>

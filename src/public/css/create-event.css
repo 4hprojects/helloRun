@@ -160,6 +160,39 @@
   margin-top: 0.25rem;
 }
 
+.waiver-preview-box {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 0.9rem;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.waiver-preview-box h1,
+.waiver-preview-box h2,
+.waiver-preview-box h3,
+.waiver-preview-box h4 {
+  margin-top: 0;
+  margin-bottom: 0.45rem;
+}
+
+.waiver-preview-box p {
+  color: #334155;
+  margin: 0.3rem 0;
+}
+
+.waiver-preview-box ol {
+  margin: 0.4rem 0;
+  padding-left: 1.2rem;
+}
+
+.waiver-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
 /* ----- ERROR STYLES (existing) ----- */
 .has-error input,
 .has-error select,

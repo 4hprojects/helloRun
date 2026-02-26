@@ -31,6 +31,16 @@
               <p><strong>Status:</strong> <%= registration.status %></p>
               <p><strong>Payment:</strong> <%= registration.paymentStatus %></p>
               <p><strong>Registered:</strong> <%= registration.registeredAt ? new Date(registration.registeredAt).toLocaleString('en-US') : 'N/A' %></p>
+              <p><strong>DOB:</strong> <%= dateLabel(registration.participant?.dateOfBirth) %></p>
+              <p><strong>Gender:</strong> <%= genderLabel(registration.participant?.gender) %></p>
+              <p>
+                <strong>Emergency Contact:</strong>
+                <%= registration.participant?.emergencyContactName || 'N/A' %>
+                <% if (registration.participant?.emergencyContactNumber) { %>
+                  (<%= registration.participant.emergencyContactNumber %>)
+                <% } %>
+              </p>
+              <p><strong>Running Group:</strong> <%= registration.participant?.runningGroup || 'N/A' %></p>
               <% if (registration.eventId) { %>
                 <p><strong>Event Start:</strong> <%= registration.eventId.eventStartAt ? new Date(registration.eventId.eventStartAt).toLocaleString('en-US') : 'TBA' %></p>
                 <p><strong>Location:</strong> <%= [registration.eventId.venueName, registration.eventId.city, countryName(registration.eventId.country)].filter(Boolean).join(', ') || 'TBA' %></p>

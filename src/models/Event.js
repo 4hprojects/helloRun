@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 
 const eventSchema = new mongoose.Schema(
   {
@@ -119,6 +120,18 @@ const eventSchema = new mongoose.Schema(
     logoUrl: {
       type: String,
       trim: true
+    },
+    waiverTemplate: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 20000,
+      default: DEFAULT_WAIVER_TEMPLATE
+    },
+    waiverVersion: {
+      type: Number,
+      default: 1,
+      min: 1
     }
   },
   {

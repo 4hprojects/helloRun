@@ -115,7 +115,7 @@
 .registrants-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 920px;
+  min-width: 1520px;
 }
 
 .registrants-table th,
@@ -136,6 +136,10 @@
 
 .registrants-table code {
   font-size: 0.8rem;
+}
+
+.registrants-table small {
+  color: #64748b;
 }
 
 .mode-badge {

@@ -80,6 +80,36 @@
           </div>
         </div>
 
+        <div class="form-section">
+          <div class="section-title">Waiver (Required)</div>
+          <div class="form-grid">
+            <div class="form-group form-group-full <%= errors.waiverTemplate ? 'has-error' : '' %>">
+              <label for="waiverTemplate">Waiver Template HTML *</label>
+              <div class="waiver-toolbar">
+                <button type="button" id="resetWaiverBtn" class="btn btn-outline">Reset to Default Waiver</button>
+              </div>
+              <textarea
+                id="waiverTemplate"
+                name="waiverTemplate"
+                rows="14"
+                placeholder="Enter waiver HTML template"
+              ><%= formData.waiverTemplate %></textarea>
+              <small class="field-hint">
+                Use placeholders: <code>{{ORGANIZER_NAME}}</code> and <code>{{EVENT_TITLE}}</code>.
+              </small>
+              <% if (errors.waiverTemplate) { %><small class="error-text"><%= errors.waiverTemplate %></small><% } %>
+            </div>
+
+            <div class="form-group form-group-full">
+              <label>Waiver Preview</label>
+              <div id="waiverPreview" class="waiver-preview-box"></div>
+              <small class="field-hint">
+                Preview replaces placeholders using current Organizer Name and Event Title values.
+              </small>
+            </div>
+          </div>
+        </div>
+
         <!-- SCHEDULE SECTION -->
         <div class="form-section">
           <div class="section-title">📅 Schedule</div>
@@ -360,6 +390,37 @@
     }
     updateBrandingPreview('bannerImageUrl', 'bannerPreview');
     updateBrandingPreview('logoUrl', 'logoPreview');
+
+    // Waiver preview
+    const waiverTemplateInput = document.getElementById('waiverTemplate');
+    const organiserNameInput = document.getElementById('organiserName');
+    const titleInput = document.getElementById('title');
+    const waiverPreview = document.getElementById('waiverPreview');
+    const resetWaiverBtn = document.getElementById('resetWaiverBtn');
+    const defaultWaiverTemplate = <%- JSON.stringify(defaultWaiverTemplate || '') %>;
+
+    function renderWaiverPreview() {
+      if (!waiverTemplateInput || !waiverPreview) return;
+      const organizerName = (organiserNameInput?.value || '').trim() || 'the organizer';
+      const eventTitle = (titleInput?.value || '').trim() || 'this event';
+      const template = waiverTemplateInput.value || '';
+      waiverPreview.innerHTML = template
+        .replace(/\{\{\s*ORGANIZER_NAME\s*\}\}/g, organizerName)
+        .replace(/\{\{\s*EVENT_TITLE\s*\}\}/g, eventTitle);
+    }
+
+    [waiverTemplateInput, organiserNameInput, titleInput].forEach((el) => {
+      if (el) el.addEventListener('input', renderWaiverPreview);
+    });
+    if (resetWaiverBtn && waiverTemplateInput) {
+      resetWaiverBtn.addEventListener('click', () => {
+        const confirmed = confirm('Reset waiver template to the default version?');
+        if (!confirmed) return;
+        waiverTemplateInput.value = defaultWaiverTemplate;
+        renderWaiverPreview();
+      });
+    }
+    renderWaiverPreview();
   </script>
 </body>
 </html>

@@ -19,7 +19,16 @@ const registrationSchema = new mongoose.Schema(
       lastName: { type: String, required: true, trim: true, maxlength: 60 },
       email: { type: String, required: true, trim: true, lowercase: true, maxlength: 160 },
       mobile: { type: String, trim: true, default: '', maxlength: 25 },
-      country: { type: String, trim: true, default: '', maxlength: 100 }
+      country: { type: String, trim: true, default: '', maxlength: 100 },
+      dateOfBirth: { type: Date, default: null },
+      gender: {
+        type: String,
+        enum: ['male', 'female', 'non_binary', 'prefer_not_to_say', ''],
+        default: ''
+      },
+      emergencyContactName: { type: String, trim: true, default: '', maxlength: 120 },
+      emergencyContactNumber: { type: String, trim: true, default: '', maxlength: 25 },
+      runningGroup: { type: String, trim: true, default: '', maxlength: 120 }
     },
     participationMode: {
       type: String,
@@ -41,6 +50,14 @@ const registrationSchema = new mongoose.Schema(
       type: String,
       enum: ['unpaid', 'paid', 'failed', 'refunded'],
       default: 'unpaid'
+    },
+    waiver: {
+      accepted: { type: Boolean, required: true, default: true },
+      version: { type: Number, required: true, min: 1 },
+      signature: { type: String, required: true, trim: true, maxlength: 160 },
+      acceptedAt: { type: Date, required: true, default: Date.now },
+      templateSnapshot: { type: String, required: true, trim: true, maxlength: 20000 },
+      renderedSnapshot: { type: String, required: true, trim: true, maxlength: 22000 }
     },
     confirmationCode: {
       type: String,

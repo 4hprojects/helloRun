@@ -16,7 +16,9 @@
         </div>
         <div class="header-actions">
           <a href="/organizer/events" class="btn btn-secondary">Back to Events</a>
-          <a href="/organizer/events/<%= event._id %>/edit" class="btn">Edit Event</a>
+          <% if (event.status !== 'closed') { %>
+            <a href="/organizer/events/<%= event._id %>/edit" class="btn">Edit Event</a>
+          <% } %>
           <a href="/organizer/events/<%= event._id %>/registrants" class="btn btn-secondary">View Registrants</a>
         </div>
       </header>
@@ -65,6 +67,12 @@
           <p><strong>Virtual Window Start:</strong> <%= event.virtualWindow?.startAt ? new Date(event.virtualWindow.startAt).toLocaleString('en-US') : 'N/A' %></p>
           <p><strong>Virtual Window End:</strong> <%= event.virtualWindow?.endAt ? new Date(event.virtualWindow.endAt).toLocaleString('en-US') : 'N/A' %></p>
           <p><strong>Proof Types:</strong> <%= (event.proofTypesAllowed || []).join(', ') || 'N/A' %></p>
+        </article>
+
+        <article class="detail-card">
+          <h3>Waiver</h3>
+          <p><strong>Waiver Version:</strong> <%= event.waiverVersion || 1 %></p>
+          <p><strong>Template:</strong> <%= event.waiverTemplate ? 'Configured' : 'Missing' %></p>
         </article>
 
         <article class="detail-card detail-card-full">

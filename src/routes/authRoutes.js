@@ -475,25 +475,6 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// Runner Dashboard
-router.get('/runner/dashboard', async (req, res) => {
-  if (!req.session.userId) {
-    return res.redirect('/login');
-  }
-
-  const User = require('../models/User');
-  const user = await User.findById(req.session.userId);
-
-  if (!user || user.role !== 'runner') {
-    return res.redirect('/login');
-  }
-
-  res.render('runner/dashboard', {
-    user: user,
-    userName: user.firstName
-  });
-});
-
 // ============================================================================
 // EMAIL RESEND VERIFICATION ROUTES
 // ============================================================================
