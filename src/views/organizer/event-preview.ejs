@@ -80,6 +80,8 @@
           <h3>Branding</h3>
           <p><strong>Banner URL:</strong> <%= previewEvent.bannerImageUrl || 'N/A' %></p>
           <p><strong>Logo URL:</strong> <%= previewEvent.logoUrl || 'N/A' %></p>
+          <p><strong>Poster URL:</strong> <%= previewEvent.posterImageUrl || 'N/A' %></p>
+          <p><strong>Gallery Images:</strong> <%= (previewEvent.galleryImageUrls || []).length %></p>
         </article>
       </div>
     </section>

@@ -23,7 +23,7 @@
 
       <form method="GET" action="/organizer/events" class="filter-bar">
         <label for="q">Search</label>
-        <input id="q" name="q" type="search" placeholder="Title, slug, city, venue" value="<%= searchQuery || '' %>">
+        <input id="q" name="q" type="search" placeholder="Title, event URL, city, venue" value="<%= searchQuery || '' %>">
 
         <label for="status">Status</label>
         <select id="status" name="status">
@@ -69,7 +69,7 @@
               <p class="event-description"><%= event.description %></p>
 
               <div class="event-footer">
-                <small>Slug: <code><%= event.slug %></code></small>
+                <small>Event URL: <code><%= event.slug %></code></small>
                 <small>Created: <%= new Date(event.createdAt).toLocaleDateString('en-US') %></small>
               </div>
 

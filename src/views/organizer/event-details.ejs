@@ -26,6 +26,9 @@
       <% if (message) { %>
         <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
       <% } %>
+      <% const showLocationPanel = event.eventType === 'onsite' || event.eventType === 'hybrid' || (event.eventTypesAllowed || []).includes('onsite'); %>
+      <% const eventReferenceCode = event.referenceCode || `EVT-${String(event._id || '').slice(0, 8).toUpperCase()}`; %>
+      <% const publicEventPath = `/events/${event.slug}`; %>
 
       <div class="detail-grid">
         <article class="detail-card">
@@ -42,7 +45,7 @@
           <p><strong>Event Type:</strong> <%= event.eventType %></p>
           <p><strong>Allowed Modes:</strong> <%= (event.eventTypesAllowed || []).join(', ') || 'N/A' %></p>
           <p><strong>Race Distances:</strong> <%= (event.raceDistances || []).join(', ') || 'N/A' %></p>
-          <p><strong>Slug:</strong> <code><%= event.slug %></code></p>
+          <p><strong>Event URL:</strong> <code><%= event.slug %></code></p>
         </article>
 
         <article class="detail-card">
@@ -53,13 +56,62 @@
           <p><strong>Event End:</strong> <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleString('en-US') : 'N/A' %></p>
         </article>
 
+        <% if (showLocationPanel) { %>
+          <article class="detail-card">
+            <h3>Location</h3>
+            <p><strong>Venue:</strong> <%= event.venueName || 'N/A' %></p>
+            <p><strong>Address:</strong> <%= event.venueAddress || 'N/A' %></p>
+            <p><strong>City/Province:</strong> <%= [event.city, event.province].filter(Boolean).join(', ') || 'N/A' %></p>
+            <p><strong>Country:</strong> <%= event.country || 'N/A' %></p>
+            <p><strong>Geo:</strong> <%= event.geo && typeof event.geo.lat === 'number' && typeof event.geo.lng === 'number' ? `${event.geo.lat}, ${event.geo.lng}` : 'N/A' %></p>
+          </article>
+        <% } %>
+
         <article class="detail-card">
-          <h3>Location</h3>
-          <p><strong>Venue:</strong> <%= event.venueName || 'N/A' %></p>
-          <p><strong>Address:</strong> <%= event.venueAddress || 'N/A' %></p>
-          <p><strong>City/Province:</strong> <%= [event.city, event.province].filter(Boolean).join(', ') || 'N/A' %></p>
-          <p><strong>Country:</strong> <%= event.country || 'N/A' %></p>
-          <p><strong>Geo:</strong> <%= event.geo && typeof event.geo.lat === 'number' && typeof event.geo.lng === 'number' ? `${event.geo.lat}, ${event.geo.lng}` : 'N/A' %></p>
+          <h3>Branding</h3>
+          <% if (event.bannerImageUrl) { %>
+            <p><strong>Banner:</strong></p>
+            <img class="detail-banner-image" src="<%= event.bannerImageUrl %>" alt="<%= event.title %> banner">
+          <% } else { %>
+            <p><strong>Banner:</strong> N/A</p>
+          <% } %>
+          <% if (event.logoUrl) { %>
+            <p><strong>Logo:</strong></p>
+            <img class="detail-logo-image" src="<%= event.logoUrl %>" alt="<%= event.title %> logo">
+          <% } else { %>
+            <p><strong>Logo:</strong> N/A</p>
+          <% } %>
+          <% if (event.posterImageUrl) { %>
+            <p><strong>Promotional Poster:</strong></p>
+            <button
+              type="button"
+              class="detail-poster-thumb-btn"
+              data-poster-src="<%- event.posterImageUrl %>"
+              aria-label="Open promotional poster"
+            >
+              <img class="detail-poster-image" src="<%= event.posterImageUrl %>" alt="<%= event.title %> poster">
+            </button>
+          <% } else { %>
+            <p><strong>Promotional Poster:</strong> N/A</p>
+          <% } %>
+          <% if (event.galleryImageUrls && event.galleryImageUrls.length) { %>
+            <p><strong>Gallery:</strong></p>
+            <div class="detail-gallery-grid">
+              <% event.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
+                <button
+                  type="button"
+                  class="detail-gallery-thumb-btn"
+                  data-gallery-index="<%= galleryIndex %>"
+                  data-gallery-src="<%- galleryUrl %>"
+                  aria-label="Open gallery image <%= galleryIndex + 1 %>"
+                >
+                  <img class="detail-gallery-image" src="<%= galleryUrl %>" alt="<%= event.title %> gallery image <%= galleryIndex + 1 %>">
+                </button>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <p><strong>Gallery:</strong> N/A</p>
+          <% } %>
         </article>
 
         <article class="detail-card">
@@ -81,9 +133,19 @@
         </article>
 
         <article class="detail-card detail-card-full">
-          <h3>Audit</h3>
-          <p><strong>Event ID:</strong> <code><%= event._id %></code></p>
-          <p><strong>Organizer ID:</strong> <code><%= event.organizerId %></code></p>
+          <h3>Event Record</h3>
+          <p><strong>Reference Code:</strong> <code><%= eventReferenceCode %></code></p>
+          <p><strong>Organizer:</strong> <%= event.organiserName || 'helloRun Organizer' %></p>
+          <p><strong>Public Event Page:</strong> <code><%= publicEventPath %></code></p>
+          <div class="record-actions">
+            <button type="button" class="btn btn-secondary btn-sm copy-btn" data-copy-text="<%= eventReferenceCode %>">Copy Reference Code</button>
+            <button type="button" class="btn btn-secondary btn-sm copy-btn" data-copy-path="<%= publicEventPath %>">Copy Event Link</button>
+          </div>
+          <details class="technical-details">
+            <summary>Technical details</summary>
+            <p><strong>Event ID:</strong> <code><%= event._id %></code></p>
+            <p><strong>Organizer ID:</strong> <code><%= event.organizerId %></code></p>
+          </details>
         </article>
       </div>
 
@@ -111,11 +173,245 @@
           <% } %>
         </div>
       </section>
+
+      <% if (event.galleryImageUrls && event.galleryImageUrls.length) { %>
+        <div id="organizerGalleryLightbox" class="gallery-lightbox hidden" aria-hidden="true">
+          <div class="gallery-lightbox-backdrop" data-close-lightbox="1"></div>
+          <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Gallery viewer">
+            <button type="button" class="gallery-lightbox-close" id="organizerGalleryCloseBtn" aria-label="Close gallery">&times;</button>
+            <button type="button" class="gallery-lightbox-nav gallery-lightbox-prev" id="organizerGalleryPrevBtn" aria-label="Previous image">&#10094;</button>
+            <img id="organizerGalleryLightboxImage" class="gallery-lightbox-image" src="" alt="">
+            <button type="button" class="gallery-lightbox-nav gallery-lightbox-next" id="organizerGalleryNextBtn" aria-label="Next image">&#10095;</button>
+            <p id="organizerGalleryLightboxCounter" class="gallery-lightbox-counter"></p>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (event.posterImageUrl) { %>
+        <div id="organizerPosterLightbox" class="gallery-lightbox hidden" aria-hidden="true">
+          <div class="gallery-lightbox-backdrop" data-close-poster-lightbox="1"></div>
+          <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Promotional poster viewer">
+            <button type="button" class="gallery-lightbox-close" id="organizerPosterCloseBtn" aria-label="Close poster">&times;</button>
+            <div class="poster-zoom-controls">
+              <button type="button" class="poster-zoom-btn" id="organizerPosterZoomOutBtn" aria-label="Zoom out">-</button>
+              <button type="button" class="poster-zoom-btn" id="organizerPosterZoomInBtn" aria-label="Zoom in">+</button>
+              <button type="button" class="poster-zoom-btn" id="organizerPosterResetBtn" aria-label="Reset zoom">Reset</button>
+            </div>
+            <img id="organizerPosterLightboxImage" class="gallery-lightbox-image" src="" alt="">
+          </div>
+        </div>
+      <% } %>
     </section>
   </main>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    (function initCopyButtons() {
+      const copyButtons = Array.from(document.querySelectorAll('.copy-btn'));
+      if (!copyButtons.length || !navigator.clipboard) return;
+
+      async function copyText(text, btn) {
+        if (!text) return;
+        const originalText = btn.textContent;
+        try {
+          await navigator.clipboard.writeText(text);
+          btn.textContent = 'Copied';
+          setTimeout(() => {
+            btn.textContent = originalText;
+          }, 1200);
+        } catch (_) {
+          btn.textContent = 'Copy failed';
+          setTimeout(() => {
+            btn.textContent = originalText;
+          }, 1200);
+        }
+      }
+
+      copyButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const copyTextValue = btn.getAttribute('data-copy-text') || '';
+          const copyPathValue = btn.getAttribute('data-copy-path') || '';
+          if (copyTextValue) {
+            copyText(copyTextValue, btn);
+            return;
+          }
+          if (copyPathValue) {
+            const absoluteUrl = `${window.location.origin}${copyPathValue}`;
+            copyText(absoluteUrl, btn);
+          }
+        });
+      });
+    })();
+
+    (function initOrganizerGalleryLightbox() {
+      const lightbox = document.getElementById('organizerGalleryLightbox');
+      if (!lightbox) return;
+
+      const body = document.body;
+      const thumbButtons = Array.from(document.querySelectorAll('.detail-gallery-thumb-btn'));
+      const imageEl = document.getElementById('organizerGalleryLightboxImage');
+      const counterEl = document.getElementById('organizerGalleryLightboxCounter');
+      const closeBtn = document.getElementById('organizerGalleryCloseBtn');
+      const prevBtn = document.getElementById('organizerGalleryPrevBtn');
+      const nextBtn = document.getElementById('organizerGalleryNextBtn');
+      const closeBackdrop = lightbox.querySelector('[data-close-lightbox="1"]');
+      const gallerySources = thumbButtons.map((btn) => ({
+        src: btn.getAttribute('data-gallery-src') || '',
+        alt: btn.querySelector('img')?.alt || 'Gallery image'
+      }));
+      let currentIndex = 0;
+
+      function updateLightboxImage() {
+        const item = gallerySources[currentIndex];
+        if (!item) return;
+        imageEl.src = item.src;
+        imageEl.alt = item.alt;
+        counterEl.textContent = `${currentIndex + 1} / ${gallerySources.length}`;
+      }
+
+      function openLightbox(index) {
+        currentIndex = Math.max(0, Math.min(index, gallerySources.length - 1));
+        updateLightboxImage();
+        lightbox.classList.remove('hidden');
+        lightbox.setAttribute('aria-hidden', 'false');
+        body.classList.add('no-scroll');
+        closeBtn.focus();
+      }
+
+      function closeLightbox() {
+        lightbox.classList.add('hidden');
+        lightbox.setAttribute('aria-hidden', 'true');
+        body.classList.remove('no-scroll');
+      }
+
+      function showPrev() {
+        currentIndex = (currentIndex - 1 + gallerySources.length) % gallerySources.length;
+        updateLightboxImage();
+      }
+
+      function showNext() {
+        currentIndex = (currentIndex + 1) % gallerySources.length;
+        updateLightboxImage();
+      }
+
+      thumbButtons.forEach((btn, index) => {
+        btn.addEventListener('click', () => openLightbox(index));
+      });
+      closeBtn.addEventListener('click', closeLightbox);
+      prevBtn.addEventListener('click', showPrev);
+      nextBtn.addEventListener('click', showNext);
+      if (closeBackdrop) closeBackdrop.addEventListener('click', closeLightbox);
+
+      document.addEventListener('keydown', (event) => {
+        if (lightbox.classList.contains('hidden')) return;
+        if (event.key === 'Escape') closeLightbox();
+        if (event.key === 'ArrowLeft') showPrev();
+        if (event.key === 'ArrowRight') showNext();
+      });
+    })();
+
+    (function initOrganizerPosterLightbox() {
+      const posterBtn = document.querySelector('.detail-poster-thumb-btn');
+      const lightbox = document.getElementById('organizerPosterLightbox');
+      if (!posterBtn || !lightbox) return;
+
+      const body = document.body;
+      const imageEl = document.getElementById('organizerPosterLightboxImage');
+      const closeBtn = document.getElementById('organizerPosterCloseBtn');
+      const zoomInBtn = document.getElementById('organizerPosterZoomInBtn');
+      const zoomOutBtn = document.getElementById('organizerPosterZoomOutBtn');
+      const resetBtn = document.getElementById('organizerPosterResetBtn');
+      const closeBackdrop = lightbox.querySelector('[data-close-poster-lightbox="1"]');
+      const posterSrc = posterBtn.getAttribute('data-poster-src') || '';
+      const posterAlt = posterBtn.querySelector('img')?.alt || 'Promotional poster';
+      let zoomLevel = 1;
+      let translateX = 0;
+      let translateY = 0;
+      let isDragging = false;
+      let dragStartX = 0;
+      let dragStartY = 0;
+
+      function updatePosterTransform() {
+        imageEl.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
+        imageEl.classList.toggle('is-zoomed', zoomLevel > 1);
+        imageEl.style.cursor = zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in';
+        if (zoomInBtn) zoomInBtn.disabled = zoomLevel >= 3;
+        if (zoomOutBtn) zoomOutBtn.disabled = zoomLevel <= 1;
+      }
+
+      function setZoom(nextZoomLevel) {
+        const clamped = Math.max(1, Math.min(3, Number(nextZoomLevel.toFixed(2))));
+        zoomLevel = clamped;
+        if (zoomLevel === 1) {
+          translateX = 0;
+          translateY = 0;
+        }
+        updatePosterTransform();
+      }
+
+      function resetZoom() {
+        isDragging = false;
+        setZoom(1);
+      }
+
+      function openLightbox() {
+        imageEl.src = posterSrc;
+        imageEl.alt = posterAlt;
+        resetZoom();
+        lightbox.classList.remove('hidden');
+        lightbox.setAttribute('aria-hidden', 'false');
+        body.classList.add('no-scroll');
+        closeBtn.focus();
+      }
+
+      function closeLightbox() {
+        lightbox.classList.add('hidden');
+        lightbox.setAttribute('aria-hidden', 'true');
+        body.classList.remove('no-scroll');
+        resetZoom();
+      }
+
+      posterBtn.addEventListener('click', openLightbox);
+      closeBtn.addEventListener('click', closeLightbox);
+      if (zoomInBtn) zoomInBtn.addEventListener('click', () => setZoom(zoomLevel + 0.25));
+      if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => setZoom(zoomLevel - 0.25));
+      if (resetBtn) resetBtn.addEventListener('click', resetZoom);
+      if (closeBackdrop) closeBackdrop.addEventListener('click', closeLightbox);
+
+      imageEl.addEventListener('pointerdown', (event) => {
+        if (zoomLevel <= 1) return;
+        isDragging = true;
+        dragStartX = event.clientX - translateX;
+        dragStartY = event.clientY - translateY;
+        imageEl.setPointerCapture(event.pointerId);
+        updatePosterTransform();
+      });
+
+      imageEl.addEventListener('pointermove', (event) => {
+        if (!isDragging || zoomLevel <= 1) return;
+        translateX = event.clientX - dragStartX;
+        translateY = event.clientY - dragStartY;
+        updatePosterTransform();
+      });
+
+      function stopDragging() {
+        if (!isDragging) return;
+        isDragging = false;
+        updatePosterTransform();
+      }
+
+      imageEl.addEventListener('pointerup', stopDragging);
+      imageEl.addEventListener('pointercancel', stopDragging);
+      imageEl.addEventListener('pointerleave', stopDragging);
+
+      document.addEventListener('keydown', (event) => {
+        if (lightbox.classList.contains('hidden')) return;
+        if (event.key === 'Escape') closeLightbox();
+      });
+    })();
+  </script>
 </body>
 </html>

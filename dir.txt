@@ -6,6 +6,143 @@ DOCUMENT ROLE (REPOSITORY TRACKER)
 - Planning source: See wireframe.txt for roadmap, backlog, and detailed tasks.
 
 ================================================================================
+CHANGELOG - February 27, 2026 (Session: Organizer UX + Event Reference Code Persistence)
+================================================================================
+
+[SESSION] SESSION UPDATE:
+- Improved organizer-facing language and records UX; introduced persistent event reference codes.
+
+[UPDATED] UPDATED FILES (major):
+  1. src/routes/organizer.routes.js
+     - Create-event success now redirects to /organizer/events (My Events)
+     - Added referenceCode generation during event creation
+
+  2. src/models/Event.js
+     - Added referenceCode field (unique, sparse, immutable)
+
+  3. src/views/organizer/events.ejs
+     - Replaced technical label wording:
+       - "slug" -> "Event URL" (search placeholder + card label)
+
+  4. src/views/organizer/event-details.ejs
+     - Replaced "Audit" section with user-friendly "Event Record"
+     - Added:
+       - Reference Code display
+       - Organizer name and public event path display
+       - Copy Reference Code / Copy Event Link actions
+       - Collapsible "Technical details" for raw Event ID/Organizer ID
+     - Now uses stored event.referenceCode (fallback kept for legacy records)
+
+  5. src/public/css/event-manage.css
+     - Added styles for Event Record actions and technical details block
+
+  6. package.json
+     - Added script:
+       - backfill:event-reference-codes
+
+[NEW] NEW FILES:
+  1. src/utils/referenceCode.js
+     - Shared reference-code builder:
+       - format: AAA-YYDDMM
+       - collision-safe suffixing: -02, -03, ...
+
+  2. src/scripts/backfill-event-reference-codes.js
+     - One-time backfill tool for existing events missing referenceCode
+
+KEY BEHAVIOR CHANGES:
+  - New events now persist a unique user-facing referenceCode
+  - Organizer create-event flow lands on My Events after successful save/publish
+  - Organizer event details hide raw IDs behind technical toggle
+  - UI language is less technical ("Event URL" instead of "slug")
+
+MANUAL SMOKE CHECKLIST (Latest):
+  [ ] Create event redirects to /organizer/events with success message
+  [ ] New events store referenceCode in MongoDB
+  [ ] Existing events backfilled via npm run backfill:event-reference-codes
+  [ ] Event details show Reference Code and copy buttons work
+  [ ] Technical details toggle reveals raw Event ID/Organizer ID correctly
+  [ ] Organizer events page shows "Event URL" wording consistently
+
+================================================================================
+CHANGELOG - February 26, 2026 (Session: Organizer Branding & Media Functional Upgrade)
+================================================================================
+
+[SESSION] SESSION UPDATE:
+- Organizer Branding & Media was refactored into per-item sections and made fully functional
+  for Event Logo, Event Banner, Promotional Poster, and Gallery Images.
+
+[UPDATED] UPDATED FILES (major):
+  1. src/views/organizer/create-event.ejs
+     - Reorganized Branding & Media to per-item flow:
+       info/rules -> upload controls (for each media type)
+     - Added functional poster + gallery inputs
+     - Added live poster preview and gallery preview
+     - Relaxed banner ratio from required to recommended
+
+  2. src/views/organizer/edit-event.ejs
+     - Applied same per-item media layout as create-event
+     - Added contextual image removal controls:
+       - X remove overlay for logo/banner/poster (visible only if media exists)
+       - Gallery per-image remove + remove-all controls
+     - Added immediate remove behavior via API call (no full form submit needed)
+
+  3. src/routes/organizer.routes.js
+     - Extended create/edit event persistence for:
+       - posterImageUrl
+       - galleryImageUrls
+     - Added immediate media-remove endpoint:
+       - POST /organizer/events/:id/media/remove
+       - updates MongoDB immediately
+       - deletes Cloudflare objects immediately when possible
+     - Improved upload error mapping by source field
+
+  4. src/services/upload.service.js
+     - Extended branding upload fields:
+       - posterImageFile
+       - galleryImageFiles[]
+     - Extended R2 upload flow for poster/gallery
+     - Added upload error field tracking for precise UI errors
+
+  5. src/models/Event.js
+     - Added:
+       - posterImageUrl (String)
+       - galleryImageUrls (String[])
+
+  6. src/views/organizer/event-details.ejs
+     - Added organizer-side rendering for poster and gallery
+
+  7. src/views/pages/event-details.ejs
+     - Added public rendering for poster and gallery
+
+  8. src/views/organizer/event-preview.ejs
+     - Added poster URL and gallery count to preview snapshot
+
+  9. src/public/css/create-event.css
+     - Added per-item media block styling
+     - Added overlay remove button styles
+     - Added gallery thumbnail/remove styles
+
+ 10. src/public/css/event-manage.css
+     - Added organizer detail styles for poster/gallery
+
+ 11. src/public/css/events.css
+     - Added public event-detail styles for poster/gallery
+
+KEY BEHAVIOR CHANGES:
+  - Poster and gallery are now first-class event media (URL or upload)
+  - Media removal can now persist immediately on X-confirm (edit page)
+  - Banner ratio is guidance only (not hard-blocked)
+  - 400 upload errors now map to the correct field in UI
+
+MANUAL SMOKE CHECKLIST (Latest):
+  [ ] Create event: logo/banner/poster/gallery inputs save correctly
+  [ ] Edit event: X remove on logo/banner/poster updates immediately
+  [ ] Edit event: gallery single-remove and remove-all update immediately
+  [ ] MongoDB media fields match latest UI actions
+  [ ] Cloudflare objects are deleted for removed/replaced assets
+  [ ] Public event details show poster/gallery when available
+
+================================================================================
 REPOSITORY STRUCTURE SNAPSHOT (High-Level)
 ================================================================================
 
@@ -43,8 +180,11 @@ helloRun/
       runner-data.service.js
       token.service.js
       upload.service.js
+    scripts/
+      backfill-event-reference-codes.js
     utils/
       country.js
+      referenceCode.js
       waiver.js
     views/
       admin/

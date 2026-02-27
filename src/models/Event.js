@@ -14,6 +14,13 @@ const eventSchema = new mongoose.Schema(
       unique: true,
       trim: true
     },
+    referenceCode: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true,
+      immutable: true
+    },
     title: {
       type: String,
       required: true,
@@ -121,6 +128,19 @@ const eventSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
+    posterImageUrl: {
+      type: String,
+      trim: true
+    },
+    galleryImageUrls: {
+      type: [
+        {
+          type: String,
+          trim: true
+        }
+      ],
+      default: []
+    },
     waiverTemplate: {
       type: String,
       required: true,
@@ -139,7 +159,6 @@ const eventSchema = new mongoose.Schema(
   }
 );
 
-eventSchema.index({ slug: 1 }, { unique: true });
 eventSchema.index({ status: 1 });
 eventSchema.index({ eventStartAt: 1 });
 eventSchema.index({ organizerId: 1, createdAt: -1 });

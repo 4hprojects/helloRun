@@ -143,11 +143,33 @@
                     </div>
                     <div class="event-info">
                       <h3><%= event.name %></h3>
+                      <div class="event-branding">
+                        <% if (event.bannerImageUrl) { %>
+                          <a href="<%= event.bannerImageUrl %>" target="_blank" rel="noopener noreferrer" aria-label="Open banner image for <%= event.name %>">
+                            <img src="<%= event.bannerImageUrl %>" alt="<%= event.name %> banner" class="event-banner-thumb">
+                          </a>
+                        <% } else { %>
+                          <div class="event-banner-thumb event-banner-thumb-empty">No Banner</div>
+                        <% } %>
+                        <% if (event.logoUrl) { %>
+                          <a href="<%= event.logoUrl %>" target="_blank" rel="noopener noreferrer" aria-label="Open logo image for <%= event.name %>">
+                            <img src="<%= event.logoUrl %>" alt="<%= event.name %> logo" class="event-logo-thumb">
+                          </a>
+                        <% } %>
+                      </div>
                       <p class="event-meta">
                         <i data-lucide="map-pin"></i> <%= event.location %>
-                        <span class="meta-separator">•</span>
+                        <span class="meta-separator">&bull;</span>
                         <i data-lucide="users"></i> <%= event.registrations || 0 %> registered
                       </p>
+                      <div class="event-meta-links">
+                        <% if (event.bannerImageUrl) { %>
+                          <a href="<%= event.bannerImageUrl %>" target="_blank" rel="noopener noreferrer">Open Banner URL</a>
+                        <% } %>
+                        <% if (event.logoUrl) { %>
+                          <a href="<%= event.logoUrl %>" target="_blank" rel="noopener noreferrer">Open Logo URL</a>
+                        <% } %>
+                      </div>
                       <div class="event-card-actions">
                         <a href="/organizer/events/<%= event.id %>/registrants" class="event-link-btn">View Registrants</a>
                       </div>
@@ -276,5 +298,6 @@
   <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>
+
 
 

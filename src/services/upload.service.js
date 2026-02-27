@@ -1,70 +1,69 @@
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
+﻿const multer = require('multer');
+const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 
-// Ensure upload directory exists
-const uploadDir = path.join(__dirname, '../public/uploads/organizer-docs');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log('✓ Created organizer-docs upload directory');
-}
+const DEFAULT_ALLOWED_MIMES = ['image/jpeg', 'image/png', 'application/pdf'];
+const MAX_UPLOAD_BYTES = parseInt(process.env.UPLOAD_MAX_SIZE, 10) || 5242880;
 
-// Configure storage
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Create unique filename: userId-timestamp-originalname
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    const ext = path.extname(file.originalname);
-    const nameWithoutExt = path.basename(file.originalname, ext);
-    const sanitizedName = nameWithoutExt.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    cb(null, `${req.session.userId}-${uniqueSuffix}-${sanitizedName}${ext}`);
-  }
-});
+const configuredAllowedMimes = String(
+  process.env.ALLOWED_FILE_TYPES || process.env.UPLOAD_ALLOWED_TYPES || ''
+)
+  .split(',')
+  .map((item) => item.trim())
+  .filter(Boolean);
 
-// File filter for security
-const fileFilter = (req, file, cb) => {
-  // Allowed file types
-  const allowedMimes = ['image/jpeg', 'image/png', 'application/pdf'];
-  
-  if (allowedMimes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error('Invalid file type. Only JPEG, PNG, and PDF files are allowed.'), false);
-  }
-};
+const allowedMimes = configuredAllowedMimes.length ? configuredAllowedMimes : DEFAULT_ALLOWED_MIMES;
 
-// Create multer upload instance
 const upload = multer({
-  storage: storage,
-  fileFilter: fileFilter,
+  storage: multer.memoryStorage(),
+  fileFilter(req, file, cb) {
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('Invalid file type. Only JPEG, PNG, and PDF files are allowed.'), false);
+  },
   limits: {
-    fileSize: parseInt(process.env.UPLOAD_MAX_SIZE) || 5242880  // 5MB default
+    fileSize: MAX_UPLOAD_BYTES
   }
 });
 
-// Handle multer errors
-const handleMulterError = (err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ 
-        error: 'File size exceeds 5MB limit.' 
-      });
+const brandingUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter(req, file, cb) {
+    const allowedImageMimes = new Set(['image/jpeg', 'image/png']);
+    if (allowedImageMimes.has(file.mimetype)) {
+      cb(null, true);
+      return;
     }
-    return res.status(400).json({ 
-      error: `Upload error: ${err.message}` 
-    });
-  } else if (err) {
-    return res.status(400).json({ 
-      error: err.message 
-    });
+    const typeError = new Error('Invalid image type. Only JPEG and PNG files are allowed.');
+    typeError.fieldName = file.fieldname;
+    cb(typeError, false);
+  },
+  limits: {
+    fileSize: MAX_UPLOAD_BYTES
   }
-  next();
+});
+
+const r2Config = {
+  accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+  bucket: process.env.R2_BUCKET,
+  accessKeyId: process.env.R2_ACCESS_KEY_ID,
+  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+  endpoint: process.env.R2_ENDPOINT
 };
 
-// Export upload middleware for multiple files
+const r2Client = isR2Configured()
+  ? new S3Client({
+      region: 'auto',
+      endpoint: r2Config.endpoint,
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: r2Config.accessKeyId,
+        secretAccessKey: r2Config.secretAccessKey
+      }
+    })
+  : null;
+
 exports.uploadOrganizerDocs = (req, res, next) => {
   const uploadFields = upload.fields([
     { name: 'idProof', maxCount: 1 },
@@ -76,58 +75,219 @@ exports.uploadOrganizerDocs = (req, res, next) => {
   });
 };
 
-// Validate files after upload
-exports.validateFiles = (files) => {
-  if (!files || files.length === 0) {
-    return 'No files uploaded.';
-  }
+exports.uploadEventBranding = (req, res, next) => {
+  const uploadFields = brandingUpload.fields([
+    { name: 'bannerImageFile', maxCount: 1 },
+    { name: 'logoFile', maxCount: 1 },
+    { name: 'posterImageFile', maxCount: 1 },
+    { name: 'galleryImageFiles', maxCount: 12 }
+  ]);
 
-  for (const file of files) {
-    // Check file size
-    if (file.size > 5242880) { // 5MB
-      return 'File size exceeds 5MB limit.';
+  uploadFields(req, res, (err) => {
+    if (!err) {
+      req.uploadError = null;
+      req.uploadErrorField = null;
+      next();
+      return;
     }
-
-    // Check file type
-    const allowedMimes = ['image/jpeg', 'image/png', 'application/pdf'];
-    if (!allowedMimes.includes(file.mimetype)) {
-      return 'Invalid file type. Only JPEG, PNG, and PDF files are allowed.';
+    req.uploadErrorField = err.field || err.fieldName || null;
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      req.uploadError = `Branding image exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`;
+    } else {
+      req.uploadError = err.message || 'Branding upload failed.';
     }
-
-    // Check file exists
-    const filePath = path.join(uploadDir, file.filename);
-    if (!fs.existsSync(filePath)) {
-      return 'File upload failed. Please try again.';
-    }
-  }
-
-  return null; // No errors
-};
-
-// Delete files helper
-exports.deleteFiles = (filenames) => {
-  filenames.forEach(filename => {
-    if (filename) {
-      const filePath = path.join(uploadDir, filename);
-      if (fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-          console.log(`✓ Deleted file: ${filename}`);
-        } catch (error) {
-          console.error('Error deleting file:', error);
-        }
-      }
-    }
+    next();
   });
 };
 
-// Get file URL
-exports.getFileUrl = (filename) => {
-  return `/uploads/organizer-docs/${filename}`;
+exports.uploadOrganizerDocsToR2 = async ({ userId, idProofFile, businessProofFile }) => {
+  assertR2Configured();
+
+  const idProof = await uploadFileToR2({
+    userId,
+    file: idProofFile,
+    category: 'organizer-docs/id-proof'
+  });
+  const businessProof = await uploadFileToR2({
+    userId,
+    file: businessProofFile,
+    category: 'organizer-docs/business-proof'
+  });
+
+  return { idProof, businessProof };
 };
 
-// Check if file exists
-exports.fileExists = (filename) => {
-  const filePath = path.join(uploadDir, filename);
-  return fs.existsSync(filePath);
+exports.uploadEventBrandingToR2 = async ({ userId, bannerImageFile, logoFile, posterImageFile, galleryImageFiles }) => {
+  assertR2Configured();
+
+  const result = {};
+
+  if (bannerImageFile) {
+    result.banner = await uploadFileToR2({
+      userId,
+      file: bannerImageFile,
+      category: 'event-branding/banner'
+    });
+  }
+
+  if (logoFile) {
+    result.logo = await uploadFileToR2({
+      userId,
+      file: logoFile,
+      category: 'event-branding/logo'
+    });
+  }
+
+  if (posterImageFile) {
+    result.poster = await uploadFileToR2({
+      userId,
+      file: posterImageFile,
+      category: 'event-branding/poster'
+    });
+  }
+
+  const galleryFiles = Array.isArray(galleryImageFiles) ? galleryImageFiles : [];
+  if (galleryFiles.length) {
+    result.gallery = [];
+    for (const galleryFile of galleryFiles) {
+      const uploadedGallery = await uploadFileToR2({
+        userId,
+        file: galleryFile,
+        category: 'event-branding/gallery'
+      });
+      result.gallery.push(uploadedGallery);
+    }
+  }
+
+  return result;
 };
+
+exports.deleteObjects = async (keys = []) => {
+  if (!r2Client || !r2Config.bucket) return;
+
+  const validKeys = keys
+    .map((key) => String(key || '').trim())
+    .filter(Boolean);
+
+  await Promise.all(
+    validKeys.map(async (key) => {
+      try {
+        await r2Client.send(
+          new DeleteObjectCommand({
+            Bucket: r2Config.bucket,
+            Key: key
+          })
+        );
+      } catch (error) {
+        console.error(`[R2] Failed to delete object ${key}:`, error.message);
+      }
+    })
+  );
+};
+
+exports.extractObjectKeyFromPublicUrl = (urlValue) => {
+  const fullUrl = String(urlValue || '').trim();
+  if (!fullUrl) return '';
+
+  const customBase = String(process.env.R2_PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '');
+  if (customBase && fullUrl.startsWith(`${customBase}/`)) {
+    return fullUrl.slice(customBase.length + 1);
+  }
+
+  const endpoint = String(r2Config.endpoint || '').trim().replace(/\/+$/, '');
+  if (endpoint && r2Config.bucket) {
+    const bucketPrefix = `${endpoint}/${r2Config.bucket}/`;
+    if (fullUrl.startsWith(bucketPrefix)) {
+      return fullUrl.slice(bucketPrefix.length);
+    }
+  }
+
+  return '';
+};
+
+function handleMulterError(err, req, res, next) {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({
+        success: false,
+        message: `File size exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`
+      });
+    }
+    return res.status(400).json({
+      success: false,
+      message: `Upload error: ${err.message}`
+    });
+  }
+  if (err) {
+    return res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+  next();
+}
+
+async function uploadFileToR2({ userId, file, category }) {
+  if (!file || !file.buffer || !file.originalname) {
+    throw new Error('Invalid file payload.');
+  }
+
+  const extension = getSafeExtension(file.originalname);
+  const originalBase = String(file.originalname).replace(/\.[^.]+$/, '');
+  const sanitizedBase = originalBase.replace(/[^a-z0-9_-]/gi, '_').toLowerCase().slice(0, 80) || 'file';
+  const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+  const key = `${category}/${String(userId || 'unknown')}/${uniqueSuffix}-${sanitizedBase}${extension}`;
+
+  await r2Client.send(
+    new PutObjectCommand({
+      Bucket: r2Config.bucket,
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype
+    })
+  );
+
+  return {
+    key,
+    url: buildPublicUrl(key)
+  };
+}
+
+function buildPublicUrl(key) {
+  const customBase = String(process.env.R2_PUBLIC_BASE_URL || '').trim();
+  if (customBase) {
+    return `${customBase.replace(/\/+$/, '')}/${key}`;
+  }
+
+  const endpoint = String(r2Config.endpoint || '').replace(/\/+$/, '');
+  if (endpoint && r2Config.bucket) {
+    return `${endpoint}/${r2Config.bucket}/${key}`;
+  }
+
+  throw new Error('Cannot build public URL for R2 object. Set R2_PUBLIC_BASE_URL.');
+}
+
+function getSafeExtension(fileName) {
+  const parts = String(fileName || '').split('.');
+  if (parts.length < 2) return '';
+  const ext = parts.pop().toLowerCase().replace(/[^a-z0-9]/g, '');
+  return ext ? `.${ext}` : '';
+}
+
+function isR2Configured() {
+  return Boolean(
+    r2Config.accountId &&
+      r2Config.bucket &&
+      r2Config.accessKeyId &&
+      r2Config.secretAccessKey &&
+      r2Config.endpoint
+  );
+}
+
+function assertR2Configured() {
+  if (!isR2Configured()) {
+    throw new Error(
+      'R2 is not fully configured. Set CLOUDFLARE_ACCOUNT_ID, R2_BUCKET, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, and R2_ENDPOINT.'
+    );
+  }
+}

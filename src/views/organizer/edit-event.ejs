@@ -30,7 +30,7 @@
         </div>
       <% } %>
 
-      <form class="create-event-form" method="POST" action="/organizer/events/<%= event._id %>/edit" novalidate>
+      <form class="create-event-form" method="POST" action="/organizer/events/<%= event._id %>/edit" enctype="multipart/form-data" novalidate>
         <div class="form-section">
           <div class="section-title">Core Details</div>
           <div class="form-grid">
@@ -224,18 +224,108 @@
         </div>
 
         <div class="form-section">
-          <div class="section-title">Branding</div>
-          <div class="form-grid">
-            <div class="form-group <%= errors.bannerImageUrl ? 'has-error' : '' %>">
-              <label for="bannerImageUrl">Banner Image URL</label>
-              <input id="bannerImageUrl" name="bannerImageUrl" type="url" value="<%= formData.bannerImageUrl %>">
-              <% if (errors.bannerImageUrl) { %><small class="error-text"><%= errors.bannerImageUrl %></small><% } %>
+          <div class="section-title">Branding & Media</div>
+            <div class="media-block <%= errors.logoUrl ? 'has-error' : '' %>">
+              <h3>1) Event Logo</h3>
+              <p>Small square or transparent image.</p>
+              <p class="media-used-in"><strong>Used in:</strong> Event listings, leaderboard header, search results.</p>
+              <p class="media-rules">Optional. JPG/PNG only, max 5MB.</p>
+              <div class="form-grid">
+                <div class="form-group">
+                <input type="hidden" id="removeLogoImage" name="removeLogoImage" value="<%= formData.removeLogoImage ? '1' : '0' %>">
+                <label for="logoUrl">Logo URL</label>
+                <input id="logoUrl" name="logoUrl" type="url" value="<%= formData.logoUrl %>">
+                <label for="logoFile" style="margin-top:0.5rem;">or Upload Logo</label>
+                <input id="logoFile" name="logoFile" type="file" accept="image/jpeg,image/png">
+                <small class="field-hint">Square image recommended (200x200+), JPG/PNG, max 5MB.</small>
+                <small class="field-hint">If both URL and file are provided, uploaded file will be used.</small>
+                <% if (formData.logoUrl) { %>
+                  <div class="branding-preview branding-preview-wrap" id="logoPreviewWrap">
+                    <button type="button" class="branding-remove-btn" id="removeLogoBtn" aria-label="Remove current logo image">X</button>
+                    <img src="<%= formData.logoUrl %>" alt="Current logo preview" style="max-width:80px;max-height:80px;border-radius:8px;margin-top:0.5rem;">
+                  </div>
+                <% } %>
+                <% if (errors.logoUrl) { %><small class="error-text"><%= errors.logoUrl %></small><% } %>
+              </div>
             </div>
+          </div>
 
-            <div class="form-group <%= errors.logoUrl ? 'has-error' : '' %>">
-              <label for="logoUrl">Logo URL</label>
-              <input id="logoUrl" name="logoUrl" type="url" value="<%= formData.logoUrl %>">
-              <% if (errors.logoUrl) { %><small class="error-text"><%= errors.logoUrl %></small><% } %>
+          <div class="media-block <%= errors.bannerImageUrl ? 'has-error' : '' %>">
+            <h3>2) Event Banner</h3>
+            <p>Wide rectangular image for event branding.</p>
+            <p class="media-used-in"><strong>Used in:</strong> Event page hero section, landing page, promotional header.</p>
+            <p class="media-rules">Optional. JPG/PNG only, max 5MB. Recommended ratio: 3:1 (example: 1200x400).</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <input type="hidden" id="removeBannerImage" name="removeBannerImage" value="<%= formData.removeBannerImage ? '1' : '0' %>">
+                <label for="bannerImageUrl">Banner Image URL</label>
+                <input id="bannerImageUrl" name="bannerImageUrl" type="url" value="<%= formData.bannerImageUrl %>">
+                <label for="bannerImageFile" style="margin-top:0.5rem;">or Upload Banner Image</label>
+                <input id="bannerImageFile" name="bannerImageFile" type="file" accept="image/jpeg,image/png">
+                <small class="field-hint">Recommended ratio: 3:1 (example 1200x400), JPG/PNG, max 5MB.</small>
+                <small class="field-hint">If both URL and file are provided, uploaded file will be used.</small>
+                <% if (formData.bannerImageUrl) { %>
+                  <div class="branding-preview branding-preview-wrap" id="bannerPreviewWrap">
+                    <button type="button" class="branding-remove-btn" id="removeBannerBtn" aria-label="Remove current banner image">X</button>
+                    <img src="<%= formData.bannerImageUrl %>" alt="Current banner preview" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:0.5rem;">
+                  </div>
+                <% } %>
+                <% if (errors.bannerImageUrl) { %><small class="error-text"><%= errors.bannerImageUrl %></small><% } %>
+              </div>
+            </div>
+          </div>
+
+          <div class="media-block <%= errors.posterImageUrl ? 'has-error' : '' %>">
+            <h3>3) Promotional Poster</h3>
+            <p>Edited promotional image (details, dates, sponsors, prizes, instructions).</p>
+            <p class="media-used-in"><strong>Used in:</strong> Event details page and promotional header blocks.</p>
+            <p class="media-rules">Optional. JPG/PNG only, max 5MB.</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <input type="hidden" id="removePosterImage" name="removePosterImage" value="<%= formData.removePosterImage ? '1' : '0' %>">
+                <label for="posterImageUrl">Promotional Poster URL</label>
+                <input id="posterImageUrl" name="posterImageUrl" type="url" value="<%= formData.posterImageUrl %>">
+                <label for="posterImageFile" style="margin-top:0.5rem;">or Upload Promotional Poster</label>
+                <input id="posterImageFile" name="posterImageFile" type="file" accept="image/jpeg,image/png">
+                <small class="field-hint">JPG/PNG, max 5MB.</small>
+                <small class="field-hint">If both URL and file are provided, uploaded file will be used.</small>
+                <% if (formData.posterImageUrl) { %>
+                  <div class="branding-preview branding-preview-wrap" id="posterPreviewWrap">
+                    <button type="button" class="branding-remove-btn" id="removePosterBtn" aria-label="Remove current promotional poster">X</button>
+                    <img src="<%= formData.posterImageUrl %>" alt="Current poster preview" style="max-width:100%;max-height:220px;border-radius:8px;margin-top:0.5rem;">
+                  </div>
+                <% } %>
+                <% if (errors.posterImageUrl) { %><small class="error-text"><%= errors.posterImageUrl %></small><% } %>
+              </div>
+            </div>
+          </div>
+
+          <div class="media-block <%= errors.galleryImageUrls ? 'has-error' : '' %>">
+            <h3>4) Gallery Images (Optional)</h3>
+            <p>Past event photos, route preview, medal preview.</p>
+            <p class="media-used-in"><strong>Used in:</strong> Event details gallery section.</p>
+            <p class="media-rules">Optional. JPG/PNG only, max 5MB each, up to 12 images.</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <input type="hidden" id="removeGalleryImages" name="removeGalleryImages" value="<%= formData.removeGalleryImages ? '1' : '0' %>">
+                <label for="galleryImageUrlsText">Gallery Image URLs</label>
+                <textarea id="galleryImageUrlsText" name="galleryImageUrlsText" rows="5" placeholder="One URL per line, or comma-separated"><%= formData.galleryImageUrlsText || '' %></textarea>
+                <label for="galleryImageFiles" style="margin-top:0.5rem;">or Upload Gallery Images</label>
+                <input id="galleryImageFiles" name="galleryImageFiles" type="file" accept="image/jpeg,image/png" multiple>
+                <small class="field-hint">JPG/PNG, max 5MB each, up to 12 images total.</small>
+                <% if (formData.galleryImageUrls && formData.galleryImageUrls.length) { %>
+                  <div class="gallery-preview-grid" id="galleryPreviewGrid">
+                    <% formData.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
+                      <div class="gallery-thumb-wrap" data-gallery-url="<%- galleryUrl %>">
+                        <button type="button" class="gallery-remove-btn" data-gallery-url="<%- galleryUrl %>" aria-label="Remove gallery image <%= galleryIndex + 1 %>">X</button>
+                        <img src="<%= galleryUrl %>" alt="Gallery Preview <%= galleryIndex + 1 %>" class="gallery-preview-thumb">
+                      </div>
+                    <% }) %>
+                  </div>
+                  <button type="button" class="btn btn-outline btn-remove-all-gallery" id="removeAllGalleryBtn">Remove all gallery images</button>
+                <% } %>
+                <% if (errors.galleryImageUrls) { %><small class="error-text"><%= errors.galleryImageUrls %></small><% } %>
+              </div>
             </div>
           </div>
         </div>
@@ -266,6 +356,229 @@
     if (eventTypeSelect) {
       eventTypeSelect.addEventListener('change', toggleSections);
       toggleSections();
+    }
+
+    // Branding file validation
+    const allowedImageTypes = new Set(['image/jpeg', 'image/png']);
+    const maxBrandingSizeBytes = 5 * 1024 * 1024;
+
+    function resetFileInput(input, message) {
+      alert(message);
+      input.value = '';
+    }
+
+    async function removeEventMediaNow(payload) {
+      const body = new URLSearchParams(payload);
+      const response = await fetch(`/organizer/events/<%= event._id %>/media/remove`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
+        },
+        body: body.toString()
+      });
+      let data = null;
+      try {
+        data = await response.json();
+      } catch (error) {
+        data = null;
+      }
+      if (!response.ok || !data || !data.success) {
+        const message = (data && data.message) || 'Failed to remove media.';
+        throw new Error(message);
+      }
+      return data;
+    }
+
+    async function handleBrandingFileValidation(input, options = {}) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+
+      if (!allowedImageTypes.has(file.type)) {
+        resetFileInput(input, 'Invalid file type. Only JPG and PNG files are allowed.');
+        return;
+      }
+      if (file.size > maxBrandingSizeBytes) {
+        resetFileInput(input, 'Image exceeds 5MB limit.');
+        return;
+      }
+
+      if (options.requireBannerRatio) {
+        // Ratio is a recommendation only; no hard block.
+      }
+    }
+
+    const bannerFileInput = document.getElementById('bannerImageFile');
+    const logoFileInput = document.getElementById('logoFile');
+    const posterFileInput = document.getElementById('posterImageFile');
+    const galleryFilesInput = document.getElementById('galleryImageFiles');
+    const removeBannerInput = document.getElementById('removeBannerImage');
+    const removeBannerBtn = document.getElementById('removeBannerBtn');
+    const bannerPreviewWrap = document.getElementById('bannerPreviewWrap');
+    const removeLogoInput = document.getElementById('removeLogoImage');
+    const removeLogoBtn = document.getElementById('removeLogoBtn');
+    const logoPreviewWrap = document.getElementById('logoPreviewWrap');
+    const removePosterInput = document.getElementById('removePosterImage');
+    const removePosterBtn = document.getElementById('removePosterBtn');
+    const posterPreviewWrap = document.getElementById('posterPreviewWrap');
+    const removeGalleryInput = document.getElementById('removeGalleryImages');
+    const removeAllGalleryBtn = document.getElementById('removeAllGalleryBtn');
+    const galleryPreviewGrid = document.getElementById('galleryPreviewGrid');
+    const bannerUrlInput = document.getElementById('bannerImageUrl');
+    const logoUrlInput = document.getElementById('logoUrl');
+    const posterUrlInput = document.getElementById('posterImageUrl');
+    const galleryUrlsTextInput = document.getElementById('galleryImageUrlsText');
+    if (bannerFileInput) {
+      bannerFileInput.addEventListener('change', () => {
+        handleBrandingFileValidation(bannerFileInput, { requireBannerRatio: true });
+        if (bannerFileInput.files && bannerFileInput.files.length && removeBannerInput) {
+          removeBannerInput.value = '0';
+        }
+      });
+    }
+    if (logoFileInput) {
+      logoFileInput.addEventListener('change', () => {
+        handleBrandingFileValidation(logoFileInput);
+        if (logoFileInput.files && logoFileInput.files.length && removeLogoInput) {
+          removeLogoInput.value = '0';
+        }
+      });
+    }
+    if (posterFileInput) {
+      posterFileInput.addEventListener('change', () => {
+        handleBrandingFileValidation(posterFileInput);
+        if (posterFileInput.files && posterFileInput.files.length && removePosterInput) {
+          removePosterInput.value = '0';
+        }
+      });
+    }
+    if (galleryFilesInput) {
+      galleryFilesInput.addEventListener('change', () => {
+        const files = Array.from(galleryFilesInput.files || []);
+        if (!files.length) return;
+        if (files.length > 12) {
+          resetFileInput(galleryFilesInput, 'You can upload up to 12 gallery images at a time.');
+          return;
+        }
+        for (const file of files) {
+          if (!allowedImageTypes.has(file.type)) {
+            resetFileInput(galleryFilesInput, 'Invalid gallery file type. Only JPG and PNG files are allowed.');
+            return;
+          }
+          if (file.size > maxBrandingSizeBytes) {
+            resetFileInput(galleryFilesInput, 'One or more gallery images exceed 5MB limit.');
+            return;
+          }
+        }
+        if (removeGalleryInput) removeGalleryInput.value = '0';
+      });
+    }
+    if (removeBannerBtn && removeBannerInput && bannerUrlInput) {
+      removeBannerBtn.addEventListener('click', async () => {
+        const confirmed = confirm('Remove current banner image?');
+        if (!confirmed) return;
+        removeBannerBtn.disabled = true;
+        try {
+          await removeEventMediaNow({ kind: 'banner' });
+          removeBannerInput.value = '0';
+          bannerUrlInput.value = '';
+          if (bannerPreviewWrap) bannerPreviewWrap.style.display = 'none';
+        } catch (error) {
+          alert(error.message);
+        } finally {
+          removeBannerBtn.disabled = false;
+        }
+      });
+    }
+    if (removeLogoBtn && removeLogoInput && logoUrlInput) {
+      removeLogoBtn.addEventListener('click', async () => {
+        const confirmed = confirm('Remove current logo image?');
+        if (!confirmed) return;
+        removeLogoBtn.disabled = true;
+        try {
+          await removeEventMediaNow({ kind: 'logo' });
+          removeLogoInput.value = '0';
+          logoUrlInput.value = '';
+          if (logoPreviewWrap) logoPreviewWrap.style.display = 'none';
+        } catch (error) {
+          alert(error.message);
+        } finally {
+          removeLogoBtn.disabled = false;
+        }
+      });
+    }
+    if (removePosterBtn && removePosterInput && posterUrlInput) {
+      removePosterBtn.addEventListener('click', async () => {
+        const confirmed = confirm('Remove current promotional poster?');
+        if (!confirmed) return;
+        removePosterBtn.disabled = true;
+        try {
+          await removeEventMediaNow({ kind: 'poster' });
+          removePosterInput.value = '0';
+          posterUrlInput.value = '';
+          if (posterPreviewWrap) posterPreviewWrap.style.display = 'none';
+        } catch (error) {
+          alert(error.message);
+        } finally {
+          removePosterBtn.disabled = false;
+        }
+      });
+    }
+    if (removeAllGalleryBtn && removeGalleryInput && galleryUrlsTextInput) {
+      removeAllGalleryBtn.addEventListener('click', async () => {
+        const confirmed = confirm('Remove all current gallery images?');
+        if (!confirmed) return;
+        removeAllGalleryBtn.disabled = true;
+        try {
+          await removeEventMediaNow({ kind: 'gallery', all: '1' });
+          removeGalleryInput.value = '0';
+          galleryUrlsTextInput.value = '';
+          if (galleryPreviewGrid) galleryPreviewGrid.innerHTML = '';
+          removeAllGalleryBtn.style.display = 'none';
+        } catch (error) {
+          alert(error.message);
+        } finally {
+          removeAllGalleryBtn.disabled = false;
+        }
+      });
+    }
+
+    function normalizeGalleryUrls(rawValue) {
+      return String(rawValue || '')
+        .split(/\r?\n|,/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    if (galleryPreviewGrid) {
+      galleryPreviewGrid.querySelectorAll('.gallery-remove-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const targetUrl = btn.getAttribute('data-gallery-url');
+          if (!targetUrl) return;
+          const confirmed = confirm('Remove this gallery image?');
+          if (!confirmed) return;
+          btn.disabled = true;
+
+          try {
+            await removeEventMediaNow({ kind: 'gallery', url: targetUrl });
+
+            const targetWrap = Array.from(galleryPreviewGrid.querySelectorAll('.gallery-thumb-wrap'))
+              .find((item) => item.getAttribute('data-gallery-url') === targetUrl);
+            if (targetWrap) targetWrap.remove();
+
+            const currentUrls = normalizeGalleryUrls(galleryUrlsTextInput ? galleryUrlsTextInput.value : '');
+            const nextUrls = currentUrls.filter((urlValue) => urlValue !== targetUrl);
+            if (galleryUrlsTextInput) galleryUrlsTextInput.value = nextUrls.join('\n');
+            if (removeGalleryInput) removeGalleryInput.value = nextUrls.length ? '0' : '1';
+            if (removeAllGalleryBtn) {
+              removeAllGalleryBtn.style.display = nextUrls.length ? 'inline-flex' : 'none';
+            }
+          } catch (error) {
+            alert(error.message);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
     }
 
     // Waiver preview

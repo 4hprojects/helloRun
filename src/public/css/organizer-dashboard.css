@@ -428,6 +428,42 @@
   color: var(--dash-dark);
 }
 
+.event-branding {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+}
+
+.event-banner-thumb {
+  width: 140px;
+  height: 52px;
+  border-radius: 6px;
+  border: 1px solid var(--dash-border);
+  object-fit: cover;
+  display: block;
+  background: #f1f5f9;
+}
+
+.event-banner-thumb-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  color: var(--dash-gray);
+  font-weight: 600;
+}
+
+.event-logo-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--dash-border);
+  object-fit: cover;
+  display: block;
+  background: #f8fafc;
+}
+
 .event-meta {
   display: flex;
   align-items: center;
@@ -440,6 +476,25 @@
 .event-meta i {
   width: 14px;
   height: 14px;
+}
+
+.event-meta-links {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-top: 0.35rem;
+}
+
+.event-meta-links a {
+  font-size: 0.75rem;
+  color: var(--dash-blue-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.event-meta-links a:hover {
+  color: var(--dash-orange-dark);
 }
 
 .event-card-actions {
@@ -788,6 +843,11 @@
 
   .dashboard-sidebar {
     grid-template-columns: 1fr;
+  }
+
+  .event-banner-thumb {
+    width: 110px;
+    height: 44px;
   }
 }
 

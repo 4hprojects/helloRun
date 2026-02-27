@@ -11,9 +11,11 @@ const emailService = require('../services/email.service');
 const { requireAuth, requireApprovedOrganizer } = require('../middleware/auth.middleware');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
 const { DEFAULT_WAIVER_TEMPLATE, normalizeWaiverTemplate } = require('../utils/waiver');
+const { generateUniqueReferenceCode } = require('../utils/referenceCode');
 
 const countries = getCountries();
 const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K']);
+const MAX_GALLERY_IMAGES = 12;
 
 /* ==========================================
    GET: Organizer Dashboard
@@ -81,7 +83,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       date: event.eventStartAt || event.createdAt,
       location: [event.venueName, event.city, event.country].filter(Boolean).join(', ') || 'TBA',
       status: event.status,
-      registrations: recentRegistrationsByEventId.get(String(event._id)) || 0
+      registrations: recentRegistrationsByEventId.get(String(event._id)) || 0,
+      bannerImageUrl: event.bannerImageUrl || '',
+      logoUrl: event.logoUrl || ''
     }));
 
     // Build dashboard data
@@ -573,7 +577,8 @@ router.get('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
    POST: Update Event (Owner Only)
    ========================================== */
 
-router.post('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
+router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEventBranding, async (req, res) => {
+  const uploadedBrandingKeys = [];
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -601,6 +606,19 @@ router.post('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
     }
 
     const formData = getCreateEventFormData(req.body);
+    if (req.uploadError) {
+      const errorField = mapUploadFieldToFormField(req.uploadErrorField);
+      return res.status(400).render('organizer/edit-event', {
+        title: `Edit Event - ${event.title}`,
+        user,
+        event,
+        errors: { [errorField]: req.uploadError },
+        formData,
+        countries,
+        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+        message: null
+      });
+    }
     const validationErrors = validateCreateEventForm(formData);
 
     if (Object.keys(validationErrors).length > 0) {
@@ -647,8 +665,81 @@ router.post('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
         }
       : undefined;
     event.proofTypesAllowed = isVirtualMode ? formData.proofTypesAllowed : [];
+    const bannerImageFile = req.files?.bannerImageFile?.[0] || null;
+    const logoFile = req.files?.logoFile?.[0] || null;
+    const posterImageFile = req.files?.posterImageFile?.[0] || null;
+    const galleryImageFiles = req.files?.galleryImageFiles || [];
+    const previousBannerUrl = event.bannerImageUrl || '';
+    const previousLogoUrl = event.logoUrl || '';
+    const previousPosterUrl = event.posterImageUrl || '';
+    const previousGalleryUrls = Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : [];
+
+    if (bannerImageFile || logoFile || posterImageFile || galleryImageFiles.length) {
+      const uploadedBranding = await uploadService.uploadEventBrandingToR2({
+        userId: user._id,
+        bannerImageFile: bannerImageFile || undefined,
+        logoFile: logoFile || undefined,
+        posterImageFile: posterImageFile || undefined,
+        galleryImageFiles: galleryImageFiles.length ? galleryImageFiles : undefined
+      });
+
+      if (uploadedBranding.banner) {
+        uploadedBrandingKeys.push(uploadedBranding.banner.key);
+        formData.bannerImageUrl = uploadedBranding.banner.url;
+      }
+      if (uploadedBranding.logo) {
+        uploadedBrandingKeys.push(uploadedBranding.logo.key);
+        formData.logoUrl = uploadedBranding.logo.url;
+      }
+      if (uploadedBranding.poster) {
+        uploadedBrandingKeys.push(uploadedBranding.poster.key);
+        formData.posterImageUrl = uploadedBranding.poster.url;
+      }
+      if (Array.isArray(uploadedBranding.gallery) && uploadedBranding.gallery.length) {
+        uploadedBrandingKeys.push(...uploadedBranding.gallery.map((item) => item.key));
+        formData.galleryImageUrls = Array.from(
+          new Set([...(formData.galleryImageUrls || []), ...uploadedBranding.gallery.map((item) => item.url)])
+        );
+        formData.galleryImageUrlsText = formData.galleryImageUrls.join('\n');
+      }
+    }
+
+    // Explicit removals are applied only when no new file upload is provided.
+    if (formData.removeBannerImage && !bannerImageFile) {
+      formData.bannerImageUrl = '';
+    }
+    if (formData.removeLogoImage && !logoFile) {
+      formData.logoUrl = '';
+    }
+    if (formData.removePosterImage && !posterImageFile) {
+      formData.posterImageUrl = '';
+    }
+    if (formData.removeGalleryImages && !galleryImageFiles.length) {
+      formData.galleryImageUrls = [];
+      formData.galleryImageUrlsText = '';
+    }
+
+    if ((formData.galleryImageUrls || []).length > MAX_GALLERY_IMAGES) {
+      if (uploadedBrandingKeys.length) {
+        await uploadService.deleteObjects(uploadedBrandingKeys);
+        uploadedBrandingKeys.length = 0;
+      }
+      return res.status(400).render('organizer/edit-event', {
+        title: `Edit Event - ${event.title}`,
+        user,
+        event,
+        errors: { galleryImageUrls: `Gallery supports up to ${MAX_GALLERY_IMAGES} images.` },
+        formData,
+        countries,
+        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+        message: null
+      });
+    }
+
     event.bannerImageUrl = formData.bannerImageUrl || '';
     event.logoUrl = formData.logoUrl || '';
+    event.posterImageUrl = formData.posterImageUrl || '';
+    event.galleryImageUrls = Array.isArray(formData.galleryImageUrls) ? formData.galleryImageUrls : [];
     const normalizedWaiverTemplate = normalizeWaiverTemplate(formData.waiverTemplate);
     const previousWaiverTemplate = normalizeWaiverTemplate(event.waiverTemplate || DEFAULT_WAIVER_TEMPLATE);
     if (previousWaiverTemplate !== normalizedWaiverTemplate) {
@@ -660,6 +751,30 @@ router.post('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
 
     await event.save();
 
+    const keysToDelete = [];
+    if ((bannerImageFile || formData.removeBannerImage) && previousBannerUrl && previousBannerUrl !== event.bannerImageUrl) {
+      const previousBannerKey = uploadService.extractObjectKeyFromPublicUrl(previousBannerUrl);
+      if (previousBannerKey) keysToDelete.push(previousBannerKey);
+    }
+    if ((logoFile || formData.removeLogoImage) && previousLogoUrl && previousLogoUrl !== event.logoUrl) {
+      const previousLogoKey = uploadService.extractObjectKeyFromPublicUrl(previousLogoUrl);
+      if (previousLogoKey) keysToDelete.push(previousLogoKey);
+    }
+    if ((posterImageFile || formData.removePosterImage) && previousPosterUrl && previousPosterUrl !== event.posterImageUrl) {
+      const previousPosterKey = uploadService.extractObjectKeyFromPublicUrl(previousPosterUrl);
+      if (previousPosterKey) keysToDelete.push(previousPosterKey);
+    }
+    const currentGalleryUrlSet = new Set(Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : []);
+    for (const previousGalleryUrl of previousGalleryUrls) {
+      if (!currentGalleryUrlSet.has(previousGalleryUrl)) {
+        const previousGalleryKey = uploadService.extractObjectKeyFromPublicUrl(previousGalleryUrl);
+        if (previousGalleryKey) keysToDelete.push(previousGalleryKey);
+      }
+    }
+    if (keysToDelete.length) {
+      await uploadService.deleteObjects(keysToDelete);
+    }
+
     const query = new URLSearchParams({
       type: 'success',
       msg: 'Event updated successfully.'
@@ -667,6 +782,9 @@ router.post('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
     return res.redirect(`/organizer/events/${event._id}?${query.toString()}`);
   } catch (error) {
     console.error('Error updating event:', error);
+    if (uploadedBrandingKeys.length) {
+      await uploadService.deleteObjects(uploadedBrandingKeys);
+    }
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -736,10 +854,100 @@ router.post('/events/:id/status', requireApprovedOrganizer, async (req, res) => 
 });
 
 /* ==========================================
+   POST: Remove Event Media Immediately (Owner Only)
+   ========================================== */
+
+router.post('/events/:id/media/remove', requireApprovedOrganizer, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User account not found.' });
+    }
+
+    const event = await getOwnedEventOrNull(req.params.id, user._id);
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found or you do not have access.' });
+    }
+    if (event.status === 'closed') {
+      return res.status(400).json({ success: false, message: 'Closed events cannot be edited.' });
+    }
+
+    const mediaKind = String(req.body.kind || '').trim();
+    const removeAll = String(req.body.all || '').trim() === '1';
+    const targetUrl = String(req.body.url || '').trim();
+    const keysToDelete = [];
+
+    if (mediaKind === 'banner') {
+      const previousBannerUrl = String(event.bannerImageUrl || '').trim();
+      if (previousBannerUrl) {
+        const previousBannerKey = uploadService.extractObjectKeyFromPublicUrl(previousBannerUrl);
+        if (previousBannerKey) keysToDelete.push(previousBannerKey);
+      }
+      event.bannerImageUrl = '';
+    } else if (mediaKind === 'logo') {
+      const previousLogoUrl = String(event.logoUrl || '').trim();
+      if (previousLogoUrl) {
+        const previousLogoKey = uploadService.extractObjectKeyFromPublicUrl(previousLogoUrl);
+        if (previousLogoKey) keysToDelete.push(previousLogoKey);
+      }
+      event.logoUrl = '';
+    } else if (mediaKind === 'poster') {
+      const previousPosterUrl = String(event.posterImageUrl || '').trim();
+      if (previousPosterUrl) {
+        const previousPosterKey = uploadService.extractObjectKeyFromPublicUrl(previousPosterUrl);
+        if (previousPosterKey) keysToDelete.push(previousPosterKey);
+      }
+      event.posterImageUrl = '';
+    } else if (mediaKind === 'gallery') {
+      const currentGalleryUrls = Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : [];
+      if (removeAll) {
+        for (const galleryUrl of currentGalleryUrls) {
+          const previousGalleryKey = uploadService.extractObjectKeyFromPublicUrl(galleryUrl);
+          if (previousGalleryKey) keysToDelete.push(previousGalleryKey);
+        }
+        event.galleryImageUrls = [];
+      } else {
+        if (!targetUrl) {
+          return res.status(400).json({ success: false, message: 'Gallery URL is required for single-item remove.' });
+        }
+        const hasTarget = currentGalleryUrls.includes(targetUrl);
+        if (!hasTarget) {
+          return res.status(400).json({ success: false, message: 'Gallery image not found on this event.' });
+        }
+        const previousGalleryKey = uploadService.extractObjectKeyFromPublicUrl(targetUrl);
+        if (previousGalleryKey) keysToDelete.push(previousGalleryKey);
+        event.galleryImageUrls = currentGalleryUrls.filter((item) => item !== targetUrl);
+      }
+    } else {
+      return res.status(400).json({ success: false, message: 'Invalid media type.' });
+    }
+
+    await event.save();
+    if (keysToDelete.length) {
+      await uploadService.deleteObjects(keysToDelete);
+    }
+
+    return res.json({
+      success: true,
+      media: {
+        bannerImageUrl: event.bannerImageUrl || '',
+        logoUrl: event.logoUrl || '',
+        posterImageUrl: event.posterImageUrl || '',
+        galleryImageUrls: Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : []
+      }
+    });
+  } catch (error) {
+    console.error('Error removing event media:', error);
+    return res.status(500).json({ success: false, message: 'Failed to remove media. Please try again.' });
+  }
+});
+
+/* ==========================================
    POST: Create Event (Approved Organizers)
    ========================================== */
 
-router.post('/create-event', requireApprovedOrganizer, async (req, res) => {
+router.post('/create-event', requireApprovedOrganizer, uploadService.uploadEventBranding, async (req, res) => {
+  const uploadedBrandingKeys = [];
   try {
     const user = await User.findById(req.session.userId);
 
@@ -752,6 +960,18 @@ router.post('/create-event', requireApprovedOrganizer, async (req, res) => {
     }
 
     const formData = getCreateEventFormData(req.body);
+    if (req.uploadError) {
+      const errorField = mapUploadFieldToFormField(req.uploadErrorField);
+      return res.status(400).render('organizer/create-event', {
+        title: 'Create Event - helloRun',
+        user,
+        errors: { [errorField]: req.uploadError },
+        formData,
+        countries,
+        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+        message: null
+      });
+    }
     const validationErrors = validateCreateEventForm(formData);
 
     if (Object.keys(validationErrors).length > 0) {
@@ -772,9 +992,65 @@ router.post('/create-event', requireApprovedOrganizer, async (req, res) => {
     const slug = await generateUniqueSlug(formData.title);
     const eventTypesAllowed = getEventTypesAllowed(formData.eventType);
 
+    const bannerImageFile = req.files?.bannerImageFile?.[0] || null;
+    const logoFile = req.files?.logoFile?.[0] || null;
+    const posterImageFile = req.files?.posterImageFile?.[0] || null;
+    const galleryImageFiles = req.files?.galleryImageFiles || [];
+    if (bannerImageFile || logoFile || posterImageFile || galleryImageFiles.length) {
+      const uploadedBranding = await uploadService.uploadEventBrandingToR2({
+        userId: user._id,
+        bannerImageFile: bannerImageFile || undefined,
+        logoFile: logoFile || undefined,
+        posterImageFile: posterImageFile || undefined,
+        galleryImageFiles: galleryImageFiles.length ? galleryImageFiles : undefined
+      });
+      if (uploadedBranding.banner) {
+        uploadedBrandingKeys.push(uploadedBranding.banner.key);
+        formData.bannerImageUrl = uploadedBranding.banner.url;
+      }
+      if (uploadedBranding.logo) {
+        uploadedBrandingKeys.push(uploadedBranding.logo.key);
+        formData.logoUrl = uploadedBranding.logo.url;
+      }
+      if (uploadedBranding.poster) {
+        uploadedBrandingKeys.push(uploadedBranding.poster.key);
+        formData.posterImageUrl = uploadedBranding.poster.url;
+      }
+      if (Array.isArray(uploadedBranding.gallery) && uploadedBranding.gallery.length) {
+        uploadedBrandingKeys.push(...uploadedBranding.gallery.map((item) => item.key));
+        formData.galleryImageUrls = Array.from(
+          new Set([...(formData.galleryImageUrls || []), ...uploadedBranding.gallery.map((item) => item.url)])
+        );
+        formData.galleryImageUrlsText = formData.galleryImageUrls.join('\n');
+      }
+    }
+
+    if ((formData.galleryImageUrls || []).length > MAX_GALLERY_IMAGES) {
+      if (uploadedBrandingKeys.length) {
+        await uploadService.deleteObjects(uploadedBrandingKeys);
+        uploadedBrandingKeys.length = 0;
+      }
+      return res.status(400).render('organizer/create-event', {
+        title: 'Create Event - helloRun',
+        user,
+        errors: { galleryImageUrls: `Gallery supports up to ${MAX_GALLERY_IMAGES} images.` },
+        formData,
+        countries,
+        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+        message: null
+      });
+    }
+
+    const referenceCode = await generateUniqueReferenceCode({
+      title: formData.title,
+      date: new Date(),
+      existsFn: async (candidate) => Event.exists({ referenceCode: candidate })
+    });
+
     const event = new Event({
       organizerId: user._id,
       slug,
+      referenceCode,
       title: formData.title,
       organiserName,
       description: formData.description,
@@ -805,6 +1081,8 @@ router.post('/create-event', requireApprovedOrganizer, async (req, res) => {
         : [],
       bannerImageUrl: formData.bannerImageUrl || '',
       logoUrl: formData.logoUrl || '',
+      posterImageUrl: formData.posterImageUrl || '',
+      galleryImageUrls: formData.galleryImageUrls || [],
       waiverTemplate: normalizeWaiverTemplate(formData.waiverTemplate),
       waiverVersion: 1
     });
@@ -816,9 +1094,12 @@ router.post('/create-event', requireApprovedOrganizer, async (req, res) => {
       : 'Event saved as draft successfully.';
 
     const query = new URLSearchParams({ type: 'success', msg: successText });
-    return res.redirect(`/organizer/create-event?${query.toString()}`);
+    return res.redirect(`/organizer/events?${query.toString()}`);
   } catch (error) {
     console.error('Error creating event:', error);
+    if (uploadedBrandingKeys.length) {
+      await uploadService.deleteObjects(uploadedBrandingKeys);
+    }
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -858,6 +1139,7 @@ router.post(
   requireAuth,
   uploadService.uploadOrganizerDocs,
   async (req, res) => {
+    const uploadedObjectKeys = [];
     try {
       // ========== STEP 1: Validate Authentication ==========
       const userId = req.session.userId;
@@ -970,16 +1252,30 @@ router.post(
 
       const fileValidation = validateFiles([idProofFile, businessProofFile]);
       if (!fileValidation.valid) {
-        // Delete uploaded files on validation failure
-        uploadService.deleteFiles([idProofFile.filename, businessProofFile.filename]);
-        
         return res.status(400).json({
           success: false,
           message: fileValidation.error
         });
       }
 
-      // ========== STEP 5: Create OrganiserApplication Record ==========
+      // ========== STEP 5: Upload Documents to Cloudflare R2 ==========
+      let uploadedDocs;
+      try {
+        uploadedDocs = await uploadService.uploadOrganizerDocsToR2({
+          userId,
+          idProofFile,
+          businessProofFile
+        });
+        uploadedObjectKeys.push(uploadedDocs.idProof.key, uploadedDocs.businessProof.key);
+      } catch (uploadError) {
+        console.error('R2 upload error:', uploadError);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to upload documents. Please try again.'
+        });
+      }
+
+      // ========== STEP 6: Create OrganiserApplication Record ==========
       let application;
 
       try {
@@ -990,8 +1286,8 @@ router.post(
           contactPhone: contactPhone.trim(),
           businessRegistrationNumber: businessRegistrationNumber?.trim() || '',
           businessAddress: businessAddress?.trim() || '',
-          idProofUrl: `/uploads/organizer-docs/${idProofFile.filename}`,
-          businessProofUrl: `/uploads/organizer-docs/${businessProofFile.filename}`,
+          idProofUrl: uploadedDocs.idProof.url,
+          businessProofUrl: uploadedDocs.businessProof.url,
           additionalInfo: additionalInfo?.trim() || '',
           status: 'pending',
           submittedAt: new Date()
@@ -1002,8 +1298,8 @@ router.post(
       } catch (dbError) {
         console.error('Database save error:', dbError);
 
-        // Delete uploaded files on database failure
-        uploadService.deleteFiles([idProofFile.filename, businessProofFile.filename]);
+        // Delete uploaded cloud objects on database failure
+        await uploadService.deleteObjects(uploadedObjectKeys);
 
         return res.status(500).json({
           success: false,
@@ -1011,7 +1307,7 @@ router.post(
         });
       }
 
-      // ========== STEP 6: Update User Status ==========
+      // ========== STEP 7: Update User Status ==========
       try {
         user.organizerApplicationId = application._id;
         user.organizerStatus = 'pending';
@@ -1021,7 +1317,7 @@ router.post(
         // Continue even if user update fails - application is already saved
       }
 
-      // ========== STEP 7: Send Confirmation Email ==========
+      // ========== STEP 8: Send Confirmation Email ==========
       try {
         await emailService.sendApplicationSubmittedEmail(
           user.email,
@@ -1033,7 +1329,7 @@ router.post(
         // Don't fail the submission if email fails
       }
 
-      // ========== STEP 8: Send Success Response ==========
+      // ========== STEP 9: Send Success Response ==========
       return res.status(201).json({
         success: true,
         message: 'Application submitted successfully!',
@@ -1044,15 +1340,9 @@ router.post(
     } catch (error) {
       console.error('Unexpected error in complete-profile POST:', error);
 
-      // Attempt to delete uploaded files if they exist
-      if (req.files) {
-        const filenames = [];
-        if (req.files.idProof && req.files.idProof[0]) filenames.push(req.files.idProof[0].filename);
-        if (req.files.businessProof && req.files.businessProof[0]) filenames.push(req.files.businessProof[0].filename);
-
-        if (filenames.length > 0) {
-          uploadService.deleteFiles(filenames);
-        }
+      // Attempt to delete uploaded cloud objects if they exist
+      if (uploadedObjectKeys.length > 0) {
+        await uploadService.deleteObjects(uploadedObjectKeys);
       }
 
       return res.status(500).json({
@@ -1210,6 +1500,15 @@ function normalizeRaceDistances(presetValues, customDistancesRaw) {
   return Array.from(new Set([...presetDistances, ...customDistances].filter(Boolean)));
 }
 
+function normalizeGalleryImageUrls(rawValue) {
+  const combined = normalizeArray(rawValue).join('\n');
+  const normalized = combined
+    .split(/\r?\n|,/)
+    .map((item) => String(item || '').trim())
+    .filter(Boolean);
+  return Array.from(new Set(normalized));
+}
+
 function getRegistrantFilterContext(event, queryParams = {}) {
   const selectedMode = ['virtual', 'onsite'].includes(queryParams.mode)
     ? queryParams.mode
@@ -1322,6 +1621,7 @@ function escapeRegex(input) {
 function getCreateEventFormData(body = {}) {
   const raceDistancePresets = normalizeArray(body.raceDistancePresets).map(normalizeRaceDistanceLabel).filter(Boolean);
   const raceDistances = normalizeRaceDistances(body.raceDistancePresets, body.raceDistanceCustom);
+  const galleryImageUrls = normalizeGalleryImageUrls(body.galleryImageUrlsText || body.galleryImageUrls);
   const waiverTemplateRaw = typeof body.waiverTemplate === 'string'
     ? body.waiverTemplate
     : DEFAULT_WAIVER_TEMPLATE;
@@ -1349,6 +1649,13 @@ function getCreateEventFormData(body = {}) {
     raceDistanceCustom: String(body.raceDistanceCustom || '').trim(),
     bannerImageUrl: (body.bannerImageUrl || '').trim(),
     logoUrl: (body.logoUrl || '').trim(),
+    posterImageUrl: (body.posterImageUrl || '').trim(),
+    galleryImageUrls,
+    galleryImageUrlsText: galleryImageUrls.join('\n'),
+    removeBannerImage: body.removeBannerImage === '1',
+    removeLogoImage: body.removeLogoImage === '1',
+    removePosterImage: body.removePosterImage === '1',
+    removeGalleryImages: body.removeGalleryImages === '1',
     waiverTemplate: normalizeWaiverTemplate(waiverTemplateRaw),
     actionType: body.actionType === 'publish' ? 'publish' : 'draft'
   };
@@ -1396,6 +1703,13 @@ function getCreateEventFormDataFromEvent(event) {
     raceDistanceCustom,
     bannerImageUrl: event.bannerImageUrl || '',
     logoUrl: event.logoUrl || '',
+    posterImageUrl: event.posterImageUrl || '',
+    galleryImageUrls: Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : [],
+    galleryImageUrlsText: (Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : []).join('\n'),
+    removeBannerImage: false,
+    removeLogoImage: false,
+    removePosterImage: false,
+    removeGalleryImages: false,
     waiverTemplate: normalizeWaiverTemplate(event.waiverTemplate || DEFAULT_WAIVER_TEMPLATE),
     actionType: event.status === 'published' ? 'publish' : 'draft'
   };
@@ -1559,6 +1873,18 @@ function validateCreateEventForm(formData) {
   if (!isValidUrl(formData.logoUrl)) {
     errors.logoUrl = 'Logo URL must be a valid URL.';
   }
+  if (!isValidUrl(formData.posterImageUrl)) {
+    errors.posterImageUrl = 'Poster URL must be a valid URL.';
+  }
+  if (Array.isArray(formData.galleryImageUrls) && formData.galleryImageUrls.length > MAX_GALLERY_IMAGES) {
+    errors.galleryImageUrls = `Gallery supports up to ${MAX_GALLERY_IMAGES} images.`;
+  }
+  if (Array.isArray(formData.galleryImageUrls)) {
+    const invalidGalleryUrl = formData.galleryImageUrls.find((galleryUrl) => !isValidUrl(galleryUrl));
+    if (invalidGalleryUrl) {
+      errors.galleryImageUrls = 'Each gallery URL must be a valid URL.';
+    }
+  }
   if (!formData.waiverTemplate || formData.waiverTemplate.length < 200) {
     errors.waiverTemplate = 'Waiver template must be at least 200 characters.';
   } else if (formData.waiverTemplate.length > 20000) {
@@ -1626,6 +1952,14 @@ function getStatusTransitionError(currentStatus, nextStatus) {
   }
 
   return null;
+}
+
+function mapUploadFieldToFormField(fieldName) {
+  const normalizedField = String(fieldName || '').trim();
+  if (normalizedField === 'logoFile') return 'logoUrl';
+  if (normalizedField === 'posterImageFile') return 'posterImageUrl';
+  if (normalizedField === 'galleryImageFiles') return 'galleryImageUrls';
+  return 'bannerImageUrl';
 }
 
 function getPublishReadinessErrors(event) {

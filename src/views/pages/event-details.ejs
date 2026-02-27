@@ -18,12 +18,34 @@
           <span class="event-chip event-chip-muted"><%= (event.eventTypesAllowed || []).join(' / ') || 'N/A' %></span>
         </div>
       </header>
-
-      <% if (event.bannerImageUrl) { %>
-        <img class="event-details-banner" src="<%= event.bannerImageUrl %>" alt="<%= event.title %> banner">
-      <% } %>
+      <% const showLocationPanel = event.eventType === 'onsite' || event.eventType === 'hybrid' || (event.eventTypesAllowed || []).includes('onsite'); %>
 
       <section class="event-details-grid">
+        <article class="event-details-card">
+          <h3>Event Banner</h3>
+          <% if (event.bannerImageUrl) { %>
+            <img class="event-details-banner-inline" src="<%= event.bannerImageUrl %>" alt="<%= event.title %> banner">
+          <% } else { %>
+            <p>No banner uploaded.</p>
+          <% } %>
+        </article>
+
+        <article class="event-details-card">
+          <h3>Promotional Poster</h3>
+          <% if (event.posterImageUrl) { %>
+            <button
+              type="button"
+              class="event-poster-thumb-btn"
+              data-poster-src="<%- event.posterImageUrl %>"
+              aria-label="Open promotional poster"
+            >
+              <img class="event-details-poster-inline" src="<%= event.posterImageUrl %>" alt="<%= event.title %> promotional poster">
+            </button>
+          <% } else { %>
+            <p>No poster uploaded.</p>
+          <% } %>
+        </article>
+
         <article class="event-details-card">
           <h3>Schedule</h3>
           <p><strong>Registration Closes:</strong> <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleString('en-US') : 'TBA' %></p>
@@ -32,13 +54,34 @@
           <p><strong>Race Distances:</strong> <%= (event.raceDistances || []).join(', ') || 'TBA' %></p>
         </article>
 
-        <article class="event-details-card">
-          <h3>Location</h3>
-          <p><strong>Venue:</strong> <%= event.venueName || 'TBA' %></p>
-          <p><strong>Address:</strong> <%= event.venueAddress || 'TBA' %></p>
-          <p><strong>City/Country:</strong> <%= [event.city, countryName(event.country)].filter(Boolean).join(', ') || 'TBA' %></p>
-        </article>
+        <% if (showLocationPanel) { %>
+          <article class="event-details-card">
+            <h3>Location</h3>
+            <p><strong>Venue:</strong> <%= event.venueName || 'TBA' %></p>
+            <p><strong>Address:</strong> <%= event.venueAddress || 'TBA' %></p>
+            <p><strong>City/Country:</strong> <%= [event.city, countryName(event.country)].filter(Boolean).join(', ') || 'TBA' %></p>
+          </article>
+        <% } %>
       </section>
+
+      <% if (event.galleryImageUrls && event.galleryImageUrls.length) { %>
+        <section class="event-details-card event-details-description">
+          <h3>Gallery</h3>
+          <div class="event-gallery-grid">
+            <% event.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
+              <button
+                type="button"
+                class="event-gallery-thumb-btn"
+                data-gallery-index="<%= galleryIndex %>"
+                data-gallery-src="<%- galleryUrl %>"
+                aria-label="Open gallery image <%= galleryIndex + 1 %>"
+              >
+                <img class="event-gallery-image" src="<%= galleryUrl %>" alt="<%= event.title %> gallery image <%= galleryIndex + 1 %>">
+              </button>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
 
       <section class="event-details-card event-details-description">
         <h3>Description</h3>
@@ -51,11 +94,208 @@
           <a href="/my-registrations" class="btn btn-secondary">My Registrations</a>
         <% } %>
       </section>
+
+      <% if (event.galleryImageUrls && event.galleryImageUrls.length) { %>
+        <div id="galleryLightbox" class="gallery-lightbox hidden" aria-hidden="true">
+          <div class="gallery-lightbox-backdrop" data-close-lightbox="1"></div>
+          <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Gallery viewer">
+            <button type="button" class="gallery-lightbox-close" id="galleryCloseBtn" aria-label="Close gallery">&times;</button>
+            <button type="button" class="gallery-lightbox-nav gallery-lightbox-prev" id="galleryPrevBtn" aria-label="Previous image">&#10094;</button>
+            <img id="galleryLightboxImage" class="gallery-lightbox-image" src="" alt="">
+            <button type="button" class="gallery-lightbox-nav gallery-lightbox-next" id="galleryNextBtn" aria-label="Next image">&#10095;</button>
+            <p id="galleryLightboxCounter" class="gallery-lightbox-counter"></p>
+          </div>
+        </div>
+      <% } %>
+
+      <% if (event.posterImageUrl) { %>
+        <div id="posterLightbox" class="gallery-lightbox hidden" aria-hidden="true">
+          <div class="gallery-lightbox-backdrop" data-close-poster-lightbox="1"></div>
+          <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Promotional poster viewer">
+            <button type="button" class="gallery-lightbox-close" id="posterCloseBtn" aria-label="Close poster">&times;</button>
+            <div class="poster-zoom-controls">
+              <button type="button" class="poster-zoom-btn" id="posterZoomOutBtn" aria-label="Zoom out">-</button>
+              <button type="button" class="poster-zoom-btn" id="posterZoomInBtn" aria-label="Zoom in">+</button>
+              <button type="button" class="poster-zoom-btn" id="posterResetBtn" aria-label="Reset zoom">Reset</button>
+            </div>
+            <img id="posterLightboxImage" class="gallery-lightbox-image" src="" alt="">
+          </div>
+        </div>
+      <% } %>
     </section>
   </main>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    (function initGalleryLightbox() {
+      const lightbox = document.getElementById('galleryLightbox');
+      if (!lightbox) return;
+
+      const body = document.body;
+      const thumbButtons = Array.from(document.querySelectorAll('.event-gallery-thumb-btn'));
+      const imageEl = document.getElementById('galleryLightboxImage');
+      const counterEl = document.getElementById('galleryLightboxCounter');
+      const closeBtn = document.getElementById('galleryCloseBtn');
+      const prevBtn = document.getElementById('galleryPrevBtn');
+      const nextBtn = document.getElementById('galleryNextBtn');
+      const closeBackdrop = lightbox.querySelector('[data-close-lightbox="1"]');
+      const gallerySources = thumbButtons.map((btn) => ({
+        src: btn.getAttribute('data-gallery-src') || '',
+        alt: btn.querySelector('img')?.alt || 'Gallery image'
+      }));
+      let currentIndex = 0;
+
+      function updateLightboxImage() {
+        const item = gallerySources[currentIndex];
+        if (!item) return;
+        imageEl.src = item.src;
+        imageEl.alt = item.alt;
+        counterEl.textContent = `${currentIndex + 1} / ${gallerySources.length}`;
+      }
+
+      function openLightbox(index) {
+        currentIndex = Math.max(0, Math.min(index, gallerySources.length - 1));
+        updateLightboxImage();
+        lightbox.classList.remove('hidden');
+        lightbox.setAttribute('aria-hidden', 'false');
+        body.classList.add('no-scroll');
+        closeBtn.focus();
+      }
+
+      function closeLightbox() {
+        lightbox.classList.add('hidden');
+        lightbox.setAttribute('aria-hidden', 'true');
+        body.classList.remove('no-scroll');
+      }
+
+      function showPrev() {
+        currentIndex = (currentIndex - 1 + gallerySources.length) % gallerySources.length;
+        updateLightboxImage();
+      }
+
+      function showNext() {
+        currentIndex = (currentIndex + 1) % gallerySources.length;
+        updateLightboxImage();
+      }
+
+      thumbButtons.forEach((btn, index) => {
+        btn.addEventListener('click', () => openLightbox(index));
+      });
+      closeBtn.addEventListener('click', closeLightbox);
+      prevBtn.addEventListener('click', showPrev);
+      nextBtn.addEventListener('click', showNext);
+      if (closeBackdrop) closeBackdrop.addEventListener('click', closeLightbox);
+
+      document.addEventListener('keydown', (event) => {
+        if (lightbox.classList.contains('hidden')) return;
+        if (event.key === 'Escape') closeLightbox();
+        if (event.key === 'ArrowLeft') showPrev();
+        if (event.key === 'ArrowRight') showNext();
+      });
+    })();
+
+    (function initPosterLightbox() {
+      const posterBtn = document.querySelector('.event-poster-thumb-btn');
+      const lightbox = document.getElementById('posterLightbox');
+      if (!posterBtn || !lightbox) return;
+
+      const body = document.body;
+      const imageEl = document.getElementById('posterLightboxImage');
+      const closeBtn = document.getElementById('posterCloseBtn');
+      const zoomInBtn = document.getElementById('posterZoomInBtn');
+      const zoomOutBtn = document.getElementById('posterZoomOutBtn');
+      const resetBtn = document.getElementById('posterResetBtn');
+      const closeBackdrop = lightbox.querySelector('[data-close-poster-lightbox="1"]');
+      const posterSrc = posterBtn.getAttribute('data-poster-src') || '';
+      const posterAlt = posterBtn.querySelector('img')?.alt || 'Promotional poster';
+      let zoomLevel = 1;
+      let translateX = 0;
+      let translateY = 0;
+      let isDragging = false;
+      let dragStartX = 0;
+      let dragStartY = 0;
+
+      function updatePosterTransform() {
+        imageEl.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
+        imageEl.classList.toggle('is-zoomed', zoomLevel > 1);
+        imageEl.style.cursor = zoomLevel > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in';
+        if (zoomInBtn) zoomInBtn.disabled = zoomLevel >= 3;
+        if (zoomOutBtn) zoomOutBtn.disabled = zoomLevel <= 1;
+      }
+
+      function setZoom(nextZoomLevel) {
+        const clamped = Math.max(1, Math.min(3, Number(nextZoomLevel.toFixed(2))));
+        zoomLevel = clamped;
+        if (zoomLevel === 1) {
+          translateX = 0;
+          translateY = 0;
+        }
+        updatePosterTransform();
+      }
+
+      function resetZoom() {
+        isDragging = false;
+        setZoom(1);
+      }
+
+      function openLightbox() {
+        imageEl.src = posterSrc;
+        imageEl.alt = posterAlt;
+        resetZoom();
+        lightbox.classList.remove('hidden');
+        lightbox.setAttribute('aria-hidden', 'false');
+        body.classList.add('no-scroll');
+        closeBtn.focus();
+      }
+
+      function closeLightbox() {
+        lightbox.classList.add('hidden');
+        lightbox.setAttribute('aria-hidden', 'true');
+        body.classList.remove('no-scroll');
+        resetZoom();
+      }
+
+      posterBtn.addEventListener('click', openLightbox);
+      closeBtn.addEventListener('click', closeLightbox);
+      if (zoomInBtn) zoomInBtn.addEventListener('click', () => setZoom(zoomLevel + 0.25));
+      if (zoomOutBtn) zoomOutBtn.addEventListener('click', () => setZoom(zoomLevel - 0.25));
+      if (resetBtn) resetBtn.addEventListener('click', resetZoom);
+      if (closeBackdrop) closeBackdrop.addEventListener('click', closeLightbox);
+
+      imageEl.addEventListener('pointerdown', (event) => {
+        if (zoomLevel <= 1) return;
+        isDragging = true;
+        dragStartX = event.clientX - translateX;
+        dragStartY = event.clientY - translateY;
+        imageEl.setPointerCapture(event.pointerId);
+        updatePosterTransform();
+      });
+
+      imageEl.addEventListener('pointermove', (event) => {
+        if (!isDragging || zoomLevel <= 1) return;
+        translateX = event.clientX - dragStartX;
+        translateY = event.clientY - dragStartY;
+        updatePosterTransform();
+      });
+
+      function stopDragging() {
+        if (!isDragging) return;
+        isDragging = false;
+        updatePosterTransform();
+      }
+
+      imageEl.addEventListener('pointerup', stopDragging);
+      imageEl.addEventListener('pointercancel', stopDragging);
+      imageEl.addEventListener('pointerleave', stopDragging);
+
+      document.addEventListener('keydown', (event) => {
+        if (lightbox.classList.contains('hidden')) return;
+        if (event.key === 'Escape') closeLightbox();
+      });
+    })();
+  </script>
 </body>
 </html>

@@ -30,7 +30,7 @@
         </div>
       <% } %>
 
-      <form class="create-event-form" method="POST" action="/organizer/create-event" novalidate>
+      <form class="create-event-form" method="POST" action="/organizer/create-event" enctype="multipart/form-data" novalidate>
         <!-- CORE DETAILS SECTION -->
         <div class="form-section">
           <div class="section-title">📋 Core Details</div>
@@ -249,29 +249,97 @@
 
         <!-- BRANDING SECTION -->
         <div class="form-section">
-          <div class="section-title">🎨 Branding</div>
-          <div class="form-grid">
-            <div class="form-group <%= errors.bannerImageUrl ? 'has-error' : '' %>">
-              <label for="bannerImageUrl">Banner Image URL</label>
-              <input id="bannerImageUrl" name="bannerImageUrl" type="url" value="<%= formData.bannerImageUrl %>" placeholder="https://...">
-              <small class="field-hint">Recommended: 1200x400px, JPG/PNG</small>
-              <% if (errors.bannerImageUrl) { %><small class="error-text"><%= errors.bannerImageUrl %></small><% } %>
-              <% if (formData.bannerImageUrl) { %>
-              <div class="branding-preview">
-                <img id="bannerPreview" src="<%= formData.bannerImageUrl %>" alt="Banner Preview" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:0.5rem;">
+          <div class="section-title">Branding & Media</div>
+          <div class="media-block <%= errors.logoUrl ? 'has-error' : '' %>">
+            <h3>1) Event Logo</h3>
+            <p>Small square or transparent image.</p>
+            <p class="media-used-in"><strong>Used in:</strong> Event listings, leaderboard header, search results.</p>
+            <p class="media-rules">Optional. JPG/PNG only, max 5MB.</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="logoUrl">Logo URL</label>
+                <input id="logoUrl" name="logoUrl" type="url" value="<%= formData.logoUrl %>" placeholder="https://...">
+                <label for="logoFile" style="margin-top:0.5rem;">or Upload Logo</label>
+                <input id="logoFile" name="logoFile" type="file" accept="image/jpeg,image/png">
+                <small class="field-hint">Square image recommended (200x200+), JPG/PNG, max 5MB.</small>
+                <small class="field-hint">If both URL and file are provided, uploaded file will be used.</small>
+                <% if (errors.logoUrl) { %><small class="error-text"><%= errors.logoUrl %></small><% } %>
+                <% if (formData.logoUrl) { %>
+                <div class="branding-preview">
+                  <img id="logoPreview" src="<%= formData.logoUrl %>" alt="Logo Preview" style="max-width:80px;max-height:80px;border-radius:8px;margin-top:0.5rem;">
+                </div>
+                <% } %>
               </div>
-              <% } %>
             </div>
-            <div class="form-group <%= errors.logoUrl ? 'has-error' : '' %>">
-              <label for="logoUrl">Logo URL</label>
-              <input id="logoUrl" name="logoUrl" type="url" value="<%= formData.logoUrl %>" placeholder="https://...">
-              <small class="field-hint">Recommended: 200x200px, PNG with transparency</small>
-              <% if (errors.logoUrl) { %><small class="error-text"><%= errors.logoUrl %></small><% } %>
-              <% if (formData.logoUrl) { %>
-              <div class="branding-preview">
-                <img id="logoPreview" src="<%= formData.logoUrl %>" alt="Logo Preview" style="max-width:80px;max-height:80px;border-radius:8px;margin-top:0.5rem;">
+          </div>
+
+          <div class="media-block <%= errors.bannerImageUrl ? 'has-error' : '' %>">
+            <h3>2) Event Banner</h3>
+            <p>Wide rectangular image for event branding.</p>
+            <p class="media-used-in"><strong>Used in:</strong> Event page hero section, landing page, promotional header.</p>
+            <p class="media-rules">Optional. JPG/PNG only, max 5MB. Recommended ratio: 3:1 (example: 1200x400).</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="bannerImageUrl">Banner Image URL</label>
+                <input id="bannerImageUrl" name="bannerImageUrl" type="url" value="<%= formData.bannerImageUrl %>" placeholder="https://...">
+                <label for="bannerImageFile" style="margin-top:0.5rem;">or Upload Banner Image</label>
+                <input id="bannerImageFile" name="bannerImageFile" type="file" accept="image/jpeg,image/png">
+                <small class="field-hint">Recommended ratio: 3:1 (example 1200x400), JPG/PNG, max 5MB.</small>
+                <small class="field-hint">If both URL and file are provided, uploaded file will be used.</small>
+                <% if (errors.bannerImageUrl) { %><small class="error-text"><%= errors.bannerImageUrl %></small><% } %>
+                <% if (formData.bannerImageUrl) { %>
+                <div class="branding-preview">
+                  <img id="bannerPreview" src="<%= formData.bannerImageUrl %>" alt="Banner Preview" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:0.5rem;">
+                </div>
+                <% } %>
               </div>
-              <% } %>
+            </div>
+          </div>
+
+          <div class="media-block <%= errors.posterImageUrl ? 'has-error' : '' %>">
+            <h3>3) Promotional Poster</h3>
+            <p>Edited promotional image (details, dates, sponsors, prizes, instructions).</p>
+            <p class="media-used-in"><strong>Used in:</strong> Event details page and promotional header blocks.</p>
+            <p class="media-rules">Optional. JPG/PNG only, max 5MB.</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="posterImageUrl">Promotional Poster URL</label>
+                <input id="posterImageUrl" name="posterImageUrl" type="url" value="<%= formData.posterImageUrl %>" placeholder="https://...">
+                <label for="posterImageFile" style="margin-top:0.5rem;">or Upload Promotional Poster</label>
+                <input id="posterImageFile" name="posterImageFile" type="file" accept="image/jpeg,image/png">
+                <small class="field-hint">JPG/PNG, max 5MB.</small>
+                <small class="field-hint">If both URL and file are provided, uploaded file will be used.</small>
+                <% if (errors.posterImageUrl) { %><small class="error-text"><%= errors.posterImageUrl %></small><% } %>
+                <% if (formData.posterImageUrl) { %>
+                <div class="branding-preview">
+                  <img id="posterPreview" src="<%= formData.posterImageUrl %>" alt="Poster Preview" style="max-width:100%;max-height:220px;border-radius:8px;margin-top:0.5rem;">
+                </div>
+                <% } %>
+              </div>
+            </div>
+          </div>
+
+          <div class="media-block <%= errors.galleryImageUrls ? 'has-error' : '' %>">
+            <h3>4) Gallery Images (Optional)</h3>
+            <p>Past event photos, route preview, medal preview.</p>
+            <p class="media-used-in"><strong>Used in:</strong> Event details gallery section.</p>
+            <p class="media-rules">Optional. JPG/PNG only, max 5MB each, up to 12 images.</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="galleryImageUrlsText">Gallery Image URLs</label>
+                <textarea id="galleryImageUrlsText" name="galleryImageUrlsText" rows="5" placeholder="One URL per line, or comma-separated"><%= formData.galleryImageUrlsText || '' %></textarea>
+                <label for="galleryImageFiles" style="margin-top:0.5rem;">or Upload Gallery Images</label>
+                <input id="galleryImageFiles" name="galleryImageFiles" type="file" accept="image/jpeg,image/png" multiple>
+                <small class="field-hint">JPG/PNG, max 5MB each, up to 12 images total.</small>
+                <% if (errors.galleryImageUrls) { %><small class="error-text"><%= errors.galleryImageUrls %></small><% } %>
+                <% if (formData.galleryImageUrls && formData.galleryImageUrls.length) { %>
+                <div class="gallery-preview-grid">
+                  <% formData.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
+                    <img src="<%= galleryUrl %>" alt="Gallery Preview <%= galleryIndex + 1 %>" class="gallery-preview-thumb">
+                  <% }) %>
+                </div>
+                <% } %>
+              </div>
             </div>
           </div>
         </div>
@@ -369,10 +437,12 @@
         wrapper.className = 'branding-preview';
         img = document.createElement('img');
         img.id = imgId;
-        img.alt = inputId === 'bannerImageUrl' ? 'Banner Preview' : 'Logo Preview';
-        img.style.maxWidth = inputId === 'bannerImageUrl' ? '100%' : '80px';
-        img.style.maxHeight = inputId === 'bannerImageUrl' ? '120px' : '80px';
-        img.style.borderRadius = inputId === 'bannerImageUrl' ? '6px' : '8px';
+        const isBanner = inputId === 'bannerImageUrl';
+        const isPoster = inputId === 'posterImageUrl';
+        img.alt = isBanner ? 'Banner Preview' : (isPoster ? 'Poster Preview' : 'Logo Preview');
+        img.style.maxWidth = isBanner || isPoster ? '100%' : '80px';
+        img.style.maxHeight = isBanner ? '120px' : (isPoster ? '220px' : '80px');
+        img.style.borderRadius = isBanner ? '6px' : '8px';
         img.style.marginTop = '0.5rem';
         img.style.display = 'none';
         wrapper.appendChild(img);
@@ -390,6 +460,68 @@
     }
     updateBrandingPreview('bannerImageUrl', 'bannerPreview');
     updateBrandingPreview('logoUrl', 'logoPreview');
+    updateBrandingPreview('posterImageUrl', 'posterPreview');
+
+    // Branding file validation
+    const allowedImageTypes = new Set(['image/jpeg', 'image/png']);
+    const maxBrandingSizeBytes = 5 * 1024 * 1024;
+
+    function resetFileInput(input, message) {
+      alert(message);
+      input.value = '';
+    }
+
+    async function handleBrandingFileValidation(input, options = {}) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+
+      if (!allowedImageTypes.has(file.type)) {
+        resetFileInput(input, 'Invalid file type. Only JPG and PNG files are allowed.');
+        return;
+      }
+      if (file.size > maxBrandingSizeBytes) {
+        resetFileInput(input, 'Image exceeds 5MB limit.');
+        return;
+      }
+
+      if (options.requireBannerRatio) {
+        // Ratio is a recommendation only; no hard block.
+      }
+    }
+
+    const bannerFileInput = document.getElementById('bannerImageFile');
+    const logoFileInput = document.getElementById('logoFile');
+    const posterFileInput = document.getElementById('posterImageFile');
+    const galleryFilesInput = document.getElementById('galleryImageFiles');
+    if (bannerFileInput) {
+      bannerFileInput.addEventListener('change', () => handleBrandingFileValidation(bannerFileInput, { requireBannerRatio: true }));
+    }
+    if (logoFileInput) {
+      logoFileInput.addEventListener('change', () => handleBrandingFileValidation(logoFileInput));
+    }
+    if (posterFileInput) {
+      posterFileInput.addEventListener('change', () => handleBrandingFileValidation(posterFileInput));
+    }
+    if (galleryFilesInput) {
+      galleryFilesInput.addEventListener('change', () => {
+        const files = Array.from(galleryFilesInput.files || []);
+        if (!files.length) return;
+        if (files.length > 12) {
+          resetFileInput(galleryFilesInput, 'You can upload up to 12 gallery images at a time.');
+          return;
+        }
+        for (const file of files) {
+          if (!allowedImageTypes.has(file.type)) {
+            resetFileInput(galleryFilesInput, 'Invalid gallery file type. Only JPG and PNG files are allowed.');
+            return;
+          }
+          if (file.size > maxBrandingSizeBytes) {
+            resetFileInput(galleryFilesInput, 'One or more gallery images exceed 5MB limit.');
+            return;
+          }
+        }
+      });
+    }
 
     // Waiver preview
     const waiverTemplateInput = document.getElementById('waiverTemplate');
@@ -424,3 +556,4 @@
   </script>
 </body>
 </html>
+

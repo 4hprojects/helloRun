@@ -6,6 +6,102 @@ DOCUMENT ROLE (SOURCE OF TRUTH)
 - Changelog reference: See dir.txt for repository-level change history.
 
 ===========================================
+STATUS UPDATE (Feb 27, 2026 - Organizer Event Record UX + Reference Code)
+===========================================
+
+Current reality after latest implementation:
+
+IN PROGRESS:
+- Phase 3: Event Creation & Management (advanced)
+- Phase 4: Registration System (account flow active; payment-proof still pending)
+- Phase 6: Dashboards (runner data cards active; organizer UX refinements ongoing)
+
+Completed in this cycle:
+- Event creation success flow improved:
+  - organizer is redirected to /organizer/events (My Events) after create/publish
+- User-facing language improved:
+  - organizer UI changed from "slug" wording to "Event URL"
+- Event details audit section redesigned:
+  - "Audit" replaced by "Event Record"
+  - shows friendly Reference Code, organizer name, and public event page path
+  - copy actions added for reference code and event link
+  - raw Event ID / Organizer ID moved under collapsible "Technical details"
+- Persistent reference code implemented:
+  - Event.referenceCode added to schema (unique + immutable)
+  - generated at event creation using:
+    - abbreviation from event title + YYDDMM
+    - collision-safe suffix when needed (-02, -03, ...)
+- Backfill tool added for legacy events:
+  - npm run backfill:event-reference-codes
+
+Still pending from this scope:
+- Run backfill in target environments and verify no duplicate index/data issues
+- Replace fallback reference-code usage after full backfill completion
+- Optional: surface reference code in registrants/export views for support workflows
+
+Manual smoke checklist (latest):
+[ ] Create event redirects to My Events with success banner
+[ ] Newly created event contains referenceCode in MongoDB
+[ ] Backfill script updates old events without referenceCode
+[ ] Event Record copy buttons work on desktop and mobile
+[ ] Technical details collapse/expand behavior is stable
+[ ] "Event URL" wording appears consistently in organizer screens
+
+---
+
+===========================================
+STATUS UPDATE (Feb 26, 2026 - Organizer Branding & Media Upgrade)
+===========================================
+
+Current reality after latest implementation:
+
+IN PROGRESS:
+- Phase 3: Event Creation & Management (advanced; branding/media now functional)
+- Phase 4: Registration System (account flow active; payment-proof still pending)
+- Phase 6: Dashboards (runner data cards + organizer media visibility upgraded)
+
+Completed in this cycle:
+- Organizer Branding & Media panel reorganized per media type:
+  - Event Logo
+  - Event Banner
+  - Promotional Poster
+  - Gallery Images
+- Promotional Poster is now fully functional:
+  - URL input + file upload
+  - saved to MongoDB and uploaded to Cloudflare R2
+  - visible in organizer/public event detail views
+- Gallery Images are now fully functional:
+  - URL list + multiple file upload
+  - saved to MongoDB and uploaded to Cloudflare R2
+  - visible in organizer/public event detail views
+- Edit-event media management unified:
+  - preview + contextual remove actions for logo/banner/poster/gallery
+  - gallery supports single-image remove and remove-all
+- Immediate persistence on media remove:
+  - clicking remove now calls backend API immediately
+  - MongoDB updates immediately
+  - Cloudflare delete attempted immediately
+- Banner ratio policy relaxed:
+  - no strict blocking; 3:1 is recommendation only
+- Upload error mapping improved:
+  - 400 errors now show under the correct media field
+
+Still pending from this scope:
+- E2E test pass for all media actions on mobile + desktop
+- Guardrails for partial Cloudflare delete failures (orphan cleanup job)
+
+Manual smoke checklist (latest):
+[ ] Create event saves logo/banner/poster/gallery correctly
+[ ] Edit page remove X works immediately for logo/banner/poster
+[ ] Gallery single-remove and remove-all work immediately
+[ ] Removed media no longer appears after page refresh
+[ ] MongoDB media fields match post-remove state
+[ ] Public event details render poster/gallery correctly
+[ ] Mobile form interactions are stable on Chrome Android
+
+---
+
+===========================================
 STATUS UPDATE (Feb 26, 2026 - Runner Dashboard Data + Refactor)
 ===========================================
 
