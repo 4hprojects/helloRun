@@ -1,18 +1,198 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: 'Blog - helloRun' }) %>
+  <%- include('../layouts/head', { title: title || 'Blog - helloRun', seo: seo }) %>
+  <link rel="stylesheet" href="/css/blog.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  <main style="padding: 2rem; text-align: center; min-height: 60vh; display: flex; align-items: center; justify-content: center;">
-    <div>
-      <h1>Blog 📝</h1>
-      <p>Coming soon — tips, stories, and race recaps.</p>
-    </div>
+  
+  <!-- Back to top button -->
+  <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Back to top">↑</button>
+
+  <main class="blog-page-shell">
+    <!-- Compact Header -->
+    <section class="blog-header-compact">
+      <div class="container">
+        <div class="header-top-row">
+          <div class="header-titles">
+            <h1>Blog</h1>
+            <p class="header-description">Running stories, tips, and race recaps from the helloRun community.</p>
+          </div>
+          <div class="header-actions">
+            <% if (locals.isAuthenticated) { %>
+              <a href="/blogs/me/dashboard" class="btn btn-primary dashboard-btn">
+                <i data-lucide="layout-dashboard"></i>
+                <span class="btn-text">My Blogs</span>
+              </a>
+            <% } %>
+            <a href="/blogs/me/new" class="btn btn-primary write-btn">
+              <i data-lucide="pen-square"></i>
+              <span class="btn-text">Write</span>
+            </a>
+          </div>
+        </div>
+
+        <form method="GET" action="/blog" class="filter-form-compact" id="blogFilterForm">
+          <div class="filter-group">
+            <i data-lucide="search" class="filter-icon"></i>
+            <input type="search" name="q" placeholder="Search posts" value="<%= filters?.q || '' %>" aria-label="Search">
+          </div>
+          <div class="filter-group">
+            <i data-lucide="folder" class="filter-icon"></i>
+            <select name="category" aria-label="Category">
+              <option value="">All Categories</option>
+              <% (categories || []).forEach((category) => { %>
+                <option value="<%= category %>" <%= filters?.category === category ? 'selected' : '' %>><%= category %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="filter-group">
+            <i data-lucide="arrow-up-down" class="filter-icon"></i>
+            <select name="sort" aria-label="Sort by">
+              <option value="latest" <%= (filters?.sort || 'latest') === 'latest' ? 'selected' : '' %>>Latest</option>
+              <option value="oldest" <%= filters?.sort === 'oldest' ? 'selected' : '' %>>Oldest</option>
+              <option value="popular" <%= filters?.sort === 'popular' ? 'selected' : '' %>>Popular</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary filter-submit">Apply</button>
+        </form>
+        <% if (!locals.isAuthenticated) { %>
+          <small class="login-note-compact">Login required to write. <a href="/login?redirect=/blogs/me/new">Sign in</a></small>
+        <% } %>
+      </div>
+    </section>
+
+    <!-- Main Content -->
+    <section class="blog-content">
+      <div class="container">
+
+        <!-- Posts Grid -->
+        <% if (posts && posts.length) { %>
+          <div class="blog-grid">
+            <% posts.forEach((post, index) => { %>
+              <% const isFeatured = index === 0 && post.featured; // Example condition, adjust as needed %>
+              <article class="blog-card <%= isFeatured ? 'featured' : '' %>">
+                <% if (post.coverImageUrl) { %>
+                  <a href="/blog/<%= post.slug %>" class="blog-image" aria-label="<%= post.title %>">
+                    <img src="<%= post.coverImageUrl %>" alt="" loading="lazy">
+                  </a>
+                <% } %>
+                <div class="blog-body">
+                  <div class="blog-meta">
+                    <span class="blog-category">
+                      <%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %>
+                    </span>
+                    <span class="blog-date">
+                      <i data-lucide="calendar"></i>
+                      <%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' %>
+                    </span>
+                    <span class="blog-read-time">
+                      <i data-lucide="clock"></i>
+                      <%= post.readingTime || 1 %> min read
+                    </span>
+                  </div>
+                  <h3><a href="/blog/<%= post.slug %>"><%= post.title %></a></h3>
+                  <p class="blog-excerpt"><%= post.excerpt || 'No excerpt provided.' %></p>
+                  <div class="blog-footer">
+                    <span class="blog-author">
+                      By <strong><%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %></strong>
+                    </span>
+                    <a href="/blog/<%= post.slug %>" class="read-more">
+                      Read more <i data-lucide="arrow-right"></i>
+                    </a>
+                  </div>
+                </div>
+              </article>
+            <% }) %>
+          </div>
+
+          <!-- Pagination -->
+          <% if (pagination && pagination.totalPages > 1) { %>
+            <nav class="blog-pagination" aria-label="Pagination">
+              <% const prevPage = Math.max(1, pagination.currentPage - 1); %>
+              <% const nextPage = Math.min(pagination.totalPages, pagination.currentPage + 1); %>
+              <% const baseUrl = `/blog?${new URLSearchParams({ q: filters?.q || '', category: filters?.category || '', sort: filters?.sort || 'latest' }).toString()}`; %>
+
+              <a href="<%= baseUrl %>&page=<%= prevPage %>" class="pagination-btn <%= pagination.currentPage === 1 ? 'disabled' : '' %>" aria-label="Previous page" <%= pagination.currentPage === 1 ? 'aria-disabled="true" tabindex="-1"' : '' %>>
+                <i data-lucide="chevron-left"></i>
+                <span class="sr-only">Previous</span>
+              </a>
+
+              <div class="pagination-pages">
+                <% for (let i = 1; i <= pagination.totalPages; i++) { %>
+                  <% if (i === 1 || i === pagination.totalPages || (i >= pagination.currentPage - 2 && i <= pagination.currentPage + 2)) { %>
+                    <a href="<%= baseUrl %>&page=<%= i %>" class="pagination-page <%= i === pagination.currentPage ? 'active' : '' %>" aria-label="Page <%= i %>" <%= i === pagination.currentPage ? 'aria-current="page"' : '' %>>
+                      <%= i %>
+                    </a>
+                  <% } else if (i === pagination.currentPage - 3 || i === pagination.currentPage + 3) { %>
+                    <span class="pagination-ellipsis">…</span>
+                  <% } %>
+                <% } %>
+              </div>
+
+              <a href="<%= baseUrl %>&page=<%= nextPage %>" class="pagination-btn <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>" aria-label="Next page" <%= pagination.currentPage === pagination.totalPages ? 'aria-disabled="true" tabindex="-1"' : '' %>>
+                <i data-lucide="chevron-right"></i>
+                <span class="sr-only">Next</span>
+              </a>
+            </nav>
+          <% } %>
+        <% } else { %>
+          <div class="blog-empty">
+            <i data-lucide="file-text" class="empty-icon"></i>
+            <p>No published blog posts yet.</p>
+            <% if (locals.isAuthenticated) { %>
+              <a href="/blogs/me/new" class="btn btn-primary">Write the first post</a>
+            <% } else { %>
+              <a href="/auth/signin?redirect=/blog" class="btn btn-primary">Sign in to write</a>
+            <% } %>
+          </div>
+        <% } %>
+      </div>
+    </section>
+
+    <!-- Newsletter Section -->
+    <section class="blog-newsletter" aria-labelledby="newsletter-heading">
+      <div class="container">
+        <div class="newsletter-content">
+          <h2 id="newsletter-heading">Stay in the loop</h2>
+          <p>Get the latest running tips and stories delivered to your inbox.</p>
+          <form class="newsletter-form" action="/newsletter/subscribe" method="POST">
+            <div class="newsletter-input-group">
+              <i data-lucide="mail" class="input-icon"></i>
+              <input type="email" name="email" placeholder="Enter your email" required aria-label="Email address">
+            </div>
+            <button type="submit" class="btn btn-primary">Subscribe</button>
+          </form>
+        </div>
+      </div>
+    </section>
   </main>
+
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if(window.lucide) lucide.createIcons();</script>
+  <script>
+    (function initBlogListing() {
+      // Back to top button
+      const backToTopBtn = document.getElementById('backToTopBtn');
+      if (backToTopBtn) {
+        const toggleBackToTop = () => {
+          if (window.scrollY > 300) {
+            backToTopBtn.classList.add('visible');
+          } else {
+            backToTopBtn.classList.remove('visible');
+          }
+        };
+        window.addEventListener('scroll', toggleBackToTop);
+        backToTopBtn.addEventListener('click', () => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        toggleBackToTop();
+      }
+
+      // Lucide icons
+      if (window.lucide) lucide.createIcons();
+    })();
+  </script>
 </body>
 </html>

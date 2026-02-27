@@ -6,6 +6,127 @@ DOCUMENT ROLE (REPOSITORY TRACKER)
 - Planning source: See wireframe.txt for roadmap, backlog, and detailed tasks.
 
 ================================================================================
+CHANGELOG - February 27, 2026 (Session: Blog Admin Edit + Autosave + Revision History)
+================================================================================
+
+[SESSION] SESSION UPDATE:
+- Implemented admin inline editing on blog review page with debounced autosave and revision tracking.
+
+[NEW] NEW FILES:
+  1. src/models/BlogRevision.js
+
+[UPDATED] UPDATED FILES (major):
+  1. src/routes/admin.routes.js
+     - Added admin autosave endpoint:
+       - PATCH /admin/blog/posts/:id/autosave
+     - Added dedicated autosave rate limiter guard
+
+  2. src/controllers/blog.controller.js
+     - Added autosaveBlogPostAdmin handler
+     - Added partial-payload normalization for admin autosave
+     - Added status transition consistency handling during autosave
+     - Added revision logging (before/after + changedFields)
+     - Added renderAdminReviewPage revision loading for history panel
+
+  3. src/views/admin/blog-review.ejs
+     - Added full admin editable panel for post fields
+     - Added debounced autosave client flow + save state badges
+     - Added unsaved-change guard on page unload
+     - Added moderation action panel UX refinements
+     - Added dynamic moderation action visibility by selected status
+     - Added Change History panel with expandable before/after details
+
+KEY BEHAVIOR CHANGES:
+  - Admin can edit blog content/metadata directly from review page.
+  - Edits autosave to backend without manual submit.
+  - Each meaningful autosave now creates a BlogRevision record.
+  - Review page now shows recent revision history (editor, time, changed fields, before/after).
+
+MANUAL SMOKE CHECKLIST (Latest):
+  [ ] Admin review page autosaves after typing pause (~900ms)
+  [ ] Autosave status transitions: Unsaved -> Saving -> Saved
+  [ ] Validation errors show autosave failure state
+  [ ] Status change via autosave updates moderation action visibility correctly
+  [ ] BlogRevision records are created only when fields actually change
+  [ ] Change History panel renders recent revision entries correctly
+
+================================================================================
+CHANGELOG - February 27, 2026 (Session: Blog Phase A Build - Tasks 1 to 10)
+================================================================================
+
+[SESSION] SESSION UPDATE:
+- Implemented Blog Phase A foundation end-to-end:
+  data model, author flow, admin moderation flow, public read pages, cover upload,
+  SEO metadata support, security guardrails, and view-count policy.
+
+[NEW] NEW FILES:
+  1. src/models/Blog.js
+  2. src/models/BlogView.js
+  3. src/routes/blog.routes.js
+  4. src/controllers/blog.controller.js
+  5. src/services/blog-view.service.js
+  6. src/utils/blog.js
+  7. src/utils/sanitize.js
+  8. src/middleware/rate-limit.middleware.js
+  9. src/public/css/blog-pages.css
+ 10. src/views/blog/author-dashboard.ejs
+ 11. src/views/blog/author-form.ejs
+ 12. src/views/admin/blog-queue.ejs
+ 13. src/views/admin/blog-review.ejs
+ 14. src/views/pages/blog-post.ejs
+
+[UPDATED] UPDATED FILES (major):
+  1. src/routes/pageRoutes.js
+     - /blog now uses dynamic controller listing
+     - added /blog/:slug detail route
+
+  2. src/controllers/page.controller.js
+     - added published blog list/detail handlers
+     - added filter/sort/pagination support
+     - added SEO payload generation (canonical/meta/OG/Twitter)
+     - added 24-hour view tracking hook (user/IP based)
+     - excludes admin and author self-views from count
+
+  3. src/views/pages/blog.ejs
+     - replaced static "coming soon" page with real listing UI
+
+  4. src/views/layouts/head.ejs
+     - now supports optional SEO fields:
+       description, canonical, Open Graph, Twitter card tags
+
+  5. src/routes/admin.routes.js
+     - added admin blog moderation page routes
+     - added admin moderation API routes
+     - added moderation rate limiter guard
+
+  6. src/routes/blog.routes.js
+     - added author dashboard/form routes
+     - kept JSON endpoints for API use
+     - added write/submit rate limiter guards
+     - wired cover upload middleware
+
+  7. src/services/upload.service.js
+     - added blog cover upload middleware and R2 upload helper
+
+KEY BEHAVIOR CHANGES:
+  - Authors can create/edit draft posts, submit for review, and delete draft/rejected posts.
+  - Admin can review queue, approve/reject with reason, and archive published posts.
+  - Public users can browse published posts via /blog and read /blog/:slug pages.
+  - Blog views now follow 24-hour dedupe policy:
+    - logged-in user: max 1 counted view per post per 24h
+    - anonymous: max 1 counted view per IP per post per 24h
+  - Public blog pages now emit canonical + social metadata for SEO sharing.
+
+MANUAL SMOKE CHECKLIST (Latest):
+  [ ] Author create/edit/submit/delete flows work via UI pages
+  [ ] Admin queue/review approve-reject-archive flows work via UI pages
+  [ ] /blog listing filters/sort/pagination work with real data
+  [ ] /blog/:slug increments views once per 24h policy
+  [ ] Admin and author self-view do not increment public view counter
+  [ ] Cover upload (JPG/PNG <= 5MB) works and old cover cleanup executes
+  [ ] SEO tags render correctly in page source for blog list/detail
+
+================================================================================
 CHANGELOG - February 27, 2026 (Session: Organizer UX + Event Reference Code Persistence)
 ================================================================================
 

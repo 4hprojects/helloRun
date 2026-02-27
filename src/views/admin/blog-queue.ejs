@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Blog Moderation - helloRun Admin' }) %>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main style="padding: 2rem; max-width: 1100px; margin: 0 auto;">
+    <header style="display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1rem;">
+      <div>
+        <h1 style="margin-bottom: 0.25rem;">Blog Moderation Queue</h1>
+        <p style="margin: 0; color: #64748b;">Review pending posts and manage published/archived content.</p>
+      </div>
+      <a href="/admin/dashboard" class="btn btn-secondary">Back to Admin Dashboard</a>
+    </header>
+
+    <% if (message) { %>
+      <div style="margin-bottom: 0.8rem; padding: 0.7rem; border-radius: 8px; font-weight: 600; border: 1px solid <%= message.type === 'error' ? '#fecaca' : '#86efac' %>; background: <%= message.type === 'error' ? '#fee2e2' : '#dcfce7' %>; color: <%= message.type === 'error' ? '#991b1b' : '#166534' %>;">
+        <%= message.text %>
+      </div>
+    <% } %>
+
+    <form method="GET" action="/admin/blog/review" style="display: grid; grid-template-columns: 1fr 180px auto; gap: 0.5rem; margin-bottom: 1rem;">
+      <input type="search" name="q" value="<%= searchQuery || '' %>" placeholder="Title, slug, category" style="padding: 0.55rem;">
+      <select name="status" style="padding: 0.55rem;">
+        <option value="pending" <%= selectedStatus === 'pending' ? 'selected' : '' %>>Pending</option>
+        <option value="published" <%= selectedStatus === 'published' ? 'selected' : '' %>>Published</option>
+        <option value="rejected" <%= selectedStatus === 'rejected' ? 'selected' : '' %>>Rejected</option>
+        <option value="archived" <%= selectedStatus === 'archived' ? 'selected' : '' %>>Archived</option>
+        <option value="draft" <%= selectedStatus === 'draft' ? 'selected' : '' %>>Draft</option>
+      </select>
+      <button type="submit" class="btn">Apply</button>
+    </form>
+
+    <% if (posts && posts.length) { %>
+      <div style="display: grid; grid-template-columns: 1fr; gap: 0.65rem;">
+        <% posts.forEach((post) => { %>
+          <article style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.8rem;">
+            <div style="display: flex; justify-content: space-between; align-items: start; gap: 0.65rem; flex-wrap: wrap;">
+              <div>
+                <h3 style="margin: 0 0 0.3rem;"><%= post.title %></h3>
+                <p style="margin: 0; color: #64748b; font-size: 0.9rem;">
+                  <%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %> | /blog/<%= post.slug %> | <%= post.readingTime || 1 %> min read
+                </p>
+                <p style="margin: 0.25rem 0 0; color: #64748b; font-size: 0.85rem;">
+                  Author: <%= post.authorId?.firstName || '' %> <%= post.authorId?.lastName || '' %> (<%= post.authorId?.email || 'N/A' %>)
+                </p>
+              </div>
+              <span style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 999px; background: #f1f5f9; color: #334155;"><%= post.status %></span>
+            </div>
+            <% if (post.status === 'rejected' && post.rejectionReason) { %>
+              <p style="margin: 0.5rem 0 0; color: #991b1b;"><strong>Reason:</strong> <%= post.rejectionReason %></p>
+            <% } %>
+            <div style="margin-top: 0.65rem;">
+              <a href="/admin/blog/posts/<%= post._id %>/review" class="btn btn-secondary btn-sm">Review Post</a>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div style="padding: 1.2rem; border: 1px dashed #cbd5e1; border-radius: 10px; text-align: center; color: #64748b;">
+        No posts found for this filter.
+      </div>
+    <% } %>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if(window.lucide) lucide.createIcons();</script>
+</body>
+</html>

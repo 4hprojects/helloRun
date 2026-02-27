@@ -6,6 +6,79 @@ DOCUMENT ROLE (SOURCE OF TRUTH)
 - Changelog reference: See dir.txt for repository-level change history.
 
 ===========================================
+STATUS UPDATE (Feb 27, 2026 - Blog Admin Edit Hardening)
+===========================================
+
+Current reality after latest implementation:
+
+COMPLETED in this cycle:
+- Admin review page now supports inline editing of blog fields.
+- Debounced admin autosave endpoint is active:
+  - PATCH /admin/blog/posts/:id/autosave
+- Revision/audit tracking added:
+  - BlogRevision model
+  - before/after + changedFields per meaningful autosave
+- Review page now includes Change History panel with revision details.
+- Moderation UI now adapts to selected status while editing.
+
+Still pending from this scope:
+- End-to-end and regression test pass (manual + automated) for autosave + moderation interaction.
+- Optional UX iteration for history readability on very large content diffs.
+
+===========================================
+STATUS UPDATE (Feb 27, 2026 - Blog Phase A Tasks 1 to 10)
+===========================================
+
+Current reality after latest implementation:
+
+IN PROGRESS:
+- Phase 3: Event Creation & Management (advanced)
+- Phase 4: Registration System (payment proof flow still pending)
+- Phase 7: Blog System (Phase A backend + UI now functional)
+
+Completed in this cycle:
+- Task 1: Blog data foundation
+  - Blog model with statuses, categories, moderation fields, SEO fields, indexes
+- Task 2: Author backend
+  - create/edit draft, submit for review, delete own draft/rejected, list own posts
+- Task 3: Admin moderation backend
+  - pending queue, preview, approve, reject (reason required), archive
+- Task 4: Public read backend
+  - /blog list + /blog/:slug published-only detail
+- Task 5: Cover upload integration
+  - JPG/PNG upload path wired to Cloudflare R2 with replacement cleanup
+- Task 6: Author UI
+  - My Blogs dashboard + create/edit form + submit/delete actions
+- Task 7: Admin UI
+  - Blog queue page + review page + approve/reject/archive forms
+- Task 8: Public UI + SEO
+  - blog list/detail templates + dedicated CSS + canonical/meta/OG/Twitter support
+- Task 9: Security/validation pass
+  - server-side content sanitization
+  - URL validation hardening
+  - rate limits for author/admin write actions
+- Task 10: View policy
+  - implemented 24-hour view dedupe:
+    - logged-in user: 1 view/post/24h
+    - anonymous IP: 1 view/post/24h
+  - excludes admin and author self-views from count
+
+Still pending from this scope:
+- E2E testing pass for all blog flows (author/admin/public)
+- Final UX polish pass (spacing/typography consistency, empty states, badges)
+- Optional: migrate any existing placeholder content to blog model documents
+- Optional: add sitemap integration for published blog posts (if not yet automatic)
+
+Manual smoke checklist (latest):
+[ ] Author dashboard and form flows are stable on desktop/mobile
+[ ] Admin queue/review moderation actions are stable and state-safe
+[ ] Public /blog and /blog/:slug render correctly with SEO tags
+[ ] View count policy matches 24-hour dedupe expectations
+[ ] Cover upload/replacement/deletion behavior is correct in R2 + MongoDB
+
+---
+
+===========================================
 STATUS UPDATE (Feb 27, 2026 - Organizer Event Record UX + Reference Code)
 ===========================================
 
@@ -388,7 +461,10 @@ Phase 6: Dashboards & Analytics [ANALYTICS] IN PROGRESS (runner module foundatio
 Phase 7: Additional Pages & Features [FEATURES] PENDING
 
 [PENDING] Static pages (/about, /how-it-works, /contact, /faq, /privacy, /terms)
-[PENDING] Blog system (model, CRUD, categories, SEO)
+[IN_PROGRESS] Blog system:
+  [DONE] Phase A foundation (author/admin/public pages, moderation, SEO, view policy)
+  [DONE] Admin inline edit + autosave + revision history
+  [PENDING] comments/likes and advanced growth features
 [PENDING] Search & filters
 [PENDING] Notifications system
 
@@ -697,6 +773,13 @@ PRE-DEPLOYMENT REQUIREMENTS:
 ===========================================
 BLOG SYSTEM PLAN (Phase 7B - Future)
 ===========================================
+
+IMPLEMENTED (current baseline):
+[DONE] Blog model and status workflow
+[DONE] Author dashboard + create/edit/submit flow
+[DONE] Admin queue/review + approve/reject/archive
+[DONE] Public /blog and /blog/:slug
+[DONE] Admin autosave edit endpoint and revision history tracking
 
 BlogPost Model:
 [PENDING] postId, slug, title, excerpt, content, featuredImage

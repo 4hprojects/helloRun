@@ -58,6 +58,7 @@ const { populateAuthLocals } = require('./middleware/auth.middleware');
 const authRoutes = require('./routes/authRoutes');
 const pageRoutes = require('./routes/pageRoutes');
 const runnerRoutes = require('./routes/runner.routes');
+const blogRoutes = require('./routes/blog.routes');
 const organizerRoutes = require('./routes/organizer.routes');
 const adminRoutes = require('./routes/admin.routes');
 
@@ -67,6 +68,7 @@ app.use(populateAuthLocals);
 app.use('/', authRoutes);
 app.use('/', pageRoutes);
 app.use('/', runnerRoutes);
+app.use('/', blogRoutes);
 app.use('/organizer', organizerRoutes);
 app.use('/admin', adminRoutes);
 

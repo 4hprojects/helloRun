@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'My Blogs - helloRun' }) %>
+  <style>
+    .dash-shell { padding: 2rem; max-width: 1080px; margin: 0 auto; }
+    .dash-header { display:flex; justify-content:space-between; align-items:center; gap:.75rem; flex-wrap:wrap; margin-bottom:1rem; }
+    .dash-header p { margin:0; color:#64748b; }
+    .dash-btn { display:inline-flex; align-items:center; justify-content:center; gap:.35rem; min-height:38px; padding:.5rem .85rem; border-radius:10px; border:1px solid transparent; text-decoration:none; font-weight:600; }
+    .dash-btn-primary { background:#2563eb; border-color:#1d4ed8; color:#fff; }
+    .dash-btn-primary:hover { background:#1d4ed8; }
+    .dash-btn-secondary { background:#f8fafc; border-color:#cbd5e1; color:#334155; }
+    .dash-btn-secondary:hover { background:#f1f5f9; }
+    .dash-btn-danger { background:#fff1f2; border-color:#fecdd3; color:#9f1239; }
+    .dash-btn-danger:hover { background:#ffe4e6; }
+    .dash-btn-sm { min-height:34px; padding:.4rem .7rem; font-size:.88rem; }
+    .dash-filter { display:flex; align-items:center; gap:.5rem; margin-bottom:.9rem; flex-wrap:wrap; }
+    .dash-filter select { padding:.45rem .55rem; border-radius:8px; border:1px solid #cbd5e1; }
+    .dash-grid { display:grid; grid-template-columns:1fr; gap:.6rem; }
+    .dash-card { border:1px solid #e2e8f0; border-radius:10px; padding:.8rem; background:#fff; }
+    .dash-card-top { display:flex; justify-content:space-between; gap:.65rem; flex-wrap:wrap; }
+    .dash-card h3 { margin:0 0 .35rem; }
+    .dash-slug { margin:0; color:#64748b; font-size:.9rem; }
+    .dash-status { align-self:start; text-transform:uppercase; font-size:.75rem; font-weight:700; padding:.2rem .5rem; border-radius:999px; background:#f1f5f9; color:#334155; }
+    .dash-actions { display:flex; gap:.45rem; flex-wrap:wrap; margin-top:.65rem; }
+    .dash-empty { padding:1.2rem; border:1px dashed #cbd5e1; border-radius:10px; text-align:center; color:#64748b; }
+  </style>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="dash-shell">
+    <header class="dash-header">
+      <div>
+        <h1 style="margin-bottom: 0.3rem;">My Blogs</h1>
+        <p>Create, update, and submit your running blog posts for review.</p>
+      </div>
+      <a href="/blogs/me/new" class="dash-btn dash-btn-primary">Write New Post</a>
+    </header>
+
+    <% if (message) { %>
+      <div style="margin-bottom: 0.8rem; padding: 0.7rem; border-radius: 8px; font-weight: 600; border: 1px solid <%= message.type === 'error' ? '#fecaca' : '#86efac' %>; background: <%= message.type === 'error' ? '#fee2e2' : '#dcfce7' %>; color: <%= message.type === 'error' ? '#991b1b' : '#166534' %>;">
+        <%= message.text %>
+      </div>
+    <% } %>
+
+    <form method="GET" action="/blogs/me/dashboard" class="dash-filter">
+      <label for="status" style="font-weight: 600;">Status</label>
+      <select id="status" name="status">
+        <option value="" <%= !selectedStatus ? 'selected' : '' %>>All</option>
+        <option value="draft" <%= selectedStatus === 'draft' ? 'selected' : '' %>>Draft</option>
+        <option value="pending" <%= selectedStatus === 'pending' ? 'selected' : '' %>>Pending</option>
+        <option value="published" <%= selectedStatus === 'published' ? 'selected' : '' %>>Published</option>
+        <option value="rejected" <%= selectedStatus === 'rejected' ? 'selected' : '' %>>Rejected</option>
+        <option value="archived" <%= selectedStatus === 'archived' ? 'selected' : '' %>>Archived</option>
+      </select>
+      <button type="submit" class="dash-btn dash-btn-secondary dash-btn-sm">Apply</button>
+      <a href="/blogs/me/dashboard" class="dash-btn dash-btn-secondary dash-btn-sm">Reset</a>
+    </form>
+
+    <% if (posts && posts.length) { %>
+      <div class="dash-grid">
+        <% posts.forEach((post) => { %>
+          <article class="dash-card">
+            <div class="dash-card-top">
+              <div>
+                <h3><%= post.title %></h3>
+                <p class="dash-slug"><%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %> | /blog/<%= post.slug %></p>
+              </div>
+              <span class="dash-status"><%= post.status %></span>
+            </div>
+
+            <% if (post.status === 'rejected' && post.rejectionReason) { %>
+              <p style="margin: 0.55rem 0 0; color: #991b1b;"><strong>Rejection reason:</strong> <%= post.rejectionReason %></p>
+            <% } %>
+
+            <p style="margin: 0.55rem 0 0; color: #64748b; font-size: 0.85rem;">
+              Updated: <%= post.updatedAt ? new Date(post.updatedAt).toLocaleString('en-US') : 'N/A' %>
+            </p>
+
+            <div class="dash-actions">
+              <% if (post.status === 'draft' || post.status === 'pending' || post.status === 'rejected') { %>
+                <a href="/blogs/me/<%= post._id %>/edit" class="dash-btn dash-btn-secondary dash-btn-sm">Edit</a>
+              <% } %>
+              <% if (post.status === 'draft' || post.status === 'rejected') { %>
+                <form method="POST" action="/blogs/me/<%= post._id %>/submit-form" style="display: inline;">
+                  <button type="submit" class="dash-btn dash-btn-primary dash-btn-sm">Submit for Review</button>
+                </form>
+                <form method="POST" action="/blogs/me/<%= post._id %>/delete-form" style="display: inline;" onsubmit="return confirm('Delete this post?');">
+                  <button type="submit" class="dash-btn dash-btn-danger dash-btn-sm">Delete</button>
+                </form>
+              <% } %>
+              <% if (post.status === 'published') { %>
+                <a href="/blog/<%= post.slug %>" class="dash-btn dash-btn-secondary dash-btn-sm" target="_blank" rel="noopener noreferrer">View Public Post</a>
+              <% } %>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div class="dash-empty">
+        No blog posts found.
+      </div>
+    <% } %>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if(window.lucide) lucide.createIcons();</script>
+</body>
+</html>

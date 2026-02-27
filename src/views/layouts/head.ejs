@@ -1,6 +1,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title><%= title || 'helloRun - Virtual Running Events' %></title>
+<% if (typeof seo !== 'undefined' && seo && seo.description) { %>
+  <meta name="description" content="<%= seo.description %>">
+<% } %>
+<% if (typeof seo !== 'undefined' && seo && seo.canonicalUrl) { %>
+  <link rel="canonical" href="<%= seo.canonicalUrl %>">
+<% } %>
+<% if (typeof seo !== 'undefined' && seo && (seo.ogTitle || title)) { %>
+  <meta property="og:type" content="<%= seo.ogType || 'website' %>">
+  <meta property="og:title" content="<%= seo.ogTitle || title %>">
+  <% if (seo.description) { %><meta property="og:description" content="<%= seo.description %>"><% } %>
+  <% if (seo.canonicalUrl) { %><meta property="og:url" content="<%= seo.canonicalUrl %>"><% } %>
+  <% if (seo.ogImage) { %><meta property="og:image" content="<%= seo.ogImage %>"><% } %>
+<% } %>
+<% if (typeof seo !== 'undefined' && seo && (seo.twitterTitle || title)) { %>
+  <meta name="twitter:card" content="<%= seo.twitterCard || 'summary_large_image' %>">
+  <meta name="twitter:title" content="<%= seo.twitterTitle || seo.ogTitle || title %>">
+  <% if (seo.description) { %><meta name="twitter:description" content="<%= seo.description %>"><% } %>
+  <% if (seo.ogImage) { %><meta name="twitter:image" content="<%= seo.ogImage %>"><% } %>
+<% } %>
 <meta name="google-adsense-account" content="ca-pub-4537208011192461">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

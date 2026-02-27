@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Review Blog - helloRun Admin' }) %>
+  <style>
+    .moderation-panel {
+      margin-top: 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #f8fafc;
+      padding: 0.85rem 0.9rem;
+    }
+
+    .moderation-panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.45rem;
+      flex-wrap: wrap;
+    }
+
+    .moderation-panel h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .moderation-panel-note {
+      margin: 0 0 0.75rem;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 0.2rem 0.55rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      border: 1px solid transparent;
+    }
+
+    .status-pending {
+      background: #fff7ed;
+      color: #9a3412;
+      border-color: #fed7aa;
+    }
+
+    .status-published {
+      background: #ecfdf5;
+      color: #166534;
+      border-color: #86efac;
+    }
+
+    .status-other {
+      background: #f1f5f9;
+      color: #334155;
+      border-color: #cbd5e1;
+    }
+
+    .moderation-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    .mod-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #fff;
+      padding: 0.75rem;
+    }
+
+    .mod-card h4 {
+      margin: 0 0 0.35rem;
+      font-size: 0.95rem;
+    }
+
+    .mod-card p {
+      margin: 0 0 0.65rem;
+      color: #64748b;
+      font-size: 0.86rem;
+    }
+
+    .mod-card-danger {
+      border-color: #fecdd3;
+      background: #fffafb;
+    }
+
+    .moderation-reject-form {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .moderation-reject-label {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: #334155;
+    }
+
+    .moderation-reason-input {
+      width: 100%;
+      min-height: 96px;
+      resize: vertical;
+      padding: 0.55rem 0.6rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font: inherit;
+      line-height: 1.4;
+    }
+
+    .moderation-reason-input:focus {
+      outline: 2px solid #93c5fd;
+      outline-offset: 1px;
+      border-color: #60a5fa;
+    }
+
+    .moderation-field-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+
+    .moderation-hint-invalid {
+      color: #b91c1c;
+      font-weight: 600;
+    }
+
+    .mod-btn {
+      min-height: 38px;
+      padding: 0.48rem 0.8rem;
+      border-radius: 9px;
+      border: 1px solid transparent;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .mod-btn-approve {
+      background: #16a34a;
+      border-color: #15803d;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(22, 163, 74, 0.18);
+    }
+
+    .mod-btn-approve:hover {
+      background: #15803d;
+    }
+
+    .mod-btn-reject {
+      background: #fff1f2;
+      border-color: #fecdd3;
+      color: #9f1239;
+    }
+
+    .mod-btn-reject:hover {
+      background: #ffe4e6;
+    }
+
+    .mod-btn-archive {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #334155;
+    }
+
+    .mod-btn-archive:hover {
+      background: #f1f5f9;
+    }
+
+    .mod-back-btn {
+      min-height: 38px;
+      padding: 0.48rem 0.8rem;
+      border-radius: 9px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #334155;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .mod-back-btn::before {
+      content: "<";
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .mod-back-btn:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+
+    .admin-edit-grid {
+      display: grid;
+      gap: 0.8rem;
+      margin-top: 0.9rem;
+      padding: 0.85rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #f8fafc;
+    }
+
+    .admin-edit-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+    }
+
+    .admin-edit-title {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .autosave-status {
+      border-radius: 999px;
+      padding: 0.22rem 0.58rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+
+    .autosave-status[data-state="idle"] { background: #f1f5f9; border-color: #cbd5e1; color: #334155; }
+    .autosave-status[data-state="dirty"] { background: #fff7ed; border-color: #fed7aa; color: #9a3412; }
+    .autosave-status[data-state="saving"] { background: #eff6ff; border-color: #bfdbfe; color: #1d4ed8; }
+    .autosave-status[data-state="saved"] { background: #ecfdf5; border-color: #86efac; color: #166534; }
+    .autosave-status[data-state="error"] { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+
+    .admin-edit-fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.75rem;
+    }
+
+    .admin-field {
+      display: grid;
+      gap: 0.32rem;
+    }
+
+    .admin-field label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #334155;
+    }
+
+    .admin-field input,
+    .admin-field select,
+    .admin-field textarea {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0.52rem 0.62rem;
+      font: inherit;
+      background: #fff;
+      color: #0f172a;
+    }
+
+    .admin-field input:focus,
+    .admin-field select:focus,
+    .admin-field textarea:focus {
+      outline: 2px solid #93c5fd;
+      outline-offset: 1px;
+      border-color: #60a5fa;
+    }
+
+    .admin-field textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .admin-field-wide {
+      grid-column: 1 / -1;
+    }
+
+    .admin-field-help {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.76rem;
+    }
+
+    .admin-inline {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+    }
+
+    .admin-changed-fields {
+      margin: 0;
+      color: #334155;
+      font-size: 0.78rem;
+    }
+
+    .history-panel {
+      margin-top: 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      background: #fff;
+      padding: 0.85rem 0.9rem;
+    }
+
+    .history-title {
+      margin: 0 0 0.3rem;
+      font-size: 1rem;
+    }
+
+    .history-note {
+      margin: 0 0 0.8rem;
+      color: #64748b;
+      font-size: 0.86rem;
+    }
+
+    .history-empty {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.86rem;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 0.6rem;
+    }
+
+    .history-item {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 0.65rem 0.7rem;
+    }
+
+    .history-item-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.45rem;
+    }
+
+    .history-meta {
+      margin: 0;
+      color: #334155;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .history-fields {
+      margin: 0;
+      color: #475569;
+      font-size: 0.8rem;
+    }
+
+    .history-details {
+      margin-top: 0.45rem;
+    }
+
+    .history-details summary {
+      cursor: pointer;
+      color: #1d4ed8;
+      font-weight: 600;
+      font-size: 0.8rem;
+      user-select: none;
+    }
+
+    .history-diff {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+      margin-top: 0.5rem;
+    }
+
+    .history-diff-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #fff;
+      padding: 0.45rem 0.5rem;
+      min-width: 0;
+    }
+
+    .history-diff-card h5 {
+      margin: 0 0 0.35rem;
+      font-size: 0.78rem;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .history-diff-card pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.75rem;
+      line-height: 1.35;
+      color: #0f172a;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    @media (max-width: 760px) {
+      .moderation-panel {
+        padding: 0.75rem;
+      }
+
+      .admin-edit-fields {
+        grid-template-columns: 1fr;
+      }
+
+      .moderation-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .history-diff {
+        grid-template-columns: 1fr;
+      }
+
+      .mod-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main style="padding: 2rem; max-width: 980px; margin: 0 auto;">
+    <header style="display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; flex-wrap: wrap; margin-bottom: 1rem;">
+      <div>
+        <h1 style="margin-bottom: 0.25rem;">Review Blog Post</h1>
+        <p style="margin: 0; color: #64748b;">Moderation page for publishing decisions.</p>
+      </div>
+      <a href="/admin/blog/review" class="mod-back-btn">Back to Queue</a>
+    </header>
+
+    <% if (message) { %>
+      <div style="margin-bottom: 0.8rem; padding: 0.7rem; border-radius: 8px; font-weight: 600; border: 1px solid <%= message.type === 'error' ? '#fecaca' : '#86efac' %>; background: <%= message.type === 'error' ? '#fee2e2' : '#dcfce7' %>; color: <%= message.type === 'error' ? '#991b1b' : '#166534' %>;">
+        <%= message.text %>
+      </div>
+    <% } %>
+
+    <article style="border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; overflow: hidden;">
+      <% if (post.coverImageUrl) { %>
+        <img src="<%= post.coverImageUrl %>" alt="<%= post.title %> cover" style="width: 100%; max-height: 320px; object-fit: cover;">
+      <% } %>
+      <div style="padding: 1rem 1.1rem;">
+        <p style="margin: 0.2rem 0 0; color: #64748b;">
+          Author: <%= post.authorId?.firstName || '' %> <%= post.authorId?.lastName || '' %> (<%= post.authorId?.email || 'N/A' %>)
+        </p>
+        <p id="adminPostMeta" style="margin: 0.2rem 0 0; color: #64748b;">
+          <%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %> | <span id="adminPostReadingTime"><%= post.readingTime || 1 %></span> min read | Status: <strong id="adminPostStatus"><%= post.status %></strong> | Slug: <span id="adminPostSlug">/blog/<%= post.slug %></span>
+        </p>
+
+        <% if (post.rejectionReason) { %>
+          <p style="margin-top: 0.6rem; color: #991b1b;"><strong>Previous rejection reason:</strong> <%= post.rejectionReason %></p>
+        <% } %>
+
+        <form id="adminAutosaveForm" class="admin-edit-grid">
+          <div class="admin-edit-head">
+            <h3 class="admin-edit-title">Admin Edit (Auto-save)</h3>
+            <span id="autosaveStatus" class="autosave-status" data-state="idle">No changes</span>
+          </div>
+          <p id="adminChangedFields" class="admin-changed-fields">Changed fields: none</p>
+          <div class="admin-edit-fields">
+            <div class="admin-field admin-field-wide">
+              <label for="adminTitle">Title</label>
+              <input id="adminTitle" name="title" type="text" value="<%- post.title %>" maxlength="150" required>
+            </div>
+            <div class="admin-field admin-field-wide">
+              <label for="adminExcerpt">Excerpt</label>
+              <textarea id="adminExcerpt" name="excerpt" maxlength="320"><%- post.excerpt || '' %></textarea>
+            </div>
+            <div class="admin-field">
+              <label for="adminCategory">Category</label>
+              <select id="adminCategory" name="category" required>
+                <% (categories || []).forEach((category) => { %>
+                  <option value="<%= category %>" <%= post.category === category ? 'selected' : '' %>><%= category %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="admin-field" id="adminCustomCategoryWrap" <%= post.category === 'Other' ? '' : 'style="display:none;"' %>>
+              <label for="adminCustomCategory">Custom Category</label>
+              <input id="adminCustomCategory" name="customCategory" type="text" value="<%- post.customCategory || '' %>" maxlength="80">
+            </div>
+            <div class="admin-field">
+              <label for="adminStatus">Status</label>
+              <select id="adminStatus" name="status">
+                <% (statuses || []).forEach((status) => { %>
+                  <option value="<%= status %>" <%= post.status === status ? 'selected' : '' %>><%= status %></option>
+                <% }) %>
+              </select>
+            </div>
+            <div class="admin-field">
+              <label for="adminTags">Tags (comma separated)</label>
+              <input id="adminTags" name="tags" type="text" value="<%- Array.isArray(post.tags) ? post.tags.join(', ') : '' %>">
+            </div>
+            <div class="admin-field admin-field-wide">
+              <label for="adminCoverImageUrl">Cover Image URL</label>
+              <input id="adminCoverImageUrl" name="coverImageUrl" type="url" value="<%- post.coverImageUrl || '' %>">
+            </div>
+            <div class="admin-field admin-field-wide">
+              <label for="adminContentHtml">Content HTML</label>
+              <textarea id="adminContentHtml" name="contentHtml" style="min-height: 220px;"><%- post.contentHtml || '' %></textarea>
+            </div>
+            <div class="admin-field admin-field-wide">
+              <label for="adminContentRaw">Content Raw / Notes</label>
+              <textarea id="adminContentRaw" name="contentRaw"><%- post.contentRaw || '' %></textarea>
+            </div>
+            <div class="admin-field">
+              <label for="adminSeoTitle">SEO Title</label>
+              <input id="adminSeoTitle" name="seoTitle" type="text" value="<%- post.seoTitle || '' %>" maxlength="160">
+            </div>
+            <div class="admin-field">
+              <label for="adminOgImageUrl">OG Image URL</label>
+              <input id="adminOgImageUrl" name="ogImageUrl" type="url" value="<%- post.ogImageUrl || '' %>" maxlength="2000">
+            </div>
+            <div class="admin-field admin-field-wide">
+              <label for="adminSeoDescription">SEO Description</label>
+              <textarea id="adminSeoDescription" name="seoDescription" maxlength="320"><%- post.seoDescription || '' %></textarea>
+            </div>
+            <div class="admin-field admin-field-wide">
+              <label for="adminModerationNotes">Moderation Notes</label>
+              <textarea id="adminModerationNotes" name="moderationNotes" maxlength="1000"><%- post.moderationNotes || '' %></textarea>
+            </div>
+            <div class="admin-field admin-field-wide">
+              <label class="admin-inline" for="adminFeatured">
+                <input id="adminFeatured" name="featured" type="checkbox" <%= post.featured ? 'checked' : '' %>>
+                Featured post
+              </label>
+              <p class="admin-field-help">Changes are saved automatically after you stop typing.</p>
+            </div>
+          </div>
+        </form>
+
+      </div>
+    </article>
+
+    <section class="moderation-panel" aria-labelledby="moderation-title">
+      <div class="moderation-panel-head">
+        <h3 id="moderation-title">Moderation Decision</h3>
+        <% const statusClass = post.status === 'pending' ? 'status-pending' : (post.status === 'published' ? 'status-published' : 'status-other'); %>
+        <span id="moderationStatusBadge" class="status-badge <%= statusClass %>"><%= post.status %></span>
+      </div>
+      <p class="moderation-panel-note">Choose what to do with this post after review.</p>
+      <div class="moderation-actions">
+        <% if (post.status === 'pending') { %>
+          <section class="mod-card js-pending-actions">
+            <h4>Primary Decision</h4>
+            <p>Publishes this post immediately to the public blog.</p>
+            <form method="POST" action="/admin/blog/posts/<%= post._id %>/approve-form" class="moderation-approve-form">
+              <button type="submit" class="mod-btn mod-btn-approve" data-loading-text="Publishing..." onclick="return confirm('Approve and publish this post?');">Approve & Publish</button>
+            </form>
+          </section>
+          <section class="mod-card mod-card-danger js-pending-actions">
+            <h4>Reject with Feedback</h4>
+            <p>The author will see this feedback and can revise the post.</p>
+            <form method="POST" action="/admin/blog/posts/<%= post._id %>/reject-form" class="moderation-reject-form">
+              <label class="moderation-reject-label" for="rejectionReason">Rejection reason</label>
+              <textarea id="rejectionReason" name="rejectionReason" required minlength="15" maxlength="500" placeholder="Explain what should be fixed before this can be approved." class="moderation-reason-input" data-count-target="rejectionReasonCounter" data-minlength="15"></textarea>
+              <div class="moderation-field-footer">
+                <span id="rejectionReasonHint">Minimum 15 characters required.</span>
+                <span id="rejectionReasonCounter" aria-live="polite">0/500</span>
+              </div>
+              <button type="submit" class="mod-btn mod-btn-reject" data-loading-text="Rejecting..." onclick="return confirm('Reject this post?');">Reject</button>
+            </form>
+          </section>
+        <% } %>
+
+        <% if (post.status === 'published') { %>
+          <section class="mod-card mod-card-danger js-published-actions" style="grid-column: 1 / -1;">
+            <h4>Danger Zone</h4>
+            <p>Archiving removes this post from public listing.</p>
+            <form method="POST" action="/admin/blog/posts/<%= post._id %>/archive-form">
+              <button type="submit" class="mod-btn mod-btn-archive" data-loading-text="Archiving..." onclick="return confirm('Archive this published post?');">Archive</button>
+            </form>
+          </section>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="history-panel" aria-labelledby="history-title">
+      <h3 id="history-title" class="history-title">Change History</h3>
+      <p class="history-note">Tracks admin auto-save edits for this post.</p>
+      <% if (!revisions || revisions.length === 0) { %>
+        <p class="history-empty">No revision records yet.</p>
+      <% } else { %>
+        <div class="history-list">
+          <% revisions.forEach((revision) => { %>
+            <article class="history-item">
+              <div class="history-item-head">
+                <p class="history-meta">
+                  <%= revision.editedBy?.firstName || 'Admin' %> <%= revision.editedBy?.lastName || '' %>
+                  (<%= revision.editedBy?.email || 'unknown' %>) •
+                  <%= new Date(revision.editedAt || revision.createdAt).toLocaleString() %>
+                </p>
+              </div>
+              <p class="history-fields">
+                Changed: <%= (revision.changedFields || []).length ? revision.changedFields.join(', ') : 'none' %>
+              </p>
+              <% if (revision.before && revision.after && (revision.changedFields || []).length) { %>
+                <details class="history-details">
+                  <summary>View details</summary>
+                  <div class="history-diff">
+                    <div class="history-diff-card">
+                      <h5>Before</h5>
+                      <pre><%= JSON.stringify(revision.before, null, 2) %></pre>
+                    </div>
+                    <div class="history-diff-card">
+                      <h5>After</h5>
+                      <pre><%= JSON.stringify(revision.after, null, 2) %></pre>
+                    </div>
+                  </div>
+                </details>
+              <% } %>
+            </article>
+          <% }) %>
+        </div>
+      <% } %>
+    </section>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    (function () {
+      const autosaveForm = document.getElementById("adminAutosaveForm");
+      const autosaveStatus = document.getElementById("autosaveStatus");
+      const changedFieldsLabel = document.getElementById("adminChangedFields");
+      const categorySelect = document.getElementById("adminCategory");
+      const customCategoryWrap = document.getElementById("adminCustomCategoryWrap");
+      const tagsInput = document.getElementById("adminTags");
+      const postSlugEl = document.getElementById("adminPostSlug");
+      const postStatusEl = document.getElementById("adminPostStatus");
+      const postReadingTimeEl = document.getElementById("adminPostReadingTime");
+      const moderationStatusBadge = document.getElementById("moderationStatusBadge");
+      const pendingActionBlocks = document.querySelectorAll(".js-pending-actions");
+      const publishedActionBlocks = document.querySelectorAll(".js-published-actions");
+
+      const setAutosaveState = function (state, message) {
+        if (!autosaveStatus) return;
+        autosaveStatus.dataset.state = state;
+        autosaveStatus.textContent = message;
+      };
+
+      const setChangedFields = function (fields) {
+        if (!changedFieldsLabel) return;
+        if (!Array.isArray(fields) || fields.length === 0) {
+          changedFieldsLabel.textContent = "Changed fields: none";
+          return;
+        }
+        changedFieldsLabel.textContent = "Changed fields: " + fields.join(", ");
+      };
+
+      const syncCustomCategoryVisibility = function () {
+        if (!categorySelect || !customCategoryWrap) return;
+        customCategoryWrap.style.display = categorySelect.value === "Other" ? "" : "none";
+      };
+
+      syncCustomCategoryVisibility();
+      if (categorySelect) {
+        categorySelect.addEventListener("change", syncCustomCategoryVisibility);
+      }
+
+      const syncModerationActions = function (status) {
+        pendingActionBlocks.forEach((block) => {
+          block.style.display = status === "pending" ? "" : "none";
+        });
+        publishedActionBlocks.forEach((block) => {
+          block.style.display = status === "published" ? "" : "none";
+        });
+      };
+
+      const textareas = document.querySelectorAll("textarea[data-count-target]");
+      textareas.forEach((textarea) => {
+        const counterId = textarea.getAttribute("data-count-target");
+        const counter = document.getElementById(counterId);
+        const hint = document.getElementById("rejectionReasonHint");
+        const minlength = Number(textarea.getAttribute("data-minlength") || "0");
+        const updateCounter = function () {
+          const valueLength = textarea.value.trim().length;
+          if (counter) {
+            counter.textContent = valueLength + "/500";
+          }
+          if (hint) {
+            if (valueLength > 0 && valueLength < minlength) {
+              hint.classList.add("moderation-hint-invalid");
+            } else {
+              hint.classList.remove("moderation-hint-invalid");
+            }
+          }
+        };
+        textarea.addEventListener("input", updateCounter);
+        updateCounter();
+      });
+
+      if (autosaveForm) {
+        const autosaveUrl = "/admin/blog/posts/<%= post._id %>/autosave";
+        const statusClassMap = {
+          pending: "status-pending",
+          published: "status-published"
+        };
+        let debounceTimer = null;
+        let inFlight = false;
+        let hasQueuedSave = false;
+
+        const readPayload = function () {
+          return {
+            title: String(document.getElementById("adminTitle")?.value || "").trim(),
+            excerpt: String(document.getElementById("adminExcerpt")?.value || "").trim(),
+            category: String(document.getElementById("adminCategory")?.value || "").trim(),
+            customCategory: String(document.getElementById("adminCustomCategory")?.value || "").trim(),
+            status: String(document.getElementById("adminStatus")?.value || "").trim(),
+            coverImageUrl: String(document.getElementById("adminCoverImageUrl")?.value || "").trim(),
+            contentHtml: String(document.getElementById("adminContentHtml")?.value || ""),
+            contentRaw: String(document.getElementById("adminContentRaw")?.value || ""),
+            seoTitle: String(document.getElementById("adminSeoTitle")?.value || "").trim(),
+            seoDescription: String(document.getElementById("adminSeoDescription")?.value || "").trim(),
+            ogImageUrl: String(document.getElementById("adminOgImageUrl")?.value || "").trim(),
+            moderationNotes: String(document.getElementById("adminModerationNotes")?.value || "").trim(),
+            featured: Boolean(document.getElementById("adminFeatured")?.checked),
+            tags: String(tagsInput?.value || "")
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean)
+          };
+        };
+
+        let lastSavedPayload = JSON.stringify(readPayload());
+
+        const updateHeaderMeta = function (savedPost) {
+          if (!savedPost) return;
+          if (postSlugEl && savedPost.slug) postSlugEl.textContent = "/blog/" + savedPost.slug;
+          if (postStatusEl && savedPost.status) postStatusEl.textContent = savedPost.status;
+          if (postReadingTimeEl && typeof savedPost.readingTime === "number") {
+            postReadingTimeEl.textContent = String(savedPost.readingTime);
+          }
+          syncModerationActions(savedPost.status);
+          if (moderationStatusBadge && savedPost.status) {
+            moderationStatusBadge.textContent = savedPost.status;
+            moderationStatusBadge.classList.remove("status-pending", "status-published", "status-other");
+            moderationStatusBadge.classList.add(statusClassMap[savedPost.status] || "status-other");
+          }
+        };
+
+        const saveNow = async function () {
+          const payload = readPayload();
+          const payloadJson = JSON.stringify(payload);
+          if (payloadJson === lastSavedPayload) return;
+          if (inFlight) {
+            hasQueuedSave = true;
+            return;
+          }
+
+          inFlight = true;
+          setAutosaveState("saving", "Saving...");
+          try {
+            const response = await fetch(autosaveUrl, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              credentials: "same-origin",
+              body: payloadJson
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) {
+              throw new Error((result && (result.errors?.[0] || result.message)) || "Auto-save failed.");
+            }
+
+            lastSavedPayload = payloadJson;
+            setAutosaveState("saved", "Saved");
+            setChangedFields(result.post?.changedFields || []);
+            updateHeaderMeta(result.post || null);
+          } catch (error) {
+            setAutosaveState("error", error.message || "Save failed");
+          } finally {
+            inFlight = false;
+            if (hasQueuedSave) {
+              hasQueuedSave = false;
+              saveNow();
+            }
+          }
+        };
+
+        const scheduleSave = function () {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          setAutosaveState("dirty", "Unsaved changes");
+          debounceTimer = setTimeout(saveNow, 900);
+        };
+
+        const fields = autosaveForm.querySelectorAll("input, textarea, select");
+        fields.forEach((field) => {
+          const eventName = field.tagName === "SELECT" || field.type === "checkbox" ? "change" : "input";
+          field.addEventListener(eventName, scheduleSave);
+        });
+
+        window.addEventListener("beforeunload", function (event) {
+          if (inFlight || JSON.stringify(readPayload()) !== lastSavedPayload) {
+            event.preventDefault();
+            event.returnValue = "";
+          }
+        });
+      }
+
+      syncModerationActions(String(document.getElementById("adminStatus")?.value || "<%= post.status %>").trim().toLowerCase());
+
+      const forms = document.querySelectorAll(".moderation-panel form");
+      forms.forEach((form) => {
+        form.addEventListener("submit", () => {
+          const button = form.querySelector("button[type='submit']");
+          if (!button) return;
+          const loadingText = button.getAttribute("data-loading-text");
+          if (loadingText) {
+            button.dataset.originalText = button.textContent;
+            button.textContent = loadingText;
+          }
+          button.disabled = true;
+          button.setAttribute("aria-busy", "true");
+        });
+      });
+    })();
+  </script>
+  <script>if(window.lucide) lucide.createIcons();</script>
+</body>
+</html>

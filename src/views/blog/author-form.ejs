@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Blog Form - helloRun' }) %>
+  <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+  <style>
+    #blogContentEditor {
+      background: #fff;
+    }
+
+    .ql-toolbar.ql-snow {
+      border-radius: 8px 8px 0 0;
+    }
+
+    #blogContentEditor.ql-container {
+      min-height: 300px;
+      border-radius: 0 0 8px 8px;
+      margin-bottom: 0.35rem;
+    }
+
+    #blogContentEditor .ql-editor {
+      min-height: 260px;
+    }
+
+    .editor-field {
+      margin-bottom: 0.85rem;
+    }
+
+    .cover-preview-wrap {
+      position: relative;
+      display: inline-block;
+      margin-top: 0.5rem;
+    }
+
+    .cover-preview-wrap img {
+      max-width: 280px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      display: block;
+    }
+
+    .cover-remove-btn {
+      position: absolute;
+      top: 0.4rem;
+      right: 0.4rem;
+      width: 28px;
+      height: 28px;
+      border: none;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.8);
+      color: #fff;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .cover-remove-note {
+      margin-top: 0.35rem;
+      color: #b45309;
+      font-size: 0.85rem;
+      display: none;
+    }
+
+    .cover-remove-note.visible {
+      display: block;
+    }
+
+    .form-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .form-header-back {
+      flex: 0 0 auto;
+    }
+
+    .back-link-ghost {
+      min-height: 40px;
+      padding: 0.45rem 0.85rem;
+      border-radius: 10px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #334155;
+      text-decoration: none;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all 0.18s ease;
+    }
+
+    .back-link-ghost::before {
+      content: "<";
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .back-link-ghost:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.65rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+      padding-top: 0.75rem;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .form-actions-left,
+    .form-actions-right {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn-action {
+      min-height: 42px;
+      padding: 0.55rem 0.95rem;
+      border-radius: 10px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.18s ease;
+    }
+
+    .btn-action-cancel {
+      color: #334155;
+      background: #fff;
+      border-color: #cbd5e1;
+    }
+
+    .btn-action-cancel:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+
+    .btn-action-draft {
+      color: #1e3a8a;
+      background: #eff6ff;
+      border-color: #bfdbfe;
+    }
+
+    .btn-action-draft:hover {
+      background: #dbeafe;
+      border-color: #93c5fd;
+    }
+
+    .btn-action-submit {
+      color: #fff;
+      background: #2563eb;
+      border-color: #1d4ed8;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn-action-submit:hover {
+      background: #1d4ed8;
+      border-color: #1e40af;
+      transform: translateY(-1px);
+    }
+
+    .btn-action[disabled],
+    .btn-action.is-busy {
+      opacity: 0.7;
+      cursor: not-allowed;
+      pointer-events: none;
+      transform: none;
+      box-shadow: none;
+    }
+
+    @media (max-width: 760px) {
+      .form-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .form-header-back {
+        width: 100%;
+      }
+
+      .back-link-ghost {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .form-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .form-actions-left,
+      .form-actions-right {
+        width: 100%;
+      }
+
+      .form-actions .btn-action {
+        flex: 1;
+        text-align: center;
+      }
+
+      .form-actions-left {
+        order: 2;
+      }
+
+      .form-actions-right {
+        order: 1;
+      }
+    }
+  </style>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main style="padding: 2rem; max-width: 900px; margin: 0 auto;">
+    <header class="form-header">
+      <div>
+        <h1 style="margin-bottom: 0.25rem;"><%= mode === 'edit' ? 'Edit Blog Draft' : 'Create Blog Draft' %></h1>
+        <p style="margin: 0; color: #64748b;">Write your story in simple steps. Your post will be reviewed before publishing.</p>
+      </div>
+      <div class="form-header-back">
+        <a href="/blogs/me/dashboard" class="back-link-ghost">Back to My Blogs</a>
+      </div>
+    </header>
+
+    <section style="margin-bottom: 0.85rem; padding: 0.75rem; border: 1px solid #dbeafe; background: #eff6ff; border-radius: 8px;">
+      <strong>Quick writing guide:</strong>
+      <ol style="margin: 0.35rem 0 0; padding-left: 1.15rem; color: #334155;">
+        <li>Start with your main idea or goal.</li>
+        <li>Share practical tips, routine, or experience.</li>
+        <li>End with key takeaways for runners.</li>
+      </ol>
+    </section>
+
+    <% if (message) { %>
+      <div style="margin-bottom: 0.8rem; padding: 0.7rem; border-radius: 8px; font-weight: 600; border: 1px solid <%= message.type === 'error' ? '#fecaca' : '#86efac' %>; background: <%= message.type === 'error' ? '#fee2e2' : '#dcfce7' %>; color: <%= message.type === 'error' ? '#991b1b' : '#166534' %>;">
+        <%= message.text %>
+      </div>
+    <% } %>
+
+    <% if (errors && errors.length) { %>
+      <div style="margin-bottom: 0.8rem; padding: 0.7rem; border-radius: 8px; border: 1px solid #fecaca; background: #fee2e2; color: #991b1b;">
+        <strong>Please fix the following:</strong>
+        <ul style="margin: 0.35rem 0 0; padding-left: 1.2rem;">
+          <% errors.forEach((error) => { %>
+            <li><%= error %></li>
+          <% }) %>
+        </ul>
+      </div>
+    <% } %>
+
+    <form method="POST" action="<%= formAction %>" enctype="multipart/form-data" style="display: grid; gap: 0.75rem;">
+      <input type="hidden" name="action" id="formActionInput" value="">
+      <div>
+        <label for="title" style="font-weight: 600;">Title</label>
+        <input id="title" name="title" type="text" required maxlength="150" value="<%= formData?.title || '' %>" placeholder="Example: 6 Easy Tips for Your First 10K Run" style="width: 100%; padding: 0.6rem;">
+        <small style="color: #64748b;">Keep it specific and clear. 5 to 150 characters.</small>
+      </div>
+
+      <div>
+        <label for="excerpt" style="font-weight: 600;">Short Summary (Excerpt)</label>
+        <textarea id="excerpt" name="excerpt" rows="2" maxlength="320" placeholder="Example: A beginner-friendly guide to training, pacing, and recovery for your first 10K event." style="width: 100%; padding: 0.6rem;"><%= formData?.excerpt || '' %></textarea>
+        <small style="color: #64748b;">Shown in the blog list preview. Recommended but optional.</small>
+      </div>
+
+      <div>
+        <label for="category" style="font-weight: 600;">Category</label>
+        <select id="category" name="category" required style="width: 100%; padding: 0.6rem;">
+          <option value="" disabled <%= !formData?.category ? 'selected' : '' %>>Select category</option>
+          <% (categories || []).forEach((category) => { %>
+            <option value="<%= category %>" <%= formData?.category === category ? 'selected' : '' %>><%= category %></option>
+          <% }) %>
+        </select>
+        <small style="color: #64748b;">Choose the closest match for easier discovery.</small>
+      </div>
+
+      <div id="customCategoryWrap" style="display: none;">
+        <label for="customCategory" style="font-weight: 600;">Custom Category</label>
+        <input id="customCategory" name="customCategory" type="text" maxlength="80" value="<%= formData?.customCategory || '' %>" placeholder="Example: Trail Safety" style="width: 100%; padding: 0.6rem;">
+        <small style="color: #64748b;">Required when Category is set to Other.</small>
+      </div>
+
+      <div>
+        <label for="tags" style="font-weight: 600;">Tags (comma-separated)</label>
+        <input id="tags" name="tags" type="text" value="<%= formData?.tags || '' %>" placeholder="Example: 10k training, beginner runner, hydration" style="width: 100%; padding: 0.6rem;">
+        <small style="color: #64748b;">Use short keywords. Example format: tag1, tag2, tag3</small>
+      </div>
+
+      <div>
+        <label for="coverImageUrl" style="font-weight: 600;">Cover Image URL</label>
+        <input id="coverImageUrl" name="coverImageUrl" type="url" value="<%= formData?.coverImageUrl || '' %>" placeholder="https://..." style="width: 100%; padding: 0.6rem;">
+        <small style="color: #64748b;">Use this if you already have an image URL. Otherwise upload below.</small>
+      </div>
+
+      <div>
+        <label for="coverImageFile" style="font-weight: 600;">Or upload cover image (JPG/PNG, max 5MB)</label>
+        <input id="coverImageFile" name="coverImageFile" type="file" accept="image/jpeg,image/png" style="width: 100%; padding: 0.45rem;">
+        <input type="hidden" id="removeCoverImage" name="removeCoverImage" value="<%= formData?.removeCoverImage ? '1' : '0' %>">
+        <small style="color: #64748b;">Best result: clear image, wide format, readable on mobile.</small>
+        <% const previewCoverUrl = (formData?.coverImageUrl || '').trim(); %>
+        <% const currentCoverUrl = (mode === 'edit' && !formData?.removeCoverImage)
+          ? (previewCoverUrl || (post?.coverImageUrl || ''))
+          : previewCoverUrl; %>
+        <% if (currentCoverUrl) { %>
+          <div class="cover-preview-wrap" id="coverPreviewWrap">
+            <img src="<%= currentCoverUrl %>" alt="Current cover" id="coverPreviewImage">
+            <% if (mode === 'edit') { %>
+              <button type="button" class="cover-remove-btn" id="removeCoverBtn" aria-label="Remove current cover image">&times;</button>
+            <% } %>
+          </div>
+          <p class="cover-remove-note" id="coverRemoveNote">Current cover image will be removed when you save.</p>
+        <% } %>
+      </div>
+
+      <div class="editor-field">
+        <label for="contentHtml" style="font-weight: 600;">Main Content</label>
+        <div id="blogContentEditor"></div>
+        <input type="hidden" name="contentHtml" id="contentHtml">
+        <small style="color: #64748b; display: block; margin-top: 0.35rem;">Use editor buttons for headings, bold, italic, lists, and links.</small>
+      </div>
+
+      <details style="border: 1px dashed #cbd5e1; border-radius: 8px; padding: 0.55rem 0.7rem; margin-top: 0.85rem;">
+        <summary style="cursor: pointer; font-weight: 600;">Advanced (optional): Raw Content Notes</summary>
+        <div style="margin-top: 0.55rem;">
+          <label for="contentRaw" style="font-weight: 600;">Raw Content</label>
+          <textarea id="contentRaw" name="contentRaw" rows="6" placeholder="Optional backup notes or original draft text." style="width: 100%; padding: 0.6rem;"><%= formData?.contentRaw || '' %></textarea>
+          <small style="color: #64748b;">You can leave this empty if not needed.</small>
+        </div>
+      </details>
+
+      <div class="form-actions">
+        <div class="form-actions-left">
+          <a href="/blogs/me/dashboard" class="btn-action btn-action-cancel">Cancel</a>
+          <button type="submit" value="save_draft" class="btn-action btn-action-draft" data-submit-action="save_draft" data-default-label="Create Draft">Create Draft</button>
+        </div>
+        <div class="form-actions-right">
+          <button type="submit" value="submit_review" class="btn-action btn-action-submit" data-submit-action="submit_review" data-default-label="Submit for Review">Submit for Review</button>
+        </div>
+      </div>
+    </form>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+  <script>
+    (function initBlogEditor() {
+      const editorRoot = document.getElementById('blogContentEditor');
+      const contentInput = document.getElementById('contentHtml');
+      const form = document.querySelector('form[action="<%= formAction %>"]');
+      if (!editorRoot || !contentInput || !form || !window.Quill) return;
+
+      const quill = new Quill('#blogContentEditor', {
+        theme: 'snow',
+        modules: {
+          toolbar: [
+            [{ header: [2, 3, false] }],
+            ['bold', 'italic'],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            ['blockquote', 'link'],
+            ['clean']
+          ]
+        }
+      });
+
+      const existingHtml = <%- JSON.stringify(formData?.contentHtml || '') %>.trim();
+      if (existingHtml) {
+        quill.root.innerHTML = existingHtml;
+      } else {
+        quill.root.innerHTML =
+          '<h2>What this post is about</h2><p></p>' +
+          '<h2>What I did</h2><p></p>' +
+          '<h2>What I learned</h2><p></p>' +
+          '<h2>Tips for other runners</h2><ul><li></li></ul>';
+      }
+
+      form.addEventListener('submit', () => {
+        contentInput.value = quill.root.innerHTML;
+      });
+
+      const actionInput = document.getElementById('formActionInput');
+      const actionButtons = Array.from(form.querySelectorAll('button[type="submit"][data-submit-action]'));
+      let selectedAction = '';
+      actionButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          selectedAction = button.getAttribute('data-submit-action') || '';
+          if (actionInput) actionInput.value = selectedAction;
+        });
+      });
+
+      form.addEventListener('submit', () => {
+        if (actionInput && !actionInput.value) {
+          actionInput.value = selectedAction || 'save_draft';
+        }
+        const busyButtons = form.querySelectorAll('button[type="submit"][data-default-label]');
+        busyButtons.forEach((button) => {
+          const label = button.getAttribute('data-default-label') || 'Saving...';
+          button.disabled = true;
+          button.classList.add('is-busy');
+          if (button === document.activeElement) {
+            button.textContent = label === 'Submit for Review' ? 'Submitting...' : 'Saving...';
+          } else {
+            button.textContent = label;
+          }
+        });
+      }, { once: true });
+    })();
+
+    (function initCustomCategoryToggle() {
+      const category = document.getElementById('category');
+      const customWrap = document.getElementById('customCategoryWrap');
+      const customInput = document.getElementById('customCategory');
+      if (!category || !customWrap || !customInput) return;
+
+      function sync() {
+        const isOther = category.value === 'Other';
+        customWrap.style.display = isOther ? 'block' : 'none';
+        customInput.required = isOther;
+      }
+
+      category.addEventListener('change', sync);
+      sync();
+    })();
+
+    (function initCoverRemove() {
+      const removeBtn = document.getElementById('removeCoverBtn');
+      const previewWrap = document.getElementById('coverPreviewWrap');
+      const removeInput = document.getElementById('removeCoverImage');
+      const removeNote = document.getElementById('coverRemoveNote');
+      const coverFileInput = document.getElementById('coverImageFile');
+      const coverUrlInput = document.getElementById('coverImageUrl');
+      if (!removeInput) return;
+
+      function clearRemovalFlag() {
+        removeInput.value = '0';
+        if (removeNote) removeNote.classList.remove('visible');
+      }
+
+      if (removeBtn && previewWrap) {
+        removeBtn.addEventListener('click', () => {
+          previewWrap.style.display = 'none';
+          removeInput.value = '1';
+          if (removeNote) removeNote.classList.add('visible');
+          if (coverUrlInput) coverUrlInput.value = '';
+          if (coverFileInput) coverFileInput.value = '';
+        });
+      }
+
+      coverFileInput?.addEventListener('change', () => {
+        if (coverFileInput.files && coverFileInput.files.length) {
+          clearRemovalFlag();
+        }
+      });
+
+      coverUrlInput?.addEventListener('input', () => {
+        if (String(coverUrlInput.value || '').trim()) {
+          clearRemovalFlag();
+        }
+      });
+    })();
+  </script>
+  <script>if(window.lucide) lucide.createIcons();</script>
+</body>
+</html>

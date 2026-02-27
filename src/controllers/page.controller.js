@@ -1,9 +1,12 @@
 const Event = require('../models/Event');
 const User = require('../models/User');
 const Registration = require('../models/Registration');
+const Blog = require('../models/Blog');
 const emailService = require('../services/email.service');
+const { registerBlogView } = require('../services/blog-view.service');
 const { getRunnerRegistrations } = require('../services/runner-data.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
+const { BLOG_CATEGORIES } = require('../utils/blog');
 const { renderWaiverTemplate } = require('../utils/waiver');
 
 const countries = getCountries();
@@ -330,11 +333,231 @@ exports.getMyRegistrations = async (req, res) => {
   }
 };
 
+exports.getBlogList = async (req, res) => {
+  try {
+    const query = {
+      status: 'published',
+      isDeleted: { $ne: true }
+    };
+    const searchQuery = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 80) : '';
+    const selectedCategory = normalizeBlogCategory(req.query.category);
+    const selectedSort = normalizeBlogSort(req.query.sort);
+    const page = normalizePositiveInt(req.query.page, 1);
+    const limit = 12;
+
+    if (selectedCategory) {
+      query.category = selectedCategory;
+    }
+    if (searchQuery) {
+      const safePattern = new RegExp(escapeRegex(searchQuery), 'i');
+      query.$or = [
+        { title: safePattern },
+        { excerpt: safePattern },
+        { contentText: safePattern },
+        { tags: safePattern },
+        { category: safePattern },
+        { customCategory: safePattern }
+      ];
+    }
+
+    const sortMap = {
+      latest: { publishedAt: -1, createdAt: -1 },
+      oldest: { publishedAt: 1, createdAt: 1 },
+      popular: { views: -1, publishedAt: -1 }
+    };
+
+    const totalPosts = await Blog.countDocuments(query);
+    const totalPages = Math.max(1, Math.ceil(totalPosts / limit));
+    const currentPage = Math.min(page, totalPages);
+    const skip = (currentPage - 1) * limit;
+
+    const posts = await Blog.find(query)
+      .populate('authorId', 'firstName lastName')
+      .sort(sortMap[selectedSort])
+      .skip(skip)
+      .limit(limit)
+      .select('title slug excerpt category customCategory tags coverImageUrl readingTime views publishedAt createdAt');
+
+    const baseUrl = getAppBaseUrl();
+    const canonicalQuery = new URLSearchParams();
+    if (searchQuery) canonicalQuery.set('q', searchQuery);
+    if (selectedCategory) canonicalQuery.set('category', selectedCategory);
+    if (selectedSort !== 'latest') canonicalQuery.set('sort', selectedSort);
+    if (currentPage > 1) canonicalQuery.set('page', String(currentPage));
+    const canonicalPath = canonicalQuery.toString() ? `/blog?${canonicalQuery.toString()}` : '/blog';
+    const canonicalUrl = baseUrl ? `${baseUrl}${canonicalPath}` : '';
+
+    return res.render('pages/blog', {
+      title: 'Blog - helloRun',
+      posts,
+      categories: BLOG_CATEGORIES,
+      filters: {
+        q: searchQuery,
+        category: selectedCategory,
+        sort: selectedSort
+      },
+      pagination: {
+        currentPage,
+        totalPages,
+        totalPosts
+      },
+      seo: {
+        description: 'Explore running tips, race recaps, and training stories from the helloRun community.',
+        canonicalUrl
+      }
+    });
+  } catch (error) {
+    console.error('Error loading blog list:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading blog posts.'
+    });
+  }
+};
+
+exports.getBlogPost = async (req, res) => {
+  try {
+    const slug = String(req.params.slug || '').trim();
+    if (!slug) {
+      return res.status(404).render('error', {
+        title: '404 - Post Not Found',
+        status: 404,
+        message: 'This blog post is not available.'
+      });
+    }
+
+    const post = await Blog.findOne({
+      slug,
+      status: 'published',
+      isDeleted: { $ne: true }
+    })
+      .populate('authorId', 'firstName lastName');
+
+    if (!post) {
+      return res.status(404).render('error', {
+        title: '404 - Post Not Found',
+        status: 404,
+        message: 'This blog post is not available.'
+      });
+    }
+
+    const currentUser = res.locals.user || null;
+    const shouldTrackView = shouldTrackBlogView({
+      currentUser,
+      postAuthorId: post.authorId?._id || post.authorId
+    });
+    if (shouldTrackView) {
+      const requestIp = getRequestIp(req);
+      try {
+        const didCount = await registerBlogView({
+          blogId: post._id,
+          userId: currentUser?._id || null,
+          ipAddress: requestIp
+        });
+        if (didCount) {
+          post.views = Number(post.views || 0) + 1;
+        }
+      } catch (viewError) {
+        console.error('Blog view tracking failed:', viewError.message);
+      }
+    }
+
+    const relatedPosts = await Blog.find({
+      _id: { $ne: post._id },
+      status: 'published',
+      isDeleted: { $ne: true },
+      $or: [
+        { category: post.category },
+        { tags: { $in: post.tags || [] } }
+      ]
+    })
+      .sort({ publishedAt: -1 })
+      .limit(4)
+      .select('title slug category customCategory coverImageUrl publishedAt');
+
+    const baseUrl = getAppBaseUrl();
+    const canonicalUrl = baseUrl ? `${baseUrl}/blog/${post.slug}` : '';
+    const metaDescription = String(post.seoDescription || post.excerpt || '')
+      .trim()
+      .slice(0, 280) || 'Read this helloRun community blog post.';
+    const seoTitle = String(post.seoTitle || post.title || '').trim();
+    const ogImage = String(post.ogImageUrl || post.coverImageUrl || '').trim();
+
+    return res.render('pages/blog-post', {
+      title: `${post.title} - helloRun Blog`,
+      post,
+      relatedPosts,
+      seo: {
+        ogType: 'article',
+        description: metaDescription,
+        canonicalUrl,
+        ogTitle: seoTitle || `${post.title} - helloRun Blog`,
+        twitterTitle: seoTitle || `${post.title} - helloRun Blog`,
+        ogImage: ogImage || ''
+      }
+    });
+  } catch (error) {
+    console.error('Error loading blog post:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading the blog post.'
+    });
+  }
+};
+
 function getPageMessage(query) {
   const msg = typeof query.msg === 'string' ? query.msg.trim() : '';
   if (!msg) return null;
   const type = query.type === 'error' ? 'error' : 'success';
   return { type, text: msg.slice(0, 220) };
+}
+
+function normalizeBlogCategory(input) {
+  const value = String(input || '').trim();
+  return BLOG_CATEGORIES.includes(value) ? value : '';
+}
+
+function normalizeBlogSort(input) {
+  const value = String(input || '').trim().toLowerCase();
+  if (value === 'oldest') return 'oldest';
+  if (value === 'popular') return 'popular';
+  return 'latest';
+}
+
+function normalizePositiveInt(input, fallback) {
+  const value = Number.parseInt(input, 10);
+  if (Number.isInteger(value) && value > 0) return value;
+  return fallback;
+}
+
+function escapeRegex(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function getAppBaseUrl() {
+  return String(process.env.APP_URL || '').trim().replace(/\/+$/, '');
+}
+
+function getRequestIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string' && forwarded.trim()) {
+    return forwarded.split(',')[0].trim();
+  }
+  return String(req.ip || req.socket?.remoteAddress || '').trim();
+}
+
+function shouldTrackBlogView({ currentUser, postAuthorId }) {
+  if (!currentUser) return true;
+  if (currentUser.role === 'admin') return false;
+
+  const currentUserId = String(currentUser._id || '');
+  const authorId = String(postAuthorId || '');
+  if (currentUserId && authorId && currentUserId === authorId) {
+    return false;
+  }
+  return true;
 }
 
 function getRegistrationFormData(body = {}) {

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const OrganiserApplication = require('../models/OrganiserApplication');
 const User = require('../models/User');
+const Blog = require('../models/Blog');
 const emailService = require('../services/email.service');
 
 const VALID_FILTER_STATUSES = ['pending', 'under_review', 'approved', 'rejected'];
@@ -274,13 +275,29 @@ exports.rejectApplication = async (req, res) => {
 
 exports.dashboard = async (req, res) => {
   try {
-    const [totalUsers, totalApplications, pendingApplications, approvedApplications, rejectedApplications] =
+    const [
+      totalUsers,
+      totalApplications,
+      pendingApplications,
+      approvedApplications,
+      rejectedApplications,
+      totalBlogs,
+      pendingBlogs,
+      publishedBlogs,
+      rejectedBlogs,
+      archivedBlogs
+    ] =
       await Promise.all([
         User.countDocuments(),
         OrganiserApplication.countDocuments(),
         OrganiserApplication.countDocuments({ status: 'pending' }),
         OrganiserApplication.countDocuments({ status: 'approved' }),
-        OrganiserApplication.countDocuments({ status: 'rejected' })
+        OrganiserApplication.countDocuments({ status: 'rejected' }),
+        Blog.countDocuments({ isDeleted: { $ne: true } }),
+        Blog.countDocuments({ isDeleted: { $ne: true }, status: 'pending' }),
+        Blog.countDocuments({ isDeleted: { $ne: true }, status: 'published' }),
+        Blog.countDocuments({ isDeleted: { $ne: true }, status: 'rejected' }),
+        Blog.countDocuments({ isDeleted: { $ne: true }, status: 'archived' })
       ]);
 
     return res.render('admin/dashboard', {
@@ -290,7 +307,12 @@ exports.dashboard = async (req, res) => {
         totalApplications,
         pendingApplications,
         approvedApplications,
-        rejectedApplications
+        rejectedApplications,
+        totalBlogs,
+        pendingBlogs,
+        publishedBlogs,
+        rejectedBlogs,
+        archivedBlogs
       }
     });
   } catch (error) {

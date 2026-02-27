@@ -11,6 +11,7 @@
     <section class="section admin-shell">
       <h2>Admin Dashboard</h2>
 
+      <h3 class="dashboard-section-title">Organizer Applications</h3>
       <div class="dashboard-grid">
         <article class="metric-card">
           <p class="metric-label">Pending Applications</p>
@@ -43,8 +44,42 @@
         </article>
       </div>
 
+      <h3 class="dashboard-section-title">Blog Moderation</h3>
+      <div class="dashboard-grid">
+        <article class="metric-card">
+          <p class="metric-label">Pending Blog Reviews</p>
+          <p class="metric-value"><%= stats.pendingBlogs %></p>
+          <a href="/admin/blog/review?status=pending" class="metric-link">Review Queue</a>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Total Blog Posts</p>
+          <p class="metric-value"><%= stats.totalBlogs %></p>
+          <a href="/admin/blog/review" class="metric-link">View All Blog Statuses</a>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Published Blogs</p>
+          <p class="metric-value"><%= stats.publishedBlogs %></p>
+          <a href="/admin/blog/review?status=published" class="metric-link">View Published</a>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Rejected Blogs</p>
+          <p class="metric-value"><%= stats.rejectedBlogs %></p>
+          <a href="/admin/blog/review?status=rejected" class="metric-link">View Rejected</a>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Archived Blogs</p>
+          <p class="metric-value"><%= stats.archivedBlogs %></p>
+          <a href="/admin/blog/review?status=archived" class="metric-link">View Archived</a>
+        </article>
+      </div>
+
       <nav class="admin-menu">
         <a href="/admin/applications" class="btn">Organizer Applications</a>
+        <a href="/admin/blog/review" class="btn btn-secondary">Blog Moderation</a>
       </nav>
     </section>
   </main>

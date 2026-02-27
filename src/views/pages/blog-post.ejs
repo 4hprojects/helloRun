@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || `${post?.title || 'Blog Post'} - helloRun`, seo: seo }) %>
+  <link rel="stylesheet" href="/css/blog-pages.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <div class="blog-read-progress" id="blogReadProgress" aria-hidden="true"></div>
+  
+  <!-- Back to top button -->
+  <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Back to top">↑</button>
+  
+    <main class="blog-post-shell">
+    <div class="blog-post-topbar">
+      <div class="blog-post-breadcrumb">
+        <a href="/blog">Blog</a>
+        <span>/</span>
+        <span><%= post.title %></span>
+      </div>
+      <a href="/blog" class="blog-back-btn blog-back-link">Back to Blog</a>
+    </div>
+
+    <article class="blog-post-article">
+      <header class="blog-post-hero">
+        <span class="blog-category-chip"><%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %></span>
+        <h1><%= post.title %></h1>
+        <% if (post.excerpt) { %>
+          <p class="blog-post-excerpt"><%= post.excerpt %></p>
+        <% } %>
+        <p class="blog-post-submeta">
+          By <strong><%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %></strong> |
+          <%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '' %> |
+          <%= post.readingTime || 1 %> min read |
+          <%= Number(post.views || 0).toLocaleString('en-US') %> views
+        </p>
+        <div class="blog-share-row" id="blogShareRow">
+          <!-- Share buttons will be populated by JS with Web Share API fallback -->
+          <button type="button" class="btn btn-icon" id="copyBlogLinkBtn" aria-label="Copy link" title="Copy link">
+            <i data-lucide="link"></i>
+          </button>
+          <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareFacebook" aria-label="Share on Facebook" title="Share on Facebook">
+            <i data-lucide="facebook"></i>
+          </a>
+          <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareTwitter" aria-label="Share on X" title="Share on X">
+            <i data-lucide="twitter"></i>
+          </a>
+          <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareLinkedIn" aria-label="Share on LinkedIn" title="Share on LinkedIn">
+            <i data-lucide="linkedin"></i>
+          </a>
+          <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareWhatsApp" aria-label="Share on WhatsApp" title="Share on WhatsApp">
+            <i data-lucide="message-circle"></i>
+          </a>
+          <a class="btn btn-icon" href="#" id="shareEmail" aria-label="Share via Email" title="Share via Email">
+            <i data-lucide="mail"></i>
+          </a>
+        </div>
+        <!-- Toast for copy feedback -->
+        <div class="toast hidden" id="copyToast">Link copied!</div>
+      </header>
+
+      <% if (post.coverImageUrl) { %>
+        <img src="<%= post.coverImageUrl %>" alt="<%= post.title %> cover" loading="lazy">
+      <% } %>
+
+      <div class="blog-post-layout">
+        <!-- Mobile Toggle for TOC -->
+        <details class="blog-post-toc-mobile">
+          <summary>On this page</summary>
+          <aside class="blog-post-toc-card" id="blogPostTocWrap">
+            <ul id="blogPostTocList"></ul>
+          </aside>
+        </details>
+
+        <!-- Desktop TOC -->
+        <aside class="blog-post-toc-card desktop-only" id="blogPostTocWrapDesktop">
+          <h4>On this page</h4>
+          <ul id="blogPostTocListDesktop"></ul>
+        </aside>
+
+        <div class="blog-post-body">
+          <section class="blog-content" id="blogPostContent">
+            <%- post.contentHtml %>
+          </section>
+
+          <% if (post.tags && post.tags.length) { %>
+            <div class="blog-tag-list">
+              <% post.tags.forEach((tag) => { %>
+                <span class="blog-tag">#<%= tag %></span>
+              <% }) %>
+            </div>
+          <% } %>
+
+          <section class="blog-author-box">
+            <div class="author-avatar">
+              <% if (post.authorId?.avatarUrl) { %>
+                <img src="<%= post.authorId.avatarUrl %>" alt="<%= post.authorId?.firstName %>" loading="lazy">
+              <% } else { %>
+                <div class="author-avatar-placeholder"><%= (post.authorId?.firstName || 'U')[0] %></div>
+              <% } %>
+            </div>
+            <div class="author-details">
+              <h4><%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %></h4>
+              <p class="author-bio"><%= post.authorId?.bio || 'Community writer on helloRun sharing running experiences and practical tips.' %></p>
+              <% if (post.authorId?._id) { %>
+                <a href="/blog?author=<%= post.authorId._id %>" class="author-more-posts">More posts by this author →</a>
+              <% } %>
+            </div>
+          </section>
+
+          <% if (post.galleryImageUrls && post.galleryImageUrls.length) { %>
+            <section class="blog-gallery">
+              <h3>Gallery</h3>
+              <div class="blog-gallery-grid">
+                <% post.galleryImageUrls.forEach((imageUrl, imageIndex) => { %>
+                  <button
+                    type="button"
+                    class="blog-gallery-item"
+                    data-gallery-index="<%= imageIndex %>"
+                    data-gallery-url="<%= imageUrl %>"
+                    data-gallery-caption="<%= post.galleryCaptions?.[imageIndex] || '' %>"
+                    aria-label="Open gallery image <%= imageIndex + 1 %>"
+                  >
+                    <img src="<%= imageUrl %>" alt="<%= post.title %> gallery image <%= imageIndex + 1 %>" loading="lazy">
+                  </button>
+                <% }) %>
+              </div>
+            </section>
+          <% } %>
+        </div>
+      </div>
+    </article>
+
+    <% if (relatedPosts && relatedPosts.length) { %>
+      <section class="blog-related">
+        <h3>Related Posts</h3>
+        <div class="blog-related-grid">
+          <% relatedPosts.forEach((item) => { %>
+            <a href="/blog/<%= item.slug %>" class="blog-related-card">
+              <% if (item.coverImageUrl) { %>
+                <img src="<%= item.coverImageUrl %>" alt="<%= item.title %> cover" loading="lazy">
+              <% } %>
+              <div class="blog-related-card-body">
+                <strong><%= item.title %></strong>
+                <p class="related-meta">
+                  <%= item.category === 'Other' && item.customCategory ? item.customCategory : item.category %> |
+                  <%= item.publishedAt ? new Date(item.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' %>
+                </p>
+                <% if (item.excerpt) { %>
+                  <p class="related-excerpt"><%= item.excerpt %></p>
+                <% } %>
+              </div>
+            </a>
+          <% }) %>
+        </div>
+      </section>
+    <% } %>
+  </main>
+
+  <!-- Gallery Modal -->
+  <div class="blog-gallery-modal hidden" id="blogGalleryModal" aria-hidden="true">
+    <div class="blog-gallery-backdrop" data-gallery-close="1"></div>
+    <div class="blog-gallery-dialog" role="dialog" aria-modal="true" aria-label="Gallery viewer">
+      <button type="button" class="blog-gallery-close" data-gallery-close="1" aria-label="Close gallery">&times;</button>
+      <button type="button" class="blog-gallery-nav prev" id="blogGalleryPrev" aria-label="Previous image">‹</button>
+      <div class="gallery-image-container">
+        <img id="blogGalleryImage" src="" alt="Blog gallery image">
+        <div class="gallery-spinner hidden" id="gallerySpinner"></div>
+      </div>
+      <button type="button" class="blog-gallery-nav next" id="blogGalleryNext" aria-label="Next image">›</button>
+      <p class="blog-gallery-counter" id="blogGalleryCounter"></p>
+      <p class="blog-gallery-caption" id="blogGalleryCaption"></p>
+    </div>
+  </div>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    (function initBlogPostEnhancements() {
+      // ---- DOM elements ----
+      const content = document.getElementById('blogPostContent');
+      const tocWrapDesktop = document.getElementById('blogPostTocWrapDesktop');
+      const tocListDesktop = document.getElementById('blogPostTocListDesktop');
+      const tocWrapMobile = document.getElementById('blogPostTocWrap'); // from details
+      const tocListMobile = document.getElementById('blogPostTocList');
+      const copyBtn = document.getElementById('copyBlogLinkBtn');
+      const copyToast = document.getElementById('copyToast');
+      const progressBar = document.getElementById('blogReadProgress');
+      const backToTopBtn = document.getElementById('backToTopBtn');
+      const galleryModal = document.getElementById('blogGalleryModal');
+      const galleryImageEl = document.getElementById('blogGalleryImage');
+      const galleryCounterEl = document.getElementById('blogGalleryCounter');
+      const galleryCaptionEl = document.getElementById('blogGalleryCaption');
+      const galleryPrevBtn = document.getElementById('blogGalleryPrev');
+      const galleryNextBtn = document.getElementById('blogGalleryNext');
+      const gallerySpinner = document.getElementById('gallerySpinner');
+      const shareRow = document.getElementById('blogShareRow');
+      
+      // ---- Data from EJS ----
+      const postTitle = '<%= post.title %>';
+      const canonicalUrl = '<%= seo?.canonicalUrl || "" %>';
+      const galleryButtons = Array.from(document.querySelectorAll('[data-gallery-index][data-gallery-url]'));
+      let activeGalleryIndex = 0;
+      let galleryUrls = [];
+      let galleryCaptions = [];
+
+      // ---- Helper functions ----
+      function showToast(message, duration = 2000) {
+        if (!copyToast) return;
+        copyToast.textContent = message;
+        copyToast.classList.remove('hidden');
+        setTimeout(() => copyToast.classList.add('hidden'), duration);
+      }
+
+      // ---- 1. Scroll progress ----
+      if (content && progressBar) {
+        const updateProgress = () => {
+          const rect = content.getBoundingClientRect();
+          const pageTop = window.scrollY + rect.top;
+          const total = Math.max(content.scrollHeight - window.innerHeight, 1);
+          const done = Math.min(Math.max(window.scrollY - pageTop, 0), total);
+          const pct = Math.round((done / total) * 100);
+          progressBar.style.width = `${pct}%`;
+        };
+        window.addEventListener('scroll', updateProgress, { passive: true });
+        window.addEventListener('resize', updateProgress);
+        updateProgress();
+      }
+
+      // ---- 2. Table of Contents with scroll spy ----
+      const buildToc = (container, listElement) => {
+        if (!content || !container || !listElement) return;
+        const headings = Array.from(content.querySelectorAll('h2, h3'));
+        if (!headings.length) {
+          container.style.display = 'none';
+          return;
+        }
+        headings.forEach((heading, index) => {
+          const id = heading.id || `section-${index + 1}`;
+          heading.id = id;
+          const li = document.createElement('li');
+          li.className = heading.tagName.toLowerCase() === 'h3' ? 'toc-sub' : '';
+          const a = document.createElement('a');
+          a.href = `#${id}`;
+          a.textContent = heading.textContent || `Section ${index + 1}`;
+          li.appendChild(a);
+          listElement.appendChild(li);
+        });
+
+        // Scroll spy
+        const tocLinks = listElement.querySelectorAll('a');
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const id = entry.target.id;
+              tocLinks.forEach(link => {
+                link.removeAttribute('aria-current');
+                if (link.getAttribute('href') === `#${id}`) {
+                  link.setAttribute('aria-current', 'location');
+                }
+              });
+            }
+          });
+        }, { rootMargin: '-80px 0px -80% 0px', threshold: 0 });
+
+        headings.forEach(h => observer.observe(h));
+
+        // Smooth scroll with offset
+        listElement.addEventListener('click', (e) => {
+          const link = e.target.closest('a');
+          if (!link) return;
+          e.preventDefault();
+          const targetId = link.getAttribute('href').substring(1);
+          const targetEl = document.getElementById(targetId);
+          if (targetEl) {
+            const offset = 80; // height of fixed nav
+            window.scrollTo({
+              top: targetEl.offsetTop - offset,
+              behavior: 'smooth'
+            });
+          }
+        });
+      };
+
+      buildToc(tocWrapDesktop, tocListDesktop);
+      buildToc(tocWrapMobile, tocListMobile);
+
+      // ---- 3. Copy link with toast ----
+      if (copyBtn && navigator.clipboard) {
+        copyBtn.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(window.location.href);
+            showToast('Link copied!');
+          } catch {
+            showToast('Copy failed');
+          }
+        });
+      }
+
+      // ---- 4. Share buttons with Web Share API ----
+      const updateShareLinks = () => {
+        const url = encodeURIComponent(window.location.href);
+        const title = encodeURIComponent(postTitle);
+        // Update share links
+        const fbLink = document.getElementById('shareFacebook');
+        if (fbLink) fbLink.href = `https://www.facebook.com/sharer/sharer.php?u=${url}`;
+        const twitterLink = document.getElementById('shareTwitter');
+        if (twitterLink) twitterLink.href = `https://twitter.com/intent/tweet?url=${url}&text=${title}`;
+        const linkedinLink = document.getElementById('shareLinkedIn');
+        if (linkedinLink) linkedinLink.href = `https://www.linkedin.com/sharing/share-offsite/?url=${url}`;
+        const whatsappLink = document.getElementById('shareWhatsApp');
+        if (whatsappLink) whatsappLink.href = `https://api.whatsapp.com/send?text=${title}%20${url}`;
+        const emailLink = document.getElementById('shareEmail');
+        if (emailLink) emailLink.href = `mailto:?subject=${title}&body=${url}`;
+      };
+      updateShareLinks();
+
+      // Web Share API fallback
+      if (navigator.share && shareRow) {
+        // Add a native share button and hide individual ones if desired, but we'll keep them as fallback
+        const nativeShareBtn = document.createElement('button');
+        nativeShareBtn.className = 'btn btn-icon';
+        nativeShareBtn.setAttribute('aria-label', 'Share');
+        nativeShareBtn.innerHTML = '<i data-lucide="share-2"></i>';
+        nativeShareBtn.addEventListener('click', async () => {
+          try {
+            await navigator.share({
+              title: postTitle,
+              url: window.location.href,
+            });
+          } catch (err) {
+            // user cancelled or sharing failed
+          }
+        });
+        shareRow.prepend(nativeShareBtn);
+        lucide.createIcons(); // re-run for new icon
+      }
+
+      // ---- 5. Back to top button ----
+      if (backToTopBtn) {
+        const toggleBackToTop = () => {
+          if (window.scrollY > 300) {
+            backToTopBtn.classList.add('visible');
+          } else {
+            backToTopBtn.classList.remove('visible');
+          }
+        };
+        window.addEventListener('scroll', toggleBackToTop);
+        backToTopBtn.addEventListener('click', () => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        toggleBackToTop();
+      }
+
+      // ---- 6. Gallery with touch, spinner, captions ----
+      if (galleryModal && galleryImageEl && galleryButtons.length) {
+        galleryUrls = galleryButtons.map(btn => btn.getAttribute('data-gallery-url')).filter(Boolean);
+        galleryCaptions = galleryButtons.map(btn => btn.getAttribute('data-gallery-caption') || '');
+
+        const renderGallery = () => {
+          if (!galleryUrls.length) return;
+          const index = Math.min(Math.max(activeGalleryIndex, 0), galleryUrls.length - 1);
+          activeGalleryIndex = index;
+          // Show spinner while loading
+          gallerySpinner.classList.remove('hidden');
+          galleryImageEl.classList.add('loading');
+          galleryImageEl.src = galleryUrls[index];
+          galleryCounterEl.textContent = `${index + 1} / ${galleryUrls.length}`;
+          galleryCaptionEl.textContent = galleryCaptions[index];
+        };
+
+        galleryImageEl.addEventListener('load', () => {
+          gallerySpinner.classList.add('hidden');
+          galleryImageEl.classList.remove('loading');
+        });
+        galleryImageEl.addEventListener('error', () => {
+          gallerySpinner.classList.add('hidden');
+          galleryImageEl.classList.remove('loading');
+          galleryImageEl.alt = 'Image failed to load';
+        });
+
+        const openGallery = (index) => {
+          activeGalleryIndex = index;
+          renderGallery();
+          galleryModal.classList.remove('hidden');
+          galleryModal.setAttribute('aria-hidden', 'false');
+          document.body.classList.add('no-scroll');
+          // Focus trap inside modal
+          modalFocusTrap(galleryModal);
+        };
+
+        const closeGallery = () => {
+          galleryModal.classList.add('hidden');
+          galleryModal.setAttribute('aria-hidden', 'true');
+          document.body.classList.remove('no-scroll');
+        };
+
+        // Focus trap function
+        const modalFocusTrap = (modal) => {
+          const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+          const first = focusableElements[0];
+          const last = focusableElements[focusableElements.length - 1];
+          modal.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+              if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+              } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+              }
+            }
+            if (e.key === 'Escape') closeGallery();
+          });
+          first.focus();
+        };
+
+        galleryButtons.forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const index = Number(btn.getAttribute('data-gallery-index') || '0');
+            openGallery(index);
+          });
+        });
+
+        galleryModal.addEventListener('click', (event) => {
+          const target = event.target;
+          if (!(target instanceof Element)) return;
+          if (target.getAttribute('data-gallery-close') === '1') {
+            closeGallery();
+          }
+        });
+
+        galleryPrevBtn?.addEventListener('click', () => {
+          activeGalleryIndex = (activeGalleryIndex - 1 + galleryUrls.length) % galleryUrls.length;
+          renderGallery();
+        });
+
+        galleryNextBtn?.addEventListener('click', () => {
+          activeGalleryIndex = (activeGalleryIndex + 1) % galleryUrls.length;
+          renderGallery();
+        });
+
+        // Touch swipe support
+        let touchStartX = 0;
+        galleryModal.addEventListener('touchstart', (e) => {
+          touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+        galleryModal.addEventListener('touchend', (e) => {
+          if (!touchStartX) return;
+          const diff = e.changedTouches[0].screenX - touchStartX;
+          if (Math.abs(diff) > 50) {
+            if (diff > 0) {
+              // swipe right -> previous
+              activeGalleryIndex = (activeGalleryIndex - 1 + galleryUrls.length) % galleryUrls.length;
+            } else {
+              // swipe left -> next
+              activeGalleryIndex = (activeGalleryIndex + 1) % galleryUrls.length;
+            }
+            renderGallery();
+          }
+          touchStartX = 0;
+        });
+
+        window.addEventListener('keydown', (event) => {
+          if (galleryModal.classList.contains('hidden')) return;
+          if (event.key === 'Escape') closeGallery();
+          if (event.key === 'ArrowLeft') {
+            activeGalleryIndex = (activeGalleryIndex - 1 + galleryUrls.length) % galleryUrls.length;
+            renderGallery();
+          }
+          if (event.key === 'ArrowRight') {
+            activeGalleryIndex = (activeGalleryIndex + 1) % galleryUrls.length;
+            renderGallery();
+          }
+        });
+      }
+
+      // ---- Re-run Lucide for any new icons ----
+      if (window.lucide) lucide.createIcons();
+    })();
+  </script>
+</body>
+</html>

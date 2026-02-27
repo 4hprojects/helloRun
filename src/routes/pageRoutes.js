@@ -15,11 +15,8 @@ router.get('/events/:slug/register', requireAuth, pageController.getEventRegistr
 router.post('/events/:slug/register', requireAuth, pageController.postEventRegistration);
 router.get('/events/:slug', pageController.getEventDetails);
 
-router.get('/blog', (req, res) => {
-  res.render('pages/blog', {
-    title: 'Blog - helloRun'
-  });
-});
+router.get('/blog', pageController.getBlogList);
+router.get('/blog/:slug', pageController.getBlogPost);
 
 router.get('/about', (req, res) => {
   res.render('pages/about', {
