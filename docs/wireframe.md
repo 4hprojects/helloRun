@@ -1,17 +1,25 @@
-﻿===========================================
-DOCUMENT ROLE (SOURCE OF TRUTH)
-===========================================
+﻿# DOCUMENT ROLE (SOURCE OF TRUTH)
 - Purpose: Product planning, roadmap, detailed tasks, and phase accomplishments.
 - Update cadence: When priorities change or a milestone is completed.
-- Changelog reference: See dir.txt for repository-level change history.
+- Changelog reference: See dir.md for repository-level change history.
 
-===========================================
-STATUS UPDATE (Feb 27, 2026 - Blog Admin Edit Hardening)
-===========================================
+## STATUS UPDATE (Mar 3, 2026 - Documentation Structure and Format)
 
-Current reality after latest implementation:
+### Current reality after latest implementation
 
-COMPLETED in this cycle:
+### COMPLETED in this cycle
+- Converted project documentation notes from `.txt` to `.md`.
+- Moved project notes into `docs/` for centralized documentation.
+- Updated cross-document references to point to `.md` files.
+
+### Still pending from this scope
+- Optional cleanup: remove remaining legacy `.txt` duplicates (`blog_feature.txt`, `mongodb_schema.txt`, `organiser_flow.txt`) when no longer needed.
+
+## STATUS UPDATE (Feb 27, 2026 - Blog Admin Edit Hardening)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
 - Admin review page now supports inline editing of blog fields.
 - Debounced admin autosave endpoint is active:
   - PATCH /admin/blog/posts/:id/autosave
@@ -21,22 +29,20 @@ COMPLETED in this cycle:
 - Review page now includes Change History panel with revision details.
 - Moderation UI now adapts to selected status while editing.
 
-Still pending from this scope:
+### Still pending from this scope
 - End-to-end and regression test pass (manual + automated) for autosave + moderation interaction.
 - Optional UX iteration for history readability on very large content diffs.
 
-===========================================
-STATUS UPDATE (Feb 27, 2026 - Blog Phase A Tasks 1 to 10)
-===========================================
+## STATUS UPDATE (Feb 27, 2026 - Blog Phase A Tasks 1 to 10)
 
-Current reality after latest implementation:
+### Current reality after latest implementation
 
-IN PROGRESS:
+### IN PROGRESS
 - Phase 3: Event Creation & Management (advanced)
 - Phase 4: Registration System (payment proof flow still pending)
 - Phase 7: Blog System (Phase A backend + UI now functional)
 
-Completed in this cycle:
+### Completed in this cycle
 - Task 1: Blog data foundation
   - Blog model with statuses, categories, moderation fields, SEO fields, indexes
 - Task 2: Author backend
@@ -63,33 +69,31 @@ Completed in this cycle:
     - anonymous IP: 1 view/post/24h
   - excludes admin and author self-views from count
 
-Still pending from this scope:
+### Still pending from this scope
 - E2E testing pass for all blog flows (author/admin/public)
 - Final UX polish pass (spacing/typography consistency, empty states, badges)
 - Optional: migrate any existing placeholder content to blog model documents
 - Optional: add sitemap integration for published blog posts (if not yet automatic)
 
-Manual smoke checklist (latest):
-[ ] Author dashboard and form flows are stable on desktop/mobile
-[ ] Admin queue/review moderation actions are stable and state-safe
-[ ] Public /blog and /blog/:slug render correctly with SEO tags
-[ ] View count policy matches 24-hour dedupe expectations
-[ ] Cover upload/replacement/deletion behavior is correct in R2 + MongoDB
+### Manual smoke checklist (latest)
+- [ ] Author dashboard and form flows are stable on desktop/mobile
+- [ ] Admin queue/review moderation actions are stable and state-safe
+- [ ] Public /blog and /blog/:slug render correctly with SEO tags
+- [ ] View count policy matches 24-hour dedupe expectations
+- [ ] Cover upload/replacement/deletion behavior is correct in R2 + MongoDB
 
 ---
 
-===========================================
-STATUS UPDATE (Feb 27, 2026 - Organizer Event Record UX + Reference Code)
-===========================================
+## STATUS UPDATE (Feb 27, 2026 - Organizer Event Record UX + Reference Code)
 
-Current reality after latest implementation:
+### Current reality after latest implementation
 
-IN PROGRESS:
+### IN PROGRESS
 - Phase 3: Event Creation & Management (advanced)
 - Phase 4: Registration System (account flow active; payment-proof still pending)
 - Phase 6: Dashboards (runner data cards active; organizer UX refinements ongoing)
 
-Completed in this cycle:
+### Completed in this cycle
 - Event creation success flow improved:
   - organizer is redirected to /organizer/events (My Events) after create/publish
 - User-facing language improved:
@@ -107,33 +111,31 @@ Completed in this cycle:
 - Backfill tool added for legacy events:
   - npm run backfill:event-reference-codes
 
-Still pending from this scope:
+### Still pending from this scope
 - Run backfill in target environments and verify no duplicate index/data issues
 - Replace fallback reference-code usage after full backfill completion
 - Optional: surface reference code in registrants/export views for support workflows
 
-Manual smoke checklist (latest):
-[ ] Create event redirects to My Events with success banner
-[ ] Newly created event contains referenceCode in MongoDB
-[ ] Backfill script updates old events without referenceCode
-[ ] Event Record copy buttons work on desktop and mobile
-[ ] Technical details collapse/expand behavior is stable
-[ ] "Event URL" wording appears consistently in organizer screens
+### Manual smoke checklist (latest)
+- [ ] Create event redirects to My Events with success banner
+- [ ] Newly created event contains referenceCode in MongoDB
+- [ ] Backfill script updates old events without referenceCode
+- [ ] Event Record copy buttons work on desktop and mobile
+- [ ] Technical details collapse/expand behavior is stable
+- [ ] "Event URL" wording appears consistently in organizer screens
 
 ---
 
-===========================================
-STATUS UPDATE (Feb 26, 2026 - Organizer Branding & Media Upgrade)
-===========================================
+## STATUS UPDATE (Feb 26, 2026 - Organizer Branding & Media Upgrade)
 
-Current reality after latest implementation:
+### Current reality after latest implementation
 
-IN PROGRESS:
+### IN PROGRESS
 - Phase 3: Event Creation & Management (advanced; branding/media now functional)
 - Phase 4: Registration System (account flow active; payment-proof still pending)
 - Phase 6: Dashboards (runner data cards + organizer media visibility upgraded)
 
-Completed in this cycle:
+### Completed in this cycle
 - Organizer Branding & Media panel reorganized per media type:
   - Event Logo
   - Event Banner
@@ -159,33 +161,31 @@ Completed in this cycle:
 - Upload error mapping improved:
   - 400 errors now show under the correct media field
 
-Still pending from this scope:
+### Still pending from this scope
 - E2E test pass for all media actions on mobile + desktop
 - Guardrails for partial Cloudflare delete failures (orphan cleanup job)
 
-Manual smoke checklist (latest):
-[ ] Create event saves logo/banner/poster/gallery correctly
-[ ] Edit page remove X works immediately for logo/banner/poster
-[ ] Gallery single-remove and remove-all work immediately
-[ ] Removed media no longer appears after page refresh
-[ ] MongoDB media fields match post-remove state
-[ ] Public event details render poster/gallery correctly
-[ ] Mobile form interactions are stable on Chrome Android
+### Manual smoke checklist (latest)
+- [ ] Create event saves logo/banner/poster/gallery correctly
+- [ ] Edit page remove X works immediately for logo/banner/poster
+- [ ] Gallery single-remove and remove-all work immediately
+- [ ] Removed media no longer appears after page refresh
+- [ ] MongoDB media fields match post-remove state
+- [ ] Public event details render poster/gallery correctly
+- [ ] Mobile form interactions are stable on Chrome Android
 
 ---
 
-===========================================
-STATUS UPDATE (Feb 26, 2026 - Runner Dashboard Data + Refactor)
-===========================================
+## STATUS UPDATE (Feb 26, 2026 - Runner Dashboard Data + Refactor)
 
-Current reality after latest implementation:
+### Current reality after latest implementation
 
-IN PROGRESS:
+### IN PROGRESS
 - Phase 3: Event Creation & Management (advanced)
 - Phase 4: Registration System (account flow active; payment-proof still pending)
 - Phase 6: Dashboards (runner dashboard now partially data-driven)
 
-Completed in this cycle:
+### Completed in this cycle
 - Runner dashboard now uses real registration data cards:
   - Upcoming events (based on eventStartAt)
   - Past events
@@ -211,31 +211,29 @@ Completed in this cycle:
 - Running group feature placeholder added on dashboard:
   - "Running groups (create/join) coming soon."
 
-Still pending from this scope:
+### Still pending from this scope
 - Payment proof upload + organizer verification workflow (Phase 4)
 - Runner activity expansion beyond registration events (future)
 - Running group backend (create/join/search) implementation (future)
 
-Manual smoke checklist (latest):
-[ ] Runner dashboard loads without errors for users with 0 registrations
-[ ] Upcoming/Past split follows eventStartAt correctly
-[ ] Continue Payment appears only for unpaid registrations
-[ ] Profile completeness percentage and missing fields are accurate
-[ ] /my-registrations and /runner/dashboard show consistent registration data
-[ ] Runner profile update works via new runner routes/controller
+### Manual smoke checklist (latest)
+- [ ] Runner dashboard loads without errors for users with 0 registrations
+- [ ] Upcoming/Past split follows eventStartAt correctly
+- [ ] Continue Payment appears only for unpaid registrations
+- [ ] Profile completeness percentage and missing fields are accurate
+- [ ] /my-registrations and /runner/dashboard show consistent registration data
+- [ ] Runner profile update works via new runner routes/controller
 
 ---
-===========================================
 CURRENT ACTIVE BACKLOG (Next 2 Sprints)
-===========================================
 
-Sprint A (Immediate):
+### Sprint A (Immediate)
 1. Phase 4 payment proof upload flow (runner side)
 2. Organizer payment verification flow (approve/reject + notes)
 3. Payment status lifecycle polish in runner and organizer views
 4. Smoke tests for registration, waiver, and export flows
 
-Sprint B (After Payment Flow):
+### Sprint B (After Payment Flow)
 1. Runner dashboard iteration 2:
    - richer activity feed (beyond registration events)
    - certificate/stat cards backed by real Phase 5 data when available
@@ -246,28 +244,26 @@ Sprint B (After Payment Flow):
    - runner dashboard data grouping
    - payment workflow regressions
 
-Notes:
-- dir.txt should record file-level implementation history only.
-- wireframe.txt remains the master planning and task document.
+### Notes
+- dir.md should record file-level implementation history only.
+- wireframe.md remains the master planning and task document.
 
 ---
 How we will build helloRun step-by-step
 
-===========================================
 PROJECT OVERVIEW & STATUS (Feb 26, 2026)
-===========================================
 
-COMPLETED PHASES:
+### COMPLETED PHASES
 [DONE] Phase 0: Project Skeleton (Nov 2024) - 100%
 [DONE] Phase 1: Authentication System (Feb 2025) - 100%
 [DONE] Phase 2A: Organizer Signup Flow - 100%
 [DONE] Phase 2B: Organizer Application Forms & Status - 100%
 
-IN PROGRESS:
+### IN PROGRESS
 [IN_PROGRESS] Phase 3: Event Creation & Management (20% scaffolded)
 [IN_PROGRESS] Phase 6: Dashboards (runner dashboard data cards + profile completeness implemented)
 
-UPCOMING PHASES:
+### UPCOMING PHASES
 [PENDING] Phase 4: Registration System (10% scaffolded)
 [PENDING] Phase 5: Submission, Results & Leaderboard (0%)
 [PENDING] Phase 7: Additional Features (Blog planned, 0% implemented)
@@ -275,7 +271,7 @@ UPCOMING PHASES:
 [PENDING] Phase 9: Testing & Optimization
 [PENDING] Phase 10: Production Deployment
 
-QUICK STATS:
+### QUICK STATS
 - Total Users: TBD (after deployment)
 - Total Events: 0 (awaiting Phase 3)
 - Platform Status: Development
@@ -287,7 +283,7 @@ Phase 0: Project skeleton (MVC baseline) [DONE] COMPLETED (Nov 2024)
 
 Goal: You can run the app locally with pages loading.
 
-What you built:
+### What you built
 [DONE] Express server
 [DONE] EJS views with layouts
 [DONE] MVC folders structure
@@ -297,7 +293,7 @@ What you built:
 [DONE] Lucide icons integration
 [DONE] Google Analytics integration (GA4)
 
-What you have after Phase 0:
+### What you have after Phase 0
 [DONE] / home page (fully styled with hero, features, audience sections)
 [DONE] /events events page (UI ready for dynamic content)
 [DONE] /login and /signup pages (fully functional UI with improved password toggle)
@@ -489,9 +485,7 @@ Phase 10: Deployment [DEPLOY] PENDING
 
 ---
 
-===========================================
 FILES STRUCTURE (Updated Feb 19, 2026)
-===========================================
 
 src/
   config/
@@ -598,23 +592,20 @@ src/
 package.json
 package-lock.json
 README.md
-dir.txt
-wireframe.txt
+dir.md
+wireframe.md
 dns.txt
 sitemap.md
-organiser_flow.txt
-user-role-system.txt
-sitetheme.txt
-seo keywords.txt
-current-dir.txt
+organiser_flow.md
+user-role-system.md
+sitetheme.md
+seo key words.md
 
 ---
 
-===========================================
 TECHNICAL STACK (Updated Feb 19, 2026)
-===========================================
 
-Backend:
+### Backend
 [DONE] Node.js + Express
 [DONE] MongoDB + Mongoose
 [DONE] express-session + connect-mongo
@@ -623,14 +614,14 @@ Backend:
 [DONE] UUID for token generation
 [DONE] multer for file uploads
 
-Frontend:
+### Frontend
 [DONE] EJS templating
 [DONE] Lucide icons
 [DONE] Vanilla JavaScript
 [DONE] CSS3 with custom properties
 [DONE] Mobile-first responsive design
 
-Security:
+### Security
 [DONE] Password hashing (bcrypt)
 [DONE] Secure session cookies
 [DONE] Email verification required
@@ -643,13 +634,11 @@ Security:
 
 ---
 
-===========================================
 AUTH MIDDLEWARE (Updated Feb 19, 2026)
-===========================================
 
 File: src/middleware/auth.middleware.js
 
-Exports:
+### Exports
   populateAuthLocals    - Sets res.locals for all views (isAuthenticated, user, isAdmin, isOrganizer, isApprovedOrganizer, isAuthPage)
   redirectIfAuth        - Redirects logged-in users away from /login, /signup (to role-based dashboard)
   requireAuth           - Protects routes requiring login (redirects to /login)
@@ -660,40 +649,36 @@ Exports:
 Usage in server.js:
   app.use(populateAuthLocals)  <- BEFORE all routes
   
-Usage in routes:
+### Usage in routes
   router.get('/login', redirectIfAuth, ...)
   router.get('/dashboard', requireAuth, ...)
   router.get('/admin/*', requireAdmin, ...)
 
 ---
 
-===========================================
 NAVIGATION BEHAVIOR (Updated Feb 19, 2026)
-===========================================
 
-Logged Out:
+### Logged Out
   [Logo] [Home] [Events] [Blog] [Leaderboard] [Login] [Sign Up]
 
-Logged In (Runner):
+### Logged In (Runner)
   [Logo] [Home] [Events] [Blog] [Leaderboard] [Dashboard] [Hi, Name] [Logout]
 
-Logged In (Pending Organizer):
+### Logged In (Pending Organizer)
   [Logo] [Home] [Events] [Blog] [Leaderboard] [My Application] [Hi, Name] [Logout]
 
-Logged In (Approved Organizer):
+### Logged In (Approved Organizer)
   [Logo] [Home] [Events] [Blog] [Leaderboard] [Dashboard] [Hi, Name] [Logout]
 
-Logged In (Admin):
+### Logged In (Admin)
   [Logo] [Home] [Events] [Blog] [Leaderboard] [Admin] [Hi, Name] [Logout]
 
-Auth Page Redirect:
+### Auth Page Redirect
   Logged-in user visits /login or /signup -> redirected to role-based dashboard
 
 ---
 
-===========================================
 TIMELINE TRACKING (Updated Feb 24, 2026)
-===========================================
 
 Phase 0:  [DONE] Completed - Nov 2024
 Phase 1:  [DONE] Completed - Feb 2025
@@ -713,98 +698,92 @@ Estimated remaining: ~17-18 hours
 
 ---
 
-===========================================
 DEPLOYMENT CHECKLIST (Production Ready)
-===========================================
 
-PRE-DEPLOYMENT REQUIREMENTS:
-[ ] Environment Variables
-  [ ] NODE_ENV=production
-  [ ] PORT (assigned by hosting)
-  [ ] MONGODB_URI (production database)
-  [ ] SESSION_SECRET (strong, random)
-  [ ] RESEND_API_KEY (production)
-  [ ] EMAIL_FROM (verified domain)
-  [ ] GA_MEASUREMENT_ID
-  [ ] ADMIN_EMAIL
-  [ ] UPLOAD_MAX_SIZE
-  [ ] UPLOAD_ALLOWED_TYPES
+### PRE-DEPLOYMENT REQUIREMENTS
+- [ ] Environment Variables
+- [ ] NODE_ENV=production
+- [ ] PORT (assigned by hosting)
+- [ ] MONGODB_URI (production database)
+- [ ] SESSION_SECRET (strong, random)
+- [ ] RESEND_API_KEY (production)
+- [ ] EMAIL_FROM (verified domain)
+- [ ] GA_MEASUREMENT_ID
+- [ ] ADMIN_EMAIL
+- [ ] UPLOAD_MAX_SIZE
+- [ ] UPLOAD_ALLOWED_TYPES
 
-[ ] Database Setup
-  [ ] MongoDB Atlas cluster configured
-  [ ] Production database created
-  [ ] Database user with proper permissions
-  [ ] IP whitelist configured
-  [ ] Indexes created
-  [ ] Counter collection initialized
+- [ ] Database Setup
+- [ ] MongoDB Atlas cluster configured
+- [ ] Production database created
+- [ ] Database user with proper permissions
+- [ ] IP whitelist configured
+- [ ] Indexes created
+- [ ] Counter collection initialized
 
-[ ] Email Service
-  [ ] Resend account verified
-  [ ] Domain verified (hellorun.online)
-  [ ] DNS records configured (SPF, DKIM)
-  [ ] Email templates tested
+- [ ] Email Service
+- [ ] Resend account verified
+- [ ] Domain verified (hellorun.online)
+- [ ] DNS records configured (SPF, DKIM)
+- [ ] Email templates tested
 
-[ ] Security Hardening
-  [ ] Rate limiting (express-rate-limit)
-  [ ] Helmet.js for security headers
-  [ ] CORS configured
-  [ ] Input sanitization
-  [ ] Secure session cookies (secure: true, httpOnly: true)
+- [ ] Security Hardening
+- [ ] Rate limiting (express-rate-limit)
+- [ ] Helmet.js for security headers
+- [ ] CORS configured
+- [ ] Input sanitization
+- [ ] Secure session cookies (secure: true, httpOnly: true)
 
-[ ] SSL/HTTPS
-  [ ] SSL certificate
-  [ ] HTTPS redirect
-  [ ] Secure cookies enabled
+- [ ] SSL/HTTPS
+- [ ] SSL certificate
+- [ ] HTTPS redirect
+- [ ] Secure cookies enabled
 
-[ ] Domain & DNS
-  [ ] Domain purchased (hellorun.online)
-  [ ] DNS A record configured
-  [ ] WWW subdomain configured
+- [ ] Domain & DNS
+- [ ] Domain purchased (hellorun.online)
+- [ ] DNS A record configured
+- [ ] WWW subdomain configured
 
-[ ] Analytics & Monitoring
-  [ ] Google Analytics 4 verified
-  [ ] Google Search Console configured
-  [ ] Sitemap submitted
-  [ ] Error tracking (Sentry or similar)
-  [ ] Uptime monitoring
+- [ ] Analytics & Monitoring
+- [ ] Google Analytics 4 verified
+- [ ] Google Search Console configured
+- [ ] Sitemap submitted
+- [ ] Error tracking (Sentry or similar)
+- [ ] Uptime monitoring
 
 ---
 
-===========================================
 BLOG SYSTEM PLAN (Phase 7B - Future)
-===========================================
 
-IMPLEMENTED (current baseline):
+### IMPLEMENTED (current baseline)
 [DONE] Blog model and status workflow
 [DONE] Author dashboard + create/edit/submit flow
 [DONE] Admin queue/review + approve/reject/archive
 [DONE] Public /blog and /blog/:slug
 [DONE] Admin autosave edit endpoint and revision history tracking
 
-BlogPost Model:
+### BlogPost Model
 [PENDING] postId, slug, title, excerpt, content, featuredImage
 [PENDING] authorId, category, tags, status (draft/published/archived)
 [PENDING] publishedAt, views, readTime, SEO fields
 
-Categories:
+### Categories
 [PENDING] Training, Nutrition, Gear, Motivation, Race Tips, Injury Prevention, General
 
-Routes:
+### Routes
 [PENDING] GET /blog, GET /blog/:slug (public)
 [PENDING] GET/POST /admin/blog/* (admin CRUD)
 
-Dependencies to add:
+### Dependencies to add
 [PENDING] slugify, rich text editor (TinyMCE or Quill)
 
 ---
 
-===========================================
 LEADERBOARD PLAN (Phase 5 - Future)
-===========================================
 
 Data Source: Approved submissions from Phase 5
 
-Features:
+### Features
 [PENDING] Top runners by total distance
 [PENDING] Fastest times per event
 [PENDING] Event-specific rankings
@@ -817,11 +796,11 @@ Features:
 
 ---
 
-===========================================
-DETAILED CHANGELOGS -> See dir.txt
-===========================================
-All session-by-session changelogs are maintained in dir.txt.
-This file (wireframe.txt) focuses on phase plans, architecture, and status tracking.
+DETAILED CHANGELOGS -> See dir.md
+All session-by-session changelogs are maintained in dir.md.
+This file (wireframe.md) focuses on phase plans, architecture, and status tracking.
+
+
 
 
 

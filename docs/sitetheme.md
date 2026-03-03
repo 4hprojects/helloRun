@@ -1,4 +1,4 @@
-HelloRun theme
+﻿# HelloRun Theme
 
 HelloRun is about movement, momentum, and shared progress.
 The icon shows a runner stepping forward inside a conversation shape.
@@ -10,47 +10,47 @@ Together, they frame HelloRun as a friendly, social space where running is simpl
 You are not just tracking distance.
 You are joining a conversation around consistency, health, and achievement.
 
-Possible landing page content
+## Possible Landing Page Content
 
-Hero section
+### Hero section
 Run anywhere. Track everything. Celebrate progress together.
 HelloRun helps you join virtual runs, log activities, and stay motivated with a community that moves with you.
 
-What HelloRun does
-• Join virtual fun runs and challenges
-• Track runs, walks, and activities at your pace
-• Submit results online, no GPS required
-• See your progress and milestones in one place
-• Connect with organisers and fellow runners
+### What HelloRun does
+- Join virtual fun runs and challenges
+- Track runs, walks, and activities at your pace
+- Submit results online, no GPS required
+- See your progress and milestones in one place
+- Connect with organisers and fellow runners
 
-Why HelloRun
+### Why HelloRun
 You run on your own schedule.
 You still feel part of something bigger.
 HelloRun keeps it simple so you focus on moving, not managing tools.
 
-For runners
+### For runners
 Log your activity.
 Track your progress.
 Earn recognition for showing up.
 
-For organisers
+### For organisers
 Create events fast.
 Manage participants easily.
 Let runners submit results online.
 
-Call to action
+### Call to action
 Start your first run today.
 Move. Log. Finish.
 
-Hexadecimal color scheme from the icon (excluding white)
+### Hexadecimal color scheme from the icon (excluding white)
 
-Primary warm accent
-• Orange: #FA9A4B
-• Soft orange: #E0A46A
+### Primary warm accent
+- Orange: #FA9A4B
+- Soft orange: #E0A46A
 
-Primary cool base
-• Light blue: #8FD5EC
-• Sky blue: #78C0E9
+### Primary cool base
+- Light blue: #8FD5EC
+- Sky blue: #78C0E9
 
-Neutral support tone
-• Warm beige: #F2EAD3
+### Neutral support tone
+- Warm beige: #F2EAD3
