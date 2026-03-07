@@ -2,6 +2,9 @@ const mongoose = require('mongoose');
 const OrganiserApplication = require('../models/OrganiserApplication');
 const User = require('../models/User');
 const Blog = require('../models/Blog');
+const Event = require('../models/Event');
+const Registration = require('../models/Registration');
+const Submission = require('../models/Submission');
 const emailService = require('../services/email.service');
 
 const VALID_FILTER_STATUSES = ['pending', 'under_review', 'approved', 'rejected'];
@@ -285,7 +288,15 @@ exports.dashboard = async (req, res) => {
       pendingBlogs,
       publishedBlogs,
       rejectedBlogs,
-      archivedBlogs
+      archivedBlogs,
+      totalEvents,
+      publishedEvents,
+      totalRegistrations,
+      pendingPaymentReviews,
+      totalSubmissions,
+      approvedSubmissions,
+      pendingResultReviews,
+      pendingApplicationQueue
     ] =
       await Promise.all([
         User.countDocuments(),
@@ -297,8 +308,30 @@ exports.dashboard = async (req, res) => {
         Blog.countDocuments({ isDeleted: { $ne: true }, status: 'pending' }),
         Blog.countDocuments({ isDeleted: { $ne: true }, status: 'published' }),
         Blog.countDocuments({ isDeleted: { $ne: true }, status: 'rejected' }),
-        Blog.countDocuments({ isDeleted: { $ne: true }, status: 'archived' })
+        Blog.countDocuments({ isDeleted: { $ne: true }, status: 'archived' }),
+        Event.countDocuments(),
+        Event.countDocuments({ status: 'published' }),
+        Registration.countDocuments(),
+        Registration.countDocuments({ paymentStatus: 'proof_submitted' }),
+        Submission.countDocuments(),
+        Submission.countDocuments({ status: 'approved' }),
+        Submission.countDocuments({ status: 'submitted' }),
+        OrganiserApplication.find({ status: { $in: ['pending', 'under_review'] } })
+          .populate('userId', 'firstName lastName email')
+          .sort({ submittedAt: 1 })
+          .limit(8)
+          .lean()
       ]);
+
+    const pendingApplicationsList = pendingApplicationQueue.map((application) => ({
+      id: String(application._id),
+      applicationId: application.applicationId || 'N/A',
+      businessName: application.businessName || 'N/A',
+      status: application.status || 'pending',
+      submittedAt: application.submittedAt || application.createdAt || null,
+      applicantName: [application.userId?.firstName, application.userId?.lastName].filter(Boolean).join(' ').trim() || 'N/A',
+      applicantEmail: application.userId?.email || 'N/A'
+    }));
 
     return res.render('admin/dashboard', {
       title: 'Admin Dashboard - helloRun',
@@ -312,8 +345,16 @@ exports.dashboard = async (req, res) => {
         pendingBlogs,
         publishedBlogs,
         rejectedBlogs,
-        archivedBlogs
-      }
+        archivedBlogs,
+        totalEvents,
+        publishedEvents,
+        totalRegistrations,
+        pendingPaymentReviews,
+        totalSubmissions,
+        approvedSubmissions,
+        pendingResultReviews
+      },
+      pendingApplicationsList
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading the admin dashboard.');

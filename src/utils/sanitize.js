@@ -7,11 +7,11 @@ try {
   sanitizeHtmlLib = null;
 }
 
-function sanitizeHtml(input) {
+function sanitizeHtml(input, options = {}) {
   const html = String(input || '');
 
   if (sanitizeHtmlLib) {
-    return sanitizeHtmlLib(html, {
+    const defaultOptions = {
       allowedTags: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'h2', 'h3', 'blockquote', 'a'],
       allowedAttributes: {
         a: ['href', 'rel', 'target']
@@ -20,7 +20,24 @@ function sanitizeHtml(input) {
       transformTags: {
         a: sanitizeHtmlLib.simpleTransform('a', { rel: 'noopener noreferrer', target: '_blank' }, true)
       }
-    }).trim();
+    };
+
+    const sanitizeOptions = {
+      ...defaultOptions,
+      ...options,
+      allowedTags: Array.isArray(options.allowedTags) ? options.allowedTags : defaultOptions.allowedTags,
+      allowedSchemes: Array.isArray(options.allowedSchemes) ? options.allowedSchemes : defaultOptions.allowedSchemes,
+      allowedAttributes: {
+        ...defaultOptions.allowedAttributes,
+        ...(options.allowedAttributes || {})
+      },
+      transformTags: {
+        ...defaultOptions.transformTags,
+        ...(options.transformTags || {})
+      }
+    };
+
+    return sanitizeHtmlLib(html, sanitizeOptions).trim();
   }
 
   // Fallback sanitizer when dependency is not installed.

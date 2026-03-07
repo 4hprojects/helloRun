@@ -1,18 +1,41 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: 'About - helloRun' }) %>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/static-pages.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  <main style="padding: 2rem; text-align: center; min-height: 60vh; display: flex; align-items: center; justify-content: center;">
-    <div>
-      <h1>About helloRun 👋</h1>
-      <p>We connect runners with races across the country.</p>
+
+  <main class="static-page">
+    <div class="static-wrap">
+      <header class="static-hero">
+        <h1>About helloRun</h1>
+        <p>helloRun helps runners and organizers connect through structured virtual and on-site race experiences.</p>
+      </header>
+
+      <section class="static-grid">
+        <article class="static-card">
+          <h2>What We Do</h2>
+          <p>We provide event discovery, registration, result submission, certificates, and leaderboard visibility in one platform.</p>
+        </article>
+        <article class="static-card">
+          <h2>Who It Is For</h2>
+          <p>Runners tracking personal progress and event organizers managing registrations, proofs, and results at scale.</p>
+        </article>
+      </section>
+
+      <section class="static-card">
+        <h2>Mission</h2>
+        <p>Make running events easier to join, easier to manage, and easier to trust with clear workflows and transparent status tracking.</p>
+      </section>
+
+      <p class="static-note">Need help? Visit <a href="/faq">FAQ</a> or <a href="/contact">contact support</a>.</p>
     </div>
   </main>
+
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if(window.lucide) lucide.createIcons();</script>
+  <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

@@ -1,7 +1,506 @@
-﻿# DOCUMENT ROLE (REPOSITORY TRACKER)
+# DOCUMENT ROLE (REPOSITORY TRACKER)
 - Purpose: File-level repository tracking and chronological implementation changelog.
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See wireframe.md for roadmap, backlog, and detailed tasks.
+
+## CHANGELOG - March 7, 2026 (Session: Organizer Waiver Editor Batches 2-6)
+
+### [SESSION] SESSION UPDATE:
+- Completed organizer waiver editor implementation across create/edit event pages using Quill.
+- Replaced technical raw waiver textarea flow with rich editor + hidden field sync (`waiverTemplate`) for backend compatibility.
+- Added non-technical placeholder insertion controls:
+  - Insert Organizer Name (`{{ORGANIZER_NAME}}`)
+  - Insert Event Title (`{{EVENT_TITLE}}`)
+- Added server-side waiver sanitization in organizer routes with waiver-specific allowlist.
+- Hardened waiver validation to use meaningful plain-text length from rich HTML.
+- Added focused waiver route tests and executed strict smoke checks.
+
+### [NEW] NEW FILES:
+1. tests/organizer-waiver-routes.test.js
+
+### [UPDATED] UPDATED FILES (major):
+1. src/views/organizer/create-event.ejs
+2. src/views/organizer/edit-event.ejs
+3. src/public/css/create-event.css
+4. src/routes/organizer.routes.js
+5. src/utils/sanitize.js
+6. docs/wireframe.md
+
+### MANUAL/TEST CHECKLIST (Latest):
+- [x] `node --test tests/organizer-waiver-routes.test.js` passes (2/2)
+- [x] `node --test tests/organizer-dashboard-analytics.test.js` passes (1/1)
+- [x] Strict waiver smoke script passes (6/6):
+  - organizer login
+  - create-event page editor controls rendered
+  - create-event draft submit works
+  - saved waiver is sanitized and placeholders retained
+  - edit-event page editor controls rendered
+
+## CHANGELOG - March 7, 2026 (Session: Phase 7 Kickoff - Static Pages + Public Search/Filter UX)
+
+### [SESSION] SESSION UPDATE:
+- Implemented Phase 7 static page baseline end-to-end:
+  - `/about`
+  - `/how-it-works`
+  - `/contact`
+  - `/faq`
+  - `/privacy`
+  - `/terms`
+- Added shared static-page styling and route wiring for all six pages.
+- Implemented public list filter/search improvements:
+  - Events page:
+    - query filters (`q`, `eventType`, `distance`, `status`)
+    - results summary + active-filter count
+    - clear-filters action
+    - pagination with filter query persistence
+    - direct page-number links (active page state)
+  - Blog page:
+    - results summary + clear-filters action
+    - filter-aware empty-state message
+  - Leaderboard page:
+    - results summary + active-filter count
+    - conditional clear-filters action
+    - filter-aware empty-state message
+- UX wording consistency pass:
+  - standardized action label to `Clear filters` across filtered public list pages.
+
+### [NEW] NEW FILES:
+1. src/public/css/static-pages.css
+2. src/views/pages/how-it-works.ejs
+3. src/views/pages/contact.ejs
+4. src/views/pages/faq.ejs
+5. src/views/pages/privacy.ejs
+6. src/views/pages/terms.ejs
+7. tests/static-pages.test.js
+8. tests/public-search-filters.test.js
+
+### [UPDATED] UPDATED FILES (major):
+1. src/routes/pageRoutes.js
+2. src/views/pages/about.ejs
+3. src/controllers/page.controller.js
+4. src/views/pages/events.ejs
+5. src/public/css/events.css
+6. src/views/pages/blog.ejs
+7. src/public/css/blog.css
+8. src/views/pages/leaderboard.ejs
+9. src/public/css/leaderboard.css
+10. docs/wireframe.md
+
+### MANUAL/TEST CHECKLIST (Latest):
+- [x] Static public pages render with expected headings (`tests/static-pages.test.js`)
+- [x] Events filters apply correctly and preserve query params through pagination
+- [x] Blog filters apply correctly with clear-filters UX
+- [x] Leaderboard filter summary and clear-filters UX render correctly
+- [x] Public search/filter regression suite passes (`tests/public-search-filters.test.js`)
+
+## CHANGELOG - March 7, 2026 (Session: Phase 5 Optional Notification Expansion)
+
+### [SESSION] SESSION UPDATE:
+- Added runner notification triggers on result review lifecycle:
+  - result approved email
+  - result rejected email
+  - certificate available email (when certificate URL is issued on approval)
+- Notification trigger logic now executes from the shared submission review service path.
+- Added automated coverage to validate notification triggers on approve/reject outcomes.
+- Full regression run completed:
+  - `npm test` passed (39/39).
+
+### [UPDATED] UPDATED FILES (major):
+1. src/services/submission.service.js
+2. src/services/email.service.js
+3. tests/submission.service.test.js
+4. docs/wireframe.md
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [x] Result approval triggers runner notification flow (service-level verified)
+- [x] Result rejection triggers runner notification flow (service-level verified)
+- [x] Certificate availability trigger fires on approval with issued certificate URL
+
+## CHANGELOG - March 7, 2026 (Session: Phase 5 Cross-Device UX Polish Smoke)
+
+### [SESSION] SESSION UPDATE:
+- Executed strict Phase 5 UX smoke flow covering:
+  - runner result submission from `/my-registrations`
+  - organizer result approval from registrants queue
+  - certificate access via `/my-submissions/:submissionId/certificate`
+  - filtered leaderboard rendering (`eventId`, `distance`, `mode`, `period`)
+- Added mobile-readiness verification for key Phase 5 pages by confirming responsive media-query coverage in:
+  - `src/public/css/events.css`
+  - `src/public/css/organizer-events.css`
+  - `src/public/css/leaderboard.css`
+- Found and fixed a responsiveness gap:
+  - added `@media (max-width: 768px)` styles to leaderboard layout
+- Final strict smoke result: 12/12 steps passed.
+
+### [UPDATED] UPDATED FILES (major):
+1. src/public/css/leaderboard.css
+2. docs/wireframe.md
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [x] Runner submit-result flow works end-to-end with valid proof upload
+- [x] Organizer approve flow updates submission status and certificate metadata
+- [x] Runner certificate endpoint returns valid download redirect/access path
+- [x] Leaderboard filter combinations render approved-result data
+- [x] Mobile-readiness checks pass for my-registrations, organizer registrants, and leaderboard pages
+
+## CHANGELOG - March 7, 2026 (Session: Phase 6 Organizer Dashboard Review Queue + Smoke)
+
+### [SESSION] SESSION UPDATE:
+- Implemented organizer dashboard refinement slice:
+  - added pending payment review and pending result review metrics
+  - added actionable review queue links to filtered registrants views
+  - fixed broken quick action links (`/organizer/participants`, `/organizer/settings`)
+  - mapped quick actions to working routes (`/organizer/events`, `/organizer/application-status`)
+- Executed strict organizer dashboard smoke run (scripted manual flow):
+  - final result: 9/9 steps passed
+  - covered dashboard load, queue cards, queue links, quick action routes, and filtered review page access
+
+### [UPDATED] UPDATED FILES (major):
+1. src/routes/organizer.routes.js
+2. src/views/organizer/dashboard.ejs
+3. src/public/css/organizer-dashboard.css
+4. docs/wireframe.md
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [x] Organizer dashboard loads as approved organizer
+- [x] Queue metrics render for pending payment/result reviews
+- [x] Queue links route to filtered registrants views
+- [x] Quick actions avoid broken routes and point to active organizer pages
+
+## CHANGELOG - March 7, 2026 (Session: Phase 6 Organizer Analytics v2)
+
+### [SESSION] SESSION UPDATE:
+- Added organizer dashboard analytics v2 features:
+  - range filter support (`7d`, `30d`, `all`)
+  - range-based metrics (registrations, submissions, approved results)
+  - per-event review queue breakdown with payment/result review links
+  - quick controls for opening next pending payment/result reviews
+- Ran strict organizer analytics smoke script:
+  - final result: 7/7 steps passed
+
+### [UPDATED] UPDATED FILES (major):
+1. src/routes/organizer.routes.js
+2. src/views/organizer/dashboard.ejs
+3. src/public/css/organizer-dashboard.css
+4. docs/wireframe.md
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [x] Organizer dashboard range filter renders and applies
+- [x] Range analytics metrics render for selected window
+- [x] Queue-by-event breakdown renders with actionable links
+- [x] Next pending payment/result quick actions open filtered registrant pages
+
+## CHANGELOG - March 7, 2026 (Session: Phase 6 Runner Dashboard Iteration 2 Closeout)
+
+### [SESSION] SESSION UPDATE:
+- Completed Runner Dashboard iteration 2 polish and validation:
+  - added KPI strip summary on runner dashboard
+  - improved result status visibility and activity-type labeling
+  - preserved filter state (`eventMode`, `resultStatus`, `groupQ`) across dashboard card forms
+  - aligned activity rendering with submission/certificate timeline events
+- Strict smoke/test validation executed:
+  - `node --test tests/runner-dashboard-profile.test.js` -> PASS (2/2)
+  - `node --test tests/running-group-smoke.test.js` -> initial FAIL (legacy `Group Update:` expectation), then PASS after test update
+  - `node --test tests/submission.service.test.js` -> PASS (7/7)
+
+### [UPDATED] UPDATED FILES (major):
+1. src/views/runner/dashboard.ejs
+   - Added KPI strip and improved activity/result card rendering
+2. src/public/css/runner-dashboard.css
+   - Added KPI, status badge, and activity badge styling + responsive adjustments
+3. src/controllers/runner.controller.js
+   - Ensured merged activity consistency for validation-error render path
+4. src/services/submission.service.js
+   - Fixed missing mongoose import for performance snapshot aggregation
+5. tests/running-group-smoke.test.js
+   - Updated dashboard activity assertion to current UI contract
+6. tests/submission.service.test.js
+   - Added performance snapshot coverage
+7. docs/wireframe.md
+   - Marked Sprint B item 1 (Runner dashboard iteration 2) as done
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [x] Runner dashboard/profile regression checks pass
+- [x] Running-group strict smoke script passes against current dashboard UI
+- [x] Submission snapshot/service regression checks pass
+
+## CHANGELOG - March 7, 2026 (Session: Phase 5 Buildout - Submissions, Certificates, Leaderboard, Dashboard Stats)
+
+### [SESSION] SESSION UPDATE:
+- Implemented major Phase 5 delivery milestones:
+  - P5-A submission model + service lifecycle
+  - P5-B runner submit/resubmit result flow
+  - P5-C organizer submission review flow (approve/reject)
+  - P5-D certificate generation + secured runner download endpoint
+  - P5-E live leaderboard page with approved-submission filters
+  - P5-F runner dashboard certificate/stat card integration
+- Added route guards and service coverage for new Phase 5 flows.
+- Executed full regression:
+  - `npm test` passed (36/36).
+
+### [NEW] NEW FILES:
+1. src/services/submission.service.js
+2. src/services/certificate.service.js
+3. src/services/leaderboard.service.js
+4. src/public/css/leaderboard.css
+5. tests/submission.service.test.js
+6. tests/submission-routes.test.js
+7. tests/submission-review-route-guards.test.js
+8. tests/certificate-access.test.js
+9. tests/leaderboard.service.test.js
+
+### [UPDATED] UPDATED FILES (major):
+1. src/models/Submission.js
+   - Added full Phase 5 submission schema fields + indexes
+
+2. src/services/upload.service.js
+   - Added result-proof upload middleware/helpers
+   - Added generic binary buffer upload helper used by certificate issuance
+
+3. src/controllers/page.controller.js
+   - Added result submit/resubmit handlers
+   - Added secured certificate download handler
+   - Added leaderboard render handler integration
+
+4. src/routes/pageRoutes.js
+   - Added:
+     - POST /my-registrations/:registrationId/submit-result
+     - POST /my-registrations/:registrationId/resubmit-result
+     - GET /my-submissions/:submissionId/certificate
+   - Replaced leaderboard placeholder route handler with controller-backed data flow
+
+5. src/routes/organizer.routes.js
+   - Added result review routes:
+     - POST /organizer/events/:id/submissions/:submissionId/approve
+     - POST /organizer/events/:id/submissions/:submissionId/reject
+   - Added result status filtering + summary counts in registrants page context
+
+6. src/controllers/runner.controller.js
+   - Added runner submission/certificate summary integration for dashboard
+
+7. src/views/pages/my-registrations.ejs
+   - Added result submit/resubmit forms + submission lifecycle display
+   - Added certificate download links for approved submissions
+
+8. src/views/organizer/event-registrants.ejs
+   - Added result columns, filters, and organizer approve/reject forms
+
+9. src/views/pages/leaderboard.ejs
+   - Replaced placeholder with live ranking table + filters
+
+10. src/views/runner/dashboard.ejs
+    - Replaced Phase 5 placeholder certificate card with live certificate list/count
+    - Added submission statistics to progress metrics card
+
+11. docs/wireframe.md
+    - Updated Sprint B deferred item and Phase 5 status/progress checkpoints
+
+### Key Behavior Changes
+  - Runners can submit and resubmit result proofs from My Registrations.
+  - Organizers can review submitted results directly in Registrants view.
+  - Approved results now generate downloadable certificates.
+  - Public leaderboard now shows approved-result rankings with filters.
+  - Runner dashboard now displays real submission and certificate metrics.
+
+## CHANGELOG - March 7, 2026 (Session: Sprint B Running Group Integration + Coverage)
+
+### [SESSION] SESSION UPDATE:
+- Completed Sprint B running-group deeper integration and validation:
+  - added running-group detail page with recent activity feed
+  - merged running-group activity into runner dashboard activity log
+  - added strict smoke test automation for running-group flows
+  - added runner profile + dashboard grouping automated coverage
+- Executed regression tests after implementation:
+  - full test suite passed (20/20).
+
+### [NEW] NEW FILES:
+1. src/models/RunningGroupActivity.js
+2. src/views/runner/group-detail.ejs
+3. tests/running-group-smoke.test.js
+4. tests/runner-dashboard-profile.test.js
+
+### [UPDATED] UPDATED FILES (major):
+1. src/services/running-group.service.js
+   - Added group activity logging for create/join/leave actions
+   - Added group lookup by slug and activity query methods
+   - Added current-runner group activity fetch helper
+
+2. src/controllers/runner.controller.js
+   - Added running-group detail page handler
+   - Added merged activity feed behavior (registration + group activity)
+   - Added safe returnTo support for group create/join/leave redirects
+
+3. src/routes/runner.routes.js
+   - Added: GET /runner/groups/:slug
+
+4. src/views/runner/dashboard.ejs
+   - Added links/actions to group detail page
+   - Added mixed activity rendering for running-group updates
+   - Added returnTo hidden fields for group action forms
+
+5. src/public/css/runner-dashboard.css
+   - Added styles for group detail page actions and inline group action layout
+
+6. tests/running-group.service.test.js
+   - Expanded service assertions for activity and slug/current-group helpers
+
+7. docs/wireframe.md
+   - Updated Sprint B backlog and status to reflect completed integration and coverage
+
+### Key Behavior Changes
+  - Runners can open dedicated group pages at /runner/groups/:slug.
+  - Running group create/join/leave actions now produce timeline activity entries.
+  - Runner dashboard activity log now includes group events alongside registrations.
+  - Group action flows preserve origin page via safe returnTo redirects.
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [x] Unauthenticated running-group detail route redirects to /login
+- [x] Runner can create a group and see it on dashboard
+- [x] Group detail page loads and displays recent activity
+- [x] Second runner can join from detail flow and activity reflects join
+
+## CHANGELOG - March 7, 2026 (Session: Phase 4 Payment Proof Workflow + E2E Smoke)
+
+### [SESSION] SESSION UPDATE:
+- Implemented Phase 4 payment proof workflow end-to-end:
+  - runner proof upload/re-upload
+  - organizer approve/reject with notes/reason
+  - payment metadata persistence + status transitions
+  - notification hooks + UI updates
+- Added automated payment workflow regression tests (node:test).
+- Ran strict E2E smoke with seeded users/events/registrations:
+  - submit -> approve/reject -> re-submit -> approve
+  - final result: 13/13 steps passed.
+
+### [NEW] NEW FILES:
+1. src/utils/payment-workflow.js
+2. tests/payment-workflow.test.js
+
+### [UPDATED] UPDATED FILES (major):
+1. src/models/Registration.js
+   - Added payment proof and review metadata fields
+   - Expanded paymentStatus lifecycle
+   - Removed duplicate confirmationCode index declaration (startup warning cleanup)
+
+2. src/services/upload.service.js
+   - Added payment proof upload middleware + R2 helper
+
+3. src/controllers/page.controller.js
+   - Added runner payment proof submit handler
+   - Added transition guards and organizer notification trigger
+
+4. src/routes/pageRoutes.js
+   - Added protected + rate-limited payment proof upload route
+
+5. src/routes/organizer.routes.js
+   - Added approve/reject payment routes
+   - Added payment-status filtering, summary counts, and export columns
+
+6. src/views/pages/my-registrations.ejs
+   - Added runner payment proof form, statuses, and rejection visibility
+
+7. src/views/organizer/event-registrants.ejs
+   - Added organizer payment review controls and payment columns
+
+8. src/public/css/events.css
+9. src/public/css/organizer-events.css
+   - Added Phase 4 UI styles for payment workflow states/forms
+
+10. src/services/email.service.js
+    - Added payment submitted/approved/rejected email functions
+
+11. src/services/runner-data.service.js
+12. src/controllers/runner.controller.js
+    - Updated unpaid logic to include rejected-proof re-submit path
+
+13. package.json
+    - test script now runs node:test suite
+
+### Key Behavior Changes
+  - Runner can now upload payment proof from /my-registrations.
+  - Organizer can approve/reject submitted proof directly from event registrants view.
+  - Rejected proof can be re-submitted; latest approved state clears rejection reason.
+  - Payment workflow state transitions are now validated by shared utility + automated tests.
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [x] Runner can submit payment proof for unpaid registration
+- [x] Organizer can approve submitted proof
+- [x] Organizer can reject submitted proof with reason
+- [x] Runner can see rejection reason and re-submit
+- [x] Re-submission can be approved and finalized as paid
+- [x] Final DB state matches expected payment lifecycle
+- [ ] Inbox-level delivery confirmed for submitted/approved/rejected emails
+
+## CHANGELOG - March 7, 2026 (Session: Phase 4 QA/Polish + Exit Criteria Closeout)
+
+### [SESSION] SESSION UPDATE:
+- Completed Phase 4 stabilization and QA closeout:
+  - added route-level guard tests (auth + ownership + invalid transition)
+  - improved mobile/tablet usability for payment UI in runner and organizer screens
+  - completed registration + waiver + export smoke checks
+- Updated planning status in wireframe.md to mark Phase 4 done within in-app scope.
+
+### [NEW] NEW FILES:
+1. tests/payment-route-guards.test.js
+
+### [UPDATED] UPDATED FILES (major):
+1. src/public/css/organizer-events.css
+   - Responsive improvements for payment action forms, filter controls, and registrants table readability
+
+2. src/public/css/events.css
+   - Improved mobile ergonomics for my-registrations payment-proof form and badge legibility
+
+3. docs/wireframe.md
+   - Added final validation notes and moved Sprint A smoke item + Phase 4 status to done
+
+### Key Behavior Changes
+  - Route-level protections for payment workflow are now covered by automated tests.
+  - Payment review controls are easier to use on small screens.
+  - Runner payment proof UI remains readable and actionable at mobile widths.
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [x] Registration form + waiver submission flow
+- [x] CSV export includes waiver and payment workflow columns
+- [x] XLSX export includes waiver and payment workflow columns
+- [x] Runner payment UI states render as expected (mobile-aware)
+- [x] Organizer payment UI states/actions render as expected (mobile-aware)
+
+## CHANGELOG - March 7, 2026 (Session: Sprint B Running Group Foundation Baseline)
+
+### [SESSION] SESSION UPDATE:
+- Implemented baseline running group feature for runner dashboard:
+  - create, search, join, and leave workflows
+  - current group visibility and popular group listing
+- Added backend model/service and runner endpoints for group operations.
+
+### [NEW] NEW FILES:
+1. src/models/RunningGroup.js
+2. src/services/running-group.service.js
+
+### [UPDATED] UPDATED FILES (major):
+1. src/controllers/runner.controller.js
+   - Dashboard now loads running-group context (current group, top groups, search results)
+   - Added create/join/leave handlers
+
+2. src/routes/runner.routes.js
+   - Added:
+     - POST /runner/groups/create
+     - POST /runner/groups/join
+     - POST /runner/groups/leave
+
+3. src/views/runner/dashboard.ejs
+   - Replaced running-group placeholder with functional UI flows
+
+4. src/public/css/runner-dashboard.css
+   - Added styles for running-group search/create/join/leave blocks
+
+5. docs/wireframe.md
+   - Added Sprint B running-group kickoff status update
+
+### Key Behavior Changes
+  - Runner can create a new running group and auto-join immediately.
+  - Runner can search and join existing running groups.
+  - Runner can leave the current running group from dashboard.
 
 ## CHANGELOG - March 3, 2026 (Session: Documentation Standardization to Markdown + docs/)
 
@@ -820,6 +1319,7 @@ helloRun/
 9. src/server.js - Route prefix cleanup
 10. .gitignore - Updated with upload directories
 11. package.json - Dependencies verified
+
 
 
 

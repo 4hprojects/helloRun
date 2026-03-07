@@ -48,8 +48,46 @@ const registrationSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ['unpaid', 'paid', 'failed', 'refunded'],
+      enum: ['unpaid', 'proof_submitted', 'proof_rejected', 'paid', 'failed', 'refunded'],
       default: 'unpaid'
+    },
+    paymentProof: {
+      url: { type: String, default: '' },
+      key: { type: String, default: '' },
+      mimeType: { type: String, default: '' },
+      size: { type: Number, default: 0 },
+      uploadedAt: { type: Date, default: null },
+      submittedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+      }
+    },
+    paymentSubmissionCount: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    paymentReviewedAt: {
+      type: Date,
+      default: null
+    },
+    paymentReviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    paymentReviewNotes: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: 1000
+    },
+    paymentRejectionReason: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: 500
     },
     waiver: {
       accepted: { type: Boolean, required: true, default: true },
@@ -78,6 +116,5 @@ const registrationSchema = new mongoose.Schema(
 );
 
 registrationSchema.index({ eventId: 1, userId: 1 }, { unique: true });
-registrationSchema.index({ confirmationCode: 1 }, { unique: true });
 
 module.exports = mongoose.models.Registration || mongoose.model('Registration', registrationSchema);

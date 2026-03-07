@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/static-pages.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="static-page">
+    <div class="static-wrap">
+      <header class="static-hero">
+        <h1>Contact</h1>
+        <p>Reach the helloRun team for account, event, or organizer support.</p>
+      </header>
+
+      <section class="static-grid">
+        <article class="static-card">
+          <h2>General Support</h2>
+          <p>Email: <a href="mailto:hellorunonline@gmail.com">hellorunonline@gmail.com</a></p>
+          <p>Typical response time: 24-48 hours.</p>
+        </article>
+        <article class="static-card">
+          <h2>Organizer Concerns</h2>
+          <p>Include your application ID or event reference code so we can resolve issues faster.</p>
+        </article>
+      </section>
+
+      <section class="static-card">
+        <h2>Before You Contact Us</h2>
+        <p>Check the <a href="/faq">FAQ</a> first for common account, registration, payment proof, and result review questions.</p>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

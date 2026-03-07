@@ -3,6 +3,194 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See dir.md for repository-level change history.
 
+## STATUS UPDATE (Mar 7, 2026 - Organizer Create/Edit Waiver UX Hardening)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Replaced raw waiver HTML textarea with a non-technical rich editor (Quill) on organizer create/edit event pages.
+- Added waiver helper controls for placeholder insertion:
+  - `Insert Organizer Name` -> `{{ORGANIZER_NAME}}`
+  - `Insert Event Title` -> `{{EVENT_TITLE}}`
+- Preserved backend compatibility:
+  - editor content syncs to hidden `waiverTemplate` field on change and submit.
+- Added server-side waiver sanitization with a waiver-safe allowlist (including headings/lists/links/div).
+- Hardened waiver validation:
+  - minimum rule now checks plain-text content length from rich HTML.
+- Added waiver route tests:
+  - sanitization persistence on create
+  - rejection of rich HTML shells with insufficient plain text
+- Executed strict waiver smoke script:
+  - 6/6 steps passed (create page render, controls render, draft submit, sanitize persistence, edit page render).
+
+### Still pending from this scope
+- Optional UX refinement:
+  - replace confirm/alert dialogs with inline modal/toast pattern.
+- Optional safety refinement:
+  - sanitize waiver preview rendering on the client side (server sanitization is now active).
+
+## STATUS UPDATE (Mar 7, 2026 - Phase 7 Kickoff: Static Pages + Public Search/Filter UX)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Static page baseline is now implemented and routed:
+  - `/about`
+  - `/how-it-works`
+  - `/contact`
+  - `/faq`
+  - `/privacy`
+  - `/terms`
+- Public events page now supports query-driven filter/search UX:
+  - filters: `q`, `eventType`, `distance`, `status`
+  - results summary with active-filter count
+  - clear-filters action
+  - pagination with preserved query params
+  - direct page-number navigation
+- Public blog listing UX updated with:
+  - results summary
+  - conditional clear-filters action
+  - filter-aware empty-state copy
+- Public leaderboard UX updated with:
+  - results summary with active-filter count
+  - conditional clear-filters action
+  - filter-aware empty-state copy
+- Wording consistency pass completed:
+  - standardized list-page action label to `Clear filters`.
+- Automated validation added:
+  - `tests/static-pages.test.js`
+  - `tests/public-search-filters.test.js`
+
+### Still pending from this scope
+- Notifications-system expansion tasks remain for broader Phase 7 completion.
+- Optional search UX iteration:
+  - quick filter chips
+  - retained “recent search” suggestions
+  - filter state badges in hero/header blocks
+
+## STATUS UPDATE (Mar 7, 2026 - Phase 4 Payment Proof Workflow)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Runner-side payment proof upload flow is live:
+  - POST /my-registrations/:registrationId/payment-proof
+- Organizer verification flow is live:
+  - approve: POST /organizer/events/:id/registrants/:registrationId/payment/approve
+  - reject: POST /organizer/events/:id/registrants/:registrationId/payment/reject
+- Registration data model extended for payment proof + review metadata:
+  - paymentProof, paymentSubmissionCount, paymentReviewedAt/by, reviewNotes, rejectionReason
+- UI updates completed:
+  - runner my-registrations upload/re-upload + rejection reason visibility
+  - organizer registrants table payment status filter + approve/reject action forms
+- Notification hooks added:
+  - proof submitted (organizer), approved (runner), rejected (runner)
+- Automated regression test baseline added:
+  - node:test suite for payment workflow transition rules
+- Strict end-to-end smoke run completed with seeded runner/organizer accounts:
+  - 13/13 steps passed
+  - includes submit -> approve/reject -> re-submit -> approve final state verification
+
+### Still pending from this scope
+- None within in-app Phase 4 scope.
+- External-only follow-up (optional): inbox/provider-level delivery confirmation once Resend log access or real inbox checks are available.
+
+## STATUS UPDATE (Mar 7, 2026 - Sprint B Running Group Foundation Kickoff)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Running group foundation baseline is now implemented:
+  - RunningGroup model
+  - service layer for create/join/leave/search/top groups
+  - runner routes:
+    - POST /runner/groups/create
+    - POST /runner/groups/join
+    - POST /runner/groups/leave
+  - runner dashboard Running Groups section now supports:
+    - current group visibility
+    - search + join
+    - create + auto-join
+    - leave group
+- Added responsive UI styling for new running-group interactions.
+- Added deeper Sprint B integration:
+  - dedicated running-group detail route/page:
+    - GET /runner/groups/:slug
+  - running-group activity persistence and feed rendering
+  - merged dashboard activity stream (registration + running-group events)
+- Added Sprint B automated validation:
+  - running-group strict smoke script:
+    - tests/running-group-smoke.test.js
+  - runner dashboard/profile coverage:
+    - tests/runner-dashboard-profile.test.js
+  - running-group service coverage expanded with activity assertions
+
+### Still pending from this scope
+- None for Sprint B scope.
+
+### Final validation pass (Mar 7, 2026)
+- Route-level automated guards added and passing:
+  - unauthenticated access guards
+  - runner ownership guard
+  - organizer ownership guard
+  - invalid transition guard
+- Registration + waiver + export smoke completed:
+  - 11/11 checks passed (CSV + XLSX payment/waiver columns validated)
+- UI polish verification completed (state-aware):
+  - runner my-registrations payment states
+  - organizer registrants payment filter/actions/proof links
+  - 7/7 checks passed
+- Inbox/provider-level delivery remained out-of-scope for terminal-only verification due restricted Resend key; app-side send path had no runtime failures.
+
+## STATUS UPDATE (Mar 7, 2026 - Phase 5 Core Workflows)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Result submission workflows are live:
+  - POST /my-registrations/:registrationId/submit-result
+  - POST /my-registrations/:registrationId/resubmit-result
+- Organizer result review workflows are live:
+  - POST /organizer/events/:id/submissions/:submissionId/approve
+  - POST /organizer/events/:id/submissions/:submissionId/reject
+- Certificate issuance is active on approved submissions:
+  - GET /my-submissions/:submissionId/certificate
+- Public leaderboard now renders approved-submission rankings with filters:
+  - event, distance, mode, period
+- Runner dashboard certificate/stat cards now use real Phase 5 submission data.
+- Automated guard and service validation expanded for Phase 5 flows.
+
+### Still pending from this scope
+- End-to-end UX polish pass for edge states (empty/filter combinations and mobile readability).
+- Optional notifications expansion for result review/certificate issuance emails.
+
+## STATUS UPDATE (Mar 7, 2026 - Phase 6 Organizer Dashboard Review Queue)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Organizer dashboard now includes review-queue analytics:
+  - pending payment proof reviews
+  - pending result submission reviews
+- Organizer dashboard now includes direct review links:
+  - `/organizer/events/:id/registrants?payment=proof_submitted`
+  - `/organizer/events/:id/registrants?result=submitted`
+- Organizer quick actions were corrected to active routes:
+  - Participants -> `/organizer/events`
+  - Settings -> `/organizer/application-status`
+- Strict organizer dashboard smoke script executed:
+  - 9/9 steps passed
+- Organizer dashboard analytics v2 added:
+  - dashboard range filter (`7d`, `30d`, `all`)
+  - range-based metrics for registrations, submissions, and approvals
+  - per-event queue breakdown with direct payment/result review links
+  - quick actions to open next pending payment/result review
+- Strict organizer analytics v2 smoke script executed:
+  - 7/7 steps passed
+
+### Still pending from this scope
+- Additional organizer analytics cards (trend/period breakdown) if needed for Phase 6 completion.
+
 ## STATUS UPDATE (Mar 3, 2026 - Documentation Structure and Format)
 
 ### Current reality after latest implementation
@@ -228,25 +416,55 @@
 CURRENT ACTIVE BACKLOG (Next 2 Sprints)
 
 ### Sprint A (Immediate)
-1. Phase 4 payment proof upload flow (runner side)
-2. Organizer payment verification flow (approve/reject + notes)
-3. Payment status lifecycle polish in runner and organizer views
-4. Smoke tests for registration, waiver, and export flows
+1. [DONE] Phase 4 payment proof upload flow (runner side)
+2. [DONE] Organizer payment verification flow (approve/reject + notes)
+3. [DONE] Payment status lifecycle polish in runner and organizer views
+4. [DONE] Smoke tests for registration, waiver, and export flows
 
 ### Sprint B (After Payment Flow)
-1. Runner dashboard iteration 2:
-   - richer activity feed (beyond registration events)
-   - certificate/stat cards backed by real Phase 5 data when available
-2. Running group foundation (placeholder currently in UI):
-   - define data model and create/join/search behavior
-3. Test coverage:
-   - runner profile update
-   - runner dashboard data grouping
-   - payment workflow regressions
+1. [DONE] Runner dashboard iteration 2:
+   - [DONE] richer activity feed (registration + running-group + submission/certificate activity)
+   - [DONE] richer activity feed integration via running-group activity events
+   - [DONE] certificate/stat cards backed by real Phase 5 data where available
+   - [DONE] dashboard UX polish (filters/state retention, KPI strip, status/activity badges)
+2. [DONE] Running group foundation:
+   - [DONE] define data model and create/join/search/leave baseline behavior
+   - [DONE] add running-group specific test coverage + deeper dashboard integration
+   - [DONE] add strict smoke automation for running-group detail/join flow
+3. [DONE] Test coverage:
+   - [DONE] runner profile update
+   - [DONE] runner dashboard data grouping
+   - [DONE] payment workflow regressions
 
 ### Notes
 - dir.md should record file-level implementation history only.
 - wireframe.md remains the master planning and task document.
+
+### Sprint B Exit Criteria (Sign-off Gate)
+- [x] Running-group foundation supports create/join/leave/search/top behavior.
+- [x] Dedicated running-group detail page is live (`GET /runner/groups/:slug`).
+- [x] Running-group activity is persisted for create/join/leave actions.
+- [x] Runner dashboard activity feed includes running-group events.
+- [x] Strict running-group smoke automation passes (`tests/running-group-smoke.test.js`).
+- [x] Runner profile update coverage passes (`tests/runner-dashboard-profile.test.js`).
+- [x] Runner dashboard grouping/stats coverage passes (`tests/runner-dashboard-profile.test.js`).
+- [x] Payment workflow regression suite remains green after Sprint B changes.
+- [x] Full automated test suite passes (`npm test`).
+- [x] Phase 5-dependent certificate/stat cards backed by real data.
+
+### Phase 5 Exit Criteria (Sign-off Gate)
+- [x] Runner can submit result proof for paid, active registrations.
+- [x] Runner can resubmit result proof after organizer rejection.
+- [x] Organizer can approve/reject submitted results with ownership and status guards.
+- [x] Approved results trigger certificate issuance metadata on submission records.
+- [x] Runner can download certificate only for own approved submissions.
+- [x] Public leaderboard renders approved submissions only.
+- [x] Leaderboard filters work for event, distance, mode, and period.
+- [x] Runner dashboard certificate/stat cards are backed by real submission data.
+- [x] Automated route/service guard coverage added for submission and certificate flows.
+- [x] Full automated test suite passes (`npm test`).
+- [x] Manual cross-device UX pass completed for submissions/review/leaderboard/certificate download.
+- [x] Optional notification expansion for result review + certificate issuance finalized.
 
 ---
 How we will build helloRun step-by-step
@@ -261,12 +479,12 @@ PROJECT OVERVIEW & STATUS (Feb 26, 2026)
 
 ### IN PROGRESS
 [IN_PROGRESS] Phase 3: Event Creation & Management (20% scaffolded)
-[IN_PROGRESS] Phase 6: Dashboards (runner dashboard data cards + profile completeness implemented)
+[DONE] Phase 4: Registration System (payment proof + verification workflow completed and smoke-tested)
+[IN_PROGRESS] Phase 5: Submission, Results & Leaderboard (core workflows implemented; ongoing polish)
+[IN_PROGRESS] Phase 6: Dashboards (runner dashboard now includes submission/certificate stats)
 
 ### UPCOMING PHASES
-[PENDING] Phase 4: Registration System (10% scaffolded)
-[PENDING] Phase 5: Submission, Results & Leaderboard (0%)
-[PENDING] Phase 7: Additional Features (Blog planned, 0% implemented)
+[IN_PROGRESS] Phase 7: Additional Features (static pages + public search/filter UX baseline implemented)
 [PENDING] Phase 8: Google OAuth (Optional)
 [PENDING] Phase 9: Testing & Optimization
 [PENDING] Phase 10: Production Deployment
@@ -431,37 +649,37 @@ Goal: Runner joins event and uploads payment proof for verification.
 
 ---
 
-Phase 5: Submissions, Results & Leaderboard [RUNNER] PENDING
+Phase 5: Submissions, Results & Leaderboard [RUNNER] IN PROGRESS
 
 Goal: Runner submits run proof, organiser approves, certificate generated, leaderboard populated.
-[PENDING] Submit result (distance, time, proof)
-[PENDING] Organiser review and approve
-[PENDING] Auto-generate certificate PDF
-[PENDING] Download certificate
-[PENDING] Leaderboard page (top runners, fastest times, event rankings)
-[PENDING] Filter leaderboard by event, distance, category
-[PENDING] Public leaderboard (visible to all users)
+[DONE] Submit result (distance, time, proof)
+[DONE] Organiser review and approve
+[DONE] Auto-generate certificate PDF
+[DONE] Download certificate
+[DONE] Leaderboard page (top runners, fastest times, event rankings)
+[DONE] Filter leaderboard by event, distance, category
+[DONE] Public leaderboard (visible to all users)
 [DONE] /leaderboard route + placeholder page (Feb 19, 2026)
 [DONE] Nav link added (Feb 19, 2026)
 
 ---
 
-Phase 6: Dashboards & Analytics [ANALYTICS] IN PROGRESS (runner module foundation)
+Phase 6: Dashboards & Analytics [ANALYTICS] IN PROGRESS (core runner/organizer/admin baseline delivered)
 
-[PENDING] Runner Dashboard (upcoming events, past events, certificates)
-[PENDING] Organiser Dashboard (event overview, participant stats)
-[PENDING] Admin Dashboard (platform stats, user growth, pending applications)
+[DONE] Runner Dashboard baseline (upcoming, past, results, certificates, activity, running groups)
+[DONE] Organiser Dashboard baseline (event overview, review queues, analytics ranges/trends, top events)
+[DONE] Admin Dashboard baseline (platform stats + pending organizer applications queue)
 
 ---
 
-Phase 7: Additional Pages & Features [FEATURES] PENDING
+Phase 7: Additional Pages & Features [FEATURES] IN PROGRESS
 
-[PENDING] Static pages (/about, /how-it-works, /contact, /faq, /privacy, /terms)
+[DONE] Static pages (/about, /how-it-works, /contact, /faq, /privacy, /terms)
 [IN_PROGRESS] Blog system:
   [DONE] Phase A foundation (author/admin/public pages, moderation, SEO, view policy)
   [DONE] Admin inline edit + autosave + revision history
   [PENDING] comments/likes and advanced growth features
-[PENDING] Search & filters
+[IN_PROGRESS] Search & filters (public events/blog/leaderboard baseline delivered)
 [PENDING] Notifications system
 
 ---

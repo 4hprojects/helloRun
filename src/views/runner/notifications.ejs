@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/runner-notifications.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="notifications-page">
+    <section class="notifications-shell">
+      <header class="notifications-header">
+        <h1>Notifications</h1>
+        <p>Track updates for your registrations, results, certificates, and group activity.</p>
+      </header>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <section class="notifications-toolbar">
+        <p>
+          Unread: <strong><%= notifications.unreadCount || 0 %></strong>
+          <% if (notifications.unreadOnly) { %>
+            (showing unread only)
+          <% } %>
+        </p>
+        <div class="notifications-toolbar-actions">
+          <a href="/runner/notifications?<%= notifications.unreadOnly ? '' : 'unread=1' %>" class="btn btn-secondary">
+            <%= notifications.unreadOnly ? 'Show All' : 'Show Unread' %>
+          </a>
+          <% if ((notifications.unreadCount || 0) > 0) { %>
+            <form method="POST" action="/runner/notifications/read-all">
+              <input type="hidden" name="returnTo" value="/runner/notifications<%= notifications.unreadOnly ? '?unread=1' : '' %>">
+              <button type="submit" class="btn">Mark All Read</button>
+            </form>
+          <% } %>
+        </div>
+      </section>
+
+      <% if (notifications.items && notifications.items.length) { %>
+        <ul class="notification-list">
+          <% notifications.items.forEach((item) => { %>
+            <li class="notification-item <%= item.isRead ? 'is-read' : 'is-unread' %>">
+              <div class="notification-main">
+                <p class="notification-title"><%= item.title %></p>
+                <p class="notification-message"><%= item.message %></p>
+                <p class="notification-meta">
+                  <span><%= item.createdAtLabel %></span>
+                  <span class="notification-type"><%= item.type %></span>
+                </p>
+                <% if (item.href) { %>
+                  <p><a href="<%= item.href %>">Open related page</a></p>
+                <% } %>
+              </div>
+              <% if (!item.isRead) { %>
+                <form method="POST" action="/runner/notifications/<%= item._id %>/read">
+                  <input type="hidden" name="returnTo" value="/runner/notifications<%= notifications.unreadOnly ? '?unread=1' : '' %>">
+                  <button type="submit" class="btn btn-secondary">Mark Read</button>
+                </form>
+              <% } %>
+            </li>
+          <% }) %>
+        </ul>
+
+        <% if (notifications.totalPages > 1) { %>
+          <nav class="notifications-pagination" aria-label="Notifications pagination">
+            <% const base = `/runner/notifications?${new URLSearchParams({ unread: notifications.unreadOnly ? '1' : '' }).toString()}`; %>
+            <% const prev = Math.max(1, notifications.page - 1); %>
+            <% const next = Math.min(notifications.totalPages, notifications.page + 1); %>
+            <a href="<%= base %>&page=<%= prev %>" class="btn btn-secondary <%= notifications.page === 1 ? 'disabled' : '' %>">Previous</a>
+            <span>Page <%= notifications.page %> of <%= notifications.totalPages %></span>
+            <a href="<%= base %>&page=<%= next %>" class="btn btn-secondary <%= notifications.page === notifications.totalPages ? 'disabled' : '' %>">Next</a>
+          </nav>
+        <% } %>
+      <% } else { %>
+        <div class="empty-state">
+          <h2>No notifications yet</h2>
+          <p>New updates will appear here.</p>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

@@ -120,6 +120,46 @@ exports.uploadBlogCover = (req, res, next) => {
   });
 };
 
+exports.uploadPaymentProof = (req, res, next) => {
+  const uploadSingle = upload.single('paymentProofFile');
+
+  uploadSingle(req, res, (err) => {
+    if (!err) {
+      req.uploadError = null;
+      req.uploadErrorField = null;
+      next();
+      return;
+    }
+    req.uploadErrorField = err.field || err.fieldName || 'paymentProofFile';
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      req.uploadError = `Payment proof exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`;
+    } else {
+      req.uploadError = err.message || 'Payment proof upload failed.';
+    }
+    next();
+  });
+};
+
+exports.uploadResultProof = (req, res, next) => {
+  const uploadSingle = upload.single('resultProofFile');
+
+  uploadSingle(req, res, (err) => {
+    if (!err) {
+      req.uploadError = null;
+      req.uploadErrorField = null;
+      next();
+      return;
+    }
+    req.uploadErrorField = err.field || err.fieldName || 'resultProofFile';
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      req.uploadError = `Result proof exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`;
+    } else {
+      req.uploadError = err.message || 'Result proof upload failed.';
+    }
+    next();
+  });
+};
+
 exports.uploadOrganizerDocsToR2 = async ({ userId, idProofFile, businessProofFile }) => {
   assertR2Configured();
 
@@ -192,6 +232,57 @@ exports.uploadBlogCoverToR2 = async ({ userId, coverImageFile }) => {
     file: coverImageFile,
     category: 'blog/covers'
   });
+};
+
+exports.uploadPaymentProofToR2 = async ({ userId, paymentProofFile }) => {
+  assertR2Configured();
+  if (!paymentProofFile) {
+    throw new Error('Payment proof file is required.');
+  }
+  return uploadFileToR2({
+    userId,
+    file: paymentProofFile,
+    category: 'payments/proofs'
+  });
+};
+
+exports.uploadResultProofToR2 = async ({ userId, resultProofFile }) => {
+  assertR2Configured();
+  if (!resultProofFile) {
+    throw new Error('Result proof file is required.');
+  }
+  return uploadFileToR2({
+    userId,
+    file: resultProofFile,
+    category: 'results/proofs'
+  });
+};
+
+exports.uploadBufferToR2 = async ({ userId, buffer, contentType, category, fileName }) => {
+  assertR2Configured();
+  if (!buffer || !Buffer.isBuffer(buffer) || !buffer.length) {
+    throw new Error('Binary file buffer is required.');
+  }
+
+  const extension = getSafeExtension(fileName || 'file.bin');
+  const originalBase = String(fileName || 'file').replace(/\.[^.]+$/, '');
+  const sanitizedBase = originalBase.replace(/[^a-z0-9_-]/gi, '_').toLowerCase().slice(0, 80) || 'file';
+  const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+  const key = `${String(category || 'misc/files').replace(/^\/+|\/+$/g, '')}/${String(userId || 'unknown')}/${uniqueSuffix}-${sanitizedBase}${extension}`;
+
+  await r2Client.send(
+    new PutObjectCommand({
+      Bucket: r2Config.bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: String(contentType || 'application/octet-stream')
+    })
+  );
+
+  return {
+    key,
+    url: buildPublicUrl(key)
+  };
 };
 
 exports.deleteObjects = async (keys = []) => {

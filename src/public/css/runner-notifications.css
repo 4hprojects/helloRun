@@ -1,0 +1,149 @@
+.notifications-page {
+  min-height: calc(100vh - 220px);
+  background: #f8fafc;
+  padding: 1.5rem 1rem 2.5rem;
+}
+
+.notifications-shell {
+  max-width: 900px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.notifications-header h1 {
+  margin: 0 0 0.35rem;
+}
+
+.notifications-header p {
+  margin: 0;
+  color: #64748b;
+}
+
+.notifications-toolbar {
+  margin-top: 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.notifications-toolbar p {
+  margin: 0;
+  color: #334155;
+}
+
+.notifications-toolbar-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.notification-list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.notification-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.notification-item.is-unread {
+  border-color: #7dd3fc;
+  background: #f0f9ff;
+}
+
+.notification-item.is-read {
+  opacity: 0.92;
+}
+
+.notification-title {
+  margin: 0 0 0.25rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.notification-message {
+  margin: 0 0 0.35rem;
+  color: #334155;
+}
+
+.notification-meta {
+  margin: 0;
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.notification-type {
+  background: #e2e8f0;
+  color: #334155;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+
+.notifications-pagination {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+}
+
+.btn.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.page-message {
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+  margin-top: 0.8rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.page-message-success {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #166534;
+}
+
+.page-message-error {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
+
+.empty-state {
+  margin-top: 1rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .notifications-page {
+    padding: 1rem 0.7rem 2rem;
+  }
+
+  .notification-item {
+    flex-direction: column;
+  }
+}

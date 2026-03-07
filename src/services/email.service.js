@@ -1246,3 +1246,246 @@ exports.sendEventRegistrationConfirmationEmail = async (
     throw error;
   }
 };
+
+exports.sendPaymentProofSubmittedEmailToOrganizer = async (
+  organizerEmail,
+  organizerFirstName,
+  runnerName,
+  eventTitle,
+  confirmationCode
+) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: organizerEmail,
+      subject: `Payment Proof Submitted: ${eventTitle}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#0f172a;">Payment Proof Needs Review</h2>
+          <p>Hi ${escapeHtml(organizerFirstName || 'Organizer')},</p>
+          <p>${escapeHtml(runnerName || 'A runner')} submitted payment proof for <strong>${escapeHtml(eventTitle || 'an event')}</strong>.</p>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode || 'N/A')}</p>
+          </div>
+          <p>Review the submission in your organizer registrants dashboard.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send payment proof submission email to organizer');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Email service error:', error);
+    throw error;
+  }
+};
+
+exports.sendPaymentApprovedEmailToRunner = async (
+  runnerEmail,
+  runnerFirstName,
+  eventTitle,
+  confirmationCode
+) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: runnerEmail,
+      subject: `Payment Approved: ${eventTitle}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#166534;">Payment Approved</h2>
+          <p>Hi ${escapeHtml(runnerFirstName || 'Runner')},</p>
+          <p>Your payment for <strong>${escapeHtml(eventTitle || 'your event')}</strong> has been approved.</p>
+          <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode || 'N/A')}</p>
+          </div>
+          <p>Your registration is now marked as paid.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send payment approved email');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Email service error:', error);
+    throw error;
+  }
+};
+
+exports.sendPaymentRejectedEmailToRunner = async (
+  runnerEmail,
+  runnerFirstName,
+  eventTitle,
+  confirmationCode,
+  rejectionReason,
+  reviewNotes
+) => {
+  try {
+    const reasonText = escapeHtml(rejectionReason || 'Payment proof did not pass verification.');
+    const notesText = escapeHtml(reviewNotes || '');
+
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: runnerEmail,
+      subject: `Payment Rejected: ${eventTitle}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#991b1b;">Payment Proof Rejected</h2>
+          <p>Hi ${escapeHtml(runnerFirstName || 'Runner')},</p>
+          <p>Your payment proof for <strong>${escapeHtml(eventTitle || 'your event')}</strong> was rejected.</p>
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0 0 8px;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode || 'N/A')}</p>
+            <p style="margin:0 0 8px;"><strong>Reason:</strong> ${reasonText}</p>
+            ${notesText ? `<p style="margin:0;"><strong>Notes:</strong> ${notesText}</p>` : ''}
+          </div>
+          <p>Please upload a new payment proof from your My Registrations page.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send payment rejected email');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Email service error:', error);
+    throw error;
+  }
+};
+
+exports.sendResultApprovedEmailToRunner = async (
+  runnerEmail,
+  runnerFirstName,
+  eventTitle,
+  confirmationCode,
+  elapsedLabel
+) => {
+  if (!process.env.RESEND_API_KEY) {
+    return { skipped: true };
+  }
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: runnerEmail,
+      subject: `Result Approved: ${eventTitle}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#166534;">Result Approved</h2>
+          <p>Hi ${escapeHtml(runnerFirstName || 'Runner')},</p>
+          <p>Your submitted result for <strong>${escapeHtml(eventTitle || 'your event')}</strong> has been approved.</p>
+          <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0 0 8px;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode || 'N/A')}</p>
+            <p style="margin:0;"><strong>Official Time:</strong> ${escapeHtml(elapsedLabel || 'N/A')}</p>
+          </div>
+          <p>Your ranking and results are now reflected on the leaderboard.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send result approved email');
+    }
+    return data;
+  } catch (error) {
+    console.error('Email service error:', error);
+    throw error;
+  }
+};
+
+exports.sendResultRejectedEmailToRunner = async (
+  runnerEmail,
+  runnerFirstName,
+  eventTitle,
+  confirmationCode,
+  rejectionReason,
+  reviewNotes
+) => {
+  if (!process.env.RESEND_API_KEY) {
+    return { skipped: true };
+  }
+  try {
+    const reasonText = escapeHtml(rejectionReason || 'Result proof did not pass verification.');
+    const notesText = escapeHtml(reviewNotes || '');
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: runnerEmail,
+      subject: `Result Rejected: ${eventTitle}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#991b1b;">Result Rejected</h2>
+          <p>Hi ${escapeHtml(runnerFirstName || 'Runner')},</p>
+          <p>Your result for <strong>${escapeHtml(eventTitle || 'your event')}</strong> was rejected.</p>
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0 0 8px;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode || 'N/A')}</p>
+            <p style="margin:0 0 8px;"><strong>Reason:</strong> ${reasonText}</p>
+            ${notesText ? `<p style="margin:0;"><strong>Notes:</strong> ${notesText}</p>` : ''}
+          </div>
+          <p>Please upload an updated proof from your My Registrations page and resubmit.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send result rejected email');
+    }
+    return data;
+  } catch (error) {
+    console.error('Email service error:', error);
+    throw error;
+  }
+};
+
+exports.sendCertificateIssuedEmailToRunner = async (
+  runnerEmail,
+  runnerFirstName,
+  eventTitle,
+  confirmationCode,
+  certificateUrl
+) => {
+  if (!process.env.RESEND_API_KEY) {
+    return { skipped: true };
+  }
+  try {
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: runnerEmail,
+      subject: `Certificate Available: ${eventTitle}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#0f172a;">Your Certificate Is Ready</h2>
+          <p>Hi ${escapeHtml(runnerFirstName || 'Runner')},</p>
+          <p>Your certificate for <strong>${escapeHtml(eventTitle || 'your event')}</strong> is now available.</p>
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0 0 8px;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode || 'N/A')}</p>
+            <p style="margin:0;"><a href="${escapeHtml(certificateUrl)}">Download Certificate</a></p>
+          </div>
+          <p>You can also access this from your My Registrations page.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send certificate issued email');
+    }
+    return data;
+  } catch (error) {
+    console.error('Email service error:', error);
+    throw error;
+  }
+};
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}

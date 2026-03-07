@@ -24,6 +24,30 @@
     <% if (message) { %>
       <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
     <% } %>
+    <% if (errors && Object.keys(errors).length) { %>
+      <div class="page-message page-message-error">
+        <%= Object.values(errors).join(' ') %>
+      </div>
+    <% } %>
+
+    <section class="dashboard-kpis" aria-label="Runner dashboard summary">
+      <article class="kpi-card">
+        <small>Upcoming Events</small>
+        <strong><%= stats?.upcoming || 0 %></strong>
+      </article>
+      <article class="kpi-card">
+        <small>Pending Results</small>
+        <strong><%= submissionStats?.submitted || 0 %></strong>
+      </article>
+      <article class="kpi-card">
+        <small>Certificates</small>
+        <strong><%= submissionStats?.certificates || 0 %></strong>
+      </article>
+      <article class="kpi-card">
+        <small>Total Approved Distance</small>
+        <strong><%= Number(performanceStats?.totalDistanceKm || 0).toFixed(2) %> km</strong>
+      </article>
+    </section>
 
     <div class="dashboard-grid">
       <section class="dashboard-card profile-card">
@@ -32,8 +56,17 @@
             <i data-lucide="user"></i>
             Personal Information
           </h2>
+          <button
+            type="button"
+            class="card-toggle-btn"
+            data-toggle-target="runnerPersonalInfoPanel"
+            aria-controls="runnerPersonalInfoPanel"
+            aria-expanded="false"
+          >
+            Show Details
+          </button>
         </div>
-        <div class="card-content">
+        <div class="card-content" id="runnerPersonalInfoPanel" hidden>
           <div class="profile-completeness">
             <div class="profile-completeness-header">
               <strong>Profile Completeness</strong>
@@ -52,88 +85,50 @@
             <% } %>
           </div>
 
-          <form method="POST" action="/runner/profile" class="profile-form" id="runnerProfileForm">
-            <div class="form-grid">
-              <label class="form-field">
-                <span>First Name *</span>
-                <input type="text" name="firstName" value="<%= profileData.firstName || '' %>" required>
-                <% if (errors.firstName) { %><small class="error-text"><%= errors.firstName %></small><% } %>
-              </label>
-
-              <label class="form-field">
-                <span>Last Name *</span>
-                <input type="text" name="lastName" value="<%= profileData.lastName || '' %>" required>
-                <% if (errors.lastName) { %><small class="error-text"><%= errors.lastName %></small><% } %>
-              </label>
-
-              <label class="form-field">
-                <span>Email</span>
-                <input type="email" value="<%= user.email || '' %>" readonly>
-              </label>
-
-              <label class="form-field">
-                <span>Mobile</span>
-                <input type="text" name="mobile" value="<%= profileData.mobile || '' %>" placeholder="e.g. +1 555 123 4567">
-                <% if (errors.mobile) { %><small class="error-text"><%= errors.mobile %></small><% } %>
-              </label>
-
-              <label class="form-field">
-                <span>Country</span>
-                <select name="country">
-                  <option value="">Select country (optional)</option>
-                  <% (countries || []).forEach((item) => { %>
-                    <option value="<%= item.code %>" <%= profileData.country === item.code ? 'selected' : '' %>><%= item.name %></option>
-                  <% }) %>
-                </select>
-                <% if (errors.country) { %><small class="error-text"><%= errors.country %></small><% } %>
-              </label>
-
-              <label class="form-field">
-                <span>Date of Birth</span>
-                <input type="date" name="dateOfBirth" value="<%= profileData.dateOfBirth || '' %>" max="<%= new Date().toISOString().slice(0, 10) %>">
-                <% if (errors.dateOfBirth) { %><small class="error-text"><%= errors.dateOfBirth %></small><% } %>
-              </label>
-
-              <label class="form-field">
-                <span>Gender</span>
-                <select name="gender">
-                  <option value="" <%= !profileData.gender ? 'selected' : '' %>>Not set</option>
-                  <option value="prefer_not_to_say" <%= profileData.gender === 'prefer_not_to_say' ? 'selected' : '' %>>Prefer not to say</option>
-                  <option value="male" <%= profileData.gender === 'male' ? 'selected' : '' %>>Male</option>
-                  <option value="female" <%= profileData.gender === 'female' ? 'selected' : '' %>>Female</option>
-                  <option value="non_binary" <%= profileData.gender === 'non_binary' ? 'selected' : '' %>>Non-binary</option>
-                </select>
-                <% if (errors.gender) { %><small class="error-text"><%= errors.gender %></small><% } %>
-              </label>
-
-              <label class="form-field">
-                <span>Emergency Contact Name</span>
-                <input type="text" name="emergencyContactName" value="<%= profileData.emergencyContactName || '' %>">
-                <% if (errors.emergencyContactName) { %><small class="error-text"><%= errors.emergencyContactName %></small><% } %>
-              </label>
-
-              <label class="form-field">
-                <span>Emergency Contact Number</span>
-                <input type="text" name="emergencyContactNumber" value="<%= profileData.emergencyContactNumber || '' %>">
-                <% if (errors.emergencyContactNumber) { %><small class="error-text"><%= errors.emergencyContactNumber %></small><% } %>
-              </label>
-
-              <label class="form-field form-field-full">
-                <span>Running Group (Optional)</span>
-                <input type="text" name="runningGroup" list="running-group-options" value="<%= profileData.runningGroup || '' %>" placeholder="Search or type a running group">
-                <datalist id="running-group-options">
-                  <% (runningGroups || []).forEach((groupName) => { %>
-                    <option value="<%= groupName %>"></option>
-                  <% }) %>
-                </datalist>
-                <% if (errors.runningGroup) { %><small class="error-text"><%= errors.runningGroup %></small><% } %>
-              </label>
+          <% const selectedCountry = (countries || []).find((item) => item.code === profileData.country); %>
+          <dl class="profile-readonly-grid">
+            <div class="profile-readonly-item">
+              <dt>First Name</dt>
+              <dd><%= profileData.firstName || 'Not set' %></dd>
             </div>
-
-            <div class="profile-actions">
-              <button type="submit" class="btn-secondary" id="saveProfileBtn">Save Profile</button>
+            <div class="profile-readonly-item">
+              <dt>Last Name</dt>
+              <dd><%= profileData.lastName || 'Not set' %></dd>
             </div>
-          </form>
+            <div class="profile-readonly-item">
+              <dt>Email</dt>
+              <dd><%= user.email || 'Not set' %></dd>
+            </div>
+            <div class="profile-readonly-item">
+              <dt>Mobile</dt>
+              <dd><%= profileData.mobile || 'Not set' %></dd>
+            </div>
+            <div class="profile-readonly-item">
+              <dt>Country</dt>
+              <dd><%= selectedCountry?.name || 'Not set' %></dd>
+            </div>
+            <div class="profile-readonly-item">
+              <dt>Date of Birth</dt>
+              <dd><%= profileData.dateOfBirth || 'Not set' %></dd>
+            </div>
+            <div class="profile-readonly-item">
+              <dt>Gender</dt>
+              <dd><%= profileData.gender || 'Not set' %></dd>
+            </div>
+            <div class="profile-readonly-item">
+              <dt>Emergency Contact Name</dt>
+              <dd><%= profileData.emergencyContactName || 'Not set' %></dd>
+            </div>
+            <div class="profile-readonly-item">
+              <dt>Emergency Contact Number</dt>
+              <dd><%= profileData.emergencyContactNumber || 'Not set' %></dd>
+            </div>
+            <div class="profile-readonly-item profile-readonly-item-full">
+              <dt>Running Group</dt>
+              <dd><%= profileData.runningGroup || 'Not set' %></dd>
+            </div>
+          </dl>
+          <p class="profile-readonly-note">Profile editing is temporarily disabled on this dashboard.</p>
         </div>
       </section>
 
@@ -145,6 +140,17 @@
           </h2>
         </div>
         <div class="card-content card-content-list">
+          <form method="GET" action="/runner/dashboard" class="card-toolbar">
+            <label for="eventModeUpcoming">Mode filter</label>
+            <select id="eventModeUpcoming" name="eventMode">
+              <option value="" <%= !dashboardFilters?.eventMode ? 'selected' : '' %>>All</option>
+              <option value="virtual" <%= dashboardFilters?.eventMode === 'virtual' ? 'selected' : '' %>>Virtual</option>
+              <option value="onsite" <%= dashboardFilters?.eventMode === 'onsite' ? 'selected' : '' %>>On-site</option>
+            </select>
+            <input type="hidden" name="resultStatus" value="<%= dashboardFilters?.resultStatus || '' %>">
+            <input type="hidden" name="groupQ" value="<%= runningGroupFeature?.query || '' %>">
+            <button type="submit" class="btn btn-secondary">Apply</button>
+          </form>
           <% if (cards.upcoming && cards.upcoming.length) { %>
             <ul class="item-list">
               <% cards.upcoming.forEach((item) => { %>
@@ -183,6 +189,7 @@
           </h2>
         </div>
         <div class="card-content card-content-list">
+          <small class="card-toolbar-note">Mode filter is shared with Upcoming Events.</small>
           <% if (cards.past && cards.past.length) { %>
             <ul class="item-list">
               <% cards.past.forEach((item) => { %>
@@ -210,6 +217,62 @@
       <section class="dashboard-card">
         <div class="card-header">
           <h2>
+            <i data-lucide="timer"></i>
+            Result Submissions
+          </h2>
+        </div>
+        <div class="card-content card-content-list">
+          <form method="GET" action="/runner/dashboard" class="card-toolbar">
+            <label for="resultStatus">Result status</label>
+            <select id="resultStatus" name="resultStatus">
+              <option value="" <%= !dashboardFilters?.resultStatus ? 'selected' : '' %>>All</option>
+              <option value="submitted" <%= dashboardFilters?.resultStatus === 'submitted' ? 'selected' : '' %>>Submitted</option>
+              <option value="approved" <%= dashboardFilters?.resultStatus === 'approved' ? 'selected' : '' %>>Approved</option>
+              <option value="rejected" <%= dashboardFilters?.resultStatus === 'rejected' ? 'selected' : '' %>>Rejected</option>
+            </select>
+            <input type="hidden" name="eventMode" value="<%= dashboardFilters?.eventMode || '' %>">
+            <input type="hidden" name="groupQ" value="<%= runningGroupFeature?.query || '' %>">
+            <button type="submit" class="btn btn-secondary">Apply</button>
+          </form>
+          <% if (cards.results && cards.results.length) { %>
+            <ul class="item-list">
+              <% cards.results.forEach((item) => { %>
+                <li class="item-row">
+                  <div>
+                    <strong>
+                      <% if (item.eventSlug) { %>
+                        <a href="/events/<%= item.eventSlug %>"><%= item.eventTitle %></a>
+                      <% } else { %>
+                        <%= item.eventTitle %>
+                      <% } %>
+                    </strong>
+                    <small><%= item.elapsedLabel %> | <%= Number(item.distanceKm || 0).toFixed(2) %> km | <%= String(item.proofType || 'manual').toUpperCase() %></small>
+                    <small>Status: <span class="status-pill status-<%= item.status %>"><%= item.status %></span></small>
+                    <% if (item.submittedAtLabel && item.submittedAtLabel !== 'TBA') { %>
+                      <small>Submitted: <%= item.submittedAtLabel %></small>
+                    <% } %>
+                    <% if (item.reviewedAtLabel && item.reviewedAtLabel !== 'TBA') { %>
+                      <small>Reviewed: <%= item.reviewedAtLabel %></small>
+                    <% } %>
+                    <% if (item.rejectionReason) { %>
+                      <small>Reason: <%= item.rejectionReason %></small>
+                    <% } %>
+                  </div>
+                  <% if (item.certificateUrl) { %>
+                    <a href="/my-submissions/<%= item.submissionId %>/certificate" class="btn btn-secondary">Certificate</a>
+                  <% } %>
+                </li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <p>No result submissions yet for this filter.</p>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="dashboard-card">
+        <div class="card-header">
+          <h2>
             <i data-lucide="activity"></i>
             Activity Log
           </h2>
@@ -220,9 +283,22 @@
               <% cards.activity.forEach((item) => { %>
                 <li class="item-row">
                   <div>
-                    <strong>Registered: <%= item.eventTitle %></strong>
+                    <% if (item.type === 'group_activity') { %>
+                      <strong><span class="activity-pill activity-group">Group</span> <%= item.groupName %></strong>
+                      <small><%= item.message %></small>
+                    <% } else if (item.type === 'result_submitted' || item.type === 'result_approved' || item.type === 'result_rejected' || item.type === 'certificate_issued') { %>
+                      <strong>
+                        <span class="activity-pill activity-result">
+                          <%= item.type === 'certificate_issued' ? 'Certificate' : 'Result' %>
+                        </span>
+                        <%= item.eventTitle %>
+                      </strong>
+                      <small><%= item.message %></small>
+                    <% } else { %>
+                      <strong><span class="activity-pill activity-registration">Registration</span> <%= item.eventTitle %></strong>
+                      <small>Code: <code><%= item.confirmationCode %></code></small>
+                    <% } %>
                     <small><%= item.atLabel %></small>
-                    <small>Code: <code><%= item.confirmationCode %></code></small>
                   </div>
                 </li>
               <% }) %>
@@ -240,9 +316,32 @@
             Certificates Earned
           </h2>
         </div>
-        <div class="card-content">
-          <p>Certificates will be available after result approvals (Phase 5).</p>
-          <p><strong>Current:</strong> 0 certificates</p>
+        <div class="card-content card-content-list">
+          <p><strong>Total Distance (Approved):</strong> <%= Number(performanceStats?.totalDistanceKm || 0).toFixed(2) %> km</p>
+          <p><strong>Completed Events:</strong> <%= performanceStats?.completedEvents || 0 %></p>
+          <% if (personalBest) { %>
+            <p><strong>Personal Best:</strong> <%= personalBest.elapsedLabel %> (<%= personalBest.raceDistance || 'N/A' %>)</p>
+            <small><%= personalBest.eventTitle %></small>
+          <% } %>
+          <p><strong>Total Certificates:</strong> <%= submissionStats?.certificates || 0 %></p>
+          <% if (cards.certificates && cards.certificates.length) { %>
+            <ul class="item-list compact">
+              <% cards.certificates.forEach((item) => { %>
+                <li class="item-row">
+                  <div>
+                    <strong><%= item.eventTitle %></strong>
+                    <small>Issued: <%= item.issuedAtLabel %></small>
+                    <% if (item.confirmationCode) { %>
+                      <small>Code: <code><%= item.confirmationCode %></code></small>
+                    <% } %>
+                  </div>
+                  <a href="/my-submissions/<%= item.submissionId %>/certificate" class="btn btn-secondary">Download</a>
+                </li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <p>No certificates yet. Approved results will appear here.</p>
+          <% } %>
         </div>
       </section>
 
@@ -260,6 +359,11 @@
             <li class="item-row"><strong>Past</strong><span><%= stats.past %></span></li>
             <li class="item-row"><strong>Unpaid</strong><span><%= stats.unpaid %></span></li>
             <li class="item-row"><strong>Paid</strong><span><%= stats.paid %></span></li>
+            <li class="item-row"><strong>Total Results</strong><span><%= submissionStats?.total || 0 %></span></li>
+            <li class="item-row"><strong>Pending Review</strong><span><%= submissionStats?.submitted || 0 %></span></li>
+            <li class="item-row"><strong>Approved Results</strong><span><%= submissionStats?.approved || 0 %></span></li>
+            <li class="item-row"><strong>Rejected Results</strong><span><%= submissionStats?.rejected || 0 %></span></li>
+            <li class="item-row"><strong>Certificates</strong><span><%= submissionStats?.certificates || 0 %></span></li>
           </ul>
           <a href="/my-registrations" class="btn btn-secondary">Open My Registrations</a>
         </div>
@@ -272,8 +376,97 @@
             Running Groups
           </h2>
         </div>
-        <div class="card-content">
-          <p>Running groups (create/join) coming soon.</p>
+        <div class="card-content card-content-list">
+          <% const currentGroup = runningGroupFeature?.currentGroup; %>
+          <% const topGroups = runningGroupFeature?.topGroups || []; %>
+          <% const searchResults = runningGroupFeature?.searchResults || []; %>
+          <% const groupQuery = runningGroupFeature?.query || ''; %>
+
+          <% if (currentGroup) { %>
+            <div class="runner-group-current">
+              <strong>Current Group:</strong>
+              <span>
+                <a href="/runner/groups/<%= currentGroup.slug %>"><%= currentGroup.name %></a>
+                (<%= currentGroup.memberCount || 0 %> members)
+              </span>
+              <form method="POST" action="/runner/groups/leave">
+                <input type="hidden" name="returnTo" value="/runner/dashboard">
+                <button type="submit" class="btn btn-warning">Leave Group</button>
+              </form>
+            </div>
+          <% } else { %>
+            <p>You are not currently in a running group.</p>
+          <% } %>
+
+          <form method="GET" action="/runner/dashboard" class="runner-group-search">
+            <label for="groupQ">Search running groups</label>
+            <div class="runner-group-search-row">
+              <input id="groupQ" type="search" name="groupQ" value="<%= groupQuery %>" placeholder="Search by group name">
+              <button type="submit" class="btn-secondary">Search</button>
+            </div>
+          </form>
+
+          <% if (groupQuery) { %>
+            <div class="runner-group-list-block">
+              <strong>Search results</strong>
+              <% if (searchResults.length) { %>
+                <ul class="item-list compact">
+                  <% searchResults.forEach((group) => { %>
+                    <li class="item-row">
+                      <div>
+                        <strong><a href="/runner/groups/<%= group.slug %>"><%= group.name %></a></strong>
+                        <small><%= group.memberCount || 0 %> members</small>
+                      </div>
+                      <div class="runner-group-inline-actions">
+                        <a href="/runner/groups/<%= group.slug %>" class="btn-secondary">View</a>
+                        <form method="POST" action="/runner/groups/join">
+                          <input type="hidden" name="groupId" value="<%= group._id %>">
+                          <input type="hidden" name="returnTo" value="/runner/dashboard">
+                          <button type="submit" class="btn-secondary">Join</button>
+                        </form>
+                      </div>
+                    </li>
+                  <% }) %>
+                </ul>
+              <% } else { %>
+                <p>No running groups match your search.</p>
+              <% } %>
+            </div>
+          <% } %>
+
+          <div class="runner-group-list-block">
+            <strong>Popular groups</strong>
+            <% if (topGroups.length) { %>
+              <ul class="item-list compact">
+                <% topGroups.forEach((group) => { %>
+                  <li class="item-row">
+                    <div>
+                      <strong><a href="/runner/groups/<%= group.slug %>"><%= group.name %></a></strong>
+                      <small><%= group.memberCount || 0 %> members</small>
+                    </div>
+                    <div class="runner-group-inline-actions">
+                      <a href="/runner/groups/<%= group.slug %>" class="btn-secondary">View</a>
+                      <form method="POST" action="/runner/groups/join">
+                        <input type="hidden" name="groupId" value="<%= group._id %>">
+                        <input type="hidden" name="returnTo" value="/runner/dashboard">
+                        <button type="submit" class="btn-secondary">Join</button>
+                      </form>
+                    </div>
+                  </li>
+                <% }) %>
+              </ul>
+            <% } else { %>
+              <p>No running groups yet.</p>
+            <% } %>
+          </div>
+
+          <form method="POST" action="/runner/groups/create" class="runner-group-create">
+            <strong>Create a running group</strong>
+            <input type="hidden" name="returnTo" value="/runner/dashboard">
+            <input type="text" name="name" maxlength="120" required placeholder="Group name">
+            <textarea name="description" maxlength="400" rows="3" placeholder="Optional description"></textarea>
+            <button type="submit" class="btn-secondary">Create Group</button>
+          </form>
         </div>
       </section>
     </div>

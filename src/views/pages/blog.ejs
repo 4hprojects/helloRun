@@ -57,6 +57,12 @@
           </div>
           <button type="submit" class="btn btn-primary filter-submit">Apply</button>
         </form>
+        <p class="blog-results-meta">
+          Showing <strong><%= filterMeta?.totalPosts || 0 %></strong> post<%= (filterMeta?.totalPosts || 0) === 1 ? '' : 's' %>.
+          <% if (filterMeta?.hasActiveFilters) { %>
+            <a href="/blog" class="blog-clear-link">Clear filters</a>
+          <% } %>
+        </p>
         <% if (!locals.isAuthenticated) { %>
           <small class="login-note-compact">Login required to write. <a href="/login?redirect=/blogs/me/new">Sign in</a></small>
         <% } %>
@@ -140,7 +146,7 @@
         <% } else { %>
           <div class="blog-empty">
             <i data-lucide="file-text" class="empty-icon"></i>
-            <p>No published blog posts yet.</p>
+            <p><%= filterMeta?.hasActiveFilters ? 'No blog posts matched your filters.' : 'No published blog posts yet.' %></p>
             <% if (locals.isAuthenticated) { %>
               <a href="/blogs/me/new" class="btn btn-primary">Write the first post</a>
             <% } else { %>

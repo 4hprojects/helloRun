@@ -43,6 +43,30 @@
           <strong>On-site</strong>
           <span><%= summary.onsiteCount %></span>
         </div>
+        <div class="summary-card">
+          <strong>Proof Submitted</strong>
+          <span><%= summary.proofSubmittedCount %></span>
+        </div>
+        <div class="summary-card">
+          <strong>Paid</strong>
+          <span><%= summary.paidCount %></span>
+        </div>
+        <div class="summary-card">
+          <strong>Proof Rejected</strong>
+          <span><%= summary.proofRejectedCount %></span>
+        </div>
+        <div class="summary-card">
+          <strong>Results Submitted</strong>
+          <span><%= summary.submissionSubmittedCount %></span>
+        </div>
+        <div class="summary-card">
+          <strong>Results Approved</strong>
+          <span><%= summary.submissionApprovedCount %></span>
+        </div>
+        <div class="summary-card">
+          <strong>Results Rejected</strong>
+          <span><%= summary.submissionRejectedCount %></span>
+        </div>
       </section>
 
       <form method="GET" action="/organizer/events/<%= event._id %>/registrants" class="filter-bar">
@@ -62,6 +86,25 @@
           <% (eventRaceDistances || []).forEach((distance) => { %>
             <option value="<%= distance %>" <%= selectedDistance === distance ? 'selected' : '' %>><%= distance %></option>
           <% }) %>
+        </select>
+
+        <label for="payment">Payment</label>
+        <select id="payment" name="payment">
+          <option value="" <%= !selectedPaymentStatus ? 'selected' : '' %>>All</option>
+          <option value="unpaid" <%= selectedPaymentStatus === 'unpaid' ? 'selected' : '' %>>Unpaid</option>
+          <option value="proof_submitted" <%= selectedPaymentStatus === 'proof_submitted' ? 'selected' : '' %>>Proof Submitted</option>
+          <option value="proof_rejected" <%= selectedPaymentStatus === 'proof_rejected' ? 'selected' : '' %>>Proof Rejected</option>
+          <option value="paid" <%= selectedPaymentStatus === 'paid' ? 'selected' : '' %>>Paid</option>
+          <option value="failed" <%= selectedPaymentStatus === 'failed' ? 'selected' : '' %>>Failed</option>
+          <option value="refunded" <%= selectedPaymentStatus === 'refunded' ? 'selected' : '' %>>Refunded</option>
+        </select>
+
+        <label for="result">Result</label>
+        <select id="result" name="result">
+          <option value="" <%= !selectedResultStatus ? 'selected' : '' %>>All</option>
+          <option value="submitted" <%= selectedResultStatus === 'submitted' ? 'selected' : '' %>>Submitted</option>
+          <option value="approved" <%= selectedResultStatus === 'approved' ? 'selected' : '' %>>Approved</option>
+          <option value="rejected" <%= selectedResultStatus === 'rejected' ? 'selected' : '' %>>Rejected</option>
         </select>
 
         <button type="submit" class="btn btn-secondary">Apply</button>
@@ -86,6 +129,12 @@
                 <th>Mode</th>
                 <th>Distance</th>
                 <th>Status</th>
+                <th>Payment</th>
+                <th>Proof</th>
+                <th>Review</th>
+                <th>Result</th>
+                <th>Result Proof</th>
+                <th>Result Review</th>
                 <th>Registered At</th>
               </tr>
             </thead>
@@ -119,6 +168,98 @@
                   <td><span class="mode-badge mode-<%= registration.participationMode %>"><%= registration.participationMode %></span></td>
                   <td><%= registration.raceDistance || 'N/A' %></td>
                   <td><%= registration.status %></td>
+                  <td><%= registration.paymentStatus || 'N/A' %></td>
+                  <td>
+                    <% if (registration.paymentProof && registration.paymentProof.url) { %>
+                      <a href="<%= registration.paymentProof.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">View proof</a>
+                      <% if (registration.paymentProofUploadedAtLabel) { %>
+                        <br>
+                        <small><%= registration.paymentProofUploadedAtLabel %></small>
+                      <% } %>
+                    <% } else { %>
+                      <span>N/A</span>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (registration.paymentStatus === 'proof_submitted') { %>
+                      <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= registration._id %>/payment/approve" class="payment-action-form">
+                        <textarea name="reviewNotes" rows="2" maxlength="1000" placeholder="Optional review notes"></textarea>
+                        <button type="submit" class="btn btn-sm">Approve</button>
+                      </form>
+                      <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= registration._id %>/payment/reject" class="payment-action-form">
+                        <textarea name="rejectionReason" rows="2" maxlength="500" required placeholder="Required rejection reason"></textarea>
+                        <textarea name="reviewNotes" rows="2" maxlength="1000" placeholder="Optional review notes"></textarea>
+                        <button type="submit" class="btn btn-secondary btn-sm">Reject</button>
+                      </form>
+                    <% } else { %>
+                      <% if (registration.paymentReviewedAtLabel) { %>
+                        <small>Reviewed: <%= registration.paymentReviewedAtLabel %></small>
+                      <% } else { %>
+                        <small>No pending action</small>
+                      <% } %>
+                      <% if (registration.paymentRejectionReason) { %>
+                        <br>
+                        <small>Reason: <%= registration.paymentRejectionReason %></small>
+                      <% } %>
+                      <% if (registration.paymentReviewNotes) { %>
+                        <br>
+                        <small>Notes: <%= registration.paymentReviewNotes %></small>
+                      <% } %>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (registration.submission) { %>
+                      <span class="mode-badge mode-<%= registration.submission.status %>"><%= registration.submission.status %></span>
+                      <br>
+                      <small><strong>Distance:</strong> <%= Number(registration.submission.distanceKm || 0).toFixed(2) %> km</small>
+                      <br>
+                      <small><strong>Elapsed:</strong> <%= registration.submission.elapsedLabel || 'N/A' %></small>
+                      <br>
+                      <small><strong>Type:</strong> <%= String(registration.submission.proofType || 'manual').toUpperCase() %></small>
+                      <% if (registration.submission.submittedAtLabel) { %>
+                        <br>
+                        <small><strong>Submitted:</strong> <%= registration.submission.submittedAtLabel %></small>
+                      <% } %>
+                    <% } else { %>
+                      <small>No submission</small>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (registration.submission?.proof?.url) { %>
+                      <a href="<%= registration.submission.proof.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">View result proof</a>
+                    <% } else { %>
+                      <small>N/A</small>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (registration.submission && registration.submission.status === 'submitted') { %>
+                      <form method="POST" action="/organizer/events/<%= event._id %>/submissions/<%= registration.submission._id %>/approve" class="payment-action-form">
+                        <textarea name="reviewNotes" rows="2" maxlength="1200" placeholder="Optional review notes"></textarea>
+                        <button type="submit" class="btn btn-sm">Approve Result</button>
+                      </form>
+                      <form method="POST" action="/organizer/events/<%= event._id %>/submissions/<%= registration.submission._id %>/reject" class="payment-action-form">
+                        <textarea name="rejectionReason" rows="2" maxlength="500" required placeholder="Required rejection reason"></textarea>
+                        <textarea name="reviewNotes" rows="2" maxlength="1200" placeholder="Optional review notes"></textarea>
+                        <button type="submit" class="btn btn-secondary btn-sm">Reject Result</button>
+                      </form>
+                    <% } else if (registration.submission) { %>
+                      <% if (registration.submission.reviewedAtLabel) { %>
+                        <small>Reviewed: <%= registration.submission.reviewedAtLabel %></small>
+                      <% } else { %>
+                        <small>No pending action</small>
+                      <% } %>
+                      <% if (registration.submission.rejectionReason) { %>
+                        <br>
+                        <small>Reason: <%= registration.submission.rejectionReason %></small>
+                      <% } %>
+                      <% if (registration.submission.reviewNotes) { %>
+                        <br>
+                        <small>Notes: <%= registration.submission.reviewNotes %></small>
+                      <% } %>
+                    <% } else { %>
+                      <small>No submission</small>
+                    <% } %>
+                  </td>
                   <td><%= registration.registeredAt ? new Date(registration.registeredAt).toLocaleString('en-US') : 'N/A' %></td>
                 </tr>
               <% }) %>

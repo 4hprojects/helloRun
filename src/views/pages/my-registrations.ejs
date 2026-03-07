@@ -14,10 +14,22 @@
         <p>Track your registered events and confirmation details.</p>
       </header>
 
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
       <% if (registrations && registrations.length) { %>
         <div class="my-reg-grid">
           <% registrations.forEach((registration) => { %>
             <article class="my-reg-card">
+              <% const paymentLabelMap = {
+                unpaid: 'Unpaid',
+                proof_submitted: 'Proof Submitted',
+                proof_rejected: 'Proof Rejected',
+                paid: 'Paid',
+                failed: 'Failed',
+                refunded: 'Refunded'
+              }; %>
               <h3>
                 <% if (registration.eventId && registration.eventId.slug) { %>
                   <a href="/events/<%= registration.eventId.slug %>"><%= registration.eventId.title %></a>
@@ -29,8 +41,62 @@
               <p><strong>Distance:</strong> <%= registration.raceDistance || 'N/A' %></p>
               <p><strong>Mode:</strong> <%= registration.participationMode %></p>
               <p><strong>Status:</strong> <%= registration.status %></p>
-              <p><strong>Payment:</strong> <%= registration.paymentStatus %></p>
+              <p>
+                <strong>Payment:</strong>
+                <span class="mode-badge mode-<%= registration.paymentStatus %>">
+                  <%= paymentLabelMap[registration.paymentStatus] || registration.paymentStatus %>
+                </span>
+              </p>
               <p><strong>Registered:</strong> <%= registration.registeredAt ? new Date(registration.registeredAt).toLocaleString('en-US') : 'N/A' %></p>
+              <% if (registration.paymentProof && registration.paymentProof.uploadedAt) { %>
+                <p><strong>Proof Submitted:</strong> <%= new Date(registration.paymentProof.uploadedAt).toLocaleString('en-US') %></p>
+              <% } %>
+              <% if (registration.paymentReviewedAt) { %>
+                <p><strong>Reviewed:</strong> <%= new Date(registration.paymentReviewedAt).toLocaleString('en-US') %></p>
+              <% } %>
+              <% if (registration.paymentRejectionReason) { %>
+                <p><strong>Rejection Reason:</strong> <%= registration.paymentRejectionReason %></p>
+              <% } %>
+              <% if (registration.paymentReviewNotes) { %>
+                <p><strong>Review Notes:</strong> <%= registration.paymentReviewNotes %></p>
+              <% } %>
+              <% const submission = registration.submission || null; %>
+              <% const submissionLabelMap = {
+                submitted: 'Submitted',
+                approved: 'Approved',
+                rejected: 'Rejected'
+              }; %>
+              <% const canSubmitResult = registration.paymentStatus === 'paid'
+                && registration.status !== 'cancelled'
+                && registration.status !== 'refunded'
+                && (!submission || submission.status === 'rejected'); %>
+              <% if (submission) { %>
+                <p>
+                  <strong>Result Submission:</strong>
+                  <span class="mode-badge mode-<%= submission.status %>">
+                    <%= submissionLabelMap[submission.status] || submission.status %>
+                  </span>
+                </p>
+                <p><strong>Distance (km):</strong> <%= Number(submission.distanceKm || 0).toFixed(2) %></p>
+                <p><strong>Elapsed:</strong> <%= new Date(Number(submission.elapsedMs || 0)).toISOString().slice(11, 19) %></p>
+                <p><strong>Proof Type:</strong> <%= String(submission.proofType || 'manual').toUpperCase() %></p>
+                <% if (submission.status === 'approved') { %>
+                  <p>
+                    <strong>Certificate:</strong>
+                    <% if (submission.certificate?.url) { %>
+                      <a href="/my-submissions/<%= submission._id %>/certificate">Download Certificate</a>
+                    <% } else { %>
+                      Generating...
+                    <% } %>
+                  </p>
+                <% } %>
+                <% if (submission.rejectionReason) { %>
+                  <p><strong>Result Rejection:</strong> <%= submission.rejectionReason %></p>
+                <% } %>
+                <% if (submission.reviewNotes) { %>
+                  <p><strong>Result Review Notes:</strong> <%= submission.reviewNotes %></p>
+                <% } %>
+              <% } %>
               <p><strong>DOB:</strong> <%= dateLabel(registration.participant?.dateOfBirth) %></p>
               <p><strong>Gender:</strong> <%= genderLabel(registration.participant?.gender) %></p>
               <p>
@@ -44,6 +110,69 @@
               <% if (registration.eventId) { %>
                 <p><strong>Event Start:</strong> <%= registration.eventId.eventStartAt ? new Date(registration.eventId.eventStartAt).toLocaleString('en-US') : 'TBA' %></p>
                 <p><strong>Location:</strong> <%= [registration.eventId.venueName, registration.eventId.city, countryName(registration.eventId.country)].filter(Boolean).join(', ') || 'TBA' %></p>
+              <% } %>
+              <% if (registration.paymentStatus === 'unpaid' || registration.paymentStatus === 'proof_rejected') { %>
+                <form
+                  method="POST"
+                  action="/my-registrations/<%= registration._id %>/payment-proof"
+                  enctype="multipart/form-data"
+                  class="payment-proof-form"
+                >
+                  <label for="paymentProofFile-<%= registration._id %>"><strong>Upload Payment Proof</strong> (JPG, PNG, PDF up to 5MB)</label>
+                  <input
+                    id="paymentProofFile-<%= registration._id %>"
+                    name="paymentProofFile"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                    required
+                  >
+                  <button type="submit" class="btn">Submit Proof</button>
+                </form>
+              <% } %>
+              <% if (canSubmitResult) { %>
+                <form
+                  method="POST"
+                  action="/my-registrations/<%= registration._id %>/<%= submission && submission.status === 'rejected' ? 'resubmit-result' : 'submit-result' %>"
+                  enctype="multipart/form-data"
+                  class="payment-proof-form"
+                >
+                  <label for="distanceKm-<%= registration._id %>"><strong><%= submission && submission.status === 'rejected' ? 'Resubmit Result' : 'Submit Result' %></strong></label>
+                  <input
+                    id="distanceKm-<%= registration._id %>"
+                    name="distanceKm"
+                    type="number"
+                    min="0.1"
+                    max="500"
+                    step="0.01"
+                    placeholder="Distance in km"
+                    value="<%= submission ? submission.distanceKm : '' %>"
+                    required
+                  >
+                  <input
+                    id="elapsedTime-<%= registration._id %>"
+                    name="elapsedTime"
+                    type="text"
+                    pattern="^\d{1,2}:[0-5]\d:[0-5]\d$"
+                    placeholder="Elapsed time HH:MM:SS"
+                    value="<%= submission ? new Date(Number(submission.elapsedMs || 0)).toISOString().slice(11, 19) : '' %>"
+                    required
+                  >
+                  <select name="proofType" required>
+                    <option value="gps" <%= submission?.proofType === 'gps' ? 'selected' : '' %>>GPS</option>
+                    <option value="photo" <%= submission?.proofType === 'photo' ? 'selected' : '' %>>Photo</option>
+                    <option value="manual" <%= !submission || submission?.proofType === 'manual' ? 'selected' : '' %>>Manual</option>
+                  </select>
+                  <textarea name="proofNotes" rows="3" placeholder="Optional notes (device, app, route details)"><%= submission?.proofNotes || '' %></textarea>
+                  <label for="resultProofFile-<%= registration._id %>">Result proof file (JPG, PNG, PDF up to 5MB)</label>
+                  <input
+                    id="resultProofFile-<%= registration._id %>"
+                    name="resultProofFile"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+                    required
+                  >
+                  <button type="submit" class="btn"><%= submission && submission.status === 'rejected' ? 'Resubmit Result' : 'Submit Result' %></button>
+                </form>
               <% } %>
             </article>
           <% }) %>

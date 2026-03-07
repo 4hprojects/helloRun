@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/static-pages.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="static-page">
+    <div class="static-wrap">
+      <header class="static-hero">
+        <h1>Privacy Policy</h1>
+        <p>How helloRun collects, uses, and protects your information.</p>
+      </header>
+
+      <section class="static-card">
+        <h2>Information We Collect</h2>
+        <p>Account details, registration data, event participation records, proof uploads, and activity needed to operate the platform.</p>
+      </section>
+
+      <section class="static-card">
+        <h2>How We Use Data</h2>
+        <ul>
+          <li>Provide event registration and result workflows.</li>
+          <li>Enable organizer reviews and certifications.</li>
+          <li>Send essential transactional emails.</li>
+          <li>Improve platform reliability and abuse prevention.</li>
+        </ul>
+      </section>
+
+      <section class="static-card">
+        <h2>Data Sharing</h2>
+        <p>We only share operational data with service providers required to run helloRun (for example hosting, storage, and email delivery).</p>
+      </section>
+
+      <p class="static-note">Questions about privacy: <a href="mailto:hellorunonline@gmail.com">hellorunonline@gmail.com</a>.</p>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

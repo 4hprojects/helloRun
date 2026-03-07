@@ -5,17 +5,34 @@ const XLSX = require('xlsx');
 const User = require('../models/User');
 const Event = require('../models/Event');
 const Registration = require('../models/Registration');
+const Submission = require('../models/Submission');
 const OrganiserApplication = require('../models/OrganiserApplication');
 const uploadService = require('../services/upload.service');
 const emailService = require('../services/email.service');
+const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const { requireAuth, requireApprovedOrganizer } = require('../middleware/auth.middleware');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
 const { DEFAULT_WAIVER_TEMPLATE, normalizeWaiverTemplate } = require('../utils/waiver');
+const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
 const { generateUniqueReferenceCode } = require('../utils/referenceCode');
+const { canOrganizerReviewPaymentProof } = require('../utils/payment-workflow');
+const { reviewSubmission } = require('../services/submission.service');
 
 const countries = getCountries();
 const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K']);
 const MAX_GALLERY_IMAGES = 12;
+const WAIVER_SANITIZE_OPTIONS = Object.freeze({
+  allowedTags: ['div', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'a'],
+  allowedAttributes: {
+    a: ['href', 'rel', 'target'],
+    div: ['class']
+  }
+});
+const paymentReviewActionLimiter = createRateLimiter({
+  windowMs: 5 * 60 * 1000,
+  maxRequests: 60,
+  message: 'Too many payment review actions. Please wait before trying again.'
+});
 
 /* ==========================================
    GET: Organizer Dashboard
@@ -48,6 +65,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     });
 
     const now = new Date();
+    const dashboardRange = normalizeOrganizerDashboardRange(req.query.range);
+    const rangeLabel = getOrganizerDashboardRangeLabel(dashboardRange);
+    const rangeWindow = getOrganizerDashboardRangeWindow(dashboardRange, now);
     const eventQuery = { organizerId: user._id };
 
     const [totalEvents, activeEvents, upcomingEvents, recentEventDocs, organizerEventIdDocs] = await Promise.all([
@@ -61,7 +81,38 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const organizerEventIds = organizerEventIdDocs.map((eventDoc) => eventDoc._id);
     const recentEventIds = recentEventDocs.map((eventDoc) => eventDoc._id);
 
-    const [totalRegistrations, recentRegistrationCounts] = await Promise.all([
+    const baseEventFilter = organizerEventIds.length ? { eventId: { $in: organizerEventIds } } : null;
+    const registrationRangeFilter = baseEventFilter
+      ? buildDateBoundFilter(baseEventFilter, 'registeredAt', rangeWindow.currentStartAt, rangeWindow.currentEndAt)
+      : null;
+    const submissionRangeFilter = baseEventFilter
+      ? buildDateBoundFilter(baseEventFilter, 'submittedAt', rangeWindow.currentStartAt, rangeWindow.currentEndAt)
+      : null;
+    const previousRegistrationRangeFilter = baseEventFilter && rangeWindow.previousStartAt && rangeWindow.previousEndAt
+      ? buildDateBoundFilter(baseEventFilter, 'registeredAt', rangeWindow.previousStartAt, rangeWindow.previousEndAt)
+      : null;
+    const previousSubmissionRangeFilter = baseEventFilter && rangeWindow.previousStartAt && rangeWindow.previousEndAt
+      ? buildDateBoundFilter(baseEventFilter, 'submittedAt', rangeWindow.previousStartAt, rangeWindow.previousEndAt)
+      : null;
+
+    const [
+      totalRegistrations,
+      recentRegistrationCounts,
+      pendingPaymentReviews,
+      pendingResultReviews,
+      nextPaymentReview,
+      nextResultReview,
+      registrationsInRange,
+      submissionsInRange,
+      approvalsInRange,
+      registrationsInPreviousRange,
+      submissionsInPreviousRange,
+      approvalsInPreviousRange,
+      paymentQueueCounts,
+      resultQueueCounts,
+      topRegistrationsRaw,
+      topApprovalsRaw
+    ] = await Promise.all([
       organizerEventIds.length
         ? Registration.countDocuments({ eventId: { $in: organizerEventIds } })
         : 0,
@@ -69,6 +120,72 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         ? Registration.aggregate([
             { $match: { eventId: { $in: recentEventIds } } },
             { $group: { _id: '$eventId', count: { $sum: 1 } } }
+          ])
+        : [],
+      organizerEventIds.length
+        ? Registration.countDocuments({ eventId: { $in: organizerEventIds }, paymentStatus: 'proof_submitted' })
+        : 0,
+      organizerEventIds.length
+        ? Submission.countDocuments({ eventId: { $in: organizerEventIds }, status: 'submitted' })
+        : 0,
+      organizerEventIds.length
+        ? Registration.findOne({ eventId: { $in: organizerEventIds }, paymentStatus: 'proof_submitted' })
+          .sort({ 'paymentProof.uploadedAt': -1, updatedAt: -1, createdAt: -1 })
+          .select('eventId')
+          .lean()
+        : null,
+      organizerEventIds.length
+        ? Submission.findOne({ eventId: { $in: organizerEventIds }, status: 'submitted' })
+          .sort({ submittedAt: -1, updatedAt: -1, createdAt: -1 })
+          .select('eventId')
+          .lean()
+        : null,
+      registrationRangeFilter
+        ? Registration.countDocuments(registrationRangeFilter)
+        : 0,
+      submissionRangeFilter
+        ? Submission.countDocuments(submissionRangeFilter)
+        : 0,
+      submissionRangeFilter
+        ? Submission.countDocuments({ ...submissionRangeFilter, status: 'approved' })
+        : 0,
+      previousRegistrationRangeFilter
+        ? Registration.countDocuments(previousRegistrationRangeFilter)
+        : 0,
+      previousSubmissionRangeFilter
+        ? Submission.countDocuments(previousSubmissionRangeFilter)
+        : 0,
+      previousSubmissionRangeFilter
+        ? Submission.countDocuments({ ...previousSubmissionRangeFilter, status: 'approved' })
+        : 0,
+      organizerEventIds.length
+        ? Registration.aggregate([
+            { $match: { eventId: { $in: organizerEventIds }, paymentStatus: 'proof_submitted' } },
+            { $group: { _id: '$eventId', paymentPending: { $sum: 1 } } },
+            { $sort: { paymentPending: -1 } }
+          ])
+        : [],
+      organizerEventIds.length
+        ? Submission.aggregate([
+            { $match: { eventId: { $in: organizerEventIds }, status: 'submitted' } },
+            { $group: { _id: '$eventId', resultPending: { $sum: 1 } } },
+            { $sort: { resultPending: -1 } }
+          ])
+        : [],
+      registrationRangeFilter
+        ? Registration.aggregate([
+            { $match: registrationRangeFilter },
+            { $group: { _id: '$eventId', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 3 }
+          ])
+        : [],
+      submissionRangeFilter
+        ? Submission.aggregate([
+            { $match: { ...submissionRangeFilter, status: 'approved' } },
+            { $group: { _id: '$eventId', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 3 }
           ])
         : []
     ]);
@@ -88,6 +205,65 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       logoUrl: event.logoUrl || ''
     }));
 
+    const queueByEventId = new Map();
+    for (const item of paymentQueueCounts) {
+      queueByEventId.set(String(item._id), {
+        eventId: String(item._id),
+        paymentPending: Number(item.paymentPending || 0),
+        resultPending: 0
+      });
+    }
+    for (const item of resultQueueCounts) {
+      const key = String(item._id);
+      const existing = queueByEventId.get(key) || { eventId: key, paymentPending: 0, resultPending: 0 };
+      existing.resultPending = Number(item.resultPending || 0);
+      queueByEventId.set(key, existing);
+    }
+
+    const topRegistrationEventIds = topRegistrationsRaw.map((item) => String(item._id));
+    const topApprovalEventIds = topApprovalsRaw.map((item) => String(item._id));
+    const queueEventIds = Array.from(new Set(
+      Array.from(queueByEventId.keys()).concat(topRegistrationEventIds, topApprovalEventIds)
+    ))
+      .filter((id) => mongoose.Types.ObjectId.isValid(id))
+      .map((id) => new mongoose.Types.ObjectId(id));
+    const queueEventTitleDocs = queueEventIds.length
+      ? await Event.find({ _id: { $in: queueEventIds } }).select('_id title').lean()
+      : [];
+    const queueTitlesByEventId = new Map(
+      queueEventTitleDocs.map((item) => [String(item._id), item.title || 'Event unavailable'])
+    );
+
+    const queueBreakdown = Array.from(queueByEventId.values())
+      .map((item) => ({
+        ...item,
+        eventTitle: queueTitlesByEventId.get(item.eventId) || 'Event unavailable',
+        totalPending: Number(item.paymentPending || 0) + Number(item.resultPending || 0),
+        paymentHref: `/organizer/events/${item.eventId}/registrants?payment=proof_submitted`,
+        resultHref: `/organizer/events/${item.eventId}/registrants?result=submitted`
+      }))
+      .sort((a, b) => b.totalPending - a.totalPending || a.eventTitle.localeCompare(b.eventTitle))
+      .slice(0, 8);
+
+    const topRegistrations = topRegistrationsRaw.map((item) => ({
+      eventId: String(item._id),
+      eventTitle: queueTitlesByEventId.get(String(item._id)) || 'Event unavailable',
+      count: Number(item.count || 0),
+      href: `/organizer/events/${String(item._id)}/registrants`
+    }));
+    const topApprovals = topApprovalsRaw.map((item) => ({
+      eventId: String(item._id),
+      eventTitle: queueTitlesByEventId.get(String(item._id)) || 'Event unavailable',
+      count: Number(item.count || 0),
+      href: `/organizer/events/${String(item._id)}/registrants?result=approved`
+    }));
+    const topPendingQueue = queueBreakdown.slice(0, 3).map((item) => ({
+      eventId: item.eventId,
+      eventTitle: item.eventTitle,
+      count: item.totalPending,
+      href: `/organizer/events/${item.eventId}/registrants`
+    }));
+
     // Build dashboard data
     const dashboardData = {
       title: 'Organizer Dashboard - helloRun',
@@ -98,7 +274,49 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         totalEvents,
         activeEvents,
         totalRegistrations,
-        upcomingEvents
+        upcomingEvents,
+        pendingPaymentReviews,
+        pendingResultReviews
+      },
+      analytics: {
+        range: dashboardRange,
+        rangeLabel,
+        registrationsInRange,
+        submissionsInRange,
+        approvalsInRange,
+        trends: {
+          registrations: buildOrganizerTrendMetric(
+            registrationsInRange,
+            registrationsInPreviousRange,
+            rangeWindow.previousLabel
+          ),
+          submissions: buildOrganizerTrendMetric(
+            submissionsInRange,
+            submissionsInPreviousRange,
+            rangeWindow.previousLabel
+          ),
+          approvals: buildOrganizerTrendMetric(
+            approvalsInRange,
+            approvalsInPreviousRange,
+            rangeWindow.previousLabel
+          )
+        }
+      },
+      reviewQueue: {
+        pendingPaymentReviews,
+        pendingResultReviews,
+        paymentReviewHref: nextPaymentReview?.eventId
+          ? `/organizer/events/${String(nextPaymentReview.eventId)}/registrants?payment=proof_submitted`
+          : '/organizer/events',
+        resultReviewHref: nextResultReview?.eventId
+          ? `/organizer/events/${String(nextResultReview.eventId)}/registrants?result=submitted`
+          : '/organizer/events',
+        byEvent: queueBreakdown,
+        topEvents: {
+          registrations: topRegistrations,
+          approvals: topApprovals,
+          pending: topPendingQueue
+        }
       },
       recentEvents,
       quickActions: [
@@ -117,14 +335,14 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         {
           icon: 'users',
           label: 'Participants',
-          href: '/organizer/participants',
+          href: '/organizer/events',
           description: 'View registrations'
         },
         {
           icon: 'settings',
           label: 'Settings',
-          href: '/organizer/settings',
-          description: 'Account settings'
+          href: '/organizer/application-status',
+          description: 'Application status'
         }
       ],
       approvedDate: application && application.reviewedAt
@@ -376,14 +594,37 @@ router.get('/events/:id/registrants', requireApprovedOrganizer, async (req, res)
       selectedMode,
       selectedDistance,
       eventRaceDistances,
-      searchQuery
+      searchQuery,
+      selectedResultStatus
     } = filterContext;
 
     const registrationsRaw = await Registration.find(query)
       .sort({ registeredAt: -1 })
       .lean();
 
-    const registrations = registrationsRaw.map((item) => ({
+    const registrationIds = registrationsRaw.map((item) => item._id);
+    const submissionFilter = {
+      eventId: event._id,
+      registrationId: { $in: registrationIds }
+    };
+    if (selectedResultStatus) {
+      submissionFilter.status = selectedResultStatus;
+    }
+    const submissions = registrationIds.length
+      ? await Submission.find(submissionFilter)
+        .select('registrationId status distanceKm elapsedMs proofType proof submittedAt reviewedAt reviewedBy reviewNotes rejectionReason')
+        .lean()
+      : [];
+    const submissionsByRegistrationId = new Map(
+      submissions.map((item) => [String(item.registrationId), item])
+    );
+
+    const registrations = registrationsRaw
+      .filter((item) => {
+        if (!selectedResultStatus) return true;
+        return submissionsByRegistrationId.has(String(item._id));
+      })
+      .map((item) => ({
       ...item,
       participant: {
         ...item.participant,
@@ -391,13 +632,32 @@ router.get('/events/:id/registrants', requireApprovedOrganizer, async (req, res)
         genderLabel: formatGenderLabel(item.participant?.gender),
         ageLabel: formatAgeFromDateOfBirth(item.participant?.dateOfBirth)
       },
-      waiverAcceptedAtLabel: formatDateTime(item.waiver?.acceptedAt)
+      waiverAcceptedAtLabel: formatDateTime(item.waiver?.acceptedAt),
+      paymentProofUploadedAtLabel: formatDateTime(item.paymentProof?.uploadedAt),
+      paymentReviewedAtLabel: formatDateTime(item.paymentReviewedAt),
+      submission: mapSubmissionForRegistrant(submissionsByRegistrationId.get(String(item._id)))
     }));
 
-    const [totalRegistrants, virtualCount, onsiteCount] = await Promise.all([
+    const [
+      totalRegistrants,
+      virtualCount,
+      onsiteCount,
+      proofSubmittedCount,
+      paidCount,
+      proofRejectedCount,
+      submissionSubmittedCount,
+      submissionApprovedCount,
+      submissionRejectedCount
+    ] = await Promise.all([
       Registration.countDocuments({ eventId: event._id }),
       Registration.countDocuments({ eventId: event._id, participationMode: 'virtual' }),
-      Registration.countDocuments({ eventId: event._id, participationMode: 'onsite' })
+      Registration.countDocuments({ eventId: event._id, participationMode: 'onsite' }),
+      Registration.countDocuments({ eventId: event._id, paymentStatus: 'proof_submitted' }),
+      Registration.countDocuments({ eventId: event._id, paymentStatus: 'paid' }),
+      Registration.countDocuments({ eventId: event._id, paymentStatus: 'proof_rejected' }),
+      Submission.countDocuments({ eventId: event._id, status: 'submitted' }),
+      Submission.countDocuments({ eventId: event._id, status: 'approved' }),
+      Submission.countDocuments({ eventId: event._id, status: 'rejected' })
     ]);
 
     return res.render('organizer/event-registrants', {
@@ -407,13 +667,21 @@ router.get('/events/:id/registrants', requireApprovedOrganizer, async (req, res)
       registrations,
       selectedMode,
       selectedDistance,
+      selectedPaymentStatus: filterContext.selectedPaymentStatus,
+      selectedResultStatus,
       eventRaceDistances,
       searchQuery,
       exportQuery: buildRegistrantExportQuery(filterContext),
       summary: {
         totalRegistrants,
         virtualCount,
-        onsiteCount
+        onsiteCount,
+        proofSubmittedCount,
+        paidCount,
+        proofRejectedCount,
+        submissionSubmittedCount,
+        submissionApprovedCount,
+        submissionRejectedCount
       },
       message: getPageMessage(req.query)
     });
@@ -426,6 +694,263 @@ router.get('/events/:id/registrants', requireApprovedOrganizer, async (req, res)
     });
   }
 });
+
+router.post(
+  '/events/:id/registrants/:registrationId/payment/approve',
+  requireApprovedOrganizer,
+  paymentReviewActionLimiter,
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.session.userId).select('firstName lastName email');
+      if (!user) {
+        return res.status(404).render('error', {
+          title: '404 - User Not Found',
+          status: 404,
+          message: 'User account not found.'
+        });
+      }
+
+      const event = await getOwnedEventOrNull(req.params.id, user._id);
+      if (!event) {
+        return res.status(404).render('error', {
+          title: '404 - Event Not Found',
+          status: 404,
+          message: 'Event not found or you do not have access.'
+        });
+      }
+
+      const registration = await Registration.findOne({
+        _id: req.params.registrationId,
+        eventId: event._id
+      });
+      if (!registration) {
+        const q = new URLSearchParams({ type: 'error', msg: 'Registration record not found.' });
+        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+      }
+      if (!canOrganizerReviewPaymentProof(registration)) {
+        const q = new URLSearchParams({
+          type: 'error',
+          msg: 'Only registrations with submitted payment proof can be approved.'
+        });
+        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+      }
+
+      const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1000);
+      registration.paymentStatus = 'paid';
+      registration.paymentReviewedAt = new Date();
+      registration.paymentReviewedBy = user._id;
+      registration.paymentReviewNotes = reviewNotes;
+      registration.paymentRejectionReason = '';
+      await registration.save();
+
+      try {
+        const runner = await User.findById(registration.userId).select('email firstName');
+        if (runner?.email) {
+          await emailService.sendPaymentApprovedEmailToRunner(
+            runner.email,
+            runner.firstName || 'Runner',
+            event.title || 'Event',
+            registration.confirmationCode || ''
+          );
+        }
+      } catch (emailError) {
+        console.error('Payment approval email failed:', {
+          error: emailError.message,
+          registrationId: String(registration._id)
+        });
+      }
+
+      const q = new URLSearchParams({ type: 'success', msg: 'Payment marked as approved.' });
+      return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+    } catch (error) {
+      console.error('Error approving payment proof:', error);
+      return res.status(500).render('error', {
+        title: 'Server Error',
+        status: 500,
+        message: 'An error occurred while approving payment proof.'
+      });
+    }
+  }
+);
+
+router.post(
+  '/events/:id/registrants/:registrationId/payment/reject',
+  requireApprovedOrganizer,
+  paymentReviewActionLimiter,
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.session.userId).select('firstName lastName email');
+      if (!user) {
+        return res.status(404).render('error', {
+          title: '404 - User Not Found',
+          status: 404,
+          message: 'User account not found.'
+        });
+      }
+
+      const event = await getOwnedEventOrNull(req.params.id, user._id);
+      if (!event) {
+        return res.status(404).render('error', {
+          title: '404 - Event Not Found',
+          status: 404,
+          message: 'Event not found or you do not have access.'
+        });
+      }
+
+      const registration = await Registration.findOne({
+        _id: req.params.registrationId,
+        eventId: event._id
+      });
+      if (!registration) {
+        const q = new URLSearchParams({ type: 'error', msg: 'Registration record not found.' });
+        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+      }
+      if (!canOrganizerReviewPaymentProof(registration)) {
+        const q = new URLSearchParams({
+          type: 'error',
+          msg: 'Only registrations with submitted payment proof can be rejected.'
+        });
+        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+      }
+
+      const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
+      const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1000);
+      if (!rejectionReason || rejectionReason.length < 5) {
+        const q = new URLSearchParams({
+          type: 'error',
+          msg: 'Rejection reason is required (at least 5 characters).'
+        });
+        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+      }
+
+      registration.paymentStatus = 'proof_rejected';
+      registration.paymentReviewedAt = new Date();
+      registration.paymentReviewedBy = user._id;
+      registration.paymentReviewNotes = reviewNotes;
+      registration.paymentRejectionReason = rejectionReason;
+      await registration.save();
+
+      try {
+        const runner = await User.findById(registration.userId).select('email firstName');
+        if (runner?.email) {
+          await emailService.sendPaymentRejectedEmailToRunner(
+            runner.email,
+            runner.firstName || 'Runner',
+            event.title || 'Event',
+            registration.confirmationCode || '',
+            rejectionReason,
+            reviewNotes
+          );
+        }
+      } catch (emailError) {
+        console.error('Payment rejection email failed:', {
+          error: emailError.message,
+          registrationId: String(registration._id)
+        });
+      }
+
+      const q = new URLSearchParams({ type: 'success', msg: 'Payment proof rejected and runner notified.' });
+      return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+    } catch (error) {
+      console.error('Error rejecting payment proof:', error);
+      return res.status(500).render('error', {
+        title: 'Server Error',
+        status: 500,
+        message: 'An error occurred while rejecting payment proof.'
+      });
+    }
+  }
+);
+
+router.post(
+  '/events/:id/submissions/:submissionId/approve',
+  requireApprovedOrganizer,
+  paymentReviewActionLimiter,
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.session.userId).select('firstName lastName email');
+      if (!user) {
+        return res.status(404).render('error', {
+          title: '404 - User Not Found',
+          status: 404,
+          message: 'User account not found.'
+        });
+      }
+
+      const event = await getOwnedEventOrNull(req.params.id, user._id);
+      if (!event) {
+        return res.status(404).render('error', {
+          title: '404 - Event Not Found',
+          status: 404,
+          message: 'Event not found or you do not have access.'
+        });
+      }
+
+      const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
+      await reviewSubmission({
+        submissionId: req.params.submissionId,
+        organizerId: user._id,
+        action: 'approve',
+        reviewNotes
+      });
+
+      const q = new URLSearchParams({ type: 'success', msg: 'Result submission approved.' });
+      return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+    } catch (error) {
+      const q = new URLSearchParams({
+        type: 'error',
+        msg: String(error?.message || 'Unable to approve submission.')
+      });
+      return res.redirect(`/organizer/events/${req.params.id}/registrants?${q.toString()}`);
+    }
+  }
+);
+
+router.post(
+  '/events/:id/submissions/:submissionId/reject',
+  requireApprovedOrganizer,
+  paymentReviewActionLimiter,
+  async (req, res) => {
+    try {
+      const user = await User.findById(req.session.userId).select('firstName lastName email');
+      if (!user) {
+        return res.status(404).render('error', {
+          title: '404 - User Not Found',
+          status: 404,
+          message: 'User account not found.'
+        });
+      }
+
+      const event = await getOwnedEventOrNull(req.params.id, user._id);
+      if (!event) {
+        return res.status(404).render('error', {
+          title: '404 - Event Not Found',
+          status: 404,
+          message: 'Event not found or you do not have access.'
+        });
+      }
+
+      const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
+      const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
+      await reviewSubmission({
+        submissionId: req.params.submissionId,
+        organizerId: user._id,
+        action: 'reject',
+        rejectionReason,
+        reviewNotes
+      });
+
+      const q = new URLSearchParams({ type: 'success', msg: 'Result submission rejected.' });
+      return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+    } catch (error) {
+      const q = new URLSearchParams({
+        type: 'error',
+        msg: String(error?.message || 'Unable to reject submission.')
+      });
+      return res.redirect(`/organizer/events/${req.params.id}/registrants?${q.toString()}`);
+    }
+  }
+);
 
 router.get('/events/:id/registrants/export', requireApprovedOrganizer, async (req, res) => {
   try {
@@ -740,8 +1265,8 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     event.logoUrl = formData.logoUrl || '';
     event.posterImageUrl = formData.posterImageUrl || '';
     event.galleryImageUrls = Array.isArray(formData.galleryImageUrls) ? formData.galleryImageUrls : [];
-    const normalizedWaiverTemplate = normalizeWaiverTemplate(formData.waiverTemplate);
-    const previousWaiverTemplate = normalizeWaiverTemplate(event.waiverTemplate || DEFAULT_WAIVER_TEMPLATE);
+    const normalizedWaiverTemplate = sanitizeWaiverTemplate(formData.waiverTemplate);
+    const previousWaiverTemplate = sanitizeWaiverTemplate(event.waiverTemplate || DEFAULT_WAIVER_TEMPLATE);
     if (previousWaiverTemplate !== normalizedWaiverTemplate) {
       event.waiverVersion = Number(event.waiverVersion || 1) + 1;
     } else if (!event.waiverVersion) {
@@ -1083,7 +1608,7 @@ router.post('/create-event', requireApprovedOrganizer, uploadService.uploadEvent
       logoUrl: formData.logoUrl || '',
       posterImageUrl: formData.posterImageUrl || '',
       galleryImageUrls: formData.galleryImageUrls || [],
-      waiverTemplate: normalizeWaiverTemplate(formData.waiverTemplate),
+      waiverTemplate: sanitizeWaiverTemplate(formData.waiverTemplate),
       waiverVersion: 1
     });
 
@@ -1518,6 +2043,12 @@ function getRegistrantFilterContext(event, queryParams = {}) {
     ? queryParams.distance
     : '';
   const searchQuery = typeof queryParams.q === 'string' ? queryParams.q.trim().slice(0, 80) : '';
+  const selectedPaymentStatus = ['unpaid', 'proof_submitted', 'proof_rejected', 'paid', 'failed', 'refunded'].includes(queryParams.payment)
+    ? queryParams.payment
+    : '';
+  const selectedResultStatus = ['submitted', 'approved', 'rejected'].includes(queryParams.result)
+    ? queryParams.result
+    : '';
 
   const query = { eventId: event._id };
   if (selectedMode) {
@@ -1525,6 +2056,9 @@ function getRegistrantFilterContext(event, queryParams = {}) {
   }
   if (selectedDistance) {
     query.raceDistance = selectedDistance;
+  }
+  if (selectedPaymentStatus) {
+    query.paymentStatus = selectedPaymentStatus;
   }
   if (searchQuery) {
     const safePattern = new RegExp(escapeRegex(searchQuery), 'i');
@@ -1544,6 +2078,8 @@ function getRegistrantFilterContext(event, queryParams = {}) {
     query,
     selectedMode,
     selectedDistance,
+    selectedPaymentStatus,
+    selectedResultStatus,
     eventRaceDistances,
     searchQuery
   };
@@ -1553,8 +2089,20 @@ function buildRegistrantExportQuery(filterContext) {
   const params = new URLSearchParams();
   if (filterContext.selectedMode) params.set('mode', filterContext.selectedMode);
   if (filterContext.selectedDistance) params.set('distance', filterContext.selectedDistance);
+  if (filterContext.selectedPaymentStatus) params.set('payment', filterContext.selectedPaymentStatus);
+  if (filterContext.selectedResultStatus) params.set('result', filterContext.selectedResultStatus);
   if (filterContext.searchQuery) params.set('q', filterContext.searchQuery);
   return params.toString();
+}
+
+function mapSubmissionForRegistrant(submission) {
+  if (!submission) return null;
+  return {
+    ...submission,
+    elapsedLabel: formatElapsedMs(submission.elapsedMs),
+    submittedAtLabel: formatDateTime(submission.submittedAt),
+    reviewedAtLabel: formatDateTime(submission.reviewedAt)
+  };
 }
 
 function getRegistrantExportData(registrations = []) {
@@ -1577,6 +2125,11 @@ function getRegistrantExportData(registrations = []) {
     'Race Distance',
     'Status',
     'Payment Status',
+    'Payment Proof URL',
+    'Payment Proof Uploaded At',
+    'Payment Reviewed At',
+    'Payment Rejection Reason',
+    'Payment Review Notes',
     'Registered At'
   ];
 
@@ -1601,6 +2154,11 @@ function getRegistrantExportData(registrations = []) {
       registration.raceDistance || '',
       registration.status || '',
       registration.paymentStatus || '',
+      registration.paymentProof?.url || '',
+      registration.paymentProof?.uploadedAt ? new Date(registration.paymentProof.uploadedAt).toISOString() : '',
+      registration.paymentReviewedAt ? new Date(registration.paymentReviewedAt).toISOString() : '',
+      registration.paymentRejectionReason || '',
+      registration.paymentReviewNotes || '',
       registration.registeredAt ? new Date(registration.registeredAt).toISOString() : ''
     ];
   });
@@ -1656,7 +2214,7 @@ function getCreateEventFormData(body = {}) {
     removeLogoImage: body.removeLogoImage === '1',
     removePosterImage: body.removePosterImage === '1',
     removeGalleryImages: body.removeGalleryImages === '1',
-    waiverTemplate: normalizeWaiverTemplate(waiverTemplateRaw),
+    waiverTemplate: sanitizeWaiverTemplate(waiverTemplateRaw),
     actionType: body.actionType === 'publish' ? 'publish' : 'draft'
   };
 }
@@ -1710,7 +2268,7 @@ function getCreateEventFormDataFromEvent(event) {
     removeLogoImage: false,
     removePosterImage: false,
     removeGalleryImages: false,
-    waiverTemplate: normalizeWaiverTemplate(event.waiverTemplate || DEFAULT_WAIVER_TEMPLATE),
+    waiverTemplate: sanitizeWaiverTemplate(event.waiverTemplate || DEFAULT_WAIVER_TEMPLATE),
     actionType: event.status === 'published' ? 'publish' : 'draft'
   };
 }
@@ -1737,6 +2295,16 @@ function formatDateTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
   return date.toLocaleString('en-US');
+}
+
+function formatElapsedMs(value) {
+  const totalMs = Number(value || 0);
+  if (!Number.isFinite(totalMs) || totalMs <= 0) return '';
+  const totalSeconds = Math.floor(totalMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
 function formatGenderLabel(value) {
@@ -1775,6 +2343,92 @@ function isValidUrl(url) {
   } catch (error) {
     return false;
   }
+}
+
+function sanitizeWaiverTemplate(value) {
+  const normalizedTemplate = normalizeWaiverTemplate(value);
+  if (!normalizedTemplate) return '';
+  return normalizeWaiverTemplate(sanitizeHtml(normalizedTemplate, WAIVER_SANITIZE_OPTIONS));
+}
+
+function normalizeOrganizerDashboardRange(value) {
+  const safe = String(value || '').trim().toLowerCase();
+  if (safe === '7d' || safe === '30d' || safe === 'all') {
+    return safe;
+  }
+  return '30d';
+}
+
+function getOrganizerDashboardRangeStart(range, now = new Date()) {
+  if (range === 'all') return null;
+  const days = range === '7d' ? 7 : 30;
+  const start = new Date(now);
+  start.setDate(start.getDate() - days);
+  return start;
+}
+
+function getOrganizerDashboardRangeLabel(range) {
+  if (range === '7d') return 'Last 7 days';
+  if (range === 'all') return 'All time';
+  return 'Last 30 days';
+}
+
+function getOrganizerDashboardRangeWindow(range, now = new Date()) {
+  const currentEndAt = new Date(now);
+  const currentStartAt = getOrganizerDashboardRangeStart(range, currentEndAt);
+  if (!currentStartAt) {
+    return {
+      currentStartAt: null,
+      currentEndAt: null,
+      previousStartAt: null,
+      previousEndAt: null,
+      previousLabel: 'Previous period'
+    };
+  }
+
+  const durationMs = currentEndAt.getTime() - currentStartAt.getTime();
+  const previousEndAt = new Date(currentStartAt);
+  const previousStartAt = new Date(previousEndAt.getTime() - durationMs);
+
+  return {
+    currentStartAt,
+    currentEndAt,
+    previousStartAt,
+    previousEndAt,
+    previousLabel: range === '7d' ? 'Previous 7 days' : 'Previous 30 days'
+  };
+}
+
+function buildDateBoundFilter(baseFilter, field, startAt, endAt) {
+  const filter = { ...baseFilter };
+  if (!field || (!startAt && !endAt)) {
+    return filter;
+  }
+
+  const bounds = {};
+  if (startAt) bounds.$gte = startAt;
+  if (endAt) bounds.$lt = endAt;
+  if (Object.keys(bounds).length) {
+    filter[field] = bounds;
+  }
+
+  return filter;
+}
+
+function buildOrganizerTrendMetric(currentValue, previousValue, previousLabel) {
+  const current = Number(currentValue || 0);
+  const previous = Number(previousValue || 0);
+  const delta = current - previous;
+  const direction = delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat';
+  const sign = delta > 0 ? '+' : '';
+
+  return {
+    current,
+    previous,
+    delta,
+    direction,
+    label: `${sign}${delta} vs ${previousLabel || 'previous period'}`
+  };
 }
 
 function validateCreateEventForm(formData) {
@@ -1885,9 +2539,10 @@ function validateCreateEventForm(formData) {
       errors.galleryImageUrls = 'Each gallery URL must be a valid URL.';
     }
   }
-  if (!formData.waiverTemplate || formData.waiverTemplate.length < 200) {
+  const waiverText = htmlToPlainText(formData.waiverTemplate || '');
+  if (!waiverText || waiverText.length < 200) {
     errors.waiverTemplate = 'Waiver template must be at least 200 characters.';
-  } else if (formData.waiverTemplate.length > 20000) {
+  } else if ((formData.waiverTemplate || '').length > 20000) {
     errors.waiverTemplate = 'Waiver template must be 20,000 characters or less.';
   }
 

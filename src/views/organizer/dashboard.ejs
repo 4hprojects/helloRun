@@ -48,6 +48,40 @@
 
       <!-- Stats Cards -->
       <section class="stats-section" aria-label="Dashboard Statistics">
+        <form method="GET" action="/organizer/dashboard" class="analytics-range-form">
+          <label for="dashboardRange">Analytics range</label>
+          <select id="dashboardRange" name="range">
+            <option value="7d" <%= analytics?.range === '7d' ? 'selected' : '' %>>Last 7 days</option>
+            <option value="30d" <%= analytics?.range === '30d' ? 'selected' : '' %>>Last 30 days</option>
+            <option value="all" <%= analytics?.range === 'all' ? 'selected' : '' %>>All time</option>
+          </select>
+          <button type="submit" class="event-link-btn">Apply</button>
+        </form>
+
+        <div class="analytics-summary-grid">
+          <article class="analytics-summary-card">
+            <small>Registrations (<%= analytics?.rangeLabel || 'Last 30 days' %>)</small>
+            <strong><%= analytics?.registrationsInRange || 0 %></strong>
+            <p class="trend-chip trend-<%= analytics?.trends?.registrations?.direction || 'flat' %>">
+              <%= analytics?.trends?.registrations?.label || '0 vs previous period' %>
+            </p>
+          </article>
+          <article class="analytics-summary-card">
+            <small>Submissions (<%= analytics?.rangeLabel || 'Last 30 days' %>)</small>
+            <strong><%= analytics?.submissionsInRange || 0 %></strong>
+            <p class="trend-chip trend-<%= analytics?.trends?.submissions?.direction || 'flat' %>">
+              <%= analytics?.trends?.submissions?.label || '0 vs previous period' %>
+            </p>
+          </article>
+          <article class="analytics-summary-card">
+            <small>Approved Results (<%= analytics?.rangeLabel || 'Last 30 days' %>)</small>
+            <strong><%= analytics?.approvalsInRange || 0 %></strong>
+            <p class="trend-chip trend-<%= analytics?.trends?.approvals?.direction || 'flat' %>">
+              <%= analytics?.trends?.approvals?.label || '0 vs previous period' %>
+            </p>
+          </article>
+        </div>
+
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-icon stat-icon-events">
@@ -88,6 +122,26 @@
               <span class="stat-label">Upcoming Events</span>
             </div>
           </div>
+
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-payment-review">
+              <i data-lucide="receipt"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value"><%= stats.pendingPaymentReviews || 0 %></span>
+              <span class="stat-label">Pending Payment Reviews</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon stat-icon-result-review">
+              <i data-lucide="flag"></i>
+            </div>
+            <div class="stat-info">
+              <span class="stat-value"><%= stats.pendingResultReviews || 0 %></span>
+              <span class="stat-label">Pending Result Reviews</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -103,6 +157,10 @@
               <i data-lucide="zap"></i>
               Quick Actions
             </h2>
+            <div class="queue-quick-links">
+              <a href="<%= reviewQueue?.paymentReviewHref || '/organizer/events' %>" class="event-link-btn">Open Next Pending Payment</a>
+              <a href="<%= reviewQueue?.resultReviewHref || '/organizer/events' %>" class="event-link-btn">Open Next Pending Result</a>
+            </div>
             <div class="actions-grid">
               <% quickActions.forEach(action => { %>
                 <a href="<%= action.href %>" class="action-card">
@@ -116,6 +174,91 @@
                   <i data-lucide="chevron-right" class="action-arrow"></i>
                 </a>
               <% }); %>
+            </div>
+          </section>
+
+          <section class="dashboard-section" aria-labelledby="queue-breakdown-heading">
+            <div class="section-header">
+              <h2 id="queue-breakdown-heading" class="section-heading">
+                <i data-lucide="inbox"></i>
+                Queue by Event
+              </h2>
+            </div>
+            <% if (reviewQueue?.byEvent && reviewQueue.byEvent.length) { %>
+              <ul class="queue-breakdown-list">
+                <% reviewQueue.byEvent.forEach(item => { %>
+                  <li class="queue-breakdown-item">
+                    <div>
+                      <strong><a href="/organizer/events/<%= item.eventId %>/registrants"><%= item.eventTitle %></a></strong>
+                      <p>Payment: <%= item.paymentPending %> | Result: <%= item.resultPending %> | Total: <%= item.totalPending %></p>
+                    </div>
+                    <div class="queue-breakdown-actions">
+                      <a href="<%= item.paymentHref %>" class="event-link-btn">Payment</a>
+                      <a href="<%= item.resultHref %>" class="event-link-btn">Result</a>
+                    </div>
+                  </li>
+                <% }); %>
+              </ul>
+            <% } else { %>
+              <p class="queue-breakdown-empty">No pending payment or result reviews right now.</p>
+            <% } %>
+          </section>
+
+          <section class="dashboard-section" aria-labelledby="top-events-heading">
+            <div class="section-header">
+              <h2 id="top-events-heading" class="section-heading">
+                <i data-lucide="trending-up"></i>
+                Top Events
+              </h2>
+            </div>
+            <div class="top-events-grid">
+              <article class="top-events-card">
+                <h3>Registrations</h3>
+                <% if (reviewQueue?.topEvents?.registrations?.length) { %>
+                  <ul class="top-events-list">
+                    <% reviewQueue.topEvents.registrations.forEach(item => { %>
+                      <li>
+                        <a href="<%= item.href %>"><%= item.eventTitle %></a>
+                        <span><%= item.count %></span>
+                      </li>
+                    <% }); %>
+                  </ul>
+                <% } else { %>
+                  <p class="top-events-empty">No registration data in this range.</p>
+                <% } %>
+              </article>
+
+              <article class="top-events-card">
+                <h3>Approvals</h3>
+                <% if (reviewQueue?.topEvents?.approvals?.length) { %>
+                  <ul class="top-events-list">
+                    <% reviewQueue.topEvents.approvals.forEach(item => { %>
+                      <li>
+                        <a href="<%= item.href %>"><%= item.eventTitle %></a>
+                        <span><%= item.count %></span>
+                      </li>
+                    <% }); %>
+                  </ul>
+                <% } else { %>
+                  <p class="top-events-empty">No approval data in this range.</p>
+                <% } %>
+              </article>
+
+              <article class="top-events-card">
+                <h3>Pending Queue</h3>
+                <% if (reviewQueue?.topEvents?.pending?.length) { %>
+                  <ul class="top-events-list">
+                    <% reviewQueue.topEvents.pending.forEach(item => { %>
+                      <li>
+                        <a href="<%= item.href %>"><%= item.eventTitle %></a>
+                        <span><%= item.count %></span>
+                      </li>
+                    <% }); %>
+                  </ul>
+                <% } else { %>
+                  <p class="top-events-empty">No pending queue items.</p>
+                <% } %>
+              </article>
             </div>
           </section>
 
@@ -286,6 +429,29 @@
                 </a>
               </li>
             </ul>
+          </div>
+
+          <div class="sidebar-card review-queue-card">
+            <h3>
+              <i data-lucide="inbox"></i>
+              Review Queue
+            </h3>
+            <div class="review-queue-items">
+              <div class="review-queue-item">
+                <div>
+                  <strong><%= reviewQueue?.pendingPaymentReviews || 0 %></strong>
+                  <p>Payment proofs awaiting review</p>
+                </div>
+                <a href="<%= reviewQueue?.paymentReviewHref || '/organizer/events' %>" class="event-link-btn">Review</a>
+              </div>
+              <div class="review-queue-item">
+                <div>
+                  <strong><%= reviewQueue?.pendingResultReviews || 0 %></strong>
+                  <p>Result submissions awaiting review</p>
+                </div>
+                <a href="<%= reviewQueue?.resultReviewHref || '/organizer/events' %>" class="event-link-btn">Review</a>
+              </div>
+            </div>
           </div>
         </aside>
       </div>

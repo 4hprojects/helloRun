@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="stylesheet" href="/css/runner-dashboard.css">
+  <%- include('../layouts/head', { title: `${group.name} - Running Group - helloRun` }) %>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="dashboard-container">
+    <div class="dashboard-header">
+      <div class="header-content">
+        <h1><%= group.name %></h1>
+        <p class="header-subtitle"><%= group.memberCount || 0 %> members</p>
+      </div>
+      <div class="runner-group-detail-actions">
+        <a href="/runner/dashboard" class="btn-secondary">Back to Dashboard</a>
+        <% if (membership.isMember) { %>
+          <form method="POST" action="/runner/groups/leave">
+            <input type="hidden" name="returnTo" value="/runner/groups/<%= group.slug %>">
+            <button type="submit" class="btn btn-warning">Leave Group</button>
+          </form>
+        <% } else { %>
+          <form method="POST" action="/runner/groups/join">
+            <input type="hidden" name="groupId" value="<%= group._id %>">
+            <input type="hidden" name="returnTo" value="/runner/groups/<%= group.slug %>">
+            <button type="submit" class="btn-secondary">Join Group</button>
+          </form>
+        <% } %>
+      </div>
+    </div>
+
+    <% if (message) { %>
+      <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+    <% } %>
+
+    <div class="dashboard-grid">
+      <section class="dashboard-card">
+        <div class="card-header">
+          <h2>
+            <i data-lucide="users"></i>
+            Group Overview
+          </h2>
+        </div>
+        <div class="card-content card-content-list">
+          <% if (group.description) { %>
+            <p><%= group.description %></p>
+          <% } else { %>
+            <p>No group description yet.</p>
+          <% } %>
+          <% if (!membership.isMember && membership.currentGroupName) { %>
+            <p class="runner-group-note">You are currently in <strong><%= membership.currentGroupName %></strong>.</p>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="dashboard-card">
+        <div class="card-header">
+          <h2>
+            <i data-lucide="activity"></i>
+            Recent Activity
+          </h2>
+        </div>
+        <div class="card-content card-content-list">
+          <% if (activity && activity.length) { %>
+            <ul class="item-list">
+              <% activity.forEach((item) => { %>
+                <li class="item-row">
+                  <div>
+                    <strong><%= item.message %></strong>
+                    <small><%= item.atLabel %></small>
+                  </div>
+                </li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <p>No activity yet for this running group.</p>
+          <% } %>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+
+  <script src="/js/main.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

@@ -115,7 +115,7 @@
 .registrants-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1520px;
+  min-width: 1840px;
 }
 
 .registrants-table th,
@@ -126,6 +126,8 @@
   vertical-align: top;
   color: #334155;
   font-size: 0.86rem;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .registrants-table th {
@@ -140,6 +142,29 @@
 
 .registrants-table small {
   color: #64748b;
+}
+
+.proof-link {
+  color: #1d4ed8;
+  text-decoration: underline;
+  overflow-wrap: anywhere;
+}
+
+.payment-action-form {
+  display: grid;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.payment-action-form textarea {
+  width: 100%;
+  min-width: 180px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.35rem 0.45rem;
+  resize: vertical;
+  font-size: 0.78rem;
+  color: #334155;
 }
 
 .mode-badge {
@@ -160,6 +185,21 @@
 .mode-onsite {
   background: #dcfce7;
   color: #166534;
+}
+
+.mode-submitted {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.mode-approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.mode-rejected {
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .event-card {
@@ -285,5 +325,74 @@
 
   .registrant-summary {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .events-shell {
+    padding: 1rem;
+  }
+
+  .registrants-table {
+    min-width: 1560px;
+  }
+
+  .payment-action-form textarea {
+    min-width: 140px;
+  }
+}
+
+@media (max-width: 768px) {
+  .events-shell {
+    padding: 0.8rem;
+  }
+
+  .filter-bar {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+  }
+
+  .filter-bar label {
+    font-size: 0.82rem;
+  }
+
+  .filter-bar input[type="search"],
+  .filter-bar select,
+  .filter-bar .btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .registrants-table {
+    min-width: 1320px;
+  }
+
+  .registrants-table th,
+  .registrants-table td {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .payment-action-form {
+    gap: 0.3rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .payment-action-form textarea {
+    min-width: 0;
+    font-size: 0.74rem;
+    padding: 0.32rem 0.4rem;
+  }
+
+  .btn.btn-sm {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .registrants-table {
+    min-width: 1180px;
   }
 }

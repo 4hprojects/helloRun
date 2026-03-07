@@ -93,8 +93,7 @@ organiserApplicationSchema.pre('save', async function(next) {
   next();
 });
 
-// Add index for faster queries
-organiserApplicationSchema.index({ userId: 1 });
+// Add indexes for common admin queries
 organiserApplicationSchema.index({ status: 1 });
 organiserApplicationSchema.index({ createdAt: -1 });
 

@@ -1,13 +1,22 @@
 const Event = require('../models/Event');
 const User = require('../models/User');
 const Registration = require('../models/Registration');
+const Submission = require('../models/Submission');
 const Blog = require('../models/Blog');
 const emailService = require('../services/email.service');
 const { registerBlogView } = require('../services/blog-view.service');
 const { getRunnerRegistrations } = require('../services/runner-data.service');
+const uploadService = require('../services/upload.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
 const { BLOG_CATEGORIES } = require('../utils/blog');
 const { renderWaiverTemplate } = require('../utils/waiver');
+const { canRunnerSubmitPaymentProof } = require('../utils/payment-workflow');
+const {
+  createSubmission,
+  resubmitSubmission,
+  getRunnerSubmissions
+} = require('../services/submission.service');
+const { getLeaderboardData } = require('../services/leaderboard.service');
 
 const countries = getCountries();
 
@@ -23,21 +32,106 @@ exports.getEvents = async (req, res) => {
     delete req.session.loginSuccess;
     delete req.session.userName;
 
-    const events = await Event.find({ status: 'published' })
+    const filterValues = getEventsFilterValues(req.query);
+    const now = new Date();
+    const query = {
+      status: 'published'
+    };
+    if (filterValues.eventType) {
+      query.$or = [
+        { eventType: filterValues.eventType },
+        { eventTypesAllowed: filterValues.eventType }
+      ];
+    }
+    if (filterValues.distance) {
+      query.raceDistances = filterValues.distance;
+    }
+    if (filterValues.status === 'upcoming') {
+      query.eventStartAt = { $gte: now };
+    } else if (filterValues.status === 'open') {
+      query.registrationOpenAt = { $lte: now };
+      query.registrationCloseAt = { $gte: now };
+    } else if (filterValues.status === 'closed') {
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { eventEndAt: { $lt: now } },
+          { registrationCloseAt: { $lt: now } }
+        ]
+      });
+    }
+    if (filterValues.q) {
+      const safePattern = new RegExp(escapeRegex(filterValues.q), 'i');
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { title: safePattern },
+          { description: safePattern },
+          { venueName: safePattern },
+          { city: safePattern },
+          { country: safePattern }
+        ]
+      });
+    }
+
+    const page = normalizePositiveInt(req.query.page, 1);
+    const limit = 9;
+
+    const [totalEvents, distanceOptions] = await Promise.all([
+      Event.countDocuments(query),
+      Event.distinct('raceDistances', { status: 'published' })
+    ]);
+    const totalPages = Math.max(1, Math.ceil(totalEvents / limit));
+    const currentPage = Math.min(page, totalPages);
+    const skip = (currentPage - 1) * limit;
+
+    const events = await Event.find(query)
       .sort({ eventStartAt: 1, createdAt: -1 })
-      .select('title slug description eventType eventTypesAllowed raceDistances eventStartAt eventEndAt venueName city country bannerImageUrl registrationCloseAt')
+      .skip(skip)
+      .limit(limit)
+      .select('title slug description eventType eventTypesAllowed raceDistances eventStartAt eventEndAt venueName city country bannerImageUrl registrationCloseAt registrationOpenAt')
       .lean();
 
-    const normalizedEvents = events.map((event) => ({
-      ...event,
-      countryLabel: getCountryName(event.country)
-    }));
+    const normalizedDistanceOptions = distanceOptions
+      .map((item) => String(item || '').trim().toUpperCase())
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+    const activeFilterCount = Number(Boolean(filterValues.q))
+      + Number(Boolean(filterValues.eventType))
+      + Number(Boolean(filterValues.distance))
+      + Number(filterValues.status !== 'all');
+
+    const hasActiveFilters = activeFilterCount > 0;
+
+    const eventsForRender = events.map((event) => {
+      const raceDistances = Array.isArray(event.raceDistances)
+        ? event.raceDistances.map((distanceItem) => String(distanceItem || '').trim().toUpperCase()).filter(Boolean)
+        : [];
+      return {
+        ...event,
+        raceDistances,
+        countryLabel: getCountryName(event.country)
+      };
+    });
 
     return res.render('pages/events', {
       title: 'Running Events - helloRun',
       loginSuccess,
       userName,
-      events: normalizedEvents
+      events: eventsForRender,
+      filters: filterValues,
+      filterMeta: {
+        hasActiveFilters,
+        activeFilterCount,
+        resultsCount: totalEvents,
+        distanceOptions: normalizedDistanceOptions
+      },
+      pagination: {
+        currentPage,
+        totalPages,
+        pageSize: limit
+      }
     });
   } catch (error) {
     console.error('Error loading public events:', error);
@@ -314,11 +408,22 @@ exports.getMyRegistrations = async (req, res) => {
       return res.redirect('/login');
     }
 
-    const registrations = await getRunnerRegistrations(user._id);
+    const [registrations, submissions] = await Promise.all([
+      getRunnerRegistrations(user._id),
+      getRunnerSubmissions(user._id, { limit: 300 })
+    ]);
+    const submissionsByRegistrationId = new Map(
+      submissions.map((item) => [String(item.registrationId?._id || item.registrationId), item])
+    );
+    const enrichedRegistrations = registrations.map((registration) => ({
+      ...registration,
+      submission: submissionsByRegistrationId.get(String(registration._id)) || null
+    }));
 
     return res.render('pages/my-registrations', {
       title: 'My Registrations - helloRun',
-      registrations,
+      registrations: enrichedRegistrations,
+      message: getPageMessage(req.query),
       countryName: getCountryName,
       genderLabel: formatGenderLabel,
       dateLabel: formatDateOnly
@@ -332,6 +437,280 @@ exports.getMyRegistrations = async (req, res) => {
     });
   }
 };
+
+exports.postSubmitResult = async (req, res) => {
+  return handleRunnerSubmissionWrite(req, res, {
+    mode: 'create',
+    successMessage: 'Result submitted successfully. Await organizer review.'
+  });
+};
+
+exports.postResubmitResult = async (req, res) => {
+  return handleRunnerSubmissionWrite(req, res, {
+    mode: 'resubmit',
+    successMessage: 'Result resubmitted successfully. Await organizer review.'
+  });
+};
+
+exports.getSubmissionCertificateDownload = async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('email');
+    if (!user) {
+      return res.redirect('/login');
+    }
+
+    const submission = await Submission.findOne({
+      _id: req.params.submissionId,
+      runnerId: user._id
+    })
+      .populate({ path: 'eventId', select: 'title' })
+      .populate({ path: 'registrationId', select: 'confirmationCode' })
+      .lean();
+
+    if (!submission) {
+      return redirectWithPageMessage(res, 'error', 'Submission not found or inaccessible.');
+    }
+    if (submission.status !== 'approved') {
+      return redirectWithPageMessage(res, 'error', 'Certificate is available only for approved submissions.');
+    }
+
+    const certificateUrl = String(submission.certificate?.url || '').trim();
+    if (!certificateUrl) {
+      return redirectWithPageMessage(res, 'error', 'Certificate is not yet available. Please try again shortly.');
+    }
+
+    if (certificateUrl.startsWith('data:application/pdf;base64,')) {
+      const base64 = certificateUrl.slice('data:application/pdf;base64,'.length);
+      const pdfBuffer = Buffer.from(base64, 'base64');
+      const safeEventTitle = String(submission.eventId?.title || 'helloRun')
+        .replace(/[^a-z0-9-_]+/gi, '-')
+        .replace(/^-+|-+$/g, '')
+        .toLowerCase()
+        .slice(0, 60) || 'hello-run';
+      const confirmationCode = String(submission.registrationId?.confirmationCode || 'certificate')
+        .replace(/[^a-z0-9-]/gi, '')
+        .toUpperCase();
+      const fileName = `${safeEventTitle}-${confirmationCode}-certificate.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      return res.status(200).send(pdfBuffer);
+    }
+
+    return res.redirect(certificateUrl);
+  } catch (error) {
+    console.error('Error downloading submission certificate:', error);
+    return redirectWithPageMessage(res, 'error', 'Unable to download certificate at this time.');
+  }
+};
+
+exports.postUploadPaymentProof = async (req, res) => {
+  let uploadedProofKey = '';
+  try {
+    const user = await User.findById(req.session.userId).select('firstName lastName email role');
+    if (!user) {
+      return res.redirect('/login');
+    }
+
+    if (req.uploadError) {
+      const query = new URLSearchParams({
+        type: 'error',
+        msg: req.uploadError
+      });
+      return res.redirect(`/my-registrations?${query.toString()}`);
+    }
+
+    const proofFile = req.file;
+    if (!proofFile) {
+      const query = new URLSearchParams({
+        type: 'error',
+        msg: 'Please select a payment proof file before submitting.'
+      });
+      return res.redirect(`/my-registrations?${query.toString()}`);
+    }
+
+    const registrationId = String(req.params.registrationId || '').trim();
+    const registration = await Registration.findOne({
+      _id: registrationId,
+      userId: user._id
+    }).populate('eventId', 'title slug organizerId');
+
+    if (!registration || !registration.eventId) {
+      const query = new URLSearchParams({
+        type: 'error',
+        msg: 'Registration not found or inaccessible.'
+      });
+      return res.redirect(`/my-registrations?${query.toString()}`);
+    }
+
+    if (!canRunnerSubmitPaymentProof(registration)) {
+      const query = new URLSearchParams({
+        type: 'error',
+        msg: 'Payment proof upload is only allowed for unpaid/rejected active registrations.'
+      });
+      return res.redirect(`/my-registrations?${query.toString()}`);
+    }
+
+    const previousProofKey = String(registration.paymentProof?.key || '').trim();
+    const previousProofUrl = String(registration.paymentProof?.url || '').trim();
+    const uploadedProof = await uploadService.uploadPaymentProofToR2({
+      userId: user._id,
+      paymentProofFile: proofFile
+    });
+    uploadedProofKey = uploadedProof.key;
+
+    registration.paymentProof = {
+      url: uploadedProof.url,
+      key: uploadedProof.key,
+      mimeType: proofFile.mimetype || '',
+      size: Number(proofFile.size || 0),
+      uploadedAt: new Date(),
+      submittedBy: user._id
+    };
+    registration.paymentStatus = 'proof_submitted';
+    registration.paymentSubmissionCount = Number(registration.paymentSubmissionCount || 0) + 1;
+    registration.paymentReviewedAt = null;
+    registration.paymentReviewedBy = null;
+    registration.paymentReviewNotes = '';
+    registration.paymentRejectionReason = '';
+
+    await registration.save();
+    uploadedProofKey = '';
+
+    const cleanupKeys = [];
+    if (previousProofKey && previousProofKey !== uploadedProof.key) {
+      cleanupKeys.push(previousProofKey);
+    } else if (previousProofUrl && previousProofUrl !== uploadedProof.url) {
+      const derivedKey = uploadService.extractObjectKeyFromPublicUrl(previousProofUrl);
+      if (derivedKey && derivedKey !== uploadedProof.key) {
+        cleanupKeys.push(derivedKey);
+      }
+    }
+    if (cleanupKeys.length) {
+      await uploadService.deleteObjects(cleanupKeys);
+    }
+
+    try {
+      const organizer = await User.findById(registration.eventId.organizerId).select('firstName email');
+      if (organizer?.email) {
+        await emailService.sendPaymentProofSubmittedEmailToOrganizer(
+          organizer.email,
+          organizer.firstName || 'Organizer',
+          `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+          registration.eventId.title || 'Event',
+          registration.confirmationCode || ''
+        );
+      }
+    } catch (emailError) {
+      console.error('Payment proof submission organizer email failed:', {
+        error: emailError.message,
+        registrationId: String(registration._id)
+      });
+    }
+
+    const query = new URLSearchParams({
+      type: 'success',
+      msg: 'Payment proof submitted successfully. Await organizer verification.'
+    });
+    return res.redirect(`/my-registrations?${query.toString()}`);
+  } catch (error) {
+    if (uploadedProofKey) {
+      await uploadService.deleteObjects([uploadedProofKey]);
+    }
+    console.error('Error uploading payment proof:', error);
+    const query = new URLSearchParams({
+      type: 'error',
+      msg: 'An error occurred while uploading payment proof. Please try again.'
+    });
+    return res.redirect(`/my-registrations?${query.toString()}`);
+  }
+};
+
+async function handleRunnerSubmissionWrite(req, res, options = {}) {
+  let uploadedProofKey = '';
+  try {
+    const user = await User.findById(req.session.userId).select('email role');
+    if (!user) {
+      return res.redirect('/login');
+    }
+
+    if (req.uploadError) {
+      return redirectWithPageMessage(res, 'error', req.uploadError);
+    }
+
+    const resultProofFile = req.file;
+    if (!resultProofFile) {
+      return redirectWithPageMessage(res, 'error', 'Please select a result proof file before submitting.');
+    }
+
+    const registrationId = String(req.params.registrationId || '').trim();
+    const existingSubmission = await Submission.findOne({
+      registrationId,
+      runnerId: user._id
+    })
+      .select('status proof')
+      .lean();
+
+    if (options.mode === 'create' && existingSubmission) {
+      return redirectWithPageMessage(res, 'error', 'Submission already exists. Use resubmit flow if rejected.');
+    }
+    if (options.mode === 'resubmit' && !existingSubmission) {
+      return redirectWithPageMessage(res, 'error', 'No rejected submission found to resubmit.');
+    }
+    if (options.mode === 'resubmit' && existingSubmission.status !== 'rejected') {
+      return redirectWithPageMessage(res, 'error', 'Only rejected submissions can be resubmitted.');
+    }
+
+    const distanceKm = parseDistanceKm(req.body.distanceKm);
+    const elapsedMs = parseElapsedToMs(req.body.elapsedTime);
+    const proofType = normalizeProofType(req.body.proofType);
+    const proofNotes = String(req.body.proofNotes || '').trim().slice(0, 1200);
+
+    const uploadedProof = await uploadService.uploadResultProofToR2({
+      userId: user._id,
+      resultProofFile
+    });
+    uploadedProofKey = uploadedProof.key;
+
+    const payload = {
+      registrationId,
+      runnerId: user._id,
+      distanceKm,
+      elapsedMs,
+      proofType,
+      proof: {
+        url: uploadedProof.url,
+        key: uploadedProof.key,
+        mimeType: resultProofFile.mimetype || '',
+        size: Number(resultProofFile.size || 0)
+      },
+      proofNotes
+    };
+
+    if (options.mode === 'resubmit') {
+      await resubmitSubmission(payload);
+    } else {
+      await createSubmission(payload);
+    }
+
+    uploadedProofKey = '';
+    const previousProofKey = String(existingSubmission?.proof?.key || '').trim();
+    if (previousProofKey && previousProofKey !== uploadedProof.key) {
+      await uploadService.deleteObjects([previousProofKey]);
+    }
+
+    return redirectWithPageMessage(res, 'success', options.successMessage || 'Result saved.');
+  } catch (error) {
+    if (uploadedProofKey) {
+      await uploadService.deleteObjects([uploadedProofKey]);
+    }
+    console.error('Error submitting runner result:', error);
+    return redirectWithPageMessage(
+      res,
+      'error',
+      String(error?.message || 'An error occurred while saving your result. Please try again.')
+    );
+  }
+}
 
 exports.getBlogList = async (req, res) => {
   try {
@@ -387,6 +766,8 @@ exports.getBlogList = async (req, res) => {
     const canonicalPath = canonicalQuery.toString() ? `/blog?${canonicalQuery.toString()}` : '/blog';
     const canonicalUrl = baseUrl ? `${baseUrl}${canonicalPath}` : '';
 
+    const hasActiveFilters = Boolean(searchQuery || selectedCategory || selectedSort !== 'latest' || currentPage > 1);
+
     return res.render('pages/blog', {
       title: 'Blog - helloRun',
       posts,
@@ -395,6 +776,10 @@ exports.getBlogList = async (req, res) => {
         q: searchQuery,
         category: selectedCategory,
         sort: selectedSort
+      },
+      filterMeta: {
+        hasActiveFilters,
+        totalPosts
       },
       pagination: {
         currentPage,
@@ -507,11 +892,85 @@ exports.getBlogPost = async (req, res) => {
   }
 };
 
+exports.getLeaderboard = async (req, res) => {
+  try {
+    const data = await getLeaderboardData({
+      eventId: req.query.event,
+      distance: req.query.distance,
+      mode: req.query.mode,
+      period: req.query.period,
+      limit: req.query.limit
+    });
+
+    const activeFilterCount = Number(Boolean(data.filters.eventId))
+      + Number(Boolean(data.filters.distance))
+      + Number(Boolean(data.filters.mode))
+      + Number(data.filters.period !== 'all');
+    const hasActiveFilters = activeFilterCount > 0;
+
+    return res.render('pages/leaderboard', {
+      title: 'Leaderboard - helloRun',
+      leaderboard: data,
+      filterMeta: {
+        activeFilterCount,
+        hasActiveFilters
+      }
+    });
+  } catch (error) {
+    console.error('Error loading leaderboard:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading leaderboard data.'
+    });
+  }
+};
+
 function getPageMessage(query) {
   const msg = typeof query.msg === 'string' ? query.msg.trim() : '';
   if (!msg) return null;
   const type = query.type === 'error' ? 'error' : 'success';
   return { type, text: msg.slice(0, 220) };
+}
+
+function redirectWithPageMessage(res, type, message) {
+  const query = new URLSearchParams({
+    type: type === 'error' ? 'error' : 'success',
+    msg: String(message || '').slice(0, 220)
+  });
+  return res.redirect(`/my-registrations?${query.toString()}`);
+}
+
+function parseDistanceKm(value) {
+  const numeric = Number(String(value || '').trim());
+  if (!Number.isFinite(numeric) || numeric <= 0 || numeric > 500) {
+    throw new Error('Distance must be a valid number between 0.1 and 500 km.');
+  }
+  return Number(numeric.toFixed(3));
+}
+
+function parseElapsedToMs(value) {
+  const raw = String(value || '').trim();
+  const match = raw.match(/^(\d{1,2}):([0-5]\d):([0-5]\d)$/);
+  if (!match) {
+    throw new Error('Elapsed time must be in HH:MM:SS format.');
+  }
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const seconds = Number(match[3]);
+  const totalMs = ((hours * 60 * 60) + (minutes * 60) + seconds) * 1000;
+  if (totalMs <= 0 || totalMs > 7 * 24 * 60 * 60 * 1000) {
+    throw new Error('Elapsed time is out of allowed range.');
+  }
+  return totalMs;
+}
+
+function normalizeProofType(value) {
+  const safe = String(value || '').trim().toLowerCase();
+  if (safe === 'gps' || safe === 'photo' || safe === 'manual') {
+    return safe;
+  }
+  return 'manual';
 }
 
 function normalizeBlogCategory(input) {
@@ -524,6 +983,24 @@ function normalizeBlogSort(input) {
   if (value === 'oldest') return 'oldest';
   if (value === 'popular') return 'popular';
   return 'latest';
+}
+
+function getEventsFilterValues(query) {
+  const q = String(query?.q || '').trim().slice(0, 80);
+  const rawType = String(query?.eventType || '').trim().toLowerCase();
+  const rawDistance = String(query?.distance || '').trim().toUpperCase();
+  const rawStatus = String(query?.status || '').trim().toLowerCase();
+
+  const eventType = ['virtual', 'onsite', 'hybrid'].includes(rawType) ? rawType : '';
+  const distance = rawDistance && rawDistance.length <= 30 ? rawDistance : '';
+  const status = ['all', 'upcoming', 'open', 'closed'].includes(rawStatus) ? rawStatus : 'all';
+
+  return {
+    q,
+    eventType,
+    distance,
+    status
+  };
 }
 
 function normalizePositiveInt(input, fallback) {

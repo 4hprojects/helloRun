@@ -26,7 +26,7 @@ function buildRunnerDashboardData(registrations = [], now = new Date()) {
       past.push(registration);
     }
 
-    if (registration.paymentStatus === 'unpaid') {
+    if (registration.paymentStatus === 'unpaid' || registration.paymentStatus === 'proof_rejected') {
       unpaid.push(registration);
     }
   }

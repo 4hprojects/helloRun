@@ -1,6 +1,8 @@
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeDashboard, { once: true });
+} else {
   initializeDashboard();
-});
+}
 
 /**
  * Initialize dashboard functionality
@@ -8,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function initializeDashboard() {
   setupLogoutHandler();
   setupCardInteractions();
+  setupCollapsiblePanels();
   setupProfileForm();
 }
 
@@ -64,6 +67,40 @@ function setupProfileForm() {
 
     saveButton.disabled = true;
     saveButton.textContent = 'Saving...';
+  });
+}
+
+function setupCollapsiblePanels() {
+  const toggleButtons = document.querySelectorAll('[data-toggle-target]');
+  if (!toggleButtons.length) {
+    return;
+  }
+
+  toggleButtons.forEach((button) => {
+    if (button.dataset.toggleBound === 'true') {
+      return;
+    }
+
+    const targetId = button.getAttribute('data-toggle-target');
+    if (!targetId) return;
+
+    const panel = document.getElementById(targetId);
+    if (!panel) return;
+
+    button.addEventListener('click', () => {
+      const isHidden = panel.hasAttribute('hidden');
+      if (isHidden) {
+        panel.removeAttribute('hidden');
+      } else {
+        panel.setAttribute('hidden', '');
+      }
+
+      const expanded = !panel.hasAttribute('hidden');
+      button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      button.textContent = expanded ? 'Hide Details' : 'Show Details';
+    });
+
+    button.dataset.toggleBound = 'true';
   });
 }
 

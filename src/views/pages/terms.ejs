@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/static-pages.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="static-page">
+    <div class="static-wrap">
+      <header class="static-hero">
+        <h1>Terms of Service</h1>
+        <p>Rules and responsibilities for using helloRun.</p>
+      </header>
+
+      <section class="static-card">
+        <h2>Account Responsibilities</h2>
+        <p>You are responsible for maintaining accurate account information and safeguarding your login credentials.</p>
+      </section>
+
+      <section class="static-card">
+        <h2>Event and Submission Integrity</h2>
+        <ul>
+          <li>Provide truthful registration and profile data.</li>
+          <li>Submit genuine payment and result proofs.</li>
+          <li>Do not manipulate rankings, records, or review workflows.</li>
+        </ul>
+      </section>
+
+      <section class="static-card">
+        <h2>Platform Conduct</h2>
+        <p>Abusive, fraudulent, or disruptive behavior may lead to account restrictions or removal.</p>
+      </section>
+
+      <section class="static-card">
+        <h2>Service Changes</h2>
+        <p>helloRun may update features, workflows, and terms to maintain platform reliability and compliance.</p>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

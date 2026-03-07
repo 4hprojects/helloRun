@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/static-pages.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="static-page">
+    <div class="static-wrap">
+      <header class="static-hero">
+        <h1>How It Works</h1>
+        <p>From registration to certificate, helloRun keeps every step clear for runners and organizers.</p>
+      </header>
+
+      <section class="static-grid">
+        <article class="static-card">
+          <h2>For Runners</h2>
+          <ul>
+            <li>Find and register for events.</li>
+            <li>Submit payment proof when required.</li>
+            <li>Upload result proof and track review status.</li>
+            <li>Download certificates for approved results.</li>
+          </ul>
+        </article>
+        <article class="static-card">
+          <h2>For Organizers</h2>
+          <ul>
+            <li>Create and publish events.</li>
+            <li>Review payment proofs and result submissions.</li>
+            <li>Monitor queues and analytics in dashboard views.</li>
+            <li>Manage registrants and approvals per event.</li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="static-card">
+        <h2>Core Workflow</h2>
+        <p>Create account, join an event, submit required proof, wait for organizer review, and appear in leaderboard/certificate records once approved.</p>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

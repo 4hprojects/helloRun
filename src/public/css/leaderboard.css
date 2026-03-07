@@ -1,0 +1,157 @@
+.leaderboard-page {
+  padding: 2rem 1rem 3rem;
+  background: #f8fafc;
+}
+
+.leaderboard-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1rem;
+}
+
+.leaderboard-header h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.75rem;
+}
+
+.leaderboard-header p {
+  margin: 0;
+  color: #64748b;
+}
+
+.leaderboard-summary {
+  margin-top: 0.9rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.summary-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.7rem 0.8rem;
+  background: #f8fafc;
+}
+
+.summary-item strong {
+  display: block;
+  font-size: 0.8rem;
+  color: #475569;
+  margin-bottom: 0.2rem;
+}
+
+.summary-item span {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.leaderboard-filters {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.55rem;
+  align-items: end;
+}
+
+.leaderboard-filters label {
+  font-size: 0.8rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.leaderboard-filters select {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.9rem;
+}
+
+.btn {
+  border: 1px solid #0ea5e9;
+  background: #0ea5e9;
+  color: #fff;
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  text-decoration: none;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 600;
+}
+
+.btn.btn-secondary {
+  background: #fff;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.leaderboard-results-meta {
+  margin-top: 0.7rem;
+  color: #475569;
+}
+
+.leaderboard-table-wrap {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaderboard-table th,
+.leaderboard-table td {
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  padding: 0.6rem;
+  font-size: 0.88rem;
+  vertical-align: top;
+}
+
+.leaderboard-table th {
+  color: #334155;
+  background: #f8fafc;
+}
+
+.empty-state {
+  margin-top: 1rem;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .leaderboard-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .leaderboard-page {
+    padding: 1rem 0.6rem 2rem;
+  }
+
+  .leaderboard-shell {
+    border-radius: 10px;
+    padding: 0.75rem;
+  }
+
+  .leaderboard-header h1 {
+    font-size: 1.35rem;
+  }
+
+  .leaderboard-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .leaderboard-filters {
+    grid-template-columns: 1fr;
+  }
+}

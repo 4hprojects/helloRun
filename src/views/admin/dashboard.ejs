@@ -44,6 +44,88 @@
         </article>
       </div>
 
+      <h3 class="dashboard-section-title">Platform Snapshot</h3>
+      <div class="dashboard-grid">
+        <article class="metric-card">
+          <p class="metric-label">Total Events</p>
+          <p class="metric-value"><%= stats.totalEvents %></p>
+          <p class="metric-helper">All statuses</p>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Published Events</p>
+          <p class="metric-value"><%= stats.publishedEvents %></p>
+          <a href="/events" class="metric-link">Open Public Events</a>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Total Registrations</p>
+          <p class="metric-value"><%= stats.totalRegistrations %></p>
+          <p class="metric-helper">Runner signups</p>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Pending Payment Reviews</p>
+          <p class="metric-value"><%= stats.pendingPaymentReviews %></p>
+          <p class="metric-helper">Needs organizer action</p>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Total Submissions</p>
+          <p class="metric-value"><%= stats.totalSubmissions %></p>
+          <p class="metric-helper">All result statuses</p>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Approved Submissions</p>
+          <p class="metric-value"><%= stats.approvedSubmissions %></p>
+          <p class="metric-helper">Eligible for certificates</p>
+        </article>
+
+        <article class="metric-card">
+          <p class="metric-label">Pending Result Reviews</p>
+          <p class="metric-value"><%= stats.pendingResultReviews %></p>
+          <p class="metric-helper">Needs organizer action</p>
+        </article>
+      </div>
+
+      <h3 class="dashboard-section-title">Pending Organizer Applications</h3>
+      <% if (pendingApplicationsList && pendingApplicationsList.length) { %>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Application ID</th>
+              <th>Business</th>
+              <th>Applicant</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% pendingApplicationsList.forEach((item) => { %>
+              <tr>
+                <td class="mono"><%= item.applicationId %></td>
+                <td><%= item.businessName %></td>
+                <td>
+                  <strong><%= item.applicantName %></strong>
+                  <div><small><%= item.applicantEmail %></small></div>
+                </td>
+                <td>
+                  <span class="status-badge status-badge-<%= item.status %>"><%= item.status %></span>
+                </td>
+                <td><%= item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('en-US') : 'N/A' %></td>
+                <td><a href="/admin/applications/<%= item.id %>" class="btn btn-sm">Review</a></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <div class="empty-state">
+          <p>No pending organizer applications right now.</p>
+        </div>
+      <% } %>
+
       <h3 class="dashboard-section-title">Blog Moderation</h3>
       <div class="dashboard-grid">
         <article class="metric-card">

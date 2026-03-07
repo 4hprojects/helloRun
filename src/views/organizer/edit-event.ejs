@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <%- include('../layouts/head', { title: title }) %>
+  <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
   <link rel="stylesheet" href="/css/create-event.css">
 </head>
 <body>
@@ -31,38 +32,32 @@
       <% } %>
 
       <form class="create-event-form" method="POST" action="/organizer/events/<%= event._id %>/edit" enctype="multipart/form-data" novalidate>
+        <!-- CORE DETAILS SECTION (same as create) -->
         <div class="form-section">
-          <div class="section-title">Core Details</div>
+          <div class="section-title">📋 Core Details</div>
           <div class="form-grid">
-            <div class="form-group <%= errors.title ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="title">Event Title *</label>
-              <input id="title" name="title" type="text" value="<%= formData.title %>">
-              <% if (errors.title) { %><small class="error-text"><%= errors.title %></small><% } %>
+              <input id="title" name="title" type="text" value="<%= formData.title %>" required>
             </div>
-
             <div class="form-group">
               <label for="organiserName">Organizer Name</label>
               <input id="organiserName" name="organiserName" type="text" value="<%= formData.organiserName %>">
             </div>
-
-            <div class="form-group form-group-full <%= errors.description ? 'has-error' : '' %>">
+            <div class="form-group form-group-full">
               <label for="description">Description *</label>
-              <textarea id="description" name="description" rows="4"><%= formData.description %></textarea>
-              <% if (errors.description) { %><small class="error-text"><%= errors.description %></small><% } %>
+              <textarea id="description" name="description" rows="4" required><%= formData.description %></textarea>
             </div>
-
-            <div class="form-group form-group-full <%= errors.eventType ? 'has-error' : '' %>">
+            <div class="form-group form-group-full">
               <label for="eventType">Event Type *</label>
               <select id="eventType" name="eventType" required>
                 <option value="">Select event type</option>
-                <option value="virtual" <%= formData.eventType === 'virtual' ? 'selected' : '' %>>Virtual (Virtual run only)</option>
-                <option value="onsite" <%= formData.eventType === 'onsite' ? 'selected' : '' %>>On-site (On-site only)</option>
-                <option value="hybrid" <%= formData.eventType === 'hybrid' ? 'selected' : '' %>>Hybrid (Both virtual and on-site)</option>
+                <option value="virtual" <%= formData.eventType === 'virtual' ? 'selected' : '' %>>Virtual</option>
+                <option value="onsite" <%= formData.eventType === 'onsite' ? 'selected' : '' %>>On-site</option>
+                <option value="hybrid" <%= formData.eventType === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
               </select>
-              <% if (errors.eventType) { %><small class="error-text"><%= errors.eventType %></small><% } %>
             </div>
-
-            <div class="form-group form-group-full <%= errors.raceDistances ? 'has-error' : '' %>">
+            <div class="form-group form-group-full">
               <label>Race Distances *</label>
               <div class="checkbox-row">
                 <% const selectedDistances = formData.raceDistancePresets || []; %>
@@ -74,35 +69,31 @@
               <label for="raceDistanceCustom" style="margin-top:0.5rem;">Custom Distances (comma-separated)</label>
               <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" placeholder="e.g., 42K, 50K">
               <small class="field-hint">Final values are normalized like 3K, 5K, 10K.</small>
-              <% if (errors.raceDistances) { %><small class="error-text"><%= errors.raceDistances %></small><% } %>
             </div>
           </div>
         </div>
 
+        <!-- WAIVER SECTION (same as create) -->
         <div class="form-section">
-          <div class="section-title">Waiver (Required)</div>
-          <div class="form-grid">
-            <div class="form-group form-group-full <%= errors.waiverTemplate ? 'has-error' : '' %>">
-              <label for="waiverTemplate">Waiver Template HTML *</label>
+          <div class="section-title">📝 Waiver (Required)</div>
+          <div class="waiver-panels">
+            <div class="waiver-panel">
+              <label for="waiverEditor">Waiver Template *</label>
               <div class="waiver-toolbar">
+                <button type="button" id="insertOrganizerPlaceholderBtn" class="btn btn-outline">Insert Organizer Name</button>
+                <button type="button" id="insertEventPlaceholderBtn" class="btn btn-outline">Insert Event Title</button>
                 <button type="button" id="resetWaiverBtn" class="btn btn-outline">Reset to Default Waiver</button>
               </div>
-              <textarea
-                id="waiverTemplate"
-                name="waiverTemplate"
-                rows="14"
-                placeholder="Enter waiver HTML template"
-              ><%= formData.waiverTemplate %></textarea>
+              <div id="waiverEditor" class="waiver-editor"></div>
+              <input type="hidden" id="waiverTemplate" name="waiverTemplate" value="">
               <small class="field-hint">
                 Use placeholders: <code>{{ORGANIZER_NAME}}</code> and <code>{{EVENT_TITLE}}</code>.
                 Changing this will bump waiver version for new registrants.
               </small>
-              <% if (errors.waiverTemplate) { %><small class="error-text"><%= errors.waiverTemplate %></small><% } %>
             </div>
-
-            <div class="form-group form-group-full">
+            <div class="waiver-panel">
               <label>Waiver Preview</label>
-              <div id="waiverPreview" class="waiver-preview-box"></div>
+              <div id="waiverPreview" class="waiver-preview-box" aria-live="polite"></div>
               <small class="field-hint">
                 Preview replaces placeholders using current Organizer Name and Event Title values.
               </small>
@@ -110,62 +101,62 @@
           </div>
         </div>
 
+        <!-- SCHEDULE SECTION (same as create) -->
         <div class="form-section">
-          <div class="section-title">Schedule</div>
+          <div class="section-title">📅 Schedule</div>
           <div class="form-grid">
-            <div class="form-group <%= errors.registrationOpenAt ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="registrationOpenAt">Registration Open *</label>
-              <input id="registrationOpenAt" name="registrationOpenAt" type="datetime-local" value="<%= formData.registrationOpenAt %>">
-              <% if (errors.registrationOpenAt) { %><small class="error-text"><%= errors.registrationOpenAt %></small><% } %>
+              <div class="input-with-button">
+                <input id="registrationOpenAt" name="registrationOpenAt" type="datetime-local" value="<%= formData.registrationOpenAt %>" required>
+                <button type="button" class="btn-now" data-target="registrationOpenAt">Now</button>
+              </div>
             </div>
-
-            <div class="form-group <%= errors.registrationCloseAt ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="registrationCloseAt">Registration Close *</label>
-              <input id="registrationCloseAt" name="registrationCloseAt" type="datetime-local" value="<%= formData.registrationCloseAt %>">
-              <% if (errors.registrationCloseAt) { %><small class="error-text"><%= errors.registrationCloseAt %></small><% } %>
+              <div class="input-with-button">
+                <input id="registrationCloseAt" name="registrationCloseAt" type="datetime-local" value="<%= formData.registrationCloseAt %>" required>
+                <button type="button" class="btn-now" data-target="registrationCloseAt">Now</button>
+              </div>
             </div>
-
-            <div class="form-group <%= errors.eventStartAt ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="eventStartAt">Event Start *</label>
-              <input id="eventStartAt" name="eventStartAt" type="datetime-local" value="<%= formData.eventStartAt %>">
-              <% if (errors.eventStartAt) { %><small class="error-text"><%= errors.eventStartAt %></small><% } %>
+              <div class="input-with-button">
+                <input id="eventStartAt" name="eventStartAt" type="datetime-local" value="<%= formData.eventStartAt %>" required>
+                <button type="button" class="btn-now" data-target="eventStartAt">Now</button>
+              </div>
             </div>
-
-            <div class="form-group <%= errors.eventEndAt ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="eventEndAt">Event End *</label>
-              <input id="eventEndAt" name="eventEndAt" type="datetime-local" value="<%= formData.eventEndAt %>">
-              <% if (errors.eventEndAt) { %><small class="error-text"><%= errors.eventEndAt %></small><% } %>
+              <div class="input-with-button">
+                <input id="eventEndAt" name="eventEndAt" type="datetime-local" value="<%= formData.eventEndAt %>" required>
+                <button type="button" class="btn-now" data-target="eventEndAt">Now</button>
+              </div>
             </div>
           </div>
         </div>
 
+        <!-- LOCATION SECTION (conditional) -->
         <div class="form-section location-section" style="display: none;">
-          <div class="section-title">Location (required for on-site/hybrid)</div>
+          <div class="section-title">📍 Location (required for on-site/hybrid)</div>
           <div class="form-grid">
-            <div class="form-group <%= errors.venueName ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="venueName">Venue Name</label>
               <input id="venueName" name="venueName" type="text" value="<%= formData.venueName %>">
-              <% if (errors.venueName) { %><small class="error-text"><%= errors.venueName %></small><% } %>
             </div>
-
-            <div class="form-group <%= errors.city ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="city">City</label>
               <input id="city" name="city" type="text" value="<%= formData.city %>">
-              <% if (errors.city) { %><small class="error-text"><%= errors.city %></small><% } %>
             </div>
-
-            <div class="form-group form-group-full <%= errors.venueAddress ? 'has-error' : '' %>">
+            <div class="form-group form-group-full">
               <label for="venueAddress">Venue Address</label>
               <input id="venueAddress" name="venueAddress" type="text" value="<%= formData.venueAddress %>">
-              <% if (errors.venueAddress) { %><small class="error-text"><%= errors.venueAddress %></small><% } %>
             </div>
-
             <div class="form-group">
               <label for="province">Province/State</label>
               <input id="province" name="province" type="text" value="<%= formData.province %>">
             </div>
-
-            <div class="form-group <%= errors.country ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="country">Country</label>
               <% const countryCodes = (countries || []).map((item) => item.code); %>
               <select id="country" name="country">
@@ -177,40 +168,37 @@
                   <option value="<%= formData.country %>" selected><%= formData.country %> (legacy)</option>
                 <% } %>
               </select>
-              <% if (errors.country) { %><small class="error-text"><%= errors.country %></small><% } %>
             </div>
-
-            <div class="form-group <%= errors.geoLat ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="geoLat">Latitude (optional)</label>
-              <input id="geoLat" name="geoLat" type="text" value="<%= formData.geoLat %>">
-              <% if (errors.geoLat) { %><small class="error-text"><%= errors.geoLat %></small><% } %>
+              <input id="geoLat" name="geoLat" type="text" value="<%= formData.geoLat %>" placeholder="e.g., 14.5995">
             </div>
-
-            <div class="form-group <%= errors.geoLng ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="geoLng">Longitude (optional)</label>
-              <input id="geoLng" name="geoLng" type="text" value="<%= formData.geoLng %>">
-              <% if (errors.geoLng) { %><small class="error-text"><%= errors.geoLng %></small><% } %>
-              <% if (errors.geo) { %><small class="error-text"><%= errors.geo %></small><% } %>
+              <input id="geoLng" name="geoLng" type="text" value="<%= formData.geoLng %>" placeholder="e.g., 120.9842">
             </div>
           </div>
         </div>
 
+        <!-- VIRTUAL RULES SECTION (conditional) -->
         <div class="form-section virtual-section" style="display: none;">
-          <div class="section-title">Virtual Rules (required for virtual/hybrid)</div>
+          <div class="section-title">🏃 Virtual Rules (required for virtual/hybrid)</div>
           <div class="form-grid">
-            <div class="form-group <%= errors.virtualStartAt ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="virtualStartAt">Virtual Window Start</label>
-              <input id="virtualStartAt" name="virtualStartAt" type="datetime-local" value="<%= formData.virtualStartAt %>">
-              <% if (errors.virtualStartAt) { %><small class="error-text"><%= errors.virtualStartAt %></small><% } %>
+              <div class="input-with-button">
+                <input id="virtualStartAt" name="virtualStartAt" type="datetime-local" value="<%= formData.virtualStartAt %>">
+                <button type="button" class="btn-now" data-target="virtualStartAt">Now</button>
+              </div>
             </div>
-
-            <div class="form-group <%= errors.virtualEndAt ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="virtualEndAt">Virtual Window End</label>
-              <input id="virtualEndAt" name="virtualEndAt" type="datetime-local" value="<%= formData.virtualEndAt %>">
-              <% if (errors.virtualEndAt) { %><small class="error-text"><%= errors.virtualEndAt %></small><% } %>
+              <div class="input-with-button">
+                <input id="virtualEndAt" name="virtualEndAt" type="datetime-local" value="<%= formData.virtualEndAt %>">
+                <button type="button" class="btn-now" data-target="virtualEndAt">Now</button>
+              </div>
             </div>
-
-            <div class="form-group form-group-full <%= errors.proofTypesAllowed ? 'has-error' : '' %>">
+            <div class="form-group form-group-full">
               <label>Proof Types Allowed</label>
               <div class="checkbox-row">
                 <% const selectedProofs = formData.proofTypesAllowed || []; %>
@@ -218,360 +206,514 @@
                 <label><input type="checkbox" name="proofTypesAllowed" value="photo" <%= selectedProofs.includes('photo') ? 'checked' : '' %>> Photo</label>
                 <label><input type="checkbox" name="proofTypesAllowed" value="manual" <%= selectedProofs.includes('manual') ? 'checked' : '' %>> Manual</label>
               </div>
-              <% if (errors.proofTypesAllowed) { %><small class="error-text"><%= errors.proofTypesAllowed %></small><% } %>
             </div>
           </div>
         </div>
 
+        <!-- BRANDING & MEDIA SECTION (adapted for edit) -->
         <div class="form-section">
-          <div class="section-title">Branding & Media</div>
-            <div class="media-block <%= errors.logoUrl ? 'has-error' : '' %>">
-              <h3>1) Event Logo</h3>
-              <p>Small square or transparent image.</p>
-              <p class="media-used-in"><strong>Used in:</strong> Event listings, leaderboard header, search results.</p>
-              <p class="media-rules">Optional. JPG/PNG only, max 5MB.</p>
-              <div class="form-grid">
-                <div class="form-group">
-                <input type="hidden" id="removeLogoImage" name="removeLogoImage" value="<%= formData.removeLogoImage ? '1' : '0' %>">
-                <label for="logoUrl">Logo URL</label>
-                <input id="logoUrl" name="logoUrl" type="url" value="<%= formData.logoUrl %>">
-                <label for="logoFile" style="margin-top:0.5rem;">or Upload Logo</label>
-                <input id="logoFile" name="logoFile" type="file" accept="image/jpeg,image/png">
-                <small class="field-hint">Square image recommended (200x200+), JPG/PNG, max 5MB.</small>
-                <small class="field-hint">If both URL and file are provided, uploaded file will be used.</small>
-                <% if (formData.logoUrl) { %>
-                  <div class="branding-preview branding-preview-wrap" id="logoPreviewWrap">
-                    <button type="button" class="branding-remove-btn" id="removeLogoBtn" aria-label="Remove current logo image">X</button>
-                    <img src="<%= formData.logoUrl %>" alt="Current logo preview" style="max-width:80px;max-height:80px;border-radius:8px;margin-top:0.5rem;">
-                  </div>
-                <% } %>
-                <% if (errors.logoUrl) { %><small class="error-text"><%= errors.logoUrl %></small><% } %>
+          <div class="section-title">🎨 Branding & Media</div>
+
+          <!-- Logo -->
+          <div class="media-block">
+            <h3>1) Event Logo</h3>
+            <p>Small square or transparent image.</p>
+            <p class="media-used-in"><strong>Used in:</strong> Event listings, leaderboard header, search results.</p>
+            <p class="media-rules">Optional. JPG/PNG only, max 5MB.</p>
+
+            <!-- Existing logo preview if any -->
+            <% if (formData.logoUrl) { %>
+            <div class="branding-preview-wrap" id="logoPreviewWrap">
+              <button type="button" class="branding-remove-btn" id="removeLogoBtn" aria-label="Remove current logo image">×</button>
+              <img src="<%= formData.logoUrl %>" alt="Current logo" style="max-width:80px;max-height:80px;border-radius:8px;margin-bottom:1rem;">
+            </div>
+            <input type="hidden" id="removeLogoImage" name="removeLogoImage" value="0">
+            <% } %>
+
+            <!-- Upload area for new logo -->
+            <div class="upload-area" id="logoUploadArea">
+              <input type="file" id="logoFile" name="logoFile" accept="image/jpeg,image/png">
+              <div class="upload-placeholder">
+                <i data-lucide="upload-cloud"></i>
+                <p>Drag & drop or click to upload new logo</p>
+                <small>Square image recommended (200x200+), JPG/PNG, max 5MB</small>
+              </div>
+              <div class="upload-preview" id="logoPreviewContainer" style="display: none;">
+                <img id="logoPreviewImg" src="#" alt="New logo preview">
+                <button type="button" class="remove-upload" aria-label="Remove new logo" data-for="logo">×</button>
               </div>
             </div>
+            <label for="logoUrl" style="margin-top:0.75rem; display:block;">Logo URL (optional)</label>
+            <input id="logoUrl" name="logoUrl" type="url" value="<%= formData.logoUrl %>" placeholder="https://...">
+            <small class="field-hint">If both URL and file are provided, uploaded file will be used.</small>
           </div>
 
-          <div class="media-block <%= errors.bannerImageUrl ? 'has-error' : '' %>">
+          <!-- Banner -->
+          <div class="media-block">
             <h3>2) Event Banner</h3>
             <p>Wide rectangular image for event branding.</p>
             <p class="media-used-in"><strong>Used in:</strong> Event page hero section, landing page, promotional header.</p>
-            <p class="media-rules">Optional. JPG/PNG only, max 5MB. Recommended ratio: 3:1 (example: 1200x400).</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <input type="hidden" id="removeBannerImage" name="removeBannerImage" value="<%= formData.removeBannerImage ? '1' : '0' %>">
-                <label for="bannerImageUrl">Banner Image URL</label>
-                <input id="bannerImageUrl" name="bannerImageUrl" type="url" value="<%= formData.bannerImageUrl %>">
-                <label for="bannerImageFile" style="margin-top:0.5rem;">or Upload Banner Image</label>
-                <input id="bannerImageFile" name="bannerImageFile" type="file" accept="image/jpeg,image/png">
-                <small class="field-hint">Recommended ratio: 3:1 (example 1200x400), JPG/PNG, max 5MB.</small>
-                <small class="field-hint">If both URL and file are provided, uploaded file will be used.</small>
-                <% if (formData.bannerImageUrl) { %>
-                  <div class="branding-preview branding-preview-wrap" id="bannerPreviewWrap">
-                    <button type="button" class="branding-remove-btn" id="removeBannerBtn" aria-label="Remove current banner image">X</button>
-                    <img src="<%= formData.bannerImageUrl %>" alt="Current banner preview" style="max-width:100%;max-height:120px;border-radius:6px;margin-top:0.5rem;">
-                  </div>
-                <% } %>
-                <% if (errors.bannerImageUrl) { %><small class="error-text"><%= errors.bannerImageUrl %></small><% } %>
+            <p class="media-rules">Optional. JPG/PNG only, max 5MB. Recommended ratio: 3:1.</p>
+
+            <% if (formData.bannerImageUrl) { %>
+            <div class="branding-preview-wrap" id="bannerPreviewWrap">
+              <button type="button" class="branding-remove-btn" id="removeBannerBtn" aria-label="Remove current banner image">×</button>
+              <img src="<%= formData.bannerImageUrl %>" alt="Current banner" style="max-width:100%;max-height:120px;border-radius:6px;margin-bottom:1rem;">
+            </div>
+            <input type="hidden" id="removeBannerImage" name="removeBannerImage" value="0">
+            <% } %>
+
+            <div class="upload-area" id="bannerUploadArea">
+              <input type="file" id="bannerFile" name="bannerImageFile" accept="image/jpeg,image/png">
+              <div class="upload-placeholder">
+                <i data-lucide="upload-cloud"></i>
+                <p>Drag & drop or click to upload new banner</p>
+                <small>Recommended ratio 3:1, JPG/PNG, max 5MB</small>
+              </div>
+              <div class="upload-preview" id="bannerPreviewContainer" style="display: none;">
+                <img id="bannerPreviewImg" src="#" alt="New banner preview">
+                <button type="button" class="remove-upload" aria-label="Remove new banner" data-for="banner">×</button>
               </div>
             </div>
+            <label for="bannerImageUrl" style="margin-top:0.75rem; display:block;">Banner URL (optional)</label>
+            <input id="bannerImageUrl" name="bannerImageUrl" type="url" value="<%= formData.bannerImageUrl %>" placeholder="https://...">
           </div>
 
-          <div class="media-block <%= errors.posterImageUrl ? 'has-error' : '' %>">
+          <!-- Poster -->
+          <div class="media-block">
             <h3>3) Promotional Poster</h3>
             <p>Edited promotional image (details, dates, sponsors, prizes, instructions).</p>
             <p class="media-used-in"><strong>Used in:</strong> Event details page and promotional header blocks.</p>
             <p class="media-rules">Optional. JPG/PNG only, max 5MB.</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <input type="hidden" id="removePosterImage" name="removePosterImage" value="<%= formData.removePosterImage ? '1' : '0' %>">
-                <label for="posterImageUrl">Promotional Poster URL</label>
-                <input id="posterImageUrl" name="posterImageUrl" type="url" value="<%= formData.posterImageUrl %>">
-                <label for="posterImageFile" style="margin-top:0.5rem;">or Upload Promotional Poster</label>
-                <input id="posterImageFile" name="posterImageFile" type="file" accept="image/jpeg,image/png">
-                <small class="field-hint">JPG/PNG, max 5MB.</small>
-                <small class="field-hint">If both URL and file are provided, uploaded file will be used.</small>
-                <% if (formData.posterImageUrl) { %>
-                  <div class="branding-preview branding-preview-wrap" id="posterPreviewWrap">
-                    <button type="button" class="branding-remove-btn" id="removePosterBtn" aria-label="Remove current promotional poster">X</button>
-                    <img src="<%= formData.posterImageUrl %>" alt="Current poster preview" style="max-width:100%;max-height:220px;border-radius:8px;margin-top:0.5rem;">
-                  </div>
-                <% } %>
-                <% if (errors.posterImageUrl) { %><small class="error-text"><%= errors.posterImageUrl %></small><% } %>
+
+            <% if (formData.posterImageUrl) { %>
+            <div class="branding-preview-wrap" id="posterPreviewWrap">
+              <button type="button" class="branding-remove-btn" id="removePosterBtn" aria-label="Remove current poster">×</button>
+              <img src="<%= formData.posterImageUrl %>" alt="Current poster" style="max-width:100%;max-height:220px;border-radius:8px;margin-bottom:1rem;">
+            </div>
+            <input type="hidden" id="removePosterImage" name="removePosterImage" value="0">
+            <% } %>
+
+            <div class="upload-area" id="posterUploadArea">
+              <input type="file" id="posterFile" name="posterImageFile" accept="image/jpeg,image/png">
+              <div class="upload-placeholder">
+                <i data-lucide="upload-cloud"></i>
+                <p>Drag & drop or click to upload new poster</p>
+                <small>JPG/PNG, max 5MB</small>
+              </div>
+              <div class="upload-preview" id="posterPreviewContainer" style="display: none;">
+                <img id="posterPreviewImg" src="#" alt="New poster preview">
+                <button type="button" class="remove-upload" aria-label="Remove new poster" data-for="poster">×</button>
               </div>
             </div>
+            <label for="posterImageUrl" style="margin-top:0.75rem; display:block;">Poster URL (optional)</label>
+            <input id="posterImageUrl" name="posterImageUrl" type="url" value="<%= formData.posterImageUrl %>" placeholder="https://...">
           </div>
 
-          <div class="media-block <%= errors.galleryImageUrls ? 'has-error' : '' %>">
+          <!-- Gallery -->
+          <div class="media-block">
             <h3>4) Gallery Images (Optional)</h3>
             <p>Past event photos, route preview, medal preview.</p>
             <p class="media-used-in"><strong>Used in:</strong> Event details gallery section.</p>
             <p class="media-rules">Optional. JPG/PNG only, max 5MB each, up to 12 images.</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <input type="hidden" id="removeGalleryImages" name="removeGalleryImages" value="<%= formData.removeGalleryImages ? '1' : '0' %>">
-                <label for="galleryImageUrlsText">Gallery Image URLs</label>
-                <textarea id="galleryImageUrlsText" name="galleryImageUrlsText" rows="5" placeholder="One URL per line, or comma-separated"><%= formData.galleryImageUrlsText || '' %></textarea>
-                <label for="galleryImageFiles" style="margin-top:0.5rem;">or Upload Gallery Images</label>
-                <input id="galleryImageFiles" name="galleryImageFiles" type="file" accept="image/jpeg,image/png" multiple>
-                <small class="field-hint">JPG/PNG, max 5MB each, up to 12 images total.</small>
-                <% if (formData.galleryImageUrls && formData.galleryImageUrls.length) { %>
-                  <div class="gallery-preview-grid" id="galleryPreviewGrid">
-                    <% formData.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
-                      <div class="gallery-thumb-wrap" data-gallery-url="<%- galleryUrl %>">
-                        <button type="button" class="gallery-remove-btn" data-gallery-url="<%- galleryUrl %>" aria-label="Remove gallery image <%= galleryIndex + 1 %>">X</button>
-                        <img src="<%= galleryUrl %>" alt="Gallery Preview <%= galleryIndex + 1 %>" class="gallery-preview-thumb">
-                      </div>
-                    <% }) %>
-                  </div>
-                  <button type="button" class="btn btn-outline btn-remove-all-gallery" id="removeAllGalleryBtn">Remove all gallery images</button>
-                <% } %>
-                <% if (errors.galleryImageUrls) { %><small class="error-text"><%= errors.galleryImageUrls %></small><% } %>
+
+            <input type="hidden" id="removeGalleryImages" name="removeGalleryImages" value="0">
+
+            <!-- Existing gallery images -->
+            <% if (formData.galleryImageUrls && formData.galleryImageUrls.length) { %>
+            <div class="gallery-preview-grid" id="galleryPreviewGrid">
+              <% formData.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
+                <div class="gallery-thumb-wrap" data-gallery-url="<%- galleryUrl %>">
+                  <button type="button" class="gallery-remove-btn" data-gallery-url="<%- galleryUrl %>" aria-label="Remove gallery image <%= galleryIndex + 1 %>">×</button>
+                  <img src="<%= galleryUrl %>" alt="Gallery Preview <%= galleryIndex + 1 %>" class="gallery-preview-thumb">
+                </div>
+              <% }) %>
+            </div>
+            <button type="button" class="btn btn-outline btn-remove-all-gallery" id="removeAllGalleryBtn">Remove all gallery images</button>
+            <% } else { %>
+            <div class="gallery-preview-grid" id="galleryPreviewGrid"></div>
+            <% } %>
+
+            <!-- Upload area for new gallery images -->
+            <div class="upload-area" id="galleryUploadArea">
+              <input type="file" id="galleryFiles" name="galleryImageFiles" accept="image/jpeg,image/png" multiple>
+              <div class="upload-placeholder">
+                <i data-lucide="images"></i>
+                <p>Drag & drop or click to upload up to 12 new images</p>
+                <small>JPG/PNG, max 5MB each</small>
               </div>
             </div>
+
+            <label for="galleryImageUrlsText" style="margin-top:0.75rem; display:block;">Gallery Image URLs (optional)</label>
+            <textarea id="galleryImageUrlsText" name="galleryImageUrlsText" rows="5" placeholder="One URL per line, or comma-separated"><%= formData.galleryImageUrlsText || '' %></textarea>
           </div>
         </div>
 
+        <!-- FORM ACTIONS -->
         <div class="actions">
           <a href="/organizer/events/<%= event._id %>" class="btn btn-secondary">Cancel</a>
-          <button type="submit" class="btn btn-primary">Save Changes</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">
+            <span class="btn-text">Save Changes</span>
+            <span class="spinner" style="display: none;"></span>
+          </button>
         </div>
       </form>
     </section>
   </main>
 
   <%- include('../layouts/footer') %>
+
   <script src="/js/main.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
   <script>
-    if (window.lucide) lucide.createIcons();
+    (function() {
+      lucide.createIcons();
 
-    const eventTypeSelect = document.getElementById('eventType');
-    const locationSection = document.querySelector('.location-section');
-    const virtualSection = document.querySelector('.virtual-section');
+      // ---------- CONDITIONAL SECTIONS ----------
+      const eventTypeSelect = document.getElementById('eventType');
+      const locationSection = document.querySelector('.location-section');
+      const virtualSection = document.querySelector('.virtual-section');
 
-    function toggleSections() {
-      const val = eventTypeSelect.value;
-      locationSection.style.display = (val === 'onsite' || val === 'hybrid') ? 'block' : 'none';
-      virtualSection.style.display = (val === 'virtual' || val === 'hybrid') ? 'block' : 'none';
-    }
+      function toggleSections() {
+        const val = eventTypeSelect.value;
+        locationSection.style.display = (val === 'onsite' || val === 'hybrid') ? 'block' : 'none';
+        virtualSection.style.display = (val === 'virtual' || val === 'hybrid') ? 'block' : 'none';
+      }
 
-    if (eventTypeSelect) {
-      eventTypeSelect.addEventListener('change', toggleSections);
-      toggleSections();
-    }
+      if (eventTypeSelect) {
+        eventTypeSelect.addEventListener('change', toggleSections);
+        toggleSections();
+      }
 
-    // Branding file validation
-    const allowedImageTypes = new Set(['image/jpeg', 'image/png']);
-    const maxBrandingSizeBytes = 5 * 1024 * 1024;
-
-    function resetFileInput(input, message) {
-      alert(message);
-      input.value = '';
-    }
-
-    async function removeEventMediaNow(payload) {
-      const body = new URLSearchParams(payload);
-      const response = await fetch(`/organizer/events/<%= event._id %>/media/remove`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'
-        },
-        body: body.toString()
+      // ---------- "NOW" BUTTONS ----------
+      document.querySelectorAll('.btn-now').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const targetId = btn.dataset.target;
+          const input = document.getElementById(targetId);
+          if (!input) return;
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const day = String(now.getDate()).padStart(2, '0');
+          const hours = String(now.getHours()).padStart(2, '0');
+          const minutes = String(now.getMinutes()).padStart(2, '0');
+          input.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        });
       });
-      let data = null;
-      try {
-        data = await response.json();
-      } catch (error) {
-        data = null;
-      }
-      if (!response.ok || !data || !data.success) {
-        const message = (data && data.message) || 'Failed to remove media.';
-        throw new Error(message);
-      }
-      return data;
-    }
 
-    async function handleBrandingFileValidation(input, options = {}) {
-      const file = input.files && input.files[0];
-      if (!file) return;
+      // ---------- REAL-TIME VALIDATION ----------
+      const form = document.querySelector('.create-event-form');
+      const requiredFields = [
+        { id: 'title', message: 'Event title is required.' },
+        { id: 'description', message: 'Description is required.' },
+        { id: 'eventType', message: 'Please select an event type.' },
+        { id: 'registrationOpenAt', message: 'Registration open date is required.' },
+        { id: 'registrationCloseAt', message: 'Registration close date is required.' },
+        { id: 'eventStartAt', message: 'Event start date is required.' },
+        { id: 'eventEndAt', message: 'Event end date is required.' }
+      ];
 
-      if (!allowedImageTypes.has(file.type)) {
-        resetFileInput(input, 'Invalid file type. Only JPG and PNG files are allowed.');
-        return;
-      }
-      if (file.size > maxBrandingSizeBytes) {
-        resetFileInput(input, 'Image exceeds 5MB limit.');
-        return;
-      }
+      function validateField(field) {
+        const input = typeof field === 'string' ? document.getElementById(field) : field;
+        if (!input) return true;
 
-      if (options.requireBannerRatio) {
-        // Ratio is a recommendation only; no hard block.
-      }
-    }
+        const fieldId = input.id;
+        const value = input.value.trim();
+        let error = '';
 
-    const bannerFileInput = document.getElementById('bannerImageFile');
-    const logoFileInput = document.getElementById('logoFile');
-    const posterFileInput = document.getElementById('posterImageFile');
-    const galleryFilesInput = document.getElementById('galleryImageFiles');
-    const removeBannerInput = document.getElementById('removeBannerImage');
-    const removeBannerBtn = document.getElementById('removeBannerBtn');
-    const bannerPreviewWrap = document.getElementById('bannerPreviewWrap');
-    const removeLogoInput = document.getElementById('removeLogoImage');
-    const removeLogoBtn = document.getElementById('removeLogoBtn');
-    const logoPreviewWrap = document.getElementById('logoPreviewWrap');
-    const removePosterInput = document.getElementById('removePosterImage');
-    const removePosterBtn = document.getElementById('removePosterBtn');
-    const posterPreviewWrap = document.getElementById('posterPreviewWrap');
-    const removeGalleryInput = document.getElementById('removeGalleryImages');
-    const removeAllGalleryBtn = document.getElementById('removeAllGalleryBtn');
-    const galleryPreviewGrid = document.getElementById('galleryPreviewGrid');
-    const bannerUrlInput = document.getElementById('bannerImageUrl');
-    const logoUrlInput = document.getElementById('logoUrl');
-    const posterUrlInput = document.getElementById('posterImageUrl');
-    const galleryUrlsTextInput = document.getElementById('galleryImageUrlsText');
-    if (bannerFileInput) {
-      bannerFileInput.addEventListener('change', () => {
-        handleBrandingFileValidation(bannerFileInput, { requireBannerRatio: true });
-        if (bannerFileInput.files && bannerFileInput.files.length && removeBannerInput) {
-          removeBannerInput.value = '0';
+        if (input.required && !value) {
+          const found = requiredFields.find(f => f.id === fieldId);
+          error = found ? found.message : 'This field is required.';
+        } else if (fieldId === 'description' && value.length < 20) {
+          error = 'Description must be at least 20 characters.';
+        } else if (fieldId === 'eventType' && !value) {
+          error = 'Please select an event type.';
+        } else if (fieldId === 'title' && value.length < 3) {
+          error = 'Title must be at least 3 characters.';
         }
-      });
-    }
-    if (logoFileInput) {
-      logoFileInput.addEventListener('change', () => {
-        handleBrandingFileValidation(logoFileInput);
-        if (logoFileInput.files && logoFileInput.files.length && removeLogoInput) {
-          removeLogoInput.value = '0';
+
+        const formGroup = input.closest('.form-group');
+        const existingError = formGroup.querySelector('.error-text');
+        if (error) {
+          if (!existingError) {
+            const errorEl = document.createElement('small');
+            errorEl.className = 'error-text';
+            errorEl.textContent = error;
+            formGroup.appendChild(errorEl);
+          }
+          formGroup.classList.add('has-error');
+          return false;
+        } else {
+          existingError?.remove();
+          formGroup.classList.remove('has-error');
+          return true;
         }
+      }
+
+      document.querySelectorAll('input, select, textarea').forEach(field => {
+        field.addEventListener('blur', () => validateField(field));
+        field.addEventListener('input', () => validateField(field));
       });
-    }
-    if (posterFileInput) {
-      posterFileInput.addEventListener('change', () => {
-        handleBrandingFileValidation(posterFileInput);
-        if (posterFileInput.files && posterFileInput.files.length && removePosterInput) {
-          removePosterInput.value = '0';
-        }
-      });
-    }
-    if (galleryFilesInput) {
-      galleryFilesInput.addEventListener('change', () => {
-        const files = Array.from(galleryFilesInput.files || []);
-        if (!files.length) return;
-        if (files.length > 12) {
-          resetFileInput(galleryFilesInput, 'You can upload up to 12 gallery images at a time.');
+
+      // ---------- LOADING STATE ON SUBMIT ----------
+      form.addEventListener('submit', (e) => {
+        let isValid = true;
+        requiredFields.forEach(f => {
+          const field = document.getElementById(f.id);
+          if (!validateField(field)) isValid = false;
+        });
+
+        if (!isValid) {
+          e.preventDefault();
+          alert('Please fix the highlighted errors before saving.');
           return;
         }
-        for (const file of files) {
-          if (!allowedImageTypes.has(file.type)) {
-            resetFileInput(galleryFilesInput, 'Invalid gallery file type. Only JPG and PNG files are allowed.');
-            return;
-          }
-          if (file.size > maxBrandingSizeBytes) {
-            resetFileInput(galleryFilesInput, 'One or more gallery images exceed 5MB limit.');
-            return;
-          }
-        }
-        if (removeGalleryInput) removeGalleryInput.value = '0';
-      });
-    }
-    if (removeBannerBtn && removeBannerInput && bannerUrlInput) {
-      removeBannerBtn.addEventListener('click', async () => {
-        const confirmed = confirm('Remove current banner image?');
-        if (!confirmed) return;
-        removeBannerBtn.disabled = true;
-        try {
-          await removeEventMediaNow({ kind: 'banner' });
-          removeBannerInput.value = '0';
-          bannerUrlInput.value = '';
-          if (bannerPreviewWrap) bannerPreviewWrap.style.display = 'none';
-        } catch (error) {
-          alert(error.message);
-        } finally {
-          removeBannerBtn.disabled = false;
-        }
-      });
-    }
-    if (removeLogoBtn && removeLogoInput && logoUrlInput) {
-      removeLogoBtn.addEventListener('click', async () => {
-        const confirmed = confirm('Remove current logo image?');
-        if (!confirmed) return;
-        removeLogoBtn.disabled = true;
-        try {
-          await removeEventMediaNow({ kind: 'logo' });
-          removeLogoInput.value = '0';
-          logoUrlInput.value = '';
-          if (logoPreviewWrap) logoPreviewWrap.style.display = 'none';
-        } catch (error) {
-          alert(error.message);
-        } finally {
-          removeLogoBtn.disabled = false;
-        }
-      });
-    }
-    if (removePosterBtn && removePosterInput && posterUrlInput) {
-      removePosterBtn.addEventListener('click', async () => {
-        const confirmed = confirm('Remove current promotional poster?');
-        if (!confirmed) return;
-        removePosterBtn.disabled = true;
-        try {
-          await removeEventMediaNow({ kind: 'poster' });
-          removePosterInput.value = '0';
-          posterUrlInput.value = '';
-          if (posterPreviewWrap) posterPreviewWrap.style.display = 'none';
-        } catch (error) {
-          alert(error.message);
-        } finally {
-          removePosterBtn.disabled = false;
-        }
-      });
-    }
-    if (removeAllGalleryBtn && removeGalleryInput && galleryUrlsTextInput) {
-      removeAllGalleryBtn.addEventListener('click', async () => {
-        const confirmed = confirm('Remove all current gallery images?');
-        if (!confirmed) return;
-        removeAllGalleryBtn.disabled = true;
-        try {
-          await removeEventMediaNow({ kind: 'gallery', all: '1' });
-          removeGalleryInput.value = '0';
-          galleryUrlsTextInput.value = '';
-          if (galleryPreviewGrid) galleryPreviewGrid.innerHTML = '';
-          removeAllGalleryBtn.style.display = 'none';
-        } catch (error) {
-          alert(error.message);
-        } finally {
-          removeAllGalleryBtn.disabled = false;
-        }
-      });
-    }
 
-    function normalizeGalleryUrls(rawValue) {
-      return String(rawValue || '')
-        .split(/\r?\n|,/)
-        .map((item) => item.trim())
-        .filter(Boolean);
-    }
-
-    if (galleryPreviewGrid) {
-      galleryPreviewGrid.querySelectorAll('.gallery-remove-btn').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          const targetUrl = btn.getAttribute('data-gallery-url');
-          if (!targetUrl) return;
-          const confirmed = confirm('Remove this gallery image?');
-          if (!confirmed) return;
+        // Disable all submit buttons
+        document.querySelectorAll('button[type="submit"]').forEach(btn => {
           btn.disabled = true;
+          btn.classList.add('loading');
+          const spinner = btn.querySelector('.spinner');
+          if (spinner) spinner.style.display = 'inline-block';
+        });
+      });
 
-          try {
-            await removeEventMediaNow({ kind: 'gallery', url: targetUrl });
+      // ---------- FILE UPLOAD HANDLER (same as create) ----------
+      function setupUploadArea(areaId, previewContainerId, previewImgId, fileInputId, urlInputId, removeBtnSelector) {
+        const area = document.getElementById(areaId);
+        const fileInput = document.getElementById(fileInputId);
+        const previewContainer = document.getElementById(previewContainerId);
+        const previewImg = document.getElementById(previewImgId);
+        const urlInput = urlInputId ? document.getElementById(urlInputId) : null;
+        const removeBtn = removeBtnSelector ? document.querySelector(removeBtnSelector) : null;
 
-            const targetWrap = Array.from(galleryPreviewGrid.querySelectorAll('.gallery-thumb-wrap'))
-              .find((item) => item.getAttribute('data-gallery-url') === targetUrl);
-            if (targetWrap) targetWrap.remove();
+        if (!area || !fileInput) return;
 
-            const currentUrls = normalizeGalleryUrls(galleryUrlsTextInput ? galleryUrlsTextInput.value : '');
-            const nextUrls = currentUrls.filter((urlValue) => urlValue !== targetUrl);
-            if (galleryUrlsTextInput) galleryUrlsTextInput.value = nextUrls.join('\n');
-            if (removeGalleryInput) removeGalleryInput.value = nextUrls.length ? '0' : '1';
-            if (removeAllGalleryBtn) {
-              removeAllGalleryBtn.style.display = nextUrls.length ? 'inline-flex' : 'none';
+        area.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          area.classList.add('dragover');
+        });
+        area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+        area.addEventListener('drop', (e) => {
+          e.preventDefault();
+          area.classList.remove('dragover');
+          if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            handleFileSelect(fileInput, previewContainer, previewImg, urlInput);
+          }
+        });
+
+        area.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', () => {
+          handleFileSelect(fileInput, previewContainer, previewImg, urlInput);
+        });
+
+        if (removeBtn) {
+          removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.value = '';
+            previewContainer.style.display = 'none';
+            // For edit mode, we also need to mark removal if it's a new upload area (no existing image)
+            // But this remove button is for the preview of a new upload, not the existing image.
+            // Existing image removal is handled separately.
+          });
+        }
+      }
+
+      function handleFileSelect(input, previewContainer, previewImg, urlInput) {
+        const file = input.files[0];
+        if (!file) return;
+
+        if (!allowedImageTypes.has(file.type)) {
+          alert('Invalid file type. Only JPG and PNG files are allowed.');
+          input.value = '';
+          return;
+        }
+        if (file.size > maxBrandingSizeBytes) {
+          alert('Image exceeds 5MB limit.');
+          input.value = '';
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          previewImg.src = e.target.result;
+          previewContainer.style.display = 'inline-block';
+          if (urlInput) urlInput.value = '';
+        };
+        reader.readAsDataURL(file);
+      }
+
+      const allowedImageTypes = new Set(['image/jpeg', 'image/png']);
+      const maxBrandingSizeBytes = 5 * 1024 * 1024;
+
+      // Setup upload areas (note: remove buttons for new uploads)
+      setupUploadArea('logoUploadArea', 'logoPreviewContainer', 'logoPreviewImg', 'logoFile', 'logoUrl', '.remove-upload[data-for="logo"]');
+      setupUploadArea('bannerUploadArea', 'bannerPreviewContainer', 'bannerPreviewImg', 'bannerFile', 'bannerImageUrl', '.remove-upload[data-for="banner"]');
+      setupUploadArea('posterUploadArea', 'posterPreviewContainer', 'posterPreviewImg', 'posterFile', 'posterImageUrl', '.remove-upload[data-for="poster"]');
+
+      // Gallery (multiple files)
+      const galleryInput = document.getElementById('galleryFiles');
+      const galleryPreview = document.getElementById('galleryPreviewGrid');
+      const galleryUrlsText = document.getElementById('galleryImageUrlsText');
+
+      if (galleryInput) {
+        galleryInput.addEventListener('change', () => {
+          const files = Array.from(galleryInput.files);
+          if (files.length > 12) {
+            alert('You can upload up to 12 gallery images.');
+            galleryInput.value = '';
+            return;
+          }
+          for (const file of files) {
+            if (!allowedImageTypes.has(file.type)) {
+              alert('Invalid file type. Only JPG and PNG files are allowed.');
+              galleryInput.value = '';
+              return;
             }
+            if (file.size > maxBrandingSizeBytes) {
+              alert('One or more images exceed 5MB limit.');
+              galleryInput.value = '';
+              return;
+            }
+          }
+          // Append new previews to existing grid (without removing existing ones)
+          files.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const wrap = document.createElement('div');
+              wrap.className = 'gallery-thumb-wrap';
+              // For new uploads we don't have a remove button that calls server; we'll just show preview.
+              // They will be submitted with the form. If user wants to remove, they must clear file input.
+              const img = document.createElement('img');
+              img.src = e.target.result;
+              img.alt = `New gallery preview ${index+1}`;
+              img.className = 'gallery-preview-thumb';
+              wrap.appendChild(img);
+              galleryPreview.appendChild(wrap);
+            };
+            reader.readAsDataURL(file);
+          });
+        });
+      }
+
+      // ---------- REMOVE EXISTING MEDIA (edit mode) ----------
+      async function removeEventMediaNow(payload) {
+        const body = new URLSearchParams(payload);
+        const response = await fetch(`/organizer/events/<%= event._id %>/media/remove`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: body.toString()
+        });
+        let data = null;
+        try { data = await response.json(); } catch (e) {}
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.message || 'Failed to remove media.');
+        }
+        return data;
+      }
+
+      // Logo remove
+      const removeLogoBtn = document.getElementById('removeLogoBtn');
+      const removeLogoInput = document.getElementById('removeLogoImage');
+      if (removeLogoBtn && removeLogoInput) {
+        removeLogoBtn.addEventListener('click', async () => {
+          if (!confirm('Remove current logo image?')) return;
+          removeLogoBtn.disabled = true;
+          try {
+            await removeEventMediaNow({ kind: 'logo' });
+            removeLogoInput.value = '1';
+            document.getElementById('logoPreviewWrap').style.display = 'none';
+            // Also clear any URL input
+            document.getElementById('logoUrl').value = '';
+          } catch (error) {
+            alert(error.message);
+          } finally {
+            removeLogoBtn.disabled = false;
+          }
+        });
+      }
+
+      // Banner remove
+      const removeBannerBtn = document.getElementById('removeBannerBtn');
+      const removeBannerInput = document.getElementById('removeBannerImage');
+      if (removeBannerBtn && removeBannerInput) {
+        removeBannerBtn.addEventListener('click', async () => {
+          if (!confirm('Remove current banner image?')) return;
+          removeBannerBtn.disabled = true;
+          try {
+            await removeEventMediaNow({ kind: 'banner' });
+            removeBannerInput.value = '1';
+            document.getElementById('bannerPreviewWrap').style.display = 'none';
+            document.getElementById('bannerImageUrl').value = '';
+          } catch (error) {
+            alert(error.message);
+          } finally {
+            removeBannerBtn.disabled = false;
+          }
+        });
+      }
+
+      // Poster remove
+      const removePosterBtn = document.getElementById('removePosterBtn');
+      const removePosterInput = document.getElementById('removePosterImage');
+      if (removePosterBtn && removePosterInput) {
+        removePosterBtn.addEventListener('click', async () => {
+          if (!confirm('Remove current promotional poster?')) return;
+          removePosterBtn.disabled = true;
+          try {
+            await removeEventMediaNow({ kind: 'poster' });
+            removePosterInput.value = '1';
+            document.getElementById('posterPreviewWrap').style.display = 'none';
+            document.getElementById('posterImageUrl').value = '';
+          } catch (error) {
+            alert(error.message);
+          } finally {
+            removePosterBtn.disabled = false;
+          }
+        });
+      }
+
+      // Gallery remove individual
+      const removeAllGalleryBtn = document.getElementById('removeAllGalleryBtn');
+      const removeGalleryInput = document.getElementById('removeGalleryImages');
+      if (removeAllGalleryBtn && removeGalleryInput) {
+        removeAllGalleryBtn.addEventListener('click', async () => {
+          if (!confirm('Remove all current gallery images?')) return;
+          removeAllGalleryBtn.disabled = true;
+          try {
+            await removeEventMediaNow({ kind: 'gallery', all: '1' });
+            removeGalleryInput.value = '1';
+            document.getElementById('galleryPreviewGrid').innerHTML = '';
+            removeAllGalleryBtn.style.display = 'none';
+            galleryUrlsText.value = '';
+          } catch (error) {
+            alert(error.message);
+          } finally {
+            removeAllGalleryBtn.disabled = false;
+          }
+        });
+      }
+
+      // Individual gallery remove buttons (existing images)
+      document.querySelectorAll('.gallery-remove-btn[data-gallery-url]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const url = btn.dataset.galleryUrl;
+          if (!url) return;
+          if (!confirm('Remove this gallery image?')) return;
+          btn.disabled = true;
+          try {
+            await removeEventMediaNow({ kind: 'gallery', url: url });
+            const wrap = btn.closest('.gallery-thumb-wrap');
+            if (wrap) wrap.remove();
+
+            // Update hidden URLs textarea
+            const currentUrls = galleryUrlsText.value.split(/\r?\n|,/).map(s => s.trim()).filter(Boolean);
+            const newUrls = currentUrls.filter(u => u !== url);
+            galleryUrlsText.value = newUrls.join('\n');
+            removeGalleryInput.value = newUrls.length ? '0' : '1';
+            if (!newUrls.length && removeAllGalleryBtn) removeAllGalleryBtn.style.display = 'none';
           } catch (error) {
             alert(error.message);
           } finally {
@@ -579,38 +721,155 @@
           }
         });
       });
-    }
 
-    // Waiver preview
-    const waiverTemplateInput = document.getElementById('waiverTemplate');
-    const organiserNameInput = document.getElementById('organiserName');
-    const titleInput = document.getElementById('title');
-    const waiverPreview = document.getElementById('waiverPreview');
-    const resetWaiverBtn = document.getElementById('resetWaiverBtn');
-    const defaultWaiverTemplate = <%- JSON.stringify(defaultWaiverTemplate || '') %>;
+      // ---------- WAIVER PREVIEW (same as create) ----------
+      // (copy the entire waiver script from create-event.ejs, adjusting initialWaiverTemplate as needed)
+      const waiverEditorRoot = document.getElementById('waiverEditor');
+      const waiverTemplateInput = document.getElementById('waiverTemplate');
+      const organiserNameInput = document.getElementById('organiserName');
+      const titleInput = document.getElementById('title');
+      const waiverPreview = document.getElementById('waiverPreview');
+      const resetWaiverBtn = document.getElementById('resetWaiverBtn');
+      const insertOrganizerPlaceholderBtn = document.getElementById('insertOrganizerPlaceholderBtn');
+      const insertEventPlaceholderBtn = document.getElementById('insertEventPlaceholderBtn');
+      const defaultWaiverTemplate = <%- JSON.stringify(defaultWaiverTemplate || '') %>;
+      const initialWaiverTemplate = <%- JSON.stringify(formData.waiverTemplate || '') %>;
+      let waiverQuill = null;
 
-    function renderWaiverPreview() {
-      if (!waiverTemplateInput || !waiverPreview) return;
-      const organizerName = (organiserNameInput?.value || '').trim() || 'the organizer';
-      const eventTitle = (titleInput?.value || '').trim() || 'this event';
-      const template = waiverTemplateInput.value || '';
-      waiverPreview.innerHTML = template
-        .replace(/\{\{\s*ORGANIZER_NAME\s*\}\}/g, organizerName)
-        .replace(/\{\{\s*EVENT_TITLE\s*\}\}/g, eventTitle);
-    }
+      function getWaiverTemplateValue() {
+        if (waiverQuill) return waiverQuill.root.innerHTML || '';
+        return waiverTemplateInput?.value || '';
+      }
 
-    [waiverTemplateInput, organiserNameInput, titleInput].forEach((el) => {
-      if (el) el.addEventListener('input', renderWaiverPreview);
-    });
-    if (resetWaiverBtn && waiverTemplateInput) {
-      resetWaiverBtn.addEventListener('click', () => {
-        const confirmed = confirm('Reset waiver template to the default version?');
-        if (!confirmed) return;
-        waiverTemplateInput.value = defaultWaiverTemplate;
+      function setWaiverTemplateValue(value) {
+        const safeValue = String(value || '');
+        if (waiverQuill) {
+          waiverQuill.clipboard.dangerouslyPasteHTML(safeValue);
+        }
+        if (waiverTemplateInput) {
+          waiverTemplateInput.value = safeValue;
+        }
+      }
+
+      function insertWaiverPlaceholder(token) {
+        if (!token || !waiverTemplateInput) return;
+        if (waiverQuill) {
+          const range = waiverQuill.getSelection(true);
+          const index = range ? range.index : waiverQuill.getLength();
+          waiverQuill.insertText(index, token, 'user');
+          waiverQuill.setSelection(index + token.length, 0, 'user');
+          waiverTemplateInput.value = waiverQuill.root.innerHTML || '';
+          renderWaiverPreview();
+          waiverQuill.focus();
+          return;
+        }
+        waiverTemplateInput.value = `${waiverTemplateInput.value || ''}${token}`;
         renderWaiverPreview();
+      }
+
+      function sanitizePreviewHtml(input) {
+        const raw = String(input || '');
+        let safe = raw;
+        safe = safe.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
+        safe = safe.replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '');
+        safe = safe.replace(/<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi, '');
+        safe = safe.replace(/<object[\s\S]*?>[\s\S]*?<\/object>/gi, '');
+        safe = safe.replace(/<embed[\s\S]*?>[\s\S]*?<\/embed>/gi, '');
+        safe = safe.replace(/\son[a-z]+\s*=\s*(['"]).*?\1/gi, '');
+        safe = safe.replace(/\son[a-z]+\s*=\s*[^\s>]+/gi, '');
+        safe = safe.replace(/(href|src)\s*=\s*(['"])\s*javascript:[\s\S]*?\2/gi, '$1="#"');
+        safe = safe.replace(/(href|src)\s*=\s*javascript:[^\s>]+/gi, '$1="#"');
+        return safe;
+      }
+
+      function initializeWaiverEditor() {
+        if (!waiverEditorRoot || !waiverTemplateInput || !window.Quill) {
+          if (waiverTemplateInput) {
+            waiverTemplateInput.value = initialWaiverTemplate || defaultWaiverTemplate;
+          }
+          renderWaiverPreview();
+          return;
+        }
+
+        if (waiverQuill) {
+          renderWaiverPreview();
+          return;
+        }
+
+        waiverEditorRoot.innerHTML = '';
+
+        try {
+          waiverQuill = new Quill('#waiverEditor', {
+            theme: 'snow',
+            modules: {
+              toolbar: [
+                [{ header: [2, 3, false] }],
+                ['bold', 'italic'],
+                [{ list: 'ordered' }, { list: 'bullet' }],
+                ['blockquote', 'link'],
+                ['clean']
+              ]
+            },
+            placeholder: 'Enter waiver text here...'
+          });
+
+          const initialValue = initialWaiverTemplate || defaultWaiverTemplate;
+          if (initialValue) {
+            waiverQuill.clipboard.dangerouslyPasteHTML(initialValue);
+          }
+          waiverTemplateInput.value = initialValue;
+
+          waiverQuill.on('text-change', () => {
+            waiverTemplateInput.value = waiverQuill.root.innerHTML || '';
+            renderWaiverPreview();
+          });
+
+          renderWaiverPreview();
+        } catch (error) {
+          console.error('Failed to initialize Quill:', error);
+          waiverTemplateInput.value = initialWaiverTemplate || defaultWaiverTemplate;
+          renderWaiverPreview();
+        }
+      }
+
+      function renderWaiverPreview() {
+        if (!waiverPreview) return;
+        const organizerName = (organiserNameInput?.value || '').trim() || 'the organizer';
+        const eventTitle = (titleInput?.value || '').trim() || 'this event';
+        const template = getWaiverTemplateValue();
+        const renderedTemplate = template
+          .replace(/\{\{\s*ORGANIZER_NAME\s*\}\}/g, organizerName)
+          .replace(/\{\{\s*EVENT_TITLE\s*\}\}/g, eventTitle);
+        waiverPreview.innerHTML = sanitizePreviewHtml(renderedTemplate);
+      }
+
+      [organiserNameInput, titleInput].forEach((el) => {
+        if (el) el.addEventListener('input', renderWaiverPreview);
       });
-    }
-    renderWaiverPreview();
+      if (resetWaiverBtn) {
+        resetWaiverBtn.addEventListener('click', () => {
+          if (!confirm('Reset waiver template to the default version?')) return;
+          setWaiverTemplateValue(defaultWaiverTemplate);
+          renderWaiverPreview();
+        });
+      }
+      if (insertOrganizerPlaceholderBtn) {
+        insertOrganizerPlaceholderBtn.addEventListener('click', () => insertWaiverPlaceholder('{{ORGANIZER_NAME}}'));
+      }
+      if (insertEventPlaceholderBtn) {
+        insertEventPlaceholderBtn.addEventListener('click', () => insertWaiverPlaceholder('{{EVENT_TITLE}}'));
+      }
+      if (form && waiverTemplateInput) {
+        form.addEventListener('submit', () => {
+          waiverTemplateInput.value = getWaiverTemplateValue();
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeWaiverEditor, { once: true });
+      } else {
+        initializeWaiverEditor();
+      }
+    })();
   </script>
 </body>
 </html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/static-pages.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="static-page">
+    <div class="static-wrap">
+      <header class="static-hero">
+        <h1>FAQ</h1>
+        <p>Answers to common questions from runners and organizers.</p>
+      </header>
+
+      <section class="faq-list">
+        <article class="faq-item">
+          <h3>Do I need an account to register for an event?</h3>
+          <p>Yes. You must be logged in to register, upload proof, submit results, and access your history.</p>
+        </article>
+        <article class="faq-item">
+          <h3>How do payment proofs work?</h3>
+          <p>If an event requires manual verification, upload payment proof from My Registrations. Organizers then approve or reject it.</p>
+        </article>
+        <article class="faq-item">
+          <h3>When can I submit run results?</h3>
+          <p>After your registration is paid/confirmed and the event is active for submissions based on the organizer's configured windows.</p>
+        </article>
+        <article class="faq-item">
+          <h3>How do I get a certificate?</h3>
+          <p>Certificates become available once your submission is approved by the organizer.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Where can organizers review queues?</h3>
+          <p>Organizers can use their dashboard and event registrants page to process payment and result reviews.</p>
+        </article>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

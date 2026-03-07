@@ -274,6 +274,19 @@ body {
   text-decoration: underline;
 }
 
+.blog-results-meta {
+  margin: 0.25rem 0 0;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.blog-clear-link {
+  color: #fff;
+  font-weight: 700;
+  margin-left: 0.45rem;
+  text-decoration: underline;
+}
+
 /* ===== Action Bar ===== */
 .blog-action-bar {
   display: flex;
