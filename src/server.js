@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
+const { attachCsrfToken } = require('./middleware/csrf.middleware');
 
 // ===== STEP 1: MIDDLEWARE (MUST BE FIRST) =====
 console.log('Loading middleware...');
@@ -73,6 +74,7 @@ app.use(session({
     touchAfter: 24 * 3600
   })
 }));
+app.use(attachCsrfToken);
 
 // ===== ROUTES =====
 console.log('Loading routes...');

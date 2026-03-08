@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Create Running Group - helloRun' }) %>
+  <link rel="stylesheet" href="/css/runner-dashboard.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
+
+  <main class="dashboard-container">
+    <div class="dashboard-header">
+      <div class="header-content">
+        <h1>Create Running Group</h1>
+        <p class="header-subtitle">Set up your group on a dedicated page.</p>
+      </div>
+      <a href="/runner/dashboard" class="btn btn-outline">Back to Dashboard</a>
+    </div>
+
+    <% if (message) { %>
+      <div
+        class="page-message page-message-<%= message.type %>"
+        role="<%= message.type === 'error' ? 'alert' : 'status' %>"
+        aria-live="<%= message.type === 'error' ? 'assertive' : 'polite' %>"
+      ><%= message.text %></div>
+    <% } %>
+
+    <% if (currentGroup) { %>
+      <section class="dashboard-card profile-card" style="margin-bottom: 1rem;">
+        <div class="card-header">
+          <h2><i data-lucide="users"></i> Current Group</h2>
+        </div>
+        <div class="card-content card-content-list">
+          <p>You are currently in <strong><a href="/runner/groups/<%= currentGroup.slug %>"><%= currentGroup.name %></a></strong>.</p>
+          <p class="text-muted">Creating a new group may replace your current group membership.</p>
+        </div>
+      </section>
+    <% } %>
+
+    <section class="dashboard-card profile-card">
+      <div class="card-header">
+        <h2><i data-lucide="plus-circle"></i> New Group Details</h2>
+      </div>
+      <div class="card-content card-content-list">
+        <form method="POST" action="/runner/groups/create" class="group-create" style="margin-top:0;padding-top:0;border-top:none;">
+          <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+          <input type="hidden" name="returnTo" value="/runner/groups/create">
+          <label for="groupName">Group name</label>
+          <input id="groupName" type="text" name="name" maxlength="120" required placeholder="e.g. Manila Sunrise Runners">
+          <label for="groupDescription">Description (optional)</label>
+          <textarea id="groupDescription" name="description" maxlength="400" rows="4" placeholder="Who your group is for, training style, and goals."></textarea>
+          <div style="display:flex; justify-content:flex-end; gap:0.6rem; margin-top:0.4rem;">
+            <a href="/runner/dashboard" class="btn btn-outline">Cancel</a>
+            <button type="submit" class="btn btn-primary">Create Group</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+  </script>
+</body>
+</html>
+

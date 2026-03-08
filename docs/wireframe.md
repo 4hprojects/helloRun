@@ -3,6 +3,155 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See dir.md for repository-level change history.
 
+## STATUS UPDATE (Mar 8, 2026 - Runner Groups IA Cleanup + Profile UX Refinement)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Simplified Runner Dashboard `Running Groups` panel:
+  - reduced to concise membership overview only
+  - removed inline search/join/create controls from dashboard
+  - retained single `Manage Groups` entry button
+- Added dedicated Running Groups management page:
+  - `GET /runner/groups`
+  - includes search, join, and create flows in one page
+- Added/kept focused create-group page flow:
+  - `GET /runner/groups/create`
+  - `POST /runner/groups/create`
+- Added runner personal info subpage:
+  - `GET /runner/profile`
+  - left quick-menu panel for section navigation
+- Added profile panel edit improvements:
+  - Contact panel supports mobile editing
+  - Emergency Contact name/number editable
+  - Identity DOB masked by default with eye icon toggle
+  - Save/Cancel actions hidden by default and revealed on Edit
+  - Save/Cancel aligned to the right
+
+### Validation signals recorded
+- `tests/runner-dashboard-profile.test.js` -> PASS
+- `tests/runner-notifications-routes.test.js` -> PASS
+- Route/controller syntax checks for runner routes/controller -> PASS
+
+### Still pending from this scope
+- Optional: align `running-group-smoke` assertions with latest dashboard markup conventions.
+
+## STATUS UPDATE (Mar 8, 2026 - Runner Dashboard High-Impact Batch: Security + UX)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Added authenticated runner password management flow:
+  - `GET /runner/security/password`
+  - `POST /runner/security/password`
+  - Google-only users can set first local password
+  - local-password users must provide current password to change password
+- Updated runner dashboard Account Security actions:
+  - password action now routes directly to authenticated password settings page
+- Added relative time labels for dashboard activity/results:
+  - `just now`, `Xm ago`, `Xh ago`, `Xd ago`
+- Hardened unlink modal accessibility:
+  - focus trap inside modal
+  - Escape key to close
+  - backdrop close
+  - return focus to trigger after close
+- Completed compact mobile readability pass for runner dashboard list rows:
+  - tighter spacing and typography for `item-row` details/actions at small breakpoints
+- Expanded and passed targeted regression checks:
+  - `tests/runner-dashboard-profile.test.js` (including new password/security coverage)
+  - `tests/running-group-smoke.test.js`
+  - `tests/google-oauth-routes.test.js`
+
+### Still pending from this scope
+- Optional follow-up:
+  - include relative-time labels in additional non-dashboard list surfaces for consistency
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 6 Final Closeout: Runner Dashboard Strict Smoke)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Executed strict runner dashboard closeout smoke for latest UX changes.
+- Step-by-step gate results:
+  - Step 1: Dashboard filter bar and query wiring (`eventMode`, `resultStatus`, clear action) -> PASS
+  - Step 2: Collapsible panel state controls (Personal Info, Activity, Certificates, Progress, Running Groups) -> PASS
+  - Step 3: Google linked account panel state (badge + unlink visible, no set-password CTA when local password exists) -> PASS
+  - Step 4: Google-only account panel state (badge + unlink visible, set-password CTA visible with prefilled forgot-password link) -> PASS
+  - Step 5: Mobile/responsive coverage for runner dashboard CSS breakpoints (`max-width: 768px`, `max-width: 480px`) -> PASS
+  - Step 6: Regression safety checks:
+    - `tests/runner-dashboard-profile.test.js` -> PASS
+    - `tests/running-group-smoke.test.js` -> PASS
+    - `tests/google-oauth-routes.test.js` -> PASS
+- Strict closeout outcome: all targeted checks passed (no failures).
+- Phase 6 runner dashboard polish is now marked fully closed.
+
+### Still pending from this scope
+- None for Phase 6 runner dashboard closeout scope.
+
+## STATUS UPDATE (Mar 8, 2026 - Runner Dashboard UX + OAuth Polish Batch)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Consolidated runner dashboard filters into one global filter bar:
+  - shared `eventMode` + `resultStatus` controls
+  - `Apply Filters` and `Clear` actions
+  - removed duplicated per-card filter forms
+- Improved Google-linked account UX on runner dashboard:
+  - added `Set password` guidance for Google-only users (before unlink)
+  - added unlink confirmation prompt on submit
+- Improved timestamp display formatting:
+  - switched from hardcoded `en-US` string to locale-aware `Intl.DateTimeFormat` using request language
+  - applied to dashboard cards, notifications, and running-group detail timestamps
+- Added forgot-password email prefill support:
+  - `/forgot-password?email=...` now prefills input and preserves value on re-render
+- Targeted regression validation passed:
+  - `tests/runner-dashboard-profile.test.js`
+  - `tests/running-group-smoke.test.js`
+  - `tests/google-oauth-routes.test.js`
+
+### Still pending from this scope
+- Optional runner dashboard follow-up:
+  - switch from browser confirm to inline modal for unlink confirmation
+  - compact card-density pass for mobile result/activity rows
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 8 Polish: Runner Google Link Visibility + Safe Unlink)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Added runner dashboard account-link visibility:
+  - sign-in method label in Personal Information panel
+  - `Google linked` badge when a Google identity is attached
+- Added safe unlink workflow:
+  - `POST /runner/auth/google/unlink`
+  - guarded to prevent lockout (unlink blocked if no local password is set)
+- Expanded regression coverage:
+  - unlink succeeds when local password exists
+  - unlink is blocked when local password is missing
+- Targeted validation pass:
+  - `tests/runner-dashboard-profile.test.js` and `tests/running-group-smoke.test.js` passed
+
+### Still pending from this scope
+- Optional OAuth UX follow-up:
+  - dedicated account settings panel for link/unlink messaging and re-link actions
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 8 Production Verification: Google Signup/Login)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Fixed Google new-user signup path by resolving `userId` counter import gap in `User` model.
+- Verified production behavior:
+  - Google login works for existing users.
+  - Google signup works for brand-new users.
+- Phase 8 Google OAuth baseline is now verified in production environment.
+
+### Still pending from this scope
+- Optional Phase 8 polish:
+  - profile-level Google link/unlink controls
+  - linked-provider status badge in account/profile UI
+
 ## STATUS UPDATE (Mar 8, 2026 - Phase 8 OAuth Baseline: Google Sign-In)
 
 ### Current reality after latest implementation

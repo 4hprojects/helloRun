@@ -6,6 +6,7 @@ const emailService = require('../services/email.service');
 const googleOAuthService = require('../services/google-oauth.service');
 const crypto = require('crypto');
 const { redirectIfAuth } = require('../middleware/auth.middleware');
+const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 
 function resolveSafeReturnTo(value, fallback = null) {
   if (typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')) {
@@ -337,9 +338,11 @@ router.get('/verify-email-sent', (req, res) => {
 
 // Forgot Password Page
 router.get('/forgot-password', (req, res) => {
+  const prefillEmail = typeof req.query.email === 'string' ? req.query.email.trim().slice(0, 120) : '';
   res.render('auth/forgot-password', {
     error: null,
-    success: null
+    success: null,
+    prefillEmail
   });
 });
 
@@ -353,14 +356,16 @@ router.post('/forgot-password', async (req, res) => {
     if (!user) {
       return res.render('auth/forgot-password', {
         error: null,
-        success: 'If an account exists with that email, you will receive a password reset link shortly.'
+        success: 'If an account exists with that email, you will receive a password reset link shortly.',
+        prefillEmail: email
       });
     }
 
     if (!user.canReceivePasswordResetEmail()) {
       return res.render('auth/forgot-password', {
         error: 'Too many password reset requests. Please try again later.',
-        success: null
+        success: null,
+        prefillEmail: email
       });
     }
 
@@ -381,13 +386,15 @@ router.post('/forgot-password', async (req, res) => {
 
     res.render('auth/forgot-password', {
       error: null,
-      success: 'Password reset link sent! Check your email.'
+      success: 'Password reset link sent! Check your email.',
+      prefillEmail: email
     });
   } catch (error) {
     console.error('Forgot password error:', error);
     res.render('auth/forgot-password', {
       error: 'An error occurred. Please try again.',
-      success: null
+      success: null,
+      prefillEmail: req.body?.email || ''
     });
   }
 });
@@ -609,7 +616,7 @@ router.get('/verify-email/:token', async (req, res) => {
 });
 
 // Logout Handler (POST) - should already be at root level
-router.post('/logout', (req, res) => {
+router.post('/logout', requireCsrfProtection, (req, res) => {
   req.session.destroy((err) => {
     if (err) {
       console.error('Logout error:', err);

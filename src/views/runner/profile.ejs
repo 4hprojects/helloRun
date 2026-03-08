@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Personal Information - helloRun' }) %>
+  <link rel="stylesheet" href="/css/runner-dashboard.css">
+  <link rel="stylesheet" href="/css/runner-profile.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
+
+  <main class="runner-profile-page">
+    <header class="runner-profile-header">
+      <div>
+        <h1>Personal Information</h1>
+        <p>Read-only profile details and account reference.</p>
+      </div>
+      <a href="/runner/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+    </header>
+
+    <% if (message) { %>
+      <div
+        class="page-message page-message-<%= message.type %>"
+        role="<%= message.type === 'error' ? 'alert' : 'status' %>"
+        aria-live="<%= message.type === 'error' ? 'assertive' : 'polite' %>"
+      ><%= message.text %></div>
+    <% } %>
+
+    <div class="runner-profile-layout">
+      <aside class="runner-profile-menu" aria-label="Profile quick menu">
+        <h2>Quick Menu</h2>
+        <nav>
+<a href="#overview"><i data-lucide="user"></i>Overview</a>
+<a href="#identity"><i data-lucide="fingerprint"></i>Identity</a>
+<a href="#contact"><i data-lucide="mail"></i>Contact</a>
+<a href="#emergency"><i data-lucide="phone-forwarded"></i>Emergency</a>
+<a href="#account"><i data-lucide="settings"></i>Account</a>
+        </nav>
+      </aside>
+
+      <section class="runner-profile-content">
+        <article class="runner-profile-card" id="overview">
+          <h3>Overview</h3>
+          <div class="profile-completeness">
+            <div class="profile-completeness-header">
+              <strong>Profile Completeness</strong>
+              <span><%= profileCompleteness.percent %>%</span>
+            </div>
+            <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= profileCompleteness.percent %>">
+              <div class="progress-fill" style="width: <%= profileCompleteness.percent %>%"></div>
+            </div>
+            <small>Completed <%= profileCompleteness.completedCount %> of <%= profileCompleteness.requiredCount %> recommended fields.</small>
+            <% if (profileCompleteness.missingFields.length) { %>
+              <p class="missing-fields">Missing: <%= profileCompleteness.missingFields.join(', ') %></p>
+            <% } %>
+          </div>
+        </article>
+
+        <article class="runner-profile-card" id="identity">
+          <h3>Identity</h3>
+          <dl class="profile-readonly-grid">
+            <div class="profile-readonly-item"><dt>First Name</dt><dd><%= profileData.firstName || 'Not set' %></dd></div>
+            <div class="profile-readonly-item"><dt>Last Name</dt><dd><%= profileData.lastName || 'Not set' %></dd></div>
+            <div class="profile-readonly-item">
+              <dt>Date of Birth</dt>
+              <dd>
+                <% const hasDob = Boolean(profileData.dateOfBirth); %>
+                <span data-dob-value data-masked="<%= hasDob ? '****-**-**' : 'Not set' %>" data-unmasked="<%= profileData.dateOfBirth || 'Not set' %>">
+                  <%= hasDob ? '****-**-**' : 'Not set' %>
+                </span>
+                <% if (hasDob) { %>
+                  <button type="button" class="btn btn-outline dob-toggle-btn" data-dob-toggle aria-pressed="false">
+                    <i data-lucide="eye"></i>
+                  </button>
+                <% } %>
+              </dd>
+            </div>
+            <div class="profile-readonly-item"><dt>Gender</dt><dd><%= profileData.gender || 'Not set' %></dd></div>
+          </dl>
+        </article>
+
+        <article class="runner-profile-card" id="contact">
+          <div class="runner-profile-panel-header">
+            <h3>Contact</h3>
+            <button type="button" class="btn btn-secondary" data-panel-edit data-form-id="contactForm">
+              <i data-lucide="edit-2"></i> Edit Contact
+            </button>
+          </div>
+          <form id="contactForm" method="POST" action="/runner/profile/contact" class="runner-profile-form">
+            <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+            <div class="profile-form-grid">
+              <label class="profile-form-field">
+                <span>Email</span>
+                <input type="email" value="<%= user.email || '' %>" readonly disabled>
+              </label>
+              <label class="profile-form-field">
+                <span>Mobile</span>
+                <input type="text" name="mobile" value="<%= profileData.mobile || '' %>" data-editable readonly>
+              </label>
+              <label class="profile-form-field">
+                <span>Country</span>
+                <input type="text" value="<%= selectedCountryName || 'Not set' %>" readonly disabled>
+              </label>
+              <label class="profile-form-field">
+                <span>Running Group</span>
+                <input type="text" value="<%= profileData.runningGroup || 'Not set' %>" readonly disabled>
+              </label>
+            </div>
+            <div class="runner-profile-form-actions" hidden>
+              <button type="submit" class="btn btn-primary" data-save-btn>Save Contact</button>
+              <button type="button" class="btn btn-outline" data-cancel-edit>Cancel</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="runner-profile-card" id="emergency">
+          <div class="runner-profile-panel-header">
+            <h3>Emergency Contact</h3>
+            <button type="button" class="btn btn-secondary" data-panel-edit data-form-id="emergencyForm">Edit Emergency</button>
+          </div>
+          <form id="emergencyForm" method="POST" action="/runner/profile/emergency" class="runner-profile-form">
+            <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+            <div class="profile-form-grid">
+              <label class="profile-form-field">
+                <span>Contact Name</span>
+                <input type="text" name="emergencyContactName" maxlength="120" value="<%= profileData.emergencyContactName || '' %>" data-editable readonly>
+              </label>
+              <label class="profile-form-field">
+                <span>Contact Number</span>
+                <input type="text" name="emergencyContactNumber" value="<%= profileData.emergencyContactNumber || '' %>" data-editable readonly>
+              </label>
+            </div>
+            <div class="runner-profile-form-actions" hidden>
+              <button type="submit" class="btn btn-primary" data-save-btn>Save Emergency Contact</button>
+              <button type="button" class="btn btn-outline" data-cancel-edit>Cancel</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="runner-profile-card" id="account">
+          <h3>Account</h3>
+          <dl class="profile-readonly-grid">
+            <div class="profile-readonly-item"><dt>Auth Provider</dt><dd><%= user.authProvider === 'google' ? 'Google' : 'Email and password' %></dd></div>
+            <div class="profile-readonly-item"><dt>Google Link</dt><dd><%= user.googleId ? 'Linked' : 'Not linked' %></dd></div>
+            <div class="profile-readonly-item"><dt>Local Password</dt><dd><%= user.passwordHash ? 'Set' : 'Not set' %></dd></div>
+          </dl>
+          <div class="runner-profile-actions">
+            <a href="/runner/security/password" class="btn btn-primary"><%= user.passwordHash ? 'Change Password' : 'Set Password' %></a>
+            <a href="/runner/dashboard" class="btn btn-outline">Manage Security on Dashboard</a>
+          </div>
+          <p class="profile-readonly-note">Profile editing is temporarily disabled on this page.</p>
+        </article>
+      </section>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script src="/js/runner-profile.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+  </script>
+</body>
+</html>

@@ -41,6 +41,7 @@
         <div class="nav-user" aria-label="User menu">
           <span class="nav-username">Hi, <%= locals.user ? locals.user.firstName : 'User' %></span>
           <form action="/logout" method="POST" class="logout-form">
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
             <button type="submit" class="nav-logout-btn">
               <i data-lucide="log-out" style="width:16px;height:16px;"></i>
               Logout

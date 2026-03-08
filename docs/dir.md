@@ -3,6 +3,162 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See wireframe.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - March 8, 2026 (Session: Runner Groups Panel Simplification + Dedicated Group/Profile Flows)
+
+### [SESSION] SESSION UPDATE:
+- Simplified runner dashboard `Running Groups` card to overview-only content plus one `Manage Groups` action.
+- Moved group management actions out of dashboard into dedicated page flows:
+  - added `GET /runner/groups` (search, join, create in one place)
+  - retained `GET /runner/groups/create` as focused create entry
+- Added runner personal info subpage and profile section UX refinements:
+  - `GET /runner/profile`
+  - left-side quick menu
+  - editable Contact/Emergency fields
+  - DOB masked by default with eye-icon toggle
+  - Save/Cancel hidden by default and right-aligned when editing
+- Added/confirmed CSRF hidden tokens in new state-changing forms.
+- Validation checks run:
+  - `tests/runner-dashboard-profile.test.js` -> PASS
+  - `tests/runner-notifications-routes.test.js` -> PASS
+
+### [NEW] NEW FILES:
+1. src/views/runner/groups.ejs
+2. src/views/runner/profile.ejs
+3. src/public/css/runner-profile.css
+4. src/public/js/runner-profile.js
+
+### [UPDATED] UPDATED FILES (major):
+1. src/views/runner/dashboard.ejs
+2. src/views/runner/create-group.ejs
+3. src/views/runner/password-settings.ejs
+4. src/controllers/runner.controller.js
+5. src/routes/runner.routes.js
+6. src/public/css/runner-dashboard.css
+7. src/public/js/runner-dashboard.js
+8. docs/wireframe.md
+9. docs/dir.md
+
+## CHANGELOG - March 8, 2026 (Session: Runner Dashboard High-Impact Security + UX Batch)
+
+### [SESSION] SESSION UPDATE:
+- Implemented authenticated runner password settings flow:
+  - added `GET /runner/security/password`
+  - added `POST /runner/security/password`
+  - supports Google-only first-password setup and local-password change validation
+- Updated Account Security action routing:
+  - dashboard password action now points to `/runner/security/password`
+- Added relative-time labels for dashboard activity and result timestamps.
+- Replaced unlink confirm dialog behavior with accessible inline modal handling:
+  - focus trap
+  - Escape/backdrop close
+  - focus return to trigger
+- Applied compact mobile spacing/typography refinements for dashboard `item-row` content/action layout.
+- Extended runner profile test suite with new password flow cases and verified targeted regressions.
+
+### [NEW] NEW FILES:
+1. src/views/runner/password-settings.ejs
+
+### [UPDATED] UPDATED FILES (major):
+1. src/controllers/runner.controller.js
+2. src/routes/runner.routes.js
+3. src/views/runner/dashboard.ejs
+4. src/public/js/runner-dashboard.js
+5. src/public/css/runner-dashboard.css
+6. tests/runner-dashboard-profile.test.js
+7. docs/wireframe.md
+8. docs/dir.md
+
+## CHANGELOG - March 8, 2026 (Session: Phase 6 Runner Dashboard Final Closeout Smoke)
+
+### [SESSION] SESSION UPDATE:
+- Ran strict runner dashboard closeout smoke covering:
+  - consolidated filter controls (`eventMode`, `resultStatus`, clear flow)
+  - collapsible panel states and toggle behavior
+  - Google-linked account state rendering (badge/unlink)
+  - Google-only account state rendering (set-password guidance path)
+  - mobile breakpoint coverage verification in dashboard CSS
+- Additional targeted account-state probe executed against live dashboard HTML:
+  - linked account UI state checks: PASS
+  - Google-only account UI state checks: PASS
+- Targeted regression suites all passed:
+  - `tests/runner-dashboard-profile.test.js`
+  - `tests/running-group-smoke.test.js`
+  - `tests/google-oauth-routes.test.js`
+- Updated planning notes to mark Phase 6 runner polish as fully closed.
+
+### [UPDATED] UPDATED FILES (major):
+1. docs/wireframe.md
+2. docs/dir.md
+
+## CHANGELOG - March 8, 2026 (Session: Runner Dashboard UX Consolidation + OAuth Polish)
+
+### [SESSION] SESSION UPDATE:
+- Implemented runner dashboard UX consolidation:
+  - replaced duplicated per-card filter forms with a shared top filter bar (`eventMode`, `resultStatus`)
+  - added clear-filters action and supporting styles
+- Improved Google-linked runner UX:
+  - added guidance CTA for Google-only users to set local password before unlinking
+  - added unlink confirmation prompt in dashboard JS
+- Improved timestamp rendering:
+  - migrated dashboard/notification/group-detail date labels to locale-aware formatting via `Intl.DateTimeFormat`
+- Added forgot-password email prefill support for auth guidance flow:
+  - `/forgot-password?email=...` now prefills and preserves email value on re-renders
+- Targeted regression suite passed:
+  - `tests/runner-dashboard-profile.test.js`
+  - `tests/running-group-smoke.test.js`
+  - `tests/google-oauth-routes.test.js`
+
+### [UPDATED] UPDATED FILES (major):
+1. src/views/runner/dashboard.ejs
+2. src/public/css/runner-dashboard.css
+3. src/public/js/runner-dashboard.js
+4. src/controllers/runner.controller.js
+5. src/routes/authRoutes.js
+6. src/views/auth/forgot-password.ejs
+7. docs/wireframe.md
+8. docs/dir.md
+
+## CHANGELOG - March 8, 2026 (Session: Phase 8 Polish - Runner Google Link Badge + Safe Unlink)
+
+### [SESSION] SESSION UPDATE:
+- Added Google account-link visibility in runner dashboard Personal Information panel:
+  - sign-in method display
+  - `Google linked` badge for linked accounts
+- Added safe unlink endpoint for runner:
+  - `POST /runner/auth/google/unlink`
+  - blocks unlink when no local password is set to avoid account lockout
+- Added test coverage for unlink behavior:
+  - success path when password exists
+  - guarded error path when password is missing
+- Targeted regression run passed:
+  - `tests/runner-dashboard-profile.test.js`
+  - `tests/running-group-smoke.test.js`
+
+### [UPDATED] UPDATED FILES (major):
+1. src/routes/runner.routes.js
+2. src/controllers/runner.controller.js
+3. src/views/runner/dashboard.ejs
+4. src/public/css/runner-dashboard.css
+5. tests/runner-dashboard-profile.test.js
+6. docs/wireframe.md
+7. docs/dir.md
+
+## CHANGELOG - March 8, 2026 (Session: Phase 8 Production Verification + Google Signup Fix)
+
+### [SESSION] SESSION UPDATE:
+- Investigated production issue where Google login worked but Google signup (new account path) failed.
+- Root-cause fix applied:
+  - imported missing `getNextSequence` and `formatUserId` helpers in `src/models/User.js`
+  - ensured new Google-auth users can receive generated `userId` on create
+- Production verification completed:
+  - existing-user Google login: PASS
+  - new-user Google signup: PASS
+
+### [UPDATED] UPDATED FILES (major):
+1. src/models/User.js
+2. docs/wireframe.md
+3. docs/dir.md
+
 ## CHANGELOG - March 8, 2026 (Session: Phase 8 Google OAuth Baseline)
 
 ### [SESSION] SESSION UPDATE:

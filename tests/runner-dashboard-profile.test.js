@@ -116,7 +116,117 @@ test('runner profile update validates and persists normalized data', async () =>
   assert.equal(new Date(fresh.dateOfBirth).toISOString().slice(0, 10), '1997-08-23');
 });
 
-async function createRunner(emailLocal, password) {
+test('runner can unlink Google auth when local password exists', async () => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const password = 'Pass1234';
+  const runner = await createRunner(`unlink.google.${stamp}`, password, {
+    authProvider: 'google',
+    googleId: `gid-${stamp}`
+  });
+  const cookie = await login(runner.email, password);
+  const ready = await waitForSessionReady('/runner/dashboard', cookie);
+  assert.equal(ready, true);
+
+  const response = await postForm('/runner/auth/google/unlink', cookie, {
+    returnTo: '/runner/dashboard'
+  });
+  assert.equal(response.status, 302);
+  assert.match(String(response.headers.get('location') || ''), /type=success/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  const fresh = await User.findById(runner._id).lean();
+  await mongoose.disconnect();
+
+  assert.equal(Boolean(fresh.googleId), false);
+  assert.equal(fresh.authProvider, 'local');
+});
+
+test('runner cannot unlink Google auth when no local password exists', async () => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const password = 'Pass1234';
+  const runner = await createRunner(`unlink.block.${stamp}`, password, {
+    authProvider: 'google',
+    googleId: `gid-block-${stamp}`
+  });
+  const cookie = await login(runner.email, password);
+  const ready = await waitForSessionReady('/runner/dashboard', cookie);
+  assert.equal(ready, true);
+
+  // Simulate a Google-only account after session is already established.
+  await mongoose.connect(process.env.MONGODB_URI);
+  await User.updateOne({ _id: runner._id }, { $unset: { passwordHash: 1 } });
+  await mongoose.disconnect();
+
+  const response = await postForm('/runner/auth/google/unlink', cookie, {
+    returnTo: '/runner/dashboard'
+  });
+  assert.equal(response.status, 302);
+  assert.match(String(response.headers.get('location') || ''), /type=error/i);
+  assert.match(String(response.headers.get('location') || ''), /Set%20a%20password/i);
+});
+
+test('google-only runner can set local password from authenticated security page', async () => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const password = 'Pass1234';
+  const runner = await createRunner(`set.password.${stamp}`, password, {
+    authProvider: 'google',
+    googleId: `gid-set-${stamp}`
+  });
+
+  const cookie = await login(runner.email, password);
+  const ready = await waitForSessionReady('/runner/dashboard', cookie);
+  assert.equal(ready, true);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  await User.updateOne({ _id: runner._id }, { $unset: { passwordHash: 1 } });
+  await mongoose.disconnect();
+
+  const page = await fetch(`${BASE_URL}/runner/security/password`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(page.status, 200);
+
+  const update = await postForm('/runner/security/password', cookie, {
+    newPassword: 'NewPass123',
+    confirmPassword: 'NewPass123'
+  });
+  assert.equal(update.status, 302);
+  assert.match(String(update.headers.get('location') || ''), /type=success/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  const fresh = await User.findById(runner._id).lean();
+  await mongoose.disconnect();
+  assert.equal(Boolean(fresh.passwordHash), true);
+});
+
+test('runner change password requires valid current password', async () => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const oldPassword = 'Pass1234';
+  const runner = await createRunner(`change.password.${stamp}`, oldPassword);
+  const cookie = await login(runner.email, oldPassword);
+  const ready = await waitForSessionReady('/runner/dashboard', cookie);
+  assert.equal(ready, true);
+
+  const bad = await postForm('/runner/security/password', cookie, {
+    currentPassword: 'WrongPass123',
+    newPassword: 'NextPass123',
+    confirmPassword: 'NextPass123'
+  });
+  assert.equal(bad.status, 400);
+  const badHtml = await bad.text();
+  assert.match(badHtml, /Current password is incorrect/i);
+
+  const good = await postForm('/runner/security/password', cookie, {
+    currentPassword: oldPassword,
+    newPassword: 'NextPass123',
+    confirmPassword: 'NextPass123'
+  });
+  assert.equal(good.status, 302);
+  assert.match(String(good.headers.get('location') || ''), /type=success/i);
+});
+
+async function createRunner(emailLocal, password, overrides = {}) {
   await mongoose.connect(process.env.MONGODB_URI);
   const passwordHash = await bcrypt.hash(password, 10);
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -132,7 +242,8 @@ async function createRunner(emailLocal, password) {
     country: 'PH',
     gender: 'male',
     emergencyContactName: 'Profile Emergency',
-    emergencyContactNumber: '09171111111'
+    emergencyContactNumber: '09171111111',
+    ...overrides
   });
   await mongoose.disconnect();
   return user;

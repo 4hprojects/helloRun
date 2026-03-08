@@ -31,6 +31,7 @@
           </a>
           <% if ((notifications.unreadCount || 0) > 0) { %>
             <form method="POST" action="/runner/notifications/read-all">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
               <input type="hidden" name="returnTo" value="/runner/notifications<%= notifications.unreadOnly ? '?unread=1' : '' %>">
               <button type="submit" class="btn">Mark All Read</button>
             </form>
@@ -46,7 +47,12 @@
                 <p class="notification-title"><%= item.title %></p>
                 <p class="notification-message"><%= item.message %></p>
                 <p class="notification-meta">
-                  <span><%= item.createdAtLabel %></span>
+                  <span>
+                    <%= item.createdAtLabel %>
+                    <% if (item.createdAtRelativeLabel) { %>
+                      (<%= item.createdAtRelativeLabel %>)
+                    <% } %>
+                  </span>
                   <span class="notification-type"><%= item.type %></span>
                 </p>
                 <% if (item.href) { %>
@@ -55,6 +61,7 @@
               </div>
               <% if (!item.isRead) { %>
                 <form method="POST" action="/runner/notifications/<%= item._id %>/read">
+                  <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                   <input type="hidden" name="returnTo" value="/runner/notifications<%= notifications.unreadOnly ? '?unread=1' : '' %>">
                   <button type="submit" class="btn btn-secondary">Mark Read</button>
                 </form>

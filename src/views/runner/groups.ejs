@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Running Groups - helloRun' }) %>
+  <link rel="stylesheet" href="/css/runner-dashboard.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
+
+  <main class="dashboard-container">
+    <div class="dashboard-header">
+      <div class="header-content">
+        <h1>Running Groups</h1>
+        <p class="header-subtitle">Search, join, and create running groups in one place.</p>
+      </div>
+      <a href="/runner/dashboard" class="btn btn-outline">Back to Dashboard</a>
+    </div>
+
+    <% if (message) { %>
+      <div
+        class="page-message page-message-<%= message.type %>"
+        role="<%= message.type === 'error' ? 'alert' : 'status' %>"
+        aria-live="<%= message.type === 'error' ? 'assertive' : 'polite' %>"
+      ><%= message.text %></div>
+    <% } %>
+
+    <section class="card profile-card">
+      <div class="card-header">
+        <h2><i data-lucide="users"></i> Group Overview</h2>
+      </div>
+      <div class="card-content card-content-list">
+        <% if (runningGroups.currentGroup) { %>
+          <div class="current-group">
+            <div>
+              <strong><a href="/runner/groups/<%= runningGroups.currentGroup.slug %>"><%= runningGroups.currentGroup.name %></a></strong>
+              <span class="text-muted"><%= runningGroups.currentGroup.memberCount || 0 %> members</span>
+            </div>
+            <form method="POST" action="/runner/groups/leave">
+              <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+              <input type="hidden" name="returnTo" value="/runner/groups">
+              <button type="submit" class="btn btn-sm btn-outline-danger">Leave</button>
+            </form>
+          </div>
+        <% } else { %>
+          <p class="empty-message">You are not currently in a running group.</p>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="card profile-card" style="margin-top:1rem;">
+      <div class="card-header">
+        <h2><i data-lucide="search"></i> Search Groups</h2>
+      </div>
+      <div class="card-content card-content-list">
+        <form method="GET" action="/runner/groups" class="group-search">
+          <input type="search" name="q" value="<%= runningGroups.query || '' %>" placeholder="Search group names...">
+          <button type="submit" class="btn btn-primary btn-sm">Search</button>
+        </form>
+
+        <% if (runningGroups.query) { %>
+          <div class="group-results">
+            <h4>Search results</h4>
+            <% if (runningGroups.searchResults && runningGroups.searchResults.length) { %>
+              <ul class="item-list compact">
+                <% runningGroups.searchResults.forEach((group) => { %>
+                  <li class="item-row">
+                    <div>
+                      <strong><a href="/runner/groups/<%= group.slug %>"><%= group.name %></a></strong>
+                      <span class="text-muted"><%= group.memberCount || 0 %> members</span>
+                    </div>
+                    <div style="display:flex; gap:0.4rem;">
+                      <a href="/runner/groups/<%= group.slug %>" class="btn btn-sm btn-outline">View</a>
+                      <form method="POST" action="/runner/groups/join">
+                        <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+                        <input type="hidden" name="groupId" value="<%= group._id %>">
+                        <input type="hidden" name="returnTo" value="/runner/groups">
+                        <button type="submit" class="btn btn-sm btn-outline">Join</button>
+                      </form>
+                    </div>
+                  </li>
+                <% }) %>
+              </ul>
+            <% } else { %>
+              <p class="empty-message">No running groups match your search.</p>
+            <% } %>
+          </div>
+        <% } %>
+
+        <div class="group-results">
+          <h4>Popular groups</h4>
+          <% if (runningGroups.topGroups && runningGroups.topGroups.length) { %>
+            <ul class="item-list compact">
+              <% runningGroups.topGroups.forEach((group) => { %>
+                <li class="item-row">
+                  <div>
+                    <strong><a href="/runner/groups/<%= group.slug %>"><%= group.name %></a></strong>
+                    <span class="text-muted"><%= group.memberCount || 0 %> members</span>
+                  </div>
+                  <div style="display:flex; gap:0.4rem;">
+                    <a href="/runner/groups/<%= group.slug %>" class="btn btn-sm btn-outline">View</a>
+                    <form method="POST" action="/runner/groups/join">
+                      <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+                      <input type="hidden" name="groupId" value="<%= group._id %>">
+                      <input type="hidden" name="returnTo" value="/runner/groups">
+                      <button type="submit" class="btn btn-sm btn-outline">Join</button>
+                    </form>
+                  </div>
+                </li>
+              <% }) %>
+            </ul>
+          <% } else { %>
+            <p class="empty-message">No running groups available yet.</p>
+          <% } %>
+        </div>
+      </div>
+    </section>
+
+    <section class="card profile-card" id="create-group" style="margin-top:1rem;">
+      <div class="card-header">
+        <h2><i data-lucide="plus-circle"></i> Create Group</h2>
+      </div>
+      <div class="card-content card-content-list">
+        <form method="POST" action="/runner/groups/create" class="group-create" style="margin-top:0;padding-top:0;border-top:none;">
+          <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+          <input type="hidden" name="returnTo" value="/runner/groups">
+          <input type="text" name="name" maxlength="120" required placeholder="Group name">
+          <textarea name="description" maxlength="400" rows="3" placeholder="Description (optional)"></textarea>
+          <div style="display:flex; justify-content:flex-end;">
+            <button type="submit" class="btn btn-primary btn-sm">Create Group</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+  </script>
+</body>
+</html>
+
