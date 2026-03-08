@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { getNextSequence, formatUserId } = require('../utils/counter');
 
 // ── User Schema ──
 const userSchema = new mongoose.Schema({
