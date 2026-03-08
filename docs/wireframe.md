@@ -3,6 +3,215 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See dir.md for repository-level change history.
 
+## STATUS UPDATE (Mar 8, 2026 - Phase 8 OAuth Baseline: Google Sign-In)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Implemented Google OAuth route baseline:
+  - `GET /auth/google`
+  - `GET /auth/google/callback`
+- Added account-linking behavior:
+  - existing account with matching email is linked to Google ID
+  - existing Google-linked account signs in directly
+  - first-time Google user creates runner account with verified email
+- Added auth/session integration with existing role-based redirects and safe return-path handling.
+- Added login/signup Google CTA buttons in auth UI.
+- Added route-level OAuth guard tests:
+  - consent redirect
+  - invalid-state callback rejection
+  - canceled-consent callback handling
+- Full regression verification:
+  - `npm test` -> `60/60` passing
+
+### Still pending from this scope
+- Phase 8 optional follow-up:
+  - add profile-level explicit link/unlink controls
+  - add callback success flash copy for linked-vs-new account path
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 9 Cross-Device QA Gate + Closeout)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Executed strict Phase 9 QA gate suite (sequential) for critical public and dashboard workflows:
+  - `tests/public-search-filters.test.js` -> 4/4 pass
+  - `tests/runner-dashboard-profile.test.js` -> 2/2 pass
+  - `tests/organizer-dashboard-analytics.test.js` -> 1/1 pass
+  - `tests/admin-dashboard.test.js` -> 1/1 pass
+  - `tests/submission-routes.test.js` -> 4/4 pass
+  - `tests/runner-notifications-routes.test.js` -> 3/3 pass
+- Strict QA gate outcome:
+  - `15/15` tests passed, `0` failed.
+- Verified mobile/responsive readiness signals in key CSS surfaces:
+  - `style.css` (nav/tap-target minimums)
+  - `events.css`
+  - `leaderboard.css`
+  - `runner-dashboard.css`
+  - `organizer-dashboard.css`
+  - `create-event.css`
+- Phase 9 cross-device/manual QA gate item is now closed for this release pass.
+
+### Still pending from this scope
+- Optional non-blocking follow-up:
+  - true-device browser matrix pass (iOS Safari + Android Chrome) after next feature batch.
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 9 Kickoff: Test Stability Baseline)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Stabilized full-suite execution by switching default test command to sequential mode:
+  - `node --test --test-concurrency=1 tests/*.test.js`
+- Added optional parallel command for local-only ad hoc runs:
+  - `npm run test:parallel`
+- Full suite verification passed with the new default:
+  - `npm test` -> `51/51` passing
+
+### Still pending from this scope
+- Phase 9 next slices:
+  - targeted coverage expansion for remaining high-risk negative paths
+  - security hardening verification pass
+  - performance baseline and index/query tuning
+  - cross-device manual QA gate
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 9 Coverage Expansion: High-Risk Negative Paths)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Added high-risk negative-path coverage for runner result and notification routes:
+  - result submission rejects invalid elapsed time format
+  - result submission rejects out-of-range distance
+  - notification mark-read `returnTo` is sanitized against open redirects
+  - non-runner authenticated user is blocked from runner notifications page
+- Full suite verification after test additions:
+  - `npm test` -> `55/55` passing
+
+### Still pending from this scope
+- Phase 9 remaining slices:
+  - security hardening verification pass
+  - performance baseline and index/query tuning
+  - cross-device manual QA gate
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 9 Security Hardening Verification Pass)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Hardened runtime security defaults in server bootstrap:
+  - disabled `x-powered-by`
+  - added baseline security headers:
+    - `X-Content-Type-Options: nosniff`
+    - `X-Frame-Options: DENY`
+    - `Referrer-Policy: strict-origin-when-cross-origin`
+    - `Permissions-Policy: geolocation=(), microphone=(), camera=()`
+- Hardened session configuration:
+  - cookie name changed to `hr.sid`
+  - `saveUninitialized` disabled
+  - cookie defaults set to:
+    - `HttpOnly`
+    - `SameSite=Lax`
+    - `Secure` in production
+    - 7-day `maxAge`
+- Restricted request-body debug logging:
+  - now opt-in via `DEBUG_HTTP_BODIES=1`
+  - disabled by default and disabled in production
+- Added dedicated security verification tests:
+  - headers presence and `x-powered-by` disabled
+  - session cookie attribute assertions on login
+- Full-suite verification after hardening:
+  - `npm test` -> `57/57` passing
+
+### Still pending from this scope
+- Optional future hardening:
+  - full CSRF token rollout for all state-changing form routes
+  - CSP rollout after inline-script refactor
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 9 Performance Baseline + Query/Index Tuning)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Added index tuning for the highest-traffic query paths:
+  - `Event`:
+    - `{ status: 1, eventStartAt: 1, createdAt: -1 }`
+    - `{ organizerId: 1, status: 1, eventStartAt: -1 }`
+  - `Registration`:
+    - `{ userId: 1, registeredAt: -1 }`
+    - `{ eventId: 1, registeredAt: -1 }`
+    - `{ eventId: 1, paymentStatus: 1, registeredAt: -1 }`
+    - `{ eventId: 1, participationMode: 1 }`
+  - `Submission`:
+    - `{ eventId: 1, status: 1, submittedAt: -1 }`
+    - `{ runnerId: 1, status: 1, submittedAt: -1 }`
+    - `{ runnerId: 1, status: 1, "certificate.issuedAt": -1 }`
+  - `Notification`:
+    - `{ userId: 1, readAt: 1, createdAt: -1 }`
+  - `Blog`:
+    - `{ status: 1, isDeleted: 1, publishedAt: -1 }`
+- Baseline timings captured from sequential integration run (`npm test`, 57/57 pass):
+  - `/events` combined filter query path: ~3.43s (test fixture + server boot context)
+  - `/leaderboard` filtered summary path: ~0.22s
+  - `/runner/dashboard` profile/dashboard path: ~3.80s
+  - `/organizer/dashboard` analytics path: ~4.43s
+  - `/admin/dashboard` snapshot path: ~3.98s
+
+### Still pending from this scope
+- Final Phase 9 gate:
+  - cross-device manual QA pass
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 3/5/6 Closeout Pass)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Executed strict closeout smoke validation for Phases 3, 5, and 6 (sequential run to avoid test-runner port contention):
+  - `tests/organizer-waiver-routes.test.js` (2/2)
+  - `tests/submission-routes.test.js` (2/2)
+  - `tests/submission-review-route-guards.test.js` (3/3)
+  - `tests/submission.service.test.js` (8/8)
+  - `tests/certificate-access.test.js` (3/3)
+  - `tests/leaderboard.service.test.js` (2/2)
+  - `tests/runner-dashboard-profile.test.js` (2/2)
+  - `tests/organizer-dashboard-analytics.test.js` (1/1)
+  - `tests/admin-dashboard.test.js` (1/1)
+- Strict closeout result: `24/24` tests passed for the targeted Phase 3/5/6 suites.
+- Phase status updated to closed for core scope:
+  - Phase 3 core workflows complete
+  - Phase 5 core workflows complete
+  - Phase 6 core workflows complete
+
+### Still pending from this scope
+- Follow-up polish can continue under Phase 9 hardening:
+  - cross-device/manual UX verification refinements
+  - full-suite test harness stability in a single `npm test` pass
+
+## STATUS UPDATE (Mar 8, 2026 - Phase 7 Completion: Notifications Expansion)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Expanded in-app notifications for runner lifecycle events:
+  - registration confirmed
+  - payment proof submitted
+  - payment approved
+  - payment rejected
+  - result approved
+  - result rejected
+  - certificate issued
+- Added runner unread notification badge in the top navigation.
+- Added/updated automated validation:
+  - `tests/payment-route-guards.test.js`
+  - `tests/runner-notifications-routes.test.js`
+  - `tests/submission.service.test.js`
+
+### Still pending from this scope
+- Optional search UX iteration:
+  - quick filter chips
+  - retained “recent search” suggestions
+  - filter state badges in hero/header blocks
+
 ## STATUS UPDATE (Mar 7, 2026 - Organizer Create/Edit Waiver UX Hardening)
 
 ### Current reality after latest implementation
@@ -62,7 +271,6 @@
   - `tests/public-search-filters.test.js`
 
 ### Still pending from this scope
-- Notifications-system expansion tasks remain for broader Phase 7 completion.
 - Optional search UX iteration:
   - quick filter chips
   - retained “recent search” suggestions
@@ -478,15 +686,15 @@ PROJECT OVERVIEW & STATUS (Feb 26, 2026)
 [DONE] Phase 2B: Organizer Application Forms & Status - 100%
 
 ### IN PROGRESS
-[IN_PROGRESS] Phase 3: Event Creation & Management (20% scaffolded)
+[DONE] Phase 3: Event Creation & Management (core scope complete)
 [DONE] Phase 4: Registration System (payment proof + verification workflow completed and smoke-tested)
-[IN_PROGRESS] Phase 5: Submission, Results & Leaderboard (core workflows implemented; ongoing polish)
-[IN_PROGRESS] Phase 6: Dashboards (runner dashboard now includes submission/certificate stats)
+[DONE] Phase 5: Submission, Results & Leaderboard (core scope complete)
+[DONE] Phase 6: Dashboards (runner/organizer/admin core scope complete)
 
 ### UPCOMING PHASES
-[IN_PROGRESS] Phase 7: Additional Features (static pages + public search/filter UX baseline implemented)
+[DONE] Phase 7: Additional Features (static pages + public search/filter UX baseline and notifications expansion implemented)
 [PENDING] Phase 8: Google OAuth (Optional)
-[PENDING] Phase 9: Testing & Optimization
+[IN_PROGRESS] Phase 9: Testing & Optimization
 [PENDING] Phase 10: Production Deployment
 
 ### QUICK STATS
@@ -625,17 +833,17 @@ Delivered: controller + UI + email integration + validation hardening (Feb 24, 2
 
 ---
 
-Phase 3: Event creation (organiser only) [SCAFFOLDED] SCAFFOLDED (20%)
+Phase 3: Event creation (organiser only) [CORE] COMPLETED (core scope)
 
 Goal: Organizers can create running events.
 
 [DONE] Event.js model created
 [DONE] Registration.js model created
-[PENDING] Create event page UI
-[PENDING] Event creation controller
-[PENDING] Image upload integration
-[PENDING] Edit/delete events
-[PENDING] Event status management
+[DONE] Create event page UI
+[DONE] Event creation controller
+[DONE] Image upload integration
+[DONE] Edit/delete events
+[DONE] Event status management
 
 ---
 
@@ -649,7 +857,7 @@ Goal: Runner joins event and uploads payment proof for verification.
 
 ---
 
-Phase 5: Submissions, Results & Leaderboard [RUNNER] IN PROGRESS
+Phase 5: Submissions, Results & Leaderboard [RUNNER] COMPLETED (core scope)
 
 Goal: Runner submits run proof, organiser approves, certificate generated, leaderboard populated.
 [DONE] Submit result (distance, time, proof)
@@ -664,7 +872,7 @@ Goal: Runner submits run proof, organiser approves, certificate generated, leade
 
 ---
 
-Phase 6: Dashboards & Analytics [ANALYTICS] IN PROGRESS (core runner/organizer/admin baseline delivered)
+Phase 6: Dashboards & Analytics [ANALYTICS] COMPLETED (core scope)
 
 [DONE] Runner Dashboard baseline (upcoming, past, results, certificates, activity, running groups)
 [DONE] Organiser Dashboard baseline (event overview, review queues, analytics ranges/trends, top events)
@@ -672,7 +880,7 @@ Phase 6: Dashboards & Analytics [ANALYTICS] IN PROGRESS (core runner/organizer/a
 
 ---
 
-Phase 7: Additional Pages & Features [FEATURES] IN PROGRESS
+Phase 7: Additional Pages & Features [FEATURES] COMPLETED (core scope)
 
 [DONE] Static pages (/about, /how-it-works, /contact, /faq, /privacy, /terms)
 [IN_PROGRESS] Blog system:
@@ -680,7 +888,7 @@ Phase 7: Additional Pages & Features [FEATURES] IN PROGRESS
   [DONE] Admin inline edit + autosave + revision history
   [PENDING] comments/likes and advanced growth features
 [IN_PROGRESS] Search & filters (public events/blog/leaderboard baseline delivered)
-[PENDING] Notifications system
+[DONE] Notifications system
 
 ---
 

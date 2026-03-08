@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { countUnreadNotifications } = require('../services/notification.service');
 
 /**
  * Redirect already-authenticated users away from login/signup
@@ -36,6 +37,9 @@ async function populateAuthLocals(req, res, next) {
         res.locals.isOrganizer = user.role === 'organiser';
         res.locals.isAdmin = user.role === 'admin';
         res.locals.isApprovedOrganizer = user.role === 'organiser' && user.organizerStatus === 'approved';
+        res.locals.runnerUnreadNotifications = user.role === 'runner'
+          ? await countUnreadNotifications(user._id)
+          : 0;
       } else {
         req.session.destroy(() => {});
         res.locals.user = null;
@@ -43,6 +47,7 @@ async function populateAuthLocals(req, res, next) {
         res.locals.isOrganizer = false;
         res.locals.isAdmin = false;
         res.locals.isApprovedOrganizer = false;
+        res.locals.runnerUnreadNotifications = 0;
       }
     } catch (error) {
       console.error('Error in populateAuthLocals:', error);
@@ -51,6 +56,7 @@ async function populateAuthLocals(req, res, next) {
       res.locals.isOrganizer = false;
       res.locals.isAdmin = false;
       res.locals.isApprovedOrganizer = false;
+      res.locals.runnerUnreadNotifications = 0;
     }
   } else {
     res.locals.user = null;
@@ -58,6 +64,7 @@ async function populateAuthLocals(req, res, next) {
     res.locals.isOrganizer = false;
     res.locals.isAdmin = false;
     res.locals.isApprovedOrganizer = false;
+    res.locals.runnerUnreadNotifications = 0;
   }
 
   next();

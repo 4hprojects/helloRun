@@ -5,6 +5,7 @@ const Event = require('../models/Event');
 const User = require('../models/User');
 const { issueSubmissionCertificate } = require('./certificate.service');
 const emailService = require('./email.service');
+const { createNotificationSafe } = require('./notification.service');
 
 const REVIEWABLE_STATUS = new Set(['submitted']);
 const FINAL_STATUSES = new Set(['approved']);
@@ -474,6 +475,22 @@ async function sendRunnerReviewNotifications({
     const confirmationCode = registration?.confirmationCode || '';
 
     if (action === 'approve') {
+      await createNotificationSafe(
+        {
+          userId: submission.runnerId,
+          type: 'result_approved',
+          title: 'Result Approved',
+          message: `Your result for ${eventTitle} has been approved.`,
+          href: '/my-registrations',
+          metadata: {
+            submissionId: String(submission._id),
+            registrationId: String(submission.registrationId || ''),
+            eventTitle
+          }
+        },
+        'result approved notification'
+      );
+
       try {
         await emailService.sendResultApprovedEmailToRunner(
           runnerEmail,
@@ -490,6 +507,22 @@ async function sendRunnerReviewNotifications({
       }
 
       if (certificateWasIssued && submission.certificate?.url) {
+        await createNotificationSafe(
+          {
+            userId: submission.runnerId,
+            type: 'certificate_issued',
+            title: 'Certificate Ready',
+            message: `Your certificate for ${eventTitle} is now available.`,
+            href: `/my-submissions/${String(submission._id)}/certificate`,
+            metadata: {
+              submissionId: String(submission._id),
+              registrationId: String(submission.registrationId || ''),
+              eventTitle
+            }
+          },
+          'certificate issued notification'
+        );
+
         try {
           await emailService.sendCertificateIssuedEmailToRunner(
             runnerEmail,
@@ -509,6 +542,22 @@ async function sendRunnerReviewNotifications({
     }
 
     if (action === 'reject') {
+      await createNotificationSafe(
+        {
+          userId: submission.runnerId,
+          type: 'result_rejected',
+          title: 'Result Needs Update',
+          message: `Your result for ${eventTitle} was rejected. Review feedback and resubmit.`,
+          href: '/my-registrations',
+          metadata: {
+            submissionId: String(submission._id),
+            registrationId: String(submission.registrationId || ''),
+            eventTitle
+          }
+        },
+        'result rejected notification'
+      );
+
       try {
         await emailService.sendResultRejectedEmailToRunner(
           runnerEmail,

@@ -109,5 +109,8 @@ const submissionSchema = new mongoose.Schema(
 
 submissionSchema.index({ eventId: 1, status: 1, elapsedMs: 1 });
 submissionSchema.index({ runnerId: 1, submittedAt: -1 });
+submissionSchema.index({ eventId: 1, status: 1, submittedAt: -1 });
+submissionSchema.index({ runnerId: 1, status: 1, submittedAt: -1 });
+submissionSchema.index({ runnerId: 1, status: 1, 'certificate.issuedAt': -1 });
 
 module.exports = mongoose.models.Submission || mongoose.model('Submission', submissionSchema);

@@ -22,6 +22,8 @@ const PNG_1PX_BUFFER = Buffer.from(
 let serverProc = null;
 
 test.before(async () => {
+  await mongoose.connect(process.env.MONGODB_URI);
+
   serverProc = spawn(process.execPath, ['src/server.js'], {
     cwd: ROOT,
     env: {
@@ -38,6 +40,7 @@ test.after(async () => {
   if (serverProc && !serverProc.killed) {
     serverProc.kill('SIGTERM');
   }
+  await mongoose.disconnect();
 });
 
 test('unauthenticated payment-proof upload redirects to login', async () => {
@@ -102,9 +105,60 @@ test('non-owner organizer cannot review payment proof for another organizer even
   assert.equal(response.status, 404);
 });
 
-async function seedRouteGuardData(tag) {
-  await mongoose.connect(process.env.MONGODB_URI);
+test('payment approve creates runner in-app notification', async () => {
+  const seed = await seedRouteGuardData('notify-approve', {
+    paymentStatusA: 'proof_submitted',
+    paymentProofUrlA: 'https://example.com/proofs/approve.png'
+  });
+  const organizerSession = await login(seed.ownerOrganizer.email, seed.password);
+  await assertOrganizerSessionReady(organizerSession);
 
+  const response = await postForm(
+    `/organizer/events/${seed.event._id}/registrants/${seed.registrationA._id}/payment/approve`,
+    organizerSession,
+    { reviewNotes: 'Approved payment proof for notification test' }
+  );
+
+  assert.equal(response.status, 302);
+
+  const runnerSession = await login(seed.runnerA.email, seed.password);
+  await assertRunnerSessionReady(runnerSession);
+  const notificationsPage = await fetch(`${BASE_URL}/runner/notifications`, {
+    headers: { Cookie: runnerSession }
+  });
+  const html = await notificationsPage.text();
+  assert.match(html, /nav-notification-badge[^>]*>1</i);
+});
+
+test('payment reject creates runner in-app notification', async () => {
+  const seed = await seedRouteGuardData('notify-reject', {
+    paymentStatusA: 'proof_submitted',
+    paymentProofUrlA: 'https://example.com/proofs/reject.png'
+  });
+  const organizerSession = await login(seed.ownerOrganizer.email, seed.password);
+  await assertOrganizerSessionReady(organizerSession);
+
+  const response = await postForm(
+    `/organizer/events/${seed.event._id}/registrants/${seed.registrationA._id}/payment/reject`,
+    organizerSession,
+    {
+      rejectionReason: 'Need clearer receipt',
+      reviewNotes: 'Please upload a higher-resolution copy.'
+    }
+  );
+
+  assert.equal(response.status, 302);
+
+  const runnerSession = await login(seed.runnerA.email, seed.password);
+  await assertRunnerSessionReady(runnerSession);
+  const notificationsPage = await fetch(`${BASE_URL}/runner/notifications`, {
+    headers: { Cookie: runnerSession }
+  });
+  const html = await notificationsPage.text();
+  assert.match(html, /nav-notification-badge[^>]*>1</i);
+});
+
+async function seedRouteGuardData(tag, options = {}) {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const password = 'Pass1234';
   const passwordHash = await bcrypt.hash(password, 10);
@@ -186,7 +240,8 @@ async function seedRouteGuardData(tag) {
     buildRegistrationPayload({
       eventId: event._id,
       user: runnerA,
-      paymentStatus: 'unpaid'
+      paymentStatus: options.paymentStatusA || 'unpaid',
+      paymentProofUrl: options.paymentProofUrlA || ''
     })
   );
 
@@ -194,11 +249,10 @@ async function seedRouteGuardData(tag) {
     buildRegistrationPayload({
       eventId: event._id,
       user: runnerB,
-      paymentStatus: 'unpaid'
+      paymentStatus: options.paymentStatusB || 'unpaid',
+      paymentProofUrl: options.paymentProofUrlB || ''
     })
   );
-
-  await mongoose.disconnect();
 
   return {
     password,
@@ -212,7 +266,8 @@ async function seedRouteGuardData(tag) {
   };
 }
 
-function buildRegistrationPayload({ eventId, user, paymentStatus }) {
+function buildRegistrationPayload({ eventId, user, paymentStatus, paymentProofUrl = '' }) {
+  const hasProof = String(paymentProofUrl || '').trim().length > 0;
   return {
     eventId,
     userId: user._id,
@@ -231,6 +286,18 @@ function buildRegistrationPayload({ eventId, user, paymentStatus }) {
     raceDistance: '5K',
     status: 'confirmed',
     paymentStatus,
+    ...(hasProof
+      ? {
+          paymentProof: {
+            url: String(paymentProofUrl),
+            key: '',
+            mimeType: 'image/png',
+            size: 100,
+            uploadedAt: new Date(),
+            submittedBy: user._id
+          }
+        }
+      : {}),
     waiver: {
       accepted: true,
       version: 1,

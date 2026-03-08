@@ -40,6 +40,8 @@ test.after(async () => {
 
 test('runner notifications page renders and mark-read endpoints work', async () => {
   const cookie = await login(seed.runner.email, seed.password);
+  const ready = await waitForSessionReady(cookie);
+  assert.equal(ready, true);
 
   const page = await fetch(`${BASE_URL}/runner/notifications`, {
     headers: { Cookie: cookie },
@@ -49,6 +51,7 @@ test('runner notifications page renders and mark-read endpoints work', async () 
   const html = await page.text();
   assert.match(html, /Notifications/i);
   assert.match(html, /Unread:\s*<strong>2<\/strong>/i);
+  assert.match(html, /nav-notification-badge[^>]*>2</i);
   assert.match(html, /Result Approved/i);
 
   const markOne = await fetch(`${BASE_URL}/runner/notifications/${seed.notificationIds[0]}/read`, {
@@ -86,6 +89,42 @@ test('runner notifications page renders and mark-read endpoints work', async () 
   });
   const htmlAfterAll = await pageAfterAll.text();
   assert.match(htmlAfterAll, /Unread:\s*<strong>0<\/strong>/i);
+});
+
+test('notification mark-read returnTo is sanitized against open redirect', async () => {
+  const localSeed = await seedNotificationsFixture();
+  const cookie = await login(localSeed.runner.email, localSeed.password);
+  const ready = await waitForSessionReady(cookie);
+  assert.equal(ready, true);
+
+  const markOne = await fetch(`${BASE_URL}/runner/notifications/${localSeed.notificationIds[0]}/read`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ returnTo: 'https://evil.example/phish' }),
+    redirect: 'manual'
+  });
+  assert.equal(markOne.status, 302);
+  assert.equal(markOne.headers.get('location'), '/runner/dashboard');
+
+  await cleanupSeed(localSeed);
+});
+
+test('non-runner authenticated user cannot access runner notifications page', async () => {
+  const organizerSeed = await seedOrganizerFixture();
+  const cookie = await login(organizerSeed.organizer.email, organizerSeed.password);
+
+  const page = await fetch(`${BASE_URL}/runner/notifications`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+
+  assert.equal(page.status, 302);
+  assert.equal(page.headers.get('location'), '/login');
+
+  await cleanupOrganizerSeed(organizerSeed);
 });
 
 async function seedNotificationsFixture() {
@@ -129,6 +168,32 @@ async function seedNotificationsFixture() {
   };
 }
 
+async function seedOrganizerFixture() {
+  await ensureConnected();
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const password = 'Pass1234';
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  const organizer = await User.create({
+    userId: `UNFO${stamp}`.slice(0, 22),
+    email: `organizer.notifications.${stamp}@example.com`,
+    passwordHash,
+    role: 'organiser',
+    organizerStatus: 'approved',
+    firstName: 'Notify',
+    lastName: 'Organizer',
+    emailVerified: true
+  });
+
+  return {
+    password,
+    organizer: {
+      _id: organizer._id,
+      email: organizer.email
+    }
+  };
+}
+
 async function cleanupSeed(currentSeed) {
   if (!currentSeed || !currentSeed.runner) return;
   await ensureConnected();
@@ -136,6 +201,12 @@ async function cleanupSeed(currentSeed) {
     Notification.deleteMany({ _id: { $in: currentSeed.notificationIds || [] } }),
     User.deleteOne({ _id: currentSeed.runner._id })
   ]);
+}
+
+async function cleanupOrganizerSeed(currentSeed) {
+  if (!currentSeed?.organizer?._id) return;
+  await ensureConnected();
+  await User.deleteOne({ _id: currentSeed.organizer._id });
 }
 
 async function login(email, password) {
@@ -149,6 +220,20 @@ async function login(email, password) {
   const setCookie = response.headers.get('set-cookie');
   assert.ok(setCookie);
   return setCookie.split(';')[0];
+}
+
+async function waitForSessionReady(cookie) {
+  const maxAttempts = 8;
+  for (let i = 0; i < maxAttempts; i += 1) {
+    const response = await fetch(`${BASE_URL}/runner/notifications`, {
+      headers: { Cookie: cookie },
+      redirect: 'manual'
+    });
+    if (response.headers.get('location') !== '/login') return true;
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((resolve) => setTimeout(resolve, 60));
+  }
+  return false;
 }
 
 async function waitForServerReady() {

@@ -6,30 +6,45 @@ const path = require('path');
 const mongoose = require('mongoose');
 
 const app = express();
+const isProduction = process.env.NODE_ENV === 'production';
 
 // ===== STEP 1: MIDDLEWARE (MUST BE FIRST) =====
-console.log('📦 Loading middleware...');
+console.log('Loading middleware...');
 
-// ✅ CRITICAL: Body parser BEFORE everything
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.disable('x-powered-by');
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
 
-// ✅ Debug middleware - log what's being received
 app.use((req, res, next) => {
-  if (req.method === 'POST') {
-    console.log('📨 Received POST:', req.url);
-    // Log body without sensitive fields
-    const safeBody = { ...req.body };
-    delete safeBody.password;
-    delete safeBody.confirmPassword;
-    delete safeBody.currentPassword;
-    delete safeBody.newPassword;
-    console.log('📦 Body:', safeBody);
-  }
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   next();
 });
 
-// ✅ Static files
+// Body parser BEFORE routes
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Optional dev request-body debug logging
+if (!isProduction && process.env.DEBUG_HTTP_BODIES === '1') {
+  app.use((req, res, next) => {
+    if (req.method === 'POST') {
+      console.log('Received POST:', req.url);
+      const safeBody = { ...req.body };
+      delete safeBody.password;
+      delete safeBody.confirmPassword;
+      delete safeBody.currentPassword;
+      delete safeBody.newPassword;
+      console.log('Body:', safeBody);
+    }
+    next();
+  });
+}
+
+// Static files
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ===== STEP 2: VIEW ENGINE =====
@@ -38,22 +53,29 @@ app.set('views', path.join(__dirname, 'views'));
 
 // ===== STEP 3: DATABASE CONNECTION =====
 mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✓ MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
+  .then(() => console.log('MongoDB connected'))
+  .catch((err) => console.error('MongoDB connection error:', err));
 
 // ===== STEP 4: SESSION =====
 app.use(session({
+  name: 'hr.sid',
   secret: process.env.SESSION_SECRET || 'your-secret-key',
   resave: false,
-  saveUninitialized: true,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: isProduction,
+    maxAge: 1000 * 60 * 60 * 24 * 7
+  },
   store: new MongoStore({
     mongoUrl: process.env.MONGODB_URI,
-    touchAfter: 24 * 3600 // Lazy session update
+    touchAfter: 24 * 3600
   })
 }));
 
 // ===== ROUTES =====
-console.log('🔀 Loading routes...');
+console.log('Loading routes...');
 const { populateAuthLocals } = require('./middleware/auth.middleware');
 const authRoutes = require('./routes/authRoutes');
 const pageRoutes = require('./routes/pageRoutes');
@@ -74,19 +96,19 @@ app.use('/admin', adminRoutes);
 
 // ===== STEP 6: 404 HANDLER (LAST) =====
 app.use((req, res) => {
-  console.log('⚠️  404 Not Found:', req.method, req.url);
+  console.log('404 Not Found:', req.method, req.url);
   res.status(404).send('<h1>404 - Page Not Found</h1>');
 });
 
 // ===== STEP 7: ERROR HANDLER =====
 app.use((err, req, res, next) => {
-  console.error('❌ Error:', err.message);
+  console.error('Error:', err.message);
   res.status(500).send('<h1>500 - Server Error</h1>');
 });
 
 // ===== STEP 8: START SERVER =====
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✓ Server running on http://localhost:${PORT}`);
-  console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

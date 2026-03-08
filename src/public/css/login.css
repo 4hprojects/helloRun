@@ -530,6 +530,51 @@
   pointer-events: none;
 }
 
+.oauth-divider {
+  margin: 0.25rem 0;
+  text-align: center;
+  position: relative;
+  color: var(--medium-gray);
+  font-size: 0.85rem;
+}
+
+.oauth-divider::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  border-top: 1px solid #e2e8f0;
+  z-index: 0;
+}
+
+.oauth-divider span {
+  position: relative;
+  z-index: 1;
+  background: #fff;
+  padding: 0 0.5rem;
+}
+
+.btn-google {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  border-radius: var(--radius-sm);
+  border: 2px solid #d1d5db;
+  color: #111827;
+  text-decoration: none;
+  font-weight: 600;
+  background: #fff;
+  transition: var(--transition);
+}
+
+.btn-google:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
 /* Loading State for Button */
 .btn-primary.loading {
   position: relative;

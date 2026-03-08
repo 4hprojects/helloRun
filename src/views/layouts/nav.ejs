@@ -29,7 +29,12 @@
           <a href="/organizer/application-status">My Application</a>
         <% } else { %>
           <a href="/runner/dashboard">Dashboard</a>
-          <a href="/runner/notifications">Notifications</a>
+          <a href="/runner/notifications" class="nav-notifications-link">
+            Notifications
+            <% if ((locals.runnerUnreadNotifications || 0) > 0) { %>
+              <span class="nav-notification-badge"><%= locals.runnerUnreadNotifications %></span>
+            <% } %>
+          </a>
         <% } %>
 
         <!-- User menu -->

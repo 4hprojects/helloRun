@@ -3,6 +3,180 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See wireframe.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - March 8, 2026 (Session: Phase 8 Google OAuth Baseline)
+
+### [SESSION] SESSION UPDATE:
+- Added Google OAuth baseline routes and callback handling:
+  - `GET /auth/google`
+  - `GET /auth/google/callback`
+- Implemented account-linking rules:
+  - match by `googleId` first
+  - else match by email and link Google ID
+  - else create new Google-authenticated runner account
+- Added Google sign-in CTA buttons to login/signup pages.
+- Added OAuth route coverage for:
+  - auth redirect URL generation
+  - callback invalid-state rejection
+  - callback canceled-consent handling
+- Full regression verification:
+  - `npm test` passed (`60/60`)
+
+### [NEW] NEW FILES:
+1. src/services/google-oauth.service.js
+2. tests/google-oauth-routes.test.js
+
+### [UPDATED] UPDATED FILES (major):
+1. src/routes/authRoutes.js
+2. src/models/User.js
+3. src/views/auth/login.ejs
+4. src/views/auth/signup.ejs
+5. src/public/css/login.css
+6. src/public/css/signup.css
+7. tests/runner-notifications-routes.test.js
+8. docs/wireframe.md
+9. docs/dir.md
+
+## CHANGELOG - March 8, 2026 (Session: Phase 9 Cross-Device QA Gate + Closeout)
+
+### [SESSION] SESSION UPDATE:
+- Executed strict Phase 9 QA gate suites sequentially:
+  - `tests/public-search-filters.test.js`
+  - `tests/runner-dashboard-profile.test.js`
+  - `tests/organizer-dashboard-analytics.test.js`
+  - `tests/admin-dashboard.test.js`
+  - `tests/submission-routes.test.js`
+  - `tests/runner-notifications-routes.test.js`
+- QA gate result: `15/15` passing, `0` failing.
+- Performed responsive CSS audit for key cross-device surfaces:
+  - navigation and touch-target baseline (`src/public/css/style.css`)
+  - public lists (`src/public/css/events.css`, `src/public/css/leaderboard.css`)
+  - role dashboards (`src/public/css/runner-dashboard.css`, `src/public/css/organizer-dashboard.css`)
+  - organizer form surface (`src/public/css/create-event.css`)
+- Marked Phase 9 cross-device/manual QA gate as complete in planning notes.
+
+### [UPDATED] UPDATED FILES (major):
+1. docs/wireframe.md
+2. docs/dir.md
+
+## CHANGELOG - March 8, 2026 (Session: Phase 9 Kickoff - Test Stability Baseline)
+
+### [SESSION] SESSION UPDATE:
+- Started Phase 9 with test execution stability.
+- Updated npm scripts:
+  - default `npm test` now runs sequentially with `--test-concurrency=1`
+  - added `npm run test:parallel` for optional local parallel runs
+- Verified full-suite reliability after update:
+  - `npm test` passed (51/51)
+
+### [UPDATED] UPDATED FILES (major):
+1. package.json
+2. docs/wireframe.md
+
+## CHANGELOG - March 8, 2026 (Session: Phase 9 Coverage Expansion - High-Risk Negative Paths)
+
+### [SESSION] SESSION UPDATE:
+- Added high-risk negative-path route coverage for:
+  - invalid result submission payloads (`elapsedTime`, `distanceKm`)
+  - open-redirect hardening on runner notification mark-read `returnTo`
+  - runner-route role guard behavior for non-runner authenticated users
+- Full-suite regression after additions:
+  - `npm test` passed (55/55)
+
+### [UPDATED] UPDATED FILES (major):
+1. tests/submission-routes.test.js
+2. tests/runner-notifications-routes.test.js
+3. docs/wireframe.md
+
+## CHANGELOG - March 8, 2026 (Session: Phase 9 Security Hardening Verification Pass)
+
+### [SESSION] SESSION UPDATE:
+- Hardened app-level security defaults:
+  - disabled `x-powered-by`
+  - added baseline security response headers
+  - hardened session cookie configuration (`hr.sid`, `HttpOnly`, `SameSite=Lax`, prod `Secure`)
+  - disabled request-body debug logging by default (opt-in via `DEBUG_HTTP_BODIES=1`)
+- Added security regression test coverage for headers and session-cookie attributes.
+- Full regression verification completed:
+  - `npm test` passed (57/57)
+
+### [NEW] NEW FILES:
+1. tests/security-hardening.test.js
+
+### [UPDATED] UPDATED FILES (major):
+1. src/server.js
+2. src/routes/authRoutes.js
+3. docs/wireframe.md
+
+## CHANGELOG - March 8, 2026 (Session: Phase 9 Performance Baseline + Index Tuning)
+
+### [SESSION] SESSION UPDATE:
+- Completed performance-focused model index tuning for event, registration, submission, notification, and blog query paths.
+- Verified no regressions after tuning:
+  - `npm test` passed (57/57)
+- Recorded baseline route timing snapshot in planning notes for:
+  - events filters
+  - leaderboard filters
+  - runner dashboard
+  - organizer dashboard
+  - admin dashboard
+
+### [UPDATED] UPDATED FILES (major):
+1. src/models/Event.js
+2. src/models/Registration.js
+3. src/models/Submission.js
+4. src/models/Notification.js
+5. src/models/Blog.js
+6. docs/wireframe.md
+
+## CHANGELOG - March 8, 2026 (Session: Phase 3/5/6 Closeout Smoke + Status Finalization)
+
+### [SESSION] SESSION UPDATE:
+- Ran strict Phase 3/5/6 closeout validation suites sequentially.
+- Targeted smoke/check suites all passed:
+  - tests/organizer-waiver-routes.test.js (2/2)
+  - tests/submission-routes.test.js (2/2)
+  - tests/submission-review-route-guards.test.js (3/3)
+  - tests/submission.service.test.js (8/8)
+  - tests/certificate-access.test.js (3/3)
+  - tests/leaderboard.service.test.js (2/2)
+  - tests/runner-dashboard-profile.test.js (2/2)
+  - tests/organizer-dashboard-analytics.test.js (1/1)
+  - tests/admin-dashboard.test.js (1/1)
+- Closeout result: 24/24 targeted tests passed.
+- Updated planning notes to mark Phase 3, 5, and 6 as completed for core scope.
+
+### [UPDATED] UPDATED FILES (major):
+1. docs/wireframe.md
+
+## CHANGELOG - March 8, 2026 (Session: Phase 7 Completion - Notifications Expansion)
+
+### [SESSION] SESSION UPDATE:
+- Completed Phase 7 notifications expansion for in-app runner alerts.
+- Wired notification creation to core lifecycle actions:
+  - registration confirmation
+  - payment proof submitted
+  - payment approved/rejected
+  - result approved/rejected
+  - certificate issued
+- Added runner unread notification badge in top navigation.
+- Added regression coverage for payment and submission notification triggers.
+
+### [UPDATED] UPDATED FILES (major):
+1. src/services/notification.service.js
+2. src/controllers/page.controller.js
+3. src/routes/organizer.routes.js
+4. src/services/submission.service.js
+5. src/middleware/auth.middleware.js
+6. src/views/layouts/nav.ejs
+7. src/public/css/style.css
+8. tests/submission.service.test.js
+9. tests/payment-route-guards.test.js
+10. tests/runner-notifications-routes.test.js
+11. docs/wireframe.md
+
+### MANUAL/TEST CHECKLIST (Latest):
+- [x] `node --test tests/payment-route-guards.test.js tests/runner-notifications-routes.test.js tests/submission.service.test.js` passes
+
 ## CHANGELOG - March 7, 2026 (Session: Organizer Waiver Editor Batches 2-6)
 
 ### [SESSION] SESSION UPDATE:

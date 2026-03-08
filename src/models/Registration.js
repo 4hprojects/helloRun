@@ -116,5 +116,9 @@ const registrationSchema = new mongoose.Schema(
 );
 
 registrationSchema.index({ eventId: 1, userId: 1 }, { unique: true });
+registrationSchema.index({ userId: 1, registeredAt: -1 });
+registrationSchema.index({ eventId: 1, registeredAt: -1 });
+registrationSchema.index({ eventId: 1, paymentStatus: 1, registeredAt: -1 });
+registrationSchema.index({ eventId: 1, participationMode: 1 });
 
 module.exports = mongoose.models.Registration || mongoose.model('Registration', registrationSchema);

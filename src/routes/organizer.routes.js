@@ -9,6 +9,7 @@ const Submission = require('../models/Submission');
 const OrganiserApplication = require('../models/OrganiserApplication');
 const uploadService = require('../services/upload.service');
 const emailService = require('../services/email.service');
+const { createNotificationSafe } = require('../services/notification.service');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const { requireAuth, requireApprovedOrganizer } = require('../middleware/auth.middleware');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
@@ -743,6 +744,22 @@ router.post(
       registration.paymentRejectionReason = '';
       await registration.save();
 
+      await createNotificationSafe(
+        {
+          userId: registration.userId,
+          type: 'payment_approved',
+          title: 'Payment Approved',
+          message: `Your payment for ${event.title || 'the event'} has been approved.`,
+          href: '/my-registrations',
+          metadata: {
+            registrationId: String(registration._id),
+            eventId: String(event._id),
+            eventTitle: event.title || ''
+          }
+        },
+        'payment approved notification'
+      );
+
       try {
         const runner = await User.findById(registration.userId).select('email firstName');
         if (runner?.email) {
@@ -829,6 +846,22 @@ router.post(
       registration.paymentReviewNotes = reviewNotes;
       registration.paymentRejectionReason = rejectionReason;
       await registration.save();
+
+      await createNotificationSafe(
+        {
+          userId: registration.userId,
+          type: 'payment_rejected',
+          title: 'Payment Needs Update',
+          message: `Your payment proof for ${event.title || 'the event'} was rejected. Please review and resubmit.`,
+          href: '/my-registrations',
+          metadata: {
+            registrationId: String(registration._id),
+            eventId: String(event._id),
+            eventTitle: event.title || ''
+          }
+        },
+        'payment rejected notification'
+      );
 
       try {
         const runner = await User.findById(registration.userId).select('email firstName');

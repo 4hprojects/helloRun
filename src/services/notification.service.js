@@ -26,6 +26,15 @@ async function createNotification(payload = {}) {
   });
 }
 
+async function createNotificationSafe(payload = {}, context = 'notification') {
+  try {
+    return await createNotification(payload);
+  } catch (error) {
+    console.error(`Failed to create ${context}:`, error.message);
+    return null;
+  }
+}
+
 async function getUserNotifications(userId, options = {}) {
   const normalizedUserId = normalizeObjectId(userId);
   if (!normalizedUserId) {
@@ -132,6 +141,7 @@ function clampInt(value, min, max, fallback) {
 
 module.exports = {
   createNotification,
+  createNotificationSafe,
   getUserNotifications,
   countUnreadNotifications,
   markNotificationAsRead,

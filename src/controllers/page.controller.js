@@ -7,6 +7,7 @@ const emailService = require('../services/email.service');
 const { registerBlogView } = require('../services/blog-view.service');
 const { getRunnerRegistrations } = require('../services/runner-data.service');
 const uploadService = require('../services/upload.service');
+const { createNotificationSafe } = require('../services/notification.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
 const { BLOG_CATEGORIES } = require('../utils/blog');
 const { renderWaiverTemplate } = require('../utils/waiver');
@@ -355,6 +356,22 @@ exports.postEventRegistration = async (req, res) => {
 
     await registration.save();
 
+    await createNotificationSafe(
+      {
+        userId: user._id,
+        type: 'registration_confirmed',
+        title: 'Registration Confirmed',
+        message: `You are registered for ${event.title || 'an event'}.`,
+        href: '/my-registrations',
+        metadata: {
+          registrationId: String(registration._id),
+          eventId: String(event._id),
+          eventTitle: event.title || ''
+        }
+      },
+      'registration confirmation notification'
+    );
+
     try {
       await emailService.sendEventRegistrationConfirmationEmail(
         formData.email,
@@ -575,6 +592,22 @@ exports.postUploadPaymentProof = async (req, res) => {
 
     await registration.save();
     uploadedProofKey = '';
+
+    await createNotificationSafe(
+      {
+        userId: user._id,
+        type: 'payment_proof_submitted',
+        title: 'Payment Proof Submitted',
+        message: `Payment proof submitted for ${registration.eventId.title || 'your event registration'}.`,
+        href: '/my-registrations',
+        metadata: {
+          registrationId: String(registration._id),
+          eventId: String(registration.eventId._id || ''),
+          eventTitle: registration.eventId.title || ''
+        }
+      },
+      'payment proof submitted notification'
+    );
 
     const cleanupKeys = [];
     if (previousProofKey && previousProofKey !== uploadedProof.key) {

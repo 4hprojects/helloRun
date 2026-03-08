@@ -14,6 +14,10 @@ const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3104;
 const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
+const PNG_1PX_BUFFER = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAoMBgQeRlmQAAAAASUVORK5CYII=',
+  'base64'
+);
 
 let serverProc = null;
 
@@ -68,6 +72,56 @@ test('authenticated submit-result requires proof file', async () => {
   const location = response.headers.get('location') || '';
   assert.match(location, /my-registrations\?type=error/i);
   assert.match(location, /select\+a\+result\+proof\+file/i);
+});
+
+test('authenticated submit-result rejects invalid elapsedTime format', async () => {
+  const seed = await seedData('invalid-elapsed');
+  const cookie = await login(seed.runner.email, seed.password);
+  const ready = await waitForSessionReady('/my-registrations', cookie);
+  assert.equal(ready, true);
+
+  const form = buildResultProofForm({
+    distanceKm: '5',
+    elapsedTime: '30:00',
+    proofType: 'gps'
+  });
+
+  const response = await fetch(`${BASE_URL}/my-registrations/${seed.registration._id}/submit-result`, {
+    method: 'POST',
+    headers: { Cookie: cookie },
+    body: form,
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  const location = response.headers.get('location') || '';
+  assert.match(location, /my-registrations\?type=error/i);
+  assert.match(location, /HH%3AMM%3ASS/i);
+});
+
+test('authenticated submit-result rejects out-of-range distance', async () => {
+  const seed = await seedData('invalid-distance');
+  const cookie = await login(seed.runner.email, seed.password);
+  const ready = await waitForSessionReady('/my-registrations', cookie);
+  assert.equal(ready, true);
+
+  const form = buildResultProofForm({
+    distanceKm: '0',
+    elapsedTime: '00:30:00',
+    proofType: 'gps'
+  });
+
+  const response = await fetch(`${BASE_URL}/my-registrations/${seed.registration._id}/submit-result`, {
+    method: 'POST',
+    headers: { Cookie: cookie },
+    body: form,
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  const location = response.headers.get('location') || '';
+  assert.match(location, /my-registrations\?type=error/i);
+  assert.match(location, /Distance\+must\+be\+a\+valid\+number/i);
 });
 
 async function seedData(tag) {
@@ -196,4 +250,13 @@ async function waitForServerReady() {
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   throw new Error(`Server did not become ready at ${BASE_URL}`);
+}
+
+function buildResultProofForm({ distanceKm, elapsedTime, proofType }) {
+  const form = new FormData();
+  form.append('resultProofFile', new Blob([PNG_1PX_BUFFER], { type: 'image/png' }), 'proof.png');
+  form.append('distanceKm', String(distanceKm || '5'));
+  form.append('elapsedTime', String(elapsedTime || '00:30:00'));
+  form.append('proofType', String(proofType || 'gps'));
+  return form;
 }

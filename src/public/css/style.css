@@ -162,6 +162,25 @@ p {
     background-color: rgba(250, 154, 75, 0.1);
 }
 
+.nav-notifications-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.nav-notification-badge {
+    min-width: 1.2rem;
+    height: 1.2rem;
+    padding: 0 0.35rem;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.2rem;
+    text-align: center;
+}
+
 /* Mobile Menu Button (Hidden by default, shown on small screens) */
 .menu-toggle {
     display: none;

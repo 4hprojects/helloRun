@@ -8,6 +8,7 @@ const User = require('../src/models/User');
 const Event = require('../src/models/Event');
 const Registration = require('../src/models/Registration');
 const Submission = require('../src/models/Submission');
+const Notification = require('../src/models/Notification');
 const emailService = require('../src/services/email.service');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
 const {
@@ -207,6 +208,13 @@ test('reviewSubmission triggers runner emails for approve/reject and certificate
 
   assert.equal(calls.approved[0][0], approveSeed.runner.email);
   assert.equal(calls.rejected[0][0], rejectSeed.runner.email);
+
+  const approveNotifications = await Notification.find({ userId: approveSeed.runner._id }).lean();
+  const rejectNotifications = await Notification.find({ userId: rejectSeed.runner._id }).lean();
+
+  assert.ok(approveNotifications.some((item) => item.type === 'result_approved'));
+  assert.ok(approveNotifications.some((item) => item.type === 'certificate_issued'));
+  assert.ok(rejectNotifications.some((item) => item.type === 'result_rejected'));
 });
 
 test('getRunnerSubmissions and getEventSubmissionQueue return populated records', async () => {
@@ -398,8 +406,18 @@ async function createRegistration({ event, runner, tag, paymentStatus, status })
 }
 
 test.afterEach(async () => {
-  // Keep collection growth controlled for repeated local runs.
+  // Keep collection growth controlled for repeated local runs, scoped to this suite's seed users.
+  const phase5Users = await User.find({ email: /^phase5\./i }).select('_id').lean();
+  const phase5UserIds = phase5Users.map((item) => item._id);
+
   await Submission.deleteMany({
     createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }
   });
+
+  if (phase5UserIds.length) {
+    await Notification.deleteMany({
+      userId: { $in: phase5UserIds },
+      createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }
+    });
+  }
 });

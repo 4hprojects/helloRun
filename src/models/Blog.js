@@ -195,6 +195,7 @@ const blogSchema = new mongoose.Schema(
 );
 
 blogSchema.index({ status: 1, publishedAt: -1 });
+blogSchema.index({ status: 1, isDeleted: 1, publishedAt: -1 });
 blogSchema.index({ authorId: 1, createdAt: -1 });
 blogSchema.index({ category: 1, publishedAt: -1 });
 blogSchema.index({ tags: 1, publishedAt: -1 });

@@ -3,13 +3,55 @@ const router = express.Router();
 const User = require('../models/User');
 const passwordService = require('../services/password.service');
 const emailService = require('../services/email.service');
+const googleOAuthService = require('../services/google-oauth.service');
 const crypto = require('crypto');
 const { redirectIfAuth } = require('../middleware/auth.middleware');
 
+function resolveSafeReturnTo(value, fallback = null) {
+  if (typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')) {
+    return value;
+  }
+  return fallback;
+}
+
+function startAuthenticatedSession(req, user) {
+  req.session.userId = user._id;
+  req.session.role = user.role;
+  req.session.userName = user.firstName || '';
+  req.session.user = user;
+  req.session.loginSuccess = true;
+}
+
+function redirectAfterLogin(req, res, user) {
+  const returnTo = resolveSafeReturnTo(req.session.returnTo);
+  if (returnTo) {
+    delete req.session.returnTo;
+    return res.redirect(returnTo);
+  }
+
+  if (user.role === 'organiser') {
+    if (user.organizerStatus === 'pending') {
+      return res.redirect('/organizer/application-status');
+    }
+    if (user.organizerStatus === 'approved') {
+      return res.redirect('/organizer/dashboard');
+    }
+    return res.redirect('/organizer/complete-profile');
+  }
+
+  if (user.role === 'admin') {
+    return res.redirect('/admin/dashboard');
+  }
+
+  return res.redirect('/runner/dashboard');
+}
+
 // Login Page - redirect if already logged in
 router.get('/login', redirectIfAuth, (req, res) => {
+  const queryMessage = typeof req.query.message === 'string' ? req.query.message : null;
+  const queryType = typeof req.query.type === 'string' ? req.query.type : '';
   res.render('auth/login', {
-    error: null,
+    error: queryType === 'error' ? queryMessage : null,
     success: null
   });
 });
@@ -39,7 +81,16 @@ router.post('/login', redirectIfAuth, async (req, res) => {
       });
     }
 
-    const isMatch = await passwordService.comparePassword(password, user.passwordHash);
+    if (user.authProvider === 'google' && !user.passwordHash) {
+      return res.render('auth/login', {
+        error: 'This account uses Google sign-in. Use Continue with Google.',
+        success: null,
+        showResendLink: false,
+        userEmail: null
+      });
+    }
+
+    const isMatch = await passwordService.comparePassword(password, user.passwordHash || '');
     if (!isMatch) {
       return res.render('auth/login', {
         error: 'Invalid email or password',
@@ -49,35 +100,8 @@ router.post('/login', redirectIfAuth, async (req, res) => {
       });
     }
 
-    // Create session
-    req.session.userId = user._id;
-    req.session.role = user.role;
-    req.session.userName = user.firstName;
-    req.session.user = user;
-    
-    // Add success flash message with user's name
-    req.session.loginSuccess = true;
-    req.session.userName = user.firstName;
-
-    const returnTo = req.session.returnTo;
-    if (returnTo && typeof returnTo === 'string' && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
-      delete req.session.returnTo;
-      return res.redirect(returnTo);
-    }
-
-    // Role-based redirect
-    if (req.session.role === 'organiser') {
-      if (user.organizerStatus === 'pending') {
-        return res.redirect('/organizer/application-status');
-      } else if (user.organizerStatus === 'approved') {
-        return res.redirect('/organizer/dashboard');
-      } else {
-        return res.redirect('/organizer/complete-profile');
-      }
-    }
-    
-    // For runners - redirect to runner dashboard
-    return res.redirect('/runner/dashboard');
+    startAuthenticatedSession(req, user);
+    return redirectAfterLogin(req, res, user);
     
   } catch (error) {
     console.error('Login error:', error);
@@ -181,6 +205,127 @@ async function handleRegistration(req, res) {
 // Shared registration handler - redirect if already logged in
 router.post('/register', redirectIfAuth, handleRegistration);
 router.post('/signup', redirectIfAuth, handleRegistration);
+
+router.get('/auth/google', redirectIfAuth, (req, res) => {
+  if (!googleOAuthService.isConfigured()) {
+    return res.redirect('/login?type=error&message=Google+sign-in+is+not+configured');
+  }
+
+  const state = googleOAuthService.createStateToken();
+  req.session.googleOAuthState = state;
+  req.session.googleOAuthStateCreatedAt = Date.now();
+
+  const maybeReturnTo = resolveSafeReturnTo(req.query.returnTo, null);
+  if (maybeReturnTo) {
+    req.session.googleOAuthReturnTo = maybeReturnTo;
+  } else {
+    delete req.session.googleOAuthReturnTo;
+  }
+
+  const authUrl = googleOAuthService.buildAuthorizationUrl({ state });
+  return res.redirect(authUrl);
+});
+
+router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
+  try {
+    if (!googleOAuthService.isConfigured()) {
+      return res.redirect('/login?type=error&message=Google+sign-in+is+not+configured');
+    }
+
+    if (req.query.error) {
+      return res.redirect('/login?type=error&message=Google+sign-in+was+canceled');
+    }
+
+    const stateFromGoogle = String(req.query.state || '');
+    const expectedState = String(req.session.googleOAuthState || '');
+    const stateCreatedAt = Number(req.session.googleOAuthStateCreatedAt || 0);
+
+    delete req.session.googleOAuthState;
+    delete req.session.googleOAuthStateCreatedAt;
+
+    if (!stateFromGoogle || !expectedState || stateFromGoogle !== expectedState) {
+      return res.redirect('/login?type=error&message=Google+sign-in+state+is+invalid');
+    }
+
+    if (!stateCreatedAt || (Date.now() - stateCreatedAt) > (10 * 60 * 1000)) {
+      return res.redirect('/login?type=error&message=Google+sign-in+session+expired');
+    }
+
+    const code = String(req.query.code || '');
+    if (!code) {
+      return res.redirect('/login?type=error&message=Google+sign-in+code+is+missing');
+    }
+
+    const tokens = await googleOAuthService.exchangeCodeForTokens({ code });
+    if (!tokens || !tokens.access_token) {
+      return res.redirect('/login?type=error&message=Google+token+exchange+failed');
+    }
+
+    const profile = await googleOAuthService.fetchUserInfo({ accessToken: tokens.access_token });
+    const googleId = String(profile.sub || '').trim();
+    const email = String(profile.email || '').trim().toLowerCase();
+    const emailVerified = Boolean(profile.email_verified);
+
+    if (!googleId || !email || !emailVerified) {
+      return res.redirect('/login?type=error&message=Google+account+is+missing+verified+email');
+    }
+
+    let user = await User.findOne({ googleId });
+    if (!user) {
+      user = await User.findOne({ email });
+
+      if (user) {
+        if (user.googleId && user.googleId !== googleId) {
+          return res.redirect('/login?type=error&message=Google+account+link+conflict');
+        }
+
+        user.googleId = googleId;
+        user.avatarUrl = String(profile.picture || user.avatarUrl || '');
+        if (!user.emailVerified) {
+          user.emailVerified = true;
+          user.emailVerificationToken = null;
+          user.emailVerificationExpires = null;
+        }
+        await user.save();
+      } else {
+        const fullName = String(profile.name || '').trim();
+        let firstName = String(profile.given_name || '').trim();
+        let lastName = String(profile.family_name || '').trim();
+
+        if (!firstName && fullName) {
+          const parts = fullName.split(/\s+/).filter(Boolean);
+          firstName = parts[0] || 'Runner';
+          lastName = parts.slice(1).join(' ');
+        }
+
+        user = await User.create({
+          firstName: firstName || 'Runner',
+          lastName,
+          email,
+          role: 'runner',
+          emailVerified: true,
+          authProvider: 'google',
+          googleId,
+          avatarUrl: String(profile.picture || ''),
+          organizerStatus: 'not_applied'
+        });
+      }
+    }
+
+    startAuthenticatedSession(req, user);
+
+    const googleReturnTo = resolveSafeReturnTo(req.session.googleOAuthReturnTo);
+    delete req.session.googleOAuthReturnTo;
+    if (googleReturnTo) {
+      return res.redirect(googleReturnTo);
+    }
+
+    return redirectAfterLogin(req, res, user);
+  } catch (error) {
+    console.error('Google OAuth callback error:', error);
+    return res.redirect('/login?type=error&message=Google+sign-in+failed');
+  }
+});
 
 // Verification email sent page
 router.get('/verify-email-sent', (req, res) => {
@@ -470,7 +615,8 @@ router.post('/logout', (req, res) => {
       console.error('Logout error:', err);
       return res.redirect('/');
     }
-    res.clearCookie('connect.sid'); // Clear session cookie
+    res.clearCookie('connect.sid');
+    res.clearCookie('hr.sid');
     res.redirect('/');
   });
 });
