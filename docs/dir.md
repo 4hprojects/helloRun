@@ -3,6 +3,30 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See wireframe.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - March 8, 2026 (Session: Events/My Registrations UX Follow-up + Privacy Patch)
+
+### [SESSION] SESSION UPDATE:
+- Refined event details UX (`/events/:slug`):
+  - new hero + key facts + CTA structure
+  - improved media/gallery presentation and mobile sticky CTA
+- Improved My Registrations privacy:
+  - replaced raw DOB display with age label
+- Fixed My Registrations runtime issues:
+  - added missing static client script at `/js/my-reg.js`
+  - replaced payment-proof `registration.save()` path with targeted `Registration.updateOne(...)` to avoid legacy validation failures
+- Added side-task tracking for continued UI/UX polish in planning notes.
+
+### [NEW] NEW FILES:
+1. src/public/css/event-details.css
+2. src/public/js/my-reg.js
+
+### [UPDATED] UPDATED FILES (major):
+1. src/views/pages/event-details.ejs
+2. src/controllers/page.controller.js
+3. src/views/pages/my-registrations.ejs
+4. docs/wireframe.md
+5. docs/dir.md
+
 ## CHANGELOG - March 8, 2026 (Session: Runner Groups Panel Simplification + Dedicated Group/Profile Flows)
 
 ### [SESSION] SESSION UPDATE:

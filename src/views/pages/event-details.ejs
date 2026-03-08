@@ -3,24 +3,79 @@
 <head>
   <%- include('../layouts/head', { title: title }) %>
   <link rel="stylesheet" href="/css/events.css">
+  <link rel="stylesheet" href="/css/event-details.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
 
   <main class="event-details-page">
     <section class="event-details-shell">
-      <a href="/events" class="btn btn-secondary">Back to Events</a>
-
-      <header class="event-details-header">
-        <h1><%= event.title %></h1>
-        <div class="event-chip-row">
-          <span class="event-chip"><%= event.eventType || 'event' %></span>
-          <span class="event-chip event-chip-muted"><%= (event.eventTypesAllowed || []).join(' / ') || 'N/A' %></span>
-        </div>
-      </header>
       <% const showLocationPanel = event.eventType === 'onsite' || event.eventType === 'hybrid' || (event.eventTypesAllowed || []).includes('onsite'); %>
+      <% const registrationCloseAt = event.registrationCloseAt ? new Date(event.registrationCloseAt) : null; %>
+      <% const registrationOpenAt = event.registrationOpenAt ? new Date(event.registrationOpenAt) : null; %>
+      <% const now = new Date(); %>
+      <% const registrationClosed = registrationCloseAt ? registrationCloseAt < now : false; %>
+      <% const registrationOpen = registrationOpenAt ? registrationOpenAt <= now : true; %>
+      <% const canRegisterNow = !registrationClosed && registrationOpen; %>
+      <% const registrationStateLabel = registrationClosed ? 'Registration Closed' : (registrationOpen ? 'Registration Open' : 'Registration Not Yet Open'); %>
 
-      <section class="event-details-grid">
+      <div class="event-nav-row">
+        <a href="/events" class="btn btn-outline">Back to Events</a>
+        <% if (locals.isAuthenticated) { %>
+          <a href="/my-registrations" class="btn btn-outline">My Registrations</a>
+        <% } %>
+      </div>
+
+      <header class="event-hero">
+        <div class="event-hero-content">
+          <div class="event-chip-row">
+            <span class="event-chip"><%= event.eventType || 'event' %></span>
+            <span class="event-chip event-chip-muted"><%= (event.eventTypesAllowed || []).join(' / ') || 'N/A' %></span>
+            <span class="event-chip <%= canRegisterNow ? 'event-chip-open' : 'event-chip-closed' %>"><%= registrationStateLabel %></span>
+          </div>
+          <h1><%= event.title %></h1>
+          <p class="event-lead"><%= event.description || 'No description provided.' %></p>
+        </div>
+
+        <aside class="event-cta-card">
+          <h3>Ready to join?</h3>
+          <p>Reserve your slot and submit your result after the run.</p>
+          <% if (canRegisterNow) { %>
+            <a href="/events/<%= event.slug %>/register" class="btn btn-primary btn-block">Register for This Event</a>
+          <% } else { %>
+            <button type="button" class="btn btn-outline btn-block" disabled><%= registrationStateLabel %></button>
+          <% } %>
+          <small>Registration closes: <%= registrationCloseAt ? registrationCloseAt.toLocaleString('en-US') : 'TBA' %></small>
+        </aside>
+      </header>
+
+      <section class="event-facts-grid">
+        <article class="event-fact-card">
+          <h4>Schedule</h4>
+          <p><strong>Opens:</strong> <%= registrationOpenAt ? registrationOpenAt.toLocaleString('en-US') : 'TBA' %></p>
+          <p><strong>Closes:</strong> <%= registrationCloseAt ? registrationCloseAt.toLocaleString('en-US') : 'TBA' %></p>
+          <p><strong>Starts:</strong> <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'TBA' %></p>
+          <p><strong>Ends:</strong> <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleString('en-US') : 'TBA' %></p>
+        </article>
+
+        <article class="event-fact-card">
+          <h4>Run Details</h4>
+          <p><strong>Distances:</strong> <%= (event.raceDistances || []).join(', ') || 'TBA' %></p>
+          <p><strong>Primary Mode:</strong> <%= event.eventType || 'N/A' %></p>
+          <p><strong>Allowed Modes:</strong> <%= (event.eventTypesAllowed || []).join(' / ') || 'N/A' %></p>
+        </article>
+
+        <% if (showLocationPanel) { %>
+          <article class="event-fact-card">
+            <h4>Location</h4>
+            <p><strong>Venue:</strong> <%= event.venueName || 'TBA' %></p>
+            <p><strong>Address:</strong> <%= event.venueAddress || 'TBA' %></p>
+            <p><strong>City/Country:</strong> <%= [event.city, countryName(event.country)].filter(Boolean).join(', ') || 'TBA' %></p>
+          </article>
+        <% } %>
+      </section>
+
+      <section class="event-media-grid">
         <article class="event-details-card">
           <h3>Event Banner</h3>
           <% if (event.bannerImageUrl) { %>
@@ -45,23 +100,6 @@
             <p>No poster uploaded.</p>
           <% } %>
         </article>
-
-        <article class="event-details-card">
-          <h3>Schedule</h3>
-          <p><strong>Registration Closes:</strong> <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleString('en-US') : 'TBA' %></p>
-          <p><strong>Event Starts:</strong> <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'TBA' %></p>
-          <p><strong>Event Ends:</strong> <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleString('en-US') : 'TBA' %></p>
-          <p><strong>Race Distances:</strong> <%= (event.raceDistances || []).join(', ') || 'TBA' %></p>
-        </article>
-
-        <% if (showLocationPanel) { %>
-          <article class="event-details-card">
-            <h3>Location</h3>
-            <p><strong>Venue:</strong> <%= event.venueName || 'TBA' %></p>
-            <p><strong>Address:</strong> <%= event.venueAddress || 'TBA' %></p>
-            <p><strong>City/Country:</strong> <%= [event.city, countryName(event.country)].filter(Boolean).join(', ') || 'TBA' %></p>
-          </article>
-        <% } %>
       </section>
 
       <% if (event.galleryImageUrls && event.galleryImageUrls.length) { %>
@@ -84,16 +122,26 @@
       <% } %>
 
       <section class="event-details-card event-details-description">
-        <h3>Description</h3>
+        <h3>About This Event</h3>
         <p><%= event.description || 'No description provided.' %></p>
       </section>
 
       <section class="event-cta-row">
-        <a href="/events/<%= event.slug %>/register" class="btn">Register for This Event</a>
-        <% if (locals.isAuthenticated) { %>
-          <a href="/my-registrations" class="btn btn-secondary">My Registrations</a>
+        <% if (canRegisterNow) { %>
+          <a href="/events/<%= event.slug %>/register" class="btn btn-primary">Register for This Event</a>
+        <% } else { %>
+          <button type="button" class="btn btn-outline" disabled><%= registrationStateLabel %></button>
         <% } %>
+        <a href="/events" class="btn btn-outline">Browse Other Events</a>
       </section>
+
+      <div class="event-mobile-sticky-cta">
+        <% if (canRegisterNow) { %>
+          <a href="/events/<%= event.slug %>/register" class="btn btn-primary btn-block">Register for This Event</a>
+        <% } else { %>
+          <button type="button" class="btn btn-outline btn-block" disabled><%= registrationStateLabel %></button>
+        <% } %>
+      </div>
 
       <% if (event.galleryImageUrls && event.galleryImageUrls.length) { %>
         <div id="galleryLightbox" class="gallery-lightbox hidden" aria-hidden="true">

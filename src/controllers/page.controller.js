@@ -443,7 +443,7 @@ exports.getMyRegistrations = async (req, res) => {
       message: getPageMessage(req.query),
       countryName: getCountryName,
       genderLabel: formatGenderLabel,
-      dateLabel: formatDateOnly
+      ageLabel: formatAgeFromDob
     });
   } catch (error) {
     console.error('Error loading my registrations:', error);
@@ -575,7 +575,7 @@ exports.postUploadPaymentProof = async (req, res) => {
     });
     uploadedProofKey = uploadedProof.key;
 
-    registration.paymentProof = {
+    const nextPaymentProof = {
       url: uploadedProof.url,
       key: uploadedProof.key,
       mimeType: proofFile.mimetype || '',
@@ -583,14 +583,22 @@ exports.postUploadPaymentProof = async (req, res) => {
       uploadedAt: new Date(),
       submittedBy: user._id
     };
-    registration.paymentStatus = 'proof_submitted';
-    registration.paymentSubmissionCount = Number(registration.paymentSubmissionCount || 0) + 1;
-    registration.paymentReviewedAt = null;
-    registration.paymentReviewedBy = null;
-    registration.paymentReviewNotes = '';
-    registration.paymentRejectionReason = '';
-
-    await registration.save();
+    await Registration.updateOne(
+      { _id: registration._id, userId: user._id },
+      {
+        $set: {
+          paymentProof: nextPaymentProof,
+          paymentStatus: 'proof_submitted',
+          paymentReviewedAt: null,
+          paymentReviewedBy: null,
+          paymentReviewNotes: '',
+          paymentRejectionReason: ''
+        },
+        $inc: {
+          paymentSubmissionCount: 1
+        }
+      }
+    );
     uploadedProofKey = '';
 
     await createNotificationSafe(
@@ -1275,6 +1283,27 @@ function formatDateOnly(value) {
     month: 'short',
     day: 'numeric'
   });
+}
+
+function formatAgeFromDob(value) {
+  if (!value) return 'N/A';
+  const dob = new Date(value);
+  if (Number.isNaN(dob.getTime())) return 'N/A';
+
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  const dayDiff = today.getDate() - dob.getDate();
+
+  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+    age -= 1;
+  }
+
+  if (!Number.isInteger(age) || age < 0 || age > 120) {
+    return 'N/A';
+  }
+
+  return `${age} years old`;
 }
 
 function getUserRegistrationEligibilityError(user) {

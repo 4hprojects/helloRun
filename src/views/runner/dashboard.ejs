@@ -16,12 +16,6 @@
         <h1>Welcome back, <%= userName %>!</h1>
         <p class="header-subtitle">Ready for your next run?</p>
       </div>
-      <form action="/logout" method="POST" class="logout-form">
-        <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
-        <button type="submit" class="btn btn-outline-light btn-logout">
-          <i data-lucide="log-out"></i> Logout
-        </button>
-      </form>
     </div>
 
     <!-- Messages -->

@@ -3,6 +3,30 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See dir.md for repository-level change history.
 
+## STATUS UPDATE (Mar 8, 2026 - Events/My Registrations Follow-up)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Refreshed `/events/:slug` UI layout:
+  - stronger hero + key facts + CTA hierarchy
+  - improved media/gallery presentation
+  - added mobile sticky registration CTA
+- Improved My Registrations privacy:
+  - replaced exact DOB rendering with age display and safe fallback (`N/A`)
+- Fixed My Registrations asset/runtime issues:
+  - added missing `/js/my-reg.js` static file
+  - patched payment-proof update flow to avoid legacy full-document validation failures
+
+### SIDE TASKS (non-blocking)
+- UI/UX refinement backlog (ongoing):
+  - continue polishing `/events/:slug` visual rhythm and CTA conversion flow
+  - improve My Registrations readability density and action grouping
+  - run a compact mobile typography/tap-target pass across event and registration pages
+
+### Still pending from this scope
+- Add CSRF hidden tokens and CSRF-enforced route protection for My Registrations POST forms.
+
 ## STATUS UPDATE (Mar 8, 2026 - Runner Groups IA Cleanup + Profile UX Refinement)
 
 ### Current reality after latest implementation
