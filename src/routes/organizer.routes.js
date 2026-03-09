@@ -567,10 +567,10 @@ router.get('/events/:id', requireApprovedOrganizer, async (req, res) => {
 });
 
 /* ==========================================
-   GET: Event Registrants (Owner Only)
+   GET: Event Registrants (Owner/Admin)
    ========================================== */
 
-router.get('/events/:id/registrants', requireApprovedOrganizer, async (req, res) => {
+router.get('/events/:id/registrants', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -581,7 +581,15 @@ router.get('/events/:id/registrants', requireApprovedOrganizer, async (req, res)
       });
     }
 
-    const event = await getOwnedEventOrNull(req.params.id, user._id);
+    if (!canAccessRegistrantReview(user)) {
+      return res.status(403).render('error', {
+        title: '403 - Access Denied',
+        status: 403,
+        message: 'Only approved organizers or admins can access this page.'
+      });
+    }
+
+    const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
     if (!event) {
       return res.status(404).render('error', {
         title: '404 - Event Not Found',
@@ -613,7 +621,7 @@ router.get('/events/:id/registrants', requireApprovedOrganizer, async (req, res)
     }
     const submissions = registrationIds.length
       ? await Submission.find(submissionFilter)
-        .select('registrationId status distanceKm elapsedMs proofType proof submittedAt reviewedAt reviewedBy reviewNotes rejectionReason')
+        .select('registrationId status distanceKm elapsedMs runDate runLocation proofType proof submittedAt reviewedAt reviewedBy reviewNotes rejectionReason')
         .lean()
       : [];
     const submissionsByRegistrationId = new Map(
@@ -664,6 +672,7 @@ router.get('/events/:id/registrants', requireApprovedOrganizer, async (req, res)
     return res.render('organizer/event-registrants', {
       title: `Registrants - ${event.title}`,
       user,
+      isAdminViewer: user.role === 'admin',
       event,
       registrations,
       selectedMode,
@@ -698,11 +707,11 @@ router.get('/events/:id/registrants', requireApprovedOrganizer, async (req, res)
 
 router.post(
   '/events/:id/registrants/:registrationId/payment/approve',
-  requireApprovedOrganizer,
+  requireAuth,
   paymentReviewActionLimiter,
   async (req, res) => {
     try {
-      const user = await User.findById(req.session.userId).select('firstName lastName email');
+      const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
       if (!user) {
         return res.status(404).render('error', {
           title: '404 - User Not Found',
@@ -711,7 +720,15 @@ router.post(
         });
       }
 
-      const event = await getOwnedEventOrNull(req.params.id, user._id);
+      if (!canAccessRegistrantReview(user)) {
+        return res.status(403).render('error', {
+          title: '403 - Access Denied',
+          status: 403,
+          message: 'Only approved organizers or admins can review payments.'
+        });
+      }
+
+      const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
       if (!event) {
         return res.status(404).render('error', {
           title: '404 - Event Not Found',
@@ -792,11 +809,11 @@ router.post(
 
 router.post(
   '/events/:id/registrants/:registrationId/payment/reject',
-  requireApprovedOrganizer,
+  requireAuth,
   paymentReviewActionLimiter,
   async (req, res) => {
     try {
-      const user = await User.findById(req.session.userId).select('firstName lastName email');
+      const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
       if (!user) {
         return res.status(404).render('error', {
           title: '404 - User Not Found',
@@ -805,7 +822,15 @@ router.post(
         });
       }
 
-      const event = await getOwnedEventOrNull(req.params.id, user._id);
+      if (!canAccessRegistrantReview(user)) {
+        return res.status(403).render('error', {
+          title: '403 - Access Denied',
+          status: 403,
+          message: 'Only approved organizers or admins can review payments.'
+        });
+      }
+
+      const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
       if (!event) {
         return res.status(404).render('error', {
           title: '404 - Event Not Found',
@@ -897,11 +922,11 @@ router.post(
 
 router.post(
   '/events/:id/submissions/:submissionId/approve',
-  requireApprovedOrganizer,
+  requireAuth,
   paymentReviewActionLimiter,
   async (req, res) => {
     try {
-      const user = await User.findById(req.session.userId).select('firstName lastName email');
+      const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
       if (!user) {
         return res.status(404).render('error', {
           title: '404 - User Not Found',
@@ -910,7 +935,15 @@ router.post(
         });
       }
 
-      const event = await getOwnedEventOrNull(req.params.id, user._id);
+      if (!canAccessRegistrantReview(user)) {
+        return res.status(403).render('error', {
+          title: '403 - Access Denied',
+          status: 403,
+          message: 'Only approved organizers or admins can review submissions.'
+        });
+      }
+
+      const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
       if (!event) {
         return res.status(404).render('error', {
           title: '404 - Event Not Found',
@@ -919,10 +952,25 @@ router.post(
         });
       }
 
+      const submissionRecord = await Submission.findOne({
+        _id: req.params.submissionId,
+        eventId: event._id
+      })
+        .select('_id')
+        .lean();
+      if (!submissionRecord) {
+        const q = new URLSearchParams({
+          type: 'error',
+          msg: 'Submission record not found for this event.'
+        });
+        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+      }
+
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
       await reviewSubmission({
-        submissionId: req.params.submissionId,
+        submissionId: submissionRecord._id,
         organizerId: user._id,
+        reviewerRole: user.role,
         action: 'approve',
         reviewNotes
       });
@@ -941,11 +989,11 @@ router.post(
 
 router.post(
   '/events/:id/submissions/:submissionId/reject',
-  requireApprovedOrganizer,
+  requireAuth,
   paymentReviewActionLimiter,
   async (req, res) => {
     try {
-      const user = await User.findById(req.session.userId).select('firstName lastName email');
+      const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
       if (!user) {
         return res.status(404).render('error', {
           title: '404 - User Not Found',
@@ -954,7 +1002,15 @@ router.post(
         });
       }
 
-      const event = await getOwnedEventOrNull(req.params.id, user._id);
+      if (!canAccessRegistrantReview(user)) {
+        return res.status(403).render('error', {
+          title: '403 - Access Denied',
+          status: 403,
+          message: 'Only approved organizers or admins can review submissions.'
+        });
+      }
+
+      const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
       if (!event) {
         return res.status(404).render('error', {
           title: '404 - Event Not Found',
@@ -963,11 +1019,26 @@ router.post(
         });
       }
 
+      const submissionRecord = await Submission.findOne({
+        _id: req.params.submissionId,
+        eventId: event._id
+      })
+        .select('_id')
+        .lean();
+      if (!submissionRecord) {
+        const q = new URLSearchParams({
+          type: 'error',
+          msg: 'Submission record not found for this event.'
+        });
+        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+      }
+
       const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
       await reviewSubmission({
-        submissionId: req.params.submissionId,
+        submissionId: submissionRecord._id,
         organizerId: user._id,
+        reviewerRole: user.role,
         action: 'reject',
         rejectionReason,
         reviewNotes
@@ -985,7 +1056,7 @@ router.post(
   }
 );
 
-router.get('/events/:id/registrants/export', requireApprovedOrganizer, async (req, res) => {
+router.get('/events/:id/registrants/export', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -996,7 +1067,15 @@ router.get('/events/:id/registrants/export', requireApprovedOrganizer, async (re
       });
     }
 
-    const event = await getOwnedEventOrNull(req.params.id, user._id);
+    if (!canAccessRegistrantReview(user)) {
+      return res.status(403).render('error', {
+        title: '403 - Access Denied',
+        status: 403,
+        message: 'Only approved organizers or admins can export registrants.'
+      });
+    }
+
+    const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
     if (!event) {
       return res.status(404).render('error', {
         title: '404 - Event Not Found',
@@ -1030,7 +1109,7 @@ router.get('/events/:id/registrants/export', requireApprovedOrganizer, async (re
   }
 });
 
-router.get('/events/:id/registrants/export-xlsx', requireApprovedOrganizer, async (req, res) => {
+router.get('/events/:id/registrants/export-xlsx', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -1041,7 +1120,15 @@ router.get('/events/:id/registrants/export-xlsx', requireApprovedOrganizer, asyn
       });
     }
 
-    const event = await getOwnedEventOrNull(req.params.id, user._id);
+    if (!canAccessRegistrantReview(user)) {
+      return res.status(403).render('error', {
+        title: '403 - Access Denied',
+        status: 403,
+        message: 'Only approved organizers or admins can export registrants.'
+      });
+    }
+
+    const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
     if (!event) {
       return res.status(404).render('error', {
         title: '404 - Event Not Found',
@@ -2133,6 +2220,8 @@ function mapSubmissionForRegistrant(submission) {
   return {
     ...submission,
     elapsedLabel: formatElapsedMs(submission.elapsedMs),
+    runDateLabel: formatDateOnly(submission.runDate),
+    runLocation: String(submission.runLocation || '').trim(),
     submittedAtLabel: formatDateTime(submission.submittedAt),
     reviewedAtLabel: formatDateTime(submission.reviewedAt)
   };
@@ -2618,6 +2707,22 @@ async function getOwnedEventOrNull(eventId, userId) {
     return null;
   }
   return Event.findOne({ _id: eventId, organizerId: userId });
+}
+
+function canAccessRegistrantReview(user) {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  return user.role === 'organiser' && user.organizerStatus === 'approved';
+}
+
+async function getRegistrantAccessibleEventOrNull(eventId, user) {
+  if (!user || !mongoose.Types.ObjectId.isValid(eventId)) {
+    return null;
+  }
+  if (user.role === 'admin') {
+    return Event.findById(eventId);
+  }
+  return getOwnedEventOrNull(eventId, user._id);
 }
 
 function getStatusTransitionError(currentStatus, nextStatus) {

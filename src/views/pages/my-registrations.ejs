@@ -130,8 +130,13 @@
                     <div class="details-grid">
                       <div class="detail-item"><strong>Distance:</strong> <%= Number(submission.distanceKm || 0).toFixed(2) %> km</div>
                       <div class="detail-item"><strong>Time:</strong> <%= new Date(Number(submission.elapsedMs || 0)).toISOString().slice(11, 19) %></div>
+                      <div class="detail-item"><strong>Run date:</strong> <%= submission.runDate ? new Date(submission.runDate).toLocaleDateString('en-US') : 'N/A' %></div>
+                      <div class="detail-item"><strong>Run location:</strong> <%= submission.runLocation || 'N/A' %></div>
                       <div class="detail-item"><strong>Proof type:</strong> <%= String(submission.proofType || 'manual').toUpperCase() %></div>
                     </div>
+                    <% if (submission.proof?.url) { %>
+                      <p><a href="<%= submission.proof.url %>" target="_blank" rel="noopener noreferrer" class="btn btn-link">View submitted proof</a></p>
+                    <% } %>
                     <% if (submission.status === 'approved' && submission.certificate?.url) { %>
                       <p><a href="/my-submissions/<%= submission._id %>/certificate" class="btn btn-link">Download certificate <i data-lucide="download"></i></a></p>
                     <% } %>
@@ -144,19 +149,16 @@
                   <% } %>
 
                   <% if (canSubmitResult) { %>
-                    <form method="POST" action="/my-registrations/<%= registration._id %>/<%= submission && submission.status === 'rejected' ? 'resubmit-result' : 'submit-result' %>" enctype="multipart/form-data" class="inline-form">
-                      <input type="number" name="distanceKm" min="0.1" max="500" step="0.01" placeholder="Distance in km" value="<%= submission ? submission.distanceKm : '' %>" required>
-                      <input type="text" name="elapsedTime" pattern="^\d{1,2}:[0-5]\d:[0-5]\d$" placeholder="Elapsed time HH:MM:SS" value="<%= submission ? new Date(Number(submission.elapsedMs || 0)).toISOString().slice(11, 19) : '' %>" required>
-                      <select name="proofType" required>
-                        <option value="gps" <%= submission?.proofType === 'gps' ? 'selected' : '' %>>GPS</option>
-                        <option value="photo" <%= submission?.proofType === 'photo' ? 'selected' : '' %>>Photo</option>
-                        <option value="manual" <%= !submission || submission?.proofType === 'manual' ? 'selected' : '' %>>Manual</option>
-                      </select>
-                      <textarea name="proofNotes" rows="2" placeholder="Optional notes (device, app, route details)"><%= submission?.proofNotes || '' %></textarea>
-                      <label for="resultProofFile-<%= registration._id %>">Result proof file (JPG, PNG, PDF up to 5MB)</label>
-                      <input type="file" id="resultProofFile-<%= registration._id %>" name="resultProofFile" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required>
-                      <button type="submit" class="btn btn-secondary"><%= submission && submission.status === 'rejected' ? 'Resubmit result' : 'Submit result' %></button>
-                    </form>
+                    <div class="inline-form result-action-box">
+                      <p>Use the run proof modal to submit your race result details and image.</p>
+                      <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-open-run-proof-modal
+                        data-registration-id="<%= registration._id %>">
+                        <%= submission && submission.status === 'rejected' ? 'Resubmit run proof' : 'Submit run proof' %>
+                      </button>
+                    </div>
                   <% } %>
                 </section>
               <% } %>

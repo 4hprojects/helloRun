@@ -2,6 +2,7 @@
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 
 const DEFAULT_ALLOWED_MIMES = ['image/jpeg', 'image/png', 'application/pdf'];
+const DEFAULT_RESULT_ALLOWED_MIMES = ['image/jpeg', 'image/png'];
 const MAX_UPLOAD_BYTES = parseInt(process.env.UPLOAD_MAX_SIZE, 10) || 5242880;
 
 const configuredAllowedMimes = String(
@@ -12,6 +13,15 @@ const configuredAllowedMimes = String(
   .filter(Boolean);
 
 const allowedMimes = configuredAllowedMimes.length ? configuredAllowedMimes : DEFAULT_ALLOWED_MIMES;
+const configuredResultAllowedMimes = String(
+  process.env.RESULT_UPLOAD_ALLOWED_TYPES || process.env.UPLOAD_RESULT_ALLOWED_TYPES || ''
+)
+  .split(',')
+  .map((item) => item.trim())
+  .filter(Boolean);
+const resultAllowedMimes = configuredResultAllowedMimes.length
+  ? configuredResultAllowedMimes
+  : DEFAULT_RESULT_ALLOWED_MIMES;
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -21,6 +31,20 @@ const upload = multer({
       return;
     }
     cb(new Error('Invalid file type. Only JPEG, PNG, and PDF files are allowed.'), false);
+  },
+  limits: {
+    fileSize: MAX_UPLOAD_BYTES
+  }
+});
+
+const resultProofUpload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter(req, file, cb) {
+    if (resultAllowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('Invalid file type. Only JPEG and PNG files are allowed.'), false);
   },
   limits: {
     fileSize: MAX_UPLOAD_BYTES
@@ -141,7 +165,7 @@ exports.uploadPaymentProof = (req, res, next) => {
 };
 
 exports.uploadResultProof = (req, res, next) => {
-  const uploadSingle = upload.single('resultProofFile');
+  const uploadSingle = resultProofUpload.single('resultProofFile');
 
   uploadSingle(req, res, (err) => {
     if (!err) {

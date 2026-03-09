@@ -77,6 +77,32 @@ test('organizer cannot approve already-approved submission', async () => {
   assert.match(location, /(Only\+submitted\+results\+can\+be\+reviewed|Submission\+not\+found)/i);
 });
 
+test('admin can approve organizer submission through shared review route', async () => {
+  const seed = await seedReviewData('admin-approve');
+  const adminCookie = await login(seed.admin.email, seed.password);
+  const ready = await waitForSessionReady('/admin/dashboard', adminCookie);
+  assert.equal(ready, true);
+
+  const response = await postForm(
+    `/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/approve`,
+    adminCookie,
+    { reviewNotes: 'admin approval check' }
+  );
+
+  assert.equal(response.status, 302);
+  const location = response.headers.get('location') || '';
+  assert.match(location, /type=success/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    const updated = await Submission.findById(seed.submission._id).lean();
+    assert.equal(updated.status, 'approved');
+    assert.equal(String(updated.reviewedBy), String(seed.admin._id));
+  } finally {
+    await mongoose.disconnect();
+  }
+});
+
 async function seedReviewData(tag, options = {}) {
   await mongoose.connect(process.env.MONGODB_URI);
   try {
@@ -118,6 +144,16 @@ async function seedReviewData(tag, options = {}) {
       organizerStatus: 'approved',
       firstName: 'Other',
       lastName: 'Organizer',
+      emailVerified: true
+    });
+
+    const admin = await User.create({
+      userId: buildUserId('RGA'),
+      email: `phase5.review.${tag}.admin.${stamp}@example.com`,
+      passwordHash,
+      role: 'admin',
+      firstName: 'Admin',
+      lastName: 'Reviewer',
       emailVerified: true
     });
 
@@ -193,7 +229,7 @@ async function seedReviewData(tag, options = {}) {
       submittedAt: new Date()
     });
 
-    return { password, ownerOrganizer, otherOrganizer, event, submission };
+    return { password, ownerOrganizer, otherOrganizer, admin, event, submission };
   } finally {
     await mongoose.disconnect();
   }

@@ -2,7 +2,7 @@ const User = require('../models/User');
 const passwordService = require('../services/password.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode } = require('../utils/country');
 const { getRunnerRegistrations, buildRunnerDashboardData } = require('../services/runner-data.service');
-const { getRunnerPerformanceSnapshot } = require('../services/submission.service');
+const { getRunnerPerformanceSnapshot, getRunnerEligibleSubmissionRegistrations } = require('../services/submission.service');
 const {
   searchRunningGroups,
   getTopRunningGroups,
@@ -50,11 +50,9 @@ exports.getDashboard = async (req, res) => {
       performanceSnapshot.recentActivity
     );
     const upcomingCards = dashboardData.upcoming
-      .filter((item) => matchesModeFilter(item, dashboardFilters.eventMode))
       .slice(0, 5)
       .map(normalizeRegistrationCard);
     const pastCards = dashboardData.past
-      .filter((item) => matchesModeFilter(item, dashboardFilters.eventMode))
       .slice(0, 5)
       .map(normalizeRegistrationCard);
     const profileCompleteness = getProfileCompleteness(getRunnerProfileFormData(user));
@@ -144,11 +142,9 @@ exports.updateProfile = async (req, res) => {
         performanceSnapshot.recentActivity
       );
       const upcomingCards = dashboardData.upcoming
-        .filter((item) => matchesModeFilter(item, dashboardFilters.eventMode))
         .slice(0, 5)
         .map(normalizeRegistrationCard);
       const pastCards = dashboardData.past
-        .filter((item) => matchesModeFilter(item, dashboardFilters.eventMode))
         .slice(0, 5)
         .map(normalizeRegistrationCard);
       const profileCompleteness = getProfileCompleteness(formData);
@@ -629,6 +625,33 @@ exports.getNotifications = async (req, res) => {
   }
 };
 
+exports.getEligibleResultSubmissionOptions = async (req, res) => {
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required.'
+      });
+    }
+
+    const items = await getRunnerEligibleSubmissionRegistrations(user._id, {
+      limit: normalizePositiveInt(req.query.limit, 50)
+    });
+
+    return res.json({
+      success: true,
+      items
+    });
+  } catch (error) {
+    console.error('Runner eligible submission options load error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to load submission options right now.'
+    });
+  }
+};
+
 exports.markNotificationRead = async (req, res) => {
   try {
     const user = await getRunnerFromSession(req);
@@ -884,24 +907,10 @@ function mergeRunnerActivity(registrationActivity = [], groupActivity = [], subm
     .sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
 }
 
-function matchesModeFilter(registration, mode) {
-  if (!mode) return true;
-  return String(registration?.participationMode || '').trim().toLowerCase() === mode;
-}
-
 function getDashboardFilters(query = {}) {
   return {
-    eventMode: normalizeDashboardMode(query.eventMode),
     resultStatus: normalizeDashboardResultStatus(query.resultStatus)
   };
-}
-
-function normalizeDashboardMode(value) {
-  const safe = String(value || '').trim().toLowerCase();
-  if (safe === 'virtual' || safe === 'onsite' || safe === 'hybrid') {
-    return safe;
-  }
-  return '';
 }
 
 function normalizeDashboardResultStatus(value) {

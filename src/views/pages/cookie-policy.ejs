@@ -6,42 +6,67 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  <button type="button" class="back-to-top static-back-to-top" id="backToTopBtn" aria-label="Back to top">&uarr;</button>
+  <button type="button" class="back-to-top privacy-back-to-top" id="backToTopBtn" aria-label="Back to top">&uarr;</button>
 
-  <main class="static-page">
-    <div class="static-wrap">
-      <header class="static-hero">
+  <main class="static-page privacy-page">
+    <div class="static-wrap privacy-wrap">
+      <header class="static-hero privacy-hero">
+        <span class="privacy-kicker">Legal</span>
         <h1>Cookie Policy</h1>
         <p>How helloRun uses cookies and similar technologies.</p>
         <% if (policyMeta && (policyMeta.versionNumber || policyMeta.effectiveDate || policyMeta.updatedAt)) { %>
-          <p class="static-note">
-            <% if (policyMeta.versionNumber) { %>Version <%= policyMeta.versionNumber %><% } %>
-            <% if (policyMeta.effectiveDate) { %> | Effective <%= new Date(policyMeta.effectiveDate).toLocaleDateString('en-US') %><% } %>
-            <% if (policyMeta.updatedAt) { %> | Updated <%= new Date(policyMeta.updatedAt).toLocaleDateString('en-US') %><% } %>
-          </p>
+          <div class="privacy-meta-pills">
+            <% if (policyMeta.versionNumber) { %>
+              <span class="privacy-meta-pill">Version <%= policyMeta.versionNumber %></span>
+            <% } %>
+            <% if (policyMeta.effectiveDate) { %>
+              <span class="privacy-meta-pill">Effective <%= new Date(policyMeta.effectiveDate).toLocaleDateString('en-US') %></span>
+            <% } %>
+            <% if (policyMeta.updatedAt) { %>
+              <span class="privacy-meta-pill">Updated <%= new Date(policyMeta.updatedAt).toLocaleDateString('en-US') %></span>
+            <% } %>
+          </div>
         <% } %>
       </header>
 
-      <% if (policyLoadedFromFile && policyHtml) { %>
-        <section class="static-card">
-          <article class="legal-markdown"><%- policyHtml %></article>
-        </section>
-      <% } else { %>
-        <section class="static-card">
-          <h2>Essential Cookies</h2>
-          <p>These cookies support core account, login, and session functionality needed to run helloRun securely.</p>
+      <div class="privacy-layout">
+        <section class="static-card privacy-content-card">
+          <% if (policyLoadedFromFile && policyHtml) { %>
+            <article class="legal-markdown"><%- policyHtml %></article>
+          <% } else { %>
+            <article class="privacy-fallback">
+              <h2>Essential Cookies</h2>
+              <p>These cookies support core account, login, and session functionality needed to run helloRun securely.</p>
+
+              <h2>Performance and Analytics</h2>
+              <p>We may use analytics cookies to understand usage patterns and improve platform reliability and user experience.</p>
+
+              <h2>Managing Cookies</h2>
+              <p>You can control cookies through browser settings. Disabling some cookies may affect key site features.</p>
+            </article>
+          <% } %>
         </section>
 
-        <section class="static-card">
-          <h2>Performance and Analytics</h2>
-          <p>We may use analytics cookies to understand usage patterns and improve platform reliability and user experience.</p>
-        </section>
+        <aside class="privacy-side-stack">
+          <section class="static-card privacy-side-card">
+            <h2>At a Glance</h2>
+            <div class="privacy-side-body">
+              <ul>
+                <li>Essential cookies are required for secure login and account sessions.</li>
+                <li>Optional cookies help analyze usage and improve platform experience.</li>
+                <li>You can manage cookies in your browser, but some features may stop working.</li>
+              </ul>
+              <p class="privacy-side-note">Cookie questions or requests:</p>
+              <a class="privacy-contact-link" href="mailto:hellorunonline@gmail.com">hellorunonline@gmail.com</a>
+            </div>
+          </section>
 
-        <section class="static-card">
-          <h2>Managing Cookies</h2>
-          <p>You can control cookies through browser settings. Disabling some cookies may affect key site features.</p>
-        </section>
-      <% } %>
+          <section class="static-card privacy-toc-card" id="cookiePolicyTocCard" hidden>
+            <h2>Quick Contents</h2>
+            <ul class="privacy-toc-list" id="cookiePolicyTocList"></ul>
+          </section>
+        </aside>
+      </div>
     </div>
   </main>
 
@@ -63,6 +88,102 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
         });
         toggleBackToTop();
+      }
+
+      const tocCard = document.getElementById('cookiePolicyTocCard');
+      const tocList = document.getElementById('cookiePolicyTocList');
+      const contentRoot = document.querySelector('.privacy-content-card .legal-markdown, .privacy-content-card .privacy-fallback');
+
+      if (tocCard && tocList && contentRoot) {
+        const headingNodes = Array.from(contentRoot.querySelectorAll('h1, h2, h3'));
+        const usedIds = new Set();
+
+        const toSlug = (value) => String(value || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-');
+
+        let tocIndex = 0;
+
+        headingNodes.forEach((headingNode, index) => {
+          const headingText = headingNode.textContent.trim();
+          if (!headingText) return;
+
+          if (headingNode.tagName.toLowerCase() === 'h1' && /cookie policy/i.test(headingText) && !/^\d+[\.)]/.test(headingText)) {
+            return;
+          }
+
+          const baseId = toSlug(headingText) || `section-${index + 1}`;
+          let nextId = baseId;
+          let collisionCount = 2;
+          while (usedIds.has(nextId) || document.getElementById(nextId)) {
+            nextId = `${baseId}-${collisionCount}`;
+            collisionCount += 1;
+          }
+
+          usedIds.add(nextId);
+          headingNode.id = nextId;
+          headingNode.classList.add('privacy-anchor-target');
+
+          const listItem = document.createElement('li');
+          const link = document.createElement('a');
+          link.href = `#${nextId}`;
+          link.textContent = headingText;
+          const tagName = headingNode.tagName.toLowerCase();
+          const levelClass = tagName === 'h1'
+            ? 'level-1'
+            : tagName === 'h3'
+              ? 'level-3'
+              : 'level-2';
+          link.className = `privacy-toc-link ${levelClass}`;
+          listItem.appendChild(link);
+          tocList.appendChild(listItem);
+          tocIndex += 1;
+        });
+
+        if (tocIndex === 0) {
+          const boldNodes = Array.from(contentRoot.querySelectorAll('p > strong:first-child, li > strong:first-child'));
+          boldNodes.forEach((strongNode, index) => {
+            const hostNode = strongNode.parentElement;
+            if (!hostNode) return;
+
+            const hostText = hostNode.textContent.trim();
+            const strongText = strongNode.textContent.trim();
+            if (!strongText || strongText.length > 120) return;
+            if (!hostText.startsWith(strongText)) return;
+            if (hostText.length > strongText.length + 120) return;
+
+            const headingText = strongText.replace(/:+$/, '').trim();
+            if (!headingText) return;
+
+            const baseId = toSlug(headingText) || `section-bold-${index + 1}`;
+            let nextId = baseId;
+            let collisionCount = 2;
+            while (usedIds.has(nextId) || document.getElementById(nextId)) {
+              nextId = `${baseId}-${collisionCount}`;
+              collisionCount += 1;
+            }
+
+            usedIds.add(nextId);
+            hostNode.id = nextId;
+            hostNode.classList.add('privacy-anchor-target');
+
+            const listItem = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = `#${nextId}`;
+            link.textContent = headingText;
+            link.className = 'privacy-toc-link level-2';
+            listItem.appendChild(link);
+            tocList.appendChild(listItem);
+            tocIndex += 1;
+          });
+        }
+
+        if (tocIndex > 0) {
+          tocCard.hidden = false;
+        }
       }
 
       if (window.lucide) lucide.createIcons();

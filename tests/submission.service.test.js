@@ -18,7 +18,8 @@ const {
   getRunnerSubmissions,
   getEventSubmissionQueue,
   getRunnerSubmissionSummary,
-  getRunnerPerformanceSnapshot
+  getRunnerPerformanceSnapshot,
+  getRunnerEligibleSubmissionRegistrations
 } = require('../src/services/submission.service');
 
 test.before(async () => {
@@ -31,11 +32,14 @@ test.after(async () => {
 
 test('createSubmission stores initial submission for paid registration', async () => {
   const seed = await seedSubmissionFixture('create');
+  const runDate = new Date(Date.now() - 2 * 60 * 60 * 1000);
   const submission = await createSubmission({
     registrationId: seed.registration._id,
     runnerId: seed.runner._id,
     distanceKm: 5,
     elapsedMs: 30 * 60 * 1000,
+    runDate,
+    runLocation: 'Bonifacio Global City',
     proofType: 'gps',
     proof: { url: 'https://example.com/proof/create.gpx', mimeType: 'application/gpx+xml', size: 1024 },
     proofNotes: 'First upload'
@@ -44,6 +48,8 @@ test('createSubmission stores initial submission for paid registration', async (
   assert.equal(submission.status, 'submitted');
   assert.equal(submission.submissionCount, 1);
   assert.equal(String(submission.registrationId), String(seed.registration._id));
+  assert.equal(String(submission.runLocation || ''), 'Bonifacio Global City');
+  assert.equal(new Date(submission.runDate).toISOString().slice(0, 10), runDate.toISOString().slice(0, 10));
 });
 
 test('createSubmission blocks unpaid registrations', async () => {
@@ -60,6 +66,32 @@ test('createSubmission blocks unpaid registrations', async () => {
         proof: { url: 'https://example.com/proof/unpaid.gpx', size: 1200 }
       }),
     /requires a paid registration/i
+  );
+});
+
+test('createSubmission blocks events outside submission window', async () => {
+  const seed = await seedSubmissionFixture('closed-window');
+  await Event.updateOne(
+    { _id: seed.event._id },
+    {
+      $set: {
+        eventStartAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+        eventEndAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+      }
+    }
+  );
+
+  await assert.rejects(
+    () =>
+      createSubmission({
+        registrationId: seed.registration._id,
+        runnerId: seed.runner._id,
+        distanceKm: 5,
+        elapsedMs: 1500000,
+        proofType: 'gps',
+        proof: { url: 'https://example.com/proof/window.gpx', size: 1200 }
+      }),
+    /not currently accepting result submissions/i
   );
 });
 
@@ -297,6 +329,51 @@ test('getRunnerPerformanceSnapshot returns metrics, personal best, and timeline 
   assert.equal(snapshot.recentSubmissions.length >= 1, true);
   assert.equal(Array.isArray(snapshot.recentActivity), true);
   assert.equal(snapshot.recentActivity.length >= 1, true);
+});
+
+test('getRunnerEligibleSubmissionRegistrations returns only paid confirmed active entries', async () => {
+  const seed = await seedSubmissionFixture('eligible-list');
+
+  const draftEvent = await createEvent(seed.organizer, 'eligible-draft');
+  await Event.updateOne({ _id: draftEvent._id }, { $set: { status: 'draft' } });
+  await createRegistration({
+    event: draftEvent,
+    runner: seed.runner,
+    tag: 'eligible-draft',
+    paymentStatus: 'paid',
+    status: 'confirmed'
+  });
+
+  const unpaidEvent = await createEvent(seed.organizer, 'eligible-unpaid');
+  await createRegistration({
+    event: unpaidEvent,
+    runner: seed.runner,
+    tag: 'eligible-unpaid',
+    paymentStatus: 'unpaid',
+    status: 'confirmed'
+  });
+
+  const existingSubmission = await createSubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 5,
+    elapsedMs: 1500000,
+    proofType: 'gps',
+    proof: { url: 'https://example.com/proof/eligible-existing.gpx', size: 800 }
+  });
+  await reviewSubmission({
+    submissionId: existingSubmission._id,
+    organizerId: seed.organizer._id,
+    action: 'reject',
+    rejectionReason: 'Please resubmit clearer proof.'
+  });
+
+  const options = await getRunnerEligibleSubmissionRegistrations(seed.runner._id);
+  assert.equal(Array.isArray(options), true);
+  assert.equal(options.length >= 1, true);
+  assert.equal(options.some((item) => item.registrationId === String(seed.registration._id)), true);
+  assert.equal(options.some((item) => item.eventId === String(draftEvent._id)), false);
+  assert.equal(options.some((item) => item.eventId === String(unpaidEvent._id)), false);
 });
 
 async function seedSubmissionFixture(tag, options = {}) {

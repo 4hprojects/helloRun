@@ -3,6 +3,65 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See wireframe.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - March 10, 2026 (Session: Run Proof Modal Rollout + Admin Review Access)
+
+### [SESSION] SESSION UPDATE:
+- Continued phased rollout for run-result submissions:
+  - added `Submit Run Proof` trigger in runner dashboard welcome header
+  - replaced inline result submit/resubmit form in `/my-registrations` with reusable modal trigger
+  - added public home (`/`) hero trigger for logged-in runners; guests are redirected to login before submission
+- Improved result visibility:
+  - organizer registrant table now shows run date and run location for each submission
+  - my registrations result details now include run date, run location, and proof link
+- Expanded moderation access:
+  - existing organizer registrant review routes now support admin accounts in the same workflow
+  - admin can approve/reject payment and result submissions in-place
+  - admin dashboard pending-result metric now links to a direct review queue route
+
+### [UPDATED] UPDATED FILES (major):
+1. src/views/runner/dashboard.ejs
+2. src/public/css/runner-dashboard.css
+3. src/views/pages/my-registrations.ejs
+4. src/public/css/my-registrations.css
+5. src/views/pages/home.ejs
+6. src/routes/organizer.routes.js
+7. src/views/organizer/event-registrants.ejs
+8. src/services/submission.service.js
+9. src/controllers/admin.controller.js
+10. src/views/admin/dashboard.ejs
+11. docs/privacy_policy.md
+12. docs/wireframe.md
+13. docs/dir.md
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/submission-routes.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/submission.service.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/submission-review-route-guards.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/admin-dashboard.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/static-pages.test.js` -> PASS
+
+## CHANGELOG - March 9, 2026 (Session: Privacy Page TOC + Sidebar UX Refinement)
+
+### [SESSION] SESSION UPDATE:
+- Refined `/privacy` page usability for long legal content:
+  - added secondary right-panel `Quick Contents` (TOC) below `At a Glance`
+  - TOC auto-build now supports heading-based content (`h1/h2/h3`)
+  - added fallback TOC extraction for bold-leading section labels when proper headings are missing
+- Improved sticky sidebar behavior:
+  - balanced right panel height within viewport
+  - made TOC list scroll internally when content is long
+  - updated `At a Glance` panel so title remains visible while only body content scrolls
+
+### [UPDATED] UPDATED FILES (major):
+1. src/views/pages/privacy.ejs
+2. src/public/css/static-pages.css
+3. docs/privacy_policy.md
+4. docs/wireframe.md
+5. docs/dir.md
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/static-pages.test.js` -> PASS
+
 ## CHANGELOG - March 9, 2026 (Session: Cookie Policy Admin Workflow + Signup Consent Gate)
 
 ### [SESSION] SESSION UPDATE:

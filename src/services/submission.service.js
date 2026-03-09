@@ -6,6 +6,7 @@ const User = require('../models/User');
 const { issueSubmissionCertificate } = require('./certificate.service');
 const emailService = require('./email.service');
 const { createNotificationSafe } = require('./notification.service');
+const { isSubmissionWindowOpen } = require('../utils/submission-window');
 
 const REVIEWABLE_STATUS = new Set(['submitted']);
 const FINAL_STATUSES = new Set(['approved']);
@@ -15,6 +16,8 @@ async function createSubmission({
   runnerId,
   distanceKm,
   elapsedMs,
+  runDate,
+  runLocation,
   proofType,
   proof,
   proofNotes
@@ -31,6 +34,8 @@ async function createSubmission({
   return Submission.create(buildSubmissionPayload(registration, {
     distanceKm,
     elapsedMs,
+    runDate,
+    runLocation,
     proofType,
     proof,
     proofNotes,
@@ -43,6 +48,8 @@ async function resubmitSubmission({
   runnerId,
   distanceKm,
   elapsedMs,
+  runDate,
+  runLocation,
   proofType,
   proof,
   proofNotes
@@ -62,6 +69,8 @@ async function resubmitSubmission({
   const payload = buildSubmissionPayload(registration, {
     distanceKm,
     elapsedMs,
+    runDate,
+    runLocation,
     proofType,
     proof,
     proofNotes,
@@ -70,6 +79,8 @@ async function resubmitSubmission({
 
   existing.distanceKm = payload.distanceKm;
   existing.elapsedMs = payload.elapsedMs;
+  existing.runDate = payload.runDate;
+  existing.runLocation = payload.runLocation;
   existing.proofType = payload.proofType;
   existing.proof = payload.proof;
   existing.proofNotes = payload.proofNotes;
@@ -92,6 +103,7 @@ async function resubmitSubmission({
 async function reviewSubmission({
   submissionId,
   organizerId,
+  reviewerRole,
   action,
   reviewNotes,
   rejectionReason
@@ -109,8 +121,13 @@ async function reviewSubmission({
     throw new Error('Only submitted results can be reviewed.');
   }
 
+  const normalizedReviewerRole = String(reviewerRole || '').trim().toLowerCase();
+  const isAdminReviewer = normalizedReviewerRole === 'admin';
   const event = await Event.findById(submission.eventId).select('organizerId title').lean();
-  if (!event || String(event.organizerId || '') !== String(organizerId || '')) {
+  if (!event) {
+    throw new Error('Submission not found or inaccessible.');
+  }
+  if (!isAdminReviewer && String(event.organizerId || '') !== String(organizerId || '')) {
     throw new Error('Submission not found or inaccessible.');
   }
 
@@ -222,7 +239,7 @@ async function getRunnerPerformanceSnapshot(runnerId, options = {}) {
       .limit(recentLimit)
       .populate({ path: 'eventId', select: 'title slug' })
       .populate({ path: 'registrationId', select: 'confirmationCode' })
-      .select('status distanceKm elapsedMs proofType submittedAt reviewedAt reviewNotes rejectionReason certificate eventId registrationId')
+      .select('status distanceKm elapsedMs runDate runLocation proofType submittedAt reviewedAt reviewNotes rejectionReason certificate eventId registrationId')
       .lean(),
     Submission.aggregate([
       { $match: { runnerId: new mongoose.Types.ObjectId(String(runnerId)), status: 'approved' } },
@@ -276,6 +293,8 @@ async function getRunnerPerformanceSnapshot(runnerId, options = {}) {
       distanceKm: Number(item.distanceKm || 0),
       elapsedMs: Number(item.elapsedMs || 0),
       elapsedLabel: formatElapsedMs(item.elapsedMs),
+      runDate: item.runDate || null,
+      runLocation: item.runLocation || '',
       proofType: item.proofType || 'manual',
       eventTitle: item.eventId?.title || 'Event unavailable',
       eventSlug: item.eventId?.slug || '',
@@ -289,6 +308,62 @@ async function getRunnerPerformanceSnapshot(runnerId, options = {}) {
   };
 }
 
+async function getRunnerEligibleSubmissionRegistrations(runnerId, options = {}) {
+  const limit = clampInt(options.limit, 1, 100, 30);
+  const now = options.now instanceof Date ? options.now : new Date();
+
+  const registrations = await Registration.find({
+    userId: runnerId,
+    paymentStatus: 'paid',
+    status: 'confirmed'
+  })
+    .sort({ registeredAt: -1 })
+    .populate({
+      path: 'eventId',
+      select: 'title slug status eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country'
+    })
+    .lean();
+
+  const registrationIds = registrations.map((item) => item?._id).filter(Boolean);
+  const submissions = registrationIds.length
+    ? await Submission.find({ registrationId: { $in: registrationIds }, runnerId })
+      .select('registrationId status submittedAt reviewedAt')
+      .lean()
+    : [];
+  const submissionByRegistrationId = new Map(
+    submissions.map((item) => [String(item.registrationId), item])
+  );
+
+  return registrations
+    .filter((registration) => {
+      if (!registration?.eventId) return false;
+      if (!isSubmissionWindowOpen({ registration, event: registration.eventId, now })) return false;
+
+      const submission = submissionByRegistrationId.get(String(registration._id));
+      if (!submission) return true;
+      return String(submission.status || '').trim().toLowerCase() === 'rejected';
+    })
+    .slice(0, limit)
+    .map((registration) => {
+      const submission = submissionByRegistrationId.get(String(registration._id)) || null;
+      return {
+        registrationId: String(registration._id),
+        eventId: String(registration.eventId?._id || ''),
+        eventTitle: registration.eventId?.title || 'Event unavailable',
+        eventSlug: registration.eventId?.slug || '',
+        participationMode: registration.participationMode || '',
+        raceDistance: registration.raceDistance || '',
+        eventStartAt: registration.eventId?.eventStartAt || null,
+        eventEndAt: registration.eventId?.eventEndAt || null,
+        venueName: registration.eventId?.venueName || '',
+        city: registration.eventId?.city || '',
+        country: registration.eventId?.country || '',
+        existingSubmissionStatus: submission?.status || '',
+        canResubmit: submission?.status === 'rejected'
+      };
+    });
+}
+
 async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
   const registration = await Registration.findOne({
     _id: registrationId,
@@ -298,18 +373,34 @@ async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
   if (!registration) {
     throw new Error('Registration not found or inaccessible.');
   }
+  if (registration.status !== 'confirmed') {
+    throw new Error('Result submission requires a confirmed registration.');
+  }
   if (registration.paymentStatus !== 'paid') {
     throw new Error('Result submission requires a paid registration.');
   }
   if (registration.status === 'cancelled' || registration.status === 'refunded') {
     throw new Error('Cannot submit results for cancelled or refunded registrations.');
   }
+
+  const event = await Event.findById(registration.eventId)
+    .select('status eventStartAt eventEndAt virtualWindow onsiteCheckinWindows')
+    .lean();
+  if (!event) {
+    throw new Error('Event not found for this registration.');
+  }
+  if (!isSubmissionWindowOpen({ registration, event })) {
+    throw new Error('Event is not currently accepting result submissions.');
+  }
+
   return registration;
 }
 
 function buildSubmissionPayload(registration, input) {
   const safeDistance = sanitizeNumber(input.distanceKm, 0.1, 500, 'Distance is invalid.');
   const safeElapsedMs = sanitizeNumber(input.elapsedMs, 1, 7 * 24 * 60 * 60 * 1000, 'Elapsed time is invalid.');
+  const safeRunDate = sanitizeRunDate(input.runDate);
+  const safeRunLocation = sanitizeRunLocation(input.runLocation);
 
   return {
     registrationId: registration._id,
@@ -319,6 +410,8 @@ function buildSubmissionPayload(registration, input) {
     raceDistance: String(registration.raceDistance || '').trim(),
     distanceKm: safeDistance,
     elapsedMs: safeElapsedMs,
+    runDate: safeRunDate,
+    runLocation: safeRunLocation,
     proofType: sanitizeProofType(input.proofType),
     proof: sanitizeProof(input.proof),
     proofNotes: String(input.proofNotes || '').trim().slice(0, 1200),
@@ -358,6 +451,42 @@ function sanitizeNumber(value, min, max, errorMessage) {
     throw new Error(errorMessage);
   }
   return numeric;
+}
+
+function sanitizeRunDate(value) {
+  if (!value) return new Date();
+
+  if (value instanceof Date) {
+    if (Number.isNaN(value.getTime())) {
+      throw new Error('Run date is invalid.');
+    }
+    if (value.getTime() > Date.now()) {
+      throw new Error('Run date cannot be in the future.');
+    }
+    return value;
+  }
+
+  const raw = String(value).trim();
+  let date = null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    date = new Date(`${raw}T00:00:00.000Z`);
+  } else {
+    date = new Date(raw);
+  }
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error('Run date is invalid.');
+  }
+  if (date.getTime() > Date.now()) {
+    throw new Error('Run date cannot be in the future.');
+  }
+
+  return date;
+}
+
+function sanitizeRunLocation(value) {
+  const safe = String(value || '').trim();
+  return safe.slice(0, 200);
 }
 
 function clampInt(value, min, max, fallback) {
@@ -589,5 +718,6 @@ module.exports = {
   getRunnerSubmissions,
   getEventSubmissionQueue,
   getRunnerSubmissionSummary,
-  getRunnerPerformanceSnapshot
+  getRunnerPerformanceSnapshot,
+  getRunnerEligibleSubmissionRegistrations
 };

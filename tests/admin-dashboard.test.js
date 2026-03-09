@@ -61,6 +61,8 @@ test('admin dashboard renders platform stats and pending application queue', asy
   assert.match(html, /\/admin\/privacy-policy/i);
   assert.match(html, /\/admin\/terms-and-conditions/i);
   assert.match(html, /\/admin\/cookie-policy/i);
+  assert.match(html, /Open Review Queue/i);
+  assert.match(html, /\/organizer\/events\/[a-f0-9]{24}\/registrants\?result=submitted/i);
   assert.match(html, new RegExp(escapeRegex(seed.pendingApplication.businessName)));
   assert.match(html, new RegExp(escapeRegex(seed.pendingApplication.applicantEmail)));
   assert.match(html, new RegExp(escapeRegex(`/admin/applications/${seed.pendingApplication.id}`)));

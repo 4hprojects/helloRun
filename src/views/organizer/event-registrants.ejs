@@ -21,8 +21,12 @@
           <a href="/organizer/events/<%= event._id %>/registrants/export-xlsx<%= exportQuery ? `?${exportQuery}` : '' %>" class="btn">
             Export XLSX
           </a>
-          <a href="/organizer/events/<%= event._id %>" class="btn btn-secondary">Back to Event</a>
-          <a href="/organizer/events" class="btn btn-secondary">My Events</a>
+          <% if (isAdminViewer) { %>
+            <a href="/admin/dashboard" class="btn btn-secondary">Admin Dashboard</a>
+          <% } else { %>
+            <a href="/organizer/events/<%= event._id %>" class="btn btn-secondary">Back to Event</a>
+            <a href="/organizer/events" class="btn btn-secondary">My Events</a>
+          <% } %>
         </div>
       </header>
 
@@ -214,6 +218,10 @@
                       <small><strong>Distance:</strong> <%= Number(registration.submission.distanceKm || 0).toFixed(2) %> km</small>
                       <br>
                       <small><strong>Elapsed:</strong> <%= registration.submission.elapsedLabel || 'N/A' %></small>
+                      <br>
+                      <small><strong>Run date:</strong> <%= registration.submission.runDateLabel || 'N/A' %></small>
+                      <br>
+                      <small><strong>Run location:</strong> <%= registration.submission.runLocation || 'N/A' %></small>
                       <br>
                       <small><strong>Type:</strong> <%= String(registration.submission.proofType || 'manual').toUpperCase() %></small>
                       <% if (registration.submission.submittedAtLabel) { %>

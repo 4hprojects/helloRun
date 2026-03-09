@@ -3,6 +3,57 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See dir.md for repository-level change history.
 
+## STATUS UPDATE (Mar 10, 2026 - Run Proof Submission UX + Review Access Expansion)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Continued run-proof submission rollout (multi-entry modal pattern):
+  - added `Submit Run Proof` CTA in `/runner/dashboard` welcome panel
+  - added `Submit Run Proof` CTA in `/` home hero section
+  - replaced `/my-registrations` inline result submit form with reusable modal trigger
+- Improved submission detail visibility:
+  - runner-facing cards now show run date and run location in result details
+  - organizer registrant review now shows run date and run location
+- Expanded moderation capability:
+  - admin accounts can use the existing organizer registrant review flow for payment/result moderation
+  - review statuses remain aligned: `submitted`, `approved`, `rejected`
+  - admin dashboard now includes direct link from pending-result metric to live review queue
+
+### Validation signals recorded
+- `tests/submission-routes.test.js` -> PASS
+- `tests/submission.service.test.js` -> PASS
+- `tests/submission-review-route-guards.test.js` -> PASS
+- `tests/admin-dashboard.test.js` -> PASS
+- `tests/static-pages.test.js` -> PASS
+
+### Still pending from this scope
+- Optional polish:
+  - add dedicated admin queue page for pending payment/result reviews (cross-event view)
+  - add active eligible-event count badge on modal trigger buttons
+
+## STATUS UPDATE (Mar 9, 2026 - Privacy Page Navigation UX Polish)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Added a second right-side panel on `/privacy`:
+  - `Quick Contents` TOC under the existing `At a Glance` card
+- TOC generation is now more resilient:
+  - primary source: rendered `h1/h2/h3` headings
+  - fallback source: bold-leading section labels when heading tags are not present
+- Improved long-content sidebar behavior:
+  - right-side stack is viewport-bounded
+  - TOC list scrolls internally when long
+  - `At a Glance` title remains fixed while only card body scrolls
+
+### Validation signals recorded
+- `tests/static-pages.test.js` -> PASS
+
+### Still pending from this scope
+- Optional UX follow-up:
+  - add active-section highlight in TOC while scrolling through policy sections
+
 ## STATUS UPDATE (Mar 9, 2026 - Cookie Policy Admin + Consent Enforcement Completed)
 
 ### Current reality after latest implementation

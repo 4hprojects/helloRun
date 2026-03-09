@@ -4,6 +4,29 @@ This document contains:
 1. A cleaned technical specification for legal policy management in the app.
 2. A production-ready public privacy policy draft for `hellorun.online`.
 
+## Update Notes (March 10, 2026)
+
+Implemented:
+- Runner run-proof submission UX rollout:
+  - Added reusable `Submit Run Proof` modal entry points in:
+    - runner dashboard header (`/runner/dashboard`)
+    - my registrations cards (`/my-registrations`)
+    - home hero CTA (`/`)
+  - My registrations now uses the modal flow for run-result submit/resubmit (instead of inline result form).
+- Result payload visibility improvements:
+  - Added `runDate` and `runLocation` display in runner and organizer result surfaces.
+- Organizer/admin review workflow expansion:
+  - Existing organizer registrant review flow (`/organizer/events/:id/registrants`) now allows admin accounts too.
+  - Admins can approve/reject payment proofs and result submissions using the same statuses (`submitted`, `approved`, `rejected`).
+  - Admin dashboard pending-result card now links directly to a review queue route.
+
+Validation completed:
+- `tests/submission-routes.test.js` -> PASS
+- `tests/submission.service.test.js` -> PASS
+- `tests/submission-review-route-guards.test.js` -> PASS
+- `tests/admin-dashboard.test.js` -> PASS
+- `tests/static-pages.test.js` -> PASS
+
 ## Update Notes (March 9, 2026)
 
 Implemented:
@@ -34,6 +57,10 @@ Implemented:
   - Added public cookie policy page at `/cookie-policy` (alias `/cookies`) with fallback to `docs/contents/Cookie Policy.md`.
   - Added full admin cookie policy workflow at `/admin/cookie-policy` (draft/save/preview/auto-format/publish/archive/clone).
   - Added one-time seed command: `npm run seed:cookie-policy`.
+- `/privacy` UX refinement:
+  - Added right-side `Quick Contents` panel under `At a Glance`.
+  - TOC now auto-builds from rendered headings (`h1/h2/h3`) with fallback support for bold-leading section labels.
+  - Sidebar behavior improved for long documents with internal scroll balancing for `At a Glance` and TOC panels.
 - Consent enforcement hardening:
   - Local signup now requires acceptance of Terms + Privacy + Cookie policies.
   - Google signup intent now requires policy consent before OAuth redirect.

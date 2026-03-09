@@ -141,6 +141,18 @@
   align-items: start;
 }
 
+.privacy-side-stack {
+  position: sticky;
+  top: 90px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  align-self: start;
+  height: calc(100vh - 108px);
+  max-height: calc(100vh - 108px);
+  min-height: 0;
+}
+
 .privacy-content-card {
   padding: 1.25rem 1.3rem;
   border-color: #dbeafe;
@@ -198,17 +210,26 @@
 }
 
 .privacy-side-card {
-  position: sticky;
-  top: 90px;
+  position: static;
   padding: 1rem 1rem 1.05rem;
   border-color: #dbeafe;
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  max-height: min(45vh, 360px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .privacy-side-card h2 {
   margin: 0 0 0.5rem;
   font-size: 1.02rem;
   color: #0f172a;
+}
+
+.privacy-side-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.2rem;
 }
 
 .privacy-side-card ul {
@@ -235,6 +256,68 @@
   font-weight: 600;
   text-underline-offset: 3px;
   overflow-wrap: anywhere;
+}
+
+.privacy-toc-card {
+  border-color: #dbeafe;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  padding: 0.9rem 0.9rem 0.95rem;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.privacy-toc-card h2 {
+  margin: 0 0 0.55rem;
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.privacy-toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 0.2rem;
+}
+
+.privacy-toc-list li {
+  margin: 0;
+}
+
+.privacy-toc-link {
+  display: block;
+  color: #0f3b58;
+  text-decoration: none;
+  line-height: 1.35;
+  padding: 0.28rem 0.35rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.privacy-toc-link:hover,
+.privacy-toc-link:focus-visible {
+  background: #e0f2fe;
+  color: #0c4a6e;
+  outline: none;
+}
+
+.privacy-toc-link.level-3 {
+  padding-left: 1.05rem;
+  font-size: 0.86rem;
+  color: #1e4e6d;
+}
+
+.privacy-toc-link.level-1 {
+  font-weight: 700;
+}
+
+.privacy-anchor-target {
+  scroll-margin-top: 100px;
 }
 
 .privacy-back-to-top,
@@ -340,6 +423,26 @@
 
   .privacy-side-card {
     position: static;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .privacy-side-stack {
+    position: static;
+    height: auto;
+    max-height: none;
+    grid-template-rows: none;
+  }
+
+  .privacy-toc-list {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+
+  .privacy-side-body {
+    overflow: visible;
+    padding-right: 0;
   }
 
   .privacy-content-card {

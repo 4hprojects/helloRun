@@ -703,6 +703,8 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
 
     const distanceKm = parseDistanceKm(req.body.distanceKm);
     const elapsedMs = parseElapsedToMs(req.body.elapsedTime);
+    const runDate = parseRunDate(req.body.runDate);
+    const runLocation = parseRunLocation(req.body.runLocation);
     const proofType = normalizeProofType(req.body.proofType);
     const proofNotes = String(req.body.proofNotes || '').trim().slice(0, 1200);
 
@@ -717,6 +719,8 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       runnerId: user._id,
       distanceKm,
       elapsedMs,
+      runDate,
+      runLocation,
       proofType,
       proof: {
         url: uploadedProof.url,
@@ -1012,6 +1016,36 @@ function normalizeProofType(value) {
     return safe;
   }
   return 'manual';
+}
+
+function parseRunDate(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return new Date();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    throw new Error('Run date must be in YYYY-MM-DD format.');
+  }
+
+  const parsed = new Date(`${raw}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error('Run date is invalid.');
+  }
+
+  const now = new Date();
+  const tomorrowUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  if (parsed.getTime() >= tomorrowUtc) {
+    throw new Error('Run date cannot be in the future.');
+  }
+
+  return parsed;
+}
+
+function parseRunLocation(value) {
+  const safe = String(value || '').trim();
+  if (safe.length > 200) {
+    throw new Error('Run location must be 200 characters or less.');
+  }
+  return safe;
 }
 
 function normalizeBlogCategory(input) {

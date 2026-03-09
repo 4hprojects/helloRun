@@ -52,15 +52,24 @@
           <% } %>
         </section>
 
-        <aside class="static-card privacy-side-card">
-          <h2>At a Glance</h2>
-          <ul>
-            <li>Data is collected only for account, event, and payment workflows.</li>
-            <li>Uploaded payment proofs are used for verification and audit records.</li>
-            <li>You can request privacy support through our contact email.</li>
-          </ul>
-          <p class="privacy-side-note">Questions or privacy requests:</p>
-          <a class="privacy-contact-link" href="mailto:hellorunonline@gmail.com">hellorunonline@gmail.com</a>
+        <aside class="privacy-side-stack">
+          <section class="static-card privacy-side-card">
+            <h2>At a Glance</h2>
+            <div class="privacy-side-body">
+              <ul>
+                <li>Data is collected only for account, event, and payment workflows.</li>
+                <li>Uploaded payment proofs are used for verification and audit records.</li>
+                <li>You can request privacy support through our contact email.</li>
+              </ul>
+              <p class="privacy-side-note">Questions or privacy requests:</p>
+              <a class="privacy-contact-link" href="mailto:hellorunonline@gmail.com">hellorunonline@gmail.com</a>
+            </div>
+          </section>
+
+          <section class="static-card privacy-toc-card" id="privacyTocCard" hidden>
+            <h2>Quick Contents</h2>
+            <ul class="privacy-toc-list" id="privacyTocList"></ul>
+          </section>
         </aside>
       </div>
     </div>
@@ -84,6 +93,104 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
         });
         toggleBackToTop();
+      }
+
+      const tocCard = document.getElementById('privacyTocCard');
+      const tocList = document.getElementById('privacyTocList');
+      const contentRoot = document.querySelector('.privacy-content-card .legal-markdown, .privacy-content-card .privacy-fallback');
+
+      if (tocCard && tocList && contentRoot) {
+        const headingNodes = Array.from(contentRoot.querySelectorAll('h1, h2, h3'));
+        const usedIds = new Set();
+
+        const toSlug = (value) => String(value || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, '')
+          .trim()
+          .replace(/\s+/g, '-')
+          .replace(/-+/g, '-');
+
+        let tocIndex = 0;
+
+        headingNodes.forEach((headingNode, index) => {
+          const headingText = headingNode.textContent.trim();
+          if (!headingText) return;
+
+          // Skip the policy title heading if present in body content.
+          if (headingNode.tagName.toLowerCase() === 'h1' && /privacy policy/i.test(headingText) && !/^\d+[\.)]/.test(headingText)) {
+            return;
+          }
+
+          const baseId = toSlug(headingText) || `section-${index + 1}`;
+          let nextId = baseId;
+          let collisionCount = 2;
+          while (usedIds.has(nextId) || document.getElementById(nextId)) {
+            nextId = `${baseId}-${collisionCount}`;
+            collisionCount += 1;
+          }
+
+          usedIds.add(nextId);
+          headingNode.id = nextId;
+          headingNode.classList.add('privacy-anchor-target');
+
+          const listItem = document.createElement('li');
+          const link = document.createElement('a');
+          link.href = `#${nextId}`;
+          link.textContent = headingText;
+          const tagName = headingNode.tagName.toLowerCase();
+          const levelClass = tagName === 'h1'
+            ? 'level-1'
+            : tagName === 'h3'
+              ? 'level-3'
+              : 'level-2';
+          link.className = `privacy-toc-link ${levelClass}`;
+          listItem.appendChild(link);
+          tocList.appendChild(listItem);
+          tocIndex += 1;
+        });
+
+        // Fallback support for content that uses bold-only section labels.
+        if (tocIndex === 0) {
+          const boldNodes = Array.from(contentRoot.querySelectorAll('p > strong:first-child, li > strong:first-child'));
+          boldNodes.forEach((strongNode, index) => {
+            const hostNode = strongNode.parentElement;
+            if (!hostNode) return;
+
+            const hostText = hostNode.textContent.trim();
+            const strongText = strongNode.textContent.trim();
+            if (!strongText || strongText.length > 120) return;
+            if (!hostText.startsWith(strongText)) return;
+            if (hostText.length > strongText.length + 120) return;
+
+            const headingText = strongText.replace(/:+$/, '').trim();
+            if (!headingText) return;
+
+            const baseId = toSlug(headingText) || `section-bold-${index + 1}`;
+            let nextId = baseId;
+            let collisionCount = 2;
+            while (usedIds.has(nextId) || document.getElementById(nextId)) {
+              nextId = `${baseId}-${collisionCount}`;
+              collisionCount += 1;
+            }
+
+            usedIds.add(nextId);
+            hostNode.id = nextId;
+            hostNode.classList.add('privacy-anchor-target');
+
+            const listItem = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = `#${nextId}`;
+            link.textContent = headingText;
+            link.className = 'privacy-toc-link level-2';
+            listItem.appendChild(link);
+            tocList.appendChild(listItem);
+            tocIndex += 1;
+          });
+        }
+
+        if (tocIndex > 0) {
+          tocCard.hidden = false;
+        }
       }
 
       if (window.lucide) lucide.createIcons();

@@ -861,7 +861,8 @@ exports.dashboard = async (req, res) => {
       totalSubmissions,
       approvedSubmissions,
       pendingResultReviews,
-      pendingApplicationQueue
+      pendingApplicationQueue,
+      pendingResultEvent
     ] =
       await Promise.all([
         User.countDocuments(),
@@ -885,6 +886,10 @@ exports.dashboard = async (req, res) => {
           .populate('userId', 'firstName lastName email')
           .sort({ submittedAt: 1 })
           .limit(8)
+          .lean(),
+        Submission.findOne({ status: 'submitted' })
+          .sort({ submittedAt: -1, createdAt: -1 })
+          .select('eventId')
           .lean()
       ]);
 
@@ -897,6 +902,9 @@ exports.dashboard = async (req, res) => {
       applicantName: [application.userId?.firstName, application.userId?.lastName].filter(Boolean).join(' ').trim() || 'N/A',
       applicantEmail: application.userId?.email || 'N/A'
     }));
+    const pendingResultReviewHref = pendingResultEvent?.eventId
+      ? `/organizer/events/${String(pendingResultEvent.eventId)}/registrants?result=submitted`
+      : '';
 
     return res.render('admin/dashboard', {
       title: 'Admin Dashboard - helloRun',
@@ -917,7 +925,8 @@ exports.dashboard = async (req, res) => {
         pendingPaymentReviews,
         totalSubmissions,
         approvedSubmissions,
-        pendingResultReviews
+        pendingResultReviews,
+        pendingResultReviewHref
       },
       pendingApplicationsList
     });

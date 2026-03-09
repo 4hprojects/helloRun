@@ -85,7 +85,11 @@
         <article class="metric-card">
           <p class="metric-label">Pending Result Reviews</p>
           <p class="metric-value"><%= stats.pendingResultReviews %></p>
-          <p class="metric-helper">Needs organizer action</p>
+          <% if (stats.pendingResultReviewHref) { %>
+            <a href="<%= stats.pendingResultReviewHref %>" class="metric-link">Open Review Queue</a>
+          <% } else { %>
+            <p class="metric-helper">No pending queue</p>
+          <% } %>
         </article>
       </div>
 

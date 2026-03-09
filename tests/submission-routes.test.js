@@ -18,6 +18,7 @@ const PNG_1PX_BUFFER = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAoMBgQeRlmQAAAAASUVORK5CYII=',
   'base64'
 );
+const PDF_FAKE_BUFFER = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF', 'utf8');
 
 let serverProc = null;
 
@@ -122,6 +123,58 @@ test('authenticated submit-result rejects out-of-range distance', async () => {
   const location = response.headers.get('location') || '';
   assert.match(location, /my-registrations\?type=error/i);
   assert.match(location, /Distance\+must\+be\+a\+valid\+number/i);
+});
+
+test('authenticated submit-result rejects future runDate', async () => {
+  const seed = await seedData('invalid-run-date');
+  const cookie = await login(seed.runner.email, seed.password);
+  const ready = await waitForSessionReady('/my-registrations', cookie);
+  assert.equal(ready, true);
+
+  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const form = buildResultProofForm({
+    distanceKm: '5',
+    elapsedTime: '00:30:00',
+    proofType: 'gps',
+    runDate: tomorrow
+  });
+
+  const response = await fetch(`${BASE_URL}/my-registrations/${seed.registration._id}/submit-result`, {
+    method: 'POST',
+    headers: { Cookie: cookie },
+    body: form,
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  const location = response.headers.get('location') || '';
+  assert.match(location, /my-registrations\?type=error/i);
+  assert.match(location, /Run\+date\+cannot\+be\+in\+the\+future/i);
+});
+
+test('authenticated submit-result rejects PDF proof uploads', async () => {
+  const seed = await seedData('invalid-proof-type');
+  const cookie = await login(seed.runner.email, seed.password);
+  const ready = await waitForSessionReady('/my-registrations', cookie);
+  assert.equal(ready, true);
+
+  const form = new FormData();
+  form.append('resultProofFile', new Blob([PDF_FAKE_BUFFER], { type: 'application/pdf' }), 'proof.pdf');
+  form.append('distanceKm', '5');
+  form.append('elapsedTime', '00:30:00');
+  form.append('proofType', 'photo');
+
+  const response = await fetch(`${BASE_URL}/my-registrations/${seed.registration._id}/submit-result`, {
+    method: 'POST',
+    headers: { Cookie: cookie },
+    body: form,
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  const location = response.headers.get('location') || '';
+  assert.match(location, /my-registrations\?type=error/i);
+  assert.match(location, /Only\+JPEG\+and\+PNG\+files\+are\+allowed/i);
 });
 
 async function seedData(tag) {
@@ -252,11 +305,13 @@ async function waitForServerReady() {
   throw new Error(`Server did not become ready at ${BASE_URL}`);
 }
 
-function buildResultProofForm({ distanceKm, elapsedTime, proofType }) {
+function buildResultProofForm({ distanceKm, elapsedTime, proofType, runDate, runLocation }) {
   const form = new FormData();
   form.append('resultProofFile', new Blob([PNG_1PX_BUFFER], { type: 'image/png' }), 'proof.png');
   form.append('distanceKm', String(distanceKm || '5'));
   form.append('elapsedTime', String(elapsedTime || '00:30:00'));
   form.append('proofType', String(proofType || 'gps'));
+  if (runDate) form.append('runDate', String(runDate));
+  if (runLocation) form.append('runLocation', String(runLocation));
   return form;
 }

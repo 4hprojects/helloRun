@@ -1,0 +1,71 @@
+<% const isRunnerAuthenticated = Boolean(locals && locals.isAuthenticated && !locals.isAdmin && !locals.isOrganizer); %>
+<div
+  class="run-proof-modal-backdrop"
+  id="runProofModal"
+  hidden
+  aria-hidden="true"
+  data-authenticated="<%= isRunnerAuthenticated ? '1' : '0' %>"
+  data-login-url="/login"
+>
+  <div
+    class="run-proof-modal-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="runProofModalTitle"
+    aria-describedby="runProofModalDesc"
+    tabindex="-1"
+  >
+    <div class="run-proof-modal-header">
+      <h2 id="runProofModalTitle">Submit Run Proof</h2>
+      <button type="button" class="run-proof-modal-close" data-run-proof-close aria-label="Close submit run proof modal">&times;</button>
+    </div>
+    <p class="run-proof-modal-desc" id="runProofModalDesc">
+      Submit race results for your paid and confirmed registrations currently accepting submissions.
+    </p>
+
+    <form id="runProofForm" method="POST" enctype="multipart/form-data" class="run-proof-form">
+      <div class="run-proof-field">
+        <label for="runProofRegistrationId">Registered Event</label>
+        <select id="runProofRegistrationId" name="registrationId" required>
+          <option value="">Select an eligible event</option>
+        </select>
+      </div>
+
+      <div class="run-proof-grid">
+        <div class="run-proof-field">
+          <label for="runProofDistanceKm">Distance (km)</label>
+          <input id="runProofDistanceKm" name="distanceKm" type="number" min="0.1" max="500" step="0.01" placeholder="5.00" required>
+        </div>
+        <div class="run-proof-field">
+          <label for="runProofElapsedTime">Time (HH:MM:SS)</label>
+          <input id="runProofElapsedTime" name="elapsedTime" type="text" pattern="^\d{1,2}:[0-5]\d:[0-5]\d$" placeholder="00:30:00" required>
+        </div>
+      </div>
+
+      <div class="run-proof-grid">
+        <div class="run-proof-field">
+          <label for="runProofDate">Date</label>
+          <input id="runProofDate" name="runDate" type="date" required>
+        </div>
+        <div class="run-proof-field">
+          <label for="runProofLocation">Location</label>
+          <input id="runProofLocation" name="runLocation" type="text" maxlength="200" placeholder="City, route, or venue">
+        </div>
+      </div>
+
+      <div class="run-proof-field">
+        <label for="runProofImage">Proof Image (JPG or PNG, max 5MB)</label>
+        <input id="runProofImage" name="resultProofFile" type="file" accept=".jpg,.jpeg,.png,image/jpeg,image/png" required>
+      </div>
+
+      <input type="hidden" name="proofType" value="photo">
+      <p class="run-proof-meta" id="runProofRouteInfo"></p>
+      <p class="run-proof-message" id="runProofMessage" role="status" aria-live="polite"></p>
+
+      <div class="run-proof-actions">
+        <button type="button" class="btn btn-outline" data-run-proof-close>Cancel</button>
+        <button type="submit" class="btn btn-primary" id="runProofSubmitBtn">Submit Run Proof</button>
+      </div>
+    </form>
+  </div>
+</div>

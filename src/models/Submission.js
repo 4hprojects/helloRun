@@ -43,6 +43,17 @@ const submissionSchema = new mongoose.Schema(
       required: true,
       min: 1
     },
+    runDate: {
+      type: Date,
+      default: Date.now,
+      index: true
+    },
+    runLocation: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 200
+    },
     proofType: {
       type: String,
       enum: ['gps', 'photo', 'manual'],

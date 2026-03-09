@@ -16,6 +16,12 @@
         <h1>Welcome back, <%= userName %>!</h1>
         <p class="header-subtitle">Ready for your next run?</p>
       </div>
+      <div class="header-actions">
+        <button type="button" class="btn btn-outline-light" data-open-run-proof-modal>
+          Submit Run Proof
+        </button>
+        <a href="/my-registrations" class="btn btn-outline-light">My Registrations</a>
+      </div>
     </div>
 
     <!-- Messages -->
@@ -62,35 +68,6 @@
           <span class="kpi-value"><%= Number(performanceStats?.totalDistanceKm || 0).toFixed(2) %> km</span>
         </div>
       </div>
-    </section>
-
-    <!-- Filters -->
-    <section class="filters-bar" aria-label="Dashboard filters">
-      <form method="GET" action="/runner/dashboard" class="filters-form">
-        <div class="filter-group">
-          <label for="dashboardEventMode">Event mode</label>
-          <select id="dashboardEventMode" name="eventMode">
-            <option value="" <%= !dashboardFilters?.eventMode ? 'selected' : '' %>>All</option>
-            <option value="virtual" <%= dashboardFilters?.eventMode === 'virtual' ? 'selected' : '' %>>Virtual</option>
-            <option value="onsite" <%= dashboardFilters?.eventMode === 'onsite' ? 'selected' : '' %>>On-site</option>
-            <option value="hybrid" <%= dashboardFilters?.eventMode === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
-          </select>
-        </div>
-        <div class="filter-group">
-          <label for="dashboardResultStatus">Result status</label>
-          <select id="dashboardResultStatus" name="resultStatus">
-            <option value="" <%= !dashboardFilters?.resultStatus ? 'selected' : '' %>>All</option>
-            <option value="submitted" <%= dashboardFilters?.resultStatus === 'submitted' ? 'selected' : '' %>>Submitted</option>
-            <option value="approved" <%= dashboardFilters?.resultStatus === 'approved' ? 'selected' : '' %>>Approved</option>
-            <option value="rejected" <%= dashboardFilters?.resultStatus === 'rejected' ? 'selected' : '' %>>Rejected</option>
-          </select>
-        </div>
-        <input type="hidden" name="groupQ" value="<%= runningGroupFeature?.query || '' %>">
-        <div class="filter-actions">
-          <button type="submit" class="btn btn-primary">Apply</button>
-          <a href="/runner/dashboard" class="btn btn-outline">Clear</a>
-        </div>
-      </form>
     </section>
 
     <!-- Dashboard Grid -->
@@ -213,8 +190,32 @@
 
       <!-- Result Submissions Card -->
       <section class="card">
-        <div class="card-header">
+        <% const selectedResultStatus = dashboardFilters?.resultStatus || ''; %>
+        <% const preservedGroupQuery = String(runningGroupFeature?.query || '').trim(); %>
+        <div class="card-header result-submissions-header">
           <h2><i data-lucide="timer"></i> Result Submissions</h2>
+          <nav class="result-status-tabs" aria-label="Filter result submissions by status">
+            <a href="/runner/dashboard<%= preservedGroupQuery ? ('?groupQ=' + encodeURIComponent(preservedGroupQuery)) : '' %>"
+               class="result-status-tab <%= !selectedResultStatus ? 'is-active' : '' %>"
+               <%= !selectedResultStatus ? 'aria-current="page"' : '' %>>
+              All
+            </a>
+            <a href="/runner/dashboard?resultStatus=submitted<%= preservedGroupQuery ? ('&groupQ=' + encodeURIComponent(preservedGroupQuery)) : '' %>"
+               class="result-status-tab <%= selectedResultStatus === 'submitted' ? 'is-active' : '' %>"
+               <%= selectedResultStatus === 'submitted' ? 'aria-current="page"' : '' %>>
+              Submitted
+            </a>
+            <a href="/runner/dashboard?resultStatus=approved<%= preservedGroupQuery ? ('&groupQ=' + encodeURIComponent(preservedGroupQuery)) : '' %>"
+               class="result-status-tab <%= selectedResultStatus === 'approved' ? 'is-active' : '' %>"
+               <%= selectedResultStatus === 'approved' ? 'aria-current="page"' : '' %>>
+              Approved
+            </a>
+            <a href="/runner/dashboard?resultStatus=rejected<%= preservedGroupQuery ? ('&groupQ=' + encodeURIComponent(preservedGroupQuery)) : '' %>"
+               class="result-status-tab <%= selectedResultStatus === 'rejected' ? 'is-active' : '' %>"
+               <%= selectedResultStatus === 'rejected' ? 'aria-current="page"' : '' %>>
+              Rejected
+            </a>
+          </nav>
         </div>
         <div class="card-content">
           <% if (cards.results && cards.results.length) { %>
