@@ -1,9 +1,14 @@
 const express = require('express');
+const fs = require('fs/promises');
+const path = require('path');
 const router = express.Router();
 const pageController = require('../controllers/page.controller');
+const PrivacyPolicy = require('../models/PrivacyPolicy');
 const { requireAuth } = require('../middleware/auth.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const uploadService = require('../services/upload.service');
+const { markdownToHtml } = require('../utils/markdown');
+const { sanitizeHtml } = require('../utils/sanitize');
 
 const paymentProofUploadLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
@@ -77,16 +82,208 @@ router.get('/faq', (req, res) => {
   });
 });
 
-router.get('/privacy', (req, res) => {
-  res.render('pages/privacy', {
-    title: 'Privacy Policy - helloRun'
-  });
+async function renderCookiePolicyPage(req, res) {
+  try {
+    const currentPolicy = await PrivacyPolicy.findOne({
+      slug: 'cookie-policy',
+      status: 'published',
+      isCurrent: true
+    })
+      .select('contentHtml contentMarkdown versionNumber effectiveDate updatedAt')
+      .lean();
+
+    if (currentPolicy) {
+      const policyHtml = currentPolicy.contentHtml || sanitizeHtml(markdownToHtml(currentPolicy.contentMarkdown || ''), {
+        allowedTags: ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'a', 'code', 'pre', 'hr'],
+        allowedAttributes: {
+          a: ['href', 'rel', 'target']
+        }
+      });
+
+      return res.render('pages/cookie-policy', {
+        title: 'Cookie Policy - helloRun',
+        policyHtml,
+        policyLoadedFromFile: true,
+        policyMeta: {
+          versionNumber: currentPolicy.versionNumber || '',
+          effectiveDate: currentPolicy.effectiveDate || null,
+          updatedAt: currentPolicy.updatedAt || null
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Cookie policy DB load error:', error);
+  }
+
+  try {
+    const fallbackPath = path.resolve(__dirname, '../../docs/contents/Cookie Policy.md');
+    const fallbackMarkdown = await fs.readFile(fallbackPath, 'utf8');
+    const policyHtml = sanitizeHtml(markdownToHtml(fallbackMarkdown), {
+      allowedTags: ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'a', 'code', 'pre', 'hr'],
+      allowedAttributes: {
+        a: ['href', 'rel', 'target']
+      }
+    });
+
+    return res.render('pages/cookie-policy', {
+      title: 'Cookie Policy - helloRun',
+      policyHtml,
+      policyLoadedFromFile: true,
+      policyMeta: {
+        versionNumber: '',
+        effectiveDate: null,
+        updatedAt: null
+      }
+    });
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error('Cookie policy fallback load error:', error);
+    }
+
+    return res.render('pages/cookie-policy', {
+      title: 'Cookie Policy - helloRun',
+      policyHtml: '',
+      policyLoadedFromFile: false,
+      policyMeta: null
+    });
+  }
+}
+
+router.get('/cookie-policy', renderCookiePolicyPage);
+router.get('/cookies', renderCookiePolicyPage);
+
+router.get('/privacy', async (req, res) => {
+  try {
+    const currentPolicy = await PrivacyPolicy.findOne({
+      slug: 'privacy-policy',
+      status: 'published',
+      isCurrent: true
+    })
+      .select('contentHtml contentMarkdown versionNumber effectiveDate updatedAt')
+      .lean();
+
+    if (currentPolicy) {
+      const policyHtml = currentPolicy.contentHtml || sanitizeHtml(markdownToHtml(currentPolicy.contentMarkdown || ''), {
+        allowedTags: ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'a', 'code', 'pre', 'hr'],
+        allowedAttributes: {
+          a: ['href', 'rel', 'target']
+        }
+      });
+
+      return res.render('pages/privacy', {
+        title: 'Privacy Policy - helloRun',
+        policyHtml,
+        policyLoadedFromFile: true,
+        policyMeta: {
+          versionNumber: currentPolicy.versionNumber || '',
+          effectiveDate: currentPolicy.effectiveDate || null,
+          updatedAt: currentPolicy.updatedAt || null
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Privacy policy DB load error:', error);
+  }
+
+  try {
+    const fallbackPath = path.resolve(__dirname, '../../docs/contents/Privacy Policy.md');
+    const fallbackMarkdown = await fs.readFile(fallbackPath, 'utf8');
+    const policyHtml = sanitizeHtml(markdownToHtml(fallbackMarkdown), {
+      allowedTags: ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'a', 'code', 'pre', 'hr'],
+      allowedAttributes: {
+        a: ['href', 'rel', 'target']
+      }
+    });
+
+    return res.render('pages/privacy', {
+      title: 'Privacy Policy - helloRun',
+      policyHtml,
+      policyLoadedFromFile: true,
+      policyMeta: {
+        versionNumber: '',
+        effectiveDate: null,
+        updatedAt: null
+      }
+    });
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error('Privacy policy fallback load error:', error);
+    }
+
+    return res.render('pages/privacy', {
+      title: 'Privacy Policy - helloRun',
+      policyHtml: '',
+      policyLoadedFromFile: false,
+      policyMeta: null
+    });
+  }
 });
 
-router.get('/terms', (req, res) => {
-  res.render('pages/terms', {
-    title: 'Terms of Service - helloRun'
-  });
+router.get('/terms', async (req, res) => {
+  try {
+    const currentPolicy = await PrivacyPolicy.findOne({
+      slug: 'terms-of-service',
+      status: 'published',
+      isCurrent: true
+    })
+      .select('contentHtml contentMarkdown versionNumber effectiveDate updatedAt')
+      .lean();
+
+    if (currentPolicy) {
+      const policyHtml = currentPolicy.contentHtml || sanitizeHtml(markdownToHtml(currentPolicy.contentMarkdown || ''), {
+        allowedTags: ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'a', 'code', 'pre', 'hr'],
+        allowedAttributes: {
+          a: ['href', 'rel', 'target']
+        }
+      });
+
+      return res.render('pages/terms', {
+        title: 'Terms and Conditions - helloRun',
+        policyHtml,
+        policyLoadedFromFile: true,
+        policyMeta: {
+          versionNumber: currentPolicy.versionNumber || '',
+          effectiveDate: currentPolicy.effectiveDate || null,
+          updatedAt: currentPolicy.updatedAt || null
+        }
+      });
+    }
+  } catch (error) {
+    console.error('Terms and conditions DB load error:', error);
+  }
+
+  try {
+    const fallbackPath = path.resolve(__dirname, '../../docs/contents/Terms and Conditions.md');
+    const fallbackMarkdown = await fs.readFile(fallbackPath, 'utf8');
+    const policyHtml = sanitizeHtml(markdownToHtml(fallbackMarkdown), {
+      allowedTags: ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'a', 'code', 'pre', 'hr'],
+      allowedAttributes: {
+        a: ['href', 'rel', 'target']
+      }
+    });
+
+    return res.render('pages/terms', {
+      title: 'Terms and Conditions - helloRun',
+      policyHtml,
+      policyLoadedFromFile: true,
+      policyMeta: {
+        versionNumber: '',
+        effectiveDate: null,
+        updatedAt: null
+      }
+    });
+  } catch (error) {
+    if (error.code !== 'ENOENT') {
+      console.error('Terms and conditions fallback load error:', error);
+    }
+
+    return res.render('pages/terms', {
+      title: 'Terms and Conditions - helloRun',
+      policyHtml: '',
+      policyLoadedFromFile: false,
+      policyMeta: null
+    });
+  }
 });
 
 router.get('/leaderboard', pageController.getLeaderboard);

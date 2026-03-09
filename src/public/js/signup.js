@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const agreeTerms = document.getElementById('agreeTerms');
       const termsGroup = document.getElementById('termsGroup');
       if (!agreeTerms.checked) {
-        showCheckboxError('termsError', 'You must agree to the Terms and Conditions');
+        showCheckboxError('termsError', 'You must agree to the Terms, Privacy, and Cookie policies');
         termsGroup.classList.add('error');
         isValid = false;
       }

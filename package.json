@@ -8,6 +8,9 @@
     "dev": "nodemon src/server.js",
     "setup": "node src/scripts/setup-uploads.js",
     "backfill:event-reference-codes": "node src/scripts/backfill-event-reference-codes.js",
+    "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
+    "seed:terms-policy": "node src/scripts/seed-terms-policy.js",
+    "seed:cookie-policy": "node src/scripts/seed-cookie-policy.js",
     "postinstall": "npm run setup",
     "test": "node --test --test-concurrency=1 tests/*.test.js",
     "test:parallel": "node --test tests/*.test.js"

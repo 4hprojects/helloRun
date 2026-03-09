@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <% if (mode !== 'view') { %>
+    <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
+  <% } %>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <%
+    const documentName = typeof policyDocumentName === 'string' && policyDocumentName.trim()
+      ? policyDocumentName.trim()
+      : 'Privacy Policy';
+    const managePath = typeof policyManagePath === 'string' && policyManagePath.trim()
+      ? policyManagePath.trim()
+      : '/admin/privacy-policy';
+  %>
+
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>
+            <% if (mode === 'create') { %>New <%= documentName %> Draft<% } %>
+            <% if (mode === 'edit') { %>Edit <%= documentName %> Draft<% } %>
+            <% if (mode === 'view') { %><%= documentName %> Version<% } %>
+          </h2>
+          <p>
+            <% if (mode === 'view') { %>Read-only version details and preview.<% } %>
+            <% if (mode !== 'view') { %>Patterned after admin content workflows: save draft, then publish.<% } %>
+          </p>
+        </div>
+        <a href="<%= managePath %>" class="btn btn-secondary">Back to Versions</a>
+      </div>
+
+      <% if (message) { %>
+        <div class="admin-alert admin-alert-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+      <% if (mode !== 'view' && message && message.type === 'info') { %>
+        <div class="admin-alert admin-alert-warning">
+          Changes in this view are not saved yet. Click <strong>Save Draft</strong> to persist.
+        </div>
+      <% } %>
+
+      <% if (mode === 'view') { %>
+        <section class="policy-meta-grid">
+          <article class="meta-card">
+            <p class="meta-label">Version</p>
+            <p class="meta-value"><%= policy.versionNumber %></p>
+          </article>
+          <article class="meta-card">
+            <p class="meta-label">Status</p>
+            <p class="meta-value"><%= policy.status %><%= policy.isCurrent ? ' (current)' : '' %></p>
+          </article>
+          <article class="meta-card">
+            <p class="meta-label">Effective Date</p>
+            <p class="meta-value"><%= policy.effectiveDate ? new Date(policy.effectiveDate).toLocaleDateString('en-US') : '-' %></p>
+          </article>
+          <article class="meta-card">
+            <p class="meta-label">Published At</p>
+            <p class="meta-value"><%= policy.publishedAt ? new Date(policy.publishedAt).toLocaleDateString('en-US') : '-' %></p>
+          </article>
+        </section>
+
+        <section class="detail-card detail-card-full">
+          <h3>Summary of Changes</h3>
+          <p><%= policy.summaryOfChanges || 'No summary provided.' %></p>
+        </section>
+
+        <section class="detail-card detail-card-full">
+          <h3>Markdown Content</h3>
+          <pre class="policy-content-readonly"><%= policy.contentMarkdown || '' %></pre>
+        </section>
+
+        <section class="detail-card detail-card-full">
+          <h3>Rendered Preview</h3>
+          <article class="legal-markdown"><%- policy.contentHtmlPreview || '' %></article>
+        </section>
+
+        <div class="policy-form-actions">
+          <% if (policy.status === 'draft') { %>
+            <a href="<%= `${managePath}/${policy.id}/edit` %>" class="btn">Edit Draft</a>
+            <form method="POST" action="<%= `${managePath}/${policy.id}/publish` %>">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <button type="submit" class="btn btn-success">Publish Draft</button>
+            </form>
+          <% } else { %>
+            <form method="POST" action="<%= `${managePath}/${policy.id}/clone` %>">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <button type="submit" class="btn">Clone to New Draft</button>
+            </form>
+          <% } %>
+        </div>
+      <% } else { %>
+        <form
+          id="privacyPolicyForm"
+          method="POST"
+          action="<%= mode === 'create' ? managePath : `${managePath}/${policy.id}/save` %>"
+          class="policy-editor-form"
+        >
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <input type="hidden" name="contentInputMode" id="contentInputMode" value="<%= policy.contentMode || 'markdown' %>">
+          <input type="hidden" name="contentHtmlInput" id="contentHtmlInput" value="">
+
+          <div class="details-grid">
+            <div class="filter-field">
+              <label for="policyTitle">Title</label>
+              <input id="policyTitle" type="text" name="title" maxlength="150" required value="<%= policy.title || '' %>">
+            </div>
+            <div class="filter-field">
+              <label for="policyVersion">Version Number</label>
+              <input id="policyVersion" type="text" name="versionNumber" maxlength="40" placeholder="1.1" required value="<%= policy.versionNumber || '' %>">
+            </div>
+          </div>
+
+          <div class="filter-field">
+            <label for="policySummary">Summary of Changes</label>
+            <input id="policySummary" type="text" name="summaryOfChanges" maxlength="500" value="<%= policy.summaryOfChanges || '' %>">
+          </div>
+
+          <div class="editor-mode-toggle" role="group" aria-label="Editor mode">
+            <label class="editor-mode-option">
+              <input type="radio" name="editorMode" value="markdown" <%= (policy.contentMode || 'markdown') === 'markdown' ? 'checked' : '' %>>
+              Markdown
+            </label>
+            <label class="editor-mode-option">
+              <input type="radio" name="editorMode" value="rich" <%= (policy.contentMode || 'markdown') === 'rich' ? 'checked' : '' %>>
+              Rich text
+            </label>
+          </div>
+
+          <div id="markdownEditorWrap">
+            <label for="policyContent" class="policy-editor-label">Policy markdown content</label>
+            <textarea
+              id="policyContent"
+              name="contentMarkdown"
+              class="policy-editor-textarea"
+            ><%= policy.contentMarkdown || '' %></textarea>
+          </div>
+
+          <div id="richEditorWrap" class="rich-editor-wrap" style="display: none;">
+            <label for="policyRichEditor" class="policy-editor-label">Policy rich text content</label>
+            <div id="policyRichEditor" class="policy-rich-editor"></div>
+          </div>
+
+          <div class="policy-form-actions">
+            <button type="submit" class="btn"><%= mode === 'create' ? 'Create Draft' : 'Save Draft' %></button>
+            <button
+              type="submit"
+              formaction="<%= mode === 'create' ? `${managePath}/format` : `${managePath}/${policy.id}/format` %>"
+              formmethod="POST"
+              class="btn btn-secondary"
+            >
+              Auto-format Draft
+            </button>
+            <button
+              type="submit"
+              formaction="<%= mode === 'create' ? `${managePath}/preview` : `${managePath}/${policy.id}/preview` %>"
+              formmethod="POST"
+              class="btn btn-secondary"
+            >
+              Preview
+            </button>
+            <% if (mode === 'edit') { %>
+              <button
+                type="submit"
+                formaction="<%= `${managePath}/${policy.id}/publish` %>"
+                formmethod="POST"
+                class="btn btn-success"
+                <%= canPublish ? '' : 'disabled' %>
+                title="<%= canPublish ? 'Publish this saved draft.' : 'Save draft first before publishing.' %>"
+              >
+                Publish Draft
+              </button>
+            <% } %>
+          </div>
+        </form>
+
+        <section class="detail-card detail-card-full">
+          <h3>Rendered Preview (last saved)</h3>
+          <article class="legal-markdown"><%- policy.contentHtmlPreview || '' %></article>
+        </section>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <% if (mode !== 'view') { %>
+    <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
+    <script>
+      (function initPrivacyPolicyEditor() {
+        const form = document.getElementById('privacyPolicyForm');
+        const markdownWrap = document.getElementById('markdownEditorWrap');
+        const markdownTextarea = document.getElementById('policyContent');
+        const richWrap = document.getElementById('richEditorWrap');
+        const richEditorRoot = document.getElementById('policyRichEditor');
+        const modeInput = document.getElementById('contentInputMode');
+        const contentHtmlInput = document.getElementById('contentHtmlInput');
+        const modeRadios = Array.from(document.querySelectorAll('input[name="editorMode"]'));
+
+        if (!form || !markdownWrap || !markdownTextarea || !richWrap || !modeInput || !contentHtmlInput || modeRadios.length === 0) {
+          return;
+        }
+
+        let quill = null;
+        if (richEditorRoot && window.Quill) {
+          quill = new Quill('#policyRichEditor', {
+            theme: 'snow',
+            modules: {
+              toolbar: [
+                [{ header: [2, 3, false] }],
+                ['bold', 'italic', 'underline'],
+                [{ list: 'ordered' }, { list: 'bullet' }],
+                ['blockquote', 'link'],
+                ['clean']
+              ]
+            }
+          });
+
+          const initialRichHtml = <%- JSON.stringify(policy.contentHtmlRaw || policy.contentHtmlPreview || '') %>;
+          quill.root.innerHTML = initialRichHtml || '<h2>Introduction</h2><p></p><h2>Data We Collect</h2><p></p><h2>How We Use Data</h2><p></p>';
+        }
+
+        function getSelectedMode() {
+          const selected = modeRadios.find((item) => item.checked);
+          return selected ? selected.value : 'markdown';
+        }
+
+        function applyEditorMode() {
+          const selectedMode = getSelectedMode();
+          const isRich = selectedMode === 'rich';
+
+          markdownWrap.style.display = isRich ? 'none' : 'block';
+          richWrap.style.display = isRich ? 'block' : 'none';
+          modeInput.value = selectedMode;
+        }
+
+        modeRadios.forEach((radio) => {
+          radio.addEventListener('change', applyEditorMode);
+        });
+
+        form.addEventListener('submit', () => {
+          const selectedMode = getSelectedMode();
+          modeInput.value = selectedMode;
+
+          if (selectedMode === 'rich' && quill) {
+            contentHtmlInput.value = quill.root.innerHTML || '';
+          } else {
+            contentHtmlInput.value = '';
+          }
+        });
+
+        applyEditorMode();
+      })();
+    </script>
+  <% } %>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

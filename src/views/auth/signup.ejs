@@ -138,9 +138,10 @@
                 type="checkbox" 
                 id="agreeTerms" 
                 name="agreeTerms" 
+                <%= locals.formData && locals.formData.agreeTerms === 'on' ? 'checked' : '' %>
                 required>
               <label for="agreeTerms">
-                I agree to the <a href="/terms" target="_blank">Terms and Conditions</a> and <a href="/privacy" target="_blank">Privacy Policy</a> <span class="required">*</span>
+                I agree to the <a href="/terms" target="_blank" rel="noopener">Terms and Conditions</a>, <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>, and <a href="/cookie-policy" target="_blank" rel="noopener">Cookie Policy</a> <span class="required">*</span>
               </label>
             </div>
             <small class="checkbox-error" id="termsError"></small>
@@ -154,7 +155,7 @@
           </form>
 
           <div class="oauth-divider"><span>or</span></div>
-          <a href="/auth/google?intent=signup" class="btn btn-google btn-full" aria-label="Continue with Google">
+          <a href="/auth/google?intent=signup" class="btn btn-google btn-full" id="googleSignupBtn" aria-label="Continue with Google">
             Continue with Google
           </a>
           
@@ -355,6 +356,9 @@
       // ========================================
       const form = document.getElementById('signupForm');
       const submitBtn = document.getElementById('submitBtn');
+      const googleSignupBtn = document.getElementById('googleSignupBtn');
+      const agreeTerms = document.getElementById('agreeTerms');
+      const termsGroup = document.getElementById('termsGroup');
       
       if (form) {
         form.addEventListener('submit', function(e) {
@@ -427,11 +431,9 @@
             isValid = false;
           }
 
-          // Validate terms checkbox
-          const agreeTerms = document.getElementById('agreeTerms');
-          const termsGroup = document.getElementById('termsGroup');
+          // Validate policy consent checkbox
           if (!agreeTerms.checked) {
-            showCheckboxError('termsError', 'You must agree to the Terms and Conditions');
+            showCheckboxError('termsError', 'You must agree to the Terms, Privacy, and Cookie policies');
             termsGroup.classList.add('error');
             isValid = false;
           }
@@ -448,6 +450,31 @@
         });
       }
 
+      if (agreeTerms && termsGroup) {
+        agreeTerms.addEventListener('change', function() {
+          if (agreeTerms.checked) {
+            termsGroup.classList.remove('error');
+            showCheckboxError('termsError', '');
+          }
+        });
+      }
+
+      if (googleSignupBtn && agreeTerms && termsGroup) {
+        googleSignupBtn.addEventListener('click', function(e) {
+          if (!agreeTerms.checked) {
+            e.preventDefault();
+            showCheckboxError('termsError', 'You must agree to the Terms, Privacy, and Cookie policies');
+            termsGroup.classList.add('error');
+            termsGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+          }
+
+          const googleUrl = new URL(googleSignupBtn.getAttribute('href'), window.location.origin);
+          googleUrl.searchParams.set('agreePolicies', 'on');
+          googleSignupBtn.setAttribute('href', `${googleUrl.pathname}${googleUrl.search}`);
+        });
+      }
+
       function showError(elementId, message) {
         const errorElement = document.getElementById(elementId);
         if (errorElement) {
@@ -459,8 +486,12 @@
       function showCheckboxError(elementId, message) {
         const errorElement = document.getElementById(elementId);
         if (errorElement) {
-          errorElement.textContent = message;
-          errorElement.classList.add('show');
+          errorElement.textContent = message || '';
+          if (message) {
+            errorElement.classList.add('show');
+          } else {
+            errorElement.classList.remove('show');
+          }
         }
       }
     });

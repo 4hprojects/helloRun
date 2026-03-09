@@ -35,7 +35,8 @@ test('public static pages render successfully', async () => {
     { path: '/contact', heading: /Contact/i },
     { path: '/faq', heading: /FAQ/i },
     { path: '/privacy', heading: /Privacy Policy/i },
-    { path: '/terms', heading: /Terms of Service/i }
+    { path: '/terms', heading: /Terms (of Service|and Conditions)/i },
+    { path: '/cookie-policy', heading: /Cookie Policy/i }
   ];
 
   for (const item of cases) {

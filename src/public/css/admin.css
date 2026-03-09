@@ -122,6 +122,27 @@
   color: #991b1b;
 }
 
+.status-badge-draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge-published {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge-archived {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.status-badge-current {
+  background: #dbeafe;
+  color: #1d4ed8;
+  margin-left: 0.3rem;
+}
+
 .empty-state {
   padding: 1.5rem;
   text-align: center;
@@ -174,6 +195,10 @@
   margin-top: 1rem;
 }
 
+.metric-value-sm {
+  font-size: 1.2rem;
+}
+
 .admin-alert {
   border-radius: 8px;
   padding: 0.75rem 0.9rem;
@@ -197,6 +222,12 @@
   background: #dbeafe;
   color: #1e40af;
   border: 1px solid #93c5fd;
+}
+
+.admin-alert-warning {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fcd34d;
 }
 
 .application-meta-grid {
@@ -313,6 +344,115 @@
   font-size: 0.8rem;
 }
 
+.policy-editor-form {
+  margin-top: 1rem;
+}
+
+.policy-editor-label {
+  display: block;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 0.45rem;
+}
+
+.editor-mode-toggle {
+  display: flex;
+  gap: 0.8rem;
+  align-items: center;
+  margin-bottom: 0.65rem;
+}
+
+.editor-mode-option {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  font-weight: 600;
+  color: #334155;
+}
+
+.policy-editor-textarea {
+  width: 100%;
+  min-height: 480px;
+  resize: vertical;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  background: #f8fafc;
+}
+
+.rich-editor-wrap {
+  margin-bottom: 0.8rem;
+}
+
+.policy-rich-editor {
+  background: #fff;
+}
+
+.policy-rich-editor .ql-editor {
+  min-height: 360px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.policy-editor-actions {
+  margin-top: 0.85rem;
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.policy-list-actions,
+.policy-row-actions,
+.policy-current-actions,
+.policy-form-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.policy-current-card {
+  margin-bottom: 1rem;
+}
+
+.policy-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.7rem;
+  margin-bottom: 1rem;
+}
+
+.policy-content-readonly {
+  max-height: 380px;
+  overflow: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.85rem;
+  background: #f8fafc;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.legal-markdown h1,
+.legal-markdown h2,
+.legal-markdown h3,
+.legal-markdown h4 {
+  margin-top: 0.9rem;
+}
+
+.legal-markdown p,
+.legal-markdown li {
+  color: #1e293b;
+}
+
+.legal-markdown ul,
+.legal-markdown ol {
+  padding-left: 1.2rem;
+}
+
 @media (max-width: 900px) {
   .admin-filters {
     grid-template-columns: 1fr;
@@ -329,5 +469,17 @@
   .admin-header-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .policy-editor-textarea {
+    min-height: 360px;
+  }
+
+  .policy-rich-editor .ql-editor {
+    min-height: 280px;
+  }
+
+  .policy-list-actions {
+    width: 100%;
   }
 }

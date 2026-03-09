@@ -43,6 +43,28 @@ test('auth/google redirects to Google consent URL', async () => {
   assert.match(location, /state=/i);
 });
 
+test('auth/google signup intent requires policy consent marker', async () => {
+  const response = await fetch(`${BASE_URL}/auth/google?intent=signup`, {
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  const location = String(response.headers.get('location') || '');
+  assert.match(location, /^\/signup\?type=error/i);
+  assert.match(location, /agree/i);
+});
+
+test('auth/google signup intent with consent redirects to Google consent URL', async () => {
+  const response = await fetch(`${BASE_URL}/auth/google?intent=signup&agreePolicies=on`, {
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  const location = String(response.headers.get('location') || '');
+  assert.match(location, /^https:\/\/accounts\.google\.com\/o\/oauth2\/v2\/auth\?/i);
+  assert.match(location, /state=/i);
+});
+
 test('auth/google/callback rejects invalid state', async () => {
   const initResponse = await fetch(`${BASE_URL}/auth/google`, {
     redirect: 'manual'

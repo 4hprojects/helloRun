@@ -6,40 +6,88 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
+  <button type="button" class="back-to-top privacy-back-to-top" id="backToTopBtn" aria-label="Back to top">&uarr;</button>
 
-  <main class="static-page">
-    <div class="static-wrap">
-      <header class="static-hero">
+  <main class="static-page privacy-page">
+    <div class="static-wrap privacy-wrap">
+      <header class="static-hero privacy-hero">
+        <span class="privacy-kicker">Legal</span>
         <h1>Privacy Policy</h1>
         <p>How helloRun collects, uses, and protects your information.</p>
+        <% if (policyMeta && (policyMeta.versionNumber || policyMeta.effectiveDate || policyMeta.updatedAt)) { %>
+          <div class="privacy-meta-pills">
+            <% if (policyMeta.versionNumber) { %>
+              <span class="privacy-meta-pill">Version <%= policyMeta.versionNumber %></span>
+            <% } %>
+            <% if (policyMeta.effectiveDate) { %>
+              <span class="privacy-meta-pill">Effective <%= new Date(policyMeta.effectiveDate).toLocaleDateString('en-US') %></span>
+            <% } %>
+            <% if (policyMeta.updatedAt) { %>
+              <span class="privacy-meta-pill">Updated <%= new Date(policyMeta.updatedAt).toLocaleDateString('en-US') %></span>
+            <% } %>
+          </div>
+        <% } %>
       </header>
 
-      <section class="static-card">
-        <h2>Information We Collect</h2>
-        <p>Account details, registration data, event participation records, proof uploads, and activity needed to operate the platform.</p>
-      </section>
+      <div class="privacy-layout">
+        <section class="static-card privacy-content-card">
+          <% if (policyLoadedFromFile && policyHtml) { %>
+            <article class="legal-markdown"><%- policyHtml %></article>
+          <% } else { %>
+            <article class="privacy-fallback">
+              <h2>Information We Collect</h2>
+              <p>Account details, registration data, event participation records, payment proofs, and activity data needed to operate helloRun.</p>
 
-      <section class="static-card">
-        <h2>How We Use Data</h2>
-        <ul>
-          <li>Provide event registration and result workflows.</li>
-          <li>Enable organizer reviews and certifications.</li>
-          <li>Send essential transactional emails.</li>
-          <li>Improve platform reliability and abuse prevention.</li>
-        </ul>
-      </section>
+              <h2>How We Use Data</h2>
+              <ul>
+                <li>Provide registration, payment verification, and result workflows.</li>
+                <li>Allow organizers to review submissions and issue certifications.</li>
+                <li>Send essential transactional notifications and support responses.</li>
+                <li>Maintain platform security, fraud prevention, and service reliability.</li>
+              </ul>
 
-      <section class="static-card">
-        <h2>Data Sharing</h2>
-        <p>We only share operational data with service providers required to run helloRun (for example hosting, storage, and email delivery).</p>
-      </section>
+              <h2>Data Sharing</h2>
+              <p>We only share data with service providers required to run helloRun, such as hosting, storage, and email infrastructure providers.</p>
+            </article>
+          <% } %>
+        </section>
 
-      <p class="static-note">Questions about privacy: <a href="mailto:hellorunonline@gmail.com">hellorunonline@gmail.com</a>.</p>
+        <aside class="static-card privacy-side-card">
+          <h2>At a Glance</h2>
+          <ul>
+            <li>Data is collected only for account, event, and payment workflows.</li>
+            <li>Uploaded payment proofs are used for verification and audit records.</li>
+            <li>You can request privacy support through our contact email.</li>
+          </ul>
+          <p class="privacy-side-note">Questions or privacy requests:</p>
+          <a class="privacy-contact-link" href="mailto:hellorunonline@gmail.com">hellorunonline@gmail.com</a>
+        </aside>
+      </div>
     </div>
   </main>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    (function initPrivacyPage() {
+      const backToTopBtn = document.getElementById('backToTopBtn');
+      if (backToTopBtn) {
+        const toggleBackToTop = () => {
+          if (window.scrollY > 300) {
+            backToTopBtn.classList.add('visible');
+          } else {
+            backToTopBtn.classList.remove('visible');
+          }
+        };
+        window.addEventListener('scroll', toggleBackToTop, { passive: true });
+        backToTopBtn.addEventListener('click', () => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        toggleBackToTop();
+      }
+
+      if (window.lucide) lucide.createIcons();
+    })();
+  </script>
 </body>
 </html>

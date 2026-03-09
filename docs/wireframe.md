@@ -3,6 +3,112 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See dir.md for repository-level change history.
 
+## STATUS UPDATE (Mar 9, 2026 - Cookie Policy Admin + Consent Enforcement Completed)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Cookie Policy now follows the same admin legal-doc workflow as Privacy and Terms:
+  - `/admin/cookie-policy` list/history
+  - draft create/edit
+  - preview + auto-format
+  - publish/clone/archive
+- Added admin dashboard entry points for Cookie Policy management.
+- Public Cookie Policy page is live:
+  - `/cookie-policy` (with `/cookies` alias)
+  - fallback source: `docs/contents/Cookie Policy.md`
+- Signup consent was strengthened:
+  - local signup requires acceptance of Terms + Privacy + Cookie policies
+  - Google signup intent requires policy consent before redirecting to Google OAuth
+  - newly created Google accounts now store accepted policy versions (including cookie policy)
+- Added seed utility:
+  - `npm run seed:cookie-policy`
+
+### Validation signals recorded
+- `tests/admin-dashboard.test.js` -> PASS
+- `tests/static-pages.test.js` -> PASS
+- `tests/google-oauth-routes.test.js` -> PASS
+- `tests/privacy-signup-consent.test.js` -> PASS
+
+### Still pending from this scope
+- Ops/release hardening:
+  - seed and publish initial cookie policy version in target environment
+  - run manual admin smoke on `/admin/cookie-policy` (draft -> preview -> publish path)
+  - confirm legal placeholders/encoding cleanup in source markdown before first final legal publish
+
+## STATUS UPDATE (Mar 9, 2026 - Legal Policy System Expanded to Terms and Conditions)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Terms and Conditions now follows the same admin workflow as Privacy:
+  - list/history
+  - create draft
+  - edit draft
+  - preview and auto-format
+  - publish
+  - archive
+  - clone
+- Public terms page is now dynamic:
+  - `/terms` loads current published DB version (`slug: terms-of-service`)
+  - fallback source is `docs/contents/Terms and Conditions.md`
+- Signup consent capture now records both legal docs:
+  - privacy policy ID/version + timestamp/IP/user-agent
+  - terms policy ID/version + timestamp/IP/user-agent
+- Added one-time terms seed command:
+  - `npm run seed:terms-policy`
+
+### Validation signals recorded
+- `tests/admin-dashboard.test.js` -> PASS
+- `tests/static-pages.test.js` -> PASS
+- `tests/privacy-signup-consent.test.js` -> PASS
+
+### Still pending from this scope
+- Production content hardening:
+  - replace remaining placeholder/legal entity fields in privacy/terms drafts
+  - remove encoding artifacts from imported markdown source before first live publish
+- Operational closeout:
+  - run staging publish smoke for both `/privacy` and `/terms`
+  - backfill consent metadata for legacy users if needed
+
+## STATUS UPDATE (Mar 9, 2026 - Privacy Policy System Phases 1-6 Completed)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Phase 1: Baseline lock completed
+  - canonical initial source set to `docs/contents/Privacy Policy.md`
+  - baseline integrity snapshot documented in `docs/privacy-policy-phase1-baseline.md`
+- Phase 2: Model + seed completed
+  - `PrivacyPolicy` model added with version/status/current/audit fields
+  - one-time idempotent seed command added: `npm run seed:privacy-policy`
+- Phase 3: Admin workflow completed (blog/event-style pattern)
+  - policy version list/history page
+  - draft create/edit flow
+  - clone/publish/archive actions
+  - published version read-only behavior enforced
+- Phase 4: Public rendering switch completed
+  - `/privacy` now renders current published DB version only
+  - fallback to `docs/contents/Privacy Policy.md` when no live DB record exists
+- Phase 5: Security + guardrails completed
+  - CSRF enforcement on mutating admin routes
+  - stricter version format and transition validation
+  - policy action guard checks and publish consistency hardening
+- Phase 6: Consent/version logging completed
+  - signup now captures accepted privacy policy ID + version + timestamp + IP + user-agent
+  - user model extended with `termsAcceptedAt` and `agreedPolicies` fields
+  - organizer signup status fixed to valid enum (`not_applied`)
+
+### Validation signals recorded
+- Added and executed `tests/privacy-signup-consent.test.js`
+- Result: 2/2 passing
+
+### Still pending from this scope
+- Phase 7 operational gate:
+  - run full release QA checklist
+  - execute deployment runbook in staging/production
+  - finalize legal content cleanup (encoding/placeholders)
+
 ## STATUS UPDATE (Mar 8, 2026 - Events/My Registrations Follow-up)
 
 ### Current reality after latest implementation

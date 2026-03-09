@@ -125,6 +125,60 @@ const userSchema = new mongoose.Schema({
     default: 'not_applied'
   },
 
+  termsAcceptedAt: {
+    type: Date,
+    default: null
+  },
+
+  agreedPolicies: {
+    privacyPolicyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'PrivacyPolicy',
+      default: null
+    },
+    privacyPolicyVersion: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    termsPolicyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'PrivacyPolicy',
+      default: null
+    },
+    termsPolicyVersion: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    cookiePolicyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'PrivacyPolicy',
+      default: null
+    },
+    cookiePolicyVersion: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    agreedAt: {
+      type: Date,
+      default: null
+    },
+    ipAddress: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: ''
+    },
+    userAgent: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: ''
+    }
+  },
+
   createdAt: {
     type: Date,
     default: Date.now

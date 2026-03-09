@@ -119,6 +119,7 @@
 
           <div class="action-form-row">
             <form action="/admin/applications/<%= application._id %>/approve" method="POST" onsubmit="return confirm('Approve this organizer application?');">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
               <button type="submit" class="btn btn-success" <%= isFinalized ? 'disabled' : '' %>>Approve Application</button>
             </form>
           </div>
@@ -129,6 +130,7 @@
             method="POST"
             onsubmit="return confirm('Reject this organizer application?');"
           >
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
             <label for="rejectionReason">Rejection Reason (minimum 15 characters)</label>
             <textarea
               id="rejectionReason"

@@ -556,6 +556,7 @@
             <h4>Primary Decision</h4>
             <p>Publishes this post immediately to the public blog.</p>
             <form method="POST" action="/admin/blog/posts/<%= post._id %>/approve-form" class="moderation-approve-form">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
               <button type="submit" class="mod-btn mod-btn-approve" data-loading-text="Publishing..." onclick="return confirm('Approve and publish this post?');">Approve & Publish</button>
             </form>
           </section>
@@ -563,6 +564,7 @@
             <h4>Reject with Feedback</h4>
             <p>The author will see this feedback and can revise the post.</p>
             <form method="POST" action="/admin/blog/posts/<%= post._id %>/reject-form" class="moderation-reject-form">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
               <label class="moderation-reject-label" for="rejectionReason">Rejection reason</label>
               <textarea id="rejectionReason" name="rejectionReason" required minlength="15" maxlength="500" placeholder="Explain what should be fixed before this can be approved." class="moderation-reason-input" data-count-target="rejectionReasonCounter" data-minlength="15"></textarea>
               <div class="moderation-field-footer">
@@ -579,6 +581,7 @@
             <h4>Danger Zone</h4>
             <p>Archiving removes this post from public listing.</p>
             <form method="POST" action="/admin/blog/posts/<%= post._id %>/archive-form">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
               <button type="submit" class="mod-btn mod-btn-archive" data-loading-text="Archiving..." onclick="return confirm('Archive this published post?');">Archive</button>
             </form>
           </section>
@@ -702,6 +705,7 @@
 
       if (autosaveForm) {
         const autosaveUrl = "/admin/blog/posts/<%= post._id %>/autosave";
+        const csrfToken = "<%= locals.csrfToken || '' %>";
         const statusClassMap = {
           pending: "status-pending",
           published: "status-published"
@@ -763,7 +767,10 @@
           try {
             const response = await fetch(autosaveUrl, {
               method: "PATCH",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "x-csrf-token": csrfToken
+              },
               credentials: "same-origin",
               body: payloadJson
             });

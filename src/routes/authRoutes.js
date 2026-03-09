@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const PrivacyPolicy = require('../models/PrivacyPolicy');
 const passwordService = require('../services/password.service');
 const emailService = require('../services/email.service');
 const googleOAuthService = require('../services/google-oauth.service');
@@ -13,6 +14,16 @@ function resolveSafeReturnTo(value, fallback = null) {
     return value;
   }
   return fallback;
+}
+
+function getRequestIpAddress(req) {
+  const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const directIp = String(req.ip || '').trim();
+  return (forwardedFor || directIp).slice(0, 120);
+}
+
+function getRequestUserAgent(req) {
+  return String(req.get('user-agent') || '').trim().slice(0, 500);
 }
 
 function startAuthenticatedSession(req, user) {
@@ -116,47 +127,58 @@ router.post('/login', redirectIfAuth, async (req, res) => {
 });
 
 // Register/Signup Page - redirect if already logged in
-router.get('/register', redirectIfAuth, (req, res) => {
-  res.render('auth/signup', {
-    error: null,
-    success: null
-  });
-});
+function renderSignupPage(req, res, options = {}) {
+  const queryMessage = typeof req.query.message === 'string' ? req.query.message : null;
+  const queryType = typeof req.query.type === 'string' ? req.query.type : '';
 
-router.get('/signup', redirectIfAuth, (req, res) => {
-  res.render('auth/signup', {
-    error: null,
-    success: null
+  const error = options.error || (queryType === 'error' ? queryMessage : null);
+  const success = options.success || (queryType === 'success' ? queryMessage : null);
+
+  return res.render('auth/signup', {
+    error,
+    success,
+    formData: options.formData || null
   });
-});
+}
+
+router.get('/register', redirectIfAuth, (req, res) => renderSignupPage(req, res));
+
+router.get('/signup', redirectIfAuth, (req, res) => renderSignupPage(req, res));
 
 // Registration handler function
 async function handleRegistration(req, res) {
   try {
-    const { firstName, lastName, email, password, confirmPassword, role } = req.body;
+    const { firstName, lastName, email, password, confirmPassword, role, agreeTerms } = req.body;
 
     // Validate passwords match
     if (password !== confirmPassword) {
-      return res.render('auth/signup', {
+      return renderSignupPage(req, res, {
         error: 'Passwords do not match.',
-        success: null
+        formData: req.body
       });
     }
 
     // Validate password strength
     if (!passwordService.validatePassword(password)) {
-      return res.render('auth/signup', {
+      return renderSignupPage(req, res, {
         error: 'Password must be at least 8 characters with uppercase, lowercase, and number.',
-        success: null
+        formData: req.body
       });
     }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-      return res.render('auth/signup', {
+      return renderSignupPage(req, res, {
         error: 'An account with this email already exists.',
-        success: null
+        formData: req.body
+      });
+    }
+
+    if (agreeTerms !== 'on') {
+      return renderSignupPage(req, res, {
+        error: 'You must agree to the Terms and Conditions, Privacy Policy, and Cookie Policy.',
+        formData: req.body
       });
     }
 
@@ -166,6 +188,30 @@ async function handleRegistration(req, res) {
     // Generate email verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = passwordService.hashToken(verificationToken);
+    const [currentPrivacyPolicy, currentTermsPolicy, currentCookiePolicy] = await Promise.all([
+      PrivacyPolicy.findOne({
+        slug: 'privacy-policy',
+        status: 'published',
+        isCurrent: true
+      })
+        .select('_id versionNumber')
+        .lean(),
+      PrivacyPolicy.findOne({
+        slug: 'terms-of-service',
+        status: 'published',
+        isCurrent: true
+      })
+        .select('_id versionNumber')
+        .lean(),
+      PrivacyPolicy.findOne({
+        slug: 'cookie-policy',
+        status: 'published',
+        isCurrent: true
+      })
+        .select('_id versionNumber')
+        .lean()
+    ]);
+    const consentTimestamp = new Date();
 
     // Create user
     const userRole = role === 'organiser' ? 'organiser' : 'runner';
@@ -178,27 +224,43 @@ async function handleRegistration(req, res) {
       emailVerified: false,
       emailVerificationToken: hashedToken,
       emailVerificationExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      organizerStatus: userRole === 'organiser' ? 'incomplete' : undefined
+      organizerStatus: userRole === 'organiser' ? 'not_applied' : undefined,
+      termsAcceptedAt: consentTimestamp,
+      agreedPolicies: {
+        privacyPolicyId: currentPrivacyPolicy?._id || null,
+        privacyPolicyVersion: currentPrivacyPolicy?.versionNumber || '',
+        termsPolicyId: currentTermsPolicy?._id || null,
+        termsPolicyVersion: currentTermsPolicy?.versionNumber || '',
+        cookiePolicyId: currentCookiePolicy?._id || null,
+        cookiePolicyVersion: currentCookiePolicy?.versionNumber || '',
+        agreedAt: consentTimestamp,
+        ipAddress: getRequestIpAddress(req),
+        userAgent: getRequestUserAgent(req)
+      }
     });
 
     await newUser.save();
 
-    // Send verification email
-    await emailService.sendVerificationEmail(
-      newUser.email,
-      verificationToken,
-      newUser.role,
-      newUser.firstName
-    );
+    // Send verification email (non-blocking for account creation)
+    try {
+      await emailService.sendVerificationEmail(
+        newUser.email,
+        verificationToken,
+        newUser.role,
+        newUser.firstName
+      );
+    } catch (emailError) {
+      console.error('Verification email send failed during signup:', emailError);
+    }
 
     // Redirect to verification sent page
     res.redirect(`/verify-email-sent?email=${encodeURIComponent(newUser.email)}`);
 
   } catch (error) {
     console.error('Registration error:', error);
-    res.render('auth/signup', {
+    return renderSignupPage(req, res, {
       error: 'An error occurred during registration. Please try again.',
-      success: null
+      formData: req.body
     });
   }
 }
@@ -211,6 +273,22 @@ router.get('/auth/google', redirectIfAuth, (req, res) => {
   if (!googleOAuthService.isConfigured()) {
     return res.redirect('/login?type=error&message=Google+sign-in+is+not+configured');
   }
+
+  const intent = String(req.query.intent || '').trim().toLowerCase();
+  if (intent === 'signup') {
+    if (String(req.query.agreePolicies || '').trim().toLowerCase() !== 'on') {
+      return res.redirect('/signup?type=error&message=You+must+agree+to+the+Terms%2C+Privacy%2C+and+Cookie+policies+before+signing+up+with+Google');
+    }
+
+    req.session.googleOAuthSignupConsent = {
+      agreedAt: new Date().toISOString(),
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req)
+    };
+  } else {
+    delete req.session.googleOAuthSignupConsent;
+  }
+  req.session.googleOAuthIntent = intent;
 
   const state = googleOAuthService.createStateToken();
   req.session.googleOAuthState = state;
@@ -240,9 +318,12 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
     const stateFromGoogle = String(req.query.state || '');
     const expectedState = String(req.session.googleOAuthState || '');
     const stateCreatedAt = Number(req.session.googleOAuthStateCreatedAt || 0);
+    const oauthSignupConsent = req.session.googleOAuthSignupConsent || null;
 
     delete req.session.googleOAuthState;
     delete req.session.googleOAuthStateCreatedAt;
+    delete req.session.googleOAuthIntent;
+    delete req.session.googleOAuthSignupConsent;
 
     if (!stateFromGoogle || !expectedState || stateFromGoogle !== expectedState) {
       return res.redirect('/login?type=error&message=Google+sign-in+state+is+invalid');
@@ -289,6 +370,10 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
         }
         await user.save();
       } else {
+        if (!oauthSignupConsent) {
+          return res.redirect('/signup?type=error&message=You+must+agree+to+the+Terms%2C+Privacy%2C+and+Cookie+policies+before+signing+up+with+Google');
+        }
+
         const fullName = String(profile.name || '').trim();
         let firstName = String(profile.given_name || '').trim();
         let lastName = String(profile.family_name || '').trim();
@@ -299,6 +384,33 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
           lastName = parts.slice(1).join(' ');
         }
 
+        const [currentPrivacyPolicy, currentTermsPolicy, currentCookiePolicy] = await Promise.all([
+          PrivacyPolicy.findOne({
+            slug: 'privacy-policy',
+            status: 'published',
+            isCurrent: true
+          })
+            .select('_id versionNumber')
+            .lean(),
+          PrivacyPolicy.findOne({
+            slug: 'terms-of-service',
+            status: 'published',
+            isCurrent: true
+          })
+            .select('_id versionNumber')
+            .lean(),
+          PrivacyPolicy.findOne({
+            slug: 'cookie-policy',
+            status: 'published',
+            isCurrent: true
+          })
+            .select('_id versionNumber')
+            .lean()
+        ]);
+        const consentTimestamp = oauthSignupConsent?.agreedAt
+          ? new Date(oauthSignupConsent.agreedAt)
+          : new Date();
+
         user = await User.create({
           firstName: firstName || 'Runner',
           lastName,
@@ -308,7 +420,19 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
           authProvider: 'google',
           googleId,
           avatarUrl: String(profile.picture || ''),
-          organizerStatus: 'not_applied'
+          organizerStatus: 'not_applied',
+          termsAcceptedAt: consentTimestamp,
+          agreedPolicies: {
+            privacyPolicyId: currentPrivacyPolicy?._id || null,
+            privacyPolicyVersion: currentPrivacyPolicy?.versionNumber || '',
+            termsPolicyId: currentTermsPolicy?._id || null,
+            termsPolicyVersion: currentTermsPolicy?.versionNumber || '',
+            cookiePolicyId: currentCookiePolicy?._id || null,
+            cookiePolicyVersion: currentCookiePolicy?.versionNumber || '',
+            agreedAt: consentTimestamp,
+            ipAddress: String(oauthSignupConsent?.ipAddress || getRequestIpAddress(req)),
+            userAgent: String(oauthSignupConsent?.userAgent || getRequestUserAgent(req))
+          }
         });
       }
     }

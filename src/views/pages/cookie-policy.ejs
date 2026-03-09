@@ -11,8 +11,8 @@
   <main class="static-page">
     <div class="static-wrap">
       <header class="static-hero">
-        <h1>Terms and Conditions</h1>
-        <p>Rules and responsibilities for using helloRun.</p>
+        <h1>Cookie Policy</h1>
+        <p>How helloRun uses cookies and similar technologies.</p>
         <% if (policyMeta && (policyMeta.versionNumber || policyMeta.effectiveDate || policyMeta.updatedAt)) { %>
           <p class="static-note">
             <% if (policyMeta.versionNumber) { %>Version <%= policyMeta.versionNumber %><% } %>
@@ -28,27 +28,18 @@
         </section>
       <% } else { %>
         <section class="static-card">
-          <h2>Account Responsibilities</h2>
-          <p>You are responsible for maintaining accurate account information and safeguarding your login credentials.</p>
+          <h2>Essential Cookies</h2>
+          <p>These cookies support core account, login, and session functionality needed to run helloRun securely.</p>
         </section>
 
         <section class="static-card">
-          <h2>Event and Submission Integrity</h2>
-          <ul>
-            <li>Provide truthful registration and profile data.</li>
-            <li>Submit genuine payment and result proofs.</li>
-            <li>Do not manipulate rankings, records, or review workflows.</li>
-          </ul>
+          <h2>Performance and Analytics</h2>
+          <p>We may use analytics cookies to understand usage patterns and improve platform reliability and user experience.</p>
         </section>
 
         <section class="static-card">
-          <h2>Platform Conduct</h2>
-          <p>Abusive, fraudulent, or disruptive behavior may lead to account restrictions or removal.</p>
-        </section>
-
-        <section class="static-card">
-          <h2>Service Changes</h2>
-          <p>helloRun may update features, workflows, and terms to maintain platform reliability and compliance.</p>
+          <h2>Managing Cookies</h2>
+          <p>You can control cookies through browser settings. Disabling some cookies may affect key site features.</p>
         </section>
       <% } %>
     </div>
@@ -57,7 +48,7 @@
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
   <script>
-    (function initTermsPage() {
+    (function initCookiePolicyPage() {
       const backToTopBtn = document.getElementById('backToTopBtn');
       if (backToTopBtn) {
         const toggleBackToTop = () => {

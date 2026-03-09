@@ -3,6 +3,130 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See wireframe.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - March 9, 2026 (Session: Cookie Policy Admin Workflow + Signup Consent Gate)
+
+### [SESSION] SESSION UPDATE:
+- Added full Cookie Policy admin workflow, matching Privacy/Terms lifecycle:
+  - list/history
+  - create/edit draft
+  - auto-format/preview
+  - publish
+  - clone
+  - archive
+- Added Cookie Policy management entry points in admin dashboard and quick-action menu.
+- Added one-time cookie policy seed utility:
+  - `npm run seed:cookie-policy`
+- Tightened signup policy consent enforcement:
+  - local signup now requires acceptance of Terms + Privacy + Cookie policies
+  - Google signup intent now requires policy consent before OAuth redirect
+  - new Google-created accounts now persist legal policy version metadata including cookie policy
+
+### [NEW] NEW FILES:
+1. src/scripts/seed-cookie-policy.js
+
+### [UPDATED] UPDATED FILES (major):
+1. package.json
+2. src/controllers/admin.controller.js
+3. src/routes/admin.routes.js
+4. src/views/admin/dashboard.ejs
+5. src/routes/authRoutes.js
+6. src/models/User.js
+7. src/views/auth/signup.ejs
+8. src/public/js/signup.js
+9. tests/admin-dashboard.test.js
+10. tests/google-oauth-routes.test.js
+11. tests/privacy-signup-consent.test.js
+12. docs/privacy_policy.md
+13. docs/wireframe.md
+14. docs/dir.md
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/admin-dashboard.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/google-oauth-routes.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/privacy-signup-consent.test.js` -> PASS
+
+## CHANGELOG - March 9, 2026 (Session: Terms and Conditions Workflow Expansion + Versioned Consent)
+
+### [SESSION] SESSION UPDATE:
+- Extended the existing admin-editable legal policy system from Privacy-only to Privacy + Terms:
+  - added full Terms version lifecycle under `/admin/terms-and-conditions`
+  - reused shared admin policy templates for both documents
+  - added Terms management entry points on admin dashboard
+- Switched public `/terms` rendering to published DB policy with fallback to:
+  - `docs/contents/Terms and Conditions.md`
+- Extended signup legal consent logging:
+  - now stores accepted Terms policy ID/version alongside Privacy policy acceptance metadata
+- Added Terms one-time seed utility:
+  - `npm run seed:terms-policy`
+
+### [NEW] NEW FILES:
+1. src/scripts/seed-terms-policy.js
+
+### [UPDATED] UPDATED FILES (major):
+1. package.json
+2. src/controllers/admin.controller.js
+3. src/routes/admin.routes.js
+4. src/routes/pageRoutes.js
+5. src/routes/authRoutes.js
+6. src/models/User.js
+7. src/views/admin/dashboard.ejs
+8. src/views/admin/privacy-policy-list.ejs
+9. src/views/admin/privacy-policy-form.ejs
+10. src/views/pages/terms.ejs
+11. tests/privacy-signup-consent.test.js
+12. tests/static-pages.test.js
+13. docs/privacy_policy.md
+14. docs/wireframe.md
+15. docs/dir.md
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/admin-dashboard.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/static-pages.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/privacy-signup-consent.test.js` -> PASS
+
+## CHANGELOG - March 9, 2026 (Session: Privacy Policy System Phases 1-6 + Consent Logging)
+
+### [SESSION] SESSION UPDATE:
+- Completed privacy policy management build-out across Phases 1-6:
+  - canonical baseline lock (`docs/contents/Privacy Policy.md`)
+  - versioned `PrivacyPolicy` model and one-time seed script
+  - admin version-management workflow (list/history, draft, edit, clone, publish, archive)
+  - public `/privacy` now serves current published DB version with safe fallback
+  - CSRF and status/version guard hardening on admin policy routes
+  - signup consent logging tied to accepted privacy-policy ID/version/timestamp/IP/user-agent
+- Fixed signup organizer-status mismatch:
+  - changed invalid `incomplete` value to valid enum `not_applied`
+- Added automated consent verification test suite and passed run:
+  - `tests/privacy-signup-consent.test.js` -> 2/2 PASS
+
+### [NEW] NEW FILES:
+1. src/models/PrivacyPolicy.js
+2. src/scripts/seed-privacy-policy.js
+3. src/utils/markdown.js
+4. src/views/admin/privacy-policy-list.ejs
+5. src/views/admin/privacy-policy-form.ejs
+6. tests/privacy-signup-consent.test.js
+7. docs/privacy-policy-phase1-baseline.md
+
+### [UPDATED] UPDATED FILES (major):
+1. package.json
+2. src/routes/admin.routes.js
+3. src/controllers/admin.controller.js
+4. src/routes/pageRoutes.js
+5. src/routes/authRoutes.js
+6. src/models/User.js
+7. src/views/admin/dashboard.ejs
+8. src/views/pages/privacy.ejs
+9. src/views/admin/application-details.ejs
+10. src/views/admin/blog-review.ejs
+11. src/public/css/admin.css
+12. docs/privacy_policy.md
+13. docs/wireframe.md
+14. docs/dir.md
+
+### [REMOVED] REMOVED FILES:
+1. src/views/admin/privacy-policy-editor.ejs
+
 ## CHANGELOG - March 8, 2026 (Session: Events/My Registrations UX Follow-up + Privacy Patch)
 
 ### [SESSION] SESSION UPDATE:

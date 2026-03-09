@@ -6,6 +6,7 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
+  <button type="button" class="back-to-top static-back-to-top" id="backToTopBtn" aria-label="Back to top">&uarr;</button>
 
   <main class="static-page">
     <div class="static-wrap">
@@ -41,6 +42,26 @@
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    (function initFaqPage() {
+      const backToTopBtn = document.getElementById('backToTopBtn');
+      if (backToTopBtn) {
+        const toggleBackToTop = () => {
+          if (window.scrollY > 300) {
+            backToTopBtn.classList.add('visible');
+          } else {
+            backToTopBtn.classList.remove('visible');
+          }
+        };
+        window.addEventListener('scroll', toggleBackToTop, { passive: true });
+        backToTopBtn.addEventListener('click', () => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        toggleBackToTop();
+      }
+
+      if (window.lucide) lucide.createIcons();
+    })();
+  </script>
 </body>
 </html>

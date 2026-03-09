@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <%
+    const documentName = typeof policyDocumentName === 'string' && policyDocumentName.trim()
+      ? policyDocumentName.trim()
+      : 'Privacy Policy';
+    const managePath = typeof policyManagePath === 'string' && policyManagePath.trim()
+      ? policyManagePath.trim()
+      : '/admin/privacy-policy';
+  %>
+
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2><%= documentName %> Management</h2>
+          <p>Manage draft, published, and archived policy versions.</p>
+        </div>
+        <div class="policy-list-actions">
+          <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+          <a href="<%= `${managePath}/new` %>" class="btn">New Draft</a>
+        </div>
+      </div>
+
+      <% if (message) { %>
+        <div class="admin-alert admin-alert-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <h3 class="dashboard-section-title">Current Live Version</h3>
+      <% if (currentPolicy) { %>
+        <section class="metric-card policy-current-card">
+          <p class="metric-label">Version</p>
+          <p class="metric-value"><%= currentPolicy.versionNumber %></p>
+          <p class="metric-helper">
+            Effective: <%= currentPolicy.effectiveDate ? new Date(currentPolicy.effectiveDate).toLocaleDateString('en-US') : 'N/A' %>
+          </p>
+          <p class="metric-helper">
+            Published by: <%= currentPolicy.publishedByName || 'N/A' %>
+          </p>
+          <div class="policy-current-actions">
+            <a href="<%= `${managePath}/${currentPolicy.id}` %>" class="btn btn-secondary btn-sm">View</a>
+            <form method="POST" action="<%= `${managePath}/${currentPolicy.id}/clone` %>">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <button type="submit" class="btn btn-sm">Clone to Draft</button>
+            </form>
+          </div>
+        </section>
+      <% } else { %>
+        <div class="empty-state">
+          <p>No current published <%= documentName.toLowerCase() %> found.</p>
+          <a href="<%= `${managePath}/new` %>" class="btn">Create First Draft</a>
+        </div>
+      <% } %>
+
+      <h3 class="dashboard-section-title">Version History</h3>
+      <% if (versions && versions.length) { %>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Version</th>
+              <th>Status</th>
+              <th>Effective Date</th>
+              <th>Updated</th>
+              <th>Summary</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% versions.forEach((version) => { %>
+              <tr>
+                <td class="mono"><%= version.versionNumber %></td>
+                <td>
+                  <span class="status-badge status-badge-<%= version.status %>"><%= version.status %></span>
+                  <% if (version.isCurrent) { %>
+                    <span class="status-badge status-badge-current">current</span>
+                  <% } %>
+                </td>
+                <td><%= version.effectiveDate ? new Date(version.effectiveDate).toLocaleDateString('en-US') : '-' %></td>
+                <td><%= version.updatedAt ? new Date(version.updatedAt).toLocaleDateString('en-US') : '-' %></td>
+                <td><%= version.summaryOfChanges || '-' %></td>
+                <td>
+                  <div class="policy-row-actions">
+                    <a href="<%= `${managePath}/${version.id}` %>" class="btn btn-secondary btn-sm">View</a>
+                    <% if (version.status === 'draft') { %>
+                      <a href="<%= `${managePath}/${version.id}/edit` %>" class="btn btn-sm">Edit</a>
+                      <form method="POST" action="<%= `${managePath}/${version.id}/publish` %>">
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                        <button type="submit" class="btn btn-success btn-sm">Publish</button>
+                      </form>
+                    <% } else { %>
+                      <form method="POST" action="<%= `${managePath}/${version.id}/clone` %>">
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                        <button type="submit" class="btn btn-sm">Clone</button>
+                      </form>
+                    <% } %>
+                    <% if (!version.isCurrent && version.status !== 'archived') { %>
+                      <form method="POST" action="<%= `${managePath}/${version.id}/archive` %>" onsubmit="return confirm('Archive this version?');">
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                        <button type="submit" class="btn btn-danger btn-sm">Archive</button>
+                      </form>
+                    <% } %>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <div class="empty-state">
+          <p>No policy versions yet.</p>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>
