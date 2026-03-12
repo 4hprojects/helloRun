@@ -130,18 +130,24 @@ function setupUnlinkConfirmation() {
   const cancelBtn = modal.querySelector('[data-cancel-unlink]');
   const confirmBtn = modal.querySelector('[data-confirm-unlink]');
   let activeForm = null;
+  let lastTrigger = null;
 
   const closeModal = () => {
     modal.setAttribute('hidden', '');
     modal.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
     activeForm = null;
+    if (lastTrigger && typeof lastTrigger.focus === 'function') {
+      lastTrigger.focus();
+    }
+    lastTrigger = null;
   };
 
   openButtons.forEach((button) => {
     if (button.disabled) return;
     button.addEventListener('click', () => {
       activeForm = button.closest('form');
+      lastTrigger = button;
       modal.removeAttribute('hidden');
       modal.setAttribute('aria-hidden', 'false');
       document.body.style.overflow = 'hidden';
@@ -160,6 +166,22 @@ function setupUnlinkConfirmation() {
     if (e.target === modal) closeModal();
   });
   modal.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') {
+      const focusables = getFocusableInDialog(modal);
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+        return;
+      }
+      if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+        return;
+      }
+    }
     if (e.key === 'Escape') {
       e.preventDefault();
       closeModal();

@@ -276,7 +276,7 @@
                 <li class="item-row">
                   <div class="item-main">
                     <% if (item.type === 'group_activity') { %>
-                      <div><span class="badge badge-group">Group</span> <strong><%= item.groupName %></strong></div>
+                      <div><span class="badge badge-group activity-pill activity-group">Group</span> <strong><%= item.groupName %></strong></div>
                       <div class="item-meta"><%= item.message %></div>
                     <% } else if (item.type === 'result_submitted' || item.type === 'result_approved' || item.type === 'result_rejected' || item.type === 'certificate_issued') { %>
                       <div><span class="badge badge-result">Result</span> <strong><%= item.eventTitle %></strong></div>
@@ -374,15 +374,19 @@
           <a href="/runner/groups" class="btn btn-sm btn-outline">Manage Groups</a>
         </div>
         <div class="card-content">
-          <% const currentGroup = runningGroupFeature?.currentGroup; %>
-          <% if (currentGroup) { %>
-            <div class="current-group">
-              <div>
-                <strong><a href="/runner/groups/<%= currentGroup.slug %>"><%= currentGroup.name %></a></strong>
-                <span class="text-muted"><%= currentGroup.memberCount || 0 %> members</span>
-              </div>
-            </div>
-            <p class="text-muted">You are currently an active member of this group.</p>
+          <% const currentGroups = runningGroupFeature?.currentGroups || []; %>
+          <% if (currentGroups.length) { %>
+            <ul class="item-list compact">
+              <% currentGroups.slice(0, 3).forEach((group) => { %>
+                <li class="item-row">
+                  <div>
+                    <strong><a href="/runner/groups/<%= group.slug %>"><%= group.name %></a></strong>
+                    <span class="text-muted"><%= group.memberCount || 0 %> members</span>
+                  </div>
+                </li>
+              <% }) %>
+            </ul>
+            <p class="text-muted">You are currently a member of <strong><%= currentGroups.length %></strong> running group<%= currentGroups.length > 1 ? 's' : '' %>.</p>
           <% } else { %>
             <p class="empty-message">You are not currently in a running group.</p>
           <% } %>

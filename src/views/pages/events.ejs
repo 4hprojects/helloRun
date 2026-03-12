@@ -143,6 +143,7 @@
               status: filters?.status || 'all'
             }); %>
             <% const basePageUrl = `/events?${params.toString()}`; %>
+            <p class="results-meta">Page <%= pagination.currentPage %> of <%= pagination.totalPages %></p>
             <nav class="pagination" aria-label="Events pagination">
               <a
                 href="<%= basePageUrl %>&page=<%= Math.max(1, pagination.currentPage - 1) %>"
@@ -157,7 +158,7 @@
                   <% if (i === 1 || i === pagination.totalPages || (i >= pagination.currentPage - 1 && i <= pagination.currentPage + 1)) { %>
                     <a
                       href="<%= basePageUrl %>&page=<%= i %>"
-                      class="pagination-number <%= i === pagination.currentPage ? 'active' : '' %>"
+                      class="events-page-number<%= i === pagination.currentPage ? ' active' : '' %>"
                       <%= i === pagination.currentPage ? 'aria-current="page"' : '' %>
                     >
                       <%= i %>
