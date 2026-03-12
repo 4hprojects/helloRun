@@ -50,3 +50,6 @@ coverage/
 # Temporary files
 tmp/
 temp/
+
+# Local ops notes (do not commit private DNS/provider config)
+notes/dns-records.local.md
