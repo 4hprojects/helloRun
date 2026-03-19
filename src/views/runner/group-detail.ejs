@@ -48,8 +48,8 @@
           <% } else { %>
             <p>No group description yet.</p>
           <% } %>
-          <% if (!membership.isMember && membership.currentGroupName) { %>
-            <p class="runner-group-note">You are currently in <strong><%= membership.currentGroupName %></strong>.</p>
+          <% if (!membership.isMember && membership.currentGroupNames && membership.currentGroupNames.length) { %>
+            <p class="runner-group-note">You are currently in <strong><%= membership.currentGroupNames.join(', ') %></strong>.</p>
           <% } %>
         </div>
       </section>

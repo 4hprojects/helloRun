@@ -103,7 +103,7 @@
               </label>
               <label class="profile-form-field">
                 <span>Running Group</span>
-                <input type="text" value="<%= profileData.runningGroup || 'Not set' %>" readonly disabled>
+                <input type="text" value="<%= (profileData.runningGroups && profileData.runningGroups.length) ? profileData.runningGroups.join(', ') : (profileData.runningGroup || 'Not set') %>" readonly disabled>
               </label>
             </div>
             <div class="runner-profile-form-actions" hidden>

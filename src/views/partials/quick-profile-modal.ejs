@@ -1,0 +1,55 @@
+<div
+  class="quick-profile-modal-backdrop"
+  id="quickProfileModal"
+  data-update-endpoint="/profile/quick-update"
+  hidden
+  aria-hidden="true"
+>
+  <section class="quick-profile-modal" role="dialog" aria-modal="true" aria-labelledby="quickProfileTitle" tabindex="-1">
+    <header class="quick-profile-modal-header">
+      <div>
+        <h2 id="quickProfileTitle">Update Profile Snapshot</h2>
+        <p>Update required profile fields used for event registration.</p>
+      </div>
+    </header>
+    <form id="quickProfileForm" class="quick-profile-form" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken || '' %>">
+
+      <div class="quick-profile-grid">
+        <label class="form-group">
+          <span>First Name</span>
+          <input type="text" value="<%= formData.firstName || '' %>" readonly disabled>
+        </label>
+        <label class="form-group">
+          <span>Last Name</span>
+          <input type="text" value="<%= formData.lastName || '' %>" readonly disabled>
+        </label>
+        <label class="form-group">
+          <span>Email</span>
+          <input type="email" value="<%= formData.email || '' %>" readonly disabled>
+        </label>
+        <label class="form-group">
+          <span>Mobile *</span>
+          <input type="text" id="quickMobile" name="mobile" value="<%= formData.mobile || '' %>" required>
+          <small class="error-text" data-error-for="mobile"></small>
+        </label>
+        <label class="form-group">
+          <span>Emergency Contact Name *</span>
+          <input type="text" id="quickEmergencyName" name="emergencyContactName" value="<%= formData.emergencyContactName || '' %>" required maxlength="120">
+          <small class="error-text" data-error-for="emergencyContactName"></small>
+        </label>
+        <label class="form-group">
+          <span>Emergency Contact Number *</span>
+          <input type="text" id="quickEmergencyNumber" name="emergencyContactNumber" value="<%= formData.emergencyContactNumber || '' %>" required maxlength="25">
+          <small class="error-text" data-error-for="emergencyContactNumber"></small>
+        </label>
+      </div>
+
+      <p class="page-message page-message-error" id="quickProfileMessage" hidden></p>
+      <div class="register-actions">
+        <button type="button" class="btn btn-outline" id="quickProfileCancelBtn">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="quickProfileSaveBtn">Save Profile</button>
+      </div>
+    </form>
+  </section>
+</div>

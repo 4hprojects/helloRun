@@ -7,19 +7,20 @@
 <body>
   <%- include('../layouts/nav') %>
 
-  <main class="manage-page">
+  <main class="manage-page organizer-event-detail-page">
     <section class="manage-shell">
       <header class="manage-header">
-        <div>
+        <div class="manage-header-copy">
+          <p class="manage-eyebrow">Event Workspace</p>
           <h1><%= event.title %></h1>
           <p>Event details and configuration snapshot.</p>
         </div>
         <div class="header-actions">
-          <a href="/organizer/events" class="btn btn-secondary">Back to Events</a>
+          <a href="/organizer/events" class="nav-login-btn detail-nav-btn">Back to Events</a>
           <% if (event.status !== 'closed') { %>
-            <a href="/organizer/events/<%= event._id %>/edit" class="btn">Edit Event</a>
+            <a href="/organizer/events/<%= event._id %>/edit" class="nav-signup-btn detail-nav-btn">Edit Event</a>
           <% } %>
-          <a href="/organizer/events/<%= event._id %>/registrants" class="btn btn-secondary">View Registrants</a>
+          <a href="/organizer/events/<%= event._id %>/registrants" class="nav-login-btn detail-nav-btn">View Registrants</a>
         </div>
       </header>
 
@@ -138,8 +139,8 @@
           <p><strong>Organizer:</strong> <%= event.organiserName || 'helloRun Organizer' %></p>
           <p><strong>Public Event Page:</strong> <code><%= publicEventPath %></code></p>
           <div class="record-actions">
-            <button type="button" class="btn btn-secondary btn-sm copy-btn" data-copy-text="<%= eventReferenceCode %>">Copy Reference Code</button>
-            <button type="button" class="btn btn-secondary btn-sm copy-btn" data-copy-path="<%= publicEventPath %>">Copy Event Link</button>
+            <button type="button" class="nav-login-btn detail-copy-btn copy-btn" data-copy-text="<%= eventReferenceCode %>">Copy Reference Code</button>
+            <button type="button" class="nav-login-btn detail-copy-btn copy-btn" data-copy-path="<%= publicEventPath %>">Copy Event Link</button>
           </div>
           <details class="technical-details">
             <summary>Technical details</summary>
@@ -157,14 +158,14 @@
           <% if (event.status === 'draft') { %>
             <form method="POST" action="/organizer/events/<%= event._id %>/status" onsubmit="return confirm('Publish this event now?');">
               <input type="hidden" name="nextStatus" value="published">
-              <button type="submit" class="btn">Publish Event</button>
+              <button type="submit" class="nav-signup-btn detail-status-btn">Publish Event</button>
             </form>
           <% } %>
 
           <% if (event.status === 'published') { %>
             <form method="POST" action="/organizer/events/<%= event._id %>/status" onsubmit="return confirm('Close this event? This action is final in current flow.');">
               <input type="hidden" name="nextStatus" value="closed">
-              <button type="submit" class="btn btn-secondary">Close Event</button>
+              <button type="submit" class="nav-login-btn detail-status-btn">Close Event</button>
             </form>
           <% } %>
 

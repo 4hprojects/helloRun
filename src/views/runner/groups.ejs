@@ -30,18 +30,23 @@
         <h2><i data-lucide="users"></i> Group Overview</h2>
       </div>
       <div class="card-content card-content-list">
-        <% if (runningGroups.currentGroup) { %>
-          <div class="current-group">
-            <div>
-              <strong><a href="/runner/groups/<%= runningGroups.currentGroup.slug %>"><%= runningGroups.currentGroup.name %></a></strong>
-              <span class="text-muted"><%= runningGroups.currentGroup.memberCount || 0 %> members</span>
-            </div>
-            <form method="POST" action="/runner/groups/leave">
-              <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
-              <input type="hidden" name="returnTo" value="/runner/groups">
-              <button type="submit" class="btn btn-sm btn-outline-danger">Leave</button>
-            </form>
-          </div>
+        <% if (runningGroups.currentGroups && runningGroups.currentGroups.length) { %>
+          <ul class="item-list compact">
+            <% runningGroups.currentGroups.forEach((group) => { %>
+              <li class="item-row">
+                <div>
+                  <strong><a href="/runner/groups/<%= group.slug %>"><%= group.name %></a></strong>
+                  <span class="text-muted"><%= group.memberCount || 0 %> members</span>
+                </div>
+                <form method="POST" action="/runner/groups/leave">
+                  <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+                  <input type="hidden" name="groupId" value="<%= group._id %>">
+                  <input type="hidden" name="returnTo" value="/runner/groups">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">Leave</button>
+                </form>
+              </li>
+            <% }) %>
+          </ul>
         <% } else { %>
           <p class="empty-message">You are not currently in a running group.</p>
         <% } %>
@@ -141,4 +146,3 @@
   </script>
 </body>
 </html>
-

@@ -7,16 +7,17 @@
 <body>
   <%- include('../layouts/nav') %>
 
-  <main class="manage-page">
+  <main class="manage-page organizer-event-preview-page">
     <section class="manage-shell">
       <header class="manage-header">
-        <div>
+        <div class="manage-header-copy">
+          <p class="manage-eyebrow">Event Workspace</p>
           <h1>Event Preview</h1>
           <p>Preview only. This event has not been saved yet.</p>
         </div>
         <div class="header-actions">
-          <a href="/organizer/create-event" class="btn btn-secondary">Back to Create</a>
-          <button type="button" class="btn" onclick="window.close()">Close Preview</button>
+          <a href="/organizer/create-event" class="nav-login-btn preview-nav-btn">Back to Create</a>
+          <button type="button" class="nav-signup-btn preview-nav-btn" onclick="window.close()">Close Preview</button>
         </div>
       </header>
 

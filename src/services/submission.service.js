@@ -20,7 +20,8 @@ async function createSubmission({
   runLocation,
   proofType,
   proof,
-  proofNotes
+  proofNotes,
+  ocrData
 }) {
   const registration = await getEligibleRunnerRegistration({ registrationId, runnerId });
   const existing = await Submission.findOne({ registrationId: registration._id }).select('status').lean();
@@ -39,7 +40,8 @@ async function createSubmission({
     proofType,
     proof,
     proofNotes,
-    submissionCount: 1
+    submissionCount: 1,
+    ocrData
   }));
 }
 
@@ -52,7 +54,8 @@ async function resubmitSubmission({
   runLocation,
   proofType,
   proof,
-  proofNotes
+  proofNotes,
+  ocrData
 }) {
   const registration = await getEligibleRunnerRegistration({ registrationId, runnerId });
   const existing = await Submission.findOne({ registrationId: registration._id });
@@ -74,7 +77,8 @@ async function resubmitSubmission({
     proofType,
     proof,
     proofNotes,
-    submissionCount: Number(existing.submissionCount || 1) + 1
+    submissionCount: Number(existing.submissionCount || 1) + 1,
+    ocrData
   });
 
   existing.distanceKm = payload.distanceKm;
@@ -84,6 +88,7 @@ async function resubmitSubmission({
   existing.proofType = payload.proofType;
   existing.proof = payload.proof;
   existing.proofNotes = payload.proofNotes;
+  existing.ocrData = payload.ocrData;
   existing.status = 'submitted';
   existing.submissionCount = payload.submissionCount;
   existing.submittedAt = payload.submittedAt;
@@ -415,6 +420,7 @@ function buildSubmissionPayload(registration, input) {
     proofType: sanitizeProofType(input.proofType),
     proof: sanitizeProof(input.proof),
     proofNotes: String(input.proofNotes || '').trim().slice(0, 1200),
+    ocrData: sanitizeOcrData(input.ocrData),
     status: 'submitted',
     submissionCount: Number(input.submissionCount || 1),
     submittedAt: new Date()
@@ -451,6 +457,34 @@ function sanitizeNumber(value, min, max, errorMessage) {
     throw new Error(errorMessage);
   }
   return numeric;
+}
+
+function sanitizeOcrData(value) {
+  if (!value || typeof value !== 'object') {
+    return {
+      extractedDistanceKm: null,
+      extractedTimeMs: null,
+      rawText: '',
+      confidence: 0,
+      distanceMismatch: false,
+      timeMismatch: false
+    };
+  }
+
+  const distKm = Number(value.extractedDistanceKm);
+  const timeMs = Number(value.extractedTimeMs);
+
+  return {
+    extractedDistanceKm: Number.isFinite(distKm) && distKm > 0 && distKm <= 1000 ? distKm : null,
+    extractedTimeMs: Number.isFinite(timeMs) && timeMs > 0 && timeMs <= 7 * 24 * 60 * 60 * 1000 ? timeMs : null,
+    rawText: String(value.rawText || '').slice(0, 2000),
+    confidence: (() => {
+      const c = Number(value.confidence);
+      return Number.isFinite(c) && c >= 0 && c <= 1 ? Math.round(c * 100) / 100 : 0;
+    })(),
+    distanceMismatch: Boolean(value.distanceMismatch),
+    timeMismatch: Boolean(value.timeMismatch)
+  };
 }
 
 function sanitizeRunDate(value) {

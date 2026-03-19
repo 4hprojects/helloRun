@@ -351,3 +351,151 @@
     padding: 2.2rem 2rem 1.1rem;
   }
 }
+
+/* ==========================================
+   Organizer Event Detail Page (Scoped)
+   ========================================== */
+.organizer-event-detail-page .manage-shell {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.organizer-event-detail-page .manage-header {
+  background: #fff;
+  border: 1px solid #dbe4ee;
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.organizer-event-detail-page .manage-eyebrow {
+  margin: 0;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.organizer-event-detail-page .manage-header h1 {
+  margin: 0.26rem 0 0;
+  color: #0f172a;
+}
+
+.organizer-event-detail-page .header-actions {
+  gap: 0.42rem;
+}
+
+.organizer-event-detail-page .detail-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50px;
+  font-size: 0.88rem;
+  line-height: 1;
+}
+
+.organizer-event-detail-page .detail-grid {
+  gap: 0.9rem;
+}
+
+.organizer-event-detail-page .detail-card {
+  background: #fff;
+  border: 1px solid #dbe4ee;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.organizer-event-detail-page .record-actions {
+  gap: 0.45rem;
+}
+
+.organizer-event-detail-page .detail-copy-btn {
+  border-radius: 50px;
+  font-size: 0.8rem;
+  padding: 0.36rem 0.72rem;
+}
+
+.organizer-event-detail-page .status-panel {
+  margin-top: 0.95rem;
+  border-color: #dbe4ee;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.organizer-event-detail-page .detail-status-btn {
+  border-radius: 50px;
+  font-size: 0.88rem;
+}
+
+@media (max-width: 768px) {
+  .organizer-event-detail-page .detail-nav-btn,
+  .organizer-event-detail-page .detail-copy-btn,
+  .organizer-event-detail-page .detail-status-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ==========================================
+   Organizer Event Preview Page (Scoped)
+   ========================================== */
+.organizer-event-preview-page .manage-shell {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.organizer-event-preview-page .manage-header {
+  background: #fff;
+  border: 1px solid #dbe4ee;
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.organizer-event-preview-page .manage-eyebrow {
+  margin: 0;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.organizer-event-preview-page .manage-header h1 {
+  margin: 0.26rem 0 0;
+  color: #0f172a;
+}
+
+.organizer-event-preview-page .header-actions {
+  gap: 0.42rem;
+}
+
+.organizer-event-preview-page .preview-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50px;
+  font-size: 0.88rem;
+  line-height: 1;
+}
+
+.organizer-event-preview-page .detail-grid {
+  gap: 0.9rem;
+}
+
+.organizer-event-preview-page .detail-card {
+  background: #fff;
+  border: 1px solid #dbe4ee;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+@media (max-width: 768px) {
+  .organizer-event-preview-page .preview-nav-btn {
+    width: 100%;
+    text-align: center;
+  }
+}

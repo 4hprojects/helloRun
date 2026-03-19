@@ -7,7 +7,7 @@
 <body>
   <%- include('../layouts/nav') %>
 
-  <main class="events-page">
+  <main class="events-page organizer-registrants-page">
     <section class="events-shell">
       <header class="events-header">
         <div>
@@ -15,17 +15,17 @@
           <p>View participants registered for this event.</p>
         </div>
         <div class="header-actions">
-          <a href="/organizer/events/<%= event._id %>/registrants/export<%= exportQuery ? `?${exportQuery}` : '' %>" class="btn">
+          <a href="/organizer/events/<%= event._id %>/registrants/export<%= exportQuery ? `?${exportQuery}` : '' %>" class="nav-login-btn registrant-header-btn">
             Export CSV
           </a>
-          <a href="/organizer/events/<%= event._id %>/registrants/export-xlsx<%= exportQuery ? `?${exportQuery}` : '' %>" class="btn">
+          <a href="/organizer/events/<%= event._id %>/registrants/export-xlsx<%= exportQuery ? `?${exportQuery}` : '' %>" class="nav-login-btn registrant-header-btn">
             Export XLSX
           </a>
           <% if (isAdminViewer) { %>
-            <a href="/admin/dashboard" class="btn btn-secondary">Admin Dashboard</a>
+            <a href="/admin/dashboard" class="nav-login-btn registrant-header-btn">Admin Dashboard</a>
           <% } else { %>
-            <a href="/organizer/events/<%= event._id %>" class="btn btn-secondary">Back to Event</a>
-            <a href="/organizer/events" class="btn btn-secondary">My Events</a>
+            <a href="/organizer/events/<%= event._id %>" class="nav-login-btn registrant-header-btn">Back to Event</a>
+            <a href="/organizer/events" class="nav-login-btn registrant-header-btn">My Events</a>
           <% } %>
         </div>
       </header>
@@ -111,8 +111,8 @@
           <option value="rejected" <%= selectedResultStatus === 'rejected' ? 'selected' : '' %>>Rejected</option>
         </select>
 
-        <button type="submit" class="btn btn-secondary">Apply</button>
-        <a href="/organizer/events/<%= event._id %>/registrants" class="btn btn-secondary">Reset</a>
+        <button type="submit" class="nav-signup-btn">Apply</button>
+        <a href="/organizer/events/<%= event._id %>/registrants" class="nav-login-btn">Reset</a>
       </form>
 
       <% if (registrations && registrations.length) { %>
@@ -188,12 +188,12 @@
                     <% if (registration.paymentStatus === 'proof_submitted') { %>
                       <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= registration._id %>/payment/approve" class="payment-action-form">
                         <textarea name="reviewNotes" rows="2" maxlength="1000" placeholder="Optional review notes"></textarea>
-                        <button type="submit" class="btn btn-sm">Approve</button>
+                        <button type="submit" class="nav-signup-btn table-action-btn">Approve</button>
                       </form>
                       <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= registration._id %>/payment/reject" class="payment-action-form">
                         <textarea name="rejectionReason" rows="2" maxlength="500" required placeholder="Required rejection reason"></textarea>
                         <textarea name="reviewNotes" rows="2" maxlength="1000" placeholder="Optional review notes"></textarea>
-                        <button type="submit" class="btn btn-secondary btn-sm">Reject</button>
+                        <button type="submit" class="nav-login-btn table-action-btn">Reject</button>
                       </form>
                     <% } else { %>
                       <% if (registration.paymentReviewedAtLabel) { %>
@@ -214,6 +214,9 @@
                   <td>
                     <% if (registration.submission) { %>
                       <span class="mode-badge mode-<%= registration.submission.status %>"><%= registration.submission.status %></span>
+                      <% if (registration.submission.ocrData && (registration.submission.ocrData.distanceMismatch || registration.submission.ocrData.timeMismatch)) { %>
+                        <span class="mode-badge mode-warning" title="OCR detected possible mismatch">&#9888; Mismatch</span>
+                      <% } %>
                       <br>
                       <small><strong>Distance:</strong> <%= Number(registration.submission.distanceKm || 0).toFixed(2) %> km</small>
                       <br>
@@ -227,6 +230,39 @@
                       <% if (registration.submission.submittedAtLabel) { %>
                         <br>
                         <small><strong>Submitted:</strong> <%= registration.submission.submittedAtLabel %></small>
+                      <% } %>
+                      <% if (registration.submission.ocrData && registration.submission.ocrData.confidence > 0) { %>
+                        <br>
+                        <details class="ocr-analysis-details">
+                          <summary><strong>OCR Analysis</strong> (confidence: <%= Math.round((registration.submission.ocrData.confidence || 0) * 100) %>%)</summary>
+                          <div class="ocr-analysis-body">
+                            <% if (registration.submission.ocrData.extractedDistanceKm != null) { %>
+                              <small><strong>Image distance:</strong> <%= Number(registration.submission.ocrData.extractedDistanceKm).toFixed(2) %> km
+                                <% if (registration.submission.ocrData.distanceMismatch) { %>
+                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs <%= Number(registration.submission.distanceKm || 0).toFixed(2) %> km entered</span>
+                                <% } else { %>
+                                  <span class="ocr-match-flag">&#10003; matches</span>
+                                <% } %>
+                              </small><br>
+                            <% } %>
+                            <% if (registration.submission.ocrData.extractedTimeMs != null) { %>
+                              <%
+                                const ocrMs = registration.submission.ocrData.extractedTimeMs;
+                                const ocrH = Math.floor(ocrMs / 3600000);
+                                const ocrM = Math.floor((ocrMs % 3600000) / 60000);
+                                const ocrS = Math.floor((ocrMs % 60000) / 1000);
+                                const ocrTimeLabel = (ocrH > 0 ? ocrH + 'h ' : '') + String(ocrM).padStart(2, '0') + 'm ' + String(ocrS).padStart(2, '0') + 's';
+                              %>
+                              <small><strong>Image time:</strong> <%= ocrTimeLabel %>
+                                <% if (registration.submission.ocrData.timeMismatch) { %>
+                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs <%= registration.submission.elapsedLabel || 'N/A' %> entered</span>
+                                <% } else { %>
+                                  <span class="ocr-match-flag">&#10003; matches</span>
+                                <% } %>
+                              </small><br>
+                            <% } %>
+                          </div>
+                        </details>
                       <% } %>
                     <% } else { %>
                       <small>No submission</small>
@@ -243,12 +279,12 @@
                     <% if (registration.submission && registration.submission.status === 'submitted') { %>
                       <form method="POST" action="/organizer/events/<%= event._id %>/submissions/<%= registration.submission._id %>/approve" class="payment-action-form">
                         <textarea name="reviewNotes" rows="2" maxlength="1200" placeholder="Optional review notes"></textarea>
-                        <button type="submit" class="btn btn-sm">Approve Result</button>
+                        <button type="submit" class="nav-signup-btn table-action-btn">Approve Result</button>
                       </form>
                       <form method="POST" action="/organizer/events/<%= event._id %>/submissions/<%= registration.submission._id %>/reject" class="payment-action-form">
                         <textarea name="rejectionReason" rows="2" maxlength="500" required placeholder="Required rejection reason"></textarea>
                         <textarea name="reviewNotes" rows="2" maxlength="1200" placeholder="Optional review notes"></textarea>
-                        <button type="submit" class="btn btn-secondary btn-sm">Reject Result</button>
+                        <button type="submit" class="nav-login-btn table-action-btn">Reject Result</button>
                       </form>
                     <% } else if (registration.submission) { %>
                       <% if (registration.submission.reviewedAtLabel) { %>

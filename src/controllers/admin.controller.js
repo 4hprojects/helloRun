@@ -855,6 +855,7 @@ exports.dashboard = async (req, res) => {
       rejectedBlogs,
       archivedBlogs,
       totalEvents,
+      draftEvents,
       publishedEvents,
       totalRegistrations,
       pendingPaymentReviews,
@@ -862,6 +863,7 @@ exports.dashboard = async (req, res) => {
       approvedSubmissions,
       pendingResultReviews,
       pendingApplicationQueue,
+      draftEventQueue,
       pendingResultEvent
     ] =
       await Promise.all([
@@ -876,6 +878,7 @@ exports.dashboard = async (req, res) => {
         Blog.countDocuments({ isDeleted: { $ne: true }, status: 'rejected' }),
         Blog.countDocuments({ isDeleted: { $ne: true }, status: 'archived' }),
         Event.countDocuments(),
+        Event.countDocuments({ status: 'draft' }),
         Event.countDocuments({ status: 'published' }),
         Registration.countDocuments(),
         Registration.countDocuments({ paymentStatus: 'proof_submitted' }),
@@ -886,6 +889,12 @@ exports.dashboard = async (req, res) => {
           .populate('userId', 'firstName lastName email')
           .sort({ submittedAt: 1 })
           .limit(8)
+          .lean(),
+        Event.find({ status: 'draft' })
+          .populate('organizerId', 'firstName lastName email')
+          .sort({ updatedAt: -1, createdAt: -1 })
+          .limit(8)
+          .select('title status updatedAt createdAt eventStartAt organizerId')
           .lean(),
         Submission.findOne({ status: 'submitted' })
           .sort({ submittedAt: -1, createdAt: -1 })
@@ -905,6 +914,15 @@ exports.dashboard = async (req, res) => {
     const pendingResultReviewHref = pendingResultEvent?.eventId
       ? `/organizer/events/${String(pendingResultEvent.eventId)}/registrants?result=submitted`
       : '';
+    const draftEventsList = draftEventQueue.map((event) => ({
+      id: String(event._id),
+      title: event.title || 'Untitled event',
+      status: event.status || 'draft',
+      updatedAt: event.updatedAt || event.createdAt || null,
+      eventStartAt: event.eventStartAt || null,
+      organizerName: [event.organizerId?.firstName, event.organizerId?.lastName].filter(Boolean).join(' ').trim() || 'N/A',
+      organizerEmail: event.organizerId?.email || 'N/A'
+    }));
 
     return res.render('admin/dashboard', {
       title: 'Admin Dashboard - helloRun',
@@ -920,6 +938,7 @@ exports.dashboard = async (req, res) => {
         rejectedBlogs,
         archivedBlogs,
         totalEvents,
+        draftEvents,
         publishedEvents,
         totalRegistrations,
         pendingPaymentReviews,
@@ -928,7 +947,8 @@ exports.dashboard = async (req, res) => {
         pendingResultReviews,
         pendingResultReviewHref
       },
-      pendingApplicationsList
+      pendingApplicationsList,
+      draftEventsList
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading the admin dashboard.');

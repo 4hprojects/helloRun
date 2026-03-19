@@ -71,11 +71,12 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const rangeWindow = getOrganizerDashboardRangeWindow(dashboardRange, now);
     const eventQuery = { organizerId: user._id };
 
-    const [totalEvents, activeEvents, upcomingEvents, recentEventDocs, organizerEventIdDocs] = await Promise.all([
+    const [totalEvents, activeEvents, upcomingEvents, recentEventDocs, draftEventDocs, organizerEventIdDocs] = await Promise.all([
       Event.countDocuments(eventQuery),
       Event.countDocuments({ ...eventQuery, status: 'published', eventEndAt: { $gte: now } }),
       Event.countDocuments({ ...eventQuery, status: 'published', eventStartAt: { $gt: now } }),
       Event.find(eventQuery).sort({ createdAt: -1 }).limit(5),
+      Event.find({ ...eventQuery, status: 'draft' }).sort({ updatedAt: -1, createdAt: -1 }).limit(5).lean(),
       Event.find(eventQuery).select('_id').lean()
     ]);
 
@@ -205,6 +206,12 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       bannerImageUrl: event.bannerImageUrl || '',
       logoUrl: event.logoUrl || ''
     }));
+    const draftEvents = draftEventDocs.map((event) => ({
+      id: String(event._id),
+      name: event.title || 'Untitled event',
+      updatedAt: event.updatedAt || event.createdAt || null,
+      eventStartAt: event.eventStartAt || null
+    }));
 
     const queueByEventId = new Map();
     for (const item of paymentQueueCounts) {
@@ -319,6 +326,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
           pending: topPendingQueue
         }
       },
+      draftEvents,
       recentEvents,
       quickActions: [
         {
@@ -621,7 +629,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
     }
     const submissions = registrationIds.length
       ? await Submission.find(submissionFilter)
-        .select('registrationId status distanceKm elapsedMs runDate runLocation proofType proof submittedAt reviewedAt reviewedBy reviewNotes rejectionReason')
+        .select('registrationId status distanceKm elapsedMs runDate runLocation proofType proof submittedAt reviewedAt reviewedBy reviewNotes rejectionReason ocrData')
         .lean()
       : [];
     const submissionsByRegistrationId = new Map(
@@ -2142,7 +2150,29 @@ function normalizeRaceDistances(presetValues, customDistancesRaw) {
   const customDistances = String(customDistancesRaw || '')
     .split(',')
     .map((item) => normalizeRaceDistanceLabel(item));
-  return Array.from(new Set([...presetDistances, ...customDistances].filter(Boolean)));
+  return sortRaceDistancesDesc(Array.from(new Set([...presetDistances, ...customDistances].filter(Boolean))));
+}
+
+function sortRaceDistancesDesc(values = []) {
+  const toNumericDistance = (value) => {
+    const match = String(value || '').toUpperCase().match(/^(\d+(?:\.\d+)?)(K|KM|MI|M)?$/);
+    if (!match) return Number.NEGATIVE_INFINITY;
+    const amount = Number.parseFloat(match[1]);
+    if (!Number.isFinite(amount)) return Number.NEGATIVE_INFINITY;
+    const unit = match[2] || 'K';
+    if (unit === 'MI' || unit === 'M') {
+      return amount * 1.60934;
+    }
+    return amount;
+  };
+
+  return values
+    .slice()
+    .sort((a, b) => {
+      const diff = toNumericDistance(b) - toNumericDistance(a);
+      if (diff !== 0) return diff;
+      return String(b || '').localeCompare(String(a || ''), undefined, { numeric: true, sensitivity: 'base' });
+    });
 }
 
 function normalizeGalleryImageUrls(rawValue) {
@@ -2598,8 +2628,9 @@ function validateCreateEventForm(formData) {
   if (eventStartAt && eventEndAt && eventStartAt >= eventEndAt) {
     errors.eventEndAt = 'Event end must be after event start.';
   }
-  if (registrationCloseAt && eventStartAt && registrationCloseAt > eventStartAt) {
-    errors.registrationCloseAt = 'Registration close must be on/before event start.';
+  const isVirtualOnly = formData.eventType === 'virtual';
+  if (!isVirtualOnly && registrationCloseAt && eventStartAt && registrationCloseAt > eventStartAt) {
+    errors.registrationCloseAt = 'Registration close must be on/before event start (virtual events may extend registration past the start date).';
   }
 
   const needsOnsiteFields = formData.eventType === 'onsite' || formData.eventType === 'hybrid';

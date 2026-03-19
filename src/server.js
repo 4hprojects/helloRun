@@ -9,6 +9,12 @@ const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 const { attachCsrfToken } = require('./middleware/csrf.middleware');
 
+// Fail fast if critical env vars are missing
+if (!process.env.SESSION_SECRET) {
+  console.error('FATAL: SESSION_SECRET environment variable is not set. Refusing to start.');
+  process.exit(1);
+}
+
 // ===== STEP 1: MIDDLEWARE (MUST BE FIRST) =====
 console.log('Loading middleware...');
 
@@ -22,12 +28,30 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  res.setHeader(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com blob:",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data: https: blob:",
+      "connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://cdn.jsdelivr.net",
+      "worker-src 'self' blob:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'"
+    ].join('; ')
+  );
+  if (isProduction) {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
   next();
 });
 
 // Body parser BEFORE routes
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: false }));
 
 // Optional dev request-body debug logging
 if (!isProduction && process.env.DEBUG_HTTP_BODIES === '1') {
@@ -60,7 +84,7 @@ mongoose.connect(process.env.MONGODB_URI)
 // ===== STEP 4: SESSION =====
 app.use(session({
   name: 'hr.sid',
-  secret: process.env.SESSION_SECRET || 'your-secret-key',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
@@ -95,6 +119,11 @@ app.use('/', runnerRoutes);
 app.use('/', blogRoutes);
 app.use('/organizer', organizerRoutes);
 app.use('/admin', adminRoutes);
+
+// Chrome DevTools occasionally probes this path; return empty success to avoid noisy 404 logs.
+app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => {
+  res.status(204).set('Cache-Control', 'no-store').end();
+});
 
 // ===== STEP 6: 404 HANDLER (LAST) =====
 app.use((req, res) => {

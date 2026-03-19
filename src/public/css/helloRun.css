@@ -79,6 +79,10 @@ h1, h2, h3 {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
+.hero::before {
+  pointer-events: none;
+}
+
 .hero-container {
   display: flex;
   align-items: center;
@@ -136,7 +140,16 @@ h1, h2, h3 {
 .hero-visual {
   flex: 1 1 300px;
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  gap: 1rem;
+  position: relative;
+  z-index: 2;
+}
+
+.hero-log-run-btn {
+  width: fit-content;
 }
 
 .visual-placeholder {
@@ -522,6 +535,11 @@ h1, h2, h3 {
     width: 100%;
     max-width: 320px;
     text-align: center;
+  }
+
+  .hero-log-run-btn {
+    width: 100%;
+    max-width: 280px;
   }
 
   .visual-placeholder {

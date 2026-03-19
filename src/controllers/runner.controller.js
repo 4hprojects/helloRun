@@ -7,6 +7,7 @@ const {
   searchRunningGroups,
   getTopRunningGroups,
   getCurrentRunnerGroup,
+  getCurrentRunnerGroups,
   getRunningGroupBySlug,
   getRunningGroupActivity,
   getRecentRunnerGroupActivity,
@@ -32,11 +33,11 @@ exports.getDashboard = async (req, res) => {
 
     const groupQuery = String(req.query.groupQ || '').trim().slice(0, 80);
     const dashboardFilters = getDashboardFilters(req.query);
-    const [registrations, topGroups, searchedGroups, currentRunningGroup, recentGroupActivity, performanceSnapshot] = await Promise.all([
+    const [registrations, topGroups, searchedGroups, currentRunningGroups, recentGroupActivity, performanceSnapshot] = await Promise.all([
       getRunnerRegistrations(user._id),
       getTopRunningGroups(8),
       groupQuery ? searchRunningGroups(groupQuery, { limit: 10 }) : Promise.resolve([]),
-      getCurrentRunnerGroup(user),
+      getCurrentRunnerGroups(user),
       getRecentRunnerGroupActivity(user, 4),
       getRunnerPerformanceSnapshot(user._id, {
         recentLimit: 8,
@@ -68,7 +69,8 @@ exports.getDashboard = async (req, res) => {
         query: groupQuery,
         searchResults: searchedGroups,
         topGroups,
-        currentGroup: currentRunningGroup
+        currentGroup: currentRunningGroups[0] || null,
+        currentGroups: currentRunningGroups
       },
       profileCompleteness,
       dashboardFilters,
@@ -125,10 +127,10 @@ exports.updateProfile = async (req, res) => {
     const dashboardFilters = getDashboardFilters(req.query);
 
     if (Object.keys(errors).length > 0) {
-      const [registrations, topGroups, currentRunningGroup, recentGroupActivity, performanceSnapshot] = await Promise.all([
+      const [registrations, topGroups, currentRunningGroups, recentGroupActivity, performanceSnapshot] = await Promise.all([
         getRunnerRegistrations(user._id),
         getTopRunningGroups(8),
-        getCurrentRunnerGroup(user),
+        getCurrentRunnerGroups(user),
         getRecentRunnerGroupActivity(user, 4),
         getRunnerPerformanceSnapshot(user._id, {
           recentLimit: 8,
@@ -160,7 +162,8 @@ exports.updateProfile = async (req, res) => {
           query: '',
           searchResults: [],
           topGroups,
-          currentGroup: currentRunningGroup
+          currentGroup: currentRunningGroups[0] || null,
+          currentGroups: currentRunningGroups
         },
         profileCompleteness,
         dashboardFilters,
@@ -204,7 +207,9 @@ exports.updateProfile = async (req, res) => {
     user.gender = formData.gender;
     user.emergencyContactName = formData.emergencyContactName;
     user.emergencyContactNumber = formData.emergencyContactNumber;
-    user.runningGroup = formData.runningGroup;
+    const sanitizedGroups = normalizeRunnerGroupValues(formData.runningGroups);
+    user.runningGroups = sanitizedGroups;
+    user.runningGroup = sanitizedGroups[0] || '';
     await user.save();
 
     return res.redirect('/runner/dashboard?type=success&msg=Profile%20updated%20successfully.');
@@ -447,13 +452,14 @@ exports.getCreateRunningGroupPage = async (req, res) => {
       return res.redirect('/login');
     }
 
-    const currentGroup = await getCurrentRunnerGroup(user);
+    const currentGroups = await getCurrentRunnerGroups(user);
     return res.render('runner/create-group', {
       title: 'Create Running Group - helloRun',
       user,
       userName: user.firstName,
       message: getRunnerProfileMessage(req.query),
-      currentGroup
+      currentGroup: currentGroups[0] || null,
+      currentGroups
     });
   } catch (error) {
     console.error('Create running group page load error:', error);
@@ -473,8 +479,8 @@ exports.getRunningGroupsPage = async (req, res) => {
     }
 
     const query = String(req.query.q || '').trim().slice(0, 80);
-    const [currentGroup, topGroups, searchResults] = await Promise.all([
-      getCurrentRunnerGroup(user),
+    const [currentGroups, topGroups, searchResults] = await Promise.all([
+      getCurrentRunnerGroups(user),
       getTopRunningGroups(10),
       query ? searchRunningGroups(query, { limit: 12 }) : Promise.resolve([])
     ]);
@@ -486,7 +492,8 @@ exports.getRunningGroupsPage = async (req, res) => {
       message: getRunnerProfileMessage(req.query),
       runningGroups: {
         query,
-        currentGroup,
+        currentGroup: currentGroups[0] || null,
+        currentGroups,
         topGroups,
         searchResults
       }
@@ -529,10 +536,11 @@ exports.leaveRunningGroup = async (req, res) => {
     }
 
     const returnTo = getSafeRunnerReturnTo(req.body.returnTo);
-    const result = await leaveRunningGroupService({ user });
+    const groupId = String(req.body.groupId || '').trim();
+    const result = await leaveRunningGroupService({ user, groupId });
     const message = result.hadGroup
-      ? 'You left your running group.'
-      : 'You are not currently in a running group.';
+      ? 'Running group membership updated.'
+      : 'You are not currently in that running group.';
     return res.redirect(`${returnTo}?type=success&msg=${encodeURIComponent(message)}`);
   } catch (error) {
     const returnTo = getSafeRunnerReturnTo(req.body.returnTo);
@@ -570,8 +578,11 @@ exports.getRunningGroupDetail = async (req, res) => {
         atLabel: formatDateTime(item.createdAt, locale)
       })),
       membership: {
-        isMember: normalizeGroupName(user.runningGroup) === normalizeGroupName(group.name),
-        currentGroupName: currentRunningGroup?.name || ''
+        isMember: normalizeRunnerGroupValues(user.runningGroups || user.runningGroup).some(
+          (name) => normalizeGroupName(name) === normalizeGroupName(group.name)
+        ),
+        currentGroupName: currentRunningGroup?.name || '',
+        currentGroupNames: normalizeRunnerGroupValues(user.runningGroups || user.runningGroup)
       }
     });
   } catch (error) {
@@ -832,6 +843,7 @@ function formatRelativeTime(value) {
 }
 
 function getRunnerProfileFormData(body = {}) {
+  const normalizedGroups = normalizeRunnerGroupValues(body.runningGroups || body.runningGroup);
   return {
     firstName: String(body.firstName || '').trim(),
     lastName: String(body.lastName || '').trim(),
@@ -841,7 +853,8 @@ function getRunnerProfileFormData(body = {}) {
     gender: String(body.gender || '').trim(),
     emergencyContactName: String(body.emergencyContactName || '').trim(),
     emergencyContactNumber: String(body.emergencyContactNumber || '').trim(),
-    runningGroup: String(body.runningGroup || '').trim()
+    runningGroups: normalizedGroups,
+    runningGroup: normalizedGroups[0] || ''
   };
 }
 
@@ -878,8 +891,15 @@ function validateRunnerProfileForm(formData) {
   if (formData.emergencyContactNumber && !/^[\d\s\-()+]{7,25}$/.test(formData.emergencyContactNumber)) {
     errors.emergencyContactNumber = 'Enter a valid emergency contact number.';
   }
-  if (formData.runningGroup.length > 120) {
-    errors.runningGroup = 'Running group must be 120 characters or less.';
+  if (!Array.isArray(formData.runningGroups)) {
+    errors.runningGroups = 'Running groups are invalid.';
+  } else {
+    if (formData.runningGroups.length > 10) {
+      errors.runningGroups = 'You can add up to 10 running groups.';
+    }
+    if (formData.runningGroups.some((item) => String(item || '').trim().length > 120)) {
+      errors.runningGroups = 'Each running group must be 120 characters or less.';
+    }
   }
 
   return errors;
@@ -891,6 +911,17 @@ function normalizeGroupName(value) {
     .toLowerCase()
     .replace(/\s+/g, ' ')
     .slice(0, 120);
+}
+
+function normalizeRunnerGroupValues(value) {
+  const asArray = Array.isArray(value) ? value : String(value || '').split(',');
+  return Array.from(
+    new Set(
+      asArray
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
+    )
+  ).slice(0, 10);
 }
 
 function mergeRunnerActivity(registrationActivity = [], groupActivity = [], submissionActivity = []) {

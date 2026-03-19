@@ -132,7 +132,7 @@
                 <input id="registrationCloseAt" name="registrationCloseAt" type="datetime-local" value="<%= formData.registrationCloseAt %>" required>
                 <button type="button" class="btn-now" data-target="registrationCloseAt">Now</button>
               </div>
-              <small class="field-hint">Local date and time</small>
+              <small class="field-hint">Local date and time. For virtual events, registration can stay open after the event starts.</small>
               <% if (errors.registrationCloseAt) { %><small class="error-text"><%= errors.registrationCloseAt %></small><% } %>
             </div>
             <div class="form-group <%= errors.eventStartAt ? 'has-error' : '' %>">

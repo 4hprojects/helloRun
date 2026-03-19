@@ -14,8 +14,9 @@ function attachCsrfToken(req, res, next) {
 }
 
 function requireCsrfProtection(req, res, next) {
-  const enforceCsrf = process.env.NODE_ENV === 'production' || process.env.CSRF_PROTECTION === '1';
-  if (!enforceCsrf) {
+  // Default ON — disable explicitly with CSRF_PROTECTION=0
+  const skipCsrf = process.env.CSRF_PROTECTION === '0';
+  if (skipCsrf) {
     return next();
   }
 

@@ -171,7 +171,7 @@ exports.getEventRegistrationForm = async (req, res) => {
     const [event, user] = await Promise.all([
       getPublishedEventBySlug(req.params.slug),
       User.findById(req.session.userId).select(
-        'firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup role organizerStatus emailVerified'
+        'firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified'
       )
     ]);
 
@@ -238,7 +238,7 @@ exports.postEventRegistration = async (req, res) => {
     const [event, user] = await Promise.all([
       getPublishedEventBySlug(req.params.slug),
       User.findById(req.session.userId).select(
-        'firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup role organizerStatus emailVerified'
+        'firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified'
       )
     ]);
 
@@ -414,6 +414,70 @@ exports.postEventRegistration = async (req, res) => {
       title: 'Server Error',
       status: 500,
       message: 'An error occurred while submitting your registration.'
+    });
+  }
+};
+
+exports.postQuickProfileUpdate = async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select(
+      'firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups'
+    );
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required.'
+      });
+    }
+
+    const payload = getQuickProfileUpdatePayload(req.body);
+    const errors = validateQuickProfileUpdatePayload(payload);
+    if (Object.keys(errors).length > 0) {
+      return res.status(400).json({
+        success: false,
+        errors
+      });
+    }
+
+    user.mobile = payload.mobile;
+    if (payload.hasCountryInput) {
+      user.country = payload.country;
+    }
+    if (payload.dateOfBirth) {
+      user.dateOfBirth = new Date(`${payload.dateOfBirth}T00:00:00.000Z`);
+    }
+    if (payload.gender) {
+      user.gender = payload.gender;
+    }
+    user.emergencyContactName = payload.emergencyContactName;
+    user.emergencyContactNumber = payload.emergencyContactNumber;
+    if (payload.hasRunningGroupsInput) {
+      user.runningGroups = payload.runningGroups;
+      user.runningGroup = payload.runningGroups[0] || '';
+    }
+    await user.save();
+
+    return res.json({
+      success: true,
+      profile: {
+        firstName: String(user.firstName || '').trim(),
+        lastName: String(user.lastName || '').trim(),
+        email: String(user.email || '').trim().toLowerCase(),
+        mobile: payload.mobile,
+        country: String(user.country || '').trim(),
+        countryName: getCountryName(user.country) || user.country,
+        dateOfBirth: formatDateForInput(user.dateOfBirth),
+        gender: String(user.gender || '').trim(),
+        emergencyContactName: payload.emergencyContactName,
+        emergencyContactNumber: payload.emergencyContactNumber,
+        runningGroups: normalizeRunnerGroups(user.runningGroups || user.runningGroup)
+      }
+    });
+  } catch (error) {
+    console.error('Quick profile update error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to update profile right now.'
     });
   }
 };
@@ -708,6 +772,8 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     const proofType = normalizeProofType(req.body.proofType);
     const proofNotes = String(req.body.proofNotes || '').trim().slice(0, 1200);
 
+    const ocrData = parseOcrData(req.body, distanceKm, elapsedMs);
+
     const uploadedProof = await uploadService.uploadResultProofToR2({
       userId: user._id,
       resultProofFile
@@ -728,7 +794,8 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         mimeType: resultProofFile.mimetype || '',
         size: Number(resultProofFile.size || 0)
       },
-      proofNotes
+      proofNotes,
+      ocrData
     };
 
     if (options.mode === 'resubmit') {
@@ -1048,6 +1115,41 @@ function parseRunLocation(value) {
   return safe;
 }
 
+function parseOcrData(body, formDistanceKm, formElapsedMs) {
+  const rawDistance = Number(body.ocrDistance);
+  const rawTime = Number(body.ocrTime);
+  const rawConfidence = Number(body.ocrConfidence);
+
+  const extractedDistanceKm = Number.isFinite(rawDistance) && rawDistance > 0 && rawDistance <= 1000 ? rawDistance : null;
+  const extractedTimeMs = Number.isFinite(rawTime) && rawTime > 0 && rawTime <= 7 * 24 * 60 * 60 * 1000 ? rawTime : null;
+  const confidence = Number.isFinite(rawConfidence) && rawConfidence >= 0 && rawConfidence <= 1 ? Math.round(rawConfidence * 100) / 100 : 0;
+  const rawText = String(body.ocrRawText || '').slice(0, 2000);
+
+  // Recompute mismatch flags server-side (don't trust client values)
+  let distanceMismatch = false;
+  let timeMismatch = false;
+
+  if (extractedDistanceKm !== null && Number.isFinite(formDistanceKm) && formDistanceKm > 0) {
+    const distDiff = Math.abs(extractedDistanceKm - formDistanceKm);
+    const threshold = Math.max(formDistanceKm * 0.1, 0.5);
+    distanceMismatch = distDiff > threshold;
+  }
+
+  if (extractedTimeMs !== null && Number.isFinite(formElapsedMs) && formElapsedMs > 0) {
+    const timeDiff = Math.abs(extractedTimeMs - formElapsedMs);
+    timeMismatch = timeDiff > 60000;
+  }
+
+  return {
+    extractedDistanceKm,
+    extractedTimeMs,
+    rawText,
+    confidence,
+    distanceMismatch,
+    timeMismatch
+  };
+}
+
 function normalizeBlogCategory(input) {
   const value = String(input || '').trim();
   return BLOG_CATEGORIES.includes(value) ? value : '';
@@ -1113,6 +1215,7 @@ function shouldTrackBlogView({ currentUser, postAuthorId }) {
 }
 
 function getRegistrationFormData(body = {}) {
+  const runningGroups = normalizeRunnerGroups(body.runningGroups || body.runningGroup);
   return {
     firstName: String(body.firstName || '').trim(),
     lastName: String(body.lastName || '').trim(),
@@ -1123,12 +1226,83 @@ function getRegistrationFormData(body = {}) {
     gender: String(body.gender || '').trim(),
     emergencyContactName: String(body.emergencyContactName || '').trim(),
     emergencyContactNumber: String(body.emergencyContactNumber || '').trim(),
-    runningGroup: String(body.runningGroup || '').trim(),
+    runningGroups,
+    runningGroup: runningGroups[0] || '',
     participationMode: String(body.participationMode || '').trim(),
     raceDistance: String(body.raceDistance || '').trim().toUpperCase(),
     waiverAccepted: body.waiverAccepted === '1' || body.waiverAccepted === 'true' || body.waiverAccepted === true || body.waiverAccepted === 'on',
     waiverSignature: String(body.waiverSignature || '').trim()
   };
+}
+
+function getQuickProfileUpdatePayload(body = {}) {
+  const hasCountryInput = Object.prototype.hasOwnProperty.call(body, 'country');
+  const hasRunningGroupsInput = Object.prototype.hasOwnProperty.call(body, 'runningGroups')
+    || Object.prototype.hasOwnProperty.call(body, 'runningGroupsText')
+    || Object.prototype.hasOwnProperty.call(body, 'runningGroup');
+  return {
+    mobile: String(body.mobile || '').trim(),
+    country: normalizeCountryCode(body.country),
+    dateOfBirth: formatDateForInput(body.dateOfBirth),
+    gender: String(body.gender || '').trim(),
+    emergencyContactName: String(body.emergencyContactName || '').trim(),
+    emergencyContactNumber: String(body.emergencyContactNumber || '').trim(),
+    runningGroups: normalizeRunnerGroups(body.runningGroups || body.runningGroupsText || body.runningGroup),
+    hasCountryInput,
+    hasRunningGroupsInput
+  };
+}
+
+function validateQuickProfileUpdatePayload(payload) {
+  const errors = {};
+  const allowedGenderValues = new Set(['male', 'female', 'non_binary', 'prefer_not_to_say']);
+
+  if (!payload.mobile) {
+    errors.mobile = 'Mobile is required.';
+  } else if (!/^[\d\s\-()+]{7,25}$/.test(payload.mobile)) {
+    errors.mobile = 'Enter a valid mobile number.';
+  }
+
+  if (payload.hasCountryInput) {
+    if (!payload.country) {
+      errors.country = 'Country is required.';
+    } else if (!isValidCountryCode(payload.country)) {
+      errors.country = 'Select a valid country.';
+    }
+  }
+
+  if (payload.dateOfBirth) {
+    const dobDate = new Date(`${payload.dateOfBirth}T00:00:00.000Z`);
+    if (Number.isNaN(dobDate.getTime())) {
+      errors.dateOfBirth = 'Enter a valid date of birth.';
+    } else if (dobDate > new Date()) {
+      errors.dateOfBirth = 'Date of birth cannot be in the future.';
+    }
+  }
+
+  if (payload.gender && !allowedGenderValues.has(payload.gender)) {
+    errors.gender = 'Select a valid gender option.';
+  }
+
+  if (!payload.emergencyContactName) {
+    errors.emergencyContactName = 'Emergency contact name is required.';
+  } else if (payload.emergencyContactName.length > 120) {
+    errors.emergencyContactName = 'Emergency contact name must be 120 characters or less.';
+  }
+
+  if (!payload.emergencyContactNumber) {
+    errors.emergencyContactNumber = 'Emergency contact number is required.';
+  } else if (!/^[\d\s\-()+]{7,25}$/.test(payload.emergencyContactNumber)) {
+    errors.emergencyContactNumber = 'Enter a valid emergency contact number.';
+  }
+
+  if (payload.runningGroups.length > 10) {
+    errors.runningGroups = 'You can add up to 10 running groups.';
+  } else if (payload.runningGroups.some((item) => item.length > 120)) {
+    errors.runningGroups = 'Each running group must be 120 characters or less.';
+  }
+
+  return errors;
 }
 
 function getAllowedParticipationModes(event) {
@@ -1277,6 +1451,7 @@ function formatDateForInput(value) {
 }
 
 function getRegistrationProfileSnapshot(user) {
+  const runningGroups = normalizeRunnerGroups(user.runningGroups || user.runningGroup);
   return {
     firstName: String(user.firstName || '').trim(),
     lastName: String(user.lastName || '').trim(),
@@ -1287,8 +1462,20 @@ function getRegistrationProfileSnapshot(user) {
     gender: String(user.gender || '').trim(),
     emergencyContactName: String(user.emergencyContactName || '').trim(),
     emergencyContactNumber: String(user.emergencyContactNumber || '').trim(),
-    runningGroup: String(user.runningGroup || '').trim()
+    runningGroups,
+    runningGroup: runningGroups[0] || ''
   };
+}
+
+function normalizeRunnerGroups(value) {
+  const values = Array.isArray(value) ? value : String(value || '').split(',');
+  return Array.from(
+    new Set(
+      values
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
+    )
+  ).slice(0, 10);
 }
 
 function normalizePersonName(value) {

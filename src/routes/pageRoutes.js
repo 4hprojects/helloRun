@@ -3,6 +3,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const router = express.Router();
 const pageController = require('../controllers/page.controller');
+const blogInteractionController = require('../controllers/blog-interaction.controller');
 const PrivacyPolicy = require('../models/PrivacyPolicy');
 const { requireAuth } = require('../middleware/auth.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
@@ -20,6 +21,11 @@ const resultSubmissionLimiter = createRateLimiter({
   maxRequests: 8,
   message: 'Too many result submissions. Please wait a few minutes and try again.'
 });
+const quickProfileUpdateLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 15,
+  message: 'Too many profile updates. Please wait a few minutes and try again.'
+});
 
 router.get('/', (req, res) => {
   res.render('pages/home', {
@@ -31,6 +37,7 @@ router.get('/events', pageController.getEvents);
 router.get('/my-registrations', requireAuth, pageController.getMyRegistrations);
 router.get('/events/:slug/register', requireAuth, pageController.getEventRegistrationForm);
 router.post('/events/:slug/register', requireAuth, pageController.postEventRegistration);
+router.post('/profile/quick-update', requireAuth, quickProfileUpdateLimiter, pageController.postQuickProfileUpdate);
 router.post(
   '/my-registrations/:registrationId/payment-proof',
   requireAuth,
@@ -57,6 +64,22 @@ router.get('/events/:slug', pageController.getEventDetails);
 
 router.get('/blog', pageController.getBlogList);
 router.get('/blog/:slug', pageController.getBlogPost);
+
+const commentLimiter = createRateLimiter({
+  windowMs: 5 * 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many comments. Please wait a few minutes and try again.'
+});
+const likeLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 30,
+  message: 'Too many like requests. Please slow down.'
+});
+
+router.get('/blog/:slug/comments', blogInteractionController.listComments);
+router.post('/blog/:slug/comments', requireAuth, commentLimiter, blogInteractionController.createComment);
+router.delete('/blog/:slug/comments/:commentId', requireAuth, blogInteractionController.deleteComment);
+router.post('/blog/:slug/like', requireAuth, likeLimiter, blogInteractionController.toggleLike);
 
 router.get('/about', (req, res) => {
   res.render('pages/about', {

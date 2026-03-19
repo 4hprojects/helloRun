@@ -89,6 +89,14 @@ const userSchema = new mongoose.Schema({
     maxlength: 120,
     default: ''
   },
+  runningGroups: {
+    type: [{
+      type: String,
+      trim: true,
+      maxlength: 120
+    }],
+    default: []
+  },
   emailVerified: {
     type: Boolean,
     default: false

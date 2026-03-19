@@ -204,6 +204,39 @@
             <% } %>
           </section>
 
+          <section class="dashboard-section" aria-labelledby="draft-events-heading">
+            <div class="section-header">
+              <h2 id="draft-events-heading" class="section-heading">
+                <i data-lucide="file-pen-line"></i>
+                Draft Events
+              </h2>
+              <a href="/organizer/events?status=draft" class="view-all-link">
+                Manage Drafts <i data-lucide="arrow-right"></i>
+              </a>
+            </div>
+            <% if (draftEvents && draftEvents.length) { %>
+              <ul class="draft-events-list">
+                <% draftEvents.forEach((item) => { %>
+                  <li class="draft-events-item">
+                    <div>
+                      <strong><%= item.name %></strong>
+                      <p>
+                        Updated: <%= item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('en-US') : 'N/A' %>
+                        <% if (item.eventStartAt) { %>
+                          <span class="meta-separator">&bull;</span>
+                          Start: <%= new Date(item.eventStartAt).toLocaleDateString('en-US') %>
+                        <% } %>
+                      </p>
+                    </div>
+                    <a href="/organizer/events/<%= item.id %>/edit" class="event-link-btn">Continue Editing</a>
+                  </li>
+                <% }) %>
+              </ul>
+            <% } else { %>
+              <p class="queue-breakdown-empty">No draft events right now.</p>
+            <% } %>
+          </section>
+
           <section class="dashboard-section" aria-labelledby="top-events-heading">
             <div class="section-header">
               <h2 id="top-events-heading" class="section-heading">

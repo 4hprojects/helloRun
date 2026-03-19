@@ -7,42 +7,81 @@
 <body>
   <%- include('../layouts/nav') %>
 
-  <main class="events-page">
+  <main class="events-page organizer-events-page">
     <section class="events-shell">
-      <header class="events-header">
-        <div>
+      <header class="events-header events-hero">
+        <div class="events-hero-copy">
+          <p class="events-hero-eyebrow">Organizer Workspace</p>
           <h1>My Events</h1>
-          <p>Track all events you created, including drafts and published runs.</p>
+          <p>Manage drafts, published runs, and event operations in one place.</p>
         </div>
-        <a href="/organizer/create-event" class="btn">Create New Event</a>
+        <a href="/organizer/create-event" class="nav-signup-btn events-create-btn">
+          <i data-lucide="plus"></i>
+          Create New Event
+        </a>
       </header>
 
       <% if (message) { %>
         <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
       <% } %>
 
+      <%
+        const eventList = Array.isArray(events) ? events : [];
+        const totalCount = eventList.length;
+        const draftCount = eventList.filter((item) => item.status === 'draft').length;
+        const publishedCount = eventList.filter((item) => item.status === 'published').length;
+        const closedCount = eventList.filter((item) => item.status === 'closed').length;
+      %>
+
+      <section class="events-summary" aria-label="Event summary">
+        <article class="events-summary-card">
+          <p>Total in View</p>
+          <strong><%= totalCount %></strong>
+        </article>
+        <article class="events-summary-card">
+          <p>Draft</p>
+          <strong><%= draftCount %></strong>
+        </article>
+        <article class="events-summary-card">
+          <p>Published</p>
+          <strong><%= publishedCount %></strong>
+        </article>
+        <article class="events-summary-card">
+          <p>Closed</p>
+          <strong><%= closedCount %></strong>
+        </article>
+      </section>
+
       <form method="GET" action="/organizer/events" class="filter-bar">
-        <label for="q">Search</label>
-        <input id="q" name="q" type="search" placeholder="Title, event URL, city, venue" value="<%= searchQuery || '' %>">
+        <div class="filter-field filter-field-wide">
+          <label for="q">Search</label>
+          <input id="q" name="q" type="search" placeholder="Title, event URL, city, venue" value="<%= searchQuery || '' %>">
+        </div>
 
-        <label for="status">Status</label>
-        <select id="status" name="status">
-          <option value="" <%= !selectedStatus ? 'selected' : '' %>>All</option>
-          <option value="draft" <%= selectedStatus === 'draft' ? 'selected' : '' %>>Draft</option>
-          <option value="published" <%= selectedStatus === 'published' ? 'selected' : '' %>>Published</option>
-          <option value="closed" <%= selectedStatus === 'closed' ? 'selected' : '' %>>Closed</option>
-        </select>
+        <div class="filter-field">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="" <%= !selectedStatus ? 'selected' : '' %>>All</option>
+            <option value="draft" <%= selectedStatus === 'draft' ? 'selected' : '' %>>Draft</option>
+            <option value="published" <%= selectedStatus === 'published' ? 'selected' : '' %>>Published</option>
+            <option value="closed" <%= selectedStatus === 'closed' ? 'selected' : '' %>>Closed</option>
+          </select>
+        </div>
 
-        <label for="sort">Sort</label>
-        <select id="sort" name="sort">
-          <option value="newest" <%= selectedSort === 'newest' ? 'selected' : '' %>>Newest</option>
-          <option value="oldest" <%= selectedSort === 'oldest' ? 'selected' : '' %>>Oldest</option>
-          <option value="start_asc" <%= selectedSort === 'start_asc' ? 'selected' : '' %>>Event Start (Soonest)</option>
-          <option value="start_desc" <%= selectedSort === 'start_desc' ? 'selected' : '' %>>Event Start (Latest)</option>
-        </select>
+        <div class="filter-field">
+          <label for="sort">Sort</label>
+          <select id="sort" name="sort">
+            <option value="newest" <%= selectedSort === 'newest' ? 'selected' : '' %>>Newest</option>
+            <option value="oldest" <%= selectedSort === 'oldest' ? 'selected' : '' %>>Oldest</option>
+            <option value="start_asc" <%= selectedSort === 'start_asc' ? 'selected' : '' %>>Event Start (Soonest)</option>
+            <option value="start_desc" <%= selectedSort === 'start_desc' ? 'selected' : '' %>>Event Start (Latest)</option>
+          </select>
+        </div>
 
-        <button type="submit" class="btn btn-secondary">Apply</button>
-        <a href="/organizer/events" class="btn btn-secondary">Reset</a>
+        <div class="filter-actions">
+          <button type="submit" class="nav-signup-btn">Apply Filters</button>
+          <a href="/organizer/events" class="nav-login-btn">Reset</a>
+        </div>
       </form>
 
       <% if (events && events.length > 0) { %>
@@ -51,7 +90,9 @@
             <article class="event-card">
               <div class="event-card-top">
                 <h3><%= event.title %></h3>
-                <span class="status-badge status-<%= event.status %>"><%= event.status %></span>
+                <span class="status-badge status-<%= event.status %>">
+                  <%= event.status === 'draft' ? 'Draft' : (event.status === 'published' ? 'Published' : 'Closed') %>
+                </span>
               </div>
 
               <p class="event-meta">
@@ -66,7 +107,7 @@
                 <span><%= [event.venueName, event.city, event.country].filter(Boolean).join(', ') || 'Location TBA' %></span>
               </p>
 
-              <p class="event-description"><%= event.description %></p>
+              <p class="event-description"><%= event.description || 'No description provided yet.' %></p>
 
               <div class="event-footer">
                 <small>Event URL: <code><%= event.slug %></code></small>
@@ -74,9 +115,9 @@
               </div>
 
               <div class="event-actions">
-                <a href="/organizer/events/<%= event._id %>" class="btn btn-secondary btn-sm">View</a>
-                <a href="/organizer/events/<%= event._id %>/edit" class="btn btn-secondary btn-sm">Edit</a>
-                <a href="/organizer/events/<%= event._id %>/registrants" class="btn btn-secondary btn-sm">Registrants</a>
+                <a href="/organizer/events/<%= event._id %>" class="nav-login-btn event-action-btn">View</a>
+                <a href="/organizer/events/<%= event._id %>/edit" class="nav-login-btn event-action-btn">Edit</a>
+                <a href="/organizer/events/<%= event._id %>/registrants" class="nav-login-btn event-action-btn">Registrants</a>
               </div>
             </article>
           <% }) %>
@@ -87,11 +128,11 @@
           <% if (selectedStatus || searchQuery) { %>
             <h3>No matching events</h3>
             <p>Try changing your filters or search text.</p>
-            <a href="/organizer/events" class="btn btn-secondary">Clear Filters</a>
+            <a href="/organizer/events" class="nav-login-btn">Clear Filters</a>
           <% } else { %>
             <h3>No events yet</h3>
             <p>Create your first event to start accepting runners.</p>
-            <a href="/organizer/create-event" class="btn">Create Event</a>
+            <a href="/organizer/create-event" class="nav-signup-btn">Create Event</a>
           <% } %>
         </div>
       <% } %>

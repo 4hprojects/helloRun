@@ -45,6 +45,7 @@ test.after(async () => {
 
 test('admin dashboard renders platform stats and pending application queue', async () => {
   const cookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(cookie);
   const response = await fetch(`${BASE_URL}/admin/dashboard`, {
     headers: { Cookie: cookie },
     redirect: 'manual'
@@ -255,6 +256,18 @@ async function login(email, password) {
   const setCookie = response.headers.get('set-cookie');
   assert.ok(setCookie);
   return setCookie.split(';')[0];
+}
+
+async function waitForAdminSessionReady(cookie) {
+  const maxAttempts = 10;
+  for (let i = 0; i < maxAttempts; i += 1) {
+    const r = await fetch(`${BASE_URL}/admin/dashboard`, {
+      headers: { Cookie: cookie },
+      redirect: 'manual'
+    });
+    if (r.status === 200) return;
+    await new Promise((resolve) => setTimeout(resolve, 80));
+  }
 }
 
 async function waitForServerReady() {

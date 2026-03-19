@@ -26,23 +26,33 @@ class ApplicationStatusPage {
    * Setup event listeners
    */
   setupEventListeners() {
-    // Add future event listeners here
+    const refreshBtn = document.querySelector('[data-refresh-status]');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => {
+        window.location.reload();
+      });
+    }
+
+    const copyBtn = document.querySelector('[data-copy-application-id]');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        this.copyApplicationId();
+      });
+    }
   }
 
   /**
    * Auto-refresh status every 5 minutes if pending
    */
   startAutoRefresh() {
-    const statusBadge = document.querySelector('.status-badge');
-    if (!statusBadge) return;
-
-    const status = statusBadge.textContent.toLowerCase();
-    const isPending = status.includes('pending') || status.includes('under review');
+    const shell = document.querySelector('[data-application-status]');
+    if (!shell) return;
+    const status = String(shell.getAttribute('data-application-status') || '').trim();
+    const isPending = status === 'pending' || status === 'under_review';
 
     if (isPending) {
-      // Refresh every 5 minutes
       setInterval(() => {
-        location.reload();
+        window.location.reload();
       }, 5 * 60 * 1000);
     }
   }
@@ -54,12 +64,16 @@ class ApplicationStatusPage {
     const applicationId = document.querySelector('.application-id');
     if (!applicationId) return;
 
-    const text = applicationId.textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      this.showCopyNotification();
-    }).catch(err => {
-      console.error('Failed to copy:', err);
-    });
+    const text = String(applicationId.textContent || '').trim();
+    if (!text || !navigator.clipboard) return;
+
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        this.showCopyNotification();
+      })
+      .catch((err) => {
+        console.error('Failed to copy:', err);
+      });
   }
 
   /**
@@ -67,8 +81,8 @@ class ApplicationStatusPage {
    */
   showCopyNotification() {
     const notification = document.createElement('div');
-    notification.className = 'copy-notification';
-    notification.textContent = 'Application ID copied!';
+    notification.className = 'copy-toast';
+    notification.textContent = 'Application ID copied to clipboard.';
     document.body.appendChild(notification);
 
     setTimeout(() => {

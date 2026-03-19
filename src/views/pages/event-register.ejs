@@ -3,113 +3,145 @@
 <head>
   <%- include('../layouts/head', { title: title }) %>
   <link rel="stylesheet" href="/css/events.css">
+  <link rel="stylesheet" href="/css/event-register.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
+  <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
 
   <main class="event-register-page">
     <section class="event-register-shell">
       <header class="event-register-header">
-        <a href="/events/<%= event.slug %>" class="btn btn-secondary">Back to Event</a>
-        <h1>Register: <%= event.title %></h1>
+        <a href="/events/<%= event.slug %>" class="btn btn-outline">Back to Event</a>
+        <div class="event-register-header-copy">
+          <h1>Event Registration</h1>
+          <p>Complete your registration details for <strong><%= event.title %></strong>.</p>
+        </div>
       </header>
 
       <% if (message) { %>
         <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
       <% } %>
 
-      <% if (existingRegistration) { %>
-        <section class="registration-summary registration-summary-success">
-          <h2><%= justRegistered ? 'Registration Confirmed' : 'Already Registered' %></h2>
-          <p>Your account is registered for this event.</p>
-          <div class="registration-summary-grid">
-            <p><strong>Confirmation Code:</strong> <code><%= existingRegistration.confirmationCode %></code></p>
-            <p><strong>Race Distance:</strong> <%= existingRegistration.raceDistance || 'N/A' %></p>
-            <p><strong>Participation Mode:</strong> <%= existingRegistration.participationMode %></p>
-            <p><strong>Status:</strong> <%= existingRegistration.status %></p>
-            <p><strong>Payment Status:</strong> <%= existingRegistration.paymentStatus %></p>
-            <p><strong>Registered At:</strong> <%= existingRegistration.registeredAt ? new Date(existingRegistration.registeredAt).toLocaleString('en-US') : 'N/A' %></p>
-          </div>
-        </section>
+      <% if (errors && errors.base) { %>
+        <div class="page-message page-message-error"><%= errors.base %></div>
       <% } %>
 
       <% if (registrationWindowError) { %>
         <div class="page-message page-message-error"><%= registrationWindowError %></div>
       <% } %>
 
-      <% if (errors && errors.base) { %>
-        <div class="page-message page-message-error"><%= errors.base %></div>
-      <% } %>
-
-      <% if (!existingRegistration) { %>
-      <form method="POST" action="/events/<%= event.slug %>/register" class="event-register-form" id="eventRegisterForm">
-        <div class="register-grid">
-          <div class="form-group form-group-full">
-            <label>Runner Profile Snapshot</label>
-            <div class="registration-summary registration-summary-info">
-              <p><strong>Name:</strong> <%= [formData.firstName, formData.lastName].filter(Boolean).join(' ') || 'Not set' %></p>
-              <p><strong>Email:</strong> <%= formData.email || 'Not set' %></p>
-              <p><strong>Mobile:</strong> <%= formData.mobile || 'Not set' %></p>
-              <p><strong>Country:</strong> <%= formData.country || 'Not set' %></p>
-              <p><strong>Date of Birth:</strong> <%= formData.dateOfBirth || 'Not set' %></p>
-              <p><strong>Gender:</strong> <%= formData.gender || 'Not set' %></p>
-              <p><strong>Emergency Contact:</strong> <%= formData.emergencyContactName && formData.emergencyContactNumber ? `${formData.emergencyContactName} (${formData.emergencyContactNumber})` : 'Not set' %></p>
-              <p><strong>Running Group:</strong> <%= formData.runningGroup || 'Not set' %></p>
-            </div>
-            <small class="field-hint">
-              Profile details are pulled from your dashboard and saved as a registration snapshot.
-              <a href="/runner/dashboard">Update profile</a>
-            </small>
+      <% if (existingRegistration) { %>
+        <section class="registration-state-card registration-state-success">
+          <h2><%= justRegistered ? 'Registration Confirmed' : 'Already Registered' %></h2>
+          <p>Your account is already registered for this event.</p>
+          <div class="registration-state-grid">
+            <p><strong>Confirmation Code</strong><span><code><%= existingRegistration.confirmationCode %></code></span></p>
+            <p><strong>Race Distance</strong><span><%= existingRegistration.raceDistance || 'N/A' %></span></p>
+            <p><strong>Participation Mode</strong><span><%= existingRegistration.participationMode || 'N/A' %></span></p>
+            <p><strong>Status</strong><span><%= existingRegistration.status || 'N/A' %></span></p>
+            <p><strong>Payment Status</strong><span><%= existingRegistration.paymentStatus || 'N/A' %></span></p>
+            <p><strong>Registered At</strong><span><%= existingRegistration.registeredAt ? new Date(existingRegistration.registeredAt).toLocaleString('en-US') : 'N/A' %></span></p>
           </div>
-
-          <div class="form-group <%= errors.participationMode ? 'has-error' : '' %>">
-            <label for="participationMode">Participation Mode *</label>
-            <select id="participationMode" name="participationMode" <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
-              <% allowedModes.forEach((mode) => { %>
-                <option value="<%= mode %>" <%= formData.participationMode === mode ? 'selected' : '' %>><%= mode %></option>
-              <% }) %>
-            </select>
-            <% if (errors.participationMode) { %><small class="error-text"><%= errors.participationMode %></small><% } %>
+          <div class="register-actions">
+            <a href="/events/<%= event.slug %>" class="btn btn-outline">Back to Event</a>
           </div>
+        </section>
+      <% } else { %>
+      <div class="event-register-layout">
+        <form method="POST" action="/events/<%= event.slug %>/register" class="event-register-form" id="eventRegisterForm" novalidate>
+          <%
+            const sortedRaceDistances = (Array.isArray(allowedRaceDistances) ? allowedRaceDistances.slice() : [])
+              .sort((a, b) => String(b || '').localeCompare(String(a || ''), undefined, { numeric: true, sensitivity: 'base' }));
+          %>
+          <section class="register-card">
+            <h2>Registration Preferences</h2>
+            <div class="register-field-grid">
+              <div class="form-group <%= errors.participationMode ? 'has-error' : '' %>">
+                <label for="participationMode">Participation Mode *</label>
+                <select id="participationMode" name="participationMode" <%= registrationWindowError ? 'disabled' : '' %>>
+                  <% allowedModes.forEach((mode) => { %>
+                    <option value="<%= mode %>" <%= formData.participationMode === mode ? 'selected' : '' %>><%= mode %></option>
+                  <% }) %>
+                </select>
+                <% if (errors.participationMode) { %><small class="error-text"><%= errors.participationMode %></small><% } %>
+              </div>
 
-          <div class="form-group <%= errors.raceDistance ? 'has-error' : '' %>">
-            <label for="raceDistance">Race Distance *</label>
-            <select id="raceDistance" name="raceDistance" <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>>
-              <% allowedRaceDistances.forEach((distance) => { %>
-                <option value="<%= distance %>" <%= formData.raceDistance === distance ? 'selected' : '' %>><%= distance %></option>
-              <% }) %>
-            </select>
-            <% if (errors.raceDistance) { %><small class="error-text"><%= errors.raceDistance %></small><% } %>
-          </div>
-
-          <% if (requiresEmergencyContact) { %>
-            <div class="form-group <%= errors.emergencyContactName ? 'has-error' : '' %>">
-              <label for="emergencyContactName">Emergency Contact Name *</label>
-              <input
-                id="emergencyContactName"
-                name="emergencyContactName"
-                type="text"
-                value="<%= formData.emergencyContactName || '' %>"
-                <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>
-              >
-              <% if (errors.emergencyContactName) { %><small class="error-text"><%= errors.emergencyContactName %></small><% } %>
+              <div class="form-group <%= errors.raceDistance ? 'has-error' : '' %>">
+                <label for="raceDistance">Race Distance *</label>
+                <select id="raceDistance" name="raceDistance" <%= registrationWindowError ? 'disabled' : '' %>>
+                  <% sortedRaceDistances.forEach((distance) => { %>
+                    <option value="<%= distance %>" <%= formData.raceDistance === distance ? 'selected' : '' %>><%= distance %></option>
+                  <% }) %>
+                </select>
+                <% if (errors.raceDistance) { %><small class="error-text"><%= errors.raceDistance %></small><% } %>
+              </div>
             </div>
 
-            <div class="form-group <%= errors.emergencyContactNumber ? 'has-error' : '' %>">
-              <label for="emergencyContactNumber">Emergency Contact Number *</label>
-              <input
-                id="emergencyContactNumber"
-                name="emergencyContactNumber"
-                type="text"
-                value="<%= formData.emergencyContactNumber || '' %>"
-                <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>
-              >
-              <% if (errors.emergencyContactNumber) { %><small class="error-text"><%= errors.emergencyContactNumber %></small><% } %>
-            </div>
-          <% } %>
+            <% if (requiresEmergencyContact) { %>
+              <div class="register-field-grid">
+                <div class="form-group <%= errors.emergencyContactName ? 'has-error' : '' %>">
+                  <label for="emergencyContactName">Emergency Contact Name *</label>
+                  <input
+                    id="emergencyContactName"
+                    name="emergencyContactName"
+                    type="text"
+                    value="<%= formData.emergencyContactName || '' %>"
+                    <%= registrationWindowError ? 'disabled' : '' %>
+                  >
+                  <% if (errors.emergencyContactName) { %><small class="error-text"><%= errors.emergencyContactName %></small><% } %>
+                </div>
 
-          <div class="form-group form-group-full <%= (errors.waiverAccepted || errors.waiverSignature) ? 'has-error' : '' %>">
-            <label>Waiver and Signature *</label>
+                <div class="form-group <%= errors.emergencyContactNumber ? 'has-error' : '' %>">
+                  <label for="emergencyContactNumber">Emergency Contact Number *</label>
+                  <input
+                    id="emergencyContactNumber"
+                    name="emergencyContactNumber"
+                    type="text"
+                    value="<%= formData.emergencyContactNumber || '' %>"
+                    <%= registrationWindowError ? 'disabled' : '' %>
+                  >
+                  <% if (errors.emergencyContactNumber) { %><small class="error-text"><%= errors.emergencyContactNumber %></small><% } %>
+                </div>
+              </div>
+            <% } %>
+          </section>
+
+          <section class="register-card">
+            <div class="register-card-head">
+              <h2>Runner Profile Snapshot</h2>
+              <button type="button" class="inline-link link-btn" id="openQuickProfileModalBtn">Update Profile</button>
+            </div>
+            <p class="card-helper">These details are pulled from your runner profile and saved for this registration.</p>
+            <%
+              const rawDob = String(formData.dateOfBirth || '').trim();
+              let ageLabel = 'Not set';
+              if (rawDob) {
+                const dob = new Date(rawDob);
+                if (!Number.isNaN(dob.getTime())) {
+                  const now = new Date();
+                  let age = now.getFullYear() - dob.getFullYear();
+                  const monthDiff = now.getMonth() - dob.getMonth();
+                  const dayDiff = now.getDate() - dob.getDate();
+                  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) age -= 1;
+                  if (age >= 0 && age <= 130) ageLabel = String(age);
+                }
+              }
+            %>
+            <div class="snapshot-grid">
+              <p><strong>Name</strong><span data-profile-field="name"><%= [formData.firstName, formData.lastName].filter(Boolean).join(' ') || 'Not set' %></span></p>
+              <p><strong>Email</strong><span data-profile-field="email"><%= formData.email || 'Not set' %></span></p>
+              <p><strong>Mobile</strong><span data-profile-field="mobile"><%= formData.mobile || 'Not set' %></span></p>
+              <p><strong>Country</strong><span data-profile-field="country"><%= formData.country || 'Not set' %></span></p>
+              <p><strong>Age</strong><span data-profile-field="age"><%= ageLabel %></span></p>
+              <p><strong>Gender</strong><span data-profile-field="gender"><%= formData.gender || 'Not set' %></span></p>
+              <p class="snapshot-full"><strong>Emergency Contact</strong><span data-profile-field="emergencyContact"><%= formData.emergencyContactName && formData.emergencyContactNumber ? `${formData.emergencyContactName} (${formData.emergencyContactNumber})` : 'Not set' %></span></p>
+              <p class="snapshot-full"><strong>Running Groups</strong><span data-profile-field="runningGroups"><%= (formData.runningGroups && formData.runningGroups.length) ? formData.runningGroups.join(', ') : (formData.runningGroup || 'Not set') %></span></p>
+            </div>
+          </section>
+
+          <section class="register-card <%= (errors.waiverAccepted || errors.waiverSignature) ? 'card-error' : '' %>">
+            <h2>Waiver & Signature</h2>
             <div class="waiver-section">
               <div class="waiver-content">
                 <%- waiverHtml %>
@@ -123,59 +155,59 @@
                     name="waiverAccepted"
                     value="1"
                     <%= formData.waiverAccepted ? 'checked' : '' %>
-                    <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>
+                    <%= registrationWindowError ? 'disabled' : '' %>
                   >
                   <span>I agree to the waiver (version <%= waiverVersion %>).</span>
                 </label>
                 <% if (errors.waiverAccepted) { %><small class="error-text"><%= errors.waiverAccepted %></small><% } %>
 
-                <label for="waiverSignature">Digital Signature (type your full account name) *</label>
+                <label for="waiverSignature" class="signature-label">Digital Signature (full account name) *</label>
                 <input
                   id="waiverSignature"
                   name="waiverSignature"
                   type="text"
                   value="<%= formData.waiverSignature || '' %>"
                   placeholder="Type your full name"
-                  <%= existingRegistration || registrationWindowError ? 'disabled' : '' %>
+                  <%= registrationWindowError ? 'disabled' : '' %>
                 >
                 <% if (errors.waiverSignature) { %><small class="error-text"><%= errors.waiverSignature %></small><% } %>
               </div>
             </div>
-          </div>
-        </div>
+          </section>
 
-        <div class="register-actions">
-          <% if (!existingRegistration && !registrationWindowError) { %>
-            <button type="submit" class="btn" id="confirmRegistrationBtn">Confirm Registration</button>
-          <% } %>
-          <a href="/events/<%= event.slug %>" class="btn btn-secondary">Cancel</a>
-        </div>
-      </form>
-      <% } else { %>
-        <div class="register-actions">
-          <a href="/events/<%= event.slug %>" class="btn btn-secondary">Back to Event</a>
-        </div>
+          <div class="register-actions">
+            <% if (!registrationWindowError) { %>
+              <button type="submit" class="btn btn-primary" id="confirmRegistrationBtn">Confirm Registration</button>
+            <% } %>
+            <a href="/events/<%= event.slug %>" class="btn btn-outline">Cancel</a>
+          </div>
+        </form>
+
+        <aside class="event-register-side">
+          <section class="register-card side-card">
+            <h3>Event Snapshot</h3>
+            <ul class="event-side-list">
+              <li><strong>Event</strong><span><%= event.title %></span></li>
+              <li><strong>Registration Window</strong><span><%= event.registrationOpenAt ? new Date(event.registrationOpenAt).toLocaleDateString('en-US') : 'TBA' %> - <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleDateString('en-US') : 'TBA' %></span></li>
+              <li><strong>Event Date</strong><span><%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US') : 'TBA' %> - <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleDateString('en-US') : 'TBA' %></span></li>
+              <li><strong>Location</strong><span><%= [event.venueName, event.city, event.country].filter(Boolean).join(', ') || 'TBA' %></span></li>
+            </ul>
+          </section>
+
+          <section class="register-card side-card side-note">
+            <h3>Before You Submit</h3>
+            <p>Review your profile snapshot, confirm your preferred mode and distance, then sign the waiver with your full account name.</p>
+          </section>
+        </aside>
+      </div>
       <% } %>
     </section>
   </main>
 
+  <%- include('../partials/quick-profile-modal', { formData, countries, csrfToken: _csrfToken }) %>
+
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>
-    if (window.lucide) lucide.createIcons();
-
-    const form = document.getElementById('eventRegisterForm');
-    const submitBtn = document.getElementById('confirmRegistrationBtn');
-    if (form && submitBtn) {
-      form.addEventListener('submit', (event) => {
-        if (!confirm('Confirm your registration for this event?')) {
-          event.preventDefault();
-          return;
-        }
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Submitting...';
-      });
-    }
-  </script>
+  <script src="/js/quick-profile-modal.js"></script>
 </body>
 </html>

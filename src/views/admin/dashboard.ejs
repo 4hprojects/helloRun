@@ -53,6 +53,12 @@
         </article>
 
         <article class="metric-card">
+          <p class="metric-label">Draft Events</p>
+          <p class="metric-value"><%= stats.draftEvents %></p>
+          <p class="metric-helper">Awaiting organizer publish</p>
+        </article>
+
+        <article class="metric-card">
           <p class="metric-label">Published Events</p>
           <p class="metric-value"><%= stats.publishedEvents %></p>
           <a href="/events" class="metric-link">Open Public Events</a>
@@ -92,6 +98,39 @@
           <% } %>
         </article>
       </div>
+
+      <h3 class="dashboard-section-title">Recent Draft Events</h3>
+      <% if (draftEventsList && draftEventsList.length) { %>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Organizer</th>
+              <th>Status</th>
+              <th>Updated</th>
+              <th>Start Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% draftEventsList.forEach((item) => { %>
+              <tr>
+                <td><strong><%= item.title %></strong></td>
+                <td>
+                  <strong><%= item.organizerName %></strong>
+                  <div><small><%= item.organizerEmail %></small></div>
+                </td>
+                <td><span class="status-badge status-badge-draft"><%= item.status %></span></td>
+                <td><%= item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('en-US') : 'N/A' %></td>
+                <td><%= item.eventStartAt ? new Date(item.eventStartAt).toLocaleDateString('en-US') : 'TBA' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <div class="empty-state">
+          <p>No draft events available right now.</p>
+        </div>
+      <% } %>
 
       <h3 class="dashboard-section-title">Pending Organizer Applications</h3>
       <% if (pendingApplicationsList && pendingApplicationsList.length) { %>

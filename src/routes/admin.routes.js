@@ -5,6 +5,7 @@ const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const adminController = require('../controllers/admin.controller');
 const blogController = require('../controllers/blog.controller');
+const blogInteractionController = require('../controllers/blog-interaction.controller');
 
 const adminModerationLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
@@ -91,5 +92,10 @@ router.post('/blog/posts/:id/approve', requireAdmin, adminModerationLimiter, blo
 router.post('/blog/posts/:id/reject', requireAdmin, adminModerationLimiter, blogController.rejectBlogPost);
 router.post('/blog/posts/:id/archive', requireAdmin, adminModerationLimiter, blogController.archiveBlogPost);
 router.patch('/blog/posts/:id/autosave', requireAdmin, adminBlogAutosaveLimiter, blogController.autosaveBlogPostAdmin);
+
+// Blog comment moderation
+router.get('/blog/comments', requireAdmin, blogInteractionController.adminListComments);
+router.post('/blog/comments/:commentId/remove', requireAdmin, adminModerationLimiter, blogInteractionController.adminRemoveComment);
+router.post('/blog/comments/:commentId/restore', requireAdmin, adminModerationLimiter, blogInteractionController.adminRestoreComment);
 
 module.exports = router;

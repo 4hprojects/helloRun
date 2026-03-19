@@ -396,3 +396,283 @@
     min-width: 1180px;
   }
 }
+
+/* ==========================================
+   Organizer Registrants Page (Scoped)
+   ========================================== */
+.organizer-registrants-page .header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+}
+
+.organizer-registrants-page .registrant-header-btn {
+  border-radius: 50px;
+  font-size: 0.84rem;
+  padding: 0.45rem 0.8rem;
+}
+
+.organizer-registrants-page .filter-bar .nav-signup-btn,
+.organizer-registrants-page .filter-bar .nav-login-btn {
+  border-radius: 50px;
+  font-size: 0.86rem;
+  line-height: 1;
+}
+
+.organizer-registrants-page .table-action-btn {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+  border-radius: 50px;
+  font-size: 0.76rem;
+  padding: 0.34rem 0.48rem;
+  line-height: 1.1;
+}
+
+.organizer-registrants-page .payment-action-form .nav-signup-btn {
+  border: none;
+}
+
+.organizer-registrants-page .payment-action-form .nav-login-btn {
+  background: #fff;
+}
+
+@media (max-width: 768px) {
+  .organizer-registrants-page .header-actions {
+    width: 100%;
+  }
+
+  .organizer-registrants-page .registrant-header-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* ==========================================
+   Organizer Events Page (Scoped)
+   ========================================== */
+.organizer-events-page .events-shell {
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
+}
+
+.organizer-events-page .events-hero {
+  background: #ffffff;
+  border: 1px solid #dbe4ee;
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.organizer-events-page .events-hero-eyebrow {
+  margin: 0;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.organizer-events-page .events-header h1 {
+  margin: 0.25rem 0 0;
+  color: #0f172a;
+}
+
+.organizer-events-page .events-header p {
+  margin: 0.35rem 0 0;
+  color: #475569;
+}
+
+.organizer-events-page .events-create-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 50px;
+}
+
+.organizer-events-page .events-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.8rem;
+}
+
+.organizer-events-page .events-summary-card {
+  background: #ffffff;
+  border: 1px solid #dbe4ee;
+  border-radius: 12px;
+  padding: 0.65rem 0.75rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.organizer-events-page .events-summary-card p {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.organizer-events-page .events-summary-card strong {
+  color: #0f172a;
+  font-size: 1.02rem;
+}
+
+.organizer-events-page .filter-bar {
+  background: #ffffff;
+  border: 1px solid #dbe4ee;
+  border-radius: 12px;
+  padding: 0.78rem;
+  margin-bottom: 0.85rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(180px, 1fr) minmax(180px, 1fr) auto;
+  gap: 0.62rem;
+  align-items: end;
+}
+
+.organizer-events-page .filter-field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.organizer-events-page .filter-field-wide {
+  min-width: 0;
+}
+
+.organizer-events-page .filter-field label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.organizer-events-page .filter-bar input[type="search"],
+.organizer-events-page .filter-bar select {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.45rem 0.62rem;
+  font-size: 0.92rem;
+  background: #fff;
+}
+
+.organizer-events-page .filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.organizer-events-page .filter-actions .nav-signup-btn,
+.organizer-events-page .filter-actions .nav-login-btn {
+  border-radius: 50px;
+  font-size: 0.88rem;
+}
+
+.organizer-events-page .events-grid {
+  gap: 0.9rem;
+}
+
+.organizer-events-page .event-card {
+  border: 1px solid #dbe4ee;
+  border-radius: 12px;
+  padding: 0.95rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.organizer-events-page .event-card-top h3 {
+  font-size: 1.03rem;
+  color: #0f172a;
+}
+
+.organizer-events-page .status-badge {
+  letter-spacing: 0.02em;
+}
+
+.organizer-events-page .event-meta {
+  font-size: 0.84rem;
+  color: #475569;
+}
+
+.organizer-events-page .event-description {
+  margin-top: 0.58rem;
+  margin-bottom: 0.8rem;
+}
+
+.organizer-events-page .event-footer {
+  font-size: 0.76rem;
+}
+
+.organizer-events-page .event-actions {
+  margin-top: 0.8rem;
+}
+
+.organizer-events-page .event-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.34rem 0.72rem;
+  font-size: 0.8rem;
+  border-radius: 50px;
+}
+
+.organizer-events-page .empty-state .nav-signup-btn,
+.organizer-events-page .empty-state .nav-login-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50px;
+}
+
+@media (max-width: 920px) {
+  .organizer-events-page .events-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .organizer-events-page .filter-bar {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .organizer-events-page .filter-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 680px) {
+  .organizer-events-page .events-hero {
+    padding: 0.85rem;
+  }
+
+  .organizer-events-page .events-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .organizer-events-page .filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .organizer-events-page .filter-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .organizer-events-page .filter-actions .nav-signup-btn,
+  .organizer-events-page .filter-actions .nav-login-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .organizer-events-page .events-create-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

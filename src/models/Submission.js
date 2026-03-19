@@ -111,6 +111,14 @@ const submissionSchema = new mongoose.Schema(
       url: { type: String, default: '' },
       key: { type: String, default: '' },
       issuedAt: { type: Date, default: null }
+    },
+    ocrData: {
+      extractedDistanceKm: { type: Number, default: null },
+      extractedTimeMs: { type: Number, default: null },
+      rawText: { type: String, default: '', maxlength: 2000 },
+      confidence: { type: Number, default: 0, min: 0, max: 1 },
+      distanceMismatch: { type: Boolean, default: false },
+      timeMismatch: { type: Boolean, default: false }
     }
   },
   {

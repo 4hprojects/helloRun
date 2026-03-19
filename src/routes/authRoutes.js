@@ -8,6 +8,31 @@ const googleOAuthService = require('../services/google-oauth.service');
 const crypto = require('crypto');
 const { redirectIfAuth } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
+const { createRateLimiter } = require('../middleware/rate-limit.middleware');
+
+// 10 login attempts per 15 minutes per account+IP (prevents per-account brute force)
+const loginLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many login attempts. Please wait 15 minutes and try again.',
+  keyFn: (req) => {
+    const email = String(req.body.email || '').toLowerCase().trim().slice(0, 254);
+    const ip = String(req.ip || 'unknown-ip');
+    return `login|${email}|${ip}`;
+  }
+});
+
+// 5 forgot-password requests per hour per account+IP
+const forgotPasswordLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  message: 'Too many password reset requests. Please wait an hour and try again.',
+  keyFn: (req) => {
+    const email = String(req.body.email || '').toLowerCase().trim().slice(0, 254);
+    const ip = String(req.ip || 'unknown-ip');
+    return `forgot-password|${email}|${ip}`;
+  }
+});
 
 function resolveSafeReturnTo(value, fallback = null) {
   if (typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')) {
@@ -69,7 +94,7 @@ router.get('/login', redirectIfAuth, (req, res) => {
 });
 
 // Login Form Handler - redirect if already logged in
-router.post('/login', redirectIfAuth, async (req, res) => {
+router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     
@@ -471,7 +496,7 @@ router.get('/forgot-password', (req, res) => {
 });
 
 // Forgot Password Form Handler
-router.post('/forgot-password', async (req, res) => {
+router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     

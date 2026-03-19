@@ -6,249 +6,197 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  
-  <main class="status-page">
-    <div class="status-container">
-      
-      <!-- Header Section -->
-      <div class="status-header">
-        <div class="header-content">
-          <h1>Your Organizer Application</h1>
-          <p class="header-subtitle">Application ID: <span class="application-id"><%= application.applicationId %></span></p>
-        </div>
-        <div class="header-icon">
-          <% if (application.status === 'pending') { %>
-            <svg data-lucide="clock" width="48" height="48"></svg>
-          <% } else if (application.status === 'under_review') { %>
-            <svg data-lucide="eye" width="48" height="48"></svg>
-          <% } else if (application.status === 'approved') { %>
-            <svg data-lucide="check-circle" width="48" height="48"></svg>
-          <% } else if (application.status === 'rejected') { %>
-            <svg data-lucide="alert-circle" width="48" height="48"></svg>
-          <% } %>
-        </div>
-      </div>
 
-      <!-- Status Card -->
-      <div class="status-card status-card-<%= application.status %>">
-        <div class="status-badge status-badge-<%= application.status %>">
-          <% if (application.status === 'pending') { %>
-            <span>Pending Review</span>
-          <% } else if (application.status === 'under_review') { %>
-            <span>Under Review</span>
-          <% } else if (application.status === 'approved') { %>
-            <span>Approved</span>
-          <% } else if (application.status === 'rejected') { %>
-            <span>Rejected</span>
-          <% } %>
+  <main class="org-app-page">
+    <section class="org-app-shell" data-application-status="<%= application.status %>">
+      <header class="org-app-header">
+        <div>
+          <p class="eyebrow">Organizer Application</p>
+          <h1>Application Status</h1>
+          <p class="subtitle">Track your verification progress and next steps.</p>
         </div>
-
-        <div class="status-message">
-          <% if (application.status === 'pending') { %>
-            <h2>Your application is waiting to be reviewed</h2>
-            <p>Thank you for submitting your organizer application! Our team will review your documents and get back to you shortly.</p>
-          <% } else if (application.status === 'under_review') { %>
-            <h2>Your application is under review</h2>
-            <p>We're currently reviewing your submitted documents. This usually takes <%= reviewDays %> business days.</p>
-          <% } else if (application.status === 'approved') { %>
-            <h2 class="success-message">Congratulations! Your application has been approved</h2>
-            <p>You're now verified as an organizer on helloRun. You can start creating and managing your first event!</p>
-          <% } else if (application.status === 'rejected') { %>
-            <h2 class="error-message">Your application was not approved</h2>
-            <p>Unfortunately, your application did not meet our verification requirements at this time. See the details below for more information.</p>
-          <% } %>
-        </div>
-      </div>
-
-      <!-- Timeline -->
-      <div class="timeline-section">
-        <h2 class="section-title">Application Timeline</h2>
-        
-        <div class="timeline">
-          <!-- Submitted -->
-          <div class="timeline-item completed">
-            <div class="timeline-marker">
-              <svg data-lucide="check" width="20" height="20"></svg>
-            </div>
-            <div class="timeline-content">
-              <h3>Application Submitted</h3>
-              <p class="timeline-date"><%= submittedDate %></p>
-              <p class="timeline-description"><%= daysAgo %> day<%= daysAgo !== 1 ? 's' : '' %> ago</p>
-            </div>
+        <div class="id-group">
+          <span class="id-label">Application ID</span>
+          <div class="id-row">
+            <code class="application-id"><%= application.applicationId %></code>
+            <button type="button" class="nav-login-btn app-copy-btn" data-copy-application-id>Copy</button>
           </div>
+        </div>
+      </header>
 
-          <!-- Under Review -->
-          <div class="timeline-item <%= application.status !== 'pending' ? 'completed' : 'active' %>">
+      <%
+        const statusMap = {
+          pending: { label: 'Pending Review', icon: 'clock3', tone: 'pending' },
+          under_review: { label: 'Under Review', icon: 'scan-search', tone: 'review' },
+          approved: { label: 'Approved', icon: 'badge-check', tone: 'approved' },
+          rejected: { label: 'Rejected', icon: 'octagon-alert', tone: 'rejected' }
+        };
+        const statusInfo = statusMap[application.status] || statusMap.pending;
+      %>
+
+      <section class="status-hero status-hero-<%= statusInfo.tone %>">
+        <div class="status-pill status-pill-<%= statusInfo.tone %>">
+          <svg data-lucide="<%= statusInfo.icon %>" width="18" height="18"></svg>
+          <span><%= statusInfo.label %></span>
+        </div>
+        <div class="status-copy">
+          <% if (application.status === 'approved') { %>
+            <h2>Application Approved</h2>
+            <p>Your organizer account is verified. You can now create and manage events.</p>
+          <% } else if (application.status === 'rejected') { %>
+            <h2>Application Not Approved</h2>
+            <p>Your submission did not pass verification. Review the feedback and submit an updated application.</p>
+          <% } else if (application.status === 'under_review') { %>
+            <h2>Application Under Review</h2>
+            <p>Our team is reviewing your documents. Typical review time is <strong><%= reviewDays %> business days</strong>.</p>
+          <% } else { %>
+            <h2>Application Submitted</h2>
+            <p>Your documents are queued for review. We will notify you when your status changes.</p>
+          <% } %>
+        </div>
+      </section>
+
+      <section class="stat-grid" aria-label="Application summary">
+        <article class="stat-card">
+          <p>Submitted On</p>
+          <strong><%= submittedDate %></strong>
+          <span><%= daysAgo %> day<%= daysAgo !== 1 ? 's' : '' %> ago</span>
+        </article>
+        <article class="stat-card">
+          <p>Target Decision Date</p>
+          <strong><%= estimatedDate %></strong>
+          <span>Based on a <%= reviewDays %>-business-day review window</span>
+        </article>
+        <article class="stat-card">
+          <p>Current Status</p>
+          <strong><%= statusInfo.label %></strong>
+          <span>Updated <%= application.reviewedAt ? new Date(application.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'automatically' %></span>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Review Timeline</h3>
+        </div>
+        <ol class="timeline">
+          <li class="timeline-item done">
+            <div class="timeline-marker"><svg data-lucide="check" width="16" height="16"></svg></div>
+            <div>
+              <h4>Submission Received</h4>
+              <p><%= submittedDate %></p>
+            </div>
+          </li>
+          <li class="timeline-item <%= application.status !== 'pending' ? 'done' : 'active' %>">
             <div class="timeline-marker">
               <% if (application.status !== 'pending') { %>
-                <svg data-lucide="check" width="20" height="20"></svg>
+                <svg data-lucide="check" width="16" height="16"></svg>
               <% } else { %>
-                <div class="timeline-loader"></div>
+                <span class="dot"></span>
               <% } %>
             </div>
-            <div class="timeline-content">
-              <h3>Under Review</h3>
-              <p class="timeline-description">Our team is reviewing your documents</p>
-              <% if (application.status === 'pending' || application.status === 'under_review') { %>
-                <p class="timeline-estimate">Expected by <strong><%= estimatedDate %></strong></p>
-              <% } %>
+            <div>
+              <h4>Admin Review</h4>
+              <p>Verification is in progress by the helloRun team.</p>
             </div>
-          </div>
-
-          <!-- Decision -->
-          <div class="timeline-item <%= (application.status === 'approved' || application.status === 'rejected') ? 'completed' : '' %>">
+          </li>
+          <li class="timeline-item <%= (application.status === 'approved' || application.status === 'rejected') ? 'done' : '' %>">
             <div class="timeline-marker">
               <% if (application.status === 'approved') { %>
-                <svg data-lucide="check-circle" width="20" height="20"></svg>
+                <svg data-lucide="badge-check" width="16" height="16"></svg>
               <% } else if (application.status === 'rejected') { %>
-                <svg data-lucide="x-circle" width="20" height="20"></svg>
+                <svg data-lucide="x" width="16" height="16"></svg>
               <% } else { %>
-                <div class="timeline-dot"></div>
+                <span class="dot"></span>
               <% } %>
             </div>
-            <div class="timeline-content">
-              <h3>Review Decision</h3>
-              <% if (application.status === 'approved') { %>
-                <p class="timeline-description">✓ Your application was approved</p>
-                <p class="timeline-date"><%= application.reviewedAt ? new Date(application.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Recently' %></p>
-              <% } else if (application.status === 'rejected') { %>
-                <p class="timeline-description">✗ Your application was not approved</p>
-                <p class="timeline-date"><%= application.reviewedAt ? new Date(application.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Recently' %></p>
-              <% } else { %>
-                <p class="timeline-description">Awaiting decision</p>
-              <% } %>
+            <div>
+              <h4>Final Decision</h4>
+              <p>
+                <% if (application.status === 'approved') { %>
+                  Approved on <%= application.reviewedAt ? new Date(application.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'recently' %>.
+                <% } else if (application.status === 'rejected') { %>
+                  Rejected on <%= application.reviewedAt ? new Date(application.reviewedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'recently' %>.
+                <% } else { %>
+                  Awaiting final review.
+                <% } %>
+              </p>
             </div>
-          </div>
+          </li>
+        </ol>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Application Details</h3>
         </div>
-      </div>
-
-      <!-- Application Details -->
-      <div class="details-section">
-        <h2 class="section-title">Application Details</h2>
-        
-        <div class="details-grid">
+        <dl class="detail-grid">
           <div class="detail-item">
-            <label>Business Name</label>
-            <p><%= application.businessName %></p>
+            <dt>Business Name</dt>
+            <dd><%= application.businessName %></dd>
           </div>
-
           <div class="detail-item">
-            <label>Business Type</label>
-            <p>
-              <% 
+            <dt>Business Type</dt>
+            <dd>
+              <%
                 const typeMap = {
-                  'individual': 'Individual/Solo Organizer',
-                  'company': 'Company/Commercial',
-                  'ngo': 'Non-Profit/NGO',
-                  'sports_club': 'Sports Club/Association'
+                  individual: 'Individual / Solo Organizer',
+                  company: 'Company / Commercial',
+                  ngo: 'Non-Profit / NGO',
+                  sports_club: 'Sports Club / Association'
                 };
               %>
               <%= typeMap[application.businessType] || application.businessType %>
-            </p>
+            </dd>
           </div>
-
           <div class="detail-item">
-            <label>Contact Phone</label>
-            <p><a href="tel:<%= application.contactPhone %>"><%= application.contactPhone %></a></p>
+            <dt>Contact Phone</dt>
+            <dd><a href="tel:<%= application.contactPhone %>"><%= application.contactPhone %></a></dd>
           </div>
-
           <div class="detail-item">
-            <label>Business Registration Number</label>
-            <p><%= application.businessRegistrationNumber || 'Not provided' %></p>
+            <dt>Registration Number</dt>
+            <dd><%= application.businessRegistrationNumber || 'Not provided' %></dd>
           </div>
-
-          <div class="detail-item full-width">
-            <label>Business Address</label>
-            <p><%= application.businessAddress || 'Not provided' %></p>
+          <div class="detail-item detail-item-full">
+            <dt>Business Address</dt>
+            <dd><%= application.businessAddress || 'Not provided' %></dd>
           </div>
-
-          <div class="detail-item full-width">
-            <label>Additional Information</label>
-            <p><%= application.additionalInfo || 'Not provided' %></p>
+          <div class="detail-item detail-item-full">
+            <dt>Additional Information</dt>
+            <dd><%= application.additionalInfo || 'Not provided' %></dd>
           </div>
+        </dl>
+      </section>
 
-          <div class="detail-item">
-            <label>Submission Date</label>
-            <p><%= submittedDate %></p>
-          </div>
-
-          <div class="detail-item">
-            <label>Application Status</label>
-            <p>
-              <span class="status-badge status-badge-<%= application.status %>">
-                <% if (application.status === 'pending') { %>
-                  Pending Review
-                <% } else if (application.status === 'under_review') { %>
-                  Under Review
-                <% } else if (application.status === 'approved') { %>
-                  Approved
-                <% } else if (application.status === 'rejected') { %>
-                  Rejected
-                <% } %>
-              </span>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Rejection Reason (if rejected) -->
       <% if (application.status === 'rejected' && application.rejectionReason) { %>
-        <div class="rejection-section">
-          <div class="rejection-header">
-            <svg data-lucide="alert-triangle" width="24" height="24"></svg>
-            <h3>Rejection Reason</h3>
+        <section class="panel panel-alert">
+          <div class="panel-head">
+            <h3>Review Feedback</h3>
           </div>
-          <p class="rejection-reason"><%= application.rejectionReason %></p>
-        </div>
+          <p><%= application.rejectionReason %></p>
+        </section>
       <% } %>
 
-      <!-- Action Buttons -->
-      <div class="action-buttons">
+      <section class="action-row">
         <% if (application.status === 'approved') { %>
-          <a href="/organizer/create-event" class="btn btn-primary">
-            <svg data-lucide="plus" width="18" height="18"></svg>
-            Create Your First Event
-          </a>
-          <a href="/organizer/dashboard" class="btn btn-secondary">
-            <svg data-lucide="layout-dashboard" width="18" height="18"></svg>
-            Go to Dashboard
-          </a>
+          <a href="/organizer/create-event" class="nav-signup-btn"><svg data-lucide="plus" width="16" height="16"></svg>Create New Event</a>
+          <a href="/organizer/dashboard" class="nav-login-btn"><svg data-lucide="layout-dashboard" width="16" height="16"></svg>Go to Dashboard</a>
         <% } else if (application.status === 'rejected') { %>
-          <a href="/organizer/complete-profile" class="btn btn-primary">
-            <svg data-lucide="refresh-cw" width="18" height="18"></svg>
-            Reapply
-          </a>
-          <a href="/" class="btn btn-secondary">
-            <svg data-lucide="home" width="18" height="18"></svg>
-            Back to Home
-          </a>
+          <a href="/organizer/complete-profile" class="nav-signup-btn"><svg data-lucide="refresh-cw" width="16" height="16"></svg>Submit Updated Application</a>
+          <a href="/" class="nav-login-btn"><svg data-lucide="house" width="16" height="16"></svg>Back to Home</a>
         <% } else { %>
-          <button class="btn btn-refresh" onclick="location.reload()">
-            <svg data-lucide="refresh-cw" width="18" height="18"></svg>
-            Refresh Status
-          </button>
-          <a href="/" class="btn btn-secondary">
-            <svg data-lucide="home" width="18" height="18"></svg>
-            Back to Home
-          </a>
+          <button type="button" class="nav-signup-btn" data-refresh-status><svg data-lucide="refresh-cw" width="16" height="16"></svg>Refresh Page</button>
+          <a href="/" class="nav-login-btn"><svg data-lucide="house" width="16" height="16"></svg>Back to Home</a>
         <% } %>
-      </div>
+      </section>
 
-      <!-- Info Box -->
-      <div class="info-box">
-        <svg data-lucide="info" width="20" height="20"></svg>
-        <div class="info-content">
-          <p>
-            <strong>Need help?</strong> If you have questions about your application status, 
-            please <a href="mailto:<%= typeof adminEmail !== 'undefined' ? adminEmail : 'hellorunonline@gmail.com' %>">contact our support team</a>.
-          </p>
-        </div>
-      </div>
-    </div>
+      <aside class="support-note">
+        <svg data-lucide="info" width="18" height="18"></svg>
+        <p>Need help with your application? Contact <a href="mailto:<%= adminEmail %>"><%= adminEmail %></a>.</p>
+      </aside>
+    </section>
   </main>
 
   <%- include('../layouts/footer') %>
-
   <script src="/js/application-status.js"></script>
 </body>
 </html>
