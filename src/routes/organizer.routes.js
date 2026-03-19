@@ -12,6 +12,7 @@ const emailService = require('../services/email.service');
 const { createNotificationSafe } = require('../services/notification.service');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const { requireAuth, requireApprovedOrganizer } = require('../middleware/auth.middleware');
+const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
 const { DEFAULT_WAIVER_TEMPLATE, normalizeWaiverTemplate } = require('../utils/waiver');
 const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
@@ -1230,7 +1231,7 @@ router.get('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
    POST: Update Event (Owner Only)
    ========================================== */
 
-router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEventBranding, async (req, res) => {
+router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEventBranding, requireCsrfProtection, async (req, res) => {
   const uploadedBrandingKeys = [];
   try {
     const user = await User.findById(req.session.userId);
@@ -1599,7 +1600,7 @@ router.post('/events/:id/media/remove', requireApprovedOrganizer, async (req, re
    POST: Create Event (Approved Organizers)
    ========================================== */
 
-router.post('/create-event', requireApprovedOrganizer, uploadService.uploadEventBranding, async (req, res) => {
+router.post('/create-event', requireApprovedOrganizer, uploadService.uploadEventBranding, requireCsrfProtection, async (req, res) => {
   const uploadedBrandingKeys = [];
   try {
     const user = await User.findById(req.session.userId);
@@ -1791,6 +1792,7 @@ router.post(
   '/complete-profile',
   requireAuth,
   uploadService.uploadOrganizerDocs,
+  requireCsrfProtection,
   async (req, res) => {
     const uploadedObjectKeys = [];
     try {

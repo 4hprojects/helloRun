@@ -6,6 +6,13 @@ const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 
 router.use((req, res, next) => {
   if (req.method === 'POST') {
+    // Skip blanket CSRF check for multipart/form-data — multer hasn't parsed the body yet
+    // at this point, so req.body._csrf is unavailable. Multipart organizer routes run
+    // requireCsrfProtection explicitly after their multer middleware.
+    const contentType = String(req.headers['content-type'] || '');
+    if (contentType.startsWith('multipart/form-data')) {
+      return next();
+    }
     return requireCsrfProtection(req, res, next);
   }
   return next();
