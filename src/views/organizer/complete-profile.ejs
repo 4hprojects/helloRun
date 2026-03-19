@@ -277,7 +277,7 @@
       <!-- ========== FORM VIEW (No Application) ========== -->
       <% } else { %>
         <form id="organizerApplicationForm" class="application-form" enctype="multipart/form-data" method="POST" action="/organizer/complete-profile" novalidate>
-          
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
           <!-- Progress Steps (clickable via JS) -->
           <div class="progress-steps" role="tablist" aria-label="Application steps">
             <div class="progress-step active" data-step="1" role="tab" aria-selected="true" aria-controls="step1" id="step1-tab" tabindex="0">

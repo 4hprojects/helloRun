@@ -262,6 +262,7 @@
     <% } %>
 
     <form method="POST" action="<%= formAction %>" enctype="multipart/form-data" style="display: grid; gap: 0.75rem;">
+      <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
       <input type="hidden" name="action" id="formActionInput" value="">
       <div>
         <label for="title" style="font-weight: 600;">Title</label>

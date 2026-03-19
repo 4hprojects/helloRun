@@ -187,10 +187,12 @@
                   <td>
                     <% if (registration.paymentStatus === 'proof_submitted') { %>
                       <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= registration._id %>/payment/approve" class="payment-action-form">
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                         <textarea name="reviewNotes" rows="2" maxlength="1000" placeholder="Optional review notes"></textarea>
                         <button type="submit" class="nav-signup-btn table-action-btn">Approve</button>
                       </form>
                       <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= registration._id %>/payment/reject" class="payment-action-form">
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                         <textarea name="rejectionReason" rows="2" maxlength="500" required placeholder="Required rejection reason"></textarea>
                         <textarea name="reviewNotes" rows="2" maxlength="1000" placeholder="Optional review notes"></textarea>
                         <button type="submit" class="nav-login-btn table-action-btn">Reject</button>
@@ -278,10 +280,12 @@
                   <td>
                     <% if (registration.submission && registration.submission.status === 'submitted') { %>
                       <form method="POST" action="/organizer/events/<%= event._id %>/submissions/<%= registration.submission._id %>/approve" class="payment-action-form">
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                         <textarea name="reviewNotes" rows="2" maxlength="1200" placeholder="Optional review notes"></textarea>
                         <button type="submit" class="nav-signup-btn table-action-btn">Approve Result</button>
                       </form>
                       <form method="POST" action="/organizer/events/<%= event._id %>/submissions/<%= registration.submission._id %>/reject" class="payment-action-form">
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                         <textarea name="rejectionReason" rows="2" maxlength="500" required placeholder="Required rejection reason"></textarea>
                         <textarea name="reviewNotes" rows="2" maxlength="1200" placeholder="Optional review notes"></textarea>
                         <button type="submit" class="nav-login-btn table-action-btn">Reject Result</button>

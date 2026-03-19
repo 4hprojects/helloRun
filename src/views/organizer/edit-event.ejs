@@ -32,6 +32,7 @@
       <% } %>
 
       <form class="create-event-form" method="POST" action="/organizer/events/<%= event._id %>/edit" enctype="multipart/form-data" novalidate>
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
         <!-- CORE DETAILS SECTION (same as create) -->
         <div class="form-section">
           <div class="section-title">📋 Core Details</div>

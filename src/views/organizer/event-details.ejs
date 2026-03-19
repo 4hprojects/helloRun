@@ -157,6 +157,7 @@
         <div class="status-actions">
           <% if (event.status === 'draft') { %>
             <form method="POST" action="/organizer/events/<%= event._id %>/status" onsubmit="return confirm('Publish this event now?');">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <input type="hidden" name="nextStatus" value="published">
               <button type="submit" class="nav-signup-btn detail-status-btn">Publish Event</button>
             </form>
@@ -164,6 +165,7 @@
 
           <% if (event.status === 'published') { %>
             <form method="POST" action="/organizer/events/<%= event._id %>/status" onsubmit="return confirm('Close this event? This action is final in current flow.');">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <input type="hidden" name="nextStatus" value="closed">
               <button type="submit" class="nav-login-btn detail-status-btn">Close Event</button>
             </form>
