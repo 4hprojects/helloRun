@@ -21,6 +21,8 @@ const COOKIE_POLICY_SLUG = 'cookie-policy';
 const PRIVACY_POLICY_MANAGE_PATH = '/admin/privacy-policy';
 const TERMS_POLICY_MANAGE_PATH = '/admin/terms-and-conditions';
 const COOKIE_POLICY_MANAGE_PATH = '/admin/cookie-policy';
+const ADMIN_REVIEW_TYPES = ['all', 'payments', 'results'];
+const ADMIN_REVIEW_SORTS = ['oldest', 'newest'];
 const POLICY_HEADING_PATTERNS = [
   /^hello\s*run\s*privacy\s*policy$/i,
   /^privacy\s*policy$/i,
@@ -135,6 +137,41 @@ function renderServerError(res, error, fallbackMessage) {
 function buildAdminRedirect(pathname, type, message) {
   const params = new URLSearchParams({ type, msg: message });
   return `${pathname}?${params.toString()}`;
+}
+
+function formatAdminReviewDate(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
+function normalizeAdminReviewType(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return ADMIN_REVIEW_TYPES.includes(normalized) ? normalized : 'all';
+}
+
+function normalizeAdminReviewSort(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return ADMIN_REVIEW_SORTS.includes(normalized) ? normalized : 'oldest';
+}
+
+function buildReviewQueueParams(filters, overrides = {}) {
+  const params = new URLSearchParams();
+  const type = overrides.type ?? filters.type;
+  const sort = overrides.sort ?? filters.sort;
+  const q = overrides.q ?? filters.q;
+  if (type && type !== 'all') params.set('type', type);
+  if (sort && sort !== 'oldest') params.set('sort', sort);
+  if (q) params.set('q', q);
+  const query = params.toString();
+  return query ? `/admin/reviews?${query}` : '/admin/reviews';
 }
 
 function buildPolicyHtmlFromMarkdown(markdown) {
@@ -942,16 +979,129 @@ exports.dashboard = async (req, res) => {
         publishedEvents,
         totalRegistrations,
         pendingPaymentReviews,
+        pendingPaymentReviewHref: pendingPaymentReviews > 0 ? '/admin/reviews?type=payments' : '',
         totalSubmissions,
         approvedSubmissions,
         pendingResultReviews,
-        pendingResultReviewHref
+        pendingResultReviewHref: pendingResultReviews > 0 ? '/admin/reviews?type=results' : pendingResultReviewHref
       },
       pendingApplicationsList,
       draftEventsList
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading the admin dashboard.');
+  }
+};
+
+exports.reviewQueue = async (req, res) => {
+  try {
+    const filters = {
+      type: normalizeAdminReviewType(req.query.type),
+      sort: normalizeAdminReviewSort(req.query.sort),
+      q: typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 120) : ''
+    };
+    const sortDirection = filters.sort === 'newest' ? -1 : 1;
+    const includePayments = filters.type === 'all' || filters.type === 'payments';
+    const includeResults = filters.type === 'all' || filters.type === 'results';
+    const searchRegex = filters.q ? new RegExp(escapeRegex(filters.q), 'i') : null;
+
+    const [paymentDocs, resultDocs] = await Promise.all([
+      includePayments
+        ? Registration.find({ paymentStatus: 'proof_submitted' })
+          .populate('eventId', 'title slug')
+          .sort({ 'paymentProof.uploadedAt': sortDirection, updatedAt: sortDirection, createdAt: sortDirection })
+          .limit(100)
+          .lean()
+        : [],
+      includeResults
+        ? Submission.find({ status: 'submitted' })
+          .populate('eventId', 'title slug')
+          .populate('registrationId', 'participant confirmationCode')
+          .sort({ submittedAt: sortDirection, updatedAt: sortDirection, createdAt: sortDirection })
+          .limit(100)
+          .lean()
+        : []
+    ]);
+
+    const paymentItems = paymentDocs.map((registration) => {
+      const participant = registration.participant || {};
+      const event = registration.eventId || {};
+      const submittedAt = registration.paymentProof?.uploadedAt || registration.updatedAt || registration.createdAt;
+      return {
+        type: 'Payment',
+        typeKey: 'payment',
+        eventId: String(event._id || registration.eventId || ''),
+        eventTitle: event.title || 'Event unavailable',
+        participantName: [participant.firstName, participant.lastName].filter(Boolean).join(' ').trim() || 'N/A',
+        participantEmail: participant.email || 'N/A',
+        confirmationCode: registration.confirmationCode || 'N/A',
+        raceDistance: registration.raceDistance || 'N/A',
+        participationMode: registration.participationMode || 'N/A',
+        submittedAt,
+        submittedAtLabel: formatAdminReviewDate(submittedAt),
+        status: registration.paymentStatus || 'proof_submitted',
+        actionHref: `/organizer/events/${String(event._id || registration.eventId)}/registrants?payment=proof_submitted`
+      };
+    });
+
+    const resultItems = resultDocs.map((submission) => {
+      const registration = submission.registrationId || {};
+      const participant = registration.participant || {};
+      const event = submission.eventId || {};
+      const submittedAt = submission.submittedAt || submission.updatedAt || submission.createdAt;
+      return {
+        type: 'Result',
+        typeKey: 'result',
+        eventId: String(event._id || submission.eventId || ''),
+        eventTitle: event.title || 'Event unavailable',
+        participantName: [participant.firstName, participant.lastName].filter(Boolean).join(' ').trim() || 'N/A',
+        participantEmail: participant.email || 'N/A',
+        confirmationCode: registration.confirmationCode || 'N/A',
+        raceDistance: submission.raceDistance || 'N/A',
+        participationMode: submission.participationMode || 'N/A',
+        submittedAt,
+        submittedAtLabel: formatAdminReviewDate(submittedAt),
+        status: submission.status || 'submitted',
+        actionHref: `/organizer/events/${String(event._id || submission.eventId)}/registrants?result=submitted`
+      };
+    });
+
+    let reviewItems = paymentItems.concat(resultItems);
+    if (searchRegex) {
+      reviewItems = reviewItems.filter((item) => (
+        searchRegex.test(item.eventTitle) ||
+        searchRegex.test(item.participantName) ||
+        searchRegex.test(item.participantEmail) ||
+        searchRegex.test(item.confirmationCode)
+      ));
+    }
+
+    reviewItems.sort((a, b) => {
+      const aTime = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+      const bTime = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+      return filters.sort === 'newest' ? bTime - aTime : aTime - bTime;
+    });
+
+    return res.render('admin/review-queue', {
+      title: 'Payment and Result Reviews - helloRun Admin',
+      filters,
+      reviewItems,
+      counts: {
+        all: paymentItems.length + resultItems.length,
+        payments: paymentItems.length,
+        results: resultItems.length
+      },
+      links: {
+        all: buildReviewQueueParams(filters, { type: 'all' }),
+        payments: buildReviewQueueParams(filters, { type: 'payments' }),
+        results: buildReviewQueueParams(filters, { type: 'results' }),
+        newest: buildReviewQueueParams(filters, { sort: 'newest' }),
+        oldest: buildReviewQueueParams(filters, { sort: 'oldest' }),
+        reset: '/admin/reviews'
+      }
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading the admin review queue.');
   }
 };
 

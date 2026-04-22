@@ -73,7 +73,11 @@
         <article class="metric-card">
           <p class="metric-label">Pending Payment Reviews</p>
           <p class="metric-value"><%= stats.pendingPaymentReviews %></p>
-          <p class="metric-helper">Needs organizer action</p>
+          <% if (stats.pendingPaymentReviewHref) { %>
+            <a href="<%= stats.pendingPaymentReviewHref %>" class="metric-link">Open Review Queue</a>
+          <% } else { %>
+            <p class="metric-helper">No pending queue</p>
+          <% } %>
         </article>
 
         <article class="metric-card">
@@ -223,6 +227,7 @@
 
       <nav class="admin-menu">
         <a href="/admin/applications" class="btn">Organizer Applications</a>
+        <a href="/admin/reviews" class="btn btn-secondary">Payment & Result Reviews</a>
         <a href="/admin/blog/review" class="btn btn-secondary">Blog Moderation</a>
         <a href="/admin/privacy-policy" class="btn btn-secondary">Privacy Policy</a>
         <a href="/admin/terms-and-conditions" class="btn btn-secondary">Terms and Conditions</a>

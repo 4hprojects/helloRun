@@ -63,10 +63,77 @@ test('admin dashboard renders platform stats and pending application queue', asy
   assert.match(html, /\/admin\/terms-and-conditions/i);
   assert.match(html, /\/admin\/cookie-policy/i);
   assert.match(html, /Open Review Queue/i);
-  assert.match(html, /\/organizer\/events\/[a-f0-9]{24}\/registrants\?result=submitted/i);
+  assert.match(html, /\/admin\/reviews\?type=payments/i);
+  assert.match(html, /\/admin\/reviews\?type=results/i);
+  assert.match(html, /\/admin\/reviews/i);
   assert.match(html, new RegExp(escapeRegex(seed.pendingApplication.businessName)));
   assert.match(html, new RegExp(escapeRegex(seed.pendingApplication.applicantEmail)));
   assert.match(html, new RegExp(escapeRegex(`/admin/applications/${seed.pendingApplication.id}`)));
+});
+
+test('admin review queue enforces admin access', async () => {
+  const unauthenticated = await fetch(`${BASE_URL}/admin/reviews`, {
+    redirect: 'manual'
+  });
+  assert.equal(unauthenticated.status, 302);
+  assert.equal(unauthenticated.headers.get('location'), '/login');
+
+  const runnerCookie = await login(seed.runner.email, seed.password);
+  const runnerResponse = await fetch(`${BASE_URL}/admin/reviews`, {
+    headers: { Cookie: runnerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(runnerResponse.status, 403);
+});
+
+test('admin review queue renders payment and result queues with filters', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(cookie);
+
+  const allResponse = await fetch(`${BASE_URL}/admin/reviews`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(allResponse.status, 200);
+  const allHtml = await allResponse.text();
+  assert.match(allHtml, /Payment and Result Reviews/i);
+  assert.match(allHtml, /Payment/i);
+  assert.match(allHtml, /Result/i);
+  assert.match(allHtml, new RegExp(escapeRegex(seed.eventTitle)));
+  assert.match(allHtml, new RegExp(escapeRegex(seed.runner.email)));
+  assert.match(allHtml, /\/organizer\/events\/[a-f0-9]{24}\/registrants\?payment=proof_submitted/i);
+  assert.match(allHtml, /\/organizer\/events\/[a-f0-9]{24}\/registrants\?result=submitted/i);
+
+  const paymentsResponse = await fetch(`${BASE_URL}/admin/reviews?type=payments`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(paymentsResponse.status, 200);
+  const paymentsHtml = await paymentsResponse.text();
+  assert.match(paymentsHtml, /Payment/i);
+  assert.doesNotMatch(paymentsHtml, /status-badge-result/i);
+
+  const resultsResponse = await fetch(`${BASE_URL}/admin/reviews?type=results`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(resultsResponse.status, 200);
+  const resultsHtml = await resultsResponse.text();
+  assert.match(resultsHtml, /Result/i);
+  assert.doesNotMatch(resultsHtml, /status-badge-payment/i);
+});
+
+test('admin review queue renders empty state for unmatched search', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(cookie);
+
+  const response = await fetch(`${BASE_URL}/admin/reviews?q=no-match-${Date.now()}`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /No pending reviews found/i);
 });
 
 async function seedAdminDashboardFixture() {
@@ -221,6 +288,7 @@ async function seedAdminDashboardFixture() {
       applicantEmail: organizer.email
     },
     eventId: String(event._id),
+    eventTitle: event.title,
     registrationId: String(registration._id),
     submissionId: String(submission._id),
     blogId: String(blog._id)

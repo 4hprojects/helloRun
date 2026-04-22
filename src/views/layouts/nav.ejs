@@ -7,30 +7,58 @@
       <span>HelloRun</span>
     </a>
     
-    <button class="menu-toggle" aria-label="Toggle menu" aria-expanded="false">
+    <button class="menu-toggle" aria-label="Toggle menu" aria-expanded="false" aria-controls="nav-links">
       <i data-lucide="menu"></i>
     </button>
     
     <div class="nav-links" id="nav-links">
-      <a href="/">Home</a>
-      <a href="/events">Events</a>
-      <a href="/blog">Blog</a>
-      <a href="/leaderboard">Leaderboard</a>
+      <a href="/" class="nav-icon-link" aria-label="Home" title="Home">
+        <i data-lucide="home"></i>
+        <span class="nav-tooltip">Home</span>
+      </a>
+      <a href="/events" class="nav-icon-link" aria-label="Events" title="Events">
+        <i data-lucide="calendar-days"></i>
+        <span class="nav-tooltip">Events</span>
+      </a>
+      <a href="/blog" class="nav-icon-link" aria-label="Blog" title="Blog">
+        <i data-lucide="newspaper"></i>
+        <span class="nav-tooltip">Blog</span>
+      </a>
+      <a href="/leaderboard" class="nav-icon-link" aria-label="Leaderboard" title="Leaderboard">
+        <i data-lucide="trophy"></i>
+        <span class="nav-tooltip">Leaderboard</span>
+      </a>
 
       <% if (locals.isAuthenticated) { %>
-        <a href="/my-registrations">My Registrations</a>
+        <a href="/my-registrations" class="nav-icon-link" aria-label="My Registrations" title="My Registrations">
+          <i data-lucide="clipboard-list"></i>
+          <span class="nav-tooltip">My Registrations</span>
+        </a>
 
         <!-- Role-based dashboard link -->
         <% if (locals.isAdmin) { %>
-          <a href="/admin/dashboard">Admin</a>
+          <a href="/admin/dashboard" class="nav-icon-link" aria-label="Admin" title="Admin">
+            <i data-lucide="shield-check"></i>
+            <span class="nav-tooltip">Admin</span>
+          </a>
         <% } else if (locals.isApprovedOrganizer) { %>
-          <a href="/organizer/dashboard">Dashboard</a>
+          <a href="/organizer/dashboard" class="nav-icon-link" aria-label="Dashboard" title="Dashboard">
+            <i data-lucide="layout-dashboard"></i>
+            <span class="nav-tooltip">Dashboard</span>
+          </a>
         <% } else if (locals.isOrganizer) { %>
-          <a href="/organizer/application-status">My Application</a>
+          <a href="/organizer/application-status" class="nav-icon-link" aria-label="My Application" title="My Application">
+            <i data-lucide="file-check"></i>
+            <span class="nav-tooltip">My Application</span>
+          </a>
         <% } else { %>
-          <a href="/runner/dashboard">Dashboard</a>
-          <a href="/runner/notifications" class="nav-notifications-link">
-            Notifications
+          <a href="/runner/dashboard" class="nav-icon-link" aria-label="Dashboard" title="Dashboard">
+            <i data-lucide="layout-dashboard"></i>
+            <span class="nav-tooltip">Dashboard</span>
+          </a>
+          <a href="/runner/notifications" class="nav-icon-link nav-notifications-link" aria-label="Notifications" title="Notifications">
+            <i data-lucide="bell"></i>
+            <span class="nav-tooltip">Notifications</span>
             <% if ((locals.runnerUnreadNotifications || 0) > 0) { %>
               <span class="nav-notification-badge"><%= locals.runnerUnreadNotifications %></span>
             <% } %>
@@ -42,17 +70,23 @@
           <span class="nav-username">Hi, <%= locals.user ? locals.user.firstName : 'User' %></span>
           <form action="/logout" method="POST" class="logout-form">
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-            <button type="submit" class="nav-logout-btn">
-              <i data-lucide="log-out" style="width:16px;height:16px;"></i>
-              Logout
+            <button type="submit" class="nav-logout-btn nav-icon-link" aria-label="Logout" title="Logout">
+              <i data-lucide="log-out"></i>
+              <span class="nav-tooltip">Logout</span>
             </button>
           </form>
         </div>
       <% } else { %>
         <!-- Guest buttons -->
         <div class="nav-auth-buttons">
-          <a href="/login" class="nav-login-btn">Login</a>
-          <a href="/signup" class="nav-signup-btn">Sign Up</a>
+          <a href="/login" class="nav-login-btn nav-icon-link" aria-label="Login" title="Login">
+            <i data-lucide="log-in"></i>
+            <span class="nav-tooltip">Login</span>
+          </a>
+          <a href="/signup" class="nav-signup-btn nav-icon-link" aria-label="Sign Up" title="Sign Up">
+            <i data-lucide="user-plus"></i>
+            <span class="nav-tooltip">Sign Up</span>
+          </a>
         </div>
       <% } %>
     </div>

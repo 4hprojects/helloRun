@@ -1,7 +1,62 @@
 # DOCUMENT ROLE (REPOSITORY TRACKER)
 - Purpose: File-level repository tracking and chronological implementation changelog.
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
-- Planning source: See wireframe.md for roadmap, backlog, and detailed tasks.
+- Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
+
+## CHANGELOG - April 22, 2026 (Session: Admin Review Queue + Navigation UX + Shop Draft)
+
+### [SESSION] SESSION UPDATE:
+- Cleaned up planning docs:
+  - renamed `docs/wireframe.md` to `docs/PRD.md`
+  - renamed `docs/dir.md` to `docs/CHANGELOG.md`
+  - updated references to the new document names
+- Added shop planning:
+  - added Phase 11 Shop / Merchandise Feature to `docs/PRD.md`
+  - created `docs/shop_feature.md`
+- Added dedicated admin payment/result review queue:
+  - new `GET /admin/reviews`
+  - cross-event queue for registrations with `paymentStatus: proof_submitted`
+  - cross-event queue for submissions with `status: submitted`
+  - filters for all/payments/results, oldest/newest sort, and search
+  - dashboard links now point pending review metrics to the admin queue
+- Updated navigation:
+  - converted shared nav links to Lucide icon controls with hover/focus labels
+  - improved tablet/mobile hamburger menu into a compact overlay panel
+  - made mobile labels right-aligned with icons on the right
+  - refined mobile logout button size, placement, and styling
+- Refreshed `/about` page content:
+  - expanded runner/organizer value messaging
+  - added platform capability list and trust/momentum sections
+  - added browse events and account creation calls to action
+
+### [NEW] NEW FILES:
+1. docs/shop_feature.md
+2. src/views/admin/review-queue.ejs
+
+### [RENAMED] RENAMED FILES:
+1. docs/wireframe.md -> docs/PRD.md
+2. docs/dir.md -> docs/CHANGELOG.md
+
+### [UPDATED] UPDATED FILES (major):
+1. docs/PRD.md
+2. docs/CHANGELOG.md
+3. src/controllers/admin.controller.js
+4. src/routes/admin.routes.js
+5. src/views/admin/dashboard.ejs
+6. src/views/layouts/nav.ejs
+7. src/public/css/admin.css
+8. src/public/css/style.css
+9. src/public/js/main.js
+10. tests/admin-dashboard.test.js
+11. src/views/pages/about.ejs
+12. src/public/css/static-pages.css
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/static-pages.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/admin-dashboard.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/submission-review-route-guards.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/payment-route-guards.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/runner-dashboard-modal.test.js` -> PASS
 
 ## CHANGELOG - March 10, 2026 (Session: Run Proof Modal Rollout + Admin Review Access)
 
@@ -30,8 +85,8 @@
 9. src/controllers/admin.controller.js
 10. src/views/admin/dashboard.ejs
 11. docs/privacy_policy.md
-12. docs/wireframe.md
-13. docs/dir.md
+12. docs/PRD.md
+13. docs/CHANGELOG.md
 
 ### [VALIDATION] TEST/RUN CHECKS:
 - `node --test --test-concurrency=1 tests/submission-routes.test.js` -> PASS
@@ -56,8 +111,8 @@
 1. src/views/pages/privacy.ejs
 2. src/public/css/static-pages.css
 3. docs/privacy_policy.md
-4. docs/wireframe.md
-5. docs/dir.md
+4. docs/PRD.md
+5. docs/CHANGELOG.md
 
 ### [VALIDATION] TEST/RUN CHECKS:
 - `node --test --test-concurrency=1 tests/static-pages.test.js` -> PASS
@@ -96,8 +151,8 @@
 10. tests/google-oauth-routes.test.js
 11. tests/privacy-signup-consent.test.js
 12. docs/privacy_policy.md
-13. docs/wireframe.md
-14. docs/dir.md
+13. docs/PRD.md
+14. docs/CHANGELOG.md
 
 ### [VALIDATION] TEST/RUN CHECKS:
 - `node --test --test-concurrency=1 tests/admin-dashboard.test.js` -> PASS
@@ -135,8 +190,8 @@
 11. tests/privacy-signup-consent.test.js
 12. tests/static-pages.test.js
 13. docs/privacy_policy.md
-14. docs/wireframe.md
-15. docs/dir.md
+14. docs/PRD.md
+15. docs/CHANGELOG.md
 
 ### [VALIDATION] TEST/RUN CHECKS:
 - `node --test --test-concurrency=1 tests/admin-dashboard.test.js` -> PASS
@@ -180,8 +235,8 @@
 10. src/views/admin/blog-review.ejs
 11. src/public/css/admin.css
 12. docs/privacy_policy.md
-13. docs/wireframe.md
-14. docs/dir.md
+13. docs/PRD.md
+14. docs/CHANGELOG.md
 
 ### [REMOVED] REMOVED FILES:
 1. src/views/admin/privacy-policy-editor.ejs
@@ -207,8 +262,8 @@
 1. src/views/pages/event-details.ejs
 2. src/controllers/page.controller.js
 3. src/views/pages/my-registrations.ejs
-4. docs/wireframe.md
-5. docs/dir.md
+4. docs/PRD.md
+5. docs/CHANGELOG.md
 
 ## CHANGELOG - March 8, 2026 (Session: Runner Groups Panel Simplification + Dedicated Group/Profile Flows)
 
@@ -242,8 +297,8 @@
 5. src/routes/runner.routes.js
 6. src/public/css/runner-dashboard.css
 7. src/public/js/runner-dashboard.js
-8. docs/wireframe.md
-9. docs/dir.md
+8. docs/PRD.md
+9. docs/CHANGELOG.md
 
 ## CHANGELOG - March 8, 2026 (Session: Runner Dashboard High-Impact Security + UX Batch)
 
@@ -272,8 +327,8 @@
 4. src/public/js/runner-dashboard.js
 5. src/public/css/runner-dashboard.css
 6. tests/runner-dashboard-profile.test.js
-7. docs/wireframe.md
-8. docs/dir.md
+7. docs/PRD.md
+8. docs/CHANGELOG.md
 
 ## CHANGELOG - March 8, 2026 (Session: Phase 6 Runner Dashboard Final Closeout Smoke)
 
@@ -294,8 +349,8 @@
 - Updated planning notes to mark Phase 6 runner polish as fully closed.
 
 ### [UPDATED] UPDATED FILES (major):
-1. docs/wireframe.md
-2. docs/dir.md
+1. docs/PRD.md
+2. docs/CHANGELOG.md
 
 ## CHANGELOG - March 8, 2026 (Session: Runner Dashboard UX Consolidation + OAuth Polish)
 
@@ -322,8 +377,8 @@
 4. src/controllers/runner.controller.js
 5. src/routes/authRoutes.js
 6. src/views/auth/forgot-password.ejs
-7. docs/wireframe.md
-8. docs/dir.md
+7. docs/PRD.md
+8. docs/CHANGELOG.md
 
 ## CHANGELOG - March 8, 2026 (Session: Phase 8 Polish - Runner Google Link Badge + Safe Unlink)
 
@@ -347,8 +402,8 @@
 3. src/views/runner/dashboard.ejs
 4. src/public/css/runner-dashboard.css
 5. tests/runner-dashboard-profile.test.js
-6. docs/wireframe.md
-7. docs/dir.md
+6. docs/PRD.md
+7. docs/CHANGELOG.md
 
 ## CHANGELOG - March 8, 2026 (Session: Phase 8 Production Verification + Google Signup Fix)
 
@@ -363,8 +418,8 @@
 
 ### [UPDATED] UPDATED FILES (major):
 1. src/models/User.js
-2. docs/wireframe.md
-3. docs/dir.md
+2. docs/PRD.md
+3. docs/CHANGELOG.md
 
 ## CHANGELOG - March 8, 2026 (Session: Phase 8 Google OAuth Baseline)
 
@@ -396,8 +451,8 @@
 5. src/public/css/login.css
 6. src/public/css/signup.css
 7. tests/runner-notifications-routes.test.js
-8. docs/wireframe.md
-9. docs/dir.md
+8. docs/PRD.md
+9. docs/CHANGELOG.md
 
 ## CHANGELOG - March 8, 2026 (Session: Phase 9 Cross-Device QA Gate + Closeout)
 
@@ -418,8 +473,8 @@
 - Marked Phase 9 cross-device/manual QA gate as complete in planning notes.
 
 ### [UPDATED] UPDATED FILES (major):
-1. docs/wireframe.md
-2. docs/dir.md
+1. docs/PRD.md
+2. docs/CHANGELOG.md
 
 ## CHANGELOG - March 8, 2026 (Session: Phase 9 Kickoff - Test Stability Baseline)
 
@@ -433,7 +488,7 @@
 
 ### [UPDATED] UPDATED FILES (major):
 1. package.json
-2. docs/wireframe.md
+2. docs/PRD.md
 
 ## CHANGELOG - March 8, 2026 (Session: Phase 9 Coverage Expansion - High-Risk Negative Paths)
 
@@ -448,7 +503,7 @@
 ### [UPDATED] UPDATED FILES (major):
 1. tests/submission-routes.test.js
 2. tests/runner-notifications-routes.test.js
-3. docs/wireframe.md
+3. docs/PRD.md
 
 ## CHANGELOG - March 8, 2026 (Session: Phase 9 Security Hardening Verification Pass)
 
@@ -468,7 +523,7 @@
 ### [UPDATED] UPDATED FILES (major):
 1. src/server.js
 2. src/routes/authRoutes.js
-3. docs/wireframe.md
+3. docs/PRD.md
 
 ## CHANGELOG - March 8, 2026 (Session: Phase 9 Performance Baseline + Index Tuning)
 
@@ -489,7 +544,7 @@
 3. src/models/Submission.js
 4. src/models/Notification.js
 5. src/models/Blog.js
-6. docs/wireframe.md
+6. docs/PRD.md
 
 ## CHANGELOG - March 8, 2026 (Session: Phase 3/5/6 Closeout Smoke + Status Finalization)
 
@@ -509,7 +564,7 @@
 - Updated planning notes to mark Phase 3, 5, and 6 as completed for core scope.
 
 ### [UPDATED] UPDATED FILES (major):
-1. docs/wireframe.md
+1. docs/PRD.md
 
 ## CHANGELOG - March 8, 2026 (Session: Phase 7 Completion - Notifications Expansion)
 
@@ -535,7 +590,7 @@
 8. tests/submission.service.test.js
 9. tests/payment-route-guards.test.js
 10. tests/runner-notifications-routes.test.js
-11. docs/wireframe.md
+11. docs/PRD.md
 
 ### MANUAL/TEST CHECKLIST (Latest):
 - [x] `node --test tests/payment-route-guards.test.js tests/runner-notifications-routes.test.js tests/submission.service.test.js` passes
@@ -561,7 +616,7 @@
 3. src/public/css/create-event.css
 4. src/routes/organizer.routes.js
 5. src/utils/sanitize.js
-6. docs/wireframe.md
+6. docs/PRD.md
 
 ### MANUAL/TEST CHECKLIST (Latest):
 - [x] `node --test tests/organizer-waiver-routes.test.js` passes (2/2)
@@ -621,7 +676,7 @@
 7. src/public/css/blog.css
 8. src/views/pages/leaderboard.ejs
 9. src/public/css/leaderboard.css
-10. docs/wireframe.md
+10. docs/PRD.md
 
 ### MANUAL/TEST CHECKLIST (Latest):
 - [x] Static public pages render with expected headings (`tests/static-pages.test.js`)
@@ -646,7 +701,7 @@
 1. src/services/submission.service.js
 2. src/services/email.service.js
 3. tests/submission.service.test.js
-4. docs/wireframe.md
+4. docs/PRD.md
 
 ### MANUAL SMOKE CHECKLIST (Latest):
 - [x] Result approval triggers runner notification flow (service-level verified)
@@ -671,7 +726,7 @@
 
 ### [UPDATED] UPDATED FILES (major):
 1. src/public/css/leaderboard.css
-2. docs/wireframe.md
+2. docs/PRD.md
 
 ### MANUAL SMOKE CHECKLIST (Latest):
 - [x] Runner submit-result flow works end-to-end with valid proof upload
@@ -696,7 +751,7 @@
 1. src/routes/organizer.routes.js
 2. src/views/organizer/dashboard.ejs
 3. src/public/css/organizer-dashboard.css
-4. docs/wireframe.md
+4. docs/PRD.md
 
 ### MANUAL SMOKE CHECKLIST (Latest):
 - [x] Organizer dashboard loads as approved organizer
@@ -719,7 +774,7 @@
 1. src/routes/organizer.routes.js
 2. src/views/organizer/dashboard.ejs
 3. src/public/css/organizer-dashboard.css
-4. docs/wireframe.md
+4. docs/PRD.md
 
 ### MANUAL SMOKE CHECKLIST (Latest):
 - [x] Organizer dashboard range filter renders and applies
@@ -753,7 +808,7 @@
    - Updated dashboard activity assertion to current UI contract
 6. tests/submission.service.test.js
    - Added performance snapshot coverage
-7. docs/wireframe.md
+7. docs/PRD.md
    - Marked Sprint B item 1 (Runner dashboard iteration 2) as done
 
 ### MANUAL SMOKE CHECKLIST (Latest):
@@ -829,7 +884,7 @@
     - Replaced Phase 5 placeholder certificate card with live certificate list/count
     - Added submission statistics to progress metrics card
 
-11. docs/wireframe.md
+11. docs/PRD.md
     - Updated Sprint B deferred item and Phase 5 status/progress checkpoints
 
 ### Key Behavior Changes
@@ -881,7 +936,7 @@
 6. tests/running-group.service.test.js
    - Expanded service assertions for activity and slug/current-group helpers
 
-7. docs/wireframe.md
+7. docs/PRD.md
    - Updated Sprint B backlog and status to reflect completed integration and coverage
 
 ### Key Behavior Changes
@@ -975,7 +1030,7 @@
   - added route-level guard tests (auth + ownership + invalid transition)
   - improved mobile/tablet usability for payment UI in runner and organizer screens
   - completed registration + waiver + export smoke checks
-- Updated planning status in wireframe.md to mark Phase 4 done within in-app scope.
+- Updated planning status in PRD.md to mark Phase 4 done within in-app scope.
 
 ### [NEW] NEW FILES:
 1. tests/payment-route-guards.test.js
@@ -987,7 +1042,7 @@
 2. src/public/css/events.css
    - Improved mobile ergonomics for my-registrations payment-proof form and badge legibility
 
-3. docs/wireframe.md
+3. docs/PRD.md
    - Added final validation notes and moved Sprint A smoke item + Phase 4 status to done
 
 ### Key Behavior Changes
@@ -1031,7 +1086,7 @@
 4. src/public/css/runner-dashboard.css
    - Added styles for running-group search/create/join/leave blocks
 
-5. docs/wireframe.md
+5. docs/PRD.md
    - Added Sprint B running-group kickoff status update
 
 ### Key Behavior Changes
@@ -1047,26 +1102,26 @@
 
 ### [NEW] NEW FILES:
 1. docs/blog_feature.md
-2. docs/dir.md
+2. docs/CHANGELOG.md
 3. docs/mongodb_schema.md
 4. docs/organiser_flow.md
 5. docs/seo key words.md
 6. docs/sitetheme.md
 7. docs/user-role-system.md
-8. docs/wireframe.md
+8. docs/PRD.md
 
 ### [REMOVED] REMOVED FILES:
 1. dir.txt
-2. wireframe.txt
+2. PRD.txt
 3. sitetheme.txt
 4. user-role-system.txt
 5. seo key words.txt
 6. current-dir.txt
 
 ### [UPDATED] UPDATED FILES (major):
-1. docs/dir.md
-   - Updated planning source reference to `wireframe.md`
-2. docs/wireframe.md
+1. docs/CHANGELOG.md
+   - Updated planning source reference to `PRD.md`
+2. docs/PRD.md
    - Updated changelog/source references from `.txt` to `.md`
 
 ### Key Behavior Changes
@@ -1426,7 +1481,7 @@ helloRun/
   package-lock.json
   README.md
   dir.txt
-  wireframe.txt
+  PRD.txt
 ## CHANGELOG - February 26, 2026 (Session: Runner Dashboard Data Cards + Route Refactor)
 
 ### [SESSION] SESSION UPDATE:

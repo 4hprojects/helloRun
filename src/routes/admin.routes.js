@@ -39,6 +39,7 @@ router.post('/applications/:id/reject', requireAdmin, adminController.rejectAppl
 
 // Admin dashboard
 router.get('/dashboard', requireAdmin, adminController.dashboard);
+router.get('/reviews', requireAdmin, adminController.reviewQueue);
 router.get('/privacy-policy', requireAdmin, adminController.listPrivacyPolicies);
 router.get('/privacy-policy/new', requireAdmin, adminController.renderNewPrivacyPolicyDraft);
 router.post('/privacy-policy', requireAdmin, adminController.createPrivacyPolicyDraft);

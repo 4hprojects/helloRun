@@ -39,6 +39,10 @@
   margin: 1rem 0 1.25rem;
 }
 
+.review-queue-filters {
+  grid-template-columns: repeat(2, minmax(180px, 220px)) minmax(240px, 1fr) auto;
+}
+
 .filter-field label {
   font-size: 0.85rem;
   font-weight: 600;
@@ -141,6 +145,18 @@
   background: #dbeafe;
   color: #1d4ed8;
   margin-left: 0.3rem;
+}
+
+.status-badge-payment,
+.status-badge-proof_submitted {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.status-badge-result,
+.status-badge-submitted {
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .empty-state {

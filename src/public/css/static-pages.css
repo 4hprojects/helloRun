@@ -54,6 +54,46 @@
   padding-left: 1.1rem;
 }
 
+.static-card > p + p {
+  margin-top: 0.7rem;
+}
+
+.static-check-list {
+  list-style: none;
+  padding-left: 0;
+  display: grid;
+  gap: 0.65rem;
+}
+
+.static-check-list li {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  color: #334155;
+  line-height: 1.55;
+}
+
+.static-check-list i,
+.static-check-list svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+  margin-top: 0.15rem;
+  color: #0284c7;
+}
+
+.about-cta-card {
+  border-color: #bae6fd;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+}
+
+.static-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-top: 0.95rem;
+}
+
 /* Match legal content typography with admin preview rendering. */
 .static-card .legal-markdown h1,
 .static-card .legal-markdown h2,

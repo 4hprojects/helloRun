@@ -1,7 +1,46 @@
 ﻿# DOCUMENT ROLE (SOURCE OF TRUTH)
 - Purpose: Product planning, roadmap, detailed tasks, and phase accomplishments.
 - Update cadence: When priorities change or a milestone is completed.
-- Changelog reference: See dir.md for repository-level change history.
+- Changelog reference: See CHANGELOG.md for repository-level change history.
+
+## STATUS UPDATE (Apr 22, 2026 - Admin Review Queue + Nav UX Polish + Shop Draft)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Documentation structure cleanup:
+  - renamed `docs/wireframe.md` to `docs/PRD.md`
+  - renamed `docs/dir.md` to `docs/CHANGELOG.md`
+  - updated internal references to the new document names
+- Added draft shop planning:
+  - added Phase 11 Shop / Merchandise Feature to this PRD
+  - created `docs/shop_feature.md` for dedicated shop feature planning
+- Completed admin review queue polish:
+  - added `/admin/reviews` cross-event queue for pending payment proofs and submitted run proofs
+  - added payment/result filters, search, sort, counts, and empty state
+  - linked admin dashboard pending payment/result review cards to the new queue
+  - kept approve/reject actions on the existing event registrants review surface
+- Updated navigation UX:
+  - replaced main nav text links with icon buttons and hover/focus labels
+  - improved hamburger menu into an overlay panel on tablet/mobile
+  - made hamburger panel compact, content-width, semi-transparent, right-aligned, and label-visible
+  - refined mobile logout action sizing and alignment
+- Refreshed `/about` page content:
+  - expanded runner and organizer value messaging
+  - added platform capability list and trust/momentum sections
+  - added clearer calls to browse events and create an account
+
+### Validation signals recorded
+- `tests/static-pages.test.js` -> PASS
+- `tests/admin-dashboard.test.js` -> PASS
+- `tests/submission-review-route-guards.test.js` -> PASS
+- `tests/payment-route-guards.test.js` -> PASS
+- `tests/runner-dashboard-modal.test.js` -> PASS
+
+### Still pending from this scope
+- Optional visual QA:
+  - manual browser check for hamburger overlay on common mobile widths
+  - decide whether desktop nav should keep native browser `title` tooltip in addition to custom tooltip
 
 ## STATUS UPDATE (Mar 10, 2026 - Run Proof Submission UX + Review Access Expansion)
 
@@ -29,7 +68,6 @@
 
 ### Still pending from this scope
 - Optional polish:
-  - add dedicated admin queue page for pending payment/result reviews (cross-event view)
   - add active eligible-event count badge on modal trigger buttons
 
 ## STATUS UPDATE (Mar 9, 2026 - Privacy Page Navigation UX Polish)
@@ -975,8 +1013,8 @@ CURRENT ACTIVE BACKLOG (Next 2 Sprints)
    - [DONE] payment workflow regressions
 
 ### Notes
-- dir.md should record file-level implementation history only.
-- wireframe.md remains the master planning and task document.
+- CHANGELOG.md should record file-level implementation history only.
+- PRD.md remains the master planning and task document.
 
 ### Sprint B Exit Criteria (Sign-off Gate)
 - [x] Running-group foundation supports create/join/leave/search/top behavior.
@@ -1026,6 +1064,7 @@ PROJECT OVERVIEW & STATUS (Feb 26, 2026)
 [PENDING] Phase 8: Google OAuth (Optional)
 [IN_PROGRESS] Phase 9: Testing & Optimization
 [PENDING] Phase 10: Production Deployment
+[DRAFT] Phase 11: Shop / Merchandise Feature
 
 ### QUICK STATS
 - Total Users: TBD (after deployment)
@@ -1241,6 +1280,21 @@ Phase 10: Deployment [DEPLOY] PENDING
 
 ---
 
+Phase 11: Shop / Merchandise Feature [COMMERCE] DRAFT
+
+Goal: Add a HelloRun shop for running-related merchandise that supports the platform brand, events, organizers, and runner community.
+
+[DRAFT] Public shop/catalog page for HelloRun-related merch
+[DRAFT] Product detail pages with images, variants, pricing, and stock status
+[DRAFT] Cart and checkout planning
+[DRAFT] Admin product management
+[DRAFT] Order tracking for runners/customers
+[DRAFT] Optional organizer/event-specific merch collections
+
+Detailed draft: See docs/shop_feature.md
+
+---
+
 FILES STRUCTURE (Updated Feb 19, 2026)
 
 src/
@@ -1348,8 +1402,8 @@ src/
 package.json
 package-lock.json
 README.md
-dir.md
-wireframe.md
+CHANGELOG.md
+PRD.md
 dns.txt
 sitemap.md
 organiser_flow.md
@@ -1552,9 +1606,42 @@ Data Source: Approved submissions from Phase 5
 
 ---
 
-DETAILED CHANGELOGS -> See dir.md
-All session-by-session changelogs are maintained in dir.md.
-This file (wireframe.md) focuses on phase plans, architecture, and status tracking.
+SHOP FEATURE PLAN (Phase 11 - Draft)
+
+Detailed planning source: docs/shop_feature.md
+
+### Product intent
+[DRAFT] Sell merch related to running, HelloRun events, and runner community identity.
+[DRAFT] Keep the first version lightweight: catalog, product detail, basic cart/order intent, and admin-managed products.
+[DRAFT] Avoid making marketplace/vendor complexity part of the MVP unless needed later.
+
+### Example merch categories
+[DRAFT] HelloRun shirts and singlets
+[DRAFT] Finisher shirts and event shirts
+[DRAFT] Caps, socks, towels, race belts, bib holders
+[DRAFT] Digital or printable event add-ons if useful later
+
+### MVP scope
+[PENDING] Product model
+[PENDING] Product image upload/storage
+[PENDING] Public `/shop` catalog
+[PENDING] Public `/shop/:slug` product detail page
+[PENDING] Admin product create/edit/archive flow
+[PENDING] Cart and checkout decision: payment gateway now vs manual order/reservation first
+[PENDING] Order model and customer order history
+
+### Future scope
+[PENDING] Event-specific merch bundles during registration
+[PENDING] Organizer-created merch after approval
+[PENDING] Discount codes and runner rewards
+[PENDING] Inventory alerts and low-stock dashboard
+[PENDING] Shipping/provider integration
+
+---
+
+DETAILED CHANGELOGS -> See CHANGELOG.md
+All session-by-session changelogs are maintained in CHANGELOG.md.
+This file (PRD.md) focuses on phase plans, architecture, and status tracking.
 
 
 

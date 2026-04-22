@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: 'Payment and Result Reviews - helloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>Payment and Result Reviews</h2>
+          <p>Review pending proof queues across all events.</p>
+        </div>
+        <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+      </div>
+
+      <div class="dashboard-grid">
+        <article class="metric-card">
+          <p class="metric-label">All Pending</p>
+          <p class="metric-value"><%= counts.all %></p>
+          <a href="<%= links.all %>" class="metric-link">View All</a>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Payment Proofs</p>
+          <p class="metric-value"><%= counts.payments %></p>
+          <a href="<%= links.payments %>" class="metric-link">View Payments</a>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Run Proofs</p>
+          <p class="metric-value"><%= counts.results %></p>
+          <a href="<%= links.results %>" class="metric-link">View Results</a>
+        </article>
+      </div>
+
+      <form class="admin-filters review-queue-filters" method="GET" action="/admin/reviews">
+        <div class="filter-field">
+          <label for="type">Queue</label>
+          <select id="type" name="type">
+            <option value="all" <%= filters.type === 'all' ? 'selected' : '' %>>All reviews</option>
+            <option value="payments" <%= filters.type === 'payments' ? 'selected' : '' %>>Payments</option>
+            <option value="results" <%= filters.type === 'results' ? 'selected' : '' %>>Results</option>
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label for="sort">Sort</label>
+          <select id="sort" name="sort">
+            <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
+            <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest first</option>
+          </select>
+        </div>
+
+        <div class="filter-field filter-grow">
+          <label for="q">Search</label>
+          <input
+            id="q"
+            type="text"
+            name="q"
+            value="<%= filters.q %>"
+            placeholder="Event, participant, email, confirmation code"
+          >
+        </div>
+
+        <div class="filter-actions">
+          <button type="submit" class="btn">Apply Filters</button>
+          <a href="/admin/reviews" class="btn btn-secondary">Reset</a>
+        </div>
+      </form>
+
+      <% if (reviewItems && reviewItems.length) { %>
+        <div class="results-meta">
+          <strong><%= reviewItems.length %></strong> review item<%= reviewItems.length === 1 ? '' : 's' %> found
+        </div>
+
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Event</th>
+              <th>Participant</th>
+              <th>Distance / Mode</th>
+              <th>Submitted</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% reviewItems.forEach((item) => { %>
+              <tr>
+                <td>
+                  <span class="status-badge status-badge-<%= item.typeKey %>"><%= item.type %></span>
+                </td>
+                <td>
+                  <strong><%= item.eventTitle %></strong>
+                  <div><small class="mono"><%= item.confirmationCode %></small></div>
+                </td>
+                <td>
+                  <strong><%= item.participantName %></strong>
+                  <div><small><%= item.participantEmail %></small></div>
+                </td>
+                <td>
+                  <%= item.raceDistance %>
+                  <div><small><%= item.participationMode %></small></div>
+                </td>
+                <td><%= item.submittedAtLabel %></td>
+                <td>
+                  <span class="status-badge status-badge-<%= item.status %>"><%= item.status.replace('_', ' ') %></span>
+                </td>
+                <td>
+                  <a href="<%= item.actionHref %>" class="btn btn-sm">Open Review</a>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <div class="empty-state">
+          <h3>No pending reviews found</h3>
+          <p>Try changing the queue or search filters, or return when new proofs are submitted.</p>
+          <a href="/admin/reviews" class="btn btn-secondary">View All Reviews</a>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>
