@@ -5,6 +5,21 @@ const User = require('../models/User');
 const uploadService = require('../services/upload.service');
 const { BLOG_CATEGORIES, BLOG_STATUSES, slugifyBlogTitle, normalizeTags } = require('../utils/blog');
 const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
+const {
+  BLOG_BLOCK_TYPES,
+  BLOG_TEMPLATE_KEYS,
+  TEMPLATE_LABELS,
+  TEMPLATE_DESCRIPTIONS,
+  BLOCK_LABELS,
+  BLOCK_DESCRIPTIONS,
+  getTemplateBlocks,
+  normalizeTemplateKey,
+  normalizeContentBlocks,
+  validateContentBlocks,
+  renderContentBlocksToHtml,
+  getStructuredContentText,
+  isStructuredPost
+} = require('../utils/blog-composer');
 
 const EDITABLE_STATUSES = new Set(['draft', 'pending', 'rejected']);
 const ADMIN_REVIEW_STATUSES = new Set(['pending', 'published', 'rejected', 'archived', 'draft']);
@@ -17,7 +32,10 @@ const ADMIN_AUTOSAVE_TRACKED_FIELDS = Object.freeze([
   'excerpt',
   'contentHtml',
   'contentRaw',
+  'templateKey',
+  'contentBlocks',
   'coverImageUrl',
+  'coverImageAlt',
   'category',
   'customCategory',
   'tags',
@@ -139,7 +157,10 @@ exports.createDraft = async (req, res) => {
       contentHtml: payload.contentHtml,
       contentText: payload.contentText,
       contentRaw: payload.contentRaw,
+      templateKey: payload.templateKey,
+      contentBlocks: payload.contentBlocks,
       coverImageUrl: payload.coverImageUrl,
+      coverImageAlt: payload.coverImageAlt,
       category: payload.category,
       customCategory: payload.customCategory,
       tags: payload.tags,
@@ -231,8 +252,11 @@ exports.updateDraft = async (req, res) => {
     post.contentHtml = payload.contentHtml;
     post.contentText = payload.contentText;
     post.contentRaw = payload.contentRaw;
+    post.templateKey = payload.templateKey;
+    post.contentBlocks = payload.contentBlocks;
     const previousCoverUrl = String(post.coverImageUrl || '').trim();
     post.coverImageUrl = payload.coverImageUrl;
+    post.coverImageAlt = payload.coverImageAlt;
     post.category = payload.category;
     post.customCategory = payload.customCategory;
     post.tags = payload.tags;
@@ -246,6 +270,9 @@ exports.updateDraft = async (req, res) => {
         excerpt: post.excerpt,
         category: post.category,
         coverImageUrl: payload.coverImageUrl,
+        coverImageAlt: payload.coverImageAlt,
+        templateKey: payload.templateKey,
+        contentBlocks: payload.contentBlocks,
         contentHtml: payload.contentHtml,
         contentText: payload.contentText,
         tags: payload.tags
@@ -436,6 +463,9 @@ exports.renderCreatePage = async (req, res) => {
       formAction: '/blogs/me/new',
       submitLabel: 'Create Draft',
       categories: BLOG_CATEGORIES,
+      templates: getComposerTemplateOptions(),
+      blockTypes: getComposerBlockTypeOptions(),
+      templateBlocksByKey: getComposerTemplateBlocksByKey(),
       formData: getBlogFormData(),
       errors: [],
       message: getBlogPageMessage(req.query),
@@ -464,6 +494,9 @@ exports.createDraftPage = async (req, res) => {
         formAction: '/blogs/me/new',
         submitLabel: 'Create Draft',
         categories: BLOG_CATEGORIES,
+        templates: getComposerTemplateOptions(),
+        blockTypes: getComposerBlockTypeOptions(),
+        templateBlocksByKey: getComposerTemplateBlocksByKey(),
         formData: getBlogFormData(req.body),
         errors: [req.uploadError],
         message: null,
@@ -492,6 +525,9 @@ exports.createDraftPage = async (req, res) => {
         formAction: '/blogs/me/new',
         submitLabel: 'Create Draft',
         categories: BLOG_CATEGORIES,
+        templates: getComposerTemplateOptions(),
+        blockTypes: getComposerBlockTypeOptions(),
+        templateBlocksByKey: getComposerTemplateBlocksByKey(),
         formData: getBlogFormData(payload),
         errors,
         message: null,
@@ -512,6 +548,9 @@ exports.createDraftPage = async (req, res) => {
           formAction: '/blogs/me/new',
           submitLabel: 'Create Draft',
           categories: BLOG_CATEGORIES,
+          templates: getComposerTemplateOptions(),
+          blockTypes: getComposerBlockTypeOptions(),
+          templateBlocksByKey: getComposerTemplateBlocksByKey(),
           formData: getBlogFormData(payload),
           errors: readyErrors,
           message: null,
@@ -527,7 +566,10 @@ exports.createDraftPage = async (req, res) => {
       contentHtml: payload.contentHtml,
       contentText: payload.contentText,
       contentRaw: payload.contentRaw,
+      templateKey: payload.templateKey,
+      contentBlocks: payload.contentBlocks,
       coverImageUrl: payload.coverImageUrl,
+      coverImageAlt: payload.coverImageAlt,
       category: payload.category,
       customCategory: payload.customCategory,
       tags: payload.tags,
@@ -586,6 +628,9 @@ exports.renderEditPage = async (req, res) => {
       formAction: `/blogs/me/${post._id}/edit`,
       submitLabel: 'Save Changes',
       categories: BLOG_CATEGORIES,
+      templates: getComposerTemplateOptions(),
+      blockTypes: getComposerBlockTypeOptions(),
+      templateBlocksByKey: getComposerTemplateBlocksByKey(),
       formData: getBlogFormData(post),
       errors: [],
       message: getBlogPageMessage(req.query),
@@ -639,6 +684,9 @@ exports.updateDraftPage = async (req, res) => {
         formAction: `/blogs/me/${post._id}/edit`,
         submitLabel: 'Save Changes',
         categories: BLOG_CATEGORIES,
+        templates: getComposerTemplateOptions(),
+        blockTypes: getComposerBlockTypeOptions(),
+        templateBlocksByKey: getComposerTemplateBlocksByKey(),
         formData: getBlogFormData(req.body),
         errors: [req.uploadError],
         message: null,
@@ -672,6 +720,9 @@ exports.updateDraftPage = async (req, res) => {
         formAction: `/blogs/me/${post._id}/edit`,
         submitLabel: 'Save Changes',
         categories: BLOG_CATEGORIES,
+        templates: getComposerTemplateOptions(),
+        blockTypes: getComposerBlockTypeOptions(),
+        templateBlocksByKey: getComposerTemplateBlocksByKey(),
         formData: getBlogFormData(payload),
         errors,
         message: null,
@@ -694,7 +745,10 @@ exports.updateDraftPage = async (req, res) => {
     post.contentHtml = payload.contentHtml;
     post.contentText = payload.contentText;
     post.contentRaw = payload.contentRaw;
+    post.templateKey = payload.templateKey;
+    post.contentBlocks = payload.contentBlocks;
     post.coverImageUrl = payload.coverImageUrl;
+    post.coverImageAlt = payload.coverImageAlt;
     post.category = payload.category;
     post.customCategory = payload.customCategory;
     post.tags = payload.tags;
@@ -708,6 +762,9 @@ exports.updateDraftPage = async (req, res) => {
         excerpt: post.excerpt,
         category: post.category,
         coverImageUrl: payload.coverImageUrl,
+        coverImageAlt: payload.coverImageAlt,
+        templateKey: payload.templateKey,
+        contentBlocks: payload.contentBlocks,
         contentHtml: payload.contentHtml,
         contentText: payload.contentText,
         tags: payload.tags
@@ -721,6 +778,9 @@ exports.updateDraftPage = async (req, res) => {
           formAction: `/blogs/me/${post._id}/edit`,
           submitLabel: 'Save Changes',
           categories: BLOG_CATEGORIES,
+          templates: getComposerTemplateOptions(),
+          blockTypes: getComposerBlockTypeOptions(),
+          templateBlocksByKey: getComposerTemplateBlocksByKey(),
           formData: getBlogFormData(payload),
           errors: readyErrors,
           message: null,
@@ -1052,7 +1112,10 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
     post.contentHtml = nextPayload.contentHtml;
     post.contentText = nextPayload.contentText;
     post.contentRaw = nextPayload.contentRaw;
+    post.templateKey = nextPayload.templateKey;
+    post.contentBlocks = nextPayload.contentBlocks;
     post.coverImageUrl = nextPayload.coverImageUrl;
+    post.coverImageAlt = nextPayload.coverImageAlt;
     post.category = nextPayload.category;
     post.customCategory = nextPayload.customCategory;
     post.tags = nextPayload.tags;
@@ -1096,7 +1159,10 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
         excerpt: post.excerpt,
         contentHtml: post.contentHtml,
         contentRaw: post.contentRaw,
+        templateKey: post.templateKey,
+        contentBlocks: post.contentBlocks,
         coverImageUrl: post.coverImageUrl,
+        coverImageAlt: post.coverImageAlt,
         category: post.category,
         customCategory: post.customCategory,
         tags: post.tags,
@@ -1188,6 +1254,9 @@ exports.renderAdminReviewPage = async (req, res) => {
       message: getBlogPageMessage(req.query),
       categories: BLOG_CATEGORIES,
       statuses: BLOG_STATUSES,
+      templates: getComposerTemplateOptions(),
+      blockTypes: getComposerBlockTypeOptions(),
+      templateBlocksByKey: getComposerTemplateBlocksByKey(),
       revisions
     });
   } catch (error) {
@@ -1325,8 +1394,12 @@ function escapeRegex(value) {
 }
 
 function normalizeBlogPayload(body = {}) {
-  const sanitizedContentHtml = sanitizeHtml(String(body.contentHtml || ''));
-  const contentText = htmlToPlainText(sanitizedContentHtml);
+  const contentBlocks = normalizeContentBlocks(body.contentBlocksJson || body.contentBlocks);
+  const hasStructuredBlocks = contentBlocks.length > 0;
+  const contentHtml = hasStructuredBlocks
+    ? renderContentBlocksToHtml(contentBlocks)
+    : sanitizeHtml(String(body.contentHtml || ''));
+  const contentText = hasStructuredBlocks ? getStructuredContentText(contentBlocks) : htmlToPlainText(contentHtml);
   const category = String(body.category || '').trim();
   const customCategoryInput = String(body.customCategory || '').trim();
   const customCategory = category === 'Other' ? customCategoryInput : '';
@@ -1337,7 +1410,10 @@ function normalizeBlogPayload(body = {}) {
     category,
     customCategory,
     coverImageUrl: String(body.coverImageUrl || '').trim(),
-    contentHtml: sanitizedContentHtml,
+    coverImageAlt: String(body.coverImageAlt || '').trim().slice(0, 180),
+    templateKey: normalizeTemplateKey(body.templateKey),
+    contentBlocks,
+    contentHtml,
     contentText,
     contentRaw: String(body.contentRaw || '').trim(),
     tags: normalizeTags(Array.isArray(body.tags) ? body.tags : splitTags(body.tags))
@@ -1347,10 +1423,14 @@ function normalizeBlogPayload(body = {}) {
 function normalizeAdminAutosavePayload(body = {}, post) {
   const hasOwn = (key) => Object.prototype.hasOwnProperty.call(body, key);
   const category = hasOwn('category') ? String(body.category || '').trim() : String(post.category || '').trim();
+  const contentBlocks = hasOwn('contentBlocks') || hasOwn('contentBlocksJson')
+    ? normalizeContentBlocks(body.contentBlocksJson || body.contentBlocks)
+    : (Array.isArray(post.contentBlocks) ? normalizeContentBlocks(post.contentBlocks) : []);
+  const hasStructuredBlocks = contentBlocks.length > 0;
   const rawContentHtml = hasOwn('contentHtml') ? String(body.contentHtml || '') : String(post.contentHtml || '');
-  const contentHtml = sanitizeHtml(rawContentHtml);
+  const contentHtml = hasStructuredBlocks ? renderContentBlocksToHtml(contentBlocks) : sanitizeHtml(rawContentHtml);
   const contentRaw = hasOwn('contentRaw') ? String(body.contentRaw || '').trim() : String(post.contentRaw || '');
-  const contentText = htmlToPlainText(contentHtml);
+  const contentText = hasStructuredBlocks ? getStructuredContentText(contentBlocks) : htmlToPlainText(contentHtml);
   const customCategoryInput = hasOwn('customCategory')
     ? String(body.customCategory || '').trim()
     : String(post.customCategory || '').trim();
@@ -1369,6 +1449,9 @@ function normalizeAdminAutosavePayload(body = {}, post) {
     category,
     customCategory,
     coverImageUrl: hasOwn('coverImageUrl') ? String(body.coverImageUrl || '').trim() : String(post.coverImageUrl || '').trim(),
+    coverImageAlt: hasOwn('coverImageAlt') ? String(body.coverImageAlt || '').trim().slice(0, 180) : String(post.coverImageAlt || '').trim(),
+    templateKey: hasOwn('templateKey') ? normalizeTemplateKey(body.templateKey) : normalizeTemplateKey(post.templateKey),
+    contentBlocks,
     contentHtml,
     contentText,
     contentRaw,
@@ -1389,7 +1472,12 @@ function getBlogFormData(body = {}) {
     category: String(body.category || '').trim(),
     customCategory: String(body.customCategory || '').trim(),
     coverImageUrl: String(body.coverImageUrl || '').trim(),
+    coverImageAlt: String(body.coverImageAlt || '').trim(),
     removeCoverImage: String(body.removeCoverImage || '').trim() === '1',
+    templateKey: normalizeTemplateKey(body.templateKey),
+    contentBlocks: normalizeContentBlocks(body.contentBlocksJson || body.contentBlocks),
+    contentBlocksJson: JSON.stringify(normalizeContentBlocks(body.contentBlocksJson || body.contentBlocks)),
+    isStructured: isStructuredPost(body),
     contentHtml: String(body.contentHtml || '').trim(),
     contentText: String(body.contentText || '').trim(),
     contentRaw: String(body.contentRaw || '').trim(),
@@ -1419,7 +1507,10 @@ function getAdminAutosaveSnapshot(post) {
     excerpt: String(post.excerpt || ''),
     contentHtml: String(post.contentHtml || ''),
     contentRaw: String(post.contentRaw || ''),
+    templateKey: normalizeTemplateKey(post.templateKey),
+    contentBlocks: normalizeContentBlocks(post.contentBlocks || []),
     coverImageUrl: String(post.coverImageUrl || ''),
+    coverImageAlt: String(post.coverImageAlt || ''),
     category: String(post.category || ''),
     customCategory: String(post.customCategory || ''),
     tags: Array.isArray(post.tags) ? [...post.tags] : [],
@@ -1540,8 +1631,14 @@ function validateBlogPayload(payload, options = {}) {
   } else if (payload.coverImageUrl && !isValidHttpUrl(payload.coverImageUrl)) {
     errors.push('Cover image URL must be a valid http/https URL.');
   }
+  if (payload.coverImageAlt && payload.coverImageAlt.length > 180) {
+    errors.push('Cover image alt text must be 180 characters or less.');
+  }
   if (requireCover && !payload.coverImageUrl) {
     errors.push('Cover image is required before submitting for review.');
+  }
+  if (Array.isArray(payload.contentBlocks) && payload.contentBlocks.length > 0) {
+    errors.push(...validateContentBlocks(payload.contentBlocks));
   }
   if (payload.contentHtml.length > 120000) {
     errors.push('Content exceeds maximum allowed length.');
@@ -1563,6 +1660,9 @@ function validateReadyForReview(post) {
     category: post.category,
     customCategory: post.customCategory || '',
     coverImageUrl: post.coverImageUrl || '',
+    coverImageAlt: post.coverImageAlt || '',
+    templateKey: post.templateKey || 'custom',
+    contentBlocks: Array.isArray(post.contentBlocks) ? post.contentBlocks : [],
     contentHtml: post.contentHtml || '',
     contentText: post.contentText || '',
     contentRaw: post.contentRaw || '',
@@ -1578,6 +1678,29 @@ function estimateReadingTime(contentHtml) {
     .trim();
   const words = plainText ? plainText.split(' ').length : 0;
   return Math.max(1, Math.ceil(words / 200));
+}
+
+function getComposerTemplateOptions() {
+  return BLOG_TEMPLATE_KEYS.map((key) => ({
+    key,
+    label: TEMPLATE_LABELS[key] || key,
+    description: TEMPLATE_DESCRIPTIONS[key] || ''
+  }));
+}
+
+function getComposerBlockTypeOptions() {
+  return BLOG_BLOCK_TYPES.map((key) => ({
+    key,
+    label: BLOCK_LABELS[key] || key,
+    description: BLOCK_DESCRIPTIONS[key] || ''
+  }));
+}
+
+function getComposerTemplateBlocksByKey() {
+  return BLOG_TEMPLATE_KEYS.reduce((acc, key) => {
+    acc[key] = getTemplateBlocks(key);
+    return acc;
+  }, {});
 }
 
 function isValidHttpUrl(value) {

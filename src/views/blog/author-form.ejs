@@ -2,28 +2,726 @@
 <html lang="en">
 <head>
   <%- include('../layouts/head', { title: title || 'Blog Form - helloRun' }) %>
-  <link href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" rel="stylesheet">
   <style>
-    #blogContentEditor {
+    .editor-field {
+      margin-bottom: 0.85rem;
+    }
+
+    .author-form {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .form-note {
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      background: #eff6ff;
+      color: #1e3a8a;
+      padding: 0.8rem 0.9rem;
+      line-height: 1.5;
+    }
+
+    .form-note strong {
+      display: block;
+      margin-bottom: 0.2rem;
+      color: #172554;
+    }
+
+    .form-section {
+      border: 1px solid #dbe3ef;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 1rem;
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .form-section-header {
+      display: grid;
+      gap: 0.15rem;
+      padding-bottom: 0.35rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .form-section-title {
+      margin: 0;
+      color: #0f172a;
+      font-size: 1.16rem;
+      line-height: 1.25;
+    }
+
+    .form-section-description {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.91rem;
+      line-height: 1.45;
+    }
+
+    .form-field {
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .field-label-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 0.45rem;
+      width: 100%;
+    }
+
+    .field-label-row label,
+    .field-label-row .field-label,
+    .field-label-row .form-section-title {
+      color: #111827;
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1.25;
+      min-width: 0;
+    }
+
+    .field-badge {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      justify-self: end;
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      padding: 0;
+    }
+
+    .field-badge svg {
+      width: 15px;
+      height: 15px;
+      stroke-width: 2.35;
+    }
+
+    .field-badge-label {
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 0.45rem);
+      z-index: 20;
+      transform: translateX(-50%) translateY(4px);
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      white-space: nowrap;
+      border-radius: 6px;
+      background: #0f172a;
+      color: #fff;
+      padding: 0.35rem 0.55rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      line-height: 1.1;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+      transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+    }
+
+    .field-badge-label::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 100%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #0f172a;
+    }
+
+    .field-badge:hover .field-badge-label,
+    .field-badge:focus-visible .field-badge-label {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .field-badge-required {
+      border: 1px solid #fecaca;
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .field-badge-optional {
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      color: #475569;
+    }
+
+    .field-badge-review {
+      border: 1px solid #fed7aa;
+      background: #fff7ed;
+      color: #9a3412;
+    }
+
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      padding: 0.7rem 0.75rem;
+      font: inherit;
+      font-size: 0.98rem;
+    }
+
+    .form-field textarea {
+      resize: vertical;
+    }
+
+    .field-help {
+      color: #64748b;
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+
+    .composer-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.8fr);
+      gap: 0.9rem;
+      align-items: start;
+    }
+
+    .composer-toolbar,
+    .composer-preview,
+    .composer-block {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
       background: #fff;
     }
 
-    .ql-toolbar.ql-snow {
-      border-radius: 8px 8px 0 0;
+    .composer-toolbar {
+      padding: 0.75rem;
+      display: grid;
+      gap: 0.65rem;
+      margin-bottom: 0.75rem;
     }
 
-    #blogContentEditor.ql-container {
-      min-height: 300px;
-      border-radius: 0 0 8px 8px;
-      margin-bottom: 0.35rem;
+    .composer-actions-row {
+      display: flex;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+      align-items: center;
     }
 
-    #blogContentEditor .ql-editor {
-      min-height: 260px;
+    .composer-actions-row select,
+    .composer-actions-row button:not(.composer-icon-btn),
+    .composer-toolbar select {
+      min-height: 38px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      padding: 0.45rem 0.55rem;
+      background: #fff;
+      font: inherit;
     }
 
-    .editor-field {
-      margin-bottom: 0.85rem;
+    .composer-actions-row button:not(.composer-icon-btn),
+    .composer-block button:not(.composer-icon-btn) {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .composer-icon-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 38px;
+      min-height: 38px;
+      padding: 0;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      cursor: pointer;
+      color: #334155;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      flex-shrink: 0;
+      overflow: visible;
+    }
+    .composer-icon-btn svg { width: 18px; height: 18px; display: block; stroke-width: 2; }
+    .composer-icon-btn:hover,
+    .composer-icon-btn:focus-visible {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: #fff;
+    }
+    .composer-icon-btn .icon-btn-tooltip {
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      background: #1e293b;
+      color: #f1f5f9;
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 0.25rem 0.55rem;
+      border-radius: 5px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 20;
+    }
+    .composer-icon-btn .icon-btn-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent;
+      border-top-color: #1e293b;
+    }
+    .composer-icon-btn:hover .icon-btn-tooltip,
+    .composer-icon-btn:focus-visible .icon-btn-tooltip {
+      opacity: 1;
+    }
+
+    .template-custom-select {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      max-width: 340px;
+    }
+
+    .template-select-btn {
+      width: 100%;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.4rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      background: #fff;
+      padding: 0.45rem 0.55rem;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      color: #0f172a;
+      text-align: left;
+    }
+
+    .template-select-btn:focus-visible {
+      outline: 2px solid #6366f1;
+      outline-offset: 2px;
+    }
+
+    .template-select-chevron {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      transition: transform 0.18s ease;
+    }
+
+    .template-custom-select.is-open .template-select-chevron {
+      transform: rotate(180deg);
+    }
+
+    .template-select-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      min-width: 100%;
+      width: max-content;
+      max-width: 440px;
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      box-shadow: 0 8px 28px rgba(15, 23, 42, 0.13);
+      z-index: 100;
+      padding: 0.3rem;
+      list-style: none;
+      margin: 0;
+    }
+
+    .template-custom-select.is-open .template-select-menu {
+      display: block;
+    }
+
+    .template-select-option {
+      padding: 0.55rem 0.65rem;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: background 0.12s ease;
+    }
+
+    .template-select-option:hover,
+    .template-select-option:focus {
+      background: #f1f5f9;
+    }
+
+    .template-select-option.is-selected {
+      background: #e0e7ff;
+    }
+
+    .template-option-label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: #0f172a;
+    }
+
+    .template-option-desc {
+      display: block;
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 0.15rem;
+      line-height: 1.35;
+    }
+
+    .composer-block-list {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .composer-block {
+      padding: 0.7rem;
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .composer-block-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+    }
+
+    .composer-block-title {
+      margin: 0;
+      color: #0f172a;
+      font-size: 0.95rem;
+    }
+
+    .composer-block-type {
+      min-height: 32px;
+      max-width: 180px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #fff;
+      padding: 0.35rem 0.45rem;
+      font: inherit;
+      font-size: 0.88rem;
+    }
+
+    .composer-block-actions {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+    }
+
+    .composer-block-actions button {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      min-height: 30px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #f8fafc;
+      color: #334155;
+    }
+
+    .composer-block-actions button svg {
+      width: 17px;
+      height: 17px;
+      stroke-width: 2.2;
+    }
+
+    .composer-block textarea,
+    .composer-block input,
+    .composer-block select {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 0.55rem 0.6rem;
+      font: inherit;
+    }
+
+    .text-section-tools,
+    .inline-text-tools {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.4rem;
+    }
+
+    .text-section-tools button,
+    .inline-text-tools button {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      min-height: 32px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #f8fafc;
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .text-section-tools button svg,
+    .inline-text-tools button svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2.2;
+    }
+
+    .text-section-tools button.is-active,
+    .inline-text-tools button.is-active {
+      background: #e0e7ff;
+      border-color: #6366f1;
+      color: #4338ca;
+    }
+
+    .text-section-tools button.is-confirming,
+    .inline-text-tools button.is-confirming {
+      background: #fef3c7;
+      border-color: #f59e0b;
+      color: #b45309;
+    }
+
+    .text-section-tools button.is-empty,
+    .inline-text-tools button.is-empty {
+      background: #fee2e2;
+      border-color: #ef4444;
+      color: #b91c1c;
+    }
+
+    .tool-tooltip {
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 0.45rem);
+      z-index: 20;
+      transform: translateX(-50%) translateY(4px);
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      white-space: nowrap;
+      border-radius: 6px;
+      background: #0f172a;
+      color: #fff;
+      padding: 0.35rem 0.55rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      line-height: 1.1;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+      transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+    }
+
+    .tool-tooltip::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 100%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #0f172a;
+    }
+
+    .text-section-tools button:hover .tool-tooltip,
+    .text-section-tools button:focus-visible .tool-tooltip,
+    .inline-text-tools button:hover .tool-tooltip,
+    .inline-text-tools button:focus-visible .tool-tooltip,
+    .composer-block-actions button:hover .tool-tooltip,
+    .composer-block-actions button:focus-visible .tool-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .composer-preview-body ul,
+    .composer-preview-body ol {
+      margin: 0.55rem 0 0.8rem 1.25rem;
+      padding-left: 1.15rem;
+      list-style-position: outside;
+    }
+
+    .composer-preview-body ul {
+      list-style-type: disc;
+    }
+
+    .composer-preview-body ol {
+      list-style-type: decimal;
+    }
+
+    .composer-preview-body li {
+      margin: 0.25rem 0;
+      padding-left: 0.15rem;
+    }
+
+    .composer-preview-body blockquote {
+      margin: 0.9rem 0;
+      padding: 0.55rem 0.8rem;
+      border-left: 4px solid #93c5fd;
+      background: #eff6ff;
+      color: #1e3a8a;
+    }
+
+    .composer-preview {
+      padding: 0.85rem;
+      position: sticky;
+      top: 1rem;
+    }
+
+    .composer-preview h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+    }
+
+    .composer-preview-body {
+      color: #1f2937;
+      line-height: 1.65;
+    }
+
+    .composer-preview-body img {
+      width: 100%;
+      max-height: 260px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .composer-dialog-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+    .composer-dialog-overlay[hidden] { display: none; }
+    .composer-dialog {
+      background: #fff;
+      border-radius: 14px;
+      padding: 2rem 2rem 1.5rem;
+      max-width: 420px;
+      width: calc(100% - 2rem);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.22);
+      text-align: center;
+      animation: dialogIn 0.18s ease;
+    }
+    @keyframes dialogIn {
+      from { opacity: 0; transform: scale(0.94) translateY(8px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .composer-dialog-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #fef3c7;
+      margin: 0 auto 1rem;
+    }
+    .composer-dialog-icon svg { width: 24px; height: 24px; color: #d97706; }
+    .composer-dialog h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.1rem;
+      color: #0f172a;
+    }
+    .composer-dialog p {
+      margin: 0 0 1.5rem;
+      font-size: 0.88rem;
+      color: #475569;
+      line-height: 1.55;
+    }
+    .composer-dialog-actions {
+      display: flex;
+      gap: 0.6rem;
+      justify-content: center;
+    }
+    .composer-dialog-btn {
+      padding: 0.5rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background 0.15s, color 0.15s;
+    }
+    .composer-dialog-btn--cancel {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      color: #475569;
+    }
+    .composer-dialog-btn--cancel:hover { background: #e2e8f0; }
+    .composer-dialog-btn--confirm {
+      background: #6366f1;
+      color: #fff;
+    }
+    .composer-dialog-btn--confirm:hover { background: #4f46e5; }
+
+    .fab-add-block {
+      position: sticky;
+      bottom: 1.2rem;
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 0.75rem;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    #fabAddBlockBtn {
+      pointer-events: all;
+      display: inline-flex;
+      align-items: center;
+      background: #4f46e5;
+      color: #fff;
+      border: none;
+      border-radius: 999px;
+      padding: 0.6rem 0.8rem;
+      font: inherit;
+      font-weight: 700;
+      font-size: 0.88rem;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(79, 70, 229, 0.38);
+      transition: box-shadow 0.18s ease, background 0.15s ease;
+      gap: 0;
+      overflow: hidden;
+    }
+
+    #fabAddBlockBtn:hover,
+    #fabAddBlockBtn:focus-visible {
+      background: #4338ca;
+      box-shadow: 0 6px 24px rgba(79, 70, 229, 0.52);
+    }
+
+    #fabAddBlockBtn svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 2.6;
+      flex-shrink: 0;
+    }
+
+    .fab-label {
+      max-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      opacity: 0;
+      margin-left: 0;
+      transition: max-width 0.22s ease, opacity 0.18s ease, margin-left 0.22s ease;
+    }
+
+    #fabAddBlockBtn:hover .fab-label,
+    #fabAddBlockBtn:focus-visible .fab-label {
+      max-width: 200px;
+      opacity: 1;
+      margin-left: 0.45rem;
+    }
+
+    .legacy-editor {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.75rem;
+      background: #fff;
     }
 
     .cover-preview-wrap {
@@ -81,8 +779,10 @@
     }
 
     .back-link-ghost {
+      position: relative;
       min-height: 40px;
-      padding: 0.45rem 0.85rem;
+      width: 42px;
+      padding: 0;
       border-radius: 10px;
       border: 1px solid #cbd5e1;
       background: #fff;
@@ -91,15 +791,12 @@
       font-weight: 600;
       display: inline-flex;
       align-items: center;
-      gap: 0.35rem;
+      justify-content: center;
       transition: all 0.18s ease;
+      overflow: visible;
     }
 
-    .back-link-ghost::before {
-      content: "<";
-      font-weight: 700;
-      line-height: 1;
-    }
+    .back-link-ghost svg { width: 18px; height: 18px; flex-shrink: 0; }
 
     .back-link-ghost:hover {
       background: #f8fafc;
@@ -126,6 +823,7 @@
     }
 
     .btn-action {
+      position: relative;
       min-height: 42px;
       padding: 0.55rem 0.95rem;
       border-radius: 10px;
@@ -136,6 +834,49 @@
       align-items: center;
       justify-content: center;
       transition: all 0.18s ease;
+    }
+
+    .btn-action-icon {
+      width: 42px;
+      padding: 0;
+      overflow: visible;
+    }
+
+    .btn-action-icon svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    .btn-action-tooltip,
+    .back-link-tooltip {
+      position: absolute;
+      bottom: calc(100% + 7px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      background: #1e293b;
+      color: #f1f5f9;
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 0.25rem 0.55rem;
+      border-radius: 5px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 30;
+    }
+    .btn-action-tooltip::after,
+    .back-link-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 4px solid transparent;
+      border-top-color: #1e293b;
+    }
+    .btn-action-icon:hover .btn-action-tooltip,
+    .btn-action-icon:focus-visible .btn-action-tooltip,
+    .back-link-ghost:hover .back-link-tooltip,
+    .back-link-ghost:focus-visible .back-link-tooltip {
+      opacity: 1;
     }
 
     .btn-action-cancel {
@@ -182,56 +923,106 @@
       box-shadow: none;
     }
 
+    /* Tablet: stack composer editor above preview */
+    @media (max-width: 960px) {
+      .composer-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .composer-preview {
+        position: static;
+      }
+
+      .template-custom-select {
+        max-width: 100%;
+      }
+    }
+
+    /* Mobile */
     @media (max-width: 760px) {
-      .form-header {
-        flex-direction: column;
-        align-items: stretch;
+      /* Dropdown menus should not overflow viewport edges */
+      .template-select-menu {
+        max-width: calc(100vw - 2.5rem);
+        left: 0;
+        right: auto;
       }
 
-      .form-header-back {
-        width: 100%;
-      }
-
-      .back-link-ghost {
-        width: 100%;
-        justify-content: center;
-      }
-
-      .form-actions {
-        flex-direction: column;
-        align-items: stretch;
-      }
-
-      .form-actions-left,
-      .form-actions-right {
-        width: 100%;
-      }
-
-      .form-actions .btn-action {
+      /* Block type select fills available row space */
+      #blockTypeCustomSelect {
         flex: 1;
-        text-align: center;
+        min-width: 0;
+        max-width: 100%;
       }
 
-      .form-actions-left {
-        order: 2;
+      /* Composer toolbar actions wrap cleanly */
+      .composer-actions-row {
+        flex-wrap: wrap;
+        gap: 0.4rem;
       }
 
-      .form-actions-right {
-        order: 1;
+      /* Form actions stay as a compact icon row — no stacking needed */
+      .form-actions {
+        flex-wrap: wrap;
+        justify-content: space-between;
+      }
+
+      /* Block actions in each composer block stay inline */
+      .composer-block-head {
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+    }
+
+    /* Small phones */
+    @media (max-width: 540px) {
+      .author-form-main { padding: 0.85rem; }
+
+      .form-section { padding: 0.75rem; }
+
+      .composer-toolbar { padding: 0.6rem; }
+
+      .composer-block { padding: 0.55rem; }
+
+      /* On very small screens, block type dropdown stretches; action buttons stay in a row */
+      .composer-actions-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .composer-actions-btns {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        width: 100%;
+        gap: 0.4rem;
+      }
+
+      #blockTypeCustomSelect,
+      .template-custom-select {
+        max-width: 100%;
+        width: 100%;
+      }
+
+      /* FAB stays sticky but pulls in from edge */
+      .fab-add-block {
+        padding-right: 0.25rem;
       }
     }
   </style>
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  <main style="padding: 2rem; max-width: 900px; margin: 0 auto;">
+  <main class="author-form-main" style="padding: 2rem; max-width: 900px; margin: 0 auto;">
     <header class="form-header">
       <div>
         <h1 style="margin-bottom: 0.25rem;"><%= mode === 'edit' ? 'Edit Blog Draft' : 'Create Blog Draft' %></h1>
         <p style="margin: 0; color: #64748b;">Write your story in simple steps. Your post will be reviewed before publishing.</p>
       </div>
       <div class="form-header-back">
-        <a href="/blogs/me/dashboard" class="back-link-ghost">Back to My Blogs</a>
+        <a href="/blogs/me/dashboard" class="back-link-ghost" aria-label="Back to My Blogs">
+          <i data-lucide="arrow-left"></i>
+          <span class="back-link-tooltip">Back to My Blogs</span>
+        </a>
       </div>
     </header>
 
@@ -261,76 +1052,226 @@
       </div>
     <% } %>
 
-    <form method="POST" action="<%= formAction %>" enctype="multipart/form-data" style="display: grid; gap: 0.75rem;">
+    <form method="POST" action="<%= formAction %>" enctype="multipart/form-data" class="author-form">
       <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
       <input type="hidden" name="action" id="formActionInput" value="">
-      <div>
-        <label for="title" style="font-weight: 600;">Title</label>
-        <input id="title" name="title" type="text" required maxlength="150" value="<%= formData?.title || '' %>" placeholder="Example: 6 Easy Tips for Your First 10K Run" style="width: 100%; padding: 0.6rem;">
-        <small style="color: #64748b;">Keep it specific and clear. 5 to 150 characters.</small>
+      <div class="form-note">
+        <strong>Drafts and review requirements</strong>
+        Save a draft with a title, category, and at least 50 characters of main content. Submitting for review also requires a cover image.
       </div>
 
-      <div>
-        <label for="excerpt" style="font-weight: 600;">Short Summary (Excerpt)</label>
-        <textarea id="excerpt" name="excerpt" rows="2" maxlength="320" placeholder="Example: A beginner-friendly guide to training, pacing, and recovery for your first 10K event." style="width: 100%; padding: 0.6rem;"><%= formData?.excerpt || '' %></textarea>
-        <small style="color: #64748b;">Shown in the blog list preview. Recommended but optional.</small>
-      </div>
+      <section class="form-section" aria-labelledby="postBasicsHeading">
+        <div class="form-section-header">
+          <h2 class="form-section-title" id="postBasicsHeading">Post Basics</h2>
+          <p class="form-section-description">Set the title, summary, category, and discovery keywords for this post.</p>
+        </div>
 
-      <div>
-        <label for="category" style="font-weight: 600;">Category</label>
-        <select id="category" name="category" required style="width: 100%; padding: 0.6rem;">
-          <option value="" disabled <%= !formData?.category ? 'selected' : '' %>>Select category</option>
-          <% (categories || []).forEach((category) => { %>
-            <option value="<%= category %>" <%= formData?.category === category ? 'selected' : '' %>><%= category %></option>
-          <% }) %>
-        </select>
-        <small style="color: #64748b;">Choose the closest match for easier discovery.</small>
-      </div>
-
-      <div id="customCategoryWrap" style="display: none;">
-        <label for="customCategory" style="font-weight: 600;">Custom Category</label>
-        <input id="customCategory" name="customCategory" type="text" maxlength="80" value="<%= formData?.customCategory || '' %>" placeholder="Example: Trail Safety" style="width: 100%; padding: 0.6rem;">
-        <small style="color: #64748b;">Required when Category is set to Other.</small>
-      </div>
-
-      <div>
-        <label for="tags" style="font-weight: 600;">Tags (comma-separated)</label>
-        <input id="tags" name="tags" type="text" value="<%= formData?.tags || '' %>" placeholder="Example: 10k training, beginner runner, hydration" style="width: 100%; padding: 0.6rem;">
-        <small style="color: #64748b;">Use short keywords. Example format: tag1, tag2, tag3</small>
-      </div>
-
-      <div>
-        <label for="coverImageUrl" style="font-weight: 600;">Cover Image URL</label>
-        <input id="coverImageUrl" name="coverImageUrl" type="url" value="<%= formData?.coverImageUrl || '' %>" placeholder="https://..." style="width: 100%; padding: 0.6rem;">
-        <small style="color: #64748b;">Use this if you already have an image URL. Otherwise upload below.</small>
-      </div>
-
-      <div>
-        <label for="coverImageFile" style="font-weight: 600;">Or upload cover image (JPG/PNG, max 5MB)</label>
-        <input id="coverImageFile" name="coverImageFile" type="file" accept="image/jpeg,image/png" style="width: 100%; padding: 0.45rem;">
-        <input type="hidden" id="removeCoverImage" name="removeCoverImage" value="<%= formData?.removeCoverImage ? '1' : '0' %>">
-        <small style="color: #64748b;">Best result: clear image, wide format, readable on mobile.</small>
-        <% const previewCoverUrl = (formData?.coverImageUrl || '').trim(); %>
-        <% const currentCoverUrl = (mode === 'edit' && !formData?.removeCoverImage)
-          ? (previewCoverUrl || (post?.coverImageUrl || ''))
-          : previewCoverUrl; %>
-        <% if (currentCoverUrl) { %>
-          <div class="cover-preview-wrap" id="coverPreviewWrap">
-            <img src="<%= currentCoverUrl %>" alt="Current cover" id="coverPreviewImage">
-            <% if (mode === 'edit') { %>
-              <button type="button" class="cover-remove-btn" id="removeCoverBtn" aria-label="Remove current cover image">&times;</button>
-            <% } %>
+        <div class="form-field">
+          <div class="field-label-row">
+            <label for="title">Title</label>
+            <span class="field-badge field-badge-required" title="Required" aria-label="Required" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required</span></span>
           </div>
-          <p class="cover-remove-note" id="coverRemoveNote">Current cover image will be removed when you save.</p>
-        <% } %>
-      </div>
+          <input id="title" name="title" type="text" required maxlength="150" value="<%= formData?.title || '' %>" placeholder="Example: 6 Easy Tips for Your First 10K Run">
+          <small class="field-help">Keep it specific and clear. 5 to 150 characters.</small>
+        </div>
 
-      <div class="editor-field">
-        <label for="contentHtml" style="font-weight: 600;">Main Content</label>
-        <div id="blogContentEditor"></div>
-        <input type="hidden" name="contentHtml" id="contentHtml">
-        <small style="color: #64748b; display: block; margin-top: 0.35rem;">Use editor buttons for headings, bold, italic, lists, and links.</small>
-      </div>
+        <div class="form-field">
+          <div class="field-label-row">
+            <label for="excerpt">Short Summary (Excerpt)</label>
+            <span class="field-badge field-badge-optional" title="Optional" aria-label="Optional" tabindex="0"><i data-lucide="circle-help"></i><span class="field-badge-label">Optional</span></span>
+          </div>
+          <textarea id="excerpt" name="excerpt" rows="2" maxlength="320" placeholder="Example: A beginner-friendly guide to training, pacing, and recovery for your first 10K event."><%= formData?.excerpt || '' %></textarea>
+          <small class="field-help">Shown in the blog list preview. 320 characters max.</small>
+        </div>
+
+        <div class="form-field">
+          <div class="field-label-row">
+            <label for="category">Category</label>
+            <span class="field-badge field-badge-required" title="Required" aria-label="Required" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required</span></span>
+          </div>
+          <select id="category" name="category" required>
+            <option value="" disabled <%= !formData?.category ? 'selected' : '' %>>Select category</option>
+            <% (categories || []).forEach((category) => { %>
+              <option value="<%= category %>" <%= formData?.category === category ? 'selected' : '' %>><%= category %></option>
+            <% }) %>
+          </select>
+          <small class="field-help">Choose the closest match for easier discovery.</small>
+        </div>
+
+        <div class="form-field" id="customCategoryWrap" style="display: none;">
+          <div class="field-label-row">
+            <label for="customCategory">Custom Category</label>
+            <span class="field-badge field-badge-required" title="Required when Category is Other" aria-label="Required when Category is Other" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required when Other</span></span>
+          </div>
+          <input id="customCategory" name="customCategory" type="text" maxlength="80" value="<%= formData?.customCategory || '' %>" placeholder="Example: Trail Safety">
+          <small class="field-help">Required when Category is set to Other.</small>
+        </div>
+
+        <div class="form-field">
+          <div class="field-label-row">
+            <label for="tags">Tags (comma-separated)</label>
+            <span class="field-badge field-badge-optional" title="Optional" aria-label="Optional" tabindex="0"><i data-lucide="circle-help"></i><span class="field-badge-label">Optional</span></span>
+          </div>
+          <input id="tags" name="tags" type="text" value="<%= formData?.tags || '' %>" placeholder="Example: 10k training, beginner runner, hydration">
+          <small class="field-help">Use short keywords. Example format: tag1, tag2, tag3.</small>
+        </div>
+      </section>
+
+      <section class="form-section" aria-labelledby="coverImageHeading">
+        <div class="form-section-header">
+          <h2 class="form-section-title" id="coverImageHeading">Cover Image</h2>
+          <p class="form-section-description">Add a cover image by URL or upload. It is required before submitting for review.</p>
+        </div>
+
+        <div class="form-field">
+          <div class="field-label-row">
+            <label for="coverImageUrl">Cover Image URL</label>
+            <span class="field-badge field-badge-review" title="Required before submitting for review" aria-label="Required before submitting for review" tabindex="0"><i data-lucide="cloud-upload"></i><span class="field-badge-label">Required for review</span></span>
+          </div>
+          <input id="coverImageUrl" name="coverImageUrl" type="url" value="<%= formData?.coverImageUrl || '' %>" placeholder="https://...">
+          <small class="field-help">Use this if you already have an image URL. Otherwise upload below.</small>
+        </div>
+
+        <div class="form-field">
+          <div class="field-label-row">
+            <label for="coverImageFile">Or upload cover image</label>
+            <span class="field-badge field-badge-review" title="Required before submitting for review" aria-label="Required before submitting for review" tabindex="0"><i data-lucide="cloud-upload"></i><span class="field-badge-label">Required for review</span></span>
+          </div>
+          <input id="coverImageFile" name="coverImageFile" type="file" accept="image/jpeg,image/png">
+          <input type="hidden" id="removeCoverImage" name="removeCoverImage" value="<%= formData?.removeCoverImage ? '1' : '0' %>">
+          <small class="field-help">JPG/PNG, max 5MB. Best result: clear image, wide format, readable on mobile.</small>
+          <% const previewCoverUrl = (formData?.coverImageUrl || '').trim(); %>
+          <% const currentCoverUrl = (mode === 'edit' && !formData?.removeCoverImage)
+            ? (previewCoverUrl || (post?.coverImageUrl || ''))
+            : previewCoverUrl; %>
+          <% if (currentCoverUrl) { %>
+            <div class="cover-preview-wrap" id="coverPreviewWrap">
+              <img src="<%= currentCoverUrl %>" alt="Current cover" id="coverPreviewImage">
+              <% if (mode === 'edit') { %>
+                <button type="button" class="cover-remove-btn" id="removeCoverBtn" aria-label="Remove current cover image">&times;</button>
+              <% } %>
+            </div>
+            <p class="cover-remove-note" id="coverRemoveNote">Current cover image will be removed when you save.</p>
+          <% } %>
+        </div>
+
+        <div class="form-field">
+          <div class="field-label-row">
+            <label for="coverImageAlt">Cover Image Alt Text</label>
+            <span class="field-badge field-badge-optional" title="Optional" aria-label="Optional" tabindex="0"><i data-lucide="circle-help"></i><span class="field-badge-label">Optional</span></span>
+          </div>
+          <input id="coverImageAlt" name="coverImageAlt" type="text" maxlength="180" value="<%= formData?.coverImageAlt || '' %>" placeholder="Example: Runners crossing the finish line at sunrise">
+          <small class="field-help">Describe the image briefly for accessibility and SEO.</small>
+        </div>
+      </section>
+
+      <section class="form-section editor-field" aria-labelledby="mainContentHeading">
+        <div class="form-section-header">
+          <div class="field-label-row">
+            <h2 class="form-section-title" id="mainContentHeading">Main Content</h2>
+            <span class="field-badge field-badge-required" title="Required" aria-label="Required" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required</span></span>
+          </div>
+          <p class="form-section-description">Write the post body. Drafts need at least 50 characters of readable content.</p>
+        </div>
+        <% const isLegacyPost = mode === 'edit' && !(formData?.contentBlocks && formData.contentBlocks.length); %>
+        <input type="hidden" name="contentBlocksJson" id="contentBlocksJson" value="">
+        <input type="hidden" name="contentHtml" id="contentHtml" value="<%- formData?.contentHtml || '' %>">
+        <% if (!isLegacyPost) { %>
+          <div class="composer-shell" id="structuredComposer">
+            <div>
+              <div class="composer-toolbar">
+                <div>
+                  <label for="templateDropdownBtn" style="font-weight: 600; display: block; margin-bottom: 0.35rem;">Template</label>
+                  <select id="templateKey" name="templateKey" style="display:none;" aria-hidden="true">
+                    <% (templates || []).forEach((template) => { %>
+                      <option value="<%= template.key %>" data-description="<%= template.description %>" <%= formData?.templateKey === template.key ? 'selected' : '' %>><%= template.label %></option>
+                    <% }) %>
+                  </select>
+                  <div class="template-custom-select" id="templateCustomSelect">
+                    <button type="button" class="template-select-btn" id="templateDropdownBtn" aria-haspopup="listbox" aria-expanded="false">
+                      <span id="templateDropdownLabel"><%= (templates || []).find(t => t.key === (formData?.templateKey || 'custom'))?.label || 'Custom Blocks' %></span>
+                      <i data-lucide="chevron-down" class="template-select-chevron"></i>
+                    </button>
+                    <ul class="template-select-menu" role="listbox" id="templateDropdownMenu" aria-label="Template">
+                      <% (templates || []).forEach((template) => { %>
+                        <li class="template-select-option <%= formData?.templateKey === template.key ? 'is-selected' : ((!formData?.templateKey && template.key === 'custom') ? 'is-selected' : '') %>" role="option" data-value="<%= template.key %>" data-description="<%= template.description %>">
+                          <span class="template-option-label"><%= template.label %></span>
+                          <span class="template-option-desc"><%= template.description %></span>
+                        </li>
+                      <% }) %>
+                    </ul>
+                  </div>
+                  <small id="templateDescription" style="color: #64748b; display: block; margin-top: 0.35rem;">Choose a starter structure. You can edit, reorder, or remove blocks.</small>
+                </div>
+                <div class="composer-actions-row">
+                  <select id="addBlockType" aria-hidden="true" style="display:none;">
+                    <% (blockTypes || []).forEach((blockType) => { %>
+                      <option value="<%= blockType.key %>" data-description="<%= blockType.description %>" <%= blockType.key === 'textSection' ? 'selected' : '' %>><%= blockType.label %></option>
+                    <% }) %>
+                  </select>
+                  <div class="template-custom-select" id="blockTypeCustomSelect">
+                    <button type="button" class="template-select-btn" id="blockTypeDropdownBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="Block type to add">
+                      <span id="blockTypeDropdownLabel">Text Section</span>
+                      <i data-lucide="chevron-down" class="template-select-chevron"></i>
+                    </button>
+                    <ul class="template-select-menu" role="listbox" id="blockTypeDropdownMenu" aria-label="Block type">
+                      <% (blockTypes || []).forEach((blockType) => { %>
+                        <li class="template-select-option <%= blockType.key === 'textSection' ? 'is-selected' : '' %>" role="option" data-value="<%= blockType.key %>" data-description="<%= blockType.description %>">
+                          <span class="template-option-label"><%= blockType.label %></span>
+                          <span class="template-option-desc"><%= blockType.description %></span>
+                        </li>
+                      <% }) %>
+                    </ul>
+                  </div>
+                  <div class="composer-actions-btns">
+                    <button type="button" id="addBlockBtn" class="composer-icon-btn" aria-label="Add Block">
+                      <i data-lucide="plus-square"></i>
+                      <span class="icon-btn-tooltip">Add Block</span>
+                    </button>
+                    <button type="button" id="resetTemplateBtn" class="composer-icon-btn" aria-label="Use Template Blocks">
+                      <i data-lucide="layout-template"></i>
+                      <span class="icon-btn-tooltip">Use Template Blocks</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div class="composer-block-list" id="composerBlockList"></div>
+              <div class="fab-add-block">
+                <button type="button" id="fabAddBlockBtn" aria-label="Add block">
+                  <i data-lucide="plus"></i>
+                  <span class="fab-label" id="fabAddBlockLabel">Add Text Section</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Use Template Blocks confirmation dialog -->
+            <div id="templateResetOverlay" class="composer-dialog-overlay" role="dialog" aria-modal="true" aria-labelledby="templateResetDialogTitle" hidden>
+              <div class="composer-dialog">
+                <div class="composer-dialog-icon"><i data-lucide="alert-triangle"></i></div>
+                <h3 id="templateResetDialogTitle">Replace all blocks?</h3>
+                <p>This will remove all your current content and load the <strong id="templateResetDialogTemplateName">selected template</strong> blocks. This cannot be undone.</p>
+                <div class="composer-dialog-actions">
+                  <button type="button" id="templateResetCancelBtn" class="composer-dialog-btn composer-dialog-btn--cancel">Cancel</button>
+                  <button type="button" id="templateResetConfirmBtn" class="composer-dialog-btn composer-dialog-btn--confirm">Yes, replace</button>
+                </div>
+              </div>
+            </div>
+            <aside class="composer-preview" aria-live="polite">
+              <h3>Preview</h3>
+              <div class="composer-preview-body" id="composerPreview"></div>
+            </aside>
+          </div>
+        <% } else { %>
+          <div class="legacy-editor">
+            <div class="field-label-row">
+              <label for="legacyContentHtml">Legacy HTML Content</label>
+              <span class="field-badge field-badge-required" title="Required" aria-label="Required" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required</span></span>
+            </div>
+            <textarea id="legacyContentHtml" rows="14" style="width: 100%; padding: 0.6rem;"><%- formData?.contentHtml || '' %></textarea>
+            <small class="field-help">This older post has no structured blocks yet, so it remains editable as sanitized HTML.</small>
+          </div>
+        <% } %>
+      </section>
 
       <details style="border: 1px dashed #cbd5e1; border-radius: 8px; padding: 0.55rem 0.7rem; margin-top: 0.85rem;">
         <summary style="cursor: pointer; font-weight: 600;">Advanced (optional): Raw Content Notes</summary>
@@ -343,52 +1284,739 @@
 
       <div class="form-actions">
         <div class="form-actions-left">
-          <a href="/blogs/me/dashboard" class="btn-action btn-action-cancel">Cancel</a>
-          <button type="submit" value="save_draft" class="btn-action btn-action-draft" data-submit-action="save_draft" data-default-label="Create Draft">Create Draft</button>
+          <a href="/blogs/me/dashboard" class="btn-action btn-action-cancel btn-action-icon" aria-label="Cancel">
+            <i data-lucide="x"></i>
+            <span class="btn-action-tooltip">Cancel</span>
+          </a>
+          <button type="submit" value="save_draft" class="btn-action btn-action-draft btn-action-icon" data-submit-action="save_draft" data-default-label="Create Draft" aria-label="Create Draft">
+            <i data-lucide="file-pen"></i>
+            <span class="btn-action-tooltip">Create Draft</span>
+          </button>
         </div>
         <div class="form-actions-right">
-          <button type="submit" value="submit_review" class="btn-action btn-action-submit" data-submit-action="submit_review" data-default-label="Submit for Review">Submit for Review</button>
+          <button type="submit" value="submit_review" class="btn-action btn-action-submit btn-action-icon" data-submit-action="submit_review" data-default-label="Submit for Review" aria-label="Submit for Review">
+            <i data-lucide="send"></i>
+            <span class="btn-action-tooltip">Submit for Review</span>
+          </button>
         </div>
       </div>
     </form>
   </main>
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
   <script>
-    (function initBlogEditor() {
-      const editorRoot = document.getElementById('blogContentEditor');
+    (function initBlogComposer() {
+      const composerRoot = document.getElementById('structuredComposer');
+      const blockList = document.getElementById('composerBlockList');
+      const preview = document.getElementById('composerPreview');
+      const blockInput = document.getElementById('contentBlocksJson');
       const contentInput = document.getElementById('contentHtml');
+      const legacyContent = document.getElementById('legacyContentHtml');
       const form = document.querySelector('form[action="<%= formAction %>"]');
-      if (!editorRoot || !contentInput || !form || !window.Quill) return;
+      if (!form || !contentInput) return;
 
-      const quill = new Quill('#blogContentEditor', {
-        theme: 'snow',
-        modules: {
-          toolbar: [
-            [{ header: [2, 3, false] }],
-            ['bold', 'italic'],
-            [{ list: 'ordered' }, { list: 'bullet' }],
-            ['blockquote', 'link'],
-            ['clean']
-          ]
-        }
-      });
+      const templateBlocks = <%- JSON.stringify(templateBlocksByKey || {}) %>;
+      const blockLabels = <%- JSON.stringify((blockTypes || []).reduce((acc, item) => { acc[item.key] = item.label; return acc; }, {})) %>;
+      const existingBlocks = <%- JSON.stringify(formData?.contentBlocks || []) %>;
+      const templateSelect = document.getElementById('templateKey');
+      const templateDescription = document.getElementById('templateDescription');
+      const templateCustomSelect = document.getElementById('templateCustomSelect');
+      const templateDropdownBtn = document.getElementById('templateDropdownBtn');
+      const templateDropdownMenu = document.getElementById('templateDropdownMenu');
+      const templateDropdownLabel = document.getElementById('templateDropdownLabel');
 
-      const existingHtml = <%- JSON.stringify(formData?.contentHtml || '') %>.trim();
-      if (existingHtml) {
-        quill.root.innerHTML = existingHtml;
-      } else {
-        quill.root.innerHTML =
-          '<h2>What this post is about</h2><p></p>' +
-          '<h2>What I did</h2><p></p>' +
-          '<h2>What I learned</h2><p></p>' +
-          '<h2>Tips for other runners</h2><ul><li></li></ul>';
+      function updateTemplateDescription() {
+        if (!templateSelect || !templateDescription) return;
+        const selected = templateSelect.options[templateSelect.selectedIndex];
+        const desc = selected?.dataset?.description;
+        templateDescription.textContent = desc || 'Choose a starter structure. You can edit, reorder, or remove blocks.';
       }
 
-      form.addEventListener('submit', () => {
-        contentInput.value = quill.root.innerHTML;
+      if (templateDropdownBtn && templateDropdownMenu && templateCustomSelect) {
+        templateDropdownBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isOpen = templateCustomSelect.classList.toggle('is-open');
+          templateDropdownBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+
+        templateDropdownMenu.querySelectorAll('.template-select-option').forEach((item) => {
+          item.setAttribute('tabindex', '0');
+          item.addEventListener('click', () => selectTemplateOption(item));
+          item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectTemplateOption(item); }
+          });
+          item.addEventListener('mouseenter', () => {
+            const desc = item.dataset.description;
+            if (templateDescription) templateDescription.textContent = desc || '';
+          });
+          item.addEventListener('mouseleave', () => updateTemplateDescription());
+        });
+
+        document.addEventListener('click', (e) => {
+          if (!templateCustomSelect.contains(e.target)) {
+            templateCustomSelect.classList.remove('is-open');
+            templateDropdownBtn.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
+
+      function selectTemplateOption(item) {
+        const value = item.dataset.value;
+        if (!value || !templateSelect) return;
+        templateSelect.value = value;
+        templateDropdownMenu.querySelectorAll('.template-select-option').forEach((opt) => {
+          opt.classList.toggle('is-selected', opt.dataset.value === value);
+        });
+        if (templateDropdownLabel) templateDropdownLabel.textContent = item.querySelector('.template-option-label')?.textContent || value;
+        templateCustomSelect.classList.remove('is-open');
+        templateDropdownBtn.setAttribute('aria-expanded', 'false');
+        updateTemplateDescription();
+        templateSelect.dispatchEvent(new Event('change'));
+      }
+
+      updateTemplateDescription();
+      const addBlockType = document.getElementById('addBlockType');
+      const addBlockBtn = document.getElementById('addBlockBtn');
+      const resetTemplateBtn = document.getElementById('resetTemplateBtn');
+
+      const blockTypeCustomSelect = document.getElementById('blockTypeCustomSelect');
+      const blockTypeDropdownBtn = document.getElementById('blockTypeDropdownBtn');
+      const blockTypeDropdownMenu = document.getElementById('blockTypeDropdownMenu');
+      const blockTypeDropdownLabel = document.getElementById('blockTypeDropdownLabel');
+
+      if (blockTypeDropdownBtn && blockTypeDropdownMenu && blockTypeCustomSelect) {
+        blockTypeDropdownBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isOpen = blockTypeCustomSelect.classList.toggle('is-open');
+          blockTypeDropdownBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        });
+        blockTypeDropdownMenu.querySelectorAll('.template-select-option').forEach((item) => {
+          item.setAttribute('tabindex', '0');
+          item.addEventListener('click', () => selectBlockTypeOption(item));
+          item.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectBlockTypeOption(item); }
+          });
+        });
+        document.addEventListener('click', (e) => {
+          if (!blockTypeCustomSelect.contains(e.target)) {
+            blockTypeCustomSelect.classList.remove('is-open');
+            blockTypeDropdownBtn.setAttribute('aria-expanded', 'false');
+          }
+        });
+      }
+
+      function selectBlockTypeOption(item) {
+        const value = item.dataset.value;
+        if (!value || !addBlockType) return;
+        addBlockType.value = value;
+        blockTypeDropdownMenu.querySelectorAll('.template-select-option').forEach((opt) => {
+          opt.classList.toggle('is-selected', opt.dataset.value === value);
+        });
+        if (blockTypeDropdownLabel) blockTypeDropdownLabel.textContent = item.querySelector('.template-option-label')?.textContent || value;
+        blockTypeCustomSelect.classList.remove('is-open');
+        blockTypeDropdownBtn.setAttribute('aria-expanded', 'false');
+      }
+      let blocks = existingBlocks.length ? existingBlocks : cloneBlocks(templateBlocks[templateSelect?.value || 'custom'] || []);
+
+      function cloneBlocks(value) {
+        return JSON.parse(JSON.stringify(value || []));
+      }
+
+      function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, function (char) {
+          return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char];
+        });
+      }
+
+      function formatInlineText(value) {
+        return normalizeInlineMarkers(escapeHtml(value))
+          .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*([^*\n]+)\*/g, '<em>$1</em>')
+          .replace(/_([^_\n]+)_/g, '<em>$1</em>')
+          .replace(/\+\+([^+\n]+)\+\+/g, '<u>$1</u>')
+          .replace(/\n/g, '<br>');
+      }
+
+      function normalizeInlineMarkers(value) {
+        let next = String(value || '');
+        let previous = '';
+        while (next !== previous) {
+          previous = next;
+          next = next
+            .replace(/\*{4}([^*\n]+)\*{4}/g, '**$1**')
+            .replace(/_{2}([^_\n]+)_{2}/g, '_$1_')
+            .replace(/\+{4}([^+\n]+)\+{4}/g, '++$1++')
+            .replace(/([A-Za-z0-9])(\*\*|\*|_|\+\+)([A-Za-z0-9])/g, '$1$3');
+        }
+        return next;
+      }
+
+      function makeBlock(type) {
+        if (type === 'heading') return { type, content: { text: '' }, metadata: { level: 2 } };
+        if (type === 'bulletList' || type === 'numberedList') return { type, content: { items: [''] }, metadata: {} };
+        if (type === 'image') return { type, content: { url: '', alt: '', caption: '' }, metadata: {} };
+        if (type === 'divider') return { type, content: {}, metadata: {} };
+        return { type, content: { text: '' }, metadata: {} };
+      }
+
+      function listToolsMarkup() {
+        return '<button type="button" data-action="bullet" title="Formats selected lines as a bullet list." aria-label="Format selected lines as a bullet list"><i data-lucide="list"></i><span class="tool-tooltip">Bullets</span></button>' +
+          '<button type="button" data-action="numbered" title="Formats selected lines as a numbered list." aria-label="Format selected lines as a numbered list"><i data-lucide="list-ordered"></i><span class="tool-tooltip">Numbers</span></button>';
+      }
+
+      function inlineToolsMarkup() {
+        return '<button type="button" data-action="bold" title="Make selected text bold." aria-label="Make selected text bold"><i data-lucide="bold"></i><span class="tool-tooltip">Bold</span></button>' +
+          '<button type="button" data-action="italic" title="Make selected text italic." aria-label="Make selected text italic"><i data-lucide="italic"></i><span class="tool-tooltip">Italic</span></button>' +
+          '<button type="button" data-action="underline" title="Underline selected text." aria-label="Underline selected text"><i data-lucide="underline"></i><span class="tool-tooltip">Underline</span></button>' +
+          '<button type="button" data-action="clear" title="Clear formatting from selected text." aria-label="Clear formatting"><i data-lucide="eraser"></i><span class="tool-tooltip">Clear</span></button>';
+      }
+
+      function textToolsMarkup(includeLists, className) {
+        return '<div class="' + className + '">' + (includeLists ? listToolsMarkup() : '') + inlineToolsMarkup() + '</div>';
+      }
+
+      function convertBlockType(block, nextType) {
+        if (!block || block.type === nextType) return block;
+        const text = block.content?.text || (Array.isArray(block.content?.items) ? block.content.items.join('\n') : '');
+        const next = makeBlock(nextType);
+        if (nextType === 'bulletList' || nextType === 'numberedList') {
+          next.content.items = String(text || '')
+            .split(/\n|\. /)
+            .map((item) => item.replace(/^[-*]\s*/, '').trim())
+            .filter(Boolean);
+          if (!next.content.items.length) next.content.items = [''];
+        } else if (['textSection', 'quote', 'closing', 'heading'].includes(nextType)) {
+          next.content.text = String(text || '').trim();
+        }
+        return next;
+      }
+
+      function normalizeForSave() {
+        return blocks.map((block, index) => ({
+          type: block.type,
+          order: index,
+          content: block.content || {},
+          metadata: block.metadata || {}
+        }));
+      }
+
+      function blockToHtml(block) {
+        if (!block) return '';
+        if (block.type === 'heading') {
+          const tag = Number(block.metadata?.level) === 3 ? 'h3' : 'h2';
+          return '<' + tag + '>' + escapeHtml(block.content?.text || '') + '</' + tag + '>';
+        }
+        if (block.type === 'textSection' || block.type === 'paragraph') return renderTextSectionPreview(block.content?.text || '');
+        if (block.type === 'quote') return '<blockquote>' + formatInlineText(block.content?.text || '') + '</blockquote>';
+        if (block.type === 'closing') return '<p><strong>' + formatInlineText(block.content?.text || '') + '</strong></p>';
+        if (block.type === 'bulletList' || block.type === 'numberedList') {
+          const tag = block.type === 'numberedList' ? 'ol' : 'ul';
+          const items = Array.isArray(block.content?.items) ? block.content.items : [];
+          return '<' + tag + '>' + items.map((item) => '<li>' + formatInlineText(item) + '</li>').join('') + '</' + tag + '>';
+        }
+        if (block.type === 'image') {
+          const url = String(block.content?.url || '').trim();
+          if (!url) return '<p><em>Image block needs a URL.</em></p>';
+          const caption = String(block.content?.caption || '').trim();
+          return '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(block.content?.alt || '') + '" loading="lazy">' +
+            (caption ? '<p><em>' + escapeHtml(caption) + '</em></p>' : '');
+        }
+        return '<hr>';
+      }
+
+      function renderTextSectionPreview(value) {
+        const lines = String(value || '').replace(/\r\n/g, '\n').split('\n');
+        const chunks = [];
+        let paragraph = [];
+        let listItems = [];
+        let listType = '';
+        function flushParagraph() {
+          if (!paragraph.length) return;
+          chunks.push('<p>' + formatInlineText(paragraph.join(' ')) + '</p>');
+          paragraph = [];
+        }
+        function flushList() {
+          if (!listItems.length) return;
+          const tag = listType === 'ol' ? 'ol' : 'ul';
+          chunks.push('<' + tag + ' class="blog-text-section-list">' + listItems.map((item) => '<li>' + formatInlineText(item) + '</li>').join('') + '</' + tag + '>');
+          listItems = [];
+          listType = '';
+        }
+        lines.forEach((rawLine) => {
+          const line = rawLine.trim();
+          if (!line) {
+            flushParagraph();
+            flushList();
+            return;
+          }
+          const bullet = line.match(/^[-*]\s*(.+)$/);
+          const numbered = line.match(/^\d+[.)]\s+(.+)$/);
+          if (bullet || numbered) {
+            const nextType = bullet ? 'ul' : 'ol';
+            flushParagraph();
+            if (listType && listType !== nextType) flushList();
+            listType = nextType;
+            listItems.push(bullet ? bullet[1] : numbered[1]);
+            return;
+          }
+          flushList();
+          paragraph.push(line);
+        });
+        flushParagraph();
+        flushList();
+        return chunks.join('\n');
+      }
+
+      function syncHiddenFields() {
+        const savedBlocks = normalizeForSave();
+        if (blockInput) blockInput.value = JSON.stringify(savedBlocks);
+        contentInput.value = composerRoot ? savedBlocks.map(blockToHtml).join('\n') : String(legacyContent?.value || '');
+      }
+
+      function isInsideMarker(value, pos, marker) {
+        const lineStart = value.lastIndexOf('\n', Math.max(0, pos - 1)) + 1;
+        const segment = value.slice(lineStart, pos);
+        let count = 0;
+        let i = 0;
+        while (i <= segment.length - marker.length) {
+          if (segment.slice(i, i + marker.length) === marker) {
+            count++;
+            i += marker.length;
+          } else {
+            i++;
+          }
+        }
+        return count % 2 === 1;
+      }
+
+      function updateActiveButtons(fields, textarea) {
+        const pos = textarea.selectionStart || 0;
+        const value = textarea.value;
+        const boldBtn = fields.querySelector('[data-action="bold"]');
+        const italicBtn = fields.querySelector('[data-action="italic"]');
+        const underlineBtn = fields.querySelector('[data-action="underline"]');
+        if (boldBtn) boldBtn.classList.toggle('is-active', isInsideMarker(value, pos, '**'));
+        if (italicBtn) italicBtn.classList.toggle('is-active', isInsideMarker(value, pos, '_'));
+        if (underlineBtn) underlineBtn.classList.toggle('is-active', isInsideMarker(value, pos, '++'));
+      }
+
+      function renderBlock(block, index) {
+        const article = document.createElement('article');
+        article.className = 'composer-block';
+        article.innerHTML =
+          '<div class="composer-block-head">' +
+            '<h4 class="composer-block-title">' + escapeHtml(blockLabels[block.type] || block.type) + '</h4>' +
+            '<select class="composer-block-type" data-action="type"></select>' +
+            '<div class="composer-block-actions">' +
+              '<button type="button" data-action="up" title="Move block up" aria-label="Move block up"><i data-lucide="arrow-up"></i><span class="tool-tooltip">Move up</span></button>' +
+              '<button type="button" data-action="down" title="Move block down" aria-label="Move block down"><i data-lucide="arrow-down"></i><span class="tool-tooltip">Move down</span></button>' +
+              '<button type="button" data-action="remove" title="Remove block" aria-label="Remove block"><i data-lucide="trash-2"></i><span class="tool-tooltip">Remove</span></button>' +
+            '</div>' +
+          '</div>' +
+          '<div data-fields></div>';
+        const fields = article.querySelector('[data-fields]');
+        const typeSelect = article.querySelector('[data-action="type"]');
+        if (typeSelect) {
+          Object.keys(blockLabels).forEach((key) => {
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = blockLabels[key] || key;
+            option.selected = key === block.type;
+            typeSelect.appendChild(option);
+          });
+          typeSelect.addEventListener('change', () => {
+            blocks[index] = convertBlockType(block, typeSelect.value);
+            render();
+          });
+        }
+
+        if (block.type === 'heading') {
+          fields.innerHTML = '<select data-field="level"><option value="2">Heading 2</option><option value="3">Heading 3</option></select><input data-field="text" type="text" maxlength="140" placeholder="Short section heading">';
+          fields.querySelector('[data-field="level"]').value = String(block.metadata?.level || 2);
+          fields.querySelector('[data-field="text"]').value = block.content?.text || '';
+        } else if (block.type === 'textSection' || block.type === 'paragraph') {
+          fields.innerHTML = textToolsMarkup(true, 'text-section-tools') + '<textarea data-field="text" rows="8" placeholder="Write paragraphs, then format selected lines."></textarea><small style="color:#64748b;">Use Bullets, Numbers, Bold, Italic, or Underline to format selected text.</small>';
+          fields.querySelector('[data-field="text"]').value = block.content?.text || '';
+        } else if (['quote', 'closing'].includes(block.type)) {
+          fields.innerHTML = textToolsMarkup(false, 'inline-text-tools') + '<textarea data-field="text" rows="4" placeholder="Write this section clearly."></textarea><small style="color:#64748b;">Select text, then use Bold, Italic, or Underline.</small>';
+          fields.querySelector('[data-field="text"]').value = block.content?.text || '';
+        } else if (block.type === 'bulletList' || block.type === 'numberedList') {
+          fields.innerHTML = textToolsMarkup(false, 'inline-text-tools') + '<textarea data-field="items" rows="5" placeholder="One list item per line."></textarea><small style="color:#64748b;">Select item text, then use Bold, Italic, or Underline.</small>';
+          fields.querySelector('[data-field="items"]').value = (block.content?.items || []).join('\n');
+        } else if (block.type === 'image') {
+          fields.innerHTML =
+            '<input data-field="url" type="url" placeholder="https://image-url">' +
+            '<input data-field="alt" type="text" maxlength="180" placeholder="Image alt text">' +
+            '<input data-field="caption" type="text" maxlength="240" placeholder="Optional caption">';
+          fields.querySelector('[data-field="url"]').value = block.content?.url || '';
+          fields.querySelector('[data-field="alt"]').value = block.content?.alt || '';
+          fields.querySelector('[data-field="caption"]').value = block.content?.caption || '';
+        } else {
+          fields.innerHTML = '<small style="color:#64748b;">Divider line.</small>';
+        }
+
+        article.addEventListener('input', () => {
+          const textField = fields.querySelector('[data-field="text"]');
+          const itemsField = fields.querySelector('[data-field="items"]');
+          const levelField = fields.querySelector('[data-field="level"]');
+          if (textField) block.content.text = textField.value;
+          if (itemsField) block.content.items = itemsField.value.split('\n').map((item) => item.trim()).filter(Boolean);
+          if (levelField) block.metadata.level = Number(levelField.value) === 3 ? 3 : 2;
+          ['url', 'alt', 'caption'].forEach((key) => {
+            const field = fields.querySelector('[data-field="' + key + '"]');
+            if (field) block.content[key] = field.value;
+          });
+          updatePreview();
+          syncHiddenFields();
+        });
+        article.addEventListener('change', () => {
+          const levelField = fields.querySelector('[data-field="level"]');
+          if (levelField) block.metadata.level = Number(levelField.value) === 3 ? 3 : 2;
+          updatePreview();
+          syncHiddenFields();
+        });
+        fields.querySelector('[data-action="bullet"]')?.addEventListener('click', () => {
+          toggleTextSectionPrefix(fields.querySelector('[data-field="text"]'), '- ');
+          const textField = fields.querySelector('[data-field="text"]');
+          if (textField) block.content.text = textField.value;
+          updatePreview();
+          syncHiddenFields();
+        });
+        fields.querySelector('[data-action="numbered"]')?.addEventListener('click', () => {
+          toggleTextSectionPrefix(fields.querySelector('[data-field="text"]'), '1. ');
+          const textField = fields.querySelector('[data-field="text"]');
+          if (textField) block.content.text = textField.value;
+          updatePreview();
+          syncHiddenFields();
+        });
+        fields.querySelector('[data-action="bold"]')?.addEventListener('click', () => {
+          wrapSelectedText(fields.querySelector('[data-field="text"]') || fields.querySelector('[data-field="items"]'), '**', '**');
+          const textField = fields.querySelector('[data-field="text"]');
+          const itemsField = fields.querySelector('[data-field="items"]');
+          if (textField) block.content.text = textField.value;
+          if (itemsField) block.content.items = itemsField.value.split('\n').map((item) => item.trim()).filter(Boolean);
+          updatePreview();
+          syncHiddenFields();
+        });
+        fields.querySelector('[data-action="italic"]')?.addEventListener('click', () => {
+          wrapSelectedText(fields.querySelector('[data-field="text"]') || fields.querySelector('[data-field="items"]'), '_', '_');
+          const textField = fields.querySelector('[data-field="text"]');
+          const itemsField = fields.querySelector('[data-field="items"]');
+          if (textField) block.content.text = textField.value;
+          if (itemsField) block.content.items = itemsField.value.split('\n').map((item) => item.trim()).filter(Boolean);
+          updatePreview();
+          syncHiddenFields();
+        });
+        fields.querySelector('[data-action="underline"]')?.addEventListener('click', () => {
+          wrapSelectedText(fields.querySelector('[data-field="text"]') || fields.querySelector('[data-field="items"]'), '++', '++');
+          const textField = fields.querySelector('[data-field="text"]');
+          const itemsField = fields.querySelector('[data-field="items"]');
+          if (textField) block.content.text = textField.value;
+          if (itemsField) block.content.items = itemsField.value.split('\n').map((item) => item.trim()).filter(Boolean);
+          updatePreview();
+          syncHiddenFields();
+        });
+        let clearPendingConfirm = false;
+        let clearConfirmTimer = null;
+        fields.querySelector('[data-action="clear"]')?.addEventListener('click', () => {
+          const ta = fields.querySelector('[data-field="text"]') || fields.querySelector('[data-field="items"]');
+          const clearBtn = fields.querySelector('[data-action="clear"]');
+          if (!ta || !clearBtn) return;
+          const tooltipEl = clearBtn.querySelector('.tool-tooltip');
+          if (clearPendingConfirm) {
+            clearTimeout(clearConfirmTimer);
+            clearPendingConfirm = false;
+            clearBtn.classList.remove('is-confirming');
+            if (tooltipEl) tooltipEl.textContent = 'Clear';
+            if (clearInlineFormatting(ta)) {
+              const textField = fields.querySelector('[data-field="text"]');
+              const itemsField = fields.querySelector('[data-field="items"]');
+              if (textField) block.content.text = textField.value;
+              if (itemsField) block.content.items = itemsField.value.split('\n').map((item) => item.trim()).filter(Boolean);
+              updateActiveButtons(fields, ta);
+              updatePreview();
+              syncHiddenFields();
+            }
+            return;
+          }
+          const val = ta.value;
+          const selStart = ta.selectionStart || 0;
+          const selEnd = ta.selectionEnd || selStart;
+          const target = selStart !== selEnd ? val.slice(selStart, selEnd) : val;
+          const hasFormatting = /\*\*[^*\n]+\*\*|_[^_\n]+_|\+\+[^+\n]+\+\+/.test(target);
+          if (!hasFormatting) {
+            clearBtn.classList.add('is-empty');
+            if (tooltipEl) tooltipEl.textContent = 'Nothing to clear';
+            setTimeout(() => {
+              clearBtn.classList.remove('is-empty');
+              if (tooltipEl) tooltipEl.textContent = 'Clear';
+            }, 1500);
+            return;
+          }
+          clearPendingConfirm = true;
+          clearBtn.classList.add('is-confirming');
+          if (tooltipEl) tooltipEl.textContent = 'Confirm?';
+          clearConfirmTimer = setTimeout(() => {
+            clearPendingConfirm = false;
+            clearBtn.classList.remove('is-confirming');
+            if (tooltipEl) tooltipEl.textContent = 'Clear';
+          }, 2000);
+        });
+        const formattingTextarea = fields.querySelector('[data-field="text"]') || fields.querySelector('[data-field="items"]');
+        if (formattingTextarea) {
+          formattingTextarea.addEventListener('keydown', (e) => {
+            const ctrl = e.ctrlKey || e.metaKey;
+            if (!ctrl) return;
+            const tf = fields.querySelector('[data-field="text"]');
+            const itf = fields.querySelector('[data-field="items"]');
+            if (e.key === 'b' || e.key === 'B') {
+              e.preventDefault();
+              wrapSelectedText(formattingTextarea, '**', '**');
+              if (tf) block.content.text = tf.value;
+              if (itf) block.content.items = itf.value.split('\n').map((item) => item.trim()).filter(Boolean);
+              updatePreview();
+              syncHiddenFields();
+            } else if (e.key === 'i' || e.key === 'I') {
+              e.preventDefault();
+              wrapSelectedText(formattingTextarea, '_', '_');
+              if (tf) block.content.text = tf.value;
+              if (itf) block.content.items = itf.value.split('\n').map((item) => item.trim()).filter(Boolean);
+              updatePreview();
+              syncHiddenFields();
+            } else if (e.key === 'u' || e.key === 'U') {
+              e.preventDefault();
+              wrapSelectedText(formattingTextarea, '++', '++');
+              if (tf) block.content.text = tf.value;
+              if (itf) block.content.items = itf.value.split('\n').map((item) => item.trim()).filter(Boolean);
+              updatePreview();
+              syncHiddenFields();
+            }
+          });
+          formattingTextarea.addEventListener('mouseup', () => updateActiveButtons(fields, formattingTextarea));
+          formattingTextarea.addEventListener('keyup', () => updateActiveButtons(fields, formattingTextarea));
+        }
+        article.querySelector('[data-action="up"]').addEventListener('click', () => {
+          if (index > 0) [blocks[index - 1], blocks[index]] = [blocks[index], blocks[index - 1]];
+          render();
+        });
+        article.querySelector('[data-action="down"]').addEventListener('click', () => {
+          if (index < blocks.length - 1) [blocks[index + 1], blocks[index]] = [blocks[index], blocks[index + 1]];
+          render();
+        });
+        article.querySelector('[data-action="remove"]').addEventListener('click', () => {
+          blocks.splice(index, 1);
+          render();
+        });
+        return article;
+      }
+
+      function toggleTextSectionPrefix(textarea, prefix) {
+        if (!textarea) return;
+        const value = textarea.value;
+        const start = textarea.selectionStart || 0;
+        const end = textarea.selectionEnd || start;
+        const lineStart = value.lastIndexOf('\n', Math.max(0, start - 1)) + 1;
+        const lineEndIndex = value.indexOf('\n', end);
+        const lineEnd = lineEndIndex === -1 ? value.length : lineEndIndex;
+        const selected = value.slice(lineStart, lineEnd);
+        const lines = selected.split('\n');
+        const isNumberedMode = prefix === '1. ';
+        const markerPattern = isNumberedMode ? /^\d+[.)]\s+/ : /^[-*]\s*/;
+        const shouldRemove = lines.every((line) => !line.trim() || markerPattern.test(line.trimStart()));
+        let number = 1;
+        const nextLines = lines.map((line) => {
+          if (!line.trim()) return line;
+          const indent = line.match(/^\s*/)[0];
+          const clean = line.trimStart().replace(/^[-*]\s*/, '').replace(/^\d+[.)]\s+/, '');
+          if (shouldRemove) return indent + clean;
+          if (isNumberedMode) return indent + (number++) + '. ' + clean;
+          return indent + prefix + clean;
+        });
+        textarea.value = value.slice(0, lineStart) + nextLines.join('\n') + value.slice(lineEnd);
+        textarea.focus();
+        textarea.selectionStart = lineStart;
+        textarea.selectionEnd = lineStart + nextLines.join('\n').length;
+      }
+
+      function wrapSelectedText(textarea, before, after) {
+        if (!textarea) return;
+        const value = textarea.value;
+        const start = textarea.selectionStart || 0;
+        const end = textarea.selectionEnd || start;
+        const selected = value.slice(start, end);
+        const fallback = 'text';
+        const duplicateBefore = before + before;
+        const duplicateAfter = after + after;
+        const hasDuplicateWrappedSelection = selected &&
+          selected.startsWith(duplicateBefore) &&
+          selected.endsWith(duplicateAfter) &&
+          selected.length >= duplicateBefore.length + duplicateAfter.length;
+        const hasWrappedSelection = selected &&
+          selected.startsWith(before) &&
+          selected.endsWith(after) &&
+          selected.length >= before.length + after.length;
+        const hasDuplicateSurroundingMarkers = selected &&
+          value.slice(Math.max(0, start - duplicateBefore.length), start) === duplicateBefore &&
+          value.slice(end, end + duplicateAfter.length) === duplicateAfter;
+        const hasSurroundingMarkers = selected &&
+          value.slice(Math.max(0, start - before.length), start) === before &&
+          value.slice(end, end + after.length) === after;
+
+        if (hasDuplicateWrappedSelection) {
+          const innerText = selected.slice(duplicateBefore.length, selected.length - duplicateAfter.length);
+          const nextText = before + innerText + after;
+          textarea.value = value.slice(0, start) + nextText + value.slice(end);
+          textarea.focus();
+          textarea.selectionStart = start + before.length;
+          textarea.selectionEnd = start + before.length + innerText.length;
+          return;
+        }
+
+        if (hasDuplicateSurroundingMarkers) {
+          textarea.value =
+            value.slice(0, start - duplicateBefore.length) +
+            before +
+            selected +
+            after +
+            value.slice(end + duplicateAfter.length);
+          textarea.focus();
+          textarea.selectionStart = start - before.length;
+          textarea.selectionEnd = start - before.length + selected.length;
+          return;
+        }
+
+        if (hasWrappedSelection) {
+          const nextText = selected.slice(before.length, selected.length - after.length);
+          textarea.value = value.slice(0, start) + nextText + value.slice(end);
+          textarea.focus();
+          textarea.selectionStart = start;
+          textarea.selectionEnd = start + nextText.length;
+          return;
+        }
+
+        if (hasSurroundingMarkers) {
+          textarea.value =
+            value.slice(0, start - before.length) +
+            selected +
+            value.slice(end + after.length);
+          textarea.focus();
+          textarea.selectionStart = start - before.length;
+          textarea.selectionEnd = start - before.length + selected.length;
+          return;
+        }
+
+        const nextText = selected || fallback;
+        const nextValue = value.slice(0, start) + before + nextText + after + value.slice(end);
+        textarea.value = nextValue;
+        textarea.focus();
+        textarea.selectionStart = start + before.length;
+        textarea.selectionEnd = start + before.length + nextText.length;
+      }
+
+      function clearInlineFormatting(textarea) {
+        if (!textarea) return false;
+        const value = textarea.value;
+        const start = textarea.selectionStart || 0;
+        const end = textarea.selectionEnd || start;
+        const hasSelection = start !== end;
+        const target = hasSelection ? value.slice(start, end) : value;
+        const hasFormatting = /\*\*[^*\n]+\*\*|_[^_\n]+_|\+\+[^+\n]+\+\+/.test(target);
+        if (!hasFormatting) return false;
+        const cleaned = target
+          .replace(/\*\*([^*\n]+)\*\*/g, '$1')
+          .replace(/_([^_\n]+)_/g, '$1')
+          .replace(/\+\+([^+\n]+)\+\+/g, '$1');
+        if (hasSelection) {
+          textarea.value = value.slice(0, start) + cleaned + value.slice(end);
+          textarea.selectionStart = start;
+          textarea.selectionEnd = start + cleaned.length;
+        } else {
+          textarea.value = cleaned;
+        }
+        textarea.focus();
+        return true;
+      }
+
+      function render() {
+        if (composerRoot && blockList && preview) {
+          blockList.innerHTML = '';
+          blocks.forEach((block, index) => blockList.appendChild(renderBlock(block, index)));
+          if (window.lucide) lucide.createIcons();
+          updatePreview();
+          updateFabLabel();
+        }
+        syncHiddenFields();
+      }
+
+      function updatePreview() {
+        if (!preview) return;
+        preview.innerHTML = blocks.map(blockToHtml).join('\n') || '<p><em>Add a content block to begin.</em></p>';
+      }
+
+      addBlockBtn?.addEventListener('click', () => {
+        blocks.push(makeBlock(addBlockType?.value || 'textSection'));
+        render();
       });
+      resetTemplateBtn?.addEventListener('click', () => {
+        const hasContent = blocks.some((b) => {
+          if (b.type === 'divider') return false;
+          if (Array.isArray(b.content)) return b.content.some((c) => c && c.trim());
+          return b.content && b.content.trim();
+        });
+        const overlay = document.getElementById('templateResetOverlay');
+        const templateNameEl = document.getElementById('templateResetDialogTemplateName');
+        if (!hasContent) {
+          blocks = cloneBlocks(templateBlocks[templateSelect?.value || 'custom'] || []);
+          render();
+          return;
+        }
+        if (templateNameEl) {
+          const selectedOption = templateSelect ? templateSelect.options[templateSelect.selectedIndex] : null;
+          templateNameEl.textContent = selectedOption ? `"${selectedOption.text}"` : 'selected template';
+        }
+        if (overlay) overlay.hidden = false;
+        document.getElementById('templateResetConfirmBtn')?.focus();
+      });
+
+      document.getElementById('templateResetCancelBtn')?.addEventListener('click', () => {
+        document.getElementById('templateResetOverlay').hidden = true;
+      });
+      document.getElementById('templateResetConfirmBtn')?.addEventListener('click', () => {
+        document.getElementById('templateResetOverlay').hidden = true;
+        blocks = cloneBlocks(templateBlocks[templateSelect?.value || 'custom'] || []);
+        render();
+      });
+      document.getElementById('templateResetOverlay')?.addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) e.currentTarget.hidden = true;
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const overlay = document.getElementById('templateResetOverlay');
+          if (overlay && !overlay.hidden) overlay.hidden = true;
+        }
+      });
+      function getSmartBlockType() {
+        if (!blocks.length) return 'textSection';
+        const last = blocks[blocks.length - 1];
+        if (last.type === 'heading') return 'textSection';
+        if (last.type === 'textSection') return 'bulletList';
+        if (last.type === 'bulletList' || last.type === 'numberedList') return 'textSection';
+        if (last.type === 'quote') return 'closing';
+        if (last.type === 'closing') return 'heading';
+        if (last.type === 'image') return 'textSection';
+        return 'textSection';
+      }
+      function updateFabLabel() {
+        const fabLabel = document.getElementById('fabAddBlockLabel');
+        if (!fabLabel) return;
+        const type = getSmartBlockType();
+        fabLabel.textContent = 'Add ' + (blockLabels[type] || type);
+      }
+      document.getElementById('fabAddBlockBtn')?.addEventListener('click', () => {
+        blocks.push(makeBlock(getSmartBlockType()));
+        render();
+      });
+      legacyContent?.addEventListener('input', syncHiddenFields);
 
       const actionInput = document.getElementById('formActionInput');
       const actionButtons = Array.from(form.querySelectorAll('button[type="submit"][data-submit-action]'));
@@ -401,6 +2029,7 @@
       });
 
       form.addEventListener('submit', () => {
+        syncHiddenFields();
         if (actionInput && !actionInput.value) {
           actionInput.value = selectedAction || 'save_draft';
         }
@@ -416,6 +2045,8 @@
           }
         });
       }, { once: true });
+
+      render();
     })();
 
     (function initCustomCategoryToggle() {
@@ -426,7 +2057,7 @@
 
       function sync() {
         const isOther = category.value === 'Other';
-        customWrap.style.display = isOther ? 'block' : 'none';
+        customWrap.style.display = isOther ? 'grid' : 'none';
         customInput.required = isOther;
       }
 
