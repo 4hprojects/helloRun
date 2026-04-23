@@ -423,8 +423,30 @@ body {
   object-fit: cover;
   transition: transform var(--transition);
 }
+
+.blog-image.is-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(250, 154, 75, 0.16), transparent 34%),
+    linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.blog-image.is-fallback img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  opacity: 0.88;
+  transform: none;
+}
+
 .blog-card:hover .blog-image img {
   transform: scale(1.05);
+}
+
+.blog-card:hover .blog-image.is-fallback img {
+  transform: none;
 }
 
 /* Blog Body */

@@ -28,6 +28,11 @@
   - expanded runner/organizer value messaging
   - added platform capability list and trust/momentum sections
   - added browse events and account creation calls to action
+- Polished auth UI surfaces:
+  - improved login/signup primary and Google button contrast, hover color, icon treatment, and Google mark sizing
+  - compacted the sign-in panel layout
+  - refined `/forgot-password` secondary action buttons into a symmetric three-column layout
+  - moved the key icon beside the forgot-password title and compacted the tip message
 
 ### [NEW] NEW FILES:
 1. docs/shop_feature.md
@@ -50,6 +55,12 @@
 10. tests/admin-dashboard.test.js
 11. src/views/pages/about.ejs
 12. src/public/css/static-pages.css
+13. src/views/auth/login.ejs
+14. src/views/auth/signup.ejs
+15. src/views/auth/forgot-password.ejs
+16. src/public/css/login.css
+17. src/public/css/signup.css
+18. src/public/css/forgot-password.css
 
 ### [VALIDATION] TEST/RUN CHECKS:
 - `node --test --test-concurrency=1 tests/static-pages.test.js` -> PASS
@@ -57,6 +68,8 @@
 - `node --test --test-concurrency=1 tests/submission-review-route-guards.test.js` -> PASS
 - `node --test --test-concurrency=1 tests/payment-route-guards.test.js` -> PASS
 - `node --test --test-concurrency=1 tests/runner-dashboard-modal.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/google-oauth-routes.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/privacy-signup-consent.test.js` -> PASS
 
 ## CHANGELOG - March 10, 2026 (Session: Run Proof Modal Rollout + Admin Review Access)
 

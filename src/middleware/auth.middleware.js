@@ -23,9 +23,7 @@ function redirectIfAuth(req, res, next) {
  * Must be registered BEFORE all routes in server.js
  */
 async function populateAuthLocals(req, res, next) {
-  res.locals.isAuthPage = ['/login', '/signup', '/register', '/forgot-password'].some(
-    path => req.path.startsWith(path)
-  );
+  res.locals.currentPath = req.path;
 
   if (req.session && req.session.userId) {
     try {

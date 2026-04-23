@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
+  <%- include('../layouts/head', { title: 'Sign Up - helloRun' }) %>
   <link rel="stylesheet" href="/css/signup.css">
-
-    <%- include('../layouts/head', { title: 'Sign Up - helloRun' }) %>
 </head>
 <body>
-  <%- include('../layouts/nav', { isAuthPage: true }) %>
+  <%- include('../layouts/nav') %>
   
   <main class="compact-auth-page">
     <div class="compact-auth-container">
@@ -146,8 +144,8 @@
             </div>
             <small class="checkbox-error" id="termsError"></small>
             
-            <button type="submit" class="btn btn-primary btn-full" id="submitBtn">
-              <span class="btn-text">Create Account</span>
+            <button type="submit" class="btn btn-primary btn-full auth-action-btn" id="submitBtn">
+              <span class="btn-text"><i data-lucide="user-plus"></i> Create Account</span>
               <span class="btn-loader" style="display: none;">
                 <i data-lucide="loader-2" class="spin"></i> Creating account...
               </span>
@@ -155,8 +153,9 @@
           </form>
 
           <div class="oauth-divider"><span>or</span></div>
-          <a href="/auth/google?intent=signup" class="btn btn-google btn-full" id="googleSignupBtn" aria-label="Continue with Google">
-            Continue with Google
+          <a href="/auth/google?intent=signup" class="btn btn-google btn-full auth-action-btn" id="googleSignupBtn" aria-label="Continue with Google">
+            <span class="google-mark" aria-hidden="true">G</span>
+            <span>Continue with Google</span>
           </a>
           
           <p class="auth-switch">
@@ -170,32 +169,6 @@
   <%- include('../layouts/footer') %>
   
   <script src="/js/main.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
-  
-  <script>
-    // ========================================
-    // MOBILE MENU TOGGLE
-    // ========================================
-    document.addEventListener('DOMContentLoaded', () => {
-      const menuToggle = document.querySelector('.menu-toggle');
-      const navLinks = document.querySelector('.nav-links');
-
-      if (menuToggle && navLinks) {
-        menuToggle.addEventListener('click', () => {
-          navLinks.classList.toggle('active');
-          menuToggle.classList.toggle('active');
-        });
-
-        // Close menu when a link is clicked
-        navLinks.querySelectorAll('a').forEach(link => {
-          link.addEventListener('click', () => {
-            navLinks.classList.remove('active');
-            menuToggle.classList.remove('active');
-          });
-        });
-      }
-    });
-  </script>
 
   <script>
     document.addEventListener('DOMContentLoaded', function() {

@@ -5,7 +5,7 @@
   <link rel="stylesheet" href="/css/login.css">
 </head>
 <body>
-  <%- include('../layouts/nav', { isAuthPage: true }) %>
+  <%- include('../layouts/nav') %>
   
   <main class="auth-page">
     <div class="auth-container">
@@ -117,13 +117,17 @@
             </div>
             
             <!-- Login Button -->
-            <button type="submit" class="btn btn-primary">Log In</button>
+            <button type="submit" class="btn btn-primary auth-action-btn">
+              <i data-lucide="log-in"></i>
+              <span>Log In</span>
+            </button>
             
           </form>
 
           <div class="oauth-divider"><span>or</span></div>
-          <a href="/auth/google?intent=login" class="btn btn-google" aria-label="Continue with Google">
-            Continue with Google
+          <a href="/auth/google?intent=login" class="btn btn-google auth-action-btn" aria-label="Continue with Google">
+            <span class="google-mark" aria-hidden="true">G</span>
+            <span>Continue with Google</span>
           </a>
           
           <!-- Signup Link -->

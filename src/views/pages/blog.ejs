@@ -81,7 +81,7 @@
               <article class="blog-card <%= isFeatured ? 'featured' : '' %>">
                 <% if (post.coverImageUrl) { %>
                   <a href="/blog/<%= post.slug %>" class="blog-image" aria-label="<%= post.title %>">
-                    <img src="<%= post.coverImageUrl %>" alt="" loading="lazy">
+                    <img src="<%= post.coverImageUrl %>" alt="" loading="lazy" data-blog-cover-image>
                   </a>
                 <% } %>
                 <div class="blog-body">
@@ -198,6 +198,19 @@
 
       // Lucide icons
       if (window.lucide) lucide.createIcons();
+
+      const fallbackCover = '/images/helloRun-icon.webp';
+      const applyCoverFallback = (image) => {
+        if (image.dataset.fallbackApplied === '1') return;
+        image.dataset.fallbackApplied = '1';
+        image.src = fallbackCover;
+        image.alt = 'helloRun logo';
+        image.closest('.blog-image')?.classList.add('is-fallback');
+      };
+      document.querySelectorAll('[data-blog-cover-image]').forEach((image) => {
+        image.addEventListener('error', () => applyCoverFallback(image));
+        if (image.complete && image.naturalWidth === 0) applyCoverFallback(image);
+      });
     })();
   </script>
 </body>

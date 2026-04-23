@@ -29,6 +29,11 @@
   - expanded runner and organizer value messaging
   - added platform capability list and trust/momentum sections
   - added clearer calls to browse events and create an account
+- Polished auth UI surfaces:
+  - improved login/signup primary and Google button contrast and icon treatment
+  - compacted the sign-in panel layout while preserving touch-friendly controls
+  - refined `/forgot-password` action buttons into a symmetric three-column layout
+  - aligned the forgot-password heading icon and compacted the tip message
 
 ### Validation signals recorded
 - `tests/static-pages.test.js` -> PASS
@@ -36,6 +41,8 @@
 - `tests/submission-review-route-guards.test.js` -> PASS
 - `tests/payment-route-guards.test.js` -> PASS
 - `tests/runner-dashboard-modal.test.js` -> PASS
+- `tests/google-oauth-routes.test.js` -> PASS
+- `tests/privacy-signup-consent.test.js` -> PASS
 
 ### Still pending from this scope
 - Optional visual QA:

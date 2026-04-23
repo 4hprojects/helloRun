@@ -291,6 +291,184 @@
       font-size: 0.76rem;
     }
 
+    .admin-composer {
+      display: grid;
+      gap: 0.55rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.65rem;
+      background: #fff;
+    }
+
+    .admin-composer-toolbar,
+    .admin-composer-block-head,
+    .admin-composer-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+
+    .admin-composer-block {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.55rem;
+      background: #f8fafc;
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .admin-composer-block h4 {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+
+    .admin-composer-actions button {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      min-height: 30px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #f8fafc;
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .admin-composer-actions button svg {
+      width: 17px;
+      height: 17px;
+      stroke-width: 2.2;
+    }
+
+    .admin-composer-block-type {
+      min-height: 32px;
+      max-width: 180px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #fff;
+      padding: 0.35rem 0.45rem;
+      font: inherit;
+      font-size: 0.86rem;
+    }
+
+    .admin-composer-preview {
+      border: 1px dashed #cbd5e1;
+      border-radius: 8px;
+      padding: 0.65rem;
+      background: #fff;
+      line-height: 1.55;
+    }
+
+    .admin-composer-preview img {
+      max-width: 100%;
+      max-height: 220px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .admin-text-section-tools,
+    .admin-inline-text-tools {
+      display: flex;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.4rem;
+    }
+
+    .admin-text-section-tools button,
+    .admin-inline-text-tools button {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      min-height: 32px;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #f8fafc;
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .admin-text-section-tools button svg,
+    .admin-inline-text-tools button svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2.2;
+    }
+
+    .tool-tooltip {
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 0.45rem);
+      z-index: 20;
+      transform: translateX(-50%) translateY(4px);
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      white-space: nowrap;
+      border-radius: 6px;
+      background: #0f172a;
+      color: #fff;
+      padding: 0.35rem 0.55rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      line-height: 1.1;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.18);
+      transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+    }
+
+    .tool-tooltip::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 100%;
+      transform: translateX(-50%);
+      border: 5px solid transparent;
+      border-top-color: #0f172a;
+    }
+
+    .admin-text-section-tools button:hover .tool-tooltip,
+    .admin-text-section-tools button:focus-visible .tool-tooltip,
+    .admin-inline-text-tools button:hover .tool-tooltip,
+    .admin-inline-text-tools button:focus-visible .tool-tooltip,
+    .admin-composer-actions button:hover .tool-tooltip,
+    .admin-composer-actions button:focus-visible .tool-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .admin-composer-preview ul,
+    .admin-composer-preview ol {
+      margin: 0.55rem 0 0.8rem 1.25rem;
+      padding-left: 1.15rem;
+      list-style-position: outside;
+    }
+
+    .admin-composer-preview ul {
+      list-style-type: disc;
+    }
+
+    .admin-composer-preview ol {
+      list-style-type: decimal;
+    }
+
+    .admin-composer-preview li {
+      margin: 0.25rem 0;
+      padding-left: 0.15rem;
+    }
+
+    .admin-composer-preview blockquote {
+      margin: 0.9rem 0;
+      padding: 0.55rem 0.8rem;
+      border-left: 4px solid #93c5fd;
+      background: #eff6ff;
+      color: #1e3a8a;
+    }
+
     .admin-inline {
       display: flex;
       align-items: center;
@@ -507,8 +685,40 @@
               <input id="adminCoverImageUrl" name="coverImageUrl" type="url" value="<%- post.coverImageUrl || '' %>">
             </div>
             <div class="admin-field admin-field-wide">
-              <label for="adminContentHtml">Content HTML</label>
-              <textarea id="adminContentHtml" name="contentHtml" style="min-height: 220px;"><%- post.contentHtml || '' %></textarea>
+              <label for="adminCoverImageAlt">Cover Image Alt Text</label>
+              <input id="adminCoverImageAlt" name="coverImageAlt" type="text" value="<%- post.coverImageAlt || '' %>" maxlength="180">
+            </div>
+            <% const adminHasStructuredBlocks = post.contentBlocks && post.contentBlocks.length; %>
+            <% if (adminHasStructuredBlocks) { %>
+              <div class="admin-field">
+                <label for="adminTemplateKey">Template</label>
+                <select id="adminTemplateKey" name="templateKey">
+                  <% (templates || []).forEach((template) => { %>
+                    <option value="<%= template.key %>" <%= post.templateKey === template.key ? 'selected' : '' %>><%= template.label %></option>
+                  <% }) %>
+                </select>
+              </div>
+              <div class="admin-field admin-field-wide">
+                <label>Structured Content Blocks</label>
+                <input type="hidden" id="adminContentBlocksJson" name="contentBlocksJson" value="">
+                <div class="admin-composer" id="adminStructuredComposer">
+                  <div class="admin-composer-toolbar">
+                    <select id="adminAddBlockType" aria-label="Block type to add">
+                      <% (blockTypes || []).forEach((blockType) => { %>
+                        <option value="<%= blockType.key %>" <%= blockType.key === 'textSection' ? 'selected' : '' %>><%= blockType.label %></option>
+                      <% }) %>
+                    </select>
+                    <button type="button" id="adminAddBlockBtn">Add Block</button>
+                  </div>
+                  <div id="adminComposerBlockList" style="display:grid;gap:0.5rem;"></div>
+                  <div class="admin-composer-preview" id="adminComposerPreview"></div>
+                </div>
+                <p class="admin-field-help">Structured posts save blocks as the source content and regenerate sanitized HTML.</p>
+              </div>
+            <% } %>
+            <div class="admin-field admin-field-wide">
+              <label for="adminContentHtml"><%= adminHasStructuredBlocks ? 'Generated Content HTML' : 'Content HTML' %></label>
+              <textarea id="adminContentHtml" name="contentHtml" style="min-height: 220px;" <%= adminHasStructuredBlocks ? 'readonly' : '' %>><%- post.contentHtml || '' %></textarea>
             </div>
             <div class="admin-field admin-field-wide">
               <label for="adminContentRaw">Content Raw / Notes</label>
@@ -645,6 +855,15 @@
       const moderationStatusBadge = document.getElementById("moderationStatusBadge");
       const pendingActionBlocks = document.querySelectorAll(".js-pending-actions");
       const publishedActionBlocks = document.querySelectorAll(".js-published-actions");
+      const adminComposer = document.getElementById("adminStructuredComposer");
+      const adminBlockList = document.getElementById("adminComposerBlockList");
+      const adminPreview = document.getElementById("adminComposerPreview");
+      const adminContentBlocksInput = document.getElementById("adminContentBlocksJson");
+      const adminContentHtml = document.getElementById("adminContentHtml");
+      const adminTemplateBlocks = <%- JSON.stringify(templateBlocksByKey || {}) %>;
+      const adminBlockLabels = <%- JSON.stringify((blockTypes || []).reduce((acc, item) => { acc[item.key] = item.label; return acc; }, {})) %>;
+      let adminBlocks = <%- JSON.stringify(post.contentBlocks || []) %>;
+      let scheduleAutosave = function () {};
 
       const setAutosaveState = function (state, message) {
         if (!autosaveStatus) return;
@@ -669,6 +888,400 @@
       syncCustomCategoryVisibility();
       if (categorySelect) {
         categorySelect.addEventListener("change", syncCustomCategoryVisibility);
+      }
+
+      const escapeHtml = function (value) {
+        return String(value || "").replace(/[&<>"']/g, function (char) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
+        });
+      };
+
+      const formatInlineText = function (value) {
+        return normalizeAdminInlineMarkers(escapeHtml(value))
+          .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+          .replace(/\*([^*\n]+)\*/g, "<em>$1</em>")
+          .replace(/_([^_\n]+)_/g, "<em>$1</em>")
+          .replace(/\+\+([^+\n]+)\+\+/g, "<u>$1</u>")
+          .replace(/\n/g, "<br>");
+      };
+
+      const normalizeAdminInlineMarkers = function (value) {
+        let next = String(value || "");
+        let previous = "";
+        while (next !== previous) {
+          previous = next;
+          next = next
+            .replace(/\*{4}([^*\n]+)\*{4}/g, "**$1**")
+            .replace(/_{2}([^_\n]+)_{2}/g, "_$1_")
+            .replace(/\+{4}([^+\n]+)\+{4}/g, "++$1++")
+            .replace(/([A-Za-z0-9])(\*\*|\*|_|\+\+)([A-Za-z0-9])/g, "$1$3");
+        }
+        return next;
+      };
+
+      const blockToHtml = function (block) {
+        if (!block) return "";
+        if (block.type === "heading") {
+          const tag = Number(block.metadata?.level) === 3 ? "h3" : "h2";
+          return "<" + tag + ">" + escapeHtml(block.content?.text || "") + "</" + tag + ">";
+        }
+        if (block.type === "textSection") return renderAdminTextSectionPreview(block.content?.text || "");
+        if (block.type === "paragraph") return "<p>" + formatInlineText(block.content?.text || "") + "</p>";
+        if (block.type === "quote") return "<blockquote>" + formatInlineText(block.content?.text || "") + "</blockquote>";
+        if (block.type === "closing") return "<p><strong>" + formatInlineText(block.content?.text || "") + "</strong></p>";
+        if (block.type === "bulletList" || block.type === "numberedList") {
+          const tag = block.type === "numberedList" ? "ol" : "ul";
+          const items = Array.isArray(block.content?.items) ? block.content.items : [];
+          return "<" + tag + ">" + items.map((item) => "<li>" + escapeHtml(item) + "</li>").join("") + "</" + tag + ">";
+        }
+        if (block.type === "image") {
+          const url = String(block.content?.url || "").trim();
+          if (!url) return "<p><em>Image block needs a URL.</em></p>";
+          const caption = String(block.content?.caption || "").trim();
+          return '<img src="' + escapeHtml(url) + '" alt="' + escapeHtml(block.content?.alt || "") + '" loading="lazy">' +
+            (caption ? "<p><em>" + escapeHtml(caption) + "</em></p>" : "");
+        }
+        return "<hr>";
+      };
+
+      const renderAdminTextSectionPreview = function (value) {
+        const lines = String(value || "").replace(/\r\n/g, "\n").split("\n");
+        const chunks = [];
+        let paragraph = [];
+        let listItems = [];
+        let listType = "";
+        const flushParagraph = function () {
+          if (!paragraph.length) return;
+          chunks.push("<p>" + formatInlineText(paragraph.join(" ")) + "</p>");
+          paragraph = [];
+        };
+        const flushList = function () {
+          if (!listItems.length) return;
+          const tag = listType === "ol" ? "ol" : "ul";
+          chunks.push("<" + tag + ' class="blog-text-section-list">' + listItems.map((item) => "<li>" + formatInlineText(item) + "</li>").join("") + "</" + tag + ">");
+          listItems = [];
+          listType = "";
+        };
+        lines.forEach((rawLine) => {
+          const line = rawLine.trim();
+          if (!line) {
+            flushParagraph();
+            flushList();
+            return;
+          }
+          const bullet = line.match(/^[-*]\s*(.+)$/);
+          const numbered = line.match(/^\d+[.)]\s+(.+)$/);
+          if (bullet || numbered) {
+            const nextType = bullet ? "ul" : "ol";
+            flushParagraph();
+            if (listType && listType !== nextType) flushList();
+            listType = nextType;
+            listItems.push(bullet ? bullet[1] : numbered[1]);
+            return;
+          }
+          flushList();
+          paragraph.push(line);
+        });
+        flushParagraph();
+        flushList();
+        return chunks.join("\n");
+      };
+
+      const makeAdminBlock = function (type) {
+        if (type === "heading") return { type, content: { text: "" }, metadata: { level: 2 } };
+        if (type === "bulletList" || type === "numberedList") return { type, content: { items: [""] }, metadata: {} };
+        if (type === "image") return { type, content: { url: "", alt: "", caption: "" }, metadata: {} };
+        if (type === "divider") return { type, content: {}, metadata: {} };
+        return { type, content: { text: "" }, metadata: {} };
+      };
+
+      const adminListToolsMarkup = function () {
+        return '<button type="button" data-action="bullet" title="Formats selected lines as a bullet list." aria-label="Format selected lines as a bullet list"><i data-lucide="list"></i><span class="tool-tooltip">Bullets</span></button>' +
+          '<button type="button" data-action="numbered" title="Formats selected lines as a numbered list." aria-label="Format selected lines as a numbered list"><i data-lucide="list-ordered"></i><span class="tool-tooltip">Numbers</span></button>';
+      };
+
+      const adminInlineToolsMarkup = function () {
+        return '<button type="button" data-action="bold" title="Make selected text bold." aria-label="Make selected text bold"><i data-lucide="bold"></i><span class="tool-tooltip">Bold</span></button>' +
+          '<button type="button" data-action="italic" title="Make selected text italic." aria-label="Make selected text italic"><i data-lucide="italic"></i><span class="tool-tooltip">Italic</span></button>' +
+          '<button type="button" data-action="underline" title="Underline selected text." aria-label="Underline selected text"><i data-lucide="underline"></i><span class="tool-tooltip">Underline</span></button>';
+      };
+
+      const adminTextToolsMarkup = function (includeLists, className) {
+        return '<div class="' + className + '">' + (includeLists ? adminListToolsMarkup() : "") + adminInlineToolsMarkup() + "</div>";
+      };
+
+      const convertAdminBlockType = function (block, nextType) {
+        if (!block || block.type === nextType) return block;
+        const text = block.content?.text || (Array.isArray(block.content?.items) ? block.content.items.join("\n") : "");
+        const next = makeAdminBlock(nextType);
+        if (nextType === "bulletList" || nextType === "numberedList") {
+          next.content.items = String(text || "")
+            .split(/\n|\. /)
+            .map((item) => item.replace(/^[-*]\s*/, "").trim())
+            .filter(Boolean);
+          if (!next.content.items.length) next.content.items = [""];
+        } else if (["textSection", "paragraph", "quote", "closing", "heading"].includes(nextType)) {
+          next.content.text = String(text || "").trim();
+        }
+        return next;
+      };
+
+      const normalizeAdminBlocksForSave = function () {
+        return adminBlocks.map((block, index) => ({
+          type: block.type,
+          order: index,
+          content: block.content || {},
+          metadata: block.metadata || {}
+        }));
+      };
+
+      const syncAdminComposerOutput = function () {
+        if (!adminComposer) return;
+        const savedBlocks = normalizeAdminBlocksForSave();
+        const html = savedBlocks.map(blockToHtml).join("\n");
+        if (adminContentBlocksInput) adminContentBlocksInput.value = JSON.stringify(savedBlocks);
+        if (adminContentHtml) adminContentHtml.value = html;
+        if (adminPreview) adminPreview.innerHTML = html || "<p><em>No blocks yet.</em></p>";
+      };
+
+      const renderAdminBlock = function (block, index) {
+        const article = document.createElement("article");
+        article.className = "admin-composer-block";
+        article.innerHTML =
+          '<div class="admin-composer-block-head">' +
+            "<h4>" + escapeHtml(adminBlockLabels[block.type] || block.type) + "</h4>" +
+            '<select class="admin-composer-block-type" data-action="type"></select>' +
+            '<div class="admin-composer-actions">' +
+              '<button type="button" data-action="up" title="Move block up" aria-label="Move block up"><i data-lucide="arrow-up"></i><span class="tool-tooltip">Move up</span></button>' +
+              '<button type="button" data-action="down" title="Move block down" aria-label="Move block down"><i data-lucide="arrow-down"></i><span class="tool-tooltip">Move down</span></button>' +
+              '<button type="button" data-action="remove" title="Remove block" aria-label="Remove block"><i data-lucide="trash-2"></i><span class="tool-tooltip">Remove</span></button>' +
+            "</div>" +
+          "</div>" +
+          '<div data-fields></div>';
+        const fields = article.querySelector("[data-fields]");
+        const typeSelect = article.querySelector('[data-action="type"]');
+        if (typeSelect) {
+          Object.keys(adminBlockLabels).forEach((key) => {
+            const option = document.createElement("option");
+            option.value = key;
+            option.textContent = adminBlockLabels[key] || key;
+            option.selected = key === block.type;
+            typeSelect.appendChild(option);
+          });
+          typeSelect.addEventListener("change", () => {
+            adminBlocks[index] = convertAdminBlockType(block, typeSelect.value);
+            renderAdminComposer();
+            scheduleAutosave();
+          });
+        }
+        if (block.type === "heading") {
+          fields.innerHTML = '<select data-field="level"><option value="2">Heading 2</option><option value="3">Heading 3</option></select><input data-field="text" type="text" maxlength="140">';
+          fields.querySelector('[data-field="level"]').value = String(block.metadata?.level || 2);
+          fields.querySelector('[data-field="text"]').value = block.content?.text || "";
+        } else if (block.type === "textSection") {
+          fields.innerHTML = adminTextToolsMarkup(true, "admin-text-section-tools") + '<textarea data-field="text" rows="7" placeholder="Write paragraphs, then format selected lines."></textarea><small style="color:#64748b;">Use Bullets, Numbers, Bold, Italic, or Underline to format selected text.</small>';
+          fields.querySelector('[data-field="text"]').value = block.content?.text || "";
+        } else if (block.type === "paragraph") {
+          fields.innerHTML = adminTextToolsMarkup(true, "admin-inline-text-tools") + '<textarea data-field="text" rows="3"></textarea><small style="color:#64748b;">Use Bullets, Numbers, Bold, Italic, or Underline to format selected text.</small>';
+          fields.querySelector('[data-field="text"]').value = block.content?.text || "";
+        } else if (["quote", "closing"].includes(block.type)) {
+          fields.innerHTML = adminTextToolsMarkup(false, "admin-inline-text-tools") + '<textarea data-field="text" rows="3"></textarea><small style="color:#64748b;">Select text, then use Bold, Italic, or Underline.</small>';
+          fields.querySelector('[data-field="text"]').value = block.content?.text || "";
+        } else if (block.type === "bulletList" || block.type === "numberedList") {
+          fields.innerHTML = adminTextToolsMarkup(false, "admin-inline-text-tools") + '<textarea data-field="items" rows="4" placeholder="One item per line"></textarea><small style="color:#64748b;">Select item text, then use Bold, Italic, or Underline.</small>';
+          fields.querySelector('[data-field="items"]').value = (block.content?.items || []).join("\n");
+        } else if (block.type === "image") {
+          fields.innerHTML = '<input data-field="url" type="url" placeholder="Image URL"><input data-field="alt" type="text" maxlength="180" placeholder="Alt text"><input data-field="caption" type="text" maxlength="240" placeholder="Caption">';
+          fields.querySelector('[data-field="url"]').value = block.content?.url || "";
+          fields.querySelector('[data-field="alt"]').value = block.content?.alt || "";
+          fields.querySelector('[data-field="caption"]').value = block.content?.caption || "";
+        } else {
+          fields.innerHTML = '<small style="color:#64748b;">Divider line.</small>';
+        }
+        const applyFieldChanges = function () {
+          const textField = fields.querySelector('[data-field="text"]');
+          const itemsField = fields.querySelector('[data-field="items"]');
+          const levelField = fields.querySelector('[data-field="level"]');
+          if (textField) block.content.text = textField.value;
+          if (itemsField) block.content.items = itemsField.value.split("\n").map((item) => item.trim()).filter(Boolean);
+          if (levelField) block.metadata.level = Number(levelField.value) === 3 ? 3 : 2;
+          ["url", "alt", "caption"].forEach((key) => {
+            const field = fields.querySelector('[data-field="' + key + '"]');
+            if (field) block.content[key] = field.value;
+          });
+          syncAdminComposerOutput();
+          scheduleAutosave();
+        };
+        article.addEventListener("input", applyFieldChanges);
+        article.addEventListener("change", applyFieldChanges);
+        fields.querySelector('[data-action="bullet"]')?.addEventListener("click", () => {
+          toggleAdminTextSectionPrefix(fields.querySelector('[data-field="text"]'), "- ");
+          const textField = fields.querySelector('[data-field="text"]');
+          if (textField) block.content.text = textField.value;
+          syncAdminComposerOutput();
+          scheduleAutosave();
+        });
+        fields.querySelector('[data-action="numbered"]')?.addEventListener("click", () => {
+          toggleAdminTextSectionPrefix(fields.querySelector('[data-field="text"]'), "1. ");
+          const textField = fields.querySelector('[data-field="text"]');
+          if (textField) block.content.text = textField.value;
+          syncAdminComposerOutput();
+          scheduleAutosave();
+        });
+        fields.querySelector('[data-action="bold"]')?.addEventListener("click", () => {
+          wrapAdminSelectedText(fields.querySelector('[data-field="text"]') || fields.querySelector('[data-field="items"]'), "**", "**");
+          const textField = fields.querySelector('[data-field="text"]');
+          const itemsField = fields.querySelector('[data-field="items"]');
+          if (textField) block.content.text = textField.value;
+          if (itemsField) block.content.items = itemsField.value.split("\n").map((item) => item.trim()).filter(Boolean);
+          syncAdminComposerOutput();
+          scheduleAutosave();
+        });
+        fields.querySelector('[data-action="italic"]')?.addEventListener("click", () => {
+          wrapAdminSelectedText(fields.querySelector('[data-field="text"]') || fields.querySelector('[data-field="items"]'), "_", "_");
+          const textField = fields.querySelector('[data-field="text"]');
+          const itemsField = fields.querySelector('[data-field="items"]');
+          if (textField) block.content.text = textField.value;
+          if (itemsField) block.content.items = itemsField.value.split("\n").map((item) => item.trim()).filter(Boolean);
+          syncAdminComposerOutput();
+          scheduleAutosave();
+        });
+        fields.querySelector('[data-action="underline"]')?.addEventListener("click", () => {
+          wrapAdminSelectedText(fields.querySelector('[data-field="text"]') || fields.querySelector('[data-field="items"]'), "++", "++");
+          const textField = fields.querySelector('[data-field="text"]');
+          const itemsField = fields.querySelector('[data-field="items"]');
+          if (textField) block.content.text = textField.value;
+          if (itemsField) block.content.items = itemsField.value.split("\n").map((item) => item.trim()).filter(Boolean);
+          syncAdminComposerOutput();
+          scheduleAutosave();
+        });
+        article.querySelector('[data-action="up"]').addEventListener("click", () => {
+          if (index > 0) [adminBlocks[index - 1], adminBlocks[index]] = [adminBlocks[index], adminBlocks[index - 1]];
+          renderAdminComposer();
+          scheduleAutosave();
+        });
+        article.querySelector('[data-action="down"]').addEventListener("click", () => {
+          if (index < adminBlocks.length - 1) [adminBlocks[index + 1], adminBlocks[index]] = [adminBlocks[index], adminBlocks[index + 1]];
+          renderAdminComposer();
+          scheduleAutosave();
+        });
+        article.querySelector('[data-action="remove"]').addEventListener("click", () => {
+          adminBlocks.splice(index, 1);
+          renderAdminComposer();
+          scheduleAutosave();
+        });
+        return article;
+      };
+
+      function renderAdminComposer() {
+        if (!adminComposer || !adminBlockList) return;
+        adminBlockList.innerHTML = "";
+        adminBlocks.forEach((block, index) => adminBlockList.appendChild(renderAdminBlock(block, index)));
+        if (window.lucide) lucide.createIcons();
+        syncAdminComposerOutput();
+      }
+
+      function toggleAdminTextSectionPrefix(textarea, prefix) {
+        if (!textarea) return;
+        const value = textarea.value;
+        const start = textarea.selectionStart || 0;
+        const end = textarea.selectionEnd || start;
+        const lineStart = value.lastIndexOf("\n", Math.max(0, start - 1)) + 1;
+        const lineEndIndex = value.indexOf("\n", end);
+        const lineEnd = lineEndIndex === -1 ? value.length : lineEndIndex;
+        const selected = value.slice(lineStart, lineEnd);
+        const lines = selected.split("\n");
+        const isNumberedMode = prefix === "1. ";
+        const markerPattern = isNumberedMode ? /^\d+[.)]\s+/ : /^[-*]\s*/;
+        const shouldRemove = lines.every((line) => !line.trim() || markerPattern.test(line.trimStart()));
+        let number = 1;
+        const nextLines = lines.map((line) => {
+          if (!line.trim()) return line;
+          const indent = line.match(/^\s*/)[0];
+          const clean = line.trimStart().replace(/^[-*]\s*/, "").replace(/^\d+[.)]\s+/, "");
+          if (shouldRemove) return indent + clean;
+          if (isNumberedMode) return indent + (number++) + ". " + clean;
+          return indent + prefix + clean;
+        });
+        textarea.value = value.slice(0, lineStart) + nextLines.join("\n") + value.slice(lineEnd);
+        textarea.focus();
+        textarea.selectionStart = lineStart;
+        textarea.selectionEnd = lineStart + nextLines.join("\n").length;
+      }
+
+      function wrapAdminSelectedText(textarea, before, after) {
+        if (!textarea) return;
+        const value = textarea.value;
+        const start = textarea.selectionStart || 0;
+        const end = textarea.selectionEnd || start;
+        const selected = value.slice(start, end);
+        const fallback = "text";
+        const duplicateBefore = before + before;
+        const duplicateAfter = after + after;
+        const hasDuplicateWrappedSelection = selected &&
+          selected.startsWith(duplicateBefore) &&
+          selected.endsWith(duplicateAfter) &&
+          selected.length >= duplicateBefore.length + duplicateAfter.length;
+        const hasWrappedSelection = selected &&
+          selected.startsWith(before) &&
+          selected.endsWith(after) &&
+          selected.length >= before.length + after.length;
+        const hasDuplicateSurroundingMarkers = selected &&
+          value.slice(Math.max(0, start - duplicateBefore.length), start) === duplicateBefore &&
+          value.slice(end, end + duplicateAfter.length) === duplicateAfter;
+        const hasSurroundingMarkers = selected &&
+          value.slice(Math.max(0, start - before.length), start) === before &&
+          value.slice(end, end + after.length) === after;
+
+        if (hasDuplicateWrappedSelection) {
+          const innerText = selected.slice(duplicateBefore.length, selected.length - duplicateAfter.length);
+          const nextText = before + innerText + after;
+          textarea.value = value.slice(0, start) + nextText + value.slice(end);
+          textarea.focus();
+          textarea.selectionStart = start + before.length;
+          textarea.selectionEnd = start + before.length + innerText.length;
+          return;
+        }
+
+        if (hasDuplicateSurroundingMarkers) {
+          textarea.value =
+            value.slice(0, start - duplicateBefore.length) +
+            before +
+            selected +
+            after +
+            value.slice(end + duplicateAfter.length);
+          textarea.focus();
+          textarea.selectionStart = start - before.length;
+          textarea.selectionEnd = start - before.length + selected.length;
+          return;
+        }
+
+        if (hasWrappedSelection) {
+          const nextText = selected.slice(before.length, selected.length - after.length);
+          textarea.value = value.slice(0, start) + nextText + value.slice(end);
+          textarea.focus();
+          textarea.selectionStart = start;
+          textarea.selectionEnd = start + nextText.length;
+          return;
+        }
+
+        if (hasSurroundingMarkers) {
+          textarea.value =
+            value.slice(0, start - before.length) +
+            selected +
+            value.slice(end + after.length);
+          textarea.focus();
+          textarea.selectionStart = start - before.length;
+          textarea.selectionEnd = start - before.length + selected.length;
+          return;
+        }
+
+        const nextText = selected || fallback;
+        const nextValue = value.slice(0, start) + before + nextText + after + value.slice(end);
+        textarea.value = normalizeAdminInlineMarkers(nextValue);
+        textarea.focus();
+        textarea.selectionStart = start + before.length;
+        textarea.selectionEnd = start + before.length + nextText.length;
       }
 
       const syncModerationActions = function (status) {
@@ -722,6 +1335,9 @@
             customCategory: String(document.getElementById("adminCustomCategory")?.value || "").trim(),
             status: String(document.getElementById("adminStatus")?.value || "").trim(),
             coverImageUrl: String(document.getElementById("adminCoverImageUrl")?.value || "").trim(),
+            coverImageAlt: String(document.getElementById("adminCoverImageAlt")?.value || "").trim(),
+            templateKey: String(document.getElementById("adminTemplateKey")?.value || "custom").trim(),
+            contentBlocks: adminComposer ? normalizeAdminBlocksForSave() : [],
             contentHtml: String(document.getElementById("adminContentHtml")?.value || ""),
             contentRaw: String(document.getElementById("adminContentRaw")?.value || ""),
             seoTitle: String(document.getElementById("adminSeoTitle")?.value || "").trim(),
@@ -799,6 +1415,7 @@
           setAutosaveState("dirty", "Unsaved changes");
           debounceTimer = setTimeout(saveNow, 900);
         };
+        scheduleAutosave = scheduleSave;
 
         const fields = autosaveForm.querySelectorAll("input, textarea, select");
         fields.forEach((field) => {
@@ -813,6 +1430,16 @@
           }
         });
       }
+
+      document.getElementById("adminAddBlockBtn")?.addEventListener("click", () => {
+        adminBlocks.push(makeAdminBlock(document.getElementById("adminAddBlockType")?.value || "textSection"));
+        renderAdminComposer();
+        scheduleAutosave();
+      });
+      document.getElementById("adminTemplateKey")?.addEventListener("change", () => {
+        syncAdminComposerOutput();
+      });
+      renderAdminComposer();
 
       syncModerationActions(String(document.getElementById("adminStatus")?.value || "<%= post.status %>").trim().toLowerCase());
 

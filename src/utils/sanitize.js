@@ -12,9 +12,11 @@ function sanitizeHtml(input, options = {}) {
 
   if (sanitizeHtmlLib) {
     const defaultOptions = {
-      allowedTags: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'h2', 'h3', 'blockquote', 'a'],
+      allowedTags: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'h2', 'h3', 'blockquote', 'a'],
       allowedAttributes: {
-        a: ['href', 'rel', 'target']
+        a: ['href', 'rel', 'target'],
+        ul: ['class'],
+        ol: ['class']
       },
       allowedSchemes: ['http', 'https', 'mailto'],
       transformTags: {

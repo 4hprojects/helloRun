@@ -1,6 +1,14 @@
 <!-- filepath: c:\Users\Kayla\Desktop\PersonalProjects\helloRun\src\views\layouts\nav.ejs -->
 <!-- Navigation Bar -->
-<nav class="nav <% if (locals.isAuthPage) { %>nav-auth<% } %>" role="navigation" aria-label="Main navigation">
+<%
+  const currentPath = locals.currentPath || '';
+  const isCurrent = (href) => href === '/'
+    ? currentPath === '/'
+    : currentPath === href || currentPath.startsWith(`${href}/`);
+  const navClass = (href, extra = '') => `nav-icon-link${extra ? ` ${extra}` : ''}${isCurrent(href) ? ' is-active' : ''}`;
+  const ariaCurrent = (href) => isCurrent(href) ? 'page' : undefined;
+%>
+<nav class="nav" role="navigation" aria-label="Main navigation">
   <div class="nav-container">
     <a href="/" class="logo" aria-label="HelloRun Home">
       <img src="/images/helloRun-icon.webp" alt="" class="logo-icon">
@@ -12,51 +20,51 @@
     </button>
     
     <div class="nav-links" id="nav-links">
-      <a href="/" class="nav-icon-link" aria-label="Home" title="Home">
+      <a href="/" class="<%= navClass('/') %>" aria-label="Home" title="Home" <% if (ariaCurrent('/')) { %>aria-current="page"<% } %>>
         <i data-lucide="home"></i>
         <span class="nav-tooltip">Home</span>
       </a>
-      <a href="/events" class="nav-icon-link" aria-label="Events" title="Events">
+      <a href="/events" class="<%= navClass('/events') %>" aria-label="Events" title="Events" <% if (ariaCurrent('/events')) { %>aria-current="page"<% } %>>
         <i data-lucide="calendar-days"></i>
         <span class="nav-tooltip">Events</span>
       </a>
-      <a href="/blog" class="nav-icon-link" aria-label="Blog" title="Blog">
+      <a href="/blog" class="<%= navClass('/blog') %>" aria-label="Blog" title="Blog" <% if (ariaCurrent('/blog')) { %>aria-current="page"<% } %>>
         <i data-lucide="newspaper"></i>
         <span class="nav-tooltip">Blog</span>
       </a>
-      <a href="/leaderboard" class="nav-icon-link" aria-label="Leaderboard" title="Leaderboard">
+      <a href="/leaderboard" class="<%= navClass('/leaderboard') %>" aria-label="Leaderboard" title="Leaderboard" <% if (ariaCurrent('/leaderboard')) { %>aria-current="page"<% } %>>
         <i data-lucide="trophy"></i>
         <span class="nav-tooltip">Leaderboard</span>
       </a>
 
       <% if (locals.isAuthenticated) { %>
-        <a href="/my-registrations" class="nav-icon-link" aria-label="My Registrations" title="My Registrations">
+        <a href="/my-registrations" class="<%= navClass('/my-registrations') %>" aria-label="My Registrations" title="My Registrations" <% if (ariaCurrent('/my-registrations')) { %>aria-current="page"<% } %>>
           <i data-lucide="clipboard-list"></i>
           <span class="nav-tooltip">My Registrations</span>
         </a>
 
         <!-- Role-based dashboard link -->
         <% if (locals.isAdmin) { %>
-          <a href="/admin/dashboard" class="nav-icon-link" aria-label="Admin" title="Admin">
+          <a href="/admin/dashboard" class="<%= navClass('/admin/dashboard') %>" aria-label="Admin" title="Admin" <% if (ariaCurrent('/admin/dashboard')) { %>aria-current="page"<% } %>>
             <i data-lucide="shield-check"></i>
             <span class="nav-tooltip">Admin</span>
           </a>
         <% } else if (locals.isApprovedOrganizer) { %>
-          <a href="/organizer/dashboard" class="nav-icon-link" aria-label="Dashboard" title="Dashboard">
+          <a href="/organizer/dashboard" class="<%= navClass('/organizer/dashboard') %>" aria-label="Dashboard" title="Dashboard" <% if (ariaCurrent('/organizer/dashboard')) { %>aria-current="page"<% } %>>
             <i data-lucide="layout-dashboard"></i>
             <span class="nav-tooltip">Dashboard</span>
           </a>
         <% } else if (locals.isOrganizer) { %>
-          <a href="/organizer/application-status" class="nav-icon-link" aria-label="My Application" title="My Application">
+          <a href="/organizer/application-status" class="<%= navClass('/organizer/application-status') %>" aria-label="My Application" title="My Application" <% if (ariaCurrent('/organizer/application-status')) { %>aria-current="page"<% } %>>
             <i data-lucide="file-check"></i>
             <span class="nav-tooltip">My Application</span>
           </a>
         <% } else { %>
-          <a href="/runner/dashboard" class="nav-icon-link" aria-label="Dashboard" title="Dashboard">
+          <a href="/runner/dashboard" class="<%= navClass('/runner/dashboard') %>" aria-label="Dashboard" title="Dashboard" <% if (ariaCurrent('/runner/dashboard')) { %>aria-current="page"<% } %>>
             <i data-lucide="layout-dashboard"></i>
             <span class="nav-tooltip">Dashboard</span>
           </a>
-          <a href="/runner/notifications" class="nav-icon-link nav-notifications-link" aria-label="Notifications" title="Notifications">
+          <a href="/runner/notifications" class="<%= navClass('/runner/notifications', 'nav-notifications-link') %>" aria-label="Notifications" title="Notifications" <% if (ariaCurrent('/runner/notifications')) { %>aria-current="page"<% } %>>
             <i data-lucide="bell"></i>
             <span class="nav-tooltip">Notifications</span>
             <% if ((locals.runnerUnreadNotifications || 0) > 0) { %>
@@ -79,11 +87,11 @@
       <% } else { %>
         <!-- Guest buttons -->
         <div class="nav-auth-buttons">
-          <a href="/login" class="nav-login-btn nav-icon-link" aria-label="Login" title="Login">
+          <a href="/login" class="<%= navClass('/login', 'nav-login-btn') %>" aria-label="Login" title="Login" <% if (ariaCurrent('/login')) { %>aria-current="page"<% } %>>
             <i data-lucide="log-in"></i>
             <span class="nav-tooltip">Login</span>
           </a>
-          <a href="/signup" class="nav-signup-btn nav-icon-link" aria-label="Sign Up" title="Sign Up">
+          <a href="/signup" class="<%= navClass('/signup', 'nav-signup-btn') %>" aria-label="Sign Up" title="Sign Up" <% if (ariaCurrent('/signup')) { %>aria-current="page"<% } %>>
             <i data-lucide="user-plus"></i>
             <span class="nav-tooltip">Sign Up</span>
           </a>

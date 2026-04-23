@@ -46,11 +46,48 @@ const blogSchema = new mongoose.Schema(
       maxlength: 150000,
       default: ''
     },
+    templateKey: {
+      type: String,
+      enum: ['race_recap', 'training_journal', 'motivation_post', 'gear_reflection', 'custom'],
+      default: 'custom',
+      index: true
+    },
+    contentBlocks: {
+      type: [
+        {
+          type: {
+            type: String,
+            required: true,
+            enum: ['heading', 'textSection', 'paragraph', 'bulletList', 'numberedList', 'quote', 'image', 'divider', 'closing']
+          },
+          order: {
+            type: Number,
+            default: 0,
+            min: 0
+          },
+          content: {
+            type: mongoose.Schema.Types.Mixed,
+            default: {}
+          },
+          metadata: {
+            type: mongoose.Schema.Types.Mixed,
+            default: {}
+          }
+        }
+      ],
+      default: []
+    },
     coverImageUrl: {
       type: String,
       required: true,
       trim: true,
       maxlength: 2000
+    },
+    coverImageAlt: {
+      type: String,
+      trim: true,
+      maxlength: 180,
+      default: ''
     },
     galleryImageUrls: {
       type: [

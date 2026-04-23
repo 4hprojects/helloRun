@@ -60,7 +60,7 @@
       </header>
 
       <% if (post.coverImageUrl) { %>
-        <img src="<%= post.coverImageUrl %>" alt="<%= post.title %> cover" loading="lazy">
+        <img src="<%= post.coverImageUrl %>" alt="<%= post.coverImageAlt || `${post.title} cover` %>" loading="lazy" class="blog-cover-image" data-blog-cover-image>
       <% } %>
 
       <div class="blog-post-layout">
@@ -138,7 +138,7 @@
           <% relatedPosts.forEach((item) => { %>
             <a href="/blog/<%= item.slug %>" class="blog-related-card">
               <% if (item.coverImageUrl) { %>
-                <img src="<%= item.coverImageUrl %>" alt="<%= item.title %> cover" loading="lazy">
+                <img src="<%= item.coverImageUrl %>" alt="<%= item.title %> cover" loading="lazy" data-blog-cover-image>
               <% } %>
               <div class="blog-related-card-body">
                 <strong><%= item.title %></strong>
@@ -211,6 +211,21 @@
         copyToast.classList.remove('hidden');
         setTimeout(() => copyToast.classList.add('hidden'), duration);
       }
+
+      // ---- Cover image fallback ----
+      const fallbackCover = '/images/helloRun-icon.webp';
+      const applyCoverFallback = (image) => {
+        if (image.dataset.fallbackApplied === '1') return;
+        image.dataset.fallbackApplied = '1';
+        image.src = fallbackCover;
+        image.alt = 'helloRun logo';
+        image.classList.add('is-fallback');
+        image.closest('.blog-related-card')?.classList.add('is-fallback');
+      };
+      document.querySelectorAll('[data-blog-cover-image]').forEach((image) => {
+        image.addEventListener('error', () => applyCoverFallback(image));
+        if (image.complete && image.naturalWidth === 0) applyCoverFallback(image);
+      });
 
       // ---- 1. Scroll progress ----
       if (content && progressBar) {
