@@ -2,18 +2,17 @@ const mongoose = require('mongoose');
 const Blog = require('../models/Blog');
 const BlogComment = require('../models/BlogComment');
 const BlogLike = require('../models/BlogLike');
-
+const BlogReport = require('../models/BlogReport');
 const { sanitizeHtml } = require('../utils/sanitize');
+const { analyzeCommentSafety } = require('../utils/blog-safety');
 
-// Strip all HTML from plain-text comment content
 function sanitizeText(input) {
   return sanitizeHtml(String(input || ''), { allowedTags: [], allowedAttributes: {} });
 }
 
 const MAX_COMMENT_LENGTH = BlogComment.MAX_COMMENT_LENGTH;
 const COMMENTS_PAGE_SIZE = 20;
-
-// ─── Helpers ──────────────────────────────────────────────────────────────
+const REPORT_REASONS = BlogReport.REPORT_REASONS;
 
 function getSessionUserId(req) {
   return req.session?.userId || null;
@@ -25,8 +24,10 @@ async function getPublishedBlogBySlug(slug) {
     .lean();
 }
 
-// ─── GET /blog/:slug/comments ──────────────────────────────────────────────
-// Public — paginated list of active comments for a published post
+function normalizeReportReason(value) {
+  const safe = String(value || '').trim().toLowerCase();
+  return REPORT_REASONS.includes(safe) ? safe : '';
+}
 
 exports.listComments = async (req, res) => {
   try {
@@ -62,9 +63,6 @@ exports.listComments = async (req, res) => {
   }
 };
 
-// ─── POST /blog/:slug/comments ─────────────────────────────────────────────
-// Authenticated — create a comment on a published post
-
 exports.createComment = async (req, res) => {
   try {
     const userId = getSessionUserId(req);
@@ -84,16 +82,17 @@ exports.createComment = async (req, res) => {
       });
     }
 
-    // Strip any HTML — comments are plain text only
     const content = sanitizeText(rawContent);
+    const safety = analyzeCommentSafety(content);
 
     const comment = await BlogComment.create({
       blogId: post._id,
       authorId: userId,
-      content
+      content,
+      moderationFlags: safety.flags,
+      moderationFlagSummary: safety.summary
     });
 
-    // Keep commentsCount in sync (best-effort)
     await Blog.updateOne({ _id: post._id }, { $inc: { commentsCount: 1 } });
 
     return res.status(201).json({ success: true, comment });
@@ -102,9 +101,6 @@ exports.createComment = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to post comment.' });
   }
 };
-
-// ─── DELETE /blog/:slug/comments/:commentId ────────────────────────────────
-// Author of the comment OR admin can soft-delete
 
 exports.deleteComment = async (req, res) => {
   try {
@@ -122,7 +118,6 @@ exports.deleteComment = async (req, res) => {
 
     if (!comment) return res.status(404).json({ success: false, message: 'Comment not found.' });
 
-    // Must be the comment's author or an admin
     const isOwner = String(comment.authorId) === String(userId);
     const isAdmin = req.session?.role === 'admin';
     if (!isOwner && !isAdmin) {
@@ -134,7 +129,6 @@ exports.deleteComment = async (req, res) => {
       { $set: { isDeleted: true, deletedAt: new Date(), deletedBy: userId, status: 'removed' } }
     );
 
-    // Decrement commentsCount (don't go below 0)
     await Blog.updateOne(
       { _id: comment.blogId, commentsCount: { $gt: 0 } },
       { $inc: { commentsCount: -1 } }
@@ -147,9 +141,6 @@ exports.deleteComment = async (req, res) => {
   }
 };
 
-// ─── POST /blog/:slug/like ─────────────────────────────────────────────────
-// Authenticated — toggle like on a published post
-
 exports.toggleLike = async (req, res) => {
   try {
     const userId = getSessionUserId(req);
@@ -161,7 +152,6 @@ exports.toggleLike = async (req, res) => {
     const existing = await BlogLike.findOne({ blogId: post._id, userId });
 
     if (existing) {
-      // Unlike
       await BlogLike.deleteOne({ _id: existing._id });
       await Blog.updateOne(
         { _id: post._id, likesCount: { $gt: 0 } },
@@ -170,12 +160,10 @@ exports.toggleLike = async (req, res) => {
       return res.json({ success: true, liked: false, likesCount: Math.max(0, post.likesCount - 1) });
     }
 
-    // Like
     await BlogLike.create({ blogId: post._id, userId });
     await Blog.updateOne({ _id: post._id }, { $inc: { likesCount: 1 } });
     return res.json({ success: true, liked: true, likesCount: post.likesCount + 1 });
   } catch (error) {
-    // Handle duplicate key race (concurrent like requests)
     if (error && error.code === 11000) {
       return res.status(409).json({ success: false, message: 'Already liked.' });
     }
@@ -184,8 +172,83 @@ exports.toggleLike = async (req, res) => {
   }
 };
 
-// ─── Admin: GET /admin/blog/comments ──────────────────────────────────────
-// Admin — list all comments (across posts) with moderation filters
+exports.reportPost = async (req, res) => {
+  try {
+    const userId = getSessionUserId(req);
+    if (!userId) return res.status(401).json({ success: false, message: 'Authentication required.' });
+
+    const post = await getPublishedBlogBySlug(req.params.slug);
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
+
+    const reason = normalizeReportReason(req.body.reason);
+    if (!reason) {
+      return res.status(400).json({ success: false, message: 'A valid report reason is required.' });
+    }
+
+    const note = String(req.body.note || '').trim().slice(0, 500);
+    await BlogReport.create({
+      targetType: 'post',
+      blogId: post._id,
+      reporterId: userId,
+      reason,
+      note
+    });
+
+    return res.status(201).json({ success: true, message: 'Report submitted.' });
+  } catch (error) {
+    if (error && error.code === 11000) {
+      return res.status(409).json({ success: false, message: 'You already have an open report for this post.' });
+    }
+    console.error('reportPost error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to submit report.' });
+  }
+};
+
+exports.reportComment = async (req, res) => {
+  try {
+    const userId = getSessionUserId(req);
+    if (!userId) return res.status(401).json({ success: false, message: 'Authentication required.' });
+
+    const post = await getPublishedBlogBySlug(req.params.slug);
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
+    if (!mongoose.Types.ObjectId.isValid(req.params.commentId)) {
+      return res.status(400).json({ success: false, message: 'Invalid comment id.' });
+    }
+
+    const comment = await BlogComment.findOne({
+      _id: req.params.commentId,
+      blogId: post._id,
+      isDeleted: { $ne: true },
+      status: 'active'
+    }).lean();
+    if (!comment) {
+      return res.status(404).json({ success: false, message: 'Comment not found.' });
+    }
+
+    const reason = normalizeReportReason(req.body.reason);
+    if (!reason) {
+      return res.status(400).json({ success: false, message: 'A valid report reason is required.' });
+    }
+
+    const note = String(req.body.note || '').trim().slice(0, 500);
+    await BlogReport.create({
+      targetType: 'comment',
+      blogId: post._id,
+      commentId: comment._id,
+      reporterId: userId,
+      reason,
+      note
+    });
+
+    return res.status(201).json({ success: true, message: 'Report submitted.' });
+  } catch (error) {
+    if (error && error.code === 11000) {
+      return res.status(409).json({ success: false, message: 'You already have an open report for this comment.' });
+    }
+    console.error('reportComment error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to submit report.' });
+  }
+};
 
 exports.adminListComments = async (req, res) => {
   try {
@@ -221,8 +284,6 @@ exports.adminListComments = async (req, res) => {
     return res.status(500).json({ success: false, message: 'Failed to load comments.' });
   }
 };
-
-// ─── Admin: POST /admin/blog/comments/:commentId/remove ───────────────────
 
 exports.adminRemoveComment = async (req, res) => {
   try {
@@ -261,8 +322,6 @@ exports.adminRemoveComment = async (req, res) => {
   }
 };
 
-// ─── Admin: POST /admin/blog/comments/:commentId/restore ──────────────────
-
 exports.adminRestoreComment = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.commentId)) {
@@ -292,5 +351,78 @@ exports.adminRestoreComment = async (req, res) => {
   } catch (error) {
     console.error('adminRestoreComment error:', error);
     return res.status(500).json({ success: false, message: 'Failed to restore comment.' });
+  }
+};
+
+exports.adminListReports = async (req, res) => {
+  try {
+    const status = String(req.query.status || 'open').trim().toLowerCase();
+    const safeStatus = ['open', 'resolved', 'dismissed'].includes(status) ? status : 'open';
+    const reports = await BlogReport.find({ status: safeStatus })
+      .sort({ createdAt: -1 })
+      .populate('reporterId', 'firstName lastName email')
+      .populate('blogId', 'title slug')
+      .populate('commentId', 'content')
+      .populate('resolvedBy', 'firstName lastName email')
+      .lean();
+
+    return res.render('admin/blog-reports', {
+      title: 'Blog Reports - helloRun Admin',
+      reports,
+      selectedStatus: safeStatus
+    });
+  } catch (error) {
+    console.error('adminListReports error:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'Failed to load blog reports.'
+    });
+  }
+};
+
+exports.adminResolveReport = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.reportId)) {
+      return res.redirect('/admin/blog/reports?status=open');
+    }
+    const report = await BlogReport.findById(req.params.reportId);
+    if (!report) {
+      return res.redirect('/admin/blog/reports?status=open');
+    }
+
+    report.status = 'resolved';
+    report.resolvedAt = new Date();
+    report.resolvedBy = req.session?.userId || null;
+    report.resolutionNote = String(req.body.resolutionNote || '').trim().slice(0, 500);
+    await report.save();
+
+    return res.redirect('/admin/blog/reports?status=open');
+  } catch (error) {
+    console.error('adminResolveReport error:', error);
+    return res.redirect('/admin/blog/reports?status=open');
+  }
+};
+
+exports.adminDismissReport = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.reportId)) {
+      return res.redirect('/admin/blog/reports?status=open');
+    }
+    const report = await BlogReport.findById(req.params.reportId);
+    if (!report) {
+      return res.redirect('/admin/blog/reports?status=open');
+    }
+
+    report.status = 'dismissed';
+    report.resolvedAt = new Date();
+    report.resolvedBy = req.session?.userId || null;
+    report.resolutionNote = String(req.body.resolutionNote || '').trim().slice(0, 500);
+    await report.save();
+
+    return res.redirect('/admin/blog/reports?status=open');
+  } catch (error) {
+    console.error('adminDismissReport error:', error);
+    return res.redirect('/admin/blog/reports?status=open');
   }
 };

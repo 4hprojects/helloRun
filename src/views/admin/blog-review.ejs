@@ -636,6 +636,9 @@
         <p id="adminPostMeta" style="margin: 0.2rem 0 0; color: #64748b;">
           <%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %> | <span id="adminPostReadingTime"><%= post.readingTime || 1 %></span> min read | Status: <strong id="adminPostStatus"><%= post.status %></strong> | Slug: <span id="adminPostSlug">/blog/<%= post.slug %></span>
         </p>
+        <% if (reviewTarget?.kind === 'revision') { %>
+          <p style="margin-top:.55rem;color:#9a3412;"><strong>Revision review:</strong> The public post stays live until this revision is approved.</p>
+        <% } %>
 
         <% if (post.rejectionReason) { %>
           <p style="margin-top: 0.6rem; color: #991b1b;"><strong>Previous rejection reason:</strong> <%= post.rejectionReason %></p>
@@ -688,6 +691,13 @@
               <label for="adminCoverImageAlt">Cover Image Alt Text</label>
               <input id="adminCoverImageAlt" name="coverImageAlt" type="text" value="<%- post.coverImageAlt || '' %>" maxlength="180">
             </div>
+            <div class="admin-field admin-field-wide">
+              <label for="adminGalleryImageUrls">Gallery Image URLs</label>
+              <textarea id="adminGalleryImageUrls" name="galleryImageUrls" placeholder="One URL per line"><%- Array.isArray(post.galleryImageUrls) ? post.galleryImageUrls.join('\n') : '' %></textarea>
+              <p class="admin-field-help">One image URL per line, max 3 images.</p>
+              <input id="adminGalleryImageFiles" type="file" accept="image/jpeg,image/png" multiple>
+              <p class="admin-field-help">Optional: upload gallery images and append them here automatically.</p>
+            </div>
             <% const adminHasStructuredBlocks = post.contentBlocks && post.contentBlocks.length; %>
             <% if (adminHasStructuredBlocks) { %>
               <div class="admin-field">
@@ -739,6 +749,11 @@
             <div class="admin-field admin-field-wide">
               <label for="adminModerationNotes">Moderation Notes</label>
               <textarea id="adminModerationNotes" name="moderationNotes" maxlength="1000"><%- post.moderationNotes || '' %></textarea>
+            </div>
+            <div class="admin-field admin-field-wide">
+              <label>Moderation Flags</label>
+              <p id="adminModerationFlags" class="admin-field-help"><%= (post.moderationFlags && post.moderationFlags.length) ? post.moderationFlags.join(', ') : 'No active moderation flags.' %></p>
+              <p class="admin-field-help">Open post reports: <strong><%= openReportCounts?.post || 0 %></strong> | Open comment reports: <strong><%= openReportCounts?.comment || 0 %></strong></p>
             </div>
             <div class="admin-field admin-field-wide">
               <label class="admin-inline" for="adminFeatured">
@@ -1336,6 +1351,10 @@
             status: String(document.getElementById("adminStatus")?.value || "").trim(),
             coverImageUrl: String(document.getElementById("adminCoverImageUrl")?.value || "").trim(),
             coverImageAlt: String(document.getElementById("adminCoverImageAlt")?.value || "").trim(),
+            galleryImageUrls: String(document.getElementById("adminGalleryImageUrls")?.value || "")
+              .split(/[\n,]+/)
+              .map((item) => item.trim())
+              .filter(Boolean),
             templateKey: String(document.getElementById("adminTemplateKey")?.value || "custom").trim(),
             contentBlocks: adminComposer ? normalizeAdminBlocksForSave() : [],
             contentHtml: String(document.getElementById("adminContentHtml")?.value || ""),
@@ -1456,6 +1475,37 @@
           button.disabled = true;
           button.setAttribute("aria-busy", "true");
         });
+      });
+
+      const adminGalleryFiles = document.getElementById("adminGalleryImageFiles");
+      const adminGalleryUrls = document.getElementById("adminGalleryImageUrls");
+      adminGalleryFiles?.addEventListener("change", async () => {
+        if (!adminGalleryFiles.files || !adminGalleryFiles.files.length || !adminGalleryUrls) return;
+        const formData = new FormData();
+        Array.from(adminGalleryFiles.files).slice(0, 3).forEach((file) => {
+          formData.append("galleryImageFiles", file);
+        });
+        formData.append("_csrf", "<%= locals.csrfToken || '' %>");
+
+        try {
+          const response = await fetch("/admin/blog/posts/<%= sourcePost?._id || post._id %>/assets-upload", {
+            method: "POST",
+            body: formData
+          });
+          const body = await response.json();
+          if (!response.ok || !body.success) {
+            throw new Error(body.message || "Upload failed.");
+          }
+          const current = String(adminGalleryUrls.value || "")
+            .split(/[\n,]+/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+          adminGalleryUrls.value = [...current, ...(body.galleryImageUrls || [])].slice(0, 3).join("\n");
+          adminGalleryFiles.value = "";
+          scheduleAutosave?.();
+        } catch (error) {
+          window.alert(error.message || "Failed to upload gallery images.");
+        }
       });
     })();
   </script>

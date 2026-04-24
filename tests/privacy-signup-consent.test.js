@@ -19,7 +19,8 @@ test.before(async () => {
     cwd: ROOT,
     env: {
       ...process.env,
-      PORT: String(TEST_PORT)
+      PORT: String(TEST_PORT),
+      CSRF_PROTECTION: '1'
     },
     stdio: ['ignore', 'ignore', 'ignore']
   });
@@ -38,11 +39,16 @@ test('signup records accepted privacy policy version and organizer status', asyn
   const { cookiePolicyId, cookieVersionNumber } = await ensureCurrentCookiePolicy();
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const email = `phase6.privacy.signup.${stamp}@example.com`;
+  const { csrfToken, cookie } = await getCsrfSession('/signup');
 
   const response = await fetch(`${BASE_URL}/signup`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
     body: new URLSearchParams({
+      _csrf: csrfToken,
       firstName: 'Phase',
       lastName: 'Six',
       email,
@@ -84,11 +90,16 @@ test('signup records accepted privacy policy version and organizer status', asyn
 test('signup requires terms/privacy/cookie checkbox consent', async () => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const email = `phase6.privacy.no-consent.${stamp}@example.com`;
+  const { csrfToken, cookie } = await getCsrfSession('/signup');
 
   const response = await fetch(`${BASE_URL}/signup`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
     body: new URLSearchParams({
+      _csrf: csrfToken,
       firstName: 'Phase',
       lastName: 'NoConsent',
       email,
@@ -263,4 +274,22 @@ async function waitForServerReady() {
   }
 
   throw new Error('Server did not become ready in time.');
+}
+
+async function getCsrfSession(pathname) {
+  const response = await fetch(`${BASE_URL}${pathname}`, {
+    redirect: 'manual'
+  });
+  const html = await response.text();
+  const tokenMatch = html.match(/name="_csrf"\s+value="([^"]+)"/i);
+  assert.ok(tokenMatch, `Expected CSRF token on ${pathname}`);
+
+  const setCookie = String(response.headers.get('set-cookie') || '');
+  const cookie = setCookie.split(';')[0];
+  assert.ok(cookie, `Expected session cookie on ${pathname}`);
+
+  return {
+    csrfToken: tokenMatch[1],
+    cookie
+  };
 }

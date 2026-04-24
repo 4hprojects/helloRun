@@ -8,7 +8,7 @@
   <%- include('../layouts/nav') %>
   
   <!-- Back to top button -->
-  <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Back to top">↑</button>
+  <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Back to top"><i data-lucide="arrow-up"></i></button>
 
   <main class="blog-page-shell">
     <!-- Compact Header -->
@@ -16,8 +16,7 @@
       <div class="container">
         <div class="header-top-row">
           <div class="header-titles">
-            <h1>Blog</h1>
-            <p class="header-description">Running stories, tips, and race recaps from the helloRun community.</p>
+            <h1>Running stories, tips, and race recaps from the community.</h1>
           </div>
           <div class="header-actions">
             <% if (locals.isAuthenticated) { %>
@@ -57,12 +56,6 @@
           </div>
           <button type="submit" class="btn btn-primary filter-submit">Apply</button>
         </form>
-        <p class="blog-results-meta">
-          Showing <strong><%= filterMeta?.totalPosts || 0 %></strong> post<%= (filterMeta?.totalPosts || 0) === 1 ? '' : 's' %>.
-          <% if (filterMeta?.hasActiveFilters) { %>
-            <a href="/blog" class="blog-clear-link">Clear filters</a>
-          <% } %>
-        </p>
         <% if (!locals.isAuthenticated) { %>
           <small class="login-note-compact">Login required to write. <a href="/login?redirect=/blogs/me/new">Sign in</a></small>
         <% } %>
@@ -73,12 +66,54 @@
     <section class="blog-content">
       <div class="container">
 
+        <p class="blog-results-meta">
+          Showing <strong><%= filterMeta?.totalPosts || 0 %></strong> post<%= (filterMeta?.totalPosts || 0) === 1 ? '' : 's' %>.
+          <% if (filterMeta?.authorName) { %>
+            <span>Author: <strong><%= filterMeta.authorName %></strong></span>
+          <% } %>
+          <% if (filterMeta?.hasActiveFilters) { %>
+            <a href="/blog" class="blog-clear-link">Clear filters</a>
+          <% } %>
+        </p>
+
+        <% if (featuredPosts && featuredPosts.length) { %>
+          <section class="blog-featured">
+            <h2 class="blog-featured-heading">Featured Posts</h2>
+            <div class="blog-grid">
+              <% featuredPosts.forEach((post) => { %>
+                <article class="blog-card featured">
+                  <% if (post.coverImageUrl) { %>
+                    <a href="/blog/<%= post.slug %>" class="blog-image" aria-label="<%= post.title %>">
+                      <img src="<%= post.coverImageUrl %>" alt="" loading="lazy" data-blog-cover-image>
+                    </a>
+                  <% } %>
+                  <div class="blog-body">
+                    <div class="blog-meta">
+                      <span class="blog-date"><i data-lucide="calendar"></i><%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' %></span>
+                      <span class="blog-read-time"><i data-lucide="clock"></i><%= post.readingTime || 1 %> min read</span>
+                      <span class="blog-views"><i data-lucide="eye"></i><%= Number(post.views || 0).toLocaleString('en-US') %> views</span>
+                    </div>
+                    <div class="blog-title-row">
+                      <h3><a href="/blog/<%= post.slug %>"><%= post.title %></a></h3>
+                      <span class="blog-category"><%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %></span>
+                    </div>
+                    <p class="blog-excerpt"><%= post.excerpt || 'No excerpt provided.' %></p>
+                    <div class="blog-footer">
+                      <span class="blog-author">By <strong><%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %></strong></span>
+                      <a href="/blog/<%= post.slug %>" class="read-more">Read more <i data-lucide="arrow-right"></i></a>
+                    </div>
+                  </div>
+                </article>
+              <% }) %>
+            </div>
+          </section>
+        <% } %>
+
         <!-- Posts Grid -->
         <% if (posts && posts.length) { %>
           <div class="blog-grid">
-            <% posts.forEach((post, index) => { %>
-              <% const isFeatured = index === 0 && post.featured; // Example condition, adjust as needed %>
-              <article class="blog-card <%= isFeatured ? 'featured' : '' %>">
+            <% posts.forEach((post) => { %>
+              <article class="blog-card">
                 <% if (post.coverImageUrl) { %>
                   <a href="/blog/<%= post.slug %>" class="blog-image" aria-label="<%= post.title %>">
                     <img src="<%= post.coverImageUrl %>" alt="" loading="lazy" data-blog-cover-image>
@@ -86,9 +121,6 @@
                 <% } %>
                 <div class="blog-body">
                   <div class="blog-meta">
-                    <span class="blog-category">
-                      <%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %>
-                    </span>
                     <span class="blog-date">
                       <i data-lucide="calendar"></i>
                       <%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' %>
@@ -98,7 +130,12 @@
                       <%= post.readingTime || 1 %> min read
                     </span>
                   </div>
-                  <h3><a href="/blog/<%= post.slug %>"><%= post.title %></a></h3>
+                  <div class="blog-title-row">
+                    <h3><a href="/blog/<%= post.slug %>"><%= post.title %></a></h3>
+                    <span class="blog-category">
+                      <%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %>
+                    </span>
+                  </div>
                   <p class="blog-excerpt"><%= post.excerpt || 'No excerpt provided.' %></p>
                   <div class="blog-footer">
                     <span class="blog-author">
@@ -115,10 +152,10 @@
 
           <!-- Pagination -->
           <% if (pagination && pagination.totalPages > 1) { %>
-            <nav class="blog-pagination" aria-label="Pagination">
+            <nav class="blog-pagination" aria-label="Pagination" data-page-label="Page <%= pagination.currentPage %> of <%= pagination.totalPages %>">
               <% const prevPage = Math.max(1, pagination.currentPage - 1); %>
               <% const nextPage = Math.min(pagination.totalPages, pagination.currentPage + 1); %>
-              <% const baseUrl = `/blog?${new URLSearchParams({ q: filters?.q || '', category: filters?.category || '', sort: filters?.sort || 'latest' }).toString()}`; %>
+              <% const baseUrl = `/blog?${new URLSearchParams({ q: filters?.q || '', category: filters?.category || '', author: filters?.author || '', sort: filters?.sort || 'latest' }).toString()}`; %>
 
               <a href="<%= baseUrl %>&page=<%= prevPage %>" class="pagination-btn <%= pagination.currentPage === 1 ? 'disabled' : '' %>" aria-label="Previous page" <%= pagination.currentPage === 1 ? 'aria-disabled="true" tabindex="-1"' : '' %>>
                 <i data-lucide="chevron-left"></i>
@@ -150,26 +187,20 @@
             <% if (locals.isAuthenticated) { %>
               <a href="/blogs/me/new" class="btn btn-primary">Write the first post</a>
             <% } else { %>
-              <a href="/auth/signin?redirect=/blog" class="btn btn-primary">Sign in to write</a>
+              <a href="/login?redirect=/blog" class="btn btn-primary">Sign in to write</a>
             <% } %>
           </div>
         <% } %>
       </div>
     </section>
 
-    <!-- Newsletter Section -->
-    <section class="blog-newsletter" aria-labelledby="newsletter-heading">
+    <!-- Newsletter Section (hidden until backend is ready) -->
+    <section class="blog-newsletter" aria-labelledby="newsletter-heading" hidden>
       <div class="container">
         <div class="newsletter-content">
           <h2 id="newsletter-heading">Stay in the loop</h2>
-          <p>Get the latest running tips and stories delivered to your inbox.</p>
-          <form class="newsletter-form" action="/newsletter/subscribe" method="POST">
-            <div class="newsletter-input-group">
-              <i data-lucide="mail" class="input-icon"></i>
-              <input type="email" name="email" placeholder="Enter your email" required aria-label="Email address">
-            </div>
-            <button type="submit" class="btn btn-primary">Subscribe</button>
-          </form>
+          <p>Newsletter signups are temporarily unavailable while we finish backend rollout.</p>
+          <p><a href="/contact" class="btn btn-primary">Contact helloRun</a></p>
         </div>
       </div>
     </section>
@@ -198,6 +229,14 @@
 
       // Lucide icons
       if (window.lucide) lucide.createIcons();
+
+      // Auto-submit filter form on select change
+      const filterForm = document.getElementById('blogFilterForm');
+      if (filterForm) {
+        filterForm.querySelectorAll('select').forEach((sel) => {
+          sel.addEventListener('change', () => filterForm.submit());
+        });
+      }
 
       const fallbackCover = '/images/helloRun-icon.webp';
       const applyCoverFallback = (image) => {

@@ -394,6 +394,7 @@
 
         <!-- Form -->
         <form action="/resend-verification" method="POST" class="resend-verification-form" id="resendForm" novalidate>
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
           
           <div class="form-group">
             <label for="email">Email address</label>

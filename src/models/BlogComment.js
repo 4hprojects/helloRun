@@ -48,6 +48,22 @@ const blogCommentSchema = new mongoose.Schema(
       trim: true,
       maxlength: 500,
       default: ''
+    },
+    moderationFlags: {
+      type: [
+        {
+          type: String,
+          trim: true,
+          maxlength: 120
+        }
+      ],
+      default: []
+    },
+    moderationFlagSummary: {
+      type: String,
+      trim: true,
+      maxlength: 300,
+      default: ''
     }
   },
   { timestamps: true }

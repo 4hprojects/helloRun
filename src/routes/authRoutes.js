@@ -34,6 +34,18 @@ const forgotPasswordLimiter = createRateLimiter({
   }
 });
 
+// 5 resend-verification requests per hour per account+IP
+const resendVerificationLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  message: 'Too many verification email requests. Please wait an hour and try again.',
+  keyFn: (req) => {
+    const email = String(req.body.email || '').toLowerCase().trim().slice(0, 254);
+    const ip = String(req.ip || 'unknown-ip');
+    return `resend-verification|${email}|${ip}`;
+  }
+});
+
 function resolveSafeReturnTo(value, fallback = null) {
   if (typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')) {
     return value;
@@ -81,6 +93,14 @@ function redirectAfterLogin(req, res, user) {
   }
 
   return res.redirect('/runner/dashboard');
+}
+
+function renderResendVerificationPage(req, res, options = {}) {
+  return res.render('auth/resend-verification', {
+    success: options.success || null,
+    error: options.error || null,
+    prefillEmail: options.prefillEmail || ''
+  });
 }
 
 // Login Page - redirect if already logged in
@@ -291,8 +311,8 @@ async function handleRegistration(req, res) {
 }
 
 // Shared registration handler - redirect if already logged in
-router.post('/register', redirectIfAuth, handleRegistration);
-router.post('/signup', redirectIfAuth, handleRegistration);
+router.post('/register', redirectIfAuth, requireCsrfProtection, handleRegistration);
+router.post('/signup', redirectIfAuth, requireCsrfProtection, handleRegistration);
 
 router.get('/auth/google', redirectIfAuth, (req, res) => {
   if (!googleOAuthService.isConfigured()) {
@@ -496,7 +516,7 @@ router.get('/forgot-password', (req, res) => {
 });
 
 // Forgot Password Form Handler
-router.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
+router.post('/forgot-password', requireCsrfProtection, forgotPasswordLimiter, async (req, res) => {
   try {
     const { email } = req.body;
     
@@ -583,7 +603,7 @@ router.get('/reset-password/:token', async (req, res) => {
 });
 
 // Reset Password Form Handler (POST)
-router.post('/reset-password/:token', async (req, res) => {
+router.post('/reset-password/:token', requireCsrfProtection, async (req, res) => {
   try {
     const { token } = req.params;
     const { password, confirmPassword } = req.body;
@@ -783,8 +803,7 @@ router.post('/logout', requireCsrfProtection, (req, res) => {
 
 // Resend Verification Page
 router.get('/resend-verification', (req, res) => {
-  console.log('📄 GET /resend-verification - Showing form');
-  res.render('auth/resend-verification', {
+  renderResendVerificationPage(req, res, {
     success: req.query.success || null,
     error: req.query.error || null,
     prefillEmail: req.query.email || ''
@@ -792,126 +811,46 @@ router.get('/resend-verification', (req, res) => {
 });
 
 // Resend Verification Form Handler
-router.post('/resend-verification', async (req, res) => {
+router.post('/resend-verification', requireCsrfProtection, resendVerificationLimiter, async (req, res) => {
   try {
     const { email } = req.body;
-    
-    console.log('========================================');
-    console.log('🔍 RESEND VERIFICATION REQUEST');
-    console.log('========================================');
-    console.log('📧 Raw email from form:', email);
-    console.log('📧 Email type:', typeof email);
-    
-    // ✅ Validate & trim email
+
     if (!email || typeof email !== 'string') {
-      console.warn('❌ VALIDATION FAILED: Email is missing or not a string');
-      return res.render('auth/resend-verification', {
+      return renderResendVerificationPage(req, res, {
         error: 'Email is required.',
         prefillEmail: ''
       });
     }
 
     const trimmedEmail = email.trim().toLowerCase();
-    console.log('✅ Trimmed & lowercased email:', trimmedEmail);
+    const user = await User.findOne({ email: trimmedEmail });
 
-    // ✅ Case-insensitive search
-    console.log('🔎 Searching database for user...');
-    
-    const user = await User.findOne({ 
-      email: { $regex: `^${trimmedEmail}$`, $options: 'i' } 
-    });
+    if (user && !user.emailVerified) {
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const hashedToken = passwordService.hashToken(verificationToken);
 
-    console.log('---');
-    if (!user) {
-      console.warn('❌ USER NOT FOUND in database');
-      console.log('---');
-      console.log('💡 Debugging tips:');
-      console.log('   - Searched for:', trimmedEmail);
-      
-      // Debug: Find all users
-      const allUsers = await User.find({}, 'email emailVerified');
-      console.log('📋 All users in database:');
-      allUsers.forEach((u, index) => {
-        console.log(`   ${index + 1}. ${u.email} (verified: ${u.emailVerified})`);
-      });
-      
-      return res.render('auth/resend-verification', {
-        error: 'Email not found. Please check your email address.',
-        prefillEmail: trimmedEmail
-      });
+      user.emailVerificationToken = hashedToken;
+      user.emailVerificationExpires = verificationExpires;
+      await user.save();
+
+      await emailService.sendVerificationEmail(
+        user.email,
+        verificationToken,
+        user.role,
+        user.firstName
+      );
     }
 
-    console.log('✅ USER FOUND!');
-    console.log('---');
-    console.log('👤 User Details:');
-    console.log('   - Email:', user.email);
-    console.log('   - Name:', user.firstName, user.lastName);
-    console.log('   - Email Verified:', user.emailVerified);
-    console.log('   - Has token:', !!user.emailVerificationToken);
-    console.log('   - Token expires:', user.emailVerificationExpires);
-    console.log('---');
-
-    // ✅ Check if already verified
-    if (user.emailVerified) {
-      console.warn('⚠️  EMAIL ALREADY VERIFIED');
-      console.log('---');
-      return res.render('auth/resend-verification', {
-        error: 'This email is already verified. Please log in.',
-        prefillEmail: trimmedEmail
-      });
-    }
-
-    console.log('✅ Email not yet verified - proceeding to resend');
-
-    // ✅ Generate new token
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    
-    console.log('🔐 Generated new verification token');
-    console.log('   - Token (first 20 chars):', verificationToken.substring(0, 20) + '...');
-    console.log('   - Expires at:', verificationExpires);
-
-    // ✅ Hash token (using your password service)
-    const hashedToken = passwordService.hashToken(verificationToken);
-
-    // ✅ Update user with new token
-    user.emailVerificationToken = hashedToken;
-    user.emailVerificationExpires = verificationExpires;
-    await user.save();
-    
-    console.log('💾 Token saved to database');
-    console.log('   - Hashed token (first 20 chars):', hashedToken.substring(0, 20) + '...');
-
-    // ✅ Send verification email
-    console.log('📨 Sending verification email...');
-    await emailService.sendVerificationEmail(
-      user.email,
-      verificationToken,
-      user.role,
-      user.firstName
-    );
-    
-    console.log('✅ Verification email sent successfully!');
-
-    // ✅ Success response
-    console.log('---');
-    console.log('✅ RESEND VERIFICATION SUCCESS');
-    console.log('========================================');
-    
-    return res.render('auth/resend-verification', {
-      success: 'Verification email sent! Check your inbox and spam folder.',
+    return renderResendVerificationPage(req, res, {
+      success: 'If the account exists and still needs verification, a new link has been sent.',
       prefillEmail: trimmedEmail
     });
 
   } catch (error) {
-    console.error('========================================');
-    console.error('❌ RESEND VERIFICATION ERROR');
-    console.error('========================================');
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    console.error('========================================');
-    
-    return res.render('auth/resend-verification', {
+    console.error('Resend verification error:', error.message);
+
+    return renderResendVerificationPage(req, res, {
       error: 'Something went wrong. Please try again later.',
       prefillEmail: req.body.email || ''
     });

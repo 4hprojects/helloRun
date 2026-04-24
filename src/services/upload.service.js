@@ -144,6 +144,29 @@ exports.uploadBlogCover = (req, res, next) => {
   });
 };
 
+exports.uploadBlogAssets = (req, res, next) => {
+  const uploadFields = brandingUpload.fields([
+    { name: 'coverImageFile', maxCount: 1 },
+    { name: 'galleryImageFiles', maxCount: 3 }
+  ]);
+
+  uploadFields(req, res, (err) => {
+    if (!err) {
+      req.uploadError = null;
+      req.uploadErrorField = null;
+      next();
+      return;
+    }
+    req.uploadErrorField = err.field || err.fieldName || null;
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      req.uploadError = `Blog image exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`;
+    } else {
+      req.uploadError = err.message || 'Blog upload failed.';
+    }
+    next();
+  });
+};
+
 exports.uploadPaymentProof = (req, res, next) => {
   const uploadSingle = upload.single('paymentProofFile');
 
@@ -256,6 +279,26 @@ exports.uploadBlogCoverToR2 = async ({ userId, coverImageFile }) => {
     file: coverImageFile,
     category: 'blog/covers'
   });
+};
+
+exports.uploadBlogGalleryToR2 = async ({ userId, galleryImageFiles }) => {
+  assertR2Configured();
+  const galleryFiles = Array.isArray(galleryImageFiles) ? galleryImageFiles : [];
+  if (!galleryFiles.length) {
+    return [];
+  }
+
+  const uploads = [];
+  for (const galleryImageFile of galleryFiles) {
+    // eslint-disable-next-line no-await-in-loop
+    const uploaded = await uploadFileToR2({
+      userId,
+      file: galleryImageFile,
+      category: 'blog/gallery'
+    });
+    uploads.push(uploaded);
+  }
+  return uploads;
 };
 
 exports.uploadPaymentProofToR2 = async ({ userId, paymentProofFile }) => {

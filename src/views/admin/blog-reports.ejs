@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Blog Reports - helloRun Admin' }) %>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main style="max-width: 1100px; margin: 0 auto; padding: 2rem; display: grid; gap: 1rem;">
+    <header style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+      <div>
+        <h1 style="margin:0;">Blog Reports</h1>
+        <p style="margin:.35rem 0 0;color:#64748b;">Moderate reported blog posts and comments.</p>
+      </div>
+      <form method="GET" action="/admin/blog/reports" style="display:flex;gap:.5rem;align-items:center;">
+        <select name="status">
+          <option value="open" <%= selectedStatus === 'open' ? 'selected' : '' %>>Open</option>
+          <option value="resolved" <%= selectedStatus === 'resolved' ? 'selected' : '' %>>Resolved</option>
+          <option value="dismissed" <%= selectedStatus === 'dismissed' ? 'selected' : '' %>>Dismissed</option>
+        </select>
+        <button type="submit">Apply</button>
+      </form>
+    </header>
+
+    <% if (reports && reports.length) { %>
+      <div style="display:grid;gap:.85rem;">
+        <% reports.forEach((report) => { %>
+          <article style="border:1px solid #e2e8f0;border-radius:12px;padding:1rem;background:#fff;">
+            <div style="display:flex;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">
+              <div>
+                <strong><%= report.targetType === 'post' ? 'Post report' : 'Comment report' %></strong>
+                <p style="margin:.35rem 0 0;color:#64748b;">
+                  Reason: <strong><%= report.reason %></strong>
+                  <% if (report.blogId?.slug) { %>| <a href="/blog/<%= report.blogId.slug %>" target="_blank" rel="noopener noreferrer">View content</a><% } %>
+                </p>
+              </div>
+              <span style="text-transform:uppercase;font-size:.8rem;font-weight:700;color:#334155;"><%= report.status %></span>
+            </div>
+            <p style="margin:.65rem 0 0;"><strong>Reporter:</strong> <%= report.reporterId?.firstName || '' %> <%= report.reporterId?.lastName || '' %> (<%= report.reporterId?.email || 'unknown' %>)</p>
+            <% if (report.blogId?.title) { %><p style="margin:.45rem 0 0;"><strong>Post:</strong> <%= report.blogId.title %></p><% } %>
+            <% if (report.commentId?.content) { %><p style="margin:.45rem 0 0;"><strong>Comment:</strong> <%= report.commentId.content %></p><% } %>
+            <% if (report.note) { %><p style="margin:.45rem 0 0;"><strong>Note:</strong> <%= report.note %></p><% } %>
+            <% if (selectedStatus === 'open') { %>
+              <div style="display:flex;gap:.65rem;flex-wrap:wrap;margin-top:.85rem;">
+                <form method="POST" action="/admin/blog/reports/<%= report._id %>/resolve" style="display:flex;gap:.5rem;align-items:center;">
+                  <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                  <input type="text" name="resolutionNote" placeholder="Resolution note" maxlength="500">
+                  <button type="submit">Resolve</button>
+                </form>
+                <form method="POST" action="/admin/blog/reports/<%= report._id %>/dismiss" style="display:flex;gap:.5rem;align-items:center;">
+                  <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                  <input type="text" name="resolutionNote" placeholder="Dismiss note" maxlength="500">
+                  <button type="submit">Dismiss</button>
+                </form>
+              </div>
+            <% } else if (report.resolutionNote) { %>
+              <p style="margin:.7rem 0 0;color:#475569;"><strong>Resolution:</strong> <%= report.resolutionNote %></p>
+            <% } %>
+          </article>
+        <% }) %>
+      </div>
+    <% } else { %>
+      <div style="border:1px dashed #cbd5e1;border-radius:12px;padding:1.2rem;color:#64748b;">No reports found.</div>
+    <% } %>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+</body>
+</html>

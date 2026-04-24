@@ -1165,6 +1165,25 @@
         </div>
       </section>
 
+      <section class="form-section" aria-labelledby="galleryHeading">
+        <div class="form-section-header">
+          <h2 class="form-section-title" id="galleryHeading">Gallery Images</h2>
+          <p class="form-section-description">Optional. Upload up to 3 extra images, then reorder or remove them before saving.</p>
+        </div>
+        <input type="hidden" name="galleryImageUrlsJson" id="galleryImageUrlsJson" value='<%- formData?.galleryImageUrlsJson || "[]" %>'>
+        <div class="form-field">
+          <div class="field-label-row">
+            <label for="galleryImageFiles">Upload Gallery Images</label>
+            <span class="field-badge field-badge-optional" title="Optional" aria-label="Optional" tabindex="0"><i data-lucide="images"></i><span class="field-badge-label">Optional</span></span>
+          </div>
+          <input id="galleryImageFiles" name="galleryImageFiles" type="file" accept="image/jpeg,image/png" multiple>
+          <small class="field-help">Up to 3 JPG/PNG images total. New uploads are added to the current gallery.</small>
+        </div>
+        <div class="form-field">
+          <div id="galleryPreviewList" style="display:grid; gap:.65rem;"></div>
+        </div>
+      </section>
+
       <section class="form-section editor-field" aria-labelledby="mainContentHeading">
         <div class="form-section-header">
           <div class="field-label-row">
@@ -1288,15 +1307,17 @@
             <i data-lucide="x"></i>
             <span class="btn-action-tooltip">Cancel</span>
           </a>
-          <button type="submit" value="save_draft" class="btn-action btn-action-draft btn-action-icon" data-submit-action="save_draft" data-default-label="Create Draft" aria-label="Create Draft">
+          <% const saveDraftLabel = mode === 'edit-published' ? 'Save Revision Draft' : (mode === 'edit' ? 'Save Changes' : 'Create Draft'); %>
+          <% const submitReviewLabel = mode === 'edit-published' ? 'Submit Revision' : 'Submit for Review'; %>
+          <button type="submit" value="save_draft" class="btn-action btn-action-draft btn-action-icon" data-submit-action="save_draft" data-default-label="<%= saveDraftLabel %>" aria-label="<%= saveDraftLabel %>">
             <i data-lucide="file-pen"></i>
-            <span class="btn-action-tooltip">Create Draft</span>
+            <span class="btn-action-tooltip"><%= saveDraftLabel %></span>
           </button>
         </div>
         <div class="form-actions-right">
-          <button type="submit" value="submit_review" class="btn-action btn-action-submit btn-action-icon" data-submit-action="submit_review" data-default-label="Submit for Review" aria-label="Submit for Review">
+          <button type="submit" value="submit_review" class="btn-action btn-action-submit btn-action-icon" data-submit-action="submit_review" data-default-label="<%= submitReviewLabel %>" aria-label="<%= submitReviewLabel %>">
             <i data-lucide="send"></i>
-            <span class="btn-action-tooltip">Submit for Review</span>
+            <span class="btn-action-tooltip"><%= submitReviewLabel %></span>
           </button>
         </div>
       </div>
@@ -2100,6 +2121,114 @@
           clearRemovalFlag();
         }
       });
+    })();
+
+    (function initGalleryManager() {
+      const hiddenInput = document.getElementById('galleryImageUrlsJson');
+      const previewList = document.getElementById('galleryPreviewList');
+      const fileInput = document.getElementById('galleryImageFiles');
+      if (!hiddenInput || !previewList) return;
+
+      let galleryUrls = [];
+      try {
+        galleryUrls = JSON.parse(hiddenInput.value || '[]');
+      } catch (_) {
+        galleryUrls = [];
+      }
+      galleryUrls = Array.isArray(galleryUrls) ? galleryUrls.filter(Boolean).slice(0, 3) : [];
+
+      function syncHiddenInput() {
+        hiddenInput.value = JSON.stringify(galleryUrls);
+      }
+
+      function moveItem(index, direction) {
+        const nextIndex = index + direction;
+        if (nextIndex < 0 || nextIndex >= galleryUrls.length) return;
+        const temp = galleryUrls[index];
+        galleryUrls[index] = galleryUrls[nextIndex];
+        galleryUrls[nextIndex] = temp;
+        render();
+      }
+
+      function render() {
+        syncHiddenInput();
+        previewList.innerHTML = '';
+
+        if (!galleryUrls.length && !(fileInput?.files?.length)) {
+          const empty = document.createElement('small');
+          empty.className = 'field-help';
+          empty.textContent = 'No gallery images added yet.';
+          previewList.appendChild(empty);
+        }
+
+        galleryUrls.forEach((url, index) => {
+          const card = document.createElement('div');
+          card.style.display = 'grid';
+          card.style.gridTemplateColumns = '88px 1fr auto';
+          card.style.gap = '.75rem';
+          card.style.alignItems = 'center';
+          card.style.padding = '.65rem';
+          card.style.border = '1px solid #dbe3ef';
+          card.style.borderRadius = '8px';
+          card.innerHTML = `
+            <img src="${url}" alt="Gallery image ${index + 1}" style="width:88px;height:68px;object-fit:cover;border-radius:8px;">
+            <div style="min-width:0;">
+              <strong style="display:block;color:#0f172a;">Gallery image ${index + 1}</strong>
+              <small style="display:block;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${url}</small>
+            </div>
+            <div style="display:flex;gap:.35rem;flex-wrap:wrap;">
+              <button type="button" data-gallery-action="up" data-gallery-index="${index}" class="btn-action btn-action-cancel btn-action-icon" aria-label="Move up"><i data-lucide="arrow-up"></i></button>
+              <button type="button" data-gallery-action="down" data-gallery-index="${index}" class="btn-action btn-action-cancel btn-action-icon" aria-label="Move down"><i data-lucide="arrow-down"></i></button>
+              <button type="button" data-gallery-action="remove" data-gallery-index="${index}" class="btn-action btn-action-danger btn-action-icon" aria-label="Remove image"><i data-lucide="trash-2"></i></button>
+            </div>
+          `;
+          previewList.appendChild(card);
+        });
+
+        if (fileInput?.files?.length) {
+          Array.from(fileInput.files).slice(0, 3).forEach((file) => {
+            const localUrl = URL.createObjectURL(file);
+            const card = document.createElement('div');
+            card.style.display = 'grid';
+            card.style.gridTemplateColumns = '88px 1fr';
+            card.style.gap = '.75rem';
+            card.style.alignItems = 'center';
+            card.style.padding = '.65rem';
+            card.style.border = '1px dashed #93c5fd';
+            card.style.borderRadius = '8px';
+            card.innerHTML = `
+              <img src="${localUrl}" alt="${file.name}" style="width:88px;height:68px;object-fit:cover;border-radius:8px;">
+              <div>
+                <strong style="display:block;color:#0f172a;">Pending upload</strong>
+                <small style="display:block;color:#64748b;">${file.name}</small>
+              </div>
+            `;
+            previewList.appendChild(card);
+          });
+        }
+
+        if (window.lucide) window.lucide.createIcons();
+      }
+
+      previewList.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-gallery-action]');
+        if (!button) return;
+        const index = Number(button.getAttribute('data-gallery-index') || '-1');
+        const action = button.getAttribute('data-gallery-action');
+        if (action === 'remove') {
+          galleryUrls = galleryUrls.filter((_, itemIndex) => itemIndex !== index);
+        } else if (action === 'up') {
+          moveItem(index, -1);
+          return;
+        } else if (action === 'down') {
+          moveItem(index, 1);
+          return;
+        }
+        render();
+      });
+
+      fileInput?.addEventListener('change', render);
+      render();
     })();
   </script>
   <script>if(window.lucide) lucide.createIcons();</script>

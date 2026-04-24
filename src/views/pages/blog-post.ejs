@@ -13,47 +13,57 @@
   
     <main class="blog-post-shell">
     <div class="blog-post-topbar">
-      <div class="blog-post-breadcrumb">
+      <nav class="blog-post-breadcrumb" aria-label="Breadcrumb">
         <a href="/blog">Blog</a>
-        <span>/</span>
-        <span><%= post.title %></span>
-      </div>
-      <a href="/blog" class="blog-back-btn blog-back-link">Back to Blog</a>
+        <i data-lucide="chevron-right" class="breadcrumb-sep" aria-hidden="true"></i>
+        <span class="breadcrumb-current" aria-current="page"><%= post.title %></span>
+      </nav>
+      <a href="/blog" class="blog-back-btn"><i data-lucide="arrow-left"></i>Back to Blog</a>
     </div>
 
     <article class="blog-post-article">
       <header class="blog-post-hero">
-        <span class="blog-category-chip"><%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %></span>
-        <h1><%= post.title %></h1>
+        <div class="blog-post-title-row">
+          <h1><%= post.title %></h1>
+          <span class="blog-category-chip"><%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %></span>
+        </div>
         <% if (post.excerpt) { %>
           <p class="blog-post-excerpt"><%= post.excerpt %></p>
         <% } %>
-        <p class="blog-post-submeta">
-          By <strong><%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %></strong> |
-          <%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '' %> |
-          <%= post.readingTime || 1 %> min read |
-          <%= Number(post.views || 0).toLocaleString('en-US') %> views
-        </p>
-        <div class="blog-share-row" id="blogShareRow">
-          <!-- Share buttons will be populated by JS with Web Share API fallback -->
-          <button type="button" class="btn btn-icon" id="copyBlogLinkBtn" aria-label="Copy link" title="Copy link">
-            <i data-lucide="link"></i>
-          </button>
-          <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareFacebook" aria-label="Share on Facebook" title="Share on Facebook">
-            <i data-lucide="facebook"></i>
-          </a>
-          <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareTwitter" aria-label="Share on X" title="Share on X">
-            <i data-lucide="twitter"></i>
-          </a>
-          <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareLinkedIn" aria-label="Share on LinkedIn" title="Share on LinkedIn">
-            <i data-lucide="linkedin"></i>
-          </a>
-          <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareWhatsApp" aria-label="Share on WhatsApp" title="Share on WhatsApp">
-            <i data-lucide="message-circle"></i>
-          </a>
-          <a class="btn btn-icon" href="#" id="shareEmail" aria-label="Share via Email" title="Share via Email">
-            <i data-lucide="mail"></i>
-          </a>
+        <div class="blog-post-submeta-row">
+          <p class="blog-post-submeta">
+            By <strong><%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %></strong> |
+            <%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '' %> |
+            <%= post.readingTime || 1 %> min read |
+            <%= Number(post.views || 0).toLocaleString('en-US') %> views
+          </p>
+          <div class="blog-share-row" id="blogShareRow">
+            <!-- Mobile-only toggle button -->
+            <button type="button" class="btn btn-icon share-mobile-toggle" id="shareMobileToggle" aria-label="Share options" aria-expanded="false" title="Share">
+              <i data-lucide="share-2"></i>
+            </button>
+            <!-- Share buttons (inline on desktop, dropdown on mobile) -->
+            <div class="share-options" role="group" aria-label="Share options">
+              <button type="button" class="btn btn-icon" id="copyBlogLinkBtn" aria-label="Copy link" title="Copy link">
+                <i data-lucide="link"></i>
+              </button>
+              <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareFacebook" aria-label="Share on Facebook" title="Share on Facebook">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              </a>
+              <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareTwitter" aria-label="Share on X" title="Share on X">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              </a>
+              <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareLinkedIn" aria-label="Share on LinkedIn" title="Share on LinkedIn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              </a>
+              <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareWhatsApp" aria-label="Share on WhatsApp" title="Share on WhatsApp">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              </a>
+              <a class="btn btn-icon" href="#" id="shareEmail" aria-label="Share via Email" title="Share via Email">
+                <i data-lucide="mail"></i>
+              </a>
+            </div>
+          </div>
         </div>
         <!-- Toast for copy feedback -->
         <div class="toast hidden" id="copyToast">Link copied!</div>
@@ -90,6 +100,52 @@
               <% }) %>
             </div>
           <% } %>
+
+          <section class="blog-interactions">
+            <div class="blog-interactions-bar">
+              <button type="button" class="blog-like-btn<%= interactionState?.likedByCurrentUser ? ' is-liked' : '' %>" id="blogLikeBtn" data-liked="<%= interactionState?.likedByCurrentUser ? '1' : '0' %>" <%= interactionState?.isAuthenticated ? '' : 'data-login-required="1"' %> aria-pressed="<%= interactionState?.likedByCurrentUser ? 'true' : 'false' %>">
+                <i data-lucide="heart"></i>
+                <span id="blogLikeLabel"><%= interactionState?.likedByCurrentUser ? 'Unlike' : 'Like' %></span>
+                <span class="blog-like-count" id="blogLikeCount"><%= Number(post.likesCount || 0).toLocaleString('en-US') %></span>
+              </button>
+              <% if (interactionState?.isAuthenticated) { %>
+                <details class="blog-report-details">
+                  <summary>Report post</summary>
+                  <form id="blogReportForm" class="blog-report-form">
+                    <select name="reason" required>
+                      <option value="">Select reason</option>
+                      <% (interactionState?.reportReasons || []).forEach((reason) => { %>
+                        <option value="<%= reason %>"><%= reason.replace(/_/g, ' ') %></option>
+                      <% }) %>
+                    </select>
+                    <textarea name="note" rows="3" maxlength="500" placeholder="Optional note"></textarea>
+                    <button type="submit" class="btn-icon" aria-label="Send Report">
+                      <i data-lucide="send"></i>
+                      <span class="btn-tooltip">Send Report</span>
+                    </button>
+                  </form>
+                </details>
+              <% } else { %>
+                <a href="/login?redirect=/blog/<%= post.slug %>" class="btn btn-secondary">Sign in to like or comment</a>
+              <% } %>
+            </div>
+
+            <div class="blog-comments-section">
+              <h3 class="blog-comments-heading">Comments</h3>
+              <% if (interactionState?.isAuthenticated) { %>
+                <form id="blogCommentForm" class="blog-comment-form">
+                  <textarea name="content" rows="4" maxlength="1000" placeholder="Add your comment…"></textarea>
+                  <button type="submit" class="blog-comment-submit" id="postCommentBtn">
+                    <span class="btn-text"><i data-lucide="send"></i> Post Comment</span>
+                    <span class="btn-loader" style="display:none;"><i data-lucide="loader-2" class="spin"></i> Posting…</span>
+                  </button>
+                </form>
+              <% } else { %>
+                <p class="blog-comments-signin">Sign in to post a comment.</p>
+              <% } %>
+              <div id="blogCommentsList" class="blog-comments-list"></div>
+            </div>
+          </section>
 
           <section class="blog-author-box">
             <div class="author-avatar">
@@ -195,10 +251,19 @@
       const galleryNextBtn = document.getElementById('blogGalleryNext');
       const gallerySpinner = document.getElementById('gallerySpinner');
       const shareRow = document.getElementById('blogShareRow');
+      const likeBtn = document.getElementById('blogLikeBtn');
+      const likeLabel = document.getElementById('blogLikeLabel');
+      const likeCountEl = document.getElementById('blogLikeCount');
+      const commentForm = document.getElementById('blogCommentForm');
+      const commentsList = document.getElementById('blogCommentsList');
+      const reportForm = document.getElementById('blogReportForm');
       
       // ---- Data from EJS ----
       const postTitle = '<%= post.title %>';
       const canonicalUrl = '<%= seo?.canonicalUrl || "" %>';
+      const postSlug = '<%= post.slug %>';
+      const csrfToken = '<%= locals.csrfToken || "" %>';
+      const currentUserId = '<%= interactionState?.currentUserId || "" %>';
       const galleryButtons = Array.from(document.querySelectorAll('[data-gallery-index][data-gallery-url]'));
       let activeGalleryIndex = 0;
       let galleryUrls = [];
@@ -210,6 +275,71 @@
         copyToast.textContent = message;
         copyToast.classList.remove('hidden');
         setTimeout(() => copyToast.classList.add('hidden'), duration);
+      }
+
+      function escapeHtml(value) {
+        return String(value || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      async function jsonRequest(url, options = {}) {
+        const headers = Object.assign({
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken
+        }, options.headers || {});
+        const response = await fetch(url, Object.assign({}, options, { headers }));
+        const contentType = response.headers.get('content-type') || '';
+        const body = contentType.includes('application/json')
+          ? await response.json()
+          : { success: response.ok, message: await response.text() };
+        if (!response.ok) {
+          throw new Error(body.message || 'Request failed.');
+        }
+        return body;
+      }
+
+      function renderComment(comment) {
+        const item = document.createElement('article');
+        item.style.border = '1px solid #e2e8f0';
+        item.style.borderRadius = '10px';
+        item.style.padding = '.8rem';
+        item.style.background = '#f8fafc';
+        const authorName = [comment.authorId?.firstName || '', comment.authorId?.lastName || ''].join(' ').trim() || 'helloRun user';
+        const createdAt = comment.createdAt ? new Date(comment.createdAt).toLocaleString('en-US') : '';
+        const isOwner = currentUserId && String(comment.authorId?._id || comment.authorId || '') === String(currentUserId);
+        item.innerHTML = `
+          <div style="display:flex;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">
+            <strong>${escapeHtml(authorName)}</strong>
+            <small style="color:#64748b;">${escapeHtml(createdAt)}</small>
+          </div>
+          <p style="margin:.55rem 0 0; white-space:pre-wrap;">${escapeHtml(comment.content)}</p>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.65rem;">
+            ${isOwner ? `<button type="button" class="btn btn-secondary" data-comment-delete="${comment._id}">Delete</button>` : ''}
+            ${currentUserId ? `<button type="button" class="btn btn-secondary" data-comment-report="${comment._id}">Report</button>` : ''}
+          </div>
+        `;
+        return item;
+      }
+
+      async function loadComments() {
+        if (!commentsList) return;
+        commentsList.innerHTML = '<p style="color:#64748b;">Loading comments...</p>';
+        try {
+          const response = await fetch(`/blog/${postSlug}/comments`);
+          const body = await response.json();
+          commentsList.innerHTML = '';
+          if (!body.comments || !body.comments.length) {
+            commentsList.innerHTML = '<p style="color:#64748b;">No comments yet.</p>';
+            return;
+          }
+          body.comments.forEach((comment) => commentsList.appendChild(renderComment(comment)));
+        } catch (error) {
+          commentsList.innerHTML = '<p style="color:#991b1b;">Failed to load comments.</p>';
+        }
       }
 
       // ---- Cover image fallback ----
@@ -330,25 +460,26 @@
       };
       updateShareLinks();
 
-      // Web Share API fallback
-      if (navigator.share && shareRow) {
-        // Add a native share button and hide individual ones if desired, but we'll keep them as fallback
-        const nativeShareBtn = document.createElement('button');
-        nativeShareBtn.className = 'btn btn-icon';
-        nativeShareBtn.setAttribute('aria-label', 'Share');
-        nativeShareBtn.innerHTML = '<i data-lucide="share-2"></i>';
-        nativeShareBtn.addEventListener('click', async () => {
-          try {
-            await navigator.share({
-              title: postTitle,
-              url: window.location.href,
-            });
-          } catch (err) {
-            // user cancelled or sharing failed
+      // ---- Mobile share dropdown toggle ----
+      const shareMobileToggle = document.getElementById('shareMobileToggle');
+      if (shareMobileToggle && shareRow) {
+        shareMobileToggle.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isOpen = shareRow.classList.toggle('is-open');
+          shareMobileToggle.setAttribute('aria-expanded', String(isOpen));
+        });
+        document.addEventListener('click', (e) => {
+          if (!shareRow.contains(e.target)) {
+            shareRow.classList.remove('is-open');
+            shareMobileToggle.setAttribute('aria-expanded', 'false');
           }
         });
-        shareRow.prepend(nativeShareBtn);
-        lucide.createIcons(); // re-run for new icon
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            shareRow.classList.remove('is-open');
+            shareMobileToggle.setAttribute('aria-expanded', 'false');
+          }
+        });
       }
 
       // ---- 5. Back to top button ----
@@ -492,6 +623,119 @@
 
       // ---- Re-run Lucide for any new icons ----
       if (window.lucide) lucide.createIcons();
+
+      let likePending = false;
+      likeBtn?.addEventListener('click', async () => {
+        if (likeBtn.dataset.loginRequired === '1') {
+          window.location.href = `/login?redirect=/blog/${postSlug}`;
+          return;
+        }
+        if (likePending) return;
+        likePending = true;
+
+        // Optimistic update
+        const wasLiked = likeBtn.dataset.liked === '1';
+        const prevCount = parseInt(likeCountEl?.textContent?.replace(/,/g, '') || '0', 10);
+        const optimisticLiked = !wasLiked;
+        const optimisticCount = optimisticLiked ? prevCount + 1 : Math.max(0, prevCount - 1);
+        likeBtn.dataset.liked = optimisticLiked ? '1' : '0';
+        likeBtn.setAttribute('aria-pressed', optimisticLiked ? 'true' : 'false');
+        likeBtn.classList.toggle('is-liked', optimisticLiked);
+        if (likeLabel) likeLabel.textContent = optimisticLiked ? 'Unlike' : 'Like';
+        if (likeCountEl) likeCountEl.textContent = optimisticCount.toLocaleString('en-US');
+
+        try {
+          const body = await jsonRequest(`/blog/${postSlug}/like`, { method: 'POST', body: '{}' });
+          // Reconcile with server truth
+          likeBtn.dataset.liked = body.liked ? '1' : '0';
+          likeBtn.setAttribute('aria-pressed', body.liked ? 'true' : 'false');
+          likeBtn.classList.toggle('is-liked', !!body.liked);
+          if (likeLabel) likeLabel.textContent = body.liked ? 'Unlike' : 'Like';
+          if (likeCountEl) likeCountEl.textContent = Number(body.likesCount || 0).toLocaleString('en-US');
+        } catch (error) {
+          // Revert on failure
+          likeBtn.dataset.liked = wasLiked ? '1' : '0';
+          likeBtn.setAttribute('aria-pressed', wasLiked ? 'true' : 'false');
+          likeBtn.classList.toggle('is-liked', wasLiked);
+          if (likeLabel) likeLabel.textContent = wasLiked ? 'Unlike' : 'Like';
+          if (likeCountEl) likeCountEl.textContent = prevCount.toLocaleString('en-US');
+          showToast(error.message || 'Failed to update like');
+        } finally {
+          likePending = false;
+        }
+      });
+
+      commentForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const content = String(commentForm.querySelector('textarea[name="content"]')?.value || '').trim();
+        if (!content) return;
+        const submitBtn = document.getElementById('postCommentBtn');
+        const btnText = submitBtn?.querySelector('.btn-text');
+        const btnLoader = submitBtn?.querySelector('.btn-loader');
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          if (btnText) btnText.style.display = 'none';
+          if (btnLoader) btnLoader.style.display = '';
+        }
+        try {
+          await jsonRequest(`/blog/${postSlug}/comments`, {
+            method: 'POST',
+            body: JSON.stringify({ content })
+          });
+          commentForm.reset();
+          await loadComments();
+        } catch (error) {
+          showToast(error.message || 'Failed to post comment');
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            if (btnText) btnText.style.display = '';
+            if (btnLoader) btnLoader.style.display = 'none';
+          }
+        }
+      });
+
+      commentsList?.addEventListener('click', async (event) => {
+        const deleteBtn = event.target.closest('[data-comment-delete]');
+        const reportBtn = event.target.closest('[data-comment-report]');
+        try {
+          if (deleteBtn) {
+            await jsonRequest(`/blog/${postSlug}/comments/${deleteBtn.getAttribute('data-comment-delete')}`, {
+              method: 'DELETE'
+            });
+            await loadComments();
+          }
+          if (reportBtn) {
+            await jsonRequest(`/blog/${postSlug}/comments/${reportBtn.getAttribute('data-comment-report')}/report`, {
+              method: 'POST',
+              body: JSON.stringify({ reason: 'abuse', note: '' })
+            });
+            showToast('Comment reported.');
+          }
+        } catch (error) {
+          showToast(error.message || 'Action failed');
+        }
+      });
+
+      reportForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(reportForm);
+        try {
+          await jsonRequest(`/blog/${postSlug}/report`, {
+            method: 'POST',
+            body: JSON.stringify({
+              reason: String(formData.get('reason') || ''),
+              note: String(formData.get('note') || '')
+            })
+          });
+          reportForm.reset();
+          showToast('Post reported.');
+        } catch (error) {
+          showToast(error.message || 'Failed to submit report');
+        }
+      });
+
+      loadComments();
     })();
   </script>
 </body>

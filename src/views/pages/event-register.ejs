@@ -50,6 +50,7 @@
       <% } else { %>
       <div class="event-register-layout">
         <form method="POST" action="/events/<%= event.slug %>/register" class="event-register-form" id="eventRegisterForm" novalidate>
+          <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
           <%
             const sortedRaceDistances = (Array.isArray(allowedRaceDistances) ? allowedRaceDistances.slice() : [])
               .sort((a, b) => String(b || '').localeCompare(String(a || ''), undefined, { numeric: true, sensitivity: 'base' }));

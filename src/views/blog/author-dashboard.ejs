@@ -24,6 +24,9 @@
     .dash-status { align-self:start; text-transform:uppercase; font-size:.75rem; font-weight:700; padding:.2rem .5rem; border-radius:999px; background:#f1f5f9; color:#334155; }
     .dash-actions { display:flex; gap:.45rem; flex-wrap:wrap; margin-top:.65rem; }
     .dash-empty { padding:1.2rem; border:1px dashed #cbd5e1; border-radius:10px; text-align:center; color:#64748b; }
+    .dash-metrics { display:flex; gap:.75rem; flex-wrap:wrap; margin:.55rem 0 0; color:#475569; font-size:.86rem; }
+    .dash-metric strong { color:#0f172a; }
+    .dash-note { margin:.45rem 0 0; color:#92400e; font-size:.86rem; }
   </style>
 </head>
 <body>
@@ -76,6 +79,19 @@
             <p style="margin: 0.55rem 0 0; color: #64748b; font-size: 0.85rem;">
               Updated: <%= post.updatedAt ? new Date(post.updatedAt).toLocaleString('en-US') : 'N/A' %>
             </p>
+            <div class="dash-metrics">
+              <span class="dash-metric"><strong><%= Number(post.views || 0).toLocaleString('en-US') %></strong> views</span>
+              <span class="dash-metric"><strong><%= Number(post.likesCount || 0).toLocaleString('en-US') %></strong> likes</span>
+              <span class="dash-metric"><strong><%= Number(post.commentsCount || 0).toLocaleString('en-US') %></strong> comments</span>
+            </div>
+            <% if (post.activeRevisionStatus) { %>
+              <p class="dash-note">
+                Revision status: <strong><%= post.activeRevisionStatus %></strong>
+                <% if (post.activeRevisionRejectionReason) { %>
+                  | <%= post.activeRevisionRejectionReason %>
+                <% } %>
+              </p>
+            <% } %>
 
             <div class="dash-actions">
               <% if (post.status === 'draft' || post.status === 'pending' || post.status === 'rejected') { %>
@@ -92,7 +108,14 @@
                 </form>
               <% } %>
               <% if (post.status === 'published') { %>
+                <a href="/blogs/me/<%= post._id %>/edit" class="dash-btn dash-btn-secondary dash-btn-sm">Update Published Post</a>
                 <a href="/blog/<%= post.slug %>" class="dash-btn dash-btn-secondary dash-btn-sm" target="_blank" rel="noopener noreferrer">View Public Post</a>
+                <% if (post.activeRevisionStatus === 'draft' || post.activeRevisionStatus === 'rejected') { %>
+                  <form method="POST" action="/blogs/me/<%= post._id %>/revision/discard-form" style="display: inline;" onsubmit="return confirm('Discard the saved revision draft?');">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                    <button type="submit" class="dash-btn dash-btn-danger dash-btn-sm">Discard Revision</button>
+                  </form>
+                <% } %>
               <% } %>
             </div>
           </article>

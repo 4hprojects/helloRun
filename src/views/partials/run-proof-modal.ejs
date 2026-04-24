@@ -49,6 +49,7 @@
 
     <div class="run-proof-modal-body">
       <form id="runProofForm" method="POST" enctype="multipart/form-data" class="run-proof-form" novalidate>
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
         <input type="hidden" name="proofType" value="photo">
         <input type="hidden" id="runProofMode" name="modalMode" value="<%= defaultMode %>">
         <input type="hidden" id="runProofSelectedRegistrationIds" name="selectedRegistrationIds" value="">

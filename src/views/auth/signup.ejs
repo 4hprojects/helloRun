@@ -12,8 +12,39 @@
       <div class="compact-auth-card">
         <!-- LEFT PANEL: Header -->
         <div class="auth-header">
+
+          <!-- Logo -->
+          <div class="brand-logo">
+            <img src="/images/helloRun-icon.webp" alt="helloRun logo" class="logo-img">
+            <span class="brand-name">helloRun</span>
+          </div>
+
           <h1>Create Your Account</h1>
           <p class="auth-subtitle">Join HelloRun and start your running journey</p>
+
+          <!-- Feature bullets -->
+          <ul class="brand-features">
+            <li>
+              <i data-lucide="trophy"></i>
+              <span>Join virtual races &amp; events</span>
+            </li>
+            <li>
+              <i data-lucide="activity"></i>
+              <span>Track your runs &amp; progress</span>
+            </li>
+            <li>
+              <i data-lucide="award"></i>
+              <span>Earn finisher certificates</span>
+            </li>
+            <li>
+              <i data-lucide="users"></i>
+              <span>Connect with a running community</span>
+            </li>
+          </ul>
+
+          <!-- Login link -->
+          <p class="auth-login-link">Already have an account? <a href="/login">Log in →</a></p>
+
         </div>
         
         <!-- RIGHT PANEL: Form -->
@@ -35,6 +66,7 @@
           <% } %>
           
           <form action="/signup" method="POST" class="compact-auth-form" id="signupForm" novalidate>
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
             <div class="compact-form-row">
               <div class="input-group compact-input-group">
                 <input 

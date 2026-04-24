@@ -6,6 +6,7 @@ const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const adminController = require('../controllers/admin.controller');
 const blogController = require('../controllers/blog.controller');
 const blogInteractionController = require('../controllers/blog-interaction.controller');
+const uploadService = require('../services/upload.service');
 
 const adminModerationLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
@@ -83,6 +84,7 @@ router.post('/cookie-policy/:id/archive', requireAdmin, adminController.archiveC
 // Blog moderation queue
 router.get('/blog/review', requireAdmin, blogController.renderAdminQueuePage);
 router.get('/blog/posts/:id/review', requireAdmin, blogController.renderAdminReviewPage);
+router.post('/blog/posts/:id/assets-upload', requireAdmin, adminModerationLimiter, uploadService.uploadBlogAssets, blogController.uploadAdminBlogAssets);
 router.post('/blog/posts/:id/approve-form', requireAdmin, adminModerationLimiter, blogController.approveBlogPostPage);
 router.post('/blog/posts/:id/reject-form', requireAdmin, adminModerationLimiter, blogController.rejectBlogPostPage);
 router.post('/blog/posts/:id/archive-form', requireAdmin, adminModerationLimiter, blogController.archiveBlogPostPage);
@@ -98,5 +100,8 @@ router.patch('/blog/posts/:id/autosave', requireAdmin, adminBlogAutosaveLimiter,
 router.get('/blog/comments', requireAdmin, blogInteractionController.adminListComments);
 router.post('/blog/comments/:commentId/remove', requireAdmin, adminModerationLimiter, blogInteractionController.adminRemoveComment);
 router.post('/blog/comments/:commentId/restore', requireAdmin, adminModerationLimiter, blogInteractionController.adminRestoreComment);
+router.get('/blog/reports', requireAdmin, blogInteractionController.adminListReports);
+router.post('/blog/reports/:reportId/resolve', requireAdmin, adminModerationLimiter, blogInteractionController.adminResolveReport);
+router.post('/blog/reports/:reportId/dismiss', requireAdmin, adminModerationLimiter, blogInteractionController.adminDismissReport);
 
 module.exports = router;

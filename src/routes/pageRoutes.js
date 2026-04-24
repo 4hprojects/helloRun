@@ -6,6 +6,7 @@ const pageController = require('../controllers/page.controller');
 const blogInteractionController = require('../controllers/blog-interaction.controller');
 const PrivacyPolicy = require('../models/PrivacyPolicy');
 const { requireAuth } = require('../middleware/auth.middleware');
+const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const uploadService = require('../services/upload.service');
 const { markdownToHtml } = require('../utils/markdown');
@@ -36,13 +37,14 @@ router.get('/', (req, res) => {
 router.get('/events', pageController.getEvents);
 router.get('/my-registrations', requireAuth, pageController.getMyRegistrations);
 router.get('/events/:slug/register', requireAuth, pageController.getEventRegistrationForm);
-router.post('/events/:slug/register', requireAuth, pageController.postEventRegistration);
-router.post('/profile/quick-update', requireAuth, quickProfileUpdateLimiter, pageController.postQuickProfileUpdate);
+router.post('/events/:slug/register', requireAuth, requireCsrfProtection, pageController.postEventRegistration);
+router.post('/profile/quick-update', requireAuth, requireCsrfProtection, quickProfileUpdateLimiter, pageController.postQuickProfileUpdate);
 router.post(
   '/my-registrations/:registrationId/payment-proof',
   requireAuth,
   paymentProofUploadLimiter,
   uploadService.uploadPaymentProof,
+  requireCsrfProtection,
   pageController.postUploadPaymentProof
 );
 router.post(
@@ -50,6 +52,7 @@ router.post(
   requireAuth,
   resultSubmissionLimiter,
   uploadService.uploadResultProof,
+  requireCsrfProtection,
   pageController.postSubmitResult
 );
 router.post(
@@ -57,10 +60,12 @@ router.post(
   requireAuth,
   resultSubmissionLimiter,
   uploadService.uploadResultProof,
+  requireCsrfProtection,
   pageController.postResubmitResult
 );
 router.get('/my-submissions/:submissionId/certificate', requireAuth, pageController.getSubmissionCertificateDownload);
 router.get('/events/:slug', pageController.getEventDetails);
+router.get('/sitemap.xml', pageController.getSitemapXml);
 
 router.get('/blog', pageController.getBlogList);
 router.get('/blog/:slug', pageController.getBlogPost);
@@ -77,9 +82,11 @@ const likeLimiter = createRateLimiter({
 });
 
 router.get('/blog/:slug/comments', blogInteractionController.listComments);
-router.post('/blog/:slug/comments', requireAuth, commentLimiter, blogInteractionController.createComment);
-router.delete('/blog/:slug/comments/:commentId', requireAuth, blogInteractionController.deleteComment);
-router.post('/blog/:slug/like', requireAuth, likeLimiter, blogInteractionController.toggleLike);
+router.post('/blog/:slug/comments', requireAuth, commentLimiter, requireCsrfProtection, blogInteractionController.createComment);
+router.delete('/blog/:slug/comments/:commentId', requireAuth, requireCsrfProtection, blogInteractionController.deleteComment);
+router.post('/blog/:slug/like', requireAuth, likeLimiter, requireCsrfProtection, blogInteractionController.toggleLike);
+router.post('/blog/:slug/report', requireAuth, requireCsrfProtection, blogInteractionController.reportPost);
+router.post('/blog/:slug/comments/:commentId/report', requireAuth, requireCsrfProtection, blogInteractionController.reportComment);
 
 router.get('/about', (req, res) => {
   res.render('pages/about', {

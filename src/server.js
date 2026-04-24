@@ -53,6 +53,29 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+app.get('/healthz', (req, res) => {
+  res.status(200).json({ ok: true });
+});
+
+app.get('/readyz', (req, res) => {
+  const mongoReady = mongoose.connection.readyState === 1;
+  if (!mongoReady) {
+    return res.status(503).json({
+      ok: false,
+      dependencies: {
+        mongo: 'not_ready'
+      }
+    });
+  }
+
+  return res.status(200).json({
+    ok: true,
+    dependencies: {
+      mongo: 'ready'
+    }
+  });
+});
+
 // Optional dev request-body debug logging
 if (!isProduction && process.env.DEBUG_HTTP_BODIES === '1') {
   app.use((req, res, next) => {
@@ -77,9 +100,18 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // ===== STEP 3: DATABASE CONNECTION =====
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch((err) => console.error('MongoDB connection error:', err));
+async function connectToDatabase() {
+  try {
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000
+    });
+    console.log('MongoDB connected');
+  } catch (err) {
+    console.error('MongoDB connection error:', err.message);
+    process.exit(1);
+  }
+}
 
 // ===== STEP 4: SESSION =====
 app.use(session({
@@ -128,18 +160,33 @@ app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => {
 // ===== STEP 6: 404 HANDLER (LAST) =====
 app.use((req, res) => {
   console.log('404 Not Found:', req.method, req.url);
-  res.status(404).send('<h1>404 - Page Not Found</h1>');
+  res.status(404).render('error', {
+    title: '404 - Page Not Found',
+    status: 404,
+    message: 'The page you requested could not be found.'
+  });
 });
 
 // ===== STEP 7: ERROR HANDLER =====
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
-  res.status(500).send('<h1>500 - Server Error</h1>');
+  res.status(500).render('error', {
+    title: '500 - Server Error',
+    status: 500,
+    message: 'An unexpected error occurred. Please try again.'
+  });
 });
 
 // ===== STEP 8: START SERVER =====
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+
+async function startServer() {
+  await connectToDatabase();
+
+  app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+}
+
+startServer();

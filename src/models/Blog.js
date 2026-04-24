@@ -131,6 +131,36 @@ const blogSchema = new mongoose.Schema(
       default: false,
       index: true
     },
+    activeRevisionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'BlogRevision',
+      default: null,
+      index: true
+    },
+    activeRevisionStatus: {
+      type: String,
+      enum: ['draft', 'pending', 'rejected', ''],
+      default: '',
+      index: true
+    },
+    activeRevisionSubmittedAt: {
+      type: Date,
+      default: null
+    },
+    activeRevisionUpdatedAt: {
+      type: Date,
+      default: null
+    },
+    activeRevisionRejectedAt: {
+      type: Date,
+      default: null
+    },
+    activeRevisionRejectionReason: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: ''
+    },
     submittedAt: {
       type: Date,
       default: null
@@ -167,6 +197,22 @@ const blogSchema = new mongoose.Schema(
       type: String,
       trim: true,
       maxlength: 1000,
+      default: ''
+    },
+    moderationFlags: {
+      type: [
+        {
+          type: String,
+          trim: true,
+          maxlength: 120
+        }
+      ],
+      default: []
+    },
+    moderationFlagSummary: {
+      type: String,
+      trim: true,
+      maxlength: 500,
       default: ''
     },
     views: {
@@ -233,6 +279,7 @@ const blogSchema = new mongoose.Schema(
 
 blogSchema.index({ status: 1, publishedAt: -1 });
 blogSchema.index({ status: 1, isDeleted: 1, publishedAt: -1 });
+blogSchema.index({ activeRevisionStatus: 1, activeRevisionSubmittedAt: -1 });
 blogSchema.index({ authorId: 1, createdAt: -1 });
 blogSchema.index({ category: 1, publishedAt: -1 });
 blogSchema.index({ tags: 1, publishedAt: -1 });

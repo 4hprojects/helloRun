@@ -3,6 +3,114 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
+## STATUS UPDATE (Apr 24, 2026 - App Audit: Security, SEO, and Readiness Gaps)
+
+### Current reality after latest review
+- Core runner, organizer, admin, blog, leaderboard, and legal-policy flows are implemented and have meaningful regression coverage.
+- The app is feature-rich enough for active iteration, but there are still launch-blocking hardening and product-completeness gaps.
+- The next work should prioritize security consistency, broken public surfaces, and production-readiness before starting lower-priority expansion.
+
+### Completed
+- Security hardening implemented:
+  - added CSRF protection to targeted auth/public mutating flows:
+    - signup / register
+    - forgot-password
+    - reset-password
+    - resend-verification
+    - event registration
+    - quick profile update
+    - payment proof upload
+    - result submission / resubmission
+  - standardized multipart CSRF handling for public runner upload flows
+  - added resend-verification rate limiting
+  - removed debug-heavy and privacy-risk resend-verification logging
+- Broken-route and SEO cleanup implemented:
+  - removed the broken blog newsletter POST target and replaced it with a temporary disabled state
+  - replaced stale `/support` links in email templates with `/contact`
+  - removed stale/dead home-render reference (`pages/index`)
+  - replaced static sitemap file with dynamic `/sitemap.xml` generation based on current public pages and published content
+  - corrected the blog empty-state sign-in link
+- Production-readiness code improvements implemented:
+  - app now fails fast on initial Mongo connection failure
+  - added `/healthz`
+  - added `/readyz`
+  - switched 404 and 500 responses to shared rendered error surfaces
+- Documentation added:
+  - `docs/security_route_matrix.md`
+  - `docs/production_readiness_checklist.md`
+- Targeted regression coverage added:
+  - CSRF route-guard tests
+  - resend-verification rate-limit tests
+  - sitemap/readiness tests
+
+### Validation signals recorded
+- `tests/privacy-signup-consent.test.js` -> PASS
+- `tests/csrf-route-guards.test.js` -> PASS
+- `tests/sitemap-readiness.test.js` -> PASS
+- `tests/static-pages.test.js` -> PASS
+- `tests/security-hardening.test.js` -> PASS
+- `tests/payment-route-guards.test.js` -> PASS
+- `tests/submission-review-route-guards.test.js` -> PASS
+- `tests/google-oauth-routes.test.js` -> PASS
+
+### Remaining next tasks
+- Environment / enforcement:
+  - enable real CSRF enforcement in runtime config by removing `CSRF_PROTECTION=0` from `.env` if still present
+  - verify staging/production env vars for Mongo, session, email, and `APP_URL`
+- Verification:
+  - rerun the full regression suite with `npm test`
+  - run manual smoke coverage for:
+    - signup / login / logout
+    - forgot-password / reset-password
+    - resend-verification
+    - event registration
+    - quick profile update
+    - payment proof upload
+    - result submission / resubmission
+    - `/blog`, `/blog/:slug`
+    - `/sitemap.xml`, `/healthz`, `/readyz`
+    - organizer/admin moderation flows
+- Production ops closeout:
+  - set up monitoring
+  - set up uptime checks for `/healthz` and `/readyz`
+  - set up error tracking
+  - confirm SSL/domain setup
+  - confirm backup and restore runbook
+  - validate fail-fast startup behavior in staging
+- Documentation closeout:
+  - keep `docs/security_route_matrix.md` aligned with any further route changes
+  - convert `docs/production_readiness_checklist.md` into the release checklist used for deployment
+- Deferred roadmap work after stabilization:
+  - blog SEO/content polish
+  - mobile and cross-browser QA pass
+  - dashboard/list consistency polish
+  - newsletter backend if still wanted
+  - shop implementation phases only after stabilization and production-readiness closeout
+
+### Blog feature audit notes
+- What is already implemented:
+  - core author workflow exists: create draft, edit draft, submit for review, delete own draft/rejected post
+  - admin moderation exists: pending queue, review page, approve/reject/archive, inline autosave
+  - public blog exists: `/blog` list, `/blog/:slug` detail, search, category filter, sort, pagination, canonical/meta/OG support
+  - blog interaction basics exist: comments, likes, admin comment moderation
+  - blog counters/models exist: views, likesCount, commentsCount, SEO fields, tags, featured flag, gallery field
+  - blog revision tracking exists for admin autosave changes
+- What still needs improvement:
+  - published-post revision flow is not implemented yet; authors can only edit `draft`, `pending`, and `rejected` posts, but the blog spec requires published edits to go through a revision workflow while the current live post stays public
+  - gallery image support is only partial; schema/public rendering support gallery images, but author creation/edit routes only handle cover-image upload
+  - author analytics are not surfaced as planned; dashboard currently shows status/date info but not per-post views, likes, and comments summary
+  - public blog interaction routes still need CSRF review and likely hardening for comment / delete-comment / like flows
+  - post page links to `/blog?author=...`, but the public blog list does not currently implement author filtering
+  - featured-post handling is still basic and not a real featured section / ranking strategy
+- Recommended next blog-specific tasks:
+  - implement published-post revision workflow
+  - add gallery upload/manage support end-to-end
+  - expose analytics basics on author dashboard
+  - add CSRF protection and client wiring for blog interaction write endpoints
+  - either implement author filtering on `/blog` or remove the dead author link
+  - replace the placeholder featured-card logic with real featured-post behavior
+  - after that, move into Phase B safety/growth work: report flow, anti-spam/plagiarism checks, deeper SEO/content polish
+
 ## STATUS UPDATE (Apr 22, 2026 - Admin Review Queue + Nav UX Polish + Shop Draft)
 
 ### Current reality after latest implementation

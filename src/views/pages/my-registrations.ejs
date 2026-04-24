@@ -6,6 +6,7 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
+  <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
 
   <main class="my-reg-page">
     <section class="my-reg-shell">
@@ -113,6 +114,7 @@
 
                 <% if (registration.paymentStatus === 'unpaid' || registration.paymentStatus === 'proof_rejected') { %>
                   <form method="POST" action="/my-registrations/<%= registration._id %>/payment-proof" enctype="multipart/form-data" class="inline-form">
+                    <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
                     <label for="paymentProofFile-<%= registration._id %>">Upload payment proof (JPG, PNG, PDF up to 5MB)</label>
                     <input type="file" id="paymentProofFile-<%= registration._id %>" name="paymentProofFile" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required>
                     <button type="submit" class="btn btn-secondary">Submit proof</button>

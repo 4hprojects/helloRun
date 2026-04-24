@@ -76,7 +76,7 @@
 .auth-panel {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   padding: var(--spacing-xl);
 }
@@ -96,12 +96,37 @@
   color: var(--white);
   position: relative;
   overflow: hidden;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.auth-panel-left::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.auth-panel-left .panel-content {
+  position: relative;
+  z-index: 1;
 }
 
 /* RIGHT PANEL: Login Form */
 .auth-panel-right {
   background: #ffffff;
   color: #111827;
+  align-items: center;
+}
+
+.auth-panel-right .panel-content {
+  gap: 0.5rem;
 }
 
 /* ============================================
@@ -111,11 +136,19 @@
 /* Logo Section */
 .logo-section {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-xs);
   animation: slideInDown 0.6s ease;
+}
+
+.logo-section .brand-name {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--white);
+  letter-spacing: -0.01em;
 }
 
 .panel-logo {
@@ -136,6 +169,7 @@
   color: var(--white);
   margin: 0;
   line-height: 1.3;
+  text-align: right;
   animation: slideInUp 0.6s ease 0.1s both;
 }
 
@@ -144,6 +178,7 @@
   color: rgba(255, 255, 255, 0.95);
   margin: 0;
   line-height: 1.5;
+  text-align: right;
   animation: slideInUp 0.6s ease 0.2s both;
 }
 
@@ -155,14 +190,18 @@
   display: flex;
   flex-direction: column;
   gap: 0.7rem;
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .feature-item {
   display: flex;
+  flex-direction: row-reverse;
   align-items: center;
   gap: var(--spacing-sm);
-  font-size: 1rem;
-  color: var(--white);
+  font-size: 0.92rem;
+  color: rgba(255, 255, 255, 0.95);
   animation: slideInUp 0.6s ease forwards;
 }
 
@@ -171,28 +210,37 @@
 .feature-item:nth-child(3) { animation-delay: 0.5s; }
 .feature-item:nth-child(4) { animation-delay: 0.6s; }
 
-.feature-checkmark {
-  display: inline-flex;
+.feature-icon {
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 23px;
-  height: 23px;
-  background: #ffffff;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  background: rgba(255, 255, 255, 0.92);
   color: #9a3412;
   border-radius: 50%;
-  font-weight: 700;
-  font-size: 1rem;
+  padding: 4px;
   flex-shrink: 0;
   transition: var(--transition);
 }
 
-.feature-item:hover .feature-checkmark {
-  background: #ffedd5;
-  transform: scale(1.1);
+.feature-icon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  flex-shrink: 0;
 }
 
 .feature-text {
   flex: 1;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.feature-item:hover .feature-icon {
+  background: #ffedd5;
+  transform: scale(1.1);
 }
 
 /* CTA Button */
@@ -210,6 +258,8 @@
   border-radius: var(--radius-sm);
   cursor: pointer;
   text-align: center;
+  text-transform: none;
+  letter-spacing: normal;
   transition: var(--transition);
   box-shadow: 0 10px 24px rgba(67, 20, 7, 0.2);
   animation: slideInUp 0.6s ease 0.7s both;
@@ -232,14 +282,30 @@
   outline-offset: 2px;
 }
 
-/* Helper Text */
-.panel-helper-text {
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.9);
-  text-align: center;
-  margin: 0;
+/* Signup link (bottom of left panel) */
+.panel-signup-link {
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 0;
+  text-align: right;
   animation: slideInUp 0.6s ease 0.8s both;
 }
+
+.panel-signup-link a {
+  color: var(--white);
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.panel-signup-link a:hover {
+  text-decoration: underline;
+}
+
+/* Helper Text (legacy - kept for safety) */
 
 /* ============================================
    RIGHT PANEL: LOGIN FORM
@@ -248,27 +314,27 @@
 /* Form Title & Subtitle */
 .form-title {
   font-family: 'Poppins', sans-serif;
-  font-size: 1.72rem;
+  font-size: 1.45rem;
   font-weight: 700;
   color: var(--dark-gray);
-  margin: 0 0 var(--spacing-xs) 0;
+  margin: 0;
   text-align: center;
   animation: slideInUp 0.6s ease 0.1s both;
 }
 
 .form-subtitle {
   color: var(--medium-gray);
-  font-size: 1rem;
-  margin-bottom: var(--spacing-sm);
+  font-size: 0.88rem;
+  margin-bottom: 0;
   text-align: center;
   animation: slideInUp 0.6s ease 0.2s both;
 }
 
 /* Alert Styles */
 .alert {
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm);
   border-radius: var(--radius-sm);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-xs);
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -312,7 +378,7 @@
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-sm);
   animation: slideInUp 0.6s ease 0.3s both;
 }
 
@@ -320,7 +386,7 @@
 .form-group {
   position: relative;
   width: 100%;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0;
 }
 
 .input-icon {
@@ -338,7 +404,7 @@
 
 .form-group input {
   width: 100%;
-  padding: 14px 12px 6px 40px; /* left padding for icon */
+  padding: 14px 12px 6px 14px;
   font-size: 0.9375rem;
   border: 2px solid #cbd5e1;
   border-radius: var(--radius-sm);
@@ -346,14 +412,14 @@
   background: var(--white);
   transition: var(--transition);
   font-family: 'Inter', sans-serif;
-  height: 48px;
+  height: 44px;
   color: #111827;
 }
 
 /* Floating Label */
 .form-group label {
   position: absolute;
-  left: 40px; /* align with text after icon */
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
   color: #475569;
@@ -376,7 +442,7 @@
   color: var(--link-orange);
   background: var(--white);
   padding: 0 6px;
-  left: 32px; /* adjust slightly to stay aligned */
+  left: 10px;
 }
 
 /* Input Focus State - Orange Glow */
@@ -521,15 +587,17 @@
   background: #c2410c;
   color: var(--white);
   border: 2px solid #c2410c;
-  padding: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
   font-size: 1rem;
   font-weight: 600;
   font-family: 'Poppins', sans-serif;
+  text-transform: none;
+  letter-spacing: normal;
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: var(--transition);
   box-shadow: 0 4px 12px rgba(194, 65, 12, 0.26);
-  margin-top: var(--spacing-md);
+  margin-top: var(--spacing-xs);
   min-height: 48px;
 }
 
@@ -557,7 +625,7 @@
 }
 
 .oauth-divider {
-  margin: var(--spacing-md) 0;
+  margin: var(--spacing-sm) 0;
   text-align: center;
   position: relative;
   color: #475569;
@@ -734,11 +802,11 @@
   }
 
   .panel-headline {
-    font-size: 1.75rem;
+    font-size: 1.55rem;
   }
 
   .form-title {
-    font-size: 1.75rem;
+    font-size: 1.35rem;
   }
 }
 
@@ -771,7 +839,7 @@
   }
 
   .panel-headline {
-    font-size: 1.55rem;
+    font-size: 1.4rem;
     margin-bottom: var(--spacing-sm);
   }
 
@@ -781,7 +849,7 @@
   }
 
   .form-title {
-    font-size: 1.55rem;
+    font-size: 1.35rem;
   }
 
   .form-subtitle {
@@ -795,38 +863,23 @@
 
   .form-group input {
     height: 48px;
-    padding: 13px 12px 6px 40px;
+    padding: 13px 12px 6px 14px;
     font-size: 16px; /* Prevents iOS zoom */
   }
 
   .form-group label {
-    left: 40px;
+    left: 14px;
     font-size: 16px;
   }
 
   .form-group input:focus ~ label,
   .form-group input:not(:placeholder-shown) ~ label {
-    left: 32px;
+    left: 10px;
   }
 
   .btn-primary,
-  .btn-cta {
-    padding: var(--spacing-md) var(--spacing-lg);
-    font-size: 0.95rem;
-  }
-
-  .panel-helper-text {
-    display: none; /* Hide helper text on mobile */
-  }
-
-  /* Optional: add small signup hint inside left panel */
-  .auth-panel-left .panel-content::after {
-    content: 'New here? Sign up above ↑';
-    display: block;
-    text-align: center;
-    font-size: 0.85rem;
-    color: rgba(255,255,255,0.8);
-    margin-top: 1rem;
+  .panel-signup-link {
+    display: none; /* hidden on mobile, right panel is shown first */
   }
 }
 

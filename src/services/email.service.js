@@ -179,7 +179,7 @@ exports.sendPasswordResetEmail = async (email, resetToken, firstName) => {
               <p>Your running journey companion</p>
               <p style="margin-top: 20px;">
                 <a href="${process.env.APP_URL}">Visit HelloRun</a> • 
-                <a href="${process.env.APP_URL}/support">Support</a>
+                <a href="${process.env.APP_URL}/contact">Support</a>
               </p>
               <p style="margin-top: 20px; font-size: 12px;">
                 This is an automated email. Please do not reply.
@@ -362,7 +362,7 @@ exports.sendPasswordResetConfirmation = async (email, firstName) => {
               <p>Your running journey companion</p>
               <p style="margin-top: 20px;">
                 <a href="${process.env.APP_URL}">Visit HelloRun</a> • 
-                <a href="${process.env.APP_URL}/support">Support</a>
+                <a href="${process.env.APP_URL}/contact">Support</a>
               </p>
               <p style="margin-top: 20px; font-size: 12px;">
                 This is an automated email. Please do not reply.
@@ -556,7 +556,7 @@ exports.sendVerificationEmail = async (email, verificationToken, firstName, role
               <p>Your running journey companion</p>
               <p style="margin-top: 20px;">
                 <a href="${process.env.APP_URL}">Visit HelloRun</a> • 
-                <a href="${process.env.APP_URL}/support">Support</a>
+                <a href="${process.env.APP_URL}/contact">Support</a>
               </p>
               <p style="margin-top: 20px; font-size: 12px;">
                 This is an automated email. Please do not reply.
@@ -778,7 +778,7 @@ exports.sendApplicationSubmittedEmail = async (email, firstName, applicationId) 
               <p>Your running journey companion</p>
               <p style="margin-top: 20px;">
                 <a href="${process.env.APP_URL}">Visit HelloRun</a> • 
-                <a href="${process.env.APP_URL}/support">Support</a>
+                <a href="${process.env.APP_URL}/contact">Support</a>
               </p>
               <p style="margin-top: 20px; font-size: 12px;">
                 This is an automated email. Please do not reply.
@@ -995,7 +995,7 @@ exports.sendApplicationApprovedEmail = async (email, firstName) => {
               <p>Your running journey companion</p>
               <p style="margin-top: 20px;">
                 <a href="${process.env.APP_URL}">Visit HelloRun</a> • 
-                <a href="${process.env.APP_URL}/support">Support</a>
+                <a href="${process.env.APP_URL}/contact">Support</a>
               </p>
               <p style="margin-top: 20px; font-size: 12px;">
                 This is an automated email. Please do not reply.
@@ -1171,7 +1171,7 @@ exports.sendApplicationRejectedEmail = async (email, firstName, reason) => {
               <p>Your running journey companion</p>
               <p style="margin-top: 20px;">
                 <a href="${process.env.APP_URL}">Visit HelloRun</a> • 
-                <a href="${process.env.APP_URL}/support">Support</a>
+                <a href="${process.env.APP_URL}/contact">Support</a>
               </p>
               <p style="margin-top: 20px; font-size: 12px;">
                 This is an automated email. Please do not reply.

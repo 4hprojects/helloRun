@@ -5,6 +5,8 @@ const User = require('../models/User');
 const uploadService = require('../services/upload.service');
 const { BLOG_CATEGORIES, BLOG_STATUSES, slugifyBlogTitle, normalizeTags } = require('../utils/blog');
 const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
+const BlogReport = require('../models/BlogReport');
+const { analyzePostSpamSignals, detectSimilarityFlags } = require('../utils/blog-safety');
 const {
   BLOG_BLOCK_TYPES,
   BLOG_TEMPLATE_KEYS,
@@ -26,6 +28,7 @@ const ADMIN_REVIEW_STATUSES = new Set(['pending', 'published', 'rejected', 'arch
 const MIN_REJECTION_REASON_LENGTH = 15;
 const MAX_REJECTION_REASON_LENGTH = 500;
 const REVISION_MAX_FIELD_LENGTH = 12000;
+const MAX_BLOG_GALLERY_IMAGES = 3;
 const ADMIN_AUTOSAVE_TRACKED_FIELDS = Object.freeze([
   'title',
   'slug',
@@ -36,6 +39,7 @@ const ADMIN_AUTOSAVE_TRACKED_FIELDS = Object.freeze([
   'contentBlocks',
   'coverImageUrl',
   'coverImageAlt',
+  'galleryImageUrls',
   'category',
   'customCategory',
   'tags',
@@ -64,7 +68,7 @@ exports.getMyBlogs = async (req, res) => {
 
     const posts = await Blog.find(query)
       .sort({ updatedAt: -1 })
-      .select('title slug status category customCategory submittedAt approvedAt rejectedAt rejectionReason publishedAt updatedAt createdAt');
+      .select('title slug status category customCategory submittedAt approvedAt rejectedAt rejectionReason publishedAt updatedAt createdAt views likesCount commentsCount activeRevisionId activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
 
     return res.json({
       success: true,
@@ -116,15 +120,14 @@ exports.createDraft = async (req, res) => {
     }
 
     const payload = normalizeBlogPayload(req.body);
-    const coverImageFile = req.file || null;
-    if (coverImageFile) {
-      const uploadedCover = await uploadService.uploadBlogCoverToR2({
-        userId: user._id,
-        coverImageFile: coverImageFile
-      });
-      uploadedKeys.push(uploadedCover.key);
-      payload.coverImageUrl = uploadedCover.url;
-    }
+    const shouldSubmit = String(req.body.action || '').trim() === 'submit_review';
+    await uploadBlogAssetsForPayload({
+      req,
+      userId: user._id,
+      payload,
+      existingGallery: [],
+      uploadedKeys
+    });
 
     const errors = validateBlogPayload(payload);
     if (errors.length) {
@@ -135,7 +138,6 @@ exports.createDraft = async (req, res) => {
     }
 
     const slug = await generateUniqueBlogSlug(payload.title);
-    const shouldSubmit = String(req.body.action || '').trim() === 'submit_review';
     if (shouldSubmit) {
       const readyErrors = validateReadyForReview(payload);
       if (readyErrors.length) {
@@ -149,6 +151,7 @@ exports.createDraft = async (req, res) => {
         });
       }
     }
+    const moderation = await buildPostModerationSignals({ payload });
     const post = await Blog.create({
       authorId: user._id,
       title: payload.title,
@@ -161,12 +164,18 @@ exports.createDraft = async (req, res) => {
       contentBlocks: payload.contentBlocks,
       coverImageUrl: payload.coverImageUrl,
       coverImageAlt: payload.coverImageAlt,
+      galleryImageUrls: payload.galleryImageUrls,
       category: payload.category,
       customCategory: payload.customCategory,
       tags: payload.tags,
       status: shouldSubmit ? 'pending' : 'draft',
       submittedAt: shouldSubmit ? new Date() : null,
-      readingTime: estimateReadingTime(payload.contentHtml)
+      readingTime: estimateReadingTime(payload.contentHtml),
+      seoTitle: payload.seoTitle,
+      seoDescription: payload.seoDescription,
+      ogImageUrl: payload.ogImageUrl,
+      moderationFlags: moderation.flags,
+      moderationFlagSummary: moderation.summary
     });
 
     return res.status(201).json({
@@ -206,7 +215,7 @@ exports.updateDraft = async (req, res) => {
     if (!post) {
       return res.status(404).json({ success: false, message: 'Post not found.' });
     }
-    if (!EDITABLE_STATUSES.has(post.status)) {
+    if (!EDITABLE_STATUSES.has(post.status) && post.status !== 'published') {
       return res.status(409).json({
         success: false,
         message: `Post with status "${post.status}" is locked for editing.`
@@ -214,16 +223,19 @@ exports.updateDraft = async (req, res) => {
     }
 
     const payload = normalizeBlogPayload(req.body);
+    const shouldSubmit = String(req.body.action || '').trim() === 'submit_review';
     const removeCoverImage = String(req.body.removeCoverImage || '').trim() === '1';
-    const coverImageFile = req.file || null;
-    if (coverImageFile) {
-      const uploadedCover = await uploadService.uploadBlogCoverToR2({
-        userId: user._id,
-        coverImageFile: coverImageFile
-      });
-      uploadedKeys.push(uploadedCover.key);
-      payload.coverImageUrl = uploadedCover.url;
-    } else if (removeCoverImage) {
+    const existingGallery = post.status === 'published' && post.activeRevisionId
+      ? ((await getOrCreateAuthorRevision(post, user._id)).after?.galleryImageUrls || post.galleryImageUrls || [])
+      : (post.galleryImageUrls || []);
+    await uploadBlogAssetsForPayload({
+      req,
+      userId: user._id,
+      payload,
+      existingGallery,
+      uploadedKeys
+    });
+    if (removeCoverImage) {
       payload.coverImageUrl = '';
     } else if (!payload.coverImageUrl) {
       payload.coverImageUrl = String(post.coverImageUrl || '').trim();
@@ -237,6 +249,30 @@ exports.updateDraft = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Validation failed.', errors });
     }
 
+    if (post.status === 'published') {
+      const readyErrors = shouldSubmit ? validateReadyForReview(payload) : [];
+      if (readyErrors.length) {
+        if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
+        return res.status(400).json({
+          success: false,
+          message: 'Post is incomplete and cannot be submitted yet.',
+          errors: readyErrors
+        });
+      }
+
+      const revision = await saveAuthorRevision({
+        post,
+        payload,
+        actorId: user._id,
+        shouldSubmit
+      });
+      return res.json({
+        success: true,
+        message: shouldSubmit ? 'Revision submitted for review.' : 'Published-post revision saved.',
+        revision
+      });
+    }
+
     if (post.status === 'rejected') {
       post.rejectionReason = '';
       post.rejectedAt = null;
@@ -248,21 +284,13 @@ exports.updateDraft = async (req, res) => {
       post.slug = await generateUniqueBlogSlug(payload.title, post._id);
     }
 
-    post.excerpt = payload.excerpt;
-    post.contentHtml = payload.contentHtml;
-    post.contentText = payload.contentText;
-    post.contentRaw = payload.contentRaw;
-    post.templateKey = payload.templateKey;
-    post.contentBlocks = payload.contentBlocks;
     const previousCoverUrl = String(post.coverImageUrl || '').trim();
-    post.coverImageUrl = payload.coverImageUrl;
-    post.coverImageAlt = payload.coverImageAlt;
-    post.category = payload.category;
-    post.customCategory = payload.customCategory;
-    post.tags = payload.tags;
-    post.readingTime = estimateReadingTime(payload.contentHtml);
+    const previousGalleryUrls = normalizeGalleryImageUrls(post.galleryImageUrls || []);
+    applyPayloadToPost(post, payload);
+    const moderation = await buildPostModerationSignals({ payload, excludePostId: post._id });
+    post.moderationFlags = moderation.flags;
+    post.moderationFlagSummary = moderation.summary;
 
-    const shouldSubmit = String(req.body.action || '').trim() === 'submit_review';
     if (shouldSubmit) {
       const readyErrors = validateReadyForReview({
         ...post.toObject(),
@@ -275,21 +303,18 @@ exports.updateDraft = async (req, res) => {
         contentBlocks: payload.contentBlocks,
         contentHtml: payload.contentHtml,
         contentText: payload.contentText,
-        tags: payload.tags
+        tags: payload.tags,
+        galleryImageUrls: payload.galleryImageUrls,
+        seoTitle: payload.seoTitle,
+        seoDescription: payload.seoDescription,
+        ogImageUrl: payload.ogImageUrl
       });
       if (readyErrors.length) {
         if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
-        return res.status(400).render('blog/author-form', {
-          title: 'Edit Blog Draft - helloRun',
-          user,
-          mode: 'edit',
-          formAction: `/blogs/me/${post._id}/edit`,
-          submitLabel: 'Save Changes',
-          categories: BLOG_CATEGORIES,
-          formData: getBlogFormData(payload),
-          errors: readyErrors,
-          message: null,
-          post
+        return res.status(400).json({
+          success: false,
+          message: 'Post is incomplete and cannot be submitted yet.',
+          errors: readyErrors
         });
       }
       post.status = 'pending';
@@ -308,6 +333,7 @@ exports.updateDraft = async (req, res) => {
         keysToDelete.push(oldCoverKey);
       }
     }
+    keysToDelete.push(...collectRemovedGalleryKeys(previousGalleryUrls, payload.galleryImageUrls));
     if (keysToDelete.length) {
       await uploadService.deleteObjects(keysToDelete);
     }
@@ -416,6 +442,94 @@ exports.deleteMyDraft = async (req, res) => {
   }
 };
 
+exports.discardRevision = async (req, res) => {
+  try {
+    const user = await getAuthorFromSession(req);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Authentication required.' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Invalid post id.' });
+    }
+    const post = await Blog.findOne({
+      _id: req.params.id,
+      authorId: user._id,
+      status: 'published',
+      isDeleted: { $ne: true }
+    });
+    if (!post || !post.activeRevisionId) {
+      return res.status(404).json({ success: false, message: 'No active revision found.' });
+    }
+    const revision = await BlogRevision.findOne({
+      _id: post.activeRevisionId,
+      postId: post._id,
+      source: 'author_revision'
+    });
+    if (!revision) {
+      syncBlogRevisionState(post, null);
+      await post.save();
+      return res.status(404).json({ success: false, message: 'No active revision found.' });
+    }
+    revision.status = 'discarded';
+    revision.reviewedAt = new Date();
+    await revision.save();
+    syncBlogRevisionState(post, null);
+    await post.save();
+    return res.json({ success: true, message: 'Revision discarded.' });
+  } catch (error) {
+    console.error('discardRevision error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to discard revision.' });
+  }
+};
+
+exports.discardRevisionPage = async (req, res) => {
+  try {
+    const response = await exports.discardRevision(req, {
+      status(code) {
+        this.statusCode = code;
+        return this;
+      },
+      json(payload) {
+        this.payload = payload;
+        return payload;
+      }
+    });
+    if (response && response.success === true) {
+      return res.redirect('/blogs/me/dashboard?type=success&msg=Revision%20discarded.');
+    }
+    return res.redirect('/blogs/me/dashboard?type=error&msg=Failed%20to%20discard%20revision.');
+  } catch (_) {
+    return res.redirect('/blogs/me/dashboard?type=error&msg=Failed%20to%20discard%20revision.');
+  }
+};
+
+exports.uploadBlogImagesForEditor = async (req, res) => {
+  const uploadedKeys = [];
+  try {
+    const user = await getAuthorFromSession(req);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Authentication required.' });
+    }
+    if (req.uploadError) {
+      return res.status(400).json({ success: false, message: req.uploadError });
+    }
+    const galleryImageFiles = getUploadedFiles(req, 'galleryImageFiles');
+    if (!galleryImageFiles.length) {
+      return res.status(400).json({ success: false, message: 'No gallery images uploaded.' });
+    }
+    const uploadedGallery = await uploadService.uploadBlogGalleryToR2({ userId: user._id, galleryImageFiles });
+    uploadedGallery.forEach((item) => uploadedKeys.push(item.key));
+    return res.json({
+      success: true,
+      galleryImageUrls: uploadedGallery.map((item) => item.url)
+    });
+  } catch (error) {
+    console.error('uploadBlogImagesForEditor error:', error);
+    if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
+    return res.status(500).json({ success: false, message: 'Failed to upload gallery images.' });
+  }
+};
+
 exports.renderAuthorDashboard = async (req, res) => {
   try {
     const user = await getAuthorFromSession(req);
@@ -432,7 +546,7 @@ exports.renderAuthorDashboard = async (req, res) => {
 
     const posts = await Blog.find(query)
       .sort({ updatedAt: -1 })
-      .select('title slug status category customCategory submittedAt approvedAt rejectedAt rejectionReason publishedAt updatedAt createdAt');
+      .select('title slug status category customCategory submittedAt approvedAt rejectedAt rejectionReason publishedAt updatedAt createdAt views likesCount commentsCount activeRevisionId activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
 
     return res.render('blog/author-dashboard', {
       title: 'My Blogs - helloRun',
@@ -505,15 +619,13 @@ exports.createDraftPage = async (req, res) => {
     }
 
     const payload = normalizeBlogPayload(req.body);
-    const coverImageFile = req.file || null;
-    if (coverImageFile) {
-      const uploadedCover = await uploadService.uploadBlogCoverToR2({
-        userId: user._id,
-        coverImageFile
-      });
-      uploadedKeys.push(uploadedCover.key);
-      payload.coverImageUrl = uploadedCover.url;
-    }
+    await uploadBlogAssetsForPayload({
+      req,
+      userId: user._id,
+      payload,
+      existingGallery: [],
+      uploadedKeys
+    });
 
     const errors = validateBlogPayload(payload);
     if (errors.length) {
@@ -558,6 +670,7 @@ exports.createDraftPage = async (req, res) => {
         });
       }
     }
+    const moderation = await buildPostModerationSignals({ payload });
     await Blog.create({
       authorId: user._id,
       title: payload.title,
@@ -570,12 +683,18 @@ exports.createDraftPage = async (req, res) => {
       contentBlocks: payload.contentBlocks,
       coverImageUrl: payload.coverImageUrl,
       coverImageAlt: payload.coverImageAlt,
+      galleryImageUrls: payload.galleryImageUrls,
       category: payload.category,
       customCategory: payload.customCategory,
       tags: payload.tags,
       status: shouldSubmit ? 'pending' : 'draft',
       submittedAt: shouldSubmit ? new Date() : null,
-      readingTime: estimateReadingTime(payload.contentHtml)
+      readingTime: estimateReadingTime(payload.contentHtml),
+      seoTitle: payload.seoTitle,
+      seoDescription: payload.seoDescription,
+      ogImageUrl: payload.ogImageUrl,
+      moderationFlags: moderation.flags,
+      moderationFlagSummary: moderation.summary
     });
 
     if (shouldSubmit) {
@@ -617,24 +736,42 @@ exports.renderEditPage = async (req, res) => {
         message: 'Blog post not found.'
       });
     }
-    if (!EDITABLE_STATUSES.has(post.status)) {
-      return res.redirect('/blogs/me/dashboard?type=error&msg=Only%20draft,%20pending,%20or%20rejected%20posts%20can%20be%20edited.');
+    let formPost = post;
+    let mode = 'edit';
+    let submitLabel = 'Save Changes';
+    let revision = null;
+    if (post.status === 'published') {
+      revision = await getOrCreateAuthorRevision(post, user._id);
+      formPost = {
+        ...post.toObject(),
+        ...revision.after,
+        status: revision.status || 'draft',
+        revisionStatus: revision.status || 'draft',
+        revisionRejectionReason: revision.rejectionReason || '',
+        sourcePostStatus: post.status
+      };
+      mode = 'edit-published';
+      submitLabel = 'Save Revision Draft';
+    } else if (!EDITABLE_STATUSES.has(post.status)) {
+      return res.redirect('/blogs/me/dashboard?type=error&msg=This%20post%20cannot%20be%20edited.');
     }
 
     return res.render('blog/author-form', {
       title: 'Edit Blog Draft - helloRun',
       user,
-      mode: 'edit',
+      mode,
       formAction: `/blogs/me/${post._id}/edit`,
-      submitLabel: 'Save Changes',
+      submitLabel,
       categories: BLOG_CATEGORIES,
       templates: getComposerTemplateOptions(),
       blockTypes: getComposerBlockTypeOptions(),
       templateBlocksByKey: getComposerTemplateBlocksByKey(),
-      formData: getBlogFormData(post),
+      formData: getBlogFormData(formPost),
       errors: [],
       message: getBlogPageMessage(req.query),
-      post
+      post: formPost,
+      livePost: post,
+      revision
     });
   } catch (error) {
     console.error('renderEditPage error:', error);
@@ -672,8 +809,8 @@ exports.updateDraftPage = async (req, res) => {
         message: 'Blog post not found.'
       });
     }
-    if (!EDITABLE_STATUSES.has(post.status)) {
-      return res.redirect('/blogs/me/dashboard?type=error&msg=Only%20draft,%20pending,%20or%20rejected%20posts%20can%20be%20edited.');
+    if (!EDITABLE_STATUSES.has(post.status) && post.status !== 'published') {
+      return res.redirect('/blogs/me/dashboard?type=error&msg=This%20post%20cannot%20be%20edited.');
     }
 
     if (req.uploadError) {
@@ -695,16 +832,18 @@ exports.updateDraftPage = async (req, res) => {
     }
 
     const payload = normalizeBlogPayload(req.body);
+    const shouldSubmit = String(req.body.action || '').trim() === 'submit_review';
     const removeCoverImage = String(req.body.removeCoverImage || '').trim() === '1';
-    const coverImageFile = req.file || null;
-    if (coverImageFile) {
-      const uploadedCover = await uploadService.uploadBlogCoverToR2({
-        userId: user._id,
-        coverImageFile
-      });
-      uploadedKeys.push(uploadedCover.key);
-      payload.coverImageUrl = uploadedCover.url;
-    } else if (removeCoverImage) {
+    const revisionForGallery = post.status === 'published' ? await getOrCreateAuthorRevision(post, user._id) : null;
+    const existingGallery = revisionForGallery?.after?.galleryImageUrls || post.galleryImageUrls || [];
+    await uploadBlogAssetsForPayload({
+      req,
+      userId: user._id,
+      payload,
+      existingGallery,
+      uploadedKeys
+    });
+    if (removeCoverImage) {
       payload.coverImageUrl = '';
     } else if (!payload.coverImageUrl) {
       payload.coverImageUrl = String(post.coverImageUrl || '').trim();
@@ -716,9 +855,9 @@ exports.updateDraftPage = async (req, res) => {
       return res.status(400).render('blog/author-form', {
         title: 'Edit Blog Draft - helloRun',
         user,
-        mode: 'edit',
+        mode: post.status === 'published' ? 'edit-published' : 'edit',
         formAction: `/blogs/me/${post._id}/edit`,
-        submitLabel: 'Save Changes',
+        submitLabel: post.status === 'published' ? 'Save Revision Draft' : 'Save Changes',
         categories: BLOG_CATEGORIES,
         templates: getComposerTemplateOptions(),
         blockTypes: getComposerBlockTypeOptions(),
@@ -726,8 +865,49 @@ exports.updateDraftPage = async (req, res) => {
         formData: getBlogFormData(payload),
         errors,
         message: null,
-        post
+        post,
+        livePost: post,
+        revision: revisionForGallery
       });
+    }
+
+    if (post.status === 'published') {
+      const readyErrors = shouldSubmit ? validateReadyForReview(payload) : [];
+      if (readyErrors.length) {
+        if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
+        return res.status(400).render('blog/author-form', {
+          title: 'Edit Published Blog - helloRun',
+          user,
+          mode: 'edit-published',
+          formAction: `/blogs/me/${post._id}/edit`,
+          submitLabel: 'Save Revision Draft',
+          categories: BLOG_CATEGORIES,
+          templates: getComposerTemplateOptions(),
+          blockTypes: getComposerBlockTypeOptions(),
+          templateBlocksByKey: getComposerTemplateBlocksByKey(),
+          formData: getBlogFormData(payload),
+          errors: readyErrors,
+          message: null,
+          post: {
+            ...post.toObject(),
+            ...payload
+          },
+          livePost: post,
+          revision: revisionForGallery
+        });
+      }
+
+      const revision = await saveAuthorRevision({
+        post,
+        payload,
+        actorId: user._id,
+        shouldSubmit
+      });
+      return res.redirect(
+        shouldSubmit
+          ? '/blogs/me/dashboard?type=success&msg=Revision%20submitted%20for%20review.'
+          : `/blogs/me/${post._id}/edit?type=success&msg=Revision%20draft%20saved.`
+      );
     }
 
     if (post.status === 'rejected') {
@@ -741,20 +921,12 @@ exports.updateDraftPage = async (req, res) => {
     }
 
     const previousCoverUrl = String(post.coverImageUrl || '').trim();
-    post.excerpt = payload.excerpt;
-    post.contentHtml = payload.contentHtml;
-    post.contentText = payload.contentText;
-    post.contentRaw = payload.contentRaw;
-    post.templateKey = payload.templateKey;
-    post.contentBlocks = payload.contentBlocks;
-    post.coverImageUrl = payload.coverImageUrl;
-    post.coverImageAlt = payload.coverImageAlt;
-    post.category = payload.category;
-    post.customCategory = payload.customCategory;
-    post.tags = payload.tags;
-    post.readingTime = estimateReadingTime(payload.contentHtml);
+    const previousGalleryUrls = normalizeGalleryImageUrls(post.galleryImageUrls || []);
+    applyPayloadToPost(post, payload);
+    const moderation = await buildPostModerationSignals({ payload, excludePostId: post._id });
+    post.moderationFlags = moderation.flags;
+    post.moderationFlagSummary = moderation.summary;
 
-    const shouldSubmit = String(req.body.action || '').trim() === 'submit_review';
     if (shouldSubmit) {
       const readyErrors = validateReadyForReview({
         ...post.toObject(),
@@ -767,7 +939,11 @@ exports.updateDraftPage = async (req, res) => {
         contentBlocks: payload.contentBlocks,
         contentHtml: payload.contentHtml,
         contentText: payload.contentText,
-        tags: payload.tags
+        tags: payload.tags,
+        galleryImageUrls: payload.galleryImageUrls,
+        seoTitle: payload.seoTitle,
+        seoDescription: payload.seoDescription,
+        ogImageUrl: payload.ogImageUrl
       });
       if (readyErrors.length) {
         if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
@@ -801,6 +977,7 @@ exports.updateDraftPage = async (req, res) => {
       const oldCoverKey = uploadService.extractObjectKeyFromPublicUrl(previousCoverUrl);
       if (oldCoverKey) keysToDelete.push(oldCoverKey);
     }
+    keysToDelete.push(...collectRemovedGalleryKeys(previousGalleryUrls, payload.galleryImageUrls));
     if (keysToDelete.length) await uploadService.deleteObjects(keysToDelete);
 
     if (shouldSubmit) {
@@ -896,16 +1073,24 @@ exports.listPendingBlogs = async (req, res) => {
     const status = normalizeAdminStatusFilter(req.query.status) || 'pending';
     const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
 
-    const query = { isDeleted: { $ne: true }, status };
+    const query = status === 'pending'
+      ? {
+          isDeleted: { $ne: true },
+          $or: [{ status }, { activeRevisionStatus: 'pending' }]
+        }
+      : { isDeleted: { $ne: true }, status };
     if (q) {
       const safePattern = new RegExp(escapeRegex(q), 'i');
-      query.$or = [{ title: safePattern }, { slug: safePattern }, { category: safePattern }, { customCategory: safePattern }];
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [{ title: safePattern }, { slug: safePattern }, { category: safePattern }, { customCategory: safePattern }]
+      });
     }
 
     const posts = await Blog.find(query)
       .populate('authorId', 'firstName lastName email')
-      .sort({ submittedAt: -1, updatedAt: -1 })
-      .select('title slug status category customCategory submittedAt updatedAt publishedAt rejectionReason readingTime createdAt');
+      .sort({ activeRevisionSubmittedAt: -1, submittedAt: -1, updatedAt: -1 })
+      .select('title slug status category customCategory submittedAt updatedAt publishedAt rejectionReason readingTime createdAt activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
 
     return res.json({
       success: true,
@@ -958,28 +1143,22 @@ exports.approveBlogPost = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found.' });
     }
 
-    if (post.status !== 'pending') {
+    if (post.status !== 'pending' && post.activeRevisionStatus !== 'pending') {
       return res.status(409).json({
         success: false,
         message: `Cannot approve a post from "${post.status}" status.`
       });
     }
 
-    const now = new Date();
-    post.status = 'published';
-    post.publishedAt = now;
-    post.reviewedAt = now;
-    post.approvedAt = now;
-    post.approvedBy = req.session.userId || null;
-    post.rejectedAt = null;
-    post.rejectedBy = null;
-    post.rejectionReason = '';
-    await post.save();
+    const result = await approveReviewTarget({
+      post,
+      actorId: req.session.userId || null
+    });
 
     return res.json({
       success: true,
-      message: 'Post approved and published successfully.',
-      post
+      message: result.revisionApplied ? 'Revision approved and applied successfully.' : 'Post approved and published successfully.',
+      post: result.post
     });
   } catch (error) {
     console.error('approveBlogPost error:', error);
@@ -1001,7 +1180,7 @@ exports.rejectBlogPost = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found.' });
     }
 
-    if (post.status !== 'pending') {
+    if (post.status !== 'pending' && post.activeRevisionStatus !== 'pending') {
       return res.status(409).json({
         success: false,
         message: `Cannot reject a post from "${post.status}" status.`
@@ -1021,20 +1200,16 @@ exports.rejectBlogPost = async (req, res) => {
       });
     }
 
-    const now = new Date();
-    post.status = 'rejected';
-    post.reviewedAt = now;
-    post.rejectedAt = now;
-    post.rejectedBy = req.session.userId || null;
-    post.rejectionReason = rejectionReason;
-    post.approvedAt = null;
-    post.approvedBy = null;
-    await post.save();
+    const result = await rejectReviewTarget({
+      post,
+      actorId: req.session.userId || null,
+      rejectionReason
+    });
 
     return res.json({
       success: true,
-      message: 'Post rejected successfully.',
-      post
+      message: result.revisionRejected ? 'Revision rejected successfully.' : 'Post rejected successfully.',
+      post: result.post
     });
   } catch (error) {
     console.error('rejectBlogPost error:', error);
@@ -1092,8 +1267,12 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found.' });
     }
 
-    const beforeSnapshot = getAdminAutosaveSnapshot(post);
-    const nextPayload = normalizeAdminAutosavePayload(req.body, post);
+    const pendingRevision = await getActivePendingRevision(post._id);
+    const reviewSource = pendingRevision ? { ...post.toObject(), ...pendingRevision.after } : post;
+    const beforeSnapshot = pendingRevision
+      ? createRevisionSnapshot(reviewSource)
+      : getAdminAutosaveSnapshot(post);
+    const nextPayload = normalizeAdminAutosavePayload(req.body, reviewSource);
     const validationErrors = validateBlogPayload(nextPayload);
     if (validationErrors.length) {
       return res.status(400).json({
@@ -1103,35 +1282,49 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
       });
     }
 
-    if (nextPayload.title !== post.title) {
-      post.title = nextPayload.title;
-      post.slug = await generateUniqueBlogSlug(nextPayload.title, post._id);
+    if (pendingRevision) {
+      const nextSnapshot = createRevisionSnapshot({
+        ...reviewSource,
+        ...nextPayload,
+        slug: await generateUniqueBlogSlug(nextPayload.title, post._id),
+        readingTime: estimateReadingTime(nextPayload.contentHtml)
+      });
+      const moderation = await buildPostModerationSignals({ payload: nextPayload, excludePostId: post._id });
+      pendingRevision.editedBy = req.session?.userId || null;
+      pendingRevision.after = nextSnapshot;
+      pendingRevision.changedFields = getRevisionChangedFields(
+        pendingRevision.before && Object.keys(pendingRevision.before).length ? pendingRevision.before : createRevisionSnapshot(post),
+        nextSnapshot
+      );
+      pendingRevision.editedAt = new Date();
+      pendingRevision.moderationFlags = moderation.flags;
+      pendingRevision.moderationFlagSummary = moderation.summary;
+      await pendingRevision.save();
+
+      post.activeRevisionUpdatedAt = pendingRevision.editedAt;
+      await post.save();
+    } else {
+      if (nextPayload.title !== post.title) {
+        post.title = nextPayload.title;
+        post.slug = await generateUniqueBlogSlug(nextPayload.title, post._id);
+      }
+
+      applyPayloadToPost(post, nextPayload);
+      post.featured = nextPayload.featured;
+      post.moderationNotes = nextPayload.moderationNotes;
+      const moderation = await buildPostModerationSignals({ payload: nextPayload, excludePostId: post._id });
+      post.moderationFlags = moderation.flags;
+      post.moderationFlagSummary = moderation.summary;
+
+      if (nextPayload.status !== post.status) {
+        applyAdminAutosaveStatusTransition(post, nextPayload.status, req.session?.userId || null);
+      }
+
+      await post.save();
     }
-
-    post.excerpt = nextPayload.excerpt;
-    post.contentHtml = nextPayload.contentHtml;
-    post.contentText = nextPayload.contentText;
-    post.contentRaw = nextPayload.contentRaw;
-    post.templateKey = nextPayload.templateKey;
-    post.contentBlocks = nextPayload.contentBlocks;
-    post.coverImageUrl = nextPayload.coverImageUrl;
-    post.coverImageAlt = nextPayload.coverImageAlt;
-    post.category = nextPayload.category;
-    post.customCategory = nextPayload.customCategory;
-    post.tags = nextPayload.tags;
-    post.readingTime = estimateReadingTime(nextPayload.contentHtml);
-    post.featured = nextPayload.featured;
-    post.seoTitle = nextPayload.seoTitle;
-    post.seoDescription = nextPayload.seoDescription;
-    post.ogImageUrl = nextPayload.ogImageUrl;
-    post.moderationNotes = nextPayload.moderationNotes;
-
-    if (nextPayload.status !== post.status) {
-      applyAdminAutosaveStatusTransition(post, nextPayload.status, req.session?.userId || null);
-    }
-
-    await post.save();
-    const afterSnapshot = getAdminAutosaveSnapshot(post);
+    const afterSnapshot = pendingRevision
+      ? createRevisionSnapshot({ ...post.toObject(), ...pendingRevision.after })
+      : getAdminAutosaveSnapshot(post);
     const changedFields = getChangedFields(beforeSnapshot, afterSnapshot);
 
     if (changedFields.length) {
@@ -1154,26 +1347,27 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
       message: 'Post auto-saved.',
       post: {
         _id: post._id,
-        title: post.title,
-        slug: post.slug,
-        excerpt: post.excerpt,
-        contentHtml: post.contentHtml,
-        contentRaw: post.contentRaw,
-        templateKey: post.templateKey,
-        contentBlocks: post.contentBlocks,
-        coverImageUrl: post.coverImageUrl,
-        coverImageAlt: post.coverImageAlt,
-        category: post.category,
-        customCategory: post.customCategory,
-        tags: post.tags,
-        featured: post.featured,
-        status: post.status,
-        readingTime: post.readingTime,
-        seoTitle: post.seoTitle,
-        seoDescription: post.seoDescription,
-        ogImageUrl: post.ogImageUrl,
-        moderationNotes: post.moderationNotes,
-        updatedAt: post.updatedAt,
+        title: pendingRevision ? afterSnapshot.title : post.title,
+        slug: pendingRevision ? afterSnapshot.slug : post.slug,
+        excerpt: pendingRevision ? afterSnapshot.excerpt : post.excerpt,
+        contentHtml: pendingRevision ? afterSnapshot.contentHtml : post.contentHtml,
+        contentRaw: pendingRevision ? afterSnapshot.contentRaw : post.contentRaw,
+        templateKey: pendingRevision ? afterSnapshot.templateKey : post.templateKey,
+        contentBlocks: pendingRevision ? afterSnapshot.contentBlocks : post.contentBlocks,
+        coverImageUrl: pendingRevision ? afterSnapshot.coverImageUrl : post.coverImageUrl,
+        coverImageAlt: pendingRevision ? afterSnapshot.coverImageAlt : post.coverImageAlt,
+        galleryImageUrls: pendingRevision ? afterSnapshot.galleryImageUrls : post.galleryImageUrls,
+        category: pendingRevision ? afterSnapshot.category : post.category,
+        customCategory: pendingRevision ? afterSnapshot.customCategory : post.customCategory,
+        tags: pendingRevision ? afterSnapshot.tags : post.tags,
+        featured: pendingRevision ? afterSnapshot.featured : post.featured,
+        status: pendingRevision ? pendingRevision.status : post.status,
+        readingTime: pendingRevision ? afterSnapshot.readingTime : post.readingTime,
+        seoTitle: pendingRevision ? afterSnapshot.seoTitle : post.seoTitle,
+        seoDescription: pendingRevision ? afterSnapshot.seoDescription : post.seoDescription,
+        ogImageUrl: pendingRevision ? afterSnapshot.ogImageUrl : post.ogImageUrl,
+        moderationNotes: pendingRevision ? afterSnapshot.moderationNotes : post.moderationNotes,
+        updatedAt: pendingRevision ? pendingRevision.updatedAt : post.updatedAt,
         changedFields
       }
     });
@@ -1188,16 +1382,24 @@ exports.renderAdminQueuePage = async (req, res) => {
     const status = normalizeAdminStatusFilter(req.query.status) || 'pending';
     const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
 
-    const query = { isDeleted: { $ne: true }, status };
+    const query = status === 'pending'
+      ? {
+          isDeleted: { $ne: true },
+          $or: [{ status }, { activeRevisionStatus: 'pending' }]
+        }
+      : { isDeleted: { $ne: true }, status };
     if (q) {
       const safePattern = new RegExp(escapeRegex(q), 'i');
-      query.$or = [{ title: safePattern }, { slug: safePattern }, { category: safePattern }, { customCategory: safePattern }];
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [{ title: safePattern }, { slug: safePattern }, { category: safePattern }, { customCategory: safePattern }]
+      });
     }
 
     const posts = await Blog.find(query)
       .populate('authorId', 'firstName lastName email')
-      .sort({ submittedAt: -1, updatedAt: -1 })
-      .select('title slug status category customCategory submittedAt publishedAt rejectedAt rejectionReason readingTime createdAt updatedAt');
+      .sort({ activeRevisionSubmittedAt: -1, submittedAt: -1, updatedAt: -1 })
+      .select('title slug status category customCategory submittedAt publishedAt rejectedAt rejectionReason readingTime createdAt updatedAt activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
 
     return res.render('admin/blog-queue', {
       title: 'Blog Moderation - helloRun Admin',
@@ -1242,6 +1444,25 @@ exports.renderAdminReviewPage = async (req, res) => {
       });
     }
 
+    const reviewTarget = await resolveReviewTarget(post);
+    const reportCounts = await BlogReport.aggregate([
+      {
+        $match: {
+          blogId: post._id,
+          status: 'open'
+        }
+      },
+      {
+        $group: {
+          _id: '$targetType',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    const openReportCounts = reportCounts.reduce((acc, item) => {
+      acc[item._id] = item.count;
+      return acc;
+    }, {});
     const revisions = await BlogRevision.find({ postId: post._id })
       .populate('editedBy', 'firstName lastName email')
       .sort({ editedAt: -1 })
@@ -1250,14 +1471,17 @@ exports.renderAdminReviewPage = async (req, res) => {
 
     return res.render('admin/blog-review', {
       title: `Review Blog - ${post.title}`,
-      post,
+      post: reviewTarget.reviewData,
+      sourcePost: post,
       message: getBlogPageMessage(req.query),
       categories: BLOG_CATEGORIES,
       statuses: BLOG_STATUSES,
       templates: getComposerTemplateOptions(),
       blockTypes: getComposerBlockTypeOptions(),
       templateBlocksByKey: getComposerTemplateBlocksByKey(),
-      revisions
+      revisions,
+      reviewTarget,
+      openReportCounts
     });
   } catch (error) {
     console.error('renderAdminReviewPage error:', error);
@@ -1266,6 +1490,42 @@ exports.renderAdminReviewPage = async (req, res) => {
       status: 500,
       message: 'An error occurred while loading the review page.'
     });
+  }
+};
+
+exports.uploadAdminBlogAssets = async (req, res) => {
+  const uploadedKeys = [];
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ success: false, message: 'Invalid post id.' });
+    }
+    const post = await Blog.findOne({
+      _id: req.params.id,
+      isDeleted: { $ne: true }
+    });
+    if (!post) {
+      return res.status(404).json({ success: false, message: 'Post not found.' });
+    }
+    if (req.uploadError) {
+      return res.status(400).json({ success: false, message: req.uploadError });
+    }
+    const galleryImageFiles = getUploadedFiles(req, 'galleryImageFiles');
+    if (!galleryImageFiles.length) {
+      return res.status(400).json({ success: false, message: 'No gallery images uploaded.' });
+    }
+    const uploadedGallery = await uploadService.uploadBlogGalleryToR2({
+      userId: req.session?.userId || 'admin',
+      galleryImageFiles
+    });
+    uploadedGallery.forEach((item) => uploadedKeys.push(item.key));
+    return res.json({
+      success: true,
+      galleryImageUrls: uploadedGallery.map((item) => item.url)
+    });
+  } catch (error) {
+    console.error('uploadAdminBlogAssets error:', error);
+    if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
+    return res.status(500).json({ success: false, message: 'Failed to upload admin blog assets.' });
   }
 };
 
@@ -1282,22 +1542,17 @@ exports.approveBlogPostPage = async (req, res) => {
     if (!post) {
       return res.redirect('/admin/blog/review?type=error&msg=Post%20not%20found.');
     }
-    if (post.status !== 'pending') {
+    if (post.status !== 'pending' && post.activeRevisionStatus !== 'pending') {
       return res.redirect(`/admin/blog/posts/${post._id}/review?type=error&msg=Only%20pending%20posts%20can%20be%20approved.`);
     }
+    const result = await approveReviewTarget({
+      post,
+      actorId: req.session.userId || null
+    });
 
-    const now = new Date();
-    post.status = 'published';
-    post.publishedAt = now;
-    post.reviewedAt = now;
-    post.approvedAt = now;
-    post.approvedBy = req.session.userId || null;
-    post.rejectedAt = null;
-    post.rejectedBy = null;
-    post.rejectionReason = '';
-    await post.save();
-
-    return res.redirect(`/admin/blog/posts/${post._id}/review?type=success&msg=Post%20approved%20and%20published.`);
+    return res.redirect(
+      `/admin/blog/posts/${post._id}/review?type=success&msg=${encodeURIComponent(result.revisionApplied ? 'Revision approved and applied.' : 'Post approved and published.')}`
+    );
   } catch (error) {
     console.error('approveBlogPostPage error:', error);
     return res.redirect(`/admin/blog/posts/${req.params.id}/review?type=error&msg=Failed%20to%20approve%20post.`);
@@ -1317,7 +1572,7 @@ exports.rejectBlogPostPage = async (req, res) => {
     if (!post) {
       return res.redirect('/admin/blog/review?type=error&msg=Post%20not%20found.');
     }
-    if (post.status !== 'pending') {
+    if (post.status !== 'pending' && post.activeRevisionStatus !== 'pending') {
       return res.redirect(`/admin/blog/posts/${post._id}/review?type=error&msg=Only%20pending%20posts%20can%20be%20rejected.`);
     }
 
@@ -1333,17 +1588,15 @@ exports.rejectBlogPostPage = async (req, res) => {
       );
     }
 
-    const now = new Date();
-    post.status = 'rejected';
-    post.reviewedAt = now;
-    post.rejectedAt = now;
-    post.rejectedBy = req.session.userId || null;
-    post.rejectionReason = rejectionReason;
-    post.approvedAt = null;
-    post.approvedBy = null;
-    await post.save();
+    const result = await rejectReviewTarget({
+      post,
+      actorId: req.session.userId || null,
+      rejectionReason
+    });
 
-    return res.redirect(`/admin/blog/posts/${post._id}/review?type=success&msg=Post%20rejected.`);
+    return res.redirect(
+      `/admin/blog/posts/${post._id}/review?type=success&msg=${encodeURIComponent(result.revisionRejected ? 'Revision rejected.' : 'Post rejected.')}`
+    );
   } catch (error) {
     console.error('rejectBlogPostPage error:', error);
     return res.redirect(`/admin/blog/posts/${req.params.id}/review?type=error&msg=Failed%20to%20reject%20post.`);
@@ -1411,12 +1664,16 @@ function normalizeBlogPayload(body = {}) {
     customCategory,
     coverImageUrl: String(body.coverImageUrl || '').trim(),
     coverImageAlt: String(body.coverImageAlt || '').trim().slice(0, 180),
+    galleryImageUrls: normalizeGalleryImageUrls(body.galleryImageUrlsJson || body.galleryImageUrls),
     templateKey: normalizeTemplateKey(body.templateKey),
     contentBlocks,
     contentHtml,
     contentText,
     contentRaw: String(body.contentRaw || '').trim(),
-    tags: normalizeTags(Array.isArray(body.tags) ? body.tags : splitTags(body.tags))
+    tags: normalizeTags(Array.isArray(body.tags) ? body.tags : splitTags(body.tags)),
+    seoTitle: String(body.seoTitle || '').trim().slice(0, 160),
+    seoDescription: String(body.seoDescription || '').trim().slice(0, 320),
+    ogImageUrl: String(body.ogImageUrl || '').trim().slice(0, 2000)
   };
 }
 
@@ -1450,6 +1707,9 @@ function normalizeAdminAutosavePayload(body = {}, post) {
     customCategory,
     coverImageUrl: hasOwn('coverImageUrl') ? String(body.coverImageUrl || '').trim() : String(post.coverImageUrl || '').trim(),
     coverImageAlt: hasOwn('coverImageAlt') ? String(body.coverImageAlt || '').trim().slice(0, 180) : String(post.coverImageAlt || '').trim(),
+    galleryImageUrls: hasOwn('galleryImageUrls') || hasOwn('galleryImageUrlsJson')
+      ? normalizeGalleryImageUrls(body.galleryImageUrlsJson || body.galleryImageUrls)
+      : normalizeGalleryImageUrls(post.galleryImageUrls),
     templateKey: hasOwn('templateKey') ? normalizeTemplateKey(body.templateKey) : normalizeTemplateKey(post.templateKey),
     contentBlocks,
     contentHtml,
@@ -1473,6 +1733,8 @@ function getBlogFormData(body = {}) {
     customCategory: String(body.customCategory || '').trim(),
     coverImageUrl: String(body.coverImageUrl || '').trim(),
     coverImageAlt: String(body.coverImageAlt || '').trim(),
+    galleryImageUrls: normalizeGalleryImageUrls(body.galleryImageUrlsJson || body.galleryImageUrls),
+    galleryImageUrlsJson: JSON.stringify(normalizeGalleryImageUrls(body.galleryImageUrlsJson || body.galleryImageUrls)),
     removeCoverImage: String(body.removeCoverImage || '').trim() === '1',
     templateKey: normalizeTemplateKey(body.templateKey),
     contentBlocks: normalizeContentBlocks(body.contentBlocksJson || body.contentBlocks),
@@ -1483,8 +1745,21 @@ function getBlogFormData(body = {}) {
     contentRaw: String(body.contentRaw || '').trim(),
     tags: Array.isArray(body.tags)
       ? body.tags.join(', ')
-      : String(body.tags || '').trim()
+      : String(body.tags || '').trim(),
+    seoTitle: String(body.seoTitle || '').trim(),
+    seoDescription: String(body.seoDescription || '').trim(),
+    ogImageUrl: String(body.ogImageUrl || '').trim()
   };
+}
+
+function normalizeGalleryImageUrls(value) {
+  const list = Array.isArray(value)
+    ? value
+    : splitTags(String(value || '').replace(/\n/g, ','));
+  return list
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+    .slice(0, MAX_BLOG_GALLERY_IMAGES);
 }
 
 function splitTags(value) {
@@ -1511,6 +1786,7 @@ function getAdminAutosaveSnapshot(post) {
     contentBlocks: normalizeContentBlocks(post.contentBlocks || []),
     coverImageUrl: String(post.coverImageUrl || ''),
     coverImageAlt: String(post.coverImageAlt || ''),
+    galleryImageUrls: normalizeGalleryImageUrls(post.galleryImageUrls || []),
     category: String(post.category || ''),
     customCategory: String(post.customCategory || ''),
     tags: Array.isArray(post.tags) ? [...post.tags] : [],
@@ -1607,6 +1883,369 @@ function applyAdminAutosaveStatusTransition(post, nextStatus, actorId = null) {
   post.rejectionReason = '';
 }
 
+function getUploadedFile(req, fieldName) {
+  if (req.file && fieldName === 'coverImageFile') return req.file;
+  const fileGroup = req.files && req.files[fieldName];
+  if (Array.isArray(fileGroup) && fileGroup.length) {
+    return fileGroup[0];
+  }
+  return null;
+}
+
+function getUploadedFiles(req, fieldName) {
+  if (Array.isArray(req.files?.[fieldName])) {
+    return req.files[fieldName];
+  }
+  return [];
+}
+
+async function uploadBlogAssetsForPayload({ req, userId, payload, existingGallery = [], uploadedKeys = [] }) {
+  const coverImageFile = getUploadedFile(req, 'coverImageFile');
+  if (coverImageFile) {
+    const uploadedCover = await uploadService.uploadBlogCoverToR2({ userId, coverImageFile });
+    uploadedKeys.push(uploadedCover.key);
+    payload.coverImageUrl = uploadedCover.url;
+  }
+
+  const galleryImageFiles = getUploadedFiles(req, 'galleryImageFiles');
+  if (galleryImageFiles.length) {
+    const uploadedGallery = await uploadService.uploadBlogGalleryToR2({ userId, galleryImageFiles });
+    uploadedGallery.forEach((item) => uploadedKeys.push(item.key));
+    payload.galleryImageUrls = [
+      ...normalizeGalleryImageUrls(existingGallery),
+      ...uploadedGallery.map((item) => item.url)
+    ].slice(0, MAX_BLOG_GALLERY_IMAGES);
+  } else if (!Array.isArray(payload.galleryImageUrls) || !payload.galleryImageUrls.length) {
+    payload.galleryImageUrls = normalizeGalleryImageUrls(existingGallery);
+  }
+}
+
+function collectRemovedGalleryKeys(previousUrls, nextUrls) {
+  const nextSet = new Set(normalizeGalleryImageUrls(nextUrls));
+  return normalizeGalleryImageUrls(previousUrls)
+    .filter((url) => !nextSet.has(url))
+    .map((url) => uploadService.extractObjectKeyFromPublicUrl(url))
+    .filter(Boolean);
+}
+
+async function buildPostModerationSignals({ payload, excludePostId = null }) {
+  const spam = analyzePostSpamSignals({
+    title: payload.title,
+    excerpt: payload.excerpt,
+    contentText: payload.contentText
+  });
+  const candidates = await Blog.find({
+    isDeleted: { $ne: true },
+    ...(excludePostId ? { _id: { $ne: excludePostId } } : {})
+  })
+    .select('_id title excerpt contentText')
+    .sort({ updatedAt: -1 })
+    .limit(50)
+    .lean();
+  const similarity = detectSimilarityFlags({
+    title: payload.title,
+    excerpt: payload.excerpt,
+    contentText: payload.contentText,
+    candidates,
+    excludeId: excludePostId
+  });
+
+  const flags = Array.from(new Set([...(spam.flags || []), ...(similarity.flags || [])]));
+  return {
+    flags,
+    summary: [spam.summary, similarity.summary].filter(Boolean).join('; ').slice(0, 500)
+  };
+}
+
+function applyPayloadToPost(post, payload) {
+  post.excerpt = payload.excerpt;
+  post.contentHtml = payload.contentHtml;
+  post.contentText = payload.contentText;
+  post.contentRaw = payload.contentRaw;
+  post.templateKey = payload.templateKey;
+  post.contentBlocks = payload.contentBlocks;
+  post.coverImageUrl = payload.coverImageUrl;
+  post.coverImageAlt = payload.coverImageAlt;
+  post.galleryImageUrls = payload.galleryImageUrls;
+  post.category = payload.category;
+  post.customCategory = payload.customCategory;
+  post.tags = payload.tags;
+  post.readingTime = estimateReadingTime(payload.contentHtml);
+  post.seoTitle = payload.seoTitle;
+  post.seoDescription = payload.seoDescription;
+  post.ogImageUrl = payload.ogImageUrl;
+}
+
+function createRevisionSnapshot(post, payload = null) {
+  const source = payload || post;
+  const contentBlocks = normalizeContentBlocks(source.contentBlocks || source.contentBlocksJson || []);
+  const contentHtml = payload ? source.contentHtml : String(source.contentHtml || '');
+  const title = String(source.title || '').trim();
+
+  return {
+    title,
+    slug: String(source.slug || '').trim(),
+    excerpt: String(source.excerpt || '').trim(),
+    contentHtml,
+    contentText: payload ? source.contentText : String(source.contentText || ''),
+    contentRaw: String(source.contentRaw || '').trim(),
+    templateKey: normalizeTemplateKey(source.templateKey),
+    contentBlocks,
+    coverImageUrl: String(source.coverImageUrl || '').trim(),
+    coverImageAlt: String(source.coverImageAlt || '').trim(),
+    galleryImageUrls: normalizeGalleryImageUrls(source.galleryImageUrls || []),
+    category: String(source.category || '').trim(),
+    customCategory: String(source.customCategory || '').trim(),
+    tags: normalizeTags(Array.isArray(source.tags) ? source.tags : splitTags(source.tags)),
+    featured: Boolean(source.featured),
+    status: String(source.status || '').trim(),
+    readingTime: Number(source.readingTime || estimateReadingTime(contentHtml)),
+    seoTitle: String(source.seoTitle || '').trim(),
+    seoDescription: String(source.seoDescription || '').trim(),
+    ogImageUrl: String(source.ogImageUrl || '').trim(),
+    moderationNotes: String(source.moderationNotes || '').trim()
+  };
+}
+
+function getRevisionChangedFields(beforeSnapshot, afterSnapshot) {
+  return ADMIN_AUTOSAVE_TRACKED_FIELDS.filter((field) => {
+    return JSON.stringify(beforeSnapshot[field]) !== JSON.stringify(afterSnapshot[field]);
+  });
+}
+
+function syncBlogRevisionState(post, revision) {
+  post.activeRevisionId = revision ? revision._id : null;
+  post.activeRevisionStatus = revision ? String(revision.status || '') : '';
+  post.activeRevisionSubmittedAt = revision ? revision.submittedAt || null : null;
+  post.activeRevisionUpdatedAt = revision ? revision.editedAt || revision.updatedAt || new Date() : null;
+  post.activeRevisionRejectedAt = revision ? revision.reviewedAt || null : null;
+  post.activeRevisionRejectionReason = revision ? String(revision.rejectionReason || '') : '';
+}
+
+async function getOrCreateAuthorRevision(post, actorId) {
+  let revision = null;
+  if (post.activeRevisionId && mongoose.Types.ObjectId.isValid(post.activeRevisionId)) {
+    revision = await BlogRevision.findOne({
+      _id: post.activeRevisionId,
+      postId: post._id,
+      source: 'author_revision'
+    });
+  }
+  if (!revision) {
+    const liveSnapshot = createRevisionSnapshot(post);
+    revision = await BlogRevision.create({
+      postId: post._id,
+      editedBy: actorId,
+      source: 'author_revision',
+      status: 'draft',
+      changedFields: [],
+      before: liveSnapshot,
+      after: liveSnapshot,
+      editedAt: new Date()
+    });
+  }
+  syncBlogRevisionState(post, revision);
+  return revision;
+}
+
+function applyRevisionSnapshotToPost(post, snapshot) {
+  if (snapshot.title && snapshot.title !== post.title) {
+    post.title = snapshot.title;
+  }
+  post.slug = String(snapshot.slug || post.slug || '').trim();
+  post.excerpt = snapshot.excerpt;
+  post.contentHtml = snapshot.contentHtml;
+  post.contentText = snapshot.contentText;
+  post.contentRaw = snapshot.contentRaw;
+  post.templateKey = snapshot.templateKey;
+  post.contentBlocks = normalizeContentBlocks(snapshot.contentBlocks || []);
+  post.coverImageUrl = snapshot.coverImageUrl;
+  post.coverImageAlt = snapshot.coverImageAlt;
+  post.galleryImageUrls = normalizeGalleryImageUrls(snapshot.galleryImageUrls || []);
+  post.category = snapshot.category;
+  post.customCategory = snapshot.customCategory;
+  post.tags = normalizeTags(snapshot.tags || []);
+  post.featured = Boolean(snapshot.featured);
+  post.readingTime = Number(snapshot.readingTime || estimateReadingTime(snapshot.contentHtml));
+  post.seoTitle = snapshot.seoTitle;
+  post.seoDescription = snapshot.seoDescription;
+  post.ogImageUrl = snapshot.ogImageUrl;
+  post.moderationNotes = snapshot.moderationNotes;
+}
+
+async function saveAuthorRevision({ post, payload, actorId, shouldSubmit }) {
+  const revision = await getOrCreateAuthorRevision(post, actorId);
+  const beforeSnapshot = revision.before && Object.keys(revision.before).length
+    ? revision.before
+    : createRevisionSnapshot(post);
+  const previousAfter = revision.after && Object.keys(revision.after).length
+    ? revision.after
+    : beforeSnapshot;
+  const nextSnapshot = createRevisionSnapshot({
+    ...previousAfter,
+    ...payload,
+    title: payload.title,
+    slug: await generateUniqueBlogSlug(payload.title, post._id),
+    status: shouldSubmit ? 'pending' : 'draft',
+    readingTime: estimateReadingTime(payload.contentHtml)
+  });
+  const changedFields = getRevisionChangedFields(beforeSnapshot, nextSnapshot);
+  const moderation = await buildPostModerationSignals({ payload, excludePostId: post._id });
+
+  revision.editedBy = actorId;
+  revision.source = 'author_revision';
+  revision.before = beforeSnapshot;
+  revision.after = nextSnapshot;
+  revision.changedFields = changedFields;
+  revision.editedAt = new Date();
+  revision.status = shouldSubmit ? 'pending' : 'draft';
+  revision.submittedAt = shouldSubmit ? new Date() : null;
+  revision.reviewedAt = null;
+  revision.appliedAt = null;
+  revision.rejectionReason = '';
+  revision.moderationFlags = moderation.flags;
+  revision.moderationFlagSummary = moderation.summary;
+  await revision.save();
+
+  syncBlogRevisionState(post, revision);
+  await post.save();
+
+  return revision;
+}
+
+async function getActivePendingRevision(postId) {
+  return BlogRevision.findOne({
+    postId,
+    source: 'author_revision',
+    status: 'pending'
+  }).sort({ submittedAt: -1, editedAt: -1 });
+}
+
+async function resolveReviewTarget(post) {
+  const revision = await getActivePendingRevision(post._id);
+  if (!revision) {
+    return {
+      kind: 'post',
+      post,
+      reviewData: post.toObject ? post.toObject() : post,
+      revision: null
+    };
+  }
+  return {
+    kind: 'revision',
+    post,
+    reviewData: {
+      ...post.toObject(),
+      ...revision.after,
+      status: revision.status,
+      rejectionReason: revision.rejectionReason || '',
+      moderationFlags: revision.moderationFlags || [],
+      moderationFlagSummary: revision.moderationFlagSummary || ''
+    },
+    revision
+  };
+}
+
+async function approveReviewTarget({ post, actorId }) {
+  const revision = await getActivePendingRevision(post._id);
+  const now = new Date();
+
+  if (revision) {
+    const snapshot = revision.after || {};
+    if (snapshot.title && snapshot.title !== post.title) {
+      post.title = snapshot.title;
+      post.slug = await generateUniqueBlogSlug(snapshot.title, post._id);
+    }
+    applyRevisionSnapshotToPost(post, {
+      ...snapshot,
+      slug: post.slug
+    });
+    const moderation = await buildPostModerationSignals({
+      payload: {
+        title: post.title,
+        excerpt: post.excerpt,
+        category: post.category,
+        customCategory: post.customCategory,
+        coverImageUrl: post.coverImageUrl,
+        coverImageAlt: post.coverImageAlt,
+        galleryImageUrls: post.galleryImageUrls,
+        templateKey: post.templateKey,
+        contentBlocks: post.contentBlocks,
+        contentHtml: post.contentHtml,
+        contentText: post.contentText,
+        contentRaw: post.contentRaw,
+        tags: post.tags,
+        seoTitle: post.seoTitle,
+        seoDescription: post.seoDescription,
+        ogImageUrl: post.ogImageUrl
+      },
+      excludePostId: post._id
+    });
+    post.moderationFlags = moderation.flags;
+    post.moderationFlagSummary = moderation.summary;
+    post.status = 'published';
+    post.publishedAt = now;
+    post.reviewedAt = now;
+    post.approvedAt = now;
+    post.approvedBy = actorId || null;
+    post.rejectedAt = null;
+    post.rejectedBy = null;
+    post.rejectionReason = '';
+    syncBlogRevisionState(post, null);
+    await post.save();
+
+    revision.status = 'approved';
+    revision.reviewedAt = now;
+    revision.appliedAt = now;
+    revision.editedAt = now;
+    await revision.save();
+    return { revisionApplied: true, revision, post };
+  }
+
+  if (post.status !== 'pending') {
+    throw new Error(`Cannot approve a post from "${post.status}" status.`);
+  }
+  post.status = 'published';
+  post.publishedAt = now;
+  post.reviewedAt = now;
+  post.approvedAt = now;
+  post.approvedBy = actorId || null;
+  post.rejectedAt = null;
+  post.rejectedBy = null;
+  post.rejectionReason = '';
+  await post.save();
+  return { revisionApplied: false, revision: null, post };
+}
+
+async function rejectReviewTarget({ post, actorId, rejectionReason }) {
+  const now = new Date();
+  const revision = await getActivePendingRevision(post._id);
+  if (revision) {
+    revision.status = 'rejected';
+    revision.reviewedAt = now;
+    revision.rejectionReason = rejectionReason;
+    revision.editedAt = now;
+    await revision.save();
+    syncBlogRevisionState(post, revision);
+    await post.save();
+    return { revisionRejected: true, revision, post };
+  }
+
+  if (post.status !== 'pending') {
+    throw new Error(`Cannot reject a post from "${post.status}" status.`);
+  }
+
+  post.status = 'rejected';
+  post.reviewedAt = now;
+  post.rejectedAt = now;
+  post.rejectedBy = actorId || null;
+  post.rejectionReason = rejectionReason;
+  post.approvedAt = null;
+  post.approvedBy = null;
+  await post.save();
+  return { revisionRejected: false, revision: null, post };
+}
+
 function validateBlogPayload(payload, options = {}) {
   const errors = [];
   const allowedCategories = new Set(BLOG_CATEGORIES);
@@ -1634,6 +2273,19 @@ function validateBlogPayload(payload, options = {}) {
   if (payload.coverImageAlt && payload.coverImageAlt.length > 180) {
     errors.push('Cover image alt text must be 180 characters or less.');
   }
+  if (payload.galleryImageUrls.length > MAX_BLOG_GALLERY_IMAGES) {
+    errors.push(`Maximum ${MAX_BLOG_GALLERY_IMAGES} gallery images are allowed.`);
+  }
+  for (const galleryUrl of payload.galleryImageUrls) {
+    if (galleryUrl.length > 2000) {
+      errors.push('Gallery image URL is too long.');
+      break;
+    }
+    if (!isValidHttpUrl(galleryUrl)) {
+      errors.push('Gallery image URLs must be valid http/https URLs.');
+      break;
+    }
+  }
   if (requireCover && !payload.coverImageUrl) {
     errors.push('Cover image is required before submitting for review.');
   }
@@ -1649,6 +2301,15 @@ function validateBlogPayload(payload, options = {}) {
   if (payload.tags.length > 12) {
     errors.push('Maximum 12 tags are allowed.');
   }
+  if (payload.seoTitle && payload.seoTitle.length > 160) {
+    errors.push('SEO title must be 160 characters or less.');
+  }
+  if (payload.seoDescription && payload.seoDescription.length > 320) {
+    errors.push('SEO description must be 320 characters or less.');
+  }
+  if (payload.ogImageUrl && !isValidHttpUrl(payload.ogImageUrl)) {
+    errors.push('OG image URL must be a valid http/https URL.');
+  }
 
   return errors;
 }
@@ -1661,12 +2322,16 @@ function validateReadyForReview(post) {
     customCategory: post.customCategory || '',
     coverImageUrl: post.coverImageUrl || '',
     coverImageAlt: post.coverImageAlt || '',
+    galleryImageUrls: normalizeGalleryImageUrls(post.galleryImageUrls || []),
     templateKey: post.templateKey || 'custom',
     contentBlocks: Array.isArray(post.contentBlocks) ? post.contentBlocks : [],
     contentHtml: post.contentHtml || '',
     contentText: post.contentText || '',
     contentRaw: post.contentRaw || '',
-    tags: Array.isArray(post.tags) ? post.tags : []
+    tags: Array.isArray(post.tags) ? post.tags : [],
+    seoTitle: post.seoTitle || '',
+    seoDescription: post.seoDescription || '',
+    ogImageUrl: post.ogImageUrl || ''
   };
   return validateBlogPayload(payload, { requireCover: true });
 }

@@ -3,6 +3,7 @@ const User = require('../models/User');
 const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const Blog = require('../models/Blog');
+const BlogLike = require('../models/BlogLike');
 const emailService = require('../services/email.service');
 const { registerBlogView } = require('../services/blog-view.service');
 const { getRunnerRegistrations } = require('../services/runner-data.service');
@@ -20,10 +21,6 @@ const {
 const { getLeaderboardData } = require('../services/leaderboard.service');
 
 const countries = getCountries();
-
-exports.getHome = (req, res) => {
-  res.render('pages/index', { title: 'helloRun - Virtual Running Events', user: req.user });
-};
 
 exports.getEvents = async (req, res) => {
   try {
@@ -832,12 +829,16 @@ exports.getBlogList = async (req, res) => {
     };
     const searchQuery = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 80) : '';
     const selectedCategory = normalizeBlogCategory(req.query.category);
+    const selectedAuthor = normalizeObjectIdString(req.query.author);
     const selectedSort = normalizeBlogSort(req.query.sort);
     const page = normalizePositiveInt(req.query.page, 1);
     const limit = 12;
 
     if (selectedCategory) {
       query.category = selectedCategory;
+    }
+    if (selectedAuthor) {
+      query.authorId = selectedAuthor;
     }
     if (searchQuery) {
       const safePattern = new RegExp(escapeRegex(searchQuery), 'i');
@@ -856,42 +857,58 @@ exports.getBlogList = async (req, res) => {
       oldest: { publishedAt: 1, createdAt: 1 },
       popular: { views: -1, publishedAt: -1 }
     };
-
-    const totalPosts = await Blog.countDocuments(query);
+    const shouldShowFeatured = page === 1;
+    const featuredPosts = shouldShowFeatured
+      ? await Blog.find({ ...query, featured: true })
+        .populate('authorId', 'firstName lastName')
+        .sort({ views: -1, likesCount: -1, commentsCount: -1, publishedAt: -1 })
+        .limit(3)
+        .select('title slug excerpt category customCategory tags coverImageUrl readingTime views likesCount commentsCount featured publishedAt createdAt')
+      : [];
+    const featuredIds = featuredPosts.map((post) => post._id);
+    const postsQuery = featuredIds.length ? { ...query, _id: { $nin: featuredIds } } : query;
+    const totalPosts = await Blog.countDocuments(postsQuery);
     const totalPages = Math.max(1, Math.ceil(totalPosts / limit));
     const currentPage = Math.min(page, totalPages);
     const skip = (currentPage - 1) * limit;
 
-    const posts = await Blog.find(query)
+    const posts = await Blog.find(postsQuery)
       .populate('authorId', 'firstName lastName')
       .sort(sortMap[selectedSort])
       .skip(skip)
       .limit(limit)
-      .select('title slug excerpt category customCategory tags coverImageUrl readingTime views publishedAt createdAt');
+      .select('title slug excerpt category customCategory tags coverImageUrl readingTime views likesCount commentsCount featured publishedAt createdAt');
 
     const baseUrl = getAppBaseUrl();
     const canonicalQuery = new URLSearchParams();
     if (searchQuery) canonicalQuery.set('q', searchQuery);
     if (selectedCategory) canonicalQuery.set('category', selectedCategory);
+    if (selectedAuthor) canonicalQuery.set('author', selectedAuthor);
     if (selectedSort !== 'latest') canonicalQuery.set('sort', selectedSort);
     if (currentPage > 1) canonicalQuery.set('page', String(currentPage));
     const canonicalPath = canonicalQuery.toString() ? `/blog?${canonicalQuery.toString()}` : '/blog';
     const canonicalUrl = baseUrl ? `${baseUrl}${canonicalPath}` : '';
 
-    const hasActiveFilters = Boolean(searchQuery || selectedCategory || selectedSort !== 'latest' || currentPage > 1);
+    const selectedAuthorUser = selectedAuthor
+      ? await User.findById(selectedAuthor).select('firstName lastName').lean()
+      : null;
+    const hasActiveFilters = Boolean(searchQuery || selectedCategory || selectedAuthor || selectedSort !== 'latest' || currentPage > 1);
 
     return res.render('pages/blog', {
       title: 'Blog - helloRun',
       posts,
+      featuredPosts,
       categories: BLOG_CATEGORIES,
       filters: {
         q: searchQuery,
         category: selectedCategory,
+        author: selectedAuthor,
         sort: selectedSort
       },
       filterMeta: {
         hasActiveFilters,
-        totalPosts
+        totalPosts,
+        authorName: selectedAuthorUser ? `${selectedAuthorUser.firstName || ''} ${selectedAuthorUser.lastName || ''}`.trim() : ''
       },
       pagination: {
         currentPage,
@@ -940,6 +957,7 @@ exports.getBlogPost = async (req, res) => {
     }
 
     const currentUser = res.locals.user || null;
+    const currentUserId = currentUser?._id || null;
     const shouldTrackView = shouldTrackBlogView({
       currentUser,
       postAuthorId: post.authorId?._id || post.authorId
@@ -980,11 +998,20 @@ exports.getBlogPost = async (req, res) => {
       .slice(0, 280) || 'Read this helloRun community blog post.';
     const seoTitle = String(post.seoTitle || post.title || '').trim();
     const ogImage = String(post.ogImageUrl || post.coverImageUrl || '').trim();
+    const likedByCurrentUser = currentUserId
+      ? Boolean(await BlogLike.exists({ blogId: post._id, userId: currentUserId }))
+      : false;
 
     return res.render('pages/blog-post', {
       title: `${post.title} - helloRun Blog`,
       post,
       relatedPosts,
+      interactionState: {
+        likedByCurrentUser,
+        isAuthenticated: Boolean(currentUserId),
+        currentUserId: currentUserId ? String(currentUserId) : '',
+        reportReasons: ['spam', 'plagiarism', 'promotion', 'unsafe_medical', 'abuse', 'other']
+      },
       seo: {
         ogType: 'article',
         description: metaDescription,
@@ -1034,6 +1061,86 @@ exports.getLeaderboard = async (req, res) => {
       title: 'Server Error',
       status: 500,
       message: 'An error occurred while loading leaderboard data.'
+    });
+  }
+};
+
+exports.getSitemapXml = async (req, res) => {
+  try {
+    const baseUrl = getSitemapBaseUrl(req);
+    const staticPages = [
+      '/',
+      '/events',
+      '/blog',
+      '/about',
+      '/how-it-works',
+      '/contact',
+      '/faq',
+      '/privacy',
+      '/terms',
+      '/cookie-policy',
+      '/leaderboard'
+    ];
+
+    const [events, blogPosts] = await Promise.all([
+      Event.find({ status: 'published' })
+        .select('slug updatedAt createdAt')
+        .sort({ updatedAt: -1 })
+        .lean(),
+      Blog.find({
+        status: 'published',
+        isDeleted: { $ne: true }
+      })
+        .select('slug publishedAt updatedAt createdAt')
+        .sort({ publishedAt: -1, updatedAt: -1 })
+        .lean()
+    ]);
+
+    const urls = [
+      ...staticPages.map((path) => ({
+        loc: `${baseUrl}${path}`,
+        lastmod: formatSitemapDate(new Date())
+      })),
+      ...events
+        .filter((event) => String(event.slug || '').trim())
+        .map((event) => ({
+          loc: `${baseUrl}/events/${encodeURIComponent(event.slug)}`,
+          lastmod: formatSitemapDate(event.updatedAt || event.createdAt)
+        })),
+      ...blogPosts
+        .filter((post) => String(post.slug || '').trim())
+        .map((post) => ({
+          loc: `${baseUrl}/blog/${encodeURIComponent(post.slug)}`,
+          lastmod: formatSitemapDate(post.updatedAt || post.publishedAt || post.createdAt)
+        }))
+    ];
+
+    const uniqueUrls = Array.from(
+      new Map(urls.map((item) => [item.loc, item])).values()
+    );
+
+    const xml = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+      ...uniqueUrls.map((item) => [
+        '  <url>',
+        `    <loc>${escapeXml(item.loc)}</loc>`,
+        `    <lastmod>${escapeXml(item.lastmod)}</lastmod>`,
+        '  </url>'
+      ].join('\n')),
+      '</urlset>'
+    ].join('\n');
+
+    return res
+      .type('application/xml')
+      .set('Cache-Control', 'public, max-age=3600')
+      .send(xml);
+  } catch (error) {
+    console.error('Error generating sitemap:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while generating the sitemap.'
     });
   }
 };
@@ -1162,6 +1269,12 @@ function normalizeBlogSort(input) {
   return 'latest';
 }
 
+function normalizeObjectIdString(input) {
+  const value = String(input || '').trim();
+  if (!value) return '';
+  return /^[a-f\d]{24}$/i.test(value) ? value : '';
+}
+
 function getEventsFilterValues(query) {
   const q = String(query?.q || '').trim().slice(0, 80);
   const rawType = String(query?.eventType || '').trim().toLowerCase();
@@ -1192,6 +1305,33 @@ function escapeRegex(value) {
 
 function getAppBaseUrl() {
   return String(process.env.APP_URL || '').trim().replace(/\/+$/, '');
+}
+
+function getSitemapBaseUrl(req) {
+  const configured = getAppBaseUrl();
+  if (configured) return configured;
+
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  const protocol = forwardedProto || req.protocol || 'http';
+  const host = String(req.get('host') || '').trim();
+  return host ? `${protocol}://${host}` : 'https://hellorun.online';
+}
+
+function formatSitemapDate(value) {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) {
+    return new Date().toISOString().slice(0, 10);
+  }
+  return date.toISOString().slice(0, 10);
+}
+
+function escapeXml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 function getRequestIp(req) {
