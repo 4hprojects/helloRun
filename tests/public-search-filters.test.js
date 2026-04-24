@@ -47,15 +47,53 @@ test('events page applies combined filters and status filter', async () => {
   assert.equal(combined.status, 200);
   const combinedHtml = await combined.text();
   assert.match(combinedHtml, /Virtual Sunrise 5K/i);
+  assert.match(combinedHtml, /Open Registration/i);
+  assert.match(combinedHtml, /Registration closes/i);
   assert.doesNotMatch(combinedHtml, /Onsite Trail 10K/i);
   assert.doesNotMatch(combinedHtml, /Old City Run/i);
   assert.match(combinedHtml, /active filter/i);
 
-  const closed = await fetch(`${BASE_URL}/events?status=closed`);
+  const closed = await fetch(`${BASE_URL}/events?status=closed&q=Old%20City`);
   assert.equal(closed.status, 200);
   const closedHtml = await closed.text();
   assert.match(closedHtml, /Old City Run/i);
   assert.doesNotMatch(closedHtml, /Virtual Sunrise 5K/i);
+  assert.match(closedHtml, /active filter/i);
+  assert.match(closedHtml, /Closed \/ Past/i);
+  assert.match(closedHtml, /Past Event/i);
+});
+
+test('events page search matches organiser name and rendered country name', async () => {
+  const organiserSearch = await fetch(`${BASE_URL}/events?q=Public%20Organizer`);
+  assert.equal(organiserSearch.status, 200);
+  const organiserHtml = await organiserSearch.text();
+  assert.match(organiserHtml, /Virtual Sunrise 5K/i);
+  assert.match(organiserHtml, /Onsite Trail 10K/i);
+  assert.match(organiserHtml, /active filter/i);
+  assert.match(organiserHtml, /<title>Results for &#34;Public Organizer&#34; Events - helloRun<\/title>/i);
+  assert.match(organiserHtml, /<h1>Results for &#34;Public Organizer&#34; Events<\/h1>/i);
+  assert.match(organiserHtml, /[0-9,]+ events match results for &#34;Public Organizer&#34;/i);
+
+  const countrySearch = await fetch(`${BASE_URL}/events?q=Philippines&eventType=onsite&distance=10K&status=open`);
+  assert.equal(countrySearch.status, 200);
+  const countryHtml = await countrySearch.text();
+  assert.match(countryHtml, /Onsite Trail 10K/i);
+  assert.match(countryHtml, /<strong>Search:<\/strong>\s*Philippines/i);
+  assert.match(countryHtml, /<meta name="description" content="Browse open on-site 10k results for &#34;Philippines&#34; on helloRun and find your next race or virtual challenge\.">/i);
+  assert.match(countryHtml, /<h1>Open On-site 10K Results for &#34;Philippines&#34; Events<\/h1>/i);
+  assert.match(countryHtml, /[0-9,]+ events? match(?:es)? open on-site 10k results for &#34;Philippines&#34;/i);
+});
+
+test('closed events are sorted with the most recently closed items first', async () => {
+  const response = await fetch(`${BASE_URL}/events?status=closed&q=ChronologyCheck`);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  const recentIndex = html.indexOf('Recent Closed Run');
+  const oldIndex = html.indexOf('Old City Run');
+  assert.notEqual(recentIndex, -1);
+  assert.notEqual(oldIndex, -1);
+  assert.ok(recentIndex < oldIndex, 'recently closed event should appear before older closed event');
+  assert.match(html, /Registration Closed|Past Event/i);
 });
 
 test('events pagination keeps active filters in page links', async () => {
@@ -65,9 +103,17 @@ test('events pagination keeps active filters in page links', async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Page 2 of/i);
+  assert.match(html, /<strong>Search:<\/strong>\s*Sunrise/i);
+  assert.match(html, /<strong>Mode:<\/strong>\s*Virtual/i);
+  assert.match(html, /<strong>Distance:<\/strong>\s*5K/i);
+  assert.match(html, /<strong>Status:<\/strong>\s*Upcoming/i);
   assert.match(
     html,
-    /\/events\?q=Sunrise&amp;eventType=virtual&amp;distance=5K&amp;status=upcoming&page=1/i
+    /href="\/events\?eventType=virtual&amp;distance=5K&amp;status=upcoming"[^>]*>\s*<span><strong>Search:<\/strong>\s*Sunrise<\/span>/i
+  );
+  assert.match(
+    html,
+    /href="\/events\?q=Sunrise&amp;eventType=virtual&amp;distance=5K&amp;status=upcoming"[^>]*class="pagination-prev/i
   );
   assert.match(
     html,
@@ -75,11 +121,15 @@ test('events pagination keeps active filters in page links', async () => {
   );
   assert.match(
     html,
-    /\/events\?q=Sunrise&amp;eventType=virtual&amp;distance=5K&amp;status=upcoming&page=2/i
+    /\/events\?q=Sunrise&amp;eventType=virtual&amp;distance=5K&amp;status=upcoming&amp;page=2/i
   );
   assert.match(
     html,
-    /\/events\?q=Sunrise&amp;eventType=virtual&amp;distance=5K&amp;status=upcoming&page=2/i
+    /href="\/events\?q=Sunrise&amp;eventType=virtual&amp;distance=5K"[^>]*>\s*<span><strong>Status:<\/strong>\s*Upcoming<\/span>/i
+  );
+  assert.doesNotMatch(
+    html,
+    /q=&amp;|eventType=&amp;|distance=&amp;|status=all/i
   );
 });
 
@@ -210,7 +260,7 @@ async function seedPublicFilterFixture() {
     referenceCode: `PC-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
     title: 'Old City Run',
     organiserName: 'Public Organizer',
-    description: 'Old run event now closed.',
+    description: 'Old run event now closed. ChronologyCheck.',
     status: 'published',
     eventType: 'hybrid',
     eventTypesAllowed: ['virtual', 'onsite'],
@@ -222,6 +272,28 @@ async function seedPublicFilterFixture() {
     city: 'Davao',
     country: 'PH',
     proofTypesAllowed: ['gps'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
+  const recentClosedEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `recent-closed-run-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `PR-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: 'Recent Closed Run',
+    organiserName: 'Public Organizer',
+    description: 'Recently closed event. ChronologyCheck.',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    registrationOpenAt: new Date(now - 15 * 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now - 5 * 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now - 4 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now - 3 * 24 * 60 * 60 * 1000),
+    city: 'Makati',
+    country: 'PH',
+    proofTypesAllowed: ['gps', 'photo'],
     waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
     waiverVersion: 1
   });
@@ -268,7 +340,7 @@ async function seedPublicFilterFixture() {
     userIds: [String(organizer._id), String(author._id)],
     eventIds: [String(upcomingVirtual._id)]
       .concat(extraUpcomingVirtualEvents.map((item) => String(item._id)))
-      .concat([String(upcomingOnsite._id), String(oldEvent._id)]),
+      .concat([String(upcomingOnsite._id), String(oldEvent._id), String(recentClosedEvent._id)]),
     blogIds: [String(nutritionBlog._id), String(trainingBlog._id), String(draftBlog._id)]
   };
 }

@@ -3,12 +3,12 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
-## STATUS UPDATE (Apr 24, 2026 - App Audit: Security, SEO, and Readiness Gaps)
+## STATUS UPDATE (Apr 24, 2026 - Current Phase: Release Hardening and Deployment Gate)
 
 ### Current reality after latest review
-- Core runner, organizer, admin, blog, leaderboard, and legal-policy flows are implemented and have meaningful regression coverage.
-- The app is feature-rich enough for active iteration, but there are still launch-blocking hardening and product-completeness gaps.
-- The next work should prioritize security consistency, broken public surfaces, and production-readiness before starting lower-priority expansion.
+- Core runner, organizer, admin, blog, leaderboard, legal-policy, and Google OAuth flows are implemented and have meaningful regression coverage.
+- The project is in a release-hardening phase: fix regressions, remove environment bypasses, verify critical flows, and close deployment-readiness gaps.
+- New feature expansion is deferred until the automated suite is green, runtime security is enforced, and production-readiness tasks have explicit pass/fail signoff.
 
 ### Completed
 - Security hardening implemented:
@@ -55,7 +55,6 @@
 
 ### Remaining next tasks
 - Environment / enforcement:
-  - enable real CSRF enforcement in runtime config by removing `CSRF_PROTECTION=0` from `.env` if still present
   - verify staging/production env vars for Mongo, session, email, and `APP_URL`
 - Verification:
   - rerun the full regression suite with `npm test`
@@ -96,18 +95,14 @@
   - blog counters/models exist: views, likesCount, commentsCount, SEO fields, tags, featured flag, gallery field
   - blog revision tracking exists for admin autosave changes
 - What still needs improvement:
-  - published-post revision flow is not implemented yet; authors can only edit `draft`, `pending`, and `rejected` posts, but the blog spec requires published edits to go through a revision workflow while the current live post stays public
-  - gallery image support is only partial; schema/public rendering support gallery images, but author creation/edit routes only handle cover-image upload
+  - gallery image support is only partial; schema/public rendering support gallery images, but author creation/edit routes still primarily center on cover-image flow
   - author analytics are not surfaced as planned; dashboard currently shows status/date info but not per-post views, likes, and comments summary
-  - public blog interaction routes still need CSRF review and likely hardening for comment / delete-comment / like flows
-  - post page links to `/blog?author=...`, but the public blog list does not currently implement author filtering
   - featured-post handling is still basic and not a real featured section / ranking strategy
+  - broader SEO/content polish is still pending after the current release-hardening pass
 - Recommended next blog-specific tasks:
-  - implement published-post revision workflow
+  - expand and polish the existing published-post revision workflow
   - add gallery upload/manage support end-to-end
   - expose analytics basics on author dashboard
-  - add CSRF protection and client wiring for blog interaction write endpoints
-  - either implement author filtering on `/blog` or remove the dead author link
   - replace the placeholder featured-card logic with real featured-post behavior
   - after that, move into Phase B safety/growth work: report flow, anti-spam/plagiarism checks, deeper SEO/content polish
 
@@ -1127,6 +1122,167 @@ CURRENT ACTIVE BACKLOG (Next 2 Sprints)
    - [DONE] runner dashboard data grouping
    - [DONE] payment workflow regressions
 
+### Next UI/UX Follow-up
+1. `/events` list improvement pass:
+   - [DONE] improve free-text search relevance for visible location labels and organiser names
+   - [DONE] review `closed` filter semantics and use better sort order for past/closed events
+   - [DONE] add clearer event status chips and stronger CTA hierarchy on cards
+   - [DONE] add `/events` SEO metadata and canonical handling
+   - [DONE] add removable active-filter chips and cleaner pagination URLs
+   - [PENDING] visual polish pass for hero/filter hierarchy/mobile scan quality
+   - [OPTIONAL] context-aware distance options if they can be added with low regression risk
+
+## `/events` Improvement Plan (Pre-Implementation Spec)
+
+### Current implementation status
+- [DONE] Delivery slice 1: search relevance and filter semantics
+  - organiser-name search now works
+  - visible country-name intent now maps to stored country codes
+  - `closed` label now renders as `Closed / Past`
+  - sorting is state-aware for `upcoming`, `open`, and `closed`
+- [DONE] Delivery slice 2: card content and conversion
+  - cards now show status chips
+  - cards now show one helper/urgency line
+  - redundant tag output was reduced
+- [DONE] Delivery slice 3: filter UX and pagination polish
+  - removable active-filter chips were added
+  - single-filter removal preserves remaining query state
+  - pagination URLs now omit empty params and redundant `page=1`
+- [DONE] Delivery slice 4: SEO and metadata
+  - `/events` now emits canonical/meta tags through the shared SEO partial
+  - filtered `/events` views now get stable, filter-aware title/description copy
+  - hero and results-summary copy now align with the active filter state
+- [PENDING] Delivery slice 5: visual polish
+  - hero visual identity
+  - filter-bar hierarchy and scan quality
+  - mobile-first refinement without changing route or flow behavior
+
+### Goal
+- Upgrade `/events` from a functional listing page into a stronger discovery and conversion surface without changing route shape or destabilizing event-detail and registration flows.
+
+### Success criteria
+- search results better match what users visibly see on cards
+- filter labels and sorting feel intuitive
+- cards communicate urgency and registration state clearly
+- `/events` has canonical/meta support comparable to other public surfaces
+- regression coverage remains stable and does not depend on unrelated fixture ordering
+
+### Current issues to address
+- Search currently matches raw DB fields, but not all user-visible labels.
+- `closed` currently behaves as a mixed “registration closed or event ended” state, which is useful but potentially unclear.
+- The same sort order is used for all event states, which weakens closed/past browsing.
+- Cards show core facts but do not emphasize actionability or urgency.
+- `/events` has minimal dedicated SEO metadata.
+- Filter UX works, but still feels mechanical rather than helpful.
+
+### Scope and locked decisions
+- Keep the public route shape unchanged:
+  - `/events?q=&eventType=&distance=&status=&page=`
+- Keep `closed` as the query value for compatibility.
+- Treat `closed` in this pass as:
+  - registration closed OR event ended
+- Do not add database/index migrations in this pass.
+- Do not add direct registration submission from `/events`; keep the page discovery-first.
+- Keep context-aware distance filtering as optional unless it can be added with low risk.
+
+### Delivery slice 1: Search relevance and filter semantics
+- Status: [DONE]
+- Expand free-text search to include `organiserName`.
+- Normalize country matching so visible country names can match stored country codes.
+  - example: `Philippines` should match events stored as `PH`
+- Keep regex-style matching for this pass; do not move to full-text/index work yet.
+- Keep current status filters but make behavior explicit:
+  - `upcoming`: event start is in the future
+  - `open`: registration window is currently open
+  - `closed`: registration closed or event ended
+- Review user-facing label copy so the meaning of `closed` is less ambiguous.
+  - recommended label: `Closed / Past`
+- Make sorting state-aware:
+  - `upcoming`: nearest start date first
+  - `open`: nearest registration close date first, then nearest start date
+  - `closed`: most recently ended/closed first
+  - `all`: keep a sensible discovery-first order, with upcoming surfaced ahead of stale content
+
+### Delivery slice 2: Card content and conversion
+- Status: [DONE]
+- Add an event status chip per card.
+  - candidate states:
+    - `Open Registration`
+    - `Registration Closed`
+    - `Starts Soon`
+    - `Past Event`
+- Add one urgency/helper line to cards.
+  - prefer registration-close messaging when registration is open
+  - fall back to event-start timing when registration is closed but event is upcoming
+- Strengthen CTA hierarchy without changing page role.
+  - keep `View Event` as the primary default CTA in this pass
+  - support it with clearer status/timing context rather than introducing direct registration from the list
+- Reduce low-value duplication in tags.
+  - do not visually repeat `eventType` and `eventTypesAllowed` when they communicate the same thing
+
+### Delivery slice 3: Filter UX and pagination polish
+- Status: [DONE]
+- Add active filter chips above the results list.
+  - chips should reflect `q`, `eventType`, `distance`, and `status`
+  - each chip should be removable while preserving the other active filters
+- Keep the existing `Clear` / `Clear filters` action.
+- Clean generated pagination URLs so empty query params are omitted.
+- If low-risk, make distance options context-aware to active filters; otherwise defer.
+
+### Delivery slice 4: SEO and metadata
+- Status: [DONE]
+- Add dedicated `seo` payload from the controller.
+- Include:
+  - canonical URL for `/events`
+  - canonical URL including active query params when filters are applied
+  - default meta description for the unfiltered page
+  - simple filter-aware description only if wording stays stable and predictable
+- Ensure metadata degrades safely when `APP_URL` is absent.
+
+### Delivery slice 5: Visual polish
+- Status: [PENDING]
+- Improve the hero so it feels more specific to event discovery, not placeholder copy.
+- Refine filter-bar hierarchy so it reads as a discovery tool rather than only a form block.
+- Improve scan quality on mobile:
+  - maintain card readability
+  - keep status chips and CTA visible without making cards noisy
+- Preserve the current site visual language; do not introduce a conflicting design system.
+
+### Files expected to change
+- controller:
+  - `src/controllers/page.controller.js`
+- template:
+  - `src/views/pages/events.ejs`
+- styling:
+  - `src/public/css/events.css`
+- regression coverage:
+  - `tests/public-search-filters.test.js`
+
+### Test plan
+- Automated:
+  - search by title, description, organiser name, city, and rendered country name
+  - state filters for `upcoming`, `open`, and `closed`
+  - ordering expectations for closed/past browsing
+  - pagination preserves only active params
+  - active filter chips render and remove one filter at a time
+- Manual:
+  - mobile filter layout and card scan quality
+  - with-image and without-image card consistency
+  - canonical/meta tags on filtered and unfiltered `/events`
+  - no-results, single-result, and multi-page states
+
+### Acceptance criteria
+- Searching for visible location text works reliably.
+- Closed/past events surface in a sensible order.
+- Users can tell at a glance whether registration is open.
+- Filter state is visible and removable incrementally.
+- `/events` has canonical/meta coverage.
+- `/events` has filter-aware title/hero/results-summary copy that stays aligned with the current query state.
+- active filter chips render and remove one filter at a time without dropping the rest of the query state.
+- pagination URLs stay clean and omit empty params or redundant `page=1`.
+- Event detail and registration flows remain unchanged.
+- Updated tests pass without relying on unrelated seeded data.
+
 ### Notes
 - CHANGELOG.md should record file-level implementation history only.
 - PRD.md remains the master planning and task document.
@@ -1160,32 +1316,32 @@ CURRENT ACTIVE BACKLOG (Next 2 Sprints)
 ---
 How we will build helloRun step-by-step
 
-PROJECT OVERVIEW & STATUS (Feb 26, 2026)
+PROJECT OVERVIEW & STATUS (Updated Apr 24, 2026)
 
 ### COMPLETED PHASES
 [DONE] Phase 0: Project Skeleton (Nov 2024) - 100%
 [DONE] Phase 1: Authentication System (Feb 2025) - 100%
 [DONE] Phase 2A: Organizer Signup Flow - 100%
 [DONE] Phase 2B: Organizer Application Forms & Status - 100%
+[DONE] Phase 3: Event Creation & Management - core scope complete
+[DONE] Phase 4: Registration + payment proof workflow - complete
+[DONE] Phase 5: Submission, Results & Leaderboard - core scope complete
+[DONE] Phase 6: Dashboards & Analytics - core scope complete
+[DONE] Phase 7: Additional Pages & Features - core scope complete
+[DONE] Phase 8: Google OAuth - implemented and regression-covered
 
-### IN PROGRESS
-[DONE] Phase 3: Event Creation & Management (core scope complete)
-[DONE] Phase 4: Registration System (payment proof + verification workflow completed and smoke-tested)
-[DONE] Phase 5: Submission, Results & Leaderboard (core scope complete)
-[DONE] Phase 6: Dashboards (runner/organizer/admin core scope complete)
+### CURRENT PHASE
+[IN_PROGRESS] Phase 9: Release hardening, regression stability, and production-readiness verification
 
 ### UPCOMING PHASES
-[DONE] Phase 7: Additional Features (static pages + public search/filter UX baseline and notifications expansion implemented)
-[PENDING] Phase 8: Google OAuth (Optional)
-[IN_PROGRESS] Phase 9: Testing & Optimization
 [PENDING] Phase 10: Production Deployment
 [DRAFT] Phase 11: Shop / Merchandise Feature
 
 ### QUICK STATS
 - Total Users: TBD (after deployment)
-- Total Events: 0 (awaiting Phase 3)
-- Platform Status: Development
-- Last Major Update: Feb 26, 2026 (Runner dashboard data cards + runner route/controller refactor)
+- Total Events: Live development data present; production count TBD after launch
+- Platform Status: Pre-release hardening
+- Last Major Update: Apr 24, 2026 (security, SEO, readiness, and release audit)
 
 ---
 
@@ -1331,13 +1487,13 @@ Goal: Organizers can create running events.
 
 ---
 
-Phase 4: Registration + payment proof [PAYMENT] PENDING
+Phase 4: Registration + payment proof [PAYMENT] COMPLETED
 
 Goal: Runner joins event and uploads payment proof for verification.
-[PENDING] Registration form
-[PENDING] Upload payment proof
-[PENDING] Organiser verifies payment
-[PENDING] Email notifications
+[DONE] Registration form
+[DONE] Upload payment proof
+[DONE] Organiser verifies payment
+[DONE] Email notifications
 
 ---
 
@@ -1370,28 +1526,38 @@ Phase 7: Additional Pages & Features [FEATURES] COMPLETED (core scope)
 [IN_PROGRESS] Blog system:
   [DONE] Phase A foundation (author/admin/public pages, moderation, SEO, view policy)
   [DONE] Admin inline edit + autosave + revision history
-  [PENDING] comments/likes and advanced growth features
-[IN_PROGRESS] Search & filters (public events/blog/leaderboard baseline delivered)
+  [DONE] comments, likes, reports, and published revision flow baseline
+  [PENDING] analytics, gallery authoring polish, featured ranking, and deeper growth features
+[DONE] Search & filters (public events/blog/leaderboard baseline delivered)
 [DONE] Notifications system
 
 ---
 
-Phase 8: Google OAuth (Optional) [SECURITY] PENDING
-[PENDING] Passport.js integration
-[PENDING] Merge accounts (if email exists)
+Phase 8: Google OAuth (Optional) [SECURITY] COMPLETED
+[DONE] Google OAuth sign-in and callback handling
+[DONE] Link existing email accounts when email matches
+[DONE] Create new Google-authenticated runner accounts
+[DONE] Google link visibility and safe unlink flow for runners
 
 ---
 
-Phase 9: Testing & Optimization [TESTING] PENDING
-[PENDING] Unit & integration tests
-[PENDING] Performance & security audit
-[PENDING] Cross-browser & mobile testing
+Phase 9: Testing & Optimization [TESTING] IN PROGRESS
+[IN_PROGRESS] Unit & integration regression stability
+[IN_PROGRESS] Performance, security, and readiness verification
+[PENDING] `/events` improvement pass:
+  - search relevance for displayed location labels and organiser names
+  - clearer state/filter semantics for `upcoming`, `open`, and `closed`
+  - stronger status chips / CTA hierarchy on event cards
+  - `/events` SEO metadata and canonical polish
+[PENDING] Final cross-browser/mobile polish pass
+[PENDING] Launch gate signoff checklist completion
 
 ---
 
 Phase 10: Deployment [DEPLOY] PENDING
 [PENDING] Production database, SSL, domain (hellorun.online)
-[PENDING] Monitoring, backups, launch
+[PENDING] Monitoring, uptime checks, error tracking, and backup/restore runbook
+[PENDING] Staging smoke signoff and launch
 
 ---
 
@@ -1610,20 +1776,22 @@ Phase 1:  [DONE] Completed - Feb 2025
 Phase 2A: [DONE] Completed - Dec 2024
 Phase 2B: [DONE] Completed - Feb 14, 2026
 Phase 2C: [DONE] Completed - Feb 24, 2026
-Phase 3:  [NEXT] After Phase 2C
-Phase 4:  [NEXT] After Phase 3
-Phase 5:  [NEXT] After Phase 4 (includes Leaderboard)
-Phase 6:  [NEXT] After Phase 5
-Phase 7:  [NEXT] After Phase 6
-Phase 8:  [NEXT] Optional
-Phase 9:  [NEXT] Before launch
-Phase 10: [NEXT] Launch
+Phase 3:  [DONE] Completed
+Phase 4:  [DONE] Completed
+Phase 5:  [DONE] Completed
+Phase 6:  [DONE] Completed
+Phase 7:  [DONE] Completed
+Phase 8:  [DONE] Completed (optional scope shipped)
+Phase 9:  [NOW] Release hardening before launch
+Phase 10: [NEXT] Deployment launch gate
 
-Estimated remaining: ~17-18 hours
+Estimated remaining: depends on release-hardening findings and external deployment tasks.
 
 ---
 
 DEPLOYMENT CHECKLIST (Production Ready)
+
+Primary deployment gate source: `docs/production_readiness_checklist.md`
 
 ### PRE-DEPLOYMENT REQUIREMENTS
 - [ ] Environment Variables
@@ -1686,21 +1854,16 @@ BLOG SYSTEM PLAN (Phase 7B - Future)
 [DONE] Admin queue/review + approve/reject/archive
 [DONE] Public /blog and /blog/:slug
 [DONE] Admin autosave edit endpoint and revision history tracking
+[DONE] Comments, likes, report flow, and admin moderation
+[DONE] Published-post revision workflow while the live post stays public
+[DONE] Author filtering on `/blog`
+[DONE] CSRF protection on public interaction write endpoints
 
-### BlogPost Model
-[PENDING] postId, slug, title, excerpt, content, featuredImage
-[PENDING] authorId, category, tags, status (draft/published/archived)
-[PENDING] publishedAt, views, readTime, SEO fields
-
-### Categories
-[PENDING] Training, Nutrition, Gear, Motivation, Race Tips, Injury Prevention, General
-
-### Routes
-[PENDING] GET /blog, GET /blog/:slug (public)
-[PENDING] GET/POST /admin/blog/* (admin CRUD)
-
-### Dependencies to add
-[PENDING] slugify, rich text editor (TinyMCE or Quill)
+### Still planned after release hardening
+[PENDING] Gallery authoring/upload management polish
+[PENDING] Author analytics summary (views, likes, comments) on dashboard
+[PENDING] Featured-post ranking strategy beyond the current baseline
+[PENDING] Deeper SEO/content polish and growth tooling
 
 ---
 

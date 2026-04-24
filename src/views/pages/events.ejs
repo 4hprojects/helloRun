@@ -18,8 +18,8 @@
     <!-- Hero -->
     <section class="hero">
       <div class="container">
-        <h1>Published Events</h1>
-        <p>Explore active helloRun races and pick your next challenge.</p>
+        <h1><%= pageContent?.heroTitle || 'Published Events' %></h1>
+        <p><%= pageContent?.heroDescription || 'Explore active helloRun races and pick your next challenge.' %></p>
         <% if (locals.isAuthenticated) { %>
           <a href="/my-registrations" class="btn btn-outline">My Registrations</a>
         <% } %>
@@ -71,7 +71,7 @@
               <option value="all" <%= (filters?.status || 'all') === 'all' ? 'selected' : '' %>>All</option>
               <option value="upcoming" <%= filters?.status === 'upcoming' ? 'selected' : '' %>>Upcoming</option>
               <option value="open" <%= filters?.status === 'open' ? 'selected' : '' %>>Open</option>
-              <option value="closed" <%= filters?.status === 'closed' ? 'selected' : '' %>>Closed</option>
+              <option value="closed" <%= filters?.status === 'closed' ? 'selected' : '' %>>Closed / Past</option>
             </select>
           </div>
 
@@ -87,6 +87,21 @@
         <p class="results-meta">
           Showing <strong><%= filterMeta?.resultsCount || 0 %></strong> event<%= (filterMeta?.resultsCount || 0) === 1 ? '' : 's' %><%= filterMeta?.hasActiveFilters ? ` with ${filterMeta.activeFilterCount} active filter${filterMeta.activeFilterCount === 1 ? '' : 's'}` : '' %>.
         </p>
+        <% if (filterMeta?.summary) { %>
+          <p class="results-summary"><%= filterMeta.summary %></p>
+        <% } %>
+
+        <% if (filterMeta?.activeFilters?.length) { %>
+          <div class="active-filters" aria-label="Active filters">
+            <% filterMeta.activeFilters.forEach((activeFilter) => { %>
+              <a href="<%= activeFilter.clearUrl %>" class="filter-chip">
+                <span><strong><%= activeFilter.label %>:</strong> <%= activeFilter.value %></span>
+                <span class="filter-chip-remove" aria-hidden="true">×</span>
+              </a>
+            <% }) %>
+            <a href="/events" class="filter-chip filter-chip-clear">Clear all</a>
+          </div>
+        <% } %>
 
         <!-- Event Cards -->
         <% if (events && events.length) { %>
@@ -101,13 +116,17 @@
 
                 <div class="card-content">
                   <div class="card-tags">
+                    <span class="tag tag-status tag-status-<%= event.displayState?.tone || 'neutral' %>"><%= event.displayState?.label || 'Event Listing' %></span>
                     <span class="tag"><%= event.eventType || 'event' %></span>
-                    <span class="tag tag-muted"><%= (event.eventTypesAllowed || []).join(' / ') || 'N/A' %></span>
                   </div>
 
                   <h3 class="card-title">
                     <a href="/events/<%= event.slug %>"><%= event.title %></a>
                   </h3>
+
+                  <% if (event.displayState?.helper) { %>
+                    <p class="card-helper"><%= event.displayState.helper %></p>
+                  <% } %>
 
                   <div class="card-meta">
                     <i data-lucide="calendar"></i>
@@ -136,17 +155,10 @@
 
           <!-- Pagination -->
           <% if (pagination && pagination.totalPages > 1) { %>
-            <% const params = new URLSearchParams({
-              q: filters?.q || '',
-              eventType: filters?.eventType || '',
-              distance: filters?.distance || '',
-              status: filters?.status || 'all'
-            }); %>
-            <% const basePageUrl = `/events?${params.toString()}`; %>
             <p class="results-meta">Page <%= pagination.currentPage %> of <%= pagination.totalPages %></p>
             <nav class="pagination" aria-label="Events pagination">
               <a
-                href="<%= basePageUrl %>&page=<%= Math.max(1, pagination.currentPage - 1) %>"
+                href="<%= pagination.getPageUrl(Math.max(1, pagination.currentPage - 1)) %>"
                 class="pagination-prev <%= pagination.currentPage === 1 ? 'disabled' : '' %>"
                 <%= pagination.currentPage === 1 ? 'aria-disabled="true" tabindex="-1"' : '' %>
               >
@@ -157,7 +169,7 @@
                 <% for (let i = 1; i <= pagination.totalPages; i++) { %>
                   <% if (i === 1 || i === pagination.totalPages || (i >= pagination.currentPage - 1 && i <= pagination.currentPage + 1)) { %>
                     <a
-                      href="<%= basePageUrl %>&page=<%= i %>"
+                      href="<%= pagination.getPageUrl(i) %>"
                       class="events-page-number<%= i === pagination.currentPage ? ' active' : '' %>"
                       <%= i === pagination.currentPage ? 'aria-current="page"' : '' %>
                     >
@@ -170,7 +182,7 @@
               </div>
 
               <a
-                href="<%= basePageUrl %>&page=<%= Math.min(pagination.totalPages, pagination.currentPage + 1) %>"
+                href="<%= pagination.getPageUrl(Math.min(pagination.totalPages, pagination.currentPage + 1)) %>"
                 class="pagination-next <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>"
                 <%= pagination.currentPage === pagination.totalPages ? 'aria-disabled="true" tabindex="-1"' : '' %>
               >

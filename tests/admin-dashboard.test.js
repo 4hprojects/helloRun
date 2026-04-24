@@ -79,6 +79,7 @@ test('admin review queue enforces admin access', async () => {
   assert.equal(unauthenticated.headers.get('location'), '/login');
 
   const runnerCookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', runnerCookie);
   const runnerResponse = await fetch(`${BASE_URL}/admin/reviews`, {
     headers: { Cookie: runnerCookie },
     redirect: 'manual'
@@ -327,9 +328,13 @@ async function login(email, password) {
 }
 
 async function waitForAdminSessionReady(cookie) {
+  return waitForSessionReady('/admin/dashboard', cookie);
+}
+
+async function waitForSessionReady(pathname, cookie) {
   const maxAttempts = 10;
   for (let i = 0; i < maxAttempts; i += 1) {
-    const r = await fetch(`${BASE_URL}/admin/dashboard`, {
+    const r = await fetch(`${BASE_URL}${pathname}`, {
       headers: { Cookie: cookie },
       redirect: 'manual'
     });

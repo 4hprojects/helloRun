@@ -12,8 +12,8 @@
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",
     "seed:cookie-policy": "node src/scripts/seed-cookie-policy.js",
     "postinstall": "npm run setup",
-    "test": "node --test --test-concurrency=1 tests/*.test.js",
-    "test:parallel": "node --test tests/*.test.js"
+    "test": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, CSRF_PROTECTION: '0' }; const result = spawnSync(process.execPath, ['--test', '--test-concurrency=1', 'tests/*.test.js'], { stdio: 'inherit', env }); process.exit(result.status ?? 1);\"",
+    "test:parallel": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, CSRF_PROTECTION: '0' }; const result = spawnSync(process.execPath, ['--test', 'tests/*.test.js'], { stdio: 'inherit', env }); process.exit(result.status ?? 1);\""
   },
   "keywords": [
     "running",

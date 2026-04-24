@@ -32,6 +32,7 @@ exports.getEvents = async (req, res) => {
 
     const filterValues = getEventsFilterValues(req.query);
     const now = new Date();
+    const matchingCountryCodes = getMatchingCountryCodes(filterValues.q);
     const query = {
       status: 'published'
     };
@@ -61,14 +62,19 @@ exports.getEvents = async (req, res) => {
     if (filterValues.q) {
       const safePattern = new RegExp(escapeRegex(filterValues.q), 'i');
       query.$and = query.$and || [];
+      const searchConditions = [
+        { title: safePattern },
+        { organiserName: safePattern },
+        { description: safePattern },
+        { venueName: safePattern },
+        { city: safePattern },
+        { country: safePattern }
+      ];
+      if (matchingCountryCodes.length) {
+        searchConditions.push({ country: { $in: matchingCountryCodes } });
+      }
       query.$and.push({
-        $or: [
-          { title: safePattern },
-          { description: safePattern },
-          { venueName: safePattern },
-          { city: safePattern },
-          { country: safePattern }
-        ]
+        $or: searchConditions
       });
     }
 
@@ -84,7 +90,7 @@ exports.getEvents = async (req, res) => {
     const skip = (currentPage - 1) * limit;
 
     const events = await Event.find(query)
-      .sort({ eventStartAt: 1, createdAt: -1 })
+      .sort(getEventsSort(filterValues.status))
       .skip(skip)
       .limit(limit)
       .select('title slug description eventType eventTypesAllowed raceDistances eventStartAt eventEndAt venueName city country bannerImageUrl registrationCloseAt registrationOpenAt')
@@ -101,34 +107,49 @@ exports.getEvents = async (req, res) => {
       + Number(filterValues.status !== 'all');
 
     const hasActiveFilters = activeFilterCount > 0;
+    const activeFilters = getEventsActiveFilters(filterValues);
+    const pageContent = getEventsPageContent(filterValues, {
+      currentPage,
+      totalPages
+    });
 
     const eventsForRender = events.map((event) => {
       const raceDistances = Array.isArray(event.raceDistances)
         ? event.raceDistances.map((distanceItem) => String(distanceItem || '').trim().toUpperCase()).filter(Boolean)
         : [];
+      const displayState = getEventCardDisplayState(event, now);
       return {
         ...event,
         raceDistances,
-        countryLabel: getCountryName(event.country)
+        countryLabel: getCountryName(event.country),
+        displayState
       };
     });
 
     return res.render('pages/events', {
-      title: 'Running Events - helloRun',
-      loginSuccess,
-      userName,
-      events: eventsForRender,
+        title: pageContent.title,
+        seo: {
+          ...pageContent.seo,
+          canonicalUrl: buildEventsCanonicalUrl(filterValues, currentPage)
+        },
+        loginSuccess,
+        userName,
+        events: eventsForRender,
       filters: filterValues,
+      pageContent,
       filterMeta: {
         hasActiveFilters,
         activeFilterCount,
         resultsCount: totalEvents,
-        distanceOptions: normalizedDistanceOptions
+        distanceOptions: normalizedDistanceOptions,
+        activeFilters,
+        summary: buildEventsResultsSummary(filterValues, totalEvents)
       },
       pagination: {
         currentPage,
         totalPages,
-        pageSize: limit
+        pageSize: limit,
+        getPageUrl: (pageNumber) => buildEventsPageUrl(filterValues, pageNumber)
       }
     });
   } catch (error) {
@@ -1291,6 +1312,282 @@ function getEventsFilterValues(query) {
     distance,
     status
   };
+}
+
+function getMatchingCountryCodes(searchQuery) {
+  const safe = String(searchQuery || '').trim().toLowerCase();
+  if (!safe) return [];
+  return countries
+    .filter((item) => item.name.toLowerCase().includes(safe))
+    .map((item) => item.code);
+}
+
+function getEventsSort(status) {
+  if (status === 'open') {
+    return { registrationCloseAt: 1, eventStartAt: 1, createdAt: -1 };
+  }
+  if (status === 'closed') {
+    return { eventEndAt: -1, registrationCloseAt: -1, createdAt: -1 };
+  }
+  return { eventStartAt: 1, createdAt: -1 };
+}
+
+function buildEventsCanonicalUrl(filterValues, currentPage) {
+  const baseUrl = getAppBaseUrl();
+  if (!baseUrl) return '';
+
+  const path = buildEventsPageUrl(filterValues, currentPage);
+  return `${baseUrl}${path}`;
+}
+
+function buildEventsPageUrl(filterValues, currentPage = 1) {
+  const params = buildEventsQueryParams(filterValues, currentPage);
+  return params.toString() ? `/events?${params.toString()}` : '/events';
+}
+
+function buildEventsQueryParams(filterValues, currentPage = 1) {
+  const params = new URLSearchParams();
+  if (filterValues.q) params.set('q', filterValues.q);
+  if (filterValues.eventType) params.set('eventType', filterValues.eventType);
+  if (filterValues.distance) params.set('distance', filterValues.distance);
+  if (filterValues.status && filterValues.status !== 'all') params.set('status', filterValues.status);
+  if (Number(currentPage || 1) > 1) params.set('page', String(currentPage));
+  return params;
+}
+
+function getEventsActiveFilters(filterValues) {
+  const activeFilters = [];
+
+  if (filterValues.q) {
+    activeFilters.push({
+      key: 'q',
+      label: 'Search',
+      value: filterValues.q,
+      clearUrl: buildEventsPageUrl({
+        ...filterValues,
+        q: ''
+      })
+    });
+  }
+
+  if (filterValues.eventType) {
+    activeFilters.push({
+      key: 'eventType',
+      label: 'Mode',
+      value: formatEventTypeLabel(filterValues.eventType),
+      clearUrl: buildEventsPageUrl({
+        ...filterValues,
+        eventType: ''
+      })
+    });
+  }
+
+  if (filterValues.distance) {
+    activeFilters.push({
+      key: 'distance',
+      label: 'Distance',
+      value: filterValues.distance,
+      clearUrl: buildEventsPageUrl({
+        ...filterValues,
+        distance: ''
+      })
+    });
+  }
+
+  if (filterValues.status && filterValues.status !== 'all') {
+    activeFilters.push({
+      key: 'status',
+      label: 'Status',
+      value: formatEventStatusLabel(filterValues.status),
+      clearUrl: buildEventsPageUrl({
+        ...filterValues,
+        status: 'all'
+      })
+    });
+  }
+
+  return activeFilters;
+}
+
+function formatEventTypeLabel(value) {
+  if (value === 'onsite') return 'On-site';
+  if (value === 'virtual') return 'Virtual';
+  if (value === 'hybrid') return 'Hybrid';
+  return String(value || '').trim();
+}
+
+function formatEventStatusLabel(value) {
+  if (value === 'upcoming') return 'Upcoming';
+  if (value === 'open') return 'Open';
+  if (value === 'closed') return 'Closed / Past';
+  return 'All';
+}
+
+function getEventsPageContent(filterValues, pagination = {}) {
+  const filterLabel = getEventsFilterNarrative(filterValues);
+  const pageSuffix = Number(pagination.currentPage || 1) > 1
+    ? ` - Page ${pagination.currentPage}`
+    : '';
+  const titlePrefix = filterLabel ? `${filterLabel} Events` : 'Running Events';
+  const heroTitle = filterLabel ? `${filterLabel} Events` : 'Published Events';
+  const defaultDescription = 'Discover helloRun events, browse by mode and distance, and find your next race or virtual challenge.';
+  const filteredDescription = filterLabel
+    ? `Browse ${getEventsFilterNarrative(filterValues, { lowercaseBase: true })} on helloRun and find your next race or virtual challenge.`
+    : defaultDescription;
+  const heroDescription = filterLabel
+    ? buildEventsHeroDescription(filterValues)
+    : 'Explore active helloRun races and pick your next challenge.';
+
+  return {
+    title: `${titlePrefix}${pageSuffix} - helloRun`,
+    heroTitle,
+    heroDescription,
+    seo: {
+      description: filteredDescription,
+      ogTitle: `${titlePrefix}${pageSuffix} - helloRun`,
+      twitterTitle: `${titlePrefix}${pageSuffix} - helloRun`
+    }
+  };
+}
+
+function buildEventsResultsSummary(filterValues, totalEvents) {
+  if (!hasAnyEventsFilters(filterValues)) {
+    return 'Browse active helloRun races by mode, distance, and registration status.';
+  }
+
+  const filterLabel = getEventsFilterNarrative(filterValues);
+  const verb = Number(totalEvents || 0) === 1 ? 'matches' : 'match';
+  return `${Number(totalEvents || 0).toLocaleString('en-US')} event${Number(totalEvents || 0) === 1 ? '' : 's'} ${verb} ${getEventsFilterNarrative(filterValues, { lowercaseBase: true })}.`;
+}
+
+function buildEventsHeroDescription(filterValues) {
+  const narrative = getEventsFilterNarrative(filterValues, { lowercaseBase: true });
+  if (!narrative) {
+    return 'Explore active helloRun races and pick your next challenge.';
+  }
+
+  if (filterValues.q) {
+    return `Refine ${narrative.toLowerCase()} and compare the events that best fit your search.`;
+  }
+
+  return `Compare ${narrative.toLowerCase()} and choose the race that fits your next goal.`;
+}
+
+function getEventsFilterNarrative(filterValues, options = {}) {
+  const lowercaseBase = !!options.lowercaseBase;
+  const parts = [];
+  if (filterValues.status && filterValues.status !== 'all') {
+    parts.push(formatEventStatusLabel(filterValues.status));
+  }
+  if (filterValues.eventType) {
+    parts.push(formatEventTypeLabel(filterValues.eventType));
+  }
+  if (filterValues.distance) {
+    parts.push(filterValues.distance);
+  }
+
+  const base = parts.length
+    ? parts.map((part) => (lowercaseBase ? String(part).toLowerCase() : part)).join(' ')
+    : '';
+  if (filterValues.q) {
+    return base
+      ? `${base} results for "${filterValues.q}"`
+      : `results for "${filterValues.q}"`;
+  }
+
+  return base;
+}
+
+function hasAnyEventsFilters(filterValues) {
+  return Boolean(
+    filterValues.q
+    || filterValues.eventType
+    || filterValues.distance
+    || (filterValues.status && filterValues.status !== 'all')
+  );
+}
+
+function getEventCardDisplayState(event, now = new Date()) {
+  const registrationOpenAt = event?.registrationOpenAt ? new Date(event.registrationOpenAt) : null;
+  const registrationCloseAt = event?.registrationCloseAt ? new Date(event.registrationCloseAt) : null;
+  const eventStartAt = event?.eventStartAt ? new Date(event.eventStartAt) : null;
+  const eventEndAt = event?.eventEndAt ? new Date(event.eventEndAt) : null;
+
+  const hasValidRegistrationOpen = registrationOpenAt && !Number.isNaN(registrationOpenAt.getTime());
+  const hasValidRegistrationClose = registrationCloseAt && !Number.isNaN(registrationCloseAt.getTime());
+  const hasValidEventStart = eventStartAt && !Number.isNaN(eventStartAt.getTime());
+  const hasValidEventEnd = eventEndAt && !Number.isNaN(eventEndAt.getTime());
+
+  const registrationIsOpen = hasValidRegistrationOpen && hasValidRegistrationClose
+    ? registrationOpenAt <= now && registrationCloseAt >= now
+    : false;
+  const eventIsPast = hasValidEventEnd ? eventEndAt < now : false;
+  const startsSoon = hasValidEventStart
+    ? eventStartAt >= now && (eventStartAt.getTime() - now.getTime()) <= 3 * 24 * 60 * 60 * 1000
+    : false;
+
+  if (eventIsPast) {
+    return {
+      label: 'Past Event',
+      tone: 'past',
+      helper: hasValidEventEnd ? `Ended ${formatRelativeDayLabel(eventEndAt, now)}.` : 'Event already finished.'
+    };
+  }
+
+  if (registrationIsOpen) {
+    return {
+      label: 'Open Registration',
+      tone: 'open',
+      helper: hasValidRegistrationClose
+        ? `Registration closes ${formatRelativeDayLabel(registrationCloseAt, now)}.`
+        : 'Registration is currently open.'
+    };
+  }
+
+  if (startsSoon) {
+    return {
+      label: 'Starts Soon',
+      tone: 'soon',
+      helper: hasValidEventStart ? `Starts ${formatRelativeDayLabel(eventStartAt, now)}.` : 'Starting soon.'
+    };
+  }
+
+  if (hasValidRegistrationClose && registrationCloseAt < now) {
+    return {
+      label: 'Registration Closed',
+      tone: 'closed',
+      helper: hasValidEventStart && eventStartAt >= now
+        ? `Event starts ${formatRelativeDayLabel(eventStartAt, now)}.`
+        : 'Registration window has closed.'
+    };
+  }
+
+  return {
+    label: 'Event Listing',
+    tone: 'neutral',
+    helper: hasValidEventStart ? `Starts ${formatRelativeDayLabel(eventStartAt, now)}.` : 'View details for timing and registration info.'
+  };
+}
+
+function formatRelativeDayLabel(targetDate, now = new Date()) {
+  const target = new Date(targetDate);
+  if (Number.isNaN(target.getTime())) return '';
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+  const diffDays = Math.round((startOfTarget.getTime() - startOfToday.getTime()) / (24 * 60 * 60 * 1000));
+
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'tomorrow';
+  if (diffDays === -1) return 'yesterday';
+  if (diffDays > 1 && diffDays <= 14) return `in ${diffDays} days`;
+  if (diffDays < -1 && diffDays >= -14) return `${Math.abs(diffDays)} days ago`;
+
+  return target.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
 }
 
 function normalizePositiveInt(input, fallback) {
