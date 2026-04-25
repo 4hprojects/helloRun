@@ -3,6 +3,31 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - April 25, 2026 (Session: Runner Dashboard Responsive Card Polish)
+
+### [SESSION] SESSION UPDATE:
+- Refined `/runner/dashboard` card ordering and responsive action alignment:
+  - moved `Upcoming Events` ahead of `Account` in the dashboard grid
+  - kept the Account-card `View Profile` icon pinned to the upper right on tablet/mobile widths
+  - corrected the Account-card hover tooltip so it renders inside the card instead of clipping or overflowing off the right edge
+  - aligned the `View all registrations` CTA in `Progress Statistics` to the lower right, including explicit tablet/mobile breakpoint handling
+- Scoped the changes to the runner dashboard surface only:
+  - no shared card overflow rules were loosened globally
+  - responsive overrides were kept local to the affected runner dashboard controls
+
+### [UPDATED] UPDATED FILES (major):
+1. docs/PRD.md
+2. docs/CHANGELOG.md
+3. src/views/runner/dashboard.ejs
+4. src/public/css/runner-dashboard.css
+
+### [VALIDATION] TEST/RUN CHECKS:
+- Code-level responsive/CSS cascade review completed for:
+  - Account card header/button alignment
+  - Account tooltip placement and right-edge containment
+  - Progress Statistics CTA alignment at desktop, tablet, mobile, and below-mobile breakpoints
+- Live browser verification not run in this session
+
 ## CHANGELOG - April 22, 2026 (Session: Admin Review Queue + Navigation UX + Shop Draft)
 
 ### [SESSION] SESSION UPDATE:

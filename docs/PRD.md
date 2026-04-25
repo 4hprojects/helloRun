@@ -3,6 +3,27 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
+## STATUS UPDATE (Apr 25, 2026 - Runner Dashboard Responsive Card Polish)
+
+### Current reality after latest implementation
+- Runner dashboard card sequencing and responsive card actions were tightened without broad layout rewrites.
+- The dashboard now prioritizes `Upcoming Events` before `Account` and keeps key account/stat actions anchored more predictably on narrower widths.
+
+### COMPLETED in this cycle
+- Runner dashboard card-order and responsive interaction polish:
+  - moved `Upcoming Events` before `Account` in `/runner/dashboard`
+  - kept the Account-card `View Profile` control upper-right aligned on less-than-desktop and mobile widths
+  - corrected the Account-card hover label positioning so it stays visible within the card and does not overflow off the right edge
+  - aligned the `View all registrations` CTA in `Progress Statistics` to the lower right
+  - added explicit tablet/mobile CTA alignment rules so smaller breakpoints do not regress later
+
+### Validation signals recorded
+- CSS/markup cascade reviewed for the affected runner dashboard controls:
+  - Account card header alignment
+  - Account tooltip placement and right-edge containment
+  - Progress Statistics CTA alignment on desktop/tablet/mobile/below-mobile breakpoints
+- Live browser verification not yet recorded for this pass
+
 ## STATUS UPDATE (Apr 24, 2026 - Current Phase: Release Hardening and Deployment Gate)
 
 ### Current reality after latest review
