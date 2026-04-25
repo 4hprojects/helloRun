@@ -22,6 +22,9 @@
 - Updated navigation:
   - converted shared nav links to Lucide icon controls with hover/focus labels
   - improved tablet/mobile hamburger menu into a compact overlay panel
+  - finalized mobile hamburger behavior so `Login` / `Sign Up` stay full-width like the other menu rows
+  - restored the intended horizontal divider between main nav items and guest actions in the mobile overlay
+  - confirmed via live browser inspection that the earlier auth-row misalignment came from the guest-action wrapper shrinking inside the panel
   - made mobile labels right-aligned with icons on the right
   - refined mobile logout button size, placement, and styling
 - Refreshed `/about` page content:

@@ -127,6 +127,8 @@
   - replaced main nav text links with icon buttons and hover/focus labels
   - improved hamburger menu into an overlay panel on tablet/mobile
   - made hamburger panel compact, content-width, semi-transparent, right-aligned, and label-visible
+  - final mobile hamburger goal: keep guest actions as full-width rows aligned with other menu items, with a horizontal divider above `Login` / `Sign Up`
+  - do not reintroduce separate guest-action panels or vertical separators in the mobile hamburger
   - refined mobile logout action sizing and alignment
 - Refreshed `/about` page content:
   - expanded runner and organizer value messaging
@@ -149,8 +151,9 @@
 - `tests/privacy-signup-consent.test.js` -> PASS
 
 ### Still pending from this scope
-- Optional visual QA:
+  - Optional visual QA:
   - manual browser check for hamburger overlay on common mobile widths
+  - [DONE] live browser validation confirmed the mobile auth row width issue came from the guest-action wrapper shrinking inside the overlay; fix keeps auth rows full-width and restores the intended horizontal divider
   - decide whether desktop nav should keep native browser `title` tooltip in addition to custom tooltip
 
 ## STATUS UPDATE (Apr 25, 2026 - Landing Page Acquisition Refresh)
