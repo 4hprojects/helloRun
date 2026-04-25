@@ -457,7 +457,7 @@ Both auth pages use floating labels — the label sits centred in the input and 
 }
 ```
 
-**Rule:** Auth buttons use `border-radius: var(--radius-md)` (12px squared corners), NOT the global `.btn` pill shape (50px). Global `.btn` is only for landing page CTAs.
+**Rule:** Auth buttons use `border-radius: var(--radius-md)` (12px squared corners). The landing page now reuses this stronger CTA treatment for primary acquisition buttons as well; do not reintroduce the older pill-shaped landing CTA style.
 
 ---
 
@@ -839,7 +839,10 @@ focused label: left: 10px
 | Apr 2026 | Login/Signup panels: icons on RIGHT (row-reverse) | Visual consistency — both panels use the same row-reverse icon pattern, creating a mirror effect between the two auth pages |
 | Apr 2026 | Login left panel: right-aligned, not centred | Matches signup's `auth-header` alignment — both branded panels are now right-aligned, creating visual parity |
 | Apr 2026 | Login closing element: link with divider, not CTA button | Signup uses a plain link footer too. A CTA button on the login left panel was redundant — the "New here? Sign up free →" link is lighter and consistent |
-| Apr 2026 | Auth buttons: `border-radius: 12px` (not pill) | The global `.btn` pill (50px) is for marketing/landing pages. Auth UI uses squared corners for a more "form-like" professional feel |
+| Apr 2026 | Auth and landing primary buttons: `border-radius: 12px` (not pill) | The stronger squared CTA treatment now applies to auth surfaces and the home-page acquisition CTAs for consistency and clearer contrast |
+| Apr 2026 | Home-page explanatory sections: editorial split layouts for `What helloRun does` and `Why helloRun` | Reduced the generic template-card feel and gave the landing page a sharper product narrative without adding heavy motion or extra assets |
+| Apr 2026 | Audience section: keep two cards, but compact them and move identity into the heading | Preserved runner/organizer scanning while avoiding the more generic label-strip and oversized-card treatment |
+| Apr 2026 | Blog header CTA: dedicated `Visit Blog` action instead of shared outline button | The blog surface needs a lighter editorial action that reads as section navigation, not as a second acquisition CTA |
 | Mar 2026 | Standardised list-page clear action label to `Clear filters` | Consistency across Events, Blog, and Leaderboard list pages |
 | Mar 2026 | Relative timestamps on runner dashboard | More human-readable for activity feeds (`2h ago` vs `March 8, 2026 14:23`) |
 | Mar 2026 | Locale-aware timestamps via `Intl.DateTimeFormat` | Removed hardcoded `en-US` locale — respects user's browser language |

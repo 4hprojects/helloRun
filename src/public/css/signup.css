@@ -294,6 +294,14 @@ body {
 /* Form Styles */
 .compact-auth-form {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+#submitBtn {
+  align-self: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .compact-form-row {
@@ -558,7 +566,7 @@ body {
 
 .btn-full {
   width: 100%;
-  margin-top: var(--space-sm);
+  margin-top: var(--space-md);
 }
 
 .btn-text,
@@ -792,6 +800,12 @@ body {
   .auth-header h1 {
     font-size: 1.65rem;
   }
+
+  #submitBtn {
+    width: auto;
+    min-width: 220px;
+    align-self: center;
+  }
 }
 
 /* Mobile (0px - 767px) */
@@ -846,6 +860,12 @@ body {
     max-height: none;
   }
   
+  #submitBtn {
+    width: 100%;
+    min-width: unset;
+    align-self: center;
+  }
+
   .compact-form-row {
     flex-direction: column;
     gap: var(--space-sm);

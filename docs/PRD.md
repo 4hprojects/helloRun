@@ -137,6 +137,7 @@
   - compacted the sign-in panel layout while preserving touch-friendly controls
   - refined `/forgot-password` action buttons into a symmetric three-column layout
   - aligned the forgot-password heading icon and compacted the tip message
+  - centered the `/signup` Create Account button consistently across desktop, tablet, and mobile layouts
 
 ### Validation signals recorded
 - `tests/static-pages.test.js` -> PASS
@@ -152,6 +153,41 @@
   - manual browser check for hamburger overlay on common mobile widths
   - decide whether desktop nav should keep native browser `title` tooltip in addition to custom tooltip
 
+## STATUS UPDATE (Apr 25, 2026 - Landing Page Acquisition Refresh)
+
+### Current reality after latest implementation
+
+### COMPLETED in this cycle
+- Refocused `/` toward acquisition instead of runner-only utility actions:
+  - primary hero CTA is now `View Events`
+  - secondary hero CTA is now `Sign Up Free`
+  - logged-in runners still get a lighter `Log your latest run` action instead of a primary public CTA
+- Replaced generic homepage proof labels with live platform counts:
+  - active published events
+  - approved run finishes
+  - approved organizers
+- Added a recent blog section on the landing page:
+  - latest published posts are pulled dynamically
+  - supports homepage freshness and stronger internal discovery
+- Updated landing-page button treatment to match the stronger auth CTA system:
+  - `12px` radius
+  - richer warm-orange primary action with branded shadow
+  - warm-tinted secondary action instead of a generic gray outline
+- Clarified hero responsive behavior:
+  - desktop keeps split layout with the right visual panel top-aligned
+  - anything below desktop uses a stacked, centered hero layout so the right panel no longer reads as a desktop sidebar
+- Reworked the explanatory landing sections so they feel less like generic template blocks:
+  - `What helloRun does` now uses a tighter editorial two-column layout with three product pillars
+  - `Why helloRun` now uses a matching split layout with compact reason rows instead of the previous quote-box treatment
+  - `Built for everyone in the running community` was kept as two audience cards, but tightened with shorter copy, centered CTAs, and card-heading icons
+- Refined the blog surface CTA and fallback behavior:
+  - `Visit Blog` now uses its own compact section CTA instead of the shared generic outline button
+  - homepage blog cards fall back to `/images/helloRun-icon.webp` when a post image is missing or fails to load
+
+### Notes
+- The previous generic hero eyebrow / extra process panel copy was removed because it duplicated the existing landing-page explanation sections.
+- Home page SEO metadata is now populated through the shared `head` partial instead of title-only rendering.
+
 ## STATUS UPDATE (Mar 10, 2026 - Run Proof Submission UX + Review Access Expansion)
 
 ### Current reality after latest implementation
@@ -159,7 +195,7 @@
 ### COMPLETED in this cycle
 - Continued run-proof submission rollout (multi-entry modal pattern):
   - added `Submit Run Proof` CTA in `/runner/dashboard` welcome panel
-  - added `Submit Run Proof` CTA in `/` home hero section
+  - added logged-in `Submit Run Proof` entry point in `/` home hero area
   - replaced `/my-registrations` inline result submit form with reusable modal trigger
 - Improved submission detail visibility:
   - runner-facing cards now show run date and run location in result details
@@ -1360,7 +1396,7 @@ Goal: You can run the app locally with pages loading.
 [DONE] Google Analytics integration (GA4)
 
 ### What you have after Phase 0
-[DONE] / home page (fully styled with hero, features, audience sections)
+[DONE] / home page (acquisition-focused landing page with live proof stats, blog surface, and responsive hero behavior)
 [DONE] /events events page (UI ready for dynamic content)
 [DONE] /login and /signup pages (fully functional UI with improved password toggle)
 [DONE] /forgot-password page (compact UI, no scrolling required)

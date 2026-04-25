@@ -28,11 +28,7 @@ const quickProfileUpdateLimiter = createRateLimiter({
   message: 'Too many profile updates. Please wait a few minutes and try again.'
 });
 
-router.get('/', (req, res) => {
-  res.render('pages/home', {
-    title: 'helloRun - Virtual Running Events'
-  });
-});
+router.get('/', pageController.getHome);
 
 router.get('/events', pageController.getEvents);
 router.get('/my-registrations', requireAuth, pageController.getMyRegistrations);

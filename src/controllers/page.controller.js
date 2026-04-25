@@ -2,6 +2,7 @@ const Event = require('../models/Event');
 const User = require('../models/User');
 const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
+const OrganiserApplication = require('../models/OrganiserApplication');
 const Blog = require('../models/Blog');
 const BlogLike = require('../models/BlogLike');
 const emailService = require('../services/email.service');
@@ -21,6 +22,85 @@ const {
 const { getLeaderboardData } = require('../services/leaderboard.service');
 
 const countries = getCountries();
+
+exports.getHome = async (req, res) => {
+  try {
+    const now = new Date();
+    const baseUrl = getAppBaseUrl();
+    const canonicalUrl = baseUrl ? `${baseUrl}/` : '';
+    const ogImage = baseUrl ? `${baseUrl}/images/helloRun-icon.webp` : '';
+
+    const [activeEventsCount, approvedFinishersCount, approvedOrganizersCount, recentPostsRaw] = await Promise.all([
+      Event.countDocuments({
+        status: 'published',
+        $or: [
+          { eventEndAt: { $gte: now } },
+          { eventEndAt: null },
+          { eventEndAt: { $exists: false } }
+        ]
+      }),
+      Submission.countDocuments({ status: 'approved' }),
+      OrganiserApplication.countDocuments({ status: 'approved' }),
+      Blog.find({
+        status: 'published',
+        isDeleted: { $ne: true }
+      })
+        .populate('authorId', 'firstName lastName')
+        .sort({ publishedAt: -1, createdAt: -1 })
+        .limit(3)
+        .select('title slug excerpt category customCategory coverImageUrl readingTime publishedAt createdAt')
+        .lean()
+    ]);
+
+    const stats = [
+      {
+        value: Number(activeEventsCount || 0).toLocaleString('en-US'),
+        label: 'Active events',
+        detail: 'Live races and challenges available to browse now',
+        icon: 'calendar-days'
+      },
+      {
+        value: Number(approvedFinishersCount || 0).toLocaleString('en-US'),
+        label: 'Approved finishes',
+        detail: 'Runner submissions already verified on the platform',
+        icon: 'badge-check'
+      },
+      {
+        value: Number(approvedOrganizersCount || 0).toLocaleString('en-US'),
+        label: 'Approved organizers',
+        detail: 'Organizers building virtual and hybrid events on helloRun',
+        icon: 'users'
+      }
+    ];
+
+    const recentPosts = recentPostsRaw.map((post) => ({
+      ...post,
+      categoryLabel: post.category === 'Other' && post.customCategory ? post.customCategory : post.category,
+      publishedLabel: formatDateOnly(post.publishedAt || post.createdAt),
+      authorName: [post.authorId?.firstName, post.authorId?.lastName].filter(Boolean).join(' ').trim() || 'helloRun'
+    }));
+
+    return res.render('pages/home', {
+      title: 'helloRun - Find virtual races, finish strong, stay connected',
+      seo: {
+        description: 'Discover virtual running events, track finishes, and stay connected with the helloRun running community.',
+        canonicalUrl,
+        ogTitle: 'helloRun - Virtual races and running community',
+        twitterTitle: 'helloRun - Virtual races and running community',
+        ogImage
+      },
+      stats,
+      recentPosts
+    });
+  } catch (error) {
+    console.error('Error loading home page:', error);
+    return res.status(500).render('error', {
+      title: '500 - Server Error',
+      status: 500,
+      message: 'Unable to load the home page right now.'
+    });
+  }
+};
 
 exports.getEvents = async (req, res) => {
   try {
@@ -1429,7 +1509,7 @@ function getEventsPageContent(filterValues, pagination = {}) {
     ? ` - Page ${pagination.currentPage}`
     : '';
   const titlePrefix = filterLabel ? `${filterLabel} Events` : 'Running Events';
-  const heroTitle = filterLabel ? `${filterLabel} Events` : 'Published Events';
+  const heroTitle = filterLabel ? `${filterLabel} Events` : 'Check Out Ongoing Events';
   const defaultDescription = 'Discover helloRun events, browse by mode and distance, and find your next race or virtual challenge.';
   const filteredDescription = filterLabel
     ? `Browse ${getEventsFilterNarrative(filterValues, { lowercaseBase: true })} on helloRun and find your next race or virtual challenge.`

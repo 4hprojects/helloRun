@@ -13,15 +13,18 @@ You are joining a conversation around consistency, health, and achievement.
 ## Possible Landing Page Content
 
 ### Hero section
-Run anywhere. Track everything. Celebrate progress together.
-HelloRun helps you join virtual runs, log activities, and stay motivated with a community that moves with you.
+Run anywhere. Show up with purpose.
+Discover events that match your pace, submit completed runs, and stay connected to a community that keeps moving.
+
+### Hero proof points
+- Active events
+- Approved finishes
+- Approved organizers
 
 ### What HelloRun does
-- Join virtual fun runs and challenges
-- Track runs, walks, and activities at your pace
-- Submit results online, no GPS required
-- See your progress and milestones in one place
-- Connect with organisers and fellow runners
+- Find virtual events that fit your pace
+- Submit results online without app or GPS lock-in
+- Keep finishes, rankings, and recognition in one place
 
 ### Why HelloRun
 You run on your own schedule.
@@ -29,18 +32,23 @@ You still feel part of something bigger.
 HelloRun keeps it simple so you focus on moving, not managing tools.
 
 ### For runners
-Log your activity.
-Track your progress.
-Earn recognition for showing up.
+Find events that match your pace.
+Submit finishes online.
+Keep rankings and certificates together.
 
 ### For organisers
-Create events fast.
-Manage participants easily.
-Let runners submit results online.
+Create event pages quickly.
+Review payment and run submissions in one workflow.
+Track registrations and approvals more clearly.
 
 ### Call to action
-Start your first run today.
+View events.
+Sign up free.
 Move. Log. Finish.
+
+### Content freshness
+- Surface the latest published blog posts on the home page to reinforce activity, discovery, and SEO freshness.
+- Use the HelloRun icon as the fallback visual for blog cards when no cover image is available.
 
 ### Hexadecimal color scheme from the icon (excluding white)
 

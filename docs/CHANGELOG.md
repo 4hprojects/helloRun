@@ -71,6 +71,47 @@
 - `node --test --test-concurrency=1 tests/google-oauth-routes.test.js` -> PASS
 - `node --test --test-concurrency=1 tests/privacy-signup-consent.test.js` -> PASS
 
+## CHANGELOG - April 25, 2026 (Session: Landing Page Acquisition Refresh)
+
+### [SESSION] SESSION UPDATE:
+- Reworked `/` to behave as an acquisition page instead of a runner-first utility surface:
+  - primary hero CTA changed to `View Events`
+  - secondary hero CTA changed to `Sign Up Free`
+  - logged-in runner-only run-proof action reduced to a lighter inline action
+- Replaced generic hero proof labels with live platform stats:
+  - active events
+  - approved finishes
+  - approved organizers
+- Added dynamic recent blog cards on the homepage for freshness and content discovery.
+- Aligned landing-page button treatment with auth CTA styling:
+  - squared `12px` corners
+  - richer warm-orange primary buttons
+  - warm-tinted secondary buttons instead of generic gray outlines
+- Refined landing hero responsiveness:
+  - desktop keeps the split layout with the right panel top-aligned
+  - non-desktop widths collapse into a centered stacked hero
+- Refined the main home-page explanation sections after the acquisition refresh:
+  - `What helloRun does` now uses a compact editorial split layout with three product pillars
+  - `Why helloRun` now mirrors that tighter layout instead of using the previous quote-box treatment
+  - the audience section stayed as two cards, but was compacted, had centered CTAs restored, and now uses heading-level icons instead of generic label strips
+- Polished the blog surface on `/`:
+  - replaced the shared outline `Visit Blog` button with a dedicated compact CTA plus arrow icon
+  - added fallback behavior so homepage blog cards use `/images/helloRun-icon.webp` when the cover image is missing or broken
+
+### [UPDATED] UPDATED FILES (major):
+1. src/controllers/page.controller.js
+2. src/routes/pageRoutes.js
+3. src/views/pages/home.ejs
+4. src/public/css/helloRun.css
+5. docs/sitetheme.md
+6. docs/PRD.md
+7. docs/CHANGELOG.md
+8. docs/ui-ux-reference.md
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node -e "require('./src/controllers/page.controller'); require('./src/routes/pageRoutes'); console.log('ok')"` with temporary `RESEND_API_KEY` env override -> PASS
+- `npm test` -> TIMEOUT in current environment
+
 ## CHANGELOG - March 10, 2026 (Session: Run Proof Modal Rollout + Admin Review Access)
 
 ### [SESSION] SESSION UPDATE:
