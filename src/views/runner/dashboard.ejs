@@ -23,10 +23,26 @@
           </div>
           <div class="header-actions">
             <div class="header-buttons">
-              <button type="button" class="btn btn-primary" data-open-run-proof-modal title="Submit Run Proof">
+              <button
+                type="button"
+                class="btn btn-primary"
+                data-open-run-proof-modal
+                data-tooltip="Submit your latest run result"
+                data-run-proof-surface="runner-dashboard"
+                data-run-proof-title="Submit your latest run result"
+                data-run-proof-description="Choose the eligible event you want to update, then upload your run proof for organizer review."
+                data-run-proof-submit-label="Submit Run Proof"
+                data-run-proof-empty-message="You do not have any paid, confirmed events that are currently accepting run submissions."
+                data-run-proof-empty-link-href="/my-registrations"
+                data-run-proof-empty-link-label="Review my registrations"
+                aria-label="Submit your latest run result">
                 <i data-lucide="upload" class="btn-icon"></i><span class="btn-label">Submit Run Proof</span>
               </button>
-              <a href="/my-registrations" class="btn btn-outline-light" title="My Registrations">
+              <a
+                href="/my-registrations"
+                class="btn btn-outline-light"
+                data-tooltip="View your registrations and payment status"
+                aria-label="View your registrations and payment status">
                 <i data-lucide="clipboard-list" class="btn-icon"></i><span class="btn-label">My Registrations</span>
               </a>
             </div>
@@ -189,72 +205,11 @@
           </div>
         </section>
 
-        <section class="card card-featured">
-          <div class="card-header result-submissions-header">
-            <h2><i data-lucide="timer"></i> Result Submissions</h2>
-            <nav class="result-status-tabs" aria-label="Filter result submissions by status">
-              <a href="/runner/dashboard<%= preservedGroupQuery ? ('?groupQ=' + encodeURIComponent(preservedGroupQuery)) : '' %>"
-                 class="result-status-tab <%= !selectedResultStatus ? 'is-active' : '' %>"
-                 <%= !selectedResultStatus ? 'aria-current="page"' : '' %>>
-                All
-              </a>
-              <a href="/runner/dashboard?resultStatus=submitted<%= preservedGroupQuery ? ('&groupQ=' + encodeURIComponent(preservedGroupQuery)) : '' %>"
-                 class="result-status-tab <%= selectedResultStatus === 'submitted' ? 'is-active' : '' %>"
-                 <%= selectedResultStatus === 'submitted' ? 'aria-current="page"' : '' %>>
-                Submitted
-              </a>
-              <a href="/runner/dashboard?resultStatus=approved<%= preservedGroupQuery ? ('&groupQ=' + encodeURIComponent(preservedGroupQuery)) : '' %>"
-                 class="result-status-tab <%= selectedResultStatus === 'approved' ? 'is-active' : '' %>"
-                 <%= selectedResultStatus === 'approved' ? 'aria-current="page"' : '' %>>
-                Approved
-              </a>
-              <a href="/runner/dashboard?resultStatus=rejected<%= preservedGroupQuery ? ('&groupQ=' + encodeURIComponent(preservedGroupQuery)) : '' %>"
-                 class="result-status-tab <%= selectedResultStatus === 'rejected' ? 'is-active' : '' %>"
-                 <%= selectedResultStatus === 'rejected' ? 'aria-current="page"' : '' %>>
-                Rejected
-              </a>
-            </nav>
-          </div>
-          <div class="card-content">
-            <% if (cards.results && cards.results.length) { %>
-              <ul class="item-list">
-                <% cards.results.forEach((item) => { %>
-                  <li class="item-row">
-                    <div class="item-main">
-                      <div class="item-title">
-                        <% if (item.eventSlug) { %>
-                          <a href="/events/<%= item.eventSlug %>"><%= item.eventTitle %></a>
-                        <% } else { %>
-                          <%= item.eventTitle %>
-                        <% } %>
-                      </div>
-                      <div class="item-meta">
-                        <span><%= item.elapsedLabel %></span> &middot; <span><%= Number(item.distanceKm || 0).toFixed(2) %> km</span> &middot; <span class="badge badge-<%= item.proofType || 'manual' %>"><%= String(item.proofType || 'manual').toUpperCase() %></span>
-                      </div>
-                      <div class="item-meta">
-                        Status: <span class="badge badge-<%= item.status %>"><%= item.status %></span>
-                        <% if (item.rejectionReason) { %> - <span class="text-danger"><%= item.rejectionReason %></span><% } %>
-                      </div>
-                      <% if (item.submittedAtLabel && item.submittedAtLabel !== 'TBA') { %>
-                        <div class="item-meta">Submitted: <%= item.submittedAtLabel %><% if (item.submittedAtRelativeLabel) { %> <span class="text-muted">(<%= item.submittedAtRelativeLabel %>)</span><% } %></div>
-                      <% } %>
-                      <% if (item.reviewedAtLabel && item.reviewedAtLabel !== 'TBA') { %>
-                        <div class="item-meta">Reviewed: <%= item.reviewedAtLabel %><% if (item.reviewedAtRelativeLabel) { %> <span class="text-muted">(<%= item.reviewedAtRelativeLabel %>)</span><% } %></div>
-                      <% } %>
-                    </div>
-                    <% if (item.certificateUrl) { %>
-                      <a href="/my-submissions/<%= item.submissionId %>/certificate" class="btn btn-sm btn-outline">Certificate</a>
-                    <% } %>
-                  </li>
-                <% }) %>
-              </ul>
-            <% } else { %>
-              <div class="empty-state">
-                <p class="empty-message">No result submissions.</p>
-              </div>
-            <% } %>
-          </div>
-        </section>
+        <%- include('partials/result-submissions-card', {
+          selectedResultStatus,
+          preservedGroupQuery,
+          resultCards: cards.results
+        }) %>
 
         <section class="card">
           <div class="card-header">
@@ -377,11 +332,12 @@
             <h2><i data-lucide="bar-chart-3"></i> Progress Statistics</h2>
             <button type="button" class="btn-toggle"
                     data-toggle-target="progressPanel"
-                    data-toggle-show-label="Show"
-                    data-toggle-hide-label="Hide"
+                    data-toggle-show-label="Show stats"
+                    data-toggle-hide-label="Hide stats"
                     aria-controls="progressPanel"
                     aria-expanded="false">
-              Show
+              <span data-toggle-label>Show stats</span>
+              <i data-lucide="chevron-down" class="toggle-chevron" aria-hidden="true"></i>
             </button>
           </div>
           <div class="card-content progress-panel" id="progressPanel" hidden>
@@ -403,30 +359,30 @@
           </div>
         </section>
 
-        <section class="card">
-          <div class="card-header">
+        <section class="card running-groups-card">
+          <div class="card-header running-groups-header">
             <h2><i data-lucide="users"></i> Running Groups</h2>
-            <a href="/runner/groups" class="btn btn-sm btn-outline">Manage Groups</a>
+            <a href="/runner/groups" class="btn btn-sm btn-outline running-groups-action">Manage Groups</a>
           </div>
-          <div class="card-content">
+          <div class="card-content running-groups-content">
             <% if (currentGroups.length) { %>
-              <ul class="item-list compact">
+              <ul class="item-list compact running-groups-list">
                 <% currentGroups.slice(0, 3).forEach((group) => { %>
-                  <li class="item-row">
-                    <div class="item-main">
-                      <div class="item-title"><a href="/runner/groups/<%= group.slug %>"><%= group.name %></a></div>
-                      <div class="item-meta"><%= group.memberCount || 0 %> members</div>
+                  <li class="item-row running-group-row">
+                    <div class="item-main running-group-main">
+                      <div class="item-title running-group-title"><a href="/runner/groups/<%= group.slug %>"><%= group.name %></a></div>
+                      <div class="item-meta running-group-meta"><%= group.memberCount || 0 %> members</div>
                     </div>
                   </li>
                 <% }) %>
               </ul>
-              <p class="text-muted">You are currently a member of <strong><%= currentGroups.length %></strong> running group<%= currentGroups.length > 1 ? 's' : '' %>.</p>
+              <p class="text-muted running-groups-summary">You are currently a member of <strong><%= currentGroups.length %></strong> running group<%= currentGroups.length > 1 ? 's' : '' %>.</p>
             <% } else { %>
-              <div class="empty-state">
+              <div class="empty-state running-groups-empty">
                 <p class="empty-message">You are not currently in a running group.</p>
               </div>
             <% } %>
-            <p class="text-muted">Use the Manage Groups page to search groups, join a community, or create your own.</p>
+            <p class="text-muted running-groups-help">Use the Manage Groups page to search groups, join a community, or create your own.</p>
           </div>
         </section>
       </div>

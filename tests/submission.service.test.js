@@ -19,7 +19,8 @@ const {
   getEventSubmissionQueue,
   getRunnerSubmissionSummary,
   getRunnerPerformanceSnapshot,
-  getRunnerEligibleSubmissionRegistrations
+  getRunnerEligibleSubmissionRegistrations,
+  PERSONAL_RECORD_REGISTRATION_ID
 } = require('../src/services/submission.service');
 
 test.before(async () => {
@@ -374,6 +375,17 @@ test('getRunnerEligibleSubmissionRegistrations returns only paid confirmed activ
   assert.equal(options.some((item) => item.registrationId === String(seed.registration._id)), true);
   assert.equal(options.some((item) => item.eventId === String(draftEvent._id)), false);
   assert.equal(options.some((item) => item.eventId === String(unpaidEvent._id)), false);
+});
+
+test('getRunnerEligibleSubmissionRegistrations falls back to personal record when no event registration is eligible', async () => {
+  const runner = await createRunnerUser('eligible-personal-record');
+  const options = await getRunnerEligibleSubmissionRegistrations(runner._id);
+
+  assert.equal(Array.isArray(options), true);
+  assert.equal(options.length, 1);
+  assert.equal(options[0].registrationId, PERSONAL_RECORD_REGISTRATION_ID);
+  assert.equal(options[0].isPersonalRecord, true);
+  assert.equal(options[0].eventTitle, 'Personal Record');
 });
 
 async function seedSubmissionFixture(tag, options = {}) {

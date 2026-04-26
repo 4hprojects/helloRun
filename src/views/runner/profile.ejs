@@ -146,13 +146,42 @@
           </dl>
           <div class="runner-profile-actions">
             <a href="/runner/security/password" class="btn btn-primary"><%= user.passwordHash ? 'Change Password' : 'Set Password' %></a>
-            <a href="/runner/dashboard" class="btn btn-outline">Manage Security on Dashboard</a>
+            <% if (user.googleId) { %>
+              <form method="POST" action="/runner/auth/google/unlink" class="inline-form">
+                <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+                <input type="hidden" name="returnTo" value="/runner/profile">
+                <button type="button"
+                        class="btn btn-outline-danger<%= !user.passwordHash ? ' disabled' : '' %>"
+                        data-open-unlink-modal
+                        aria-label="Unlink Google"
+                        <%= !user.passwordHash ? 'disabled aria-disabled="true"' : '' %>>
+                  <i data-lucide="unlink"></i> Unlink Google
+                </button>
+              </form>
+            <% } %>
           </div>
-          <p class="profile-readonly-note">Profile editing is temporarily disabled on this page.</p>
+          <% if (user.googleId && !user.passwordHash) { %>
+            <p class="profile-readonly-note">Set a password first to avoid being locked out when you unlink Google.</p>
+          <% } %>
         </article>
       </section>
     </div>
   </main>
+
+  <% if (user.googleId) { %>
+    <div class="modal-backdrop" id="unlinkGoogleModal" hidden>
+      <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="unlinkGoogleModalTitle" aria-describedby="unlinkGoogleModalDesc" tabindex="-1">
+        <h3 id="unlinkGoogleModalTitle">Unlink Google sign-in?</h3>
+        <p id="unlinkGoogleModalDesc">
+          You can still sign in with your local password.<% if (!user.passwordHash) { %> Set a password before unlinking to avoid lockout.<% } %>
+        </p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-outline" data-cancel-unlink>Cancel</button>
+          <button type="button" class="btn btn-danger" data-confirm-unlink>Yes, unlink</button>
+        </div>
+      </div>
+    </div>
+  <% } %>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>

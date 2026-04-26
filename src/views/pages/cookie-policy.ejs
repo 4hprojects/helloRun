@@ -6,8 +6,6 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  <button type="button" class="back-to-top privacy-back-to-top" id="backToTopBtn" aria-label="Back to top">&uarr;</button>
-
   <main class="static-page privacy-page">
     <div class="static-wrap privacy-wrap">
       <header class="static-hero privacy-hero">
@@ -74,22 +72,6 @@
   <script src="/js/main.js"></script>
   <script>
     (function initCookiePolicyPage() {
-      const backToTopBtn = document.getElementById('backToTopBtn');
-      if (backToTopBtn) {
-        const toggleBackToTop = () => {
-          if (window.scrollY > 300) {
-            backToTopBtn.classList.add('visible');
-          } else {
-            backToTopBtn.classList.remove('visible');
-          }
-        };
-        window.addEventListener('scroll', toggleBackToTop, { passive: true });
-        backToTopBtn.addEventListener('click', () => {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-        toggleBackToTop();
-      }
-
       const tocCard = document.getElementById('cookiePolicyTocCard');
       const tocList = document.getElementById('cookiePolicyTocList');
       const contentRoot = document.querySelector('.privacy-content-card .legal-markdown, .privacy-content-card .privacy-fallback');

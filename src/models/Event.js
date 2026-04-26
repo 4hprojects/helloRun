@@ -152,6 +152,11 @@ const eventSchema = new mongoose.Schema(
       type: Number,
       default: 1,
       min: 1
+    },
+    isPersonalRecord: {
+      type: Boolean,
+      default: false,
+      index: true
     }
   },
   {

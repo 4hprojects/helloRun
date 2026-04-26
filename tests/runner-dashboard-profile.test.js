@@ -200,6 +200,45 @@ test('google-only runner can set local password from authenticated security page
   assert.equal(Boolean(fresh.passwordHash), true);
 });
 
+test('runner result submissions partial renders for async dashboard filtering', async () => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const password = 'Pass1234';
+  const runner = await createRunner(`result.partial.${stamp}`, password);
+  const cookie = await login(runner.email, password);
+  const ready = await waitForSessionReady('/runner/dashboard', cookie);
+  assert.equal(ready, true);
+
+  const response = await fetch(`${BASE_URL}/runner/dashboard/result-submissions?resultStatus=approved`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Result Submissions/i);
+  assert.match(html, /data-result-submissions-root/i);
+  assert.match(html, /Approved/i);
+  assert.match(html, /aria-current=.*page/i);
+});
+
+test('runner dashboard submit trigger includes dashboard-specific modal configuration', async () => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const password = 'Pass1234';
+  const runner = await createRunner(`dashboard.trigger.${stamp}`, password);
+  const cookie = await login(runner.email, password);
+  const ready = await waitForSessionReady('/runner/dashboard', cookie);
+  assert.equal(ready, true);
+
+  const response = await fetch(`${BASE_URL}/runner/dashboard`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /data-run-proof-surface="runner-dashboard"/i);
+  assert.match(html, /data-run-proof-empty-link-href="\/my-registrations"/i);
+  assert.match(html, /Submit your latest run result/i);
+});
+
 test('runner change password requires valid current password', async () => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const oldPassword = 'Pass1234';

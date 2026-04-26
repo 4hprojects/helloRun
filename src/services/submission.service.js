@@ -7,9 +7,11 @@ const { issueSubmissionCertificate } = require('./certificate.service');
 const emailService = require('./email.service');
 const { createNotificationSafe } = require('./notification.service');
 const { isSubmissionWindowOpen } = require('../utils/submission-window');
+const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 
 const REVIEWABLE_STATUS = new Set(['submitted']);
 const FINAL_STATUSES = new Set(['approved']);
+const PERSONAL_RECORD_REGISTRATION_ID = 'personal-record';
 
 async function createSubmission({
   registrationId,
@@ -23,6 +25,20 @@ async function createSubmission({
   proofNotes,
   ocrData
 }) {
+  if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
+    return createPersonalRecordSubmission({
+      runnerId,
+      distanceKm,
+      elapsedMs,
+      runDate,
+      runLocation,
+      proofType,
+      proof,
+      proofNotes,
+      ocrData
+    });
+  }
+
   const registration = await getEligibleRunnerRegistration({ registrationId, runnerId });
   const existing = await Submission.findOne({ registrationId: registration._id }).select('status').lean();
   if (existing) {
@@ -57,6 +73,10 @@ async function resubmitSubmission({
   proofNotes,
   ocrData
 }) {
+  if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
+    throw new Error('Personal record submissions create a new entry each time.');
+  }
+
   const registration = await getEligibleRunnerRegistration({ registrationId, runnerId });
   const existing = await Submission.findOne({ registrationId: registration._id });
   if (!existing) {
@@ -339,7 +359,7 @@ async function getRunnerEligibleSubmissionRegistrations(runnerId, options = {}) 
     submissions.map((item) => [String(item.registrationId), item])
   );
 
-  return registrations
+  const eligibleRegistrations = registrations
     .filter((registration) => {
       if (!registration?.eventId) return false;
       if (!isSubmissionWindowOpen({ registration, event: registration.eventId, now })) return false;
@@ -367,6 +387,12 @@ async function getRunnerEligibleSubmissionRegistrations(runnerId, options = {}) 
         canResubmit: submission?.status === 'rejected'
       };
     });
+
+  if (eligibleRegistrations.length > 0) {
+    return eligibleRegistrations;
+  }
+
+  return [buildPersonalRecordEligibleOption()];
 }
 
 async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
@@ -401,6 +427,115 @@ async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
   return registration;
 }
 
+async function createPersonalRecordSubmission({
+  runnerId,
+  distanceKm,
+  elapsedMs,
+  runDate,
+  runLocation,
+  proofType,
+  proof,
+  proofNotes,
+  ocrData
+}) {
+  const runner = await User.findById(runnerId)
+    .select('firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup')
+    .lean();
+  if (!runner) {
+    throw new Error('Runner not found.');
+  }
+
+  const personalRecordDistance = formatPersonalRecordRaceDistance(distanceKm);
+  const event = await Event.create({
+    slug: await generatePersonalRecordSlug(),
+    title: 'Personal Record',
+    organiserName: 'helloRun',
+    description: 'Hidden personal-record submission container.',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: [personalRecordDistance],
+    eventStartAt: runDate || new Date(),
+    eventEndAt: runDate || new Date(),
+    virtualWindow: {
+      startAt: runDate || new Date(),
+      endAt: runDate || new Date()
+    },
+    proofTypesAllowed: ['gps', 'photo', 'manual'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1,
+    isPersonalRecord: true
+  });
+
+  const registration = await Registration.create({
+    eventId: event._id,
+    userId: runnerId,
+    participant: {
+      firstName: String(runner.firstName || '').trim(),
+      lastName: String(runner.lastName || '').trim(),
+      email: String(runner.email || '').trim().toLowerCase(),
+      mobile: String(runner.mobile || '').trim(),
+      country: String(runner.country || '').trim(),
+      dateOfBirth: runner.dateOfBirth || null,
+      gender: String(runner.gender || '').trim(),
+      emergencyContactName: String(runner.emergencyContactName || '').trim(),
+      emergencyContactNumber: String(runner.emergencyContactNumber || '').trim(),
+      runningGroup: String(runner.runningGroup || '').trim()
+    },
+    participationMode: 'virtual',
+    raceDistance: personalRecordDistance,
+    status: 'confirmed',
+    paymentStatus: 'paid',
+    waiver: {
+      accepted: true,
+      version: 1,
+      signature: buildPersonalRecordSignature(runner),
+      acceptedAt: new Date(),
+      templateSnapshot: DEFAULT_WAIVER_TEMPLATE,
+      renderedSnapshot: DEFAULT_WAIVER_TEMPLATE
+    },
+    confirmationCode: await generateConfirmationCode(),
+    registeredAt: new Date()
+  });
+
+  return Submission.create({
+    ...buildSubmissionPayload(registration, {
+      distanceKm,
+      elapsedMs,
+      runDate,
+      runLocation,
+      proofType,
+      proof,
+      proofNotes,
+      submissionCount: 1,
+      ocrData
+    }),
+    status: 'approved',
+    isPersonalRecord: true,
+    reviewedAt: new Date(),
+    reviewNotes: 'Personal record submission auto-approved.'
+  });
+}
+
+function buildPersonalRecordEligibleOption() {
+  return {
+    registrationId: PERSONAL_RECORD_REGISTRATION_ID,
+    eventId: '',
+    eventTitle: 'Personal Record',
+    eventSlug: '',
+    participationMode: 'virtual',
+    raceDistance: '',
+    eventStartAt: null,
+    eventEndAt: null,
+    venueName: '',
+    city: '',
+    country: '',
+    existingSubmissionStatus: '',
+    canResubmit: false,
+    isPersonalRecord: true
+  };
+}
+
 function buildSubmissionPayload(registration, input) {
   const safeDistance = sanitizeNumber(input.distanceKm, 0.1, 500, 'Distance is invalid.');
   const safeElapsedMs = sanitizeNumber(input.elapsedMs, 1, 7 * 24 * 60 * 60 * 1000, 'Elapsed time is invalid.');
@@ -411,6 +546,7 @@ function buildSubmissionPayload(registration, input) {
     registrationId: registration._id,
     eventId: registration.eventId,
     runnerId: registration.userId,
+    isPersonalRecord: false,
     participationMode: registration.participationMode || 'virtual',
     raceDistance: String(registration.raceDistance || '').trim(),
     distanceKm: safeDistance,
@@ -593,6 +729,7 @@ function buildRunnerSubmissionActivity(submissions = []) {
 async function attachCertificateIfNeeded(submission) {
   if (!submission || submission.status !== 'approved') return;
   if (submission.certificate && submission.certificate.url) return;
+  if (submission.isPersonalRecord) return;
 
   try {
     const [registration, event, runner] = await Promise.all([
@@ -745,6 +882,35 @@ async function sendRunnerReviewNotifications({
   }
 }
 
+async function generatePersonalRecordSlug() {
+  while (true) {
+    const candidate = `personal-record-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const exists = await Event.exists({ slug: candidate });
+    if (!exists) return candidate;
+  }
+}
+
+async function generateConfirmationCode() {
+  while (true) {
+    const token = Math.random().toString(36).slice(2, 8).toUpperCase();
+    const candidate = `HR-${token}`;
+    const exists = await Registration.exists({ confirmationCode: candidate });
+    if (!exists) return candidate;
+  }
+}
+
+function formatPersonalRecordRaceDistance(distanceKm) {
+  const numeric = Number(distanceKm || 0);
+  if (!Number.isFinite(numeric) || numeric <= 0) return 'Personal Record';
+  return `${numeric.toFixed(2)} KM`;
+}
+
+function buildPersonalRecordSignature(runner) {
+  const fullName = `${String(runner?.firstName || '').trim()} ${String(runner?.lastName || '').trim()}`.trim();
+  if (fullName) return fullName.slice(0, 160);
+  return String(runner?.email || 'Runner').slice(0, 160);
+}
+
 module.exports = {
   createSubmission,
   resubmitSubmission,
@@ -753,5 +919,6 @@ module.exports = {
   getEventSubmissionQueue,
   getRunnerSubmissionSummary,
   getRunnerPerformanceSnapshot,
-  getRunnerEligibleSubmissionRegistrations
+  getRunnerEligibleSubmissionRegistrations,
+  PERSONAL_RECORD_REGISTRATION_ID
 };

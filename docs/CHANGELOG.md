@@ -3,6 +3,37 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - April 26, 2026 (Session: Shared Floating Back-To-Top Button)
+
+### [SESSION] SESSION UPDATE:
+- Promoted the floating `Back to top` button into a shared site-level implementation:
+  - added one reusable floating button in the shared footer include
+  - centralized scroll/visibility/smooth-scroll behavior in shared `main.js`
+  - moved styling into shared `style.css`
+  - removed duplicated page-level back-to-top buttons and inline handlers from blog and static/legal pages
+- Added reusable documentation for this UI pattern:
+  - created a standalone markdown reference for lifting the floating button into other projects
+
+### [UPDATED] UPDATED FILES (major):
+1. docs/CHANGELOG.md
+2. docs/floating-back-to-top-pattern.md
+3. src/views/layouts/footer.ejs
+4. src/public/css/style.css
+5. src/public/js/main.js
+6. src/views/pages/blog.ejs
+7. src/views/pages/blog-post.ejs
+8. src/views/pages/privacy.ejs
+9. src/views/pages/terms.ejs
+10. src/views/pages/cookie-policy.ejs
+11. src/views/pages/faq.ejs
+
+### [VALIDATION] TEST/RUN CHECKS:
+- Code-level verification completed for:
+  - shared footer-level button injection
+  - shared scroll listener + smooth scroll behavior
+  - removal of duplicated page-specific back-to-top handlers
+- Live browser verification not run in this session
+
 ## CHANGELOG - April 25, 2026 (Session: Runner Dashboard Responsive Card Polish)
 
 ### [SESSION] SESSION UPDATE:

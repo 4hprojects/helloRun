@@ -1,0 +1,71 @@
+<section
+  class="card card-featured result-submissions-card"
+  id="resultSubmissionsCard"
+  data-result-submissions-root
+  data-result-submissions-endpoint="/runner/dashboard/result-submissions"
+>
+  <div class="card-header result-submissions-header">
+    <h2><i data-lucide="timer"></i> Result Submissions</h2>
+    <nav class="result-status-tabs" aria-label="Filter result submissions by status">
+      <a href="/runner/dashboard<%= preservedGroupQuery ? ('?groupQ=' + encodeURIComponent(preservedGroupQuery)) : '' %>"
+         class="result-status-tab <%= !selectedResultStatus ? 'is-active' : '' %>"
+         <%= !selectedResultStatus ? 'aria-current="page"' : '' %>>
+        All
+      </a>
+      <a href="/runner/dashboard?resultStatus=submitted<%= preservedGroupQuery ? ('&groupQ=' + encodeURIComponent(preservedGroupQuery)) : '' %>"
+         class="result-status-tab <%= selectedResultStatus === 'submitted' ? 'is-active' : '' %>"
+         <%= selectedResultStatus === 'submitted' ? 'aria-current="page"' : '' %>>
+        Submitted
+      </a>
+      <a href="/runner/dashboard?resultStatus=approved<%= preservedGroupQuery ? ('&groupQ=' + encodeURIComponent(preservedGroupQuery)) : '' %>"
+         class="result-status-tab <%= selectedResultStatus === 'approved' ? 'is-active' : '' %>"
+         <%= selectedResultStatus === 'approved' ? 'aria-current="page"' : '' %>>
+        Approved
+      </a>
+      <a href="/runner/dashboard?resultStatus=rejected<%= preservedGroupQuery ? ('&groupQ=' + encodeURIComponent(preservedGroupQuery)) : '' %>"
+         class="result-status-tab <%= selectedResultStatus === 'rejected' ? 'is-active' : '' %>"
+         <%= selectedResultStatus === 'rejected' ? 'aria-current="page"' : '' %>>
+        Rejected
+      </a>
+    </nav>
+  </div>
+  <div class="card-content result-submissions-panel">
+    <% if (resultCards && resultCards.length) { %>
+      <ul class="item-list">
+        <% resultCards.forEach((item) => { %>
+          <li class="item-row">
+            <div class="item-main">
+              <div class="item-title">
+                <% if (item.eventSlug) { %>
+                  <a href="/events/<%= item.eventSlug %>"><%= item.eventTitle %></a>
+                <% } else { %>
+                  <%= item.eventTitle %>
+                <% } %>
+              </div>
+              <div class="item-meta">
+                <span><%= item.elapsedLabel %></span> &middot; <span><%= Number(item.distanceKm || 0).toFixed(2) %> km</span> &middot; <span class="badge badge-<%= item.proofType || 'manual' %>"><%= String(item.proofType || 'manual').toUpperCase() %></span>
+              </div>
+              <div class="item-meta">
+                Status: <span class="badge badge-<%= item.status %>"><%= item.status %></span>
+                <% if (item.rejectionReason) { %> - <span class="text-danger"><%= item.rejectionReason %></span><% } %>
+              </div>
+              <% if (item.submittedAtLabel && item.submittedAtLabel !== 'TBA') { %>
+                <div class="item-meta">Submitted: <%= item.submittedAtLabel %><% if (item.submittedAtRelativeLabel) { %> <span class="text-muted">(<%= item.submittedAtRelativeLabel %>)</span><% } %></div>
+              <% } %>
+              <% if (item.reviewedAtLabel && item.reviewedAtLabel !== 'TBA') { %>
+                <div class="item-meta">Reviewed: <%= item.reviewedAtLabel %><% if (item.reviewedAtRelativeLabel) { %> <span class="text-muted">(<%= item.reviewedAtRelativeLabel %>)</span><% } %></div>
+              <% } %>
+            </div>
+            <% if (item.certificateUrl) { %>
+              <a href="/my-submissions/<%= item.submissionId %>/certificate" class="btn btn-sm btn-outline">Certificate</a>
+            <% } %>
+          </li>
+        <% }) %>
+      </ul>
+    <% } else { %>
+      <div class="empty-state">
+        <p class="empty-message">No result submissions.</p>
+      </div>
+    <% } %>
+  </div>
+</section>

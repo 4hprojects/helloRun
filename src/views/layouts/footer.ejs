@@ -2,14 +2,14 @@
 <footer class="footer">
   <div class="container">
     <div class="footer-content">
-      <div>
+      <div class="footer-section footer-section-brand">
         <h3>HelloRun</h3>
         <p>Movement, momentum, and shared progress. Join the conversation around consistency, health, and achievement.</p>
       </div>
       
-      <div>
+      <div class="footer-section footer-section-links">
         <h3>Quick Links</h3>
-        <ul class="footer-links">
+        <ul class="footer-links footer-links-compact">
           <li><a href="/events">Browse Events</a></li>
           <li><a href="/about">About Us</a></li>
           <li><a href="/how-it-works">How It Works</a></li>
@@ -17,9 +17,9 @@
         </ul>
       </div>
       
-      <div>
+      <div class="footer-section footer-section-links">
         <h3>Resources</h3>
-        <ul class="footer-links">
+        <ul class="footer-links footer-links-compact">
           <li><a href="/blog">Running Blog</a></li>
           <li><a href="/faq">FAQ</a></li>
           <li><a href="/privacy">Privacy Policy</a></li>
@@ -34,6 +34,9 @@
     </div>
   </div>
 </footer>
+<button type="button" class="global-back-to-top" id="globalBackToTopBtn" aria-label="Back to top">
+  <i data-lucide="arrow-up"></i>
+</button>
 <%- include('../partials/run-proof-modal') %>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="/js/ocr-proof-reader.js"></script>

@@ -64,10 +64,10 @@
 
         <section class="run-proof-section" aria-labelledby="runProofSectionEvents">
           <div class="run-proof-section-heading">
-            <h3 id="runProofSectionEvents">Challenge / Event Selection</h3>
+            <h3 id="runProofSectionEvents">Event Selection</h3>
             <span class="run-proof-required-tag">Required</span>
           </div>
-          <p class="run-proof-helper">Select one or more eligible events. Personal record stays selected by default.</p>
+          <p class="run-proof-helper" id="runProofEventsHelper">Select the event result you want to submit. Personal record stays selected by default.</p>
 
           <div class="run-proof-event-list" id="runProofEventsList" role="group" aria-describedby="runProofEventsError">
             <label class="run-proof-event-card is-locked" for="runProofPersonalRecord">
@@ -106,17 +106,26 @@
           <fieldset class="run-proof-duration" data-field-wrapper="elapsedTime">
             <legend>Duration (hh mm ss)</legend>
             <div class="run-proof-duration-grid">
-              <div class="run-proof-field">
+              <div class="run-proof-duration-cell">
                 <label for="runProofHours">Hours</label>
-                <input id="runProofHours" type="number" inputmode="numeric" min="0" max="99" placeholder="00" required>
+                <div class="run-proof-duration-input-wrap">
+                  <input id="runProofHours" type="number" inputmode="numeric" min="0" max="99" placeholder="00" required>
+                  <span class="run-proof-duration-unit" aria-hidden="true">hr</span>
+                </div>
               </div>
-              <div class="run-proof-field">
+              <div class="run-proof-duration-cell">
                 <label for="runProofMinutes">Minutes</label>
-                <input id="runProofMinutes" type="number" inputmode="numeric" min="0" max="59" placeholder="30" required>
+                <div class="run-proof-duration-input-wrap">
+                  <input id="runProofMinutes" type="number" inputmode="numeric" min="0" max="59" placeholder="30" required>
+                  <span class="run-proof-duration-unit" aria-hidden="true">min</span>
+                </div>
               </div>
-              <div class="run-proof-field">
+              <div class="run-proof-duration-cell">
                 <label for="runProofSeconds">Seconds</label>
-                <input id="runProofSeconds" type="number" inputmode="numeric" min="0" max="59" placeholder="00" required>
+                <div class="run-proof-duration-input-wrap">
+                  <input id="runProofSeconds" type="number" inputmode="numeric" min="0" max="59" placeholder="00" required>
+                  <span class="run-proof-duration-unit" aria-hidden="true">sec</span>
+                </div>
               </div>
             </div>
             <p class="run-proof-field-error" id="runProofDurationError" aria-live="polite"></p>

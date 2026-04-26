@@ -893,16 +893,37 @@ h1, h2, h3 {
   }
 
   .hero-stats {
-    grid-template-columns: 1fr;
-    gap: 0.9rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
   }
 
   .stat-item {
-    text-align: left;
+    text-align: center;
+    padding: 0.8rem 0.55rem;
+  }
+
+  .stat-heading {
+    justify-content: center;
+    gap: 0.35rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .stat-icon {
+    width: 16px;
+    height: 16px;
   }
 
   .stat-value {
-    font-size: 1.45rem;
+    font-size: 1.1rem;
+  }
+
+  .stat-label {
+    font-size: 0.78rem;
+    line-height: 1.25;
+  }
+
+  .stat-detail {
+    display: none;
   }
 
   .hero-buttons {
@@ -924,6 +945,11 @@ h1, h2, h3 {
 
   .visual-placeholder {
     max-width: 100%;
+  }
+
+  .hero-visual-chip {
+    width: 100%;
+    justify-content: center;
   }
 
   .hero-logo {
@@ -1086,6 +1112,23 @@ h1, h2, h3 {
 
   .hero-subtitle {
     font-size: 0.96rem;
+  }
+
+  .hero-stats {
+    gap: 0.5rem;
+  }
+
+  .stat-item {
+    padding: 0.75rem 0.45rem;
+    border-radius: 14px;
+  }
+
+  .stat-value {
+    font-size: 1rem;
+  }
+
+  .stat-label {
+    font-size: 0.72rem;
   }
 
   .visual-placeholder {

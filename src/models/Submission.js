@@ -21,6 +21,11 @@ const submissionSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    isPersonalRecord: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
     participationMode: {
       type: String,
       enum: ['virtual', 'onsite'],

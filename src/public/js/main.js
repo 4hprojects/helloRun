@@ -5,6 +5,7 @@ lucide.createIcons();
 document.addEventListener('DOMContentLoaded', function() {
   const menuToggle = document.querySelector('.menu-toggle');
   const navLinks = document.querySelector('.nav-links');
+  const backToTopBtn = document.getElementById('globalBackToTopBtn');
   
   if (menuToggle && navLinks) {
     const firstFocusableLink = () => navLinks.querySelector('a, button, [tabindex]:not([tabindex="-1"])');
@@ -72,5 +73,21 @@ document.addEventListener('DOMContentLoaded', function() {
         closeMenu();
       }
     });
+  }
+
+  if (backToTopBtn) {
+    const toggleBackToTop = () => {
+      if (window.scrollY > 300) {
+        backToTopBtn.classList.add('visible');
+      } else {
+        backToTopBtn.classList.remove('visible');
+      }
+    };
+
+    window.addEventListener('scroll', toggleBackToTop, { passive: true });
+    backToTopBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    toggleBackToTop();
   }
 });

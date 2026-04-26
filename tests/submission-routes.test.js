@@ -9,6 +9,7 @@ require('dotenv').config();
 const User = require('../src/models/User');
 const Event = require('../src/models/Event');
 const Registration = require('../src/models/Registration');
+const Submission = require('../src/models/Submission');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -177,6 +178,46 @@ test('authenticated submit-result rejects PDF proof uploads', async () => {
   assert.match(location, /Only\+JPEG\+and\+PNG\+files\+are\+allowed/i);
 });
 
+test('authenticated submit-result allows personal-record submission without a registered event', async () => {
+  const seed = await seedData('personal-record-only');
+  await mongoose.connect(process.env.MONGODB_URI);
+  await Registration.deleteOne({ _id: seed.registration._id });
+  await Event.deleteOne({ _id: seed.event._id });
+  await mongoose.disconnect();
+
+  const cookie = await login(seed.runner.email, seed.password);
+  const ready = await waitForSessionReady('/runner/dashboard', cookie);
+  assert.equal(ready, true);
+  const csrfToken = await fetchCsrfToken('/runner/dashboard', cookie);
+
+  const form = buildResultProofForm({
+    distanceKm: '7.25',
+    elapsedTime: '00:41:30',
+    proofType: 'photo',
+    runLocation: 'Ayala Avenue'
+  });
+  form.append('_csrf', csrfToken);
+
+  const response = await fetch(`${BASE_URL}/my-registrations/personal-record/submit-result`, {
+    method: 'POST',
+    headers: { Cookie: cookie },
+    body: form,
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  const location = response.headers.get('location') || '';
+  assert.match(location, /my-registrations\?type=success/i);
+  assert.match(location, /Personal\+record\+saved\+successfully/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  const created = await Submission.findOne({ runnerId: seed.runner._id, isPersonalRecord: true }).sort({ createdAt: -1 }).lean();
+  await mongoose.disconnect();
+
+  assert.ok(created);
+  assert.equal(created.status, 'approved');
+});
+
 async function seedData(tag) {
   await mongoose.connect(process.env.MONGODB_URI);
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -260,7 +301,7 @@ async function seedData(tag) {
   });
 
   await mongoose.disconnect();
-  return { runner, password, registration };
+  return { runner, password, registration, event };
 }
 
 async function login(email, password) {
@@ -314,4 +355,17 @@ function buildResultProofForm({ distanceKm, elapsedTime, proofType, runDate, run
   if (runDate) form.append('runDate', String(runDate));
   if (runLocation) form.append('runLocation', String(runLocation));
   return form;
+}
+
+async function fetchCsrfToken(pathname, cookie) {
+  const response = await fetch(`${BASE_URL}${pathname}`, {
+    method: 'GET',
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  const match = html.match(/name="_csrf"\s+value="([^"]+)"/i);
+  assert.ok(match && match[1]);
+  return match[1];
 }

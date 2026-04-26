@@ -17,7 +17,8 @@ const { canRunnerSubmitPaymentProof } = require('../utils/payment-workflow');
 const {
   createSubmission,
   resubmitSubmission,
-  getRunnerSubmissions
+  getRunnerSubmissions,
+  PERSONAL_RECORD_REGISTRATION_ID
 } = require('../services/submission.service');
 const { getLeaderboardData } = require('../services/leaderboard.service');
 
@@ -32,6 +33,7 @@ exports.getHome = async (req, res) => {
 
     const [activeEventsCount, approvedFinishersCount, approvedOrganizersCount, recentPostsRaw] = await Promise.all([
       Event.countDocuments({
+        isPersonalRecord: { $ne: true },
         status: 'published',
         $or: [
           { eventEndAt: { $gte: now } },
@@ -39,7 +41,7 @@ exports.getHome = async (req, res) => {
           { eventEndAt: { $exists: false } }
         ]
       }),
-      Submission.countDocuments({ status: 'approved' }),
+      Submission.countDocuments({ status: 'approved', isPersonalRecord: { $ne: true } }),
       OrganiserApplication.countDocuments({ status: 'approved' }),
       Blog.find({
         status: 'published',
@@ -114,7 +116,8 @@ exports.getEvents = async (req, res) => {
     const now = new Date();
     const matchingCountryCodes = getMatchingCountryCodes(filterValues.q);
     const query = {
-      status: 'published'
+      status: 'published',
+      isPersonalRecord: { $ne: true }
     };
     if (filterValues.eventType) {
       query.$or = [
@@ -618,9 +621,12 @@ exports.getMyRegistrations = async (req, res) => {
 };
 
 exports.postSubmitResult = async (req, res) => {
+  const isPersonalRecordSubmission = String(req.params.registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID;
   return handleRunnerSubmissionWrite(req, res, {
     mode: 'create',
-    successMessage: 'Result submitted successfully. Await organizer review.'
+    successMessage: isPersonalRecordSubmission
+      ? 'Personal record saved successfully.'
+      : 'Result submitted successfully. Await organizer review.'
   });
 };
 
@@ -846,12 +852,19 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     }
 
     const registrationId = String(req.params.registrationId || '').trim();
-    const existingSubmission = await Submission.findOne({
-      registrationId,
-      runnerId: user._id
-    })
-      .select('status proof')
-      .lean();
+    const isPersonalRecordSubmission = registrationId === PERSONAL_RECORD_REGISTRATION_ID;
+    const existingSubmission = isPersonalRecordSubmission
+      ? null
+      : await Submission.findOne({
+        registrationId,
+        runnerId: user._id
+      })
+        .select('status proof')
+        .lean();
+
+    if (isPersonalRecordSubmission && options.mode === 'resubmit') {
+      return redirectWithPageMessage(res, 'error', 'Personal record submissions create a new entry each time.');
+    }
 
     if (options.mode === 'create' && existingSubmission) {
       return redirectWithPageMessage(res, 'error', 'Submission already exists. Use resubmit flow if rejected.');
@@ -2069,7 +2082,7 @@ async function generateConfirmationCode() {
 async function getPublishedEventBySlug(slugInput) {
   const slug = typeof slugInput === 'string' ? slugInput.trim() : '';
   if (!slug) return null;
-  return Event.findOne({ slug, status: 'published' });
+  return Event.findOne({ slug, status: 'published', isPersonalRecord: { $ne: true } });
 }
 
 function renderEventNotFound(res) {

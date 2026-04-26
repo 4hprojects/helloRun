@@ -7,6 +7,8 @@ if (document.readyState === 'loading') {
 function initializeDashboard() {
   setupLogoutHandler();
   setupCollapsiblePanels();
+  setupAsyncResultSubmissions();
+  setupDashboardFlashBridge();
   setupUnlinkConfirmation();
   setupLoadingStates();
   setupAutoDismissMessages();
@@ -85,6 +87,7 @@ function setupCollapsiblePanels() {
     const showLabel = button.getAttribute('data-toggle-show-label') || 'Show';
     const hideLabel = button.getAttribute('data-toggle-hide-label') || 'Hide';
     const storageKey = `dashboard-toggle:${targetId}`;
+    const labelNode = button.querySelector('[data-toggle-label]');
 
     // Restore state from localStorage if available
     try {
@@ -99,7 +102,12 @@ function setupCollapsiblePanels() {
     const updateButton = () => {
       const expanded = !panel.hasAttribute('hidden');
       button.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-      button.textContent = expanded ? hideLabel : showLabel;
+      button.classList.toggle('is-open', expanded);
+      if (labelNode) {
+        labelNode.textContent = expanded ? hideLabel : showLabel;
+      } else {
+        button.textContent = expanded ? hideLabel : showLabel;
+      }
     };
     updateButton();
 
@@ -117,6 +125,162 @@ function setupCollapsiblePanels() {
 
     button.dataset.toggleBound = 'true';
   });
+}
+
+function setupAsyncResultSubmissions() {
+  const page = document.querySelector('.runner-dashboard-page');
+  if (!page) return;
+
+  let requestToken = 0;
+
+  const getRoot = () => document.querySelector('[data-result-submissions-root]');
+
+  const buildEndpointUrl = (sourceHref, root) => {
+    const sourceUrl = new URL(sourceHref, window.location.origin);
+    const endpoint = root?.getAttribute('data-result-submissions-endpoint');
+    if (!endpoint) return null;
+
+    const endpointUrl = new URL(endpoint, window.location.origin);
+    const resultStatus = sourceUrl.searchParams.get('resultStatus');
+    const groupQ = sourceUrl.searchParams.get('groupQ');
+
+    if (resultStatus) endpointUrl.searchParams.set('resultStatus', resultStatus);
+    if (groupQ) endpointUrl.searchParams.set('groupQ', groupQ);
+    return endpointUrl;
+  };
+
+  const bindTabs = (root) => {
+    const tabs = root?.querySelectorAll('.result-status-tab');
+    if (!tabs?.length) return;
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', (event) => {
+        const href = tab.getAttribute('href');
+        if (!href) return;
+        if (tab.classList.contains('is-active')) {
+          event.preventDefault();
+          return;
+        }
+
+        event.preventDefault();
+        void loadCard(href, { pushHistory: true });
+      });
+    });
+  };
+
+  const replaceRoot = (html) => {
+    const template = document.createElement('template');
+    template.innerHTML = html.trim();
+    const nextRoot = template.content.querySelector('[data-result-submissions-root]');
+    const currentRoot = getRoot();
+    if (!nextRoot || !currentRoot) return false;
+
+    currentRoot.replaceWith(nextRoot);
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
+    }
+    bindTabs(nextRoot);
+    return true;
+  };
+
+  const loadCard = async (href, { pushHistory }) => {
+    const currentRoot = getRoot();
+    if (!currentRoot) return;
+
+    const endpointUrl = buildEndpointUrl(href, currentRoot);
+    if (!endpointUrl) {
+      window.location.assign(href);
+      return;
+    }
+
+    const currentRequest = ++requestToken;
+    currentRoot.classList.add('is-loading');
+    currentRoot.setAttribute('aria-busy', 'true');
+
+    try {
+      const response = await fetch(endpointUrl.toString(), {
+        headers: { 'X-Requested-With': 'fetch' }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed with ${response.status}`);
+      }
+
+      const html = await response.text();
+      if (currentRequest !== requestToken) return;
+
+      const replaced = replaceRoot(html);
+      if (!replaced) {
+        throw new Error('Partial markup missing result submissions root');
+      }
+
+      if (pushHistory) {
+        history.pushState({ resultSubmissions: true }, '', href);
+      }
+    } catch (error) {
+      window.location.assign(href);
+    } finally {
+      const latestRoot = getRoot();
+      latestRoot?.classList.remove('is-loading');
+      latestRoot?.removeAttribute('aria-busy');
+    }
+  };
+
+  window.refreshRunnerDashboardResultSubmissions = () => {
+    if (window.location.pathname !== '/runner/dashboard') {
+      return Promise.resolve();
+    }
+    return loadCard(window.location.pathname + window.location.search, { pushHistory: false });
+  };
+
+  window.addEventListener('popstate', () => {
+    if (window.location.pathname !== '/runner/dashboard') return;
+    void loadCard(window.location.pathname + window.location.search, { pushHistory: false });
+  });
+
+  bindTabs(getRoot());
+}
+
+function setupDashboardFlashBridge() {
+  const page = document.querySelector('.runner-dashboard-page');
+  if (!page) return;
+
+  const container = page.querySelector('.dashboard-container');
+  const hero = page.querySelector('.dashboard-hero');
+  if (!container || !hero) return;
+
+  window.showRunnerDashboardFlashMessage = ({ type, text, linkHref, linkLabel }) => {
+    const messageText = String(text || '').trim();
+    if (!messageText) return;
+
+    const safeType = String(type || '').trim().toLowerCase() === 'error' ? 'danger' : 'success';
+    let alert = page.querySelector('[data-dashboard-runtime-message]');
+    if (!alert) {
+      alert = document.createElement('div');
+      alert.setAttribute('data-dashboard-runtime-message', '1');
+      hero.insertAdjacentElement('afterend', alert);
+    }
+
+    alert.className = `alert alert-${safeType}`;
+    alert.setAttribute('role', safeType === 'danger' ? 'alert' : 'status');
+    alert.setAttribute('aria-live', safeType === 'danger' ? 'assertive' : 'polite');
+    alert.textContent = messageText;
+
+    const href = String(linkHref || '').trim();
+    const label = String(linkLabel || '').trim();
+    if (href && label) {
+      const spacer = document.createTextNode(' ');
+      const link = document.createElement('a');
+      link.href = href;
+      link.textContent = label;
+      alert.appendChild(spacer);
+      alert.appendChild(link);
+    }
+
+    if (typeof alert.scrollIntoView === 'function') {
+      alert.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  };
 }
 
 /**

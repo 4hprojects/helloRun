@@ -4,7 +4,8 @@ async function getRunnerRegistrations(userId) {
   return Registration.find({ userId })
     .populate({
       path: 'eventId',
-      select: 'title slug status eventStartAt eventEndAt city country venueName'
+      select: 'title slug status eventStartAt eventEndAt city country venueName',
+      match: { isPersonalRecord: { $ne: true } }
     })
     .sort({ registeredAt: -1 })
     .lean();

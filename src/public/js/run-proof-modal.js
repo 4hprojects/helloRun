@@ -19,6 +19,7 @@
 
     const eventsList = document.getElementById('runProofEventsList');
     const eventsErrorEl = document.getElementById('runProofEventsError');
+    const eventsHelperEl = document.getElementById('runProofEventsHelper');
 
     const runDateInput = document.getElementById('runProofDate');
     const distanceInput = document.getElementById('runProofDistanceKm');
@@ -81,6 +82,8 @@
       modeConfig: { ...defaultConfig },
       defaultSelectedEventIds: [],
       initialEvents: [],
+      currentSurface: '',
+      emptyState: null,
       ocrRunning: false,
       ocrResult: null
     };
@@ -122,6 +125,11 @@
       messageEl.classList.remove('is-error', 'is-success');
       if (type === 'error') messageEl.classList.add('is-error');
       if (type === 'success') messageEl.classList.add('is-success');
+    };
+
+    const setEventsHelperText = (text) => {
+      if (!eventsHelperEl) return;
+      eventsHelperEl.textContent = text || 'Select the event result you want to submit. Personal record stays selected by default.';
     };
 
     const setFieldError = (errorElId, wrapperKey, text) => {
@@ -173,6 +181,22 @@
         setFieldError('runProofEventsError', 'events', 'No eligible event is currently accepting run submissions.');
         primaryRegistrationInput.value = '';
         form.removeAttribute('action');
+        setEventsHelperText('No eligible event is currently accepting run submissions.');
+        return;
+      }
+
+      const personalRecordOnly = state.options.length === 1 && state.options[0] && state.options[0].isPersonalRecord;
+      if (personalRecordOnly) {
+        const personalRecordId = String(state.options[0].registrationId || '').trim();
+        if (personalRecordId) {
+          state.selectedRegistrationIds.add(personalRecordId);
+          state.primaryRegistrationId = personalRecordId;
+          syncSelectedRegistrationFields();
+          syncFormAction();
+          updateSubmitLabelForSelection();
+        }
+        setEventsHelperText('You can submit this run as a personal record even without a registered event.');
+        validateEvents();
         return;
       }
 
@@ -213,8 +237,18 @@
         eventsList.appendChild(label);
       });
 
+      if (state.options.length === 1) {
+        const onlyOption = state.options[0];
+        setEventsHelperText(
+          `${String(onlyOption?.eventTitle || 'Your eligible event')} is ready and preselected for this submission.`
+        );
+      } else {
+        setEventsHelperText('Select the event result you want to submit. Personal record stays selected by default.');
+      }
+
       syncSelectedRegistrationFields();
       syncFormAction();
+      updateSubmitLabelForSelection();
       validateEvents();
     };
 
@@ -249,6 +283,15 @@
       return state.options.find((item) => String(item.registrationId || '') === state.primaryRegistrationId) || null;
     };
 
+    const updateSubmitLabelForSelection = () => {
+      if (state.isSubmitting) return;
+      const selectedPrimary = getSelectedPrimaryMeta();
+      const baseLabel = String(state.modeConfig.submitLabel || submitBtn.dataset.defaultLabel || 'Submit Run').trim() || 'Submit Run';
+      const nextLabel = selectedPrimary?.canResubmit ? 'Resubmit Run Proof' : baseLabel;
+      submitBtn.dataset.defaultLabel = nextLabel;
+      submitBtn.textContent = state.isFetchingOptions ? 'Loading...' : nextLabel;
+    };
+
     const resolveFormAction = () => {
       const selectedPrimary = getSelectedPrimaryMeta();
       if (!selectedPrimary) return '';
@@ -280,8 +323,7 @@
         return;
       }
 
-      const baseLabel = String(state.modeConfig.submitLabel || submitBtn.dataset.defaultLabel || 'Submit Run').trim();
-      submitBtn.textContent = state.isFetchingOptions ? 'Loading...' : baseLabel;
+      updateSubmitLabelForSelection();
       submitBtn.disabled = state.isFetchingOptions;
       submitBtn.setAttribute('aria-busy', state.isFetchingOptions ? 'true' : 'false');
       dialog.classList.remove('is-submitting');
@@ -590,24 +632,13 @@
       toggleSubmitState();
       setMessage('', '');
       try {
-        const response = await fetch('/runner/submissions/eligible?limit=100', {
-          method: 'GET',
-          headers: { Accept: 'application/json' }
-        });
-
-        if (!response.ok) {
-          throw new Error('Unable to load eligible events.');
-        }
-
-        const payload = await response.json();
-        if (!payload || payload.success !== true) {
-          throw new Error(payload?.message || 'Unable to load eligible events.');
-        }
-
-        renderEventOptions(payload.items || [], preferredRegistrationId);
+        const items = await fetchEligibleOptions();
+        renderEventOptions(items, preferredRegistrationId);
+        return items;
       } catch (error) {
         renderEventOptions([], '');
         setMessage(String(error?.message || 'Unable to load eligible events.'), 'error');
+        return [];
       } finally {
         state.isFetchingOptions = false;
         toggleSubmitState();
@@ -619,6 +650,7 @@
       setMessage('', '');
       form.reset();
       setTodayDate();
+      setEventsHelperText('Select the event result you want to submit. Personal record stays selected by default.');
       clearFilePreview();
       clearOcrState();
       runTypeInput.value = '';
@@ -635,12 +667,125 @@
       elevationInput.value = '';
 
       state.isSubmitting = false;
+      state.currentSurface = '';
+      state.emptyState = null;
       toggleSubmitState();
     };
 
     const redirectToLogin = () => {
       const loginUrl = String(modal.dataset.loginUrl || '/login').trim() || '/login';
       window.location.href = loginUrl;
+    };
+
+    const getTriggerConfig = (triggerElement) => {
+      const surface = String(triggerElement?.getAttribute?.('data-run-proof-surface') || '').trim();
+      const emptyMessage = String(triggerElement?.getAttribute?.('data-run-proof-empty-message') || '').trim();
+      const emptyLinkHref = String(triggerElement?.getAttribute?.('data-run-proof-empty-link-href') || '').trim();
+      const emptyLinkLabel = String(triggerElement?.getAttribute?.('data-run-proof-empty-link-label') || '').trim();
+
+      return {
+        surface,
+        emptyState: emptyMessage
+          ? {
+              type: 'error',
+              text: emptyMessage,
+              linkHref: emptyLinkHref,
+              linkLabel: emptyLinkLabel
+            }
+          : null
+      };
+    };
+
+    const fetchEligibleOptions = async () => {
+      const response = await fetch('/runner/submissions/eligible?limit=100', {
+        method: 'GET',
+        headers: { Accept: 'application/json' }
+      });
+
+      if (!response.ok) {
+        throw new Error('Unable to load eligible events.');
+      }
+
+      const payload = await response.json();
+      if (!payload || payload.success !== true) {
+        throw new Error(payload?.message || 'Unable to load eligible events.');
+      }
+
+      return Array.isArray(payload.items) ? payload.items : [];
+    };
+
+    const showSurfaceMessage = (payload) => {
+      if (!payload || !payload.text) return;
+      if (state.currentSurface === 'runner-dashboard' && typeof window.showRunnerDashboardFlashMessage === 'function') {
+        window.showRunnerDashboardFlashMessage(payload);
+        return;
+      }
+      setMessage(payload.text, payload.type || 'error');
+    };
+
+    const parseRedirectMessage = (urlString) => {
+      const fallback = { type: 'error', text: 'Unable to save your result right now.' };
+      if (!urlString) return fallback;
+
+      let parsedUrl;
+      try {
+        parsedUrl = new URL(urlString, window.location.origin);
+      } catch (_error) {
+        return fallback;
+      }
+
+      const messageText = String(parsedUrl.searchParams.get('msg') || '').trim();
+      return {
+        type: String(parsedUrl.searchParams.get('type') || '').trim().toLowerCase() === 'error' ? 'error' : 'success',
+        text: messageText || fallback.text,
+        pathname: parsedUrl.pathname
+      };
+    };
+
+    const submitViaFetch = async () => {
+      const action = String(form.getAttribute('action') || '').trim();
+      if (!action) {
+        setMessage('Select at least one eligible event before submitting.', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(action, {
+          method: 'POST',
+          body: new FormData(form),
+          credentials: 'same-origin'
+        });
+
+        if (response.url && new URL(response.url, window.location.origin).pathname === '/login') {
+          redirectToLogin();
+          return;
+        }
+
+        const resultMessage = parseRedirectMessage(response.url);
+        if (resultMessage.type === 'success') {
+          closeModal();
+          if (state.currentSurface === 'runner-dashboard') {
+            if (typeof window.refreshRunnerDashboardResultSubmissions === 'function') {
+              await window.refreshRunnerDashboardResultSubmissions();
+            }
+            showSurfaceMessage({
+              type: 'success',
+              text: resultMessage.text
+            });
+            return;
+          }
+
+          window.location.assign(response.url || action);
+          return;
+        }
+
+        setMessage(resultMessage.text, 'error');
+      } catch (_error) {
+        setMessage('Unable to save your result right now. Please try again.', 'error');
+      } finally {
+        state.isSubmitting = false;
+        toggleSubmitState();
+      }
     };
 
     const openModal = async (triggerElement, overrides) => {
@@ -659,16 +804,53 @@
         applyTriggerOverrides(triggerElement);
       }
 
-      modal.removeAttribute('hidden');
-      modal.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
+      const triggerConfig = getTriggerConfig(triggerElement);
+      state.currentSurface = triggerConfig.surface;
+      state.emptyState = triggerConfig.emptyState;
 
       const preferredRegistrationId = String(triggerElement?.getAttribute?.('data-registration-id') || '').trim();
 
-      if (state.initialEvents.length) {
-        renderEventOptions(state.initialEvents, preferredRegistrationId);
+      if (state.currentSurface === 'runner-dashboard') {
+        state.isFetchingOptions = true;
+        toggleSubmitState();
+        try {
+          const items = await fetchEligibleOptions();
+          if (!items.length) {
+            showSurfaceMessage(state.emptyState || {
+              type: 'error',
+              text: 'No eligible event is currently accepting run submissions.',
+              linkHref: '/my-registrations',
+              linkLabel: 'Review my registrations'
+            });
+            return;
+          }
+          renderEventOptions(items, preferredRegistrationId);
+        } catch (error) {
+          showSurfaceMessage({
+            type: 'error',
+            text: String(error?.message || 'Unable to load eligible events.')
+          });
+          return;
+        } finally {
+          state.isFetchingOptions = false;
+          toggleSubmitState();
+        }
+      } else {
+        modal.removeAttribute('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+
+        if (state.initialEvents.length) {
+          renderEventOptions(state.initialEvents, preferredRegistrationId);
+        }
+        await loadEligibleOptions(preferredRegistrationId);
+        dialog.focus();
+        return;
       }
-      await loadEligibleOptions(preferredRegistrationId);
+
+      modal.removeAttribute('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
       dialog.focus();
     };
 
@@ -723,6 +905,7 @@
 
       syncSelectedRegistrationFields();
       syncFormAction();
+      updateSubmitLabelForSelection();
       validateEvents();
     });
 
@@ -850,6 +1033,11 @@
       state.isSubmitting = true;
       setMessage('', '');
       toggleSubmitState();
+
+      if (state.currentSurface === 'runner-dashboard') {
+        event.preventDefault();
+        void submitViaFetch();
+      }
     });
 
     openTriggers.forEach((button) => {

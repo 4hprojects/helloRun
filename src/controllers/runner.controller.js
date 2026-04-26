@@ -57,6 +57,7 @@ exports.getDashboard = async (req, res) => {
       .slice(0, 5)
       .map(normalizeRegistrationCard);
     const profileCompleteness = getProfileCompleteness(getRunnerProfileFormData(user));
+    const resultSubmissions = formatRunnerResultSubmissions(performanceSnapshot, locale);
 
     return res.render('runner/dashboard', {
       user,
@@ -86,13 +87,7 @@ exports.getDashboard = async (req, res) => {
           ...item,
           issuedAtLabel: formatDateTime(item.issuedAt, locale)
         })),
-        results: (performanceSnapshot.recentSubmissions || []).map((item) => ({
-          ...item,
-          submittedAtLabel: formatDateTime(item.submittedAt, locale),
-          reviewedAtLabel: formatDateTime(item.reviewedAt, locale),
-          submittedAtRelativeLabel: formatRelativeTime(item.submittedAt),
-          reviewedAtRelativeLabel: formatRelativeTime(item.reviewedAt)
-        }))
+        results: resultSubmissions
       },
       stats: dashboardData.stats,
       submissionStats: performanceSnapshot.counts || { total: 0, submitted: 0, approved: 0, rejected: 0, certificates: 0 },
@@ -111,6 +106,32 @@ exports.getDashboard = async (req, res) => {
       status: 500,
       message: 'An error occurred while loading your dashboard.'
     });
+  }
+};
+
+exports.getDashboardResultSubmissions = async (req, res) => {
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) {
+      return res.redirect('/login');
+    }
+
+    const locale = getRequestLocale(req);
+    const groupQuery = String(req.query.groupQ || '').trim().slice(0, 80);
+    const dashboardFilters = getDashboardFilters(req.query);
+    const performanceSnapshot = await getRunnerPerformanceSnapshot(user._id, {
+      recentLimit: 8,
+      resultStatus: dashboardFilters.resultStatus
+    });
+
+    return res.render('runner/partials/result-submissions-card', {
+      selectedResultStatus: dashboardFilters.resultStatus,
+      preservedGroupQuery: groupQuery,
+      resultCards: formatRunnerResultSubmissions(performanceSnapshot, locale)
+    });
+  } catch (error) {
+    console.error('Runner result submissions partial load error:', error);
+    return res.status(500).send('<div class="empty-state"><p class="empty-message">Unable to load result submissions right now.</p></div>');
   }
 };
 
@@ -942,6 +963,16 @@ function getDashboardFilters(query = {}) {
   return {
     resultStatus: normalizeDashboardResultStatus(query.resultStatus)
   };
+}
+
+function formatRunnerResultSubmissions(performanceSnapshot, locale) {
+  return (performanceSnapshot?.recentSubmissions || []).map((item) => ({
+    ...item,
+    submittedAtLabel: formatDateTime(item.submittedAt, locale),
+    reviewedAtLabel: formatDateTime(item.reviewedAt, locale),
+    submittedAtRelativeLabel: formatRelativeTime(item.submittedAt),
+    reviewedAtRelativeLabel: formatRelativeTime(item.reviewedAt)
+  }));
 }
 
 function normalizeDashboardResultStatus(value) {

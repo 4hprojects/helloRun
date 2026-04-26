@@ -10,6 +10,7 @@
     setupEditablePanels();
     setupDobToggle();
     highlightActiveMenu();
+    setupUnlinkConfirmation();
   }
 
   function setupEditablePanels() {
@@ -128,5 +129,52 @@
     }, { threshold: 0.3, rootMargin: '-20px 0px -20px 0px' });
 
     sections.forEach(section => observer.observe(section));
+  }
+
+  function setupUnlinkConfirmation() {
+    const modal = document.getElementById('unlinkGoogleModal');
+    const openButtons = document.querySelectorAll('[data-open-unlink-modal]');
+    if (!modal || !openButtons.length) return;
+
+    const cancelBtn = modal.querySelector('[data-cancel-unlink]');
+    const confirmBtn = modal.querySelector('[data-confirm-unlink]');
+    let activeForm = null;
+    let lastTrigger = null;
+
+    const closeModal = () => {
+      modal.setAttribute('hidden', '');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      activeForm = null;
+      if (lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus();
+      lastTrigger = null;
+    };
+
+    openButtons.forEach((button) => {
+      if (button.disabled) return;
+      button.addEventListener('click', () => {
+        activeForm = button.closest('form');
+        lastTrigger = button;
+        modal.removeAttribute('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+        const focusables = modal.querySelectorAll('button, [href], input, [tabindex]:not([tabindex="-1"])');
+        if (focusables.length) focusables[0].focus();
+      });
+    });
+
+    cancelBtn && cancelBtn.addEventListener('click', closeModal);
+    confirmBtn && confirmBtn.addEventListener('click', () => {
+      if (activeForm) activeForm.submit();
+      closeModal();
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !modal.hasAttribute('hidden')) closeModal();
+    });
   }
 })();

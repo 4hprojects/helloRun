@@ -6,10 +6,6 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  
-  <!-- Back to top button -->
-  <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Back to top"><i data-lucide="arrow-up"></i></button>
-
   <main class="blog-page-shell">
     <!-- Compact Header -->
     <section class="blog-header-compact">
@@ -210,23 +206,6 @@
   <script src="/js/main.js"></script>
   <script>
     (function initBlogListing() {
-      // Back to top button
-      const backToTopBtn = document.getElementById('backToTopBtn');
-      if (backToTopBtn) {
-        const toggleBackToTop = () => {
-          if (window.scrollY > 300) {
-            backToTopBtn.classList.add('visible');
-          } else {
-            backToTopBtn.classList.remove('visible');
-          }
-        };
-        window.addEventListener('scroll', toggleBackToTop);
-        backToTopBtn.addEventListener('click', () => {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-        toggleBackToTop();
-      }
-
       // Lucide icons
       if (window.lucide) lucide.createIcons();
 

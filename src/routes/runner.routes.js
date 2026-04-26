@@ -19,6 +19,7 @@ router.use((req, res, next) => {
 });
 
 router.get('/runner/dashboard', requireAuth, runnerController.getDashboard);
+router.get('/runner/dashboard/result-submissions', requireAuth, runnerController.getDashboardResultSubmissions);
 router.get('/runner/submissions/eligible', requireAuth, runnerController.getEligibleResultSubmissionOptions);
 router.get('/runner/profile', requireAuth, runnerController.getProfilePage);
 router.get('/runner/notifications', requireAuth, runnerController.getNotifications);

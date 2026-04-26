@@ -14,6 +14,10 @@ class FakeElement {
     this.dataset = {};
     this.children = {};
     this.parentForm = null;
+    this.className = '';
+    this.textContent = '';
+    this.appendedChildren = [];
+    this.inserted = [];
   }
 
   setAttribute(name, value = '') { this.attributes.set(name, String(value)); }
@@ -42,6 +46,16 @@ class FakeElement {
   closest(selector) {
     if (selector === 'form') return this.parentForm;
     return null;
+  }
+
+  appendChild(node) {
+    this.appendedChildren.push(node);
+    return node;
+  }
+
+  insertAdjacentElement(_position, element) {
+    this.inserted.push(element);
+    return element;
   }
 
   focus() { this.doc.activeElement = this; }
@@ -128,4 +142,81 @@ test('runner dashboard unlink modal traps focus and restores trigger focus', asy
   assert.equal(modal.hasAttribute('hidden'), true);
   assert.equal(doc.body.style.overflow, '');
   assert.equal(doc.activeElement, openButton);
+});
+
+test('runner dashboard flash bridge renders a runtime alert with optional link', async () => {
+  const doc = {
+    readyState: 'complete',
+    body: { style: {} },
+    activeElement: null,
+    createElement(tag) {
+      return new FakeElement(this, tag);
+    },
+    createTextNode(text) {
+      return { nodeType: 3, textContent: text };
+    },
+    querySelector(selector) {
+      if (selector === '.logout-form') return null;
+      if (selector === '.runner-dashboard-page') return page;
+      if (selector === '[data-dashboard-runtime-message]') return runtimeMessage;
+      return null;
+    },
+    querySelectorAll(selector) {
+      if (selector === '[data-toggle-target]') return [];
+      if (selector === '[data-open-unlink-modal]') return [];
+      if (selector === 'form') return [];
+      return [];
+    },
+    getElementById() {
+      return null;
+    }
+  };
+
+  const page = new FakeElement(doc, 'page');
+  const container = new FakeElement(doc, 'container');
+  const hero = new FakeElement(doc, 'hero');
+  let runtimeMessage = null;
+  page.children['.dashboard-container'] = container;
+  page.children['.dashboard-hero'] = hero;
+  page.querySelector = (selector) => {
+    if (selector === '.dashboard-container') return container;
+    if (selector === '.dashboard-hero') return hero;
+    if (selector === '[data-dashboard-runtime-message]') return runtimeMessage;
+    return null;
+  };
+  hero.insertAdjacentElement = (_position, element) => {
+    runtimeMessage = element;
+    return element;
+  };
+
+  const scriptPath = path.resolve(__dirname, '../src/public/js/runner-dashboard.js');
+  const source = fs.readFileSync(scriptPath, 'utf8');
+
+  const context = vm.createContext({
+    document: doc,
+    window: {
+      location: { pathname: '/runner/dashboard', search: '' },
+      addEventListener: () => {},
+      localStorage: { getItem: () => null, setItem: () => {} }
+    },
+    history: { pushState: () => {} },
+    fetch: async () => ({ ok: true, text: async () => '' })
+  });
+
+  vm.runInContext(source, context, { filename: 'runner-dashboard.js' });
+  assert.equal(typeof context.window.showRunnerDashboardFlashMessage, 'function');
+
+  context.window.showRunnerDashboardFlashMessage({
+    type: 'success',
+    text: 'Result submitted for review.',
+    linkHref: '/my-registrations',
+    linkLabel: 'Review my registrations'
+  });
+
+  assert.ok(runtimeMessage);
+  assert.equal(runtimeMessage.className, 'alert alert-success');
+  assert.equal(runtimeMessage.textContent, 'Result submitted for review.');
+  assert.equal(runtimeMessage.appendedChildren.length, 2);
+  assert.equal(runtimeMessage.appendedChildren[1].href, '/my-registrations');
+  assert.equal(runtimeMessage.appendedChildren[1].textContent, 'Review my registrations');
 });

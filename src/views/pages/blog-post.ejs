@@ -8,9 +8,6 @@
   <%- include('../layouts/nav') %>
   <div class="blog-read-progress" id="blogReadProgress" aria-hidden="true"></div>
   
-  <!-- Back to top button -->
-  <button type="button" class="back-to-top" id="backToTopBtn" aria-label="Back to top">↑</button>
-  
     <main class="blog-post-shell">
     <div class="blog-post-topbar">
       <nav class="blog-post-breadcrumb" aria-label="Breadcrumb">
@@ -242,7 +239,6 @@
       const copyBtn = document.getElementById('copyBlogLinkBtn');
       const copyToast = document.getElementById('copyToast');
       const progressBar = document.getElementById('blogReadProgress');
-      const backToTopBtn = document.getElementById('backToTopBtn');
       const galleryModal = document.getElementById('blogGalleryModal');
       const galleryImageEl = document.getElementById('blogGalleryImage');
       const galleryCounterEl = document.getElementById('blogGalleryCounter');
@@ -482,23 +478,7 @@
         });
       }
 
-      // ---- 5. Back to top button ----
-      if (backToTopBtn) {
-        const toggleBackToTop = () => {
-          if (window.scrollY > 300) {
-            backToTopBtn.classList.add('visible');
-          } else {
-            backToTopBtn.classList.remove('visible');
-          }
-        };
-        window.addEventListener('scroll', toggleBackToTop);
-        backToTopBtn.addEventListener('click', () => {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-        toggleBackToTop();
-      }
-
-      // ---- 6. Gallery with touch, spinner, captions ----
+      // ---- 5. Gallery with touch, spinner, captions ----
       if (galleryModal && galleryImageEl && galleryButtons.length) {
         galleryUrls = galleryButtons.map(btn => btn.getAttribute('data-gallery-url')).filter(Boolean);
         galleryCaptions = galleryButtons.map(btn => btn.getAttribute('data-gallery-caption') || '');
@@ -740,3 +720,4 @@
   </script>
 </body>
 </html>
+

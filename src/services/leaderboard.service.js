@@ -28,10 +28,10 @@ async function getLeaderboardData(rawFilters = {}) {
   }));
 
   const [totalApproved, events, distances, modes] = await Promise.all([
-    Submission.countDocuments({ status: 'approved' }),
+    Submission.countDocuments({ status: 'approved', isPersonalRecord: { $ne: true } }),
     getLeaderboardEvents(),
-    Submission.distinct('raceDistance', { status: 'approved' }),
-    Submission.distinct('participationMode', { status: 'approved' })
+    Submission.distinct('raceDistance', { status: 'approved', isPersonalRecord: { $ne: true } }),
+    Submission.distinct('participationMode', { status: 'approved', isPersonalRecord: { $ne: true } })
   ]);
 
   return {
@@ -67,7 +67,7 @@ function normalizeLeaderboardFilters(rawFilters = {}) {
 }
 
 function buildLeaderboardQuery(filters) {
-  const query = { status: 'approved' };
+  const query = { status: 'approved', isPersonalRecord: { $ne: true } };
   if (filters.eventId) {
     query.eventId = new mongoose.Types.ObjectId(filters.eventId);
   }
@@ -87,7 +87,7 @@ function buildLeaderboardQuery(filters) {
 
 async function getLeaderboardEvents() {
   const grouped = await Submission.aggregate([
-    { $match: { status: 'approved' } },
+    { $match: { status: 'approved', isPersonalRecord: { $ne: true } } },
     { $group: { _id: '$eventId', approvedCount: { $sum: 1 } } },
     { $sort: { approvedCount: -1 } },
     { $limit: 100 }
@@ -98,7 +98,7 @@ async function getLeaderboardEvents() {
     .filter(Boolean);
   if (!ids.length) return [];
 
-  const events = await Event.find({ _id: { $in: ids } }).select('title slug').lean();
+  const events = await Event.find({ _id: { $in: ids }, isPersonalRecord: { $ne: true } }).select('title slug').lean();
   const eventById = new Map(events.map((item) => [String(item._id), item]));
 
   return grouped
