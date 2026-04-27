@@ -971,7 +971,10 @@ function formatRunnerResultSubmissions(performanceSnapshot, locale) {
     submittedAtLabel: formatDateTime(item.submittedAt, locale),
     reviewedAtLabel: formatDateTime(item.reviewedAt, locale),
     submittedAtRelativeLabel: formatRelativeTime(item.submittedAt),
-    reviewedAtRelativeLabel: formatRelativeTime(item.reviewedAt)
+    reviewedAtRelativeLabel: formatRelativeTime(item.reviewedAt),
+    isPersonalRecord: Boolean(item.isPersonalRecord),
+    runType: item.runType || 'run',
+    registrationId: String(item.registrationId || '')
   }));
 }
 

@@ -20,7 +20,8 @@ const {
   getRunnerSubmissionSummary,
   getRunnerPerformanceSnapshot,
   getRunnerEligibleSubmissionRegistrations,
-  PERSONAL_RECORD_REGISTRATION_ID
+  PERSONAL_RECORD_REGISTRATION_ID,
+  detectSuspiciousActivity
 } = require('../src/services/submission.service');
 
 test.before(async () => {
@@ -509,4 +510,57 @@ test.afterEach(async () => {
       createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }
     });
   }
+});
+
+test('detectSuspiciousActivity flags distance over 200km', () => {
+  const result = detectSuspiciousActivity({ distanceKm: 250, elapsedMs: 72000000, ocrData: {} });
+  assert.equal(result.suspicious, true);
+  assert.match(result.reason, /200 km/i);
+});
+
+test('detectSuspiciousActivity flags impossible pace under 2 min/km', () => {
+  // 5km in 5 minutes = 1 min/km pace
+  const result = detectSuspiciousActivity({ distanceKm: 5, elapsedMs: 5 * 60 * 1000, ocrData: {} });
+  assert.equal(result.suspicious, true);
+  assert.match(result.reason, /world record/i);
+});
+
+test('detectSuspiciousActivity flags duration over 24 hours', () => {
+  // 10km in 25h
+  const result = detectSuspiciousActivity({ distanceKm: 10, elapsedMs: 25 * 60 * 60 * 1000, ocrData: {} });
+  assert.equal(result.suspicious, true);
+  assert.match(result.reason, /24 hours/i);
+});
+
+test('detectSuspiciousActivity returns not suspicious for normal activity', () => {
+  // 10km in 60 min = 6 min/km pace
+  const result = detectSuspiciousActivity({ distanceKm: 10, elapsedMs: 60 * 60 * 1000, ocrData: {} });
+  assert.equal(result.suspicious, false);
+  assert.equal(result.reason, '');
+});
+
+test('detectSuspiciousActivity returns not suspicious for invalid inputs', () => {
+  const result = detectSuspiciousActivity({ distanceKm: NaN, elapsedMs: 0, ocrData: {} });
+  assert.equal(result.suspicious, false);
+});
+
+test('createSubmission persists runType and elevationGain', async () => {
+  const seed = await seedSubmissionFixture('runtype-elevation');
+  const result = await createSubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 10,
+    elapsedMs: 3600000,
+    runDate: new Date(),
+    runLocation: 'Manila',
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof.png', key: 'proof-key', mimeType: 'image/png', size: 1024 },
+    proofNotes: '',
+    runType: 'trail_run',
+    elevationGain: 250,
+    ocrData: {}
+  });
+
+  assert.equal(result.runType, 'trail_run');
+  assert.equal(result.elevationGain, 250);
 });

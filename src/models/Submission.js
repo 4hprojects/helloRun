@@ -59,6 +59,18 @@ const submissionSchema = new mongoose.Schema(
       default: '',
       maxlength: 200
     },
+    runType: {
+      type: String,
+      enum: ['run', 'walk', 'hike', 'trail_run'],
+      default: 'run',
+      index: true
+    },
+    elevationGain: {
+      type: Number,
+      min: 0,
+      max: 20000,
+      default: null
+    },
     proofType: {
       type: String,
       enum: ['gps', 'photo', 'manual'],
@@ -68,7 +80,8 @@ const submissionSchema = new mongoose.Schema(
       url: { type: String, default: '' },
       key: { type: String, default: '' },
       mimeType: { type: String, default: '' },
-      size: { type: Number, default: 0 }
+      size: { type: Number, default: 0 },
+      hash: { type: String, default: '', maxlength: 64 }
     },
     proofNotes: {
       type: String,
@@ -123,7 +136,22 @@ const submissionSchema = new mongoose.Schema(
       rawText: { type: String, default: '', maxlength: 2000 },
       confidence: { type: Number, default: 0, min: 0, max: 1 },
       distanceMismatch: { type: Boolean, default: false },
-      timeMismatch: { type: Boolean, default: false }
+      timeMismatch: { type: Boolean, default: false },
+      detectedSource: {
+        type: String,
+        enum: ['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', ''],
+        default: ''
+      }
+    },
+    suspiciousFlag: {
+      type: Boolean,
+      default: false
+    },
+    suspiciousFlagReason: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 500
     }
   },
   {

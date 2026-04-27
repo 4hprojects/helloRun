@@ -28,7 +28,8 @@ test.before(async () => {
     cwd: ROOT,
     env: {
       ...process.env,
-      PORT: String(TEST_PORT)
+      PORT: String(TEST_PORT),
+      CSRF_PROTECTION: '0'
     },
     stdio: ['ignore', 'ignore', 'ignore']
   });
@@ -331,6 +332,69 @@ async function waitForSessionReady(pathname, cookie) {
   }
   return false;
 }
+
+test('authenticated submit-result stores runType on successful submission', async () => {
+  const seed = await seedData('runtype-store');
+  const cookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
+
+  const form = buildResultProofForm({
+    distanceKm: '5',
+    elapsedTime: '00:30:00',
+    proofType: 'photo',
+    runLocation: 'BGC'
+  });
+  form.append('runType', 'walk');
+
+  const response = await fetch(`${BASE_URL}/my-registrations/${seed.registration._id}/submit-result`, {
+    method: 'POST',
+    headers: { Cookie: cookie },
+    body: form,
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  const location = response.headers.get('location') || '';
+  assert.match(location, /type=success/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  const created = await Submission.findOne({ runnerId: seed.runner._id, isPersonalRecord: { $ne: true } }).sort({ createdAt: -1 }).lean();
+  await mongoose.disconnect();
+
+  assert.ok(created);
+  assert.equal(created.runType, 'walk');
+});
+
+test('authenticated submit-result blocks duplicate proof screenshot', async () => {
+  const seed = await seedData('dupe-hash');
+  const cookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
+
+  // First personal-record submission with the 1px PNG
+  const form1 = buildResultProofForm({ distanceKm: '5', elapsedTime: '00:30:00', proofType: 'photo', runLocation: 'Makati' });
+  const resp1 = await fetch(`${BASE_URL}/my-registrations/personal-record/submit-result`, {
+    method: 'POST',
+    headers: { Cookie: cookie },
+    body: form1,
+    redirect: 'manual'
+  });
+  assert.equal(resp1.status, 302);
+  const loc1 = resp1.headers.get('location') || '';
+  assert.match(loc1, /type=success/i);
+
+  // Second personal-record attempt with the identical PNG — same hash, different record
+  const form2 = buildResultProofForm({ distanceKm: '5', elapsedTime: '00:30:00', proofType: 'photo', runLocation: 'Makati' });
+  const resp2 = await fetch(`${BASE_URL}/my-registrations/personal-record/submit-result`, {
+    method: 'POST',
+    headers: { Cookie: cookie },
+    body: form2,
+    redirect: 'manual'
+  });
+  assert.equal(resp2.status, 302);
+  const loc2 = resp2.headers.get('location') || '';
+  assert.match(loc2, /type=error/i);
+  assert.match(decodeURIComponent(loc2.replace(/\+/g, ' ')), /already been submitted/i);
+});
 
 async function waitForServerReady() {
   const maxAttempts = 40;

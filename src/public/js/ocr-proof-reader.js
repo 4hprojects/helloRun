@@ -12,6 +12,32 @@
 
   var MILES_TO_KM = 1.60934;
 
+  // Source app detection patterns
+  var SOURCE_PATTERNS = [
+    { source: 'strava',  pattern: /strava/i },
+    { source: 'nike',    pattern: /nike\s*run|nrc/i },
+    { source: 'garmin',  pattern: /garmin/i },
+    { source: 'apple',   pattern: /apple\s*health/i },
+    { source: 'google',  pattern: /google\s*fit/i }
+  ];
+
+  // Date patterns — YYYY-MM-DD, DD/MM/YYYY, Month DD YYYY
+  var DATE_PATTERNS = [
+    // ISO: 2025-04-25
+    /(\d{4})-(\d{2})-(\d{2})/,
+    // DMY slashes: 25/04/2025
+    /(\d{2})\/(\d{2})\/(\d{4})/,
+    // Month name: Apr 25, 2025 or April 25 2025
+    /\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2})[,\s]+(\d{4})\b/i
+  ];
+
+  var MONTH_NAMES = {
+    jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2,
+    apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6,
+    aug: 7, august: 7, sep: 8, september: 8, oct: 9, october: 9,
+    nov: 10, november: 10, dec: 11, december: 11
+  };
+
   // Distance patterns — ordered by specificity
   var DISTANCE_PATTERNS = [
     // "5.02 km", "10,5 km", "3.1 mi", "21.1 kilometers"
@@ -46,6 +72,50 @@
 
   function normaliseDecimal(str) {
     return parseFloat(String(str || '').replace(',', '.'));
+  }
+
+  function detectSourceApp(text) {
+    var t = String(text || '');
+    for (var i = 0; i < SOURCE_PATTERNS.length; i++) {
+      if (SOURCE_PATTERNS[i].pattern.test(t)) {
+        return SOURCE_PATTERNS[i].source;
+      }
+    }
+    return 'unknown';
+  }
+
+  function extractDate(text) {
+    // Pattern 0: YYYY-MM-DD
+    var m = text.match(DATE_PATTERNS[0]);
+    if (m) {
+      var y = parseInt(m[1], 10), mo = parseInt(m[2], 10) - 1, d = parseInt(m[3], 10);
+      var dt = new Date(Date.UTC(y, mo, d));
+      if (!Number.isNaN(dt.getTime()) && dt.getTime() <= Date.now()) {
+        return m[0]; // already ISO-like
+      }
+    }
+    // Pattern 1: DD/MM/YYYY
+    m = text.match(DATE_PATTERNS[1]);
+    if (m) {
+      var d2 = parseInt(m[1], 10), mo2 = parseInt(m[2], 10) - 1, y2 = parseInt(m[3], 10);
+      var dt2 = new Date(Date.UTC(y2, mo2, d2));
+      if (!Number.isNaN(dt2.getTime()) && dt2.getTime() <= Date.now()) {
+        return y2 + '-' + String(mo2 + 1).padStart(2, '0') + '-' + String(d2).padStart(2, '0');
+      }
+    }
+    // Pattern 2: Month name
+    m = text.match(DATE_PATTERNS[2]);
+    if (m) {
+      var monthName = m[1].toLowerCase(), dayNum = parseInt(m[2], 10), yearNum = parseInt(m[3], 10);
+      var monthIdx = MONTH_NAMES[monthName];
+      if (monthIdx !== undefined) {
+        var dt3 = new Date(Date.UTC(yearNum, monthIdx, dayNum));
+        if (!Number.isNaN(dt3.getTime()) && dt3.getTime() <= Date.now()) {
+          return yearNum + '-' + String(monthIdx + 1).padStart(2, '0') + '-' + String(dayNum).padStart(2, '0');
+        }
+      }
+    }
+    return null;
   }
 
   function extractDistance(text) {
@@ -122,22 +192,47 @@
     var score = 0;
     if (result.distance) score += 0.4;
     if (result.time) score += 0.4;
-    if (result.pace) score += 0.15;
+    if (result.pace) score += 0.1;
+    if (result.date) score += 0.05;
     // Bonus if Tesseract confidence is high
     if (result.ocrConfidence > 70) score += 0.05;
     return Math.min(score, 1);
   }
 
   function parseOcrText(text, ocrConfidence) {
+    var t = String(text || '');
+    var distance = extractDistance(t);
+    var time = extractTime(t);
+    var pace = extractPace(t);
+    var date = extractDate(t);
+    var detectedSource = detectSourceApp(t);
+
+    if (!distance) console.debug('[OCR] Distance: not found. Text sample:', t.slice(0, 300));
+    else console.debug('[OCR] Distance found:', distance);
+
+    if (!time) console.debug('[OCR] Time: not found. Text sample:', t.slice(0, 300));
+    else console.debug('[OCR] Time found:', time);
+
+    if (!pace) console.debug('[OCR] Pace: not found.');
+    else console.debug('[OCR] Pace found:', pace);
+
+    if (!date) console.debug('[OCR] Date: not found.');
+    else console.debug('[OCR] Date found:', date);
+
+    console.debug('[OCR] Detected source app:', detectedSource);
+
     var result = {
-      rawText: String(text || '').slice(0, 2000),
-      distance: extractDistance(text),
-      time: extractTime(text),
-      pace: extractPace(text),
+      rawText: t.slice(0, 2000),
+      distance: distance,
+      time: time,
+      pace: pace,
+      date: date,
+      detectedSource: detectedSource,
       ocrConfidence: ocrConfidence || 0,
       confidence: 0
     };
     result.confidence = computeConfidence(result);
+    console.debug('[OCR] Final confidence score:', result.confidence);
     return result;
   }
 
@@ -208,8 +303,13 @@
     }).then(function (result) {
       var text = (result && result.data && result.data.text) || '';
       var confidence = (result && result.data && result.data.confidence) || 0;
-      return parseOcrText(text, confidence);
-    }).catch(function () {
+      console.debug('[OCR] Raw Tesseract confidence:', confidence);
+      console.debug('[OCR] Raw text extracted:\n' + text);
+      var parsed = parseOcrText(text, confidence);
+      console.debug('[OCR] Parse result:', parsed);
+      return parsed;
+    }).catch(function (err) {
+      console.debug('[OCR] Tesseract error:', err);
       return parseOcrText('', 0);
     });
   }
@@ -251,6 +351,7 @@
   window.OcrProofReader = {
     extractRunData: extractRunData,
     compareWithForm: compareWithForm,
+    detectSourceApp: detectSourceApp,
     // Exposed for testing
     _parseOcrText: parseOcrText
   };

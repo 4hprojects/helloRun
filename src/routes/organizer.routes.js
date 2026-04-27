@@ -630,7 +630,8 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
     }
     const submissions = registrationIds.length
       ? await Submission.find(submissionFilter)
-        .select('registrationId status distanceKm elapsedMs runDate runLocation proofType proof submittedAt reviewedAt reviewedBy reviewNotes rejectionReason ocrData')
+        .select('registrationId status distanceKm elapsedMs runDate runLocation proofType proof submittedAt reviewedAt reviewedBy reviewNotes rejectionReason ocrData runType elevationGain suspiciousFlag suspiciousFlagReason')
+        .populate('reviewedBy', 'firstName lastName')
         .lean()
       : [];
     const submissionsByRegistrationId = new Map(
@@ -1043,6 +1044,13 @@ router.post(
       }
 
       const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
+      if (!rejectionReason || rejectionReason.length < 5) {
+        const q = new URLSearchParams({
+          type: 'error',
+          msg: 'Rejection reason must be at least 5 characters.'
+        });
+        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+      }
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
       await reviewSubmission({
         submissionId: submissionRecord._id,
@@ -2249,13 +2257,37 @@ function buildRegistrantExportQuery(filterContext) {
 
 function mapSubmissionForRegistrant(submission) {
   if (!submission) return null;
+
+  const ocrData = submission.ocrData || {};
+  const ocrTimeMs = Number(ocrData.extractedTimeMs);
+  let ocrTimeLabel = '';
+  if (Number.isFinite(ocrTimeMs) && ocrTimeMs > 0) {
+    const ocrH = Math.floor(ocrTimeMs / 3600000);
+    const ocrM = Math.floor((ocrTimeMs % 3600000) / 60000);
+    const ocrS = Math.floor((ocrTimeMs % 60000) / 1000);
+    ocrTimeLabel = (ocrH > 0 ? String(ocrH) + 'h ' : '') +
+      String(ocrM).padStart(2, '0') + 'm ' +
+      String(ocrS).padStart(2, '0') + 's';
+  }
+
+  const reviewedBy = submission.reviewedBy;
+  const reviewerName = reviewedBy
+    ? String(reviewedBy.firstName || '').trim() + ' ' + String(reviewedBy.lastName || '').trim()
+    : '';
+
   return {
     ...submission,
     elapsedLabel: formatElapsedMs(submission.elapsedMs),
     runDateLabel: formatDateOnly(submission.runDate),
     runLocation: String(submission.runLocation || '').trim(),
     submittedAtLabel: formatDateTime(submission.submittedAt),
-    reviewedAtLabel: formatDateTime(submission.reviewedAt)
+    reviewedAtLabel: formatDateTime(submission.reviewedAt),
+    reviewerName: reviewerName.trim(),
+    ocrTimeLabel,
+    runType: submission.runType || 'run',
+    elevationGain: submission.elevationGain != null ? submission.elevationGain : null,
+    suspiciousFlag: Boolean(submission.suspiciousFlag),
+    suspiciousFlagReason: String(submission.suspiciousFlagReason || '').trim()
   };
 }
 

@@ -23,7 +23,8 @@ test.before(async () => {
     cwd: ROOT,
     env: {
       ...process.env,
-      PORT: String(TEST_PORT)
+      PORT: String(TEST_PORT),
+      CSRF_PROTECTION: '0'
     },
     stdio: ['ignore', 'ignore', 'ignore']
   });
@@ -279,6 +280,55 @@ async function waitForSessionReady(pathname, cookie) {
   }
   return false;
 }
+
+test('organizer can reject submission with valid reason', async () => {
+  const seed = await seedReviewData('reject-valid');
+  const organizerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  const ready = await waitForSessionReady(`/organizer/events/${seed.event._id}/registrants`, organizerCookie);
+  assert.equal(ready, true);
+
+  const response = await postForm(
+    `/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/reject`,
+    organizerCookie,
+    { rejectionReason: 'Proof image is unclear and unverifiable' }
+  );
+
+  assert.equal(response.status, 302);
+  const location = response.headers.get('location') || '';
+  assert.match(location, /type=success/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    const updated = await Submission.findById(seed.submission._id).lean();
+    assert.equal(updated.status, 'rejected');
+  } finally {
+    await mongoose.disconnect();
+  }
+});
+
+test('organizer cannot reject submission with empty rejection reason', async () => {
+  const seed = await seedReviewData('reject-empty-reason');
+  const organizerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady(`/organizer/events/${seed.event._id}/registrants`, organizerCookie);
+
+  const response = await postForm(
+    `/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/reject`,
+    organizerCookie,
+    { rejectionReason: '' }
+  );
+
+  assert.equal(response.status, 302);
+  const location = response.headers.get('location') || '';
+  assert.match(location, /type=error/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    const unchanged = await Submission.findById(seed.submission._id).lean();
+    assert.equal(unchanged.status, 'submitted');
+  } finally {
+    await mongoose.disconnect();
+  }
+});
 
 async function waitForServerReady() {
   const maxAttempts = 40;

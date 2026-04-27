@@ -31,8 +31,11 @@
   </div>
   <div class="card-content result-submissions-panel">
     <% if (resultCards && resultCards.length) { %>
+      <p class="result-submissions-count"><small>Showing <%= resultCards.length %> result<%= resultCards.length !== 1 ? 's' : '' %></small></p>
       <ul class="item-list">
         <% resultCards.forEach((item) => { %>
+          <% const PROOF_TYPE_LABELS = { photo: 'Photo', gps: 'GPS Tracked', manual: 'Manual' }; %>
+          <% const RUN_TYPE_LABELS = { run: 'Run', walk: 'Walk', hike: 'Hike', trail_run: 'Trail Run' }; %>
           <li class="item-row">
             <div class="item-main">
               <div class="item-title">
@@ -41,13 +44,16 @@
                 <% } else { %>
                   <%= item.eventTitle %>
                 <% } %>
+                <% if (item.isPersonalRecord) { %>
+                  <span class="badge badge-pr">Personal Record</span>
+                <% } %>
               </div>
               <div class="item-meta">
-                <span><%= item.elapsedLabel %></span> &middot; <span><%= Number(item.distanceKm || 0).toFixed(2) %> km</span> &middot; <span class="badge badge-<%= item.proofType || 'manual' %>"><%= String(item.proofType || 'manual').toUpperCase() %></span>
+                <span><%= item.elapsedLabel %></span> &middot; <span><%= Number(item.distanceKm || 0).toFixed(2) %> km</span> &middot; <span class="badge badge-<%= item.proofType || 'manual' %>"><%= PROOF_TYPE_LABELS[item.proofType] || String(item.proofType || 'manual') %></span> &middot; <span><%= RUN_TYPE_LABELS[item.runType] || item.runType %></span>
               </div>
               <div class="item-meta">
                 Status: <span class="badge badge-<%= item.status %>"><%= item.status %></span>
-                <% if (item.rejectionReason) { %> - <span class="text-danger"><%= item.rejectionReason %></span><% } %>
+                <% if (item.rejectionReason) { %> &middot; <span class="text-danger">Reason: <%= item.rejectionReason %></span><% } %>
               </div>
               <% if (item.submittedAtLabel && item.submittedAtLabel !== 'TBA') { %>
                 <div class="item-meta">Submitted: <%= item.submittedAtLabel %><% if (item.submittedAtRelativeLabel) { %> <span class="text-muted">(<%= item.submittedAtRelativeLabel %>)</span><% } %></div>
@@ -56,9 +62,19 @@
                 <div class="item-meta">Reviewed: <%= item.reviewedAtLabel %><% if (item.reviewedAtRelativeLabel) { %> <span class="text-muted">(<%= item.reviewedAtRelativeLabel %>)</span><% } %></div>
               <% } %>
             </div>
-            <% if (item.certificateUrl) { %>
-              <a href="/my-submissions/<%= item.submissionId %>/certificate" class="btn btn-sm btn-outline">Certificate</a>
-            <% } %>
+            <div class="item-actions">
+              <% if (item.status === 'rejected' && item.registrationId) { %>
+                <button
+                  class="btn btn-sm btn-outline"
+                  data-open-run-proof-modal
+                  data-run-proof-mode="resubmit"
+                  data-run-proof-registration-id="<%= item.registrationId %>"
+                >Resubmit</button>
+              <% } %>
+              <% if (item.certificateUrl) { %>
+                <a href="/my-submissions/<%= item.submissionId %>/certificate" class="btn btn-sm btn-outline">Certificate</a>
+              <% } %>
+            </div>
           </li>
         <% }) %>
       </ul>

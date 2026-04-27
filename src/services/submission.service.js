@@ -23,6 +23,8 @@ async function createSubmission({
   proofType,
   proof,
   proofNotes,
+  runType,
+  elevationGain,
   ocrData
 }) {
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
@@ -35,6 +37,8 @@ async function createSubmission({
       proofType,
       proof,
       proofNotes,
+      runType,
+      elevationGain,
       ocrData
     });
   }
@@ -57,6 +61,8 @@ async function createSubmission({
     proof,
     proofNotes,
     submissionCount: 1,
+    runType,
+    elevationGain,
     ocrData
   }));
 }
@@ -71,6 +77,8 @@ async function resubmitSubmission({
   proofType,
   proof,
   proofNotes,
+  runType,
+  elevationGain,
   ocrData
 }) {
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
@@ -98,6 +106,8 @@ async function resubmitSubmission({
     proof,
     proofNotes,
     submissionCount: Number(existing.submissionCount || 1) + 1,
+    runType,
+    elevationGain,
     ocrData
   });
 
@@ -109,6 +119,10 @@ async function resubmitSubmission({
   existing.proof = payload.proof;
   existing.proofNotes = payload.proofNotes;
   existing.ocrData = payload.ocrData;
+  existing.runType = payload.runType;
+  existing.elevationGain = payload.elevationGain;
+  existing.suspiciousFlag = payload.suspiciousFlag;
+  existing.suspiciousFlagReason = payload.suspiciousFlagReason;
   existing.status = 'submitted';
   existing.submissionCount = payload.submissionCount;
   existing.submittedAt = payload.submittedAt;
@@ -436,6 +450,8 @@ async function createPersonalRecordSubmission({
   proofType,
   proof,
   proofNotes,
+  runType,
+  elevationGain,
   ocrData
 }) {
   const runner = await User.findById(runnerId)
@@ -508,6 +524,8 @@ async function createPersonalRecordSubmission({
       proof,
       proofNotes,
       submissionCount: 1,
+      runType,
+      elevationGain,
       ocrData
     }),
     status: 'approved',
@@ -541,6 +559,8 @@ function buildSubmissionPayload(registration, input) {
   const safeElapsedMs = sanitizeNumber(input.elapsedMs, 1, 7 * 24 * 60 * 60 * 1000, 'Elapsed time is invalid.');
   const safeRunDate = sanitizeRunDate(input.runDate);
   const safeRunLocation = sanitizeRunLocation(input.runLocation);
+  const ocrData = sanitizeOcrData(input.ocrData);
+  const { suspicious, reason } = detectSuspiciousActivity({ distanceKm: safeDistance, elapsedMs: safeElapsedMs, ocrData });
 
   return {
     registrationId: registration._id,
@@ -556,7 +576,11 @@ function buildSubmissionPayload(registration, input) {
     proofType: sanitizeProofType(input.proofType),
     proof: sanitizeProof(input.proof),
     proofNotes: String(input.proofNotes || '').trim().slice(0, 1200),
-    ocrData: sanitizeOcrData(input.ocrData),
+    runType: sanitizeRunType(input.runType),
+    elevationGain: sanitizeElevationGain(input.elevationGain),
+    ocrData,
+    suspiciousFlag: suspicious,
+    suspiciousFlagReason: reason,
     status: 'submitted',
     submissionCount: Number(input.submissionCount || 1),
     submittedAt: new Date()
@@ -571,6 +595,19 @@ function sanitizeProofType(value) {
   return 'manual';
 }
 
+function sanitizeRunType(value) {
+  const allowed = ['run', 'walk', 'hike', 'trail_run'];
+  const safe = String(value || '').trim().toLowerCase();
+  return allowed.includes(safe) ? safe : 'run';
+}
+
+function sanitizeElevationGain(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0 || numeric > 20000) return null;
+  return Math.round(numeric);
+}
+
 function sanitizeProof(value) {
   if (!value || typeof value !== 'object') {
     throw new Error('Result proof is required.');
@@ -583,7 +620,8 @@ function sanitizeProof(value) {
     url: url.slice(0, 2000),
     key: String(value.key || '').trim().slice(0, 400),
     mimeType: String(value.mimeType || '').trim().slice(0, 120),
-    size: sanitizeNumber(value.size || 0, 0, 20 * 1024 * 1024, 'Proof size is invalid.')
+    size: sanitizeNumber(value.size || 0, 0, 20 * 1024 * 1024, 'Proof size is invalid.'),
+    hash: String(value.hash || '').trim().slice(0, 64)
   };
 }
 
@@ -603,12 +641,15 @@ function sanitizeOcrData(value) {
       rawText: '',
       confidence: 0,
       distanceMismatch: false,
-      timeMismatch: false
+      timeMismatch: false,
+      detectedSource: ''
     };
   }
 
   const distKm = Number(value.extractedDistanceKm);
   const timeMs = Number(value.extractedTimeMs);
+  const ALLOWED_SOURCES = new Set(['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', '']);
+  const rawSource = String(value.detectedSource || '').trim().toLowerCase();
 
   return {
     extractedDistanceKm: Number.isFinite(distKm) && distKm > 0 && distKm <= 1000 ? distKm : null,
@@ -619,8 +660,29 @@ function sanitizeOcrData(value) {
       return Number.isFinite(c) && c >= 0 && c <= 1 ? Math.round(c * 100) / 100 : 0;
     })(),
     distanceMismatch: Boolean(value.distanceMismatch),
-    timeMismatch: Boolean(value.timeMismatch)
+    timeMismatch: Boolean(value.timeMismatch),
+    detectedSource: ALLOWED_SOURCES.has(rawSource) ? rawSource : ''
   };
+}
+
+function detectSuspiciousActivity({ distanceKm, elapsedMs, ocrData }) {
+  if (!Number.isFinite(distanceKm) || !Number.isFinite(elapsedMs) || elapsedMs <= 0) {
+    return { suspicious: false, reason: '' };
+  }
+  if (distanceKm > 200) {
+    return { suspicious: true, reason: 'Distance exceeds 200 km.' };
+  }
+  const paceMinPerKm = elapsedMs / (distanceKm * 60000);
+  if (paceMinPerKm < 2) {
+    return { suspicious: true, reason: 'Pace faster than world record (< 2 min/km).' };
+  }
+  if (elapsedMs > 86400000) {
+    return { suspicious: true, reason: 'Duration exceeds 24 hours.' };
+  }
+  if (ocrData && ocrData.distanceMismatch && ocrData.confidence > 0.7) {
+    return { suspicious: true, reason: 'High-confidence OCR distance mismatch detected.' };
+  }
+  return { suspicious: false, reason: '' };
 }
 
 function sanitizeRunDate(value) {
@@ -920,5 +982,6 @@ module.exports = {
   getRunnerSubmissionSummary,
   getRunnerPerformanceSnapshot,
   getRunnerEligibleSubmissionRegistrations,
-  PERSONAL_RECORD_REGISTRATION_ID
+  PERSONAL_RECORD_REGISTRATION_ID,
+  detectSuspiciousActivity
 };

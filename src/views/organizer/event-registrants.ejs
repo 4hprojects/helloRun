@@ -216,6 +216,9 @@
                   <td>
                     <% if (registration.submission) { %>
                       <span class="mode-badge mode-<%= registration.submission.status %>"><%= registration.submission.status %></span>
+                      <% if (registration.submission.suspiciousFlag) { %>
+                        <span class="mode-badge mode-warning" title="<%= registration.submission.suspiciousFlagReason %>">&#9888; Suspicious</span>
+                      <% } %>
                       <% if (registration.submission.ocrData && (registration.submission.ocrData.distanceMismatch || registration.submission.ocrData.timeMismatch)) { %>
                         <span class="mode-badge mode-warning" title="OCR detected possible mismatch">&#9888; Mismatch</span>
                       <% } %>
@@ -228,10 +231,25 @@
                       <br>
                       <small><strong>Run location:</strong> <%= registration.submission.runLocation || 'N/A' %></small>
                       <br>
-                      <small><strong>Type:</strong> <%= String(registration.submission.proofType || 'manual').toUpperCase() %></small>
+                      <small><strong>Run type:</strong> <%= String(registration.submission.runType || 'run').replace('_', ' ') %></small>
+                      <br>
+                      <small><strong>Proof type:</strong> <%= String(registration.submission.proofType || 'manual').toUpperCase() %></small>
+                      <% if (registration.submission.elevationGain != null) { %>
+                        <br>
+                        <small><strong>Elevation:</strong> <%= registration.submission.elevationGain %> m</small>
+                      <% } %>
                       <% if (registration.submission.submittedAtLabel) { %>
                         <br>
                         <small><strong>Submitted:</strong> <%= registration.submission.submittedAtLabel %></small>
+                      <% } %>
+                      <% if (registration.submission.suspiciousFlag) { %>
+                        <br>
+                        <details class="ocr-analysis-details">
+                          <summary><strong>&#9888; Suspicious activity flag</strong></summary>
+                          <div class="ocr-analysis-body">
+                            <small><%= registration.submission.suspiciousFlagReason %></small>
+                          </div>
+                        </details>
                       <% } %>
                       <% if (registration.submission.ocrData && registration.submission.ocrData.confidence > 0) { %>
                         <br>
@@ -248,14 +266,7 @@
                               </small><br>
                             <% } %>
                             <% if (registration.submission.ocrData.extractedTimeMs != null) { %>
-                              <%
-                                const ocrMs = registration.submission.ocrData.extractedTimeMs;
-                                const ocrH = Math.floor(ocrMs / 3600000);
-                                const ocrM = Math.floor((ocrMs % 3600000) / 60000);
-                                const ocrS = Math.floor((ocrMs % 60000) / 1000);
-                                const ocrTimeLabel = (ocrH > 0 ? ocrH + 'h ' : '') + String(ocrM).padStart(2, '0') + 'm ' + String(ocrS).padStart(2, '0') + 's';
-                              %>
-                              <small><strong>Image time:</strong> <%= ocrTimeLabel %>
+                              <small><strong>Image time:</strong> <%= registration.submission.ocrTimeLabel || 'N/A' %>
                                 <% if (registration.submission.ocrData.timeMismatch) { %>
                                   <span class="ocr-mismatch-flag">&#9888; mismatch vs <%= registration.submission.elapsedLabel || 'N/A' %> entered</span>
                                 <% } else { %>
@@ -286,13 +297,17 @@
                       </form>
                       <form method="POST" action="/organizer/events/<%= event._id %>/submissions/<%= registration.submission._id %>/reject" class="payment-action-form">
                         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                        <textarea name="rejectionReason" rows="2" maxlength="500" required placeholder="Required rejection reason"></textarea>
+                        <textarea name="rejectionReason" rows="2" maxlength="500" required placeholder="Required rejection reason (min 5 chars)"></textarea>
                         <textarea name="reviewNotes" rows="2" maxlength="1200" placeholder="Optional review notes"></textarea>
                         <button type="submit" class="nav-login-btn table-action-btn">Reject Result</button>
                       </form>
                     <% } else if (registration.submission) { %>
                       <% if (registration.submission.reviewedAtLabel) { %>
                         <small>Reviewed: <%= registration.submission.reviewedAtLabel %></small>
+                        <% if (registration.submission.reviewerName) { %>
+                          <br>
+                          <small>By: <%= registration.submission.reviewerName %></small>
+                        <% } %>
                       <% } else { %>
                         <small>No pending action</small>
                       <% } %>

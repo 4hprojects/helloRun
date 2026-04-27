@@ -50,6 +50,15 @@
     const ocrConfidenceInput = document.getElementById('runProofOcrConfidence');
     const ocrDistanceMismatchInput = document.getElementById('runProofOcrDistanceMismatch');
     const ocrTimeMismatchInput = document.getElementById('runProofOcrTimeMismatch');
+    const imageHashInput = document.getElementById('runProofImageHash');
+    const autoFillBannerEl = document.getElementById('runProofAutoFillBanner');
+    const detectedSourceEl = document.getElementById('runProofDetectedSource');
+    const analyseBtn = document.getElementById('runProofAnalyseBtn');
+    const analyseHint = document.getElementById('runProofAnalyseHint');
+    const backBtn = document.getElementById('runProofBackBtn');
+    const step1Panel = document.getElementById('runProofStep1');
+    const step2Panel = document.getElementById('runProofStep2');
+    const stepIndicator = document.getElementById('runProofStepIndicator');
 
     if (
       !dialog || !form || !titleEl || !descEl || !submitBtn || !messageEl || !modeInput || !selectedIdsInput || !primaryRegistrationInput ||
@@ -355,7 +364,14 @@
       fileInput.files = dt.files;
       setFilePreview(file);
       validateImage();
-      runOcrAnalysis(file);
+      computeImageHash(file).then((hash) => {
+        if (imageHashInput) imageHashInput.value = hash;
+      });
+      if (analyseBtn) {
+        analyseBtn.disabled = false;
+        analyseBtn.textContent = 'Analyse Screenshot';
+      }
+      if (analyseHint) analyseHint.textContent = 'Click to detect your run data from the image';
     };
 
     const clearOcrState = () => {
@@ -370,6 +386,9 @@
       if (ocrConfidenceInput) ocrConfidenceInput.value = '';
       if (ocrDistanceMismatchInput) ocrDistanceMismatchInput.value = '';
       if (ocrTimeMismatchInput) ocrTimeMismatchInput.value = '';
+      if (imageHashInput) imageHashInput.value = '';
+      if (autoFillBannerEl) autoFillBannerEl.hidden = true;
+      if (detectedSourceEl) detectedSourceEl.hidden = true;
     };
 
     const formatOcrTime = (time) => {
@@ -411,6 +430,71 @@
       }
     };
 
+    const computeImageHash = (file) => {
+      if (!file || !window.crypto || !window.crypto.subtle) return Promise.resolve('');
+      return file.arrayBuffer().then((buf) => {
+        return window.crypto.subtle.digest('SHA-256', buf);
+      }).then((hashBuf) => {
+        return Array.from(new Uint8Array(hashBuf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+      }).catch(() => '');
+    };
+
+    const SOURCE_LABELS = {
+      strava: 'Strava',
+      nike: 'Nike Run Club',
+      garmin: 'Garmin Connect',
+      apple: 'Apple Health',
+      google: 'Google Fit',
+      unknown: ''
+    };
+
+    const applyOcrAutoFill = (result) => {
+      let filled = false;
+      if (result.distance && result.distance.valueKm > 0) {
+        distanceInput.value = String(result.distance.valueKm);
+        distanceInput.dispatchEvent(new Event('input', { bubbles: true }));
+        filled = true;
+      }
+      if (result.time && result.time.totalMs > 0) {
+        hoursInput.value = String(result.time.hours);
+        minutesInput.value = String(result.time.minutes).padStart(2, '0');
+        secondsInput.value = String(result.time.seconds).padStart(2, '0');
+        hoursInput.dispatchEvent(new Event('input', { bubbles: true }));
+        filled = true;
+      }
+      if (result.date) {
+        runDateInput.value = result.date;
+        filled = true;
+      }
+      if (filled && autoFillBannerEl) {
+        autoFillBannerEl.hidden = false;
+      }
+    };
+
+    const goToStep = (step) => {
+      if (step === 1) {
+        if (step1Panel) step1Panel.hidden = false;
+        if (step2Panel) step2Panel.hidden = true;
+        if (backBtn) backBtn.hidden = true;
+        submitBtn.hidden = true;
+        if (stepIndicator) stepIndicator.textContent = 'Step 1 of 2 \u2014 Upload your screenshot';
+        const hasFile = Boolean(fileInput.files && fileInput.files[0]);
+        if (analyseBtn) {
+          analyseBtn.disabled = !hasFile;
+          analyseBtn.textContent = 'Analyse Screenshot';
+        }
+        if (analyseHint) {
+          analyseHint.textContent = hasFile ? 'Click to detect your run data from the image' : 'Upload a screenshot to enable analysis';
+        }
+      } else {
+        if (step1Panel) step1Panel.hidden = true;
+        if (step2Panel) step2Panel.hidden = false;
+        if (backBtn) backBtn.hidden = false;
+        submitBtn.hidden = false;
+        if (stepIndicator) stepIndicator.textContent = 'Step 2 of 2 \u2014 Review and submit';
+      }
+    };
+
     const runOcrAnalysis = (file) => {
       if (!file || !window.OcrProofReader) return;
 
@@ -422,7 +506,9 @@
         ocrStatusEl.textContent = 'Analysing image...';
       }
 
-      window.OcrProofReader.extractRunData(file, (status, progress) => {
+      const ocrTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('OCR timed out')), 30000));
+
+      Promise.race([window.OcrProofReader.extractRunData(file, (status, progress) => {
         if (ocrStatusEl && state.ocrRunning) {
           if (status === 'recognizing text') {
             ocrStatusEl.textContent = 'Reading image... ' + Math.round((progress || 0) * 100) + '%';
@@ -430,7 +516,7 @@
             ocrStatusEl.textContent = 'Downloading OCR engine...';
           }
         }
-      }).then((result) => {
+      }), ocrTimeout]).then((result) => {
         state.ocrRunning = false;
         state.ocrResult = result;
 
@@ -452,6 +538,12 @@
             ocrResultsEl.innerHTML = detailsHtml;
             ocrResultsEl.hidden = false;
           }
+          if (detectedSourceEl && result.detectedSource && result.detectedSource !== 'unknown') {
+            const sourceLabel = SOURCE_LABELS[result.detectedSource] || result.detectedSource;
+            detectedSourceEl.textContent = 'Detected: ' + sourceLabel;
+            detectedSourceEl.hidden = false;
+          }
+          applyOcrAutoFill(result);
           updateOcrComparison();
         } else {
           if (ocrResultsEl) {
@@ -459,6 +551,15 @@
             ocrResultsEl.hidden = false;
           }
         }
+        goToStep(2);
+      }).catch(() => {
+        state.ocrRunning = false;
+        if (ocrStatusEl) ocrStatusEl.hidden = true;
+        if (ocrResultsEl) {
+          ocrResultsEl.textContent = 'Could not read distance or time from this image.';
+          ocrResultsEl.hidden = false;
+        }
+        goToStep(2);
       });
     };
 
@@ -670,6 +771,7 @@
       state.currentSurface = '';
       state.emptyState = null;
       toggleSubmitState();
+      goToStep(1);
     };
 
     const redirectToLogin = () => {
@@ -922,10 +1024,15 @@
       });
     });
 
-    [hoursInput, minutesInput, secondsInput].forEach((input) => {
+    const durationInputs = [hoursInput, minutesInput, secondsInput];
+    durationInputs.forEach((input, index) => {
       input.addEventListener('input', () => {
-        const numeric = String(input.value || '').replace(/[^0-9]/g, '');
+        const numeric = String(input.value || '').replace(/[^0-9]/g, '').slice(0, 2);
         input.value = numeric;
+        if (numeric.length === 2 && index < durationInputs.length - 1) {
+          durationInputs[index + 1].focus();
+          durationInputs[index + 1].select();
+        }
         validateDuration();
         updateOcrComparison();
       });
@@ -963,9 +1070,18 @@
       setFilePreview(selectedFile);
       validateImage();
       if (selectedFile) {
-        runOcrAnalysis(selectedFile);
+        computeImageHash(selectedFile).then((hash) => {
+          if (imageHashInput) imageHashInput.value = hash;
+        });
+        if (analyseBtn) {
+          analyseBtn.disabled = false;
+          analyseBtn.textContent = 'Analyse Screenshot';
+        }
+        if (analyseHint) analyseHint.textContent = 'Click to detect your run data from the image';
       } else {
         clearOcrState();
+        if (analyseBtn) analyseBtn.disabled = true;
+        if (analyseHint) analyseHint.textContent = 'Upload a screenshot to enable analysis';
       }
     });
 
@@ -1001,11 +1117,35 @@
       clearFilePreview();
       clearOcrState();
       validateImage();
+      if (analyseBtn) analyseBtn.disabled = true;
+      if (analyseHint) analyseHint.textContent = 'Upload a screenshot to enable analysis';
+      if (step2Panel && !step2Panel.hidden) goToStep(1);
     });
 
     replaceImageBtn.addEventListener('click', () => {
       fileInput.click();
     });
+
+    if (analyseBtn) {
+      analyseBtn.addEventListener('click', () => {
+        const selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+        if (!selectedFile) return;
+        analyseBtn.disabled = true;
+        analyseBtn.textContent = 'Analysing...';
+        if (analyseHint) analyseHint.hidden = true;
+        computeImageHash(selectedFile).then((hash) => {
+          if (imageHashInput) imageHashInput.value = hash;
+        });
+        runOcrAnalysis(selectedFile);
+      });
+    }
+
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        clearOcrState();
+        goToStep(1);
+      });
+    }
 
     form.addEventListener('submit', (event) => {
       if (state.isSubmitting) {

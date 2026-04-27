@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const Event = require('../models/Event');
 const User = require('../models/User');
 const Registration = require('../models/Registration');
@@ -859,7 +860,7 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         registrationId,
         runnerId: user._id
       })
-        .select('status proof')
+        .select('_id status proof')
         .lean();
 
     if (isPersonalRecordSubmission && options.mode === 'resubmit') {
@@ -882,8 +883,26 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     const runLocation = parseRunLocation(req.body.runLocation);
     const proofType = normalizeProofType(req.body.proofType);
     const proofNotes = String(req.body.proofNotes || '').trim().slice(0, 1200);
+    const runType = parseRunType(req.body.runType);
+    const elevationGain = parseElevationGain(req.body.elevationGain);
 
     const ocrData = parseOcrData(req.body, distanceKm, elapsedMs);
+
+    const proofHash = crypto.createHash('sha256').update(resultProofFile.buffer).digest('hex');
+
+    const duplicateQuery = {
+      runnerId: user._id,
+      'proof.hash': proofHash
+    };
+    if (existingSubmission?._id) {
+      duplicateQuery._id = { $ne: existingSubmission._id };
+    }
+    const duplicateSubmission = await Submission.findOne(duplicateQuery).select('_id').lean();
+    if (duplicateSubmission) {
+      await uploadService.deleteObjects([uploadedProofKey]).catch(() => {});
+      uploadedProofKey = '';
+      return redirectWithPageMessage(res, 'error', 'This screenshot has already been submitted.');
+    }
 
     const uploadedProof = await uploadService.uploadResultProofToR2({
       userId: user._id,
@@ -903,9 +922,12 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         url: uploadedProof.url,
         key: uploadedProof.key,
         mimeType: resultProofFile.mimetype || '',
-        size: Number(resultProofFile.size || 0)
+        size: Number(resultProofFile.size || 0),
+        hash: proofHash
       },
       proofNotes,
+      runType,
+      elevationGain,
       ocrData
     };
 
@@ -1369,6 +1391,19 @@ function parseOcrData(body, formDistanceKm, formElapsedMs) {
     distanceMismatch,
     timeMismatch
   };
+}
+
+function parseRunType(value) {
+  const safe = String(value || '').trim().toLowerCase();
+  const allowed = ['run', 'walk', 'hike', 'trail_run'];
+  return allowed.includes(safe) ? safe : 'run';
+}
+
+function parseElevationGain(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const numeric = Number(String(value).trim());
+  if (!Number.isFinite(numeric) || numeric < 0 || numeric > 20000) return null;
+  return Math.round(numeric);
 }
 
 function normalizeBlogCategory(input) {

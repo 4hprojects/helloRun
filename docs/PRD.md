@@ -1396,6 +1396,7 @@ PROJECT OVERVIEW & STATUS (Updated Apr 24, 2026)
 ### UPCOMING PHASES
 [PENDING] Phase 10: Production Deployment
 [DRAFT] Phase 11: Shop / Merchandise Feature
+[DRAFT] Phase 12: OCR Smart Activity Submission
 
 ### QUICK STATS
 - Total Users: TBD (after deployment)
@@ -1636,6 +1637,22 @@ Detailed draft: See docs/shop_feature.md
 
 ---
 
+Phase 12: OCR Smart Activity Submission [OCR] DRAFT
+
+Goal: Add smart screenshot-based activity submission for run, walk, trail run, hike, and step-based entries. Users upload screenshots from fitness and health apps, OCR auto-reads activity details, and users review/edit extracted values before submission.
+
+[DRAFT] Screenshot OCR upload with source app detection (Strava, Nike Run Club, Garmin, Apple Health, Google Fit)
+[DRAFT] Auto-fill activity fields from extracted data (distance, duration, date, pace)
+[DRAFT] Support for activity types: run, walk, trail run, hike, steps
+[DRAFT] OCR confidence scoring with user-facing match indicators
+[DRAFT] Duplicate screenshot detection to prevent repeat submissions
+[DRAFT] Suspicious activity flagging for organizer/admin review
+[DRAFT] Organizer and admin review compatibility with OCR metadata display
+
+Detailed planning: See docs/ocr_smart_submission.md
+
+---
+
 FILES STRUCTURE (Updated Feb 19, 2026)
 
 src/
@@ -1844,6 +1861,8 @@ Phase 7:  [DONE] Completed
 Phase 8:  [DONE] Completed (optional scope shipped)
 Phase 9:  [NOW] Release hardening before launch
 Phase 10: [NEXT] Deployment launch gate
+Phase 11: [DRAFT] Shop / Merchandise Feature
+Phase 12: [DRAFT] OCR Smart Activity Submission
 
 Estimated remaining: depends on release-hardening findings and external deployment tasks.
 
