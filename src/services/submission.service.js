@@ -661,7 +661,8 @@ function sanitizeOcrData(value) {
     })(),
     distanceMismatch: Boolean(value.distanceMismatch),
     timeMismatch: Boolean(value.timeMismatch),
-    detectedSource: ALLOWED_SOURCES.has(rawSource) ? rawSource : ''
+    detectedSource: ALLOWED_SOURCES.has(rawSource) ? rawSource : '',
+    nameMismatchAcknowledged: Boolean(value.nameMismatchAcknowledged)
   };
 }
 
@@ -681,6 +682,9 @@ function detectSuspiciousActivity({ distanceKm, elapsedMs, ocrData }) {
   }
   if (ocrData && ocrData.distanceMismatch && ocrData.confidence > 0.7) {
     return { suspicious: true, reason: 'High-confidence OCR distance mismatch detected.' };
+  }
+  if (ocrData && ocrData.nameMismatchAcknowledged) {
+    return { suspicious: true, reason: 'Screenshot name does not match account name. Runner acknowledged and continued.' };
   }
   return { suspicious: false, reason: '' };
 }

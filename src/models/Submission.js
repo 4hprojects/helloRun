@@ -147,7 +147,8 @@ const submissionSchema = new mongoose.Schema(
         type: String,
         enum: ['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', ''],
         default: ''
-      }
+      },
+      nameMismatchAcknowledged: { type: Boolean, default: false }
     },
     suspiciousFlag: {
       type: Boolean,

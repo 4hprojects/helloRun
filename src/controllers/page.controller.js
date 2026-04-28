@@ -173,12 +173,23 @@ exports.getEvents = async (req, res) => {
     const currentPage = Math.min(page, totalPages);
     const skip = (currentPage - 1) * limit;
 
-    const events = await Event.find(query)
-      .sort(getEventsSort(filterValues.status))
-      .skip(skip)
-      .limit(limit)
-      .select('title slug description eventType eventTypesAllowed raceDistances eventStartAt eventEndAt venueName city country bannerImageUrl registrationCloseAt registrationOpenAt')
-      .lean();
+    const eventSelect = 'title slug description organiserName eventType eventTypesAllowed raceDistances eventStartAt eventEndAt venueName city country bannerImageUrl registrationCloseAt registrationOpenAt createdAt';
+    let events;
+    if (filterValues.q) {
+      const rankedEvents = await Event.find(query)
+        .select(eventSelect)
+        .lean();
+      events = rankEventsForSearch(rankedEvents, filterValues.q)
+        .sort((a, b) => compareEventsForSearch(a, b, filterValues.status))
+        .slice(skip, skip + limit);
+    } else {
+      events = await Event.find(query)
+        .sort(getEventsSort(filterValues.status))
+        .skip(skip)
+        .limit(limit)
+        .select(eventSelect)
+        .lean();
+    }
 
     const normalizedDistanceOptions = distanceOptions
       .map((item) => String(item || '').trim().toUpperCase())
@@ -1369,6 +1380,11 @@ function parseOcrData(body, formDistanceKm, formElapsedMs) {
   const extractedTimeMs = Number.isFinite(rawTime) && rawTime > 0 && rawTime <= 7 * 24 * 60 * 60 * 1000 ? rawTime : null;
   const confidence = Number.isFinite(rawConfidence) && rawConfidence >= 0 && rawConfidence <= 1 ? Math.round(rawConfidence * 100) / 100 : 0;
   const rawText = String(body.ocrRawText || '').slice(0, 2000);
+  const allowedSources = new Set(['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', '']);
+  const rawSource = String(body.ocrDetectedSource || '').trim().toLowerCase();
+  const detectedSource = allowedSources.has(rawSource) ? rawSource : '';
+  // Only trust this flag when the user explicitly acknowledged the mismatch via the dialog
+  const nameMismatchAcknowledged = String(body.ocrNameMismatch || '').trim() === '1';
 
   // Recompute mismatch flags server-side (don't trust client values)
   let distanceMismatch = false;
@@ -1391,7 +1407,9 @@ function parseOcrData(body, formDistanceKm, formElapsedMs) {
     rawText,
     confidence,
     distanceMismatch,
-    timeMismatch
+    timeMismatch,
+    detectedSource,
+    nameMismatchAcknowledged
   };
 }
 
@@ -1467,6 +1485,69 @@ function getEventsSort(status) {
     return { eventEndAt: -1, registrationCloseAt: -1, createdAt: -1 };
   }
   return { eventStartAt: 1, createdAt: -1 };
+}
+
+function rankEventsForSearch(events, searchQuery) {
+  return events.map((event) => ({
+    ...event,
+    searchRank: getEventSearchRank(event, searchQuery)
+  }));
+}
+
+function getEventSearchRank(event, searchQuery) {
+  const query = normalizeSearchValue(searchQuery);
+  if (!query) return 0;
+
+  const title = normalizeSearchValue(event.title);
+  const organiserName = normalizeSearchValue(event.organiserName);
+  const venueName = normalizeSearchValue(event.venueName);
+  const city = normalizeSearchValue(event.city);
+  const countryCode = normalizeSearchValue(event.country);
+  const countryName = normalizeSearchValue(getCountryName(event.country));
+  const description = normalizeSearchValue(event.description);
+
+  if (title === query || organiserName === query) return 500;
+  if ([venueName, city, countryCode, countryName].some((value) => value === query)) return 400;
+  if ([title, organiserName].some((value) => value.includes(query))) return 300;
+  if ([venueName, city, countryCode, countryName].some((value) => value.includes(query))) return 200;
+  if (description.includes(query)) return 100;
+  return 0;
+}
+
+function compareEventsForSearch(a, b, status) {
+  const rankDiff = Number(b.searchRank || 0) - Number(a.searchRank || 0);
+  if (rankDiff !== 0) return rankDiff;
+  return compareEventsBySort(a, b, getEventsSort(status));
+}
+
+function compareEventsBySort(a, b, sortSpec) {
+  for (const [field, direction] of Object.entries(sortSpec)) {
+    const comparison = compareEventSortValue(a[field], b[field]);
+    if (comparison !== 0) {
+      return direction >= 0 ? comparison : -comparison;
+    }
+  }
+  return 0;
+}
+
+function compareEventSortValue(left, right) {
+  const leftValue = getSortableValue(left);
+  const rightValue = getSortableValue(right);
+  if (leftValue === rightValue) return 0;
+  if (leftValue === null || leftValue === undefined) return 1;
+  if (rightValue === null || rightValue === undefined) return -1;
+  return leftValue < rightValue ? -1 : 1;
+}
+
+function getSortableValue(value) {
+  if (value instanceof Date) return value.getTime();
+  if (value && typeof value.getTime === 'function') return value.getTime();
+  if (typeof value === 'string' || typeof value === 'number') return value;
+  return value == null ? null : String(value);
+}
+
+function normalizeSearchValue(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, ' ');
 }
 
 function buildEventsCanonicalUrl(filterValues, currentPage) {
