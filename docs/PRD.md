@@ -1273,6 +1273,12 @@ CURRENT ACTIVE BACKLOG (Next 2 Sprints)
    - [DONE] add removable active-filter chips and cleaner pagination URLs
    - [PENDING] visual polish pass for hero/filter hierarchy/mobile scan quality
    - [OPTIONAL] context-aware distance options if they can be added with low regression risk
+2. `/runner/submissions` UI improvement pass:
+   - [PLANNED] improve page hierarchy for summary, filters, status tabs, and submitted-entry cards
+   - [PLANNED] make event entries and personal-record submissions visually distinguishable without hiding either type
+   - [PLANNED] improve mobile/tablet card wrapping, action-button layout, and badge scan quality
+   - [PLANNED] preserve shared hamburger nav behavior and avoid duplicate run-proof modal markup
+   - [PLANNED] validate with manual mobile/tablet/desktop checks plus `tests/runner-submissions-routes.test.js`
 
 ## `/events` Improvement Plan (Pre-Implementation Spec)
 

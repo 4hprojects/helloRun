@@ -3,6 +3,24 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - April 29, 2026 (Session: Runner Submissions UI Planning Notes)
+
+### [SESSION] SESSION UPDATE:
+- Captured the next `/runner/submissions` UI improvement pass as planning-only work:
+  - improve summary/filter/card hierarchy across mobile, tablet, and desktop
+  - keep event entries and personal-record submissions visible
+  - improve card scan quality, badges, action layout, and empty states
+  - preserve shared hamburger navigation and avoid duplicate run-proof modal markup
+- No UI implementation was started in this note update.
+
+### [UPDATED] UPDATED FILES (major):
+1. docs/runner_submitted_entries.md
+2. docs/PRD.md
+3. docs/CHANGELOG.md
+
+### [VALIDATION] TEST/RUN CHECKS:
+- Not run; documentation-only planning update.
+
 ## CHANGELOG - April 28, 2026 (Session: Runner Run-Proof Modal Process Hardening)
 
 ### [SESSION] SESSION UPDATE:
