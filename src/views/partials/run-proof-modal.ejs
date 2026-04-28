@@ -16,6 +16,7 @@
   aria-hidden="true"
   data-authenticated="<%= isRunnerAuthenticated ? '1' : '0' %>"
   data-login-url="/login"
+  data-runner-name="<%= locals.user ? ((locals.user.firstName || '') + ' ' + (locals.user.lastName || '')).trim() : '' %>"
   data-default-mode="<%= defaultMode %>"
   data-default-title="<%= modalTitle %>"
   data-default-description="<%= modalDescription %>"
@@ -35,7 +36,7 @@
         <div>
           <h2 id="runProofModalTitle"><%= modalTitle %></h2>
           <p class="run-proof-modal-desc" id="runProofModalDesc"><%= modalDescription %></p>
-          <p class="run-proof-step-indicator" id="runProofStepIndicator">Step 1 of 2 &mdash; Upload your screenshot</p>
+          <p class="run-proof-step-indicator" id="runProofStepIndicator">Step 1 of 2 &mdash; Submit your screenshot</p>
         </div>
         <div class="run-proof-header-actions">
           <button type="button" class="btn btn-outline run-proof-back-btn" id="runProofBackBtn" aria-label="Close" data-tooltip="Close">
@@ -68,6 +69,7 @@
         <input type="hidden" id="runProofOcrConfidence" name="ocrConfidence" value="">
         <input type="hidden" id="runProofOcrDistanceMismatch" name="ocrDistanceMismatch" value="">
         <input type="hidden" id="runProofOcrTimeMismatch" name="ocrTimeMismatch" value="">
+        <input type="hidden" id="runProofOcrDetectedSource" name="ocrDetectedSource" value="">
         <input type="hidden" id="runProofImageHash" name="proofImageHash" value="">
 
         <div id="runProofStep1">
@@ -85,14 +87,14 @@
               </div>
               <div class="run-proof-upload-preview" id="runProofUploadPreview" hidden>
                 <img id="runProofPreviewImage" alt="Run proof preview">
-                <div class="run-proof-upload-actions">
-                  <button type="button" class="btn btn-outline" id="runProofReplaceImageBtn">Replace</button>
-                  <button type="button" class="btn btn-outline" id="runProofRemoveImageBtn">Remove</button>
-                </div>
               </div>
             </div>
+            <div class="run-proof-upload-actions" id="runProofUploadActions" hidden>
+              <button type="button" class="btn btn-outline" id="runProofReplaceImageBtn">Replace</button>
+              <button type="button" class="btn btn-outline" id="runProofRemoveImageBtn">Remove</button>
+            </div>
             <p class="run-proof-field-error" id="runProofImageError" aria-live="polite"></p>
-            <p class="run-proof-ocr-status" id="runProofOcrStatus" hidden aria-live="polite">Analysing image...</p>
+            <p class="run-proof-ocr-status" id="runProofOcrStatus" aria-live="polite">Waiting for file upload.</p>
           </section>
           <div class="run-proof-analyse-row">
             <button type="button" class="btn btn-primary" id="runProofAnalyseBtn" disabled>Submit Screenshot</button>
@@ -104,8 +106,23 @@
           <p class="run-proof-autofill-banner" id="runProofAutoFillBanner" hidden role="status">Auto-filled from your screenshot. Review and adjust if needed.</p>
           <div class="run-proof-ocr-results" id="runProofOcrResults" hidden aria-live="polite">
             <span class="run-proof-detected-source" id="runProofDetectedSource" hidden></span>
+            <span class="run-proof-name-match" id="runProofNameMatch" hidden></span>
           </div>
           <div class="run-proof-ocr-warning" id="runProofOcrWarning" hidden role="alert"></div>
+
+          <input type="hidden" id="runProofNameMismatch" name="ocrNameMismatch" value="0">
+          <div class="run-proof-name-mismatch-dialog" id="runProofNameMismatchDialog" hidden role="alert" aria-live="assertive">
+            <div class="run-proof-name-mismatch-icon" aria-hidden="true">⚠</div>
+            <div class="run-proof-name-mismatch-body">
+              <p class="run-proof-name-mismatch-title">Screenshot registered under a different name</p>
+              <p class="run-proof-name-mismatch-detail" id="runProofNameMismatchDetail"></p>
+              <p class="run-proof-name-mismatch-honor">This platform operates on an <strong>honour system</strong>. By continuing, you confirm that this activity belongs to you and that the screenshot accurately represents your personal effort.</p>
+              <div class="run-proof-name-mismatch-actions">
+                <button type="button" class="btn btn-secondary run-proof-name-mismatch-back" id="runProofNameMismatchBack">Change Screenshot</button>
+                <button type="button" class="btn btn-primary run-proof-name-mismatch-continue" id="runProofNameMismatchContinue">Continue Anyway</button>
+              </div>
+            </div>
+          </div>
 
           <section class="run-proof-section" aria-labelledby="runProofSectionEvents">
             <div class="run-proof-section-heading">
@@ -114,7 +131,7 @@
             </div>
             <p class="run-proof-helper" id="runProofEventsHelper">Select the event result you want to submit. Personal record stays selected by default.</p>
 
-            <div class="run-proof-event-list" id="runProofEventsList" role="group" aria-describedby="runProofEventsError">
+            <div class="run-proof-event-list" id="runProofEventsList" role="group" tabindex="-1" aria-describedby="runProofEventsHelper runProofEventsError">
               <label class="run-proof-event-card is-locked" for="runProofPersonalRecord">
                 <span class="run-proof-event-main">
                   <input id="runProofPersonalRecord" type="checkbox" checked disabled aria-disabled="true">
@@ -233,6 +250,52 @@
       </form>
     </div>
   </section>
+
+  <!-- Post-submission success overlay -->
+  <div class="run-proof-post-submit" id="runProofPostSubmit" hidden>
+    <div class="run-proof-post-submit-dialog" role="dialog" aria-modal="true"
+         aria-labelledby="runProofPostSubmitTitle" aria-describedby="runProofPostSubmitDesc" tabindex="-1">
+      <div class="run-proof-post-submit-icon" aria-hidden="true">🎉</div>
+      <h3 id="runProofPostSubmitTitle">Run submitted!</h3>
+      <p id="runProofPostSubmitDesc">Your submission has been received and is pending review. What would you like to do next?</p>
+      <div class="run-proof-post-submit-actions">
+        <button type="button" class="btn btn-outline" id="runProofPostSubmitAnother">Submit Another Entry</button>
+        <button type="button" class="btn btn-primary" id="runProofPostSubmitView">View My Submissions</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submit review / confirmation overlay -->
+  <div class="run-proof-submit-review" id="runProofSubmitReview" hidden>
+    <div class="run-proof-submit-review-dialog" role="dialog" aria-modal="true"
+         aria-labelledby="runProofSubmitReviewTitle" aria-describedby="runProofSubmitReviewDesc" tabindex="-1">
+      <div class="run-proof-submit-review-header">
+        <span class="run-proof-submit-review-icon" aria-hidden="true">📋</span>
+        <div>
+          <h3 id="runProofSubmitReviewTitle">Review before submitting</h3>
+          <p id="runProofSubmitReviewDesc">Please confirm your details are correct. Once submitted, changes require admin assistance.</p>
+        </div>
+      </div>
+      <ul class="run-proof-submit-review-rows" id="runProofSubmitReviewRows" aria-label="Submission summary"></ul>
+      <p class="run-proof-submit-review-notice">By submitting, you confirm this activity is your own and the details are accurate.</p>
+      <div class="run-proof-submit-review-actions">
+        <button type="button" class="btn btn-outline" id="runProofSubmitReviewEdit">Edit Details</button>
+        <button type="button" class="btn btn-primary" id="runProofSubmitReviewConfirm">Submit Now</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Name mismatch continue confirmation overlay -->
+  <div class="run-proof-name-mismatch-confirm" id="runProofNameMismatchConfirm" hidden>
+    <div class="run-proof-name-mismatch-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="runProofNameMismatchConfirmTitle" aria-describedby="runProofNameMismatchConfirmDesc" tabindex="-1">
+      <h3 id="runProofNameMismatchConfirmTitle">⚠ Continue with mismatched name?</h3>
+      <p id="runProofNameMismatchConfirmDesc">You are about to submit a screenshot that shows a different name from your account. This submission will be held for manual review by an admin before it can be approved. Do you want to continue?</p>
+      <div class="run-proof-name-mismatch-confirm-actions">
+        <button type="button" class="btn btn-outline" id="runProofNameMismatchConfirmCancel">Go Back</button>
+        <button type="button" class="btn btn-warning" id="runProofNameMismatchConfirmOk">Yes, Continue</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Close / discard confirmation dialog — uses the app modal template -->
   <div class="run-proof-close-confirm" id="runProofCloseConfirm" hidden>

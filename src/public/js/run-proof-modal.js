@@ -30,6 +30,7 @@
     const elapsedInput = document.getElementById('runProofElapsedTime');
     const locationInput = document.getElementById('runProofLocation');
     const elevationInput = document.getElementById('runProofElevationGain');
+    const stepsInput = document.getElementById('runProofSteps');
 
     const chipList = document.getElementById('runProofTypeChips');
     const runTypeInput = document.getElementById('runProofRunType');
@@ -38,6 +39,7 @@
     const fileInput = document.getElementById('runProofImage');
     const uploadInitial = document.getElementById('runProofUploadInitial');
     const uploadPreview = document.getElementById('runProofUploadPreview');
+    const uploadActions = document.getElementById('runProofUploadActions');
     const previewImage = document.getElementById('runProofPreviewImage');
     const removeImageBtn = document.getElementById('runProofRemoveImageBtn');
     const replaceImageBtn = document.getElementById('runProofReplaceImageBtn');
@@ -51,9 +53,17 @@
     const ocrConfidenceInput = document.getElementById('runProofOcrConfidence');
     const ocrDistanceMismatchInput = document.getElementById('runProofOcrDistanceMismatch');
     const ocrTimeMismatchInput = document.getElementById('runProofOcrTimeMismatch');
+    const ocrDetectedSourceInput = document.getElementById('runProofOcrDetectedSource');
     const imageHashInput = document.getElementById('runProofImageHash');
     const autoFillBannerEl = document.getElementById('runProofAutoFillBanner');
     const detectedSourceEl = document.getElementById('runProofDetectedSource');
+    const nameMatchEl = document.getElementById('runProofNameMatch');
+    const nameMismatchDialog = document.getElementById('runProofNameMismatchDialog');
+    const nameMismatchDetail = document.getElementById('runProofNameMismatchDetail');
+    const nameMismatchBack = document.getElementById('runProofNameMismatchBack');
+    const nameMismatchContinue = document.getElementById('runProofNameMismatchContinue');
+    const nameMismatchInput = document.getElementById('runProofNameMismatch');
+    const runnerName = (modal.dataset.runnerName || '').trim().toLowerCase();
     const analyseBtn = document.getElementById('runProofAnalyseBtn');
     const analyseHint = document.getElementById('runProofAnalyseHint');
     const backBtn = document.getElementById('runProofBackBtn');
@@ -65,12 +75,23 @@
     const closeConfirmCancel = document.getElementById('runProofCloseConfirmCancel');
     const closeConfirmOk = document.getElementById('runProofCloseConfirmOk');
     const closeConfirmDialog = closeConfirmOverlay ? closeConfirmOverlay.querySelector('.run-proof-close-confirm-dialog') : null;
+    const closeConfirmTitle = document.getElementById('runProofCloseConfirmTitle');
+    const closeConfirmDesc = document.getElementById('runProofCloseConfirmDesc');
+
+    const submitReviewOverlay = document.getElementById('runProofSubmitReview');
+    const submitReviewRows = document.getElementById('runProofSubmitReviewRows');
+    const submitReviewEdit = document.getElementById('runProofSubmitReviewEdit');
+    const submitReviewConfirm = document.getElementById('runProofSubmitReviewConfirm');
+
+    const postSubmitOverlay = document.getElementById('runProofPostSubmit');
+    const postSubmitAnother = document.getElementById('runProofPostSubmitAnother');
+    const postSubmitView = document.getElementById('runProofPostSubmitView');
 
     if (
       !dialog || !form || !titleEl || !descEl || !submitBtn || !messageEl || !modeInput || !selectedIdsInput || !primaryRegistrationInput ||
       !eventsList || !eventsErrorEl || !runDateInput || !distanceInput || !hoursInput || !minutesInput || !secondsInput || !elapsedInput ||
       !locationInput || !elevationInput || !chipList || !runTypeInput || !uploadDropzone || !fileInput || !uploadInitial || !uploadPreview ||
-      !previewImage || !removeImageBtn || !replaceImageBtn
+      !uploadActions || !previewImage || !removeImageBtn || !replaceImageBtn
     ) {
       return;
     }
@@ -101,8 +122,22 @@
       currentSurface: '',
       emptyState: null,
       ocrRunning: false,
-      ocrResult: null
+      ocrResult: null,
+      ocrRunId: 0,
+      confirmAction: 'close',
+      allowPageExit: false,
+      pendingUploadFile: null,
+      allowFileDialogOnce: false
     };
+
+    const STEP_ONE_ANALYSE_LABEL = 'Submit Screenshot';
+    const STEP_ONE_CONTINUE_LABEL = 'Continue to Details';
+    const STEP_ONE_ANALYSING_LABEL = 'Analysing...';
+    const OCR_ANALYSIS_TIMEOUT_MS = 75000;
+    const OCR_WAITING_STATUS = 'Waiting for file upload.';
+    const OCR_READY_STATUS = 'Screenshot ready. Submit it to read distance and time.';
+    const OCR_ESTIMATE_LABEL = 'Estimated analysis time: 10-30 seconds.';
+    const OCR_ANALYSING_HINT = 'Reading your screenshot. Please wait while we extract the run details.';
 
     const parseInitialPayload = () => {
       const payloadNode = document.getElementById('runProofModalInitialData');
@@ -146,6 +181,21 @@
     const setEventsHelperText = (text) => {
       if (!eventsHelperEl) return;
       eventsHelperEl.textContent = text || 'Select the event result you want to submit. Personal record stays selected by default.';
+    };
+
+    const setStepOneActionLabel = (text) => {
+      const label = String(text || STEP_ONE_ANALYSE_LABEL).trim() || STEP_ONE_ANALYSE_LABEL;
+      if (analyseBtn) analyseBtn.textContent = label;
+      submitBtn.textContent = label;
+      submitBtn.setAttribute('aria-label', label);
+      if (submitBtn.hasAttribute('data-tooltip')) submitBtn.dataset.tooltip = label;
+    };
+
+    const setOcrStatus = (text, options = {}) => {
+      if (!ocrStatusEl) return;
+      const message = String(text || OCR_WAITING_STATUS).trim() || OCR_WAITING_STATUS;
+      ocrStatusEl.textContent = options.withEstimate ? message + ' ' + OCR_ESTIMATE_LABEL : message;
+      ocrStatusEl.hidden = Boolean(options.hidden);
     };
 
     const setFieldError = (errorElId, wrapperKey, text) => {
@@ -268,6 +318,24 @@
       validateEvents();
     };
 
+    const renderEventOptionsLoading = () => {
+      const dynamicCards = eventsList.querySelectorAll('[data-run-proof-event-card="1"]');
+      dynamicCards.forEach((node) => node.remove());
+      state.options = [];
+      state.selectedRegistrationIds.clear();
+      syncSelectedRegistrationFields();
+      form.removeAttribute('action');
+      setFieldError('runProofEventsError', 'events', '');
+      setEventsHelperText('Loading eligible events...');
+
+      const card = document.createElement('div');
+      card.className = 'run-proof-event-card run-proof-event-loading';
+      card.setAttribute('data-run-proof-event-card', '1');
+      card.setAttribute('role', 'status');
+      card.textContent = 'Checking eligible events...';
+      eventsList.appendChild(card);
+    };
+
     const escapeHtml = (value) => {
       return String(value || '')
         .replace(/&/g, '&amp;')
@@ -362,9 +430,6 @@
         return;
       }
 
-      updateSubmitLabelForSelection();
-      submitBtn.disabled = state.isFetchingOptions;
-      submitBtn.setAttribute('aria-busy', state.isFetchingOptions ? 'true' : 'false');
       submitBtn.classList.remove('btn-loading');
       if (submitInlineBtn) {
         submitInlineBtn.disabled = state.isFetchingOptions;
@@ -372,6 +437,17 @@
         submitInlineBtn.classList.remove('btn-loading');
       }
       dialog.classList.remove('is-submitting');
+
+      if (state.currentStep === 1) {
+        // On step 1 the header button is gated by file selection, not options loading
+        const hasFile = Boolean(fileInput.files && fileInput.files[0]);
+        submitBtn.disabled = !hasFile || state.ocrRunning;
+        submitBtn.setAttribute('aria-busy', state.ocrRunning ? 'true' : 'false');
+      } else {
+        updateSubmitLabelForSelection();
+        submitBtn.disabled = state.isFetchingOptions;
+        submitBtn.setAttribute('aria-busy', state.isFetchingOptions ? 'true' : 'false');
+      }
     };
 
     const clearFilePreview = () => {
@@ -381,6 +457,7 @@
       }
       previewImage.removeAttribute('src');
       uploadPreview.hidden = true;
+      uploadActions.hidden = true;
       uploadInitial.hidden = false;
     };
 
@@ -390,11 +467,13 @@
       state.previewUrl = URL.createObjectURL(file);
       previewImage.src = state.previewUrl;
       uploadPreview.hidden = false;
+      uploadActions.hidden = false;
       uploadInitial.hidden = true;
     };
 
     const setSelectedFileFromDrop = (file) => {
       if (!file) return;
+      clearOcrState();
       const dt = new DataTransfer();
       dt.items.add(file);
       fileInput.files = dt.files;
@@ -405,15 +484,18 @@
       });
       if (analyseBtn) {
         analyseBtn.disabled = false;
-        analyseBtn.textContent = 'Submit Screenshot';
       }
+      submitBtn.disabled = false;
+      setStepOneActionLabel(STEP_ONE_ANALYSE_LABEL);
+      setOcrStatus(OCR_READY_STATUS + ' ' + OCR_ESTIMATE_LABEL);
       if (analyseHint) analyseHint.hidden = true;
     };
 
     const clearOcrState = () => {
+      state.ocrRunId += 1;
       state.ocrRunning = false;
       state.ocrResult = null;
-      if (ocrStatusEl) ocrStatusEl.hidden = true;
+      setOcrStatus(OCR_WAITING_STATUS);
       if (analyseHint) analyseHint.hidden = true;
       if (ocrResultsEl) ocrResultsEl.hidden = true;
       if (ocrWarningEl) ocrWarningEl.hidden = true;
@@ -423,9 +505,17 @@
       if (ocrConfidenceInput) ocrConfidenceInput.value = '';
       if (ocrDistanceMismatchInput) ocrDistanceMismatchInput.value = '';
       if (ocrTimeMismatchInput) ocrTimeMismatchInput.value = '';
+      if (ocrDetectedSourceInput) ocrDetectedSourceInput.value = '';
       if (imageHashInput) imageHashInput.value = '';
       if (autoFillBannerEl) autoFillBannerEl.hidden = true;
       if (detectedSourceEl) detectedSourceEl.hidden = true;
+      if (nameMatchEl) nameMatchEl.hidden = true;
+      if (nameMismatchDialog) nameMismatchDialog.hidden = true;
+      if (nameMismatchInput) nameMismatchInput.value = '0';
+      const _nmco = document.getElementById('runProofNameMismatchConfirm');
+      if (_nmco) _nmco.hidden = true;
+      if (submitReviewOverlay) submitReviewOverlay.hidden = true;
+      if (postSubmitOverlay) postSubmitOverlay.hidden = true;
     };
 
     const formatOcrTime = (time) => {
@@ -503,9 +593,45 @@
         runDateInput.value = result.date;
         filled = true;
       }
+      if (result.elevationGain && result.elevationGain.value >= 0 && elevationInput) {
+        elevationInput.value = String(result.elevationGain.value);
+        elevationInput.dispatchEvent(new Event('input', { bubbles: true }));
+        filled = true;
+      }
+      if (result.steps !== null && result.steps !== undefined && stepsInput) {
+        stepsInput.value = String(result.steps);
+        stepsInput.dispatchEvent(new Event('input', { bubbles: true }));
+        filled = true;
+      }
+      if (result.location && locationInput) {
+        locationInput.value = result.location;
+        locationInput.dispatchEvent(new Event('input', { bubbles: true }));
+        filled = true;
+      }
+      if (result.runType && chipList && runTypeInput) {
+        const chip = chipList.querySelector('[data-run-type="' + result.runType + '"]');
+        if (chip) {
+          runTypeInput.value = result.runType;
+          chipList.querySelectorAll('.run-proof-chip').forEach((node) => {
+            const isSelected = node === chip;
+            node.classList.toggle('is-selected', isSelected);
+            node.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+          });
+          filled = true;
+        }
+      }
       if (filled && autoFillBannerEl) {
         autoFillBannerEl.hidden = false;
       }
+    };
+
+    const focusEventSelectionPanel = () => {
+      if (!eventsList || typeof eventsList.focus !== 'function') return;
+      window.requestAnimationFrame(() => {
+        if (step2Panel && step2Panel.hidden) return;
+        eventsList.focus({ preventScroll: true });
+        eventsList.scrollIntoView({ block: 'nearest' });
+      });
     };
 
     const goToStep = (step) => {
@@ -522,13 +648,17 @@
           if (icon) icon.setAttribute('data-lucide', 'x');
           if (window.lucide) window.lucide.createIcons({ nodes: [backBtn] });
         }
-        submitBtn.hidden = true;
-        if (stepIndicator) stepIndicator.textContent = 'Step 1 of 2 \u2014 Upload your screenshot';
+        if (stepIndicator) stepIndicator.textContent = 'Step 1 of 2 \u2014 Submit your screenshot';
         const hasFile = Boolean(fileInput.files && fileInput.files[0]);
+        const hasCachedOcr = state.ocrResult !== null;
+        const step1Label = hasCachedOcr && hasFile ? STEP_ONE_CONTINUE_LABEL : STEP_ONE_ANALYSE_LABEL;
         if (analyseBtn) {
           analyseBtn.disabled = !hasFile;
-          analyseBtn.textContent = 'Submit Screenshot';
         }
+        submitBtn.hidden = false;
+        submitBtn.disabled = !hasFile;
+        setStepOneActionLabel(step1Label);
+        submitBtn.setAttribute('aria-busy', 'false');
         if (analyseHint) analyseHint.hidden = true;
       } else {
         if (step1Panel) step1Panel.hidden = true;
@@ -545,50 +675,76 @@
         }
         submitBtn.hidden = false;
         if (stepIndicator) stepIndicator.textContent = 'Step 2 of 2 \u2014 Review and submit';
+        toggleSubmitState();
+        focusEventSelectionPanel();
       }
     };
 
     const runOcrAnalysis = (file) => {
-      if (!file || !window.OcrProofReader) return;
+      if (!file) return;
+
+      if (!window.OcrProofReader) {
+        state.ocrRunning = false;
+        state.ocrResult = {
+          ok: false,
+          errorCode: 'OCR_READER_MISSING',
+          errorMessage: 'Image analysis is unavailable. Continue by entering your run details manually.'
+        };
+        if (ocrResultsEl) {
+          ocrResultsEl.textContent = 'Image analysis is unavailable. Continue by entering your run details manually.';
+          ocrResultsEl.hidden = false;
+        }
+        goToStep(2);
+        return;
+      }
 
       clearOcrState();
       state.ocrRunning = true;
+      const runId = state.ocrRunId;
 
-      if (ocrStatusEl) {
-        ocrStatusEl.hidden = false;
-        ocrStatusEl.textContent = 'Starting...';
+      setOcrStatus('Starting analysis...', { withEstimate: true });
+      if (analyseHint) {
+        analyseHint.textContent = OCR_ANALYSING_HINT;
+        analyseHint.hidden = false;
       }
-      if (analyseHint) analyseHint.hidden = false;
 
-      const ocrTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('OCR timed out')), 30000));
+      const ocrTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('OCR timed out')), OCR_ANALYSIS_TIMEOUT_MS));
 
       Promise.race([window.OcrProofReader.extractRunData(file, (status, progress) => {
-        if (ocrStatusEl && state.ocrRunning) {
+        if (ocrStatusEl && state.ocrRunning && runId === state.ocrRunId) {
           if (status === 'loading tesseract core') {
-            ocrStatusEl.textContent = 'Loading OCR engine...';
+            setOcrStatus('Loading OCR engine...', { withEstimate: true });
           } else if (status === 'initializing tesseract') {
-            ocrStatusEl.textContent = 'Initialising OCR engine...';
+            setOcrStatus('Initialising OCR engine...', { withEstimate: true });
           } else if (status === 'loading language traineddata') {
             const pct = Math.round((progress || 0) * 100);
-            ocrStatusEl.textContent = 'Downloading language data' + (pct > 0 ? '... ' + pct + '%' : '...');
+            setOcrStatus('Downloading language data' + (pct > 0 ? '... ' + pct + '%' : '...'), { withEstimate: true });
           } else if (status === 'initializing api') {
-            ocrStatusEl.textContent = 'Preparing image reader...';
+            setOcrStatus('Preparing image reader...', { withEstimate: true });
           } else if (status === 'recognizing text') {
             const pct = Math.round((progress || 0) * 100);
-            ocrStatusEl.textContent = 'Reading image' + (pct > 0 ? '... ' + pct + '%' : '...');
+            setOcrStatus('Reading image' + (pct > 0 ? '... ' + pct + '%' : '...'), { withEstimate: true });
+          } else if (status === 'preprocessing image') {
+            setOcrStatus('Preparing screenshot...', { withEstimate: true });
+          } else if (status === 'preprocessed image ready') {
+            setOcrStatus('Reading enhanced screenshot...', { withEstimate: true });
+          } else if (status === 'retrying original image') {
+            setOcrStatus('Trying the original screenshot...', { withEstimate: true });
           }
         }
       }), ocrTimeout]).then((result) => {
+        if (runId !== state.ocrRunId) return;
         state.ocrRunning = false;
         state.ocrResult = result;
 
-        if (ocrStatusEl) ocrStatusEl.hidden = true;
+        setOcrStatus(OCR_READY_STATUS, { hidden: true });
         if (analyseHint) analyseHint.hidden = true;
 
         if (ocrDistanceInput) ocrDistanceInput.value = result.distance ? String(result.distance.valueKm) : '';
         if (ocrTimeInput) ocrTimeInput.value = result.time ? String(result.time.totalMs) : '';
         if (ocrRawTextInput) ocrRawTextInput.value = result.rawText || '';
         if (ocrConfidenceInput) ocrConfidenceInput.value = String(result.confidence || 0);
+        if (ocrDetectedSourceInput) ocrDetectedSourceInput.value = result.detectedSource || '';
 
         if (result.confidence > 0 && (result.distance || result.time)) {
           if (ocrResultsEl) {
@@ -606,21 +762,56 @@
             detectedSourceEl.textContent = 'Detected: ' + sourceLabel;
             detectedSourceEl.hidden = false;
           }
+          if (nameMatchEl && result.name && runnerName) {
+            const ocrNameLower = result.name.toLowerCase();
+            // Exact / substring check
+            let isMatch = ocrNameLower === runnerName
+              || ocrNameLower.includes(runnerName)
+              || runnerName.includes(ocrNameLower);
+            // Middle-name fallback: account "First Last" vs Strava "First Middle Last"
+            if (!isMatch) {
+              const parts = runnerName.split(/\s+/).filter(Boolean);
+              if (parts.length >= 2) {
+                const first = parts[0];
+                const last = parts[parts.length - 1];
+                isMatch = ocrNameLower.includes(first) && ocrNameLower.includes(last);
+              }
+            }
+            if (isMatch) {
+              nameMatchEl.textContent = '\u2713 Name matches your account';
+              nameMatchEl.className = 'run-proof-name-match run-proof-name-match--ok';
+              nameMatchEl.hidden = false;
+              if (nameMismatchDialog) nameMismatchDialog.hidden = true;
+            } else {
+              // Show the full mismatch dialog instead of the inline badge
+              nameMatchEl.hidden = true;
+              if (nameMismatchDialog && nameMismatchDetail) {
+                nameMismatchDetail.textContent = 'The screenshot shows the name \u201c' + result.name + '\u201d, but your account is registered as \u201c' + (modal.dataset.runnerName || 'unknown') + '\u201d.';
+                nameMismatchDialog.hidden = false;
+              }
+            }
+          }
           applyOcrAutoFill(result);
           updateOcrComparison();
         } else {
           if (ocrResultsEl) {
-            ocrResultsEl.textContent = 'Could not read distance or time from this image.';
+            ocrResultsEl.textContent = result.errorMessage || 'We could not read the screenshot automatically. You can continue by entering the details manually.';
             ocrResultsEl.hidden = false;
           }
         }
         goToStep(2);
       }).catch(() => {
+        if (runId !== state.ocrRunId) return;
         state.ocrRunning = false;
-        if (ocrStatusEl) ocrStatusEl.hidden = true;
+        state.ocrResult = {
+          ok: false,
+          errorCode: 'OCR_TIMEOUT',
+          errorMessage: 'We could not read the screenshot automatically. You can continue by entering the details manually.'
+        };
+        setOcrStatus(OCR_READY_STATUS, { hidden: true });
         if (analyseHint) analyseHint.hidden = true;
         if (ocrResultsEl) {
-          ocrResultsEl.textContent = 'Could not read distance or time from this image.';
+          ocrResultsEl.textContent = 'We could not read the screenshot automatically. You can continue by entering the details manually.';
           ocrResultsEl.hidden = false;
         }
         goToStep(2);
@@ -838,6 +1029,13 @@
       goToStep(1);
     };
 
+    const showModalShell = () => {
+      modal.removeAttribute('hidden');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      dialog.focus();
+    };
+
     const redirectToLogin = () => {
       const loginUrl = String(modal.dataset.loginUrl || '/login').trim() || '/login';
       window.location.href = loginUrl;
@@ -929,15 +1127,19 @@
 
         const resultMessage = parseRedirectMessage(response.url);
         if (resultMessage.type === 'success') {
-          closeModal();
           if (state.currentSurface === 'runner-dashboard') {
             if (typeof window.refreshRunnerDashboardResultSubmissions === 'function') {
               await window.refreshRunnerDashboardResultSubmissions();
             }
-            showSurfaceMessage({
-              type: 'success',
-              text: resultMessage.text
-            });
+            // Show post-submit dialog instead of closing immediately
+            if (postSubmitOverlay) {
+              postSubmitOverlay.hidden = false;
+              if (postSubmitView) postSubmitView.focus();
+            } else {
+              // Fallback: close and show flash
+              closeModal();
+              showSurfaceMessage({ type: 'success', text: resultMessage.text });
+            }
             return;
           }
 
@@ -974,50 +1176,42 @@
       state.currentSurface = triggerConfig.surface;
       state.emptyState = triggerConfig.emptyState;
 
-      const preferredRegistrationId = String(triggerElement?.getAttribute?.('data-registration-id') || '').trim();
+      const preferredRegistrationId = String(
+        triggerElement?.getAttribute?.('data-registration-id') ||
+        triggerElement?.getAttribute?.('data-run-proof-registration-id') ||
+        ''
+      ).trim();
 
       if (state.currentSurface === 'runner-dashboard') {
+        showModalShell();
+        renderEventOptionsLoading();
         state.isFetchingOptions = true;
         toggleSubmitState();
         try {
           const items = await fetchEligibleOptions();
           if (!items.length) {
-            showSurfaceMessage(state.emptyState || {
-              type: 'error',
-              text: 'No eligible event is currently accepting run submissions.',
-              linkHref: '/my-registrations',
-              linkLabel: 'Review my registrations'
-            });
+            renderEventOptions([], '');
+            setMessage((state.emptyState && state.emptyState.text) || 'No eligible event is currently accepting run submissions.', 'error');
             return;
           }
           renderEventOptions(items, preferredRegistrationId);
         } catch (error) {
-          showSurfaceMessage({
-            type: 'error',
-            text: String(error?.message || 'Unable to load eligible events.')
-          });
+          renderEventOptions([], '');
+          setMessage(String(error?.message || 'Unable to load eligible events.'), 'error');
           return;
         } finally {
           state.isFetchingOptions = false;
           toggleSubmitState();
         }
       } else {
-        modal.removeAttribute('hidden');
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
+        showModalShell();
 
         if (state.initialEvents.length) {
           renderEventOptions(state.initialEvents, preferredRegistrationId);
         }
         await loadEligibleOptions(preferredRegistrationId);
-        dialog.focus();
         return;
       }
-
-      modal.removeAttribute('hidden');
-      modal.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-      dialog.focus();
     };
 
     const closeModal = () => {
@@ -1025,6 +1219,8 @@
       modal.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
       clearFilePreview();
+      if (submitReviewOverlay) submitReviewOverlay.hidden = true;
+      if (postSubmitOverlay) postSubmitOverlay.hidden = true;
       state.isSubmitting = false;
       toggleSubmitState();
       if (state.lastTrigger && typeof state.lastTrigger.focus === 'function') {
@@ -1033,16 +1229,142 @@
       state.lastTrigger = null;
     };
 
+    const hasDraftWork = () => {
+      const hasFile = Boolean(fileInput.files && fileInput.files[0]);
+      const hasDetails = Boolean(
+        String(distanceInput.value || '').trim() ||
+        String(hoursInput.value || '').trim() ||
+        String(minutesInput.value || '').trim() ||
+        String(secondsInput.value || '').trim() ||
+        String(locationInput.value || '').trim() ||
+        String(runTypeInput.value || '').trim()
+      );
+      return hasFile || hasDetails || state.currentStep > 1;
+    };
+
+    const setCloseConfirmCopy = (hasDraft, action = 'close') => {
+      const isRefresh = action === 'refresh';
+      const isUploadInterrupt = action === 'replace-image' || action === 'drop-image';
+      const isRemoveInterrupt = action === 'remove-image';
+      if (closeConfirmTitle) {
+        if (isRefresh) {
+          closeConfirmTitle.textContent = 'Refresh page?';
+        } else if (isUploadInterrupt) {
+          closeConfirmTitle.textContent = 'Upload a different screenshot?';
+        } else if (isRemoveInterrupt) {
+          closeConfirmTitle.textContent = 'Remove screenshot?';
+        } else {
+          closeConfirmTitle.textContent = hasDraft ? 'Discard submission?' : 'Exit submission?';
+        }
+      }
+      if (closeConfirmDesc) {
+        if (isRefresh) {
+          closeConfirmDesc.textContent = hasDraft
+            ? "Refreshing will close this modal and your upload and details will be lost."
+            : "Refreshing will close this modal. You can reopen it from the dashboard when you're ready.";
+        } else if (isUploadInterrupt) {
+          closeConfirmDesc.textContent = "Image analysis is still running. Uploading a different screenshot will stop this analysis and clear any detected details from the current image.";
+        } else if (isRemoveInterrupt) {
+          closeConfirmDesc.textContent = "Image analysis is still running. Removing this screenshot will stop the analysis and clear any detected details from the current image.";
+        } else {
+          closeConfirmDesc.textContent = hasDraft
+            ? "Your upload and any details you've entered will be lost."
+            : "You can reopen this modal from the dashboard when you're ready.";
+        }
+      }
+      if (closeConfirmOk) {
+        closeConfirmOk.textContent = isRefresh
+          ? 'Refresh'
+          : (isUploadInterrupt ? 'Upload again' : '')
+            || (isRemoveInterrupt ? 'Remove' : '')
+            || (hasDraft ? 'Discard and close' : 'Exit');
+      }
+    };
+
+    const shouldConfirmPageExit = () => {
+      return !state.allowPageExit && !modal.hasAttribute('hidden') && !state.isSubmitting;
+    };
+
+    const requestCloseModal = (options = {}) => {
+      if (state.isSubmitting) return;
+      const shouldConfirm = Boolean(options.forceConfirm) || hasDraftWork();
+      if (shouldConfirm) {
+        state.confirmAction = 'close';
+        setCloseConfirmCopy(hasDraftWork(), 'close');
+        openCloseConfirm();
+        return;
+      }
+      closeModal();
+    };
+
+    const requestRefreshPage = () => {
+      if (!shouldConfirmPageExit()) return false;
+      state.confirmAction = 'refresh';
+      setCloseConfirmCopy(hasDraftWork(), 'refresh');
+      openCloseConfirm();
+      return true;
+    };
+
+    const requestOcrInterrupt = (action, file = null) => {
+      if (!state.ocrRunning) return false;
+      state.confirmAction = action;
+      state.pendingUploadFile = file;
+      setCloseConfirmCopy(true, action);
+      openCloseConfirm();
+      return true;
+    };
+
+    const openFilePicker = () => {
+      state.allowFileDialogOnce = true;
+      fileInput.click();
+    };
+
+    const removeSelectedImage = () => {
+      fileInput.value = '';
+      clearFilePreview();
+      clearOcrState();
+      validateImage();
+      if (analyseBtn) analyseBtn.disabled = true;
+      submitBtn.disabled = true;
+      setStepOneActionLabel(STEP_ONE_ANALYSE_LABEL);
+      if (analyseHint) analyseHint.textContent = 'Upload a screenshot to enable analysis';
+      if (step2Panel && !step2Panel.hidden) goToStep(1);
+    };
+
+    const handleConfirmedOcrInterrupt = () => {
+      const action = state.confirmAction;
+      const pendingFile = state.pendingUploadFile;
+      state.pendingUploadFile = null;
+      clearOcrState();
+
+      if (action === 'remove-image') {
+        removeSelectedImage();
+        return true;
+      }
+
+      if (action === 'drop-image' && pendingFile) {
+        setSelectedFileFromDrop(pendingFile);
+        return true;
+      }
+
+      if (action === 'replace-image') {
+        openFilePicker();
+        return true;
+      }
+
+      return false;
+    };
+
     parseInitialPayload();
     applyModeConfig(state.modeConfig);
     setTodayDate();
 
     closeButtons.forEach((button) => {
-      button.addEventListener('click', closeModal);
+      button.addEventListener('click', () => requestCloseModal({ forceConfirm: true }));
     });
 
     modal.addEventListener('click', (event) => {
-      if (event.target === modal) closeModal();
+      if (event.target === modal) requestCloseModal({ forceConfirm: true });
     });
 
     modal.addEventListener('keydown', (event) => {
@@ -1051,10 +1373,19 @@
         if (closeConfirmOverlay && !closeConfirmOverlay.hidden) {
           dismissCloseConfirm();
         } else {
-          closeModal();
+          requestCloseModal();
         }
       }
     });
+
+    window.addEventListener('keydown', (event) => {
+      const key = String(event.key || '').toLowerCase();
+      const isKeyboardRefresh = key === 'f5' || ((event.ctrlKey || event.metaKey) && key === 'r');
+      if (!isKeyboardRefresh) return;
+      if (!requestRefreshPage()) return;
+      event.preventDefault();
+      event.stopPropagation();
+    }, true);
 
     eventsList.addEventListener('change', (event) => {
       const input = event.target;
@@ -1133,8 +1464,19 @@
       chip.click();
     });
 
+    fileInput.addEventListener('click', (event) => {
+      if (state.allowFileDialogOnce) {
+        state.allowFileDialogOnce = false;
+        return;
+      }
+      if (!requestOcrInterrupt('replace-image')) return;
+      event.preventDefault();
+      event.stopPropagation();
+    });
+
     fileInput.addEventListener('change', () => {
       const selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      clearOcrState();
       setFilePreview(selectedFile);
       validateImage();
       if (selectedFile) {
@@ -1143,12 +1485,16 @@
         });
         if (analyseBtn) {
           analyseBtn.disabled = false;
-          analyseBtn.textContent = 'Submit Screenshot';
         }
+        submitBtn.disabled = false;
+        setStepOneActionLabel(STEP_ONE_ANALYSE_LABEL);
+        setOcrStatus(OCR_READY_STATUS + ' ' + OCR_ESTIMATE_LABEL);
         if (analyseHint) analyseHint.textContent = 'Click to detect your run data from the image';
       } else {
-        clearOcrState();
         if (analyseBtn) analyseBtn.disabled = true;
+        submitBtn.disabled = true;
+        setStepOneActionLabel(STEP_ONE_ANALYSE_LABEL);
+        setOcrStatus(OCR_WAITING_STATUS);
         if (analyseHint) analyseHint.textContent = 'Upload a screenshot to enable analysis';
       }
     });
@@ -1171,37 +1517,48 @@
       const file = event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]
         ? event.dataTransfer.files[0]
         : null;
+      if (file && requestOcrInterrupt('drop-image', file)) return;
       if (file) setSelectedFileFromDrop(file);
     });
 
     uploadDropzone.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
       event.preventDefault();
-      fileInput.click();
+      if (requestOcrInterrupt('replace-image')) return;
+      openFilePicker();
     });
 
-    removeImageBtn.addEventListener('click', () => {
-      fileInput.value = '';
-      clearFilePreview();
-      clearOcrState();
-      validateImage();
-      if (analyseBtn) analyseBtn.disabled = true;
-      if (analyseHint) analyseHint.textContent = 'Upload a screenshot to enable analysis';
-      if (step2Panel && !step2Panel.hidden) goToStep(1);
+    removeImageBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (requestOcrInterrupt('remove-image')) return;
+      removeSelectedImage();
     });
 
-    replaceImageBtn.addEventListener('click', () => {
-      fileInput.click();
+    replaceImageBtn.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (requestOcrInterrupt('replace-image')) return;
+      openFilePicker();
     });
 
     const triggerAnalyse = () => {
       const selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
-      if (!selectedFile) return;
+      if (!selectedFile || state.ocrRunning) return;
+      // OCR already ran for the current file — go straight to step 2
+      if (state.ocrResult !== null) {
+        goToStep(2);
+        return;
+      }
       if (analyseBtn) {
         analyseBtn.disabled = true;
-        analyseBtn.textContent = 'Analysing...';
       }
-      if (analyseHint) analyseHint.hidden = true;
+      submitBtn.disabled = true;
+      setStepOneActionLabel(STEP_ONE_ANALYSING_LABEL);
+      if (analyseHint) {
+        analyseHint.textContent = OCR_ANALYSING_HINT;
+        analyseHint.hidden = false;
+      }
       computeImageHash(selectedFile).then((hash) => {
         if (imageHashInput) imageHashInput.value = hash;
       });
@@ -1226,9 +1583,8 @@
     if (backBtn) {
       backBtn.addEventListener('click', () => {
         if (state.currentStep === 1) {
-          openCloseConfirm();
+          requestCloseModal({ forceConfirm: true });
         } else {
-          clearOcrState();
           goToStep(1);
         }
       });
@@ -1238,9 +1594,58 @@
       closeConfirmCancel.addEventListener('click', dismissCloseConfirm);
     }
 
+    const nameMismatchConfirmOverlay = document.getElementById('runProofNameMismatchConfirm');
+    const nameMismatchConfirmCancel = document.getElementById('runProofNameMismatchConfirmCancel');
+    const nameMismatchConfirmOk = document.getElementById('runProofNameMismatchConfirmOk');
+
+    if (nameMismatchBack) {
+      nameMismatchBack.addEventListener('click', () => {
+        // Go back to step 1 so the user can change their screenshot
+        if (nameMismatchDialog) nameMismatchDialog.hidden = true;
+        goToStep(1);
+      });
+    }
+
+    if (nameMismatchContinue) {
+      nameMismatchContinue.addEventListener('click', () => {
+        // Show the final confirmation overlay before flagging and proceeding
+        if (nameMismatchConfirmOverlay) {
+          nameMismatchConfirmOverlay.hidden = false;
+          if (nameMismatchConfirmOk) nameMismatchConfirmOk.focus();
+        }
+      });
+    }
+
+    if (nameMismatchConfirmCancel) {
+      nameMismatchConfirmCancel.addEventListener('click', () => {
+        if (nameMismatchConfirmOverlay) nameMismatchConfirmOverlay.hidden = true;
+      });
+    }
+
+    if (nameMismatchConfirmOk) {
+      nameMismatchConfirmOk.addEventListener('click', () => {
+        // User confirmed — flag for admin review and dismiss both dialogs
+        if (nameMismatchInput) nameMismatchInput.value = '1';
+        if (nameMismatchConfirmOverlay) nameMismatchConfirmOverlay.hidden = true;
+        if (nameMismatchDialog) nameMismatchDialog.hidden = true;
+      });
+    }
+
+    if (nameMismatchConfirmOverlay) {
+      nameMismatchConfirmOverlay.addEventListener('click', (event) => {
+        if (event.target === nameMismatchConfirmOverlay) nameMismatchConfirmOverlay.hidden = true;
+      });
+    }
+
     if (closeConfirmOk) {
       closeConfirmOk.addEventListener('click', () => {
         dismissCloseConfirm();
+        if (handleConfirmedOcrInterrupt()) return;
+        if (state.confirmAction === 'refresh') {
+          state.allowPageExit = true;
+          window.location.reload();
+          return;
+        }
         closeModal();
       });
     }
@@ -1250,6 +1655,189 @@
         if (event.target === closeConfirmOverlay) dismissCloseConfirm();
       });
     }
+
+    window.addEventListener('beforeunload', (event) => {
+      if (!shouldConfirmPageExit()) return;
+      event.preventDefault();
+      event.returnValue = '';
+    });
+
+    // ── Post-submission overlay ─────────────────────────────────────────────
+
+    const dismissPostSubmitOverlay = () => {
+      if (postSubmitOverlay) postSubmitOverlay.hidden = true;
+    };
+
+    if (postSubmitAnother) {
+      postSubmitAnother.addEventListener('click', () => {
+        dismissPostSubmitOverlay();
+        resetFormState();
+        // Re-load eligible options so the new submission can pick events
+        void loadEligibleOptions('');
+      });
+    }
+
+    if (postSubmitView) {
+      postSubmitView.addEventListener('click', () => {
+        dismissPostSubmitOverlay();
+        closeModal();
+        window.location.assign('/my-registrations');
+      });
+    }
+
+    // ── Submit review overlay ──────────────────────────────────────────────
+
+    const dismissSubmitReview = () => {
+      if (submitReviewOverlay) submitReviewOverlay.hidden = true;
+    };
+
+    const makeReviewRow = (label, value, modifier) => {
+      const li = document.createElement('li');
+      const labelEl = document.createElement('span');
+      labelEl.className = 'run-proof-submit-review-row-label';
+      labelEl.textContent = label;
+      const valueEl = document.createElement('span');
+      const cls = 'run-proof-submit-review-row-value' + (modifier ? ' run-proof-submit-review-row-value--' + modifier : '');
+      valueEl.className = cls;
+      valueEl.textContent = value;
+      li.appendChild(labelEl);
+      li.appendChild(valueEl);
+      return li;
+    };
+
+    const buildSubmitReview = () => {
+      if (!submitReviewRows) return;
+      submitReviewRows.innerHTML = '';
+
+      // Event (selected event name or Personal Record)
+      const selectedCards = eventsList ? eventsList.querySelectorAll('.run-proof-event-card.is-selected input[type="checkbox"]') : [];
+      const eventNames = [];
+      selectedCards.forEach((cb) => {
+        const card = cb.closest('.run-proof-event-card');
+        const strong = card ? card.querySelector('strong') : null;
+        if (strong) eventNames.push(strong.textContent.trim());
+      });
+      const eventLabel = eventNames.length ? eventNames.join(', ') : 'Personal Record';
+      submitReviewRows.appendChild(makeReviewRow('Event', eventLabel));
+
+      // Activity type
+      const runTypeLabels = { run: 'Run', walk: 'Walk', hike: 'Hike', trail_run: 'Trail Run' };
+      const runTypeVal = String(runTypeInput ? runTypeInput.value : '').trim();
+      if (runTypeVal) {
+        submitReviewRows.appendChild(makeReviewRow('Activity Type', runTypeLabels[runTypeVal] || runTypeVal));
+      } else {
+        submitReviewRows.appendChild(makeReviewRow('Activity Type', 'Not selected', 'missing'));
+      }
+
+      // Date
+      const dateVal = String(runDateInput ? runDateInput.value : '').trim();
+      if (dateVal) {
+        const [y, m, d] = dateVal.split('-');
+        const formatted = d && m && y ? d + '/' + m + '/' + y : dateVal;
+        submitReviewRows.appendChild(makeReviewRow('Date', formatted));
+      } else {
+        submitReviewRows.appendChild(makeReviewRow('Date', 'Not entered', 'missing'));
+      }
+
+      // Distance
+      const distVal = String(distanceInput ? distanceInput.value : '').trim();
+      if (distVal) {
+        submitReviewRows.appendChild(makeReviewRow('Distance', distVal + ' km'));
+      } else {
+        submitReviewRows.appendChild(makeReviewRow('Distance', 'Not entered', 'missing'));
+      }
+
+      // Duration
+      const h = String(hoursInput ? hoursInput.value : '').padStart(2, '0') || '00';
+      const m = String(minutesInput ? minutesInput.value : '').padStart(2, '0') || '00';
+      const s = String(secondsInput ? secondsInput.value : '').padStart(2, '0') || '00';
+      const hasTime = (hoursInput && hoursInput.value) || (minutesInput && minutesInput.value) || (secondsInput && secondsInput.value);
+      if (hasTime) {
+        submitReviewRows.appendChild(makeReviewRow('Duration', h + 'h ' + m + 'm ' + s + 's'));
+      } else {
+        submitReviewRows.appendChild(makeReviewRow('Duration', 'Not entered', 'missing'));
+      }
+
+      // Location
+      const locVal = String(locationInput ? locationInput.value : '').trim();
+      if (locVal) {
+        submitReviewRows.appendChild(makeReviewRow('Location', locVal));
+      } else {
+        submitReviewRows.appendChild(makeReviewRow('Location', 'Not entered', 'missing'));
+      }
+
+      // Elevation (optional)
+      const elevVal = String(elevationInput ? elevationInput.value : '').trim();
+      if (elevVal) {
+        submitReviewRows.appendChild(makeReviewRow('Elevation Gain', elevVal + ' m'));
+      }
+
+      // Steps (optional)
+      const stepsVal = String(stepsInput ? stepsInput.value : '').trim();
+      if (stepsVal) {
+        const stepsNum = parseInt(stepsVal, 10);
+        submitReviewRows.appendChild(makeReviewRow('Steps', isNaN(stepsNum) ? stepsVal : stepsNum.toLocaleString()));
+      }
+
+      // Name mismatch warning
+      const hasMismatch = nameMismatchInput && nameMismatchInput.value === '1';
+      if (hasMismatch) {
+        submitReviewRows.appendChild(makeReviewRow('Name on screenshot', 'Mismatch — pending admin review', 'warn'));
+      }
+    };
+
+    const showSubmitReview = () => {
+      buildSubmitReview();
+      if (submitReviewOverlay) {
+        submitReviewOverlay.hidden = false;
+        if (submitReviewConfirm) submitReviewConfirm.focus();
+      }
+    };
+
+    if (submitReviewEdit) {
+      submitReviewEdit.addEventListener('click', dismissSubmitReview);
+    }
+
+    if (submitReviewConfirm) {
+      submitReviewConfirm.addEventListener('click', () => {
+        dismissSubmitReview();
+        // Bypass the review gate and do the actual submission
+        if (state.isSubmitting) return;
+
+        syncSelectedRegistrationFields();
+        syncFormAction();
+
+        if (!form.getAttribute('action')) {
+          setMessage('Select at least one eligible event before submitting.', 'error');
+          validateEvents();
+          return;
+        }
+
+        const isValid = validateAll();
+        if (!isValid) {
+          setMessage('Please fix the highlighted fields before submitting.', 'error');
+          return;
+        }
+
+        state.isSubmitting = true;
+        setMessage('', '');
+        toggleSubmitState();
+
+        if (state.currentSurface === 'runner-dashboard') {
+          void submitViaFetch();
+        } else {
+          form.submit();
+        }
+      });
+    }
+
+    if (submitReviewOverlay) {
+      submitReviewOverlay.addEventListener('click', (event) => {
+        if (event.target === submitReviewOverlay) dismissSubmitReview();
+      });
+    }
+
+    // ── Form submit event ────────────────────────────────────────────────────
 
     form.addEventListener('submit', (event) => {
       if (state.currentStep === 1) {
@@ -1263,11 +1851,13 @@
         return;
       }
 
+      // Always prevent default on step 2 first pass — show the review dialog instead
+      event.preventDefault();
+
       syncSelectedRegistrationFields();
       syncFormAction();
 
       if (!form.getAttribute('action')) {
-        event.preventDefault();
         setMessage('Select at least one eligible event before submitting.', 'error');
         validateEvents();
         return;
@@ -1275,19 +1865,12 @@
 
       const isValid = validateAll();
       if (!isValid) {
-        event.preventDefault();
         setMessage('Please fix the highlighted fields before submitting.', 'error');
         return;
       }
 
-      state.isSubmitting = true;
-      setMessage('', '');
-      toggleSubmitState();
-
-      if (state.currentSurface === 'runner-dashboard') {
-        event.preventDefault();
-        void submitViaFetch();
-      }
+      // Show review/confirm overlay — actual submission happens in submitReviewConfirm handler
+      showSubmitReview();
     });
 
     openTriggers.forEach((button) => {
