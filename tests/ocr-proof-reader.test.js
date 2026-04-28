@@ -53,6 +53,66 @@ test('detectSourceApp — identifies Strava', () => {
   assert.equal(ocr.detectSourceApp('Strava · 5.02 km'), 'strava');
 });
 
+// ---------------------------------------------------------------------------
+// OCR repair cases
+// ---------------------------------------------------------------------------
+
+test('parseOcrText - handles common OCR distance misreads', () => {
+  assert.equal(parse('5.O2 km\n25:30').distance.value, 5.02);
+  assert.equal(parse('S.02 km\n25:30').distance.value, 5.02);
+  assert.equal(parse('5.02 k m\n25:30').distance.value, 5.02);
+});
+
+test('parseOcrText - extracts labelled moving time', () => {
+  const r = parse('Distance 5.02 km\nMoving Time 25:30');
+  assert.ok(r.time);
+  assert.equal(r.time.minutes, 25);
+  assert.equal(r.time.seconds, 30);
+});
+
+test('parseOcrText - Apple Health screenshot sample', () => {
+  const r = parse('Apple Health\nOutdoor Run\nDistance 6.25 km\nElapsed Time 38:20', 74);
+  assert.equal(r.detectedSource, 'apple');
+  assert.equal(r.distance.value, 6.25);
+  assert.equal(r.time.minutes, 38);
+  assert.equal(r.time.seconds, 20);
+  assert.equal(r.ok, true);
+});
+
+test('parseOcrText - Google Fit screenshot sample', () => {
+  const r = parse('Google Fit\nMorning activity\nDistance 7.4 KM\nDuration 44:05', 76);
+  assert.equal(r.detectedSource, 'google');
+  assert.equal(r.distance.value, 7.4);
+  assert.equal(r.time.minutes, 44);
+  assert.equal(r.time.seconds, 5);
+  assert.equal(r.ok, true);
+});
+
+test('parseOcrText - prefers labelled distance over map scale text', () => {
+  const r = parse('La Trinidad\n4 Km.\nDistance Moving Time\n6.14 km 1:02:15\nStrava App', 78);
+  assert.equal(r.detectedSource, 'strava');
+  assert.equal(r.distance.value, 6.14);
+  assert.equal(r.time.hours, 1);
+  assert.equal(r.time.minutes, 2);
+  assert.equal(r.time.seconds, 15);
+});
+
+test('parseOcrText - partial OCR with only distance is allowed but low confidence', () => {
+  const r = parse('Strava\nDistance 8.0 km', 65);
+  assert.equal(r.ok, true);
+  assert.ok(r.distance);
+  assert.equal(r.time, null);
+  assert.ok(r.confidence <= 0.4);
+});
+
+test('parseOcrText - partial OCR with only time is allowed but needs manual distance', () => {
+  const r = parse('Nike Run Club\nMoving Time 33:10', 65);
+  assert.equal(r.ok, true);
+  assert.equal(r.distance, null);
+  assert.ok(r.time);
+  assert.ok(r.confidence <= 0.4);
+});
+
 test('detectSourceApp — identifies Nike Run Club (NRC shorthand)', () => {
   assert.equal(ocr.detectSourceApp('NRC\n10.0 km'), 'nike');
 });
@@ -377,3 +437,50 @@ test('compareWithForm — gracefully handles missing OCR distance', () => {
   assert.equal(result.distanceMismatch, false); // can't compare what wasn't found
   assert.equal(result.distanceDelta, null);
 });
+
+// ---------------------------------------------------------------------------
+// extractRunType — activity type auto-detection
+// ---------------------------------------------------------------------------
+
+test('parseOcrText — detects walk from activity title', () => {
+  const r = parse('The Running Igorot\nYesterday at 7:45 AM\nMorning Walk\n2.23 km\n26:18', 80);
+  assert.equal(r.runType, 'walk');
+});
+
+test('parseOcrText — detects walk from Strava header label', () => {
+  const r = parse('Walk\nAfternoon Walk\nNene Alawas Cadiog\nYesterday at 2:58 PM\n3.86 km\n53:32', 80);
+  assert.equal(r.runType, 'walk');
+});
+
+test('parseOcrText — detects hike from Trek keyword', () => {
+  const r = parse('Mt Pinatubo Crater Trek\nHenson Sagorsor\nApr 3 at 8:10 AM\n12.5 km\n4:12:00', 80);
+  assert.equal(r.runType, 'hike');
+});
+
+test('parseOcrText — detects hike from Hike keyword', () => {
+  const r = parse('Morning Hike\n5.0 km\n1:30:00', 80);
+  assert.equal(r.runType, 'hike');
+});
+
+test('parseOcrText — detects trail_run over plain run', () => {
+  const r = parse('Trail Run\nEvening Trail Run\n10.0 km\n55:12', 80);
+  assert.equal(r.runType, 'trail_run');
+});
+
+test('parseOcrText — detects run from activity title', () => {
+  const r = parse('Morning Run\nHenson Sagorsor\nYesterday at 6:00 AM\n5.0 km\n25:30', 80);
+  assert.equal(r.runType, 'run');
+});
+
+test('parseOcrText — extracts steps from Strava grid layout (label above, value below)', () => {
+  // OCR reads row-by-row: "Distance Steps\n2.23 km 2,896\n..."
+  const text = 'Distance Steps\n2.23 km 2,896\nMoving Time Elevation Gain\n26:18 27 m';
+  const r = parse(text, 80);
+  assert.equal(r.steps, 2896);
+});
+
+test('parseOcrText — returns null run type when no keyword present', () => {
+  const r = parse('5.0 km\n25:30', 80);
+  assert.equal(r.runType, null);
+});
+
