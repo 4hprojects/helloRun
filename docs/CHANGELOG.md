@@ -3,6 +3,66 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - April 28, 2026 (Session: Runner Run-Proof Modal Process Hardening)
+
+### [SESSION] SESSION UPDATE:
+- Improved the `/runner/dashboard` run-proof modal process:
+  - modal now opens immediately and shows an in-modal eligible-event loading state
+  - step 1 now uses analysis language (`Analyse Screenshot`) instead of implying the screenshot is the final submission
+  - OCR unavailable/failure states now continue to the details step for manual entry
+  - returning from details to screenshot keeps the cached OCR state instead of forcing a fresh analysis
+  - dashboard resubmission triggers can preselect their registration through `data-run-proof-registration-id`
+- Hardened accidental exit behavior:
+  - outside/backdrop clicks open the reusable confirmation dialog
+  - header Close on step 1 opens the same confirmation dialog
+  - Escape routes through the same confirmation path
+  - keyboard refresh (`F5`, `Ctrl+R`, `Cmd+R`) opens the reusable confirmation dialog with refresh-specific copy
+  - browser-controlled refresh/tab close/navigation remains protected by native `beforeunload` because custom dialogs are blocked for those events
+- Added focused modal regression coverage for the process contract.
+
+### [UPDATED] UPDATED FILES (major):
+1. docs/PRD.md
+2. docs/CHANGELOG.md
+3. src/views/partials/run-proof-modal.ejs
+4. src/public/js/run-proof-modal.js
+5. src/public/css/run-proof-modal.css
+6. tests/runner-dashboard-modal.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --check src/public/js/run-proof-modal.js` -> PASS
+- `node --test --test-concurrency=1 tests/runner-dashboard-modal.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `node --test --test-concurrency=1 tests/runner-dashboard-profile.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `node --test --test-concurrency=1 tests/ocr-proof-reader.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `npm test` -> TIMEOUT in current command window after roughly 3 minutes
+
+## CHANGELOG - April 28, 2026 (Session: Events Search Ranking + Responsive Polish)
+
+### [SESSION] SESSION UPDATE:
+- Fixed the `/events` search regression by ranking searched results before pagination:
+  - exact title/organizer matches now rank ahead of description-only matches
+  - location and rendered country-name/code matches are included in relevance ranking
+  - non-search `/events` sorting and pagination behavior remains unchanged
+- Hardened `tests/public-search-filters.test.js`:
+  - added cleanup for stale public-filter seed artifacts
+  - adjusted pagination filler data so organizer-name search assertions stay deterministic
+  - added coverage for high-value organizer matches outranking description-only matches
+- Polished `/events` tablet/mobile UI:
+  - improved filter grid behavior on tablet
+  - made mobile filters/actions full-width and touch-friendly
+  - tightened card wrapping, description clamping, active filter chips, and pagination controls
+
+### [UPDATED] UPDATED FILES (major):
+1. docs/PRD.md
+2. docs/CHANGELOG.md
+3. src/controllers/page.controller.js
+4. src/public/css/events.css
+5. tests/public-search-filters.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/public-search-filters.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/static-pages.test.js` -> PASS
+- `npm test` -> PASS, 200/200 tests
+
 ## CHANGELOG - April 26, 2026 (Session: Shared Floating Back-To-Top Button)
 
 ### [SESSION] SESSION UPDATE:

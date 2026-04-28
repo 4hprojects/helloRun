@@ -3,6 +3,88 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
+## STATUS UPDATE (Apr 28, 2026 - Runner Run-Proof Modal Process Hardening)
+
+### Current reality after latest implementation
+- The `/runner/dashboard` run-proof modal now opens immediately instead of waiting behind the eligible-event lookup.
+- The first modal step is framed as screenshot analysis, not final submission, which better matches the actual process.
+- Accidental exit paths are guarded:
+  - outside/backdrop click opens the reusable confirmation dialog
+  - header Close on step 1 opens the same confirmation dialog
+  - Escape follows the same close-confirm path
+  - keyboard refresh (`F5`, `Ctrl+R`, `Cmd+R`) opens the reusable confirmation dialog before reloading
+  - browser toolbar refresh/tab close/navigation still uses the native browser `beforeunload` prompt because browsers do not allow custom in-page dialogs for those actions
+
+### COMPLETED in this cycle
+- Improved run-proof modal process flow:
+  - added an in-modal loading state while eligible submissions are fetched
+  - changed step/action language from `Submit Screenshot` to `Analyse Screenshot`
+  - added a manual-entry fallback when OCR is unavailable or fails
+  - preserved OCR results when moving back from details to the screenshot step
+  - supported `data-run-proof-registration-id` for dashboard resubmission triggers
+- Hardened exit/refresh behavior:
+  - unified close/backdrop confirmation copy through the existing reusable confirmation dialog
+  - added refresh-specific confirmation copy for keyboard refresh
+  - kept native browser confirmation as fallback for browser-controlled navigation events
+- Added/updated modal regression coverage for the new process contract.
+
+### Validation signals recorded
+- `node --check src/public/js/run-proof-modal.js` -> PASS
+- `node --test --test-concurrency=1 tests/runner-dashboard-modal.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `node --test --test-concurrency=1 tests/runner-dashboard-profile.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `node --test --test-concurrency=1 tests/ocr-proof-reader.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `npm test` -> TIMEOUT in current command window after roughly 3 minutes
+
+### Remaining next tasks
+- Manual browser QA for `/runner/dashboard` run-proof modal:
+  - open modal with eligible events
+  - no eligible events state
+  - outside click confirmation
+  - Close button confirmation
+  - Escape confirmation
+  - keyboard refresh confirmation
+  - browser toolbar refresh native prompt fallback
+- Consider adding a fuller DOM-level client test harness for the run-proof modal controller instead of source-contract assertions only.
+
+## STATUS UPDATE (Apr 28, 2026 - Events Search Ranking + Responsive Polish)
+
+### Current reality after latest implementation
+- `/events` search is now deterministic for high-value matches before pagination.
+- Exact title/organizer matches and location/country matches rank ahead of lower-signal description-only matches when a search query is present.
+- The `/events` page has a focused tablet/mobile polish pass for filters, chips, event cards, and pagination without changing the overall page structure.
+
+### COMPLETED in this cycle
+- Improved public event search ranking:
+  - retained the existing published/non-personal-record filter behavior
+  - preserved current non-search sort and pagination behavior
+  - added application-level search ranking for searched result sets before pagination
+  - kept country-name matching support, including searches like `Philippines` for stored `PH` country codes
+- Hardened the public search regression fixture:
+  - cleaned stale public-filter artifacts before seeding the test data
+  - made pagination filler records avoid crowding organizer-name search assertions
+  - added coverage that exact organizer matches rank ahead of description-only matches
+- Improved `/events` responsive UI:
+  - tablet filter layout now uses a cleaner two-column grid with search spanning the row
+  - mobile filters and actions are full-width with larger touch targets
+  - event cards have safer wrapping/clamping for long text and full-width mobile CTAs
+  - active filter chips and pagination controls are easier to scan and tap on smaller screens
+
+### Validation signals recorded
+- `node --test --test-concurrency=1 tests/public-search-filters.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/static-pages.test.js` -> PASS
+- `npm test` -> PASS, 200/200 tests
+
+### Remaining next tasks
+- Manual browser QA for `/events` at desktop, tablet, and mobile widths:
+  - `/events?q=Public%20Organizer`
+  - `/events?q=Philippines&eventType=onsite&distance=10K&status=open`
+  - `/events?eventType=virtual&distance=5K&status=upcoming&q=Sunrise&page=2`
+- Continue release-hardening gate work:
+  - production env verification
+  - staging/manual smoke coverage
+  - dependency/security audit review
+  - production ops closeout
+
 ## STATUS UPDATE (Apr 25, 2026 - Runner Dashboard Responsive Card Polish)
 
 ### Current reality after latest implementation

@@ -220,3 +220,25 @@ test('runner dashboard flash bridge renders a runtime alert with optional link',
   assert.equal(runtimeMessage.appendedChildren[1].href, '/my-registrations');
   assert.equal(runtimeMessage.appendedChildren[1].textContent, 'Review my registrations');
 });
+
+test('run proof modal process opens dashboard flow before eligible events finish loading', () => {
+  const scriptPath = path.resolve(__dirname, '../src/public/js/run-proof-modal.js');
+  const source = fs.readFileSync(scriptPath, 'utf8');
+  const partialPath = path.resolve(__dirname, '../src/views/partials/run-proof-modal.ejs');
+  const partial = fs.readFileSync(partialPath, 'utf8');
+
+  assert.match(source, /showModalShell\(\);\s*renderEventOptionsLoading\(\);/);
+  assert.match(source, /data-run-proof-registration-id/);
+  assert.match(source, /Image analysis is unavailable\. Continue by entering your run details manually\./);
+  assert.match(source, /Submit Screenshot/);
+  assert.match(source, /ocrDetectedSourceInput\.value = result\.detectedSource/);
+  assert.match(source, /retrying original image/);
+  assert.match(source, /requestOcrInterrupt\('replace-image'/);
+  assert.match(source, /requestOcrInterrupt\('remove-image'/);
+  assert.match(source, /requestOcrInterrupt\('drop-image', file\)/);
+  assert.match(source, /handleConfirmedOcrInterrupt/);
+  assert.match(source, /runId !== state\.ocrRunId/);
+  assert.match(source, /focusEventSelectionPanel\(\);/);
+  assert.match(partial, /id="runProofEventsList"[^>]*tabindex="-1"/);
+  assert.match(partial, /name="ocrDetectedSource"/);
+});

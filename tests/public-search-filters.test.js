@@ -69,6 +69,10 @@ test('events page search matches organiser name and rendered country name', asyn
   const organiserHtml = await organiserSearch.text();
   assert.match(organiserHtml, /Virtual Sunrise 5K/i);
   assert.match(organiserHtml, /Onsite Trail 10K/i);
+  assert.ok(
+    organiserHtml.indexOf('Onsite Trail 10K') < organiserHtml.indexOf('Description-only Organizer Mention'),
+    'exact organizer matches should rank ahead of description-only matches'
+  );
   assert.match(organiserHtml, /active filter/i);
   assert.match(organiserHtml, /<title>Results for &#34;Public Organizer&#34; Events - helloRun<\/title>/i);
   assert.match(organiserHtml, /<h1>Results for &#34;Public Organizer&#34; Events<\/h1>/i);
@@ -152,6 +156,7 @@ test('leaderboard shows filter summary and clear action when filtered', async ()
 
 async function seedPublicFilterFixture() {
   await ensureConnected();
+  await cleanupPublicFilterArtifacts();
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const password = 'Pass1234';
   const passwordHash = await bcrypt.hash(password, 10);
@@ -212,7 +217,7 @@ async function seedPublicFilterFixture() {
       slug: `virtual-sunrise-${stamp}-extra-${i}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
       referenceCode: `PX-${String(stamp).replace(/\D/g, '').slice(-4)}${String(i).padStart(2, '0')}`,
       title: `Virtual Sunrise 5K Extra ${i}`,
-      organiserName: 'Public Organizer',
+      organiserName: 'Pagination Fixture Club',
       description: `Sunrise virtual challenge event extra ${i}.`,
       status: 'published',
       eventType: 'virtual',
@@ -249,6 +254,28 @@ async function seedPublicFilterFixture() {
     city: 'Cebu',
     country: 'PH',
     venueName: 'City Trails',
+    proofTypesAllowed: ['gps', 'photo'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
+  const descriptionOnlyEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `description-only-public-organizer-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `PD-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: 'Description-only Organizer Mention',
+    organiserName: 'Low Relevance Club',
+    description: 'This event only mentions Public Organizer in the description.',
+    status: 'published',
+    eventType: 'onsite',
+    eventTypesAllowed: ['onsite'],
+    raceDistances: ['10K'],
+    registrationOpenAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 1 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 2 * 24 * 60 * 60 * 1000),
+    city: 'Cebu',
+    country: 'PH',
     proofTypesAllowed: ['gps', 'photo'],
     waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
     waiverVersion: 1
@@ -340,7 +367,7 @@ async function seedPublicFilterFixture() {
     userIds: [String(organizer._id), String(author._id)],
     eventIds: [String(upcomingVirtual._id)]
       .concat(extraUpcomingVirtualEvents.map((item) => String(item._id)))
-      .concat([String(upcomingOnsite._id), String(oldEvent._id), String(recentClosedEvent._id)]),
+      .concat([String(upcomingOnsite._id), String(descriptionOnlyEvent._id), String(oldEvent._id), String(recentClosedEvent._id)]),
     blogIds: [String(nutritionBlog._id), String(trainingBlog._id), String(draftBlog._id)]
   };
 }
@@ -352,6 +379,24 @@ async function cleanupSeed(currentSeed) {
     Event.deleteMany({ _id: { $in: currentSeed.eventIds || [] } }),
     Blog.deleteMany({ _id: { $in: currentSeed.blogIds || [] } }),
     User.deleteMany({ _id: { $in: currentSeed.userIds || [] } })
+  ]);
+}
+
+async function cleanupPublicFilterArtifacts() {
+  await Promise.all([
+    Event.deleteMany({
+      slug: {
+        $regex: /^(virtual-sunrise|onsite-trail|old-city-run|recent-closed-run|description-only-public-organizer)-/
+      }
+    }),
+    Blog.deleteMany({
+      slug: {
+        $regex: /^(nutrition-runners|trail-training|private-draft)-/
+      }
+    }),
+    User.deleteMany({
+      email: /^public\.filters\./
+    })
   ]);
 }
 
