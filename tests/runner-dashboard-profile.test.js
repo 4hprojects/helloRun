@@ -236,7 +236,7 @@ test('runner dashboard submit trigger includes dashboard-specific modal configur
   const html = await response.text();
   assert.match(html, /data-run-proof-surface="runner-dashboard"/i);
   assert.match(html, /data-run-proof-empty-link-href="\/my-registrations"/i);
-  assert.match(html, /Submit your latest run result/i);
+  assert.match(html, /Submit latest run result/i);
 });
 
 test('runner change password requires valid current password', async () => {

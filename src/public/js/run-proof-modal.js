@@ -11,6 +11,7 @@
     const titleEl = document.getElementById('runProofModalTitle');
     const descEl = document.getElementById('runProofModalDesc');
     const submitBtn = document.getElementById('runProofSubmitBtn');
+    const submitInlineBtn = document.getElementById('runProofSubmitInlineBtn');
     const messageEl = document.getElementById('runProofMessage');
 
     const modeInput = document.getElementById('runProofMode');
@@ -60,6 +61,11 @@
     const step2Panel = document.getElementById('runProofStep2');
     const stepIndicator = document.getElementById('runProofStepIndicator');
 
+    const closeConfirmOverlay = document.getElementById('runProofCloseConfirm');
+    const closeConfirmCancel = document.getElementById('runProofCloseConfirmCancel');
+    const closeConfirmOk = document.getElementById('runProofCloseConfirmOk');
+    const closeConfirmDialog = closeConfirmOverlay ? closeConfirmOverlay.querySelector('.run-proof-close-confirm-dialog') : null;
+
     if (
       !dialog || !form || !titleEl || !descEl || !submitBtn || !messageEl || !modeInput || !selectedIdsInput || !primaryRegistrationInput ||
       !eventsList || !eventsErrorEl || !runDateInput || !distanceInput || !hoursInput || !minutesInput || !secondsInput || !elapsedInput ||
@@ -85,6 +91,7 @@
       selectedRegistrationIds: new Set(),
       primaryRegistrationId: '',
       lastTrigger: null,
+      currentStep: 1,
       isFetchingOptions: false,
       isSubmitting: false,
       previewUrl: '',
@@ -292,13 +299,30 @@
       return state.options.find((item) => String(item.registrationId || '') === state.primaryRegistrationId) || null;
     };
 
+    const setSubmitBtnLabel = (text) => {
+      [submitBtn, submitInlineBtn].forEach((btn) => {
+        if (!btn) return;
+        const textSpan = btn.querySelector('.run-proof-btn-text');
+        if (textSpan) {
+          textSpan.textContent = text;
+        } else {
+          btn.textContent = text;
+        }
+        btn.setAttribute('aria-label', text);
+        if (btn.hasAttribute('data-tooltip')) {
+          btn.dataset.tooltip = text;
+        }
+      });
+    };
+
     const updateSubmitLabelForSelection = () => {
       if (state.isSubmitting) return;
       const selectedPrimary = getSelectedPrimaryMeta();
       const baseLabel = String(state.modeConfig.submitLabel || submitBtn.dataset.defaultLabel || 'Submit Run').trim() || 'Submit Run';
-      const nextLabel = selectedPrimary?.canResubmit ? 'Resubmit Run Proof' : baseLabel;
+      const nextLabel = selectedPrimary?.canResubmit ? 'Resubmit Run' : baseLabel;
       submitBtn.dataset.defaultLabel = nextLabel;
-      submitBtn.textContent = state.isFetchingOptions ? 'Loading...' : nextLabel;
+      if (submitInlineBtn) submitInlineBtn.dataset.defaultLabel = nextLabel;
+      setSubmitBtnLabel(state.isFetchingOptions ? 'Loading...' : nextLabel);
     };
 
     const resolveFormAction = () => {
@@ -327,7 +351,13 @@
       if (state.isSubmitting) {
         submitBtn.disabled = true;
         submitBtn.setAttribute('aria-busy', 'true');
-        submitBtn.textContent = 'Submitting...';
+        submitBtn.classList.add('btn-loading');
+        if (submitInlineBtn) {
+          submitInlineBtn.disabled = true;
+          submitInlineBtn.setAttribute('aria-busy', 'true');
+          submitInlineBtn.classList.add('btn-loading');
+        }
+        setSubmitBtnLabel('Submitting...');
         dialog.classList.add('is-submitting');
         return;
       }
@@ -335,6 +365,12 @@
       updateSubmitLabelForSelection();
       submitBtn.disabled = state.isFetchingOptions;
       submitBtn.setAttribute('aria-busy', state.isFetchingOptions ? 'true' : 'false');
+      submitBtn.classList.remove('btn-loading');
+      if (submitInlineBtn) {
+        submitInlineBtn.disabled = state.isFetchingOptions;
+        submitInlineBtn.setAttribute('aria-busy', state.isFetchingOptions ? 'true' : 'false');
+        submitInlineBtn.classList.remove('btn-loading');
+      }
       dialog.classList.remove('is-submitting');
     };
 
@@ -369,15 +405,16 @@
       });
       if (analyseBtn) {
         analyseBtn.disabled = false;
-        analyseBtn.textContent = 'Analyse Screenshot';
+        analyseBtn.textContent = 'Submit Screenshot';
       }
-      if (analyseHint) analyseHint.textContent = 'Click to detect your run data from the image';
+      if (analyseHint) analyseHint.hidden = true;
     };
 
     const clearOcrState = () => {
       state.ocrRunning = false;
       state.ocrResult = null;
       if (ocrStatusEl) ocrStatusEl.hidden = true;
+      if (analyseHint) analyseHint.hidden = true;
       if (ocrResultsEl) ocrResultsEl.hidden = true;
       if (ocrWarningEl) ocrWarningEl.hidden = true;
       if (ocrDistanceInput) ocrDistanceInput.value = '';
@@ -475,21 +512,37 @@
       if (step === 1) {
         if (step1Panel) step1Panel.hidden = false;
         if (step2Panel) step2Panel.hidden = true;
-        if (backBtn) backBtn.hidden = true;
+        state.currentStep = 1;
+        if (backBtn) {
+          const s = backBtn.querySelector('.run-proof-btn-text');
+          if (s) s.textContent = 'Close';
+          backBtn.setAttribute('aria-label', 'Close');
+          backBtn.dataset.tooltip = 'Close';
+          const icon = backBtn.querySelector('[data-lucide]');
+          if (icon) icon.setAttribute('data-lucide', 'x');
+          if (window.lucide) window.lucide.createIcons({ nodes: [backBtn] });
+        }
         submitBtn.hidden = true;
         if (stepIndicator) stepIndicator.textContent = 'Step 1 of 2 \u2014 Upload your screenshot';
         const hasFile = Boolean(fileInput.files && fileInput.files[0]);
         if (analyseBtn) {
           analyseBtn.disabled = !hasFile;
-          analyseBtn.textContent = 'Analyse Screenshot';
+          analyseBtn.textContent = 'Submit Screenshot';
         }
-        if (analyseHint) {
-          analyseHint.textContent = hasFile ? 'Click to detect your run data from the image' : 'Upload a screenshot to enable analysis';
-        }
+        if (analyseHint) analyseHint.hidden = true;
       } else {
         if (step1Panel) step1Panel.hidden = true;
         if (step2Panel) step2Panel.hidden = false;
-        if (backBtn) backBtn.hidden = false;
+        state.currentStep = 2;
+        if (backBtn) {
+          const s = backBtn.querySelector('.run-proof-btn-text');
+          if (s) s.textContent = 'Back';
+          backBtn.setAttribute('aria-label', 'Back');
+          backBtn.dataset.tooltip = 'Back';
+          const icon = backBtn.querySelector('[data-lucide]');
+          if (icon) icon.setAttribute('data-lucide', 'arrow-left');
+          if (window.lucide) window.lucide.createIcons({ nodes: [backBtn] });
+        }
         submitBtn.hidden = false;
         if (stepIndicator) stepIndicator.textContent = 'Step 2 of 2 \u2014 Review and submit';
       }
@@ -503,17 +556,26 @@
 
       if (ocrStatusEl) {
         ocrStatusEl.hidden = false;
-        ocrStatusEl.textContent = 'Analysing image...';
+        ocrStatusEl.textContent = 'Starting...';
       }
+      if (analyseHint) analyseHint.hidden = false;
 
       const ocrTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('OCR timed out')), 30000));
 
       Promise.race([window.OcrProofReader.extractRunData(file, (status, progress) => {
         if (ocrStatusEl && state.ocrRunning) {
-          if (status === 'recognizing text') {
-            ocrStatusEl.textContent = 'Reading image... ' + Math.round((progress || 0) * 100) + '%';
+          if (status === 'loading tesseract core') {
+            ocrStatusEl.textContent = 'Loading OCR engine...';
+          } else if (status === 'initializing tesseract') {
+            ocrStatusEl.textContent = 'Initialising OCR engine...';
           } else if (status === 'loading language traineddata') {
-            ocrStatusEl.textContent = 'Downloading OCR engine...';
+            const pct = Math.round((progress || 0) * 100);
+            ocrStatusEl.textContent = 'Downloading language data' + (pct > 0 ? '... ' + pct + '%' : '...');
+          } else if (status === 'initializing api') {
+            ocrStatusEl.textContent = 'Preparing image reader...';
+          } else if (status === 'recognizing text') {
+            const pct = Math.round((progress || 0) * 100);
+            ocrStatusEl.textContent = 'Reading image' + (pct > 0 ? '... ' + pct + '%' : '...');
           }
         }
       }), ocrTimeout]).then((result) => {
@@ -521,6 +583,7 @@
         state.ocrResult = result;
 
         if (ocrStatusEl) ocrStatusEl.hidden = true;
+        if (analyseHint) analyseHint.hidden = true;
 
         if (ocrDistanceInput) ocrDistanceInput.value = result.distance ? String(result.distance.valueKm) : '';
         if (ocrTimeInput) ocrTimeInput.value = result.time ? String(result.time.totalMs) : '';
@@ -555,6 +618,7 @@
       }).catch(() => {
         state.ocrRunning = false;
         if (ocrStatusEl) ocrStatusEl.hidden = true;
+        if (analyseHint) analyseHint.hidden = true;
         if (ocrResultsEl) {
           ocrResultsEl.textContent = 'Could not read distance or time from this image.';
           ocrResultsEl.hidden = false;
@@ -709,7 +773,7 @@
       titleEl.textContent = config.title;
       descEl.textContent = config.description;
       submitBtn.dataset.defaultLabel = config.submitLabel;
-      submitBtn.textContent = config.submitLabel;
+      setSubmitBtnLabel(config.submitLabel);
       toggleSubmitState();
     };
 
@@ -984,7 +1048,11 @@
     modal.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && !state.isSubmitting) {
         event.preventDefault();
-        closeModal();
+        if (closeConfirmOverlay && !closeConfirmOverlay.hidden) {
+          dismissCloseConfirm();
+        } else {
+          closeModal();
+        }
       }
     });
 
@@ -1075,7 +1143,7 @@
         });
         if (analyseBtn) {
           analyseBtn.disabled = false;
-          analyseBtn.textContent = 'Analyse Screenshot';
+          analyseBtn.textContent = 'Submit Screenshot';
         }
         if (analyseHint) analyseHint.textContent = 'Click to detect your run data from the image';
       } else {
@@ -1126,28 +1194,70 @@
       fileInput.click();
     });
 
-    if (analyseBtn) {
-      analyseBtn.addEventListener('click', () => {
-        const selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
-        if (!selectedFile) return;
+    const triggerAnalyse = () => {
+      const selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      if (!selectedFile) return;
+      if (analyseBtn) {
         analyseBtn.disabled = true;
         analyseBtn.textContent = 'Analysing...';
-        if (analyseHint) analyseHint.hidden = true;
-        computeImageHash(selectedFile).then((hash) => {
-          if (imageHashInput) imageHashInput.value = hash;
-        });
-        runOcrAnalysis(selectedFile);
+      }
+      if (analyseHint) analyseHint.hidden = true;
+      computeImageHash(selectedFile).then((hash) => {
+        if (imageHashInput) imageHashInput.value = hash;
       });
+      runOcrAnalysis(selectedFile);
+    };
+
+    if (analyseBtn) {
+      analyseBtn.addEventListener('click', triggerAnalyse);
     }
+
+    const openCloseConfirm = () => {
+      if (!closeConfirmOverlay) { closeModal(); return; }
+      closeConfirmOverlay.removeAttribute('hidden');
+      if (closeConfirmDialog) closeConfirmDialog.focus();
+    };
+
+    const dismissCloseConfirm = () => {
+      if (!closeConfirmOverlay) return;
+      closeConfirmOverlay.setAttribute('hidden', '');
+    };
 
     if (backBtn) {
       backBtn.addEventListener('click', () => {
-        clearOcrState();
-        goToStep(1);
+        if (state.currentStep === 1) {
+          openCloseConfirm();
+        } else {
+          clearOcrState();
+          goToStep(1);
+        }
+      });
+    }
+
+    if (closeConfirmCancel) {
+      closeConfirmCancel.addEventListener('click', dismissCloseConfirm);
+    }
+
+    if (closeConfirmOk) {
+      closeConfirmOk.addEventListener('click', () => {
+        dismissCloseConfirm();
+        closeModal();
+      });
+    }
+
+    if (closeConfirmOverlay) {
+      closeConfirmOverlay.addEventListener('click', (event) => {
+        if (event.target === closeConfirmOverlay) dismissCloseConfirm();
       });
     }
 
     form.addEventListener('submit', (event) => {
+      if (state.currentStep === 1) {
+        event.preventDefault();
+        triggerAnalyse();
+        return;
+      }
+
       if (state.isSubmitting) {
         event.preventDefault();
         return;

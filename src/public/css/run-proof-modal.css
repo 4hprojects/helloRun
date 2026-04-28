@@ -42,13 +42,80 @@
   top: 0;
   z-index: 3;
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.8rem;
+  flex-direction: column;
+  gap: 0.5rem;
   padding: 0.9rem 1rem;
   border-bottom: 1px solid var(--run-proof-panel-border);
   background: rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(6px);
+  border-radius: 1rem 1rem 0 0;
+}
+
+.run-proof-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.run-proof-step-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.6rem;
+}
+
+.run-proof-step-indicator {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #000;
+}
+
+.run-proof-analyse-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.run-proof-header-actions #runProofSubmitBtn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Tablet (≤759px): smaller, remove uppercase + letter-spacing bloat */
+@media (max-width: 759px) {
+  .run-proof-header-actions #runProofSubmitBtn {
+    width: 75px;
+    min-width: 75px;
+    min-height: 75px;
+    padding: 0.2rem;
+    font-family: var(--body-font);
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1.15;
+    letter-spacing: 0;
+    text-transform: none;
+    border-radius: 0.7rem;
+    max-width: 75px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    text-align: center;
+  }
+}
+
+/* Small mobile (≤560px): tightest */
+@media (max-width: 560px) {
+  .run-proof-header-actions #runProofSubmitBtn {
+    width: 75px;
+    min-width: 75px;
+    min-height: 75px;
+    padding: 0.18rem;
+    font-size: 0.7rem;
+    max-width: 75px;
+  }
 }
 
 .run-proof-modal-header h2 {
@@ -65,8 +132,9 @@
 
 .run-proof-header-actions {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.4rem;
   flex-shrink: 0;
 }
 
@@ -137,6 +205,25 @@
 .run-proof-field {
   display: grid;
   gap: 0.34rem;
+}
+
+.run-proof-field.run-proof-field-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.run-proof-field.run-proof-field-row > label {
+  flex: 0 0 calc(33.333% - 0.5rem);
+  text-align: right;
+}
+
+.run-proof-field-row-input {
+  flex: 0 0 calc(66.666% - 0.25rem);
+  min-width: 0;
+  display: grid;
+  gap: 0.2rem;
 }
 
 .run-proof-field label,
@@ -358,6 +445,14 @@
   color: #30465f;
 }
 
+.run-proof-upload-icon {
+  display: block;
+  margin: 0 auto 0.5rem;
+  width: 2.2rem;
+  height: 2.2rem;
+  color: #9fb7d3;
+}
+
 .run-proof-upload-initial strong {
   display: block;
   font-size: 0.9rem;
@@ -386,6 +481,40 @@
   display: flex;
   gap: 0.48rem;
   justify-content: flex-end;
+}
+
+#runProofReplaceImageBtn {
+  color: var(--run-proof-primary);
+  border-color: var(--run-proof-primary);
+  background: transparent;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+#runProofReplaceImageBtn:hover {
+  background: var(--run-proof-primary);
+  color: #fff;
+}
+
+#runProofRemoveImageBtn {
+  color: var(--run-proof-danger);
+  border-color: var(--run-proof-danger);
+  background: transparent;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+#runProofRemoveImageBtn:hover {
+  background: var(--run-proof-danger);
+  color: #fff;
+}
+
+.run-proof-submit-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.75rem;
+}
+
+.run-proof-submit-row .run-proof-submit-inline-btn {
+  min-width: 10rem;
 }
 
 .run-proof-message {
@@ -502,7 +631,7 @@
   }
 
   .run-proof-modal-dialog {
-    width: min(920px, 100%);
+    width: min(820px, 100%);
     height: min(92vh, 860px);
     border-radius: 1rem;
     box-shadow: 0 24px 58px rgba(15, 23, 42, 0.24);
@@ -513,7 +642,27 @@
   }
 }
 
+@media (max-width: 759px) {
+  .run-proof-modal-backdrop {
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .run-proof-modal-dialog {
+    width: min(560px, 94vw);
+    height: min(92vh, 760px);
+    border-radius: 1rem;
+    box-shadow: 0 20px 48px rgba(15, 23, 42, 0.2);
+  }
+}
+
 @media (max-width: 560px) {
+  .run-proof-modal-dialog {
+    width: min(360px, 94vw);
+    height: min(92vh, 720px);
+  }
+
   .run-proof-modal-header {
     padding: 0.85rem 0.82rem;
   }
@@ -555,10 +704,171 @@
   }
 
   .run-proof-upload-actions {
-    flex-direction: column;
+    flex-direction: row;
   }
 
   .run-proof-upload-actions .btn {
-    width: 100%;
+    flex: 1;
   }
+}
+
+/* ===== Header action buttons: icon + label ===== */
+
+.run-proof-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.run-proof-header-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Back/Close button: always a consistent circle at all sizes.
+   Two-class selector beats the global single-class .btn padding/border-radius.
+   !important on the shape properties guards against global .btn clamp() padding. */
+.run-proof-header-actions .run-proof-back-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem !important;
+  height: 2.2rem !important;
+  min-width: 2.2rem !important;
+  max-width: 2.2rem !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  flex-shrink: 0;
+  aspect-ratio: 1 / 1;
+  position: relative;
+}
+
+.run-proof-header-actions .run-proof-back-btn .run-proof-btn-text {
+  display: none;
+}
+
+/* Mobile + tablet (< 760px): icon-only with tooltip on hover/focus */
+@media (max-width: 759px) {
+  .run-proof-header-actions .btn {
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .run-proof-header-actions .run-proof-back-btn {
+    width: 2.2rem !important;
+    height: 2.2rem !important;
+    min-width: 2.2rem !important;
+    max-width: 2.2rem !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+  }
+
+  .run-proof-header-actions .run-proof-btn-text {
+    display: none;
+  }
+
+  .run-proof-header-actions .btn[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(3px);
+    min-width: max-content;
+    max-width: 12rem;
+    padding: 0.38rem 0.62rem;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.92);
+    color: #fff;
+    font-size: 0.74rem;
+    font-weight: 500;
+    line-height: 1.3;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
+    z-index: 200;
+  }
+
+  .run-proof-header-actions .btn[data-tooltip]::before {
+    content: '';
+    position: absolute;
+    top: calc(100% + 3px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-bottom-color: rgba(15, 23, 42, 0.92);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.16s ease, visibility 0.16s ease;
+    z-index: 200;
+  }
+
+  .run-proof-header-actions .btn[data-tooltip]:hover::after,
+  .run-proof-header-actions .btn[data-tooltip]:focus-visible::after,
+  .run-proof-header-actions .btn[data-tooltip]:hover::before,
+  .run-proof-header-actions .btn[data-tooltip]:focus-visible::before {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .run-proof-header-actions .btn[data-tooltip]:hover::after,
+  .run-proof-header-actions .btn[data-tooltip]:focus-visible::after {
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ===== Close / discard confirmation dialog ===== */
+
+.run-proof-close-confirm {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.56);
+  backdrop-filter: blur(6px);
+}
+
+.run-proof-close-confirm[hidden] {
+  display: none !important;
+}
+
+.run-proof-close-confirm-dialog {
+  width: min(440px, 100%);
+  padding: 1.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 58px rgba(15, 23, 42, 0.24);
+}
+
+.run-proof-close-confirm-dialog h3 {
+  margin: 0 0 0.4rem;
+  font-family: var(--font-heading);
+  font-size: 1.3rem;
+  color: var(--run-proof-text);
+}
+
+.run-proof-close-confirm-dialog p {
+  margin: 0 0 1.2rem;
+  color: var(--run-proof-muted);
+}
+
+.run-proof-close-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
 }

@@ -11,7 +11,9 @@
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",
     "seed:cookie-policy": "node src/scripts/seed-cookie-policy.js",
-    "postinstall": "npm run setup",
+    "copy-tesseract-assets": "node src/scripts/copy-tesseract-assets.js",
+    "download-tessdata": "node src/scripts/download-tessdata.js",
+    "postinstall": "npm run setup && npm run copy-tesseract-assets && npm run download-tessdata",
     "test": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, CSRF_PROTECTION: '0' }; const result = spawnSync(process.execPath, ['--test', '--test-concurrency=1', 'tests/*.test.js'], { stdio: 'inherit', env }); process.exit(result.status ?? 1);\"",
     "test:parallel": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, CSRF_PROTECTION: '0' }; const result = spawnSync(process.execPath, ['--test', 'tests/*.test.js'], { stdio: 'inherit', env }); process.exit(result.status ?? 1);\""
   },
@@ -37,6 +39,8 @@
     "multer": "^1.4.5-lts.1",
     "resend": "^3.2.0",
     "sanitize-html": "^2.13.0",
+    "tesseract.js": "^5.0.0",
+    "tesseract.js-core": "^5.0.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

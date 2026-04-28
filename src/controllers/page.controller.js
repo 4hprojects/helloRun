@@ -885,6 +885,7 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     const proofNotes = String(req.body.proofNotes || '').trim().slice(0, 1200);
     const runType = parseRunType(req.body.runType);
     const elevationGain = parseElevationGain(req.body.elevationGain);
+    const steps = parseSteps(req.body.steps);
 
     const ocrData = parseOcrData(req.body, distanceKm, elapsedMs);
 
@@ -928,6 +929,7 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       proofNotes,
       runType,
       elevationGain,
+      steps,
       ocrData
     };
 
@@ -1403,6 +1405,13 @@ function parseElevationGain(value) {
   if (value === undefined || value === null || value === '') return null;
   const numeric = Number(String(value).trim());
   if (!Number.isFinite(numeric) || numeric < 0 || numeric > 20000) return null;
+  return Math.round(numeric);
+}
+
+function parseSteps(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const numeric = Number(String(value).trim());
+  if (!Number.isFinite(numeric) || numeric < 0 || numeric > 200000) return null;
   return Math.round(numeric);
 }
 

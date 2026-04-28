@@ -31,22 +31,26 @@
     tabindex="-1"
   >
     <header class="run-proof-modal-header">
-      <div>
-        <h2 id="runProofModalTitle"><%= modalTitle %></h2>
-        <p class="run-proof-modal-desc" id="runProofModalDesc"><%= modalDescription %></p>
-        <p class="run-proof-step-indicator" id="runProofStepIndicator">Step 1 of 2 &mdash; Upload your screenshot</p>
-      </div>
-      <div class="run-proof-header-actions">
-        <button type="button" class="btn btn-outline run-proof-back-btn" id="runProofBackBtn" hidden>&larr; Back</button>
-        <button
-          type="submit"
-          class="btn btn-primary"
-          id="runProofSubmitBtn"
-          form="runProofForm"
-          data-default-label="<%= submitLabel %>"
-          hidden
-        ><%= submitLabel %></button>
-        <button type="button" class="run-proof-modal-close" data-run-proof-close aria-label="Close run submission modal">&times;</button>
+      <div class="run-proof-header-top">
+        <div>
+          <h2 id="runProofModalTitle"><%= modalTitle %></h2>
+          <p class="run-proof-modal-desc" id="runProofModalDesc"><%= modalDescription %></p>
+          <p class="run-proof-step-indicator" id="runProofStepIndicator">Step 1 of 2 &mdash; Upload your screenshot</p>
+        </div>
+        <div class="run-proof-header-actions">
+          <button type="button" class="btn btn-outline run-proof-back-btn" id="runProofBackBtn" aria-label="Close" data-tooltip="Close">
+            <i data-lucide="x" class="run-proof-btn-icon" aria-hidden="true"></i>
+            <span class="run-proof-btn-text">Close</span>
+          </button>
+          <button
+            type="submit"
+            class="btn btn-primary"
+            id="runProofSubmitBtn"
+            form="runProofForm"
+            data-default-label="<%= submitLabel %>"
+            hidden
+          ><%= submitLabel %></button>
+        </div>
       </div>
     </header>
 
@@ -75,14 +79,15 @@
             <div class="run-proof-upload" id="runProofUploadDropzone" tabindex="0" role="button" aria-label="Upload proof image">
               <input id="runProofImage" name="resultProofFile" type="file" accept="image/jpeg,image/png" required>
               <div class="run-proof-upload-initial" id="runProofUploadInitial">
+                <i data-lucide="image" class="run-proof-upload-icon" aria-hidden="true"></i>
                 <strong>Drop image here or click to upload</strong>
                 <small>JPG or PNG, up to 5MB</small>
               </div>
               <div class="run-proof-upload-preview" id="runProofUploadPreview" hidden>
                 <img id="runProofPreviewImage" alt="Run proof preview">
                 <div class="run-proof-upload-actions">
-                  <button type="button" class="btn btn-outline" id="runProofReplaceImageBtn">Replace image</button>
-                  <button type="button" class="btn btn-outline" id="runProofRemoveImageBtn">Remove image</button>
+                  <button type="button" class="btn btn-outline" id="runProofReplaceImageBtn">Replace</button>
+                  <button type="button" class="btn btn-outline" id="runProofRemoveImageBtn">Remove</button>
                 </div>
               </div>
             </div>
@@ -90,8 +95,8 @@
             <p class="run-proof-ocr-status" id="runProofOcrStatus" hidden aria-live="polite">Analysing image...</p>
           </section>
           <div class="run-proof-analyse-row">
-            <button type="button" class="btn btn-primary" id="runProofAnalyseBtn" disabled>Analyse Screenshot</button>
-            <p class="run-proof-analyse-hint" id="runProofAnalyseHint">Upload a screenshot to enable analysis</p>
+            <button type="button" class="btn btn-primary" id="runProofAnalyseBtn" disabled>Submit Screenshot</button>
+            <p class="run-proof-analyse-hint" id="runProofAnalyseHint" hidden>Upload a screenshot to enable analysis</p>
           </div>
         </div>
 
@@ -144,15 +149,17 @@
               <h3 id="runProofSectionDetails">Run Details</h3>
             </div>
 
-            <div class="run-proof-grid run-proof-grid-2">
-              <div class="run-proof-field" data-field-wrapper="runDate">
-                <label for="runProofDate">Date</label>
+            <div class="run-proof-field run-proof-field-row" data-field-wrapper="runDate">
+              <label for="runProofDate">Date</label>
+              <div class="run-proof-field-row-input">
                 <input id="runProofDate" name="runDate" type="date" required>
                 <p class="run-proof-field-error" id="runProofDateError" aria-live="polite"></p>
               </div>
+            </div>
 
-              <div class="run-proof-field" data-field-wrapper="distanceKm">
-                <label for="runProofDistanceKm">Distance (km)</label>
+            <div class="run-proof-field run-proof-field-row" data-field-wrapper="distanceKm">
+              <label for="runProofDistanceKm">Distance (km)</label>
+              <div class="run-proof-field-row-input">
                 <input id="runProofDistanceKm" name="distanceKm" type="number" min="0.1" max="500" step="0.01" placeholder="5.00" required>
                 <p class="run-proof-field-error" id="runProofDistanceError" aria-live="polite"></p>
               </div>
@@ -186,23 +193,58 @@
               <p class="run-proof-field-error" id="runProofDurationError" aria-live="polite"></p>
             </fieldset>
 
-            <div class="run-proof-field" data-field-wrapper="runLocation">
+            <div class="run-proof-field run-proof-field-row" data-field-wrapper="runLocation">
               <label for="runProofLocation">Location</label>
-              <input id="runProofLocation" name="runLocation" type="text" maxlength="200" placeholder="City, route, or venue" required>
-              <p class="run-proof-field-error" id="runProofLocationError" aria-live="polite"></p>
+              <div class="run-proof-field-row-input">
+                <input id="runProofLocation" name="runLocation" type="text" maxlength="200" placeholder="City, route, or venue" required>
+                <p class="run-proof-field-error" id="runProofLocationError" aria-live="polite"></p>
+              </div>
             </div>
 
-            <div class="run-proof-field" data-field-wrapper="elevationGain">
+            <div class="run-proof-field run-proof-field-row" data-field-wrapper="elevationGain">
               <label for="runProofElevationGain">Elevation Gain (m)</label>
-              <input id="runProofElevationGain" name="elevationGain" type="number" min="0" max="20000" step="1" placeholder="Optional">
+              <div class="run-proof-field-row-input">
+                <input id="runProofElevationGain" name="elevationGain" type="number" min="0" max="20000" step="1" placeholder="Optional">
+              </div>
+            </div>
+
+            <div class="run-proof-field run-proof-field-row" data-field-wrapper="steps">
+              <label for="runProofSteps">Steps</label>
+              <div class="run-proof-field-row-input">
+                <input id="runProofSteps" name="steps" type="number" min="0" max="200000" step="1" placeholder="Optional">
+              </div>
             </div>
           </section>
+
+          <div class="run-proof-submit-row">
+            <button
+              type="submit"
+              class="btn btn-primary run-proof-submit-inline-btn"
+              id="runProofSubmitInlineBtn"
+              form="runProofForm"
+              data-default-label="<%= submitLabel %>"
+              aria-label="<%= submitLabel %>"
+              aria-busy="false"
+            ><%= submitLabel %></button>
+          </div>
         </div>
 
         <p class="run-proof-message" id="runProofMessage" role="status" aria-live="polite"></p>
       </form>
     </div>
   </section>
+
+  <!-- Close / discard confirmation dialog — uses the app modal template -->
+  <div class="run-proof-close-confirm" id="runProofCloseConfirm" hidden>
+    <div class="run-proof-close-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="runProofCloseConfirmTitle" aria-describedby="runProofCloseConfirmDesc" tabindex="-1">
+      <h3 id="runProofCloseConfirmTitle">Discard submission?</h3>
+      <p id="runProofCloseConfirmDesc">Your upload and any details you've entered will be lost.</p>
+      <div class="run-proof-close-confirm-actions">
+        <button type="button" class="btn btn-outline" id="runProofCloseConfirmCancel">Keep editing</button>
+        <button type="button" class="btn btn-danger" id="runProofCloseConfirmOk">Discard and close</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script id="runProofModalInitialData" type="application/json"><%- JSON.stringify({

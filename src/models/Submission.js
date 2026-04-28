@@ -71,6 +71,12 @@ const submissionSchema = new mongoose.Schema(
       max: 20000,
       default: null
     },
+    steps: {
+      type: Number,
+      min: 0,
+      max: 200000,
+      default: null
+    },
     proofType: {
       type: String,
       enum: ['gps', 'photo', 'manual'],

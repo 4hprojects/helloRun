@@ -284,6 +284,343 @@ This should be the default practical behaviour.
 
 ---
 
+## Activity Classification Workflow
+
+Before HelloRun extracts final values, the system should classify what kind of activity the screenshot represents.
+
+The classification step prevents a walk, hike, trail activity, or step-count screenshot from being incorrectly treated as a standard run.
+
+### Classification Goal
+
+Classify the uploaded proof into one of these activity types:
+
+- Run
+- Walk
+- Trail Run
+- Hike
+- Steps
+- Unknown / Needs Manual Selection
+
+### Classification Inputs
+
+The system should use multiple signals instead of relying on one field only.
+
+Inputs include:
+
+- event or challenge type
+- user-selected activity type
+- OCR raw text
+- detected source app
+- detected keywords
+- distance
+- duration
+- pace or speed
+- step count
+- elevation gain
+- route or location text
+- confidence score
+
+### Classification Order
+
+Use this order to avoid wrong assumptions.
+
+1. Check event or challenge rules.
+   - If the event only accepts runs, default classification is `Run`.
+   - If the event only accepts steps, default classification is `Steps`.
+   - If the event accepts multiple categories, continue to the next checks.
+
+2. Check the user-selected activity type.
+   - The form should ask the user to select Run, Walk, Trail Run, Hike, or Steps before or during upload.
+   - OCR may suggest a correction, but the user should be able to confirm or change it.
+
+3. Check source app labels.
+   - Some apps show activity labels such as `Run`, `Walk`, `Trail Run`, `Hiking`, or `Steps`.
+   - These labels should increase classification confidence.
+
+4. Check OCR keywords.
+   - Search the OCR raw text for activity-specific terms.
+
+5. Check numerical patterns.
+   - Use pace, speed, distance, duration, steps, and elevation to support classification.
+   - Numerical patterns should not override clear app labels unless values are impossible or suspicious.
+
+6. Check required fields.
+   - If the screenshot mainly contains a step count, classify as `Steps`.
+   - If it contains distance and time but no steps, classify as Run, Walk, Trail Run, or Hike depending on labels and pace.
+
+7. Assign classification confidence.
+   - High confidence means the system can auto-select the activity type.
+   - Medium confidence means the system suggests the activity type.
+   - Low confidence means the user must manually select the activity type.
+
+8. Ask for user confirmation.
+   - The final activity type must be visible before submission.
+   - The user must be able to correct the classification.
+
+---
+
+## Activity Classification Rules
+
+### Run Classification
+
+Classify as `Run` when most of these signals are present:
+
+- OCR text contains `run`, `running`, `morning run`, `evening run`, or similar labels
+- source app is a running app such as Strava, Nike Run Club, Garmin Connect, or adidas Running
+- screenshot contains distance and duration
+- pace is shown in minutes per kilometre or minutes per mile
+- pace is within a realistic running range
+- no strong trail or hike keywords are present
+
+Suggested keyword patterns:
+
+```js
+const runKeywords = [
+  /\brun\b/i,
+  /running/i,
+  /morning run/i,
+  /evening run/i,
+  /race/i
+];
+```
+
+Suggested supporting values:
+
+- distance is greater than 0
+- duration exists
+- pace exists or can be computed
+- computed pace is plausible for the event category
+
+### Walk Classification
+
+Classify as `Walk` when most of these signals are present:
+
+- OCR text contains `walk`, `walking`, or `outdoor walk`
+- screenshot contains distance and duration
+- step count may also be present
+- pace is slower than typical running pace
+- event or challenge allows walking
+
+Suggested keyword patterns:
+
+```js
+const walkKeywords = [
+  /\bwalk\b/i,
+  /walking/i,
+  /outdoor walk/i,
+  /brisk walk/i
+];
+```
+
+### Trail Run Classification
+
+Classify as `Trail Run` when most of these signals are present:
+
+- OCR text contains `trail run`, `trail running`, or `trail`
+- source app labels the activity as trail running
+- screenshot includes distance and duration
+- elevation gain is visible or unusually relevant
+- route/location text suggests mountain, park, forest, trail, or off-road activity
+
+Suggested keyword patterns:
+
+```js
+const trailRunKeywords = [
+  /trail run/i,
+  /trail running/i,
+  /\btrail\b/i,
+  /elevation gain/i,
+  /vert/i
+];
+```
+
+Important distinction:
+
+- `Trail Run` should still require run-like movement data.
+- If the screenshot shows hiking labels instead of running labels, classify as `Hike`.
+
+### Hike Classification
+
+Classify as `Hike` when most of these signals are present:
+
+- OCR text contains `hike`, `hiking`, `trek`, or `mountain`
+- screenshot includes elevation gain
+- duration is long compared with distance
+- route/location text suggests a mountain, trail, campsite, summit, or outdoor destination
+- pace is slower than typical running pace
+
+Suggested keyword patterns:
+
+```js
+const hikeKeywords = [
+  /\bhike\b/i,
+  /hiking/i,
+  /trek/i,
+  /mountain/i,
+  /summit/i,
+  /elevation gain/i
+];
+```
+
+### Steps Classification
+
+Classify as `Steps` when most of these signals are present:
+
+- OCR text contains `steps`, `step count`, or `daily steps`
+- screenshot mainly shows a step total
+- screenshot may come from Samsung Health, Google Fit, Apple Fitness, Huawei Health, or Xiaomi / Mi Fitness
+- distance and calories may exist, but duration and pace may be missing
+- activity is tied to a day rather than a recorded workout session
+
+Suggested keyword patterns:
+
+```js
+const stepKeywords = [
+  /steps/i,
+  /step count/i,
+  /daily steps/i,
+  /today/i
+];
+```
+
+Important distinction:
+
+- A step screenshot should not automatically qualify for a race result unless the event explicitly allows step-based submissions.
+- Step submissions are better suited for wellness challenges, walking challenges, or daily movement challenges.
+
+---
+
+## Classification Confidence Scoring
+
+Activity classification should have its own confidence score separate from OCR text confidence.
+
+Suggested scoring factors:
+
+| Signal | Suggested Weight | Example |
+|---|---:|---|
+| Exact activity keyword | 30 | `Trail Run`, `Hiking`, `Steps` |
+| User-selected type matches OCR | 20 | User selected Run and OCR says Run |
+| Source app supports detected type | 10 | Nike Run Club suggests Run |
+| Required fields match type | 20 | Steps has step count, Run has distance and duration |
+| Numerical pattern supports type | 10 | Walk pace is slower than run pace |
+| Event/challenge accepts type | 10 | Step challenge accepts Steps |
+
+Suggested interpretation:
+
+| Score | Classification Behaviour |
+|---|---|
+| 85 to 100 | Auto-select type and show as high confidence |
+| 65 to 84 | Suggest type and ask user to confirm |
+| 40 to 64 | Show possible type but require manual confirmation |
+| Below 40 | Set as Unknown and require user selection |
+
+---
+
+## Classification Pseudocode
+
+```js
+function classifyActivity({
+  eventRules,
+  userSelectedType,
+  sourceApp,
+  ocrText,
+  parsedValues
+}) {
+  const text = String(ocrText || '').toLowerCase();
+
+  const signals = {
+    run: 0,
+    walk: 0,
+    trailRun: 0,
+    hike: 0,
+    steps: 0
+  };
+
+  if (/steps|step count|daily steps/.test(text)) signals.steps += 30;
+  if (/trail run|trail running/.test(text)) signals.trailRun += 35;
+  if (/hike|hiking|trek|summit/.test(text)) signals.hike += 30;
+  if (/\brun\b|running|morning run|evening run/.test(text)) signals.run += 30;
+  if (/\bwalk\b|walking|outdoor walk/.test(text)) signals.walk += 30;
+
+  if (parsedValues.steps) signals.steps += 20;
+  if (parsedValues.distanceKm && parsedValues.duration) {
+    signals.run += 10;
+    signals.walk += 10;
+    signals.trailRun += 10;
+    signals.hike += 10;
+  }
+
+  if (parsedValues.elevationGain) {
+    signals.trailRun += 10;
+    signals.hike += 15;
+  }
+
+  if (userSelectedType && signals[userSelectedType] !== undefined) {
+    signals[userSelectedType] += 20;
+  }
+
+  for (const type of Object.keys(signals)) {
+    if (!eventRules.allowedActivityTypes.includes(type)) {
+      signals[type] -= 50;
+    }
+  }
+
+  const sorted = Object.entries(signals).sort((a, b) => b[1] - a[1]);
+  const [bestType, score] = sorted[0];
+
+  return {
+    suggestedType: score >= 40 ? bestType : 'unknown',
+    classificationConfidence: Math.max(0, Math.min(100, score)),
+    requiresUserConfirmation: score < 85
+  };
+}
+```
+
+---
+
+## Classification UI Behaviour
+
+### High Confidence
+
+Show:
+
+```text
+Detected activity type: Run
+```
+
+Allow the user to change it.
+
+### Medium Confidence
+
+Show:
+
+```text
+This looks like a Walk. Please confirm before submitting.
+```
+
+### Low Confidence
+
+Show:
+
+```text
+We could not confidently identify the activity type. Please select one.
+```
+
+### Conflict Case
+
+Example:
+
+- user selected `Run`
+- OCR detects `Walk`
+
+Show:
+
+```text
+Your selected activity type is Run, but the screenshot appears to show Walk. Please confirm the correct type.
+```
+
+---
+
 ## Fields to Extract
 
 ### Common Fields
@@ -1412,3 +1749,825 @@ It should support the platform’s shift from a runner-only system into a broade
 - challenges
 - digital achievements
 - merchandise rewards
+
+---
+
+# Dedicated Frontend OCR JavaScript Strategy
+
+## Purpose
+
+HelloRun should have its own dedicated frontend JavaScript file for OCR-based activity submission.
+
+Recommended file:
+
+```text
+public/js/ocr-smart-submission.js
+```
+
+This file should contain HelloRun-specific logic for:
+
+- screenshot upload handling
+- image preview
+- image preprocessing
+- OCR execution
+- raw OCR text handling
+- activity field extraction
+- source app detection
+- activity classification
+- confidence scoring
+- form auto-fill
+- validation messages
+- fallback to manual entry
+
+The dedicated JavaScript file should not copy or extract internal source code from an OCR library.
+
+---
+
+## Important Decision
+
+HelloRun should not directly extract internal Tesseract.js code into its own frontend file.
+
+Instead:
+
+```text
+Tesseract.js = OCR engine
+ocr-smart-submission.js = HelloRun OCR workflow and activity intelligence
+```
+
+This keeps the system easier to maintain.
+
+---
+
+## Why Not Extract Tesseract.js Internals?
+
+Tesseract.js is not a simple OCR function that can be copied into one small frontend file.
+
+It commonly depends on:
+
+- Web Workers
+- WebAssembly OCR core
+- language data files
+- trained OCR data
+- browser-specific loading behavior
+
+Copying internal OCR code would create maintenance problems.
+
+HelloRun would become responsible for:
+
+- OCR engine bugs
+- browser compatibility
+- WebAssembly loading
+- language file loading
+- future updates
+- security patches
+- licence compliance
+
+The safer and cleaner approach is to keep the OCR engine as a dependency, then build HelloRun’s own parser and classification layer around it.
+
+---
+
+## Recommended File Structure
+
+For the MVP:
+
+```text
+src/
+public/
+  js/
+    ocr-smart-submission.js
+  vendor/
+    tesseract/
+      tesseract.min.js
+      worker.min.js
+      tesseract-core.wasm.js
+      eng.traineddata.gz
+```
+
+For a later cleaner structure:
+
+```text
+public/
+  js/
+    ocr/
+      ocr-engine.js
+      ocr-parser.js
+      ocr-classifier.js
+      ocr-validation.js
+      ocr-autofill.js
+```
+
+Start with one file first.
+
+Recommended MVP file:
+
+```text
+public/js/ocr-smart-submission.js
+```
+
+Split it only after the OCR workflow becomes stable.
+
+---
+
+## Local Hosting Recommendation
+
+Avoid relying on a CDN for production.
+
+Host OCR dependency files locally under:
+
+```text
+public/vendor/tesseract/
+```
+
+This gives HelloRun:
+
+- better reliability
+- better version control
+- fewer third-party loading issues
+- easier production debugging
+- predictable asset paths
+
+---
+
+## Frontend Script Loading Example
+
+Example EJS or HTML placement:
+
+```html
+<script src="/vendor/tesseract/tesseract.min.js"></script>
+<script src="/js/ocr-smart-submission.js"></script>
+```
+
+The first script loads the OCR engine.
+
+The second script loads HelloRun’s OCR workflow.
+
+---
+
+## Responsibility Split
+
+| Layer | Responsibility |
+|---|---|
+| Tesseract.js | Read visible text from uploaded screenshot |
+| ocr-smart-submission.js | Manage upload, parse text, classify activity, fill form |
+| Backend | Store screenshot, confirmed fields, OCR metadata, review flags |
+| Organizer/Admin Review | Approve, reject, or flag suspicious submissions |
+
+---
+
+## What `ocr-smart-submission.js` Should Do
+
+The dedicated file should follow this process:
+
+1. Listen for screenshot upload.
+2. Validate file type and size.
+3. Show screenshot preview.
+4. Optionally preprocess image using canvas.
+5. Run OCR engine.
+6. Receive raw OCR text.
+7. Detect source app.
+8. Extract activity values.
+9. Classify the activity type.
+10. Score OCR confidence.
+11. Auto-fill the form.
+12. Show warnings for uncertain values.
+13. Allow user correction.
+14. Submit final confirmed values to backend.
+
+---
+
+## Frontend OCR Workflow
+
+```text
+User uploads screenshot
+        ↓
+Validate file
+        ↓
+Preview image
+        ↓
+Run OCR engine
+        ↓
+Get raw text
+        ↓
+Parse fields
+        ↓
+Classify activity
+        ↓
+Calculate confidence
+        ↓
+Auto-fill form
+        ↓
+User reviews / edits
+        ↓
+Submit final data
+```
+
+---
+
+## Activity Classification Requirement
+
+Activity classification should not depend only on OCR text.
+
+The system should consider:
+
+- user-selected activity type
+- detected keywords
+- source app
+- distance
+- duration
+- pace
+- step count
+- elevation terms
+- event or challenge type
+
+The user-selected activity type should have the highest priority because OCR can misread app labels.
+
+---
+
+## Classification Priority
+
+Use this order:
+
+1. User-selected activity type
+2. Event or challenge required activity type
+3. Strong OCR keyword match
+4. Step count-only pattern
+5. Distance/time/pace pattern
+6. Source app hints
+7. Manual confirmation required
+
+---
+
+## Classification Rules
+
+### Run
+
+Classify as `run` when:
+
+- selected activity type is Run, or
+- OCR text contains `run`, `running`, `morning run`, `evening run`, or similar, or
+- screenshot contains distance + duration + pace without step-only pattern
+
+Example:
+
+```text
+Morning Run
+5.02 km
+29:44
+5:55 /km
+```
+
+Detected classification:
+
+```json
+{
+  "activityType": "run",
+  "classificationConfidence": 85,
+  "reason": "Running keyword and pace detected"
+}
+```
+
+---
+
+### Walk
+
+Classify as `walk` when:
+
+- selected activity type is Walk, or
+- OCR text contains `walk`, `walking`, `morning walk`, or similar, or
+- pace/speed appears slower and source app indicates walking
+
+Example:
+
+```text
+Afternoon Walk
+3.21 km
+45:10
+14:04 /km
+```
+
+Detected classification:
+
+```json
+{
+  "activityType": "walk",
+  "classificationConfidence": 85,
+  "reason": "Walking keyword detected"
+}
+```
+
+---
+
+### Trail Run
+
+Classify as `trail_run` when:
+
+- selected activity type is Trail Run, or
+- OCR text contains `trail run`, `trail running`, or similar, or
+- running data includes elevation/trail terms
+
+Example:
+
+```text
+Trail Run
+8.40 km
+1:12:33
+Elevation Gain 430 m
+```
+
+Detected classification:
+
+```json
+{
+  "activityType": "trail_run",
+  "classificationConfidence": 90,
+  "reason": "Trail run keyword and elevation detected"
+}
+```
+
+---
+
+### Hike
+
+Classify as `hike` when:
+
+- selected activity type is Hike, or
+- OCR text contains `hike`, `hiking`, `trek`, `ascent`, or similar, or
+- elevation gain is present and pace is closer to hiking pace
+
+Example:
+
+```text
+Hiking
+6.80 km
+2:41:20
+Elevation Gain 510 m
+```
+
+Detected classification:
+
+```json
+{
+  "activityType": "hike",
+  "classificationConfidence": 88,
+  "reason": "Hiking keyword and elevation detected"
+}
+```
+
+---
+
+### Steps
+
+Classify as `steps` when:
+
+- selected activity type is Steps, or
+- OCR text contains a step count, or
+- screenshot mostly shows daily steps without route/duration details
+
+Example:
+
+```text
+Today
+8,421 steps
+6.1 km
+312 calories
+```
+
+Detected classification:
+
+```json
+{
+  "activityType": "steps",
+  "classificationConfidence": 90,
+  "reason": "Step count detected"
+}
+```
+
+---
+
+## Classification Conflict Handling
+
+Conflicts can happen.
+
+Example:
+
+- user selects Walk
+- OCR text says Run
+
+In that case, do not silently override the user.
+
+Show a message:
+
+```text
+The screenshot appears to show a Run, but you selected Walk. Please confirm the correct activity type before submitting.
+```
+
+Recommended behavior:
+
+- keep user-selected value
+- show warning
+- add review flag: `activity_type_conflict`
+- allow submission only after confirmation
+
+---
+
+## Classification Confidence Scoring
+
+Suggested scoring:
+
+| Signal | Points |
+|---|---:|
+| User-selected activity type | 40 |
+| Exact activity keyword detected | 25 |
+| Source app detected | 10 |
+| Distance detected | 10 |
+| Duration detected | 10 |
+| Pace detected | 5 |
+| Steps detected | 20 |
+| Elevation detected for trail/hike | 10 |
+
+The score should be capped at 100.
+
+---
+
+## Dedicated JavaScript MVP Example
+
+```js
+// public/js/ocr-smart-submission.js
+
+const HelloRunOCR = (() => {
+  const sourcePatterns = [
+    { app: "Strava", patterns: [/strava/i] },
+    { app: "Samsung Health", patterns: [/samsung health/i] },
+    { app: "Google Fit", patterns: [/google fit/i, /google\s?fit/i] },
+    { app: "Nike Run Club", patterns: [/nike run club/i, /\bnrc\b/i] },
+    { app: "Garmin Connect", patterns: [/garmin/i, /garmin connect/i] },
+    { app: "adidas Running", patterns: [/adidas running/i, /runtastic/i] },
+    { app: "Map My Run", patterns: [/map my run/i, /under armour/i] }
+  ];
+
+  function detectSourceApp(text) {
+    for (const source of sourcePatterns) {
+      if (source.patterns.some((pattern) => pattern.test(text))) {
+        return source.app;
+      }
+    }
+
+    return "Unknown";
+  }
+
+  function extractDistance(text) {
+    const match = text.match(/(\d+(\.\d+)?)\s?(km|kilometers|mi|miles)/i);
+
+    if (!match) return null;
+
+    return {
+      value: Number(match[1]),
+      unit: match[3].toLowerCase()
+    };
+  }
+
+  function extractDuration(text) {
+    const match = text.match(/(\d{1,2}:\d{2}:\d{2}|\d{1,2}:\d{2})/);
+
+    return match ? match[1] : null;
+  }
+
+  function extractPace(text) {
+    const match = text.match(/(\d{1,2}:\d{2})\s?\/?\s?(km|mi)/i);
+
+    if (!match) return null;
+
+    return `${match[1]}/${match[2].toLowerCase()}`;
+  }
+
+  function extractSteps(text) {
+    const match = text.match(/(\d{1,3}(,\d{3})+|\d+)\s?(steps|step)/i);
+
+    if (!match) return null;
+
+    return Number(match[1].replace(/,/g, ""));
+  }
+
+  function extractCalories(text) {
+    const match = text.match(/(\d+)\s?(cal|kcal|calories)/i);
+
+    return match ? Number(match[1]) : null;
+  }
+
+  function extractElevation(text) {
+    const match = text.match(/(\d+)\s?(m|meter|meters|ft|feet)\s?(elevation|gain|ascent)?/i);
+
+    if (!match) return null;
+
+    return {
+      value: Number(match[1]),
+      unit: match[2].toLowerCase()
+    };
+  }
+
+  function classifyActivity(parsed, rawText, selectedActivityType = "", requiredActivityType = "") {
+    const text = rawText.toLowerCase();
+
+    if (requiredActivityType) {
+      return {
+        activityType: requiredActivityType,
+        confidence: 100,
+        reason: "Event or challenge requires this activity type"
+      };
+    }
+
+    if (selectedActivityType) {
+      return {
+        activityType: selectedActivityType,
+        confidence: 95,
+        reason: "User-selected activity type"
+      };
+    }
+
+    if (/trail run|trail running/i.test(rawText)) {
+      return {
+        activityType: "trail_run",
+        confidence: 90,
+        reason: "Trail running keyword detected"
+      };
+    }
+
+    if (/hike|hiking|trek|trekking|ascent/i.test(rawText)) {
+      return {
+        activityType: "hike",
+        confidence: 88,
+        reason: "Hiking keyword detected"
+      };
+    }
+
+    if (/walk|walking/i.test(rawText)) {
+      return {
+        activityType: "walk",
+        confidence: 85,
+        reason: "Walking keyword detected"
+      };
+    }
+
+    if (/run|running/i.test(rawText)) {
+      return {
+        activityType: "run",
+        confidence: 85,
+        reason: "Running keyword detected"
+      };
+    }
+
+    if (parsed.steps && !parsed.duration) {
+      return {
+        activityType: "steps",
+        confidence: 85,
+        reason: "Step count detected without clear timed activity"
+      };
+    }
+
+    if (parsed.steps && !parsed.distance) {
+      return {
+        activityType: "steps",
+        confidence: 80,
+        reason: "Step count detected without distance"
+      };
+    }
+
+    if (parsed.distance && parsed.duration && parsed.pace) {
+      return {
+        activityType: "run",
+        confidence: 70,
+        reason: "Distance, duration, and pace detected"
+      };
+    }
+
+    return {
+      activityType: "unknown",
+      confidence: 40,
+      reason: "No clear activity type detected"
+    };
+  }
+
+  function detectClassificationConflict(selectedActivityType, classification) {
+    if (!selectedActivityType) return null;
+
+    if (selectedActivityType !== classification.activityType && classification.activityType !== "unknown") {
+      return {
+        flag: "activity_type_conflict",
+        message: `The screenshot appears to show ${classification.activityType}, but the selected activity is ${selectedActivityType}.`
+      };
+    }
+
+    return null;
+  }
+
+  function calculateConfidence(parsed, classification, ocrConfidence = 0) {
+    let score = 0;
+
+    if (ocrConfidence) score += Math.min(ocrConfidence * 0.35, 35);
+    if (parsed.sourceApp !== "Unknown") score += 10;
+    if (parsed.distance) score += 10;
+    if (parsed.duration) score += 10;
+    if (parsed.pace) score += 5;
+    if (parsed.steps) score += 15;
+    if (parsed.calories) score += 5;
+    if (parsed.elevationGain) score += 5;
+    if (classification.activityType !== "unknown") score += 15;
+
+    return Math.min(Math.round(score), 100);
+  }
+
+  async function readImage(file, options = {}) {
+    if (!window.Tesseract) {
+      throw new Error("Tesseract.js is not loaded.");
+    }
+
+    const result = await Tesseract.recognize(file, "eng", {
+      logger: options.onProgress || (() => {})
+    });
+
+    const rawText = result.data.text || "";
+    const ocrConfidence = result.data.confidence || 0;
+
+    const parsed = {
+      sourceApp: detectSourceApp(rawText),
+      distance: extractDistance(rawText),
+      duration: extractDuration(rawText),
+      pace: extractPace(rawText),
+      steps: extractSteps(rawText),
+      calories: extractCalories(rawText),
+      elevationGain: extractElevation(rawText)
+    };
+
+    const classification = classifyActivity(
+      parsed,
+      rawText,
+      options.selectedActivityType || "",
+      options.requiredActivityType || ""
+    );
+
+    const conflict = detectClassificationConflict(
+      options.selectedActivityType || "",
+      classification
+    );
+
+    const confidence = calculateConfidence(parsed, classification, ocrConfidence);
+
+    const reviewFlags = [];
+
+    if (conflict) reviewFlags.push(conflict.flag);
+    if (confidence < 70) reviewFlags.push("low_confidence");
+    if (parsed.sourceApp === "Unknown") reviewFlags.push("source_app_unknown");
+
+    return {
+      rawText,
+      ocrConfidence,
+      parsed,
+      classification,
+      confidence,
+      conflict,
+      reviewFlags
+    };
+  }
+
+  return {
+    readImage,
+    detectSourceApp,
+    extractDistance,
+    extractDuration,
+    extractPace,
+    extractSteps,
+    extractCalories,
+    extractElevation,
+    classifyActivity,
+    detectClassificationConflict
+  };
+})();
+```
+
+---
+
+## Example Form Integration
+
+```html
+<input
+  type="file"
+  id="activityScreenshot"
+  accept="image/png,image/jpeg,image/webp"
+>
+
+<select id="activityType" name="activityType">
+  <option value="">Auto detect</option>
+  <option value="run">Run</option>
+  <option value="walk">Walk</option>
+  <option value="trail_run">Trail Run</option>
+  <option value="hike">Hike</option>
+  <option value="steps">Steps</option>
+</select>
+
+<input id="sourceApp" name="sourceApp">
+<input id="distance" name="distance">
+<input id="duration" name="duration">
+<input id="pace" name="pace">
+<input id="steps" name="steps">
+<input id="calories" name="calories">
+
+<div id="ocrStatus"></div>
+<div id="ocrWarning"></div>
+```
+
+```js
+document.getElementById("activityScreenshot").addEventListener("change", async (event) => {
+  const file = event.target.files[0];
+  const status = document.getElementById("ocrStatus");
+  const warning = document.getElementById("ocrWarning");
+
+  if (!file) return;
+
+  status.textContent = "Reading screenshot...";
+  warning.textContent = "";
+
+  try {
+    const selectedActivityType = document.getElementById("activityType").value;
+
+    const result = await HelloRunOCR.readImage(file, {
+      selectedActivityType,
+      onProgress: (progress) => {
+        if (progress.status) {
+          const percentage = Math.round((progress.progress || 0) * 100);
+          status.textContent = `${progress.status} ${percentage}%`;
+        }
+      }
+    });
+
+    document.getElementById("sourceApp").value = result.parsed.sourceApp || "";
+    document.getElementById("distance").value = result.parsed.distance?.value || "";
+    document.getElementById("duration").value = result.parsed.duration || "";
+    document.getElementById("pace").value = result.parsed.pace || "";
+    document.getElementById("steps").value = result.parsed.steps || "";
+    document.getElementById("calories").value = result.parsed.calories || "";
+
+    if (result.conflict) {
+      warning.textContent = result.conflict.message;
+    }
+
+    status.textContent = `Scan complete. Confidence: ${result.confidence}%`;
+  } catch (error) {
+    status.textContent = "OCR failed. Please enter details manually.";
+    console.error(error);
+  }
+});
+```
+
+---
+
+## Backend Data to Store From Frontend OCR
+
+The frontend should submit final user-confirmed values.
+
+It should also send OCR audit metadata:
+
+```json
+{
+  "sourceApp": "Strava",
+  "activityType": "run",
+  "distanceKm": 5.02,
+  "duration": "29:44",
+  "pace": "5:55/km",
+  "steps": null,
+  "calories": 320,
+  "elevationGain": null,
+  "ocrRawText": "STRAVA Morning Run 5.02 km 29:44 5:55 /km",
+  "ocrConfidence": 92,
+  "parserConfidence": 88,
+  "classificationConfidence": 85,
+  "reviewFlags": []
+}
+```
+
+---
+
+## MVP Decision
+
+For the first version, HelloRun should use:
+
+```text
+Frontend OCR engine: Tesseract.js
+HelloRun OCR controller: public/js/ocr-smart-submission.js
+Manual correction: Required before final submit
+Backend review: Keep existing organizer/admin approval flow
+```
+
+---
+
+## Acceptance Criteria for Dedicated JS Strategy
+
+- HelloRun has a dedicated frontend file named `ocr-smart-submission.js`.
+- OCR dependency is loaded separately.
+- The dedicated file does not copy internal OCR engine source code.
+- The file handles upload, parsing, classification, confidence scoring, and form auto-fill.
+- User can manually correct OCR results before submission.
+- OCR failure does not block manual entry.
+- Review flags are generated for low-confidence or conflicting entries.
+- Existing submission and review workflows remain compatible.
+
+

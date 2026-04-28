@@ -258,6 +258,9 @@
       }
 
       Tesseract.createWorker('eng', 1, {
+        workerPath: '/js/vendor/tesseract/worker.min.js',
+        corePath: '/js/vendor/tesseract',
+        langPath: '/assets/tessdata',
         logger: function (info) {
           if (onProgress && info && info.status) {
             onProgress(info.status, info.progress || 0);
