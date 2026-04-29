@@ -70,6 +70,8 @@
         <input type="hidden" id="runProofOcrDistanceMismatch" name="ocrDistanceMismatch" value="">
         <input type="hidden" id="runProofOcrTimeMismatch" name="ocrTimeMismatch" value="">
         <input type="hidden" id="runProofOcrDetectedSource" name="ocrDetectedSource" value="">
+        <input type="hidden" id="runProofOcrExtractedName" name="ocrExtractedName" value="">
+        <input type="hidden" id="runProofOcrNameMatchStatus" name="ocrNameMatchStatus" value="not_checked">
         <input type="hidden" id="runProofImageHash" name="proofImageHash" value="">
 
         <div id="runProofStep1">
@@ -105,6 +107,7 @@
         <div id="runProofStep2" hidden>
           <p class="run-proof-autofill-banner" id="runProofAutoFillBanner" hidden role="status">Auto-filled from your screenshot. Review and adjust if needed.</p>
           <div class="run-proof-ocr-results" id="runProofOcrResults" hidden aria-live="polite">
+            <span class="run-proof-ocr-summary" id="runProofOcrSummary"></span>
             <span class="run-proof-detected-source" id="runProofDetectedSource" hidden></span>
             <span class="run-proof-name-match" id="runProofNameMatch" hidden></span>
           </div>
@@ -255,12 +258,11 @@
   <div class="run-proof-post-submit" id="runProofPostSubmit" hidden>
     <div class="run-proof-post-submit-dialog" role="dialog" aria-modal="true"
          aria-labelledby="runProofPostSubmitTitle" aria-describedby="runProofPostSubmitDesc" tabindex="-1">
-      <div class="run-proof-post-submit-icon" aria-hidden="true">🎉</div>
       <h3 id="runProofPostSubmitTitle">Run submitted!</h3>
       <p id="runProofPostSubmitDesc">Your submission has been received and is pending review. What would you like to do next?</p>
       <div class="run-proof-post-submit-actions">
         <button type="button" class="btn btn-outline" id="runProofPostSubmitAnother">Submit Another Entry</button>
-        <button type="button" class="btn btn-primary" id="runProofPostSubmitView">View My Submissions</button>
+        <button type="button" class="btn btn-primary" id="runProofPostSubmitView">View Submitted Entries</button>
       </div>
     </div>
   </div>

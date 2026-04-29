@@ -49,6 +49,13 @@
           <span class="nav-tooltip">My Registrations</span>
         </a>
 
+        <% if (!locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer) { %>
+          <a href="/runner/submissions" class="<%= navClass('/runner/submissions') %>" aria-label="Submitted Entries" title="Submitted Entries" <% if (ariaCurrent('/runner/submissions')) { %>aria-current="page"<% } %>>
+            <i data-lucide="file-check"></i>
+            <span class="nav-tooltip">Submitted Entries</span>
+          </a>
+        <% } %>
+
         <!-- Role-based dashboard link -->
         <% if (locals.isAdmin) { %>
           <a href="/admin/dashboard" class="<%= navClass('/admin/dashboard') %>" aria-label="Admin" title="Admin" <% if (ariaCurrent('/admin/dashboard')) { %>aria-current="page"<% } %>>

@@ -216,7 +216,8 @@ test('authenticated submit-result allows personal-record submission without a re
   await mongoose.disconnect();
 
   assert.ok(created);
-  assert.equal(created.status, 'approved');
+  assert.equal(created.status, 'submitted');
+  assert.equal(created.ocrData.nameMatchStatus, 'not_checked');
 });
 
 async function seedData(tag) {
@@ -305,6 +306,62 @@ async function seedData(tag) {
   return { runner, password, registration, event };
 }
 
+async function createAdditionalRegistration(seed, tag) {
+  await mongoose.connect(process.env.MONGODB_URI);
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const event = await Event.create({
+    organizerId: seed.event.organizerId,
+    slug: `phase5-route-${tag}-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `RT-${String(stamp).slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Phase5 Route Event ${tag} ${stamp}`.slice(0, 150),
+    organiserName: 'Route Organizer',
+    description: 'Additional submission route test event',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    registrationOpenAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(Date.now() - 60 * 60 * 1000),
+    eventEndAt: new Date(Date.now() + 3 * 60 * 60 * 1000),
+    proofTypesAllowed: ['gps', 'photo', 'manual'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
+  const registration = await Registration.create({
+    eventId: event._id,
+    userId: seed.runner._id,
+    participant: {
+      firstName: seed.runner.firstName,
+      lastName: seed.runner.lastName,
+      email: seed.runner.email,
+      mobile: seed.runner.mobile,
+      country: seed.runner.country,
+      gender: seed.runner.gender,
+      emergencyContactName: seed.runner.emergencyContactName,
+      emergencyContactNumber: seed.runner.emergencyContactNumber,
+      runningGroup: ''
+    },
+    participationMode: 'virtual',
+    raceDistance: '5K',
+    status: 'confirmed',
+    paymentStatus: 'paid',
+    waiver: {
+      accepted: true,
+      version: 1,
+      signature: `${seed.runner.firstName} ${seed.runner.lastName}`,
+      acceptedAt: new Date(),
+      templateSnapshot: DEFAULT_WAIVER_TEMPLATE,
+      renderedSnapshot: DEFAULT_WAIVER_TEMPLATE
+    },
+    confirmationCode: `HR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+    registeredAt: new Date()
+  });
+  await mongoose.disconnect();
+  return { event, registration };
+}
+
 async function login(email, password) {
   const response = await fetch(`${BASE_URL}/login`, {
     method: 'POST',
@@ -363,6 +420,45 @@ test('authenticated submit-result stores runType on successful submission', asyn
 
   assert.ok(created);
   assert.equal(created.runType, 'walk');
+});
+
+test('authenticated submit-result creates submissions for every selected registration', async () => {
+  const seed = await seedData('multi-submit');
+  const second = await createAdditionalRegistration(seed, 'multi-submit-second');
+  const cookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
+
+  const form = buildResultProofForm({
+    distanceKm: '5',
+    elapsedTime: '00:30:00',
+    proofType: 'photo',
+    runLocation: 'BGC'
+  });
+  form.append('runType', 'run');
+  form.append('selectedRegistrationIds', `${seed.registration._id},${second.registration._id}`);
+
+  const response = await fetch(`${BASE_URL}/my-registrations/${seed.registration._id}/submit-result`, {
+    method: 'POST',
+    headers: { Cookie: cookie },
+    body: form,
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  const location = response.headers.get('location') || '';
+  assert.match(location, /type=success/i);
+  assert.match(decodeURIComponent(location.replace(/\+/g, ' ')), /2 entries/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  const created = await Submission.find({
+    runnerId: seed.runner._id,
+    registrationId: { $in: [seed.registration._id, second.registration._id] }
+  }).lean();
+  await mongoose.disconnect();
+
+  assert.equal(created.length, 2);
+  assert.equal(new Set(created.map((item) => String(item.proof?.hash || ''))).size, 1);
+  assert.ok(created.every((item) => item.status === 'submitted'));
 });
 
 test('authenticated submit-result blocks duplicate proof screenshot', async () => {

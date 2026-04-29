@@ -849,7 +849,7 @@ exports.postUploadPaymentProof = async (req, res) => {
 async function handleRunnerSubmissionWrite(req, res, options = {}) {
   let uploadedProofKey = '';
   try {
-    const user = await User.findById(req.session.userId).select('email role');
+    const user = await User.findById(req.session.userId).select('email role firstName lastName');
     if (!user) {
       return res.redirect('/login');
     }
@@ -864,28 +864,49 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     }
 
     const registrationId = String(req.params.registrationId || '').trim();
+    const targetRegistrationIds = parseSelectedSubmissionRegistrationIds(req.body.selectedRegistrationIds, registrationId);
+    if (!targetRegistrationIds.length) {
+      return redirectWithPageMessage(res, 'error', 'Select at least one eligible event before submitting.');
+    }
+
     const isPersonalRecordSubmission = registrationId === PERSONAL_RECORD_REGISTRATION_ID;
-    const existingSubmission = isPersonalRecordSubmission
-      ? null
-      : await Submission.findOne({
-        registrationId,
+    const selectedHasPersonalRecord = targetRegistrationIds.includes(PERSONAL_RECORD_REGISTRATION_ID);
+    const selectedEventRegistrationIds = targetRegistrationIds.filter((id) => id !== PERSONAL_RECORD_REGISTRATION_ID);
+    const existingSubmissions = selectedEventRegistrationIds.length
+      ? await Submission.find({
+        registrationId: { $in: selectedEventRegistrationIds },
         runnerId: user._id
       })
-        .select('_id status proof')
-        .lean();
+        .select('_id status proof registrationId')
+        .lean()
+      : [];
+    const existingSubmissionByRegistrationId = new Map(
+      existingSubmissions.map((item) => [String(item.registrationId), item])
+    );
+    const existingSubmission = isPersonalRecordSubmission
+      ? null
+      : existingSubmissionByRegistrationId.get(registrationId) || null;
 
-    if (isPersonalRecordSubmission && options.mode === 'resubmit') {
+    if (selectedHasPersonalRecord && options.mode === 'resubmit' && targetRegistrationIds.length === 1) {
       return redirectWithPageMessage(res, 'error', 'Personal record submissions create a new entry each time.');
     }
 
-    if (options.mode === 'create' && existingSubmission) {
+    if (targetRegistrationIds.length === 1 && options.mode === 'create' && existingSubmission) {
       return redirectWithPageMessage(res, 'error', 'Submission already exists. Use resubmit flow if rejected.');
     }
-    if (options.mode === 'resubmit' && !existingSubmission) {
+    if (targetRegistrationIds.length === 1 && options.mode === 'resubmit' && !existingSubmission) {
       return redirectWithPageMessage(res, 'error', 'No rejected submission found to resubmit.');
     }
-    if (options.mode === 'resubmit' && existingSubmission.status !== 'rejected') {
+    if (targetRegistrationIds.length === 1 && options.mode === 'resubmit' && existingSubmission.status !== 'rejected') {
       return redirectWithPageMessage(res, 'error', 'Only rejected submissions can be resubmitted.');
+    }
+
+    for (const targetId of targetRegistrationIds) {
+      if (targetId === PERSONAL_RECORD_REGISTRATION_ID) continue;
+      const existingForTarget = existingSubmissionByRegistrationId.get(targetId);
+      if (existingForTarget && existingForTarget.status !== 'rejected') {
+        return redirectWithPageMessage(res, 'error', 'One or more selected entries already has a submitted or approved result.');
+      }
     }
 
     const distanceKm = parseDistanceKm(req.body.distanceKm);
@@ -898,16 +919,17 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     const elevationGain = parseElevationGain(req.body.elevationGain);
     const steps = parseSteps(req.body.steps);
 
-    const ocrData = parseOcrData(req.body, distanceKm, elapsedMs);
+    const ocrData = parseOcrData(req.body, distanceKm, elapsedMs, user);
 
     const proofHash = crypto.createHash('sha256').update(resultProofFile.buffer).digest('hex');
 
+    const targetExistingSubmissionIds = existingSubmissions.map((item) => item._id).filter(Boolean);
     const duplicateQuery = {
       runnerId: user._id,
       'proof.hash': proofHash
     };
-    if (existingSubmission?._id) {
-      duplicateQuery._id = { $ne: existingSubmission._id };
+    if (targetExistingSubmissionIds.length) {
+      duplicateQuery._id = { $nin: targetExistingSubmissionIds };
     }
     const duplicateSubmission = await Submission.findOne(duplicateQuery).select('_id').lean();
     if (duplicateSubmission) {
@@ -922,41 +944,53 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     });
     uploadedProofKey = uploadedProof.key;
 
-    const payload = {
-      registrationId,
-      runnerId: user._id,
-      distanceKm,
-      elapsedMs,
-      runDate,
-      runLocation,
-      proofType,
-      proof: {
-        url: uploadedProof.url,
-        key: uploadedProof.key,
-        mimeType: resultProofFile.mimetype || '',
-        size: Number(resultProofFile.size || 0),
-        hash: proofHash
-      },
-      proofNotes,
-      runType,
-      elevationGain,
-      steps,
-      ocrData
-    };
+    const previousProofKeys = new Set();
+    let savedCount = 0;
+    for (const targetId of targetRegistrationIds) {
+      const existingForTarget = targetId === PERSONAL_RECORD_REGISTRATION_ID
+        ? null
+        : existingSubmissionByRegistrationId.get(targetId) || null;
+      const payload = {
+        registrationId: targetId,
+        runnerId: user._id,
+        distanceKm,
+        elapsedMs,
+        runDate,
+        runLocation,
+        proofType,
+        proof: {
+          url: uploadedProof.url,
+          key: uploadedProof.key,
+          mimeType: resultProofFile.mimetype || '',
+          size: Number(resultProofFile.size || 0),
+          hash: proofHash
+        },
+        proofNotes,
+        runType,
+        elevationGain,
+        steps,
+        ocrData
+      };
 
-    if (options.mode === 'resubmit') {
-      await resubmitSubmission(payload);
-    } else {
-      await createSubmission(payload);
+      if (existingForTarget && existingForTarget.status === 'rejected') {
+        await resubmitSubmission(payload);
+        const previousKey = String(existingForTarget.proof?.key || '').trim();
+        if (previousKey && previousKey !== uploadedProof.key) previousProofKeys.add(previousKey);
+      } else {
+        await createSubmission(payload);
+      }
+      savedCount += 1;
     }
 
     uploadedProofKey = '';
-    const previousProofKey = String(existingSubmission?.proof?.key || '').trim();
-    if (previousProofKey && previousProofKey !== uploadedProof.key) {
-      await uploadService.deleteObjects([previousProofKey]);
+    for (const previousProofKey of previousProofKeys) {
+      await deleteProofObjectIfUnused(previousProofKey);
     }
 
-    return redirectWithPageMessage(res, 'success', options.successMessage || 'Result saved.');
+    const successMessage = savedCount > 1
+      ? `Result saved for ${savedCount} entries.`
+      : (options.successMessage || 'Result saved.');
+    return redirectWithPageMessage(res, 'success', successMessage);
   } catch (error) {
     if (uploadedProofKey) {
       await uploadService.deleteObjects([uploadedProofKey]);
@@ -1371,7 +1405,38 @@ function parseRunLocation(value) {
   return safe;
 }
 
-function parseOcrData(body, formDistanceKm, formElapsedMs) {
+function parseSelectedSubmissionRegistrationIds(rawValue, fallbackRegistrationId) {
+  const rawItems = String(rawValue || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const fallback = String(fallbackRegistrationId || '').trim();
+  const sourceItems = rawItems.length ? rawItems : [fallback];
+  const selected = [];
+  const seen = new Set();
+
+  for (const item of sourceItems) {
+    const safe = item === PERSONAL_RECORD_REGISTRATION_ID || /^[a-f0-9]{24}$/i.test(item)
+      ? item
+      : '';
+    if (!safe || seen.has(safe)) continue;
+    seen.add(safe);
+    selected.push(safe);
+    if (selected.length >= 10) break;
+  }
+
+  return selected;
+}
+
+async function deleteProofObjectIfUnused(proofKey) {
+  const safeKey = String(proofKey || '').trim();
+  if (!safeKey) return;
+  const stillUsed = await Submission.exists({ 'proof.key': safeKey });
+  if (stillUsed) return;
+  await uploadService.deleteObjects([safeKey]).catch(() => {});
+}
+
+function parseOcrData(body, formDistanceKm, formElapsedMs, user = null) {
   const rawDistance = Number(body.ocrDistance);
   const rawTime = Number(body.ocrTime);
   const rawConfidence = Number(body.ocrConfidence);
@@ -1383,8 +1448,18 @@ function parseOcrData(body, formDistanceKm, formElapsedMs) {
   const allowedSources = new Set(['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', '']);
   const rawSource = String(body.ocrDetectedSource || '').trim().toLowerCase();
   const detectedSource = allowedSources.has(rawSource) ? rawSource : '';
+  const extractedName = cleanOcrNameCandidate(body.ocrExtractedName).slice(0, 120);
+  const allowedNameStatuses = new Set(['matched', 'mismatched', 'not_detected', 'not_checked']);
+  const rawNameStatus = String(body.ocrNameMatchStatus || '').trim().toLowerCase();
   // Only trust this flag when the user explicitly acknowledged the mismatch via the dialog
   const nameMismatchAcknowledged = String(body.ocrNameMismatch || '').trim() === '1';
+  const accountName = `${String(user?.firstName || '').trim()} ${String(user?.lastName || '').trim()}`.trim();
+  let nameMatchStatus = allowedNameStatuses.has(rawNameStatus) ? rawNameStatus : 'not_checked';
+  if (extractedName) {
+    nameMatchStatus = namesMatch(extractedName, accountName) ? 'matched' : 'mismatched';
+  } else if (rawText || confidence > 0 || extractedDistanceKm !== null || extractedTimeMs !== null) {
+    nameMatchStatus = 'not_detected';
+  }
 
   // Recompute mismatch flags server-side (don't trust client values)
   let distanceMismatch = false;
@@ -1409,8 +1484,47 @@ function parseOcrData(body, formDistanceKm, formElapsedMs) {
     distanceMismatch,
     timeMismatch,
     detectedSource,
+    extractedName,
+    nameMatchStatus,
     nameMismatchAcknowledged
   };
+}
+
+function namesMatch(ocrName, accountName) {
+  const ocrNameLower = String(ocrName || '').trim().toLowerCase();
+  const accountNameLower = String(accountName || '').trim().toLowerCase();
+  if (!ocrNameLower || !accountNameLower) return false;
+  if (
+    ocrNameLower === accountNameLower ||
+    ocrNameLower.includes(accountNameLower) ||
+    accountNameLower.includes(ocrNameLower)
+  ) {
+    return true;
+  }
+  const parts = accountNameLower.split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return false;
+  return ocrNameLower.includes(parts[0]) && ocrNameLower.includes(parts[parts.length - 1]);
+}
+
+function cleanOcrNameCandidate(value) {
+  const name = String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^[^A-Za-z]+/, '')
+    .replace(/^\d+\s*[%.)\]-]*\s*/, '')
+    .replace(/\s+[A-Za-z]?[%=_~^`|]+$/g, '')
+    .replace(/[|\\/,;:!?.\s]+$/g, '')
+    .replace(/^[^A-Za-z]+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!name || /\d/.test(name)) return '';
+  if (/\b(?:km|mi|mile|miles|meter|meters|ft|feet|bpm|cal|kcal|min|sec|pace)\b/i.test(name)) return '';
+  if (/\b(?:distance|moving\s+time|elapsed\s+time|elevation|calories|heart\s+rate|relative\s+effort|segments?|kudos|weather|humidity|wind|cadence|steps)\b/i.test(name)) return '';
+  const letters = (name.match(/[A-Za-z]/g) || []).length;
+  const visible = name.replace(/\s/g, '').length;
+  if (!visible || letters / visible < 0.65) return '';
+  return name;
 }
 
 function parseRunType(value) {

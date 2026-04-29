@@ -647,7 +647,7 @@ p {
 }
 
 /* Enhanced Mobile Responsiveness */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     /* Navigation adjustments */
     .nav {
         padding: 0.65rem 1rem;
@@ -906,7 +906,9 @@ p {
     .nav-tooltip {
         top: auto;
     }
-     
+}
+
+@media (max-width: 768px) {
     /* Hero section adjustments */
     .hero {
         padding: 3rem 1rem;

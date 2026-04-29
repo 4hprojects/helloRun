@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Submission Detail - helloRun' }) %>
+  <link rel="stylesheet" href="/css/runner-dashboard.css">
+  <link rel="stylesheet" href="/css/runner-submissions.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
+
+  <main class="dashboard-container sub-page sub-detail-page">
+    <nav class="sub-breadcrumb" aria-label="Breadcrumb">
+      <a href="/runner/submissions" class="sub-breadcrumb-link"><i data-lucide="arrow-left" aria-hidden="true"></i> Submitted Entries</a>
+      <span class="sub-breadcrumb-sep" aria-hidden="true">/</span>
+      <span class="sub-breadcrumb-current" aria-current="page"><%= submission.eventTitle %></span>
+    </nav>
+
+    <header class="sub-detail-header">
+      <div class="sub-detail-heading">
+        <span class="section-kicker">Submission Detail</span>
+        <div class="sub-detail-title-row">
+          <h1><%= submission.eventTitle %></h1>
+          <span class="badge sub-type-badge <%= submission.isPersonalRecord ? 'sub-type-personal' : 'sub-type-event' %>">
+            <i data-lucide="<%= submission.isPersonalRecord ? 'star' : 'flag' %>" aria-hidden="true"></i>
+            <%= submission.isPersonalRecord ? 'Personal Record' : 'Event Entry' %>
+          </span>
+          <span class="badge badge-<%= submission.status %>">
+            <% if (submission.status === 'submitted') { %>Pending Review
+            <% } else if (submission.status === 'approved') { %>Approved
+            <% } else { %>Rejected<% } %>
+          </span>
+        </div>
+        <p>
+          Submitted <%= submission.submittedAtRelativeLabel || submission.submittedAtLabel %>
+          <% if (submission.raceDistance) { %> for <%= submission.raceDistance %><% } %>
+        </p>
+      </div>
+    </header>
+
+    <div class="sub-status-banner sub-status-banner-<%= submission.status %>" role="status">
+      <% if (submission.status === 'submitted') { %>
+        <i data-lucide="clock" aria-hidden="true"></i>
+        <span><strong>Pending Review</strong> Your submission is awaiting review by the event organiser.</span>
+      <% } else if (submission.status === 'approved') { %>
+        <i data-lucide="check-circle" aria-hidden="true"></i>
+        <span><strong>Approved</strong> Your result was approved<% if (submission.reviewedAtLabel && submission.reviewedAtLabel !== '-') { %> on <%= submission.reviewedAtLabel %><% } %>.</span>
+      <% } else { %>
+        <i data-lucide="x-circle" aria-hidden="true"></i>
+        <span><strong>Rejected</strong> Your submission was not accepted. Review the feedback below and resubmit.</span>
+      <% } %>
+    </div>
+
+    <div class="sub-detail-layout">
+      <div class="sub-detail-main">
+        <section class="sub-detail-section card" aria-labelledby="sectionOverviewTitle">
+          <div class="card-header">
+            <h2 id="sectionOverviewTitle"><i data-lucide="file-text" aria-hidden="true"></i> Entry Overview</h2>
+          </div>
+          <div class="card-content sub-detail-grid">
+            <div class="sub-detail-row">
+              <span class="sub-detail-label"><i data-lucide="calendar-days" aria-hidden="true"></i> Event</span>
+              <span class="sub-detail-value">
+                <% if (!submission.isPersonalRecord && submission.eventSlug) { %>
+                  <a href="/events/<%= submission.eventSlug %>"><%= submission.eventTitle %></a>
+                <% } else { %>
+                  <%= submission.eventTitle %>
+                <% } %>
+              </span>
+            </div>
+            <% if (submission.organiserName && !submission.isPersonalRecord) { %>
+              <div class="sub-detail-row">
+                <span class="sub-detail-label"><i data-lucide="building-2" aria-hidden="true"></i> Organiser</span>
+                <span class="sub-detail-value"><%= submission.organiserName %></span>
+              </div>
+            <% } %>
+            <% if (submission.eventReferenceCode && !submission.isPersonalRecord) { %>
+              <div class="sub-detail-row">
+                <span class="sub-detail-label"><i data-lucide="hash" aria-hidden="true"></i> Event Code</span>
+                <span class="sub-detail-value"><code><%= submission.eventReferenceCode %></code></span>
+              </div>
+            <% } %>
+            <% if (submission.confirmationCode) { %>
+              <div class="sub-detail-row">
+                <span class="sub-detail-label"><i data-lucide="ticket" aria-hidden="true"></i> Registration</span>
+                <span class="sub-detail-value"><code><%= submission.confirmationCode %></code></span>
+              </div>
+            <% } %>
+            <div class="sub-detail-row">
+              <span class="sub-detail-label"><i data-lucide="map-pin" aria-hidden="true"></i> Distance Category</span>
+              <span class="sub-detail-value"><%= submission.raceDistance || 'N/A' %></span>
+            </div>
+            <div class="sub-detail-row">
+              <span class="sub-detail-label"><i data-lucide="activity" aria-hidden="true"></i> Activity Type</span>
+              <span class="sub-detail-value"><%= (submission.activityType || 'run').replace(/_/g, ' ') %></span>
+            </div>
+            <div class="sub-detail-row">
+              <span class="sub-detail-label"><i data-lucide="monitor-smartphone" aria-hidden="true"></i> Participation</span>
+              <span class="sub-detail-value"><%= submission.participationMode || 'virtual' %></span>
+            </div>
+            <div class="sub-detail-row">
+              <span class="sub-detail-label"><i data-lucide="send" aria-hidden="true"></i> Submitted</span>
+              <span class="sub-detail-value"><%= submission.submittedAtLabel %> <span class="text-muted">(<%= submission.submittedAtRelativeLabel %>)</span></span>
+            </div>
+            <% if (submission.submissionCount > 1) { %>
+              <div class="sub-detail-row">
+                <span class="sub-detail-label"><i data-lucide="repeat" aria-hidden="true"></i> Submission #</span>
+                <span class="sub-detail-value"><%= submission.submissionCount %></span>
+              </div>
+            <% } %>
+          </div>
+        </section>
+
+        <section class="sub-detail-section card" aria-labelledby="sectionActivityTitle">
+          <div class="card-header">
+            <h2 id="sectionActivityTitle"><i data-lucide="gauge" aria-hidden="true"></i> Activity Details</h2>
+          </div>
+          <div class="card-content sub-detail-grid">
+            <div class="sub-detail-row">
+              <span class="sub-detail-label"><i data-lucide="calendar" aria-hidden="true"></i> Run Date</span>
+              <span class="sub-detail-value"><%= submission.runDateLabel %></span>
+            </div>
+            <% if (submission.runLocation) { %>
+              <div class="sub-detail-row">
+                <span class="sub-detail-label"><i data-lucide="map" aria-hidden="true"></i> Location</span>
+                <span class="sub-detail-value"><%= submission.runLocation %></span>
+              </div>
+            <% } %>
+            <div class="sub-detail-row">
+              <span class="sub-detail-label"><i data-lucide="ruler" aria-hidden="true"></i> Distance</span>
+              <span class="sub-detail-value"><%= submission.distanceKm.toFixed(2) %> km</span>
+            </div>
+            <div class="sub-detail-row">
+              <span class="sub-detail-label"><i data-lucide="timer" aria-hidden="true"></i> Time</span>
+              <span class="sub-detail-value"><%= submission.elapsedLabel %></span>
+            </div>
+            <div class="sub-detail-row">
+              <span class="sub-detail-label"><i data-lucide="trending-up" aria-hidden="true"></i> Pace</span>
+              <span class="sub-detail-value"><%= submission.paceLabel %></span>
+            </div>
+            <% if (submission.elevationGain !== null && submission.elevationGain !== undefined) { %>
+              <div class="sub-detail-row">
+                <span class="sub-detail-label"><i data-lucide="mountain" aria-hidden="true"></i> Elevation Gain</span>
+                <span class="sub-detail-value"><%= submission.elevationGain %> m</span>
+              </div>
+            <% } %>
+            <% if (submission.steps !== null && submission.steps !== undefined) { %>
+              <div class="sub-detail-row">
+                <span class="sub-detail-label"><i data-lucide="footprints" aria-hidden="true"></i> Steps</span>
+                <span class="sub-detail-value"><%= submission.steps.toLocaleString() %></span>
+              </div>
+            <% } %>
+            <div class="sub-detail-row">
+              <span class="sub-detail-label"><i data-lucide="image" aria-hidden="true"></i> Proof Type</span>
+              <span class="sub-detail-value"><span class="badge badge-<%= submission.proofType %>"><%= submission.proofType.toUpperCase() %></span></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="sub-detail-section card sub-review-section" aria-labelledby="sectionReviewTitle">
+          <div class="card-header">
+            <h2 id="sectionReviewTitle"><i data-lucide="clipboard-check" aria-hidden="true"></i> Review Result</h2>
+          </div>
+          <div class="card-content">
+            <% if (submission.status === 'submitted') { %>
+              <div class="sub-review-callout sub-review-waiting">
+                <i data-lucide="hourglass" class="sub-review-icon" aria-hidden="true"></i>
+                <p>Your submission is in the review queue. You will be notified once a decision has been made.</p>
+              </div>
+            <% } else if (submission.status === 'approved') { %>
+              <div class="sub-review-callout sub-review-approved">
+                <i data-lucide="check-circle" class="sub-review-icon" aria-hidden="true"></i>
+                <p>Your result was <strong>approved</strong> on <%= submission.reviewedAtLabel %>.</p>
+                <% if (submission.reviewNotes) { %>
+                  <blockquote class="sub-review-notes"><%= submission.reviewNotes %></blockquote>
+                <% } %>
+              </div>
+            <% } else { %>
+              <div class="sub-review-callout sub-review-rejected">
+                <i data-lucide="x-circle" class="sub-review-icon" aria-hidden="true"></i>
+                <p>Your submission was <strong>rejected</strong> on <%= submission.reviewedAtLabel %>.</p>
+                <% if (submission.rejectionReason) { %>
+                  <div class="sub-rejection-reason">
+                    <strong>Reason</strong>
+                    <p><%= submission.rejectionReason %></p>
+                  </div>
+                <% } %>
+                <% if (submission.reviewNotes) { %>
+                  <div class="sub-review-notes-wrap">
+                    <strong>Reviewer notes</strong>
+                    <blockquote class="sub-review-notes"><%= submission.reviewNotes %></blockquote>
+                  </div>
+                <% } %>
+                <% if (submission.reviewedByName) { %>
+                  <p class="text-muted sub-review-reviewer">Reviewed by <%= submission.reviewedByName %></p>
+                <% } %>
+              </div>
+            <% } %>
+          </div>
+        </section>
+
+        <% if (submission.hasOcrData && submission.ocrData) { %>
+          <section class="sub-detail-section card" aria-labelledby="sectionOcrTitle">
+            <div class="card-header">
+              <h2 id="sectionOcrTitle"><i data-lucide="scan-text" aria-hidden="true"></i> Proof Analysis</h2>
+            </div>
+            <div class="card-content sub-detail-grid">
+              <% if (submission.ocrData.detectedSource && submission.ocrData.detectedSource !== 'unknown' && submission.ocrData.detectedSource !== '') { %>
+                <div class="sub-detail-row">
+                  <span class="sub-detail-label"><i data-lucide="smartphone" aria-hidden="true"></i> Detected App</span>
+                  <span class="sub-detail-value"><span class="badge badge-ocr"><%= submission.ocrData.detectedSource %></span></span>
+                </div>
+              <% } %>
+              <div class="sub-detail-row">
+                <span class="sub-detail-label"><i data-lucide="percent" aria-hidden="true"></i> OCR Confidence</span>
+                <span class="sub-detail-value"><%= submission.ocrData.confidencePercent %>%</span>
+              </div>
+              <% if (submission.ocrData.extractedDistanceKm !== null && submission.ocrData.extractedDistanceKm !== undefined) { %>
+                <div class="sub-detail-row">
+                  <span class="sub-detail-label"><i data-lucide="ruler" aria-hidden="true"></i> Extracted Distance</span>
+                  <span class="sub-detail-value">
+                    <%= submission.ocrData.extractedDistanceKm %> km
+                    <% if (submission.ocrData.distanceMismatch) { %>
+                      <span class="badge badge-warning">Mismatch</span>
+                    <% } %>
+                  </span>
+                </div>
+              <% } %>
+              <% if (submission.ocrData.extractedTimeMs !== null && submission.ocrData.extractedTimeMs !== undefined) { %>
+                <div class="sub-detail-row">
+                  <span class="sub-detail-label"><i data-lucide="timer" aria-hidden="true"></i> Extracted Time</span>
+                  <span class="sub-detail-value">
+                    <%= submission.ocrData.extractedTimeMsLabel %>
+                    <% if (submission.ocrData.timeMismatch) { %>
+                      <span class="badge badge-warning">Mismatch</span>
+                    <% } %>
+                  </span>
+                </div>
+              <% } %>
+              <% if (submission.ocrData.nameMismatchAcknowledged) { %>
+                <div class="sub-detail-row">
+                  <span class="sub-detail-label"><i data-lucide="user-x" aria-hidden="true"></i> Name Match</span>
+                  <span class="sub-detail-value">
+                    <span class="badge badge-warning">Name mismatch acknowledged</span>
+                    <% if (submission.ocrData.extractedName) { %>
+                      <span class="text-muted">Image name: <%= submission.ocrData.extractedName %></span>
+                    <% } %>
+                  </span>
+                </div>
+              <% } else if (submission.ocrData.nameMatchStatus && submission.ocrData.nameMatchStatus !== 'not_checked') { %>
+                <div class="sub-detail-row">
+                  <span class="sub-detail-label"><i data-lucide="user-check" aria-hidden="true"></i> Name Analysis</span>
+                  <span class="sub-detail-value">
+                    <% if (submission.ocrData.nameMatchStatus === 'matched') { %>
+                      <span class="badge badge-approved">Name matches account</span>
+                    <% } else if (submission.ocrData.nameMatchStatus === 'mismatched') { %>
+                      <span class="badge badge-warning">Different name detected</span>
+                    <% } else if (submission.ocrData.nameMatchStatus === 'not_detected') { %>
+                      <span class="badge badge-ocr">Name not detected</span>
+                    <% } %>
+                    <% if (submission.ocrData.extractedName) { %>
+                      <span class="text-muted">Image name: <%= submission.ocrData.extractedName %></span>
+                    <% } %>
+                  </span>
+                </div>
+              <% } %>
+            </div>
+          </section>
+        <% } %>
+      </div>
+
+      <aside class="sub-detail-sidebar">
+        <% if (submission.hasProof) { %>
+          <section class="sub-detail-section card sub-proof-card" aria-labelledby="sectionProofTitle">
+            <div class="card-header">
+              <h3 id="sectionProofTitle"><i data-lucide="image" aria-hidden="true"></i> Proof Screenshot</h3>
+            </div>
+            <div class="card-content sub-sidebar-content">
+              <p class="text-muted">Opens in a new tab.</p>
+              <a href="/runner/submissions/<%= submission.submissionId %>/proof" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">
+                <i data-lucide="external-link" aria-hidden="true"></i> View Proof
+              </a>
+            </div>
+          </section>
+        <% } %>
+
+        <% if (submission.hasCertificate) { %>
+          <section class="sub-detail-section card sub-cert-card" aria-labelledby="sectionCertTitle">
+            <div class="card-header">
+              <h3 id="sectionCertTitle"><i data-lucide="award" aria-hidden="true"></i> Certificate</h3>
+            </div>
+            <div class="card-content sub-sidebar-content">
+              <p>Your completion certificate is ready.</p>
+              <% if (submission.certificateIssuedAtLabel && submission.certificateIssuedAtLabel !== '-') { %>
+                <p class="text-muted">Issued <%= submission.certificateIssuedAtLabel %></p>
+              <% } %>
+              <a href="/my-submissions/<%= submission.submissionId %>/certificate" class="btn btn-primary btn-sm">
+                <i data-lucide="download" aria-hidden="true"></i> Download Certificate
+              </a>
+            </div>
+          </section>
+        <% } %>
+
+        <section class="sub-detail-section card sub-actions-card" aria-labelledby="sectionActionsTitle">
+          <div class="card-header">
+            <h3 id="sectionActionsTitle"><i data-lucide="bolt" aria-hidden="true"></i> Actions</h3>
+          </div>
+          <div class="card-content sub-actions-list">
+            <% if (submission.actions && submission.actions.canResubmit) { %>
+              <button
+                type="button"
+                class="btn btn-warning"
+                data-open-run-proof-modal
+                data-registration-id="<%= submission.registrationObjectId %>"
+                aria-label="Resubmit proof for <%= submission.eventTitle %>"
+              ><i data-lucide="refresh-cw" aria-hidden="true"></i> Resubmit Proof</button>
+            <% } %>
+            <% if (submission.actions && submission.actions.canViewLeaderboard) { %>
+              <a href="/events/<%= submission.eventSlug %>#leaderboard" class="btn btn-outline">
+                <i data-lucide="trophy" aria-hidden="true"></i> View Leaderboard
+              </a>
+            <% } %>
+            <a href="/runner/submissions" class="btn btn-outline">
+              <i data-lucide="arrow-left" aria-hidden="true"></i> All Entries
+            </a>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

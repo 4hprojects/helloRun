@@ -590,6 +590,11 @@
   margin-top: 0.4rem;
 }
 
+.run-proof-ocr-summary {
+  display: block;
+  font-weight: 600;
+}
+
 .run-proof-name-match {
   display: block;
   font-size: 0.82rem;
@@ -603,6 +608,10 @@
 
 .run-proof-name-match--warn {
   color: #92400e;
+}
+
+.run-proof-name-match--neutral {
+  color: #475569;
 }
 
 /* ===== Name mismatch dialog ===== */

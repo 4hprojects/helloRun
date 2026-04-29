@@ -12,6 +12,8 @@ const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const REVIEWABLE_STATUS = new Set(['submitted']);
 const FINAL_STATUSES = new Set(['approved']);
 const PERSONAL_RECORD_REGISTRATION_ID = 'personal-record';
+const AUTO_APPROVAL_CONFIDENCE_THRESHOLD = 0.7;
+const AUTO_APPROVAL_REVIEW_NOTE = 'Auto-approved from OCR name match.';
 
 async function createSubmission({
   registrationId,
@@ -52,7 +54,7 @@ async function createSubmission({
     throw new Error('Submission already exists for this registration.');
   }
 
-  return Submission.create(buildSubmissionPayload(registration, {
+  const submission = await Submission.create(buildSubmissionPayload(registration, {
     distanceKm,
     elapsedMs,
     runDate,
@@ -65,6 +67,7 @@ async function createSubmission({
     elevationGain,
     ocrData
   }));
+  return applyAutoApprovalIfEligible(submission);
 }
 
 async function resubmitSubmission({
@@ -136,7 +139,7 @@ async function resubmitSubmission({
     issuedAt: null
   };
   await existing.save();
-  return existing;
+  return applyAutoApprovalIfEligible(existing);
 }
 
 async function reviewSubmission({
@@ -514,7 +517,7 @@ async function createPersonalRecordSubmission({
     registeredAt: new Date()
   });
 
-  return Submission.create({
+  const submission = await Submission.create({
     ...buildSubmissionPayload(registration, {
       distanceKm,
       elapsedMs,
@@ -528,11 +531,10 @@ async function createPersonalRecordSubmission({
       elevationGain,
       ocrData
     }),
-    status: 'approved',
-    isPersonalRecord: true,
-    reviewedAt: new Date(),
-    reviewNotes: 'Personal record submission auto-approved.'
+    isPersonalRecord: true
   });
+
+  return applyAutoApprovalIfEligible(submission);
 }
 
 function buildPersonalRecordEligibleOption() {
@@ -642,14 +644,19 @@ function sanitizeOcrData(value) {
       confidence: 0,
       distanceMismatch: false,
       timeMismatch: false,
-      detectedSource: ''
+      detectedSource: '',
+      extractedName: '',
+      nameMatchStatus: 'not_checked',
+      nameMismatchAcknowledged: false
     };
   }
 
   const distKm = Number(value.extractedDistanceKm);
   const timeMs = Number(value.extractedTimeMs);
   const ALLOWED_SOURCES = new Set(['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', '']);
+  const ALLOWED_NAME_STATUSES = new Set(['matched', 'mismatched', 'not_detected', 'not_checked']);
   const rawSource = String(value.detectedSource || '').trim().toLowerCase();
+  const rawNameStatus = String(value.nameMatchStatus || '').trim().toLowerCase();
 
   return {
     extractedDistanceKm: Number.isFinite(distKm) && distKm > 0 && distKm <= 1000 ? distKm : null,
@@ -662,8 +669,50 @@ function sanitizeOcrData(value) {
     distanceMismatch: Boolean(value.distanceMismatch),
     timeMismatch: Boolean(value.timeMismatch),
     detectedSource: ALLOWED_SOURCES.has(rawSource) ? rawSource : '',
+    extractedName: cleanOcrNameCandidate(value.extractedName).slice(0, 120),
+    nameMatchStatus: ALLOWED_NAME_STATUSES.has(rawNameStatus) ? rawNameStatus : 'not_checked',
     nameMismatchAcknowledged: Boolean(value.nameMismatchAcknowledged)
   };
+}
+
+function cleanOcrNameCandidate(value) {
+  const name = String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/^[^A-Za-z]+/, '')
+    .replace(/^\d+\s*[%.)\]-]*\s*/, '')
+    .replace(/\s+[A-Za-z]?[%=_~^`|]+$/g, '')
+    .replace(/[|\\/,;:!?.\s]+$/g, '')
+    .replace(/^[^A-Za-z]+/, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!name || /\d/.test(name)) return '';
+  if (/\b(?:km|mi|mile|miles|meter|meters|ft|feet|bpm|cal|kcal|min|sec|pace)\b/i.test(name)) return '';
+  if (/\b(?:distance|moving\s+time|elapsed\s+time|elevation|calories|heart\s+rate|relative\s+effort|segments?|kudos|weather|humidity|wind|cadence|steps)\b/i.test(name)) return '';
+  const letters = (name.match(/[A-Za-z]/g) || []).length;
+  const visible = name.replace(/\s/g, '').length;
+  if (!visible || letters / visible < 0.65) return '';
+  return name;
+}
+
+function isAutoApprovableOcrSubmission(submission) {
+  if (!submission) return false;
+  const ocrData = submission.ocrData || {};
+  const extractedDistanceKm = Number(ocrData.extractedDistanceKm);
+  const extractedTimeMs = Number(ocrData.extractedTimeMs);
+  return (
+    String(submission.status || '') === 'submitted' &&
+    ocrData.nameMatchStatus === 'matched' &&
+    Number.isFinite(extractedDistanceKm) &&
+    extractedDistanceKm > 0 &&
+    Number.isFinite(extractedTimeMs) &&
+    extractedTimeMs > 0 &&
+    !ocrData.distanceMismatch &&
+    !ocrData.timeMismatch &&
+    !submission.suspiciousFlag &&
+    Number(ocrData.confidence || 0) >= AUTO_APPROVAL_CONFIDENCE_THRESHOLD
+  );
 }
 
 function detectSuspiciousActivity({ distanceKm, elapsedMs, ocrData }) {
@@ -683,8 +732,9 @@ function detectSuspiciousActivity({ distanceKm, elapsedMs, ocrData }) {
   if (ocrData && ocrData.distanceMismatch && ocrData.confidence > 0.7) {
     return { suspicious: true, reason: 'High-confidence OCR distance mismatch detected.' };
   }
-  if (ocrData && ocrData.nameMismatchAcknowledged) {
-    return { suspicious: true, reason: 'Screenshot name does not match account name. Runner acknowledged and continued.' };
+  if (ocrData && ocrData.nameMatchStatus === 'mismatched' && ocrData.extractedName) {
+    const suffix = ocrData.nameMismatchAcknowledged ? ' Runner acknowledged and continued.' : '';
+    return { suspicious: true, reason: `Screenshot name does not match account name.${suffix}` };
   }
   return { suspicious: false, reason: '' };
 }
@@ -823,6 +873,31 @@ async function attachCertificateIfNeeded(submission) {
   }
 }
 
+async function applyAutoApprovalIfEligible(submission) {
+  if (!isAutoApprovableOcrSubmission(submission)) {
+    return submission;
+  }
+
+  const hadCertificate = Boolean(submission.certificate?.url);
+  submission.status = 'approved';
+  submission.reviewedAt = new Date();
+  submission.reviewedBy = null;
+  submission.reviewNotes = AUTO_APPROVAL_REVIEW_NOTE;
+  submission.rejectionReason = '';
+  await submission.save();
+
+  await attachCertificateIfNeeded(submission);
+  const event = await Event.findById(submission.eventId).select('title').lean();
+  await sendRunnerReviewNotifications({
+    submission,
+    eventTitle: event?.title || (submission.isPersonalRecord ? 'Personal Record' : 'Event'),
+    action: 'approve',
+    certificateWasIssued: !hadCertificate && Boolean(submission.certificate?.url)
+  });
+
+  return submission;
+}
+
 async function sendRunnerReviewNotifications({
   submission,
   eventTitle,
@@ -847,7 +922,7 @@ async function sendRunnerReviewNotifications({
           type: 'result_approved',
           title: 'Result Approved',
           message: `Your result for ${eventTitle} has been approved.`,
-          href: '/my-registrations',
+          href: `/runner/submissions/${String(submission._id)}`,
           metadata: {
             submissionId: String(submission._id),
             registrationId: String(submission.registrationId || ''),
@@ -879,7 +954,7 @@ async function sendRunnerReviewNotifications({
             type: 'certificate_issued',
             title: 'Certificate Ready',
             message: `Your certificate for ${eventTitle} is now available.`,
-            href: `/my-submissions/${String(submission._id)}/certificate`,
+            href: `/runner/submissions/${String(submission._id)}`,
             metadata: {
               submissionId: String(submission._id),
               registrationId: String(submission.registrationId || ''),
@@ -914,7 +989,7 @@ async function sendRunnerReviewNotifications({
           type: 'result_rejected',
           title: 'Result Needs Update',
           message: `Your result for ${eventTitle} was rejected. Review feedback and resubmit.`,
-          href: '/my-registrations',
+          href: `/runner/submissions/${String(submission._id)}`,
           metadata: {
             submissionId: String(submission._id),
             registrationId: String(submission.registrationId || ''),
@@ -987,5 +1062,6 @@ module.exports = {
   getRunnerPerformanceSnapshot,
   getRunnerEligibleSubmissionRegistrations,
   PERSONAL_RECORD_REGISTRATION_ID,
-  detectSuspiciousActivity
+  detectSuspiciousActivity,
+  isAutoApprovableOcrSubmission
 };

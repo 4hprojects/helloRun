@@ -232,6 +232,19 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(source, /Image analysis is unavailable\. Continue by entering your run details manually\./);
   assert.match(source, /Submit Screenshot/);
   assert.match(source, /ocrDetectedSourceInput\.value = result\.detectedSource/);
+  assert.match(source, /ocrSummaryEl\.textContent = 'Detected from image:/);
+  assert.doesNotMatch(source, /ocrResultsEl\.innerHTML = detailsHtml/);
+  assert.match(source, /fileInput\.value = '';\s*fileInput\.click\(\);/);
+  assert.match(source, /requireNameMismatchAcknowledgement/);
+  assert.match(source, /pendingNameMismatchAction/);
+  assert.match(source, /requireNameMismatchAcknowledgement\('submit-review'\)/);
+  assert.match(source, /requireNameMismatchAcknowledgement\('final-submit'\)/);
+  assert.match(source, /continueAfterNameMismatchAcknowledgement/);
+  assert.match(source, /submitConfirmedRunProof/);
+  assert.match(source, /mismatchWarningWasVisible/);
+  assert.match(source, /confirmOverlay && mismatchWarningWasVisible/);
+  assert.match(source, /selectedRegistrationIds/);
+  assert.match(source, /Submit ' \+ selectedCount \+ ' Entries/);
   assert.match(source, /retrying original image/);
   assert.match(source, /requestOcrInterrupt\('replace-image'/);
   assert.match(source, /requestOcrInterrupt\('remove-image'/);
@@ -241,4 +254,8 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(source, /focusEventSelectionPanel\(\);/);
   assert.match(partial, /id="runProofEventsList"[^>]*tabindex="-1"/);
   assert.match(partial, /name="ocrDetectedSource"/);
+  assert.match(partial, /id="runProofOcrSummary"/);
+  assert.match(partial, /name="ocrExtractedName"/);
+  assert.match(partial, /name="ocrNameMatchStatus"/);
+  assert.match(partial, /id="runProofSubmitInlineBtn"/);
 });

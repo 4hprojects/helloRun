@@ -1,5 +1,6 @@
 ﻿const multer = require('multer');
-const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 const DEFAULT_ALLOWED_MIMES = ['image/jpeg', 'image/png', 'application/pdf'];
 const DEFAULT_RESULT_ALLOWED_MIMES = ['image/jpeg', 'image/png'];
@@ -393,6 +394,30 @@ exports.extractObjectKeyFromPublicUrl = (urlValue) => {
   }
 
   return '';
+};
+
+exports.getSignedReadUrlFromR2 = async (key, options = {}) => {
+  assertR2Configured();
+  const safeKey = String(key || '').trim().replace(/^\/+/, '');
+  if (!safeKey) {
+    throw new Error('R2 object key is required.');
+  }
+
+  const commandInput = {
+    Bucket: r2Config.bucket,
+    Key: safeKey
+  };
+
+  if (options.contentDisposition) {
+    commandInput.ResponseContentDisposition = String(options.contentDisposition);
+  }
+  if (options.contentType) {
+    commandInput.ResponseContentType = String(options.contentType);
+  }
+
+  return getSignedUrl(r2Client, new GetObjectCommand(commandInput), {
+    expiresIn: Number(options.expiresIn || 300)
+  });
 };
 
 function handleMulterError(err, req, res, next) {

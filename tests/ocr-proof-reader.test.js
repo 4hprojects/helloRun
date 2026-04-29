@@ -472,6 +472,29 @@ test('parseOcrText — detects run from activity title', () => {
   assert.equal(r.runType, 'run');
 });
 
+test('parseOcrText - extracts athlete name before Strava date line', () => {
+  const r = parse('Morning Run\nHenson Sagorsor\nYesterday at 6:00 AM\n5.0 km\n25:30', 80);
+  assert.equal(r.name, 'Henson Sagorsor');
+});
+
+test('parseOcrText - cleans noisy Strava athlete names from image samples', () => {
+  assert.equal(parse('6% Henson Sagorsor\nApril 23, 2026 at 6:56 PM - La Trinidad\n5.0 km\n25:30', 80).name, 'Henson Sagorsor');
+  assert.equal(parse('Nene Alawas Cadiog |\nBD = Today at 4:07 PM - Baguio\n3.86 km\n53:32', 80).name, 'Nene Alawas Cadiog');
+  assert.equal(parse('4) Aaron John\nApril 26, 2026 at 6:33 AM - Sagada\n10.0 km\n1:02:00', 80).name, 'Aaron John');
+  assert.equal(parse('The Running Igorot W%=\nad E> Today at 10:01 AM - Baguio\n2.23 km\n26:18', 80).name, 'The Running Igorot');
+});
+
+test('parseOcrText - rejects metric labels as athlete names', () => {
+  const r = parse('Distance Moving Time\nToday at 4:07 PM - Baguio\n3.86 km\n53:32', 80);
+  assert.equal(r.name, null);
+});
+
+test('parseOcrText - missing athlete name does not fail OCR', () => {
+  const r = parse('Strava\nMorning Run\n5.0 km\n25:30', 80);
+  assert.equal(r.name, null);
+  assert.equal(r.ok, true);
+});
+
 test('parseOcrText — extracts steps from Strava grid layout (label above, value below)', () => {
   // OCR reads row-by-row: "Distance Steps\n2.23 km 2,896\n..."
   const text = 'Distance Steps\n2.23 km 2,896\nMoving Time Elevation Gain\n26:18 27 m';

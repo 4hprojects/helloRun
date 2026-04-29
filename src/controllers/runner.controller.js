@@ -4,6 +4,13 @@ const { getCountries, isValidCountryCode, normalizeCountryCode } = require('../u
 const { getRunnerRegistrations, buildRunnerDashboardData } = require('../services/runner-data.service');
 const { getRunnerPerformanceSnapshot, getRunnerEligibleSubmissionRegistrations } = require('../services/submission.service');
 const {
+  listRunnerSubmissions,
+  getRunnerSubmissionDetail,
+  getRunnerSubmissionProof,
+  getRunnerSubmissionCounts
+} = require('../services/runner-submissions.service');
+const uploadService = require('../services/upload.service');
+const {
   searchRunningGroups,
   getTopRunningGroups,
   getCurrentRunnerGroup,
@@ -977,6 +984,173 @@ function formatRunnerResultSubmissions(performanceSnapshot, locale) {
     registrationId: String(item.registrationId || '')
   }));
 }
+
+exports.getRunnerSubmissionsPage = async (req, res) => {
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) {
+      return res.redirect('/login');
+    }
+
+    const VALID_STATUSES = new Set(['submitted', 'approved', 'rejected']);
+    const VALID_ACTIVITY_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
+    const VALID_SORTS = new Set(['newest', 'oldest', 'eventDate', 'fastest', 'distance']);
+
+    const rawStatus = String(req.query.status || '').trim().toLowerCase();
+    const rawActivity = String(req.query.activityType || '').trim().toLowerCase();
+    const rawSort = String(req.query.sort || '').trim().toLowerCase();
+    const rawPage = Number.parseInt(String(req.query.page || '1'), 10);
+
+    const filters = {
+      status: VALID_STATUSES.has(rawStatus) ? rawStatus : '',
+      activityType: VALID_ACTIVITY_TYPES.has(rawActivity) ? rawActivity : '',
+      q: String(req.query.q || '').trim().slice(0, 100),
+      sort: VALID_SORTS.has(rawSort) ? rawSort : 'newest',
+      page: Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1
+    };
+
+    const [result, counts] = await Promise.all([
+      listRunnerSubmissions(user._id, filters),
+      getRunnerSubmissionCounts(user._id)
+    ]);
+
+    return res.render('runner/submissions', {
+      title: 'Submitted Entries - helloRun',
+      user,
+      userName: user.firstName,
+      message: getRunnerProfileMessage(req.query),
+      submissions: result.items,
+      pagination: {
+        page: result.page,
+        totalPages: result.totalPages,
+        total: result.total
+      },
+      counts,
+      filters
+    });
+  } catch (error) {
+    console.error('Runner submissions page load error:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading your submitted entries.'
+    });
+  }
+};
+
+exports.getRunnerSubmissionDetailPage = async (req, res) => {
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) {
+      return res.redirect('/login');
+    }
+
+    const submissionId = String(req.params.submissionId || '').trim();
+    // Validate ObjectId format before hitting DB
+    if (!/^[0-9a-fA-F]{24}$/.test(submissionId)) {
+      return res.status(404).render('error', {
+        title: 'Not Found',
+        status: 404,
+        message: 'Submission not found.'
+      });
+    }
+
+    const submission = await getRunnerSubmissionDetail(user._id, submissionId);
+
+    return res.render('runner/submission-detail', {
+      title: `Entry – ${submission.eventTitle} - helloRun`,
+      user,
+      userName: user.firstName,
+      submission
+    });
+  } catch (error) {
+    if (error.statusCode === 403) {
+      return res.status(403).render('error', {
+        title: 'Access Denied',
+        status: 403,
+        message: 'You do not have access to this submission.'
+      });
+    }
+    if (error.statusCode === 404) {
+      return res.status(404).render('error', {
+        title: 'Not Found',
+        status: 404,
+        message: 'Submission not found.'
+      });
+    }
+    console.error('Runner submission detail load error:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading this submission.'
+    });
+  }
+};
+
+exports.getRunnerSubmissionProof = async (req, res) => {
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) {
+      return res.redirect('/login');
+    }
+
+    const submissionId = String(req.params.submissionId || '').trim();
+    if (!/^[0-9a-fA-F]{24}$/.test(submissionId)) {
+      return res.status(404).render('error', {
+        title: 'Not Found',
+        status: 404,
+        message: 'Proof not found.'
+      });
+    }
+
+    const proof = await getRunnerSubmissionProof(user._id, submissionId);
+    let targetUrl = proof.url;
+    const proofKey = proof.key || uploadService.extractObjectKeyFromPublicUrl(proof.url);
+
+    if (proofKey) {
+      try {
+        targetUrl = await uploadService.getSignedReadUrlFromR2(proofKey, {
+          contentDisposition: 'inline',
+          contentType: proof.mimeType,
+          expiresIn: 300
+        });
+      } catch (error) {
+        console.error('Runner proof signed URL error:', error.message);
+      }
+    }
+
+    if (!targetUrl || targetUrl.startsWith('data:')) {
+      return res.status(404).render('error', {
+        title: 'Not Found',
+        status: 404,
+        message: 'Proof not found.'
+      });
+    }
+
+    return res.redirect(targetUrl);
+  } catch (error) {
+    if (error.statusCode === 403) {
+      return res.status(403).render('error', {
+        title: 'Access Denied',
+        status: 403,
+        message: 'You do not have access to this proof.'
+      });
+    }
+    if (error.statusCode === 404) {
+      return res.status(404).render('error', {
+        title: 'Not Found',
+        status: 404,
+        message: 'Proof not found.'
+      });
+    }
+    console.error('Runner proof access error:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading this proof.'
+    });
+  }
+};
 
 function normalizeDashboardResultStatus(value) {
   const safe = String(value || '').trim().toLowerCase();

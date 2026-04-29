@@ -305,14 +305,47 @@
     return null;
   }
 
+  function cleanNameCandidate(value) {
+    var name = String(value || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!name) return '';
+
+    name = name
+      .replace(/^[^A-Za-z]+/, '')
+      .replace(/^\d+\s*[%.)\]-]*\s*/, '')
+      .replace(/\s+[A-Za-z]?[%=_~^`|]+$/g, '')
+      .replace(/[|\\\/,;:!?.\s]+$/g, '')
+      .replace(/^[^A-Za-z]+/, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    return name;
+  }
+
+  function isLikelyNameCandidate(value) {
+    var name = String(value || '').trim();
+    if (name.length < 2 || name.length > 80) return false;
+    if (!/[A-Za-z]/.test(name) || /\d/.test(name)) return false;
+    if (/\b(?:km|mi|mile|miles|meter|meters|ft|feet|bpm|cal|kcal|min|sec|pace)\b/i.test(name)) return false;
+    if (/\b(?:distance|moving\s+time|elapsed\s+time|elevation|calories|heart\s+rate|relative\s+effort|segments?|kudos|weather|humidity|wind|cadence|steps)\b/i.test(name)) return false;
+
+    var letters = (name.match(/[A-Za-z]/g) || []).length;
+    var visible = name.replace(/\s/g, '').length;
+    if (!visible || letters / visible < 0.65) return false;
+
+    return name.split(/\s+/).some(function (part) {
+      return /[A-Za-z]{2,}/.test(part);
+    });
+  }
+
   function extractName(text) {
     // Strava: athlete name appears on the line immediately before the
     // "Yesterday / Today / Month DD, YYYY at H:MM AM/PM" date line.
     var m = text.match(/([^\r\n]{2,80})\r?\n[^\r\n]*?(?:yesterday|today|\b(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+\d)[^\r\n]*\bat\s+\d{1,2}:\d{2}/i);
     if (m) {
-      var name = m[1].trim();
-      // Must contain letters and no digits (exclude map labels like "1100 m")
-      if (name.length >= 2 && /[A-Za-z]/.test(name) && !/\d/.test(name)) {
+      var name = cleanNameCandidate(m[1]);
+      if (isLikelyNameCandidate(name)) {
         return name;
       }
     }

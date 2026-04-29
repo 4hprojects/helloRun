@@ -274,6 +274,20 @@
                                 <% } %>
                               </small><br>
                             <% } %>
+                            <% if (registration.submission.ocrData.nameMatchStatus && registration.submission.ocrData.nameMatchStatus !== 'not_checked') { %>
+                              <small><strong>Name analysis:</strong>
+                                <% if (registration.submission.ocrData.nameMatchStatus === 'matched') { %>
+                                  <span class="ocr-match-flag">&#10003; matches account</span>
+                                <% } else if (registration.submission.ocrData.nameMatchStatus === 'mismatched') { %>
+                                  <span class="ocr-mismatch-flag">&#9888; different name detected</span>
+                                <% } else if (registration.submission.ocrData.nameMatchStatus === 'not_detected') { %>
+                                  <span class="text-muted">name not detected</span>
+                                <% } %>
+                                <% if (registration.submission.ocrData.extractedName) { %>
+                                  <span class="text-muted">(<%= registration.submission.ocrData.extractedName %>)</span>
+                                <% } %>
+                              </small><br>
+                            <% } %>
                           </div>
                         </details>
                       <% } %>

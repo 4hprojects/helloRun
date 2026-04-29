@@ -46,6 +46,7 @@
 
     const ocrStatusEl = document.getElementById('runProofOcrStatus');
     const ocrResultsEl = document.getElementById('runProofOcrResults');
+    const ocrSummaryEl = document.getElementById('runProofOcrSummary');
     const ocrWarningEl = document.getElementById('runProofOcrWarning');
     const ocrDistanceInput = document.getElementById('runProofOcrDistance');
     const ocrTimeInput = document.getElementById('runProofOcrTime');
@@ -54,6 +55,8 @@
     const ocrDistanceMismatchInput = document.getElementById('runProofOcrDistanceMismatch');
     const ocrTimeMismatchInput = document.getElementById('runProofOcrTimeMismatch');
     const ocrDetectedSourceInput = document.getElementById('runProofOcrDetectedSource');
+    const ocrExtractedNameInput = document.getElementById('runProofOcrExtractedName');
+    const ocrNameMatchStatusInput = document.getElementById('runProofOcrNameMatchStatus');
     const imageHashInput = document.getElementById('runProofImageHash');
     const autoFillBannerEl = document.getElementById('runProofAutoFillBanner');
     const detectedSourceEl = document.getElementById('runProofDetectedSource');
@@ -64,6 +67,7 @@
     const nameMismatchContinue = document.getElementById('runProofNameMismatchContinue');
     const nameMismatchInput = document.getElementById('runProofNameMismatch');
     const runnerName = (modal.dataset.runnerName || '').trim().toLowerCase();
+    const runnerNameDisplay = String(modal.dataset.runnerName || '').trim() || 'unknown';
     const analyseBtn = document.getElementById('runProofAnalyseBtn');
     const analyseHint = document.getElementById('runProofAnalyseHint');
     const backBtn = document.getElementById('runProofBackBtn');
@@ -86,6 +90,8 @@
     const postSubmitOverlay = document.getElementById('runProofPostSubmit');
     const postSubmitAnother = document.getElementById('runProofPostSubmitAnother');
     const postSubmitView = document.getElementById('runProofPostSubmitView');
+    const postSubmitTitle = document.getElementById('runProofPostSubmitTitle');
+    const postSubmitDesc = document.getElementById('runProofPostSubmitDesc');
 
     if (
       !dialog || !form || !titleEl || !descEl || !submitBtn || !messageEl || !modeInput || !selectedIdsInput || !primaryRegistrationInput ||
@@ -127,7 +133,8 @@
       confirmAction: 'close',
       allowPageExit: false,
       pendingUploadFile: null,
-      allowFileDialogOnce: false
+      allowFileDialogOnce: false,
+      pendingNameMismatchAction: ''
     };
 
     const STEP_ONE_ANALYSE_LABEL = 'Submit Screenshot';
@@ -387,7 +394,11 @@
       if (state.isSubmitting) return;
       const selectedPrimary = getSelectedPrimaryMeta();
       const baseLabel = String(state.modeConfig.submitLabel || submitBtn.dataset.defaultLabel || 'Submit Run').trim() || 'Submit Run';
-      const nextLabel = selectedPrimary?.canResubmit ? 'Resubmit Run' : baseLabel;
+      const selectedCount = state.selectedRegistrationIds.size;
+      let nextLabel = selectedPrimary?.canResubmit ? 'Resubmit Run' : baseLabel;
+      if (selectedCount > 1) {
+        nextLabel = 'Submit ' + selectedCount + ' Entries';
+      }
       submitBtn.dataset.defaultLabel = nextLabel;
       if (submitInlineBtn) submitInlineBtn.dataset.defaultLabel = nextLabel;
       setSubmitBtnLabel(state.isFetchingOptions ? 'Loading...' : nextLabel);
@@ -506,12 +517,24 @@
       if (ocrDistanceMismatchInput) ocrDistanceMismatchInput.value = '';
       if (ocrTimeMismatchInput) ocrTimeMismatchInput.value = '';
       if (ocrDetectedSourceInput) ocrDetectedSourceInput.value = '';
+      if (ocrExtractedNameInput) ocrExtractedNameInput.value = '';
+      if (ocrNameMatchStatusInput) ocrNameMatchStatusInput.value = 'not_checked';
       if (imageHashInput) imageHashInput.value = '';
       if (autoFillBannerEl) autoFillBannerEl.hidden = true;
-      if (detectedSourceEl) detectedSourceEl.hidden = true;
-      if (nameMatchEl) nameMatchEl.hidden = true;
+      if (ocrSummaryEl) ocrSummaryEl.textContent = '';
+      if (detectedSourceEl) {
+        detectedSourceEl.textContent = '';
+        detectedSourceEl.hidden = true;
+      }
+      if (nameMatchEl) {
+        nameMatchEl.textContent = '';
+        nameMatchEl.className = 'run-proof-name-match';
+        nameMatchEl.hidden = true;
+      }
       if (nameMismatchDialog) nameMismatchDialog.hidden = true;
+      if (nameMismatchDetail) nameMismatchDetail.textContent = '';
       if (nameMismatchInput) nameMismatchInput.value = '0';
+      state.pendingNameMismatchAction = '';
       const _nmco = document.getElementById('runProofNameMismatchConfirm');
       if (_nmco) _nmco.hidden = true;
       if (submitReviewOverlay) submitReviewOverlay.hidden = true;
@@ -573,6 +596,76 @@
       apple: 'Apple Health',
       google: 'Google Fit',
       unknown: ''
+    };
+
+    const namesMatch = (ocrName, accountName) => {
+      const ocrNameLower = String(ocrName || '').trim().toLowerCase();
+      const accountNameLower = String(accountName || '').trim().toLowerCase();
+      if (!ocrNameLower || !accountNameLower) return false;
+
+      if (
+        ocrNameLower === accountNameLower ||
+        ocrNameLower.includes(accountNameLower) ||
+        accountNameLower.includes(ocrNameLower)
+      ) {
+        return true;
+      }
+
+      const parts = accountNameLower.split(/\s+/).filter(Boolean);
+      if (parts.length < 2) return false;
+      const first = parts[0];
+      const last = parts[parts.length - 1];
+      return ocrNameLower.includes(first) && ocrNameLower.includes(last);
+    };
+
+    const setNameAnalysis = (result) => {
+      const extractedName = String(result && result.name ? result.name : '').trim();
+      const hasAccountName = Boolean(runnerName);
+      let status = 'not_checked';
+
+      if (extractedName) {
+        status = hasAccountName && namesMatch(extractedName, runnerName) ? 'matched' : 'mismatched';
+      } else if (result && (result.rawText || result.ok || result.confidence > 0)) {
+        status = 'not_detected';
+      }
+
+      if (ocrExtractedNameInput) ocrExtractedNameInput.value = extractedName;
+      if (ocrNameMatchStatusInput) ocrNameMatchStatusInput.value = status;
+
+      if (!nameMatchEl) return status;
+
+      if (status === 'matched') {
+        nameMatchEl.textContent = 'Name matches account';
+        nameMatchEl.className = 'run-proof-name-match run-proof-name-match--ok';
+        nameMatchEl.hidden = false;
+        if (nameMismatchDialog) nameMismatchDialog.hidden = true;
+        if (nameMismatchInput) nameMismatchInput.value = '0';
+        return status;
+      }
+
+      if (status === 'mismatched') {
+        nameMatchEl.textContent = 'Different name detected';
+        nameMatchEl.className = 'run-proof-name-match run-proof-name-match--warn';
+        nameMatchEl.hidden = false;
+        if (nameMismatchDialog && nameMismatchDetail) {
+          nameMismatchDetail.textContent = 'The screenshot shows the name "' + extractedName + '", but your account is registered as "' + runnerNameDisplay + '".';
+          nameMismatchDialog.hidden = false;
+        }
+        return status;
+      }
+
+      if (status === 'not_detected') {
+        nameMatchEl.textContent = 'Name not detected';
+        nameMatchEl.className = 'run-proof-name-match run-proof-name-match--neutral';
+        nameMatchEl.hidden = false;
+        if (nameMismatchDialog) nameMismatchDialog.hidden = true;
+        if (nameMismatchInput) nameMismatchInput.value = '0';
+        return status;
+      }
+
+      nameMatchEl.hidden = true;
+      if (nameMismatchDialog) nameMismatchDialog.hidden = true;
+      return status;
     };
 
     const applyOcrAutoFill = (result) => {
@@ -690,8 +783,8 @@
           errorCode: 'OCR_READER_MISSING',
           errorMessage: 'Image analysis is unavailable. Continue by entering your run details manually.'
         };
-        if (ocrResultsEl) {
-          ocrResultsEl.textContent = 'Image analysis is unavailable. Continue by entering your run details manually.';
+        if (ocrResultsEl && ocrSummaryEl) {
+          ocrSummaryEl.textContent = 'Image analysis is unavailable. Continue by entering your run details manually.';
           ocrResultsEl.hidden = false;
         }
         goToStep(2);
@@ -745,16 +838,15 @@
         if (ocrRawTextInput) ocrRawTextInput.value = result.rawText || '';
         if (ocrConfidenceInput) ocrConfidenceInput.value = String(result.confidence || 0);
         if (ocrDetectedSourceInput) ocrDetectedSourceInput.value = result.detectedSource || '';
+        setNameAnalysis(result);
 
         if (result.confidence > 0 && (result.distance || result.time)) {
-          if (ocrResultsEl) {
-            let detailsHtml = '<strong>Detected from image:</strong> ';
+          if (ocrResultsEl && ocrSummaryEl) {
             const parts = [];
             if (result.distance) parts.push(result.distance.value + ' ' + result.distance.unit + (result.distance.unit === 'mi' ? ' (' + result.distance.valueKm + ' km)' : ''));
             if (result.time) parts.push(formatOcrTime(result.time));
             if (result.pace) parts.push('Pace ' + result.pace.label);
-            detailsHtml += parts.map(escapeHtml).join(' &middot; ');
-            ocrResultsEl.innerHTML = detailsHtml;
+            ocrSummaryEl.textContent = 'Detected from image: ' + parts.join(' | ');
             ocrResultsEl.hidden = false;
           }
           if (detectedSourceEl && result.detectedSource && result.detectedSource !== 'unknown') {
@@ -762,40 +854,11 @@
             detectedSourceEl.textContent = 'Detected: ' + sourceLabel;
             detectedSourceEl.hidden = false;
           }
-          if (nameMatchEl && result.name && runnerName) {
-            const ocrNameLower = result.name.toLowerCase();
-            // Exact / substring check
-            let isMatch = ocrNameLower === runnerName
-              || ocrNameLower.includes(runnerName)
-              || runnerName.includes(ocrNameLower);
-            // Middle-name fallback: account "First Last" vs Strava "First Middle Last"
-            if (!isMatch) {
-              const parts = runnerName.split(/\s+/).filter(Boolean);
-              if (parts.length >= 2) {
-                const first = parts[0];
-                const last = parts[parts.length - 1];
-                isMatch = ocrNameLower.includes(first) && ocrNameLower.includes(last);
-              }
-            }
-            if (isMatch) {
-              nameMatchEl.textContent = '\u2713 Name matches your account';
-              nameMatchEl.className = 'run-proof-name-match run-proof-name-match--ok';
-              nameMatchEl.hidden = false;
-              if (nameMismatchDialog) nameMismatchDialog.hidden = true;
-            } else {
-              // Show the full mismatch dialog instead of the inline badge
-              nameMatchEl.hidden = true;
-              if (nameMismatchDialog && nameMismatchDetail) {
-                nameMismatchDetail.textContent = 'The screenshot shows the name \u201c' + result.name + '\u201d, but your account is registered as \u201c' + (modal.dataset.runnerName || 'unknown') + '\u201d.';
-                nameMismatchDialog.hidden = false;
-              }
-            }
-          }
           applyOcrAutoFill(result);
           updateOcrComparison();
         } else {
-          if (ocrResultsEl) {
-            ocrResultsEl.textContent = result.errorMessage || 'We could not read the screenshot automatically. You can continue by entering the details manually.';
+          if (ocrResultsEl && ocrSummaryEl) {
+            ocrSummaryEl.textContent = result.errorMessage || 'We could not read the screenshot automatically. You can continue by entering the details manually.';
             ocrResultsEl.hidden = false;
           }
         }
@@ -810,8 +873,8 @@
         };
         setOcrStatus(OCR_READY_STATUS, { hidden: true });
         if (analyseHint) analyseHint.hidden = true;
-        if (ocrResultsEl) {
-          ocrResultsEl.textContent = 'We could not read the screenshot automatically. You can continue by entering the details manually.';
+        if (ocrResultsEl && ocrSummaryEl) {
+          ocrSummaryEl.textContent = 'We could not read the screenshot automatically. You can continue by entering the details manually.';
           ocrResultsEl.hidden = false;
         }
         goToStep(2);
@@ -948,6 +1011,25 @@
       ].every(Boolean);
 
       return allValid;
+    };
+
+    const requireNameMismatchAcknowledgement = (nextAction) => {
+      const isMismatch = ocrNameMatchStatusInput && ocrNameMatchStatusInput.value === 'mismatched';
+      const isAcknowledged = nameMismatchInput && nameMismatchInput.value === '1';
+      if (!isMismatch || isAcknowledged) return true;
+      state.pendingNameMismatchAction = String(nextAction || '');
+      const mismatchWarningWasVisible = Boolean(nameMismatchDialog && !nameMismatchDialog.hidden);
+      if (nameMismatchDialog) nameMismatchDialog.hidden = false;
+      const confirmOverlay = document.getElementById('runProofNameMismatchConfirm');
+      const confirmOk = document.getElementById('runProofNameMismatchConfirmOk');
+      if (confirmOverlay && mismatchWarningWasVisible) {
+        confirmOverlay.hidden = false;
+        if (confirmOk) confirmOk.focus();
+      } else if (nameMismatchContinue) {
+        nameMismatchContinue.focus();
+      }
+      setMessage('Review the detected name before submitting. Choose Change Screenshot or Continue Anyway.', 'error');
+      return false;
     };
 
     const applyModeConfig = (incomingConfig) => {
@@ -1126,24 +1208,34 @@
         }
 
         const resultMessage = parseRedirectMessage(response.url);
-        if (resultMessage.type === 'success') {
-          if (state.currentSurface === 'runner-dashboard') {
+        const isDuplicate = resultMessage.type === 'error' && /already been submitted/i.test(resultMessage.text);
+
+        if (resultMessage.type === 'success' || isDuplicate) {
+          // Dashboard-specific: refresh the result card on success
+          if (resultMessage.type === 'success' && state.currentSurface === 'runner-dashboard') {
             if (typeof window.refreshRunnerDashboardResultSubmissions === 'function') {
               await window.refreshRunnerDashboardResultSubmissions();
             }
-            // Show post-submit dialog instead of closing immediately
-            if (postSubmitOverlay) {
-              postSubmitOverlay.hidden = false;
-              if (postSubmitView) postSubmitView.focus();
-            } else {
-              // Fallback: close and show flash
-              closeModal();
-              showSurfaceMessage({ type: 'success', text: resultMessage.text });
-            }
-            return;
           }
 
-          window.location.assign(response.url || action);
+          // Set context-sensitive overlay copy
+          if (isDuplicate) {
+            if (postSubmitTitle) postSubmitTitle.textContent = 'Screenshot already submitted';
+            if (postSubmitDesc) postSubmitDesc.textContent = 'This exact screenshot has already been submitted. Upload a different image to submit another entry, or view your existing submissions.';
+          } else {
+            if (postSubmitTitle) postSubmitTitle.textContent = 'Run submitted!';
+            if (postSubmitDesc) postSubmitDesc.textContent = 'Your submission has been received and is pending review. What would you like to do next?';
+          }
+
+          // All surfaces: show the post-submit overlay
+          if (postSubmitOverlay) {
+            postSubmitOverlay.hidden = false;
+            if (postSubmitView) postSubmitView.focus();
+          } else {
+            // Fallback if overlay element is missing
+            closeModal();
+            showSurfaceMessage({ type: isDuplicate ? 'error' : 'success', text: resultMessage.text });
+          }
           return;
         }
 
@@ -1316,6 +1408,7 @@
 
     const openFilePicker = () => {
       state.allowFileDialogOnce = true;
+      fileInput.value = '';
       fileInput.click();
     };
 
@@ -1601,6 +1694,7 @@
     if (nameMismatchBack) {
       nameMismatchBack.addEventListener('click', () => {
         // Go back to step 1 so the user can change their screenshot
+        state.pendingNameMismatchAction = '';
         if (nameMismatchDialog) nameMismatchDialog.hidden = true;
         goToStep(1);
       });
@@ -1618,6 +1712,7 @@
 
     if (nameMismatchConfirmCancel) {
       nameMismatchConfirmCancel.addEventListener('click', () => {
+        state.pendingNameMismatchAction = '';
         if (nameMismatchConfirmOverlay) nameMismatchConfirmOverlay.hidden = true;
       });
     }
@@ -1628,12 +1723,16 @@
         if (nameMismatchInput) nameMismatchInput.value = '1';
         if (nameMismatchConfirmOverlay) nameMismatchConfirmOverlay.hidden = true;
         if (nameMismatchDialog) nameMismatchDialog.hidden = true;
+        continueAfterNameMismatchAcknowledgement();
       });
     }
 
     if (nameMismatchConfirmOverlay) {
       nameMismatchConfirmOverlay.addEventListener('click', (event) => {
-        if (event.target === nameMismatchConfirmOverlay) nameMismatchConfirmOverlay.hidden = true;
+        if (event.target === nameMismatchConfirmOverlay) {
+          state.pendingNameMismatchAction = '';
+          nameMismatchConfirmOverlay.hidden = true;
+        }
       });
     }
 
@@ -1681,7 +1780,7 @@
       postSubmitView.addEventListener('click', () => {
         dismissPostSubmitOverlay();
         closeModal();
-        window.location.assign('/my-registrations');
+        window.location.assign('/runner/submissions');
       });
     }
 
@@ -1794,6 +1893,47 @@
       }
     };
 
+    const submitConfirmedRunProof = () => {
+      if (state.isSubmitting) return;
+
+      syncSelectedRegistrationFields();
+      syncFormAction();
+
+      if (!form.getAttribute('action')) {
+        setMessage('Select at least one eligible event before submitting.', 'error');
+        validateEvents();
+        return;
+      }
+
+      const isValid = validateAll();
+      if (!isValid) {
+        setMessage('Please fix the highlighted fields before submitting.', 'error');
+        return;
+      }
+      if (!requireNameMismatchAcknowledgement('final-submit')) {
+        return;
+      }
+
+      state.isSubmitting = true;
+      setMessage('', '');
+      toggleSubmitState();
+
+      void submitViaFetch();
+    };
+
+    const continueAfterNameMismatchAcknowledgement = () => {
+      const action = state.pendingNameMismatchAction;
+      state.pendingNameMismatchAction = '';
+      setMessage('', '');
+      if (action === 'submit-review') {
+        showSubmitReview();
+        return;
+      }
+      if (action === 'final-submit') {
+        submitConfirmedRunProof();
+      }
+    };
+
     if (submitReviewEdit) {
       submitReviewEdit.addEventListener('click', dismissSubmitReview);
     }
@@ -1801,33 +1941,7 @@
     if (submitReviewConfirm) {
       submitReviewConfirm.addEventListener('click', () => {
         dismissSubmitReview();
-        // Bypass the review gate and do the actual submission
-        if (state.isSubmitting) return;
-
-        syncSelectedRegistrationFields();
-        syncFormAction();
-
-        if (!form.getAttribute('action')) {
-          setMessage('Select at least one eligible event before submitting.', 'error');
-          validateEvents();
-          return;
-        }
-
-        const isValid = validateAll();
-        if (!isValid) {
-          setMessage('Please fix the highlighted fields before submitting.', 'error');
-          return;
-        }
-
-        state.isSubmitting = true;
-        setMessage('', '');
-        toggleSubmitState();
-
-        if (state.currentSurface === 'runner-dashboard') {
-          void submitViaFetch();
-        } else {
-          form.submit();
-        }
+        submitConfirmedRunProof();
       });
     }
 
@@ -1870,6 +1984,10 @@
       }
 
       // Show review/confirm overlay — actual submission happens in submitReviewConfirm handler
+      if (!requireNameMismatchAcknowledgement('submit-review')) {
+        return;
+      }
+
       showSubmitReview();
     });
 

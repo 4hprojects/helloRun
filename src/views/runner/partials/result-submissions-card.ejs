@@ -6,6 +6,7 @@
 >
   <div class="card-header result-submissions-header">
     <h2><i data-lucide="timer"></i> Result Submissions</h2>
+    <a href="/runner/submissions" class="btn btn-sm btn-outline result-submissions-view-all">View All &rarr;</a>
     <nav class="result-status-tabs" aria-label="Filter result submissions by status">
       <a href="/runner/dashboard<%= preservedGroupQuery ? ('?groupQ=' + encodeURIComponent(preservedGroupQuery)) : '' %>"
          class="result-status-tab <%= !selectedResultStatus ? 'is-active' : '' %>"

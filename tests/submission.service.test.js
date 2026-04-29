@@ -21,7 +21,8 @@ const {
   getRunnerPerformanceSnapshot,
   getRunnerEligibleSubmissionRegistrations,
   PERSONAL_RECORD_REGISTRATION_ID,
-  detectSuspiciousActivity
+  detectSuspiciousActivity,
+  isAutoApprovableOcrSubmission
 } = require('../src/services/submission.service');
 
 test.before(async () => {
@@ -127,6 +128,8 @@ test('resubmitSubmission only allows rejected submissions and increments count',
   assert.equal(resubmitted.status, 'submitted');
   assert.equal(resubmitted.submissionCount, 2);
   assert.equal(resubmitted.rejectionReason, '');
+  assert.equal(resubmitted.ocrData.nameMatchStatus, 'not_checked');
+  assert.equal(resubmitted.ocrData.extractedName, '');
 });
 
 test('reviewSubmission enforces organizer ownership and action guards', async () => {
@@ -544,6 +547,54 @@ test('detectSuspiciousActivity returns not suspicious for invalid inputs', () =>
   assert.equal(result.suspicious, false);
 });
 
+test('detectSuspiciousActivity flags OCR name mismatch for manual review', () => {
+  const acknowledged = detectSuspiciousActivity({
+    distanceKm: 10,
+    elapsedMs: 60 * 60 * 1000,
+    ocrData: {
+      nameMatchStatus: 'mismatched',
+      extractedName: 'Different Runner',
+      nameMismatchAcknowledged: true
+    }
+  });
+  const unacknowledged = detectSuspiciousActivity({
+    distanceKm: 10,
+    elapsedMs: 60 * 60 * 1000,
+    ocrData: {
+      nameMatchStatus: 'mismatched',
+      extractedName: 'Different Runner',
+      nameMismatchAcknowledged: false
+    }
+  });
+  assert.equal(acknowledged.suspicious, true);
+  assert.equal(unacknowledged.suspicious, true);
+  assert.match(acknowledged.reason, /acknowledged and continued/i);
+  assert.match(unacknowledged.reason, /name does not match/i);
+});
+
+test('detectSuspiciousActivity does not flag matched or undetected OCR names', () => {
+  const matched = detectSuspiciousActivity({
+    distanceKm: 10,
+    elapsedMs: 60 * 60 * 1000,
+    ocrData: {
+      nameMatchStatus: 'matched',
+      extractedName: 'Submit Runner',
+      nameMismatchAcknowledged: false
+    }
+  });
+  const notDetected = detectSuspiciousActivity({
+    distanceKm: 10,
+    elapsedMs: 60 * 60 * 1000,
+    ocrData: {
+      nameMatchStatus: 'not_detected',
+      extractedName: '',
+      nameMismatchAcknowledged: false
+    }
+  });
+  assert.equal(matched.suspicious, false);
+  assert.equal(notDetected.suspicious, false);
+});
+
 test('createSubmission persists runType and elevationGain', async () => {
   const seed = await seedSubmissionFixture('runtype-elevation');
   const result = await createSubmission({
@@ -563,4 +614,283 @@ test('createSubmission persists runType and elevationGain', async () => {
 
   assert.equal(result.runType, 'trail_run');
   assert.equal(result.elevationGain, 250);
+});
+
+test('createSubmission persists OCR name analysis metadata', async () => {
+  const seed = await seedSubmissionFixture('ocr-name-analysis');
+  const result = await createSubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 10,
+    elapsedMs: 3600000,
+    runDate: new Date(),
+    runLocation: 'Manila',
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof-name.png', key: 'proof-name-key', mimeType: 'image/png', size: 1024 },
+    ocrData: {
+      extractedDistanceKm: 10,
+      extractedTimeMs: 3600000,
+      rawText: 'Submit Runner\nYesterday at 6:00 AM\n10.0 km\n1:00:00',
+      confidence: 0.6,
+      distanceMismatch: false,
+      timeMismatch: false,
+      detectedSource: 'strava',
+      extractedName: 'Submit Runner',
+      nameMatchStatus: 'matched',
+      nameMismatchAcknowledged: false
+    }
+  });
+
+  assert.equal(result.ocrData.extractedName, 'Submit Runner');
+  assert.equal(result.ocrData.nameMatchStatus, 'matched');
+  assert.equal(result.suspiciousFlag, false);
+  assert.equal(result.status, 'submitted');
+});
+
+test('isAutoApprovableOcrSubmission requires a clean matched OCR result', () => {
+  assert.equal(isAutoApprovableOcrSubmission({
+    status: 'submitted',
+    suspiciousFlag: false,
+    ocrData: {
+      nameMatchStatus: 'matched',
+      extractedDistanceKm: 10,
+      extractedTimeMs: 3600000,
+      confidence: 0.7,
+      distanceMismatch: false,
+      timeMismatch: false
+    }
+  }), true);
+
+  assert.equal(isAutoApprovableOcrSubmission({
+    status: 'submitted',
+    suspiciousFlag: false,
+    ocrData: {
+      nameMatchStatus: 'matched',
+      extractedDistanceKm: 10,
+      extractedTimeMs: 3600000,
+      confidence: 0.69,
+      distanceMismatch: false,
+      timeMismatch: false
+    }
+  }), false);
+});
+
+test('createSubmission auto-approves clean matched OCR and issues certificate', async () => {
+  const seed = await seedSubmissionFixture('ocr-auto-approve');
+  const calls = { approved: [], certificate: [] };
+  const originalApproved = emailService.sendResultApprovedEmailToRunner;
+  const originalCertificate = emailService.sendCertificateIssuedEmailToRunner;
+
+  emailService.sendResultApprovedEmailToRunner = async (...args) => {
+    calls.approved.push(args);
+    return { ok: true };
+  };
+  emailService.sendCertificateIssuedEmailToRunner = async (...args) => {
+    calls.certificate.push(args);
+    return { ok: true };
+  };
+
+  let result;
+  try {
+    result = await createSubmission({
+      registrationId: seed.registration._id,
+      runnerId: seed.runner._id,
+      distanceKm: 10,
+      elapsedMs: 3600000,
+      runDate: new Date(),
+      runLocation: 'Manila',
+      proofType: 'photo',
+      proof: { url: 'https://example.com/proof-auto.png', key: 'proof-auto-key', mimeType: 'image/png', size: 1024 },
+      ocrData: {
+        extractedDistanceKm: 10,
+        extractedTimeMs: 3600000,
+        rawText: 'Submit Runner\nYesterday at 6:00 AM\n10.0 km\n1:00:00',
+        confidence: 0.9,
+        distanceMismatch: false,
+        timeMismatch: false,
+        detectedSource: 'strava',
+        extractedName: 'Submit Runner',
+        nameMatchStatus: 'matched',
+        nameMismatchAcknowledged: false
+      }
+    });
+  } finally {
+    emailService.sendResultApprovedEmailToRunner = originalApproved;
+    emailService.sendCertificateIssuedEmailToRunner = originalCertificate;
+  }
+
+  assert.equal(result.status, 'approved');
+  assert.ok(result.reviewedAt);
+  assert.equal(result.reviewedBy, null);
+  assert.equal(result.reviewNotes, 'Auto-approved from OCR name match.');
+  assert.ok(String(result.certificate?.url || '').length > 0);
+  assert.equal(calls.approved.length, 1);
+  assert.equal(calls.certificate.length, 1);
+});
+
+test('createSubmission auto-approves clean matched OCR personal record without certificate', async () => {
+  const runner = await createRunnerUser('ocr-personal-record-auto');
+  const originalApproved = emailService.sendResultApprovedEmailToRunner;
+  emailService.sendResultApprovedEmailToRunner = async () => ({ ok: true });
+
+  let result;
+  try {
+    result = await createSubmission({
+      registrationId: PERSONAL_RECORD_REGISTRATION_ID,
+      runnerId: runner._id,
+      distanceKm: 10,
+      elapsedMs: 3600000,
+      runDate: new Date(),
+      runLocation: 'Manila',
+      proofType: 'photo',
+      proof: { url: 'https://example.com/proof-pr-auto.png', key: 'proof-pr-auto-key', mimeType: 'image/png', size: 1024 },
+      ocrData: {
+        extractedDistanceKm: 10,
+        extractedTimeMs: 3600000,
+        rawText: 'Submit Runner\nYesterday at 6:00 AM\n10.0 km\n1:00:00',
+        confidence: 0.9,
+        distanceMismatch: false,
+        timeMismatch: false,
+        detectedSource: 'strava',
+        extractedName: 'Submit Runner',
+        nameMatchStatus: 'matched',
+        nameMismatchAcknowledged: false
+      }
+    });
+  } finally {
+    emailService.sendResultApprovedEmailToRunner = originalApproved;
+  }
+
+  assert.equal(result.status, 'approved');
+  assert.equal(result.isPersonalRecord, true);
+  assert.equal(result.reviewNotes, 'Auto-approved from OCR name match.');
+  assert.equal(result.certificate?.url || '', '');
+});
+
+test('createSubmission keeps mismatched and undetected names pending with correct flags', async () => {
+  const mismatchSeed = await seedSubmissionFixture('ocr-mismatch-pending');
+  const noNameSeed = await seedSubmissionFixture('ocr-no-name-pending');
+
+  const mismatched = await createSubmission({
+    registrationId: mismatchSeed.registration._id,
+    runnerId: mismatchSeed.runner._id,
+    distanceKm: 10,
+    elapsedMs: 3600000,
+    runDate: new Date(),
+    runLocation: 'Manila',
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof-mismatch.png', key: 'proof-mismatch-key', mimeType: 'image/png', size: 1024 },
+    ocrData: {
+      extractedDistanceKm: 10,
+      extractedTimeMs: 3600000,
+      rawText: 'Different Runner\nYesterday at 6:00 AM\n10.0 km\n1:00:00',
+      confidence: 0.9,
+      distanceMismatch: false,
+      timeMismatch: false,
+      detectedSource: 'strava',
+      extractedName: 'Different Runner',
+      nameMatchStatus: 'mismatched',
+      nameMismatchAcknowledged: true
+    }
+  });
+
+  const noName = await createSubmission({
+    registrationId: noNameSeed.registration._id,
+    runnerId: noNameSeed.runner._id,
+    distanceKm: 10,
+    elapsedMs: 3600000,
+    runDate: new Date(),
+    runLocation: 'Manila',
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof-no-name.png', key: 'proof-no-name-key', mimeType: 'image/png', size: 1024 },
+    ocrData: {
+      extractedDistanceKm: 10,
+      extractedTimeMs: 3600000,
+      rawText: 'Morning Run\n10.0 km\n1:00:00',
+      confidence: 0.9,
+      distanceMismatch: false,
+      timeMismatch: false,
+      detectedSource: 'strava',
+      extractedName: '',
+      nameMatchStatus: 'not_detected',
+      nameMismatchAcknowledged: false
+    }
+  });
+
+  assert.equal(mismatched.status, 'submitted');
+  assert.equal(mismatched.suspiciousFlag, true);
+  assert.match(mismatched.suspiciousFlagReason, /name does not match/i);
+  assert.equal(noName.status, 'submitted');
+  assert.equal(noName.suspiciousFlag, false);
+});
+
+test('resubmitSubmission recalculates OCR state and can auto-approve a clean replacement', async () => {
+  const seed = await seedSubmissionFixture('ocr-resubmit-auto');
+  const first = await createSubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 10,
+    elapsedMs: 3600000,
+    runDate: new Date(),
+    runLocation: 'Manila',
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof-old.png', key: 'proof-old-key', mimeType: 'image/png', size: 1024 },
+    ocrData: {
+      extractedDistanceKm: 10,
+      extractedTimeMs: 3600000,
+      confidence: 0.9,
+      distanceMismatch: false,
+      timeMismatch: false,
+      detectedSource: 'strava',
+      extractedName: 'Different Runner',
+      nameMatchStatus: 'mismatched',
+      nameMismatchAcknowledged: true
+    }
+  });
+
+  await reviewSubmission({
+    submissionId: first._id,
+    organizerId: seed.organizer._id,
+    action: 'reject',
+    rejectionReason: 'Name mismatch',
+    reviewNotes: 'Replace screenshot'
+  });
+
+  const originalApproved = emailService.sendResultApprovedEmailToRunner;
+  const originalCertificate = emailService.sendCertificateIssuedEmailToRunner;
+  emailService.sendResultApprovedEmailToRunner = async () => ({ ok: true });
+  emailService.sendCertificateIssuedEmailToRunner = async () => ({ ok: true });
+
+  let resubmitted;
+  try {
+    resubmitted = await resubmitSubmission({
+      registrationId: seed.registration._id,
+      runnerId: seed.runner._id,
+      distanceKm: 10,
+      elapsedMs: 3600000,
+      runDate: new Date(),
+      runLocation: 'Manila',
+      proofType: 'photo',
+      proof: { url: 'https://example.com/proof-new.png', key: 'proof-new-key', mimeType: 'image/png', size: 1024 },
+      ocrData: {
+        extractedDistanceKm: 10,
+        extractedTimeMs: 3600000,
+        confidence: 0.9,
+        distanceMismatch: false,
+        timeMismatch: false,
+        detectedSource: 'strava',
+        extractedName: 'Submit Runner',
+        nameMatchStatus: 'matched',
+        nameMismatchAcknowledged: false
+      }
+    });
+  } finally {
+    emailService.sendResultApprovedEmailToRunner = originalApproved;
+    emailService.sendCertificateIssuedEmailToRunner = originalCertificate;
+  }
+
+  assert.equal(resubmitted.status, 'approved');
+  assert.equal(resubmitted.ocrData.extractedName, 'Submit Runner');
+  assert.equal(resubmitted.ocrData.nameMatchStatus, 'matched');
+  assert.equal(resubmitted.suspiciousFlag, false);
 });

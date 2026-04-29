@@ -148,6 +148,12 @@ const submissionSchema = new mongoose.Schema(
         enum: ['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', ''],
         default: ''
       },
+      extractedName: { type: String, trim: true, default: '', maxlength: 120 },
+      nameMatchStatus: {
+        type: String,
+        enum: ['matched', 'mismatched', 'not_detected', 'not_checked'],
+        default: 'not_checked'
+      },
       nameMismatchAcknowledged: { type: Boolean, default: false }
     },
     suspiciousFlag: {

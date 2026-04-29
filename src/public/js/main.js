@@ -1,24 +1,37 @@
-// Initialize Lucide icons
-lucide.createIcons();
-
 // Mobile menu toggle
-document.addEventListener('DOMContentLoaded', function() {
+function initMainUi() {
   const menuToggle = document.querySelector('.menu-toggle');
   const navLinks = document.querySelector('.nav-links');
   const backToTopBtn = document.getElementById('globalBackToTopBtn');
+
+  if (menuToggle && menuToggle.dataset.navInitialized !== '1') {
+    menuToggle.dataset.navInitialized = '1';
+  } else if (menuToggle) {
+    return;
+  }
   
   if (menuToggle && navLinks) {
-    const firstFocusableLink = () => navLinks.querySelector('a, button, [tabindex]:not([tabindex="-1"])');
+    const getFocusable = () =>
+      Array.from(navLinks.querySelectorAll('a, button, [tabindex]:not([tabindex="-1"])'))
+        .filter((el) => !el.disabled && el.offsetParent !== null);
+
+    const firstFocusableLink = () => getFocusable()[0] || null;
 
     const syncToggleIcon = (isOpen) => {
-      const icon = menuToggle.querySelector('i');
-      icon.setAttribute('data-lucide', isOpen ? 'x' : 'menu');
-      lucide.createIcons();
+      // Lucide replaces <i> with <svg> on page load, so query for either
+      const existing = menuToggle.querySelector('i, svg');
+      if (!existing) return;
+      const newIcon = document.createElement('i');
+      newIcon.setAttribute('data-lucide', isOpen ? 'x' : 'menu');
+      existing.replaceWith(newIcon);
+      // Use root to limit re-render to the toggle button only
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons({ root: menuToggle });
+      }
     };
 
     const openMenu = () => {
       navLinks.classList.add('active');
-      navLinks.setAttribute('data-open', 'true');
       menuToggle.setAttribute('aria-expanded', 'true');
       menuToggle.setAttribute('aria-label', 'Close navigation menu');
       syncToggleIcon(true);
@@ -26,7 +39,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const closeMenu = ({ returnFocus = false } = {}) => {
       navLinks.classList.remove('active');
-      navLinks.setAttribute('data-open', 'false');
       menuToggle.setAttribute('aria-expanded', 'false');
       menuToggle.setAttribute('aria-label', 'Open navigation menu');
       syncToggleIcon(false);
@@ -52,7 +64,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Close menu when clicking outside
     document.addEventListener('click', function(event) {
-      if (!event.target.closest('.nav-container') && navLinks.classList.contains('active')) {
+      const eventPath = typeof event.composedPath === 'function' ? event.composedPath() : [];
+      const clickInsideNav = eventPath.includes(menuToggle)
+        || eventPath.includes(navLinks)
+        || Boolean(event.target.closest('.nav-container'));
+
+      if (!clickInsideNav && navLinks.classList.contains('active')) {
         closeMenu();
       }
     });
@@ -62,14 +79,38 @@ document.addEventListener('DOMContentLoaded', function() {
       closeMenu();
     });
 
+    // Focus trap: Tab cycles within the open menu; Escape closes it
     document.addEventListener('keydown', function(event) {
-      if (event.key === 'Escape' && navLinks.classList.contains('active')) {
+      if (!navLinks.classList.contains('active')) return;
+
+      if (event.key === 'Escape') {
         closeMenu({ returnFocus: true });
+        return;
+      }
+
+      if (event.key === 'Tab') {
+        const focusable = getFocusable();
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (event.shiftKey) {
+          if (document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          }
+        } else {
+          if (document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
       }
     });
 
+    // Match CSS nav breakpoint: max-width: 900px means >=901px is desktop.
     window.addEventListener('resize', function() {
-      if (window.innerWidth > 768 && navLinks.classList.contains('active')) {
+      if (window.innerWidth >= 901 && navLinks.classList.contains('active')) {
         closeMenu();
       }
     });
@@ -90,4 +131,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     toggleBackToTop();
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMainUi);
+} else {
+  initMainUi();
+}
