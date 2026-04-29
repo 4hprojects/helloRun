@@ -602,6 +602,10 @@
   font-weight: 500;
 }
 
+.run-proof-name-match[hidden] {
+  display: none !important;
+}
+
 .run-proof-name-match--ok {
   color: #166534;
 }
@@ -625,6 +629,10 @@
   border-radius: 10px;
   padding: 1rem 1.1rem;
   margin-top: 0.75rem;
+}
+
+.run-proof-name-mismatch-dialog[hidden] {
+  display: none !important;
 }
 
 .run-proof-name-mismatch-icon {
@@ -670,6 +678,10 @@
 .run-proof-name-mismatch-actions .btn {
   font-size: 0.82rem;
   padding: 0.35rem 0.85rem;
+}
+
+.run-proof-name-mismatch-back {
+  border: 1.5px solid var(--border, #e2e8f0);
 }
 
 .run-proof-ocr-warning {

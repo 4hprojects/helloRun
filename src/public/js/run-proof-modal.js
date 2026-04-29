@@ -603,6 +603,7 @@
       const accountNameLower = String(accountName || '').trim().toLowerCase();
       if (!ocrNameLower || !accountNameLower) return false;
 
+      // Exact / substring match
       if (
         ocrNameLower === accountNameLower ||
         ocrNameLower.includes(accountNameLower) ||
@@ -611,11 +612,36 @@
         return true;
       }
 
+      // Both first and last name appear in OCR text
       const parts = accountNameLower.split(/\s+/).filter(Boolean);
-      if (parts.length < 2) return false;
-      const first = parts[0];
-      const last = parts[parts.length - 1];
-      return ocrNameLower.includes(first) && ocrNameLower.includes(last);
+      if (parts.length >= 2) {
+        const first = parts[0];
+        const last = parts[parts.length - 1];
+        if (ocrNameLower.includes(first) && ocrNameLower.includes(last)) {
+          return true;
+        }
+      }
+
+      // Fuzzy fallback — OCR often introduces 1-2 character substitutions
+      // (e.g. "Sagorsor" → "Sagorcer"). Compare each account name part against
+      // each OCR word: if positional character similarity ≥ 75%, treat as matched.
+      const charSim = (a, b) => {
+        if (!a || !b) return 0;
+        const longer  = a.length >= b.length ? a : b;
+        const shorter = a.length >= b.length ? b : a;
+        if (longer.length === 0) return 1;
+        let matches = 0;
+        for (let i = 0; i < shorter.length; i++) {
+          if (longer[i] === shorter[i]) matches++;
+        }
+        return matches / longer.length;
+      };
+      const accountParts = accountNameLower.split(/\s+/).filter(Boolean);
+      const ocrWords = ocrNameLower.split(/\s+/).filter(Boolean);
+      const allPartsClose = accountParts.every((part) =>
+        ocrWords.some((word) => charSim(part, word) >= 0.75)
+      );
+      return allPartsClose;
     };
 
     const setNameAnalysis = (result) => {
@@ -635,18 +661,24 @@
       if (!nameMatchEl) return status;
 
       if (status === 'matched') {
-        nameMatchEl.textContent = 'Name matches account';
+        nameMatchEl.textContent = '';
+        const _matchLabel = document.createElement('span');
+        _matchLabel.textContent = 'Name matches \u00b7 ';
+        const _matchName = document.createElement('strong');
+        _matchName.textContent = extractedName;
+        nameMatchEl.appendChild(_matchLabel);
+        nameMatchEl.appendChild(_matchName);
         nameMatchEl.className = 'run-proof-name-match run-proof-name-match--ok';
         nameMatchEl.hidden = false;
         if (nameMismatchDialog) nameMismatchDialog.hidden = true;
+        if (nameMismatchDetail) nameMismatchDetail.textContent = '';
         if (nameMismatchInput) nameMismatchInput.value = '0';
         return status;
       }
 
       if (status === 'mismatched') {
-        nameMatchEl.textContent = 'Different name detected';
-        nameMatchEl.className = 'run-proof-name-match run-proof-name-match--warn';
-        nameMatchEl.hidden = false;
+        // Hide the inline badge — the dialog below is the sole mismatch signal
+        if (nameMatchEl) nameMatchEl.hidden = true;
         if (nameMismatchDialog && nameMismatchDetail) {
           nameMismatchDetail.textContent = 'The screenshot shows the name "' + extractedName + '", but your account is registered as "' + runnerNameDisplay + '".';
           nameMismatchDialog.hidden = false;
@@ -1016,7 +1048,9 @@
     const requireNameMismatchAcknowledgement = (nextAction) => {
       const isMismatch = ocrNameMatchStatusInput && ocrNameMatchStatusInput.value === 'mismatched';
       const isAcknowledged = nameMismatchInput && nameMismatchInput.value === '1';
-      if (!isMismatch || isAcknowledged) return true;
+      // Never gate on mismatch if the name was confirmed as matched
+      const isConfirmedMatch = nameMatchEl && nameMatchEl.classList.contains('run-proof-name-match--ok');
+      if (!isMismatch || isAcknowledged || isConfirmedMatch) return true;
       state.pendingNameMismatchAction = String(nextAction || '');
       const mismatchWarningWasVisible = Boolean(nameMismatchDialog && !nameMismatchDialog.hidden);
       if (nameMismatchDialog) nameMismatchDialog.hidden = false;
@@ -1693,7 +1727,6 @@
 
     if (nameMismatchBack) {
       nameMismatchBack.addEventListener('click', () => {
-        // Go back to step 1 so the user can change their screenshot
         state.pendingNameMismatchAction = '';
         if (nameMismatchDialog) nameMismatchDialog.hidden = true;
         goToStep(1);
@@ -1702,7 +1735,6 @@
 
     if (nameMismatchContinue) {
       nameMismatchContinue.addEventListener('click', () => {
-        // Show the final confirmation overlay before flagging and proceeding
         if (nameMismatchConfirmOverlay) {
           nameMismatchConfirmOverlay.hidden = false;
           if (nameMismatchConfirmOk) nameMismatchConfirmOk.focus();
@@ -1719,10 +1751,14 @@
 
     if (nameMismatchConfirmOk) {
       nameMismatchConfirmOk.addEventListener('click', () => {
-        // User confirmed — flag for admin review and dismiss both dialogs
         if (nameMismatchInput) nameMismatchInput.value = '1';
         if (nameMismatchConfirmOverlay) nameMismatchConfirmOverlay.hidden = true;
         if (nameMismatchDialog) nameMismatchDialog.hidden = true;
+        if (nameMatchEl) {
+          nameMatchEl.textContent = 'Name difference acknowledged';
+          nameMatchEl.className = 'run-proof-name-match run-proof-name-match--neutral';
+          nameMatchEl.hidden = false;
+        }
         continueAfterNameMismatchAcknowledgement();
       });
     }
@@ -1735,6 +1771,8 @@
         }
       });
     }
+
+
 
     if (closeConfirmOk) {
       closeConfirmOk.addEventListener('click', () => {

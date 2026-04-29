@@ -631,6 +631,19 @@
     }).then(function (processedResult) {
       if (processedResult.ok) {
         console.debug('[OCR] Parse result:', processedResult);
+        // If the preprocessed pass found distance/time but NOT a name, run the
+        // original image to get a cleaner name reading. Preprocessing (greyscale +
+        // contrast boost) can distort athlete name text even when metrics are clear.
+        if (!processedResult.name) {
+          if (onProgress) onProgress('retrying original image', 0);
+          return recognizeWithWorker(activeWorker, imageFile, 'original-name', onProgress).then(function (originalResult) {
+            if (originalResult.name) {
+              processedResult.name = originalResult.name;
+              console.debug('[OCR] Name taken from original pass:', originalResult.name);
+            }
+            return processedResult;
+          });
+        }
         return processedResult;
       }
       if (onProgress) onProgress('retrying original image', 0);
