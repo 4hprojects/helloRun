@@ -8,6 +8,7 @@ const emailService = require('./email.service');
 const { createNotificationSafe } = require('./notification.service');
 const { isSubmissionWindowOpen } = require('../utils/submission-window');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
+const { detectSuspiciousActivity } = require('../utils/submission-integrity');
 
 const REVIEWABLE_STATUS = new Set(['submitted']);
 const FINAL_STATUSES = new Set(['approved']);
@@ -27,6 +28,7 @@ async function createSubmission({
   proofNotes,
   runType,
   elevationGain,
+  steps,
   ocrData
 }) {
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
@@ -41,6 +43,7 @@ async function createSubmission({
       proofNotes,
       runType,
       elevationGain,
+      steps,
       ocrData
     });
   }
@@ -65,6 +68,7 @@ async function createSubmission({
     submissionCount: 1,
     runType,
     elevationGain,
+    steps,
     ocrData
   }));
   return applyAutoApprovalIfEligible(submission);
@@ -82,6 +86,7 @@ async function resubmitSubmission({
   proofNotes,
   runType,
   elevationGain,
+  steps,
   ocrData
 }) {
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
@@ -111,6 +116,7 @@ async function resubmitSubmission({
     submissionCount: Number(existing.submissionCount || 1) + 1,
     runType,
     elevationGain,
+    steps,
     ocrData
   });
 
@@ -124,6 +130,7 @@ async function resubmitSubmission({
   existing.ocrData = payload.ocrData;
   existing.runType = payload.runType;
   existing.elevationGain = payload.elevationGain;
+  existing.steps = payload.steps;
   existing.suspiciousFlag = payload.suspiciousFlag;
   existing.suspiciousFlagReason = payload.suspiciousFlagReason;
   existing.status = 'submitted';
@@ -455,6 +462,7 @@ async function createPersonalRecordSubmission({
   proofNotes,
   runType,
   elevationGain,
+  steps,
   ocrData
 }) {
   const runner = await User.findById(runnerId)
@@ -529,6 +537,7 @@ async function createPersonalRecordSubmission({
       submissionCount: 1,
       runType,
       elevationGain,
+      steps,
       ocrData
     }),
     isPersonalRecord: true
@@ -561,8 +570,24 @@ function buildSubmissionPayload(registration, input) {
   const safeElapsedMs = sanitizeNumber(input.elapsedMs, 1, 7 * 24 * 60 * 60 * 1000, 'Elapsed time is invalid.');
   const safeRunDate = sanitizeRunDate(input.runDate);
   const safeRunLocation = sanitizeRunLocation(input.runLocation);
+  const safeRunType = sanitizeRunType(input.runType);
+  const safeElevationGain = sanitizeElevationGain(input.elevationGain);
+  const safeSteps = sanitizeSteps(input.steps);
   const ocrData = sanitizeOcrData(input.ocrData);
-  const { suspicious, reason } = detectSuspiciousActivity({ distanceKm: safeDistance, elapsedMs: safeElapsedMs, ocrData });
+  const integrity = detectSuspiciousActivity({
+    distanceKm: safeDistance,
+    elapsedMs: safeElapsedMs,
+    runDate: safeRunDate,
+    runLocation: safeRunLocation,
+    runType: safeRunType,
+    elevationGain: safeElevationGain,
+    steps: safeSteps,
+    ocrData
+  });
+  const mergedOcrData = {
+    ...ocrData,
+    ...integrity.comparisons
+  };
 
   return {
     registrationId: registration._id,
@@ -578,11 +603,12 @@ function buildSubmissionPayload(registration, input) {
     proofType: sanitizeProofType(input.proofType),
     proof: sanitizeProof(input.proof),
     proofNotes: String(input.proofNotes || '').trim().slice(0, 1200),
-    runType: sanitizeRunType(input.runType),
-    elevationGain: sanitizeElevationGain(input.elevationGain),
-    ocrData,
-    suspiciousFlag: suspicious,
-    suspiciousFlagReason: reason,
+    runType: safeRunType,
+    elevationGain: safeElevationGain,
+    steps: safeSteps,
+    ocrData: mergedOcrData,
+    suspiciousFlag: integrity.suspicious,
+    suspiciousFlagReason: integrity.reason.slice(0, 500),
     status: 'submitted',
     submissionCount: Number(input.submissionCount || 1),
     submittedAt: new Date()
@@ -607,6 +633,13 @@ function sanitizeElevationGain(value) {
   if (value === undefined || value === null || value === '') return null;
   const numeric = Number(value);
   if (!Number.isFinite(numeric) || numeric < 0 || numeric > 20000) return null;
+  return Math.round(numeric);
+}
+
+function sanitizeSteps(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < 0 || numeric > 200000) return null;
   return Math.round(numeric);
 }
 
@@ -640,10 +673,20 @@ function sanitizeOcrData(value) {
     return {
       extractedDistanceKm: null,
       extractedTimeMs: null,
+      extractedElevationGain: null,
+      extractedSteps: null,
+      extractedRunDate: '',
+      extractedRunLocation: '',
+      extractedRunType: '',
       rawText: '',
       confidence: 0,
       distanceMismatch: false,
       timeMismatch: false,
+      elevationMismatch: false,
+      stepsMismatch: false,
+      dateMismatch: false,
+      locationMismatch: false,
+      runTypeMismatch: false,
       detectedSource: '',
       extractedName: '',
       nameMatchStatus: 'not_checked',
@@ -653,14 +696,23 @@ function sanitizeOcrData(value) {
 
   const distKm = Number(value.extractedDistanceKm);
   const timeMs = Number(value.extractedTimeMs);
+  const elevationGain = Number(value.extractedElevationGain);
+  const steps = Number(value.extractedSteps);
   const ALLOWED_SOURCES = new Set(['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', '']);
   const ALLOWED_NAME_STATUSES = new Set(['matched', 'mismatched', 'not_detected', 'not_checked']);
+  const ALLOWED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run', '']);
   const rawSource = String(value.detectedSource || '').trim().toLowerCase();
   const rawNameStatus = String(value.nameMatchStatus || '').trim().toLowerCase();
+  const rawRunType = String(value.extractedRunType || '').trim().toLowerCase();
 
   return {
     extractedDistanceKm: Number.isFinite(distKm) && distKm > 0 && distKm <= 1000 ? distKm : null,
     extractedTimeMs: Number.isFinite(timeMs) && timeMs > 0 && timeMs <= 7 * 24 * 60 * 60 * 1000 ? timeMs : null,
+    extractedElevationGain: Number.isFinite(elevationGain) && elevationGain >= 0 && elevationGain <= 20000 ? Math.round(elevationGain) : null,
+    extractedSteps: Number.isFinite(steps) && steps >= 0 && steps <= 200000 ? Math.round(steps) : null,
+    extractedRunDate: sanitizeOcrDate(value.extractedRunDate),
+    extractedRunLocation: String(value.extractedRunLocation || '').trim().slice(0, 200),
+    extractedRunType: ALLOWED_RUN_TYPES.has(rawRunType) ? rawRunType : '',
     rawText: String(value.rawText || '').slice(0, 2000),
     confidence: (() => {
       const c = Number(value.confidence);
@@ -668,11 +720,24 @@ function sanitizeOcrData(value) {
     })(),
     distanceMismatch: Boolean(value.distanceMismatch),
     timeMismatch: Boolean(value.timeMismatch),
+    elevationMismatch: Boolean(value.elevationMismatch),
+    stepsMismatch: Boolean(value.stepsMismatch),
+    dateMismatch: Boolean(value.dateMismatch),
+    locationMismatch: Boolean(value.locationMismatch),
+    runTypeMismatch: Boolean(value.runTypeMismatch),
     detectedSource: ALLOWED_SOURCES.has(rawSource) ? rawSource : '',
     extractedName: cleanOcrNameCandidate(value.extractedName).slice(0, 120),
     nameMatchStatus: ALLOWED_NAME_STATUSES.has(rawNameStatus) ? rawNameStatus : 'not_checked',
     nameMismatchAcknowledged: Boolean(value.nameMismatchAcknowledged)
   };
+}
+
+function sanitizeOcrDate(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return '';
+  const date = new Date(`${raw}T00:00:00.000Z`);
+  return Number.isNaN(date.getTime()) ? '' : raw;
 }
 
 function cleanOcrNameCandidate(value) {
@@ -710,33 +775,14 @@ function isAutoApprovableOcrSubmission(submission) {
     extractedTimeMs > 0 &&
     !ocrData.distanceMismatch &&
     !ocrData.timeMismatch &&
+    !ocrData.elevationMismatch &&
+    !ocrData.stepsMismatch &&
+    !ocrData.dateMismatch &&
+    !ocrData.locationMismatch &&
+    !ocrData.runTypeMismatch &&
     !submission.suspiciousFlag &&
     Number(ocrData.confidence || 0) >= AUTO_APPROVAL_CONFIDENCE_THRESHOLD
   );
-}
-
-function detectSuspiciousActivity({ distanceKm, elapsedMs, ocrData }) {
-  if (!Number.isFinite(distanceKm) || !Number.isFinite(elapsedMs) || elapsedMs <= 0) {
-    return { suspicious: false, reason: '' };
-  }
-  if (distanceKm > 200) {
-    return { suspicious: true, reason: 'Distance exceeds 200 km.' };
-  }
-  const paceMinPerKm = elapsedMs / (distanceKm * 60000);
-  if (paceMinPerKm < 2) {
-    return { suspicious: true, reason: 'Pace faster than world record (< 2 min/km).' };
-  }
-  if (elapsedMs > 86400000) {
-    return { suspicious: true, reason: 'Duration exceeds 24 hours.' };
-  }
-  if (ocrData && ocrData.distanceMismatch && ocrData.confidence > 0.7) {
-    return { suspicious: true, reason: 'High-confidence OCR distance mismatch detected.' };
-  }
-  if (ocrData && ocrData.nameMatchStatus === 'mismatched' && ocrData.extractedName) {
-    const suffix = ocrData.nameMismatchAcknowledged ? ' Runner acknowledged and continued.' : '';
-    return { suspicious: true, reason: `Screenshot name does not match account name.${suffix}` };
-  }
-  return { suspicious: false, reason: '' };
 }
 
 function sanitizeRunDate(value) {

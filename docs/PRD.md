@@ -3,6 +3,56 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
+## STATUS UPDATE (Apr 29, 2026 - Run-Proof Integrity + OCR Accuracy Recovery)
+
+### Current reality after latest implementation
+- The `/runner/dashboard` run-proof modal now stores richer OCR metadata for distance, duration, elevation, steps, date, location, source app, activity type, extracted name, and mismatch flags.
+- Runner-entered values remain editable after OCR, but suspicious edits are treated as flag-only review signals: the submission can still save, but it does not auto-approve.
+- Organizer/admin review surfaces expose detailed suspicious reasons and OCR-vs-submitted values, while runner-facing submitted-entry surfaces keep neutral wording such as `Needs additional review`.
+- OCR parsing has been tuned against the current `docs/image_test` samples so compact Strava durations like `27m 48s`, `31m38s`, and `1h47m` are parsed as duration instead of confusing pace with elapsed time.
+- Replacing, dropping, removing, or resubmitting another image now clears stale visible run detail fields, including `steps`, before new OCR values are applied.
+
+### COMPLETED in this cycle
+- Added organized integrity helpers:
+  - backend: `src/utils/submission-integrity.js`
+  - frontend: `src/public/js/run-proof-integrity.js`
+- Added flag-only suspicious-entry checks for:
+  - extreme distance, pace, and duration
+  - duplicate proof screenshots
+  - OCR distance/name mismatch
+  - OCR-vs-submitted elevation, steps, date, location, and activity type mismatch
+  - implausible elevation density, steps-per-km, and cadence
+- Extended OCR metadata persistence and review display for elevation, steps, date, location, activity type, and mismatch fields.
+- Hardened OCR parser behavior:
+  - compact Strava duration formats are recognized
+  - pace tokens such as `5:33/km` are excluded from elapsed-time parsing
+  - `Strava App` is ignored as a location candidate
+  - Strava layout signals can override Garmin device labels for source detection
+- Hardened modal state cleanup:
+  - stale name-mismatch dialogs and confirmation overlays are hidden on new OCR results
+  - stale mismatch warnings are rebuilt from the current analysis only
+  - visible Step 2 fields are cleared when a new image replaces the previous one
+
+### Validation signals recorded
+- `node --check src/public/js/ocr-proof-reader.js` -> PASS
+- `node --check src/public/js/run-proof-modal.js` -> PASS
+- `node --test --test-concurrency=1 tests/ocr-proof-reader.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `node --test --test-concurrency=1 tests/run-proof-integrity.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `node --test --test-concurrency=1 tests/runner-dashboard-modal.test.js` with `CSRF_PROTECTION=0` -> PASS
+- `node --test --test-concurrency=1 tests/submission-routes.test.js` with `CSRF_PROTECTION=0` -> PASS
+- Earlier focused validation for the integrity pass also covered submission service/routes, runner submissions, admin dashboard, and organizer/admin review surfaces.
+
+### Remaining next tasks
+- Manual browser QA using the current `docs/image_test` screenshots:
+  - upload compact Strava screenshots
+  - replace an image after OCR and confirm stale steps/elevation/location do not remain
+  - confirm mismatched values show non-blocking warnings
+  - confirm suspicious submissions save and move to review
+  - confirm runner pages use neutral wording while organizer/admin pages show detailed reasons
+- Rerun full `npm test` before release tagging.
+
+---
+
 ## STATUS UPDATE (Apr 28, 2026 - Runner Run-Proof Modal Process Hardening)
 
 ### Current reality after latest implementation
@@ -1729,13 +1779,15 @@ Phase 12: OCR Smart Activity Submission [OCR] DRAFT
 
 Goal: Add smart screenshot-based activity submission for run, walk, trail run, hike, and step-based entries. Users upload screenshots from fitness and health apps, OCR auto-reads activity details, and users review/edit extracted values before submission.
 
-[DRAFT] Screenshot OCR upload with source app detection (Strava, Nike Run Club, Garmin, Apple Health, Google Fit)
-[DRAFT] Auto-fill activity fields from extracted data (distance, duration, date, pace)
-[DRAFT] Support for activity types: run, walk, trail run, hike, steps
-[DRAFT] OCR confidence scoring with user-facing match indicators
-[DRAFT] Duplicate screenshot detection to prevent repeat submissions
-[DRAFT] Suspicious activity flagging for organizer/admin review
-[DRAFT] Organizer and admin review compatibility with OCR metadata display
+[DONE/MVP] Screenshot OCR upload with source app detection (Strava, Nike Run Club, Garmin, Apple Health, Google Fit)
+[DONE/MVP] Auto-fill activity fields from extracted data (distance, duration, date, location, elevation, steps, activity type)
+[DONE/MVP] Support for activity types: run, walk, trail run, hike, steps
+[DONE/MVP] OCR confidence scoring with user-facing match indicators
+[DONE/MVP] Duplicate screenshot detection to prevent repeat submissions
+[DONE/MVP] Flag-only suspicious activity detection for organizer/admin review
+[DONE/MVP] Organizer and admin review compatibility with OCR metadata and OCR-vs-submitted mismatch display
+[DONE/MVP] Runner-facing neutral wording for suspicious or duplicate proof review states
+[DONE/MVP] OCR parser recovery for compact Strava duration formats and Strava location/source detection edge cases
 
 Detailed planning: See docs/ocr_smart_submission.md
 

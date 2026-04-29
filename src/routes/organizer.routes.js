@@ -630,7 +630,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
     }
     const submissions = registrationIds.length
       ? await Submission.find(submissionFilter)
-        .select('registrationId status distanceKm elapsedMs runDate runLocation proofType proof submittedAt reviewedAt reviewedBy reviewNotes rejectionReason ocrData runType elevationGain suspiciousFlag suspiciousFlagReason')
+        .select('registrationId status distanceKm elapsedMs runDate runLocation proofType proof submittedAt reviewedAt reviewedBy reviewNotes rejectionReason ocrData runType elevationGain steps suspiciousFlag suspiciousFlagReason')
         .populate('reviewedBy', 'firstName lastName')
         .lean()
       : [];

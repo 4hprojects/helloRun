@@ -507,3 +507,63 @@ test('parseOcrText — returns null run type when no keyword present', () => {
   assert.equal(r.runType, null);
 });
 
+test('parseOcrText - parses compact Strava duration without treating pace as time', () => {
+  const text = [
+    'Henson Sagorsor',
+    'March 7, 2026 at 7:19 PM - Strava App > | a Trinidad, Benguet',
+    'Evening Run',
+    'Distance Pace Time',
+    '5.01km 5:33/km 27m 48s'
+  ].join('\n');
+
+  const r = parse(text, 82);
+  assert.equal(r.detectedSource, 'strava');
+  assert.equal(r.distance.value, 5.01);
+  assert.equal(r.pace.minutes, 5);
+  assert.equal(r.pace.seconds, 33);
+  assert.equal(r.time.hours, 0);
+  assert.equal(r.time.minutes, 27);
+  assert.equal(r.time.seconds, 48);
+  assert.notEqual(r.location, 'Strava App');
+  assert.equal(r.location, 'Trinidad, Benguet');
+});
+
+test('parseOcrText - parses compact minute-second duration', () => {
+  const r = parse('Distance Time Elev Gain\n2.67km 31m38s 11m', 82);
+  assert.equal(r.distance.value, 2.67);
+  assert.equal(r.time.minutes, 31);
+  assert.equal(r.time.seconds, 38);
+  assert.equal(r.elevationGain.value, 11);
+});
+
+test('parseOcrText - parses compact hour-minute duration with OCR slash noise', () => {
+  const r = parse('Distance Time Elev Gain\n10.28 km 1h47/m 127m', 82);
+  assert.equal(r.distance.value, 10.28);
+  assert.equal(r.time.hours, 1);
+  assert.equal(r.time.minutes, 47);
+  assert.equal(r.time.seconds, 0);
+  assert.equal(r.elevationGain.value, 127);
+});
+
+test('parseOcrText - treats Garmin device label inside Strava layout as Strava', () => {
+  const text = [
+    'Aaron John',
+    'April 26, 2026 at 6:33 AM - Sagada, Mountain Province',
+    'Morning Walk',
+    'Distance Elevation Gain',
+    '2.68 km 51m',
+    'Moving Time Steps',
+    '55:05 3,334',
+    'Garmin Forerunner 965',
+    '0 gave kudos'
+  ].join('\n');
+
+  const r = parse(text, 82);
+  assert.equal(r.detectedSource, 'strava');
+  assert.equal(r.distance.value, 2.68);
+  assert.equal(r.time.minutes, 55);
+  assert.equal(r.time.seconds, 5);
+  assert.equal(r.elevationGain.value, 51);
+  assert.equal(r.steps, 3334);
+});
+

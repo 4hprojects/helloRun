@@ -6,6 +6,39 @@ This document defines the planned OCR-based smart activity submission system for
 
 It is a dedicated planning and implementation reference for screenshot-based activity proof uploads, auto-filled activity details, confidence scoring, and review support.
 
+## Implementation Status - Apr 29, 2026
+
+The current implementation has moved the run-proof OCR flow from draft planning into an MVP trust layer for the existing result submission modal.
+
+Implemented:
+
+- Browser-side OCR is integrated into the shared run-proof modal.
+- OCR can auto-fill distance, duration, run date, location, elevation gain, steps, and activity type when those values are detected.
+- Runners can edit OCR-filled values before submission.
+- OCR metadata is submitted and stored with the final confirmed values.
+- The frontend comparison helper lives in `src/public/js/run-proof-integrity.js`.
+- The backend suspicious-entry helper lives in `src/utils/submission-integrity.js`.
+- Suspicious conditions are flag-only: submissions are saved, but flagged submissions are held for organizer/admin review and are not auto-approved.
+- Organizer/admin review surfaces show detailed suspicious reasons and OCR-vs-submitted values.
+- Runner-facing pages use neutral wording for suspicious or duplicate proof states.
+
+Recent OCR parser recovery:
+
+- Compact Strava duration formats are supported: `27m 48s`, `31m38s`, `1h47m`, and OCR-noisy `1h47/m`.
+- Pace values such as `5:33/km` are excluded from elapsed-time parsing.
+- Strava location extraction ignores `Strava App` and looks for nearby real place text.
+- Strava layout signals can override Garmin device labels, so a Strava activity that mentions a Garmin watch is still treated as Strava.
+- Replacing, dropping, removing, or resubmitting a different screenshot clears stale editable fields such as `steps` before the new OCR result is applied.
+
+Current validation commands recorded:
+
+- `node --test --test-concurrency=1 tests/ocr-proof-reader.test.js`
+- `node --test --test-concurrency=1 tests/run-proof-integrity.test.js`
+- `node --test --test-concurrency=1 tests/runner-dashboard-modal.test.js`
+- `node --test --test-concurrency=1 tests/submission-routes.test.js`
+
+---
+
 Main PRD reference: `docs/PRD.md`
 
 Recommended file path:
@@ -1448,18 +1481,20 @@ Goal: Integrate OCR into the actual result submission flow.
 
 Tasks:
 
-- Add OCR upload option to current submission modal
-- Auto-fill existing form fields
-- Allow user correction
-- Submit final confirmed values
-- Store OCR metadata
-- Keep manual submission path working
+- [DONE] Add OCR upload option to current submission modal
+- [DONE] Auto-fill existing form fields
+- [DONE] Allow user correction
+- [DONE] Submit final confirmed values
+- [DONE] Store OCR metadata for source app, raw text, confidence, extracted values, and mismatch flags
+- [DONE] Keep manual submission path working
+- [DONE] Clear stale editable fields when a new screenshot replaces the previous one
 
 Validation:
 
 - Existing result submission tests remain green
 - Manual entry still works
 - OCR-assisted submission reaches review queue
+- Replacing an image does not retain stale OCR/manual values such as steps
 
 ---
 
@@ -1469,17 +1504,18 @@ Goal: Add basic anti-cheat and review support.
 
 Tasks:
 
-- Add screenshot hash
-- Flag duplicate screenshots
-- Add impossible pace checks
-- Add low-confidence flag
-- Add source unknown flag
-- Show OCR metadata in review queue
+- [DONE] Add screenshot hash
+- [DONE] Flag duplicate screenshots
+- [DONE] Add impossible pace checks
+- [DONE] Add flag-only impossible/suspicious checks for distance, duration, elevation, steps, OCR mismatches, name mismatch, date mismatch, run type mismatch, and location mismatch
+- [DONE] Show OCR metadata and mismatch fields in organizer/admin review surfaces
+- [PARTIAL] Low-confidence and unknown-source handling remain review signals, but thresholds may still be tuned from real screenshots
 
 Validation:
 
 - Duplicate screenshots are flagged
-- Suspicious submissions require review
+- Suspicious submissions require review instead of being blocked
+- Suspicious submissions do not auto-approve
 - Approved submissions remain leaderboard-eligible only after review
 
 ---
@@ -1532,10 +1568,14 @@ The OCR Smart Activity Submission feature is acceptable when:
 - Convert miles to kilometres
 - Extract duration from `29:44`
 - Extract duration from `1:02:30`
+- Extract duration from compact Strava text such as `27m 48s`, `31m38s`, and `1h47m`
+- Do not parse pace text such as `5:33/km` as elapsed time
 - Extract pace from `5:55/km`
 - Extract steps from `8,421 steps`
 - Extract calories from `312 kcal`
 - Detect source app from keyword
+- Detect Strava when Strava layout text includes a Garmin device label
+- Avoid using `Strava App` as the extracted location
 - Return missing fields safely
 
 ### Validation Tests
@@ -2569,5 +2609,3 @@ Backend review: Keep existing organizer/admin approval flow
 - OCR failure does not block manual entry.
 - Review flags are generated for low-confidence or conflicting entries.
 - Existing submission and review workflows remain compatible.
-
-

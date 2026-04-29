@@ -139,10 +139,24 @@ const submissionSchema = new mongoose.Schema(
     ocrData: {
       extractedDistanceKm: { type: Number, default: null },
       extractedTimeMs: { type: Number, default: null },
+      extractedElevationGain: { type: Number, default: null },
+      extractedSteps: { type: Number, default: null },
+      extractedRunDate: { type: String, default: '', maxlength: 10 },
+      extractedRunLocation: { type: String, trim: true, default: '', maxlength: 200 },
+      extractedRunType: {
+        type: String,
+        enum: ['run', 'walk', 'hike', 'trail_run', ''],
+        default: ''
+      },
       rawText: { type: String, default: '', maxlength: 2000 },
       confidence: { type: Number, default: 0, min: 0, max: 1 },
       distanceMismatch: { type: Boolean, default: false },
       timeMismatch: { type: Boolean, default: false },
+      elevationMismatch: { type: Boolean, default: false },
+      stepsMismatch: { type: Boolean, default: false },
+      dateMismatch: { type: Boolean, default: false },
+      locationMismatch: { type: Boolean, default: false },
+      runTypeMismatch: { type: Boolean, default: false },
       detectedSource: {
         type: String,
         enum: ['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', ''],

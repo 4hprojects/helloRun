@@ -11,6 +11,8 @@ const Event = require('../src/models/Event');
 const Registration = require('../src/models/Registration');
 const Submission = require('../src/models/Submission');
 const Blog = require('../src/models/Blog');
+const BlogComment = require('../src/models/BlogComment');
+const BlogReport = require('../src/models/BlogReport');
 const OrganiserApplication = require('../src/models/OrganiserApplication');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
 
@@ -55,14 +57,30 @@ test('admin dashboard renders platform stats and pending application queue', asy
   const html = await response.text();
 
   assert.match(html, /Admin Dashboard/i);
+  assert.match(html, /Action Center/i);
+  assert.match(html, /Quick Links/i);
+  assert.match(html, /Review Work/i);
   assert.match(html, /Platform Snapshot/i);
+  assert.match(html, /Content & Policies/i);
+  assert.match(html, /Event Operations/i);
+  assert.match(html, /Roadmap Features/i);
+  assert.match(html, /Shop Management/i);
+  assert.match(html, /OCR Review Intelligence/i);
+  assert.match(html, /Roadmap/i);
   assert.match(html, /Pending Organizer Applications/i);
   assert.match(html, /Pending Payment Reviews/i);
   assert.match(html, /Pending Result Reviews/i);
+  assert.match(html, /Blog Reports/i);
+  assert.match(html, /Blog Comments/i);
+  assert.match(html, /Open Blog Reports/i);
   assert.match(html, /\/admin\/privacy-policy/i);
   assert.match(html, /\/admin\/terms-and-conditions/i);
   assert.match(html, /\/admin\/cookie-policy/i);
-  assert.match(html, /Open Review Queue/i);
+  assert.match(html, /\/admin\/applications/i);
+  assert.match(html, /\/admin\/blog\/reports/i);
+  assert.match(html, /\/admin\/blog\/comments/i);
+  assert.match(html, /\/events/i);
+  assert.match(html, /\/leaderboard/i);
   assert.match(html, /\/admin\/reviews\?type=payments/i);
   assert.match(html, /\/admin\/reviews\?type=results/i);
   assert.match(html, /\/admin\/reviews/i);
@@ -268,6 +286,22 @@ async function seedAdminDashboardFixture() {
     submittedAt: new Date()
   });
 
+  const blogComment = await BlogComment.create({
+    blogId: blog._id,
+    authorId: runner._id,
+    content: `Admin dashboard report comment ${stamp}`
+  });
+
+  const blogReport = await BlogReport.create({
+    targetType: 'comment',
+    blogId: blog._id,
+    commentId: blogComment._id,
+    reporterId: runner._id,
+    reason: 'other',
+    note: `Admin dashboard report ${stamp}`,
+    status: 'open'
+  });
+
   return {
     stamp,
     password,
@@ -292,7 +326,9 @@ async function seedAdminDashboardFixture() {
     eventTitle: event.title,
     registrationId: String(registration._id),
     submissionId: String(submission._id),
-    blogId: String(blog._id)
+    blogId: String(blog._id),
+    blogCommentId: String(blogComment._id),
+    blogReportId: String(blogReport._id)
   };
 }
 
@@ -305,6 +341,8 @@ async function cleanupSeed(currentSeed) {
     Registration.deleteMany({ _id: { $in: [currentSeed.registrationId] } }),
     Event.deleteMany({ _id: { $in: [currentSeed.eventId] } }),
     OrganiserApplication.deleteMany({ _id: { $in: [currentSeed.pendingApplication.id] } }),
+    BlogReport.deleteMany({ _id: { $in: [currentSeed.blogReportId] } }),
+    BlogComment.deleteMany({ _id: { $in: [currentSeed.blogCommentId] } }),
     Blog.deleteMany({ _id: { $in: [currentSeed.blogId] } }),
     User.deleteMany({
       _id: {

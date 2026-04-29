@@ -31,6 +31,10 @@
   display: none;
 }
 
+.admin-dashboard-header {
+  margin-bottom: 0.4rem;
+}
+
 .admin-filters {
   display: grid;
   grid-template-columns: 220px 1fr auto;
@@ -147,6 +151,26 @@
   margin-left: 0.3rem;
 }
 
+.status-badge-live {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge-needs-review {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.status-badge-clear {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge-roadmap {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
 .status-badge-payment,
 .status-badge-proof_submitted {
   background: #ffedd5;
@@ -174,6 +198,10 @@
   margin: 1rem 0 1.25rem;
 }
 
+.action-center-grid {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
 .dashboard-section-title {
   margin-top: 1rem;
   margin-bottom: 0.35rem;
@@ -185,6 +213,22 @@
   border-radius: 10px;
   padding: 0.9rem;
   background: #fff;
+}
+
+.action-card {
+  background: #fffdfa;
+}
+
+.roadmap-card {
+  background: #fbfaff;
+}
+
+.metric-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 0.35rem;
 }
 
 .metric-label {
@@ -209,6 +253,42 @@
 
 .admin-menu {
   margin-top: 1rem;
+}
+
+.quick-link-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0 1.25rem;
+}
+
+.quick-link-card {
+  display: grid;
+  gap: 0.2rem;
+  min-height: 76px;
+  align-content: center;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  padding: 0.85rem;
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.quick-link-card:hover,
+.quick-link-card:focus-visible {
+  border-color: #fb923c;
+  background: #fff8f2;
+  outline: none;
+}
+
+.quick-link-title {
+  font-weight: 800;
+}
+
+.quick-link-meta {
+  color: #64748b;
+  font-size: 0.83rem;
 }
 
 .metric-value-sm {
@@ -485,6 +565,10 @@
   .admin-header-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .metric-card-head {
+    align-items: flex-start;
   }
 
   .policy-editor-textarea {

@@ -274,6 +274,51 @@
                                 <% } %>
                               </small><br>
                             <% } %>
+                            <% if (registration.submission.ocrData.extractedElevationGain != null) { %>
+                              <small><strong>Image elevation:</strong> <%= registration.submission.ocrData.extractedElevationGain %> m
+                                <% if (registration.submission.ocrData.elevationMismatch) { %>
+                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs <%= registration.submission.elevationGain != null ? registration.submission.elevationGain + ' m' : 'not entered' %></span>
+                                <% } else { %>
+                                  <span class="ocr-match-flag">&#10003; matches</span>
+                                <% } %>
+                              </small><br>
+                            <% } %>
+                            <% if (registration.submission.ocrData.extractedSteps != null) { %>
+                              <small><strong>Image steps:</strong> <%= Number(registration.submission.ocrData.extractedSteps || 0).toLocaleString() %>
+                                <% if (registration.submission.ocrData.stepsMismatch) { %>
+                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs <%= registration.submission.steps != null ? Number(registration.submission.steps || 0).toLocaleString() : 'not entered' %></span>
+                                <% } else { %>
+                                  <span class="ocr-match-flag">&#10003; matches</span>
+                                <% } %>
+                              </small><br>
+                            <% } %>
+                            <% if (registration.submission.ocrData.extractedRunDate) { %>
+                              <small><strong>Image date:</strong> <%= registration.submission.ocrData.extractedRunDate %>
+                                <% if (registration.submission.ocrData.dateMismatch) { %>
+                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs submitted date</span>
+                                <% } else { %>
+                                  <span class="ocr-match-flag">&#10003; matches</span>
+                                <% } %>
+                              </small><br>
+                            <% } %>
+                            <% if (registration.submission.ocrData.extractedRunType) { %>
+                              <small><strong>Image activity type:</strong> <%= String(registration.submission.ocrData.extractedRunType).replace('_', ' ') %>
+                                <% if (registration.submission.ocrData.runTypeMismatch) { %>
+                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs <%= String(registration.submission.runType || 'run').replace('_', ' ') %></span>
+                                <% } else { %>
+                                  <span class="ocr-match-flag">&#10003; matches</span>
+                                <% } %>
+                              </small><br>
+                            <% } %>
+                            <% if (registration.submission.ocrData.extractedRunLocation) { %>
+                              <small><strong>Image location:</strong> <%= registration.submission.ocrData.extractedRunLocation %>
+                                <% if (registration.submission.ocrData.locationMismatch) { %>
+                                  <span class="ocr-mismatch-flag">&#9888; mismatch vs submitted location</span>
+                                <% } else { %>
+                                  <span class="ocr-match-flag">&#10003; similar</span>
+                                <% } %>
+                              </small><br>
+                            <% } %>
                             <% if (registration.submission.ocrData.nameMatchStatus && registration.submission.ocrData.nameMatchStatus !== 'not_checked') { %>
                               <small><strong>Name analysis:</strong>
                                 <% if (registration.submission.ocrData.nameMatchStatus === 'matched') { %>

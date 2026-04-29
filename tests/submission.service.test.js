@@ -618,12 +618,14 @@ test('createSubmission persists runType and elevationGain', async () => {
 
 test('createSubmission persists OCR name analysis metadata', async () => {
   const seed = await seedSubmissionFixture('ocr-name-analysis');
+  const runDate = new Date();
+  const runDateIso = runDate.toISOString().slice(0, 10);
   const result = await createSubmission({
     registrationId: seed.registration._id,
     runnerId: seed.runner._id,
     distanceKm: 10,
     elapsedMs: 3600000,
-    runDate: new Date(),
+    runDate,
     runLocation: 'Manila',
     proofType: 'photo',
     proof: { url: 'https://example.com/proof-name.png', key: 'proof-name-key', mimeType: 'image/png', size: 1024 },
@@ -634,6 +636,11 @@ test('createSubmission persists OCR name analysis metadata', async () => {
       confidence: 0.6,
       distanceMismatch: false,
       timeMismatch: false,
+      extractedElevationGain: 200,
+      extractedSteps: 12000,
+      extractedRunDate: runDateIso,
+      extractedRunLocation: 'Manila',
+      extractedRunType: 'run',
       detectedSource: 'strava',
       extractedName: 'Submit Runner',
       nameMatchStatus: 'matched',
@@ -643,6 +650,11 @@ test('createSubmission persists OCR name analysis metadata', async () => {
 
   assert.equal(result.ocrData.extractedName, 'Submit Runner');
   assert.equal(result.ocrData.nameMatchStatus, 'matched');
+  assert.equal(result.ocrData.extractedElevationGain, 200);
+  assert.equal(result.ocrData.extractedSteps, 12000);
+  assert.equal(result.ocrData.extractedRunDate, runDateIso);
+  assert.equal(result.ocrData.extractedRunLocation, 'Manila');
+  assert.equal(result.ocrData.extractedRunType, 'run');
   assert.equal(result.suspiciousFlag, false);
   assert.equal(result.status, 'submitted');
 });
@@ -673,6 +685,51 @@ test('isAutoApprovableOcrSubmission requires a clean matched OCR result', () => 
       timeMismatch: false
     }
   }), false);
+
+  assert.equal(isAutoApprovableOcrSubmission({
+    status: 'submitted',
+    suspiciousFlag: false,
+    ocrData: {
+      nameMatchStatus: 'matched',
+      extractedDistanceKm: 10,
+      extractedTimeMs: 3600000,
+      confidence: 0.9,
+      distanceMismatch: false,
+      timeMismatch: false,
+      elevationMismatch: true
+    }
+  }), false);
+});
+
+test('createSubmission saves suspicious OCR elevation edits without auto-approving', async () => {
+  const seed = await seedSubmissionFixture('ocr-elevation-suspicious');
+  const result = await createSubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 10,
+    elapsedMs: 3600000,
+    runDate: new Date('2026-04-20T00:00:00.000Z'),
+    runLocation: 'Manila',
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof-elevation.png', key: 'proof-elevation-key', mimeType: 'image/png', size: 1024 },
+    runType: 'trail_run',
+    elevationGain: 2000,
+    ocrData: {
+      extractedDistanceKm: 10,
+      extractedTimeMs: 3600000,
+      extractedElevationGain: 200,
+      rawText: 'Submit Runner\n10.0 km\n1:00:00\nElevation Gain 200 m',
+      confidence: 0.9,
+      detectedSource: 'strava',
+      extractedName: 'Submit Runner',
+      nameMatchStatus: 'matched'
+    }
+  });
+
+  assert.equal(result.status, 'submitted');
+  assert.equal(result.suspiciousFlag, true);
+  assert.equal(result.ocrData.elevationMismatch, true);
+  assert.match(result.suspiciousFlagReason, /elevation mismatch/i);
 });
 
 test('createSubmission auto-approves clean matched OCR and issues certificate', async () => {

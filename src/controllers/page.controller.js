@@ -1439,10 +1439,17 @@ async function deleteProofObjectIfUnused(proofKey) {
 function parseOcrData(body, formDistanceKm, formElapsedMs, user = null) {
   const rawDistance = Number(body.ocrDistance);
   const rawTime = Number(body.ocrTime);
+  const rawElevation = Number(body.ocrElevation);
+  const rawSteps = Number(body.ocrSteps);
   const rawConfidence = Number(body.ocrConfidence);
 
   const extractedDistanceKm = Number.isFinite(rawDistance) && rawDistance > 0 && rawDistance <= 1000 ? rawDistance : null;
   const extractedTimeMs = Number.isFinite(rawTime) && rawTime > 0 && rawTime <= 7 * 24 * 60 * 60 * 1000 ? rawTime : null;
+  const extractedElevationGain = Number.isFinite(rawElevation) && rawElevation >= 0 && rawElevation <= 20000 ? Math.round(rawElevation) : null;
+  const extractedSteps = Number.isFinite(rawSteps) && rawSteps >= 0 && rawSteps <= 200000 ? Math.round(rawSteps) : null;
+  const extractedRunDate = parseOcrDate(body.ocrDate);
+  const extractedRunLocation = String(body.ocrLocation || '').trim().slice(0, 200);
+  const extractedRunType = parseRunTypeOrBlank(body.ocrRunType);
   const confidence = Number.isFinite(rawConfidence) && rawConfidence >= 0 && rawConfidence <= 1 ? Math.round(rawConfidence * 100) / 100 : 0;
   const rawText = String(body.ocrRawText || '').slice(0, 2000);
   const allowedSources = new Set(['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', '']);
@@ -1464,6 +1471,11 @@ function parseOcrData(body, formDistanceKm, formElapsedMs, user = null) {
   // Recompute mismatch flags server-side (don't trust client values)
   let distanceMismatch = false;
   let timeMismatch = false;
+  const elevationMismatch = String(body.ocrElevationMismatch || '').trim() === '1';
+  const stepsMismatch = String(body.ocrStepsMismatch || '').trim() === '1';
+  const dateMismatch = String(body.ocrDateMismatch || '').trim() === '1';
+  const locationMismatch = String(body.ocrLocationMismatch || '').trim() === '1';
+  const runTypeMismatch = String(body.ocrRunTypeMismatch || '').trim() === '1';
 
   if (extractedDistanceKm !== null && Number.isFinite(formDistanceKm) && formDistanceKm > 0) {
     const distDiff = Math.abs(extractedDistanceKm - formDistanceKm);
@@ -1479,15 +1491,37 @@ function parseOcrData(body, formDistanceKm, formElapsedMs, user = null) {
   return {
     extractedDistanceKm,
     extractedTimeMs,
+    extractedElevationGain,
+    extractedSteps,
+    extractedRunDate,
+    extractedRunLocation,
+    extractedRunType,
     rawText,
     confidence,
     distanceMismatch,
     timeMismatch,
+    elevationMismatch,
+    stepsMismatch,
+    dateMismatch,
+    locationMismatch,
+    runTypeMismatch,
     detectedSource,
     extractedName,
     nameMatchStatus,
     nameMismatchAcknowledged
   };
+}
+
+function parseOcrDate(value) {
+  const safe = String(value || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(safe)) return '';
+  const parsed = new Date(`${safe}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) ? '' : safe;
+}
+
+function parseRunTypeOrBlank(value) {
+  const safe = String(value || '').trim().toLowerCase();
+  return ['run', 'walk', 'hike', 'trail_run'].includes(safe) ? safe : '';
 }
 
 function namesMatch(ocrName, accountName) {

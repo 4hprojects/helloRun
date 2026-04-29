@@ -241,6 +241,12 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(source, /requireNameMismatchAcknowledgement\('final-submit'\)/);
   assert.match(source, /continueAfterNameMismatchAcknowledgement/);
   assert.match(source, /submitConfirmedRunProof/);
+  assert.match(source, /clearRunDetailFields/);
+  assert.match(source, /if \(stepsInput\) stepsInput\.value = ''/);
+  assert.match(source, /fileInput\.addEventListener\('change'[\s\S]*clearRunDetailFields\(\);/);
+  assert.match(source, /hideNameMismatchState/);
+  assert.match(source, /const confirmOverlay = document\.getElementById\('runProofNameMismatchConfirm'\)/);
+  assert.match(source, /hideNameMismatchState\(\);\s*if \(extractedName\)/);
   assert.match(source, /mismatchWarningWasVisible/);
   assert.match(source, /confirmOverlay && mismatchWarningWasVisible/);
   assert.match(source, /selectedRegistrationIds/);

@@ -50,10 +50,20 @@
     const ocrWarningEl = document.getElementById('runProofOcrWarning');
     const ocrDistanceInput = document.getElementById('runProofOcrDistance');
     const ocrTimeInput = document.getElementById('runProofOcrTime');
+    const ocrElevationInput = document.getElementById('runProofOcrElevation');
+    const ocrStepsInput = document.getElementById('runProofOcrSteps');
+    const ocrDateInput = document.getElementById('runProofOcrDate');
+    const ocrLocationInput = document.getElementById('runProofOcrLocation');
+    const ocrRunTypeExtractedInput = document.getElementById('runProofOcrRunType');
     const ocrRawTextInput = document.getElementById('runProofOcrRawText');
     const ocrConfidenceInput = document.getElementById('runProofOcrConfidence');
     const ocrDistanceMismatchInput = document.getElementById('runProofOcrDistanceMismatch');
     const ocrTimeMismatchInput = document.getElementById('runProofOcrTimeMismatch');
+    const ocrElevationMismatchInput = document.getElementById('runProofOcrElevationMismatch');
+    const ocrStepsMismatchInput = document.getElementById('runProofOcrStepsMismatch');
+    const ocrDateMismatchInput = document.getElementById('runProofOcrDateMismatch');
+    const ocrLocationMismatchInput = document.getElementById('runProofOcrLocationMismatch');
+    const ocrRunTypeMismatchInput = document.getElementById('runProofOcrRunTypeMismatch');
     const ocrDetectedSourceInput = document.getElementById('runProofOcrDetectedSource');
     const ocrExtractedNameInput = document.getElementById('runProofOcrExtractedName');
     const ocrNameMatchStatusInput = document.getElementById('runProofOcrNameMatchStatus');
@@ -485,6 +495,7 @@
     const setSelectedFileFromDrop = (file) => {
       if (!file) return;
       clearOcrState();
+      clearRunDetailFields();
       const dt = new DataTransfer();
       dt.items.add(file);
       fileInput.files = dt.files;
@@ -502,6 +513,15 @@
       if (analyseHint) analyseHint.hidden = true;
     };
 
+    const hideNameMismatchState = () => {
+      if (nameMismatchDialog) nameMismatchDialog.hidden = true;
+      if (nameMismatchDetail) nameMismatchDetail.textContent = '';
+      if (nameMismatchInput) nameMismatchInput.value = '0';
+      state.pendingNameMismatchAction = '';
+      const confirmOverlay = document.getElementById('runProofNameMismatchConfirm');
+      if (confirmOverlay) confirmOverlay.hidden = true;
+    };
+
     const clearOcrState = () => {
       state.ocrRunId += 1;
       state.ocrRunning = false;
@@ -512,10 +532,20 @@
       if (ocrWarningEl) ocrWarningEl.hidden = true;
       if (ocrDistanceInput) ocrDistanceInput.value = '';
       if (ocrTimeInput) ocrTimeInput.value = '';
+      if (ocrElevationInput) ocrElevationInput.value = '';
+      if (ocrStepsInput) ocrStepsInput.value = '';
+      if (ocrDateInput) ocrDateInput.value = '';
+      if (ocrLocationInput) ocrLocationInput.value = '';
+      if (ocrRunTypeExtractedInput) ocrRunTypeExtractedInput.value = '';
       if (ocrRawTextInput) ocrRawTextInput.value = '';
       if (ocrConfidenceInput) ocrConfidenceInput.value = '';
       if (ocrDistanceMismatchInput) ocrDistanceMismatchInput.value = '';
       if (ocrTimeMismatchInput) ocrTimeMismatchInput.value = '';
+      if (ocrElevationMismatchInput) ocrElevationMismatchInput.value = '';
+      if (ocrStepsMismatchInput) ocrStepsMismatchInput.value = '';
+      if (ocrDateMismatchInput) ocrDateMismatchInput.value = '';
+      if (ocrLocationMismatchInput) ocrLocationMismatchInput.value = '';
+      if (ocrRunTypeMismatchInput) ocrRunTypeMismatchInput.value = '';
       if (ocrDetectedSourceInput) ocrDetectedSourceInput.value = '';
       if (ocrExtractedNameInput) ocrExtractedNameInput.value = '';
       if (ocrNameMatchStatusInput) ocrNameMatchStatusInput.value = 'not_checked';
@@ -531,14 +561,26 @@
         nameMatchEl.className = 'run-proof-name-match';
         nameMatchEl.hidden = true;
       }
-      if (nameMismatchDialog) nameMismatchDialog.hidden = true;
-      if (nameMismatchDetail) nameMismatchDetail.textContent = '';
-      if (nameMismatchInput) nameMismatchInput.value = '0';
-      state.pendingNameMismatchAction = '';
-      const _nmco = document.getElementById('runProofNameMismatchConfirm');
-      if (_nmco) _nmco.hidden = true;
+      hideNameMismatchState();
       if (submitReviewOverlay) submitReviewOverlay.hidden = true;
       if (postSubmitOverlay) postSubmitOverlay.hidden = true;
+    };
+
+    const clearRunDetailFields = () => {
+      distanceInput.value = '';
+      hoursInput.value = '';
+      minutesInput.value = '';
+      secondsInput.value = '';
+      elapsedInput.value = '';
+      locationInput.value = '';
+      if (elevationInput) elevationInput.value = '';
+      if (stepsInput) stepsInput.value = '';
+      runTypeInput.value = '';
+      chipList.querySelectorAll('.run-proof-chip').forEach((chip) => {
+        chip.classList.remove('is-selected');
+        chip.setAttribute('aria-checked', 'false');
+      });
+      setTodayDate();
     };
 
     const formatOcrTime = (time) => {
@@ -552,25 +594,34 @@
     };
 
     const updateOcrComparison = () => {
-      if (!state.ocrResult || !window.OcrProofReader) return;
+      if (!state.ocrResult) return;
 
       const formDistKm = Number(distanceInput.value);
       const parts = parseDurationParts();
       const formMs = (parts.h * 3600 + parts.m * 60 + parts.s) * 1000;
 
-      const comparison = window.OcrProofReader.compareWithForm(state.ocrResult, formDistKm, formMs);
+      const comparison = window.RunProofIntegrity
+        ? window.RunProofIntegrity.compareWithForm(state.ocrResult, {
+          distanceKm: formDistKm,
+          elapsedMs: formMs,
+          runDate: runDateInput.value,
+          runLocation: locationInput.value,
+          runType: runTypeInput.value,
+          elevationGain: elevationInput ? elevationInput.value : '',
+          steps: stepsInput ? stepsInput.value : ''
+        })
+        : window.OcrProofReader.compareWithForm(state.ocrResult, formDistKm, formMs);
 
       if (ocrDistanceMismatchInput) ocrDistanceMismatchInput.value = comparison.distanceMismatch ? '1' : '0';
       if (ocrTimeMismatchInput) ocrTimeMismatchInput.value = comparison.timeMismatch ? '1' : '0';
+      if (ocrElevationMismatchInput) ocrElevationMismatchInput.value = comparison.elevationMismatch ? '1' : '0';
+      if (ocrStepsMismatchInput) ocrStepsMismatchInput.value = comparison.stepsMismatch ? '1' : '0';
+      if (ocrDateMismatchInput) ocrDateMismatchInput.value = comparison.dateMismatch ? '1' : '0';
+      if (ocrLocationMismatchInput) ocrLocationMismatchInput.value = comparison.locationMismatch ? '1' : '0';
+      if (ocrRunTypeMismatchInput) ocrRunTypeMismatchInput.value = comparison.runTypeMismatch ? '1' : '0';
 
       if (ocrWarningEl) {
-        const warnings = [];
-        if (comparison.distanceMismatch) {
-          warnings.push('Distance mismatch: image shows ' + (state.ocrResult.distance ? state.ocrResult.distance.value + ' ' + state.ocrResult.distance.unit : '?') + ' but form says ' + (Number.isFinite(formDistKm) ? formDistKm + ' km' : '?'));
-        }
-        if (comparison.timeMismatch) {
-          warnings.push('Time mismatch: image shows ' + formatOcrTime(state.ocrResult.time) + ' but form says ' + formatOcrTime({ hours: parts.h, minutes: parts.m, seconds: parts.s }));
-        }
+        const warnings = Array.isArray(comparison.warnings) ? comparison.warnings : [];
         if (warnings.length > 0) {
           ocrWarningEl.innerHTML = '<strong>Possible mismatch detected</strong><br>' + warnings.map(escapeHtml).join('<br>');
           ocrWarningEl.hidden = false;
@@ -648,6 +699,7 @@
       const extractedName = String(result && result.name ? result.name : '').trim();
       const hasAccountName = Boolean(runnerName);
       let status = 'not_checked';
+      hideNameMismatchState();
 
       if (extractedName) {
         status = hasAccountName && namesMatch(extractedName, runnerName) ? 'matched' : 'mismatched';
@@ -670,9 +722,6 @@
         nameMatchEl.appendChild(_matchName);
         nameMatchEl.className = 'run-proof-name-match run-proof-name-match--ok';
         nameMatchEl.hidden = false;
-        if (nameMismatchDialog) nameMismatchDialog.hidden = true;
-        if (nameMismatchDetail) nameMismatchDetail.textContent = '';
-        if (nameMismatchInput) nameMismatchInput.value = '0';
         return status;
       }
 
@@ -690,13 +739,10 @@
         nameMatchEl.textContent = 'Name not detected';
         nameMatchEl.className = 'run-proof-name-match run-proof-name-match--neutral';
         nameMatchEl.hidden = false;
-        if (nameMismatchDialog) nameMismatchDialog.hidden = true;
-        if (nameMismatchInput) nameMismatchInput.value = '0';
         return status;
       }
 
       nameMatchEl.hidden = true;
-      if (nameMismatchDialog) nameMismatchDialog.hidden = true;
       return status;
     };
 
@@ -867,6 +913,11 @@
 
         if (ocrDistanceInput) ocrDistanceInput.value = result.distance ? String(result.distance.valueKm) : '';
         if (ocrTimeInput) ocrTimeInput.value = result.time ? String(result.time.totalMs) : '';
+        if (ocrElevationInput) ocrElevationInput.value = result.elevationGain ? String(result.elevationGain.value) : '';
+        if (ocrStepsInput) ocrStepsInput.value = result.steps !== null && result.steps !== undefined ? String(result.steps) : '';
+        if (ocrDateInput) ocrDateInput.value = result.date || '';
+        if (ocrLocationInput) ocrLocationInput.value = result.location || '';
+        if (ocrRunTypeExtractedInput) ocrRunTypeExtractedInput.value = result.runType || '';
         if (ocrRawTextInput) ocrRawTextInput.value = result.rawText || '';
         if (ocrConfidenceInput) ocrConfidenceInput.value = String(result.confidence || 0);
         if (ocrDetectedSourceInput) ocrDetectedSourceInput.value = result.detectedSource || '';
@@ -1125,18 +1176,7 @@
       setEventsHelperText('Select the event result you want to submit. Personal record stays selected by default.');
       clearFilePreview();
       clearOcrState();
-      runTypeInput.value = '';
-      chipList.querySelectorAll('.run-proof-chip').forEach((chip) => {
-        chip.classList.remove('is-selected');
-        chip.setAttribute('aria-checked', 'false');
-      });
-      elapsedInput.value = '';
-      hoursInput.value = '';
-      minutesInput.value = '';
-      secondsInput.value = '';
-      locationInput.value = '';
-      distanceInput.value = '';
-      elevationInput.value = '';
+      clearRunDetailFields();
 
       state.isSubmitting = false;
       state.currentSurface = '';
@@ -1450,6 +1490,7 @@
       fileInput.value = '';
       clearFilePreview();
       clearOcrState();
+      clearRunDetailFields();
       validateImage();
       if (analyseBtn) analyseBtn.disabled = true;
       submitBtn.disabled = true;
@@ -1539,15 +1580,21 @@
 
     [runDateInput, distanceInput, locationInput].forEach((input) => {
       input.addEventListener('input', () => {
-        if (input === runDateInput) validateDate();
+        if (input === runDateInput) { validateDate(); updateOcrComparison(); }
         if (input === distanceInput) { validateDistance(); updateOcrComparison(); }
-        if (input === locationInput) validateLocation();
+        if (input === locationInput) { validateLocation(); updateOcrComparison(); }
       });
       input.addEventListener('blur', () => {
-        if (input === runDateInput) validateDate();
+        if (input === runDateInput) { validateDate(); updateOcrComparison(); }
         if (input === distanceInput) { validateDistance(); updateOcrComparison(); }
-        if (input === locationInput) validateLocation();
+        if (input === locationInput) { validateLocation(); updateOcrComparison(); }
       });
+    });
+
+    [elevationInput, stepsInput].forEach((input) => {
+      if (!input) return;
+      input.addEventListener('input', updateOcrComparison);
+      input.addEventListener('blur', updateOcrComparison);
     });
 
     const durationInputs = [hoursInput, minutesInput, secondsInput];
@@ -1581,6 +1628,7 @@
         node.setAttribute('aria-checked', isSelected ? 'true' : 'false');
       });
       validateRunType();
+      updateOcrComparison();
     });
 
     chipList.addEventListener('keydown', (event) => {
@@ -1604,6 +1652,7 @@
     fileInput.addEventListener('change', () => {
       const selectedFile = fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
       clearOcrState();
+      clearRunDetailFields();
       setFilePreview(selectedFile);
       validateImage();
       if (selectedFile) {
@@ -1926,8 +1975,26 @@
       }
     };
 
+    const appendIntegrityReviewWarnings = () => {
+      if (!submitReviewRows || !state.ocrResult || !window.RunProofIntegrity) return;
+      const durationParts = parseDurationParts();
+      const comparison = window.RunProofIntegrity.compareWithForm(state.ocrResult, {
+        distanceKm: Number(distanceInput.value),
+        elapsedMs: (durationParts.h * 3600 + durationParts.m * 60 + durationParts.s) * 1000,
+        runDate: runDateInput.value,
+        runLocation: locationInput.value,
+        runType: runTypeInput.value,
+        elevationGain: elevationInput ? elevationInput.value : '',
+        steps: stepsInput ? stepsInput.value : ''
+      });
+      if (comparison.warnings && comparison.warnings.length) {
+        submitReviewRows.appendChild(makeReviewRow('Analysis warnings', comparison.warnings.join(' '), 'warn'));
+      }
+    };
+
     const showSubmitReview = () => {
       buildSubmitReview();
+      appendIntegrityReviewWarnings();
       if (submitReviewOverlay) {
         submitReviewOverlay.hidden = false;
         if (submitReviewConfirm) submitReviewConfirm.focus();

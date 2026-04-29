@@ -108,6 +108,12 @@
                 <td><%= item.submittedAtLabel %></td>
                 <td>
                   <span class="status-badge status-badge-<%= item.status %>"><%= item.status.replace('_', ' ') %></span>
+                  <% if (item.suspiciousFlag) { %>
+                    <div><small class="status-badge status-badge-proof_rejected" title="<%= item.suspiciousFlagReason %>">Suspicious</small></div>
+                    <% if (item.suspiciousFlagReason) { %>
+                      <div><small><%= item.suspiciousFlagReason %></small></div>
+                    <% } %>
+                  <% } %>
                 </td>
                 <td>
                   <a href="<%= item.actionHref %>" class="btn btn-sm">Open Review</a>

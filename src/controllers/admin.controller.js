@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const OrganiserApplication = require('../models/OrganiserApplication');
 const User = require('../models/User');
 const Blog = require('../models/Blog');
+const BlogComment = require('../models/BlogComment');
+const BlogReport = require('../models/BlogReport');
 const Event = require('../models/Event');
 const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
@@ -891,6 +893,9 @@ exports.dashboard = async (req, res) => {
       publishedBlogs,
       rejectedBlogs,
       archivedBlogs,
+      openBlogReports,
+      totalBlogComments,
+      removedBlogComments,
       totalEvents,
       draftEvents,
       publishedEvents,
@@ -914,6 +919,9 @@ exports.dashboard = async (req, res) => {
         Blog.countDocuments({ isDeleted: { $ne: true }, status: 'published' }),
         Blog.countDocuments({ isDeleted: { $ne: true }, status: 'rejected' }),
         Blog.countDocuments({ isDeleted: { $ne: true }, status: 'archived' }),
+        BlogReport.countDocuments({ status: 'open' }),
+        BlogComment.countDocuments({ isDeleted: { $ne: true } }),
+        BlogComment.countDocuments({ status: 'removed' }),
         Event.countDocuments(),
         Event.countDocuments({ status: 'draft' }),
         Event.countDocuments({ status: 'published' }),
@@ -958,7 +966,9 @@ exports.dashboard = async (req, res) => {
       updatedAt: event.updatedAt || event.createdAt || null,
       eventStartAt: event.eventStartAt || null,
       organizerName: [event.organizerId?.firstName, event.organizerId?.lastName].filter(Boolean).join(' ').trim() || 'N/A',
-      organizerEmail: event.organizerId?.email || 'N/A'
+      organizerEmail: event.organizerId?.email || 'N/A',
+      actionLabel: 'Organizer-only',
+      actionHref: ''
     }));
 
     return res.render('admin/dashboard', {
@@ -974,6 +984,9 @@ exports.dashboard = async (req, res) => {
         publishedBlogs,
         rejectedBlogs,
         archivedBlogs,
+        openBlogReports,
+        totalBlogComments,
+        removedBlogComments,
         totalEvents,
         draftEvents,
         publishedEvents,
@@ -1062,6 +1075,8 @@ exports.reviewQueue = async (req, res) => {
         submittedAt,
         submittedAtLabel: formatAdminReviewDate(submittedAt),
         status: submission.status || 'submitted',
+        suspiciousFlag: Boolean(submission.suspiciousFlag),
+        suspiciousFlagReason: String(submission.suspiciousFlagReason || '').trim(),
         actionHref: `/organizer/events/${String(event._id || submission.eventId)}/registrants?result=submitted`
       };
     });

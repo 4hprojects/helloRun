@@ -120,6 +120,9 @@
 
   function detectSourceApp(text) {
     var t = normaliseOcrText(text);
+    if (/\b(?:strava|strava\s+app|gave\s+kudos|relative\s+effort|segments?|with\s+someone\s+who\s+didn'?t\s+record)\b/i.test(t)) {
+      return 'strava';
+    }
     for (var i = 0; i < SOURCE_PATTERNS.length; i++) {
       if (SOURCE_PATTERNS[i].pattern.test(t)) {
         return SOURCE_PATTERNS[i].source;
@@ -184,7 +187,45 @@
     return null;
   }
 
+  function buildTimeResult(hours, minutes, seconds) {
+    hours = parseInt(hours || 0, 10);
+    minutes = parseInt(minutes || 0, 10);
+    seconds = parseInt(seconds || 0, 10);
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) return null;
+    if (hours < 0 || hours > 99 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) return null;
+
+    var totalMs = (hours * 3600 + minutes * 60 + seconds) * 1000;
+    if (totalMs <= 0) return null;
+
+    return { hours: hours, minutes: minutes, seconds: seconds, totalMs: totalMs };
+  }
+
   function extractTime(text) {
+    var labelledCompactHour = text.match(/(?:moving\s*time|elapsed\s*time|time|duration|elapsed)[\s\S]{0,80}?(\d{1,2})\s*h\s*(\d{1,2})\s*\/?\s*m(?:\s*(\d{1,2})\s*s)?/i);
+    if (labelledCompactHour) {
+      var labelledHourResult = buildTimeResult(labelledCompactHour[1], labelledCompactHour[2], labelledCompactHour[3] || 0);
+      if (labelledHourResult) return labelledHourResult;
+    }
+
+    var labelledCompactMinute = text.match(/(?:moving\s*time|elapsed\s*time|time|duration|elapsed)[\s\S]{0,80}?(\d{1,2})\s*m\s*(\d{1,2})\s*s/i);
+    if (labelledCompactMinute) {
+      var labelledMinuteResult = buildTimeResult(0, labelledCompactMinute[1], labelledCompactMinute[2]);
+      if (labelledMinuteResult) return labelledMinuteResult;
+    }
+
+    var compactHour = text.match(/\b(\d{1,2})\s*h\s*(\d{1,2})\s*\/?\s*m(?:\s*(\d{1,2})\s*s)?\b/i);
+    if (compactHour) {
+      var compactHourResult = buildTimeResult(compactHour[1], compactHour[2], compactHour[3] || 0);
+      if (compactHourResult) return compactHourResult;
+    }
+
+    var compactMinute = text.match(/\b(\d{1,2})\s*m\s*(\d{1,2})\s*s\b/i);
+    if (compactMinute) {
+      var compactMinuteResult = buildTimeResult(0, compactMinute[1], compactMinute[2]);
+      if (compactMinuteResult) return compactMinuteResult;
+    }
+
     for (var i = 0; i < TIME_PATTERNS.length; i++) {
       var match = text.match(TIME_PATTERNS[i]);
       if (!match) continue;
@@ -206,13 +247,8 @@
         seconds = parseInt(match[2], 10);
       }
 
-      if (!Number.isFinite(hours) || !Number.isFinite(minutes) || !Number.isFinite(seconds)) continue;
-      if (hours < 0 || hours > 99 || minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) continue;
-
-      var totalMs = (hours * 3600 + minutes * 60 + seconds) * 1000;
-      if (totalMs <= 0) continue;
-
-      return { hours: hours, minutes: minutes, seconds: seconds, totalMs: totalMs };
+      var result = buildTimeResult(hours, minutes, seconds);
+      if (result) return result;
     }
     return null;
   }
@@ -226,6 +262,10 @@
   function stripDateLineClock(text) {
     // Remove "at H:MM AM/PM" (with optional surrounding context)
     return text.replace(/\bat\s+\d{1,2}:\d{2}\s*(?:AM|PM)/gi, '');
+  }
+
+  function stripPaceTimes(text) {
+    return String(text || '').replace(/\b\d{1,2}[:']\s*\d{2}\s*(?:\/\s*(?:km|mi)|min\s*\/\s*(?:km|mi)|\/(?:km|mi))\b/gi, '');
   }
 
   function extractPace(text) {
@@ -275,18 +315,46 @@
     return null;
   }
 
+  function cleanLocationCandidate(value) {
+    var loc = String(value || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!loc) return '';
+
+    loc = loc
+      .replace(/\bstrava\s+app\b/ig, '')
+      .replace(/^[\s>|=:\-.]+/g, '')
+      .replace(/^[a-z]\s+(?=[A-Z])/g, '')
+      .replace(/\b(?:morning|afternoon|evening|lunch)\s+(?:run|walk|hike|trail\s+run)\b[\s\S]*$/i, '')
+      .replace(/\b(?:distance|pace|time|moving\s+time|elapsed\s+time|duration|elev(?:ation)?\s+gain|steps)\b[\s\S]*$/i, '')
+      .replace(/[>|=]+\s*$/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!loc || loc.length < 2 || /^\d+$/.test(loc)) return '';
+    if (/^strava\s+app$/i.test(loc)) return '';
+    return loc;
+  }
+
   function extractLocation(text) {
     // Strava: "Yesterday at 7:26 AM · Zambales" or "April 23, 2026 at 6:56 PM · La Trinidad, Benguet"
     // Anchor on AM/PM before the separator to avoid false matches on map labels.
     // Accept · (U+00B7), • (U+2022), or " - " as separators (OCR may vary).
     var match = text.match(/(?:AM|PM)\s*[·•\-]\s*([^\r\n·•]{2,80})/i);
+    if (match) {
+      var stravaAppTail = match[1].match(/\bstrava\s+app\b[^\r\nA-Za-z]{0,20}([A-Za-z][^\r\n]{2,80})/i);
+      if (stravaAppTail) {
+        var tailLoc = cleanLocationCandidate(stravaAppTail[1]);
+        if (tailLoc) return tailLoc;
+      }
+    }
     if (!match) {
       // Fallback: any · or • not already consumed
       match = text.match(/[·•]\s*([^\r\n·•]{2,80})/);
     }
     if (match) {
-      var loc = match[1].trim().replace(/\s+/g, ' ');
-      if (loc.length >= 2 && !/^\d+$/.test(loc)) {
+      var loc = cleanLocationCandidate(match[1]);
+      if (loc) {
         return loc;
       }
     }
@@ -380,7 +448,7 @@
     var t = normaliseOcrText(rawText);
     var tNoDateClock = stripDateLineClock(t); // strip "at 2:58 PM" etc before time extraction
     var distance = extractDistance(t);
-    var time = extractTime(tNoDateClock);
+    var time = extractTime(stripPaceTimes(tNoDateClock));
     var pace = extractPace(tNoDateClock);
     var date = extractDate(t);
     var detectedSource = detectSourceApp(t);

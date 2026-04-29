@@ -9,97 +9,265 @@
   <%- include('../layouts/nav') %>
   <main class="admin-page">
     <section class="section admin-shell">
-      <h2>Admin Dashboard</h2>
+      <div class="admin-header-row admin-dashboard-header">
+        <div>
+          <h2>Admin Dashboard</h2>
+          <p>Review work, platform health, content operations, and roadmap entry points.</p>
+        </div>
+        <span class="status-badge status-badge-live">Live Operations</span>
+      </div>
 
-      <h3 class="dashboard-section-title">Organizer Applications</h3>
+      <h3 class="dashboard-section-title">Action Center</h3>
+      <div class="dashboard-grid action-center-grid">
+        <article class="metric-card action-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Organizer Applications</p>
+            <span class="status-badge <%= stats.pendingApplications > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
+              <%= stats.pendingApplications > 0 ? 'Needs Review' : 'Clear' %>
+            </span>
+          </div>
+          <p class="metric-value"><%= stats.pendingApplications %></p>
+          <a href="/admin/applications?status=pending" class="metric-link">Review Pending</a>
+        </article>
+
+        <article class="metric-card action-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Payment Proof Reviews</p>
+            <span class="status-badge <%= stats.pendingPaymentReviews > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
+              <%= stats.pendingPaymentReviews > 0 ? 'Needs Review' : 'Clear' %>
+            </span>
+          </div>
+          <p class="metric-value"><%= stats.pendingPaymentReviews %></p>
+          <a href="/admin/reviews?type=payments" class="metric-link">Open Payment Queue</a>
+        </article>
+
+        <article class="metric-card action-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Run Proof Reviews</p>
+            <span class="status-badge <%= stats.pendingResultReviews > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
+              <%= stats.pendingResultReviews > 0 ? 'Needs Review' : 'Clear' %>
+            </span>
+          </div>
+          <p class="metric-value"><%= stats.pendingResultReviews %></p>
+          <a href="/admin/reviews?type=results" class="metric-link">Open Result Queue</a>
+        </article>
+
+        <article class="metric-card action-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Blog Reviews</p>
+            <span class="status-badge <%= stats.pendingBlogs > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
+              <%= stats.pendingBlogs > 0 ? 'Needs Review' : 'Clear' %>
+            </span>
+          </div>
+          <p class="metric-value"><%= stats.pendingBlogs %></p>
+          <a href="/admin/blog/review?status=pending" class="metric-link">Review Pending Posts</a>
+        </article>
+
+        <article class="metric-card action-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Blog Reports</p>
+            <span class="status-badge <%= stats.openBlogReports > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
+              <%= stats.openBlogReports > 0 ? 'Needs Review' : 'Clear' %>
+            </span>
+          </div>
+          <p class="metric-value"><%= stats.openBlogReports %></p>
+          <a href="/admin/blog/reports" class="metric-link">Moderate Reports</a>
+        </article>
+
+        <article class="metric-card action-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Draft Events</p>
+            <span class="status-badge <%= stats.draftEvents > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
+              <%= stats.draftEvents > 0 ? 'Needs Follow-up' : 'Clear' %>
+            </span>
+          </div>
+          <p class="metric-value"><%= stats.draftEvents %></p>
+          <p class="metric-helper">Organizer-owned drafts waiting to publish</p>
+        </article>
+      </div>
+
+      <h3 class="dashboard-section-title">Quick Links</h3>
+      <nav class="quick-link-grid" aria-label="Admin quick links">
+        <a href="/admin/applications" class="quick-link-card">
+          <span class="quick-link-title">Organizer Applications</span>
+          <span class="quick-link-meta">Review and filter applicants</span>
+        </a>
+        <a href="/admin/reviews" class="quick-link-card">
+          <span class="quick-link-title">Payment & Result Reviews</span>
+          <span class="quick-link-meta">Cross-event proof queue</span>
+        </a>
+        <a href="/admin/blog/review" class="quick-link-card">
+          <span class="quick-link-title">Blog Moderation</span>
+          <span class="quick-link-meta">Review posts and revisions</span>
+        </a>
+        <a href="/admin/blog/reports" class="quick-link-card">
+          <span class="quick-link-title">Blog Reports</span>
+          <span class="quick-link-meta">Reported posts and comments</span>
+        </a>
+        <a href="/admin/blog/comments" class="quick-link-card">
+          <span class="quick-link-title">Blog Comments</span>
+          <span class="quick-link-meta">Remove or restore comments</span>
+        </a>
+        <a href="/admin/privacy-policy" class="quick-link-card">
+          <span class="quick-link-title">Privacy Policy</span>
+          <span class="quick-link-meta">Manage versions</span>
+        </a>
+        <a href="/admin/terms-and-conditions" class="quick-link-card">
+          <span class="quick-link-title">Terms and Conditions</span>
+          <span class="quick-link-meta">Manage versions</span>
+        </a>
+        <a href="/admin/cookie-policy" class="quick-link-card">
+          <span class="quick-link-title">Cookie Policy</span>
+          <span class="quick-link-meta">Manage versions</span>
+        </a>
+        <a href="/events" class="quick-link-card">
+          <span class="quick-link-title">Public Events</span>
+          <span class="quick-link-meta">Open event catalog</span>
+        </a>
+        <a href="/leaderboard" class="quick-link-card">
+          <span class="quick-link-title">Leaderboard</span>
+          <span class="quick-link-meta">Approved public results</span>
+        </a>
+      </nav>
+
+      <h3 class="dashboard-section-title">Review Work</h3>
       <div class="dashboard-grid">
         <article class="metric-card">
           <p class="metric-label">Pending Applications</p>
           <p class="metric-value"><%= stats.pendingApplications %></p>
           <a href="/admin/applications?status=pending" class="metric-link">Review Pending</a>
         </article>
-
         <article class="metric-card">
-          <p class="metric-label">Total Applications</p>
-          <p class="metric-value"><%= stats.totalApplications %></p>
-          <a href="/admin/applications" class="metric-link">View All</a>
+          <p class="metric-label">Pending Payment Reviews</p>
+          <p class="metric-value"><%= stats.pendingPaymentReviews %></p>
+          <a href="/admin/reviews?type=payments" class="metric-link">Open Payment Queue</a>
         </article>
-
         <article class="metric-card">
-          <p class="metric-label">Approved</p>
-          <p class="metric-value"><%= stats.approvedApplications %></p>
-          <a href="/admin/applications?status=approved" class="metric-link">View Approved</a>
+          <p class="metric-label">Pending Result Reviews</p>
+          <p class="metric-value"><%= stats.pendingResultReviews %></p>
+          <a href="/admin/reviews?type=results" class="metric-link">Open Result Queue</a>
         </article>
-
         <article class="metric-card">
-          <p class="metric-label">Rejected</p>
-          <p class="metric-value"><%= stats.rejectedApplications %></p>
-          <a href="/admin/applications?status=rejected" class="metric-link">View Rejected</a>
+          <p class="metric-label">Pending Blog Reviews</p>
+          <p class="metric-value"><%= stats.pendingBlogs %></p>
+          <a href="/admin/blog/review?status=pending" class="metric-link">Review Queue</a>
         </article>
-
         <article class="metric-card">
-          <p class="metric-label">Total Users</p>
-          <p class="metric-value"><%= stats.totalUsers %></p>
-          <p class="metric-helper">Platform accounts</p>
+          <p class="metric-label">Open Blog Reports</p>
+          <p class="metric-value"><%= stats.openBlogReports %></p>
+          <a href="/admin/blog/reports" class="metric-link">Open Reports</a>
         </article>
       </div>
 
       <h3 class="dashboard-section-title">Platform Snapshot</h3>
       <div class="dashboard-grid">
         <article class="metric-card">
+          <p class="metric-label">Total Users</p>
+          <p class="metric-value"><%= stats.totalUsers %></p>
+          <p class="metric-helper">Platform accounts</p>
+        </article>
+        <article class="metric-card">
           <p class="metric-label">Total Events</p>
           <p class="metric-value"><%= stats.totalEvents %></p>
           <p class="metric-helper">All statuses</p>
         </article>
-
-        <article class="metric-card">
-          <p class="metric-label">Draft Events</p>
-          <p class="metric-value"><%= stats.draftEvents %></p>
-          <p class="metric-helper">Awaiting organizer publish</p>
-        </article>
-
         <article class="metric-card">
           <p class="metric-label">Published Events</p>
           <p class="metric-value"><%= stats.publishedEvents %></p>
           <a href="/events" class="metric-link">Open Public Events</a>
         </article>
-
         <article class="metric-card">
           <p class="metric-label">Total Registrations</p>
           <p class="metric-value"><%= stats.totalRegistrations %></p>
           <p class="metric-helper">Runner signups</p>
         </article>
-
-        <article class="metric-card">
-          <p class="metric-label">Pending Payment Reviews</p>
-          <p class="metric-value"><%= stats.pendingPaymentReviews %></p>
-          <% if (stats.pendingPaymentReviewHref) { %>
-            <a href="<%= stats.pendingPaymentReviewHref %>" class="metric-link">Open Review Queue</a>
-          <% } else { %>
-            <p class="metric-helper">No pending queue</p>
-          <% } %>
-        </article>
-
         <article class="metric-card">
           <p class="metric-label">Total Submissions</p>
           <p class="metric-value"><%= stats.totalSubmissions %></p>
           <p class="metric-helper">All result statuses</p>
         </article>
-
         <article class="metric-card">
           <p class="metric-label">Approved Submissions</p>
           <p class="metric-value"><%= stats.approvedSubmissions %></p>
           <p class="metric-helper">Eligible for certificates</p>
         </article>
+      </div>
 
+      <h3 class="dashboard-section-title">Content & Policies</h3>
+      <div class="dashboard-grid">
         <article class="metric-card">
-          <p class="metric-label">Pending Result Reviews</p>
-          <p class="metric-value"><%= stats.pendingResultReviews %></p>
-          <% if (stats.pendingResultReviewHref) { %>
-            <a href="<%= stats.pendingResultReviewHref %>" class="metric-link">Open Review Queue</a>
-          <% } else { %>
-            <p class="metric-helper">No pending queue</p>
-          <% } %>
+          <p class="metric-label">Total Blog Posts</p>
+          <p class="metric-value"><%= stats.totalBlogs %></p>
+          <a href="/admin/blog/review" class="metric-link">View All Blog Statuses</a>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Published Blogs</p>
+          <p class="metric-value"><%= stats.publishedBlogs %></p>
+          <a href="/admin/blog/review?status=published" class="metric-link">View Published</a>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Rejected Blogs</p>
+          <p class="metric-value"><%= stats.rejectedBlogs %></p>
+          <a href="/admin/blog/review?status=rejected" class="metric-link">View Rejected</a>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Archived Blogs</p>
+          <p class="metric-value"><%= stats.archivedBlogs %></p>
+          <a href="/admin/blog/review?status=archived" class="metric-link">View Archived</a>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Blog Comments</p>
+          <p class="metric-value"><%= stats.totalBlogComments %></p>
+          <a href="/admin/blog/comments" class="metric-link"><%= stats.removedBlogComments %> removed</a>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Privacy Policy</p>
+          <p class="metric-value metric-value-sm">Manage</p>
+          <a href="/admin/privacy-policy" class="metric-link">Manage Versions</a>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Terms and Conditions</p>
+          <p class="metric-value metric-value-sm">Manage</p>
+          <a href="/admin/terms-and-conditions" class="metric-link">Manage Versions</a>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Cookie Policy</p>
+          <p class="metric-value metric-value-sm">Manage</p>
+          <a href="/admin/cookie-policy" class="metric-link">Manage Versions</a>
+        </article>
+      </div>
+
+      <h3 class="dashboard-section-title">Roadmap Features</h3>
+      <div class="dashboard-grid roadmap-grid">
+        <article class="metric-card roadmap-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Shop Management</p>
+            <span class="status-badge status-badge-roadmap">Roadmap</span>
+          </div>
+          <p class="metric-value metric-value-sm">Draft</p>
+          <p class="metric-helper">Product management, orders, and inventory alerts are planned but not live.</p>
+        </article>
+        <article class="metric-card roadmap-card">
+          <div class="metric-card-head">
+            <p class="metric-label">OCR Review Intelligence</p>
+            <span class="status-badge status-badge-roadmap">Roadmap</span>
+          </div>
+          <p class="metric-value metric-value-sm">Draft</p>
+          <p class="metric-helper">OCR-assisted submissions, confidence flags, and duplicate screenshot review are planned but not live.</p>
+        </article>
+      </div>
+
+      <h3 class="dashboard-section-title">Event Operations</h3>
+      <div class="dashboard-grid">
+        <article class="metric-card">
+          <p class="metric-label">Draft Events</p>
+          <p class="metric-value"><%= stats.draftEvents %></p>
+          <p class="metric-helper">Awaiting organizer publish</p>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Published Events</p>
+          <p class="metric-value"><%= stats.publishedEvents %></p>
+          <a href="/events" class="metric-link">Open Public Events</a>
         </article>
       </div>
 
@@ -113,6 +281,7 @@
               <th>Status</th>
               <th>Updated</th>
               <th>Start Date</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -126,13 +295,22 @@
                 <td><span class="status-badge status-badge-draft"><%= item.status %></span></td>
                 <td><%= item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('en-US') : 'N/A' %></td>
                 <td><%= item.eventStartAt ? new Date(item.eventStartAt).toLocaleDateString('en-US') : 'TBA' %></td>
+                <td>
+                  <% if (item.actionHref) { %>
+                    <a href="<%= item.actionHref %>" class="btn btn-sm"><%= item.actionLabel || 'Open' %></a>
+                  <% } else { %>
+                    <span class="metric-helper"><%= item.actionLabel || 'No admin route' %></span>
+                  <% } %>
+                </td>
               </tr>
             <% }) %>
           </tbody>
         </table>
       <% } else { %>
         <div class="empty-state">
-          <p>No draft events available right now.</p>
+          <h3>No draft events need follow-up</h3>
+          <p>Event operations are clear. Check public events or review queues for active work.</p>
+          <a href="/events" class="btn btn-secondary">Open Public Events</a>
         </div>
       <% } %>
 
@@ -169,74 +347,15 @@
         </table>
       <% } else { %>
         <div class="empty-state">
-          <p>No pending organizer applications right now.</p>
+          <h3>No pending organizer applications</h3>
+          <p>The application queue is clear. Use the applications list to audit approved or rejected organizers.</p>
+          <a href="/admin/applications" class="btn btn-secondary">View All Applications</a>
         </div>
       <% } %>
-
-      <h3 class="dashboard-section-title">Blog Moderation</h3>
-      <div class="dashboard-grid">
-        <article class="metric-card">
-          <p class="metric-label">Pending Blog Reviews</p>
-          <p class="metric-value"><%= stats.pendingBlogs %></p>
-          <a href="/admin/blog/review?status=pending" class="metric-link">Review Queue</a>
-        </article>
-
-        <article class="metric-card">
-          <p class="metric-label">Total Blog Posts</p>
-          <p class="metric-value"><%= stats.totalBlogs %></p>
-          <a href="/admin/blog/review" class="metric-link">View All Blog Statuses</a>
-        </article>
-
-        <article class="metric-card">
-          <p class="metric-label">Published Blogs</p>
-          <p class="metric-value"><%= stats.publishedBlogs %></p>
-          <a href="/admin/blog/review?status=published" class="metric-link">View Published</a>
-        </article>
-
-        <article class="metric-card">
-          <p class="metric-label">Rejected Blogs</p>
-          <p class="metric-value"><%= stats.rejectedBlogs %></p>
-          <a href="/admin/blog/review?status=rejected" class="metric-link">View Rejected</a>
-        </article>
-
-        <article class="metric-card">
-          <p class="metric-label">Archived Blogs</p>
-          <p class="metric-value"><%= stats.archivedBlogs %></p>
-          <a href="/admin/blog/review?status=archived" class="metric-link">View Archived</a>
-        </article>
-      </div>
-
-      <h3 class="dashboard-section-title">Policy Management</h3>
-      <div class="dashboard-grid">
-        <article class="metric-card">
-          <p class="metric-label">Privacy Policy</p>
-          <p class="metric-value metric-value-sm">Manage</p>
-          <a href="/admin/privacy-policy" class="metric-link">Manage Versions</a>
-        </article>
-        <article class="metric-card">
-          <p class="metric-label">Terms and Conditions</p>
-          <p class="metric-value metric-value-sm">Manage</p>
-          <a href="/admin/terms-and-conditions" class="metric-link">Manage Versions</a>
-        </article>
-        <article class="metric-card">
-          <p class="metric-label">Cookie Policy</p>
-          <p class="metric-value metric-value-sm">Manage</p>
-          <a href="/admin/cookie-policy" class="metric-link">Manage Versions</a>
-        </article>
-      </div>
-
-      <nav class="admin-menu">
-        <a href="/admin/applications" class="btn">Organizer Applications</a>
-        <a href="/admin/reviews" class="btn btn-secondary">Payment & Result Reviews</a>
-        <a href="/admin/blog/review" class="btn btn-secondary">Blog Moderation</a>
-        <a href="/admin/privacy-policy" class="btn btn-secondary">Privacy Policy</a>
-        <a href="/admin/terms-and-conditions" class="btn btn-secondary">Terms and Conditions</a>
-        <a href="/admin/cookie-policy" class="btn btn-secondary">Cookie Policy</a>
-      </nav>
     </section>
   </main>
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>lucide.createIcons();</script>
+  <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

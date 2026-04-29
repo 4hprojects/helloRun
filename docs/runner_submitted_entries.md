@@ -922,6 +922,19 @@ This page should be ready for OCR Smart Activity Submission.
 
 Initial version should support optional OCR metadata without requiring OCR to be fully complete.
 
+## Current OCR/Integrity Behavior - Apr 29, 2026
+
+The run-proof modal now submits richer OCR metadata and flag-only integrity signals that this page can display safely.
+
+Current behavior:
+
+- OCR metadata may include extracted distance, duration, elevation, steps, date, location, source app, activity type, athlete name, confidence, and mismatch flags.
+- Runners can manually edit OCR-filled values before submitting.
+- Edited values that strongly diverge from OCR are not blocked, but they are flagged for organizer/admin review.
+- Suspicious submissions should be shown to runners with neutral wording such as `Needs additional review`.
+- Detailed suspicious reasons and OCR-vs-submitted values are reviewer-facing only.
+- Replacing or resubmitting another proof image clears stale editable fields such as `steps` before the new OCR result is applied.
+
 Display states:
 
 ## OCR Used Successfully
