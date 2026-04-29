@@ -1759,6 +1759,9 @@
           nameMatchEl.className = 'run-proof-name-match run-proof-name-match--neutral';
           nameMatchEl.hidden = false;
         }
+        // Always proceed to the review overlay so the runner can verify all
+        // details before the final submit — regardless of original pending action.
+        state.pendingNameMismatchAction = 'submit-review';
         continueAfterNameMismatchAcknowledgement();
       });
     }
