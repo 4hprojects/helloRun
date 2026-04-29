@@ -127,7 +127,7 @@ exports.getDashboardResultSubmissions = async (req, res) => {
     const groupQuery = String(req.query.groupQ || '').trim().slice(0, 80);
     const dashboardFilters = getDashboardFilters(req.query);
     const performanceSnapshot = await getRunnerPerformanceSnapshot(user._id, {
-      recentLimit: 8,
+      recentLimit: 2,
       resultStatus: dashboardFilters.resultStatus
     });
 

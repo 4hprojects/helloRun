@@ -32,12 +32,20 @@
   </div>
   <div class="card-content result-submissions-panel">
     <% if (resultCards && resultCards.length) { %>
-      <p class="result-submissions-count"><small>Showing <%= resultCards.length %> result<%= resultCards.length !== 1 ? 's' : '' %></small></p>
+      <p class="result-submissions-count"><small>Latest <%= resultCards.length %> result<%= resultCards.length !== 1 ? 's' : '' %></small></p>
       <ul class="item-list">
         <% resultCards.forEach((item) => { %>
           <% const PROOF_TYPE_LABELS = { photo: 'Photo', gps: 'GPS Tracked', manual: 'Manual' }; %>
           <% const RUN_TYPE_LABELS = { run: 'Run', walk: 'Walk', hike: 'Hike', trail_run: 'Trail Run' }; %>
           <li class="item-row">
+            <% if (item.submissionId) { %>
+              <a
+                href="/runner/submissions/<%= item.submissionId %>"
+                class="item-detail-btn"
+                aria-label="View submission details"
+                title="View details"
+              ><i data-lucide="external-link"></i></a>
+            <% } %>
             <div class="item-main">
               <div class="item-title">
                 <% if (item.eventSlug) { %>

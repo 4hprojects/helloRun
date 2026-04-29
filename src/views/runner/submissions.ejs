@@ -74,34 +74,6 @@
       ><%= message.text %></div>
     <% } %>
 
-    <div class="sub-kpi-grid" aria-label="Submission summary">
-      <div class="sub-kpi-card">
-        <span class="sub-kpi-icon"><i data-lucide="files" aria-hidden="true"></i></span>
-        <span class="kpi-value"><%= counts.total %></span>
-        <span class="kpi-label">Total</span>
-      </div>
-      <div class="sub-kpi-card sub-kpi-pending">
-        <span class="sub-kpi-icon"><i data-lucide="clock-3" aria-hidden="true"></i></span>
-        <span class="kpi-value"><%= counts.submitted %></span>
-        <span class="kpi-label">Pending</span>
-      </div>
-      <div class="sub-kpi-card sub-kpi-approved">
-        <span class="sub-kpi-icon"><i data-lucide="check-circle-2" aria-hidden="true"></i></span>
-        <span class="kpi-value"><%= counts.approved %></span>
-        <span class="kpi-label">Approved</span>
-      </div>
-      <div class="sub-kpi-card sub-kpi-rejected">
-        <span class="sub-kpi-icon"><i data-lucide="x-circle" aria-hidden="true"></i></span>
-        <span class="kpi-value"><%= counts.rejected %></span>
-        <span class="kpi-label">Rejected</span>
-      </div>
-      <div class="sub-kpi-card sub-kpi-cert">
-        <span class="sub-kpi-icon"><i data-lucide="award" aria-hidden="true"></i></span>
-        <span class="kpi-value"><%= counts.certificatesIssued %></span>
-        <span class="kpi-label">Certificates</span>
-      </div>
-    </div>
-
     <section class="sub-workspace-panel" aria-label="Filter submitted entries">
       <div class="sub-filter-bar">
         <form class="sub-search-form" method="GET" action="/runner/submissions" role="search">
@@ -123,6 +95,20 @@
         </form>
 
         <div class="sub-controls-row">
+          <div class="sub-control-field sub-view-field">
+            <span class="sub-control-label" id="subViewLabel">View</span>
+            <div class="sub-view-toggle" role="group" aria-labelledby="subViewLabel">
+              <button type="button" class="sub-view-btn" data-view="tiles" aria-pressed="true">
+                <i data-lucide="layout-grid" aria-hidden="true"></i>
+                <span>Tiles</span>
+              </button>
+              <button type="button" class="sub-view-btn" data-view="table" aria-pressed="false">
+                <i data-lucide="table-2" aria-hidden="true"></i>
+                <span>Table</span>
+              </button>
+            </div>
+          </div>
+
           <div class="sub-control-field">
             <label class="sub-control-label" for="subSortSelect">Sort</label>
             <select
@@ -153,22 +139,72 @@
         </div>
       </div>
 
-      <nav class="result-status-tabs sub-status-tabs" aria-label="Filter by status">
-        <% statusTabs.forEach(function(tab) { %>
-          <a
-            href="<%= buildFilterUrl({ status: tab.key, page: 1 }) %>"
-            class="result-status-tab<%= filters.status === tab.key ? ' is-active' : '' %>"
-            <% if (filters.status === tab.key) { %>aria-current="true"<% } %>
-          ><%= tab.label %></a>
-        <% }); %>
-        <% if (counts.certificatesIssued > 0) { %>
-          <a
-            href="<%= buildFilterUrl({ status: 'approved', page: 1 }) %>"
-            class="result-status-tab"
-            title="Showing all approved entries; certificates are issued to approved submissions"
-          ><i data-lucide="award" aria-hidden="true"></i> Approved (<%= counts.certificatesIssued %> cert<%= counts.certificatesIssued === 1 ? '' : 's' %>)</a>
-        <% } %>
-      </nav>
+      <div class="sub-tab-stats-row">
+        <nav class="result-status-tabs sub-status-tabs" aria-label="Filter by status">
+          <% statusTabs.forEach(function(tab) { %>
+            <a
+              href="<%= buildFilterUrl({ status: tab.key, page: 1 }) %>"
+              class="result-status-tab<%= filters.status === tab.key ? ' is-active' : '' %>"
+              <% if (filters.status === tab.key) { %>aria-current="true"<% } %>
+            ><%= tab.label %></a>
+          <% }); %>
+          <% if (counts.certificatesIssued > 0) { %>
+            <a
+              href="<%= buildFilterUrl({ status: 'approved', page: 1 }) %>"
+              class="result-status-tab"
+              title="Showing all approved entries; certificates are issued to approved submissions"
+            ><i data-lucide="award" aria-hidden="true"></i> Approved (<%= counts.certificatesIssued %> cert<%= counts.certificatesIssued === 1 ? '' : 's' %>)</a>
+          <% } %>
+        </nav>
+
+        <select
+          class="sub-mobile-status-select sub-select"
+          aria-label="Filter by status"
+          onchange="window.location.assign(this.value)"
+        >
+          <% statusTabs.forEach(function(tab) { %>
+            <option value="<%= buildFilterUrl({ status: tab.key, page: 1 }) %>" <%= filters.status === tab.key ? 'selected' : '' %>><%= tab.label %></option>
+          <% }); %>
+        </select>
+
+        <details class="sub-stats-details">
+          <summary class="sub-stats-summary">
+            <span class="sub-stats-summary-text"><strong><%= counts.total %></strong> Total &bull; <strong><%= counts.submitted %></strong> Pending &bull; <strong><%= counts.approved %></strong> Approved</span>
+            <i data-lucide="chevron-down" class="sub-stats-chevron" aria-hidden="true"></i>
+          </summary>
+          <div class="sub-stats-pill" aria-label="Submission summary">
+            <span class="sub-stat-item" title="Total submissions">
+              <i data-lucide="files" aria-hidden="true"></i>
+              <strong class="sub-stat-count"><%= counts.total %></strong>
+              <span class="sub-stat-label">Total</span>
+            </span>
+            <span class="sub-stat-sep" aria-hidden="true"></span>
+            <span class="sub-stat-item sub-stat-pending" title="Pending review">
+              <i data-lucide="clock-3" aria-hidden="true"></i>
+              <strong class="sub-stat-count"><%= counts.submitted %></strong>
+              <span class="sub-stat-label">Pending</span>
+            </span>
+            <span class="sub-stat-sep" aria-hidden="true"></span>
+            <span class="sub-stat-item sub-stat-approved" title="Approved">
+              <i data-lucide="check-circle-2" aria-hidden="true"></i>
+              <strong class="sub-stat-count"><%= counts.approved %></strong>
+              <span class="sub-stat-label">Approved</span>
+            </span>
+            <span class="sub-stat-sep" aria-hidden="true"></span>
+            <span class="sub-stat-item sub-stat-rejected" title="Rejected">
+              <i data-lucide="x-circle" aria-hidden="true"></i>
+              <strong class="sub-stat-count"><%= counts.rejected %></strong>
+              <span class="sub-stat-label">Rejected</span>
+            </span>
+            <span class="sub-stat-sep" aria-hidden="true"></span>
+            <span class="sub-stat-item sub-stat-cert" title="Certificates issued">
+              <i data-lucide="award" aria-hidden="true"></i>
+              <strong class="sub-stat-count"><%= counts.certificatesIssued %></strong>
+              <span class="sub-stat-label">Cert</span>
+            </span>
+          </div>
+        </details>
+      </div>
     </section>
 
     <% if (submissions.length === 0) { %>
@@ -189,7 +225,7 @@
         <% } %>
       </div>
     <% } else { %>
-      <ul class="item-list sub-entry-list" aria-label="Submitted entries">
+      <ul class="item-list sub-entry-list sub-entry-list--tiles" id="subEntryList" aria-label="Submitted entries">
         <% submissions.forEach(function(sub) { %>
           <li class="sub-card sub-card-<%= sub.status %><%= sub.isPersonalRecord ? ' sub-card-personal' : '' %>">
             <div class="sub-card-main">
@@ -255,6 +291,75 @@
           </li>
         <% }); %>
       </ul>
+
+      <div id="subTableWrap" class="sub-table-wrap">
+      <table aria-label="Submitted entries">
+        <thead>
+          <tr>
+            <th scope="col">Event</th>
+            <th scope="col">Type</th>
+            <th scope="col">Status</th>
+            <th scope="col">Activity</th>
+            <th scope="col">Distance</th>
+            <th scope="col">Time</th>
+            <th scope="col" class="sub-tbl-date-col">Run Date</th>
+            <th scope="col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% submissions.forEach(function(sub) { %>
+            <tr class="sub-row-<%= sub.status %><%= sub.isPersonalRecord ? ' sub-row-personal' : '' %>">
+              <td class="sub-tbl-event-cell">
+                <a href="/runner/submissions/<%= sub.submissionId %>" class="sub-tbl-title" title="<%= sub.eventTitle %>"><%= sub.eventTitle %></a>
+              </td>
+              <td data-label="Type">
+                <span class="badge sub-type-badge <%= sub.isPersonalRecord ? 'sub-type-personal' : 'sub-type-event' %>">
+                  <i data-lucide="<%= sub.isPersonalRecord ? 'star' : 'flag' %>" aria-hidden="true"></i>
+                  <%= sub.isPersonalRecord ? 'PR' : 'Event' %>
+                </span>
+              </td>
+              <td data-label="Status">
+                <span class="badge badge-<%= sub.status %>">
+                  <% if (sub.status === 'submitted') { %>Pending
+                  <% } else if (sub.status === 'approved') { %>Approved
+                  <% } else { %>Rejected<% } %>
+                </span>
+                <% if (sub.hasCertificate) { %>
+                  <span class="badge badge-certificate" title="Certificate ready"><i data-lucide="award" aria-hidden="true"></i></span>
+                <% } %>
+              </td>
+              <td data-label="Activity">
+                <% if (sub.activityType && sub.activityType !== 'run') { %>
+                  <span class="badge badge-activity"><%= sub.activityType.replace(/_/g, ' ') %></span>
+                <% } else { %>
+                  <span style="color: var(--text-muted, #64748b); font-size: 0.8rem;">Run</span>
+                <% } %>
+              </td>
+              <td data-label="Distance"><%= sub.distanceKm > 0 ? sub.distanceKm.toFixed(2) + ' km' : '—' %></td>
+              <td data-label="Time"><%= sub.elapsedLabel %></td>
+              <td data-label="Date" class="sub-tbl-date-col"><%= sub.runDate ? sub.runDateLabel : '—' %></td>
+              <td class="sub-tbl-actions-cell">
+                <div class="sub-tbl-actions">
+                  <a href="/runner/submissions/<%= sub.submissionId %>" class="btn btn-sm btn-outline"><i data-lucide="eye" aria-hidden="true"></i> View</a>
+                  <% if (sub.hasCertificate) { %>
+                    <a href="/my-submissions/<%= sub.submissionId %>/certificate" class="btn btn-sm btn-primary"><i data-lucide="download" aria-hidden="true"></i> Cert</a>
+                  <% } %>
+                  <% if (sub.status === 'rejected' && sub.registrationObjectId) { %>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-warning"
+                      data-open-run-proof-modal
+                      data-registration-id="<%= sub.registrationObjectId %>"
+                      aria-label="Resubmit proof for <%= sub.eventTitle %>"
+                    ><i data-lucide="refresh-cw" aria-hidden="true"></i> Resubmit</button>
+                  <% } %>
+                </div>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+      </div>
     <% } %>
 
     <% if (pagination.totalPages > 1) { %>
@@ -297,6 +402,7 @@
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
+  <script src="/js/runner-submissions.js"></script>
   <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>
