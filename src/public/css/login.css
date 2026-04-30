@@ -877,7 +877,6 @@
     left: 10px;
   }
 
-  .btn-primary,
   .panel-signup-link {
     display: none; /* hidden on mobile, right panel is shown first */
   }

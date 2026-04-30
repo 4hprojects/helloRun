@@ -259,6 +259,44 @@ p {
     text-align: center;
 }
 
+.nav-run-proof-shortcut {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    margin-left: auto;
+    padding: 0;
+    border: 1px solid #fed7aa;
+    border-radius: var(--radius-sm);
+    background: #fff7ed;
+    color: #c2410c;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.nav-run-proof-shortcut:hover,
+.nav-run-proof-shortcut:focus-visible {
+    color: #9a3412;
+    border-color: #fdba74;
+    background: #ffedd5;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+}
+
+.nav-run-proof-shortcut:focus-visible {
+    outline: 2px solid #111827;
+    outline-offset: 2px;
+}
+
+.nav-run-proof-shortcut i,
+.nav-run-proof-shortcut svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 2.3;
+}
+
 /* Mobile Menu Button (Hidden by default, shown on small screens) */
 .menu-toggle {
     display: none;
@@ -669,7 +707,11 @@ p {
     .menu-toggle {
         display: inline-flex;
         flex: 0 0 44px;
-        margin-left: auto;
+        margin-left: 0;
+    }
+
+    .nav-run-proof-shortcut {
+        display: inline-flex;
     }
     
     .nav-links {

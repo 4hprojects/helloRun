@@ -14,6 +14,17 @@
       <img src="/images/helloRun-icon.webp" alt="" class="logo-icon">
       <span>HelloRun</span>
     </a>
+
+    <% if (!locals.isAuthenticated || (!locals.isAdmin && !locals.isOrganizer && !locals.isApprovedOrganizer)) { %>
+      <button
+        class="nav-run-proof-shortcut"
+        type="button"
+        data-open-run-proof-modal
+        aria-label="Log latest run"
+        title="Log latest run">
+        <i data-lucide="plus-circle"></i>
+      </button>
+    <% } %>
     
     <button
       class="menu-toggle"

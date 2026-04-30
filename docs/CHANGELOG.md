@@ -3,6 +3,42 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - April 30, 2026 (Session: PRD Expansion + Runner Entry UX Polish)
+
+### [SESSION] SESSION UPDATE:
+- Expanded `docs/PRD.md` so HelloRun is positioned as a runner and organiser platform:
+  - clarified virtual, onsite, and hybrid running event modes
+  - scoped virtual monitoring to proof/OCR/review workflows, not live GPS
+  - scoped onsite support to registration, participant operations, result import/manual encoding, rankings, certificates, and reports
+  - added draft Phases 13-16 and cross-cutting terminology/readiness gates
+- Improved runner run-submission entry points:
+  - made the landing-page `Already registered? Log your latest run.` CTA more visible
+  - made the same CTA visible to logged-out users
+  - added a mobile/tablet `Log latest run` nav icon immediately left of the hamburger for guests and runner accounts
+  - preserved post-login intent so guest submit-run clicks route to login and then auto-open the run-proof modal on `/runner/dashboard`
+- Fixed responsive UI details:
+  - restored the `/login` submit button below desktop widths
+  - changed the `/runner/dashboard` mobile `At a glance` KPI panel from tiles to list rows
+
+### [UPDATED] UPDATED FILES (major):
+1. docs/PRD.md
+2. docs/CHANGELOG.md
+3. src/views/pages/home.ejs
+4. src/views/layouts/nav.ejs
+5. src/views/auth/login.ejs
+6. src/public/css/helloRun.css
+7. src/public/css/style.css
+8. src/public/css/login.css
+9. src/public/css/runner-dashboard.css
+10. src/public/js/run-proof-modal.js
+11. src/routes/authRoutes.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --check src/public/js/run-proof-modal.js` -> PASS
+- `node --check src/routes/authRoutes.js` -> PASS
+- `git diff --check` on changed files -> PASS
+- Full automated suite not run for this documentation/UI batch.
+
 ## CHANGELOG - April 29, 2026 (Session: Runner Submissions UI Planning Notes)
 
 ### [SESSION] SESSION UPDATE:

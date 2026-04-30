@@ -239,20 +239,41 @@ h1, h2, h3 {
 }
 
 .hero-inline-action {
-  margin-top: 1rem;
+  margin-top: 1.15rem;
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: var(--home-orange);
-  font-weight: 700;
+  justify-content: center;
+  gap: 0.6rem;
+  max-width: 100%;
+  min-height: 48px;
+  padding: 0.78rem 1.05rem;
+  border: 1px solid rgba(183, 71, 22, 0.34);
+  border-radius: 12px;
+  background: #fff7ed;
+  color: var(--home-orange-dark);
+  box-shadow: 0 10px 24px rgba(183, 71, 22, 0.14);
+  font-size: 0.98rem;
+  font-weight: 800;
+  line-height: 1.25;
   cursor: pointer;
+  text-align: center;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.hero-inline-action i,
+.hero-inline-action svg {
+  flex: 0 0 auto;
+  width: 1.15rem;
+  height: 1.15rem;
+  stroke-width: 2.4;
 }
 
 .hero-inline-action:hover {
+  border-color: rgba(183, 71, 22, 0.58);
+  background: #ffedd5;
   color: var(--home-orange-dark);
+  box-shadow: 0 14px 28px rgba(183, 71, 22, 0.2);
+  transform: translateY(-1px);
 }
 
 .hero-visual {

@@ -3,6 +3,48 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
+## STATUS UPDATE (Apr 30, 2026 - Platform Positioning + Runner Entry UX Polish)
+
+### Current reality after latest implementation
+- PRD positioning now describes HelloRun as both a runner-facing and organiser-support platform for virtual, onsite, and hybrid running events.
+- Virtual run monitoring is explicitly scoped to uploaded proof, OCR-assisted extraction, review signals, and organiser/admin review instead of live GPS tracking.
+- Onsite event support is explicitly scoped to registration, payment-proof tracking, participant operations, result import/manual encoding, rankings, certificates, and reports instead of replacing race timing systems.
+- The landing-page `Already registered? Log your latest run.` action is now visible to logged-out visitors and logged-in runners.
+- Logged-out visitors who choose the submit/log-run action are sent to login with a safe return path; after login they land on `/runner/dashboard` and the run-proof modal opens automatically.
+- Mobile/tablet navigation now includes a compact `Log latest run` icon to the left of the hamburger menu for guests and runner accounts.
+- The `/login` submit button is visible below desktop widths again.
+- The `/runner/dashboard` mobile `At a glance` panel now renders KPI content as a list instead of tiles.
+
+### COMPLETED in this cycle
+- Updated PRD roadmap and event-mode definitions:
+  - added hybrid running events as a first-class mode
+  - added draft Phases 13-16 for onsite result import, organiser reports, payment gateway integration, and race kit/bib/check-in support
+  - added cross-cutting terminology, payment wording, onsite timing, review wording, report access, audit, and readiness gate notes
+- Improved runner entry points:
+  - restyled the landing-page log-run CTA for stronger visibility
+  - made that CTA render for guests as well as authenticated users
+  - added a mobile/tablet nav shortcut for log latest run
+  - preserved guest redirect behavior through login and post-login modal auto-open
+- Fixed responsive UI regressions:
+  - restored the `/login` submit button on mobile
+  - changed `/runner/dashboard` mobile KPI cards from tiles to list rows
+
+### Validation signals recorded
+- `node --check src/public/js/run-proof-modal.js` -> PASS
+- `node --check src/routes/authRoutes.js` -> PASS
+- `git diff --check` on changed files -> PASS
+
+### Remaining next tasks
+- Manual browser QA:
+  - logged-out landing CTA -> `/login` -> successful login -> run-proof modal auto-opens
+  - logged-out mobile nav shortcut -> `/login` -> successful login -> run-proof modal auto-opens
+  - logged-in runner landing/nav submit actions open the modal directly
+  - `/login` button remains visible on tablet and mobile widths
+  - `/runner/dashboard` mobile `At a glance` list spacing and wrapping are acceptable
+- Rerun focused modal/login/dashboard regression tests if this UX batch is prepared for release.
+
+---
+
 ## STATUS UPDATE (Apr 29, 2026 - Run-Proof Integrity + OCR Accuracy Recovery)
 
 ### Current reality after latest implementation
@@ -1532,15 +1574,110 @@ PROJECT OVERVIEW & STATUS (Updated Apr 24, 2026)
 [IN_PROGRESS] Phase 9: Release hardening, regression stability, and production-readiness verification
 
 ### UPCOMING PHASES
-[PENDING] Phase 10: Production Deployment
+[PENDING] Phase 10: Production Deployment Launch Gate
 [DRAFT] Phase 11: Shop / Merchandise Feature
-[DRAFT] Phase 12: OCR Smart Activity Submission
+[DRAFT/MVP HARDENING] Phase 12: OCR Smart Activity Submission
+[DRAFT] Phase 13: Onsite Event Result Import
+[DRAFT] Phase 14: Organiser Reports and Export Centre
+[DRAFT] Phase 15: Payment Gateway Integration
+[DRAFT] Phase 16: Race Kit, Bib, and Check-in Support
 
 ### QUICK STATS
 - Total Users: TBD (after deployment)
 - Total Events: Live development data present; production count TBD after launch
 - Platform Status: Pre-release hardening
 - Last Major Update: Apr 24, 2026 (security, SEO, readiness, and release audit)
+
+---
+
+PRODUCT POSITIONING UPDATE
+
+### Platform Positioning
+
+HelloRun is a centralized running event management platform for virtual and onsite running events.
+
+The platform serves two primary user groups:
+
+1. Runners
+   - Discover events
+   - Register for events
+   - Upload payment proof
+   - Submit virtual run proof
+   - Track submission status
+   - View rankings
+   - Download certificates
+   - Join running groups
+   - Purchase or claim achievement-based merchandise in future phases
+
+2. Organisers
+   - Create and manage events
+   - Collect and monitor registrations
+   - Track payment proofs
+   - Manage participant records
+   - Review virtual run submissions
+   - Publish results and rankings
+   - Generate certificates
+   - Access dashboards and reports
+   - Manage merchandise options in future phases
+
+HelloRun is not only a runner-facing app. It is an organiser-support platform that connects runner participation, event operations, payment-proof workflows, submission review, results, certificates, reports, and future merchandise opportunities.
+
+### Event Mode Definitions
+
+HelloRun supports three major event modes:
+
+1. Virtual run
+2. Onsite event
+3. Hybrid running event
+
+These modes should be used consistently across labels, filters, database fields, documentation, UI copy, and reports. Avoid legacy in-person event wording in the PRD and product copy; use `onsite` instead.
+
+### 3.1 Virtual Runs
+
+Runners complete the activity independently and submit proof through HelloRun.
+
+HelloRun supports the virtual run workflow through event discovery, registration, payment-proof upload, organiser payment verification, run-proof upload, OCR-assisted screenshot analysis, runner review of extracted activity details, suspicious-entry flagging, organiser/admin submission review, approval/rejection, leaderboard updates, certificate generation, and event reports.
+
+Virtual run monitoring focuses on submitted activity proof, not live GPS tracking. The platform monitors virtual runs through uploaded activity screenshots, OCR-extracted values, runner-submitted values, duplicate proof detection, activity consistency checks, review status tracking, and organiser/admin decision logs.
+
+OCR-assisted submission should attempt to extract or assist with distance, duration, pace where available, date, location, elevation, steps, source app, activity type, and extracted runner name where available. Initial OCR support prioritises Strava, Garmin, Nike Run Club, Apple Health, and Google Fit. OCR is not assumed to be perfect; runner confirmation and organiser/admin review remain part of the workflow.
+
+Suspicious entries are review signals, not automatic rejection. Examples include duplicate screenshots, extreme distance/pace/duration, OCR distance or name mismatch, submitted date mismatch, location mismatch, activity type mismatch, implausible elevation density, implausible steps-per-kilometre, and implausible cadence.
+
+Runner-facing copy should remain neutral, using labels such as `Needs additional review`, `Submitted for review`, or `Review pending`. Organiser/admin views may show detailed reasons to support decision-making.
+
+### 3.2 Onsite Running Events
+
+Runners attend the event location. HelloRun supports registration, payment-proof tracking, participant management, result import, rankings, certificates, and reports.
+
+HelloRun should support onsite events through event listing, registration, payment-proof upload, organiser payment verification, participant list management, category and distance management, bib assignment support, race kit tracking, result import, manual result encoding, ranking publication, certificate generation, reports, and analytics.
+
+HelloRun should not initially replace race timing systems. Organisers may continue using RFID timing systems, chip timing systems, barcode or QR scanning, stopwatch-based recording, manual finish-line encoding, third-party timing providers, or spreadsheet-based result encoding.
+
+HelloRun supports onsite events before timing through registration, payment verification, participant management, category setup, bib support, and race kit support; during the event through optional participant lookup, race kit claiming support, and check-in support; and after the event through official result import, manual result encoding, ranking generation, certificate release, and event reports.
+
+Official onsite results should come from the organiser or the organiser's timing provider. HelloRun should support CSV upload, Excel upload, manual encoding, and future API import from timing providers.
+
+### 3.3 Hybrid Running Events
+
+Runners may join either virtually or onsite under one organiser-managed event. HelloRun separates workflows, results, leaderboards, certificates, and reports by participation mode.
+
+Hybrid events should preserve distinct operational paths: virtual participants follow the proof/OCR submission and review workflow, while onsite participants follow the event operations, result import/manual encoding, and onsite certificate workflow. Public event pages, organiser dashboards, exports, leaderboards, and certificates should make the participation mode clear.
+
+### Updated Development Roadmap
+
+The current priority remains release hardening and production-readiness verification. New feature expansion remains gated until the full regression suite passes, production environment variables are verified, security and CSRF enforcement are stable, manual smoke testing is completed, and the deployment checklist is signed off.
+
+```text
+Phase 9:  [NOW] Release hardening, regression stability, and production-readiness verification
+Phase 10: [NEXT] Production deployment launch gate
+Phase 11: [DRAFT] Shop / Merchandise Feature
+Phase 12: [DRAFT/MVP HARDENING] OCR Smart Activity Submission
+Phase 13: [DRAFT] Onsite Event Result Import
+Phase 14: [DRAFT] Organiser Reports and Export Centre
+Phase 15: [DRAFT] Payment Gateway Integration
+Phase 16: [DRAFT] Race Kit, Bib, and Check-in Support
+```
 
 ---
 
@@ -1740,56 +1877,310 @@ Phase 8: Google OAuth (Optional) [SECURITY] COMPLETED
 
 ---
 
-Phase 9: Testing & Optimization [TESTING] IN PROGRESS
+Phase 9: Release Hardening and Production-Readiness Verification [TESTING] IN PROGRESS
 [IN_PROGRESS] Unit & integration regression stability
 [IN_PROGRESS] Performance, security, and readiness verification
-[PENDING] `/events` improvement pass:
-  - search relevance for displayed location labels and organiser names
-  - clearer state/filter semantics for `upcoming`, `open`, and `closed`
-  - stronger status chips / CTA hierarchy on event cards
-  - `/events` SEO metadata and canonical polish
+[IN_PROGRESS] Production environment, security, CSRF, readiness, and smoke-test verification
 [PENDING] Final cross-browser/mobile polish pass
 [PENDING] Launch gate signoff checklist completion
 
 ---
 
-Phase 10: Deployment [DEPLOY] PENDING
+Phase 10: Production Deployment Launch Gate [DEPLOY] PENDING
 [PENDING] Production database, SSL, domain (hellorun.online)
 [PENDING] Monitoring, uptime checks, error tracking, and backup/restore runbook
 [PENDING] Staging smoke signoff and launch
+[PENDING] Production readiness checklist signoff
 
 ---
 
 Phase 11: Shop / Merchandise Feature [COMMERCE] DRAFT
 
-Goal: Add a HelloRun shop for running-related merchandise that supports the platform brand, events, organizers, and runner community.
+Goal: Add a HelloRun shop for running-related and achievement-based merchandise that supports the platform brand, runners, organisers, and event-specific collections.
 
+Product scope:
+[DRAFT] HelloRun-branded merchandise
+[DRAFT] Event-specific merchandise
+[DRAFT] Achievement-based products
+[DRAFT] Optional organiser-linked merchandise collections
+[DRAFT] Future bundle offers connected to event registration
+
+Target merchandise:
+[DRAFT] Event shirts, finisher shirts, medals, patches, caps, towels, socks, race belts, bib holders, digital medals, and certificate add-ons
+
+Core workflows:
 [DRAFT] Public shop/catalog page for HelloRun-related merch
 [DRAFT] Product detail pages with images, variants, pricing, and stock status
 [DRAFT] Cart and checkout planning
 [DRAFT] Admin product management
 [DRAFT] Order tracking for runners/customers
-[DRAFT] Optional organizer/event-specific merch collections
+[DRAFT] Optional organiser/event-specific merch collections
+
+Suggested models:
+[DRAFT] Product: `name`, `slug`, `description`, `category`, `images`, `basePrice`, `status`, `isFeatured`, optional `eventId`, optional `organizerId`, `createdBy`, timestamps
+[DRAFT] ProductVariant: `productId`, `size`, `color`, `sku`, `priceOverride`, `stockQuantity`, `status`
+[DRAFT] Order: `orderNumber`, `userId`, `items`, `subtotal`, `serviceFee`, `shippingFee`, `totalAmount`, `paymentStatus`, `orderStatus`, `paymentProof`, `shippingDetails`, timestamps
+[DRAFT] OrderItem: `productId`, `variantId`, `nameSnapshot`, `variantSnapshot`, `quantity`, `unitPrice`, `lineTotal`
+
+Suggested routes:
+[DRAFT] Public/runner: `GET /shop`, `GET /shop/:slug`, `POST /shop/cart/add`, `GET /shop/cart`, `POST /shop/checkout`, `GET /runner/orders`, `GET /runner/orders/:orderNumber`
+[DRAFT] Admin: `GET /admin/shop/products`, `GET /admin/shop/products/new`, `POST /admin/shop/products`, `GET /admin/shop/products/:id/edit`, `POST /admin/shop/products/:id`, `POST /admin/shop/products/:id/archive`, `GET /admin/shop/orders`, `GET /admin/shop/orders/:id`, `POST /admin/shop/orders/:id/status`
+[DRAFT] Optional organiser routes: `GET /organizer/events/:id/merch`, `POST /organizer/events/:id/merch/link`, `GET /organizer/events/:id/merch/orders`
+
+Acceptance criteria:
+[PENDING] Public users can browse available products.
+[PENDING] Product detail pages show images, price, variants, and stock status.
+[PENDING] Logged-in runners can place merchandise orders.
+[PENDING] Admin can create, edit, archive, and manage products.
+[PENDING] Admin can update order status.
+[PENDING] Event-specific merchandise can be linked to an event.
+[PENDING] Order records preserve product and variant snapshots.
+[PENDING] Mobile layout is usable for browsing, checkout, and order tracking.
+[PENDING] Core shop workflows have route and service tests.
+
+Deferred scope:
+[DEFERRED] Full payment gateway integration
+[DEFERRED] Automated shipping integration
+[DEFERRED] Discount codes, refund management, supplier portal, and inventory forecasting
 
 Detailed draft: See docs/shop_feature.md
 
 ---
 
-Phase 12: OCR Smart Activity Submission [OCR] DRAFT
+Phase 12: OCR Smart Activity Submission [OCR] DRAFT / MVP HARDENING
 
-Goal: Add smart screenshot-based activity submission for run, walk, trail run, hike, and step-based entries. Users upload screenshots from fitness and health apps, OCR auto-reads activity details, and users review/edit extracted values before submission.
+Goal: Improve virtual run submission by allowing runners to upload activity screenshots, analyse them on the frontend, review extracted data, and submit structured activity details for organiser/admin review.
 
 [DONE/MVP] Screenshot OCR upload with source app detection (Strava, Nike Run Club, Garmin, Apple Health, Google Fit)
 [DONE/MVP] Auto-fill activity fields from extracted data (distance, duration, date, location, elevation, steps, activity type)
 [DONE/MVP] Support for activity types: run, walk, trail run, hike, steps
 [DONE/MVP] OCR confidence scoring with user-facing match indicators
 [DONE/MVP] Duplicate screenshot detection to prevent repeat submissions
-[DONE/MVP] Flag-only suspicious activity detection for organizer/admin review
-[DONE/MVP] Organizer and admin review compatibility with OCR metadata and OCR-vs-submitted mismatch display
+[DONE/MVP] Flag-only suspicious activity detection for organiser/admin review
+[DONE/MVP] Organiser and admin review compatibility with OCR metadata and OCR-vs-submitted mismatch display
 [DONE/MVP] Runner-facing neutral wording for suspicious or duplicate proof review states
 [DONE/MVP] OCR parser recovery for compact Strava duration formats and Strava location/source detection edge cases
 
+Product scope:
+[DRAFT/MVP] Screenshot upload
+[DRAFT/MVP] Frontend OCR analysis
+[DRAFT/MVP] Source app detection
+[DRAFT/MVP] Auto-filled activity fields
+[DRAFT/MVP] Runner confirmation and manual fallback entry
+[DRAFT/MVP] OCR metadata persistence
+[DRAFT/MVP] Suspicious-entry flagging
+[DRAFT/MVP] Organiser/admin review display
+[DRAFT/MVP] Neutral runner-facing review language
+
+OCR parsing targets:
+[DRAFT/MVP] Distance, duration, pace, date, location, elevation, steps, source app, activity type, and extracted name where available
+
+Frontend direction:
+[DRAFT/MVP] OCR image reading and parsing logic lives in `src/public/js/ocr-proof-reader.js`
+[DRAFT/MVP] Supporting modal/integrity logic lives in `src/public/js/run-proof-modal.js` and `src/public/js/run-proof-integrity.js`
+[DRAFT/MVP] Parser rules should remain modular so OCR behavior can improve without rewriting the run-proof modal.
+
+Integrity rules:
+[DRAFT/MVP] Use flag-only review signals for duplicate proof, extreme distance/pace/duration, OCR-vs-submitted mismatches, implausible elevation density, implausible steps per kilometre, and implausible cadence.
+
+Runner UX requirements:
+[DRAFT/MVP] Modal opens immediately after runner action, eligible event lookup happens inside the modal, Step 1 is labelled as screenshot analysis, manual entry remains available, extracted fields are editable, warnings are non-blocking, suspicious submissions can still save for review, stale OCR values clear when images are replaced, and runner-facing status copy remains neutral.
+
+Organiser/admin review requirements:
+[DRAFT/MVP] Review views show original proof, submitted values, OCR-extracted values, source app, activity type, mismatch flags, suspicious reasons, duplicate proof signal, decision controls, review notes, and rejection reason where applicable.
+
+Acceptance criteria:
+[DONE/MVP] OCR analysis works for priority source apps.
+[DONE/MVP] Compact duration formats such as `27m 48s`, `31m38s`, and `1h47m` are parsed correctly.
+[DONE/MVP] Pace tokens such as `5:33/km` are not mistaken as elapsed duration.
+[DONE/MVP] Runner can manually correct values.
+[DONE/MVP] Suspicious values do not block submission.
+[DONE/MVP] Suspicious submissions require review.
+[DONE/MVP] Organiser/admin views show detailed review signals.
+[DONE/MVP] Runner-facing pages use neutral wording.
+[DONE/MVP] Stale values clear when image is replaced.
+[PENDING] Manual QA remains needed across Strava, Garmin, Apple Health, and Google Fit screenshots before release signoff.
+
 Detailed planning: See docs/ocr_smart_submission.md
+
+---
+
+Phase 13: Onsite Event Result Import [EVENT OPS] DRAFT
+
+Goal: Allow organisers to upload, encode, review, and publish official results for onsite running events without replacing existing race timing systems.
+
+Product boundary:
+[DRAFT] HelloRun does not initially provide live race timing.
+[DRAFT] Official onsite results should come from the organiser or the organiser's timing provider.
+[DRAFT] HelloRun supports official result handling after the onsite event.
+
+Supported result sources:
+[DRAFT] RFID/chip timing exports, barcode or QR scanning exports, stopwatch/manual timing sheets, third-party timing provider exports, organiser spreadsheets, and manual encoding by authorised organiser/admin users
+
+Initial result import methods:
+[DRAFT] CSV upload
+[DRAFT] Excel upload
+[DRAFT] Manual encoding form
+
+Suggested models:
+[DRAFT] OnsiteResultImport: `eventId`, `uploadedBy`, `sourceType`, `sourceFile`, `status`, row counts, `mappingConfig`, `createdAt`, `validatedAt`, `publishedAt`
+[DRAFT] OnsiteResult: `eventId`, `registrationId`, `runnerId`, `bibNumber`, `runnerNameSnapshot`, `distance`, `category`, optional `genderCategory`, `gunTime`, `chipTime`, `officialTime`, rankings, `status`, `remarks`, `sourceImportId`, timestamps
+
+Suggested routes:
+[DRAFT] Organiser: `GET /organizer/events/:id/results/import`, `POST /organizer/events/:id/results/import`, `GET /organizer/events/:id/results/import/:importId/map`, `POST /organizer/events/:id/results/import/:importId/map`, `GET /organizer/events/:id/results/import/:importId/validate`, `POST /organizer/events/:id/results/import/:importId/publish`, `GET /organizer/events/:id/results`, `POST /organizer/events/:id/results/manual`
+[DRAFT] Admin: `GET /admin/events/:id/results`, `POST /admin/events/:id/results/import/:importId/approve`, `POST /admin/events/:id/results/import/:importId/archive`
+[DRAFT] Public: `GET /leaderboard?event=:eventId`, `GET /events/:slug/results`
+
+Validation rules:
+[DRAFT] Validate missing, unknown, or duplicate bib numbers; invalid time formats; missing categories; distance mismatch; duplicate result for the same runner/event; unpaid or cancelled registrations; and invalid status values.
+
+Ranking and certificate rules:
+[DRAFT] Published results can support overall, distance, category, and optional gender/category rankings.
+[DRAFT] DNS, DNF, and disqualified records are excluded from finisher rankings and finisher certificates.
+[DRAFT] Certificates may be generated for finished onsite participants with published official results in approved categories.
+
+Acceptance criteria:
+[PENDING] Organiser can upload CSV or Excel result files.
+[PENDING] Organiser can map uploaded columns to HelloRun fields.
+[PENDING] System validates missing, duplicate, unknown, and malformed rows.
+[PENDING] Organiser can review errors before publishing.
+[PENDING] Published onsite results can update leaderboards.
+[PENDING] Finished participants can receive certificates.
+[PENDING] Imported results preserve source file and audit metadata.
+[PENDING] Tests cover import validation, mapping, publishing, and leaderboard output.
+
+Deferred scope:
+[DEFERRED] Live timing, RFID hardware integration, timing provider API integration, real-time checkpoint tracking, and mobile race marshal app
+
+---
+
+Phase 14: Organiser Reports and Export Centre [REPORTS] DRAFT
+
+Goal: Create a centralized reports area where organisers can view, filter, export, and use event data for operations, post-event review, finance checking, and fulfilment planning.
+
+Report centre scope:
+[DRAFT] Event-level reports
+[DRAFT] Registration reports
+[DRAFT] Payment reports
+[DRAFT] Participant reports
+[DRAFT] Submission reports
+[DRAFT] Result reports
+[DRAFT] Merchandise reports
+[DRAFT] Certificate reports
+[DRAFT] Revenue summaries
+
+Suggested routes:
+[DRAFT] Organiser: `GET /organizer/events/:id/reports`
+[DRAFT] Admin: `GET /admin/reports`, `GET /admin/events/:id/reports`
+
+Report types:
+[DRAFT] Registration report: registration, runner, event, distance/category, registration/payment status, waiver, and emergency-contact fields
+[DRAFT] Payment report: expected/submitted amount, payment method/reference, status, submitted/reviewed dates, reviewer, and rejection reason
+[DRAFT] Participant category report: totals by distance/category and participant/payment/result status
+[DRAFT] Virtual run submission report: submitted values, OCR metadata, activity type, suspicious flags, status, and review fields
+[DRAFT] Onsite result report: bib, runner, distance/category, gun/chip/official time, rankings, result status, and certificate status
+[DRAFT] Merchandise report: product, event, variant, size, quantity, order/payment status, fulfilment status, and customer
+[DRAFT] Revenue summary: registration totals, paid/unpaid counts, pending payment-proof counts, merchandise total, platform fee estimate, and refund/cancellation counts where applicable
+
+Export and filters:
+[DRAFT] Support CSV and XLSX exports.
+[DRAFT] Future support may add PDF summary and printable report views.
+[DRAFT] Filters include date range, distance, category, payment status, submission status, result status, merchandise status, runner name/email, and registration status.
+
+Acceptance criteria:
+[PENDING] Organiser can open one report centre per event.
+[PENDING] Reports use consistent filters.
+[PENDING] Reports can export to CSV and XLSX.
+[PENDING] Payment reports match registration/payment-proof records.
+[PENDING] Submission reports include OCR metadata where available.
+[PENDING] Onsite result reports include imported or manually encoded official results.
+[PENDING] Report exports preserve user-friendly column names.
+[PENDING] Reports respect organiser ownership and admin permissions.
+[PENDING] Tests cover filters, export structure, and access control.
+
+---
+
+Phase 15: Payment Gateway Integration [PAYMENTS] DRAFT
+
+Goal: Move from manual payment-proof review toward direct payment confirmation through a payment gateway.
+
+Current payment direction:
+[DRAFT] The initial platform flow uses payment-proof upload and organiser verification.
+[DRAFT] Direct payment integration should be added only after registration and organiser workflows are stable.
+[DRAFT] Manual payment-proof upload remains available when enabled by the organiser.
+
+Possible payment providers:
+[DRAFT] PayMongo, Maya, Stripe, PayPal, or bank transfer APIs where available
+[DRAFT] Provider selection should consider Philippine payment support, GCash/wallet support, card support, webhook reliability, fees, settlement process, refund support, documentation, and compliance requirements.
+
+Payment features:
+[DRAFT] Checkout session creation
+[DRAFT] Payment status callback/webhook
+[DRAFT] Transaction records
+[DRAFT] Automatic registration payment update
+[DRAFT] Failed, expired, cancelled, and refunded payment handling
+[DRAFT] Admin transaction audit
+[DRAFT] Event revenue summary
+
+Suggested model:
+[DRAFT] PaymentTransaction: `registrationId`, `eventId`, `userId`, `provider`, `providerTransactionId`, `providerCheckoutId`, `amount`, `currency`, `status`, `paymentMethod`, `metadata`, `paidAt`, `failedAt`, `refundedAt`, timestamps
+
+Acceptance criteria:
+[PENDING] Runner can choose direct payment when available.
+[PENDING] Successful payment automatically updates registration payment status.
+[PENDING] Failed or expired payment does not approve registration.
+[PENDING] Webhook processing is idempotent.
+[PENDING] Manual payment-proof upload remains available when enabled by organiser.
+[PENDING] Admin can view transaction logs.
+[PENDING] Organiser can see direct payment status in registrants table.
+[PENDING] Tests cover checkout creation, webhook handling, idempotency, and payment status transitions.
+
+Deferred scope:
+[DEFERRED] Split payments to organisers, automated refunds, wallet balance system, installment payments, and international tax handling
+
+---
+
+Phase 16: Race Kit, Bib, and Check-in Support [ONSITE OPS] DRAFT
+
+Goal: Support onsite event operations before race day and during claiming/check-in.
+
+Product scope:
+[DRAFT] Bib assignment
+[DRAFT] Race kit claim tracking
+[DRAFT] Shirt size tracking
+[DRAFT] Add-on merchandise tracking
+[DRAFT] Check-in lists
+[DRAFT] Exportable claiming lists
+[DRAFT] Optional QR-based claiming in future versions
+
+Bib assignment:
+[DRAFT] Bib numbers may be manually encoded, auto-generated by event, auto-generated by distance/category, or imported from organiser spreadsheets.
+
+Race kit tracking:
+[DRAFT] Status values include `not_ready`, `ready_for_claiming`, `claimed`, `unclaimed`, `released_to_representative`, and `cancelled`.
+
+Suggested registration fields:
+[DRAFT] `bibNumber`, `raceKitStatus`, `raceKitClaimedAt`, `raceKitClaimedBy`, `shirtSize`, `addOns`, `checkInStatus`, `checkedInAt`
+
+Suggested routes:
+[DRAFT] `GET /organizer/events/:id/race-kits`
+[DRAFT] `POST /organizer/events/:id/registrants/:registrationId/bib`
+[DRAFT] `POST /organizer/events/:id/registrants/:registrationId/race-kit/claim`
+[DRAFT] `POST /organizer/events/:id/registrants/:registrationId/check-in`
+[DRAFT] `GET /organizer/events/:id/race-kits/export`
+
+Acceptance criteria:
+[PENDING] Organiser can assign or import bib numbers.
+[PENDING] Organiser can mark race kits as claimed.
+[PENDING] Organiser can filter claimed and unclaimed race kits.
+[PENDING] Organiser can export race kit lists.
+[PENDING] Organiser can check in participants.
+[PENDING] Race kit and check-in records are auditable.
+[PENDING] Mobile layout works for onsite claiming tables.
+[PENDING] Tests cover bib assignment, race kit status changes, exports, and access control.
+
+Deferred scope:
+[DEFERRED] QR scanner workflow, offline check-in mode, volunteer/marshal role, multiple claiming stations, and hardware scanner integration
 
 ---
 
@@ -1986,7 +2377,7 @@ NAVIGATION BEHAVIOR (Updated Feb 19, 2026)
 
 ---
 
-TIMELINE TRACKING (Updated Feb 24, 2026)
+TIMELINE TRACKING (Updated Apr 30, 2026)
 
 Phase 0:  [DONE] Completed - Nov 2024
 Phase 1:  [DONE] Completed - Feb 2025
@@ -1999,12 +2390,122 @@ Phase 5:  [DONE] Completed
 Phase 6:  [DONE] Completed
 Phase 7:  [DONE] Completed
 Phase 8:  [DONE] Completed (optional scope shipped)
-Phase 9:  [NOW] Release hardening before launch
-Phase 10: [NEXT] Deployment launch gate
+Phase 9:  [NOW] Release hardening, regression stability, and production-readiness verification
+Phase 10: [NEXT] Production deployment launch gate
 Phase 11: [DRAFT] Shop / Merchandise Feature
-Phase 12: [DRAFT] OCR Smart Activity Submission
+Phase 12: [DRAFT/MVP HARDENING] OCR Smart Activity Submission
+Phase 13: [DRAFT] Onsite Event Result Import
+Phase 14: [DRAFT] Organiser Reports and Export Centre
+Phase 15: [DRAFT] Payment Gateway Integration
+Phase 16: [DRAFT] Race Kit, Bib, and Check-in Support
 
 Estimated remaining: depends on release-hardening findings and external deployment tasks.
+
+---
+
+CROSS-CUTTING DEVELOPMENT REQUIREMENTS
+
+### Terminology Rules
+Use these terms consistently: `runner`, `organiser`, `admin`, `virtual run`, `onsite event`, `payment proof`, `run proof`, `submission`, `result`, `certificate`, `leaderboard`, and `report`.
+
+Avoid legacy in-person event wording, `physical race` when `onsite event` is clearer, `payment platform` when only payment-proof tracking exists, `automatic verification` unless a specific automated rule exists, and `live tracking` unless GPS or timing integration exists.
+
+### Payment Wording Rule
+Use `payment-proof tracking`, `payment-proof upload`, `organiser payment verification`, `manual payment review`, and `future payment gateway integration`.
+
+Do not say the platform already has a full payment gateway, automated payment processing, or direct online payment confirmation unless Phase 15 is implemented.
+
+### Onsite Timing Rule
+Use `HelloRun supports onsite result import`, `HelloRun does not initially replace race timing systems`, and `organisers may continue using existing timing systems`.
+
+Do not say HelloRun tracks onsite race results live, replaces RFID/chip timing, or provides race timing hardware unless future timing integration is implemented.
+
+### Review Wording Rule
+Runner-facing labels should remain neutral: `Pending review`, `Needs additional review`, `Submitted`, `Approved`, and `Rejected`.
+
+Organiser/admin labels may include technical detail such as `Duplicate proof suspected`, `OCR distance mismatch`, `Name mismatch`, `Implausible pace`, and `Activity type mismatch`.
+
+### Report Access Rules
+Organisers can access reports only for events they own. Admins can access all event reports. Runners can access only their own certificates, registrations, orders, and submissions. Exports should not expose sensitive data beyond the report's operational need.
+
+### Audit Requirements
+Important actions should record the actor, timestamp, status transition, and notes or reason where applicable. Actor fields include `createdBy`, `updatedBy`, `reviewedBy`, `approvedBy`, `rejectedBy`, `uploadedBy`, and `publishedBy`.
+
+Audit coverage should apply to payment proof review, run proof review, result import, result publishing, certificate generation, merchandise order status changes, race kit claiming, and report exports where needed.
+
+---
+
+UPDATED ACCEPTANCE GATES
+
+### Release Gate Before New Feature Expansion
+Before starting Phases 13 to 16:
+- [ ] Full `npm test` passes.
+- [ ] Manual smoke tests pass for auth, registration, payment proof, run proof, review queues, dashboards, leaderboard, and certificates.
+- [ ] Production env variables are verified.
+- [ ] `/healthz` and `/readyz` are tested.
+- [ ] Error tracking and uptime monitoring are configured.
+- [ ] Backup and restore runbook is ready.
+- [ ] Security route matrix is updated.
+- [ ] Production readiness checklist is signed off.
+
+### Onsite Event Readiness Gate
+Before publishing onsite event result import:
+- [ ] Onsite event mode is supported in event creation/editing.
+- [ ] Event categories and distances are stable.
+- [ ] Registrant export is stable.
+- [ ] Bib number support exists or import matching rules are final.
+- [ ] Import validation handles malformed rows.
+- [ ] Leaderboard output separates virtual submissions and onsite official results where needed.
+- [ ] Certificate logic distinguishes virtual-approved submissions from onsite-published results.
+
+### Organiser Reports Readiness Gate
+Before launching report centre:
+- [ ] Report filters are defined.
+- [ ] CSV export format is finalized.
+- [ ] XLSX export format is finalized.
+- [ ] Permissions are tested.
+- [ ] Sensitive fields are reviewed.
+- [ ] Large event export performance is tested.
+
+### Payment Gateway Readiness Gate
+Before launching direct payment:
+- [ ] Provider selected.
+- [ ] Webhook security verified.
+- [ ] Idempotency rules tested.
+- [ ] Payment failure states tested.
+- [ ] Manual payment-proof fallback retained.
+- [ ] Transaction audit view ready.
+- [ ] Terms, privacy, and refund wording reviewed.
+
+---
+
+UPDATED DEVELOPMENT NOTES
+
+### Recommended Immediate PRD Direction
+[DONE] Add product positioning after project overview.
+[DONE] Keep virtual run monitoring tied to OCR-assisted proof submission and review.
+[DONE] Add Phase 13 for onsite result import.
+[DONE] Add Phase 14 for organiser reports and export centre.
+[DONE] Add Phase 15 for payment gateway integration.
+[DONE] Add Phase 16 for race kit, bib, and check-in support.
+[DONE] Keep shop and merchandise as Phase 11.
+[DONE] Keep OCR smart activity submission as Phase 12 with current MVP/hardening status.
+[DONE] Keep production deployment as the release gate before larger feature expansion.
+
+### Recommended File Split
+Keep PRD.md as the master planning document.
+
+Existing dedicated detail files:
+- `docs/shop_feature.md`
+- `docs/ocr_smart_submission.md`
+
+Recommended future dedicated detail files when those phases begin:
+- `docs/onsite_result_import.md`
+- `docs/organizer_reports.md`
+- `docs/payment_gateway_integration.md`
+- `docs/race_kit_bib_checkin.md`
+
+PRD.md should contain summary, status, phase roadmap, acceptance gates, and links to detailed documents. Dedicated files should contain field-level, route-level, UI-level, and testing details.
 
 ---
 

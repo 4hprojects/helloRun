@@ -107,9 +107,11 @@ function renderResendVerificationPage(req, res, options = {}) {
 router.get('/login', redirectIfAuth, (req, res) => {
   const queryMessage = typeof req.query.message === 'string' ? req.query.message : null;
   const queryType = typeof req.query.type === 'string' ? req.query.type : '';
+  const returnTo = resolveSafeReturnTo(req.query.redirect, resolveSafeReturnTo(req.query.returnTo, ''));
   res.render('auth/login', {
     error: queryType === 'error' ? queryMessage : null,
-    success: null
+    success: null,
+    returnTo
   });
 });
 
@@ -117,6 +119,7 @@ router.get('/login', redirectIfAuth, (req, res) => {
 router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
+    const returnTo = resolveSafeReturnTo(req.body.returnTo, '');
     
     const user = await User.findOne({ email });
     if (!user) {
@@ -124,7 +127,8 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
         error: 'Invalid email or password',
         success: null,
         showResendLink: false,
-        userEmail: null
+        userEmail: null,
+        returnTo
       });
     }
 
@@ -134,7 +138,8 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
         error: 'Please verify your email before logging in.',
         success: null,
         showResendLink: true,
-        userEmail: user.email
+        userEmail: user.email,
+        returnTo
       });
     }
 
@@ -143,7 +148,8 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
         error: 'This account uses Google sign-in. Use Continue with Google.',
         success: null,
         showResendLink: false,
-        userEmail: null
+        userEmail: null,
+        returnTo
       });
     }
 
@@ -153,11 +159,15 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
         error: 'Invalid email or password',
         success: null,
         showResendLink: false,
-        userEmail: null
+        userEmail: null,
+        returnTo
       });
     }
 
     startAuthenticatedSession(req, user);
+    if (returnTo) {
+      req.session.returnTo = returnTo;
+    }
     return redirectAfterLogin(req, res, user);
     
   } catch (error) {
@@ -166,7 +176,8 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
       error: 'An error occurred. Please try again.',
       success: null,
       showResendLink: false,
-      userEmail: null
+      userEmail: null,
+      returnTo: resolveSafeReturnTo(req.body?.returnTo, '')
     });
   }
 });

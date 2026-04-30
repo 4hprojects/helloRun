@@ -1193,8 +1193,9 @@
     };
 
     const redirectToLogin = () => {
-      const loginUrl = String(modal.dataset.loginUrl || '/login').trim() || '/login';
-      window.location.href = loginUrl;
+      const loginUrl = new URL(String(modal.dataset.loginUrl || '/login').trim() || '/login', window.location.origin);
+      loginUrl.searchParams.set('redirect', '/runner/dashboard?openRunProof=1');
+      window.location.href = loginUrl.pathname + loginUrl.search;
     };
 
     const getTriggerConfig = (triggerElement) => {
@@ -2109,6 +2110,20 @@
     });
 
     window.openRunProofModal = (overrides) => openModal(null, overrides || null);
+
+    const params = new URLSearchParams(window.location.search || '');
+    if (params.get('openRunProof') === '1') {
+      params.delete('openRunProof');
+      const nextQuery = params.toString();
+      const nextUrl = window.location.pathname + (nextQuery ? '?' + nextQuery : '') + window.location.hash;
+      window.history.replaceState({}, '', nextUrl);
+
+      window.setTimeout(() => {
+        const dashboardTrigger = document.querySelector('[data-open-run-proof-modal][data-run-proof-surface="runner-dashboard"]');
+        const fallbackTrigger = document.querySelector('[data-open-run-proof-modal]');
+        openModal(dashboardTrigger || fallbackTrigger || null, null);
+      }, 0);
+    }
   };
 
   if (document.readyState === 'loading') {

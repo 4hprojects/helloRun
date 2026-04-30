@@ -63,6 +63,7 @@
           <!-- Login Form -->
           <form action="/login" method="POST" class="auth-form">
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <input type="hidden" name="returnTo" value="<%= locals.returnTo || '' %>">
             
             <!-- Email Input -->
             <div class="form-group">
@@ -117,7 +118,7 @@
           </form>
 
           <div class="oauth-divider"><span>or</span></div>
-          <a href="/auth/google?intent=login" class="btn btn-google auth-action-btn" aria-label="Continue with Google">
+          <a href="/auth/google?intent=login<%= locals.returnTo ? '&returnTo=' + encodeURIComponent(locals.returnTo) : '' %>" class="btn btn-google auth-action-btn" aria-label="Continue with Google">
             <span class="google-mark" aria-hidden="true">G</span>
             <span>Continue with Google</span>
           </a>
