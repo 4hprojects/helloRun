@@ -167,7 +167,7 @@ exports.getEvents = async (req, res) => {
 
     const [totalEvents, distanceOptions] = await Promise.all([
       Event.countDocuments(query),
-      Event.distinct('raceDistances', { status: 'published' })
+      Event.distinct('raceDistances', { status: 'published', isPersonalRecord: { $ne: true } })
     ]);
     const totalPages = Math.max(1, Math.ceil(totalEvents / limit));
     const currentPage = Math.min(page, totalPages);

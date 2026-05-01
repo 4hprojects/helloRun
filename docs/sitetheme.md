@@ -60,5 +60,25 @@ Move. Log. Finish.
 - Light blue: #8FD5EC
 - Sky blue: #78C0E9
 
+### Button color usage
+
+Orange remains the primary action color for main CTAs such as sign up, submit, apply, register, and confirm.
+
+Blue may also be used as an alternate button color with orange when the action benefits from a cooler trust/navigation treatment, such as view, browse, details, secondary page navigation, pagination, filters, or informational actions.
+
+Recommended usage:
+- Use orange for the strongest action on the screen.
+- Use blue for secondary or alternate actions when it improves visual hierarchy.
+- Avoid placing many orange and blue filled buttons with equal weight in the same small area.
+- Keep hover, focus, and disabled states accessible and consistent with the surrounding page.
+
+### Gradient usage
+
+Do not use gradients for UI surfaces, panels, cards, buttons, navigation, form controls, or page section backgrounds.
+
+Use solid theme colors, subtle borders, spacing, typography, and restrained shadows to create hierarchy.
+
+The only acceptable exceptions are legacy pages waiting for cleanup or externally supplied image/brand assets where a gradient is part of the source artwork.
+
 ### Neutral support tone
 - Warm beige: #F2EAD3

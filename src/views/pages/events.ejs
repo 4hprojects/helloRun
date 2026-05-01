@@ -16,19 +16,61 @@
 
   <main class="main-content">
     <!-- Hero -->
-    <section class="hero">
+    <section class="hero events-hero">
       <div class="container">
-        <h1><%= pageContent?.heroTitle || 'Check Out Ongoing Events' %></h1>
-        <p><%= pageContent?.heroDescription || 'Explore active helloRun races and pick your next challenge.' %></p>
-        <% if (locals.isAuthenticated) { %>
-          <a href="/my-registrations" class="btn btn-outline">My Registrations</a>
-        <% } %>
+        <div class="events-hero-panel">
+          <div class="events-hero-copy">
+            <p class="events-hero-kicker">Event Discovery</p>
+            <h1><%= pageContent?.heroTitle || 'Check Out Ongoing Events' %></h1>
+            <p><%= pageContent?.heroDescription || 'Explore active helloRun races and pick your next challenge.' %></p>
+            <% if (locals.isAuthenticated) { %>
+              <div class="events-hero-actions">
+                <a href="/my-registrations" class="btn btn-outline">
+                  <i data-lucide="clipboard-list" aria-hidden="true"></i>
+                  My Registrations
+                </a>
+              </div>
+            <% } %>
+          </div>
+
+          <div class="events-hero-summary" aria-label="Events overview">
+            <div class="events-hero-summary-item">
+              <span class="events-hero-summary-icon"><i data-lucide="calendar-check" aria-hidden="true"></i></span>
+              <span>
+                <strong><%= filterMeta?.resultsCount || 0 %></strong>
+                <small>Matching events</small>
+              </span>
+            </div>
+            <div class="events-hero-summary-item">
+              <span class="events-hero-summary-icon"><i data-lucide="flag" aria-hidden="true"></i></span>
+              <span>
+                <strong><%= (filterMeta?.distanceOptions || []).length %></strong>
+                <small>Distance choices</small>
+              </span>
+            </div>
+            <div class="events-hero-summary-item">
+              <span class="events-hero-summary-icon"><i data-lucide="sliders-horizontal" aria-hidden="true"></i></span>
+              <span>
+                <strong><%= filterMeta?.activeFilterCount || 0 %></strong>
+                <small>Active filters</small>
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- Events Section -->
     <section class="events-section">
       <div class="container">
+        <div class="events-toolbar">
+          <div>
+            <p class="events-toolbar-kicker">Browse races</p>
+            <h2>Find your next starting line</h2>
+          </div>
+          <p>Filter by mode, distance, and registration status to compare events quickly.</p>
+        </div>
+
         <!-- Filter Bar -->
         <form method="GET" action="/events" class="filter-bar">
           <div class="filter-group">
@@ -76,9 +118,15 @@
           </div>
 
           <div class="filter-actions">
-            <button type="submit" class="btn btn-primary">Apply</button>
+            <button type="submit" class="btn btn-primary">
+              <i data-lucide="filter" aria-hidden="true"></i>
+              Apply
+            </button>
             <% if (filterMeta?.hasActiveFilters) { %>
-              <a href="/events" class="btn btn-outline">Clear</a>
+              <a href="/events" class="btn btn-outline">
+                <i data-lucide="x" aria-hidden="true"></i>
+                Clear
+              </a>
             <% } %>
           </div>
         </form>
@@ -146,7 +194,10 @@
                   <p class="card-description"><%= event.description || 'No event description available.' %></p>
 
                   <div class="card-actions">
-                    <a href="/events/<%= event.slug %>" class="btn btn-primary btn-sm">View Event</a>
+                    <a href="/events/<%= event.slug %>" class="btn btn-secondary btn-sm">
+                      View Event
+                      <i data-lucide="arrow-right" aria-hidden="true"></i>
+                    </a>
                   </div>
                 </div>
               </article>
