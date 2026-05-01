@@ -3,6 +3,46 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
+## STATUS UPDATE (May 1, 2026 - Events Mobile Compact View + Image Fallbacks)
+
+### Current reality after latest implementation
+- The public `/events` mobile view is more compact so visitors can reach the most recent event cards sooner.
+- Search remains prominent on mobile as a dedicated full-width row above the dropdown filters.
+- Mode, Distance, and Status filters render as a compact single-row dropdown set on mobile and auto-apply when changed.
+- Public event cards and event detail banners now use the helloRun default image when an event has no banner or the assigned banner fails to load.
+- R2-backed uploads now require `R2_PUBLIC_BASE_URL` for browser-loadable public image URLs instead of saving R2 API endpoint URLs.
+
+### COMPLETED in this cycle
+- Reduced mobile Event Discovery content:
+  - hid the hero summary metrics, active filter chips, filter summary text, and extra toolbar copy on small screens
+  - retained the page title and compact browse controls
+- Reworked mobile event search and filters:
+  - search textbox uses a thicker blue border and sits above filters
+  - search icon appears on the right side of the textbox, including after Lucide swaps icons to SVGs
+  - dropdown labels are hidden on mobile to preserve space
+  - dropdown changes auto-submit the `/events` filter form
+  - mobile Apply button is hidden
+- Added public event image fallbacks:
+  - event cards always render an image
+  - event detail banner always renders an image
+  - broken banner URLs fall back client-side to `/images/helloRun-icon.webp`
+- Hardened upload URL generation by requiring a public R2 base URL for saved object URLs.
+
+### Validation signals recorded
+- `CSRF_PROTECTION=0 node --test tests/public-search-filters.test.js` -> PASS
+- `CSRF_PROTECTION=0 node --test tests/upload-validation.test.js tests/certificate-access.test.js` -> PASS
+- `git diff --check` on changed files -> PASS
+
+### Remaining next tasks
+- Manual browser QA on mobile width:
+  - confirm first event card appears quickly after the compact Event Discovery panel
+  - confirm search row sits above the filter dropdowns and icon appears on the right
+  - confirm changing Mode, Distance, or Status immediately filters
+  - confirm events without banners show the default image
+- Configure production `R2_PUBLIC_BASE_URL` to a public bucket URL or custom domain before relying on new uploaded event images.
+
+---
+
 ## STATUS UPDATE (Apr 30, 2026 - Platform Positioning + Runner Entry UX Polish)
 
 ### Current reality after latest implementation

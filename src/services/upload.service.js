@@ -474,12 +474,7 @@ function buildPublicUrl(key) {
     return `${customBase.replace(/\/+$/, '')}/${key}`;
   }
 
-  const endpoint = String(r2Config.endpoint || '').replace(/\/+$/, '');
-  if (endpoint && r2Config.bucket) {
-    return `${endpoint}/${r2Config.bucket}/${key}`;
-  }
-
-  throw new Error('Cannot build public URL for R2 object. Set R2_PUBLIC_BASE_URL.');
+  throw new Error('Cannot build public URL for R2 object. Set R2_PUBLIC_BASE_URL to a public bucket URL or custom domain.');
 }
 
 function getSafeExtension(fileName) {

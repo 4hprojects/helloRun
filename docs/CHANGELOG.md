@@ -3,6 +3,38 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 1, 2026 (Session: Events Mobile Search + Image Fallbacks)
+
+### [SESSION] SESSION UPDATE:
+- Tightened the public `/events` mobile experience:
+  - reduced the Event Discovery hero panel on mobile so event cards appear sooner
+  - kept search as a dedicated full-width row above compact filters
+  - emphasized the mobile search input with a thicker blue border
+  - moved the search icon to the right side of the textbox and covered Lucide SVG replacement
+  - kept Mode, Distance, and Status as a compact single-row dropdown group without visible labels
+  - removed the mobile Apply button by auto-submitting when dropdown filters change
+- Improved public event imagery:
+  - event cards now always render an image
+  - missing, stale, or inaccessible event banners fall back to `/images/helloRun-icon.webp`
+  - event detail banner display uses the same fallback
+- Hardened R2 public URL handling:
+  - removed the fallback that saved R2 API endpoint URLs as public image URLs
+  - new R2 uploads now require `R2_PUBLIC_BASE_URL` to point at a public bucket URL or custom domain
+
+### [UPDATED] UPDATED FILES (major):
+1. docs/PRD.md
+2. docs/CHANGELOG.md
+3. src/views/pages/events.ejs
+4. src/views/pages/event-details.ejs
+5. src/public/css/events.css
+6. src/public/js/main.js
+7. src/services/upload.service.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `CSRF_PROTECTION=0 node --test tests/public-search-filters.test.js` -> PASS
+- `CSRF_PROTECTION=0 node --test tests/upload-validation.test.js tests/certificate-access.test.js` -> PASS
+- `git diff --check` on changed files -> PASS
+
 ## CHANGELOG - April 30, 2026 (Session: PRD Expansion + Runner Entry UX Polish)
 
 ### [SESSION] SESSION UPDATE:

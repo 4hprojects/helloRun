@@ -3,6 +3,7 @@ function initMainUi() {
   const menuToggle = document.querySelector('.menu-toggle');
   const navLinks = document.querySelector('.nav-links');
   const backToTopBtn = document.getElementById('globalBackToTopBtn');
+  const eventsFilterForm = document.querySelector('.filter-bar[action="/events"]');
 
   if (menuToggle && menuToggle.dataset.navInitialized !== '1') {
     menuToggle.dataset.navInitialized = '1';
@@ -130,6 +131,19 @@ function initMainUi() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
     toggleBackToTop();
+  }
+
+  if (eventsFilterForm && eventsFilterForm.dataset.autoSubmitInitialized !== '1') {
+    eventsFilterForm.dataset.autoSubmitInitialized = '1';
+    eventsFilterForm.querySelectorAll('select').forEach((select) => {
+      select.addEventListener('change', () => {
+        if (typeof eventsFilterForm.requestSubmit === 'function') {
+          eventsFilterForm.requestSubmit();
+          return;
+        }
+        eventsFilterForm.submit();
+      });
+    });
   }
 }
 

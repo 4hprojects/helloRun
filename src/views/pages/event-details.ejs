@@ -18,6 +18,8 @@
       <% const registrationOpen = registrationOpenAt ? registrationOpenAt <= now : true; %>
       <% const canRegisterNow = !registrationClosed && registrationOpen; %>
       <% const registrationStateLabel = registrationClosed ? 'Registration Closed' : (registrationOpen ? 'Registration Open' : 'Registration Not Yet Open'); %>
+      <% const defaultEventImageUrl = '/images/helloRun-icon.webp'; %>
+      <% const eventBannerImageUrl = event.bannerImageUrl || defaultEventImageUrl; %>
 
       <div class="event-nav-row">
         <a href="/events" class="btn btn-outline">Back to Events</a>
@@ -78,11 +80,12 @@
       <section class="event-media-grid">
         <article class="event-details-card">
           <h3>Event Banner</h3>
-          <% if (event.bannerImageUrl) { %>
-            <img class="event-details-banner-inline" src="<%= event.bannerImageUrl %>" alt="<%= event.title %> banner">
-          <% } else { %>
-            <p>No banner uploaded.</p>
-          <% } %>
+          <img
+            class="event-details-banner-inline"
+            src="<%= eventBannerImageUrl %>"
+            alt="<%= event.title %> banner"
+            onerror="this.onerror=null;this.src='<%= defaultEventImageUrl %>';"
+          >
         </article>
 
         <article class="event-details-card">

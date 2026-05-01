@@ -15,6 +15,7 @@
   <% } %>
 
   <main class="main-content">
+    <% const defaultEventImageUrl = '/images/helloRun-icon.webp'; %>
     <!-- Hero -->
     <section class="hero events-hero">
       <div class="container">
@@ -73,7 +74,7 @@
 
         <!-- Filter Bar -->
         <form method="GET" action="/events" class="filter-bar">
-          <div class="filter-group">
+          <div class="filter-group filter-group-search">
             <label for="eventsSearch" class="sr-only">Search</label>
             <div class="search-wrapper">
               <i data-lucide="search"></i>
@@ -87,7 +88,7 @@
             </div>
           </div>
 
-          <div class="filter-group">
+          <div class="filter-group filter-group-select">
             <label for="eventsMode">Mode</label>
             <select id="eventsMode" name="eventType">
               <option value="">All Modes</option>
@@ -97,7 +98,7 @@
             </select>
           </div>
 
-          <div class="filter-group">
+          <div class="filter-group filter-group-select">
             <label for="eventsDistance">Distance</label>
             <select id="eventsDistance" name="distance">
               <option value="">All Distances</option>
@@ -107,7 +108,7 @@
             </select>
           </div>
 
-          <div class="filter-group">
+          <div class="filter-group filter-group-select">
             <label for="eventsStatus">Status</label>
             <select id="eventsStatus" name="status">
               <option value="all" <%= (filters?.status || 'all') === 'all' ? 'selected' : '' %>>All</option>
@@ -156,11 +157,15 @@
           <div class="card-grid">
             <% events.forEach((event) => { %>
               <article class="card">
-                <% if (event.bannerImageUrl) { %>
-                  <a href="/events/<%= event.slug %>" class="card-image-link">
-                    <img class="card-image" src="<%= event.bannerImageUrl %>" alt="<%= event.title %> banner">
-                  </a>
-                <% } %>
+                <% const eventBannerImageUrl = event.bannerImageUrl || defaultEventImageUrl; %>
+                <a href="/events/<%= event.slug %>" class="card-image-link">
+                  <img
+                    class="card-image"
+                    src="<%= eventBannerImageUrl %>"
+                    alt="<%= event.title %> banner"
+                    onerror="this.onerror=null;this.src='<%= defaultEventImageUrl %>';"
+                  >
+                </a>
 
                 <div class="card-content">
                   <div class="card-tags">
