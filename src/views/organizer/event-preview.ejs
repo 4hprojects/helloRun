@@ -70,6 +70,14 @@
           <p><strong>Virtual Window Start:</strong> <%= previewEvent.virtualWindow?.startAt ? new Date(previewEvent.virtualWindow.startAt).toLocaleString('en-US') : 'N/A' %></p>
           <p><strong>Virtual Window End:</strong> <%= previewEvent.virtualWindow?.endAt ? new Date(previewEvent.virtualWindow.endAt).toLocaleString('en-US') : 'N/A' %></p>
           <p><strong>Proof Types:</strong> <%= (previewEvent.proofTypesAllowed || []).join(', ') || 'N/A' %></p>
+          <p><strong>Event Format:</strong> <%= previewEvent.virtualCompletionMode === 'accumulated_distance' ? 'Accumulated distance challenge' : 'Single activity' %></p>
+          <% if (previewEvent.virtualCompletionMode === 'accumulated_distance') { %>
+            <p><strong>Target Distance:</strong> <%= previewEvent.targetDistanceKm || 'N/A' %> km</p>
+            <p><strong>Minimum Activity:</strong> <%= previewEvent.minimumActivityDistanceKm || 'N/A' %> km</p>
+            <p><strong>Final Submission Deadline:</strong> <%= previewEvent.finalSubmissionDeadlineAt ? new Date(previewEvent.finalSubmissionDeadlineAt).toLocaleString('en-US') : 'N/A' %></p>
+            <p><strong>Accepted Activities:</strong> <%= (previewEvent.acceptedRunTypes || []).join(', ') || 'N/A' %></p>
+            <p><strong>Milestones:</strong> <%= (previewEvent.milestoneDistancesKm || []).join(', ') || 'N/A' %></p>
+          <% } %>
         </article>
 
         <article class="detail-card detail-card-full">

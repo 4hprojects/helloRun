@@ -35,7 +35,6 @@ const eventSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      required: true,
       trim: true,
       maxlength: 2000
     },
@@ -46,8 +45,7 @@ const eventSchema = new mongoose.Schema(
     },
     eventType: {
       type: String,
-      enum: ['virtual', 'onsite', 'hybrid'],
-      required: true
+      enum: ['virtual', 'onsite', 'hybrid']
     },
     eventTypesAllowed: {
       type: [
@@ -119,6 +117,53 @@ const eventSchema = new mongoose.Schema(
         }
       ],
       default: []
+    },
+    virtualCompletionMode: {
+      type: String,
+      enum: ['single_activity', 'accumulated_distance'],
+      default: 'single_activity'
+    },
+    targetDistanceKm: {
+      type: Number,
+      min: 0,
+      default: null
+    },
+    minimumActivityDistanceKm: {
+      type: Number,
+      min: 0,
+      default: null
+    },
+    acceptedRunTypes: {
+      type: [
+        {
+          type: String,
+          enum: ['run', 'walk', 'hike', 'trail_run']
+        }
+      ],
+      default: []
+    },
+    finalSubmissionDeadlineAt: {
+      type: Date,
+      default: null
+    },
+    milestoneDistancesKm: {
+      type: [
+        {
+          type: Number,
+          min: 0
+        }
+      ],
+      default: []
+    },
+    recognitionMode: {
+      type: String,
+      enum: ['completion_only', 'completion_with_optional_ranking'],
+      default: 'completion_only'
+    },
+    leaderboardMode: {
+      type: String,
+      enum: ['finishers', 'top_distance', 'finishers_and_top_distance'],
+      default: 'finishers'
     },
     bannerImageUrl: {
       type: String,

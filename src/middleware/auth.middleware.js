@@ -123,11 +123,26 @@ async function requireApprovedOrganizer(req, res, next) {
   next();
 }
 
+/**
+ * Require organiser account allowed to create events
+ */
+async function requireCanCreateEvents(req, res, next) {
+  if (!req.session || !req.session.userId) {
+    return res.redirect('/login');
+  }
+  const user = await User.findById(req.session.userId);
+  if (!user || typeof user.canCreateEvents !== 'function' || !user.canCreateEvents()) {
+    return res.status(403).send('Access denied - verified organizer approval required');
+  }
+  next();
+}
+
 module.exports = {
   populateAuthLocals,
   redirectIfAuth,
   requireAuth,
   requireAdmin,
   requireOrganizer,
-  requireApprovedOrganizer
+  requireApprovedOrganizer,
+  requireCanCreateEvents
 };

@@ -11,7 +11,7 @@ const uploadService = require('../services/upload.service');
 const emailService = require('../services/email.service');
 const { createNotificationSafe } = require('../services/notification.service');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
-const { requireAuth, requireApprovedOrganizer } = require('../middleware/auth.middleware');
+const { requireAuth, requireApprovedOrganizer, requireCanCreateEvents } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
 const { DEFAULT_WAIVER_TEMPLATE, normalizeWaiverTemplate } = require('../utils/waiver');
@@ -23,6 +23,10 @@ const { reviewSubmission } = require('../services/submission.service');
 const countries = getCountries();
 const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K']);
 const MAX_GALLERY_IMAGES = 12;
+const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_distance']);
+const ACCEPTED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
+const RECOGNITION_MODES = new Set(['completion_only', 'completion_with_optional_ranking']);
+const LEADERBOARD_MODES = new Set(['finishers', 'top_distance', 'finishers_and_top_distance']);
 const WAIVER_SANITIZE_OPTIONS = Object.freeze({
   allowedTags: ['div', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'a'],
   allowedAttributes: {
@@ -385,7 +389,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
    GET: Create Event Page (Approved Organizers)
    ========================================== */
 
-router.get('/create-event', requireApprovedOrganizer, async (req, res) => {
+router.get('/create-event', requireCanCreateEvents, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
 
@@ -420,7 +424,7 @@ router.get('/create-event', requireApprovedOrganizer, async (req, res) => {
    GET: Event Preview (Approved Organizers)
    ========================================== */
 
-router.get('/preview-event', requireApprovedOrganizer, async (req, res) => {
+router.get('/preview-event', requireCanCreateEvents, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
 
@@ -447,6 +451,7 @@ router.get('/preview-event', requireApprovedOrganizer, async (req, res) => {
         startAt: parseDateSafe(formData.virtualStartAt),
         endAt: parseDateSafe(formData.virtualEndAt)
       },
+      finalSubmissionDeadlineAt: parseDateSafe(formData.finalSubmissionDeadlineAt),
       geo: formData.geoLat && formData.geoLng
         ? { lat: Number(formData.geoLat), lng: Number(formData.geoLng) }
         : null
@@ -1268,6 +1273,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     }
 
     const formData = getCreateEventFormData(req.body);
+    formData.actionType = event.status === 'published' ? 'publish' : 'draft';
     if (req.uploadError) {
       const errorField = mapUploadFieldToFormField(req.uploadErrorField);
       return res.status(400).render('organizer/edit-event', {
@@ -1303,7 +1309,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     event.title = formData.title;
     event.organiserName = organiserName;
     event.description = formData.description;
-    event.eventType = formData.eventType;
+    event.eventType = formData.eventType || undefined;
     event.eventTypesAllowed = eventTypesAllowed;
     event.raceDistances = formData.raceDistances;
     event.registrationOpenAt = parseDateSafe(formData.registrationOpenAt);
@@ -1327,6 +1333,28 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
         }
       : undefined;
     event.proofTypesAllowed = isVirtualMode ? formData.proofTypesAllowed : [];
+    event.virtualCompletionMode = isVirtualMode ? formData.virtualCompletionMode : 'single_activity';
+    event.targetDistanceKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      ? formData.targetDistanceKm
+      : null;
+    event.minimumActivityDistanceKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      ? formData.minimumActivityDistanceKm
+      : null;
+    event.acceptedRunTypes = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      ? formData.acceptedRunTypes
+      : [];
+    event.finalSubmissionDeadlineAt = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      ? parseDateSafe(formData.finalSubmissionDeadlineAt)
+      : null;
+    event.milestoneDistancesKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      ? formData.milestoneDistancesKm
+      : [];
+    event.recognitionMode = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      ? formData.recognitionMode
+      : 'completion_only';
+    event.leaderboardMode = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      ? formData.leaderboardMode
+      : 'finishers';
     const bannerImageFile = req.files?.bannerImageFile?.[0] || null;
     const logoFile = req.files?.logoFile?.[0] || null;
     const posterImageFile = req.files?.posterImageFile?.[0] || null;
@@ -1608,7 +1636,7 @@ router.post('/events/:id/media/remove', requireApprovedOrganizer, async (req, re
    POST: Create Event (Approved Organizers)
    ========================================== */
 
-router.post('/create-event', requireApprovedOrganizer, uploadService.uploadEventBranding, requireCsrfProtection, async (req, res) => {
+router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBranding, requireCsrfProtection, async (req, res) => {
   const uploadedBrandingKeys = [];
   try {
     const user = await User.findById(req.session.userId);
@@ -1653,6 +1681,7 @@ router.post('/create-event', requireApprovedOrganizer, uploadService.uploadEvent
     const status = formData.actionType === 'publish' ? 'published' : 'draft';
     const slug = await generateUniqueSlug(formData.title);
     const eventTypesAllowed = getEventTypesAllowed(formData.eventType);
+    const isVirtualMode = formData.eventType === 'virtual' || formData.eventType === 'hybrid';
 
     const bannerImageFile = req.files?.bannerImageFile?.[0] || null;
     const logoFile = req.files?.logoFile?.[0] || null;
@@ -1717,7 +1746,7 @@ router.post('/create-event', requireApprovedOrganizer, uploadService.uploadEvent
       organiserName,
       description: formData.description,
       status,
-      eventType: formData.eventType,
+      eventType: formData.eventType || undefined,
       eventTypesAllowed,
       raceDistances: formData.raceDistances,
       registrationOpenAt: parseDateSafe(formData.registrationOpenAt),
@@ -1741,6 +1770,28 @@ router.post('/create-event', requireApprovedOrganizer, uploadService.uploadEvent
       proofTypesAllowed: formData.eventType === 'virtual' || formData.eventType === 'hybrid'
         ? formData.proofTypesAllowed
         : [],
+      virtualCompletionMode: isVirtualMode ? formData.virtualCompletionMode : 'single_activity',
+      targetDistanceKm: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+        ? formData.targetDistanceKm
+        : null,
+      minimumActivityDistanceKm: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+        ? formData.minimumActivityDistanceKm
+        : null,
+      acceptedRunTypes: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+        ? formData.acceptedRunTypes
+        : [],
+      finalSubmissionDeadlineAt: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+        ? parseDateSafe(formData.finalSubmissionDeadlineAt)
+        : null,
+      milestoneDistancesKm: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+        ? formData.milestoneDistancesKm
+        : [],
+      recognitionMode: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+        ? formData.recognitionMode
+        : 'completion_only',
+      leaderboardMode: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+        ? formData.leaderboardMode
+        : 'finishers',
       bannerImageUrl: formData.bannerImageUrl || '',
       logoUrl: formData.logoUrl || '',
       posterImageUrl: formData.posterImageUrl || '',
@@ -2144,6 +2195,38 @@ function normalizeProofTypes(value) {
     .filter((item) => allowed.has(item));
 }
 
+function normalizeVirtualCompletionMode(value) {
+  const safeValue = String(value || '').trim();
+  return VIRTUAL_COMPLETION_MODES.has(safeValue) ? safeValue : 'single_activity';
+}
+
+function normalizeRunTypes(value) {
+  return normalizeArray(value)
+    .map((item) => String(item || '').trim())
+    .filter((item) => ACCEPTED_RUN_TYPES.has(item));
+}
+
+function normalizeModeValue(value, allowedValues, fallback) {
+  const safeValue = String(value || '').trim();
+  return allowedValues.has(safeValue) ? safeValue : fallback;
+}
+
+function parseOptionalPositiveNumber(value) {
+  const safeValue = String(value ?? '').trim();
+  if (!safeValue) return null;
+  const parsed = Number(safeValue);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeMilestoneDistances(value) {
+  const rawValues = normalizeArray(value).join(',');
+  const distances = rawValues
+    .split(',')
+    .map((item) => parseOptionalPositiveNumber(item))
+    .filter((item) => Number.isFinite(item) && item > 0);
+  return Array.from(new Set(distances)).sort((a, b) => a - b);
+}
+
 function normalizeRaceDistanceLabel(value) {
   if (!value) return '';
   const compact = String(value)
@@ -2388,6 +2471,15 @@ function getCreateEventFormData(body = {}) {
     virtualStartAt: body.virtualStartAt || '',
     virtualEndAt: body.virtualEndAt || '',
     proofTypesAllowed: normalizeProofTypes(body.proofTypesAllowed),
+    virtualCompletionMode: normalizeVirtualCompletionMode(body.virtualCompletionMode),
+    targetDistanceKm: parseOptionalPositiveNumber(body.targetDistanceKm),
+    minimumActivityDistanceKm: parseOptionalPositiveNumber(body.minimumActivityDistanceKm),
+    acceptedRunTypes: normalizeRunTypes(body.acceptedRunTypes),
+    finalSubmissionDeadlineAt: body.finalSubmissionDeadlineAt || '',
+    milestoneDistancesKm: normalizeMilestoneDistances(body.milestoneDistancesKm),
+    milestoneDistancesText: normalizeMilestoneDistances(body.milestoneDistancesKm).join(', '),
+    recognitionMode: normalizeModeValue(body.recognitionMode, RECOGNITION_MODES, 'completion_only'),
+    leaderboardMode: normalizeModeValue(body.leaderboardMode, LEADERBOARD_MODES, 'finishers'),
     raceDistances,
     raceDistancePresets,
     raceDistanceCustom: String(body.raceDistanceCustom || '').trim(),
@@ -2442,6 +2534,15 @@ function getCreateEventFormDataFromEvent(event) {
     virtualStartAt: formatDateForInput(event.virtualWindow?.startAt),
     virtualEndAt: formatDateForInput(event.virtualWindow?.endAt),
     proofTypesAllowed: Array.isArray(event.proofTypesAllowed) ? event.proofTypesAllowed : [],
+    virtualCompletionMode: normalizeVirtualCompletionMode(event.virtualCompletionMode),
+    targetDistanceKm: Number.isFinite(event.targetDistanceKm) ? event.targetDistanceKm : null,
+    minimumActivityDistanceKm: Number.isFinite(event.minimumActivityDistanceKm) ? event.minimumActivityDistanceKm : null,
+    acceptedRunTypes: Array.isArray(event.acceptedRunTypes) ? event.acceptedRunTypes : [],
+    finalSubmissionDeadlineAt: formatDateForInput(event.finalSubmissionDeadlineAt),
+    milestoneDistancesKm: Array.isArray(event.milestoneDistancesKm) ? event.milestoneDistancesKm : [],
+    milestoneDistancesText: (Array.isArray(event.milestoneDistancesKm) ? event.milestoneDistancesKm : []).join(', '),
+    recognitionMode: normalizeModeValue(event.recognitionMode, RECOGNITION_MODES, 'completion_only'),
+    leaderboardMode: normalizeModeValue(event.leaderboardMode, LEADERBOARD_MODES, 'finishers'),
     raceDistances: normalizedEventDistances,
     raceDistancePresets,
     raceDistanceCustom,
@@ -2619,6 +2720,7 @@ function buildOrganizerTrendMetric(currentValue, previousValue, previousLabel) {
 
 function validateCreateEventForm(formData) {
   const errors = {};
+  const isPublish = formData.actionType === 'publish';
   const dateFields = [
     'registrationOpenAt',
     'registrationCloseAt',
@@ -2628,6 +2730,11 @@ function validateCreateEventForm(formData) {
 
   if (!formData.title || formData.title.length < 5) {
     errors.title = 'Event title must be at least 5 characters.';
+  }
+
+  if (!isPublish) {
+    validateOptionalCreateEventFields(formData, errors);
+    return errors;
   }
 
   if (!formData.description || formData.description.length < 20) {
@@ -2700,6 +2807,9 @@ function validateCreateEventForm(formData) {
     if (!formData.virtualStartAt) errors.virtualStartAt = 'Virtual window start is required for virtual/hybrid events.';
     if (!formData.virtualEndAt) errors.virtualEndAt = 'Virtual window end is required for virtual/hybrid events.';
     if (!formData.proofTypesAllowed.length) errors.proofTypesAllowed = 'Select at least one proof type.';
+    if (formData.virtualCompletionMode === 'accumulated_distance') {
+      errors.virtualCompletionMode = 'Accumulated virtual runs can be saved as drafts, but cannot be published until activity-level progress tracking is implemented.';
+    }
 
     const virtualStart = parseDateSafe(formData.virtualStartAt);
     const virtualEnd = parseDateSafe(formData.virtualEndAt);
@@ -2708,6 +2818,18 @@ function validateCreateEventForm(formData) {
     }
   }
 
+  validateOptionalCreateEventFields(formData, errors);
+  const waiverText = htmlToPlainText(formData.waiverTemplate || '');
+  if (!waiverText || waiverText.length < 200) {
+    errors.waiverTemplate = 'Waiver template must be at least 200 characters.';
+  } else if ((formData.waiverTemplate || '').length > 20000) {
+    errors.waiverTemplate = 'Waiver template must be 20,000 characters or less.';
+  }
+
+  return errors;
+}
+
+function validateOptionalCreateEventFields(formData, errors) {
   if (!isValidUrl(formData.bannerImageUrl)) {
     errors.bannerImageUrl = 'Banner URL must be a valid URL.';
   }
@@ -2726,14 +2848,44 @@ function validateCreateEventForm(formData) {
       errors.galleryImageUrls = 'Each gallery URL must be a valid URL.';
     }
   }
-  const waiverText = htmlToPlainText(formData.waiverTemplate || '');
-  if (!waiverText || waiverText.length < 200) {
-    errors.waiverTemplate = 'Waiver template must be at least 200 characters.';
-  } else if ((formData.waiverTemplate || '').length > 20000) {
-    errors.waiverTemplate = 'Waiver template must be 20,000 characters or less.';
+
+  const optionalDateFields = [
+    'registrationOpenAt',
+    'registrationCloseAt',
+    'eventStartAt',
+    'eventEndAt',
+    'virtualStartAt',
+    'virtualEndAt',
+    'finalSubmissionDeadlineAt'
+  ];
+  for (const field of optionalDateFields) {
+    if (formData[field] && !parseDateSafe(formData[field])) {
+      errors[field] = 'Invalid date format.';
+    }
   }
 
-  return errors;
+  const hasGeoLat = !!formData.geoLat;
+  const hasGeoLng = !!formData.geoLng;
+  if (hasGeoLat !== hasGeoLng) {
+    errors.geo = 'Provide both latitude and longitude, or leave both empty.';
+  }
+  if (hasGeoLat && hasGeoLng) {
+    const lat = Number(formData.geoLat);
+    const lng = Number(formData.geoLng);
+    if (Number.isNaN(lat) || lat < -90 || lat > 90) {
+      errors.geoLat = 'Latitude must be between -90 and 90.';
+    }
+    if (Number.isNaN(lng) || lng < -180 || lng > 180) {
+      errors.geoLng = 'Longitude must be between -180 and 180.';
+    }
+  }
+
+  if (formData.targetDistanceKm !== null && (!Number.isFinite(formData.targetDistanceKm) || formData.targetDistanceKm <= 0)) {
+    errors.targetDistanceKm = 'Target distance must be greater than 0.';
+  }
+  if (formData.minimumActivityDistanceKm !== null && (!Number.isFinite(formData.minimumActivityDistanceKm) || formData.minimumActivityDistanceKm <= 0)) {
+    errors.minimumActivityDistanceKm = 'Minimum activity distance must be greater than 0.';
+  }
 }
 
 function slugify(input) {

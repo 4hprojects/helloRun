@@ -12,7 +12,7 @@
     <section class="create-event-shell">
       <header class="page-header">
         <h1>Edit Event</h1>
-        <p>Update event details using the same schema rules as event creation.</p>
+        <p>Update the public details, schedule, rules, waiver, and media for your event.</p>
       </header>
 
       <% if (message) { %>
@@ -34,8 +34,8 @@
       <form class="create-event-form" method="POST" action="/organizer/events/<%= event._id %>/edit" enctype="multipart/form-data" novalidate>
         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
         <!-- CORE DETAILS SECTION (same as create) -->
-        <div class="form-section">
-          <div class="section-title">📋 Core Details</div>
+        <div class="form-section form-section-core" tabindex="-1">
+          <div class="section-title">Core Details</div>
           <div class="form-grid">
             <div class="form-group">
               <label for="title">Event Title *</label>
@@ -75,8 +75,8 @@
         </div>
 
         <!-- WAIVER SECTION (same as create) -->
-        <div class="form-section">
-          <div class="section-title">📝 Waiver (Required)</div>
+        <div class="form-section form-section-waiver">
+          <div class="section-title">Waiver (Required for publishing)</div>
           <div class="waiver-panels">
             <div class="waiver-panel">
               <label for="waiverEditor">Waiver Template *</label>
@@ -103,8 +103,8 @@
         </div>
 
         <!-- SCHEDULE SECTION (same as create) -->
-        <div class="form-section">
-          <div class="section-title">📅 Schedule</div>
+        <div class="form-section form-section-schedule">
+          <div class="section-title">Schedule</div>
           <div class="form-grid">
             <div class="form-group">
               <label for="registrationOpenAt">Registration Open *</label>
@@ -139,8 +139,8 @@
         </div>
 
         <!-- LOCATION SECTION (conditional) -->
-        <div class="form-section location-section" style="display: none;">
-          <div class="section-title">📍 Location (required for on-site/hybrid)</div>
+        <div class="form-section form-section-location location-section" style="display: none;">
+          <div class="section-title">Location (required for on-site/hybrid publishing)</div>
           <div class="form-grid">
             <div class="form-group">
               <label for="venueName">Venue Name</label>
@@ -183,8 +183,8 @@
         </div>
 
         <!-- VIRTUAL RULES SECTION (conditional) -->
-        <div class="form-section virtual-section" style="display: none;">
-          <div class="section-title">🏃 Virtual Rules (required for virtual/hybrid)</div>
+        <div class="form-section form-section-virtual virtual-section" style="display: none;">
+          <div class="section-title">Virtual Rules (required for virtual/hybrid publishing)</div>
           <div class="form-grid">
             <div class="form-group">
               <label for="virtualStartAt">Virtual Window Start</label>
@@ -209,12 +209,71 @@
                 <label><input type="checkbox" name="proofTypesAllowed" value="manual" <%= selectedProofs.includes('manual') ? 'checked' : '' %>> Manual</label>
               </div>
             </div>
+
+            <div class="form-group form-group-full <%= errors.virtualCompletionMode ? 'has-error' : '' %>">
+              <label for="virtualCompletionMode">Event Format</label>
+              <select id="virtualCompletionMode" name="virtualCompletionMode">
+                <option value="single_activity" <%= formData.virtualCompletionMode === 'single_activity' ? 'selected' : '' %>>Single activity</option>
+                <option value="accumulated_distance" <%= formData.virtualCompletionMode === 'accumulated_distance' ? 'selected' : '' %>>Accumulated distance challenge</option>
+              </select>
+              <small class="field-hint">Accumulated distance setup can be saved as draft, but publishing is blocked until activity-level progress tracking is implemented.</small>
+              <% if (errors.virtualCompletionMode) { %><small class="error-text"><%= errors.virtualCompletionMode %></small><% } %>
+            </div>
+
+            <div class="form-group form-group-full accumulated-settings" style="display: none;">
+              <label>Accumulated Challenge Setup</label>
+              <div class="form-grid">
+                <div class="form-group <%= errors.targetDistanceKm ? 'has-error' : '' %>">
+                  <label for="targetDistanceKm">Target Distance (km)</label>
+                  <input id="targetDistanceKm" name="targetDistanceKm" type="number" min="0" step="0.01" value="<%= formData.targetDistanceKm || '' %>" placeholder="100">
+                  <% if (errors.targetDistanceKm) { %><small class="error-text"><%= errors.targetDistanceKm %></small><% } %>
+                </div>
+                <div class="form-group <%= errors.minimumActivityDistanceKm ? 'has-error' : '' %>">
+                  <label for="minimumActivityDistanceKm">Minimum Activity Distance (km)</label>
+                  <input id="minimumActivityDistanceKm" name="minimumActivityDistanceKm" type="number" min="0" step="0.01" value="<%= formData.minimumActivityDistanceKm || '' %>" placeholder="1">
+                  <% if (errors.minimumActivityDistanceKm) { %><small class="error-text"><%= errors.minimumActivityDistanceKm %></small><% } %>
+                </div>
+                <div class="form-group">
+                  <label for="finalSubmissionDeadlineAt">Final Submission Deadline</label>
+                  <input id="finalSubmissionDeadlineAt" name="finalSubmissionDeadlineAt" type="datetime-local" value="<%= formData.finalSubmissionDeadlineAt || '' %>">
+                </div>
+                <div class="form-group">
+                  <label for="milestoneDistancesKm">Milestones (km, comma-separated)</label>
+                  <input id="milestoneDistancesKm" name="milestoneDistancesKm" type="text" value="<%= formData.milestoneDistancesText || '' %>" placeholder="25, 50, 75, 100">
+                </div>
+                <div class="form-group form-group-full">
+                  <label>Accepted Activity Types</label>
+                  <div class="checkbox-row">
+                    <% const selectedRunTypes = formData.acceptedRunTypes || []; %>
+                    <label><input type="checkbox" name="acceptedRunTypes" value="run" <%= selectedRunTypes.includes('run') ? 'checked' : '' %>> Run</label>
+                    <label><input type="checkbox" name="acceptedRunTypes" value="walk" <%= selectedRunTypes.includes('walk') ? 'checked' : '' %>> Walk</label>
+                    <label><input type="checkbox" name="acceptedRunTypes" value="hike" <%= selectedRunTypes.includes('hike') ? 'checked' : '' %>> Hike</label>
+                    <label><input type="checkbox" name="acceptedRunTypes" value="trail_run" <%= selectedRunTypes.includes('trail_run') ? 'checked' : '' %>> Trail run</label>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="recognitionMode">Recognition Mode</label>
+                  <select id="recognitionMode" name="recognitionMode">
+                    <option value="completion_only" <%= formData.recognitionMode === 'completion_only' ? 'selected' : '' %>>Completion only</option>
+                    <option value="completion_with_optional_ranking" <%= formData.recognitionMode === 'completion_with_optional_ranking' ? 'selected' : '' %>>Completion with optional ranking</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="leaderboardMode">Leaderboard Mode</label>
+                  <select id="leaderboardMode" name="leaderboardMode">
+                    <option value="finishers" <%= formData.leaderboardMode === 'finishers' ? 'selected' : '' %>>Finishers</option>
+                    <option value="top_distance" <%= formData.leaderboardMode === 'top_distance' ? 'selected' : '' %>>Top distance</option>
+                    <option value="finishers_and_top_distance" <%= formData.leaderboardMode === 'finishers_and_top_distance' ? 'selected' : '' %>>Finishers and top distance</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
         <!-- BRANDING & MEDIA SECTION (adapted for edit) -->
-        <div class="form-section">
-          <div class="section-title">🎨 Branding & Media</div>
+        <div class="form-section form-section-media">
+          <div class="section-title">Branding & Media</div>
 
           <!-- Logo -->
           <div class="media-block">
@@ -226,7 +285,7 @@
             <!-- Existing logo preview if any -->
             <% if (formData.logoUrl) { %>
             <div class="branding-preview-wrap" id="logoPreviewWrap">
-              <button type="button" class="branding-remove-btn" id="removeLogoBtn" aria-label="Remove current logo image">×</button>
+              <button type="button" class="branding-remove-btn" id="removeLogoBtn" aria-label="Remove current logo image">x</button>
               <img src="<%= formData.logoUrl %>" alt="Current logo" style="max-width:80px;max-height:80px;border-radius:8px;margin-bottom:1rem;">
             </div>
             <input type="hidden" id="removeLogoImage" name="removeLogoImage" value="0">
@@ -242,7 +301,7 @@
               </div>
               <div class="upload-preview" id="logoPreviewContainer" style="display: none;">
                 <img id="logoPreviewImg" src="#" alt="New logo preview">
-                <button type="button" class="remove-upload" aria-label="Remove new logo" data-for="logo">×</button>
+                <button type="button" class="remove-upload" aria-label="Remove new logo" data-for="logo">x</button>
               </div>
             </div>
             <label for="logoUrl" style="margin-top:0.75rem; display:block;">Logo URL (optional)</label>
@@ -259,7 +318,7 @@
 
             <% if (formData.bannerImageUrl) { %>
             <div class="branding-preview-wrap" id="bannerPreviewWrap">
-              <button type="button" class="branding-remove-btn" id="removeBannerBtn" aria-label="Remove current banner image">×</button>
+              <button type="button" class="branding-remove-btn" id="removeBannerBtn" aria-label="Remove current banner image">x</button>
               <img src="<%= formData.bannerImageUrl %>" alt="Current banner" style="max-width:100%;max-height:120px;border-radius:6px;margin-bottom:1rem;">
             </div>
             <input type="hidden" id="removeBannerImage" name="removeBannerImage" value="0">
@@ -274,7 +333,7 @@
               </div>
               <div class="upload-preview" id="bannerPreviewContainer" style="display: none;">
                 <img id="bannerPreviewImg" src="#" alt="New banner preview">
-                <button type="button" class="remove-upload" aria-label="Remove new banner" data-for="banner">×</button>
+                <button type="button" class="remove-upload" aria-label="Remove new banner" data-for="banner">x</button>
               </div>
             </div>
             <label for="bannerImageUrl" style="margin-top:0.75rem; display:block;">Banner URL (optional)</label>
@@ -290,7 +349,7 @@
 
             <% if (formData.posterImageUrl) { %>
             <div class="branding-preview-wrap" id="posterPreviewWrap">
-              <button type="button" class="branding-remove-btn" id="removePosterBtn" aria-label="Remove current poster">×</button>
+              <button type="button" class="branding-remove-btn" id="removePosterBtn" aria-label="Remove current poster">x</button>
               <img src="<%= formData.posterImageUrl %>" alt="Current poster" style="max-width:100%;max-height:220px;border-radius:8px;margin-bottom:1rem;">
             </div>
             <input type="hidden" id="removePosterImage" name="removePosterImage" value="0">
@@ -305,7 +364,7 @@
               </div>
               <div class="upload-preview" id="posterPreviewContainer" style="display: none;">
                 <img id="posterPreviewImg" src="#" alt="New poster preview">
-                <button type="button" class="remove-upload" aria-label="Remove new poster" data-for="poster">×</button>
+                <button type="button" class="remove-upload" aria-label="Remove new poster" data-for="poster">x</button>
               </div>
             </div>
             <label for="posterImageUrl" style="margin-top:0.75rem; display:block;">Poster URL (optional)</label>
@@ -326,7 +385,7 @@
             <div class="gallery-preview-grid" id="galleryPreviewGrid">
               <% formData.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
                 <div class="gallery-thumb-wrap" data-gallery-url="<%- galleryUrl %>">
-                  <button type="button" class="gallery-remove-btn" data-gallery-url="<%- galleryUrl %>" aria-label="Remove gallery image <%= galleryIndex + 1 %>">×</button>
+                  <button type="button" class="gallery-remove-btn" data-gallery-url="<%- galleryUrl %>" aria-label="Remove gallery image <%= galleryIndex + 1 %>">x</button>
                   <img src="<%= galleryUrl %>" alt="Gallery Preview <%= galleryIndex + 1 %>" class="gallery-preview-thumb">
                 </div>
               <% }) %>
@@ -371,20 +430,35 @@
     (function() {
       lucide.createIcons();
 
+      const coreDetailsSection = document.querySelector('.form-section-core');
+      if (coreDetailsSection && !window.location.hash) {
+        coreDetailsSection.focus({ preventScroll: true });
+      }
+
       // ---------- CONDITIONAL SECTIONS ----------
       const eventTypeSelect = document.getElementById('eventType');
+      const virtualCompletionModeSelect = document.getElementById('virtualCompletionMode');
       const locationSection = document.querySelector('.location-section');
       const virtualSection = document.querySelector('.virtual-section');
+      const accumulatedSettings = document.querySelector('.accumulated-settings');
+      const isPublishedEdit = <%= event.status === 'published' ? 'true' : 'false' %>;
 
       function toggleSections() {
         const val = eventTypeSelect.value;
         locationSection.style.display = (val === 'onsite' || val === 'hybrid') ? 'block' : 'none';
         virtualSection.style.display = (val === 'virtual' || val === 'hybrid') ? 'block' : 'none';
+        if (accumulatedSettings && virtualCompletionModeSelect) {
+          const showAccumulated = (val === 'virtual' || val === 'hybrid') && virtualCompletionModeSelect.value === 'accumulated_distance';
+          accumulatedSettings.style.display = showAccumulated ? 'block' : 'none';
+        }
       }
 
       if (eventTypeSelect) {
         eventTypeSelect.addEventListener('change', toggleSections);
         toggleSections();
+      }
+      if (virtualCompletionModeSelect) {
+        virtualCompletionModeSelect.addEventListener('change', toggleSections);
       }
 
       // ---------- "NOW" BUTTONS ----------
@@ -460,10 +534,15 @@
       // ---------- LOADING STATE ON SUBMIT ----------
       form.addEventListener('submit', (e) => {
         let isValid = true;
-        requiredFields.forEach(f => {
+        const fieldsToValidate = isPublishedEdit ? requiredFields : [{ id: 'title', message: 'Event title is required.' }];
+        fieldsToValidate.forEach(f => {
           const field = document.getElementById(f.id);
           if (!validateField(field)) isValid = false;
         });
+        if (isPublishedEdit && virtualCompletionModeSelect?.value === 'accumulated_distance') {
+          isValid = false;
+          alert('Accumulated distance events can be saved as drafts, but publishing is blocked until activity-level progress tracking is implemented.');
+        }
 
         if (!isValid) {
           e.preventDefault();

@@ -92,6 +92,36 @@
 /* ===== FORM ===== */
 .create-event-form {
   margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-section-core {
+  order: 10;
+}
+
+.form-section-schedule {
+  order: 20;
+}
+
+.form-section-virtual {
+  order: 30;
+}
+
+.form-section-location {
+  order: 35;
+}
+
+.form-section-media {
+  order: 40;
+}
+
+.form-section-waiver {
+  order: 50;
+}
+
+.actions {
+  order: 90;
 }
 
 .form-errors {
@@ -116,6 +146,11 @@
 .form-section:hover {
   border-color: var(--primary-light);
   box-shadow: var(--shadow-md);
+}
+
+.form-section:focus {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 3px;
 }
 
 .section-title {

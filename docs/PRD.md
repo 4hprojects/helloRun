@@ -2538,6 +2538,10 @@ Keep PRD.md as the master planning document.
 Existing dedicated detail files:
 - `docs/shop_feature.md`
 - `docs/ocr_smart_submission.md`
+- `docs/create_event.md`
+
+Dedicated create-event tracking:
+- `docs/create_event.md` covers `/organizer/create-event` current behavior, field inventory, gaps, and example-driven refinements such as accumulated virtual run requirements.
 
 Recommended future dedicated detail files when those phases begin:
 - `docs/onsite_result_import.md`
