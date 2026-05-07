@@ -46,6 +46,7 @@ build/
 # Testing
 coverage/
 .nyc_output/
+docs/image_test/
 
 # Temporary files
 tmp/
