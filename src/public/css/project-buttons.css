@@ -1,0 +1,357 @@
+/* Project-wide button standard.
+   Mirrors the /login action button treatment across public, runner,
+   organizer, admin, blog, and auth utility surfaces. */
+
+:where(
+  a.btn,
+  button.btn,
+  input.btn,
+  .auth-actions .btn,
+  .nav-login-btn,
+  .nav-signup-btn,
+  .btn-full,
+  .btn-reset,
+  .btn-now,
+  .btn-link,
+  .btn-primary,
+  .btn-secondary,
+  .btn-outline,
+  .btn-warning,
+  .btn-danger,
+  .btn-success,
+  .btn-create,
+  .btn-create-sm,
+  .event-link-btn,
+  .event-action-btn,
+  .table-action-btn,
+  .registrant-header-btn,
+  .detail-nav-btn,
+  .detail-status-btn,
+  .detail-copy-btn,
+  .preview-nav-btn,
+  .mod-btn,
+  .mod-back-btn,
+  .blog-comment-submit,
+  .home-blog-cta,
+  .app-copy-btn
+) {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.6rem !important;
+  min-height: 48px !important;
+  border-radius: 12px !important;
+  padding: 0.7rem 1rem !important;
+  font-family: 'Poppins', sans-serif !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  line-height: 1.1 !important;
+  text-decoration: none !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease !important;
+}
+
+:where(
+  a.btn,
+  button.btn,
+  input.btn,
+  .btn-primary,
+  .nav-signup-btn,
+  .btn-create,
+  .btn-create-sm,
+  .event-link-btn,
+  .table-action-btn,
+  .detail-status-btn,
+  .preview-nav-btn,
+  .mod-btn-approve,
+  .blog-comment-submit,
+  .btn-full,
+  .btn-reset
+):not(.btn-secondary):not(.btn-outline):not(.btn-danger):not(.btn-warning):not(.btn-success):not(.btn-google):not(.btn-link):not(.btn-icon):not(.btn-icon-only) {
+  background: #c2410c !important;
+  border: 2px solid #c2410c !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(194, 65, 12, 0.26) !important;
+}
+
+:where(
+  a.btn,
+  button.btn,
+  input.btn,
+  .btn-primary,
+  .nav-signup-btn,
+  .btn-create,
+  .btn-create-sm,
+  .event-link-btn,
+  .table-action-btn,
+  .detail-status-btn,
+  .preview-nav-btn,
+  .mod-btn-approve,
+  .blog-comment-submit,
+  .btn-full,
+  .btn-reset
+):not(.btn-secondary):not(.btn-outline):not(.btn-danger):not(.btn-warning):not(.btn-success):not(.btn-google):not(.btn-link):not(.btn-icon):not(.btn-icon-only):hover {
+  background: #9a3412 !important;
+  border-color: #9a3412 !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(154, 52, 18, 0.28) !important;
+}
+
+:where(
+  .btn-secondary,
+  .btn-outline,
+  .btn-link,
+  .btn-now,
+  .nav-login-btn,
+  .registrant-header-btn,
+  .detail-nav-btn,
+  .detail-copy-btn,
+  .mod-back-btn
+):not(.btn-danger):not(.btn-warning):not(.btn-success):not(.btn-google):not(.btn-icon):not(.btn-icon-only) {
+  background: #ffffff !important;
+  border: 2px solid #94a3b8 !important;
+  color: #111827 !important;
+  box-shadow: none !important;
+}
+
+:where(
+  .btn-secondary,
+  .btn-outline,
+  .btn-link,
+  .btn-now,
+  .nav-login-btn,
+  .registrant-header-btn,
+  .detail-nav-btn,
+  .detail-copy-btn,
+  .mod-back-btn
+):not(.btn-danger):not(.btn-warning):not(.btn-success):not(.btn-google):not(.btn-icon):not(.btn-icon-only):hover {
+  background: #f8fafc !important;
+  border-color: #475569 !important;
+  color: #c2410c !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1) !important;
+}
+
+:where(.btn-success, .mod-btn-approve):not(.btn-icon):not(.btn-icon-only) {
+  background: #15803d !important;
+  border: 2px solid #15803d !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(21, 128, 61, 0.24) !important;
+}
+
+:where(.btn-success, .mod-btn-approve):not(.btn-icon):not(.btn-icon-only):hover {
+  background: #166534 !important;
+  border-color: #166534 !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(21, 128, 61, 0.26) !important;
+}
+
+:where(.btn-danger, .btn-outline-danger, .mod-btn-reject, .mod-btn-archive):not(.btn-icon):not(.btn-icon-only) {
+  background: #dc2626 !important;
+  border: 2px solid #dc2626 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.22) !important;
+}
+
+:where(.btn-danger, .btn-outline-danger, .mod-btn-reject, .mod-btn-archive):not(.btn-icon):not(.btn-icon-only):hover {
+  background: #b91c1c !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(185, 28, 28, 0.25) !important;
+}
+
+:where(.btn-warning):not(.btn-icon):not(.btn-icon-only) {
+  background: #f59e0b !important;
+  border: 2px solid #f59e0b !important;
+  color: #111827 !important;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.24) !important;
+}
+
+:where(.btn-warning):not(.btn-icon):not(.btn-icon-only):hover {
+  background: #d97706 !important;
+  border-color: #d97706 !important;
+  color: #111827 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(217, 119, 6, 0.26) !important;
+}
+
+:where(.btn-google) {
+  background: #ffffff !important;
+  border: 2px solid #94a3b8 !important;
+  color: #111827 !important;
+  box-shadow: none !important;
+}
+
+:where(.btn-sm, .btn.btn-sm, .btn-now, .event-action-btn, .table-action-btn, .event-link-btn) {
+  min-height: 40px !important;
+  border-radius: 10px !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.84rem !important;
+}
+
+:where(.btn-full) {
+  width: 100%;
+}
+
+:where(
+  a.btn,
+  button.btn,
+  .nav-login-btn,
+  .nav-signup-btn,
+  .btn-create,
+  .btn-create-sm,
+  .event-link-btn,
+  .event-action-btn,
+  .table-action-btn,
+  .registrant-header-btn,
+  .detail-nav-btn,
+  .detail-status-btn,
+  .detail-copy-btn,
+  .preview-nav-btn,
+  .mod-btn,
+  .mod-back-btn,
+  .blog-comment-submit,
+  .home-blog-cta,
+  .app-copy-btn
+):focus-visible {
+  outline: 2px solid #333333 !important;
+  outline-offset: 2px !important;
+}
+
+:where(button:disabled, .btn:disabled, .btn.disabled, [aria-disabled="true"]) {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  pointer-events: none;
+  transform: none !important;
+}
+
+:where(
+  .btn i,
+  .btn svg,
+  .nav-login-btn i,
+  .nav-login-btn svg,
+  .nav-signup-btn i,
+  .nav-signup-btn svg,
+  .btn-create i,
+  .btn-create svg,
+  .btn-create-sm i,
+  .btn-create-sm svg,
+  .event-link-btn i,
+  .event-link-btn svg,
+  .event-action-btn i,
+  .event-action-btn svg,
+  .table-action-btn i,
+  .table-action-btn svg,
+  .registrant-header-btn i,
+  .registrant-header-btn svg,
+  .detail-nav-btn i,
+  .detail-nav-btn svg,
+  .detail-status-btn i,
+  .detail-status-btn svg,
+  .detail-copy-btn i,
+  .detail-copy-btn svg,
+  .preview-nav-btn i,
+  .preview-nav-btn svg,
+  .mod-btn i,
+  .mod-btn svg,
+  .mod-back-btn i,
+  .mod-back-btn svg,
+  .blog-comment-submit i,
+  .blog-comment-submit svg,
+  .home-blog-cta i,
+  .home-blog-cta svg,
+  .app-copy-btn i,
+  .app-copy-btn svg
+) {
+  width: 19px !important;
+  height: 19px !important;
+  flex: 0 0 auto;
+}
+
+/* Preserve intentionally icon-only and toolbar controls. */
+:where(.btn-icon, .btn-icon-only, .composer-icon-btn, .poster-zoom-btn, .sub-view-btn, .branding-remove-btn, .gallery-remove-btn) {
+  min-height: unset;
+  border-radius: inherit;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Header navigation keeps its compact icon-button treatment.
+   Some organizer/admin action links reuse nav-login/nav-signup class names,
+   so project button rules target those names generally and this block restores
+   the real top-nav controls inside .nav. */
+.nav .nav-login-btn,
+.nav .nav-signup-btn,
+.nav .nav-logout-btn {
+  width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  border-radius: var(--radius-sm) !important;
+  font-size: 0.9rem !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.nav .nav-login-btn,
+.nav .nav-logout-btn {
+  background: #ffffff !important;
+  color: #334155 !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.nav .nav-login-btn:hover,
+.nav .nav-login-btn:focus-visible,
+.nav .nav-logout-btn:hover,
+.nav .nav-logout-btn:focus-visible {
+  background: #fff7ed !important;
+  border-color: #fed7aa !important;
+  color: #c2410c !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.nav .nav-signup-btn {
+  background: #f59e42 !important;
+  color: #111827 !important;
+  border: 1px solid #f59e42 !important;
+  box-shadow: none !important;
+}
+
+.nav .nav-signup-btn:hover,
+.nav .nav-signup-btn:focus-visible {
+  background: #c2410c !important;
+  border-color: #c2410c !important;
+  color: #ffffff !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+.nav .nav-login-btn.is-active,
+.nav .nav-login-btn[aria-current="page"] {
+  background: #fff7ed !important;
+  border-color: #fed7aa !important;
+  color: #c2410c !important;
+}
+
+.nav .nav-signup-btn.is-active,
+.nav .nav-signup-btn[aria-current="page"] {
+  background: #c2410c !important;
+  border-color: #c2410c !important;
+  color: #ffffff !important;
+}
+
+.nav .nav-login-btn svg,
+.nav .nav-signup-btn svg,
+.nav .nav-logout-btn svg {
+  width: 20px !important;
+  height: 20px !important;
+}

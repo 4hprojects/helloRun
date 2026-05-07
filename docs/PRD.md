@@ -3,6 +3,22 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
+## STATUS UPDATE (May 7, 2026 - Project-Wide Button Standard)
+
+### Current reality after latest implementation
+- The `/login` button treatment is now the project-wide button standard, not an auth-only or landing-only pattern.
+- New project buttons should use the same 12px radius, Poppins 600 typography, non-uppercase text, normal letter spacing, icon+label structure where useful, consistent hover lift, and disabled behavior.
+- `/admin/events` is the first admin management area updated to this standard through `.admin-events-page .admin-event-action-btn`.
+- The standard is enforced through `src/public/css/project-buttons.css`, loaded by the shared head/layout templates and by the standalone error page.
+- The legacy global `.btn` base style in `src/public/css/style.css` now matches the standard instead of using the old gradient, uppercase, letter-spaced, pill-shaped treatment.
+
+### Design guidance carried forward
+- Primary actions use the warm orange treatment (`#c2410c`, hover `#9a3412`).
+- Secondary, success, danger, and utility actions keep the same button structure and interaction model.
+- Legacy pill-shaped uppercase `.btn` treatments should be migrated when related screens are touched.
+
+---
+
 ## STATUS UPDATE (May 1, 2026 - Events Mobile Compact View + Image Fallbacks)
 
 ### Current reality after latest implementation
@@ -407,7 +423,7 @@
 - Added a recent blog section on the landing page:
   - latest published posts are pulled dynamically
   - supports homepage freshness and stronger internal discovery
-- Updated landing-page button treatment to match the stronger auth CTA system:
+- Updated landing-page button treatment to match the stronger auth CTA system, which is now the project-wide button standard:
   - `12px` radius
   - richer warm-orange primary action with branded shadow
   - warm-tinted secondary action instead of a generic gray outline

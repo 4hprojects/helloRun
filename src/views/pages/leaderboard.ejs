@@ -26,44 +26,60 @@
       </section>
 
       <form method="GET" action="/leaderboard" class="leaderboard-filters">
-        <label for="event">Event</label>
-        <select id="event" name="event">
-          <option value="" <%= !leaderboard.filters.eventId ? 'selected' : '' %>>All</option>
-          <% (leaderboard.options.events || []).forEach((event) => { %>
-            <option value="<%= event.id %>" <%= leaderboard.filters.eventId === event.id ? 'selected' : '' %>>
-              <%= event.title %> (<%= event.approvedCount %>)
-            </option>
-          <% }) %>
-        </select>
+        <div class="leaderboard-filter-field">
+          <label for="event">Event</label>
+          <select id="event" name="event">
+            <option value="" <%= !leaderboard.filters.eventId ? 'selected' : '' %>>All</option>
+            <% (leaderboard.options.events || []).forEach((event) => { %>
+              <option value="<%= event.id %>" <%= leaderboard.filters.eventId === event.id ? 'selected' : '' %>>
+                <%= event.title %> (<%= event.approvedCount %>)
+              </option>
+            <% }) %>
+          </select>
+        </div>
 
-        <label for="distance">Distance</label>
-        <select id="distance" name="distance">
-          <option value="" <%= !leaderboard.filters.distance ? 'selected' : '' %>>All</option>
-          <% (leaderboard.options.distances || []).forEach((distance) => { %>
-            <option value="<%= distance %>" <%= leaderboard.filters.distance === distance ? 'selected' : '' %>><%= distance %></option>
-          <% }) %>
-        </select>
+        <div class="leaderboard-filter-field">
+          <label for="distance">Distance</label>
+          <select id="distance" name="distance">
+            <option value="" <%= !leaderboard.filters.distance ? 'selected' : '' %>>All</option>
+            <% (leaderboard.options.distances || []).forEach((distance) => { %>
+              <option value="<%= distance %>" <%= leaderboard.filters.distance === distance ? 'selected' : '' %>><%= distance %></option>
+            <% }) %>
+          </select>
+        </div>
 
-        <label for="mode">Mode</label>
-        <select id="mode" name="mode">
-          <option value="" <%= !leaderboard.filters.mode ? 'selected' : '' %>>All</option>
-          <% (leaderboard.options.modes || []).forEach((mode) => { %>
-            <option value="<%= mode %>" <%= leaderboard.filters.mode === mode ? 'selected' : '' %>><%= mode %></option>
-          <% }) %>
-        </select>
+        <div class="leaderboard-filter-field">
+          <label for="mode">Mode</label>
+          <select id="mode" name="mode">
+            <option value="" <%= !leaderboard.filters.mode ? 'selected' : '' %>>All</option>
+            <% (leaderboard.options.modes || []).forEach((mode) => { %>
+              <option value="<%= mode %>" <%= leaderboard.filters.mode === mode ? 'selected' : '' %>><%= mode %></option>
+            <% }) %>
+          </select>
+        </div>
 
-        <label for="period">Period</label>
-        <select id="period" name="period">
-          <option value="all" <%= leaderboard.filters.period === 'all' ? 'selected' : '' %>>All time</option>
-          <option value="7d" <%= leaderboard.filters.period === '7d' ? 'selected' : '' %>>Last 7 days</option>
-          <option value="30d" <%= leaderboard.filters.period === '30d' ? 'selected' : '' %>>Last 30 days</option>
-          <option value="90d" <%= leaderboard.filters.period === '90d' ? 'selected' : '' %>>Last 90 days</option>
-        </select>
+        <div class="leaderboard-filter-field">
+          <label for="period">Period</label>
+          <select id="period" name="period">
+            <option value="all" <%= leaderboard.filters.period === 'all' ? 'selected' : '' %>>All time</option>
+            <option value="7d" <%= leaderboard.filters.period === '7d' ? 'selected' : '' %>>Last 7 days</option>
+            <option value="30d" <%= leaderboard.filters.period === '30d' ? 'selected' : '' %>>Last 30 days</option>
+            <option value="90d" <%= leaderboard.filters.period === '90d' ? 'selected' : '' %>>Last 90 days</option>
+          </select>
+        </div>
 
-        <button type="submit" class="btn">Apply</button>
-        <% if (filterMeta?.hasActiveFilters) { %>
-          <a href="/leaderboard" class="btn btn-secondary">Clear filters</a>
-        <% } %>
+        <div class="leaderboard-filter-actions">
+          <button type="submit" class="btn leaderboard-action-btn">
+            <i data-lucide="filter" aria-hidden="true"></i>
+            <span>Apply</span>
+          </button>
+          <% if (filterMeta?.hasActiveFilters) { %>
+            <a href="/leaderboard" class="btn btn-secondary leaderboard-action-btn">
+              <i data-lucide="rotate-ccw" aria-hidden="true"></i>
+              <span>Clear filters</span>
+            </a>
+          <% } %>
+        </div>
       </form>
 
       <p class="leaderboard-results-meta">
@@ -111,7 +127,10 @@
           <h2>No leaderboard entries yet</h2>
           <p><%= filterMeta?.hasActiveFilters ? 'No entries matched your selected filters.' : 'Approved result submissions will appear here.' %></p>
           <% if (filterMeta?.hasActiveFilters) { %>
-            <a href="/leaderboard" class="btn btn-secondary">Clear filters</a>
+            <a href="/leaderboard" class="btn btn-secondary leaderboard-action-btn">
+              <i data-lucide="rotate-ccw" aria-hidden="true"></i>
+              <span>Clear filters</span>
+            </a>
           <% } %>
         </div>
       <% } %>
@@ -120,5 +139,6 @@
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

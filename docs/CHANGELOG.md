@@ -3,6 +3,44 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 7, 2026 (Session: Project-Wide Button Standard)
+
+### [SESSION] SESSION UPDATE:
+- Documented the `/login` button treatment as the project-wide button standard:
+  - 12px radius
+  - Poppins 600 typography
+  - non-uppercase labels with normal letter spacing
+  - icon+label structure where useful
+  - consistent hover lift and disabled behavior
+- Recorded `/admin/events` as the first admin management area using the standard through `.admin-events-page .admin-event-action-btn`.
+- Added a shared `project-buttons.css` stylesheet to enforce the standard across public, runner, organizer, admin, blog, auth, and error surfaces.
+- Updated the legacy global `.btn` base style so it no longer defaults to gradient, uppercase, letter-spaced, pill-shaped buttons.
+- Fixed `/leaderboard` nav icon rendering by adding the missing page-level `lucide.createIcons()` call.
+- Added a nav-scoped reset in `project-buttons.css` so the real top navigation keeps compact icon-button styling while non-nav action links can still reuse project button classes.
+- Updated create-event notes to reflect the current draft -> admin review -> approval/publish lifecycle.
+
+### [UPDATED] UPDATED FILES:
+1. docs/PRD.md
+2. docs/CHANGELOG.md
+3. docs/ui-ux-reference.md
+4. docs/sitetheme.md
+5. docs/create_event.md
+6. src/public/css/project-buttons.css
+7. src/public/css/style.css
+8. src/views/layouts/head.ejs
+9. src/views/layouts/main.ejs
+10. src/views/error.ejs
+11. src/views/pages/leaderboard.ejs
+12. src/public/css/leaderboard.css
+
+### [VALIDATION] TEST/RUN CHECKS:
+- CSS brace balance check for `project-buttons.css` and `style.css` -> PASS
+- `git diff --check` on changed implementation files -> PASS
+- `CSRF_PROTECTION=0 node --test --test-concurrency=1 tests/static-pages.test.js tests/admin-dashboard.test.js tests/public-search-filters.test.js` -> PASS
+- `/leaderboard` render check returned `200` and includes `lucide.createIcons()`.
+
+---
+
 ## CHANGELOG - May 1, 2026 (Session: Events Mobile Search + Image Fallbacks)
 
 ### [SESSION] SESSION UPDATE:

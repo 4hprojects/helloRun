@@ -27,6 +27,16 @@ router.use((req, res, next) => {
 });
 
 // List all organizer applications
+router.get('/events', requireAdmin, adminController.listEvents);
+router.get('/events/:id', requireAdmin, adminController.viewEvent);
+router.get('/events/:id/edit', requireAdmin, adminController.renderEditEvent);
+router.post('/events/:id/edit', requireAdmin, uploadService.uploadEventBranding, adminController.updateEvent);
+router.post('/events/:id/media/remove', requireAdmin, adminController.removeEventMedia);
+router.post('/events/:id/approve', requireAdmin, adminModerationLimiter, adminController.approveEvent);
+router.post('/events/:id/archive', requireAdmin, adminModerationLimiter, adminController.archiveEvent);
+router.post('/events/:id/delete', requireAdmin, adminModerationLimiter, adminController.deleteEvent);
+
+// List all organizer applications
 router.get('/applications', requireAdmin, adminController.listApplications);
 
 // View details for a specific application

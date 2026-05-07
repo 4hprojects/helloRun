@@ -9,8 +9,18 @@ const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const PrivacyPolicy = require('../models/PrivacyPolicy');
 const emailService = require('../services/email.service');
+const uploadService = require('../services/upload.service');
 const { markdownToHtml } = require('../utils/markdown');
 const { sanitizeHtml } = require('../utils/sanitize');
+const {
+  DEFAULT_WAIVER_TEMPLATE,
+  applyEventFormData,
+  countries,
+  getCreateEventFormData,
+  getCreateEventFormDataFromEvent,
+  getPublishReadinessErrors,
+  validateCreateEventForm
+} = require('../services/event-form.service');
 
 const VALID_FILTER_STATUSES = ['pending', 'under_review', 'approved', 'rejected'];
 const REVIEWABLE_STATUSES = ['pending', 'under_review'];
@@ -25,6 +35,7 @@ const TERMS_POLICY_MANAGE_PATH = '/admin/terms-and-conditions';
 const COOKIE_POLICY_MANAGE_PATH = '/admin/cookie-policy';
 const ADMIN_REVIEW_TYPES = ['all', 'payments', 'results'];
 const ADMIN_REVIEW_SORTS = ['oldest', 'newest'];
+const ADMIN_EVENT_STATUSES = ['draft', 'pending_review', 'published', 'closed', 'archived'];
 const POLICY_HEADING_PATTERNS = [
   /^hello\s*run\s*privacy\s*policy$/i,
   /^privacy\s*policy$/i,
@@ -139,6 +150,86 @@ function renderServerError(res, error, fallbackMessage) {
 function buildAdminRedirect(pathname, type, message) {
   const params = new URLSearchParams({ type, msg: message });
   return `${pathname}?${params.toString()}`;
+}
+
+function getAdminPageMessage(query = {}) {
+  const type = String(query.type || '').trim();
+  const text = String(query.msg || '').trim();
+  if (!text || !['success', 'error', 'info', 'warning'].includes(type)) return null;
+  return { type, text };
+}
+
+function normalizeAdminEventFilters(query = {}) {
+  const status = ADMIN_EVENT_STATUSES.includes(String(query.status || '').trim()) ? String(query.status).trim() : '';
+  const eventType = ['virtual', 'onsite', 'hybrid'].includes(String(query.eventType || '').trim()) ? String(query.eventType).trim() : '';
+  const deleted = String(query.deleted || '').trim() === '1';
+  const q = String(query.q || '').trim().slice(0, 100);
+  const needsReview = String(query.needsReview || '').trim() === '1';
+  const page = Math.max(1, Number.parseInt(query.page, 10) || 1);
+  return { status, eventType, deleted, q, needsReview, page };
+}
+
+function buildAdminEventQuery(filters) {
+  const query = filters.deleted ? { isDeleted: true } : { isDeleted: { $ne: true } };
+  if (filters.needsReview) query.status = 'pending_review';
+  else if (filters.status) query.status = filters.status;
+  else if (!filters.deleted) query.status = { $ne: 'archived' };
+  if (filters.eventType) query.eventType = filters.eventType;
+  if (filters.q) {
+    const safePattern = new RegExp(String(filters.q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    query.$or = [
+      { title: safePattern },
+      { slug: safePattern },
+      { referenceCode: safePattern },
+      { organiserName: safePattern },
+      { city: safePattern },
+      { country: safePattern }
+    ];
+  }
+  return query;
+}
+
+function formatEventStatusLabel(status) {
+  const value = String(status || '').trim();
+  if (value === 'pending_review') return 'Pending Review';
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : 'N/A';
+}
+
+function getAdminEventRedirect(eventId, type, message) {
+  return buildAdminRedirect(`/admin/events/${eventId}`, type, message);
+}
+
+async function findAdminEventOrNull(eventId, includeDeleted = false) {
+  if (!mongoose.Types.ObjectId.isValid(eventId)) return null;
+  const query = { _id: eventId };
+  if (!includeDeleted) query.isDeleted = { $ne: true };
+  return Event.findOne(query).populate('organizerId', 'firstName lastName email role organizerStatus');
+}
+
+async function getEventCountsById(eventIds) {
+  if (!eventIds.length) return new Map();
+  const [registrationCounts, submissionCounts] = await Promise.all([
+    Registration.aggregate([
+      { $match: { eventId: { $in: eventIds } } },
+      { $group: { _id: '$eventId', count: { $sum: 1 } } }
+    ]),
+    Submission.aggregate([
+      { $match: { eventId: { $in: eventIds } } },
+      { $group: { _id: '$eventId', count: { $sum: 1 } } }
+    ])
+  ]);
+  const counts = new Map(eventIds.map((id) => [String(id), { registrations: 0, submissions: 0 }]));
+  for (const item of registrationCounts) {
+    const existing = counts.get(String(item._id)) || { registrations: 0, submissions: 0 };
+    existing.registrations = Number(item.count || 0);
+    counts.set(String(item._id), existing);
+  }
+  for (const item of submissionCounts) {
+    const existing = counts.get(String(item._id)) || { registrations: 0, submissions: 0 };
+    existing.submissions = Number(item.count || 0);
+    counts.set(String(item._id), existing);
+  }
+  return counts;
 }
 
 function formatAdminReviewDate(value) {
@@ -880,6 +971,327 @@ exports.rejectApplication = async (req, res) => {
   }
 };
 
+exports.listEvents = async (req, res) => {
+  try {
+    const filters = normalizeAdminEventFilters(req.query);
+    const limit = 20;
+    const skip = (filters.page - 1) * limit;
+    const query = buildAdminEventQuery(filters);
+    if (filters.q) {
+      const safePattern = new RegExp(String(filters.q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const organizerMatches = await User.find({
+        $or: [
+          { email: safePattern },
+          { firstName: safePattern },
+          { lastName: safePattern }
+        ]
+      }).select('_id').limit(50).lean();
+      if (organizerMatches.length) {
+        query.$or = query.$or || [];
+        query.$or.push({ organizerId: { $in: organizerMatches.map((item) => item._id) } });
+      }
+    }
+    const sort = filters.status || filters.deleted
+      ? { updatedAt: -1, createdAt: -1 }
+      : { status: 1, submittedForReviewAt: 1, updatedAt: -1 };
+
+    const [totalEvents, events, statusCounts] = await Promise.all([
+      Event.countDocuments(query),
+      Event.find(query)
+        .populate('organizerId', 'firstName lastName email')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Event.aggregate([
+        { $match: { isDeleted: { $ne: true } } },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ])
+    ]);
+
+    const eventIds = events.map((event) => event._id);
+    const counts = await getEventCountsById(eventIds);
+    const statusCountMap = new Map(statusCounts.map((item) => [String(item._id), Number(item.count || 0)]));
+    const eventRows = events.map((event) => {
+      const itemCounts = counts.get(String(event._id)) || { registrations: 0, submissions: 0 };
+      return {
+        ...event,
+        statusLabel: formatEventStatusLabel(event.status),
+        organizerName: [event.organizerId?.firstName, event.organizerId?.lastName].filter(Boolean).join(' ').trim() || event.organiserName || 'N/A',
+        organizerEmail: event.organizerId?.email || 'N/A',
+        registrationsCount: itemCounts.registrations,
+        submissionsCount: itemCounts.submissions
+      };
+    });
+
+    return res.render('admin/events-list', {
+      title: 'Event Management - helloRun Admin',
+      message: getAdminPageMessage(req.query),
+      filters,
+      events: eventRows,
+      pagination: {
+        page: filters.page,
+        totalPages: Math.max(1, Math.ceil(totalEvents / limit)),
+        totalEvents
+      },
+      statusCounts: {
+        pendingReview: statusCountMap.get('pending_review') || 0,
+        draft: statusCountMap.get('draft') || 0,
+        published: statusCountMap.get('published') || 0,
+        archived: statusCountMap.get('archived') || 0
+      }
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading admin events.');
+  }
+};
+
+exports.viewEvent = async (req, res) => {
+  try {
+    const event = await findAdminEventOrNull(req.params.id, true);
+    if (!event) {
+      return res.status(404).render('error', {
+        title: '404 - Event Not Found',
+        status: 404,
+        message: 'The requested event does not exist.'
+      });
+    }
+    const counts = await getEventCountsById([event._id]);
+    const itemCounts = counts.get(String(event._id)) || { registrations: 0, submissions: 0 };
+    const readinessErrors = event.status === 'pending_review' ? getPublishReadinessErrors(event) : [];
+    return res.render('admin/event-detail', {
+      title: `Event Management - ${event.title}`,
+      event,
+      counts: itemCounts,
+      readinessErrors,
+      statusLabel: formatEventStatusLabel(event.status),
+      message: getAdminPageMessage(req.query)
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading the admin event detail.');
+  }
+};
+
+exports.renderEditEvent = async (req, res) => {
+  try {
+    const event = await findAdminEventOrNull(req.params.id, true);
+    if (!event || event.isDeleted) {
+      return res.status(404).render('error', {
+        title: '404 - Event Not Found',
+        status: 404,
+        message: 'The requested event does not exist or has been deleted.'
+      });
+    }
+    return res.render('organizer/edit-event', {
+      title: `Admin Edit Event - ${event.title}`,
+      pageHeading: 'Admin Edit Event',
+      pageDescription: 'Update event details, media, schedule, rules, and waiver as an admin.',
+      user: event.organizerId || null,
+      event,
+      errors: {},
+      formData: getCreateEventFormDataFromEvent(event),
+      countries,
+      defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+      message: getAdminPageMessage(req.query),
+      formAction: `/admin/events/${event._id}/edit`,
+      backHref: `/admin/events/${event._id}`,
+      mediaRemovePath: `/admin/events/${event._id}/media/remove`
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading the admin event editor.');
+  }
+};
+
+exports.updateEvent = async (req, res) => {
+  const uploadedKeys = [];
+  try {
+    const event = await findAdminEventOrNull(req.params.id, true);
+    if (!event || event.isDeleted) {
+      return res.status(404).render('error', {
+        title: '404 - Event Not Found',
+        status: 404,
+        message: 'The requested event does not exist or has been deleted.'
+      });
+    }
+    const actor = await User.findById(req.session.userId);
+    const formData = getCreateEventFormData(req.body);
+    formData.actionType = event.status === 'published' || event.status === 'pending_review' ? 'publish' : 'draft';
+
+    if (req.uploadError) {
+      return res.status(400).render('organizer/edit-event', {
+        title: `Admin Edit Event - ${event.title}`,
+        pageHeading: 'Admin Edit Event',
+        pageDescription: 'Update event details, media, schedule, rules, and waiver as an admin.',
+        user: event.organizerId || null,
+        event,
+        errors: { bannerImageUrl: req.uploadError },
+        formData,
+        countries,
+        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+        message: null,
+        formAction: `/admin/events/${event._id}/edit`,
+        backHref: `/admin/events/${event._id}`,
+        mediaRemovePath: `/admin/events/${event._id}/media/remove`
+      });
+    }
+
+    const validationErrors = validateCreateEventForm(formData);
+    if (Object.keys(validationErrors).length) {
+      return res.status(400).render('organizer/edit-event', {
+        title: `Admin Edit Event - ${event.title}`,
+        pageHeading: 'Admin Edit Event',
+        pageDescription: 'Update event details, media, schedule, rules, and waiver as an admin.',
+        user: event.organizerId || null,
+        event,
+        errors: validationErrors,
+        formData,
+        countries,
+        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+        message: null,
+        formAction: `/admin/events/${event._id}/edit`,
+        backHref: `/admin/events/${event._id}`,
+        mediaRemovePath: `/admin/events/${event._id}/media/remove`
+      });
+    }
+
+    const bannerImageFile = req.files?.bannerImageFile?.[0] || null;
+    const logoFile = req.files?.logoFile?.[0] || null;
+    const posterImageFile = req.files?.posterImageFile?.[0] || null;
+    const galleryImageFiles = req.files?.galleryImageFiles || [];
+    if (bannerImageFile || logoFile || posterImageFile || galleryImageFiles.length) {
+      const uploadedBranding = await uploadService.uploadEventBrandingToR2({
+        userId: actor?._id || event.organizerId?._id || event.organizerId,
+        bannerImageFile: bannerImageFile || undefined,
+        logoFile: logoFile || undefined,
+        posterImageFile: posterImageFile || undefined,
+        galleryImageFiles: galleryImageFiles.length ? galleryImageFiles : undefined
+      });
+      if (uploadedBranding.banner) {
+        uploadedKeys.push(uploadedBranding.banner.key);
+        formData.bannerImageUrl = uploadedBranding.banner.url;
+      }
+      if (uploadedBranding.logo) {
+        uploadedKeys.push(uploadedBranding.logo.key);
+        formData.logoUrl = uploadedBranding.logo.url;
+      }
+      if (uploadedBranding.poster) {
+        uploadedKeys.push(uploadedBranding.poster.key);
+        formData.posterImageUrl = uploadedBranding.poster.url;
+      }
+      if (Array.isArray(uploadedBranding.gallery) && uploadedBranding.gallery.length) {
+        uploadedKeys.push(...uploadedBranding.gallery.map((item) => item.key));
+        formData.galleryImageUrls = Array.from(new Set([...(formData.galleryImageUrls || []), ...uploadedBranding.gallery.map((item) => item.url)]));
+      }
+    }
+
+    applyEventFormData(event, formData, actor || event.organizerId);
+    event.adminNotes = String(req.body.adminNotes || event.adminNotes || '').trim().slice(0, 1000);
+    await event.save();
+    return res.redirect(getAdminEventRedirect(event._id, 'success', 'Event updated.'));
+  } catch (error) {
+    if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
+    return renderServerError(res, error, 'An error occurred while updating the admin event.');
+  }
+};
+
+exports.approveEvent = async (req, res) => {
+  try {
+    const event = await findAdminEventOrNull(req.params.id);
+    if (!event) return res.status(404).json({ success: false, message: 'Event not found.' });
+    if (event.status !== 'pending_review') {
+      return res.status(409).json({ success: false, message: 'Only pending review events can be approved.' });
+    }
+    const readinessErrors = getPublishReadinessErrors(event);
+    if (readinessErrors.length) {
+      return res.status(400).json({ success: false, message: readinessErrors[0], errors: readinessErrors });
+    }
+    event.status = 'published';
+    event.approvedAt = new Date();
+    event.approvedBy = req.session.userId;
+    await event.save();
+    return res.json({ success: true, message: 'Event approved and published.' });
+  } catch (error) {
+    console.error('approveEvent error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to approve event.' });
+  }
+};
+
+exports.archiveEvent = async (req, res) => {
+  try {
+    const event = await findAdminEventOrNull(req.params.id);
+    if (!event) return res.status(404).json({ success: false, message: 'Event not found.' });
+    const reason = String(req.body.reason || req.body.archiveReason || '').trim();
+    if (reason.length < 8) return res.status(400).json({ success: false, message: 'Archive reason must be at least 8 characters.' });
+    if (event.status === 'archived') return res.status(409).json({ success: false, message: 'Event is already archived.' });
+    event.status = 'archived';
+    event.archivedAt = new Date();
+    event.archivedBy = req.session.userId;
+    event.archiveReason = reason.slice(0, 500);
+    await event.save();
+    return res.json({ success: true, message: 'Event archived.' });
+  } catch (error) {
+    console.error('archiveEvent error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to archive event.' });
+  }
+};
+
+exports.deleteEvent = async (req, res) => {
+  try {
+    const event = await findAdminEventOrNull(req.params.id);
+    if (!event) return res.status(404).json({ success: false, message: 'Event not found.' });
+    const reason = String(req.body.reason || req.body.deleteReason || '').trim();
+    if (reason.length < 8) return res.status(400).json({ success: false, message: 'Delete reason must be at least 8 characters.' });
+    event.isDeleted = true;
+    event.deletedAt = new Date();
+    event.deletedBy = req.session.userId;
+    event.deleteReason = reason.slice(0, 500);
+    await event.save();
+    return res.json({ success: true, message: 'Event soft-deleted.' });
+  } catch (error) {
+    console.error('deleteEvent error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete event.' });
+  }
+};
+
+exports.removeEventMedia = async (req, res) => {
+  try {
+    const event = await findAdminEventOrNull(req.params.id, true);
+    if (!event || event.isDeleted) return res.status(404).json({ success: false, message: 'Event not found.' });
+    const kind = String(req.body.kind || '').trim();
+    const keysToDelete = [];
+    if (kind === 'logo' && event.logoUrl) {
+      const key = uploadService.extractObjectKeyFromPublicUrl(event.logoUrl);
+      if (key) keysToDelete.push(key);
+      event.logoUrl = '';
+    } else if (kind === 'banner' && event.bannerImageUrl) {
+      const key = uploadService.extractObjectKeyFromPublicUrl(event.bannerImageUrl);
+      if (key) keysToDelete.push(key);
+      event.bannerImageUrl = '';
+    } else if (kind === 'poster' && event.posterImageUrl) {
+      const key = uploadService.extractObjectKeyFromPublicUrl(event.posterImageUrl);
+      if (key) keysToDelete.push(key);
+      event.posterImageUrl = '';
+    } else if (kind === 'gallery') {
+      const url = String(req.body.url || '').trim();
+      const current = Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : [];
+      const targets = req.body.all === '1' ? current : current.filter((item) => item === url);
+      for (const item of targets) {
+        const key = uploadService.extractObjectKeyFromPublicUrl(item);
+        if (key) keysToDelete.push(key);
+      }
+      event.galleryImageUrls = req.body.all === '1' ? [] : current.filter((item) => item !== url);
+    } else {
+      return res.status(400).json({ success: false, message: 'Invalid media kind.' });
+    }
+    await event.save();
+    if (keysToDelete.length) await uploadService.deleteObjects(keysToDelete);
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('removeEventMedia error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to remove media.' });
+  }
+};
+
 exports.dashboard = async (req, res) => {
   try {
     const [
@@ -898,6 +1310,7 @@ exports.dashboard = async (req, res) => {
       removedBlogComments,
       totalEvents,
       draftEvents,
+      pendingEventReviews,
       publishedEvents,
       totalRegistrations,
       pendingPaymentReviews,
@@ -922,9 +1335,10 @@ exports.dashboard = async (req, res) => {
         BlogReport.countDocuments({ status: 'open' }),
         BlogComment.countDocuments({ isDeleted: { $ne: true } }),
         BlogComment.countDocuments({ status: 'removed' }),
-        Event.countDocuments(),
-        Event.countDocuments({ status: 'draft' }),
-        Event.countDocuments({ status: 'published' }),
+        Event.countDocuments({ isDeleted: { $ne: true } }),
+        Event.countDocuments({ status: 'draft', isDeleted: { $ne: true } }),
+        Event.countDocuments({ status: 'pending_review', isDeleted: { $ne: true } }),
+        Event.countDocuments({ status: 'published', isDeleted: { $ne: true } }),
         Registration.countDocuments(),
         Registration.countDocuments({ paymentStatus: 'proof_submitted' }),
         Submission.countDocuments(),
@@ -935,7 +1349,7 @@ exports.dashboard = async (req, res) => {
           .sort({ submittedAt: 1 })
           .limit(8)
           .lean(),
-        Event.find({ status: 'draft' })
+        Event.find({ status: { $in: ['draft', 'pending_review'] }, isDeleted: { $ne: true } })
           .populate('organizerId', 'firstName lastName email')
           .sort({ updatedAt: -1, createdAt: -1 })
           .limit(8)
@@ -967,8 +1381,8 @@ exports.dashboard = async (req, res) => {
       eventStartAt: event.eventStartAt || null,
       organizerName: [event.organizerId?.firstName, event.organizerId?.lastName].filter(Boolean).join(' ').trim() || 'N/A',
       organizerEmail: event.organizerId?.email || 'N/A',
-      actionLabel: 'Organizer-only',
-      actionHref: ''
+      actionLabel: event.status === 'pending_review' ? 'Review' : 'Open',
+      actionHref: `/admin/events/${event._id}`
     }));
 
     return res.render('admin/dashboard', {
@@ -989,6 +1403,7 @@ exports.dashboard = async (req, res) => {
         removedBlogComments,
         totalEvents,
         draftEvents,
+        pendingEventReviews,
         publishedEvents,
         totalRegistrations,
         pendingPaymentReviews,

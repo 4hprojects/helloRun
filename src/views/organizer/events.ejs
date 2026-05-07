@@ -29,6 +29,7 @@
         const eventList = Array.isArray(events) ? events : [];
         const totalCount = eventList.length;
         const draftCount = eventList.filter((item) => item.status === 'draft').length;
+        const pendingReviewCount = eventList.filter((item) => item.status === 'pending_review').length;
         const publishedCount = eventList.filter((item) => item.status === 'published').length;
         const closedCount = eventList.filter((item) => item.status === 'closed').length;
       %>
@@ -41,6 +42,10 @@
         <article class="events-summary-card">
           <p>Draft</p>
           <strong><%= draftCount %></strong>
+        </article>
+        <article class="events-summary-card">
+          <p>Pending Review</p>
+          <strong><%= pendingReviewCount %></strong>
         </article>
         <article class="events-summary-card">
           <p>Published</p>
@@ -63,8 +68,10 @@
           <select id="status" name="status">
             <option value="" <%= !selectedStatus ? 'selected' : '' %>>All</option>
             <option value="draft" <%= selectedStatus === 'draft' ? 'selected' : '' %>>Draft</option>
+            <option value="pending_review" <%= selectedStatus === 'pending_review' ? 'selected' : '' %>>Pending Review</option>
             <option value="published" <%= selectedStatus === 'published' ? 'selected' : '' %>>Published</option>
             <option value="closed" <%= selectedStatus === 'closed' ? 'selected' : '' %>>Closed</option>
+            <option value="archived" <%= selectedStatus === 'archived' ? 'selected' : '' %>>Archived</option>
           </select>
         </div>
 
@@ -91,7 +98,7 @@
               <div class="event-card-top">
                 <h3><%= event.title %></h3>
                 <span class="status-badge status-<%= event.status %>">
-                  <%= event.status === 'draft' ? 'Draft' : (event.status === 'published' ? 'Published' : 'Closed') %>
+                  <%= event.status === 'draft' ? 'Draft' : (event.status === 'pending_review' ? 'Pending Review' : (event.status === 'published' ? 'Published' : (event.status === 'archived' ? 'Archived' : 'Closed'))) %>
                 </span>
               </div>
 

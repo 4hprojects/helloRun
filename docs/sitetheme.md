@@ -62,15 +62,19 @@ Move. Log. Finish.
 
 ### Button color usage
 
-Orange remains the primary action color for main CTAs such as sign up, submit, apply, register, and confirm.
+The `/login` button treatment is the project-wide button standard. It is enforced through `src/public/css/project-buttons.css` and the corrected global `.btn` base style.
 
-Blue may also be used as an alternate button color with orange when the action benefits from a cooler trust/navigation treatment, such as view, browse, details, secondary page navigation, pagination, filters, or informational actions.
+Orange remains the primary action color for main CTAs such as sign up, submit, apply, register, approve, archive, and confirm. Primary buttons use `#c2410c` with `#9a3412` on hover.
+
+Secondary buttons use a white background, slate border, dark text, and the same shape, sizing, typography, and hover rhythm as primary buttons. Blue may still be used for informational or navigation accents where a surface already needs that cooler trust treatment, but it should not create a competing filled-button system.
 
 Recommended usage:
 - Use orange for the strongest action on the screen.
-- Use blue for secondary or alternate actions when it improves visual hierarchy.
+- Use the login-style button structure across the project: 12px radius, Poppins 600, no uppercase, no letter spacing, inline-flex icon+label, and consistent hover lift.
+- Use blue sparingly for secondary or alternate actions when it improves visual hierarchy.
 - Avoid placing many orange and blue filled buttons with equal weight in the same small area.
 - Keep hover, focus, and disabled states accessible and consistent with the surrounding page.
+- Retire legacy pill-shaped uppercase buttons when touching those screens.
 
 ### Gradient usage
 

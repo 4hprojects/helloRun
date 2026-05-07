@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="admin-page admin-events-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2><%= event.title %></h2>
+          <p>Admin event review, audit, and management.</p>
+        </div>
+        <div class="policy-list-actions">
+          <a href="/admin/events" class="btn btn-secondary admin-event-action-btn">
+            <i data-lucide="list"></i>
+            <span>All Events</span>
+          </a>
+          <% if (!event.isDeleted) { %>
+            <a href="/admin/events/<%= event._id %>/edit" class="btn admin-event-action-btn">
+              <i data-lucide="pencil"></i>
+              <span>Edit Event</span>
+            </a>
+          <% } %>
+          <% if (event.status === 'published' && !event.isDeleted) { %>
+            <a href="/events/<%= event.slug %>" class="btn btn-secondary admin-event-action-btn">
+              <i data-lucide="globe"></i>
+              <span>Public Page</span>
+            </a>
+          <% } %>
+          <a href="/organizer/events/<%= event._id %>/registrants" class="btn btn-secondary admin-event-action-btn">
+            <i data-lucide="users"></i>
+            <span>Registrants</span>
+          </a>
+        </div>
+      </div>
+
+      <% if (message) { %>
+        <div class="admin-alert admin-alert-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <div id="eventActionMessage" class="admin-alert" style="display:none;"></div>
+
+      <div class="application-meta-grid">
+        <article class="meta-card">
+          <p class="meta-label">Status</p>
+          <p class="meta-value"><span class="status-badge status-badge-<%= event.isDeleted ? 'archived' : event.status %>"><%= event.isDeleted ? 'Deleted' : statusLabel %></span></p>
+        </article>
+        <article class="meta-card">
+          <p class="meta-label">Reference</p>
+          <p class="meta-value mono"><%= event.referenceCode || event.slug %></p>
+        </article>
+        <article class="meta-card">
+          <p class="meta-label">Registrations</p>
+          <p class="meta-value"><%= counts.registrations %></p>
+        </article>
+        <article class="meta-card">
+          <p class="meta-label">Submissions</p>
+          <p class="meta-value"><%= counts.submissions %></p>
+        </article>
+      </div>
+
+      <div class="details-grid">
+        <article class="detail-card">
+          <h3>Organizer</h3>
+          <p><strong>Name:</strong> <%= [event.organizerId?.firstName, event.organizerId?.lastName].filter(Boolean).join(' ') || event.organiserName || 'N/A' %></p>
+          <p><strong>Email:</strong> <%= event.organizerId?.email || 'N/A' %></p>
+          <p><strong>Display:</strong> <%= event.organiserName || 'N/A' %></p>
+        </article>
+        <article class="detail-card">
+          <h3>Schedule</h3>
+          <p><strong>Registration:</strong> <%= event.registrationOpenAt ? new Date(event.registrationOpenAt).toLocaleString('en-US') : 'N/A' %> to <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Event:</strong> <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'N/A' %> to <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Submitted:</strong> <%= event.submittedForReviewAt ? new Date(event.submittedForReviewAt).toLocaleString('en-US') : 'N/A' %></p>
+        </article>
+        <article class="detail-card">
+          <h3>Event Rules</h3>
+          <p><strong>Type:</strong> <%= event.eventType || 'N/A' %></p>
+          <p><strong>Modes:</strong> <%= (event.eventTypesAllowed || []).join(', ') || 'N/A' %></p>
+          <p><strong>Distances:</strong> <%= (event.raceDistances || []).join(', ') || 'N/A' %></p>
+          <p><strong>Proofs:</strong> <%= (event.proofTypesAllowed || []).join(', ') || 'N/A' %></p>
+        </article>
+        <article class="detail-card">
+          <h3>Location</h3>
+          <p><strong>Venue:</strong> <%= event.venueName || 'N/A' %></p>
+          <p><strong>City:</strong> <%= [event.city, event.province, event.country].filter(Boolean).join(', ') || 'N/A' %></p>
+        </article>
+        <article class="detail-card detail-card-full">
+          <h3>Description</h3>
+          <p><%= event.description || 'No description yet.' %></p>
+        </article>
+        <article class="detail-card detail-card-full">
+          <h3>Media</h3>
+          <div class="admin-media-grid">
+            <% [event.logoUrl, event.bannerImageUrl, event.posterImageUrl].filter(Boolean).forEach((url) => { %>
+              <img src="<%= url %>" alt="" class="admin-event-thumb">
+            <% }) %>
+            <% (event.galleryImageUrls || []).slice(0, 6).forEach((url) => { %>
+              <img src="<%= url %>" alt="" class="admin-event-thumb">
+            <% }) %>
+            <% if (!event.logoUrl && !event.bannerImageUrl && !event.posterImageUrl && !(event.galleryImageUrls || []).length) { %>
+              <p>No media uploaded.</p>
+            <% } %>
+          </div>
+        </article>
+      </div>
+
+      <% if (readinessErrors.length) { %>
+        <div class="admin-alert admin-alert-warning">
+          Cannot approve yet: <%= readinessErrors[0] %>
+        </div>
+      <% } %>
+
+      <section class="review-actions">
+        <h3>Admin Actions</h3>
+        <p class="action-note">Archive and delete require a reason. Registrations and submissions are preserved.</p>
+        <div class="policy-list-actions">
+          <button type="button" class="btn btn-success event-action-btn admin-event-action-btn" data-action="approve" <%= event.status !== 'pending_review' || event.isDeleted || readinessErrors.length ? 'disabled' : '' %>>
+            <i data-lucide="check-circle"></i>
+            <span>Approve & Publish</span>
+          </button>
+          <button type="button" class="btn btn-secondary event-action-btn admin-event-action-btn" data-action="archive" <%= event.isDeleted || event.status === 'archived' ? 'disabled' : '' %>>
+            <i data-lucide="archive"></i>
+            <span>Archive</span>
+          </button>
+          <button type="button" class="btn btn-danger event-action-btn admin-event-action-btn" data-action="delete" <%= event.isDeleted ? 'disabled' : '' %>>
+            <i data-lucide="trash-2"></i>
+            <span>Soft Delete</span>
+          </button>
+        </div>
+      </section>
+    </section>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    (function() {
+      const csrfToken = <%- JSON.stringify(locals.csrfToken || '') %>;
+      const eventId = <%- JSON.stringify(String(event._id)) %>;
+      const messageBox = document.getElementById('eventActionMessage');
+      function showMessage(type, text) {
+        messageBox.className = `admin-alert admin-alert-${type}`;
+        messageBox.textContent = text;
+        messageBox.style.display = 'block';
+      }
+      async function postAction(action, body = {}) {
+        const response = await fetch(`/admin/events/${eventId}/${action}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken
+          },
+          body: JSON.stringify(body)
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || 'Action failed.');
+        }
+        return data;
+      }
+      document.querySelectorAll('.event-action-btn').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const action = button.dataset.action;
+          let body = {};
+          if (action === 'archive' || action === 'delete') {
+            const reason = prompt(`Reason for ${action === 'archive' ? 'archiving' : 'soft-deleting'} this event:`);
+            if (!reason) return;
+            body.reason = reason;
+          } else if (!confirm('Approve and publish this event?')) {
+            return;
+          }
+          button.disabled = true;
+          try {
+            const data = await postAction(action, body);
+            showMessage('success', data.message || 'Action completed.');
+            window.setTimeout(() => window.location.reload(), 700);
+          } catch (error) {
+            showMessage('error', error.message);
+            button.disabled = false;
+          }
+        });
+      });
+    })();
+  </script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

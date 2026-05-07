@@ -54,6 +54,17 @@
 
         <article class="metric-card action-card">
           <div class="metric-card-head">
+            <p class="metric-label">Pending Event Reviews</p>
+            <span class="status-badge <%= stats.pendingEventReviews > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
+              <%= stats.pendingEventReviews > 0 ? 'Needs Review' : 'Clear' %>
+            </span>
+          </div>
+          <p class="metric-value"><%= stats.pendingEventReviews %></p>
+          <a href="/admin/events?needsReview=1" class="metric-link">Review Events</a>
+        </article>
+
+        <article class="metric-card action-card">
+          <div class="metric-card-head">
             <p class="metric-label">Blog Reviews</p>
             <span class="status-badge <%= stats.pendingBlogs > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
               <%= stats.pendingBlogs > 0 ? 'Needs Review' : 'Clear' %>
@@ -95,6 +106,10 @@
         <a href="/admin/reviews" class="quick-link-card">
           <span class="quick-link-title">Payment & Result Reviews</span>
           <span class="quick-link-meta">Cross-event proof queue</span>
+        </a>
+        <a href="/admin/events" class="quick-link-card">
+          <span class="quick-link-title">Event Management</span>
+          <span class="quick-link-meta">Review and manage events</span>
         </a>
         <a href="/admin/blog/review" class="quick-link-card">
           <span class="quick-link-title">Blog Moderation</span>
@@ -148,6 +163,11 @@
           <a href="/admin/reviews?type=results" class="metric-link">Open Result Queue</a>
         </article>
         <article class="metric-card">
+          <p class="metric-label">Pending Event Reviews</p>
+          <p class="metric-value"><%= stats.pendingEventReviews %></p>
+          <a href="/admin/events?needsReview=1" class="metric-link">Open Event Queue</a>
+        </article>
+        <article class="metric-card">
           <p class="metric-label">Pending Blog Reviews</p>
           <p class="metric-value"><%= stats.pendingBlogs %></p>
           <a href="/admin/blog/review?status=pending" class="metric-link">Review Queue</a>
@@ -169,7 +189,12 @@
         <article class="metric-card">
           <p class="metric-label">Total Events</p>
           <p class="metric-value"><%= stats.totalEvents %></p>
-          <p class="metric-helper">All statuses</p>
+          <a href="/admin/events" class="metric-link">Manage Events</a>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Pending Review</p>
+          <p class="metric-value"><%= stats.pendingEventReviews %></p>
+          <a href="/admin/events?needsReview=1" class="metric-link">Review Events</a>
         </article>
         <article class="metric-card">
           <p class="metric-label">Published Events</p>

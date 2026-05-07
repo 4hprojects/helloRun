@@ -210,7 +210,7 @@ test('create-event publish rejects incomplete event data', async () => {
   assert.match(html, /Description must be at least 20 characters/i);
 });
 
-test('create-event publish accepts valid single-activity virtual event', async () => {
+test('create-event submit for review accepts valid single-activity virtual event', async () => {
   const cookie = await login(seed.organizer.email, seed.password);
   const ready = await waitForSessionReady('/organizer/dashboard', cookie);
   assert.equal(ready, true);
@@ -234,8 +234,9 @@ test('create-event publish accepts valid single-activity virtual event', async (
   assert.equal(response.status, 302);
   await ensureConnected();
   const event = await Event.findOne({ title }).lean();
-  assert.ok(event, 'published event should be saved');
-  assert.equal(event.status, 'published');
+  assert.ok(event, 'pending review event should be saved');
+  assert.equal(event.status, 'pending_review');
+  assert.ok(event.submittedForReviewAt);
   assert.equal(event.virtualCompletionMode, 'single_activity');
 });
 

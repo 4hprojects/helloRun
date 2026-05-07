@@ -40,7 +40,7 @@ const eventSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['draft', 'published', 'closed'],
+      enum: ['draft', 'pending_review', 'published', 'closed', 'archived'],
       default: 'draft'
     },
     eventType: {
@@ -202,6 +202,60 @@ const eventSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
       index: true
+    },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    deletedAt: {
+      type: Date,
+      default: null
+    },
+    deletedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    deleteReason: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: ''
+    },
+    submittedForReviewAt: {
+      type: Date,
+      default: null
+    },
+    approvedAt: {
+      type: Date,
+      default: null
+    },
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    archivedAt: {
+      type: Date,
+      default: null
+    },
+    archivedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    archiveReason: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: ''
+    },
+    adminNotes: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+      default: ''
     }
   },
   {
@@ -214,5 +268,7 @@ eventSchema.index({ eventStartAt: 1 });
 eventSchema.index({ organizerId: 1, createdAt: -1 });
 eventSchema.index({ status: 1, eventStartAt: 1, createdAt: -1 });
 eventSchema.index({ organizerId: 1, status: 1, eventStartAt: -1 });
+eventSchema.index({ status: 1, isDeleted: 1, updatedAt: -1 });
+eventSchema.index({ organizerId: 1, status: 1, isDeleted: 1 });
 
 module.exports = mongoose.models.Event || mongoose.model('Event', eventSchema);

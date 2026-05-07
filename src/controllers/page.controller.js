@@ -35,6 +35,7 @@ exports.getHome = async (req, res) => {
     const [activeEventsCount, approvedFinishersCount, approvedOrganizersCount, recentPostsRaw] = await Promise.all([
       Event.countDocuments({
         isPersonalRecord: { $ne: true },
+        isDeleted: { $ne: true },
         status: 'published',
         $or: [
           { eventEndAt: { $gte: now } },
@@ -118,6 +119,7 @@ exports.getEvents = async (req, res) => {
     const matchingCountryCodes = getMatchingCountryCodes(filterValues.q);
     const query = {
       status: 'published',
+      isDeleted: { $ne: true },
       isPersonalRecord: { $ne: true }
     };
     if (filterValues.eventType) {
@@ -167,7 +169,7 @@ exports.getEvents = async (req, res) => {
 
     const [totalEvents, distanceOptions] = await Promise.all([
       Event.countDocuments(query),
-      Event.distinct('raceDistances', { status: 'published', isPersonalRecord: { $ne: true } })
+      Event.distinct('raceDistances', { status: 'published', isDeleted: { $ne: true }, isPersonalRecord: { $ne: true } })
     ]);
     const totalPages = Math.max(1, Math.ceil(totalEvents / limit));
     const currentPage = Math.min(page, totalPages);
@@ -1266,7 +1268,7 @@ exports.getSitemapXml = async (req, res) => {
     ];
 
     const [events, blogPosts] = await Promise.all([
-      Event.find({ status: 'published' })
+      Event.find({ status: 'published', isDeleted: { $ne: true } })
         .select('slug updatedAt createdAt')
         .sort({ updatedAt: -1 })
         .lean(),
@@ -2355,7 +2357,7 @@ async function generateConfirmationCode() {
 async function getPublishedEventBySlug(slugInput) {
   const slug = typeof slugInput === 'string' ? slugInput.trim() : '';
   if (!slug) return null;
-  return Event.findOne({ slug, status: 'published', isPersonalRecord: { $ne: true } });
+  return Event.findOne({ slug, status: 'published', isDeleted: { $ne: true }, isPersonalRecord: { $ne: true } });
 }
 
 function renderEventNotFound(res) {

@@ -17,7 +17,7 @@ Primary implementation surfaces:
 
 ## Current `/organizer/create-event` Capabilities
 
-The current create-event flow supports approved organizers creating draft or published events.
+The current create-event flow supports approved organizers creating drafts or submitting events for admin review. Admin approval publishes the event.
 
 Implemented capabilities:
 
@@ -57,7 +57,7 @@ Implemented capabilities:
   - poster upload or URL
   - gallery uploads or URLs
 - Preview route at `/organizer/preview-event`
-- Save Draft and Publish Event actions
+- Save Draft and Submit for Review actions
 - Success redirect to `/organizer/events`
 - Unique slug generation
 - Unique event reference code generation
@@ -81,7 +81,7 @@ Current first-class create-event fields:
 | Location | venueName, venueAddress, city, province, country, geoLat, geoLng |
 | Virtual rules | virtualStartAt, virtualEndAt, proofTypesAllowed |
 | Media | logoFile, logoUrl, bannerImageFile, bannerImageUrl, posterImageFile, posterImageUrl, galleryImageFiles, galleryImageUrlsText |
-| Actions | actionType: draft or publish |
+| Actions | actionType: draft or publish; publish now submits for admin review |
 
 Persisted event model fields currently used:
 
@@ -99,17 +99,18 @@ Persisted event model fields currently used:
 
 Implementation update:
 
-- Partial draft behavior is now the chosen direction: drafts require only a valid title, while publishing requires full event validation.
+- Partial draft behavior is now the chosen direction: drafts require only a valid title, while submitting for admin review requires full publish-readiness validation. Admin approval publishes the event.
 - Accumulated virtual run setup is modeled as a virtual/hybrid event format, not a new top-level event type.
-- Accumulated-distance events may be saved as drafts, but publishing remains blocked until activity-level submission and progress tracking are implemented.
+- Accumulated-distance events may be saved as drafts, but submission for admin review remains blocked until activity-level submission and progress tracking are implemented.
 - Create/edit event UI now opens with focus on the Core Details panel and uses the shared panel sequence: Core Details, Schedule, Virtual Rules, Branding and Media, Waiver.
+- Create/edit/admin event actions should use the project-wide `/login` button treatment: 12px radius, Poppins 600, no uppercase, no letter spacing, inline-flex icon+label where useful, and consistent hover/disabled states.
 
 Current gaps:
 
 - Preview is GET-query based and cannot preview local uploaded files.
 - Preview can become fragile with long rich-text waiver content because form data is serialized into the URL.
 - Client-side validation is lighter than backend validation, especially for date ordering, URL validity, conditional virtual/onsite requirements, and waiver length.
-- Create-event tests cover the focused draft/publish/access/accumulated-groundwork paths, but media upload and richer preview coverage are still needed.
+- Create-event tests cover the focused draft/review-submit/access/accumulated-groundwork paths, but media upload and richer preview coverage are still needed.
 
 ## Accumulated Virtual Run Requirements
 

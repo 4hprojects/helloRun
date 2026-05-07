@@ -11,8 +11,8 @@
   <main class="create-event-page">
     <section class="create-event-shell">
       <header class="page-header">
-        <h1>Edit Event</h1>
-        <p>Update the public details, schedule, rules, waiver, and media for your event.</p>
+        <h1><%= typeof pageHeading !== 'undefined' ? pageHeading : 'Edit Event' %></h1>
+        <p><%= typeof pageDescription !== 'undefined' ? pageDescription : 'Update the public details, schedule, rules, waiver, and media for your event.' %></p>
       </header>
 
       <% if (message) { %>
@@ -31,7 +31,7 @@
         </div>
       <% } %>
 
-      <form class="create-event-form" method="POST" action="/organizer/events/<%= event._id %>/edit" enctype="multipart/form-data" novalidate>
+      <form class="create-event-form" method="POST" action="<%= typeof formAction !== 'undefined' ? formAction : `/organizer/events/${event._id}/edit` %>" enctype="multipart/form-data" novalidate>
         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
         <!-- CORE DETAILS SECTION (same as create) -->
         <div class="form-section form-section-core" tabindex="-1">
@@ -412,7 +412,7 @@
 
         <!-- FORM ACTIONS -->
         <div class="actions">
-          <a href="/organizer/events/<%= event._id %>" class="btn btn-secondary">Cancel</a>
+          <a href="<%= typeof backHref !== 'undefined' ? backHref : `/organizer/events/${event._id}` %>" class="btn btn-secondary">Cancel</a>
           <button type="submit" class="btn btn-primary" id="saveBtn">
             <span class="btn-text">Save Changes</span>
             <span class="spinner" style="display: none;"></span>
@@ -682,7 +682,8 @@
       // ---------- REMOVE EXISTING MEDIA (edit mode) ----------
       async function removeEventMediaNow(payload) {
         const body = new URLSearchParams(payload);
-        const response = await fetch(`/organizer/events/<%= event._id %>/media/remove`, {
+        body.set('_csrf', '<%= locals.csrfToken || '' %>');
+        const response = await fetch(`<%= typeof mediaRemovePath !== 'undefined' ? mediaRemovePath : `/organizer/events/${event._id}/media/remove` %>`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
           body: body.toString()

@@ -74,7 +74,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const dashboardRange = normalizeOrganizerDashboardRange(req.query.range);
     const rangeLabel = getOrganizerDashboardRangeLabel(dashboardRange);
     const rangeWindow = getOrganizerDashboardRangeWindow(dashboardRange, now);
-    const eventQuery = { organizerId: user._id };
+    const eventQuery = { organizerId: user._id, isDeleted: { $ne: true } };
 
     const [totalEvents, activeEvents, upcomingEvents, recentEventDocs, draftEventDocs, organizerEventIdDocs] = await Promise.all([
       Event.countDocuments(eventQuery),
@@ -489,7 +489,7 @@ router.get('/events', requireApprovedOrganizer, async (req, res) => {
       });
     }
 
-    const selectedStatus = ['draft', 'published', 'closed'].includes(req.query.status)
+    const selectedStatus = ['draft', 'pending_review', 'published', 'closed', 'archived'].includes(req.query.status)
       ? req.query.status
       : '';
     const selectedSort = ['newest', 'oldest', 'start_asc', 'start_desc'].includes(req.query.sort)
@@ -497,9 +497,11 @@ router.get('/events', requireApprovedOrganizer, async (req, res) => {
       : 'newest';
     const searchQuery = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 80) : '';
 
-    const query = { organizerId: user._id };
+    const query = { organizerId: user._id, isDeleted: { $ne: true } };
     if (selectedStatus) {
       query.status = selectedStatus;
+    } else {
+      query.status = { $ne: 'archived' };
     }
     if (searchQuery) {
       const safePattern = new RegExp(escapeRegex(searchQuery), 'i');
@@ -1273,7 +1275,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     }
 
     const formData = getCreateEventFormData(req.body);
-    formData.actionType = event.status === 'published' ? 'publish' : 'draft';
+    formData.actionType = event.status === 'published' || event.status === 'pending_review' ? 'publish' : 'draft';
     if (req.uploadError) {
       const errorField = mapUploadFieldToFormField(req.uploadErrorField);
       return res.status(400).render('organizer/edit-event', {
@@ -1514,18 +1516,21 @@ router.post('/events/:id/status', requireApprovedOrganizer, async (req, res) => 
       return res.redirect(`/organizer/events/${event._id}?${q.toString()}`);
     }
 
-    if (nextStatus === 'published') {
+    if (nextStatus === 'pending_review') {
       const readinessErrors = getPublishReadinessErrors(event);
       if (readinessErrors.length) {
         const q = new URLSearchParams({
           type: 'error',
-          msg: `Cannot publish yet: ${readinessErrors[0]}`
+          msg: `Cannot submit yet: ${readinessErrors[0]}`
         });
         return res.redirect(`/organizer/events/${event._id}?${q.toString()}`);
       }
     }
 
     event.status = nextStatus;
+    if (nextStatus === 'pending_review') {
+      event.submittedForReviewAt = new Date();
+    }
     await event.save();
 
     const q = new URLSearchParams({
@@ -1678,7 +1683,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
 
     const organiserNameFromUser = `${user.firstName || ''} ${user.lastName || ''}`.trim();
     const organiserName = formData.organiserName || organiserNameFromUser || 'helloRun Organizer';
-    const status = formData.actionType === 'publish' ? 'published' : 'draft';
+    const status = formData.actionType === 'publish' ? 'pending_review' : 'draft';
     const slug = await generateUniqueSlug(formData.title);
     const eventTypesAllowed = getEventTypesAllowed(formData.eventType);
     const isVirtualMode = formData.eventType === 'virtual' || formData.eventType === 'hybrid';
@@ -1797,13 +1802,14 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
       posterImageUrl: formData.posterImageUrl || '',
       galleryImageUrls: formData.galleryImageUrls || [],
       waiverTemplate: sanitizeWaiverTemplate(formData.waiverTemplate),
-      waiverVersion: 1
+      waiverVersion: 1,
+      submittedForReviewAt: status === 'pending_review' ? new Date() : null
     });
 
     await event.save();
 
-    const successText = status === 'published'
-      ? 'Event published successfully.'
+    const successText = status === 'pending_review'
+      ? 'Event submitted for admin review.'
       : 'Event saved as draft successfully.';
 
     const query = new URLSearchParams({ type: 'success', msg: successText });
@@ -2923,7 +2929,7 @@ async function getOwnedEventOrNull(eventId, userId) {
   if (!mongoose.Types.ObjectId.isValid(eventId)) {
     return null;
   }
-  return Event.findOne({ _id: eventId, organizerId: userId });
+    return Event.findOne({ _id: eventId, organizerId: userId, isDeleted: { $ne: true } });
 }
 
 function canAccessRegistrantReview(user) {
@@ -2943,7 +2949,7 @@ async function getRegistrantAccessibleEventOrNull(eventId, user) {
 }
 
 function getStatusTransitionError(currentStatus, nextStatus) {
-  const validStatuses = ['draft', 'published', 'closed'];
+  const validStatuses = ['draft', 'pending_review', 'published', 'closed', 'archived'];
   if (!validStatuses.includes(nextStatus)) {
     return 'Invalid target status.';
   }
@@ -2952,9 +2958,11 @@ function getStatusTransitionError(currentStatus, nextStatus) {
   }
 
   const allowed = {
-    draft: ['published'],
+    draft: ['pending_review'],
+    pending_review: [],
     published: ['closed'],
-    closed: []
+    closed: [],
+    archived: []
   };
 
   if (!allowed[currentStatus] || !allowed[currentStatus].includes(nextStatus)) {

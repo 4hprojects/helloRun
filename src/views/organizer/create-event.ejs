@@ -404,7 +404,7 @@
           <button type="button" class="btn btn-outline" id="previewBtn">Preview</button>
           <button type="submit" name="actionType" value="draft" class="btn btn-outline">Save Draft</button>
           <button type="submit" name="actionType" value="publish" class="btn btn-primary" id="publishBtn">
-            <span class="btn-text">Publish Event</span>
+            <span class="btn-text">Submit for Review</span>
             <span class="spinner" style="display: none;"></span>
           </button>
         </div>
@@ -548,7 +548,7 @@
         }
 
         if (submitter && submitter.name === 'actionType' && submitter.value === 'publish') {
-          if (!confirm('Are you sure you want to publish this event? It will be visible to participants.')) {
+          if (!confirm('Submit this event for admin review? It will not be public until approved.')) {
             e.preventDefault();
             return;
           }

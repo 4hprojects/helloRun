@@ -10,11 +10,12 @@ async function getLeaderboardData(rawFilters = {}) {
     .sort({ elapsedMs: 1, submittedAt: 1, createdAt: 1 })
     .limit(filters.limit)
     .populate({ path: 'runnerId', select: 'firstName lastName email' })
-    .populate({ path: 'eventId', select: 'title slug' })
+    .populate({ path: 'eventId', select: 'title slug status isDeleted' })
     .select('eventId runnerId raceDistance participationMode elapsedMs submittedAt')
     .lean();
 
-  const entries = rows.map((item, index) => ({
+  const visibleRows = rows.filter((item) => item.eventId && item.eventId.status === 'published' && item.eventId.isDeleted !== true);
+  const entries = visibleRows.map((item, index) => ({
     rank: index + 1,
     submissionId: String(item._id),
     runnerName: getRunnerDisplayName(item.runnerId),
@@ -98,7 +99,7 @@ async function getLeaderboardEvents() {
     .filter(Boolean);
   if (!ids.length) return [];
 
-  const events = await Event.find({ _id: { $in: ids }, isPersonalRecord: { $ne: true } }).select('title slug').lean();
+  const events = await Event.find({ _id: { $in: ids }, status: 'published', isDeleted: { $ne: true }, isPersonalRecord: { $ne: true } }).select('title slug').lean();
   const eventById = new Map(events.map((item) => [String(item._id), item]));
 
   return grouped

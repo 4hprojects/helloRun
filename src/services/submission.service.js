@@ -439,9 +439,9 @@ async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
   }
 
   const event = await Event.findById(registration.eventId)
-    .select('status eventStartAt eventEndAt virtualWindow onsiteCheckinWindows')
+    .select('status isDeleted eventStartAt eventEndAt virtualWindow onsiteCheckinWindows')
     .lean();
-  if (!event) {
+  if (!event || event.isDeleted || event.status !== 'published') {
     throw new Error('Event not found for this registration.');
   }
   if (!isSubmissionWindowOpen({ registration, event })) {

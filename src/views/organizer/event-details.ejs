@@ -17,7 +17,7 @@
         </div>
         <div class="header-actions">
           <a href="/organizer/events" class="nav-login-btn detail-nav-btn">Back to Events</a>
-          <% if (event.status !== 'closed') { %>
+          <% if (event.status !== 'closed' && event.status !== 'archived') { %>
             <a href="/organizer/events/<%= event._id %>/edit" class="nav-signup-btn detail-nav-btn">Edit Event</a>
           <% } %>
           <a href="/organizer/events/<%= event._id %>/registrants" class="nav-login-btn detail-nav-btn">View Registrants</a>
@@ -152,15 +152,19 @@
 
       <section class="status-panel">
         <h3>Status Actions</h3>
-        <p>Allowed flow: <strong>Draft -> Published -> Closed</strong>.</p>
+        <p>Allowed flow: <strong>Draft -> Pending Review -> Published -> Closed</strong>.</p>
 
         <div class="status-actions">
           <% if (event.status === 'draft') { %>
-            <form method="POST" action="/organizer/events/<%= event._id %>/status" onsubmit="return confirm('Publish this event now?');">
+            <form method="POST" action="/organizer/events/<%= event._id %>/status" onsubmit="return confirm('Submit this event for admin review?');">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-              <input type="hidden" name="nextStatus" value="published">
-              <button type="submit" class="nav-signup-btn detail-status-btn">Publish Event</button>
+              <input type="hidden" name="nextStatus" value="pending_review">
+              <button type="submit" class="nav-signup-btn detail-status-btn">Submit for Review</button>
             </form>
+          <% } %>
+
+          <% if (event.status === 'pending_review') { %>
+            <p class="status-locked">This event is waiting for admin approval.</p>
           <% } %>
 
           <% if (event.status === 'published') { %>
@@ -171,8 +175,8 @@
             </form>
           <% } %>
 
-          <% if (event.status === 'closed') { %>
-            <p class="status-locked">This event is closed and can no longer transition status.</p>
+          <% if (event.status === 'closed' || event.status === 'archived') { %>
+            <p class="status-locked">This event is <%= event.status %> and can no longer transition status here.</p>
           <% } %>
         </div>
       </section>

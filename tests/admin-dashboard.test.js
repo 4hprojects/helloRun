@@ -84,9 +84,12 @@ test('admin dashboard renders platform stats and pending application queue', asy
   assert.match(html, /\/admin\/reviews\?type=payments/i);
   assert.match(html, /\/admin\/reviews\?type=results/i);
   assert.match(html, /\/admin\/reviews/i);
+  assert.match(html, /\/admin\/events/i);
+  assert.match(html, /Pending Event Reviews/i);
   assert.match(html, new RegExp(escapeRegex(seed.pendingApplication.businessName)));
   assert.match(html, new RegExp(escapeRegex(seed.pendingApplication.applicantEmail)));
   assert.match(html, new RegExp(escapeRegex(`/admin/applications/${seed.pendingApplication.id}`)));
+  assert.match(html, new RegExp(escapeRegex(`/admin/events/${seed.pendingEvent.id}`)));
 });
 
 test('admin review queue enforces admin access', async () => {
@@ -153,6 +156,168 @@ test('admin review queue renders empty state for unmatched search', async () => 
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /No pending reviews found/i);
+});
+
+test('admin events page enforces admin access', async () => {
+  const unauthenticated = await fetch(`${BASE_URL}/admin/events`, {
+    redirect: 'manual'
+  });
+  assert.equal(unauthenticated.status, 302);
+  assert.equal(unauthenticated.headers.get('location'), '/login');
+
+  const runnerCookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', runnerCookie);
+  const runnerResponse = await fetch(`${BASE_URL}/admin/events`, {
+    headers: { Cookie: runnerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(runnerResponse.status, 403);
+});
+
+test('admin can list and inspect event management records', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(cookie);
+
+  const listResponse = await fetch(`${BASE_URL}/admin/events?needsReview=1`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(listResponse.status, 200);
+  const listHtml = await listResponse.text();
+  assert.match(listHtml, /Event Management/i);
+  assert.match(listHtml, /Pending Review/i);
+  assert.match(listHtml, new RegExp(escapeRegex(seed.pendingEvent.title)));
+  assert.match(listHtml, new RegExp(escapeRegex(seed.organizer.email)));
+
+  const detailResponse = await fetch(`${BASE_URL}/admin/events/${seed.pendingEvent.id}`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(detailResponse.status, 200);
+  const detailHtml = await detailResponse.text();
+  assert.match(detailHtml, /Admin Actions/i);
+  assert.match(detailHtml, /Approve (?:&amp;|&) Publish/i);
+  assert.match(detailHtml, /Registrations/i);
+
+  const editResponse = await fetch(`${BASE_URL}/admin/events/${seed.pendingEvent.id}/edit`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(editResponse.status, 200);
+  const editHtml = await editResponse.text();
+  assert.match(editHtml, /Admin Edit Event/i);
+  assert.match(editHtml, new RegExp(escapeRegex(`/admin/events/${seed.pendingEvent.id}/edit`)));
+});
+
+test('admin approves pending event, then archive hides it from public event detail', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(cookie);
+
+  const pendingPublicBefore = await fetch(`${BASE_URL}/events/${seed.pendingEvent.slug}`, {
+    redirect: 'manual'
+  });
+  assert.equal(pendingPublicBefore.status, 404);
+
+  const approveResponse = await fetch(`${BASE_URL}/admin/events/${seed.pendingEvent.id}/approve`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    redirect: 'manual'
+  });
+  assert.equal(approveResponse.status, 200);
+  const approveBody = await approveResponse.json();
+  assert.equal(approveBody.success, true);
+
+  await ensureConnected();
+  const approved = await Event.findById(seed.pendingEvent.id);
+  assert.equal(approved.status, 'published');
+  assert.ok(approved.approvedAt);
+  assert.ok(approved.approvedBy);
+
+  const publicAfterApprove = await fetch(`${BASE_URL}/events/${seed.pendingEvent.slug}`, {
+    redirect: 'manual'
+  });
+  assert.equal(publicAfterApprove.status, 200);
+
+  const archiveResponse = await fetch(`${BASE_URL}/admin/events/${seed.pendingEvent.id}/archive`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify({ reason: 'Archiving after admin workflow test.' }),
+    redirect: 'manual'
+  });
+  assert.equal(archiveResponse.status, 200);
+  const archiveBody = await archiveResponse.json();
+  assert.equal(archiveBody.success, true);
+
+  const archived = await Event.findById(seed.pendingEvent.id);
+  assert.equal(archived.status, 'archived');
+  assert.equal(archived.archiveReason, 'Archiving after admin workflow test.');
+
+  const publicAfterArchive = await fetch(`${BASE_URL}/events/${seed.pendingEvent.slug}`, {
+    redirect: 'manual'
+  });
+  assert.equal(publicAfterArchive.status, 404);
+});
+
+test('admin soft deletes event while preserving registrations', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(cookie);
+
+  const deleteResponse = await fetch(`${BASE_URL}/admin/events/${seed.deleteEvent.id}/delete`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify({ reason: 'Soft delete workflow test.' }),
+    redirect: 'manual'
+  });
+  assert.equal(deleteResponse.status, 200);
+  const deleteBody = await deleteResponse.json();
+  assert.equal(deleteBody.success, true);
+
+  await ensureConnected();
+  const deleted = await Event.findById(seed.deleteEvent.id);
+  assert.equal(deleted.isDeleted, true);
+  assert.equal(deleted.deleteReason, 'Soft delete workflow test.');
+
+  const preservedRegistrations = await Registration.countDocuments({ eventId: seed.deleteEvent.id });
+  assert.equal(preservedRegistrations, 1);
+
+  const deletedListResponse = await fetch(`${BASE_URL}/admin/events?deleted=1&q=${encodeURIComponent(seed.deleteEvent.title)}`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(deletedListResponse.status, 200);
+  const deletedListHtml = await deletedListResponse.text();
+  assert.match(deletedListHtml, new RegExp(escapeRegex(seed.deleteEvent.title)));
+  assert.match(deletedListHtml, /Deleted/i);
+});
+
+test('admin cannot approve non-pending event', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(cookie);
+
+  const response = await fetch(`${BASE_URL}/admin/events/${seed.draftEvent.id}/approve`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 409);
+  const body = await response.json();
+  assert.equal(body.success, false);
 });
 
 async function seedAdminDashboardFixture() {
@@ -223,6 +388,67 @@ async function seedAdminDashboardFixture() {
     waiverVersion: 1
   });
 
+  const pendingEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `admin-pending-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `PE-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Admin Pending Event ${stamp}`,
+    organiserName: 'Admin Pending Org',
+    description: 'Admin pending event has enough description text for approval.',
+    status: 'pending_review',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['10K'],
+    registrationOpenAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 5 * 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 8 * 24 * 60 * 60 * 1000),
+    virtualWindow: {
+      startAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+      endAt: new Date(now + 8 * 24 * 60 * 60 * 1000)
+    },
+    proofTypesAllowed: ['gps', 'photo'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1,
+    submittedForReviewAt: new Date(now - 60 * 60 * 1000)
+  });
+
+  const draftEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `admin-draft-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `DE-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Admin Draft Event ${stamp}`,
+    organiserName: 'Admin Draft Org',
+    description: '',
+    status: 'draft',
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
+  const deleteEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `admin-delete-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `SD-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Admin Soft Delete Event ${stamp}`,
+    organiserName: 'Admin Delete Org',
+    description: 'Admin soft delete event has enough description text.',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    registrationOpenAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 5 * 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 8 * 24 * 60 * 60 * 1000),
+    virtualWindow: {
+      startAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+      endAt: new Date(now + 8 * 24 * 60 * 60 * 1000)
+    },
+    proofTypesAllowed: ['gps'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
   const registration = await Registration.create({
     eventId: event._id,
     userId: runner._id,
@@ -242,6 +468,30 @@ async function seedAdminDashboardFixture() {
       size: 1024,
       uploadedAt: new Date(now - 12 * 60 * 60 * 1000)
     },
+    waiver: {
+      accepted: true,
+      version: 1,
+      signature: `${runner.firstName} ${runner.lastName}`,
+      acceptedAt: new Date(now - 1 * 24 * 60 * 60 * 1000),
+      templateSnapshot: DEFAULT_WAIVER_TEMPLATE,
+      renderedSnapshot: DEFAULT_WAIVER_TEMPLATE
+    },
+    confirmationCode: `HR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+    registeredAt: new Date(now - 1 * 24 * 60 * 60 * 1000)
+  });
+
+  const deleteEventRegistration = await Registration.create({
+    eventId: deleteEvent._id,
+    userId: runner._id,
+    participant: {
+      firstName: runner.firstName,
+      lastName: runner.lastName,
+      email: runner.email
+    },
+    participationMode: 'virtual',
+    raceDistance: '5K',
+    status: 'confirmed',
+    paymentStatus: 'paid',
     waiver: {
       accepted: true,
       version: 1,
@@ -324,6 +574,20 @@ async function seedAdminDashboardFixture() {
     },
     eventId: String(event._id),
     eventTitle: event.title,
+    pendingEvent: {
+      id: String(pendingEvent._id),
+      title: pendingEvent.title,
+      slug: pendingEvent.slug
+    },
+    draftEvent: {
+      id: String(draftEvent._id),
+      title: draftEvent.title
+    },
+    deleteEvent: {
+      id: String(deleteEvent._id),
+      title: deleteEvent.title,
+      registrationId: String(deleteEventRegistration._id)
+    },
     registrationId: String(registration._id),
     submissionId: String(submission._id),
     blogId: String(blog._id),
@@ -338,8 +602,8 @@ async function cleanupSeed(currentSeed) {
 
   await Promise.all([
     Submission.deleteMany({ _id: { $in: [currentSeed.submissionId] } }),
-    Registration.deleteMany({ _id: { $in: [currentSeed.registrationId] } }),
-    Event.deleteMany({ _id: { $in: [currentSeed.eventId] } }),
+    Registration.deleteMany({ _id: { $in: [currentSeed.registrationId, currentSeed.deleteEvent?.registrationId].filter(Boolean) } }),
+    Event.deleteMany({ _id: { $in: [currentSeed.eventId, currentSeed.pendingEvent?.id, currentSeed.draftEvent?.id, currentSeed.deleteEvent?.id].filter(Boolean) } }),
     OrganiserApplication.deleteMany({ _id: { $in: [currentSeed.pendingApplication.id] } }),
     BlogReport.deleteMany({ _id: { $in: [currentSeed.blogReportId] } }),
     BlogComment.deleteMany({ _id: { $in: [currentSeed.blogCommentId] } }),

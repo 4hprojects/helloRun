@@ -20,7 +20,7 @@
    - [Login Page — login.ejs / login.css](#83-login-page--loginejs--logincss)
    - [Signup Page — signup.ejs / signup.css](#84-signup-page--signupejs--signupcss)
    - [Auth Form Inputs (Floating Label Pattern)](#85-auth-form-inputs-floating-label-pattern)
-   - [Auth Buttons](#86-auth-buttons)
+   - [Project Button Standard](#86-project-button-standard)
    - [Google OAuth Button](#87-google-oauth-button)
    - [Alerts & Validation Feedback](#88-alerts--validation-feedback)
    - [Icons in Auth Pages](#89-icons-in-auth-pages)
@@ -117,6 +117,7 @@ These are defined in `src/public/css/style.css` and apply globally via `:root`.
 
 ```
 src/public/css/
+  project-buttons.css    <- Project-wide button standard loaded by shared head/layout templates
   style.css              ← Global: nav, footer, .btn, typography, layout, home page
   helloRun.css           ← Landing page (hero, features, how-it-works, CTA sections)
   login.css              ← /login page only
@@ -182,15 +183,16 @@ This gives a very subtle blue glow top-left over a light gray gradient.
 }
 ```
 
-**Rule:** Any auth page button that uses `.btn` as a base class MUST override these:
+**Decision:** The `/login` button treatment is now the project-wide button standard. Any new button that uses `.btn` as a base class MUST override these legacy defaults unless it is intentionally maintaining an older surface during migration:
 ```css
-.my-auth-btn {
+.my-project-btn {
   text-transform: none;
   letter-spacing: normal;
+  border-radius: var(--radius-md);
 }
 ```
 
-This was already fixed on `.btn-primary` and `.btn-cta` in `login.css`. Applies to any new button that combines `.btn` with auth styling.
+This was first fixed on `.btn-primary` and `.btn-cta` in `login.css`, and now applies project-wide through `src/public/css/project-buttons.css`. `/admin/events` also has a page-specific `.admin-events-page .admin-event-action-btn` implementation. Do not introduce new pill-shaped or uppercase project buttons.
 
 ---
 
@@ -435,9 +437,11 @@ Both auth pages use floating labels — the label sits centred in the input and 
 
 ---
 
-### 8.6 Auth Buttons
+### 8.6 Project Button Standard
 
-**Primary CTA (orange, used in both login and signup right panel):**
+The `/login` button style is the canonical project-wide button pattern for all new primary, secondary, success, danger, and utility buttons.
+
+**Primary CTA/action button:**
 ```css
 .btn.btn-primary {
   background: #c2410c;
@@ -457,7 +461,17 @@ Both auth pages use floating labels — the label sits centred in the input and 
 }
 ```
 
-**Rule:** Auth buttons use `border-radius: var(--radius-md)` (12px squared corners). The landing page now reuses this stronger CTA treatment for primary acquisition buttons as well; do not reintroduce the older pill-shaped landing CTA style.
+**Project-wide rules:**
+- Normal buttons use a 48px minimum height; compact table/actions may use 40px.
+- Use `border-radius: var(--radius-md)` (12px squared corners), not pill buttons.
+- Keep `text-transform: none` and `letter-spacing: normal`.
+- Use `inline-flex`, centered alignment, and a gap around `0.5rem` to `0.65rem`.
+- Use Lucide icons inside action buttons when an appropriate icon exists, with visible text labels for normal buttons.
+- Secondary buttons use white background, slate border, dark text, and the same sizing/shape/hover rhythm.
+- Success and danger variants keep the same structure, typography, icon gap, and disabled behavior.
+- Disabled buttons reduce opacity, remove hover lift, and use `cursor: not-allowed`.
+
+**Rule:** The landing page and admin event management already reuse this stronger CTA treatment; migrate remaining legacy pill/uppercase buttons when touching those surfaces.
 
 ---
 
@@ -625,7 +639,8 @@ Both auth pages use keyframe animations for entrance effects:
 
 - **Loaded via CDN** in `src/views/layouts/head.ejs`
 - **Must call `lucide.createIcons()`** on `DOMContentLoaded` in any page that uses `data-lucide` elements
-- Pages that include Lucide icons: `login.ejs`, `signup.ejs`, runner dashboard, organizer dashboard, admin pages, notification pages
+- Standalone pages that include shared nav or any `data-lucide` elements must call `lucide.createIcons()` near the bottom of the page after `/js/main.js`; `/leaderboard` depends on this for the top nav icons.
+- Pages that include Lucide icons: `login.ejs`, `signup.ejs`, runner dashboard, organizer dashboard, admin pages, notification pages, leaderboard
 - **Icon rendering:** `<i data-lucide="icon-name">` gets replaced with an inline `<svg>` element
 - **Sizing:** Control via CSS on the `<i>` wrapper or its parent — the SVG inherits `width`/`height`
 
@@ -683,12 +698,18 @@ Both auth pages use keyframe animations for entrance effects:
 - Platform stats snapshot
 - Pending organizer applications queue
 - Blog moderation queue
+- Pending event reviews queue
 
 ### Blog review page
 - Inline editing of all blog fields
 - Debounced autosave (`PATCH /admin/blog/posts/:id/autosave`)
 - Change History panel showing before/after revisions
 - Moderation UI adapts to selected status while editing
+
+### Event management
+- Dedicated area: `/admin/events`
+- Uses `.admin-events-page .admin-event-action-btn` as the first admin implementation of the project-wide login-style button standard.
+- Actions include review, approve, edit, archive, soft-delete, public page, and registrants links.
 
 ---
 
@@ -787,18 +808,25 @@ All static pages share the global layout (nav + footer). No page-specific CSS fi
 
 ## 19. Known Bugs Fixed (Do Not Re-Introduce)
 
-### Bug 1: Global `.btn` text-transform bleeding into auth buttons
-**Problem:** `style.css` sets `text-transform: uppercase; letter-spacing: 1px` on `.btn`. Any auth button using `.btn` as a base class inherits this, making button text appear in ALL CAPS with wide spacing.
-**Fix:** Both `.btn-cta` and `.btn-primary` in `login.css` have explicit overrides:
+### Bug 1: Global `.btn` text-transform bleeding into project buttons
+**Problem:** `style.css` sets `text-transform: uppercase; letter-spacing: 1px` on `.btn`. Any project button using `.btn` as a base class inherits this, making button text appear in ALL CAPS with wide spacing.
+**Fix:** `.btn-cta` and `.btn-primary` in `login.css`, plus admin event action buttons, have explicit overrides:
 ```css
 text-transform: none;
 letter-spacing: normal;
 ```
-**Rule:** Always add these overrides when creating any new auth button that extends `.btn`.
+**Rule:** Always add these overrides when creating any new project button that extends `.btn`.
 
 ---
 
-### Bug 2: Input padding offset with no icons
+### Bug 2: Standalone pages missing Lucide initialization
+**Problem:** Standalone EJS pages that include the shared nav but do not call `lucide.createIcons()` can render empty nav icon buttons because `<i data-lucide="...">` is never replaced with SVG markup.
+**Fix:** `/leaderboard` now calls `if (window.lucide) lucide.createIcons();` after `/js/main.js`.
+**Rule:** Any standalone page that includes shared nav icons or page-level `data-lucide` icons must initialize Lucide after scripts load.
+
+---
+
+### Bug 3: Input padding offset with no icons
 **Problem:** Form inputs in `login.css` had `padding-left: 40px` and labels at `left: 40px`, expecting `.input-icon` elements that were removed from the HTML in a previous redesign. This caused labels to be misaligned and inputs to have a large left gap.
 **Fix:** Corrected to:
 ```css
@@ -810,21 +838,21 @@ focused label: left: 10px
 
 ---
 
-### Bug 3: Feature icon SVG baseline alignment
+### Bug 4: Feature icon SVG baseline alignment
 **Problem:** Using `display: inline-flex` or no `display` on icon wrappers caused SVG icons to align to text baseline instead of vertically centring within their circular badge.
 **Fix:** All feature icon containers use `display: flex; align-items: center; justify-content: center;`.
 **Rule:** Never use `inline-flex` for Lucide icon badge wrappers in list rows.
 
 ---
 
-### Bug 4: Feature text aligning to right inside row-reverse flex
+### Bug 5: Feature text aligning to right inside row-reverse flex
 **Problem:** When `.auth-panel-left` sets `text-align: right`, child `.feature-text` inherits this. In a `row-reverse` flex row, this causes the text to read right-to-left against the icon instead of naturally left-to-right.
 **Fix:** `.feature-text { text-align: left; }` explicitly overrides the inherited alignment.
 **Rule:** Any text element inside a `row-reverse` flex container that lives inside a `text-align: right` parent must set `text-align: left` to read naturally.
 
 ---
 
-### Bug 5: Port EADDRINUSE on server start
+### Bug 6: Port EADDRINUSE on server start
 **Problem:** `npm start` fails with `EADDRINUSE :3001`. This is caused by a previous server instance still running, not a code error.
 **Fix:** Kill the existing process: find and kill the process on port 3001, then restart.
 **Not a code bug** — this is an operational issue.
@@ -835,6 +863,7 @@ focused label: left: 10px
 
 | Date | Decision | Rationale |
 |---|---|---|
+| May 2026 | `/login` button treatment adopted as the project-wide button standard | Gives admin, organizer, public, and auth actions one consistent shape, typography, hover behavior, and icon+label pattern while retiring the old uppercase pill `.btn` look |
 | Apr 2026 | Login left panel: removed brand logo/name block | Headline-first approach — "New to HelloRun?" is stronger as an opener than repeating the logo already in the nav |
 | Apr 2026 | Login/Signup panels: icons on RIGHT (row-reverse) | Visual consistency — both panels use the same row-reverse icon pattern, creating a mirror effect between the two auth pages |
 | Apr 2026 | Login left panel: right-aligned, not centred | Matches signup's `auth-header` alignment — both branded panels are now right-aligned, creating visual parity |
@@ -883,3 +912,4 @@ focused label: left: 10px
 ### General
 - [ ] CSP rollout after inline-script refactor
 - [ ] Full CSRF token rollout for remaining state-changing form routes
+- [ ] Migrate remaining legacy pill/uppercase buttons to the project-wide `/login` button standard as each surface is touched.
