@@ -18,34 +18,36 @@
             <div class="header-intro-top">
               <div class="header-greeting">
                 <h1>Welcome back, <%= user.firstName || 'Organizer' %>!</h1>
-                <p class="header-subtitle">
-                  <% if (user.organizerStatus === 'approved') { %>
-                    <span class="verified-badge">
-                      <i data-lucide="shield-check"></i>
-                      Verified Organizer
-                    </span>
-                    <span class="header-separator">&bull;</span>
-                    <span>Approved on <%= approvedDate %></span>
-                  <% } else if (user.organizerStatus === 'pending') { %>
-                    <span class="pending-badge">
-                      <i data-lucide="clock"></i>
-                      Pending Approval
-                    </span>
-                    <span class="header-separator">&bull;</span>
-                    <span>Submitted on <%= approvedDate %></span>
-                  <% } else if (user.organizerStatus === 'rejected') { %>
-                    <span class="rejected-badge">
-                      <i data-lucide="x-circle"></i>
-                      Application Rejected
-                    </span>
-                  <% } %>
-                </p>
-              </div>
+                <div class="header-status-row">
+                  <p class="header-subtitle">
+                    <% if (user.organizerStatus === 'approved') { %>
+                      <span class="verified-badge">
+                        <i data-lucide="shield-check"></i>
+                        Verified Organizer
+                      </span>
+                      <span class="header-separator">&bull;</span>
+                      <span>Approved on <%= approvedDate %></span>
+                    <% } else if (user.organizerStatus === 'pending') { %>
+                      <span class="pending-badge">
+                        <i data-lucide="clock"></i>
+                        Pending Approval
+                      </span>
+                      <span class="header-separator">&bull;</span>
+                      <span>Submitted on <%= approvedDate %></span>
+                    <% } else if (user.organizerStatus === 'rejected') { %>
+                      <span class="rejected-badge">
+                        <i data-lucide="x-circle"></i>
+                        Application Rejected
+                      </span>
+                    <% } %>
+                  </p>
 
-              <a href="/organizer/create-event" class="btn btn-create">
-                <i data-lucide="plus"></i>
-                Create Event
-              </a>
+                  <a href="/organizer/create-event" class="btn btn-create btn-create-tile">
+                    <i data-lucide="plus"></i>
+                    <span>Create Event</span>
+                  </a>
+                </div>
+              </div>
             </div>
 
           <!-- Stats Cards -->
@@ -273,7 +275,7 @@
                         <% } %>
                       </p>
                     </div>
-                    <a href="/organizer/events/<%= item.id %>/edit" class="event-link-btn" target="_blank" rel="noopener noreferrer">Continue Editing</a>
+                    <a href="/organizer/events/<%= item.id %>/edit" class="btn btn-secondary draft-edit-btn" target="_blank" rel="noopener noreferrer">Edit</a>
                   </li>
                 <% }) %>
               </ul>
@@ -392,7 +394,7 @@
                         <% } %>
                       </div>
                       <div class="event-card-actions">
-                        <a href="/organizer/events/<%= event.id %>/registrants" class="event-link-btn" target="_blank" rel="noopener noreferrer">View Registrants</a>
+                        <a href="/organizer/events/<%= event.id %>/registrants" class="btn btn-secondary view-registrants-btn" target="_blank" rel="noopener noreferrer">View Registrants</a>
                       </div>
                     </div>
                     <span class="event-status event-status-<%= event.status %>"><%= event.status %></span>
@@ -497,16 +499,24 @@
               <div class="review-queue-item">
                 <div>
                   <strong><%= reviewQueue?.pendingPaymentReviews || 0 %></strong>
-                  <p>Payment proofs awaiting review</p>
+                  <div class="review-queue-label-row">
+                    <p>Payment proofs awaiting review</p>
+                    <a href="<%= reviewQueue?.paymentReviewHref || '/organizer/events' %>" class="btn btn-secondary review-icon-btn" target="_blank" rel="noopener noreferrer" aria-label="Review payment proofs">
+                      <i data-lucide="arrow-up-right"></i>
+                    </a>
+                  </div>
                 </div>
-                <a href="<%= reviewQueue?.paymentReviewHref || '/organizer/events' %>" class="event-link-btn" target="_blank" rel="noopener noreferrer">Review</a>
               </div>
               <div class="review-queue-item">
                 <div>
                   <strong><%= reviewQueue?.pendingResultReviews || 0 %></strong>
-                  <p>Result submissions awaiting review</p>
+                  <div class="review-queue-label-row">
+                    <p>Result submissions awaiting review</p>
+                    <a href="<%= reviewQueue?.resultReviewHref || '/organizer/events' %>" class="btn btn-secondary review-icon-btn" target="_blank" rel="noopener noreferrer" aria-label="Review result submissions">
+                      <i data-lucide="arrow-up-right"></i>
+                    </a>
+                  </div>
                 </div>
-                <a href="<%= reviewQueue?.resultReviewHref || '/organizer/events' %>" class="event-link-btn" target="_blank" rel="noopener noreferrer">Review</a>
               </div>
             </div>
           </div>

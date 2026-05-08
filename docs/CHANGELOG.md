@@ -3,6 +3,31 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 8, 2026 (Session: Organizer Dashboard Mobile Actions Polish)
+
+### [SESSION] SESSION UPDATE:
+- Refined `/organizer/dashboard` responsive action layout:
+  - placed the mobile Create Event tile in the same row as organizer verification status and approval date
+  - added spacing before the next dashboard panel so the header action row does not crowd the analytics card
+  - changed draft event action from `Continue Editing` to `Edit`
+  - converted draft Edit and View Registrants actions to project secondary button styling with scoped widths and alignment
+  - converted Review Queue actions from text buttons to square icon-only secondary buttons
+  - positioned Review Queue icon buttons in the upper-right corner of each queue card
+- Updated the organizer dashboard analytics test to assert the new icon-only review action markup.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. src/public/css/organizer-dashboard.css
+3. src/views/organizer/dashboard.ejs
+4. tests/organizer-dashboard-analytics.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/organizer-dashboard-analytics.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/static-pages.test.js` -> PASS
+- `git diff --check` before commit -> PASS
+
+---
+
 ## CHANGELOG - May 8, 2026 (Session: Accumulated Activity Submissions + Leaderboard Polish)
 
 ### [SESSION] SESSION UPDATE:
