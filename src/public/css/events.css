@@ -300,6 +300,38 @@
   padding-right: 2.5rem;
 }
 
+.filter-search-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.filter-search-row .filter-group-search {
+  flex: 0 0 75%;
+  max-width: 75%;
+}
+
+.filter-search-row .filter-group-search .search-wrapper,
+.filter-search-row .filter-group-search .search-wrapper input {
+  height: 100%;
+}
+
+.filter-search-row > .btn {
+  flex: 0 0 calc(25% - 0.5rem);
+  max-width: calc(25% - 0.5rem);
+  height: auto;
+  align-self: stretch;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.filter-search-row > .btn span {
+  display: none;
+}
+
 .filter-actions {
   display: flex;
   gap: 0.5rem;
@@ -339,7 +371,7 @@
     align-items: end;
   }
 
-  .filter-group:first-child {
+  .filter-search-row {
     grid-column: 1 / -1;
   }
 
@@ -844,8 +876,17 @@
     min-width: 0;
   }
 
-  .filter-group-search {
+  .filter-search-row {
     grid-column: 1 / -1;
+  }
+
+  .filter-search-row > .btn svg,
+  .filter-search-row > .btn i {
+    display: none;
+  }
+
+  .filter-search-row > .btn span {
+    display: inline;
   }
 
   .filter-group select,
@@ -884,10 +925,6 @@
     flex-direction: row;
     align-items: stretch;
     gap: 0.45rem;
-  }
-
-  .filter-actions .btn-primary {
-    display: none;
   }
 
   .filter-actions .btn {

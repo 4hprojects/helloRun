@@ -74,18 +74,24 @@
 
         <!-- Filter Bar -->
         <form method="GET" action="/events" class="filter-bar">
-          <div class="filter-group filter-group-search">
-            <label for="eventsSearch" class="sr-only">Search</label>
-            <div class="search-wrapper">
-              <i data-lucide="search"></i>
-              <input
-                id="eventsSearch"
-                type="search"
-                name="q"
-                value="<%= filters?.q || '' %>"
-                placeholder="Search events..."
-              >
+          <div class="filter-search-row">
+            <div class="filter-group filter-group-search">
+              <label for="eventsSearch" class="sr-only">Search</label>
+              <div class="search-wrapper">
+                <i data-lucide="search"></i>
+                <input
+                  id="eventsSearch"
+                  type="search"
+                  name="q"
+                  value="<%= filters?.q || '' %>"
+                  placeholder="Search events..."
+                >
+              </div>
             </div>
+            <button type="submit" class="btn btn-secondary">
+              <i data-lucide="search" aria-hidden="true"></i>
+              <span>Search</span>
+            </button>
           </div>
 
           <div class="filter-group filter-group-select">
@@ -118,18 +124,14 @@
             </select>
           </div>
 
-          <div class="filter-actions">
-            <button type="submit" class="btn btn-primary">
-              <i data-lucide="filter" aria-hidden="true"></i>
-              Apply
-            </button>
-            <% if (filterMeta?.hasActiveFilters) { %>
+          <% if (filterMeta?.hasActiveFilters) { %>
+            <div class="filter-actions">
               <a href="/events" class="btn btn-outline">
                 <i data-lucide="x" aria-hidden="true"></i>
                 Clear
               </a>
-            <% } %>
-          </div>
+            </div>
+          <% } %>
         </form>
 
         <!-- Results Meta -->
