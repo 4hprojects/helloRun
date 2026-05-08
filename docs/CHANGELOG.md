@@ -3,6 +3,54 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 8, 2026 (Session: Accumulated Activity Submissions + Leaderboard Polish)
+
+### [SESSION] SESSION UPDATE:
+- Added accumulated-distance activity submission support:
+  - introduced `AccumulatedActivitySubmission` records for multi-proof virtual challenges
+  - added progress aggregation, certificate issuance on completion, review notifications, and organizer activity counts
+  - routed runner submissions for accumulated events through activity records while keeping single-activity submissions unchanged
+  - exposed accumulated progress on My Registrations and organizer registrant review pages
+- Updated organizer create/edit event setup for accumulated challenges:
+  - allowed publishing configured accumulated-distance events
+  - added target distance, minimum activity distance, accepted activity type validation, and inline help
+  - auto-fills a single selected race distance into the accumulated target when appropriate
+  - compacted waiver editor helper actions into icon buttons with tooltips
+- Improved leaderboard handling:
+  - includes accumulated-distance leaderboard rows using approved total distance
+  - improves mobile leaderboard cards and filter controls
+- Added a planning note for event QR promotion links and route scope.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/event_qr_promotion_links.md
+3. src/controllers/page.controller.js
+4. src/models/AccumulatedActivitySubmission.js
+5. src/public/css/create-event.css
+6. src/public/css/leaderboard.css
+7. src/routes/organizer.routes.js
+8. src/services/accumulated-activity.service.js
+9. src/services/leaderboard.service.js
+10. src/services/runner-data.service.js
+11. src/services/submission.service.js
+12. src/utils/submission-window.js
+13. src/views/organizer/create-event.ejs
+14. src/views/organizer/edit-event.ejs
+15. src/views/organizer/event-registrants.ejs
+16. src/views/pages/leaderboard.ejs
+17. src/views/pages/my-registrations.ejs
+18. tests/organizer-waiver-routes.test.js
+19. tests/submission.service.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/submission.service.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/organizer-waiver-routes.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/runner-submissions-routes.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/leaderboard.service.test.js` -> PASS
+- `git diff --check` before commit -> PASS
+
+---
+
 ## CHANGELOG - May 8, 2026 (Session: Organizer Dashboard Layout + Support Link Polish)
 
 ### [SESSION] SESSION UPDATE:

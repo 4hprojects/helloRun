@@ -100,6 +100,7 @@ test('create-event sanitizes waiver html before saving', async () => {
       '</div>'
     ].join('')
   });
+  await appendCreateEventCsrf(payload, cookie);
 
   const response = await fetch(`${BASE_URL}/organizer/create-event`, {
     method: 'POST',
@@ -167,6 +168,7 @@ test('create-event draft can save with title only', async () => {
     title,
     actionType: 'draft'
   });
+  await appendCreateEventCsrf(payload, cookie);
 
   const response = await fetch(`${BASE_URL}/organizer/create-event`, {
     method: 'POST',
@@ -194,6 +196,7 @@ test('create-event publish rejects incomplete event data', async () => {
     title: `Incomplete Publish Event ${seed.stamp}`,
     actionType: 'publish'
   });
+  await appendCreateEventCsrf(payload, cookie);
 
   const response = await fetch(`${BASE_URL}/organizer/create-event`, {
     method: 'POST',
@@ -220,6 +223,7 @@ test('create-event submit for review accepts valid single-activity virtual event
     actionType: 'publish',
     virtualCompletionMode: 'single_activity'
   });
+  await appendCreateEventCsrf(payload, cookie);
 
   const response = await fetch(`${BASE_URL}/organizer/create-event`, {
     method: 'POST',
@@ -261,6 +265,7 @@ test('create-event accumulated-distance draft saves setup fields', async () => {
   payload.append('acceptedRunTypes', 'walk');
   payload.append('acceptedRunTypes', 'hike');
   payload.append('acceptedRunTypes', 'trail_run');
+  await appendCreateEventCsrf(payload, cookie);
 
   const response = await fetch(`${BASE_URL}/organizer/create-event`, {
     method: 'POST',
@@ -286,18 +291,55 @@ test('create-event accumulated-distance draft saves setup fields', async () => {
   assert.equal(event.leaderboardMode, 'finishers_and_top_distance');
 });
 
-test('create-event accumulated-distance publish is blocked until progress tracking exists', async () => {
+test('create-event accumulated-distance publish accepts configured challenge', async () => {
   const cookie = await login(seed.organizer.email, seed.password);
   const ready = await waitForSessionReady('/organizer/dashboard', cookie);
   assert.equal(ready, true);
+  const title = `Accumulated Publish Event ${seed.stamp}`;
   const payload = buildValidCreateEventPayload({
-    title: `Accumulated Publish Blocked Event ${seed.stamp}`,
+    title,
     actionType: 'publish',
     virtualCompletionMode: 'accumulated_distance'
   });
   payload.set('targetDistanceKm', '100');
   payload.set('minimumActivityDistanceKm', '1');
   payload.append('acceptedRunTypes', 'run');
+  await appendCreateEventCsrf(payload, cookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/create-event`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: payload.toString(),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  await ensureConnected();
+  const event = await Event.findOne({ title }).lean();
+  assert.ok(event, 'accumulated event should be saved');
+  assert.equal(event.status, 'pending_review');
+  assert.equal(event.virtualCompletionMode, 'accumulated_distance');
+  assert.equal(event.targetDistanceKm, 100);
+  assert.equal(event.minimumActivityDistanceKm, 1);
+  assert.deepEqual(event.acceptedRunTypes, ['run']);
+  assert.ok(event.finalSubmissionDeadlineAt);
+});
+
+test('create-event accumulated-distance publish rejects missing challenge setup', async () => {
+  const cookie = await login(seed.organizer.email, seed.password);
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+  const payload = buildValidCreateEventPayload({
+    title: `Accumulated Publish Missing Setup ${seed.stamp}`,
+    actionType: 'publish',
+    virtualCompletionMode: 'accumulated_distance'
+  });
+  payload.delete('targetDistanceKm');
+  payload.delete('minimumActivityDistanceKm');
+  await appendCreateEventCsrf(payload, cookie);
 
   const response = await fetch(`${BASE_URL}/organizer/create-event`, {
     method: 'POST',
@@ -311,7 +353,9 @@ test('create-event accumulated-distance publish is blocked until progress tracki
 
   assert.equal(response.status, 400);
   const html = await response.text();
-  assert.match(html, /Accumulated virtual runs can be saved as drafts/i);
+  assert.match(html, /Target distance is required for accumulated-distance events/i);
+  assert.match(html, /Minimum activity distance is required for accumulated-distance events/i);
+  assert.match(html, /Select at least one accepted activity type/i);
 });
 
 test('create-event rejects waiver rich html with insufficient plain text', async () => {
@@ -324,6 +368,7 @@ test('create-event rejects waiver rich html with insufficient plain text', async
     actionType: 'publish',
     waiverTemplate: '<div><h4>Header</h4><p><br></p><p><em>   </em></p></div>'
   });
+  await appendCreateEventCsrf(payload, cookie);
 
   const response = await fetch(`${BASE_URL}/organizer/create-event`, {
     method: 'POST',
@@ -368,6 +413,18 @@ function buildValidCreateEventPayload(overrides = {}) {
   params.append('raceDistancePresets', '5K');
   params.append('proofTypesAllowed', 'gps');
   return params;
+}
+
+async function appendCreateEventCsrf(payload, cookie) {
+  const response = await fetch(`${BASE_URL}/organizer/create-event`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  const match = html.match(/name="_csrf"\s+value="([^"]*)"/i);
+  assert.ok(match, 'create-event page should include csrf token');
+  payload.set('_csrf', match[1]);
 }
 
 function toLocalDateTimeString(value) {

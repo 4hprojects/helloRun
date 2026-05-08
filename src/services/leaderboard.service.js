@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 const Submission = require('../models/Submission');
 const Event = require('../models/Event');
+const Registration = require('../models/Registration');
+const User = require('../models/User');
+const { getAccumulatedLeaderboardRows } = require('./accumulated-activity.service');
 
 async function getLeaderboardData(rawFilters = {}) {
   const filters = normalizeLeaderboardFilters(rawFilters);
@@ -15,8 +18,8 @@ async function getLeaderboardData(rawFilters = {}) {
     .lean();
 
   const visibleRows = rows.filter((item) => item.eventId && item.eventId.status === 'published' && item.eventId.isDeleted !== true);
-  const entries = visibleRows.map((item, index) => ({
-    rank: index + 1,
+  const singleEntries = visibleRows.map((item) => ({
+    rank: 0,
     submissionId: String(item._id),
     runnerName: getRunnerDisplayName(item.runnerId),
     eventTitle: item.eventId?.title || 'Event unavailable',
@@ -25,8 +28,27 @@ async function getLeaderboardData(rawFilters = {}) {
     participationMode: item.participationMode || 'N/A',
     elapsedMs: Number(item.elapsedMs || 0),
     elapsedLabel: formatElapsedMs(item.elapsedMs),
-    submittedAt: item.submittedAt || null
+    submittedAt: item.submittedAt || null,
+    leaderboardType: 'single_activity'
   }));
+
+  const accumulatedRows = await getAccumulatedLeaderboardRows({
+    eventId: filters.eventId ? new mongoose.Types.ObjectId(filters.eventId) : null,
+    distance: filters.distance,
+    mode: filters.mode,
+    submittedAt: query.submittedAt,
+    limit: filters.limit
+  });
+  const accumulatedEntries = await hydrateAccumulatedLeaderboardRows(accumulatedRows);
+  const entries = [...singleEntries, ...accumulatedEntries]
+    .sort((a, b) => {
+      if (a.leaderboardType === 'accumulated' || b.leaderboardType === 'accumulated') {
+        return Number(b.approvedDistanceKm || 0) - Number(a.approvedDistanceKm || 0);
+      }
+      return Number(a.elapsedMs || 0) - Number(b.elapsedMs || 0);
+    })
+    .slice(0, filters.limit)
+    .map((item, index) => ({ ...item, rank: index + 1 }));
 
   const [totalApproved, events, distances, modes] = await Promise.all([
     Submission.countDocuments({ status: 'approved', isPersonalRecord: { $ne: true } }),
@@ -54,6 +76,47 @@ async function getLeaderboardData(rawFilters = {}) {
       totalShown: entries.length
     }
   };
+}
+
+async function hydrateAccumulatedLeaderboardRows(rows = []) {
+  if (!rows.length) return [];
+  const eventIds = rows.map((item) => item.eventId).filter(Boolean);
+  const runnerIds = rows.map((item) => item.runnerId).filter(Boolean);
+  const registrationIds = rows.map((item) => item._id).filter(Boolean);
+  const [events, runners, registrations] = await Promise.all([
+    Event.find({ _id: { $in: eventIds }, status: 'published', isDeleted: { $ne: true } })
+      .select('title slug status isDeleted')
+      .lean(),
+    User.find({ _id: { $in: runnerIds } }).select('firstName lastName email').lean(),
+    Registration.find({ _id: { $in: registrationIds } }).select('confirmationCode').lean()
+  ]);
+  const eventById = new Map(events.map((item) => [String(item._id), item]));
+  const runnerById = new Map(runners.map((item) => [String(item._id), item]));
+  const registrationById = new Map(registrations.map((item) => [String(item._id), item]));
+
+  return rows
+    .map((item) => {
+      const event = eventById.get(String(item.eventId));
+      if (!event) return null;
+      const approvedDistanceKm = Number(item.approvedDistanceKm || 0);
+      return {
+        rank: 0,
+        submissionId: String(item._id),
+        runnerName: getRunnerDisplayName(runnerById.get(String(item.runnerId))),
+        eventTitle: event.title || 'Event unavailable',
+        eventSlug: event.slug || '',
+        raceDistance: item.raceDistance || 'N/A',
+        participationMode: item.participationMode || 'virtual',
+        elapsedMs: 0,
+        elapsedLabel: `${formatDistance(approvedDistanceKm)} km total`,
+        submittedAt: item.lastApprovedAt || item.firstSubmittedAt || null,
+        leaderboardType: 'accumulated',
+        approvedDistanceKm,
+        approvedActivityCount: Number(item.approvedActivityCount || 0),
+        confirmationCode: registrationById.get(String(item._id))?.confirmationCode || ''
+      };
+    })
+    .filter(Boolean);
 }
 
 function normalizeLeaderboardFilters(rawFilters = {}) {
@@ -167,6 +230,12 @@ function formatElapsedMs(value) {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function formatDistance(value) {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric)) return '0';
+  return Number(numeric.toFixed(2)).toString();
 }
 
 function clampInt(value, min, max, fallback) {

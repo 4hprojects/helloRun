@@ -56,6 +56,10 @@
                   <span class="badge badge-submission mode-<%= registration.submission.status %>">
                     <i data-lucide="flag"></i> Result: <%= registration.submission.status %>
                   </span>
+                <% } else if (registration.isAccumulatedChallenge && registration.accumulatedProgress) { %>
+                  <span class="badge badge-submission mode-submitted">
+                    <i data-lucide="flag"></i> Progress: <%= registration.accumulatedProgress.progressLabel %>
+                  </span>
                 <% } %>
               </div>
 
@@ -124,10 +128,23 @@
 
               <!-- Result Submission Section -->
               <% const submission = registration.submission || null; %>
-              <% const canSubmitResult = registration.paymentStatus === 'paid' && registration.status !== 'cancelled' && registration.status !== 'refunded' && (!submission || submission.status === 'rejected'); %>
-              <% if (submission || canSubmitResult) { %>
+              <% const isAccumulatedChallenge = Boolean(registration.isAccumulatedChallenge); %>
+              <% const canSubmitResult = registration.paymentStatus === 'paid' && registration.status !== 'cancelled' && registration.status !== 'refunded' && (isAccumulatedChallenge || !submission || submission.status === 'rejected'); %>
+              <% if (submission || canSubmitResult || isAccumulatedChallenge) { %>
                 <section class="card-section">
-                  <h4><i data-lucide="flag"></i> Result</h4>
+                  <h4><i data-lucide="flag"></i> <%= isAccumulatedChallenge ? 'Activity Progress' : 'Result' %></h4>
+                  <% if (isAccumulatedChallenge && registration.accumulatedProgress) { %>
+                    <p><strong>Progress:</strong> <%= registration.accumulatedProgress.progressLabel %></p>
+                    <p>
+                      <strong>Activities:</strong>
+                      <%= registration.accumulatedProgress.approvedActivityCount %> approved,
+                      <%= registration.accumulatedProgress.pendingActivityCount %> pending,
+                      <%= registration.accumulatedProgress.rejectedActivityCount %> rejected
+                    </p>
+                    <% if (registration.accumulatedProgress.certificateActivityId) { %>
+                      <p><a href="/my-submissions/<%= registration.accumulatedProgress.certificateActivityId %>/certificate" class="btn btn-link">Download certificate <i data-lucide="download"></i></a></p>
+                    <% } %>
+                  <% } %>
                   <% if (submission) { %>
                     <div class="details-grid">
                       <div class="detail-item"><strong>Distance:</strong> <%= Number(submission.distanceKm || 0).toFixed(2) %> km</div>
@@ -158,7 +175,7 @@
                         class="btn btn-secondary"
                         data-open-run-proof-modal
                         data-registration-id="<%= registration._id %>">
-                        <%= submission && submission.status === 'rejected' ? 'Resubmit run' : 'Submit run' %>
+                        <%= isAccumulatedChallenge ? 'Submit activity' : (submission && submission.status === 'rejected' ? 'Resubmit run' : 'Submit run') %>
                       </button>
                     </div>
                   <% } %>

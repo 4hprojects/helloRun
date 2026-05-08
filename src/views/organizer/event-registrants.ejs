@@ -215,7 +215,13 @@
                   </td>
                   <td>
                     <% if (registration.submission) { %>
-                      <span class="mode-badge mode-<%= registration.submission.status %>"><%= registration.submission.status %></span>
+                      <span class="mode-badge mode-<%= registration.submission.status %>"><%= registration.submission.isAccumulatedActivity ? 'activity ' : '' %><%= registration.submission.status %></span>
+                      <% if (registration.accumulatedProgress) { %>
+                        <br>
+                        <small><strong>Progress:</strong> <%= registration.accumulatedProgress.progressLabel %></small>
+                        <br>
+                        <small><strong>Activity counts:</strong> <%= registration.accumulatedProgress.approvedActivityCount %> approved, <%= registration.accumulatedProgress.pendingActivityCount %> pending, <%= registration.accumulatedProgress.rejectedActivityCount %> rejected</small>
+                      <% } %>
                       <% if (registration.submission.suspiciousFlag) { %>
                         <span class="mode-badge mode-warning" title="<%= registration.submission.suspiciousFlagReason %>">&#9888; Suspicious</span>
                       <% } %>
@@ -337,7 +343,13 @@
                         </details>
                       <% } %>
                     <% } else { %>
-                      <small>No submission</small>
+                      <% if (registration.accumulatedProgress) { %>
+                        <small><strong>Progress:</strong> <%= registration.accumulatedProgress.progressLabel %></small>
+                        <br>
+                        <small>No activity submission</small>
+                      <% } else { %>
+                        <small>No submission</small>
+                      <% } %>
                     <% } %>
                   </td>
                   <td>

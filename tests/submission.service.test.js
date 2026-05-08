@@ -8,6 +8,7 @@ const User = require('../src/models/User');
 const Event = require('../src/models/Event');
 const Registration = require('../src/models/Registration');
 const Submission = require('../src/models/Submission');
+const AccumulatedActivitySubmission = require('../src/models/AccumulatedActivitySubmission');
 const Notification = require('../src/models/Notification');
 const emailService = require('../src/services/email.service');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
@@ -24,6 +25,11 @@ const {
   detectSuspiciousActivity,
   isAutoApprovableOcrSubmission
 } = require('../src/services/submission.service');
+const {
+  createAccumulatedActivitySubmission,
+  reviewAccumulatedActivitySubmission,
+  getRegistrationAccumulatedProgress
+} = require('../src/services/accumulated-activity.service');
 
 test.before(async () => {
   await mongoose.connect(process.env.MONGODB_URI);
@@ -392,6 +398,110 @@ test('getRunnerEligibleSubmissionRegistrations falls back to personal record whe
   assert.equal(options[0].eventTitle, 'Personal Record');
 });
 
+test('accumulated activities allow multiple proofs and count only approvals toward completion', async () => {
+  const seed = await seedSubmissionFixture('accumulated-multiple');
+  await Event.updateOne(
+    { _id: seed.event._id },
+    {
+      $set: {
+        virtualCompletionMode: 'accumulated_distance',
+        targetDistanceKm: 10,
+        minimumActivityDistanceKm: 1,
+        acceptedRunTypes: ['run', 'walk'],
+        finalSubmissionDeadlineAt: new Date(Date.now() + 3 * 60 * 60 * 1000)
+      }
+    }
+  );
+
+  const first = await createAccumulatedActivitySubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 4,
+    elapsedMs: 25 * 60 * 1000,
+    proofType: 'gps',
+    proof: { url: 'https://example.com/proof/accumulated-1.gpx', size: 1200 },
+    runType: 'run'
+  });
+  const second = await createAccumulatedActivitySubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 7,
+    elapsedMs: 50 * 60 * 1000,
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof/accumulated-2.png', size: 1200 },
+    runType: 'walk'
+  });
+
+  let progress = await getRegistrationAccumulatedProgress(seed.registration._id);
+  assert.equal(progress.pendingDistanceKm, 11);
+  assert.equal(progress.approvedDistanceKm, 0);
+  assert.equal(progress.completed, false);
+
+  await reviewAccumulatedActivitySubmission({
+    activityId: first._id,
+    organizerId: seed.organizer._id,
+    action: 'approve',
+    reviewNotes: 'First activity approved'
+  });
+  progress = await getRegistrationAccumulatedProgress(seed.registration._id);
+  assert.equal(progress.approvedDistanceKm, 4);
+  assert.equal(progress.completed, false);
+  assert.equal(progress.certificateUrl, '');
+
+  await reviewAccumulatedActivitySubmission({
+    activityId: second._id,
+    organizerId: seed.organizer._id,
+    action: 'approve',
+    reviewNotes: 'Completion activity approved'
+  });
+  progress = await getRegistrationAccumulatedProgress(seed.registration._id);
+  assert.equal(progress.approvedDistanceKm, 11);
+  assert.equal(progress.completed, true);
+  assert.ok(progress.certificateActivityId);
+  assert.ok(progress.certificateUrl);
+});
+
+test('accumulated activities enforce minimum distance and accepted activity types', async () => {
+  const seed = await seedSubmissionFixture('accumulated-guards');
+  await Event.updateOne(
+    { _id: seed.event._id },
+    {
+      $set: {
+        virtualCompletionMode: 'accumulated_distance',
+        targetDistanceKm: 10,
+        minimumActivityDistanceKm: 2,
+        acceptedRunTypes: ['run']
+      }
+    }
+  );
+
+  await assert.rejects(
+    () => createAccumulatedActivitySubmission({
+      registrationId: seed.registration._id,
+      runnerId: seed.runner._id,
+      distanceKm: 1,
+      elapsedMs: 20 * 60 * 1000,
+      proofType: 'gps',
+      proof: { url: 'https://example.com/proof/too-short.gpx', size: 1200 },
+      runType: 'run'
+    }),
+    /at least 2 km/i
+  );
+
+  await assert.rejects(
+    () => createAccumulatedActivitySubmission({
+      registrationId: seed.registration._id,
+      runnerId: seed.runner._id,
+      distanceKm: 3,
+      elapsedMs: 20 * 60 * 1000,
+      proofType: 'gps',
+      proof: { url: 'https://example.com/proof/walk.gpx', size: 1200 },
+      runType: 'walk'
+    }),
+    /activity type is not accepted/i
+  );
+});
+
 async function seedSubmissionFixture(tag, options = {}) {
   const runner = await createRunnerUser(`runner-${tag}`);
   const organizer = await createOrganizerUser(`organizer-${tag}`);
@@ -504,6 +614,9 @@ test.afterEach(async () => {
   const phase5UserIds = phase5Users.map((item) => item._id);
 
   await Submission.deleteMany({
+    createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }
+  });
+  await AccumulatedActivitySubmission.deleteMany({
     createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }
   });
 

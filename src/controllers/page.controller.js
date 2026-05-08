@@ -21,6 +21,12 @@ const {
   getRunnerSubmissions,
   PERSONAL_RECORD_REGISTRATION_ID
 } = require('../services/submission.service');
+const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
+const {
+  createAccumulatedActivitySubmission,
+  getAccumulatedActivitiesForRegistrations,
+  buildAccumulatedProgress
+} = require('../services/accumulated-activity.service');
 const { getLeaderboardData } = require('../services/leaderboard.service');
 
 const countries = getCountries();
@@ -608,13 +614,36 @@ exports.getMyRegistrations = async (req, res) => {
       getRunnerRegistrations(user._id),
       getRunnerSubmissions(user._id, { limit: 300 })
     ]);
+    const accumulatedRegistrationIds = registrations
+      .filter((registration) => registration.eventId?.virtualCompletionMode === 'accumulated_distance')
+      .map((registration) => registration._id);
+    const accumulatedActivities = await getAccumulatedActivitiesForRegistrations(accumulatedRegistrationIds);
+    const accumulatedActivitiesByRegistrationId = new Map();
+    for (const activity of accumulatedActivities) {
+      const key = String(activity.registrationId);
+      const current = accumulatedActivitiesByRegistrationId.get(key) || [];
+      current.push(activity);
+      accumulatedActivitiesByRegistrationId.set(key, current);
+    }
     const submissionsByRegistrationId = new Map(
       submissions.map((item) => [String(item.registrationId?._id || item.registrationId), item])
     );
-    const enrichedRegistrations = registrations.map((registration) => ({
-      ...registration,
-      submission: submissionsByRegistrationId.get(String(registration._id)) || null
-    }));
+    const enrichedRegistrations = registrations.map((registration) => {
+      const isAccumulated = registration.eventId?.virtualCompletionMode === 'accumulated_distance';
+      const activities = accumulatedActivitiesByRegistrationId.get(String(registration._id)) || [];
+      return {
+        ...registration,
+        isAccumulatedChallenge: isAccumulated,
+        accumulatedActivities: activities,
+        accumulatedProgress: isAccumulated
+          ? buildAccumulatedProgress({
+            activities,
+            targetDistanceKm: registration.eventId?.targetDistanceKm
+          })
+          : null,
+        submission: submissionsByRegistrationId.get(String(registration._id)) || null
+      };
+    });
 
     return res.render('pages/my-registrations', {
       title: 'My Registrations - helloRun',
@@ -666,14 +695,25 @@ exports.getSubmissionCertificateDownload = async (req, res) => {
       .populate({ path: 'registrationId', select: 'confirmationCode' })
       .lean();
 
-    if (!submission) {
+    let certificateRecord = submission;
+    if (!certificateRecord) {
+      certificateRecord = await AccumulatedActivitySubmission.findOne({
+        _id: req.params.submissionId,
+        runnerId: user._id
+      })
+        .populate({ path: 'eventId', select: 'title' })
+        .populate({ path: 'registrationId', select: 'confirmationCode' })
+        .lean();
+    }
+
+    if (!certificateRecord) {
       return redirectWithPageMessage(res, 'error', 'Submission not found or inaccessible.');
     }
-    if (submission.status !== 'approved') {
+    if (certificateRecord.status !== 'approved') {
       return redirectWithPageMessage(res, 'error', 'Certificate is available only for approved submissions.');
     }
 
-    const certificateUrl = String(submission.certificate?.url || '').trim();
+    const certificateUrl = String(certificateRecord.certificate?.url || '').trim();
     if (!certificateUrl) {
       return redirectWithPageMessage(res, 'error', 'Certificate is not yet available. Please try again shortly.');
     }
@@ -681,12 +721,12 @@ exports.getSubmissionCertificateDownload = async (req, res) => {
     if (certificateUrl.startsWith('data:application/pdf;base64,')) {
       const base64 = certificateUrl.slice('data:application/pdf;base64,'.length);
       const pdfBuffer = Buffer.from(base64, 'base64');
-      const safeEventTitle = String(submission.eventId?.title || 'helloRun')
+      const safeEventTitle = String(certificateRecord.eventId?.title || 'helloRun')
         .replace(/[^a-z0-9-_]+/gi, '-')
         .replace(/^-+|-+$/g, '')
         .toLowerCase()
         .slice(0, 60) || 'hello-run';
-      const confirmationCode = String(submission.registrationId?.confirmationCode || 'certificate')
+      const confirmationCode = String(certificateRecord.registrationId?.confirmationCode || 'certificate')
         .replace(/[^a-z0-9-]/gi, '')
         .toUpperCase();
       const fileName = `${safeEventTitle}-${confirmationCode}-certificate.pdf`;
@@ -874,9 +914,24 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     const isPersonalRecordSubmission = registrationId === PERSONAL_RECORD_REGISTRATION_ID;
     const selectedHasPersonalRecord = targetRegistrationIds.includes(PERSONAL_RECORD_REGISTRATION_ID);
     const selectedEventRegistrationIds = targetRegistrationIds.filter((id) => id !== PERSONAL_RECORD_REGISTRATION_ID);
+    const selectedRegistrations = selectedEventRegistrationIds.length
+      ? await Registration.find({
+        _id: { $in: selectedEventRegistrationIds },
+        userId: user._id
+      })
+        .populate('eventId', 'virtualCompletionMode title targetDistanceKm')
+        .select('_id eventId')
+        .lean()
+      : [];
+    const accumulatedTargetIds = new Set(
+      selectedRegistrations
+        .filter((item) => item.eventId?.virtualCompletionMode === 'accumulated_distance')
+        .map((item) => String(item._id))
+    );
+    const regularEventRegistrationIds = selectedEventRegistrationIds.filter((id) => !accumulatedTargetIds.has(String(id)));
     const existingSubmissions = selectedEventRegistrationIds.length
       ? await Submission.find({
-        registrationId: { $in: selectedEventRegistrationIds },
+        registrationId: { $in: regularEventRegistrationIds },
         runnerId: user._id
       })
         .select('_id status proof registrationId')
@@ -893,18 +948,19 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       return redirectWithPageMessage(res, 'error', 'Personal record submissions create a new entry each time.');
     }
 
-    if (targetRegistrationIds.length === 1 && options.mode === 'create' && existingSubmission) {
+    if (!accumulatedTargetIds.has(registrationId) && targetRegistrationIds.length === 1 && options.mode === 'create' && existingSubmission) {
       return redirectWithPageMessage(res, 'error', 'Submission already exists. Use resubmit flow if rejected.');
     }
-    if (targetRegistrationIds.length === 1 && options.mode === 'resubmit' && !existingSubmission) {
+    if (!accumulatedTargetIds.has(registrationId) && targetRegistrationIds.length === 1 && options.mode === 'resubmit' && !existingSubmission) {
       return redirectWithPageMessage(res, 'error', 'No rejected submission found to resubmit.');
     }
-    if (targetRegistrationIds.length === 1 && options.mode === 'resubmit' && existingSubmission.status !== 'rejected') {
+    if (!accumulatedTargetIds.has(registrationId) && targetRegistrationIds.length === 1 && options.mode === 'resubmit' && existingSubmission.status !== 'rejected') {
       return redirectWithPageMessage(res, 'error', 'Only rejected submissions can be resubmitted.');
     }
 
     for (const targetId of targetRegistrationIds) {
       if (targetId === PERSONAL_RECORD_REGISTRATION_ID) continue;
+      if (accumulatedTargetIds.has(String(targetId))) continue;
       const existingForTarget = existingSubmissionByRegistrationId.get(targetId);
       if (existingForTarget && existingForTarget.status !== 'rejected') {
         return redirectWithPageMessage(res, 'error', 'One or more selected entries already has a submitted or approved result.');
@@ -934,7 +990,11 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       duplicateQuery._id = { $nin: targetExistingSubmissionIds };
     }
     const duplicateSubmission = await Submission.findOne(duplicateQuery).select('_id').lean();
-    if (duplicateSubmission) {
+    const duplicateActivity = await AccumulatedActivitySubmission.findOne({
+      runnerId: user._id,
+      'proof.hash': proofHash
+    }).select('_id').lean();
+    if (duplicateSubmission || duplicateActivity) {
       await uploadService.deleteObjects([uploadedProofKey]).catch(() => {});
       uploadedProofKey = '';
       return redirectWithPageMessage(res, 'error', 'This screenshot has already been submitted.');
@@ -978,6 +1038,8 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         await resubmitSubmission(payload);
         const previousKey = String(existingForTarget.proof?.key || '').trim();
         if (previousKey && previousKey !== uploadedProof.key) previousProofKeys.add(previousKey);
+      } else if (accumulatedTargetIds.has(String(targetId))) {
+        await createAccumulatedActivitySubmission(payload);
       } else {
         await createSubmission(payload);
       }

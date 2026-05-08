@@ -14,20 +14,12 @@
         <p>Rankings from approved submissions across helloRun events.</p>
       </header>
 
-      <section class="leaderboard-summary">
-        <div class="summary-item">
-          <strong>Total Approved Results</strong>
-          <span><%= leaderboard.stats.totalApproved %></span>
-        </div>
-        <div class="summary-item">
-          <strong>Showing</strong>
-          <span><%= leaderboard.stats.totalShown %></span>
-        </div>
-      </section>
-
       <form method="GET" action="/leaderboard" class="leaderboard-filters">
         <div class="leaderboard-filter-field">
-          <label for="event">Event</label>
+          <label for="event">
+            <i data-lucide="calendar-days" aria-hidden="true"></i>
+            <span>Event</span>
+          </label>
           <select id="event" name="event">
             <option value="" <%= !leaderboard.filters.eventId ? 'selected' : '' %>>All</option>
             <% (leaderboard.options.events || []).forEach((event) => { %>
@@ -39,7 +31,10 @@
         </div>
 
         <div class="leaderboard-filter-field">
-          <label for="distance">Distance</label>
+          <label for="distance">
+            <i data-lucide="ruler" aria-hidden="true"></i>
+            <span>Distance</span>
+          </label>
           <select id="distance" name="distance">
             <option value="" <%= !leaderboard.filters.distance ? 'selected' : '' %>>All</option>
             <% (leaderboard.options.distances || []).forEach((distance) => { %>
@@ -49,7 +44,10 @@
         </div>
 
         <div class="leaderboard-filter-field">
-          <label for="mode">Mode</label>
+          <label for="mode">
+            <i data-lucide="monitor-smartphone" aria-hidden="true"></i>
+            <span>Mode</span>
+          </label>
           <select id="mode" name="mode">
             <option value="" <%= !leaderboard.filters.mode ? 'selected' : '' %>>All</option>
             <% (leaderboard.options.modes || []).forEach((mode) => { %>
@@ -59,7 +57,10 @@
         </div>
 
         <div class="leaderboard-filter-field">
-          <label for="period">Period</label>
+          <label for="period">
+            <i data-lucide="clock-3" aria-hidden="true"></i>
+            <span>Period</span>
+          </label>
           <select id="period" name="period">
             <option value="all" <%= leaderboard.filters.period === 'all' ? 'selected' : '' %>>All time</option>
             <option value="7d" <%= leaderboard.filters.period === '7d' ? 'selected' : '' %>>Last 7 days</option>
@@ -68,18 +69,14 @@
           </select>
         </div>
 
-        <div class="leaderboard-filter-actions">
-          <button type="submit" class="btn leaderboard-action-btn">
-            <i data-lucide="filter" aria-hidden="true"></i>
-            <span>Apply</span>
-          </button>
-          <% if (filterMeta?.hasActiveFilters) { %>
+        <% if (filterMeta?.hasActiveFilters) { %>
+          <div class="leaderboard-filter-actions">
             <a href="/leaderboard" class="btn btn-secondary leaderboard-action-btn">
               <i data-lucide="rotate-ccw" aria-hidden="true"></i>
               <span>Clear filters</span>
             </a>
-          <% } %>
-        </div>
+          </div>
+        <% } %>
       </form>
 
       <p class="leaderboard-results-meta">
@@ -104,19 +101,21 @@
             <tbody>
               <% leaderboard.entries.forEach((entry) => { %>
                 <tr>
-                  <td>#<%= entry.rank %></td>
-                  <td><%= entry.runnerName %></td>
-                  <td>
+                  <td class="leaderboard-rank-cell" data-label="Rank">
+                    <span class="leaderboard-rank-badge">#<%= entry.rank %></span>
+                  </td>
+                  <td class="leaderboard-runner-cell" data-label="Runner"><%= entry.runnerName %></td>
+                  <td class="leaderboard-event-cell" data-label="Event">
                     <% if (entry.eventSlug) { %>
                       <a href="/events/<%= entry.eventSlug %>"><%= entry.eventTitle %></a>
                     <% } else { %>
                       <%= entry.eventTitle %>
                     <% } %>
                   </td>
-                  <td><%= entry.raceDistance %></td>
-                  <td><%= entry.participationMode %></td>
-                  <td><strong><%= entry.elapsedLabel %></strong></td>
-                  <td><%= entry.submittedAt ? new Date(entry.submittedAt).toLocaleString('en-US') : 'N/A' %></td>
+                  <td data-label="Distance"><%= entry.raceDistance %></td>
+                  <td data-label="Mode"><%= entry.participationMode %></td>
+                  <td class="leaderboard-time-cell" data-label="Time"><strong><%= entry.elapsedLabel %></strong></td>
+                  <td data-label="Submitted"><%= entry.submittedAt ? new Date(entry.submittedAt).toLocaleString('en-US') : 'N/A' %></td>
                 </tr>
               <% }) %>
             </tbody>
@@ -139,6 +138,21 @@
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    const leaderboardFilters = document.querySelector('.leaderboard-filters');
+    if (leaderboardFilters) {
+      leaderboardFilters.querySelectorAll('select').forEach((select) => {
+        select.addEventListener('change', () => {
+          if (typeof leaderboardFilters.requestSubmit === 'function') {
+            leaderboardFilters.requestSubmit();
+            return;
+          }
+          leaderboardFilters.submit();
+        });
+      });
+    }
+  </script>
 </body>
 </html>

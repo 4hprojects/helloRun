@@ -1,0 +1,184 @@
+const mongoose = require('mongoose');
+
+const accumulatedActivitySubmissionSchema = new mongoose.Schema(
+  {
+    registrationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Registration',
+      required: true,
+      index: true
+    },
+    eventId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Event',
+      required: true,
+      index: true
+    },
+    runnerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true
+    },
+    participationMode: {
+      type: String,
+      enum: ['virtual', 'onsite'],
+      default: 'virtual'
+    },
+    raceDistance: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 30
+    },
+    distanceKm: {
+      type: Number,
+      required: true,
+      min: 0.1,
+      max: 500
+    },
+    elapsedMs: {
+      type: Number,
+      required: true,
+      min: 1
+    },
+    runDate: {
+      type: Date,
+      default: Date.now,
+      index: true
+    },
+    runLocation: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 200
+    },
+    runType: {
+      type: String,
+      enum: ['run', 'walk', 'hike', 'trail_run'],
+      default: 'run',
+      index: true
+    },
+    elevationGain: {
+      type: Number,
+      min: 0,
+      max: 20000,
+      default: null
+    },
+    steps: {
+      type: Number,
+      min: 0,
+      max: 200000,
+      default: null
+    },
+    proofType: {
+      type: String,
+      enum: ['gps', 'photo', 'manual'],
+      default: 'manual'
+    },
+    proof: {
+      url: { type: String, default: '' },
+      key: { type: String, default: '' },
+      mimeType: { type: String, default: '' },
+      size: { type: Number, default: 0 },
+      hash: { type: String, default: '', maxlength: 64 }
+    },
+    proofNotes: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 1200
+    },
+    status: {
+      type: String,
+      enum: ['submitted', 'approved', 'rejected'],
+      default: 'submitted',
+      index: true
+    },
+    submittedAt: {
+      type: Date,
+      default: Date.now
+    },
+    reviewedAt: {
+      type: Date,
+      default: null
+    },
+    reviewedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    reviewNotes: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 1200
+    },
+    rejectionReason: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 500
+    },
+    certificate: {
+      url: { type: String, default: '' },
+      key: { type: String, default: '' },
+      issuedAt: { type: Date, default: null }
+    },
+    ocrData: {
+      extractedDistanceKm: { type: Number, default: null },
+      extractedTimeMs: { type: Number, default: null },
+      extractedElevationGain: { type: Number, default: null },
+      extractedSteps: { type: Number, default: null },
+      extractedRunDate: { type: String, default: '', maxlength: 10 },
+      extractedRunLocation: { type: String, trim: true, default: '', maxlength: 200 },
+      extractedRunType: {
+        type: String,
+        enum: ['run', 'walk', 'hike', 'trail_run', ''],
+        default: ''
+      },
+      rawText: { type: String, default: '', maxlength: 2000 },
+      confidence: { type: Number, default: 0, min: 0, max: 1 },
+      distanceMismatch: { type: Boolean, default: false },
+      timeMismatch: { type: Boolean, default: false },
+      elevationMismatch: { type: Boolean, default: false },
+      stepsMismatch: { type: Boolean, default: false },
+      dateMismatch: { type: Boolean, default: false },
+      locationMismatch: { type: Boolean, default: false },
+      runTypeMismatch: { type: Boolean, default: false },
+      detectedSource: {
+        type: String,
+        enum: ['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', ''],
+        default: ''
+      },
+      extractedName: { type: String, trim: true, default: '', maxlength: 120 },
+      nameMatchStatus: {
+        type: String,
+        enum: ['matched', 'mismatched', 'not_detected', 'not_checked'],
+        default: 'not_checked'
+      },
+      nameMismatchAcknowledged: { type: Boolean, default: false }
+    },
+    suspiciousFlag: {
+      type: Boolean,
+      default: false
+    },
+    suspiciousFlagReason: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 500
+    }
+  },
+  {
+    timestamps: true
+  }
+);
+
+accumulatedActivitySubmissionSchema.index({ eventId: 1, status: 1, submittedAt: -1 });
+accumulatedActivitySubmissionSchema.index({ registrationId: 1, status: 1, submittedAt: -1 });
+accumulatedActivitySubmissionSchema.index({ runnerId: 1, status: 1, submittedAt: -1 });
+accumulatedActivitySubmissionSchema.index({ eventId: 1, status: 1, distanceKm: -1 });
+
+module.exports = mongoose.models.AccumulatedActivitySubmission ||
+  mongoose.model('AccumulatedActivitySubmission', accumulatedActivitySubmissionSchema);

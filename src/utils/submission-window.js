@@ -6,7 +6,11 @@ function isSubmissionWindowOpen({ registration, event, now = new Date() }) {
 
   if (mode === 'virtual') {
     const virtualStart = parseDateSafe(event.virtualWindow?.startAt);
-    const virtualEnd = parseDateSafe(event.virtualWindow?.endAt);
+    const virtualEnd = parseDateSafe(
+      event.virtualCompletionMode === 'accumulated_distance' && event.finalSubmissionDeadlineAt
+        ? event.finalSubmissionDeadlineAt
+        : event.virtualWindow?.endAt
+    );
     if (virtualStart || virtualEnd) {
       return isWithinRange(now, virtualStart, virtualEnd);
     }

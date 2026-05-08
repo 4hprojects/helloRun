@@ -92,9 +92,15 @@
             <div class="waiver-panel form-group <%= errors.waiverTemplate ? 'has-error' : '' %>">
               <label for="waiverEditor">Waiver Template *</label>
               <div class="waiver-toolbar">
-                <button type="button" id="insertOrganizerPlaceholderBtn" class="btn btn-outline">Insert Organizer Name</button>
-                <button type="button" id="insertEventPlaceholderBtn" class="btn btn-outline">Insert Event Title</button>
-                <button type="button" id="resetWaiverBtn" class="btn btn-outline">Reset to Default Waiver</button>
+                <button type="button" id="insertOrganizerPlaceholderBtn" class="btn btn-outline waiver-icon-btn" aria-label="Insert Organizer Name" title="Insert Organizer Name">
+                  <i data-lucide="user-round"></i>
+                </button>
+                <button type="button" id="insertEventPlaceholderBtn" class="btn btn-outline waiver-icon-btn" aria-label="Insert Event Title" title="Insert Event Title">
+                  <i data-lucide="file-text"></i>
+                </button>
+                <button type="button" id="resetWaiverBtn" class="btn btn-outline waiver-icon-btn" aria-label="Reset to Default Waiver" title="Reset to Default Waiver">
+                  <i data-lucide="rotate-ccw"></i>
+                </button>
               </div>
               <div id="waiverEditor" class="waiver-editor"></div>
               <input type="hidden" id="waiverTemplate" name="waiverTemplate" value="">
@@ -242,12 +248,15 @@
             </div>
 
             <div class="form-group form-group-full <%= errors.virtualCompletionMode ? 'has-error' : '' %>">
-              <label for="virtualCompletionMode">Event Format</label>
+              <label for="virtualCompletionMode" class="label-with-help">
+                Event Format
+                <span class="field-help-icon" tabindex="0" aria-label="Single activity means each runner submits one final run proof. Accumulated distance means runners can submit multiple activity proofs that add up toward the target distance.">?</span>
+              </label>
               <select id="virtualCompletionMode" name="virtualCompletionMode">
                 <option value="single_activity" <%= formData.virtualCompletionMode === 'single_activity' ? 'selected' : '' %>>Single activity</option>
                 <option value="accumulated_distance" <%= formData.virtualCompletionMode === 'accumulated_distance' ? 'selected' : '' %>>Accumulated distance challenge</option>
               </select>
-              <small class="field-hint">Accumulated distance setup can be saved as draft, but publishing is blocked until activity-level progress tracking is implemented.</small>
+              <small class="field-hint">Accumulated distance challenges accept multiple activity proofs and track approved progress toward the target.</small>
               <% if (errors.virtualCompletionMode) { %><small class="error-text"><%= errors.virtualCompletionMode %></small><% } %>
             </div>
 
@@ -255,13 +264,27 @@
               <label>Accumulated Challenge Setup</label>
               <div class="form-grid">
                 <div class="form-group <%= errors.targetDistanceKm ? 'has-error' : '' %>">
-                  <label for="targetDistanceKm">Target Distance (km)</label>
-                  <input id="targetDistanceKm" name="targetDistanceKm" type="number" min="0" step="0.01" value="<%= formData.targetDistanceKm || '' %>" placeholder="100">
+                  <label for="targetDistanceKm" class="label-with-help">
+                    Target Distance
+                    <span class="field-help-icon" tabindex="0" aria-label="Target Distance is the numeric completion goal used for accumulated progress. Race Distances are registration labels; this value controls when the runner reaches completion.">?</span>
+                  </label>
+                  <div class="distance-input-shell">
+                    <input id="targetDistanceKm" name="targetDistanceKm" type="number" min="0" step="0.01" value="<%= formData.targetDistanceKm || '' %>" placeholder="100" aria-describedby="targetDistanceHint">
+                    <span>km</span>
+                  </div>
+                  <small id="targetDistanceHint" class="field-hint distance-auto-hint">If exactly one race distance is selected, this can be auto-filled from that distance.</small>
                   <% if (errors.targetDistanceKm) { %><small class="error-text"><%= errors.targetDistanceKm %></small><% } %>
                 </div>
                 <div class="form-group <%= errors.minimumActivityDistanceKm ? 'has-error' : '' %>">
-                  <label for="minimumActivityDistanceKm">Minimum Activity Distance (km)</label>
-                  <input id="minimumActivityDistanceKm" name="minimumActivityDistanceKm" type="number" min="0" step="0.01" value="<%= formData.minimumActivityDistanceKm || '' %>" placeholder="1">
+                  <label for="minimumActivityDistanceKm" class="label-with-help">
+                    Minimum Activity Distance
+                    <span class="field-help-icon" tabindex="0" aria-label="Minimum Activity Distance is the smallest distance a runner can submit per proof upload. It does not change the total challenge target.">?</span>
+                  </label>
+                  <div class="distance-input-shell">
+                    <input id="minimumActivityDistanceKm" name="minimumActivityDistanceKm" type="number" min="0" step="0.01" value="<%= formData.minimumActivityDistanceKm || '' %>" placeholder="1" aria-describedby="minimumActivityDistanceHint">
+                    <span>km</span>
+                  </div>
+                  <small id="minimumActivityDistanceHint" class="field-hint">Example: with a 1 km minimum, 0.5 km proof is too short, but 3 km proof can count toward the target.</small>
                   <% if (errors.minimumActivityDistanceKm) { %><small class="error-text"><%= errors.minimumActivityDistanceKm %></small><% } %>
                 </div>
                 <div class="form-group">
@@ -281,6 +304,7 @@
                     <label><input type="checkbox" name="acceptedRunTypes" value="hike" <%= selectedRunTypes.includes('hike') ? 'checked' : '' %>> Hike</label>
                     <label><input type="checkbox" name="acceptedRunTypes" value="trail_run" <%= selectedRunTypes.includes('trail_run') ? 'checked' : '' %>> Trail run</label>
                   </div>
+                  <% if (errors.acceptedRunTypes) { %><small class="error-text"><%= errors.acceptedRunTypes %></small><% } %>
                 </div>
                 <div class="form-group">
                   <label for="recognitionMode">Recognition Mode</label>
@@ -432,6 +456,11 @@
       const locationSection = document.querySelector('.location-section');
       const virtualSection = document.querySelector('.virtual-section');
       const accumulatedSettings = document.querySelector('.accumulated-settings');
+      const targetDistanceInput = document.getElementById('targetDistanceKm');
+      const targetDistanceHint = document.getElementById('targetDistanceHint');
+      const raceDistanceCustomInput = document.getElementById('raceDistanceCustom');
+      const raceDistancePresetInputs = Array.from(document.querySelectorAll('input[name="raceDistancePresets"]'));
+      let targetDistanceWasAutoFilled = !targetDistanceInput?.value;
 
       function toggleSections() {
         const val = eventTypeSelect.value;
@@ -440,6 +469,7 @@
         if (accumulatedSettings && virtualCompletionModeSelect) {
           const showAccumulated = (val === 'virtual' || val === 'hybrid') && virtualCompletionModeSelect.value === 'accumulated_distance';
           accumulatedSettings.style.display = showAccumulated ? 'block' : 'none';
+          if (showAccumulated) syncTargetDistanceFromRaceDistance();
         }
       }
 
@@ -450,6 +480,59 @@
       if (virtualCompletionModeSelect) {
         virtualCompletionModeSelect.addEventListener('change', toggleSections);
       }
+
+      function parseRaceDistanceKm(label) {
+        const value = String(label || '').trim().toUpperCase().replace(/\s+/g, '');
+        const match = value.match(/^(\d+(?:\.\d+)?)(K|KM)$/);
+        if (!match) return null;
+        const distance = Number(match[1]);
+        return Number.isFinite(distance) && distance > 0 ? distance : null;
+      }
+
+      function getSelectedRaceDistanceTargets() {
+        const values = [];
+        raceDistancePresetInputs.forEach((input) => {
+          if (input.checked) values.push(input.value);
+        });
+        String(raceDistanceCustomInput?.value || '')
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .forEach((item) => values.push(item));
+        return Array.from(new Set(values.map(parseRaceDistanceKm).filter((item) => item !== null)));
+      }
+
+      function syncTargetDistanceFromRaceDistance() {
+        if (!targetDistanceInput || !targetDistanceHint) return;
+        const targets = getSelectedRaceDistanceTargets();
+        if (targets.length === 1 && (!targetDistanceInput.value || targetDistanceWasAutoFilled)) {
+          targetDistanceInput.value = String(targets[0]);
+          targetDistanceWasAutoFilled = true;
+          targetDistanceHint.textContent = `Auto-filled from the selected race distance (${targets[0]} km). Adjust if this event uses a different completion target.`;
+          targetDistanceHint.classList.add('is-autofilled');
+          targetDistanceHint.classList.remove('is-manual');
+          return;
+        }
+        if (targets.length > 1) {
+          targetDistanceHint.textContent = 'Multiple race distances are selected, so set one event-level target manually. Per-distance targets need a future setup model.';
+          targetDistanceHint.classList.add('is-manual');
+          targetDistanceHint.classList.remove('is-autofilled');
+          return;
+        }
+        targetDistanceHint.textContent = 'If exactly one race distance is selected, this can be auto-filled from that distance.';
+        targetDistanceHint.classList.remove('is-autofilled', 'is-manual');
+      }
+
+      if (targetDistanceInput) {
+        targetDistanceInput.addEventListener('input', () => {
+          targetDistanceWasAutoFilled = false;
+        });
+      }
+      raceDistancePresetInputs.forEach((input) => input.addEventListener('change', syncTargetDistanceFromRaceDistance));
+      if (raceDistanceCustomInput) {
+        raceDistanceCustomInput.addEventListener('input', syncTargetDistanceFromRaceDistance);
+      }
+      syncTargetDistanceFromRaceDistance();
 
       // ---------- "NOW" BUTTONS ----------
       document.querySelectorAll('.btn-now').forEach(btn => {
@@ -536,11 +619,6 @@
           const field = document.getElementById(f.id);
           if (!validateField(field)) isValid = false;
         });
-        if (isPublish && virtualCompletionModeSelect?.value === 'accumulated_distance') {
-          isValid = false;
-          alert('Accumulated distance events can be saved as drafts, but publishing is blocked until activity-level progress tracking is implemented.');
-        }
-
         if (!isValid) {
           e.preventDefault();
           alert('Please fix the highlighted errors before submitting.');

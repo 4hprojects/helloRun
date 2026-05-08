@@ -6,6 +6,7 @@ const User = require('../models/User');
 const Event = require('../models/Event');
 const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
+const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const OrganiserApplication = require('../models/OrganiserApplication');
 const uploadService = require('../services/upload.service');
 const emailService = require('../services/email.service');
@@ -19,6 +20,12 @@ const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
 const { generateUniqueReferenceCode } = require('../utils/referenceCode');
 const { canOrganizerReviewPaymentProof } = require('../utils/payment-workflow');
 const { reviewSubmission } = require('../services/submission.service');
+const {
+  reviewAccumulatedActivitySubmission,
+  getAccumulatedActivitiesForRegistrations,
+  getEventAccumulatedActivityCounts,
+  buildAccumulatedProgress
+} = require('../services/accumulated-activity.service');
 
 const countries = getCountries();
 const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K']);
@@ -644,11 +651,22 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
     const submissionsByRegistrationId = new Map(
       submissions.map((item) => [String(item.registrationId), item])
     );
+    const accumulatedActivities = registrationIds.length
+      ? await getAccumulatedActivitiesForRegistrations(registrationIds, selectedResultStatus ? { status: selectedResultStatus } : {})
+      : [];
+    const accumulatedActivitiesByRegistrationId = new Map();
+    for (const activity of accumulatedActivities) {
+      const key = String(activity.registrationId);
+      const current = accumulatedActivitiesByRegistrationId.get(key) || [];
+      current.push(activity);
+      accumulatedActivitiesByRegistrationId.set(key, current);
+    }
 
     const registrations = registrationsRaw
       .filter((item) => {
         if (!selectedResultStatus) return true;
-        return submissionsByRegistrationId.has(String(item._id));
+        return submissionsByRegistrationId.has(String(item._id)) ||
+          accumulatedActivitiesByRegistrationId.has(String(item._id));
       })
       .map((item) => ({
       ...item,
@@ -661,9 +679,25 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       waiverAcceptedAtLabel: formatDateTime(item.waiver?.acceptedAt),
       paymentProofUploadedAtLabel: formatDateTime(item.paymentProof?.uploadedAt),
       paymentReviewedAtLabel: formatDateTime(item.paymentReviewedAt),
-      submission: mapSubmissionForRegistrant(submissionsByRegistrationId.get(String(item._id)))
+      accumulatedProgress: event.virtualCompletionMode === 'accumulated_distance'
+        ? buildAccumulatedProgress({
+          activities: accumulatedActivitiesByRegistrationId.get(String(item._id)) || [],
+          targetDistanceKm: event.targetDistanceKm
+        })
+        : null,
+      submission: mapSubmissionForRegistrant(
+        submissionsByRegistrationId.get(String(item._id)) ||
+          (accumulatedActivitiesByRegistrationId.get(String(item._id)) || [])[0],
+        {
+          isAccumulatedActivity: !submissionsByRegistrationId.has(String(item._id)) &&
+            Boolean((accumulatedActivitiesByRegistrationId.get(String(item._id)) || [])[0])
+        }
+      )
     }));
 
+    const accumulatedCounts = event.virtualCompletionMode === 'accumulated_distance'
+      ? await getEventAccumulatedActivityCounts(event._id)
+      : { submitted: 0, approved: 0, rejected: 0 };
     const [
       totalRegistrants,
       virtualCount,
@@ -706,9 +740,9 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
         proofSubmittedCount,
         paidCount,
         proofRejectedCount,
-        submissionSubmittedCount,
-        submissionApprovedCount,
-        submissionRejectedCount
+        submissionSubmittedCount: submissionSubmittedCount + accumulatedCounts.submitted,
+        submissionApprovedCount: submissionApprovedCount + accumulatedCounts.approved,
+        submissionRejectedCount: submissionRejectedCount + accumulatedCounts.rejected
       },
       message: getPageMessage(req.query)
     });
@@ -976,10 +1010,30 @@ router.post(
         .select('_id')
         .lean();
       if (!submissionRecord) {
-        const q = new URLSearchParams({
-          type: 'error',
-          msg: 'Submission record not found for this event.'
+        const activityRecord = await AccumulatedActivitySubmission.findOne({
+          _id: req.params.submissionId,
+          eventId: event._id
+        })
+          .select('_id')
+          .lean();
+        if (!activityRecord) {
+          const q = new URLSearchParams({
+            type: 'error',
+            msg: 'Submission record not found for this event.'
+          });
+          return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+        }
+
+        const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
+        await reviewAccumulatedActivitySubmission({
+          activityId: activityRecord._id,
+          organizerId: user._id,
+          reviewerRole: user.role,
+          action: 'approve',
+          reviewNotes
         });
+
+        const q = new URLSearchParams({ type: 'success', msg: 'Activity submission approved.' });
         return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
       }
 
@@ -1043,10 +1097,39 @@ router.post(
         .select('_id')
         .lean();
       if (!submissionRecord) {
-        const q = new URLSearchParams({
-          type: 'error',
-          msg: 'Submission record not found for this event.'
+        const activityRecord = await AccumulatedActivitySubmission.findOne({
+          _id: req.params.submissionId,
+          eventId: event._id
+        })
+          .select('_id')
+          .lean();
+        if (!activityRecord) {
+          const q = new URLSearchParams({
+            type: 'error',
+            msg: 'Submission record not found for this event.'
+          });
+          return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+        }
+
+        const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
+        if (!rejectionReason || rejectionReason.length < 5) {
+          const q = new URLSearchParams({
+            type: 'error',
+            msg: 'Rejection reason must be at least 5 characters.'
+          });
+          return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+        }
+        const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
+        await reviewAccumulatedActivitySubmission({
+          activityId: activityRecord._id,
+          organizerId: user._id,
+          reviewerRole: user.role,
+          action: 'reject',
+          rejectionReason,
+          reviewNotes
         });
+
+        const q = new URLSearchParams({ type: 'success', msg: 'Activity submission rejected.' });
         return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
       }
 
@@ -1346,7 +1429,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
       ? formData.acceptedRunTypes
       : [];
     event.finalSubmissionDeadlineAt = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-      ? parseDateSafe(formData.finalSubmissionDeadlineAt)
+      ? (parseDateSafe(formData.finalSubmissionDeadlineAt) || parseDateSafe(formData.virtualEndAt))
       : null;
     event.milestoneDistancesKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
       ? formData.milestoneDistancesKm
@@ -1687,6 +1770,9 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     const slug = await generateUniqueSlug(formData.title);
     const eventTypesAllowed = getEventTypesAllowed(formData.eventType);
     const isVirtualMode = formData.eventType === 'virtual' || formData.eventType === 'hybrid';
+    const finalSubmissionDeadlineAt = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      ? (parseDateSafe(formData.finalSubmissionDeadlineAt) || parseDateSafe(formData.virtualEndAt))
+      : null;
 
     const bannerImageFile = req.files?.bannerImageFile?.[0] || null;
     const logoFile = req.files?.logoFile?.[0] || null;
@@ -1786,7 +1872,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
         ? formData.acceptedRunTypes
         : [],
       finalSubmissionDeadlineAt: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-        ? parseDateSafe(formData.finalSubmissionDeadlineAt)
+        ? finalSubmissionDeadlineAt
         : null,
       milestoneDistancesKm: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
         ? formData.milestoneDistancesKm
@@ -2344,7 +2430,7 @@ function buildRegistrantExportQuery(filterContext) {
   return params.toString();
 }
 
-function mapSubmissionForRegistrant(submission) {
+function mapSubmissionForRegistrant(submission, options = {}) {
   if (!submission) return null;
 
   const ocrData = submission.ocrData || {};
@@ -2366,6 +2452,7 @@ function mapSubmissionForRegistrant(submission) {
 
   return {
     ...submission,
+    isAccumulatedActivity: Boolean(options.isAccumulatedActivity),
     elapsedLabel: formatElapsedMs(submission.elapsedMs),
     runDateLabel: formatDateOnly(submission.runDate),
     runLocation: String(submission.runLocation || '').trim(),
@@ -2814,7 +2901,15 @@ function validateCreateEventForm(formData) {
     if (!formData.virtualEndAt) errors.virtualEndAt = 'Virtual window end is required for virtual/hybrid events.';
     if (!formData.proofTypesAllowed.length) errors.proofTypesAllowed = 'Select at least one proof type.';
     if (formData.virtualCompletionMode === 'accumulated_distance') {
-      errors.virtualCompletionMode = 'Accumulated virtual runs can be saved as drafts, but cannot be published until activity-level progress tracking is implemented.';
+      if (!Number.isFinite(formData.targetDistanceKm) || formData.targetDistanceKm <= 0) {
+        errors.targetDistanceKm = 'Target distance is required for accumulated-distance events.';
+      }
+      if (!Number.isFinite(formData.minimumActivityDistanceKm) || formData.minimumActivityDistanceKm <= 0) {
+        errors.minimumActivityDistanceKm = 'Minimum activity distance is required for accumulated-distance events.';
+      }
+      if (!Array.isArray(formData.acceptedRunTypes) || !formData.acceptedRunTypes.length) {
+        errors.acceptedRunTypes = 'Select at least one accepted activity type.';
+      }
     }
 
     const virtualStart = parseDateSafe(formData.virtualStartAt);
