@@ -719,6 +719,8 @@ Both auth pages use keyframe animations for entrance effects:
 
 ### Filter/search UX
 - Filters: `q` (text), `eventType`, `distance`, `status`
+- Search textbox and Search button sit in the same row (`.filter-search-row`): 75% input / 25% button width ratio; `align-items: stretch` keeps both equal height
+- Search button: `btn-secondary` style; desktop shows icon only (`lucide:search`); mobile shows text label only
 - Results summary with active-filter count
 - `Clear filters` action (standardised label across all list pages)
 - Pagination with preserved query params

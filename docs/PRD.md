@@ -37,7 +37,9 @@
   - search icon appears on the right side of the textbox, including after Lucide swaps icons to SVGs
   - dropdown labels are hidden on mobile to preserve space
   - dropdown changes auto-submit the `/events` filter form
-  - mobile Apply button is hidden
+  - Apply button renamed to **Search** and moved into the same row as the search textbox (75:25 width ratio)
+  - on desktop the Search button shows icon only; on mobile it shows text only
+  - Search button uses `btn-secondary` style
 - Added public event image fallbacks:
   - event cards always render an image
   - event detail banner always renders an image
