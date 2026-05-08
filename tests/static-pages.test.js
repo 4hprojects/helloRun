@@ -47,6 +47,16 @@ test('public static pages render successfully', async () => {
   }
 });
 
+test('contact page renders organizer dashboard guidance when sourced from organizer dashboard', async () => {
+  const response = await fetch(`${BASE_URL}/contact?source=organizer-dashboard`);
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /Organizer Support/i);
+  assert.match(html, /include your application ID, event name, or event reference code/i);
+  assert.match(html, /mailto:hellorunonline@gmail\.com/i);
+});
+
 async function waitForServerReady() {
   const maxAttempts = 40;
   for (let i = 0; i < maxAttempts; i += 1) {

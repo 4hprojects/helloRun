@@ -13,146 +13,176 @@
 
       <!-- Welcome Header -->
       <header class="dashboard-header">
-        <div class="header-left">
-          <h1>Welcome back, <%= user.firstName || 'Organizer' %>!</h1>
-          <p class="header-subtitle">
-            <% if (user.organizerStatus === 'approved') { %>
-              <span class="verified-badge">
-                <i data-lucide="shield-check"></i>
-                Verified Organizer
-              </span>
-              <span class="header-separator">•</span>
-              <span>Approved on <%= approvedDate %></span>
-            <% } else if (user.organizerStatus === 'pending') { %>
-              <span class="pending-badge">
-                <i data-lucide="clock"></i>
-                Pending Approval
-              </span>
-              <span class="header-separator">•</span>
-              <span>Submitted on <%= approvedDate %></span>
-            <% } else if (user.organizerStatus === 'rejected') { %>
-              <span class="rejected-badge">
-                <i data-lucide="x-circle"></i>
-                Application Rejected
-              </span>
-            <% } %>
-          </p>
-        </div>
-        <div class="header-right">
-          <a href="/organizer/create-event" class="btn btn-create">
-            <i data-lucide="plus"></i>
-            Create Event
-          </a>
-        </div>
-      </header>
+        <div class="dashboard-header-top">
+          <div class="header-intro">
+            <div class="header-intro-top">
+              <div class="header-greeting">
+                <h1>Welcome back, <%= user.firstName || 'Organizer' %>!</h1>
+                <p class="header-subtitle">
+                  <% if (user.organizerStatus === 'approved') { %>
+                    <span class="verified-badge">
+                      <i data-lucide="shield-check"></i>
+                      Verified Organizer
+                    </span>
+                    <span class="header-separator">&bull;</span>
+                    <span>Approved on <%= approvedDate %></span>
+                  <% } else if (user.organizerStatus === 'pending') { %>
+                    <span class="pending-badge">
+                      <i data-lucide="clock"></i>
+                      Pending Approval
+                    </span>
+                    <span class="header-separator">&bull;</span>
+                    <span>Submitted on <%= approvedDate %></span>
+                  <% } else if (user.organizerStatus === 'rejected') { %>
+                    <span class="rejected-badge">
+                      <i data-lucide="x-circle"></i>
+                      Application Rejected
+                    </span>
+                  <% } %>
+                </p>
+              </div>
 
-      <!-- Stats Cards -->
-      <section class="stats-section" aria-label="Dashboard Statistics">
-        <form method="GET" action="/organizer/dashboard" class="analytics-range-form">
-          <label for="dashboardRange">Analytics range</label>
-          <select id="dashboardRange" name="range">
-            <option value="7d" <%= analytics?.range === '7d' ? 'selected' : '' %>>Last 7 days</option>
-            <option value="30d" <%= analytics?.range === '30d' ? 'selected' : '' %>>Last 30 days</option>
-            <option value="all" <%= analytics?.range === 'all' ? 'selected' : '' %>>All time</option>
-          </select>
-          <button type="submit" class="event-link-btn">Apply</button>
-        </form>
-
-        <div class="analytics-summary-grid">
-          <article class="analytics-summary-card">
-            <small>Registrations (<%= analytics?.rangeLabel || 'Last 30 days' %>)</small>
-            <strong><%= analytics?.registrationsInRange || 0 %></strong>
-            <p class="trend-chip trend-<%= analytics?.trends?.registrations?.direction || 'flat' %>">
-              <%= analytics?.trends?.registrations?.label || '0 vs previous period' %>
-            </p>
-          </article>
-          <article class="analytics-summary-card">
-            <small>Submissions (<%= analytics?.rangeLabel || 'Last 30 days' %>)</small>
-            <strong><%= analytics?.submissionsInRange || 0 %></strong>
-            <p class="trend-chip trend-<%= analytics?.trends?.submissions?.direction || 'flat' %>">
-              <%= analytics?.trends?.submissions?.label || '0 vs previous period' %>
-            </p>
-          </article>
-          <article class="analytics-summary-card">
-            <small>Approved Results (<%= analytics?.rangeLabel || 'Last 30 days' %>)</small>
-            <strong><%= analytics?.approvalsInRange || 0 %></strong>
-            <p class="trend-chip trend-<%= analytics?.trends?.approvals?.direction || 'flat' %>">
-              <%= analytics?.trends?.approvals?.label || '0 vs previous period' %>
-            </p>
-          </article>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon stat-icon-events">
-              <i data-lucide="calendar"></i>
+              <a href="/organizer/create-event" class="btn btn-create">
+                <i data-lucide="plus"></i>
+                Create Event
+              </a>
             </div>
-            <div class="stat-info">
-              <span class="stat-value"><%= stats.totalEvents %></span>
-              <span class="stat-label">Total Events</span>
+
+          <!-- Stats Cards -->
+          <section class="stats-section header-stats-card" aria-label="Dashboard Statistics">
+            <form method="GET" action="/organizer/dashboard" class="analytics-range-form">
+              <label for="dashboardRange">Analytics range</label>
+              <select id="dashboardRange" name="range">
+                <option value="7d" <%= analytics?.range === '7d' ? 'selected' : '' %>>Last 7 days</option>
+                <option value="30d" <%= analytics?.range === '30d' ? 'selected' : '' %>>Last 30 days</option>
+                <option value="all" <%= analytics?.range === 'all' ? 'selected' : '' %>>All time</option>
+              </select>
+              <button type="submit" class="event-link-btn">Apply</button>
+            </form>
+
+            <div class="analytics-summary-grid">
+              <article class="analytics-summary-card">
+                <small>Registrations (<%= analytics?.rangeLabel || 'Last 30 days' %>)</small>
+                <strong><%= analytics?.registrationsInRange || 0 %></strong>
+                <p class="trend-chip trend-<%= analytics?.trends?.registrations?.direction || 'flat' %>">
+                  <%= analytics?.trends?.registrations?.label || '0 vs previous period' %>
+                </p>
+              </article>
+              <article class="analytics-summary-card">
+                <small>Submissions (<%= analytics?.rangeLabel || 'Last 30 days' %>)</small>
+                <strong><%= analytics?.submissionsInRange || 0 %></strong>
+                <p class="trend-chip trend-<%= analytics?.trends?.submissions?.direction || 'flat' %>">
+                  <%= analytics?.trends?.submissions?.label || '0 vs previous period' %>
+                </p>
+              </article>
+              <article class="analytics-summary-card">
+                <small>Approved Results (<%= analytics?.rangeLabel || 'Last 30 days' %>)</small>
+                <strong><%= analytics?.approvalsInRange || 0 %></strong>
+                <p class="trend-chip trend-<%= analytics?.trends?.approvals?.direction || 'flat' %>">
+                  <%= analytics?.trends?.approvals?.label || '0 vs previous period' %>
+                </p>
+              </article>
             </div>
+
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon stat-icon-events">
+                  <i data-lucide="calendar"></i>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-value"><%= stats.totalEvents %></span>
+                  <span class="stat-label">Total Events</span>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon stat-icon-active">
+                  <i data-lucide="activity"></i>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-value"><%= stats.activeEvents %></span>
+                  <span class="stat-label">Active Events</span>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon stat-icon-registrations">
+                  <i data-lucide="users"></i>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-value"><%= stats.totalRegistrations %></span>
+                  <span class="stat-label">Total Registrations</span>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon stat-icon-upcoming">
+                  <i data-lucide="clock"></i>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-value"><%= stats.upcomingEvents %></span>
+                  <span class="stat-label">Upcoming Events</span>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon stat-icon-payment-review">
+                  <i data-lucide="receipt"></i>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-value"><%= stats.pendingPaymentReviews || 0 %></span>
+                  <span class="stat-label">Pending Payment Reviews</span>
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-icon stat-icon-result-review">
+                  <i data-lucide="flag"></i>
+                </div>
+                <div class="stat-info">
+                  <span class="stat-value"><%= stats.pendingResultReviews || 0 %></span>
+                  <span class="stat-label">Pending Result Reviews</span>
+                </div>
+              </div>
+            </div>
+          </section>
           </div>
 
-          <div class="stat-card">
-            <div class="stat-icon stat-icon-active">
-              <i data-lucide="activity"></i>
+          <div class="header-right">
+          <!-- Organizer Profile Card -->
+          <div class="sidebar-card profile-card header-profile-card">
+            <div class="profile-card-header">
+              <div class="profile-avatar">
+                <span class="avatar-initials"><%= (user.firstName || 'O').charAt(0).toUpperCase() %><%= (user.lastName || 'R').charAt(0).toUpperCase() %></span>
+              </div>
+              <div class="profile-identity">
+                <h3><%= user.firstName %> <%= user.lastName %></h3>
+                <p class="profile-email"><%= user.email %></p>
+              </div>
             </div>
-            <div class="stat-info">
-              <span class="stat-value"><%= stats.activeEvents %></span>
-              <span class="stat-label">Active Events</span>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon stat-icon-registrations">
-              <i data-lucide="users"></i>
-            </div>
-            <div class="stat-info">
-              <span class="stat-value"><%= stats.totalRegistrations %></span>
-              <span class="stat-label">Total Registrations</span>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon stat-icon-upcoming">
-              <i data-lucide="clock"></i>
-            </div>
-            <div class="stat-info">
-              <span class="stat-value"><%= stats.upcomingEvents %></span>
-              <span class="stat-label">Upcoming Events</span>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon stat-icon-payment-review">
-              <i data-lucide="receipt"></i>
-            </div>
-            <div class="stat-info">
-              <span class="stat-value"><%= stats.pendingPaymentReviews || 0 %></span>
-              <span class="stat-label">Pending Payment Reviews</span>
+            <div class="profile-details">
+              <% if (application) { %>
+                <div class="profile-detail-item">
+                  <i data-lucide="briefcase"></i>
+                  <span><%= application.businessName %></span>
+                </div>
+                <div class="profile-detail-item">
+                  <i data-lucide="phone"></i>
+                  <span><%= application.contactPhone %></span>
+                </div>
+                <div class="profile-detail-item">
+                  <i data-lucide="hash"></i>
+                  <span>ID: <%= application.applicationId %></span>
+                </div>
+              <% } else { %>
+                <div class="profile-detail-item">
+                  <span>No organizer application found. <a href="/organizer/complete-profile">Start Application</a></span>
+                </div>
+              <% } %>
             </div>
           </div>
-
-          <div class="stat-card">
-            <div class="stat-icon stat-icon-result-review">
-              <i data-lucide="flag"></i>
-            </div>
-            <div class="stat-info">
-              <span class="stat-value"><%= stats.pendingResultReviews || 0 %></span>
-              <span class="stat-label">Pending Result Reviews</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Main Content Grid -->
-      <div class="dashboard-grid">
-
-        <!-- Left Column -->
-        <div class="dashboard-main">
-
           <!-- Quick Actions -->
-          <section class="dashboard-section" aria-labelledby="actions-heading">
+          <section class="dashboard-section header-actions-section" aria-labelledby="actions-heading">
             <h2 id="actions-heading" class="section-heading">
               <i data-lucide="zap"></i>
               Quick Actions
@@ -163,7 +193,7 @@
             </div>
             <div class="actions-grid">
               <% quickActions.forEach(action => { %>
-                <a href="<%= action.href %>" class="action-card">
+                <a href="<%= action.href %>" class="action-card action-card-<%= String(action.label || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') %>">
                   <div class="action-icon">
                     <i data-lucide="<%= action.icon %>"></i>
                   </div>
@@ -176,6 +206,15 @@
               <% }); %>
             </div>
           </section>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Content Grid -->
+      <div class="dashboard-grid">
+
+        <!-- Left Column -->
+        <div class="dashboard-main">
 
           <section class="dashboard-section" aria-labelledby="queue-breakdown-heading">
             <div class="section-header">
@@ -193,8 +232,14 @@
                       <p>Payment: <%= item.paymentPending %> | Result: <%= item.resultPending %> | Total: <%= item.totalPending %></p>
                     </div>
                     <div class="queue-breakdown-actions">
-                      <a href="<%= item.paymentHref %>" class="event-link-btn">Payment</a>
-                      <a href="<%= item.resultHref %>" class="event-link-btn">Result</a>
+                      <a href="<%= item.paymentHref %>" class="queue-review-btn" target="_blank" rel="noopener noreferrer">
+                        <i data-lucide="receipt"></i>
+                        Payment
+                      </a>
+                      <a href="<%= item.resultHref %>" class="queue-review-btn" target="_blank" rel="noopener noreferrer">
+                        <i data-lucide="flag"></i>
+                        Result
+                      </a>
                     </div>
                   </li>
                 <% }); %>
@@ -228,7 +273,7 @@
                         <% } %>
                       </p>
                     </div>
-                    <a href="/organizer/events/<%= item.id %>/edit" class="event-link-btn">Continue Editing</a>
+                    <a href="/organizer/events/<%= item.id %>/edit" class="event-link-btn" target="_blank" rel="noopener noreferrer">Continue Editing</a>
                   </li>
                 <% }) %>
               </ul>
@@ -347,7 +392,7 @@
                         <% } %>
                       </div>
                       <div class="event-card-actions">
-                        <a href="/organizer/events/<%= event.id %>/registrants" class="event-link-btn">View Registrants</a>
+                        <a href="/organizer/events/<%= event.id %>/registrants" class="event-link-btn" target="_blank" rel="noopener noreferrer">View Registrants</a>
                       </div>
                     </div>
                     <span class="event-status event-status-<%= event.status %>"><%= event.status %></span>
@@ -373,42 +418,21 @@
         <!-- Right Column - Sidebar -->
         <aside class="dashboard-sidebar">
 
-          <!-- Organizer Profile Card -->
-          <div class="sidebar-card profile-card">
-            <div class="profile-avatar">
-              <span class="avatar-initials"><%= (user.firstName || 'O').charAt(0).toUpperCase() %><%= (user.lastName || 'R').charAt(0).toUpperCase() %></span>
-            </div>
-            <h3><%= user.firstName %> <%= user.lastName %></h3>
-            <p class="profile-email"><%= user.email %></p>
-            <div class="profile-details">
-              <% if (application) { %>
-                <div class="profile-detail-item">
-                  <i data-lucide="briefcase"></i>
-                  <span><%= application.businessName %></span>
-                </div>
-                <div class="profile-detail-item">
-                  <i data-lucide="phone"></i>
-                  <span><%= application.contactPhone %></span>
-                </div>
-                <div class="profile-detail-item">
-                  <i data-lucide="hash"></i>
-                  <span>ID: <%= application.applicationId %></span>
-                </div>
-              <% } else { %>
-                <div class="profile-detail-item">
-                  <span>No organizer application found. <a href="/organizer/complete-profile">Start Application</a></span>
-                </div>
-              <% } %>
-            </div>
-          </div>
-
           <!-- Getting Started Checklist -->
-          <div class="sidebar-card checklist-card">
-            <h3>
-              <i data-lucide="list-checks"></i>
-              Getting Started
-            </h3>
-            <ul class="checklist">
+          <div class="sidebar-card checklist-card" data-collapsible-card="getting-started">
+            <button
+              type="button"
+              class="checklist-toggle"
+              aria-expanded="true"
+              aria-controls="gettingStartedChecklist"
+            >
+              <span>
+                <i data-lucide="list-checks"></i>
+                Getting Started
+              </span>
+              <i data-lucide="chevron-up" class="checklist-toggle-icon"></i>
+            </button>
+            <ul class="checklist" id="gettingStartedChecklist">
               <li class="checklist-item completed">
                 <i data-lucide="check-circle-2"></i>
                 <span>Create your account</span>
@@ -444,19 +468,19 @@
             </h3>
             <ul class="resource-links">
               <li>
-                <a href="/about">
+                <a href="/about" target="_blank" rel="noopener noreferrer">
                   <i data-lucide="book-open"></i>
                   Event Creation Guide
                 </a>
               </li>
               <li>
-                <a href="/about">
+                <a href="/about" target="_blank" rel="noopener noreferrer">
                   <i data-lucide="help-circle"></i>
                   FAQ
                 </a>
               </li>
               <li>
-                <a href="mailto:<%= typeof adminEmail !== 'undefined' ? adminEmail : 'hellorunonline@gmail.com' %>">
+                <a href="/contact?source=organizer-dashboard" target="_blank" rel="noopener noreferrer">
                   <i data-lucide="mail"></i>
                   Contact Support
                 </a>
@@ -475,14 +499,14 @@
                   <strong><%= reviewQueue?.pendingPaymentReviews || 0 %></strong>
                   <p>Payment proofs awaiting review</p>
                 </div>
-                <a href="<%= reviewQueue?.paymentReviewHref || '/organizer/events' %>" class="event-link-btn">Review</a>
+                <a href="<%= reviewQueue?.paymentReviewHref || '/organizer/events' %>" class="event-link-btn" target="_blank" rel="noopener noreferrer">Review</a>
               </div>
               <div class="review-queue-item">
                 <div>
                   <strong><%= reviewQueue?.pendingResultReviews || 0 %></strong>
                   <p>Result submissions awaiting review</p>
                 </div>
-                <a href="<%= reviewQueue?.resultReviewHref || '/organizer/events' %>" class="event-link-btn">Review</a>
+                <a href="<%= reviewQueue?.resultReviewHref || '/organizer/events' %>" class="event-link-btn" target="_blank" rel="noopener noreferrer">Review</a>
               </div>
             </div>
           </div>
@@ -494,7 +518,55 @@
   <%- include('../layouts/footer') %>
 
   <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    (function() {
+      const card = document.querySelector('[data-collapsible-card="getting-started"]');
+      if (!card) return;
+
+      const toggle = card.querySelector('.checklist-toggle');
+      const checklist = card.querySelector('#gettingStartedChecklist');
+      const storageKey = 'helloRun.organizerDashboard.gettingStartedCollapsed';
+      if (!toggle || !checklist) return;
+
+      const setCollapsed = function(isCollapsed, options) {
+        toggle.setAttribute('aria-expanded', String(!isCollapsed));
+        checklist.hidden = isCollapsed;
+        checklist.setAttribute('aria-hidden', String(isCollapsed));
+        checklist.classList.toggle('is-hidden', isCollapsed);
+        card.classList.toggle('is-collapsed', isCollapsed);
+
+        const icon = card.querySelector('.checklist-toggle-icon');
+        if (icon) {
+          const replacement = document.createElement('i');
+          replacement.setAttribute('data-lucide', isCollapsed ? 'chevron-down' : 'chevron-up');
+          replacement.className = 'checklist-toggle-icon';
+          icon.replaceWith(replacement);
+          if (window.lucide) lucide.createIcons({ root: card });
+        }
+
+        if (!options || options.persist !== false) {
+          try {
+            window.localStorage.setItem(storageKey, isCollapsed ? '1' : '0');
+          } catch (error) {
+            // Ignore storage failures; the toggle remains functional for this page view.
+          }
+        }
+      };
+
+      try {
+        setCollapsed(window.localStorage.getItem(storageKey) === '1', { persist: false });
+      } catch (error) {
+        setCollapsed(false, { persist: false });
+      }
+
+      toggle.addEventListener('click', function() {
+        const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+        setCollapsed(isExpanded);
+      });
+    })();
+
+    if (window.lucide) lucide.createIcons();
+  </script>
 </body>
 </html>
 

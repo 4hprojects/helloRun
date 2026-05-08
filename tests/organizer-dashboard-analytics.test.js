@@ -54,6 +54,17 @@ test('organizer dashboard renders range analytics and queue links', async () => 
   assert.match(html, /Queue by Event/i);
   assert.match(html, /Open Next Pending Payment/i);
   assert.match(html, /Open Next Pending Result/i);
+  assert.match(html, /data-collapsible-card="getting-started"/i);
+  assert.match(html, /class="checklist-toggle"[\s\S]*aria-expanded="true"[\s\S]*aria-controls="gettingStartedChecklist"/i);
+  assert.match(html, /id="gettingStartedChecklist"/i);
+  assert.match(html, /classList\.toggle\('is-hidden', isCollapsed\)/i);
+  assert.match(html, /helloRun\.organizerDashboard\.gettingStartedCollapsed/i);
+  assert.match(html, /href="\/contact\?source=organizer-dashboard"/i);
+  assert.match(
+    html,
+    /href="\/contact\?source=organizer-dashboard" target="_blank" rel="noopener noreferrer"/i
+  );
+  assert.doesNotMatch(html, /Contact Support[\s\S]*mailto:/i);
 
   // 7d window should include 2 registrations, 2 submissions, 1 approved.
   assert.match(
@@ -82,6 +93,18 @@ test('organizer dashboard renders range analytics and queue links', async () => 
   assert.match(html, new RegExp(escapeRegex(paymentLink)));
   assert.match(html, new RegExp(escapeRegex(resultLink)));
   assert.match(html, new RegExp(escapeRegex(approvedLink)));
+  assert.match(
+    html,
+    new RegExp(`${escapeRegex(paymentLink)}" class="queue-review-btn" target="_blank" rel="noopener noreferrer"`)
+  );
+  assert.match(
+    html,
+    new RegExp(`${escapeRegex(resultLink)}" class="queue-review-btn" target="_blank" rel="noopener noreferrer"`)
+  );
+  assert.match(
+    html,
+    /class="event-link-btn" target="_blank" rel="noopener noreferrer">Review<\/a>/i
+  );
 });
 
 async function seedOrganizerDashboardFixture() {

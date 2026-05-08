@@ -3,6 +3,39 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 8, 2026 (Session: Organizer Dashboard Layout + Support Link Polish)
+
+### [SESSION] SESSION UPDATE:
+- Reworked `/organizer/dashboard` header and sidebar presentation:
+  - compacted the desktop dashboard header into a two-column layout
+  - grouped the welcome/create-event area with the analytics/stat panel
+  - moved the organizer profile card into the header-side context
+  - kept Quick Actions as a compact two-column panel with clearer icon/title/description alignment
+  - improved responsive tablet/mobile grid behavior for analytics, stats, event cards, and action controls
+- Updated organizer dashboard action behavior:
+  - Payment, Result, Continue Editing, View Registrants, Review, Help links open in new tabs where requested
+  - Payment and Result actions use dedicated blue queue-review buttons with icons
+  - Getting Started is now an accessible collapsible card with ARIA state and explicit hide styling
+- Updated support navigation:
+  - organizer dashboard Contact Support now routes to `/contact?source=organizer-dashboard`
+  - `/contact` renders organizer-specific guidance when sourced from the organizer dashboard
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. src/public/css/organizer-dashboard.css
+3. src/routes/pageRoutes.js
+4. src/views/organizer/dashboard.ejs
+5. src/views/pages/contact.ejs
+6. tests/organizer-dashboard-analytics.test.js
+7. tests/static-pages.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/static-pages.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/organizer-dashboard-analytics.test.js` -> PASS
+- `git diff --check` on touched dashboard/contact files -> PASS
+
+---
+
 ## CHANGELOG - May 7, 2026 (Session: Project-Wide Button Standard)
 
 ### [SESSION] SESSION UPDATE:

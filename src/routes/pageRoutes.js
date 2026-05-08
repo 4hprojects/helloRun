@@ -98,7 +98,8 @@ router.get('/how-it-works', (req, res) => {
 
 router.get('/contact', (req, res) => {
   res.render('pages/contact', {
-    title: 'Contact - helloRun'
+    title: 'Contact - helloRun',
+    source: req.query.source || ''
   });
 });
 
