@@ -17,9 +17,12 @@ const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
 const { DEFAULT_WAIVER_TEMPLATE, normalizeWaiverTemplate } = require('../utils/waiver');
 const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
+const { get2026KCreateEventDefaults } = require('../utils/event-template');
+const { markdownToHtml } = require('../utils/markdown');
 const { generateUniqueReferenceCode } = require('../utils/referenceCode');
 const { canOrganizerReviewPaymentProof } = require('../utils/payment-workflow');
 const { reviewSubmission } = require('../services/submission.service');
+const eventFormService = require('../services/event-form.service');
 const {
   reviewAccumulatedActivitySubmission,
   getAccumulatedActivitiesForRegistrations,
@@ -34,11 +37,18 @@ const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_distan
 const ACCEPTED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
 const RECOGNITION_MODES = new Set(['completion_only', 'completion_with_optional_ranking']);
 const LEADERBOARD_MODES = new Set(['finishers', 'top_distance', 'finishers_and_top_distance']);
+const FEE_MODES = new Set(['free', 'paid']);
 const WAIVER_SANITIZE_OPTIONS = Object.freeze({
   allowedTags: ['div', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'a'],
   allowedAttributes: {
     a: ['href', 'rel', 'target'],
     div: ['class']
+  }
+});
+const EVENT_DETAILS_SANITIZE_OPTIONS = Object.freeze({
+  allowedTags: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'a', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'code'],
+  allowedAttributes: {
+    a: ['href', 'rel', 'target']
   }
 });
 const paymentReviewActionLimiter = createRateLimiter({
@@ -468,6 +478,7 @@ router.get('/preview-event', requireCanCreateEvents, async (req, res) => {
       title: 'Preview Event - helloRun',
       user,
       previewEvent,
+      eventDetailsHtml: renderEventDetailsMarkdown(formData.eventDetailsMarkdown),
       errors
     });
   } catch (error) {
@@ -577,6 +588,7 @@ router.get('/events/:id', requireApprovedOrganizer, async (req, res) => {
       title: `Event Details - ${event.title}`,
       user,
       event,
+      eventDetailsHtml: renderEventDetailsMarkdown(event.eventDetailsMarkdown),
       message: getPageMessage(req.query)
     });
   } catch (error) {
@@ -1358,6 +1370,14 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     }
 
     const formData = getCreateEventFormData(req.body);
+    const incomingPaymentQrFile = req.files?.paymentQrImageFile?.[0] || null;
+    if (incomingPaymentQrFile && formData.feeMode === 'paid' && !formData.paymentQrImageUrl) {
+      formData.paymentQrImageUrl = 'https://pending-upload.local/payment-qr.png';
+    }
+    if (formData.removePaymentQrImage && !incomingPaymentQrFile) {
+      formData.paymentQrImageUrl = '';
+      formData.paymentQrImageKey = '';
+    }
     formData.actionType = event.status === 'published' || event.status === 'pending_review' ? 'publish' : 'draft';
     if (req.uploadError) {
       const errorField = mapUploadFieldToFormField(req.uploadErrorField);
@@ -1443,18 +1463,21 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     const bannerImageFile = req.files?.bannerImageFile?.[0] || null;
     const logoFile = req.files?.logoFile?.[0] || null;
     const posterImageFile = req.files?.posterImageFile?.[0] || null;
+    const paymentQrImageFile = incomingPaymentQrFile;
     const galleryImageFiles = req.files?.galleryImageFiles || [];
     const previousBannerUrl = event.bannerImageUrl || '';
     const previousLogoUrl = event.logoUrl || '';
     const previousPosterUrl = event.posterImageUrl || '';
+    const previousPaymentQrUrl = event.paymentQrImageUrl || '';
     const previousGalleryUrls = Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : [];
 
-    if (bannerImageFile || logoFile || posterImageFile || galleryImageFiles.length) {
+    if (bannerImageFile || logoFile || posterImageFile || paymentQrImageFile || galleryImageFiles.length) {
       const uploadedBranding = await uploadService.uploadEventBrandingToR2({
         userId: user._id,
         bannerImageFile: bannerImageFile || undefined,
         logoFile: logoFile || undefined,
         posterImageFile: posterImageFile || undefined,
+        paymentQrImageFile: paymentQrImageFile || undefined,
         galleryImageFiles: galleryImageFiles.length ? galleryImageFiles : undefined
       });
 
@@ -1469,6 +1492,11 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
       if (uploadedBranding.poster) {
         uploadedBrandingKeys.push(uploadedBranding.poster.key);
         formData.posterImageUrl = uploadedBranding.poster.url;
+      }
+      if (uploadedBranding.paymentQr) {
+        uploadedBrandingKeys.push(uploadedBranding.paymentQr.key);
+        formData.paymentQrImageUrl = uploadedBranding.paymentQr.url;
+        formData.paymentQrImageKey = uploadedBranding.paymentQr.key;
       }
       if (Array.isArray(uploadedBranding.gallery) && uploadedBranding.gallery.length) {
         uploadedBrandingKeys.push(...uploadedBranding.gallery.map((item) => item.key));
@@ -1493,6 +1521,10 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
       formData.galleryImageUrls = [];
       formData.galleryImageUrlsText = '';
     }
+    if (formData.removePaymentQrImage && !paymentQrImageFile) {
+      formData.paymentQrImageUrl = '';
+      formData.paymentQrImageKey = '';
+    }
 
     if ((formData.galleryImageUrls || []).length > MAX_GALLERY_IMAGES) {
       if (uploadedBrandingKeys.length) {
@@ -1511,18 +1543,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
       });
     }
 
-    event.bannerImageUrl = formData.bannerImageUrl || '';
-    event.logoUrl = formData.logoUrl || '';
-    event.posterImageUrl = formData.posterImageUrl || '';
-    event.galleryImageUrls = Array.isArray(formData.galleryImageUrls) ? formData.galleryImageUrls : [];
-    const normalizedWaiverTemplate = sanitizeWaiverTemplate(formData.waiverTemplate);
-    const previousWaiverTemplate = sanitizeWaiverTemplate(event.waiverTemplate || DEFAULT_WAIVER_TEMPLATE);
-    if (previousWaiverTemplate !== normalizedWaiverTemplate) {
-      event.waiverVersion = Number(event.waiverVersion || 1) + 1;
-    } else if (!event.waiverVersion) {
-      event.waiverVersion = 1;
-    }
-    event.waiverTemplate = normalizedWaiverTemplate;
+    eventFormService.applyEventFormData(event, formData, user);
 
     await event.save();
 
@@ -1538,6 +1559,10 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     if ((posterImageFile || formData.removePosterImage) && previousPosterUrl && previousPosterUrl !== event.posterImageUrl) {
       const previousPosterKey = uploadService.extractObjectKeyFromPublicUrl(previousPosterUrl);
       if (previousPosterKey) keysToDelete.push(previousPosterKey);
+    }
+    if ((paymentQrImageFile || formData.removePaymentQrImage) && previousPaymentQrUrl && previousPaymentQrUrl !== event.paymentQrImageUrl) {
+      const previousPaymentQrKey = event.paymentQrImageKey || uploadService.extractObjectKeyFromPublicUrl(previousPaymentQrUrl);
+      if (previousPaymentQrKey) keysToDelete.push(previousPaymentQrKey);
     }
     const currentGalleryUrlSet = new Set(Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : []);
     for (const previousGalleryUrl of previousGalleryUrls) {
@@ -1676,6 +1701,12 @@ router.post('/events/:id/media/remove', requireApprovedOrganizer, async (req, re
         if (previousPosterKey) keysToDelete.push(previousPosterKey);
       }
       event.posterImageUrl = '';
+    } else if (mediaKind === 'paymentQr') {
+      const previousPaymentQrUrl = String(event.paymentQrImageUrl || '').trim();
+      const previousPaymentQrKey = String(event.paymentQrImageKey || '').trim() || uploadService.extractObjectKeyFromPublicUrl(previousPaymentQrUrl);
+      if (previousPaymentQrKey) keysToDelete.push(previousPaymentQrKey);
+      event.paymentQrImageUrl = '';
+      event.paymentQrImageKey = '';
     } else if (mediaKind === 'gallery') {
       const currentGalleryUrls = Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : [];
       if (removeAll) {
@@ -1738,6 +1769,10 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     }
 
     const formData = getCreateEventFormData(req.body);
+    const incomingPaymentQrFile = req.files?.paymentQrImageFile?.[0] || null;
+    if (incomingPaymentQrFile && formData.feeMode === 'paid' && !formData.paymentQrImageUrl) {
+      formData.paymentQrImageUrl = 'https://pending-upload.local/payment-qr.png';
+    }
     if (req.uploadError) {
       const errorField = mapUploadFieldToFormField(req.uploadErrorField);
       return res.status(400).render('organizer/create-event', {
@@ -1777,13 +1812,15 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     const bannerImageFile = req.files?.bannerImageFile?.[0] || null;
     const logoFile = req.files?.logoFile?.[0] || null;
     const posterImageFile = req.files?.posterImageFile?.[0] || null;
+    const paymentQrImageFile = incomingPaymentQrFile;
     const galleryImageFiles = req.files?.galleryImageFiles || [];
-    if (bannerImageFile || logoFile || posterImageFile || galleryImageFiles.length) {
+    if (bannerImageFile || logoFile || posterImageFile || paymentQrImageFile || galleryImageFiles.length) {
       const uploadedBranding = await uploadService.uploadEventBrandingToR2({
         userId: user._id,
         bannerImageFile: bannerImageFile || undefined,
         logoFile: logoFile || undefined,
         posterImageFile: posterImageFile || undefined,
+        paymentQrImageFile: paymentQrImageFile || undefined,
         galleryImageFiles: galleryImageFiles.length ? galleryImageFiles : undefined
       });
       if (uploadedBranding.banner) {
@@ -1797,6 +1834,11 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
       if (uploadedBranding.poster) {
         uploadedBrandingKeys.push(uploadedBranding.poster.key);
         formData.posterImageUrl = uploadedBranding.poster.url;
+      }
+      if (uploadedBranding.paymentQr) {
+        uploadedBrandingKeys.push(uploadedBranding.paymentQr.key);
+        formData.paymentQrImageUrl = uploadedBranding.paymentQr.url;
+        formData.paymentQrImageKey = uploadedBranding.paymentQr.key;
       }
       if (Array.isArray(uploadedBranding.gallery) && uploadedBranding.gallery.length) {
         uploadedBrandingKeys.push(...uploadedBranding.gallery.map((item) => item.key));
@@ -1836,6 +1878,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
       title: formData.title,
       organiserName,
       description: formData.description,
+      eventDetailsMarkdown: formData.eventDetailsMarkdown || '',
       status,
       eventType: formData.eventType || undefined,
       eventTypesAllowed,
@@ -1883,6 +1926,22 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
       leaderboardMode: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
         ? formData.leaderboardMode
         : 'finishers',
+      feeMode: formData.feeMode === 'paid' ? 'paid' : 'free',
+      feeAmount: formData.feeMode === 'paid' ? formData.feeAmount : null,
+      feeCurrency: formData.feeCurrency || 'PHP',
+      paymentQrImageUrl: formData.paymentQrImageUrl || '',
+      paymentQrImageKey: formData.paymentQrImageKey || '',
+      paymentAccountName: formData.paymentAccountName || '',
+      paymentInstructions: formData.paymentInstructions || '',
+      digitalBadgeEnabled: Boolean(formData.digitalBadgeEnabled),
+      digitalCertificateEnabled: formData.digitalCertificateEnabled !== false,
+      leaderboardRecognitionEnabled: formData.leaderboardRecognitionEnabled !== false,
+      physicalRewardsEnabled: Boolean(formData.physicalRewardsEnabled),
+      physicalRewardMedalEnabled: formData.physicalRewardsEnabled ? Boolean(formData.physicalRewardMedalEnabled) : false,
+      physicalRewardShirtEnabled: formData.physicalRewardsEnabled ? Boolean(formData.physicalRewardShirtEnabled) : false,
+      physicalRewardPatchEnabled: formData.physicalRewardsEnabled ? Boolean(formData.physicalRewardPatchEnabled) : false,
+      physicalRewardFinisherKitEnabled: formData.physicalRewardsEnabled ? Boolean(formData.physicalRewardFinisherKitEnabled) : false,
+      physicalRewardsDescription: formData.physicalRewardsEnabled ? formData.physicalRewardsDescription || '' : '',
       bannerImageUrl: formData.bannerImageUrl || '',
       logoUrl: formData.logoUrl || '',
       posterImageUrl: formData.posterImageUrl || '',
@@ -1891,6 +1950,10 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
       waiverVersion: 1,
       submittedForReviewAt: status === 'pending_review' ? new Date() : null
     });
+
+    eventFormService.applyEventFormData(event, formData, user);
+    event.status = status;
+    event.submittedForReviewAt = status === 'pending_review' ? new Date() : null;
 
     await event.save();
 
@@ -2539,16 +2602,21 @@ function escapeRegex(input) {
 }
 
 function getCreateEventFormData(body = {}) {
+  return eventFormService.getCreateEventFormData(body);
+  const isDefaultCreateBody = !Object.keys(body || {}).length;
+  body = getDefaultedCreateEventBody(body);
   const raceDistancePresets = normalizeArray(body.raceDistancePresets).map(normalizeRaceDistanceLabel).filter(Boolean);
   const raceDistances = normalizeRaceDistances(body.raceDistancePresets, body.raceDistanceCustom);
   const galleryImageUrls = normalizeGalleryImageUrls(body.galleryImageUrlsText || body.galleryImageUrls);
   const waiverTemplateRaw = typeof body.waiverTemplate === 'string'
     ? body.waiverTemplate
     : DEFAULT_WAIVER_TEMPLATE;
+  const feeMode = normalizeModeValue(body.feeMode, FEE_MODES, 'free');
   return {
     title: (body.title || '').trim(),
     organiserName: (body.organiserName || '').trim(),
     description: (body.description || '').trim(),
+    eventDetailsMarkdown: String(body.eventDetailsMarkdown || '').trim().slice(0, 20000),
     eventType: (body.eventType || '').trim(),
     registrationOpenAt: body.registrationOpenAt || '',
     registrationCloseAt: body.registrationCloseAt || '',
@@ -2585,6 +2653,23 @@ function getCreateEventFormData(body = {}) {
     removeLogoImage: body.removeLogoImage === '1',
     removePosterImage: body.removePosterImage === '1',
     removeGalleryImages: body.removeGalleryImages === '1',
+    feeMode,
+    feeAmount: feeMode === 'paid' ? parseOptionalPositiveNumber(body.feeAmount) : null,
+    feeCurrency: normalizeCurrency(body.feeCurrency),
+    paymentQrImageUrl: String(body.paymentQrImageUrl || '').trim(),
+    paymentQrImageKey: String(body.paymentQrImageKey || '').trim(),
+    removePaymentQrImage: body.removePaymentQrImage === '1',
+    paymentAccountName: String(body.paymentAccountName || '').trim().slice(0, 160),
+    paymentInstructions: String(body.paymentInstructions || '').trim().slice(0, 1000),
+    digitalBadgeEnabled: isDefaultCreateBody ? normalizeBoolean(body.digitalBadgeEnabled) : normalizeBoolean(body.digitalBadgeEnabled),
+    digitalCertificateEnabled: isDefaultCreateBody ? normalizeBoolean(body.digitalCertificateEnabled) : normalizeBoolean(body.digitalCertificateEnabled),
+    leaderboardRecognitionEnabled: isDefaultCreateBody ? normalizeBoolean(body.leaderboardRecognitionEnabled) : normalizeBoolean(body.leaderboardRecognitionEnabled),
+    physicalRewardsEnabled: normalizeBoolean(body.physicalRewardsEnabled),
+    physicalRewardMedalEnabled: normalizeBoolean(body.physicalRewardMedalEnabled),
+    physicalRewardShirtEnabled: normalizeBoolean(body.physicalRewardShirtEnabled),
+    physicalRewardPatchEnabled: normalizeBoolean(body.physicalRewardPatchEnabled),
+    physicalRewardFinisherKitEnabled: normalizeBoolean(body.physicalRewardFinisherKitEnabled),
+    physicalRewardsDescription: String(body.physicalRewardsDescription || '').trim().slice(0, 1000),
     waiverTemplate: sanitizeWaiverTemplate(waiverTemplateRaw),
     actionType: body.actionType === 'publish' ? 'publish' : 'draft'
   };
@@ -2599,6 +2684,7 @@ function formatDateForInput(value) {
 }
 
 function getCreateEventFormDataFromEvent(event) {
+  return eventFormService.getCreateEventFormDataFromEvent(event);
   const eventRaceDistances = Array.isArray(event.raceDistances) ? event.raceDistances : [];
   const normalizedEventDistances = eventRaceDistances
     .map((item) => normalizeRaceDistanceLabel(item))
@@ -2612,6 +2698,7 @@ function getCreateEventFormDataFromEvent(event) {
     title: event.title || '',
     organiserName: event.organiserName || '',
     description: event.description || '',
+    eventDetailsMarkdown: event.eventDetailsMarkdown || '',
     eventType: event.eventType || '',
     registrationOpenAt: formatDateForInput(event.registrationOpenAt),
     registrationCloseAt: formatDateForInput(event.registrationCloseAt),
@@ -2648,6 +2735,23 @@ function getCreateEventFormDataFromEvent(event) {
     removeLogoImage: false,
     removePosterImage: false,
     removeGalleryImages: false,
+    feeMode: event.feeMode || 'free',
+    feeAmount: Number.isFinite(event.feeAmount) ? event.feeAmount : null,
+    feeCurrency: event.feeCurrency || 'PHP',
+    paymentQrImageUrl: event.paymentQrImageUrl || '',
+    paymentQrImageKey: event.paymentQrImageKey || '',
+    removePaymentQrImage: false,
+    paymentAccountName: event.paymentAccountName || '',
+    paymentInstructions: event.paymentInstructions || '',
+    digitalBadgeEnabled: Boolean(event.digitalBadgeEnabled),
+    digitalCertificateEnabled: event.digitalCertificateEnabled !== false,
+    leaderboardRecognitionEnabled: event.leaderboardRecognitionEnabled !== false,
+    physicalRewardsEnabled: Boolean(event.physicalRewardsEnabled),
+    physicalRewardMedalEnabled: Boolean(event.physicalRewardMedalEnabled),
+    physicalRewardShirtEnabled: Boolean(event.physicalRewardShirtEnabled),
+    physicalRewardPatchEnabled: Boolean(event.physicalRewardPatchEnabled),
+    physicalRewardFinisherKitEnabled: Boolean(event.physicalRewardFinisherKitEnabled),
+    physicalRewardsDescription: event.physicalRewardsDescription || '',
     waiverTemplate: sanitizeWaiverTemplate(event.waiverTemplate || DEFAULT_WAIVER_TEMPLATE),
     actionType: event.status === 'published' ? 'publish' : 'draft'
   };
@@ -2731,6 +2835,29 @@ function sanitizeWaiverTemplate(value) {
   return normalizeWaiverTemplate(sanitizeHtml(normalizedTemplate, WAIVER_SANITIZE_OPTIONS));
 }
 
+function renderEventDetailsMarkdown(value) {
+  const markdown = String(value || '').trim();
+  if (!markdown) return '';
+  return sanitizeHtml(markdownToHtml(markdown), EVENT_DETAILS_SANITIZE_OPTIONS);
+}
+
+function hasOwnValue(body, key) {
+  return Object.prototype.hasOwnProperty.call(body || {}, key);
+}
+
+function normalizeBoolean(value) {
+  return value === true || value === 'true' || value === '1' || value === 'on';
+}
+
+function normalizeCurrency(value) {
+  const normalized = String(value || 'PHP').trim().toUpperCase().replace(/[^A-Z]/g, '');
+  return normalized.slice(0, 3) || 'PHP';
+}
+
+function getDefaultedCreateEventBody(body = {}) {
+  return Object.keys(body || {}).length ? body : get2026KCreateEventDefaults();
+}
+
 function normalizeOrganizerDashboardRange(value) {
   const safe = String(value || '').trim().toLowerCase();
   if (safe === '7d' || safe === '30d' || safe === 'all') {
@@ -2812,6 +2939,7 @@ function buildOrganizerTrendMetric(currentValue, previousValue, previousLabel) {
 }
 
 function validateCreateEventForm(formData) {
+  return eventFormService.validateCreateEventForm(formData);
   const errors = {};
   const isPublish = formData.actionType === 'publish';
   const dateFields = [
@@ -2832,6 +2960,17 @@ function validateCreateEventForm(formData) {
 
   if (!formData.description || formData.description.length < 20) {
     errors.description = 'Description must be at least 20 characters.';
+  }
+  if ((formData.eventDetailsMarkdown || '').length > 20000) {
+    errors.eventDetailsMarkdown = 'Event details must be 20,000 characters or less.';
+  }
+  if (formData.feeMode === 'paid') {
+    if (!Number.isFinite(formData.feeAmount) || formData.feeAmount <= 0) {
+      errors.feeAmount = 'Fee amount is required for paid events.';
+    }
+    if (!formData.paymentQrImageUrl) {
+      errors.paymentQrImageUrl = 'Payment QR image is required before submitting a paid event for review.';
+    }
   }
 
   if (!['virtual', 'onsite', 'hybrid'].includes(formData.eventType)) {
@@ -2940,6 +3079,9 @@ function validateOptionalCreateEventFields(formData, errors) {
   if (!isValidUrl(formData.posterImageUrl)) {
     errors.posterImageUrl = 'Poster URL must be a valid URL.';
   }
+  if (!isValidUrl(formData.paymentQrImageUrl)) {
+    errors.paymentQrImageUrl = 'Payment QR URL must be a valid URL.';
+  }
   if (Array.isArray(formData.galleryImageUrls) && formData.galleryImageUrls.length > MAX_GALLERY_IMAGES) {
     errors.galleryImageUrls = `Gallery supports up to ${MAX_GALLERY_IMAGES} images.`;
   }
@@ -2986,6 +3128,17 @@ function validateOptionalCreateEventFields(formData, errors) {
   }
   if (formData.minimumActivityDistanceKm !== null && (!Number.isFinite(formData.minimumActivityDistanceKm) || formData.minimumActivityDistanceKm <= 0)) {
     errors.minimumActivityDistanceKm = 'Minimum activity distance must be greater than 0.';
+  }
+  if (formData.feeMode === 'paid') {
+    if (formData.feeAmount !== null && (!Number.isFinite(formData.feeAmount) || formData.feeAmount <= 0)) {
+      errors.feeAmount = 'Paid events must use an amount greater than 0.';
+    }
+    if (!/^[A-Z]{3}$/.test(formData.feeCurrency || '')) {
+      errors.feeCurrency = 'Currency must be a 3-letter code.';
+    }
+  }
+  if ((formData.eventDetailsMarkdown || '').length > 20000) {
+    errors.eventDetailsMarkdown = 'Event details must be 20,000 characters or less.';
   }
 }
 
@@ -3071,11 +3224,13 @@ function mapUploadFieldToFormField(fieldName) {
   const normalizedField = String(fieldName || '').trim();
   if (normalizedField === 'logoFile') return 'logoUrl';
   if (normalizedField === 'posterImageFile') return 'posterImageUrl';
+  if (normalizedField === 'paymentQrImageFile') return 'paymentQrImageUrl';
   if (normalizedField === 'galleryImageFiles') return 'galleryImageUrls';
   return 'bannerImageUrl';
 }
 
 function getPublishReadinessErrors(event) {
+  return eventFormService.getPublishReadinessErrors(event);
   const formData = getCreateEventFormDataFromEvent(event);
   formData.actionType = 'publish';
   const errors = validateCreateEventForm(formData);

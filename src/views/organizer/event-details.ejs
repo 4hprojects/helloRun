@@ -46,6 +46,8 @@
           <p><strong>Event Type:</strong> <%= event.eventType %></p>
           <p><strong>Allowed Modes:</strong> <%= (event.eventTypesAllowed || []).join(', ') || 'N/A' %></p>
           <p><strong>Race Distances:</strong> <%= (event.raceDistances || []).join(', ') || 'N/A' %></p>
+          <p><strong>Fee:</strong> <%= event.feeMode === 'paid' ? `${event.feeCurrency || 'PHP'} ${Number(event.feeAmount || 0).toFixed(2)}` : 'Free' %></p>
+          <p><strong>Pricing Mode:</strong> <%= event.pricingMode || 'free' %></p>
           <p><strong>Event URL:</strong> <code><%= event.slug %></code></p>
         </article>
 
@@ -128,10 +130,64 @@
           <p><strong>Template:</strong> <%= event.waiverTemplate ? 'Configured' : 'Missing' %></p>
         </article>
 
+        <article class="detail-card">
+          <h3>Payment Acceptance</h3>
+          <p><strong>Mode:</strong> <%= event.feeMode === 'paid' ? 'Paid' : 'Free' %></p>
+          <p><strong>Suggested Setup Total:</strong> <%= event.feeCurrency || 'PHP' %> <%= Number(event.suggestedEventFee || 0).toFixed(2) %></p>
+          <p><strong>Organizer Final Fee:</strong> <%= event.finalEventFee !== null && event.finalEventFee !== undefined ? `${event.feeCurrency || 'PHP'} ${Number(event.finalEventFee || 0).toFixed(2)}` : 'N/A' %></p>
+          <% if (event.feeMode === 'paid') { %>
+            <p><strong>Amount:</strong> <%= event.feeCurrency || 'PHP' %> <%= Number(event.feeAmount || 0).toFixed(2) %></p>
+            <p><strong>Account:</strong> <%= event.paymentAccountName || 'N/A' %></p>
+            <% if (event.paymentQrImageUrl) { %>
+              <img class="detail-logo-image" src="<%= event.paymentQrImageUrl %>" alt="Payment QR">
+            <% } else { %>
+              <p><strong>Payment QR:</strong> Missing</p>
+            <% } %>
+          <% } %>
+        </article>
+
+        <article class="detail-card">
+          <h3>Rewards and Packages</h3>
+          <% const organizerPhysicalRewardItems = [
+            event.physicalRewardMedalEnabled ? `Medal (${event.feeCurrency || 'PHP'} ${Number(event.physicalRewardMedalAmount || 0).toFixed(2)})` : '',
+            event.physicalRewardShirtEnabled ? `Shirt (${event.feeCurrency || 'PHP'} ${Number(event.physicalRewardShirtAmount || 0).toFixed(2)})` : '',
+            event.physicalRewardPatchEnabled ? `Patch (${event.feeCurrency || 'PHP'} ${Number(event.physicalRewardPatchAmount || 0).toFixed(2)})` : '',
+            event.physicalRewardTowelEnabled ? `Towel (${event.feeCurrency || 'PHP'} ${Number(event.physicalRewardTowelAmount || 0).toFixed(2)})` : '',
+            event.physicalRewardFinisherKitEnabled ? `Finisher Kit (${event.feeCurrency || 'PHP'} ${Number(event.physicalRewardFinisherKitAmount || 0).toFixed(2)})` : ''
+          ].filter(Boolean); %>
+          <p><strong>Digital Badge:</strong> <%= event.digitalBadgeEnabled ? 'Enabled' : 'Disabled' %></p>
+          <p><strong>Digital Certificate:</strong> <%= event.digitalCertificateEnabled === false ? 'Disabled' : 'Enabled' %></p>
+          <p><strong>Leaderboard Recognition:</strong> <%= event.leaderboardRecognitionEnabled === false ? 'Disabled' : 'Enabled' %></p>
+          <p><strong>Physical Rewards:</strong> <%= event.physicalRewardsEnabled ? 'Enabled' : 'Disabled' %></p>
+          <% if (event.physicalRewardsEnabled && organizerPhysicalRewardItems.length) { %>
+            <p><strong>Included Items:</strong> <%= organizerPhysicalRewardItems.join(', ') %></p>
+          <% } %>
+          <% if (event.physicalRewardsDescription) { %><p><%= event.physicalRewardsDescription %></p><% } %>
+          <% if ((event.physicalRewardOtherItems || []).length) { %>
+            <p><strong>Custom Merchandise:</strong> <%= event.physicalRewardOtherItems.map((item) => `${item.name || 'Unnamed'} (${event.feeCurrency || 'PHP'} ${Number(item.amount || 0).toFixed(2)})`).join(', ') %></p>
+          <% } %>
+          <% if ((event.registrationPackages || []).length) { %>
+            <p><strong>Packages:</strong> <%= event.registrationPackages.map((packageOption) => packageOption.name || 'Unnamed package').join(', ') %></p>
+          <% } %>
+          <% if (event.deliveryFeeEnabled) { %>
+            <p><strong>Delivery/Claiming:</strong> <%= event.claimingMethod || 'delivery' %>, <%= event.feeCurrency || 'PHP' %> <%= Number(event.deliveryFeeAmount || 0).toFixed(2) %></p>
+          <% } %>
+          <% if ((event.specialRewardBenefits || []).length) { %>
+            <p><strong>Special Benefits:</strong> <%= event.specialRewardBenefits.map((benefit) => benefit.title || 'Untitled benefit').join(', ') %></p>
+          <% } %>
+        </article>
+
         <article class="detail-card detail-card-full">
           <h3>Description</h3>
           <p><%= event.description %></p>
         </article>
+
+        <% if (eventDetailsHtml) { %>
+          <article class="detail-card detail-card-full">
+            <h3>Event Details</h3>
+            <div class="event-rich-details"><%- eventDetailsHtml %></div>
+          </article>
+        <% } %>
 
         <article class="detail-card detail-card-full">
           <h3>Event Record</h3>

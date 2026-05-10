@@ -276,6 +276,15 @@ function buildPolicyHtmlFromMarkdown(markdown) {
   });
 }
 
+function buildEventDetailsHtml(markdown) {
+  return sanitizeHtml(markdownToHtml(markdown), {
+    allowedTags: ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'blockquote', 'a', 'code', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td'],
+    allowedAttributes: {
+      a: ['href', 'rel', 'target']
+    }
+  });
+}
+
 function sanitizeRichPolicyHtml(rawHtml) {
   return sanitizeHtml(String(rawHtml || ''), {
     allowedTags: ['p', 'br', 'strong', 'em', 'u', 's', 'ul', 'ol', 'li', 'blockquote', 'a', 'h1', 'h2', 'h3', 'h4', 'code', 'pre'],
@@ -1065,6 +1074,7 @@ exports.viewEvent = async (req, res) => {
       counts: itemCounts,
       readinessErrors,
       statusLabel: formatEventStatusLabel(event.status),
+      eventDetailsHtml: buildEventDetailsHtml(event.eventDetailsMarkdown || ''),
       message: getAdminPageMessage(req.query)
     });
   } catch (error) {
@@ -1115,6 +1125,14 @@ exports.updateEvent = async (req, res) => {
     }
     const actor = await User.findById(req.session.userId);
     const formData = getCreateEventFormData(req.body);
+    const incomingPaymentQrFile = req.files?.paymentQrImageFile?.[0] || null;
+    if (incomingPaymentQrFile && formData.feeMode === 'paid' && !formData.paymentQrImageUrl) {
+      formData.paymentQrImageUrl = 'https://pending-upload.local/payment-qr.png';
+    }
+    if (formData.removePaymentQrImage && !incomingPaymentQrFile) {
+      formData.paymentQrImageUrl = '';
+      formData.paymentQrImageKey = '';
+    }
     formData.actionType = event.status === 'published' || event.status === 'pending_review' ? 'publish' : 'draft';
 
     if (req.uploadError) {
@@ -1157,13 +1175,15 @@ exports.updateEvent = async (req, res) => {
     const bannerImageFile = req.files?.bannerImageFile?.[0] || null;
     const logoFile = req.files?.logoFile?.[0] || null;
     const posterImageFile = req.files?.posterImageFile?.[0] || null;
+    const paymentQrImageFile = incomingPaymentQrFile;
     const galleryImageFiles = req.files?.galleryImageFiles || [];
-    if (bannerImageFile || logoFile || posterImageFile || galleryImageFiles.length) {
+    if (bannerImageFile || logoFile || posterImageFile || paymentQrImageFile || galleryImageFiles.length) {
       const uploadedBranding = await uploadService.uploadEventBrandingToR2({
         userId: actor?._id || event.organizerId?._id || event.organizerId,
         bannerImageFile: bannerImageFile || undefined,
         logoFile: logoFile || undefined,
         posterImageFile: posterImageFile || undefined,
+        paymentQrImageFile: paymentQrImageFile || undefined,
         galleryImageFiles: galleryImageFiles.length ? galleryImageFiles : undefined
       });
       if (uploadedBranding.banner) {
@@ -1177,6 +1197,11 @@ exports.updateEvent = async (req, res) => {
       if (uploadedBranding.poster) {
         uploadedKeys.push(uploadedBranding.poster.key);
         formData.posterImageUrl = uploadedBranding.poster.url;
+      }
+      if (uploadedBranding.paymentQr) {
+        uploadedKeys.push(uploadedBranding.paymentQr.key);
+        formData.paymentQrImageUrl = uploadedBranding.paymentQr.url;
+        formData.paymentQrImageKey = uploadedBranding.paymentQr.key;
       }
       if (Array.isArray(uploadedBranding.gallery) && uploadedBranding.gallery.length) {
         uploadedKeys.push(...uploadedBranding.gallery.map((item) => item.key));

@@ -105,23 +105,35 @@
 }
 
 .form-section-virtual {
-  order: 30;
-}
-
-.form-section-location {
-  order: 35;
-}
-
-.form-section-media {
   order: 40;
 }
 
-.form-section-waiver {
+.form-section-location {
+  order: 30;
+}
+
+.form-section-fees {
+  order: 60;
+}
+
+.form-section-rewards {
   order: 50;
 }
 
-.actions {
+.form-section-details {
+  order: 70;
+}
+
+.form-section-media {
+  order: 80;
+}
+
+.form-section-waiver {
   order: 90;
+}
+
+.actions {
+  order: 100;
 }
 
 .form-errors {
@@ -388,6 +400,49 @@ textarea:focus {
   accent-color: var(--primary);
 }
 
+.reward-cost-grid,
+.pricing-period-grid,
+.compact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.reward-cost-grid label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.reward-cost-grid label input[type="number"] {
+  grid-column: 1 / -1;
+}
+
+.mini-repeatable,
+.package-card {
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 0.9rem;
+  margin-top: 0.9rem;
+  background: var(--bg-light);
+}
+
+.inline-field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.6rem;
+}
+
+.benefit-row {
+  grid-template-columns: minmax(160px, 1fr) minmax(180px, 0.8fr) minmax(160px, 1fr) minmax(220px, 1.2fr);
+}
+
+.package-card .pricing-period-grid {
+  margin-top: 0.75rem;
+}
+
 /* ----- INPUT WITH NOW BUTTON ----- */
 .input-with-button {
   display: flex;
@@ -587,6 +642,22 @@ textarea:focus {
 .media-block .media-rules {
   color: #0f766e;
   font-weight: 600;
+}
+
+.existing-media-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.existing-media-preview img {
+  max-width: 180px;
+  max-height: 180px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  background: var(--bg-white);
 }
 
 /* ----- WAIVER PANELS ----- */

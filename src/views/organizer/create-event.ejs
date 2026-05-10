@@ -28,47 +28,42 @@
       <% if (Object.keys(errors || {}).length) { %>
         <div class="form-errors" role="alert">
           <strong>Please fix the highlighted fields before submitting.</strong>
+          <ul>
+            <% Object.values(errors || {}).forEach((errorText) => { %>
+              <li><%= errorText %></li>
+            <% }) %>
+          </ul>
         </div>
       <% } %>
 
       <form class="create-event-form" method="POST" action="/organizer/create-event" enctype="multipart/form-data" novalidate>
         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-        <!-- CORE DETAILS SECTION -->
+        <!-- CORE DETAILS SECTION (same as create) -->
         <div class="form-section form-section-core" tabindex="-1">
           <div class="section-title">Core Details</div>
           <div class="form-grid">
-            <div class="form-group <%= errors.title ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="title">Event Title *</label>
-              <input id="title" name="title" type="text" value="<%= formData.title %>" placeholder="e.g., HelloRun 10K Challenge" required aria-describedby="titleHint">
-              <small id="titleHint" class="field-hint">Public name of your event.</small>
-              <% if (errors.title) { %><small class="error-text"><%= errors.title %></small><% } %>
+              <input id="title" name="title" type="text" value="<%= formData.title %>" required>
             </div>
-
             <div class="form-group">
               <label for="organiserName">Organizer Name</label>
-              <input id="organiserName" name="organiserName" type="text" value="<%= formData.organiserName %>" placeholder="Defaults to your account name if empty" aria-describedby="organiserHint">
-              <small id="organiserHint" class="field-hint">Will appear in waiver and public pages.</small>
+              <input id="organiserName" name="organiserName" type="text" value="<%= formData.organiserName %>">
             </div>
-
-            <div class="form-group form-group-full <%= errors.description ? 'has-error' : '' %>">
+            <div class="form-group form-group-full">
               <label for="description">Description *</label>
-              <textarea id="description" name="description" rows="4" placeholder="Describe the event, rules, and expectations." required aria-describedby="descHint"><%= formData.description %></textarea>
-              <small id="descHint" class="field-hint">At least 20 characters.</small>
-              <% if (errors.description) { %><small class="error-text"><%= errors.description %></small><% } %>
+              <textarea id="description" name="description" rows="4" required><%= formData.description %></textarea>
             </div>
-
-            <div class="form-group form-group-full <%= errors.eventType ? 'has-error' : '' %>">
+            <div class="form-group form-group-full">
               <label for="eventType">Event Type *</label>
               <select id="eventType" name="eventType" required>
                 <option value="">Select event type</option>
-                <option value="virtual" <%= formData.eventType === 'virtual' ? 'selected' : '' %>>Virtual (Virtual run only)</option>
-                <option value="onsite" <%= formData.eventType === 'onsite' ? 'selected' : '' %>>On-site (On-site only)</option>
-                <option value="hybrid" <%= formData.eventType === 'hybrid' ? 'selected' : '' %>>Hybrid (Both virtual and on-site)</option>
+                <option value="virtual" <%= formData.eventType === 'virtual' ? 'selected' : '' %>>Virtual</option>
+                <option value="onsite" <%= formData.eventType === 'onsite' ? 'selected' : '' %>>On-site</option>
+                <option value="hybrid" <%= formData.eventType === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
               </select>
-              <% if (errors.eventType) { %><small class="error-text"><%= errors.eventType %></small><% } %>
             </div>
-
-            <div class="form-group form-group-full <%= errors.raceDistances ? 'has-error' : '' %>">
+            <div class="form-group form-group-full">
               <label>Race Distances *</label>
               <div class="checkbox-row">
                 <% const selectedDistances = formData.raceDistancePresets || []; %>
@@ -77,19 +72,192 @@
                 <label><input type="checkbox" name="raceDistancePresets" value="10K" <%= selectedDistances.includes('10K') ? 'checked' : '' %>> 10K</label>
                 <label><input type="checkbox" name="raceDistancePresets" value="21K" <%= selectedDistances.includes('21K') ? 'checked' : '' %>> 21K</label>
               </div>
-              <label for="raceDistanceCustom" style="margin-top:0.75rem;">Custom Distances (comma-separated)</label>
+              <label for="raceDistanceCustom" style="margin-top:0.5rem;">Custom Distances (comma-separated)</label>
               <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" placeholder="e.g., 42K, 50K">
               <small class="field-hint">Final values are normalized like 3K, 5K, 10K.</small>
-              <% if (errors.raceDistances) { %><small class="error-text"><%= errors.raceDistances %></small><% } %>
             </div>
           </div>
         </div>
 
-        <!-- WAIVER SECTION -->
+        <!-- FEES & PAYMENT SECTION -->
+        <div class="form-section form-section-fees">
+          <div class="section-title">Fees & Payment</div>
+          <div class="form-grid">
+            <div class="form-group <%= errors.feeMode ? 'has-error' : '' %>">
+              <label for="feeMode">Event Fee *</label>
+              <select id="feeMode" name="feeMode">
+                <option value="free" <%= formData.feeMode !== 'paid' ? 'selected' : '' %>>Free</option>
+                <option value="paid" <%= formData.feeMode === 'paid' ? 'selected' : '' %>>Paid</option>
+              </select>
+              <% if (errors.feeMode) { %><small class="error-text"><%= errors.feeMode %></small><% } %>
+            </div>
+            <div class="form-group payment-fields <%= errors.feeAmount ? 'has-error' : '' %>">
+              <label for="feeAmount">Total Event Fee</label>
+              <input id="feeAmount" name="feeAmount" type="number" min="0" step="0.01" value="<%= formData.feeAmount || '' %>" placeholder="0.00">
+              <small class="field-hint">This is the total amount runners will pay. Include any physical reward/package cost in this amount.</small>
+              <% if (errors.feeAmount) { %><small class="error-text"><%= errors.feeAmount %></small><% } %>
+            </div>
+            <div class="form-group payment-fields <%= errors.pricingMode ? 'has-error' : '' %>">
+              <label for="pricingMode">Pricing Mode</label>
+              <select id="pricingMode" name="pricingMode">
+                <option value="free" <%= formData.pricingMode === 'free' ? 'selected' : '' %>>Free</option>
+                <option value="same_fee" <%= formData.pricingMode === 'same_fee' ? 'selected' : '' %>>Same fee</option>
+                <option value="package_period" <%= formData.pricingMode === 'package_period' ? 'selected' : '' %>>Package pricing periods</option>
+              </select>
+              <% if (errors.pricingMode) { %><small class="error-text"><%= errors.pricingMode %></small><% } %>
+            </div>
+            <div class="form-group payment-fields">
+              <label for="finalEventFee">Organizer Final Fee</label>
+              <input id="finalEventFee" name="finalEventFee" type="number" min="0" step="0.01" value="<%= formData.finalEventFee ?? '' %>" placeholder="<%= Number(formData.suggestedEventFee || 0).toFixed(2) %>">
+              <small class="field-hint">Suggested setup total: <%= formData.feeCurrency || 'PHP' %> <%= Number(formData.suggestedEventFee || 0).toFixed(2) %>. This does not change runner checkout yet.</small>
+            </div>
+            <div class="form-group payment-fields <%= errors.feeCurrency ? 'has-error' : '' %>">
+              <label for="feeCurrency">Currency</label>
+              <input id="feeCurrency" name="feeCurrency" type="text" value="<%= formData.feeCurrency || 'PHP' %>" maxlength="3" placeholder="PHP">
+              <% if (errors.feeCurrency) { %><small class="error-text"><%= errors.feeCurrency %></small><% } %>
+            </div>
+            <div class="form-group payment-fields">
+              <label for="paymentAccountName">Account Name</label>
+              <input id="paymentAccountName" name="paymentAccountName" type="text" value="<%= formData.paymentAccountName || '' %>" placeholder="Optional">
+              <small class="field-hint">Can be added or changed after event creation.</small>
+            </div>
+            <div class="form-group form-group-full payment-fields <%= errors.paymentQrImageUrl ? 'has-error' : '' %>">
+              <label for="paymentQrImageFile">Payment QR Image</label>
+              <% if (formData.paymentQrImageUrl) { %>
+                <div class="existing-media-preview">
+                  <img class="detail-logo-image" src="<%= formData.paymentQrImageUrl %>" alt="Payment QR preview">
+                  <label><input type="checkbox" name="removePaymentQrImage" value="1"> Remove current payment QR</label>
+                </div>
+              <% } %>
+              <input id="paymentQrImageFile" name="paymentQrImageFile" type="file" accept="image/jpeg,image/png">
+              <input id="paymentQrImageUrl" name="paymentQrImageUrl" type="hidden" value="<%= formData.paymentQrImageUrl || '' %>">
+              <input id="paymentQrImageKey" name="paymentQrImageKey" type="hidden" value="<%= formData.paymentQrImageKey || '' %>">
+              <small class="field-hint">Required before submitting a paid event for review. JPG/PNG only, max 5MB.</small>
+              <% if (errors.paymentQrImageUrl) { %><small class="error-text"><%= errors.paymentQrImageUrl %></small><% } %>
+            </div>
+            <div class="form-group form-group-full payment-fields">
+              <label for="paymentInstructions">Payment Instructions</label>
+              <textarea id="paymentInstructions" name="paymentInstructions" rows="3" placeholder="Optional payment notes for runners."><%= formData.paymentInstructions || '' %></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- REWARDS, MERCHANDISE & PACKAGES SECTION -->
+        <div class="form-section form-section-rewards">
+          <div class="section-title">Rewards, Merchandise, and Registration Packages</div>
+          <div class="form-grid">
+            <div class="form-group form-group-full">
+              <label>Digital Recognition</label>
+              <div class="checkbox-row">
+                <label><input type="checkbox" name="digitalBadgeEnabled" value="1" <%= formData.digitalBadgeEnabled ? 'checked' : '' %>> Digital Badge</label>
+                <label><input type="checkbox" name="digitalCertificateEnabled" value="1" <%= formData.digitalCertificateEnabled ? 'checked' : '' %>> Digital Finisher Certificate</label>
+              </div>
+            </div>
+            <div class="form-group form-group-full">
+              <label><input type="checkbox" id="physicalRewardsEnabled" name="physicalRewardsEnabled" value="1" <%= formData.physicalRewardsEnabled ? 'checked' : '' %>> Physical Rewards Available</label>
+              <div class="physical-reward-fields">
+                <small class="field-hint">For paid events, these items can contribute to the suggested event fee.</small>
+                <div class="reward-cost-grid">
+                  <label><input type="checkbox" name="physicalRewardMedalEnabled" value="1" <%= formData.physicalRewardMedalEnabled ? 'checked' : '' %>> Medal <input name="physicalRewardMedalAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardMedalAmount ?? '' %>" placeholder="0.00"></label>
+                  <label><input type="checkbox" name="physicalRewardShirtEnabled" value="1" <%= formData.physicalRewardShirtEnabled ? 'checked' : '' %>> Shirt <input name="physicalRewardShirtAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardShirtAmount ?? '' %>" placeholder="0.00"></label>
+                  <label><input type="checkbox" name="physicalRewardPatchEnabled" value="1" <%= formData.physicalRewardPatchEnabled ? 'checked' : '' %>> Patch <input name="physicalRewardPatchAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardPatchAmount ?? '' %>" placeholder="0.00"></label>
+                  <label><input type="checkbox" name="physicalRewardTowelEnabled" value="1" <%= formData.physicalRewardTowelEnabled ? 'checked' : '' %>> Towel <input name="physicalRewardTowelAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardTowelAmount ?? '' %>" placeholder="0.00"></label>
+                  <label><input type="checkbox" name="physicalRewardFinisherKitEnabled" value="1" <%= formData.physicalRewardFinisherKitEnabled ? 'checked' : '' %>> Finisher Kit <input name="physicalRewardFinisherKitAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardFinisherKitAmount ?? '' %>" placeholder="0.00"></label>
+                </div>
+                <% const otherItems = formData.physicalRewardOtherItems || []; %>
+                <div class="mini-repeatable">
+                  <label>Custom Merchandise</label>
+                  <% for (let itemIndex = 0; itemIndex < 3; itemIndex += 1) { const item = otherItems[itemIndex] || {}; %>
+                    <div class="inline-field-row">
+                      <input name="physicalRewardOtherItemName" type="text" value="<%= item.name || '' %>" placeholder="Item name">
+                      <input name="physicalRewardOtherItemAmount" type="number" min="0" step="0.01" value="<%= item.amount ?? '' %>" placeholder="0.00">
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+              <textarea id="physicalRewardsDescription" name="physicalRewardsDescription" rows="3" placeholder="Optional: medal, shirt, patch, finisher kit, claiming instructions."><%= formData.physicalRewardsDescription || '' %></textarea>
+              <textarea id="physicalRewardsClaimingNotes" name="physicalRewardsClaimingNotes" rows="2" placeholder="Optional claiming notes for rewards or merchandise."><%= formData.physicalRewardsClaimingNotes || '' %></textarea>
+              <% if (errors.physicalRewardsDescription) { %><small class="error-text"><%= errors.physicalRewardsDescription %></small><% } %>
+            </div>
+            <div class="form-group form-group-full">
+              <label>Registration Packages</label>
+              <% const packages = formData.registrationPackages || []; %>
+              <% for (let packageIndex = 0; packageIndex < 3; packageIndex += 1) { const packageOption = packages[packageIndex] || {}; const periods = packageOption.pricingPeriods || []; const findPeriod = (code) => periods.find((period) => period.code === code) || {}; %>
+                <div class="package-card">
+                  <input name="registrationPackageName" type="text" value="<%= packageOption.name || '' %>" placeholder="Package name, e.g. Medal + Shirt">
+                  <div class="checkbox-row">
+                    <label><input type="checkbox" name="registrationPackageMedal_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.medal ? 'checked' : '' %>> Medal</label>
+                    <label><input type="checkbox" name="registrationPackageShirt_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.shirt ? 'checked' : '' %>> Shirt</label>
+                    <label><input type="checkbox" name="registrationPackageTowel_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.towel ? 'checked' : '' %>> Towel</label>
+                    <label><input type="checkbox" name="registrationPackagePatch_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.patch ? 'checked' : '' %>> Patch</label>
+                    <label><input type="checkbox" name="registrationPackageFinisherKit_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.finisherKit ? 'checked' : '' %>> Finisher Kit</label>
+                  </div>
+                  <input name="registrationPackageOtherItemNames" type="text" value="<%= (packageOption.includedItems?.otherItemNames || []).join(', ') %>" placeholder="Other included item names">
+                  <div class="pricing-period-grid">
+                    <% const early = findPeriod('early_bird'); const regular = findPeriod('regular'); const late = findPeriod('late'); %>
+                    <input name="registrationPackageEarlyBirdStartAt" type="datetime-local" value="<%= early.startAt || '' %>" aria-label="Early bird start">
+                    <input name="registrationPackageEarlyBirdEndAt" type="datetime-local" value="<%= early.endAt || '' %>" aria-label="Early bird end">
+                    <input name="registrationPackageEarlyBirdAmount" type="number" min="0" step="0.01" value="<%= early.amount ?? '' %>" placeholder="Early amount">
+                    <input name="registrationPackageRegularStartAt" type="datetime-local" value="<%= regular.startAt || '' %>" aria-label="Regular start">
+                    <input name="registrationPackageRegularEndAt" type="datetime-local" value="<%= regular.endAt || '' %>" aria-label="Regular end">
+                    <input name="registrationPackageRegularAmount" type="number" min="0" step="0.01" value="<%= regular.amount ?? '' %>" placeholder="Regular amount">
+                    <input name="registrationPackageLateStartAt" type="datetime-local" value="<%= late.startAt || '' %>" aria-label="Late start">
+                    <input name="registrationPackageLateEndAt" type="datetime-local" value="<%= late.endAt || '' %>" aria-label="Late end">
+                    <input name="registrationPackageLateAmount" type="number" min="0" step="0.01" value="<%= late.amount ?? '' %>" placeholder="Late amount">
+                  </div>
+                  <textarea name="registrationPackageNotes" rows="2" placeholder="Package notes"><%= packageOption.notes || '' %></textarea>
+                </div>
+              <% } %>
+            </div>
+            <div class="form-group form-group-full">
+              <label><input type="checkbox" name="deliveryFeeEnabled" value="1" <%= formData.deliveryFeeEnabled ? 'checked' : '' %>> Delivery or Claiming Fee</label>
+              <div class="form-grid compact-grid">
+                <input name="deliveryFeeAmount" type="number" min="0" step="0.01" value="<%= formData.deliveryFeeAmount ?? '' %>" placeholder="Flat delivery fee">
+                <select name="claimingMethod">
+                  <option value="delivery" <%= formData.claimingMethod === 'delivery' ? 'selected' : '' %>>Delivery</option>
+                  <option value="pickup" <%= formData.claimingMethod === 'pickup' ? 'selected' : '' %>>Pickup</option>
+                  <option value="both" <%= formData.claimingMethod === 'both' ? 'selected' : '' %>>Delivery or pickup</option>
+                </select>
+              </div>
+              <textarea name="deliveryFeeDescription" rows="2" placeholder="Delivery or pickup instructions."><%= formData.deliveryFeeDescription || '' %></textarea>
+              <div class="checkbox-row">
+                <label><input type="checkbox" name="requiresDeliveryAddress" value="1" <%= formData.requiresDeliveryAddress ? 'checked' : '' %>> Require delivery address</label>
+                <label><input type="checkbox" name="requiresPhilippineDeliveryAddress" value="1" <%= formData.requiresPhilippineDeliveryAddress ? 'checked' : '' %>> Philippines only</label>
+                <input type="hidden" name="internationalRunnersAllowed" value="0">
+                <label><input type="checkbox" name="internationalRunnersAllowed" value="1" <%= formData.internationalRunnersAllowed !== false ? 'checked' : '' %>> International runners allowed</label>
+              </div>
+            </div>
+            <div class="form-group form-group-full">
+              <label>Special Reward Benefits</label>
+              <% const benefits = formData.specialRewardBenefits || []; %>
+              <% for (let benefitIndex = 0; benefitIndex < 2; benefitIndex += 1) { const benefit = benefits[benefitIndex] || {}; %>
+                <div class="inline-field-row benefit-row">
+                  <input name="specialRewardBenefitTitle" type="text" value="<%= benefit.title || '' %>" placeholder="Benefit title">
+                  <input name="specialRewardBenefitValidUntil" type="datetime-local" value="<%= benefit.validUntil || '' %>" aria-label="Benefit valid until">
+                  <input name="specialRewardBenefitPackageNames" type="text" value="<%= (benefit.appliesToPackageNames || []).join(', ') %>" placeholder="Applies to packages">
+                  <input name="specialRewardBenefitDescription" type="text" value="<%= benefit.description || '' %>" placeholder="Description">
+                </div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- EVENT DETAILS SECTION -->
+        <div class="form-section form-section-details">
+          <div class="section-title">Event Details</div>
+          <div class="form-group form-group-full <%= errors.eventDetailsMarkdown ? 'has-error' : '' %>">
+            <label for="eventDetailsMarkdown">Event Details</label>
+            <textarea id="eventDetailsMarkdown" name="eventDetailsMarkdown" rows="18" placeholder="Add full event rules, inclusions, FAQs, and instructions."><%= formData.eventDetailsMarkdown || '' %></textarea>
+            <small class="field-hint">Full editable content shown on the event details page. Limit: 20,000 characters.</small>
+            <% if (errors.eventDetailsMarkdown) { %><small class="error-text"><%= errors.eventDetailsMarkdown %></small><% } %>
+          </div>
+        </div>
+
+        <!-- WAIVER SECTION (same as create) -->
         <div class="form-section form-section-waiver">
           <div class="section-title">Waiver (Required for publishing)</div>
           <div class="waiver-panels">
-            <div class="waiver-panel form-group <%= errors.waiverTemplate ? 'has-error' : '' %>">
+            <div class="waiver-panel <%= errors.waiverTemplate ? 'has-error' : '' %>">
               <label for="waiverEditor">Waiver Template *</label>
               <div class="waiver-toolbar">
                 <button type="button" id="insertOrganizerPlaceholderBtn" class="btn btn-outline waiver-icon-btn" aria-label="Insert Organizer Name" title="Insert Organizer Name">
@@ -106,10 +274,10 @@
               <input type="hidden" id="waiverTemplate" name="waiverTemplate" value="">
               <small class="field-hint">
                 Use placeholders: <code>{{ORGANIZER_NAME}}</code> and <code>{{EVENT_TITLE}}</code>.
+                Changing this will bump waiver version for new registrants.
               </small>
               <% if (errors.waiverTemplate) { %><small class="error-text"><%= errors.waiverTemplate %></small><% } %>
             </div>
-
             <div class="waiver-panel">
               <label>Waiver Preview</label>
               <div id="waiverPreview" class="waiver-preview-box" aria-live="polite"></div>
@@ -120,45 +288,38 @@
           </div>
         </div>
 
-        <!-- SCHEDULE SECTION -->
+        <!-- SCHEDULE SECTION (same as create) -->
         <div class="form-section form-section-schedule">
           <div class="section-title">Schedule</div>
           <div class="form-grid">
-            <div class="form-group <%= errors.registrationOpenAt ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="registrationOpenAt">Registration Open *</label>
               <div class="input-with-button">
                 <input id="registrationOpenAt" name="registrationOpenAt" type="datetime-local" value="<%= formData.registrationOpenAt %>" required>
                 <button type="button" class="btn-now" data-target="registrationOpenAt">Now</button>
               </div>
-              <small class="field-hint">Local date and time</small>
-              <% if (errors.registrationOpenAt) { %><small class="error-text"><%= errors.registrationOpenAt %></small><% } %>
             </div>
-            <div class="form-group <%= errors.registrationCloseAt ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="registrationCloseAt">Registration Close *</label>
               <div class="input-with-button">
                 <input id="registrationCloseAt" name="registrationCloseAt" type="datetime-local" value="<%= formData.registrationCloseAt %>" required>
                 <button type="button" class="btn-now" data-target="registrationCloseAt">Now</button>
               </div>
-              <small class="field-hint">Local date and time. For virtual events, registration can stay open after the event starts.</small>
-              <% if (errors.registrationCloseAt) { %><small class="error-text"><%= errors.registrationCloseAt %></small><% } %>
+              <small class="field-hint">For virtual events, registration can stay open after the event starts.</small>
             </div>
-            <div class="form-group <%= errors.eventStartAt ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="eventStartAt">Event Start *</label>
               <div class="input-with-button">
                 <input id="eventStartAt" name="eventStartAt" type="datetime-local" value="<%= formData.eventStartAt %>" required>
                 <button type="button" class="btn-now" data-target="eventStartAt">Now</button>
               </div>
-              <small class="field-hint">Local date and time</small>
-              <% if (errors.eventStartAt) { %><small class="error-text"><%= errors.eventStartAt %></small><% } %>
             </div>
-            <div class="form-group <%= errors.eventEndAt ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="eventEndAt">Event End *</label>
               <div class="input-with-button">
                 <input id="eventEndAt" name="eventEndAt" type="datetime-local" value="<%= formData.eventEndAt %>" required>
                 <button type="button" class="btn-now" data-target="eventEndAt">Now</button>
               </div>
-              <small class="field-hint">Local date and time</small>
-              <% if (errors.eventEndAt) { %><small class="error-text"><%= errors.eventEndAt %></small><% } %>
             </div>
           </div>
         </div>
@@ -167,26 +328,23 @@
         <div class="form-section form-section-location location-section" style="display: none;">
           <div class="section-title">Location (required for on-site/hybrid publishing)</div>
           <div class="form-grid">
-            <div class="form-group <%= errors.venueName ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="venueName">Venue Name</label>
               <input id="venueName" name="venueName" type="text" value="<%= formData.venueName %>">
-              <% if (errors.venueName) { %><small class="error-text"><%= errors.venueName %></small><% } %>
             </div>
-            <div class="form-group <%= errors.city ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="city">City</label>
               <input id="city" name="city" type="text" value="<%= formData.city %>">
-              <% if (errors.city) { %><small class="error-text"><%= errors.city %></small><% } %>
             </div>
-            <div class="form-group form-group-full <%= errors.venueAddress ? 'has-error' : '' %>">
+            <div class="form-group form-group-full">
               <label for="venueAddress">Venue Address</label>
               <input id="venueAddress" name="venueAddress" type="text" value="<%= formData.venueAddress %>">
-              <% if (errors.venueAddress) { %><small class="error-text"><%= errors.venueAddress %></small><% } %>
             </div>
             <div class="form-group">
               <label for="province">Province/State</label>
               <input id="province" name="province" type="text" value="<%= formData.province %>">
             </div>
-            <div class="form-group <%= errors.country ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="country">Country</label>
               <% const countryCodes = (countries || []).map((item) => item.code); %>
               <select id="country" name="country">
@@ -198,18 +356,14 @@
                   <option value="<%= formData.country %>" selected><%= formData.country %> (legacy)</option>
                 <% } %>
               </select>
-              <% if (errors.country) { %><small class="error-text"><%= errors.country %></small><% } %>
             </div>
-            <div class="form-group <%= errors.geoLat ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="geoLat">Latitude (optional)</label>
               <input id="geoLat" name="geoLat" type="text" value="<%= formData.geoLat %>" placeholder="e.g., 14.5995">
-              <% if (errors.geoLat) { %><small class="error-text"><%= errors.geoLat %></small><% } %>
             </div>
-            <div class="form-group <%= errors.geoLng ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="geoLng">Longitude (optional)</label>
               <input id="geoLng" name="geoLng" type="text" value="<%= formData.geoLng %>" placeholder="e.g., 120.9842">
-              <% if (errors.geoLng) { %><small class="error-text"><%= errors.geoLng %></small><% } %>
-              <% if (errors.geo) { %><small class="error-text"><%= errors.geo %></small><% } %>
             </div>
           </div>
         </div>
@@ -218,25 +372,21 @@
         <div class="form-section form-section-virtual virtual-section" style="display: none;">
           <div class="section-title">Virtual Rules (required for virtual/hybrid publishing)</div>
           <div class="form-grid">
-            <div class="form-group <%= errors.virtualStartAt ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="virtualStartAt">Virtual Window Start</label>
               <div class="input-with-button">
                 <input id="virtualStartAt" name="virtualStartAt" type="datetime-local" value="<%= formData.virtualStartAt %>">
                 <button type="button" class="btn-now" data-target="virtualStartAt">Now</button>
               </div>
-              <small class="field-hint">Local date and time</small>
-              <% if (errors.virtualStartAt) { %><small class="error-text"><%= errors.virtualStartAt %></small><% } %>
             </div>
-            <div class="form-group <%= errors.virtualEndAt ? 'has-error' : '' %>">
+            <div class="form-group">
               <label for="virtualEndAt">Virtual Window End</label>
               <div class="input-with-button">
                 <input id="virtualEndAt" name="virtualEndAt" type="datetime-local" value="<%= formData.virtualEndAt %>">
                 <button type="button" class="btn-now" data-target="virtualEndAt">Now</button>
               </div>
-              <small class="field-hint">Local date and time</small>
-              <% if (errors.virtualEndAt) { %><small class="error-text"><%= errors.virtualEndAt %></small><% } %>
             </div>
-            <div class="form-group form-group-full <%= errors.proofTypesAllowed ? 'has-error' : '' %>">
+            <div class="form-group form-group-full">
               <label>Proof Types Allowed</label>
               <div class="checkbox-row">
                 <% const selectedProofs = formData.proofTypesAllowed || []; %>
@@ -244,7 +394,6 @@
                 <label><input type="checkbox" name="proofTypesAllowed" value="photo" <%= selectedProofs.includes('photo') ? 'checked' : '' %>> Photo</label>
                 <label><input type="checkbox" name="proofTypesAllowed" value="manual" <%= selectedProofs.includes('manual') ? 'checked' : '' %>> Manual</label>
               </div>
-              <% if (errors.proofTypesAllowed) { %><small class="error-text"><%= errors.proofTypesAllowed %></small><% } %>
             </div>
 
             <div class="form-group form-group-full <%= errors.virtualCompletionMode ? 'has-error' : '' %>">
@@ -321,12 +470,19 @@
                     <option value="finishers_and_top_distance" <%= formData.leaderboardMode === 'finishers_and_top_distance' ? 'selected' : '' %>>Finishers and top distance</option>
                   </select>
                 </div>
+                <div class="form-group form-group-full">
+                  <label>Leaderboard Recognition</label>
+                  <div class="checkbox-row">
+                    <label><input type="checkbox" name="leaderboardRecognitionEnabled" value="1" <%= formData.leaderboardRecognitionEnabled ? 'checked' : '' %>> Include participants in leaderboard recognition</label>
+                  </div>
+                  <small class="field-hint">Controls whether leaderboard recognition is advertised for this accumulated challenge.</small>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- BRANDING & MEDIA SECTION -->
+        <!-- BRANDING & MEDIA SECTION (adapted for edit) -->
         <div class="form-section form-section-media">
           <div class="section-title">Branding & Media</div>
 
@@ -336,21 +492,32 @@
             <p>Small square or transparent image.</p>
             <p class="media-used-in"><strong>Used in:</strong> Event listings, leaderboard header, search results.</p>
             <p class="media-rules">Optional. JPG/PNG only, max 5MB.</p>
+
+            <!-- Existing logo preview if any -->
+            <% if (formData.logoUrl) { %>
+            <div class="branding-preview-wrap" id="logoPreviewWrap">
+              <button type="button" class="branding-remove-btn" id="removeLogoBtn" aria-label="Remove current logo image">x</button>
+              <img src="<%= formData.logoUrl %>" alt="Current logo" style="max-width:80px;max-height:80px;border-radius:8px;margin-bottom:1rem;">
+            </div>
+            <input type="hidden" id="removeLogoImage" name="removeLogoImage" value="0">
+            <% } %>
+
+            <!-- Upload area for new logo -->
             <div class="upload-area" id="logoUploadArea">
               <input type="file" id="logoFile" name="logoFile" accept="image/jpeg,image/png">
               <div class="upload-placeholder">
                 <i data-lucide="upload-cloud"></i>
-                <p>Drag & drop or click to upload logo</p>
+                <p>Drag & drop or click to upload new logo</p>
                 <small>Square image recommended (200x200+), JPG/PNG, max 5MB</small>
               </div>
               <div class="upload-preview" id="logoPreviewContainer" style="display: none;">
-                <img id="logoPreviewImg" src="#" alt="Logo preview">
-                <button type="button" class="remove-upload" aria-label="Remove logo" data-for="logo">x</button>
+                <img id="logoPreviewImg" src="#" alt="New logo preview">
+                <button type="button" class="remove-upload" aria-label="Remove new logo" data-for="logo">x</button>
               </div>
             </div>
-            <small class="field-hint">If you also provide a URL below, the uploaded file will be used.</small>
             <label for="logoUrl" style="margin-top:0.75rem; display:block;">Logo URL (optional)</label>
             <input id="logoUrl" name="logoUrl" type="url" value="<%= formData.logoUrl %>" placeholder="https://...">
+            <small class="field-hint">If both URL and file are provided, uploaded file will be used.</small>
           </div>
 
           <!-- Banner -->
@@ -358,20 +525,28 @@
             <h3>2) Event Banner</h3>
             <p>Wide rectangular image for event branding.</p>
             <p class="media-used-in"><strong>Used in:</strong> Event page hero section, landing page, promotional header.</p>
-            <p class="media-rules">Optional. JPG/PNG only, max 5MB. Recommended ratio: 3:1 (example: 1200x400).</p>
+            <p class="media-rules">Optional. JPG/PNG only, max 5MB. Recommended ratio: 3:1.</p>
+
+            <% if (formData.bannerImageUrl) { %>
+            <div class="branding-preview-wrap" id="bannerPreviewWrap">
+              <button type="button" class="branding-remove-btn" id="removeBannerBtn" aria-label="Remove current banner image">x</button>
+              <img src="<%= formData.bannerImageUrl %>" alt="Current banner" style="max-width:100%;max-height:120px;border-radius:6px;margin-bottom:1rem;">
+            </div>
+            <input type="hidden" id="removeBannerImage" name="removeBannerImage" value="0">
+            <% } %>
+
             <div class="upload-area" id="bannerUploadArea">
               <input type="file" id="bannerFile" name="bannerImageFile" accept="image/jpeg,image/png">
               <div class="upload-placeholder">
                 <i data-lucide="upload-cloud"></i>
-                <p>Drag & drop or click to upload banner</p>
+                <p>Drag & drop or click to upload new banner</p>
                 <small>Recommended ratio 3:1, JPG/PNG, max 5MB</small>
               </div>
               <div class="upload-preview" id="bannerPreviewContainer" style="display: none;">
-                <img id="bannerPreviewImg" src="#" alt="Banner preview">
-                <button type="button" class="remove-upload" aria-label="Remove banner" data-for="banner">x</button>
+                <img id="bannerPreviewImg" src="#" alt="New banner preview">
+                <button type="button" class="remove-upload" aria-label="Remove new banner" data-for="banner">x</button>
               </div>
             </div>
-            <small class="field-hint">If you also provide a URL below, the uploaded file will be used.</small>
             <label for="bannerImageUrl" style="margin-top:0.75rem; display:block;">Banner URL (optional)</label>
             <input id="bannerImageUrl" name="bannerImageUrl" type="url" value="<%= formData.bannerImageUrl %>" placeholder="https://...">
           </div>
@@ -382,19 +557,27 @@
             <p>Edited promotional image (details, dates, sponsors, prizes, instructions).</p>
             <p class="media-used-in"><strong>Used in:</strong> Event details page and promotional header blocks.</p>
             <p class="media-rules">Optional. JPG/PNG only, max 5MB.</p>
+
+            <% if (formData.posterImageUrl) { %>
+            <div class="branding-preview-wrap" id="posterPreviewWrap">
+              <button type="button" class="branding-remove-btn" id="removePosterBtn" aria-label="Remove current poster">x</button>
+              <img src="<%= formData.posterImageUrl %>" alt="Current poster" style="max-width:100%;max-height:220px;border-radius:8px;margin-bottom:1rem;">
+            </div>
+            <input type="hidden" id="removePosterImage" name="removePosterImage" value="0">
+            <% } %>
+
             <div class="upload-area" id="posterUploadArea">
               <input type="file" id="posterFile" name="posterImageFile" accept="image/jpeg,image/png">
               <div class="upload-placeholder">
                 <i data-lucide="upload-cloud"></i>
-                <p>Drag & drop or click to upload poster</p>
+                <p>Drag & drop or click to upload new poster</p>
                 <small>JPG/PNG, max 5MB</small>
               </div>
               <div class="upload-preview" id="posterPreviewContainer" style="display: none;">
-                <img id="posterPreviewImg" src="#" alt="Poster preview">
-                <button type="button" class="remove-upload" aria-label="Remove poster" data-for="poster">x</button>
+                <img id="posterPreviewImg" src="#" alt="New poster preview">
+                <button type="button" class="remove-upload" aria-label="Remove new poster" data-for="poster">x</button>
               </div>
             </div>
-            <small class="field-hint">If you also provide a URL below, the uploaded file will be used.</small>
             <label for="posterImageUrl" style="margin-top:0.75rem; display:block;">Poster URL (optional)</label>
             <input id="posterImageUrl" name="posterImageUrl" type="url" value="<%= formData.posterImageUrl %>" placeholder="https://...">
           </div>
@@ -405,26 +588,42 @@
             <p>Past event photos, route preview, medal preview.</p>
             <p class="media-used-in"><strong>Used in:</strong> Event details gallery section.</p>
             <p class="media-rules">Optional. JPG/PNG only, max 5MB each, up to 12 images.</p>
+
+            <input type="hidden" id="removeGalleryImages" name="removeGalleryImages" value="0">
+
+            <!-- Existing gallery images -->
+            <% if (formData.galleryImageUrls && formData.galleryImageUrls.length) { %>
+            <div class="gallery-preview-grid" id="galleryPreviewGrid">
+              <% formData.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
+                <div class="gallery-thumb-wrap" data-gallery-url="<%- galleryUrl %>">
+                  <button type="button" class="gallery-remove-btn" data-gallery-url="<%- galleryUrl %>" aria-label="Remove gallery image <%= galleryIndex + 1 %>">x</button>
+                  <img src="<%= galleryUrl %>" alt="Gallery Preview <%= galleryIndex + 1 %>" class="gallery-preview-thumb">
+                </div>
+              <% }) %>
+            </div>
+            <button type="button" class="btn btn-outline btn-remove-all-gallery" id="removeAllGalleryBtn">Remove all gallery images</button>
+            <% } else { %>
+            <div class="gallery-preview-grid" id="galleryPreviewGrid"></div>
+            <% } %>
+
+            <!-- Upload area for new gallery images -->
             <div class="upload-area" id="galleryUploadArea">
               <input type="file" id="galleryFiles" name="galleryImageFiles" accept="image/jpeg,image/png" multiple>
               <div class="upload-placeholder">
                 <i data-lucide="images"></i>
-                <p>Drag & drop or click to upload up to 12 images</p>
+                <p>Drag & drop or click to upload up to 12 new images</p>
                 <small>JPG/PNG, max 5MB each</small>
               </div>
             </div>
-            <small class="field-hint">If you also provide URLs below, uploaded files will be added.</small>
+
             <label for="galleryImageUrlsText" style="margin-top:0.75rem; display:block;">Gallery Image URLs (optional)</label>
             <textarea id="galleryImageUrlsText" name="galleryImageUrlsText" rows="5" placeholder="One URL per line, or comma-separated"><%= formData.galleryImageUrlsText || '' %></textarea>
-            <div class="gallery-preview-grid" id="galleryPreviewGrid"></div>
           </div>
         </div>
 
         <!-- FORM ACTIONS -->
         <div class="actions">
-          <button type="button" class="btn btn-secondary" onclick="window.location.href='/organizer/dashboard'">
-            Back to Dashboard
-          </button>
+          <a href="/organizer/dashboard" class="btn btn-secondary">Back to Dashboard</a>
           <button type="button" class="btn btn-outline" id="previewBtn">Preview</button>
           <button type="submit" name="actionType" value="draft" class="btn btn-outline">Save Draft</button>
           <button type="submit" name="actionType" value="publish" class="btn btn-primary" id="publishBtn">
@@ -442,8 +641,7 @@
   <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
   <script>
     (function() {
-      // Initialize Lucide icons
-      if (window.lucide) lucide.createIcons();
+      lucide.createIcons();
 
       const coreDetailsSection = document.querySelector('.form-section-core');
       if (coreDetailsSection && !window.location.hash) {
@@ -460,7 +658,30 @@
       const targetDistanceHint = document.getElementById('targetDistanceHint');
       const raceDistanceCustomInput = document.getElementById('raceDistanceCustom');
       const raceDistancePresetInputs = Array.from(document.querySelectorAll('input[name="raceDistancePresets"]'));
+      const feeModeSelect = document.getElementById('feeMode');
+      const paymentFields = Array.from(document.querySelectorAll('.payment-fields'));
+      const physicalRewardsEnabledInput = document.getElementById('physicalRewardsEnabled');
+      const physicalRewardFields = Array.from(document.querySelectorAll('.physical-reward-fields'));
       let targetDistanceWasAutoFilled = !targetDistanceInput?.value;
+
+      function togglePaymentFields() {
+        const showPaymentFields = feeModeSelect?.value === 'paid';
+        paymentFields.forEach((field) => {
+          field.style.display = showPaymentFields ? '' : 'none';
+        });
+      }
+      feeModeSelect?.addEventListener('change', togglePaymentFields);
+      togglePaymentFields();
+
+      function togglePhysicalRewardFields() {
+        const showPhysicalRewardFields = Boolean(physicalRewardsEnabledInput?.checked);
+        physicalRewardFields.forEach((field) => {
+          field.style.display = showPhysicalRewardFields ? '' : 'none';
+        });
+      }
+      physicalRewardsEnabledInput?.addEventListener('change', togglePhysicalRewardFields);
+      togglePhysicalRewardFields();
+      const isPublishedEdit = false;
 
       function toggleSections() {
         const val = eventTypeSelect.value;
@@ -570,7 +791,6 @@
         const value = input.value.trim();
         let error = '';
 
-        // Required check
         if (input.required && !value) {
           const found = requiredFields.find(f => f.id === fieldId);
           error = found ? found.message : 'This field is required.';
@@ -600,21 +820,15 @@
         }
       }
 
-      // Attach validation on blur and input
       document.querySelectorAll('input, select, textarea').forEach(field => {
         field.addEventListener('blur', () => validateField(field));
         field.addEventListener('input', () => validateField(field));
       });
 
       // ---------- LOADING STATE ON SUBMIT ----------
-      const publishBtn = document.getElementById('publishBtn');
-
       form.addEventListener('submit', (e) => {
-        const submitter = e.submitter;
-        const isPublish = submitter && submitter.name === 'actionType' && submitter.value === 'publish';
-        // Validate all required fields before submit
         let isValid = true;
-        const fieldsToValidate = isPublish ? requiredFields : [{ id: 'title', message: 'Event title is required.' }];
+        const fieldsToValidate = isPublishedEdit ? requiredFields : [{ id: 'title', message: 'Event title is required.' }];
         fieldsToValidate.forEach(f => {
           const field = document.getElementById(f.id);
           if (!validateField(field)) isValid = false;
@@ -623,13 +837,6 @@
           e.preventDefault();
           alert('Please fix the highlighted errors before submitting.');
           return;
-        }
-
-        if (submitter && submitter.name === 'actionType' && submitter.value === 'publish') {
-          if (!confirm('Submit this event for admin review? It will not be public until approved.')) {
-            e.preventDefault();
-            return;
-          }
         }
 
         // Disable all submit buttons
@@ -641,7 +848,7 @@
         });
       });
 
-      // ---------- FILE UPLOAD HANDLER (drag & drop, preview) ----------
+      // ---------- FILE UPLOAD HANDLER (same as create) ----------
       function setupUploadArea(areaId, previewContainerId, previewImgId, fileInputId, urlInputId, removeBtnSelector) {
         const area = document.getElementById(areaId);
         const fileInput = document.getElementById(fileInputId);
@@ -652,7 +859,6 @@
 
         if (!area || !fileInput) return;
 
-        // Drag & drop highlight
         area.addEventListener('dragover', (e) => {
           e.preventDefault();
           area.classList.add('dragover');
@@ -667,21 +873,20 @@
           }
         });
 
-        // Click on area triggers file input
         area.addEventListener('click', () => fileInput.click());
 
-        // File input change
         fileInput.addEventListener('change', () => {
           handleFileSelect(fileInput, previewContainer, previewImg, urlInput);
         });
 
-        // Remove button
         if (removeBtn) {
           removeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             fileInput.value = '';
             previewContainer.style.display = 'none';
-            if (urlInput) urlInput.value = ''; // optional
+            // For edit mode, we also need to mark removal if it's a new upload area (no existing image)
+            // But this remove button is for the preview of a new upload, not the existing image.
+            // Existing image removal is handled separately.
           });
         }
       }
@@ -690,7 +895,6 @@
         const file = input.files[0];
         if (!file) return;
 
-        // Validate type and size (reuse functions from below)
         if (!allowedImageTypes.has(file.type)) {
           alert('Invalid file type. Only JPG and PNG files are allowed.');
           input.value = '';
@@ -706,7 +910,7 @@
         reader.onload = (e) => {
           previewImg.src = e.target.result;
           previewContainer.style.display = 'inline-block';
-          if (urlInput) urlInput.value = ''; // clear URL if file uploaded
+          if (urlInput) urlInput.value = '';
         };
         reader.readAsDataURL(file);
       }
@@ -714,11 +918,9 @@
       const allowedImageTypes = new Set(['image/jpeg', 'image/png']);
       const maxBrandingSizeBytes = 5 * 1024 * 1024;
 
-      // Logo
+      // Setup upload areas (note: remove buttons for new uploads)
       setupUploadArea('logoUploadArea', 'logoPreviewContainer', 'logoPreviewImg', 'logoFile', 'logoUrl', '.remove-upload[data-for="logo"]');
-      // Banner
       setupUploadArea('bannerUploadArea', 'bannerPreviewContainer', 'bannerPreviewImg', 'bannerFile', 'bannerImageUrl', '.remove-upload[data-for="banner"]');
-      // Poster
       setupUploadArea('posterUploadArea', 'posterPreviewContainer', 'posterPreviewImg', 'posterFile', 'posterImageUrl', '.remove-upload[data-for="poster"]');
 
       // Gallery (multiple files)
@@ -746,16 +948,17 @@
               return;
             }
           }
-          // Show previews (optional)
-          galleryPreview.innerHTML = '';
+          // Append new previews to existing grid (without removing existing ones)
           files.forEach((file, index) => {
             const reader = new FileReader();
             reader.onload = (e) => {
               const wrap = document.createElement('div');
               wrap.className = 'gallery-thumb-wrap';
+              // For new uploads we don't have a remove button that calls server; we'll just show preview.
+              // They will be submitted with the form. If user wants to remove, they must clear file input.
               const img = document.createElement('img');
               img.src = e.target.result;
-              img.alt = `Gallery preview ${index+1}`;
+              img.alt = `New gallery preview ${index+1}`;
               img.className = 'gallery-preview-thumb';
               wrap.appendChild(img);
               galleryPreview.appendChild(wrap);
@@ -765,7 +968,133 @@
         });
       }
 
-      // ---------- WAIVER PREVIEW ----------
+      // ---------- REMOVE EXISTING MEDIA (edit mode) ----------
+      async function removeEventMediaNow(payload) {
+        const body = new URLSearchParams(payload);
+        body.set('_csrf', '<%= locals.csrfToken || '' %>');
+        const response = await fetch('', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: body.toString()
+        });
+        let data = null;
+        try { data = await response.json(); } catch (e) {}
+        if (!response.ok || !data?.success) {
+          throw new Error(data?.message || 'Failed to remove media.');
+        }
+        return data;
+      }
+
+      // Logo remove
+      const removeLogoBtn = document.getElementById('removeLogoBtn');
+      const removeLogoInput = document.getElementById('removeLogoImage');
+      if (removeLogoBtn && removeLogoInput) {
+        removeLogoBtn.addEventListener('click', async () => {
+          if (!confirm('Remove current logo image?')) return;
+          removeLogoBtn.disabled = true;
+          try {
+            await removeEventMediaNow({ kind: 'logo' });
+            removeLogoInput.value = '1';
+            document.getElementById('logoPreviewWrap').style.display = 'none';
+            // Also clear any URL input
+            document.getElementById('logoUrl').value = '';
+          } catch (error) {
+            alert(error.message);
+          } finally {
+            removeLogoBtn.disabled = false;
+          }
+        });
+      }
+
+      // Banner remove
+      const removeBannerBtn = document.getElementById('removeBannerBtn');
+      const removeBannerInput = document.getElementById('removeBannerImage');
+      if (removeBannerBtn && removeBannerInput) {
+        removeBannerBtn.addEventListener('click', async () => {
+          if (!confirm('Remove current banner image?')) return;
+          removeBannerBtn.disabled = true;
+          try {
+            await removeEventMediaNow({ kind: 'banner' });
+            removeBannerInput.value = '1';
+            document.getElementById('bannerPreviewWrap').style.display = 'none';
+            document.getElementById('bannerImageUrl').value = '';
+          } catch (error) {
+            alert(error.message);
+          } finally {
+            removeBannerBtn.disabled = false;
+          }
+        });
+      }
+
+      // Poster remove
+      const removePosterBtn = document.getElementById('removePosterBtn');
+      const removePosterInput = document.getElementById('removePosterImage');
+      if (removePosterBtn && removePosterInput) {
+        removePosterBtn.addEventListener('click', async () => {
+          if (!confirm('Remove current promotional poster?')) return;
+          removePosterBtn.disabled = true;
+          try {
+            await removeEventMediaNow({ kind: 'poster' });
+            removePosterInput.value = '1';
+            document.getElementById('posterPreviewWrap').style.display = 'none';
+            document.getElementById('posterImageUrl').value = '';
+          } catch (error) {
+            alert(error.message);
+          } finally {
+            removePosterBtn.disabled = false;
+          }
+        });
+      }
+
+      // Gallery remove individual
+      const removeAllGalleryBtn = document.getElementById('removeAllGalleryBtn');
+      const removeGalleryInput = document.getElementById('removeGalleryImages');
+      if (removeAllGalleryBtn && removeGalleryInput) {
+        removeAllGalleryBtn.addEventListener('click', async () => {
+          if (!confirm('Remove all current gallery images?')) return;
+          removeAllGalleryBtn.disabled = true;
+          try {
+            await removeEventMediaNow({ kind: 'gallery', all: '1' });
+            removeGalleryInput.value = '1';
+            document.getElementById('galleryPreviewGrid').innerHTML = '';
+            removeAllGalleryBtn.style.display = 'none';
+            galleryUrlsText.value = '';
+          } catch (error) {
+            alert(error.message);
+          } finally {
+            removeAllGalleryBtn.disabled = false;
+          }
+        });
+      }
+
+      // Individual gallery remove buttons (existing images)
+      document.querySelectorAll('.gallery-remove-btn[data-gallery-url]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const url = btn.dataset.galleryUrl;
+          if (!url) return;
+          if (!confirm('Remove this gallery image?')) return;
+          btn.disabled = true;
+          try {
+            await removeEventMediaNow({ kind: 'gallery', url: url });
+            const wrap = btn.closest('.gallery-thumb-wrap');
+            if (wrap) wrap.remove();
+
+            // Update hidden URLs textarea
+            const currentUrls = galleryUrlsText.value.split(/\r?\n|,/).map(s => s.trim()).filter(Boolean);
+            const newUrls = currentUrls.filter(u => u !== url);
+            galleryUrlsText.value = newUrls.join('\n');
+            removeGalleryInput.value = newUrls.length ? '0' : '1';
+            if (!newUrls.length && removeAllGalleryBtn) removeAllGalleryBtn.style.display = 'none';
+          } catch (error) {
+            alert(error.message);
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      });
+
+      // ---------- WAIVER PREVIEW (same as create) ----------
+      // (copy the entire waiver script from create-event.ejs, adjusting initialWaiverTemplate as needed)
       const waiverEditorRoot = document.getElementById('waiverEditor');
       const waiverTemplateInput = document.getElementById('waiverTemplate');
       const organiserNameInput = document.getElementById('organiserName');
@@ -824,27 +1153,54 @@
         return safe;
       }
 
-      if (waiverEditorRoot && waiverTemplateInput && window.Quill) {
-        waiverQuill = new Quill('#waiverEditor', {
-          theme: 'snow',
-          modules: {
-            toolbar: [
-              [{ header: [2, 3, false] }],
-              ['bold', 'italic'],
-              [{ list: 'ordered' }, { list: 'bullet' }],
-              ['blockquote', 'link'],
-              ['clean']
-            ]
+      function initializeWaiverEditor() {
+        if (!waiverEditorRoot || !waiverTemplateInput || !window.Quill) {
+          if (waiverTemplateInput) {
+            waiverTemplateInput.value = initialWaiverTemplate || defaultWaiverTemplate;
           }
-        });
-
-        setWaiverTemplateValue(initialWaiverTemplate || defaultWaiverTemplate);
-        waiverQuill.on('text-change', () => {
-          waiverTemplateInput.value = waiverQuill.root.innerHTML || '';
           renderWaiverPreview();
-        });
-      } else if (waiverTemplateInput) {
-        waiverTemplateInput.value = initialWaiverTemplate || defaultWaiverTemplate;
+          return;
+        }
+
+        if (waiverQuill) {
+          renderWaiverPreview();
+          return;
+        }
+
+        waiverEditorRoot.innerHTML = '';
+
+        try {
+          waiverQuill = new Quill('#waiverEditor', {
+            theme: 'snow',
+            modules: {
+              toolbar: [
+                [{ header: [2, 3, false] }],
+                ['bold', 'italic'],
+                [{ list: 'ordered' }, { list: 'bullet' }],
+                ['blockquote', 'link'],
+                ['clean']
+              ]
+            },
+            placeholder: 'Enter waiver text here...'
+          });
+
+          const initialValue = initialWaiverTemplate || defaultWaiverTemplate;
+          if (initialValue) {
+            waiverQuill.clipboard.dangerouslyPasteHTML(initialValue);
+          }
+          waiverTemplateInput.value = initialValue;
+
+          waiverQuill.on('text-change', () => {
+            waiverTemplateInput.value = waiverQuill.root.innerHTML || '';
+            renderWaiverPreview();
+          });
+
+          renderWaiverPreview();
+        } catch (error) {
+          console.error('Failed to initialize Quill:', error);
+          waiverTemplateInput.value = initialWaiverTemplate || defaultWaiverTemplate;
+          renderWaiverPreview();
+        }
       }
 
       function renderWaiverPreview() {
@@ -879,14 +1235,11 @@
           waiverTemplateInput.value = getWaiverTemplateValue();
         });
       }
-      renderWaiverPreview();
-
-      // ---------- PREVIEW BUTTON ----------
-      document.getElementById('previewBtn')?.addEventListener('click', () => {
-        const params = new URLSearchParams(new FormData(form)).toString();
-        window.open(`/organizer/preview-event?${params}`, '_blank');
-      });
-
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeWaiverEditor, { once: true });
+      } else {
+        initializeWaiverEditor();
+      }
     })();
   </script>
 </body>

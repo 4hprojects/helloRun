@@ -83,6 +83,34 @@
           <p><strong>Proofs:</strong> <%= (event.proofTypesAllowed || []).join(', ') || 'N/A' %></p>
         </article>
         <article class="detail-card">
+          <h3>Fees & Payment</h3>
+          <p><strong>Fee:</strong> <%= event.feeMode === 'paid' ? `${event.feeCurrency || 'PHP'} ${Number(event.feeAmount || 0).toFixed(2)}` : 'Free' %></p>
+          <% if (event.feeMode === 'paid') { %>
+            <p><strong>Account:</strong> <%= event.paymentAccountName || 'N/A' %></p>
+            <p><strong>Instructions:</strong> <%= event.paymentInstructions || 'N/A' %></p>
+            <p><strong>Payment QR:</strong> <%= event.paymentQrImageUrl ? 'Configured' : 'Missing' %></p>
+          <% } %>
+        </article>
+        <article class="detail-card">
+          <h3>Rewards</h3>
+          <% const adminPhysicalRewardItems = [
+            event.physicalRewardMedalEnabled ? 'Medal' : '',
+            event.physicalRewardShirtEnabled ? 'Shirt' : '',
+            event.physicalRewardPatchEnabled ? 'Patch' : '',
+            event.physicalRewardFinisherKitEnabled ? 'Finisher Kit' : ''
+          ].filter(Boolean); %>
+          <p><strong>Digital Badge:</strong> <%= event.digitalBadgeEnabled ? 'Enabled' : 'Disabled' %></p>
+          <p><strong>Digital Certificate:</strong> <%= event.digitalCertificateEnabled === false ? 'Disabled' : 'Enabled' %></p>
+          <p><strong>Leaderboard Recognition:</strong> <%= event.leaderboardRecognitionEnabled === false ? 'Disabled' : 'Enabled' %></p>
+          <p><strong>Physical Rewards:</strong> <%= event.physicalRewardsEnabled ? 'Enabled' : 'Disabled' %></p>
+          <% if (event.physicalRewardsEnabled && adminPhysicalRewardItems.length) { %>
+            <p><strong>Included Items:</strong> <%= adminPhysicalRewardItems.join(', ') %></p>
+          <% } %>
+          <% if (event.physicalRewardsEnabled && event.physicalRewardsDescription) { %>
+            <p><%= event.physicalRewardsDescription %></p>
+          <% } %>
+        </article>
+        <article class="detail-card">
           <h3>Location</h3>
           <p><strong>Venue:</strong> <%= event.venueName || 'N/A' %></p>
           <p><strong>City:</strong> <%= [event.city, event.province, event.country].filter(Boolean).join(', ') || 'N/A' %></p>
@@ -91,6 +119,12 @@
           <h3>Description</h3>
           <p><%= event.description || 'No description yet.' %></p>
         </article>
+        <% if (eventDetailsHtml) { %>
+          <article class="detail-card detail-card-full">
+            <h3>Event Details</h3>
+            <div class="event-rich-details"><%- eventDetailsHtml %></div>
+          </article>
+        <% } %>
         <article class="detail-card detail-card-full">
           <h3>Media</h3>
           <div class="admin-media-grid">

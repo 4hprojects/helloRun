@@ -38,6 +38,12 @@ const eventSchema = new mongoose.Schema(
       trim: true,
       maxlength: 2000
     },
+    eventDetailsMarkdown: {
+      type: String,
+      trim: true,
+      maxlength: 20000,
+      default: ''
+    },
     status: {
       type: String,
       enum: ['draft', 'pending_review', 'published', 'closed', 'archived'],
@@ -164,6 +170,224 @@ const eventSchema = new mongoose.Schema(
       type: String,
       enum: ['finishers', 'top_distance', 'finishers_and_top_distance'],
       default: 'finishers'
+    },
+    feeMode: {
+      type: String,
+      enum: ['free', 'paid'],
+      default: 'free'
+    },
+    feeAmount: {
+      type: Number,
+      min: 0,
+      default: null
+    },
+    feeCurrency: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      maxlength: 3,
+      default: 'PHP'
+    },
+    paymentQrImageUrl: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    paymentQrImageKey: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    paymentAccountName: {
+      type: String,
+      trim: true,
+      maxlength: 160,
+      default: ''
+    },
+    paymentInstructions: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+      default: ''
+    },
+    digitalBadgeEnabled: {
+      type: Boolean,
+      default: false
+    },
+    digitalCertificateEnabled: {
+      type: Boolean,
+      default: true
+    },
+    leaderboardRecognitionEnabled: {
+      type: Boolean,
+      default: true
+    },
+    physicalRewardsEnabled: {
+      type: Boolean,
+      default: false
+    },
+    physicalRewardMedalEnabled: {
+      type: Boolean,
+      default: false
+    },
+    physicalRewardMedalAmount: {
+      type: Number,
+      min: 0,
+      default: null
+    },
+    physicalRewardShirtEnabled: {
+      type: Boolean,
+      default: false
+    },
+    physicalRewardShirtAmount: {
+      type: Number,
+      min: 0,
+      default: null
+    },
+    physicalRewardPatchEnabled: {
+      type: Boolean,
+      default: false
+    },
+    physicalRewardPatchAmount: {
+      type: Number,
+      min: 0,
+      default: null
+    },
+    physicalRewardTowelEnabled: {
+      type: Boolean,
+      default: false
+    },
+    physicalRewardTowelAmount: {
+      type: Number,
+      min: 0,
+      default: null
+    },
+    physicalRewardFinisherKitEnabled: {
+      type: Boolean,
+      default: false
+    },
+    physicalRewardFinisherKitAmount: {
+      type: Number,
+      min: 0,
+      default: null
+    },
+    physicalRewardOtherItems: {
+      type: [
+        {
+          name: { type: String, trim: true, maxlength: 80 },
+          amount: { type: Number, min: 0, default: null }
+        }
+      ],
+      default: []
+    },
+    physicalRewardsDescription: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+      default: ''
+    },
+    physicalRewardsClaimingNotes: {
+      type: String,
+      trim: true,
+      maxlength: 1000,
+      default: ''
+    },
+    pricingMode: {
+      type: String,
+      enum: ['free', 'same_fee', 'package_period', 'per_distance', 'per_distance_period'],
+      default: 'free'
+    },
+    suggestedEventFee: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    finalEventFee: {
+      type: Number,
+      min: 0,
+      default: null
+    },
+    registrationPackages: {
+      type: [
+        {
+          name: { type: String, trim: true, maxlength: 100 },
+          includedItems: {
+            medal: { type: Boolean, default: false },
+            shirt: { type: Boolean, default: false },
+            towel: { type: Boolean, default: false },
+            patch: { type: Boolean, default: false },
+            finisherKit: { type: Boolean, default: false },
+            otherItemNames: {
+              type: [{ type: String, trim: true, maxlength: 80 }],
+              default: []
+            }
+          },
+          pricingPeriods: {
+            type: [
+              {
+                label: { type: String, trim: true, maxlength: 60 },
+                code: {
+                  type: String,
+                  enum: ['early_bird', 'regular', 'late', 'custom'],
+                  default: 'custom'
+                },
+                startAt: { type: Date, default: null },
+                endAt: { type: Date, default: null },
+                amount: { type: Number, min: 0, default: null }
+              }
+            ],
+            default: []
+          },
+          notes: { type: String, trim: true, maxlength: 500, default: '' }
+        }
+      ],
+      default: []
+    },
+    deliveryFeeEnabled: {
+      type: Boolean,
+      default: false
+    },
+    deliveryFeeAmount: {
+      type: Number,
+      min: 0,
+      default: null
+    },
+    deliveryFeeDescription: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: ''
+    },
+    requiresDeliveryAddress: {
+      type: Boolean,
+      default: false
+    },
+    requiresPhilippineDeliveryAddress: {
+      type: Boolean,
+      default: false
+    },
+    internationalRunnersAllowed: {
+      type: Boolean,
+      default: true
+    },
+    claimingMethod: {
+      type: String,
+      enum: ['delivery', 'pickup', 'both'],
+      default: 'delivery'
+    },
+    specialRewardBenefits: {
+      type: [
+        {
+          title: { type: String, trim: true, maxlength: 100 },
+          description: { type: String, trim: true, maxlength: 500, default: '' },
+          validUntil: { type: Date, default: null },
+          appliesToPackageNames: {
+            type: [{ type: String, trim: true, maxlength: 100 }],
+            default: []
+          }
+        }
+      ],
+      default: []
     },
     bannerImageUrl: {
       type: String,

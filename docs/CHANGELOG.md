@@ -3,6 +3,81 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 10, 2026 (Session: Create Event Organizer Setup V1 Notes)
+
+### [SESSION] SESSION UPDATE:
+- Updated create-event planning notes after Organizer Setup V1 implementation:
+  - marked panel reorder, reward amount fields, towel, custom merchandise, registration packages, package pricing periods, delivery/claiming setup, special reward benefits, V1 `pricingMode`, suggested setup total, and final fee override as implemented
+  - updated accumulated-distance notes to reflect existing activity-level submissions, approved-distance rollups, organizer review support, certificate eligibility, and leaderboard rows
+  - clarified remaining scope: runner package/category selection, active price resolver, payment amount snapshot, payment proof amount enforcement, race category pricing, review/certificate release dates, and badge unlock logic
+  - recorded V1 product decisions for internal reward costs, independently configured package prices, flat delivery fee, and informational special benefits
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/create_event.md
+
+### [VALIDATION] TEST/RUN CHECKS:
+- Documentation-only update; automated tests not rerun in this note pass.
+- Previous implementation verification: `node --test tests/organizer-waiver-routes.test.js` -> PASS
+- Previous implementation verification: `npm test` -> PASS, 287 tests
+
+---
+
+## CHANGELOG - May 9, 2026 (Session: Create Event Details, Fees, Payment QR, and Rewards)
+
+### [SESSION] SESSION UPDATE:
+- Expanded `/organizer/create-event` and edit/admin edit event setup:
+  - preloads the 2026K accumulated challenge default content from `docs/template/2026k_accumulated_run_challenge_template.md`
+  - adds full editable Event Details content for long-form rules, FAQ, and instructions, stored internally as `eventDetailsMarkdown`
+  - keeps `description` as the short event listing/card summary
+  - adds free/paid fee configuration with amount and currency
+  - adds paid-event payment QR upload, optional account name, and optional payment instructions
+  - adds digital badge, digital certificate, physical rewards, and physical reward notes
+  - expands physical rewards with medal, shirt, patch, and finisher kit item toggles
+  - places leaderboard recognition with accumulated challenge leaderboard settings
+  - paid drafts can save without QR, while paid submit-for-review requires fee amount, currency, and payment QR
+- Updated event display surfaces:
+  - event preview, public event detail, organizer event detail, and admin event detail render fee/reward information
+  - long Event Details content is rendered through sanitized HTML with table support
+- Explicitly deferred runner paid-registration enforcement:
+  - runner signup/payment-proof flow is unchanged in this session
+  - event-level payment data is now stored for the next runner payment-proof step
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/create_event.md
+3. src/controllers/admin.controller.js
+4. src/controllers/page.controller.js
+5. src/models/Event.js
+6. src/routes/organizer.routes.js
+7. src/services/event-form.service.js
+8. src/services/upload.service.js
+9. src/utils/event-template.js
+10. src/utils/markdown.js
+11. src/views/organizer/create-event.ejs
+12. src/views/organizer/edit-event.ejs
+13. src/views/organizer/event-details.ejs
+14. src/views/organizer/event-preview.ejs
+15. src/views/pages/event-details.ejs
+16. src/views/admin/event-detail.ejs
+17. src/public/css/create-event.css
+18. src/public/css/event-details.css
+19. src/public/css/event-manage.css
+20. src/public/css/admin.css
+21. tests/organizer-waiver-routes.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --check src/routes/organizer.routes.js` -> PASS
+- `node --check src/services/event-form.service.js` -> PASS
+- `node --check src/controllers/admin.controller.js` -> PASS
+- `node --check src/controllers/page.controller.js` -> PASS
+- `node --test --test-concurrency=1 tests/organizer-waiver-routes.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/public-search-filters.test.js` -> PASS
+- Superseded by May 10 full-suite verification: `npm test` -> PASS, 287 tests
+- `git diff --check` on touched files -> PASS
+
+---
+
 ## CHANGELOG - May 8, 2026 (Session: Organizer Dashboard Mobile Actions Polish)
 
 ### [SESSION] SESSION UPDATE:

@@ -21,6 +21,7 @@ function markdownToHtml(markdown) {
   const html = [];
   let inUnorderedList = false;
   let inOrderedList = false;
+  let tableRows = [];
 
   const closeLists = () => {
     if (inUnorderedList) {
@@ -32,14 +33,43 @@ function markdownToHtml(markdown) {
       inOrderedList = false;
     }
   };
+  const closeTable = () => {
+    if (!tableRows.length) return;
+    const rows = tableRows.slice();
+    tableRows = [];
+    const hasSeparator = rows.length > 1 && rows[1].every((cell) => /^:?-{3,}:?$/.test(cell.trim()));
+    const bodyRows = hasSeparator ? rows.slice(2) : rows.slice(1);
+    html.push('<table>');
+    html.push('<thead><tr>');
+    rows[0].forEach((cell) => html.push(`<th>${inlineMarkdownToHtml(cell.trim())}</th>`));
+    html.push('</tr></thead>');
+    if (bodyRows.length) {
+      html.push('<tbody>');
+      bodyRows.forEach((row) => {
+        html.push('<tr>');
+        row.forEach((cell) => html.push(`<td>${inlineMarkdownToHtml(cell.trim())}</td>`));
+        html.push('</tr>');
+      });
+      html.push('</tbody>');
+    }
+    html.push('</table>');
+  };
 
   for (const rawLine of lines) {
     const line = rawLine.trim();
 
     if (!line) {
       closeLists();
+      closeTable();
       continue;
     }
+
+    if (/^\|.+\|$/.test(line)) {
+      closeLists();
+      tableRows.push(line.split('|').slice(1, -1).map((cell) => cell.trim()));
+      continue;
+    }
+    closeTable();
 
     if (/^---+$/.test(line)) {
       closeLists();
@@ -88,6 +118,7 @@ function markdownToHtml(markdown) {
   }
 
   closeLists();
+  closeTable();
   return html.join('\n');
 }
 

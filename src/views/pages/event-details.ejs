@@ -67,6 +67,24 @@
           <p><strong>Allowed Modes:</strong> <%= (event.eventTypesAllowed || []).join(' / ') || 'N/A' %></p>
         </article>
 
+        <article class="event-fact-card">
+          <h4>Fee & Recognition</h4>
+          <% const publicPhysicalRewardItems = [
+            event.physicalRewardMedalEnabled ? 'Medal' : '',
+            event.physicalRewardShirtEnabled ? 'Shirt' : '',
+            event.physicalRewardPatchEnabled ? 'Patch' : '',
+            event.physicalRewardFinisherKitEnabled ? 'Finisher Kit' : ''
+          ].filter(Boolean); %>
+          <p><strong>Fee:</strong> <%= event.feeMode === 'paid' ? `${event.feeCurrency || 'PHP'} ${Number(event.feeAmount || 0).toFixed(2)}` : 'Free' %></p>
+          <p><strong>Digital Badge:</strong> <%= event.digitalBadgeEnabled ? 'Included' : 'Not listed' %></p>
+          <p><strong>Certificate:</strong> <%= event.digitalCertificateEnabled === false ? 'Not listed' : 'Included' %></p>
+          <p><strong>Leaderboard:</strong> <%= event.leaderboardRecognitionEnabled === false ? 'Not listed' : 'Included' %></p>
+          <p><strong>Physical Rewards:</strong> <%= event.physicalRewardsEnabled ? 'Included' : 'Not listed' %></p>
+          <% if (event.physicalRewardsEnabled && publicPhysicalRewardItems.length) { %>
+            <p><strong>Items:</strong> <%= publicPhysicalRewardItems.join(', ') %></p>
+          <% } %>
+        </article>
+
         <% if (showLocationPanel) { %>
           <article class="event-fact-card">
             <h4>Location</h4>
@@ -126,7 +144,18 @@
 
       <section class="event-details-card event-details-description">
         <h3>About This Event</h3>
-        <p><%= event.description || 'No description provided.' %></p>
+        <% if (eventDetailsHtml) { %>
+          <div class="event-rich-details"><%- eventDetailsHtml %></div>
+        <% } else { %>
+          <p><%= event.description || 'No description provided.' %></p>
+        <% } %>
+        <% if (event.physicalRewardsEnabled && (publicPhysicalRewardItems.length || event.physicalRewardsDescription)) { %>
+          <h3>Physical Rewards</h3>
+          <% if (publicPhysicalRewardItems.length) { %>
+            <p><strong>Included Items:</strong> <%= publicPhysicalRewardItems.join(', ') %></p>
+          <% } %>
+          <% if (event.physicalRewardsDescription) { %><p><%= event.physicalRewardsDescription %></p><% } %>
+        <% } %>
       </section>
 
       <section class="event-cta-row">

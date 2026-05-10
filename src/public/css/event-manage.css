@@ -509,3 +509,21 @@
     text-align: center;
   }
 }
+/* Rich organizer-authored event details */
+.event-rich-details {
+  color: #334155;
+  line-height: 1.7;
+}
+
+.event-rich-details table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.event-rich-details th,
+.event-rich-details td {
+  border: 1px solid #e2e8f0;
+  padding: 0.6rem;
+  text-align: left;
+}

@@ -9,6 +9,7 @@ require('dotenv').config();
 
 const User = require('../src/models/User');
 const Event = require('../src/models/Event');
+const { applyEventFormData, getCreateEventFormData } = require('../src/services/event-form.service');
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3117;
@@ -57,7 +58,11 @@ test('create and edit event views expose ordered create-event sections', () => {
   const requiredSectionClasses = [
     'form-section-core',
     'form-section-schedule',
+    'form-section-location',
     'form-section-virtual',
+    'form-section-rewards',
+    'form-section-fees',
+    'form-section-details',
     'form-section-media',
     'form-section-waiver'
   ];
@@ -70,6 +75,26 @@ test('create and edit event views expose ordered create-event sections', () => {
     assert.match(content, /class="form-section form-section-core" tabindex="-1"/, `${file} should make Core Details focusable`);
     assert.match(content, /coreDetailsSection\.focus\(\{ preventScroll: true \}\)/, `${file} should focus Core Details on load`);
     assert.doesNotMatch(content, /id="title"[\s\S]*?autofocus/, `${file} should not steal focus with the title field`);
+    assert.match(content, /Leaderboard Mode[\s\S]*?name="leaderboardRecognitionEnabled"/, `${file} should group leaderboard recognition with leaderboard settings`);
+    const rewardsSection = content.match(/form-section-rewards[\s\S]*?form-section-details/);
+    assert.ok(rewardsSection, `${file} should include rewards before event details`);
+    assert.doesNotMatch(rewardsSection[0], /name="leaderboardRecognitionEnabled"/, `${file} should keep leaderboard recognition out of rewards`);
+    assert.match(content, /Rewards, Merchandise, and Registration Packages/, `${file} should expose the expanded rewards section`);
+    assert.match(content, /Total Event Fee/, `${file} should label paid amount as a total event fee`);
+    assert.match(content, /name="pricingMode"/, `${file} should expose pricing mode`);
+    assert.match(content, /name="finalEventFee"/, `${file} should expose organizer final fee override`);
+    assert.match(content, /Include any physical reward\/package cost in this amount/, `${file} should explain reward cost inclusion`);
+    assert.match(content, /name="physicalRewardMedalEnabled"/, `${file} should expose medal reward item`);
+    assert.match(content, /name="physicalRewardMedalAmount"/, `${file} should expose medal amount`);
+    assert.match(content, /name="physicalRewardShirtEnabled"/, `${file} should expose shirt reward item`);
+    assert.match(content, /name="physicalRewardPatchEnabled"/, `${file} should expose patch reward item`);
+    assert.match(content, /name="physicalRewardTowelEnabled"/, `${file} should expose towel reward item`);
+    assert.match(content, /name="physicalRewardFinisherKitEnabled"/, `${file} should expose finisher kit reward item`);
+    assert.match(content, /name="physicalRewardOtherItemName"/, `${file} should expose custom merchandise items`);
+    assert.match(content, /name="registrationPackageName"/, `${file} should expose registration packages`);
+    assert.match(content, /name="deliveryFeeAmount"/, `${file} should expose delivery fee`);
+    assert.match(content, /name="claimingMethod"/, `${file} should expose claiming method`);
+    assert.match(content, /name="specialRewardBenefitTitle"/, `${file} should expose special reward benefits`);
   }
 
   const css = fs.readFileSync(path.join(ROOT, 'src/public/css/create-event.css'), 'utf8');
@@ -77,9 +102,13 @@ test('create and edit event views expose ordered create-event sections', () => {
   assert.match(css, /\.form-section:focus\s*\{[^}]*outline:\s*2px solid var\(--border-focus\)/s);
   assert.match(css, /\.form-section-core\s*\{[^}]*order:\s*10/s);
   assert.match(css, /\.form-section-schedule\s*\{[^}]*order:\s*20/s);
-  assert.match(css, /\.form-section-virtual\s*\{[^}]*order:\s*30/s);
-  assert.match(css, /\.form-section-media\s*\{[^}]*order:\s*40/s);
-  assert.match(css, /\.form-section-waiver\s*\{[^}]*order:\s*50/s);
+  assert.match(css, /\.form-section-location\s*\{[^}]*order:\s*30/s);
+  assert.match(css, /\.form-section-virtual\s*\{[^}]*order:\s*40/s);
+  assert.match(css, /\.form-section-rewards\s*\{[^}]*order:\s*50/s);
+  assert.match(css, /\.form-section-fees\s*\{[^}]*order:\s*60/s);
+  assert.match(css, /\.form-section-details\s*\{[^}]*order:\s*70/s);
+  assert.match(css, /\.form-section-media\s*\{[^}]*order:\s*80/s);
+  assert.match(css, /\.form-section-waiver\s*\{[^}]*order:\s*90/s);
 });
 
 test('create-event sanitizes waiver html before saving', async () => {
@@ -138,6 +167,129 @@ test('approved verified organizer can open create-event page', async () => {
   const html = await response.text();
   assert.match(html, /Create Event/i);
   assert.match(html, /Event Format/i);
+});
+
+test('create-event page preloads 2026K defaults and new event setup fields', async () => {
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+  const response = await fetch(`${BASE_URL}/organizer/create-event`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /2026K Accumulated Run Challenge/i);
+  assert.match(html, /name="eventDetailsMarkdown"/i);
+  assert.match(html, /value="2026K"/i);
+  assert.match(html, /name="feeMode"/i);
+  assert.match(html, /Total Event Fee/i);
+  assert.match(html, /Payment QR Image/i);
+  assert.match(html, /Digital Finisher Certificate/i);
+  assert.match(html, /name="physicalRewardMedalEnabled"/i);
+  assert.match(html, /name="physicalRewardFinisherKitEnabled"/i);
+});
+
+test('applyEventFormData clears physical reward item flags when physical rewards are disabled', () => {
+  const event = {
+    physicalRewardMedalEnabled: true,
+    physicalRewardMedalAmount: 100,
+    physicalRewardShirtEnabled: true,
+    physicalRewardShirtAmount: 200,
+    physicalRewardPatchEnabled: true,
+    physicalRewardPatchAmount: 50,
+    physicalRewardTowelEnabled: true,
+    physicalRewardTowelAmount: 75,
+    physicalRewardFinisherKitEnabled: true,
+    physicalRewardFinisherKitAmount: 300,
+    physicalRewardOtherItems: [{ name: 'Sticker', amount: 20 }],
+    physicalRewardsDescription: 'Existing rewards',
+    waiverTemplate: ''
+  };
+  const formData = getCreateEventFormData({
+    title: 'Disabled Physical Rewards Event',
+    organiserName: 'Organizer',
+    description: 'A valid description for form normalization.',
+    eventType: 'virtual',
+    raceDistancePresets: '5K',
+    registrationOpenAt: '2026-01-01T00:00',
+    registrationCloseAt: '2026-01-02T00:00',
+    eventStartAt: '2026-01-03T00:00',
+    eventEndAt: '2026-01-04T00:00',
+    virtualStartAt: '2026-01-03T00:00',
+    virtualEndAt: '2026-01-04T00:00',
+    proofTypesAllowed: 'gps',
+    feeMode: 'free',
+    physicalRewardMedalEnabled: '1',
+    physicalRewardMedalAmount: '100',
+    physicalRewardShirtEnabled: '1',
+    physicalRewardShirtAmount: '200',
+    physicalRewardPatchEnabled: '1',
+    physicalRewardPatchAmount: '50',
+    physicalRewardTowelEnabled: '1',
+    physicalRewardTowelAmount: '75',
+    physicalRewardFinisherKitEnabled: '1',
+    physicalRewardFinisherKitAmount: '300',
+    physicalRewardOtherItemName: 'Sticker',
+    physicalRewardOtherItemAmount: '20',
+    physicalRewardsDescription: 'Should be cleared'
+  });
+
+  applyEventFormData(event, formData, null);
+
+  assert.equal(event.physicalRewardsEnabled, false);
+  assert.equal(event.physicalRewardMedalEnabled, false);
+  assert.equal(event.physicalRewardMedalAmount, null);
+  assert.equal(event.physicalRewardShirtEnabled, false);
+  assert.equal(event.physicalRewardShirtAmount, null);
+  assert.equal(event.physicalRewardPatchEnabled, false);
+  assert.equal(event.physicalRewardPatchAmount, null);
+  assert.equal(event.physicalRewardTowelEnabled, false);
+  assert.equal(event.physicalRewardTowelAmount, null);
+  assert.equal(event.physicalRewardFinisherKitEnabled, false);
+  assert.equal(event.physicalRewardFinisherKitAmount, null);
+  assert.deepEqual(event.physicalRewardOtherItems, []);
+  assert.equal(event.physicalRewardsDescription, '');
+});
+
+test('create-event form normalization supports organizer setup pricing fields', () => {
+  const formData = getCreateEventFormData({
+    title: 'Organizer Setup Event',
+    feeMode: 'paid',
+    pricingMode: 'package_period',
+    physicalRewardsEnabled: '1',
+    physicalRewardMedalEnabled: '1',
+    physicalRewardMedalAmount: '100',
+    physicalRewardTowelEnabled: '1',
+    physicalRewardTowelAmount: '75',
+    physicalRewardOtherItemName: ['Sticker', ''],
+    physicalRewardOtherItemAmount: ['25', ''],
+    registrationPackageName: ['Medal Only'],
+    registrationPackageMedal_0: '1',
+    registrationPackageEarlyBirdStartAt: ['2026-05-01T00:00'],
+    registrationPackageEarlyBirdEndAt: ['2026-05-10T23:59'],
+    registrationPackageEarlyBirdAmount: ['500'],
+    deliveryFeeEnabled: '1',
+    deliveryFeeAmount: '100',
+    claimingMethod: 'both',
+    specialRewardBenefitTitle: ['Free engraving'],
+    specialRewardBenefitDescription: ['Available for early orders'],
+    specialRewardBenefitValidUntil: ['2026-05-10T23:59'],
+    finalEventFee: '700'
+  });
+
+  assert.equal(formData.pricingMode, 'package_period');
+  assert.equal(formData.physicalRewardMedalAmount, 100);
+  assert.equal(formData.physicalRewardTowelEnabled, true);
+  assert.deepEqual(formData.physicalRewardOtherItems, [{ name: 'Sticker', amount: 25 }]);
+  assert.equal(formData.registrationPackages.length, 1);
+  assert.equal(formData.registrationPackages[0].pricingPeriods[0].amount, 500);
+  assert.equal(formData.deliveryFeeEnabled, true);
+  assert.equal(formData.claimingMethod, 'both');
+  assert.equal(formData.specialRewardBenefits[0].title, 'Free engraving');
+  assert.equal(formData.suggestedEventFee, 800);
+  assert.equal(formData.finalEventFee, 700);
 });
 
 test('approved unverified organizer cannot open create-event page', async () => {
@@ -358,8 +510,186 @@ test('create-event accumulated-distance publish rejects missing challenge setup'
   assert.match(html, /Select at least one accepted activity type/i);
 });
 
+test('create-event paid publish rejects missing fee amount and payment QR', async () => {
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+  const payload = buildValidCreateEventPayload({
+    title: `Paid Missing QR Event ${seed.stamp}`,
+    actionType: 'publish'
+  });
+  payload.set('feeMode', 'paid');
+  payload.delete('feeAmount');
+  payload.delete('paymentQrImageUrl');
+  await appendCreateEventCsrf(payload, cookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/create-event`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: payload.toString(),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 400);
+  const html = await response.text();
+  assert.match(html, /Fee amount is required for paid events/i);
+  assert.match(html, /Payment QR image is required/i);
+});
+
+test('create-event paid publish persists fee payment and reward setup', async () => {
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+  const title = `Paid Configured Event ${seed.stamp}`;
+  const payload = buildValidCreateEventPayload({
+    title,
+    actionType: 'publish'
+  });
+  payload.set('eventDetailsMarkdown', '# Paid Event Details\n\nFull editable details.');
+  payload.set('feeMode', 'paid');
+  payload.set('feeAmount', '599');
+  payload.set('feeCurrency', 'PHP');
+  payload.set('paymentQrImageUrl', 'https://example.com/payment-qr.png');
+  payload.set('paymentQrImageKey', 'event-payments/qr/test/payment-qr.png');
+  payload.set('paymentAccountName', 'HelloRun Payments');
+  payload.set('paymentInstructions', 'Upload proof after payment.');
+  payload.set('digitalBadgeEnabled', '1');
+  payload.set('digitalCertificateEnabled', '1');
+  payload.set('leaderboardRecognitionEnabled', '1');
+  payload.set('physicalRewardsEnabled', '1');
+  payload.set('physicalRewardMedalEnabled', '1');
+  payload.set('physicalRewardMedalAmount', '100');
+  payload.set('physicalRewardShirtEnabled', '1');
+  payload.set('physicalRewardShirtAmount', '200');
+  payload.set('physicalRewardPatchEnabled', '1');
+  payload.set('physicalRewardPatchAmount', '50');
+  payload.set('physicalRewardTowelEnabled', '1');
+  payload.set('physicalRewardTowelAmount', '75');
+  payload.set('physicalRewardFinisherKitEnabled', '1');
+  payload.set('physicalRewardFinisherKitAmount', '300');
+  payload.append('physicalRewardOtherItemName', 'Sticker');
+  payload.append('physicalRewardOtherItemAmount', '25');
+  payload.set('physicalRewardsDescription', 'Medal and shirt package.');
+  payload.set('physicalRewardsClaimingNotes', 'Claim by courier.');
+  payload.set('pricingMode', 'package_period');
+  payload.set('finalEventFee', '1299');
+  payload.append('registrationPackageName', 'Medal + Shirt');
+  payload.set('registrationPackageMedal_0', '1');
+  payload.set('registrationPackageShirt_0', '1');
+  payload.append('registrationPackageOtherItemNames', 'Sticker');
+  payload.append('registrationPackageEarlyBirdStartAt', '2026-05-01T00:00');
+  payload.append('registrationPackageEarlyBirdEndAt', '2026-05-10T23:59');
+  payload.append('registrationPackageEarlyBirdAmount', '999');
+  payload.append('registrationPackageRegularStartAt', '');
+  payload.append('registrationPackageRegularEndAt', '');
+  payload.append('registrationPackageRegularAmount', '');
+  payload.append('registrationPackageLateStartAt', '');
+  payload.append('registrationPackageLateEndAt', '');
+  payload.append('registrationPackageLateAmount', '');
+  payload.append('registrationPackageNotes', 'Includes medal and shirt.');
+  payload.set('deliveryFeeEnabled', '1');
+  payload.set('deliveryFeeAmount', '100');
+  payload.set('deliveryFeeDescription', 'Flat local delivery.');
+  payload.set('requiresDeliveryAddress', '1');
+  payload.set('requiresPhilippineDeliveryAddress', '1');
+  payload.set('internationalRunnersAllowed', '0');
+  payload.set('claimingMethod', 'both');
+  payload.append('specialRewardBenefitTitle', 'Free engraving');
+  payload.append('specialRewardBenefitDescription', 'Available during early bird.');
+  payload.append('specialRewardBenefitValidUntil', '2026-05-10T23:59');
+  payload.append('specialRewardBenefitPackageNames', 'Medal + Shirt');
+  await appendCreateEventCsrf(payload, cookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/create-event`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: payload.toString(),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  await ensureConnected();
+  const event = await Event.findOne({ title }).lean();
+  assert.ok(event, 'paid event should be saved');
+  assert.equal(event.status, 'pending_review');
+  assert.equal(event.feeMode, 'paid');
+  assert.equal(event.feeAmount, 599);
+  assert.equal(event.feeCurrency, 'PHP');
+  assert.equal(event.paymentQrImageUrl, 'https://example.com/payment-qr.png');
+  assert.equal(event.paymentAccountName, 'HelloRun Payments');
+  assert.equal(event.digitalBadgeEnabled, true);
+  assert.equal(event.digitalCertificateEnabled, true);
+  assert.equal(event.leaderboardRecognitionEnabled, true);
+  assert.equal(event.physicalRewardsEnabled, true);
+  assert.equal(event.physicalRewardMedalEnabled, true);
+  assert.equal(event.physicalRewardMedalAmount, 100);
+  assert.equal(event.physicalRewardShirtEnabled, true);
+  assert.equal(event.physicalRewardShirtAmount, 200);
+  assert.equal(event.physicalRewardPatchEnabled, true);
+  assert.equal(event.physicalRewardPatchAmount, 50);
+  assert.equal(event.physicalRewardTowelEnabled, true);
+  assert.equal(event.physicalRewardTowelAmount, 75);
+  assert.equal(event.physicalRewardFinisherKitEnabled, true);
+  assert.equal(event.physicalRewardFinisherKitAmount, 300);
+  assert.deepEqual(event.physicalRewardOtherItems.map((item) => ({ name: item.name, amount: item.amount })), [{ name: 'Sticker', amount: 25 }]);
+  assert.equal(event.physicalRewardsDescription, 'Medal and shirt package.');
+  assert.equal(event.physicalRewardsClaimingNotes, 'Claim by courier.');
+  assert.equal(event.pricingMode, 'package_period');
+  assert.equal(event.finalEventFee, 1299);
+  assert.equal(event.registrationPackages.length, 1);
+  assert.equal(event.registrationPackages[0].name, 'Medal + Shirt');
+  assert.equal(event.registrationPackages[0].pricingPeriods[0].amount, 999);
+  assert.equal(event.deliveryFeeEnabled, true);
+  assert.equal(event.deliveryFeeAmount, 100);
+  assert.equal(event.claimingMethod, 'both');
+  assert.equal(event.requiresDeliveryAddress, true);
+  assert.equal(event.requiresPhilippineDeliveryAddress, true);
+  assert.equal(event.internationalRunnersAllowed, false);
+  assert.equal(event.specialRewardBenefits.length, 1);
+  assert.equal(event.specialRewardBenefits[0].title, 'Free engraving');
+  assert.match(event.eventDetailsMarkdown, /Paid Event Details/);
+});
+
+test('create-event rejects invalid organizer setup amounts and pricing periods', async () => {
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+  const payload = buildValidCreateEventPayload({
+    title: `Invalid Organizer Setup ${seed.stamp}`,
+    actionType: 'publish'
+  });
+  payload.set('physicalRewardsEnabled', '1');
+  payload.set('physicalRewardMedalEnabled', '1');
+  payload.set('physicalRewardMedalAmount', '-1');
+  payload.set('registrationPackageName', 'Broken Package');
+  payload.set('registrationPackageEarlyBirdAmount', '500');
+  await appendCreateEventCsrf(payload, cookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/create-event`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: payload.toString(),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 400);
+  const html = await response.text();
+  assert.match(html, /Medal amount must be zero or higher/i);
+  assert.match(html, /Pricing period start date is required/i);
+  assert.match(html, /Pricing period end date is required/i);
+});
+
 test('create-event rejects waiver rich html with insufficient plain text', async () => {
-  const cookie = await login(seed.organizer.email, seed.password);
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
   const ready = await waitForSessionReady('/organizer/dashboard', cookie);
   assert.equal(ready, true);
 

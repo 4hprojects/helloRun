@@ -316,3 +316,30 @@
   font-size: 12px;
   font-weight: 700;
 }
+/* Rich organizer-authored event details */
+.event-rich-details {
+  color: #334155;
+  line-height: 1.7;
+}
+
+.event-rich-details h1,
+.event-rich-details h2,
+.event-rich-details h3,
+.event-rich-details h4 {
+  color: #0f172a;
+  margin: 1.25rem 0 0.5rem;
+}
+
+.event-rich-details table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.95rem;
+}
+
+.event-rich-details th,
+.event-rich-details td {
+  border: 1px solid #e2e8f0;
+  padding: 0.6rem;
+  text-align: left;
+}

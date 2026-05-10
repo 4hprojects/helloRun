@@ -105,6 +105,7 @@ exports.uploadEventBranding = (req, res, next) => {
     { name: 'bannerImageFile', maxCount: 1 },
     { name: 'logoFile', maxCount: 1 },
     { name: 'posterImageFile', maxCount: 1 },
+    { name: 'paymentQrImageFile', maxCount: 1 },
     { name: 'galleryImageFiles', maxCount: 12 }
   ]);
 
@@ -225,7 +226,14 @@ exports.uploadOrganizerDocsToR2 = async ({ userId, idProofFile, businessProofFil
   return { idProof, businessProof };
 };
 
-exports.uploadEventBrandingToR2 = async ({ userId, bannerImageFile, logoFile, posterImageFile, galleryImageFiles }) => {
+exports.uploadEventBrandingToR2 = async ({
+  userId,
+  bannerImageFile,
+  logoFile,
+  posterImageFile,
+  paymentQrImageFile,
+  galleryImageFiles
+}) => {
   assertR2Configured();
 
   const result = {};
@@ -251,6 +259,14 @@ exports.uploadEventBrandingToR2 = async ({ userId, bannerImageFile, logoFile, po
       userId,
       file: posterImageFile,
       category: 'event-branding/poster'
+    });
+  }
+
+  if (paymentQrImageFile) {
+    result.paymentQr = await uploadFileToR2({
+      userId,
+      file: paymentQrImageFile,
+      category: 'event-payments/qr'
     });
   }
 

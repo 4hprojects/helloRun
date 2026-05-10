@@ -46,6 +46,8 @@
           <p><strong>Event Type:</strong> <%= previewEvent.eventType || 'N/A' %></p>
           <p><strong>Allowed Modes:</strong> <%= (previewEvent.eventTypesAllowed || []).join(', ') || 'N/A' %></p>
           <p><strong>Race Distances:</strong> <%= (previewEvent.raceDistances || []).join(', ') || 'N/A' %></p>
+          <p><strong>Fee:</strong> <%= previewEvent.feeMode === 'paid' ? `${previewEvent.feeCurrency || 'PHP'} ${Number(previewEvent.feeAmount || 0).toFixed(2)}` : 'Free' %></p>
+          <p><strong>Pricing Mode:</strong> <%= previewEvent.pricingMode || 'free' %></p>
         </article>
 
         <article class="detail-card">
@@ -84,6 +86,58 @@
           <h3>Description</h3>
           <p><%= previewEvent.description || 'N/A' %></p>
         </article>
+
+        <article class="detail-card">
+          <h3>Payment Acceptance</h3>
+          <p><strong>Mode:</strong> <%= previewEvent.feeMode === 'paid' ? 'Paid' : 'Free' %></p>
+          <p><strong>Suggested Setup Total:</strong> <%= previewEvent.feeCurrency || 'PHP' %> <%= Number(previewEvent.suggestedEventFee || 0).toFixed(2) %></p>
+          <p><strong>Organizer Final Fee:</strong> <%= previewEvent.finalEventFee !== null && previewEvent.finalEventFee !== undefined ? `${previewEvent.feeCurrency || 'PHP'} ${Number(previewEvent.finalEventFee || 0).toFixed(2)}` : 'N/A' %></p>
+          <% if (previewEvent.feeMode === 'paid') { %>
+            <p><strong>Account:</strong> <%= previewEvent.paymentAccountName || 'N/A' %></p>
+            <p><strong>Payment QR:</strong> <%= previewEvent.paymentQrImageUrl ? 'Configured' : 'Missing' %></p>
+            <p><strong>Instructions:</strong> <%= previewEvent.paymentInstructions || 'N/A' %></p>
+          <% } %>
+        </article>
+
+        <article class="detail-card">
+          <h3>Rewards and Packages</h3>
+          <% const previewPhysicalRewardItems = [
+            previewEvent.physicalRewardMedalEnabled ? `Medal (${previewEvent.feeCurrency || 'PHP'} ${Number(previewEvent.physicalRewardMedalAmount || 0).toFixed(2)})` : '',
+            previewEvent.physicalRewardShirtEnabled ? `Shirt (${previewEvent.feeCurrency || 'PHP'} ${Number(previewEvent.physicalRewardShirtAmount || 0).toFixed(2)})` : '',
+            previewEvent.physicalRewardPatchEnabled ? `Patch (${previewEvent.feeCurrency || 'PHP'} ${Number(previewEvent.physicalRewardPatchAmount || 0).toFixed(2)})` : '',
+            previewEvent.physicalRewardTowelEnabled ? `Towel (${previewEvent.feeCurrency || 'PHP'} ${Number(previewEvent.physicalRewardTowelAmount || 0).toFixed(2)})` : '',
+            previewEvent.physicalRewardFinisherKitEnabled ? `Finisher Kit (${previewEvent.feeCurrency || 'PHP'} ${Number(previewEvent.physicalRewardFinisherKitAmount || 0).toFixed(2)})` : ''
+          ].filter(Boolean); %>
+          <p><strong>Digital Badge:</strong> <%= previewEvent.digitalBadgeEnabled ? 'Enabled' : 'Disabled' %></p>
+          <p><strong>Digital Certificate:</strong> <%= previewEvent.digitalCertificateEnabled === false ? 'Disabled' : 'Enabled' %></p>
+          <p><strong>Leaderboard Recognition:</strong> <%= previewEvent.leaderboardRecognitionEnabled === false ? 'Disabled' : 'Enabled' %></p>
+          <p><strong>Physical Rewards:</strong> <%= previewEvent.physicalRewardsEnabled ? 'Enabled' : 'Disabled' %></p>
+          <% if (previewEvent.physicalRewardsEnabled && previewPhysicalRewardItems.length) { %>
+            <p><strong>Included Items:</strong> <%= previewPhysicalRewardItems.join(', ') %></p>
+          <% } %>
+          <% if (previewEvent.physicalRewardsEnabled && previewEvent.physicalRewardsDescription) { %>
+            <p><%= previewEvent.physicalRewardsDescription %></p>
+          <% } %>
+          <% if ((previewEvent.physicalRewardOtherItems || []).length) { %>
+            <p><strong>Custom Merchandise:</strong> <%= previewEvent.physicalRewardOtherItems.map((item) => `${item.name || 'Unnamed'} (${previewEvent.feeCurrency || 'PHP'} ${Number(item.amount || 0).toFixed(2)})`).join(', ') %></p>
+          <% } %>
+          <% if ((previewEvent.registrationPackages || []).length) { %>
+            <p><strong>Packages:</strong> <%= previewEvent.registrationPackages.map((packageOption) => packageOption.name || 'Unnamed package').join(', ') %></p>
+          <% } %>
+          <% if (previewEvent.deliveryFeeEnabled) { %>
+            <p><strong>Delivery/Claiming:</strong> <%= previewEvent.claimingMethod || 'delivery' %>, <%= previewEvent.feeCurrency || 'PHP' %> <%= Number(previewEvent.deliveryFeeAmount || 0).toFixed(2) %></p>
+          <% } %>
+          <% if ((previewEvent.specialRewardBenefits || []).length) { %>
+            <p><strong>Special Benefits:</strong> <%= previewEvent.specialRewardBenefits.map((benefit) => benefit.title || 'Untitled benefit').join(', ') %></p>
+          <% } %>
+        </article>
+
+        <% if (eventDetailsHtml) { %>
+          <article class="detail-card detail-card-full">
+            <h3>Event Details</h3>
+            <div class="event-rich-details"><%- eventDetailsHtml %></div>
+          </article>
+        <% } %>
 
         <article class="detail-card">
           <h3>Branding</h3>
