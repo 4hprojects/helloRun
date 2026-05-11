@@ -72,8 +72,18 @@ test('create and edit event views expose ordered create-event sections', () => {
     for (const className of requiredSectionClasses) {
       assert.match(content, new RegExp(className), `${file} should include ${className}`);
     }
-    assert.match(content, /class="form-section form-section-core" tabindex="-1"/, `${file} should make Core Details focusable`);
-    assert.match(content, /coreDetailsSection\.focus\(\{ preventScroll: true \}\)/, `${file} should focus Core Details on load`);
+    if (file.endsWith('create-event.ejs')) {
+      assert.match(content, /form-section-event-type" tabindex="-1"/, `${file} should make Event Type focusable`);
+      assert.match(content, /eventTypeSection\.focus\(\{ preventScroll: true \}\)/, `${file} should focus Event Type on load`);
+      assert.match(content, /wizard-progress/, `${file} should include guided wizard progress`);
+      assert.match(content, /form-section-race-categories/, `${file} should expose the race category step`);
+      assert.match(content, /form-section-review/, `${file} should expose the preview and submit step`);
+      assert.match(content, /data-event-type-card="virtual"[\s\S]*Virtual Event/, `${file} should explain virtual events`);
+      assert.match(content, /raceCategoryHelper\.textContent/, `${file} should update race category guidance by event type`);
+    } else {
+      assert.match(content, /class="form-section form-section-core" tabindex="-1"/, `${file} should make Core Details focusable`);
+      assert.match(content, /coreDetailsSection\.focus\(\{ preventScroll: true \}\)/, `${file} should focus Core Details on load`);
+    }
     assert.doesNotMatch(content, /id="title"[\s\S]*?autofocus/, `${file} should not steal focus with the title field`);
     assert.match(content, /Leaderboard Mode[\s\S]*?name="leaderboardRecognitionEnabled"/, `${file} should group leaderboard recognition with leaderboard settings`);
     const rewardsSection = content.match(/form-section-rewards[\s\S]*?form-section-details/);
@@ -92,23 +102,39 @@ test('create and edit event views expose ordered create-event sections', () => {
     assert.match(content, /name="physicalRewardFinisherKitEnabled"/, `${file} should expose finisher kit reward item`);
     assert.match(content, /name="physicalRewardOtherItemName"/, `${file} should expose custom merchandise items`);
     assert.match(content, /name="registrationPackageName"/, `${file} should expose registration packages`);
+    assert.match(content, /Use suggested dates/, `${file} should expose suggested pricing date controls`);
+    assert.match(content, /first 14 days after registration opens/, `${file} should explain early bird suggested dates`);
+    assert.match(content, /final 7 days before registration closes/, `${file} should explain late registration suggested dates`);
+    assert.match(content, /applySuggestedPricingDates/, `${file} should wire suggested pricing date controls`);
     assert.match(content, /name="deliveryFeeAmount"/, `${file} should expose delivery fee`);
     assert.match(content, /name="claimingMethod"/, `${file} should expose claiming method`);
     assert.match(content, /name="specialRewardBenefitTitle"/, `${file} should expose special reward benefits`);
+    assert.doesNotMatch(content, /name="minimumActivityDistanceKm"/, `${file} should not expose minimum activity distance`);
+    assert.doesNotMatch(content, /name="milestoneDistancesKm"/, `${file} should not expose manual milestone setup`);
+    assert.match(content, /Final Submission Deadline[\s\S]*Event End plus 14 days/, `${file} should explain the final submission deadline grace period`);
+    assert.match(content, /Virtual Window Start[\s\S]*Defaults to Event Start/, `${file} should explain the virtual window start default`);
+    assert.match(content, /Virtual Window End[\s\S]*Defaults to Event End/, `${file} should explain the virtual window end default`);
+    assert.match(content, /syncVirtualWindowFromEventDates/, `${file} should auto-fill virtual window dates from event dates`);
+    assert.match(content, /virtualStartWasAutoFilled/, `${file} should stop auto-filling virtual start after manual edits`);
+    assert.match(content, /virtualEndWasAutoFilled/, `${file} should stop auto-filling virtual end after manual edits`);
   }
 
   const css = fs.readFileSync(path.join(ROOT, 'src/public/css/create-event.css'), 'utf8');
-  assert.match(css, /\.create-event-form\s*\{[^}]*display:\s*flex/s);
+  assert.match(css, /\.create-event-form\s*\{[^}]*display:\s*grid/s);
+  assert.match(css, /\.wizard-progress\s*\{[^}]*position:\s*sticky/s);
   assert.match(css, /\.form-section:focus\s*\{[^}]*outline:\s*2px solid var\(--border-focus\)/s);
-  assert.match(css, /\.form-section-core\s*\{[^}]*order:\s*10/s);
-  assert.match(css, /\.form-section-schedule\s*\{[^}]*order:\s*20/s);
-  assert.match(css, /\.form-section-location\s*\{[^}]*order:\s*30/s);
+  assert.match(css, /\.form-section-event-type\s*\{[^}]*order:\s*10/s);
+  assert.match(css, /\.form-section-core\s*\{[^}]*order:\s*20/s);
+  assert.match(css, /\.form-section-schedule\s*\{[^}]*order:\s*30/s);
+  assert.match(css, /\.form-section-location\s*\{[^}]*order:\s*40/s);
   assert.match(css, /\.form-section-virtual\s*\{[^}]*order:\s*40/s);
-  assert.match(css, /\.form-section-rewards\s*\{[^}]*order:\s*50/s);
-  assert.match(css, /\.form-section-fees\s*\{[^}]*order:\s*60/s);
-  assert.match(css, /\.form-section-details\s*\{[^}]*order:\s*70/s);
-  assert.match(css, /\.form-section-media\s*\{[^}]*order:\s*80/s);
-  assert.match(css, /\.form-section-waiver\s*\{[^}]*order:\s*90/s);
+  assert.match(css, /\.form-section-race-categories\s*\{[^}]*order:\s*50/s);
+  assert.match(css, /\.form-section-rewards\s*\{[^}]*order:\s*60/s);
+  assert.match(css, /\.form-section-fees\s*\{[^}]*order:\s*70/s);
+  assert.match(css, /\.form-section-details\s*\{[^}]*order:\s*80/s);
+  assert.match(css, /\.form-section-media\s*\{[^}]*order:\s*90/s);
+  assert.match(css, /\.form-section-waiver\s*\{[^}]*order:\s*100/s);
+  assert.match(css, /\.form-section-review\s*\{[^}]*order:\s*110/s);
 });
 
 test('create-event sanitizes waiver html before saving', async () => {
@@ -169,7 +195,7 @@ test('approved verified organizer can open create-event page', async () => {
   assert.match(html, /Event Format/i);
 });
 
-test('create-event page preloads 2026K defaults and new event setup fields', async () => {
+test('create-event page opens with guided blank defaults and new event setup fields', async () => {
   const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
   const ready = await waitForSessionReady('/organizer/dashboard', cookie);
   assert.equal(ready, true);
@@ -180,15 +206,87 @@ test('create-event page preloads 2026K defaults and new event setup fields', asy
 
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /2026K Accumulated Run Challenge/i);
+  assert.doesNotMatch(html, /2026K Accumulated Run Challenge/i);
+  assert.match(html, /id="title" name="title" type="text" value=""/i);
+  assert.match(html, /id="organiserName" name="organiserName" type="text" value="Waiver Owner"/i);
+  assert.match(html, /Defaults to the account owner's name/i);
+  assert.match(html, /id="description"[\s\S]*?>\s*<\/textarea>/i);
+  assert.match(html, /id="eventDetailsMarkdown"[\s\S]*?>\s*<\/textarea>/i);
+  assert.match(html, /id="eventType"[\s\S]*<option value="">Select event type<\/option>/i);
+  assert.match(html, /id="raceDistanceCustom" name="raceDistanceCustom" type="text" value=""/i);
+  assert.match(html, /<option value="free" selected>Free<\/option>/i);
+  assert.match(html, /id="feeCurrency" name="feeCurrency" type="text" value="PHP"/i);
+  assert.match(html, /<option value="accumulated_distance" selected>Accumulated distance challenge<\/option>/i);
+  assert.doesNotMatch(html, /name="minimumActivityDistanceKm"/i);
+  assert.doesNotMatch(html, /name="milestoneDistancesKm"/i);
   assert.match(html, /name="eventDetailsMarkdown"/i);
-  assert.match(html, /value="2026K"/i);
   assert.match(html, /name="feeMode"/i);
   assert.match(html, /Total Event Fee/i);
   assert.match(html, /Payment QR Image/i);
   assert.match(html, /Digital Finisher Certificate/i);
   assert.match(html, /name="physicalRewardMedalEnabled"/i);
   assert.match(html, /name="physicalRewardFinisherKitEnabled"/i);
+});
+
+test('create-event form normalization returns guided blank defaults without a request body', () => {
+  const formData = getCreateEventFormData();
+
+  assert.equal(formData.title, '');
+  assert.equal(formData.description, '');
+  assert.equal(formData.eventDetailsMarkdown, '');
+  assert.equal(formData.eventType, '');
+  assert.deepEqual(formData.raceDistances, []);
+  assert.equal(formData.raceDistanceCustom, '');
+  assert.equal(formData.registrationOpenAt, '');
+  assert.equal(formData.eventStartAt, '');
+  assert.equal(formData.virtualCompletionMode, 'accumulated_distance');
+  assert.deepEqual(formData.acceptedRunTypes, ['run', 'walk', 'hike', 'trail_run']);
+  assert.equal(formData.recognitionMode, 'completion_with_optional_ranking');
+  assert.equal(formData.leaderboardMode, 'finishers_and_top_distance');
+  assert.equal(formData.feeMode, 'free');
+  assert.equal(formData.feeCurrency, 'PHP');
+  assert.equal(formData.pricingMode, 'free');
+  assert.equal(formData.digitalBadgeEnabled, false);
+  assert.equal(formData.digitalCertificateEnabled, false);
+  assert.equal(formData.leaderboardRecognitionEnabled, false);
+  assert.match(formData.waiverTemplate, /Waiver and Release Form Acknowledgment/i);
+});
+
+test('create-event form normalization still supports explicit 2026K accumulated challenge data', () => {
+  const formData = getCreateEventFormData({
+    title: '2026K Accumulated Run Challenge',
+    description: 'A year-long accumulated challenge with enough detail for validation.',
+    eventType: 'virtual',
+    raceDistanceCustom: '2026K',
+    registrationOpenAt: '2026-05-08T00:00',
+    registrationCloseAt: '2026-05-31T23:59',
+    eventStartAt: '2026-01-01T00:00',
+    eventEndAt: '2026-12-31T23:59',
+    virtualStartAt: '2026-01-01T00:00',
+    virtualEndAt: '2026-12-31T23:59',
+    proofTypesAllowed: ['gps', 'photo'],
+    virtualCompletionMode: 'accumulated_distance',
+    targetDistanceKm: '2026',
+    finalSubmissionDeadlineAt: '2026-12-31T23:59',
+    acceptedRunTypes: ['run', 'walk', 'hike', 'trail_run'],
+    recognitionMode: 'completion_with_optional_ranking',
+    leaderboardMode: 'finishers_and_top_distance',
+    feeMode: 'free',
+    feeCurrency: 'PHP',
+    digitalBadgeEnabled: '1',
+    digitalCertificateEnabled: '1',
+    leaderboardRecognitionEnabled: '1'
+  });
+
+  assert.equal(formData.title, '2026K Accumulated Run Challenge');
+  assert.deepEqual(formData.raceDistances, ['2026K']);
+  assert.equal(formData.virtualCompletionMode, 'accumulated_distance');
+  assert.equal(formData.targetDistanceKm, 2026);
+  assert.deepEqual(formData.proofTypesAllowed, ['gps', 'photo']);
+  assert.deepEqual(formData.acceptedRunTypes, ['run', 'walk', 'hike', 'trail_run']);
+  assert.equal(formData.digitalBadgeEnabled, true);
+  assert.equal(formData.digitalCertificateEnabled, true);
+  assert.equal(formData.leaderboardRecognitionEnabled, true);
 });
 
 test('applyEventFormData clears physical reward item flags when physical rewards are disabled', () => {
@@ -407,9 +505,7 @@ test('create-event accumulated-distance draft saves setup fields', async () => {
     actionType: 'draft',
     virtualCompletionMode: 'accumulated_distance',
     targetDistanceKm: '100',
-    minimumActivityDistanceKm: '1',
     finalSubmissionDeadlineAt: toLocalDateTimeString(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)),
-    milestoneDistancesKm: '25, 50, 75, 100',
     recognitionMode: 'completion_with_optional_ranking',
     leaderboardMode: 'finishers_and_top_distance'
   });
@@ -436,9 +532,9 @@ test('create-event accumulated-distance draft saves setup fields', async () => {
   assert.equal(event.status, 'draft');
   assert.equal(event.virtualCompletionMode, 'accumulated_distance');
   assert.equal(event.targetDistanceKm, 100);
-  assert.equal(event.minimumActivityDistanceKm, 1);
+  assert.equal(event.minimumActivityDistanceKm, null);
   assert.deepEqual(event.acceptedRunTypes, ['run', 'walk', 'hike', 'trail_run']);
-  assert.deepEqual(event.milestoneDistancesKm, [25, 50, 75, 100]);
+  assert.deepEqual(event.milestoneDistancesKm, []);
   assert.equal(event.recognitionMode, 'completion_with_optional_ranking');
   assert.equal(event.leaderboardMode, 'finishers_and_top_distance');
 });
@@ -454,7 +550,6 @@ test('create-event accumulated-distance publish accepts configured challenge', a
     virtualCompletionMode: 'accumulated_distance'
   });
   payload.set('targetDistanceKm', '100');
-  payload.set('minimumActivityDistanceKm', '1');
   payload.append('acceptedRunTypes', 'run');
   await appendCreateEventCsrf(payload, cookie);
 
@@ -475,9 +570,13 @@ test('create-event accumulated-distance publish accepts configured challenge', a
   assert.equal(event.status, 'pending_review');
   assert.equal(event.virtualCompletionMode, 'accumulated_distance');
   assert.equal(event.targetDistanceKm, 100);
-  assert.equal(event.minimumActivityDistanceKm, 1);
+  assert.equal(event.minimumActivityDistanceKm, null);
   assert.deepEqual(event.acceptedRunTypes, ['run']);
   assert.ok(event.finalSubmissionDeadlineAt);
+  const expectedDeadline = new Date(payload.get('eventEndAt'));
+  expectedDeadline.setDate(expectedDeadline.getDate() + 14);
+  assert.equal(toLocalDateTimeString(event.finalSubmissionDeadlineAt), toLocalDateTimeString(expectedDeadline));
+  assert.deepEqual(event.milestoneDistancesKm, []);
 });
 
 test('create-event accumulated-distance publish rejects missing challenge setup', async () => {
@@ -490,7 +589,8 @@ test('create-event accumulated-distance publish rejects missing challenge setup'
     virtualCompletionMode: 'accumulated_distance'
   });
   payload.delete('targetDistanceKm');
-  payload.delete('minimumActivityDistanceKm');
+  payload.append('raceDistancePresets', '10K');
+  payload.delete('acceptedRunTypes');
   await appendCreateEventCsrf(payload, cookie);
 
   const response = await fetch(`${BASE_URL}/organizer/create-event`, {
@@ -506,7 +606,6 @@ test('create-event accumulated-distance publish rejects missing challenge setup'
   assert.equal(response.status, 400);
   const html = await response.text();
   assert.match(html, /Target distance is required for accumulated-distance events/i);
-  assert.match(html, /Minimum activity distance is required for accumulated-distance events/i);
   assert.match(html, /Select at least one accepted activity type/i);
 });
 

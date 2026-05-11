@@ -694,9 +694,12 @@ p {
     outline-offset: 3px;
 }
 
-.global-back-to-top i {
+.global-back-to-top i,
+.global-back-to-top svg {
     width: 1.05rem;
     height: 1.05rem;
+    flex-shrink: 0;
+    pointer-events: none;
 }
 
 /* Enhanced Mobile Responsiveness */

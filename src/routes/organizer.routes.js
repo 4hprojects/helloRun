@@ -17,7 +17,6 @@ const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
 const { DEFAULT_WAIVER_TEMPLATE, normalizeWaiverTemplate } = require('../utils/waiver');
 const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
-const { get2026KCreateEventDefaults } = require('../utils/event-template');
 const { markdownToHtml } = require('../utils/markdown');
 const { generateUniqueReferenceCode } = require('../utils/referenceCode');
 const { canOrganizerReviewPaymentProof } = require('../utils/payment-workflow');
@@ -418,11 +417,17 @@ router.get('/create-event', requireCanCreateEvents, async (req, res) => {
       });
     }
 
+    const formData = getCreateEventFormData();
+    const accountOwnerName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    if (!formData.organiserName && accountOwnerName) {
+      formData.organiserName = accountOwnerName;
+    }
+
     return res.render('organizer/create-event', {
       title: 'Create Event - helloRun',
       user,
       errors: {},
-      formData: getCreateEventFormData(),
+      formData,
       countries,
       defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
       message: getPageMessage(req.query)
@@ -468,7 +473,9 @@ router.get('/preview-event', requireCanCreateEvents, async (req, res) => {
         startAt: parseDateSafe(formData.virtualStartAt),
         endAt: parseDateSafe(formData.virtualEndAt)
       },
-      finalSubmissionDeadlineAt: parseDateSafe(formData.finalSubmissionDeadlineAt),
+      finalSubmissionDeadlineAt: formData.virtualCompletionMode === 'accumulated_distance'
+        ? resolveFinalSubmissionDeadline(formData)
+        : null,
       geo: formData.geoLat && formData.geoLng
         ? { lat: Number(formData.geoLat), lng: Number(formData.geoLng) }
         : null
@@ -1442,18 +1449,14 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     event.targetDistanceKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
       ? formData.targetDistanceKm
       : null;
-    event.minimumActivityDistanceKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-      ? formData.minimumActivityDistanceKm
-      : null;
+    event.minimumActivityDistanceKm = null;
     event.acceptedRunTypes = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
       ? formData.acceptedRunTypes
       : [];
     event.finalSubmissionDeadlineAt = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-      ? (parseDateSafe(formData.finalSubmissionDeadlineAt) || parseDateSafe(formData.virtualEndAt))
+      ? resolveFinalSubmissionDeadline(formData)
       : null;
-    event.milestoneDistancesKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-      ? formData.milestoneDistancesKm
-      : [];
+    event.milestoneDistancesKm = [];
     event.recognitionMode = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
       ? formData.recognitionMode
       : 'completion_only';
@@ -1806,7 +1809,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     const eventTypesAllowed = getEventTypesAllowed(formData.eventType);
     const isVirtualMode = formData.eventType === 'virtual' || formData.eventType === 'hybrid';
     const finalSubmissionDeadlineAt = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-      ? (parseDateSafe(formData.finalSubmissionDeadlineAt) || parseDateSafe(formData.virtualEndAt))
+      ? resolveFinalSubmissionDeadline(formData)
       : null;
 
     const bannerImageFile = req.files?.bannerImageFile?.[0] || null;
@@ -1908,18 +1911,14 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
       targetDistanceKm: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
         ? formData.targetDistanceKm
         : null,
-      minimumActivityDistanceKm: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-        ? formData.minimumActivityDistanceKm
-        : null,
+      minimumActivityDistanceKm: null,
       acceptedRunTypes: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
         ? formData.acceptedRunTypes
         : [],
       finalSubmissionDeadlineAt: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
         ? finalSubmissionDeadlineAt
         : null,
-      milestoneDistancesKm: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-        ? formData.milestoneDistancesKm
-        : [],
+      milestoneDistancesKm: [],
       recognitionMode: isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
         ? formData.recognitionMode
         : 'completion_only',
@@ -2763,6 +2762,17 @@ function parseDateSafe(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function addDays(date, days) {
+  if (!date) return null;
+  const copy = new Date(date.getTime());
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+function resolveFinalSubmissionDeadline(formData) {
+  return parseDateSafe(formData.finalSubmissionDeadlineAt) || addDays(parseDateSafe(formData.eventEndAt), 14);
+}
+
 function formatDateOnly(value) {
   if (!value) return '';
   const date = new Date(value);
@@ -2855,7 +2865,15 @@ function normalizeCurrency(value) {
 }
 
 function getDefaultedCreateEventBody(body = {}) {
-  return Object.keys(body || {}).length ? body : get2026KCreateEventDefaults();
+  return Object.keys(body || {}).length ? body : {
+    feeMode: 'free',
+    feeCurrency: 'PHP',
+    pricingMode: 'free',
+    virtualCompletionMode: 'accumulated_distance',
+    acceptedRunTypes: ['run', 'walk', 'hike', 'trail_run'],
+    recognitionMode: 'completion_with_optional_ranking',
+    leaderboardMode: 'finishers_and_top_distance'
+  };
 }
 
 function normalizeOrganizerDashboardRange(value) {

@@ -2,7 +2,6 @@ const Event = require('../models/Event');
 const { getCountries, isValidCountryCode, normalizeCountryCode } = require('../utils/country');
 const { DEFAULT_WAIVER_TEMPLATE, normalizeWaiverTemplate } = require('../utils/waiver');
 const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
-const { get2026KCreateEventDefaults } = require('../utils/event-template');
 
 const countries = getCountries();
 const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K']);
@@ -66,7 +65,7 @@ function normalizeModeValue(value, allowedValues, fallback) {
 }
 
 function normalizeVirtualCompletionMode(value) {
-  return normalizeModeValue(value, VIRTUAL_COMPLETION_MODES, 'single_activity');
+  return normalizeModeValue(value, VIRTUAL_COMPLETION_MODES, 'accumulated_distance');
 }
 
 function normalizeRunTypes(value) {
@@ -263,8 +262,20 @@ function calculateSuggestedEventFee(formData) {
   return Number(total.toFixed(2));
 }
 
+function getBlankCreateEventDefaults() {
+  return {
+    feeMode: 'free',
+    feeCurrency: 'PHP',
+    pricingMode: 'free',
+    virtualCompletionMode: 'accumulated_distance',
+    acceptedRunTypes: ['run', 'walk', 'hike', 'trail_run'],
+    recognitionMode: 'completion_with_optional_ranking',
+    leaderboardMode: 'finishers_and_top_distance'
+  };
+}
+
 function getDefaultedCreateEventBody(body = {}) {
-  return Object.keys(body || {}).length ? body : get2026KCreateEventDefaults();
+  return Object.keys(body || {}).length ? body : getBlankCreateEventDefaults();
 }
 
 function normalizeMilestoneDistances(value) {
@@ -273,6 +284,33 @@ function normalizeMilestoneDistances(value) {
     .map((item) => Number(String(item || '').trim()))
     .filter((item) => Number.isFinite(item) && item > 0)
     .slice(0, 20);
+}
+
+function parseRaceDistanceKm(label) {
+  const value = String(label || '').trim().toUpperCase().replace(/\s+/g, '');
+  const match = value.match(/^(\d+(?:\.\d+)?)(K|KM)$/);
+  if (!match) return null;
+  const distance = Number(match[1]);
+  return Number.isFinite(distance) && distance > 0 ? distance : null;
+}
+
+function inferTargetDistanceKm(raceDistances = []) {
+  const targets = Array.from(new Set((raceDistances || []).map(parseRaceDistanceKm).filter((item) => item !== null)));
+  return targets.length === 1 ? targets[0] : null;
+}
+
+function addDays(date, days) {
+  if (!date) return null;
+  const copy = new Date(date.getTime());
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+function resolveFinalSubmissionDeadline(formData) {
+  const explicitDeadline = parseDateSafe(formData.finalSubmissionDeadlineAt);
+  if (explicitDeadline) return explicitDeadline;
+  const eventEndAt = parseDateSafe(formData.eventEndAt);
+  return addDays(eventEndAt, 14);
 }
 
 function sanitizeWaiverTemplate(value) {
@@ -285,6 +323,7 @@ function getCreateEventFormData(body = {}) {
   const isDefaultCreateBody = !Object.keys(body || {}).length;
   body = getDefaultedCreateEventBody(body);
   const raceDistances = normalizeRaceDistances(body);
+  const targetDistanceKm = parseOptionalPositiveNumber(body.targetDistanceKm) ?? inferTargetDistanceKm(raceDistances);
   const galleryImageUrls = normalizeGalleryImageUrls(body.galleryImageUrlsText || body.galleryImageUrls);
   const waiverTemplateRaw = body.waiverTemplate || DEFAULT_WAIVER_TEMPLATE;
   const feeMode = normalizeModeValue(body.feeMode, FEE_MODES, 'free');
@@ -346,14 +385,14 @@ function getCreateEventFormData(body = {}) {
     virtualEndAt: body.virtualEndAt || '',
     proofTypesAllowed: normalizeProofTypes(body.proofTypesAllowed),
     virtualCompletionMode: normalizeVirtualCompletionMode(body.virtualCompletionMode),
-    targetDistanceKm: parseOptionalPositiveNumber(body.targetDistanceKm),
+    targetDistanceKm,
     minimumActivityDistanceKm: parseOptionalPositiveNumber(body.minimumActivityDistanceKm),
     acceptedRunTypes: normalizeRunTypes(body.acceptedRunTypes),
     finalSubmissionDeadlineAt: body.finalSubmissionDeadlineAt || '',
     milestoneDistancesKm: normalizeMilestoneDistances(body.milestoneDistancesKm),
     milestoneDistancesText: normalizeMilestoneDistances(body.milestoneDistancesKm).join(', '),
-    recognitionMode: normalizeModeValue(body.recognitionMode, RECOGNITION_MODES, 'completion_only'),
-    leaderboardMode: normalizeModeValue(body.leaderboardMode, LEADERBOARD_MODES, 'finishers'),
+    recognitionMode: normalizeModeValue(body.recognitionMode, RECOGNITION_MODES, 'completion_with_optional_ranking'),
+    leaderboardMode: normalizeModeValue(body.leaderboardMode, LEADERBOARD_MODES, 'finishers_and_top_distance'),
     raceDistances,
     raceDistancePresets: raceDistances.filter((item) => RACE_DISTANCE_PRESETS.has(item)),
     raceDistanceCustom: String(body.raceDistanceCustom || '').trim(),
@@ -550,9 +589,6 @@ function validateOptionalCreateEventFields(formData, errors) {
   if (formData.targetDistanceKm !== null && (!Number.isFinite(formData.targetDistanceKm) || formData.targetDistanceKm <= 0)) {
     errors.targetDistanceKm = 'Target distance must be greater than 0.';
   }
-  if (formData.minimumActivityDistanceKm !== null && (!Number.isFinite(formData.minimumActivityDistanceKm) || formData.minimumActivityDistanceKm <= 0)) {
-    errors.minimumActivityDistanceKm = 'Minimum activity distance must be greater than 0.';
-  }
   if (formData.feeMode === 'paid') {
     if (formData.feeAmount !== null && (!Number.isFinite(formData.feeAmount) || formData.feeAmount <= 0)) {
       errors.feeAmount = 'Paid events must use an amount greater than 0.';
@@ -689,9 +725,6 @@ function validateCreateEventForm(formData) {
       if (!Number.isFinite(formData.targetDistanceKm) || formData.targetDistanceKm <= 0) {
         errors.targetDistanceKm = 'Target distance is required for accumulated-distance events.';
       }
-      if (!Number.isFinite(formData.minimumActivityDistanceKm) || formData.minimumActivityDistanceKm <= 0) {
-        errors.minimumActivityDistanceKm = 'Minimum activity distance is required for accumulated-distance events.';
-      }
       if (!Array.isArray(formData.acceptedRunTypes) || !formData.acceptedRunTypes.length) {
         errors.acceptedRunTypes = 'Select at least one accepted activity type.';
       }
@@ -742,12 +775,12 @@ function applyEventFormData(event, formData, user) {
   event.proofTypesAllowed = isVirtualMode ? formData.proofTypesAllowed : [];
   event.virtualCompletionMode = isVirtualMode ? formData.virtualCompletionMode : 'single_activity';
   event.targetDistanceKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance' ? formData.targetDistanceKm : null;
-  event.minimumActivityDistanceKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance' ? formData.minimumActivityDistanceKm : null;
+  event.minimumActivityDistanceKm = null;
   event.acceptedRunTypes = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance' ? formData.acceptedRunTypes : [];
   event.finalSubmissionDeadlineAt = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-    ? (parseDateSafe(formData.finalSubmissionDeadlineAt) || parseDateSafe(formData.virtualEndAt))
+    ? resolveFinalSubmissionDeadline(formData)
     : null;
-  event.milestoneDistancesKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance' ? formData.milestoneDistancesKm : [];
+  event.milestoneDistancesKm = [];
   event.recognitionMode = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance' ? formData.recognitionMode : 'completion_only';
   event.leaderboardMode = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance' ? formData.leaderboardMode : 'finishers';
   event.feeMode = formData.feeMode === 'paid' ? 'paid' : 'free';

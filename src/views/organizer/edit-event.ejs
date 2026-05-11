@@ -47,21 +47,18 @@
               <input id="title" name="title" type="text" value="<%= formData.title %>" required>
             </div>
             <div class="form-group">
-              <label for="organiserName">Organizer Name</label>
+              <label for="organiserName" class="label-with-help">
+                Organizer Name
+                <span class="field-help-icon" tabindex="0" aria-label="Defaults to the account owner's name for new events. Change this if the event should display a club, brand, or team name instead.">?</span>
+              </label>
               <input id="organiserName" name="organiserName" type="text" value="<%= formData.organiserName %>">
             </div>
             <div class="form-group form-group-full">
-              <label for="description">Description *</label>
+              <label for="description" class="label-with-help">
+                Description *
+                <span class="field-help-icon" tabindex="0" aria-label="This is the short public summary shown in event listings and previews. Put full rules, inclusions, FAQs, and proof instructions in Event Details.">?</span>
+              </label>
               <textarea id="description" name="description" rows="4" required><%= formData.description %></textarea>
-            </div>
-            <div class="form-group form-group-full">
-              <label for="eventType">Event Type *</label>
-              <select id="eventType" name="eventType" required>
-                <option value="">Select event type</option>
-                <option value="virtual" <%= formData.eventType === 'virtual' ? 'selected' : '' %>>Virtual</option>
-                <option value="onsite" <%= formData.eventType === 'onsite' ? 'selected' : '' %>>On-site</option>
-                <option value="hybrid" <%= formData.eventType === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
-              </select>
             </div>
             <div class="form-group form-group-full">
               <label>Race Distances *</label>
@@ -75,6 +72,15 @@
               <label for="raceDistanceCustom" style="margin-top:0.5rem;">Custom Distances (comma-separated)</label>
               <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" placeholder="e.g., 42K, 50K">
               <small class="field-hint">Final values are normalized like 3K, 5K, 10K.</small>
+            </div>
+            <div class="form-group form-group-full">
+              <label for="eventType">Event Type *</label>
+              <select id="eventType" name="eventType" required>
+                <option value="">Select event type</option>
+                <option value="virtual" <%= formData.eventType === 'virtual' ? 'selected' : '' %>>Virtual</option>
+                <option value="onsite" <%= formData.eventType === 'onsite' ? 'selected' : '' %>>On-site</option>
+                <option value="hybrid" <%= formData.eventType === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
+              </select>
             </div>
           </div>
         </div>
@@ -193,6 +199,10 @@
                     <label><input type="checkbox" name="registrationPackageFinisherKit_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.finisherKit ? 'checked' : '' %>> Finisher Kit</label>
                   </div>
                   <input name="registrationPackageOtherItemNames" type="text" value="<%= (packageOption.includedItems?.otherItemNames || []).join(', ') %>" placeholder="Other included item names">
+                  <div class="pricing-period-actions">
+                    <button type="button" class="btn btn-outline btn-suggest-pricing-dates" data-package-index="<%= packageIndex %>">Use suggested dates</button>
+                    <small class="field-hint">Early Bird uses the first 14 days after registration opens. Late Registration uses the final 7 days before registration closes.</small>
+                  </div>
                   <div class="pricing-period-grid">
                     <% const early = findPeriod('early_bird'); const regular = findPeriod('regular'); const late = findPeriod('late'); %>
                     <input name="registrationPackageEarlyBirdStartAt" type="datetime-local" value="<%= early.startAt || '' %>" aria-label="Early bird start">
@@ -372,30 +382,6 @@
         <div class="form-section form-section-virtual virtual-section" style="display: none;">
           <div class="section-title">Virtual Rules (required for virtual/hybrid publishing)</div>
           <div class="form-grid">
-            <div class="form-group">
-              <label for="virtualStartAt">Virtual Window Start</label>
-              <div class="input-with-button">
-                <input id="virtualStartAt" name="virtualStartAt" type="datetime-local" value="<%= formData.virtualStartAt %>">
-                <button type="button" class="btn-now" data-target="virtualStartAt">Now</button>
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="virtualEndAt">Virtual Window End</label>
-              <div class="input-with-button">
-                <input id="virtualEndAt" name="virtualEndAt" type="datetime-local" value="<%= formData.virtualEndAt %>">
-                <button type="button" class="btn-now" data-target="virtualEndAt">Now</button>
-              </div>
-            </div>
-            <div class="form-group form-group-full">
-              <label>Proof Types Allowed</label>
-              <div class="checkbox-row">
-                <% const selectedProofs = formData.proofTypesAllowed || []; %>
-                <label><input type="checkbox" name="proofTypesAllowed" value="gps" <%= selectedProofs.includes('gps') ? 'checked' : '' %>> GPS</label>
-                <label><input type="checkbox" name="proofTypesAllowed" value="photo" <%= selectedProofs.includes('photo') ? 'checked' : '' %>> Photo</label>
-                <label><input type="checkbox" name="proofTypesAllowed" value="manual" <%= selectedProofs.includes('manual') ? 'checked' : '' %>> Manual</label>
-              </div>
-            </div>
-
             <div class="form-group form-group-full <%= errors.virtualCompletionMode ? 'has-error' : '' %>">
               <label for="virtualCompletionMode" class="label-with-help">
                 Event Format
@@ -424,25 +410,13 @@
                   <small id="targetDistanceHint" class="field-hint distance-auto-hint">If exactly one race distance is selected, this can be auto-filled from that distance.</small>
                   <% if (errors.targetDistanceKm) { %><small class="error-text"><%= errors.targetDistanceKm %></small><% } %>
                 </div>
-                <div class="form-group <%= errors.minimumActivityDistanceKm ? 'has-error' : '' %>">
-                  <label for="minimumActivityDistanceKm" class="label-with-help">
-                    Minimum Activity Distance
-                    <span class="field-help-icon" tabindex="0" aria-label="Minimum Activity Distance is the smallest distance a runner can submit per proof upload. It does not change the total challenge target.">?</span>
+                <div class="form-group">
+                  <label for="finalSubmissionDeadlineAt" class="label-with-help">
+                    Final Submission Deadline
+                    <span class="field-help-icon" tabindex="0" aria-label="Defaults to 14 days after Event End, giving runners time to upload proof while the event itself still ends on the Event End date.">?</span>
                   </label>
-                  <div class="distance-input-shell">
-                    <input id="minimumActivityDistanceKm" name="minimumActivityDistanceKm" type="number" min="0" step="0.01" value="<%= formData.minimumActivityDistanceKm || '' %>" placeholder="1" aria-describedby="minimumActivityDistanceHint">
-                    <span>km</span>
-                  </div>
-                  <small id="minimumActivityDistanceHint" class="field-hint">Example: with a 1 km minimum, 0.5 km proof is too short, but 3 km proof can count toward the target.</small>
-                  <% if (errors.minimumActivityDistanceKm) { %><small class="error-text"><%= errors.minimumActivityDistanceKm %></small><% } %>
-                </div>
-                <div class="form-group">
-                  <label for="finalSubmissionDeadlineAt">Final Submission Deadline</label>
                   <input id="finalSubmissionDeadlineAt" name="finalSubmissionDeadlineAt" type="datetime-local" value="<%= formData.finalSubmissionDeadlineAt || '' %>">
-                </div>
-                <div class="form-group">
-                  <label for="milestoneDistancesKm">Milestones (km, comma-separated)</label>
-                  <input id="milestoneDistancesKm" name="milestoneDistancesKm" type="text" value="<%= formData.milestoneDistancesText || '' %>" placeholder="25, 50, 75, 100">
+                  <small id="finalSubmissionDeadlineHint" class="field-hint">Auto-filled from Event End plus 14 days unless you edit it.</small>
                 </div>
                 <div class="form-group form-group-full">
                   <label>Accepted Activity Types</label>
@@ -477,6 +451,37 @@
                   </div>
                   <small class="field-hint">Controls whether leaderboard recognition is advertised for this accumulated challenge.</small>
                 </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="virtualStartAt" class="label-with-help">
+                Virtual Window Start
+                <span class="field-help-icon" tabindex="0" aria-label="Defaults to Event Start when left blank. Change this only if virtual proof should open earlier or later than the public event start.">?</span>
+              </label>
+              <div class="input-with-button">
+                <input id="virtualStartAt" name="virtualStartAt" type="datetime-local" value="<%= formData.virtualStartAt %>">
+                <button type="button" class="btn-now" data-target="virtualStartAt">Now</button>
+              </div>
+              <small class="field-hint">First date and time runners can complete or submit virtual activity proof.</small>
+            </div>
+            <div class="form-group">
+              <label for="virtualEndAt" class="label-with-help">
+                Virtual Window End
+                <span class="field-help-icon" tabindex="0" aria-label="Defaults to Event End when left blank. For accumulated challenges, the separate final submission deadline can still give runners extra upload time.">?</span>
+              </label>
+              <div class="input-with-button">
+                <input id="virtualEndAt" name="virtualEndAt" type="datetime-local" value="<%= formData.virtualEndAt %>">
+                <button type="button" class="btn-now" data-target="virtualEndAt">Now</button>
+              </div>
+              <small class="field-hint">Last date and time eligible virtual activity proof can count.</small>
+            </div>
+            <div class="form-group form-group-full">
+              <label>Proof Types Allowed</label>
+              <div class="checkbox-row">
+                <% const selectedProofs = formData.proofTypesAllowed || []; %>
+                <label><input type="checkbox" name="proofTypesAllowed" value="gps" <%= selectedProofs.includes('gps') ? 'checked' : '' %>> GPS</label>
+                <label><input type="checkbox" name="proofTypesAllowed" value="photo" <%= selectedProofs.includes('photo') ? 'checked' : '' %>> Photo</label>
+                <label><input type="checkbox" name="proofTypesAllowed" value="manual" <%= selectedProofs.includes('manual') ? 'checked' : '' %>> Manual</label>
               </div>
             </div>
           </div>
@@ -654,6 +659,12 @@
       const accumulatedSettings = document.querySelector('.accumulated-settings');
       const targetDistanceInput = document.getElementById('targetDistanceKm');
       const targetDistanceHint = document.getElementById('targetDistanceHint');
+      const eventStartInput = document.getElementById('eventStartAt');
+      const eventEndInput = document.getElementById('eventEndAt');
+      const virtualStartInput = document.getElementById('virtualStartAt');
+      const virtualEndInput = document.getElementById('virtualEndAt');
+      const finalSubmissionDeadlineInput = document.getElementById('finalSubmissionDeadlineAt');
+      const finalSubmissionDeadlineHint = document.getElementById('finalSubmissionDeadlineHint');
       const raceDistanceCustomInput = document.getElementById('raceDistanceCustom');
       const raceDistancePresetInputs = Array.from(document.querySelectorAll('input[name="raceDistancePresets"]'));
       const feeModeSelect = document.getElementById('feeMode');
@@ -661,6 +672,9 @@
       const physicalRewardsEnabledInput = document.getElementById('physicalRewardsEnabled');
       const physicalRewardFields = Array.from(document.querySelectorAll('.physical-reward-fields'));
       let targetDistanceWasAutoFilled = !targetDistanceInput?.value;
+      let virtualStartWasAutoFilled = !virtualStartInput?.value;
+      let virtualEndWasAutoFilled = !virtualEndInput?.value;
+      let finalSubmissionDeadlineWasAutoFilled = !finalSubmissionDeadlineInput?.value;
 
       function togglePaymentFields() {
         const showPaymentFields = feeModeSelect?.value === 'paid';
@@ -688,7 +702,13 @@
         if (accumulatedSettings && virtualCompletionModeSelect) {
           const showAccumulated = (val === 'virtual' || val === 'hybrid') && virtualCompletionModeSelect.value === 'accumulated_distance';
           accumulatedSettings.style.display = showAccumulated ? 'block' : 'none';
-          if (showAccumulated) syncTargetDistanceFromRaceDistance();
+          if (val === 'virtual' || val === 'hybrid') {
+            syncVirtualWindowFromEventDates();
+          }
+          if (showAccumulated) {
+            syncTargetDistanceFromRaceDistance();
+            syncFinalSubmissionDeadlineFromEventEnd();
+          }
         }
       }
 
@@ -753,6 +773,124 @@
       }
       syncTargetDistanceFromRaceDistance();
 
+      function parseDateTimeLocalValue(value) {
+        if (!value) return null;
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+      }
+
+      function formatDateTimeLocalValue(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      }
+
+      function syncVirtualWindowFromEventDates() {
+        const eventType = eventTypeSelect?.value;
+        if (eventType !== 'virtual' && eventType !== 'hybrid') return;
+        if (virtualStartInput && eventStartInput && virtualStartWasAutoFilled) {
+          const eventStart = parseDateTimeLocalValue(eventStartInput.value);
+          if (eventStart) virtualStartInput.value = formatDateTimeLocalValue(eventStart);
+        }
+        if (virtualEndInput && eventEndInput && virtualEndWasAutoFilled) {
+          const eventEnd = parseDateTimeLocalValue(eventEndInput.value);
+          if (eventEnd) virtualEndInput.value = formatDateTimeLocalValue(eventEnd);
+        }
+      }
+
+      if (virtualStartInput) {
+        virtualStartInput.addEventListener('input', () => {
+          virtualStartWasAutoFilled = false;
+        });
+      }
+      if (virtualEndInput) {
+        virtualEndInput.addEventListener('input', () => {
+          virtualEndWasAutoFilled = false;
+        });
+      }
+      if (eventStartInput) {
+        eventStartInput.addEventListener('input', syncVirtualWindowFromEventDates);
+        eventStartInput.addEventListener('change', syncVirtualWindowFromEventDates);
+      }
+      if (eventEndInput) {
+        eventEndInput.addEventListener('input', syncVirtualWindowFromEventDates);
+        eventEndInput.addEventListener('change', syncVirtualWindowFromEventDates);
+      }
+      syncVirtualWindowFromEventDates();
+
+      function syncFinalSubmissionDeadlineFromEventEnd() {
+        if (!finalSubmissionDeadlineInput || !eventEndInput || !finalSubmissionDeadlineWasAutoFilled) return;
+        const eventEnd = parseDateTimeLocalValue(eventEndInput.value);
+        if (!eventEnd) return;
+        const deadline = new Date(eventEnd.getTime());
+        deadline.setDate(deadline.getDate() + 14);
+        finalSubmissionDeadlineInput.value = formatDateTimeLocalValue(deadline);
+        if (finalSubmissionDeadlineHint) {
+          finalSubmissionDeadlineHint.textContent = 'Auto-filled from Event End plus 14 days. Edit this field to use a different upload deadline.';
+          finalSubmissionDeadlineHint.classList.add('is-autofilled');
+          finalSubmissionDeadlineHint.classList.remove('is-manual');
+        }
+      }
+
+      if (finalSubmissionDeadlineInput) {
+        finalSubmissionDeadlineInput.addEventListener('input', () => {
+          finalSubmissionDeadlineWasAutoFilled = false;
+          if (finalSubmissionDeadlineHint) {
+            finalSubmissionDeadlineHint.textContent = 'Custom submission deadline set.';
+            finalSubmissionDeadlineHint.classList.add('is-manual');
+            finalSubmissionDeadlineHint.classList.remove('is-autofilled');
+          }
+        });
+      }
+      if (eventEndInput) {
+        eventEndInput.addEventListener('input', syncFinalSubmissionDeadlineFromEventEnd);
+        eventEndInput.addEventListener('change', syncFinalSubmissionDeadlineFromEventEnd);
+      }
+      syncFinalSubmissionDeadlineFromEventEnd();
+
+      function getIndexedInput(name, index) {
+        return Array.from(document.querySelectorAll(`input[name="${name}"]`))[Number(index)] || null;
+      }
+
+      function setIndexedDateInput(name, index, date) {
+        const input = getIndexedInput(name, index);
+        if (!input || !date) return;
+        input.value = formatDateTimeLocalValue(date);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      function applySuggestedPricingDates(packageIndex) {
+        const registrationOpen = parseDateTimeLocalValue(document.getElementById('registrationOpenAt')?.value);
+        const registrationClose = parseDateTimeLocalValue(document.getElementById('registrationCloseAt')?.value);
+        if (!registrationOpen || !registrationClose || registrationOpen >= registrationClose) {
+          alert('Set a valid Registration Open and Registration Close before using suggested pricing dates.');
+          return;
+        }
+
+        const dayMs = 24 * 60 * 60 * 1000;
+        if (registrationClose.getTime() - registrationOpen.getTime() <= 21 * dayMs) {
+          alert('Suggested Early Bird, Regular, and Late Registration periods need more than 21 days between registration open and close.');
+          return;
+        }
+
+        const earlyEnd = new Date(registrationOpen.getTime() + 14 * dayMs);
+        const lateStart = new Date(registrationClose.getTime() - 7 * dayMs);
+        setIndexedDateInput('registrationPackageEarlyBirdStartAt', packageIndex, registrationOpen);
+        setIndexedDateInput('registrationPackageEarlyBirdEndAt', packageIndex, earlyEnd);
+        setIndexedDateInput('registrationPackageRegularStartAt', packageIndex, earlyEnd);
+        setIndexedDateInput('registrationPackageRegularEndAt', packageIndex, lateStart);
+        setIndexedDateInput('registrationPackageLateStartAt', packageIndex, lateStart);
+        setIndexedDateInput('registrationPackageLateEndAt', packageIndex, registrationClose);
+      }
+
+      document.querySelectorAll('.btn-suggest-pricing-dates').forEach((button) => {
+        button.addEventListener('click', () => applySuggestedPricingDates(button.dataset.packageIndex));
+      });
+
       // ---------- "NOW" BUTTONS ----------
       document.querySelectorAll('.btn-now').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -766,6 +904,8 @@
           const hours = String(now.getHours()).padStart(2, '0');
           const minutes = String(now.getMinutes()).padStart(2, '0');
           input.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
         });
       });
 

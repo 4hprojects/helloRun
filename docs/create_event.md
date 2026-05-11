@@ -6,6 +6,8 @@ This document is the dedicated planning and tracking source for the organizer cr
 
 `docs/PRD.md` remains the master roadmap. This file should hold the route-level, field-level, UI-level, model-level, and testing details for create-event work, including example-driven gaps discovered from event setup references.
 
+The guided organizer create-event wizard implementation plan is documented in `docs/create_event_wizard_codex_implementation.md`.
+
 This document also captures the planned direction for:
 
 - Virtual events
@@ -136,13 +138,15 @@ Implemented capabilities:
 - `canCreateEvents()` route guard, including verified approved organizer requirements
 - Core event details:
   - event title
-  - organizer name
-  - short description for event listings/cards
+  - organizer name, defaulted from the account owner's first and last name on new create forms
+  - short description for event listings/cards, with tooltip guidance to keep long rules in Event Details
   - full editable Event Details content for event details pages
   - event type: virtual, onsite, hybrid
   - race distances, including custom distance text such as `100K`
-- 2026K accumulated challenge defaults:
-  - new create-event forms preload the 2026K sample title, dates, virtual accumulated settings, activity/proof settings, short description, and full editable Event Details content from `docs/template/2026k_accumulated_run_challenge_template.md`
+- Guided blank create defaults:
+  - new create-event forms start mostly empty so organizers do not accidentally publish sample event content
+  - safe system defaults remain: free fee mode, PHP currency, free pricing mode, and the generic waiver template
+  - the 2026K accumulated challenge content remains available as a reference template in `docs/template/2026k_accumulated_run_challenge_template.md`, but it is not preloaded by default
 - Fees and payment acceptance:
   - free or paid fee mode
   - total event fee amount and currency for paid events
@@ -181,9 +185,15 @@ Implemented capabilities:
   - country
   - optional latitude/longitude
 - Conditional virtual/hybrid rules:
+  - event format, defaulting to accumulated distance challenge on new create/edit setup
   - virtual window start
   - virtual window end
   - proof types allowed: GPS, photo, manual
+  - accumulated challenge target distance with race-distance auto-fill
+  - final submission deadline, defaulted to 14 days after Event End when omitted
+  - accepted activity types for accumulated challenges
+  - recognition mode, defaulting to completion with optional ranking
+  - leaderboard mode, defaulting to finishers and top distance
 - Branding and media:
   - logo upload or URL
   - banner upload or URL
@@ -214,7 +224,7 @@ Implemented capabilities:
 | Waiver | waiverTemplate |
 | Schedule | registrationOpenAt, registrationCloseAt, eventStartAt, eventEndAt |
 | Location | venueName, venueAddress, city, province, country, geoLat, geoLng |
-| Virtual rules / leaderboard | virtualStartAt, virtualEndAt, proofTypesAllowed, recognitionMode, leaderboardMode, leaderboardRecognitionEnabled |
+| Virtual rules / leaderboard | virtualStartAt, virtualEndAt, proofTypesAllowed, virtualCompletionMode, targetDistanceKm, acceptedRunTypes, finalSubmissionDeadlineAt, recognitionMode, leaderboardMode, leaderboardRecognitionEnabled |
 | Media | logoFile, logoUrl, bannerImageFile, bannerImageUrl, posterImageFile, posterImageUrl, galleryImageFiles, galleryImageUrlsText |
 | Actions | actionType: draft or publish. Publish submits for admin review |
 
@@ -226,7 +236,7 @@ Implemented capabilities:
 | Core details | title, organiserName, description, eventDetailsMarkdown, status, eventType, eventTypesAllowed, raceDistances |
 | Dates | registrationOpenAt, registrationCloseAt, eventStartAt, eventEndAt |
 | Location | venueName, venueAddress, city, province, country, geo |
-| Virtual rules / leaderboard | virtualWindow, proofTypesAllowed, recognitionMode, leaderboardMode, leaderboardRecognitionEnabled |
+| Virtual rules / leaderboard | virtualWindow, proofTypesAllowed, virtualCompletionMode, targetDistanceKm, acceptedRunTypes, finalSubmissionDeadlineAt, recognitionMode, leaderboardMode, leaderboardRecognitionEnabled |
 | Fees and payment | feeMode, feeAmount, feeCurrency, pricingMode, suggestedEventFee, finalEventFee, paymentQrImageUrl, paymentQrImageKey, paymentAccountName, paymentInstructions |
 | Rewards, merchandise, and packages | digitalBadgeEnabled, digitalCertificateEnabled, physicalRewardsEnabled, physicalRewardMedalEnabled, physicalRewardMedalAmount, physicalRewardShirtEnabled, physicalRewardShirtAmount, physicalRewardPatchEnabled, physicalRewardPatchAmount, physicalRewardTowelEnabled, physicalRewardTowelAmount, physicalRewardFinisherKitEnabled, physicalRewardFinisherKitAmount, physicalRewardOtherItems, physicalRewardsDescription, physicalRewardsClaimingNotes, registrationPackages, deliveryFeeEnabled, deliveryFeeAmount, deliveryFeeDescription, requiresDeliveryAddress, requiresPhilippineDeliveryAddress, internationalRunnersAllowed, claimingMethod, specialRewardBenefits |
 | Media | logoUrl, bannerImageUrl, posterImageUrl, galleryImageUrls |
@@ -245,11 +255,11 @@ Fields:
 | Field | Purpose |
 |---|---|
 | Event Title | Main event name |
-| Organizer Name | Displayed organizer name |
-| Short Description | Used for event cards and listings |
-| Event Type | Virtual, onsite, or hybrid |
+| Organizer Name | Displayed organizer name; defaults to the account owner but can be changed to a club, brand, or team name |
+| Short Description | Used for event cards and listings; tooltip clarifies that full rules belong in Event Details |
 | Race Distance Presets | Common distances |
 | Custom Distance | Example: `100K`, `2026K` |
+| Event Type | Virtual, onsite, or hybrid |
 
 Suggested helper text for custom distance:
 
@@ -260,7 +270,7 @@ Use this for challenge-style distances such as 100K, 500K, or 2026K.
 Validation:
 
 - Title is required for draft.
-- Title, organizer name, description, and event type are required for submit-for-review.
+- Title, description, event type, and race distance are required for submit-for-review. Organizer name falls back to the account owner name when left unchanged.
 - Event type must be one of `virtual`, `onsite`, or `hybrid`.
 
 ---
@@ -427,6 +437,13 @@ Recommended default pricing period labels:
 - Regular
 - Late Registration
 
+Recommended suggested date defaults:
+
+- Early Bird starts at `registrationOpenAt` and ends 14 days after registration opens.
+- Regular starts when Early Bird ends and ends 7 days before registration closes.
+- Late Registration starts 7 days before `registrationCloseAt` and ends at `registrationCloseAt`.
+- If the registration window is 21 days or shorter, do not auto-fill all three periods because they would overlap or leave no regular period.
+
 Each pricing period should support:
 
 | Field | Purpose |
@@ -536,15 +553,13 @@ Fields:
 
 | Field | Purpose |
 |---|---|
-| Virtual Window Start | When submissions may begin |
-| Virtual Window End | Final accepted activity date |
+| Virtual Window Start | When submissions may begin; defaults to Event Start while blank or auto-filled |
+| Virtual Window End | Final accepted activity date; defaults to Event End while blank or auto-filled |
 | Proof Types Allowed | GPS, photo, manual |
 | Virtual Completion Mode | Single activity or accumulated distance |
 | Target Distance | Example: `100`, `2026` |
-| Minimum Activity Distance | Example: `1 km` |
 | Accepted Activity Types | Run, walk, hike, trail run |
-| Final Submission Deadline | Optional separate deadline |
-| Milestone Distances | Example: `25`, `50`, `75`, `100` |
+| Final Submission Deadline | Defaults to Event End + 14 days for accumulated challenges |
 | Recognition Mode | Completion-based or ranking-based |
 | Leaderboard Mode | Finishers, total distance, or both |
 | Leaderboard Recognition | Toggle |
@@ -561,16 +576,16 @@ Conditional logic:
 If `single_activity`:
 
 - Hide target distance.
-- Hide milestone distances.
 - Hide accumulated progress rules.
 
 If `accumulated_distance`:
 
 - Show target distance.
-- Show minimum activity distance.
 - Show accepted activity types.
-- Show milestones.
 - Show final submission deadline.
+- Default Virtual Window Start to Event Start unless the organizer edits it.
+- Default Virtual Window End to Event End unless the organizer edits it.
+- Default final submission deadline to 14 days after Event End unless the organizer sets a custom deadline.
 
 ---
 
@@ -584,10 +599,8 @@ Required future event configuration:
 
 - `virtualCompletionMode`: `single_activity` or `accumulated_distance`
 - `targetDistanceKm`, for example `100`
-- `minimumActivityDistanceKm`, for example `1`
 - `acceptedRunTypes`, for example run, walk, hike, trail run
-- `finalSubmissionDeadlineAt`, separate from event end when needed
-- Optional milestone distances, for example `25`, `50`, `75`, `100`
+- `finalSubmissionDeadlineAt`, defaulting to 14 days after event end when omitted
 - Recognition mode, for example completion-based finisher recognition
 - Leaderboard mode, for example finishers plus optional top total distance
 

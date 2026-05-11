@@ -502,6 +502,62 @@ test('accumulated activities enforce minimum distance and accepted activity type
   );
 });
 
+test('accumulated activities accept any positive distance when no minimum is configured', async () => {
+  const seed = await seedSubmissionFixture('accumulated-no-minimum');
+  await Event.updateOne(
+    { _id: seed.event._id },
+    {
+      $set: {
+        virtualCompletionMode: 'accumulated_distance',
+        targetDistanceKm: 10,
+        minimumActivityDistanceKm: null,
+        acceptedRunTypes: ['run']
+      }
+    }
+  );
+
+  const activity = await createAccumulatedActivitySubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 0.2,
+    elapsedMs: 5 * 60 * 1000,
+    proofType: 'gps',
+    proof: { url: 'https://example.com/proof/small-positive.gpx', size: 1200 },
+    runType: 'run'
+  });
+
+  assert.equal(activity.distanceKm, 0.2);
+  assert.equal(activity.status, 'submitted');
+});
+
+test('accumulated activities keep enforcing legacy minimum distance when configured', async () => {
+  const seed = await seedSubmissionFixture('accumulated-legacy-minimum');
+  await Event.updateOne(
+    { _id: seed.event._id },
+    {
+      $set: {
+        virtualCompletionMode: 'accumulated_distance',
+        targetDistanceKm: 10,
+        minimumActivityDistanceKm: 2,
+        acceptedRunTypes: ['run']
+      }
+    }
+  );
+
+  await assert.rejects(
+    () => createAccumulatedActivitySubmission({
+      registrationId: seed.registration._id,
+      runnerId: seed.runner._id,
+      distanceKm: 1,
+      elapsedMs: 20 * 60 * 1000,
+      proofType: 'gps',
+      proof: { url: 'https://example.com/proof/legacy-too-short.gpx', size: 1200 },
+      runType: 'run'
+    }),
+    /at least 2 km/i
+  );
+});
+
 async function seedSubmissionFixture(tag, options = {}) {
   const runner = await createRunnerUser(`runner-${tag}`);
   const organizer = await createOrganizerUser(`organizer-${tag}`);

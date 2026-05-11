@@ -38,23 +38,62 @@
 
       <form class="create-event-form" method="POST" action="/organizer/create-event" enctype="multipart/form-data" novalidate>
         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-        <!-- CORE DETAILS SECTION (same as create) -->
-        <div class="form-section form-section-core" tabindex="-1">
-          <div class="section-title">Core Details</div>
+        <aside class="wizard-progress" aria-label="Create event progress">
+          <div class="wizard-progress-heading">Event Builder</div>
+          <ol>
+            <li><a href="#event-type-step" data-step-link="event-type-step"><span>1</span> Event Type</a></li>
+            <li><a href="#core-details-step" data-step-link="core-details-step"><span>2</span> Core Details</a></li>
+            <li><a href="#schedule-step" data-step-link="schedule-step"><span>3</span> Schedule</a></li>
+            <li><a href="#location-virtual-step" data-step-link="location-virtual-step"><span>4</span> Location or Virtual Rules</a></li>
+            <li><a href="#race-categories-step" data-step-link="race-categories-step"><span>5</span> Race Categories</a></li>
+            <li><a href="#rewards-step" data-step-link="rewards-step"><span>6</span> Rewards and Merchandise</a></li>
+            <li><a href="#pricing-step" data-step-link="pricing-step"><span>7</span> Pricing and Payment</a></li>
+            <li><a href="#event-details-step" data-step-link="event-details-step"><span>8</span> Event Details</a></li>
+            <li><a href="#media-step" data-step-link="media-step"><span>9</span> Branding and Media</a></li>
+            <li><a href="#waiver-step" data-step-link="waiver-step"><span>10</span> Waiver</a></li>
+            <li><a href="#review-step" data-step-link="review-step"><span>11</span> Preview and Submit</a></li>
+          </ol>
+        </aside>
+
+        <div class="wizard-main">
+        <!-- TABLET: HORIZONTAL PILLS NAV -->
+        <nav class="wizard-pills-bar" aria-label="Event builder steps">
+          <ol class="wizard-pills-list">
+            <li><a href="#event-type-step" class="wizard-pill" data-pill-step="event-type-step"><span class="pill-num">1</span><span class="pill-label">Event Type</span></a></li>
+            <li><a href="#core-details-step" class="wizard-pill" data-pill-step="core-details-step"><span class="pill-num">2</span><span class="pill-label">Core Details</span></a></li>
+            <li><a href="#schedule-step" class="wizard-pill" data-pill-step="schedule-step"><span class="pill-num">3</span><span class="pill-label">Schedule</span></a></li>
+            <li><a href="#location-virtual-step" class="wizard-pill" data-pill-step="location-virtual-step"><span class="pill-num">4</span><span class="pill-label">Location / Virtual</span></a></li>
+            <li><a href="#race-categories-step" class="wizard-pill" data-pill-step="race-categories-step"><span class="pill-num">5</span><span class="pill-label">Race Categories</span></a></li>
+            <li><a href="#rewards-step" class="wizard-pill" data-pill-step="rewards-step"><span class="pill-num">6</span><span class="pill-label">Rewards</span></a></li>
+            <li><a href="#pricing-step" class="wizard-pill" data-pill-step="pricing-step"><span class="pill-num">7</span><span class="pill-label">Pricing</span></a></li>
+            <li><a href="#event-details-step" class="wizard-pill" data-pill-step="event-details-step"><span class="pill-num">8</span><span class="pill-label">Event Details</span></a></li>
+            <li><a href="#media-step" class="wizard-pill" data-pill-step="media-step"><span class="pill-num">9</span><span class="pill-label">Media</span></a></li>
+            <li><a href="#waiver-step" class="wizard-pill" data-pill-step="waiver-step"><span class="pill-num">10</span><span class="pill-label">Waiver</span></a></li>
+            <li><a href="#review-step" class="wizard-pill" data-pill-step="review-step"><span class="pill-num">11</span><span class="pill-label">Submit</span></a></li>
+          </ol>
+        </nav>
+
+        <!-- MOBILE: MINI PROGRESS STRIP -->
+        <div class="wizard-mini-strip" id="wizardMiniStrip" role="navigation" aria-label="Event builder progress">
+          <div class="wizard-mini-info">
+            <span class="wizard-mini-step" id="wizardMiniStep">Step 1 of 11</span>
+            <span class="wizard-mini-title" id="wizardMiniTitle">Event Type</span>
+          </div>
+          <button type="button" class="wizard-mini-toggle" id="wizardMiniToggle" aria-label="Show all steps" aria-expanded="false">
+            <i data-lucide="chevron-down"></i>
+          </button>
+          <div class="wizard-mini-progress" aria-hidden="true">
+            <div class="wizard-mini-progress-fill" id="wizardMiniProgressFill" style="width:9.09%"></div>
+          </div>
+        </div>
+
+        <!-- EVENT TYPE SECTION -->
+        <div id="event-type-step" class="form-section form-section-event-type" tabindex="-1" data-wizard-step="event-type-step">
+          <div class="section-kicker">Step 1 of 11</div>
+          <div class="section-title">Event Type</div>
+          <p class="section-helper">Choose the type of event you want to create. Later fields adjust based on this choice.</p>
           <div class="form-grid">
-            <div class="form-group">
-              <label for="title">Event Title *</label>
-              <input id="title" name="title" type="text" value="<%= formData.title %>" required>
-            </div>
-            <div class="form-group">
-              <label for="organiserName">Organizer Name</label>
-              <input id="organiserName" name="organiserName" type="text" value="<%= formData.organiserName %>">
-            </div>
-            <div class="form-group form-group-full">
-              <label for="description">Description *</label>
-              <textarea id="description" name="description" rows="4" required><%= formData.description %></textarea>
-            </div>
-            <div class="form-group form-group-full">
+            <div class="form-group form-group-full <%= errors.eventType ? 'has-error' : '' %>">
               <label for="eventType">Event Type *</label>
               <select id="eventType" name="eventType" required>
                 <option value="">Select event type</option>
@@ -62,8 +101,59 @@
                 <option value="onsite" <%= formData.eventType === 'onsite' ? 'selected' : '' %>>On-site</option>
                 <option value="hybrid" <%= formData.eventType === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
               </select>
+              <% if (errors.eventType) { %><small class="error-text"><%= errors.eventType %></small><% } %>
+            </div>
+            <div class="event-type-guidance form-group-full" aria-live="polite">
+              <div class="event-type-card" data-event-type-card="virtual">
+                <strong>Virtual Event</strong>
+                <span>Best for accumulated runs, screenshot-based submissions, and online participation.</span>
+              </div>
+              <div class="event-type-card" data-event-type-card="onsite">
+                <strong>Onsite Event</strong>
+                <span>Best for physical races with venue, race categories, and registration fees.</span>
+              </div>
+              <div class="event-type-card" data-event-type-card="hybrid">
+                <strong>Hybrid Event</strong>
+                <span>Best for events that allow both onsite and virtual participation.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CORE DETAILS SECTION -->
+        <div id="core-details-step" class="form-section form-section-core" tabindex="-1" data-wizard-step="core-details-step">
+          <div class="section-kicker">Step 2 of 11</div>
+          <div class="section-title">Core Details</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="title">Event Title *</label>
+              <input id="title" name="title" type="text" value="<%= formData.title %>" required>
+            </div>
+            <div class="form-group">
+              <label for="organiserName" class="label-with-help">
+                Organizer Name
+                <span class="field-help-icon" tabindex="0" aria-label="Defaults to the account owner's name. Change this if the event should display a club, brand, or team name instead.">?</span>
+              </label>
+              <input id="organiserName" name="organiserName" type="text" value="<%= formData.organiserName %>">
             </div>
             <div class="form-group form-group-full">
+              <label for="description" class="label-with-help">
+                Description *
+                <span class="field-help-icon" tabindex="0" aria-label="This is the short public summary shown in event listings and previews. Put full rules, inclusions, FAQs, and proof instructions in Event Details.">?</span>
+              </label>
+              <textarea id="description" name="description" rows="4" required placeholder="Short public summary runners will see in listings and previews."><%= formData.description %></textarea>
+              <small class="field-hint">Keep this brief. Put full rules, inclusions, FAQs, and proof instructions in Event Details below.</small>
+            </div>
+          </div>
+        </div>
+
+        <!-- RACE CATEGORIES SECTION -->
+        <div id="race-categories-step" class="form-section form-section-race-categories" tabindex="-1" data-wizard-step="race-categories-step">
+          <div class="section-kicker">Step 5 of 11</div>
+          <div class="section-title">Race Categories</div>
+          <p class="section-helper" id="raceCategoryHelper">Use race distances as the current registration category labels. Detailed per-category pricing is planned for a later phase.</p>
+          <div class="form-grid">
+            <div class="form-group form-group-full <%= errors.raceDistances ? 'has-error' : '' %>">
               <label>Race Distances *</label>
               <div class="checkbox-row">
                 <% const selectedDistances = formData.raceDistancePresets || []; %>
@@ -74,14 +164,17 @@
               </div>
               <label for="raceDistanceCustom" style="margin-top:0.5rem;">Custom Distances (comma-separated)</label>
               <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" placeholder="e.g., 42K, 50K">
-              <small class="field-hint">Final values are normalized like 3K, 5K, 10K.</small>
+              <small class="field-hint">Race distances are registration labels. For accumulated challenges, Target Distance controls the completion goal.</small>
+              <% if (errors.raceDistances) { %><small class="error-text"><%= errors.raceDistances %></small><% } %>
             </div>
           </div>
         </div>
 
         <!-- FEES & PAYMENT SECTION -->
-        <div class="form-section form-section-fees">
+        <div id="pricing-step" class="form-section form-section-fees" tabindex="-1" data-wizard-step="pricing-step">
+          <div class="section-kicker">Step 7 of 11</div>
           <div class="section-title">Fees & Payment</div>
+          <p class="section-helper">Choose whether the event is free or paid, then configure payment details only when needed.</p>
           <div class="form-grid">
             <div class="form-group <%= errors.feeMode ? 'has-error' : '' %>">
               <label for="feeMode">Event Fee *</label>
@@ -104,12 +197,13 @@
                 <option value="same_fee" <%= formData.pricingMode === 'same_fee' ? 'selected' : '' %>>Same fee</option>
                 <option value="package_period" <%= formData.pricingMode === 'package_period' ? 'selected' : '' %>>Package pricing periods</option>
               </select>
+              <small class="field-hint">Use Same fee for one registration price. Use Package pricing periods when packages or early/regular/late pricing differ.</small>
               <% if (errors.pricingMode) { %><small class="error-text"><%= errors.pricingMode %></small><% } %>
             </div>
             <div class="form-group payment-fields">
               <label for="finalEventFee">Organizer Final Fee</label>
               <input id="finalEventFee" name="finalEventFee" type="number" min="0" step="0.01" value="<%= formData.finalEventFee ?? '' %>" placeholder="<%= Number(formData.suggestedEventFee || 0).toFixed(2) %>">
-              <small class="field-hint">Suggested setup total: <%= formData.feeCurrency || 'PHP' %> <%= Number(formData.suggestedEventFee || 0).toFixed(2) %>. This does not change runner checkout yet.</small>
+              <small class="field-hint">Optional organizer-side override for your planned total. Runner checkout still uses Total Event Fee in this version.</small>
             </div>
             <div class="form-group payment-fields <%= errors.feeCurrency ? 'has-error' : '' %>">
               <label for="feeCurrency">Currency</label>
@@ -138,13 +232,16 @@
             <div class="form-group form-group-full payment-fields">
               <label for="paymentInstructions">Payment Instructions</label>
               <textarea id="paymentInstructions" name="paymentInstructions" rows="3" placeholder="Optional payment notes for runners."><%= formData.paymentInstructions || '' %></textarea>
+              <small class="field-hint">Tell runners where to pay, what reference to include, and when payment proof will be reviewed.</small>
             </div>
           </div>
         </div>
 
         <!-- REWARDS, MERCHANDISE & PACKAGES SECTION -->
-        <div class="form-section form-section-rewards">
+        <div id="rewards-step" class="form-section form-section-rewards" tabindex="-1" data-wizard-step="rewards-step">
+          <div class="section-kicker">Step 6 of 11</div>
           <div class="section-title">Rewards, Merchandise, and Registration Packages</div>
+          <p class="section-helper">Set recognition, merchandise, packages, and delivery details before finalizing pricing.</p>
           <div class="form-grid">
             <div class="form-group form-group-full">
               <label>Digital Recognition</label>
@@ -152,6 +249,7 @@
                 <label><input type="checkbox" name="digitalBadgeEnabled" value="1" <%= formData.digitalBadgeEnabled ? 'checked' : '' %>> Digital Badge</label>
                 <label><input type="checkbox" name="digitalCertificateEnabled" value="1" <%= formData.digitalCertificateEnabled ? 'checked' : '' %>> Digital Finisher Certificate</label>
               </div>
+              <small class="field-hint">Enable only the recognition items this event will actually provide to finishers.</small>
             </div>
             <div class="form-group form-group-full">
               <label><input type="checkbox" id="physicalRewardsEnabled" name="physicalRewardsEnabled" value="1" <%= formData.physicalRewardsEnabled ? 'checked' : '' %>> Physical Rewards Available</label>
@@ -181,6 +279,7 @@
             </div>
             <div class="form-group form-group-full">
               <label>Registration Packages</label>
+              <small class="field-hint">Use packages when runners can choose different inclusions, prices, or registration periods.</small>
               <% const packages = formData.registrationPackages || []; %>
               <% for (let packageIndex = 0; packageIndex < 3; packageIndex += 1) { const packageOption = packages[packageIndex] || {}; const periods = packageOption.pricingPeriods || []; const findPeriod = (code) => periods.find((period) => period.code === code) || {}; %>
                 <div class="package-card">
@@ -193,6 +292,10 @@
                     <label><input type="checkbox" name="registrationPackageFinisherKit_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.finisherKit ? 'checked' : '' %>> Finisher Kit</label>
                   </div>
                   <input name="registrationPackageOtherItemNames" type="text" value="<%= (packageOption.includedItems?.otherItemNames || []).join(', ') %>" placeholder="Other included item names">
+                  <div class="pricing-period-actions">
+                    <button type="button" class="btn btn-outline btn-suggest-pricing-dates" data-package-index="<%= packageIndex %>">Use suggested dates</button>
+                    <small class="field-hint">Early Bird uses the first 14 days after registration opens. Late Registration uses the final 7 days before registration closes.</small>
+                  </div>
                   <div class="pricing-period-grid">
                     <% const early = findPeriod('early_bird'); const regular = findPeriod('regular'); const late = findPeriod('late'); %>
                     <input name="registrationPackageEarlyBirdStartAt" type="datetime-local" value="<%= early.startAt || '' %>" aria-label="Early bird start">
@@ -243,19 +346,23 @@
         </div>
 
         <!-- EVENT DETAILS SECTION -->
-        <div class="form-section form-section-details">
+        <div id="event-details-step" class="form-section form-section-details" tabindex="-1" data-wizard-step="event-details-step">
+          <div class="section-kicker">Step 8 of 11</div>
           <div class="section-title">Event Details</div>
+          <p class="section-helper">Use this section for full event rules, FAQs, pricing explanation, submission rules, and runner guidance.</p>
           <div class="form-group form-group-full <%= errors.eventDetailsMarkdown ? 'has-error' : '' %>">
             <label for="eventDetailsMarkdown">Event Details</label>
             <textarea id="eventDetailsMarkdown" name="eventDetailsMarkdown" rows="18" placeholder="Add full event rules, inclusions, FAQs, and instructions."><%= formData.eventDetailsMarkdown || '' %></textarea>
-            <small class="field-hint">Full editable content shown on the event details page. Limit: 20,000 characters.</small>
+            <small class="field-hint">Full editable content shown on the public event page. Add rules, reward inclusions, FAQs, proof instructions, and important deadlines here. Limit: 20,000 characters.</small>
             <% if (errors.eventDetailsMarkdown) { %><small class="error-text"><%= errors.eventDetailsMarkdown %></small><% } %>
           </div>
         </div>
 
         <!-- WAIVER SECTION (same as create) -->
-        <div class="form-section form-section-waiver">
+        <div id="waiver-step" class="form-section form-section-waiver" tabindex="-1" data-wizard-step="waiver-step">
+          <div class="section-kicker">Step 10 of 11</div>
           <div class="section-title">Waiver (Required for publishing)</div>
+          <p class="section-helper">This agreement is shown to participants before they join the event.</p>
           <div class="waiver-panels">
             <div class="waiver-panel <%= errors.waiverTemplate ? 'has-error' : '' %>">
               <label for="waiverEditor">Waiver Template *</label>
@@ -274,7 +381,7 @@
               <input type="hidden" id="waiverTemplate" name="waiverTemplate" value="">
               <small class="field-hint">
                 Use placeholders: <code>{{ORGANIZER_NAME}}</code> and <code>{{EVENT_TITLE}}</code>.
-                Changing this will bump waiver version for new registrants.
+                This participant agreement is shown during registration. Changing it will bump waiver version for new registrants.
               </small>
               <% if (errors.waiverTemplate) { %><small class="error-text"><%= errors.waiverTemplate %></small><% } %>
             </div>
@@ -289,15 +396,48 @@
         </div>
 
         <!-- SCHEDULE SECTION (same as create) -->
-        <div class="form-section form-section-schedule">
+        <div id="schedule-step" class="form-section form-section-schedule" tabindex="-1" data-wizard-step="schedule-step">
+          <div class="section-kicker">Step 3 of 11</div>
           <div class="section-title">Schedule</div>
+          <p class="section-helper">Registration dates control when runners can join. Event dates control when the activity or race happens.</p>
           <div class="form-grid">
+            <div class="form-group">
+              <label for="eventStartAt" class="label-with-help">
+                Event Start *
+                <span class="field-help-icon" tabindex="0" aria-label="The date and time the event officially begins. For on-site races this is your gun start / race morning start time — set it to the actual race date and gun-off hour. For virtual events this is when the challenge opens. Runners see this date on the public event page.">?</span>
+              </label>
+              <div class="input-with-button">
+                <input id="eventStartAt" name="eventStartAt" type="datetime-local" value="<%= formData.eventStartAt %>" required>
+                <button type="button" class="btn-now" data-target="eventStartAt">Now</button>
+              </div>
+              <small class="field-hint">
+                <span class="schedule-hint-onsite" style="display:none;">On-site: set this to your race day and gun start time (e.g. 4:00 AM on race morning).</span>
+                <span class="schedule-hint-virtual" style="display:none;">Virtual: set this to when the challenge window opens for runners.</span>
+                <span class="schedule-hint-default">The date and time the event officially begins.</span>
+              </small>
+            </div>
+            <div class="form-group">
+              <label for="eventEndAt" class="label-with-help">
+                Event End *
+                <span class="field-help-icon" tabindex="0" aria-label="The date and time the event officially closes. For on-site races this is the race day cut-off time or when the finish line closes — typically the same race day, a few hours after gun start. For multi-day virtual challenges this is the last day runners can complete their distance.">?</span>
+              </label>
+              <div class="input-with-button">
+                <input id="eventEndAt" name="eventEndAt" type="datetime-local" value="<%= formData.eventEndAt %>" required>
+                <button type="button" class="btn-now" data-target="eventEndAt">Now</button>
+              </div>
+              <small class="field-hint">
+                <span class="schedule-hint-onsite" style="display:none;">On-site: typically the same race day, a few hours after gun start (e.g. finish line cut-off time).</span>
+                <span class="schedule-hint-virtual" style="display:none;">Virtual: the last day runners can log their distance. Proof upload deadline can be set separately below.</span>
+                <span class="schedule-hint-default">When the event officially ends for public display.</span>
+              </small>
+            </div>
             <div class="form-group">
               <label for="registrationOpenAt">Registration Open *</label>
               <div class="input-with-button">
                 <input id="registrationOpenAt" name="registrationOpenAt" type="datetime-local" value="<%= formData.registrationOpenAt %>" required>
                 <button type="button" class="btn-now" data-target="registrationOpenAt">Now</button>
               </div>
+              <small class="field-hint" id="registrationOpenAt-hint">When runners can start registering. Auto-suggested as today when you set Event Start.</small>
             </div>
             <div class="form-group">
               <label for="registrationCloseAt">Registration Close *</label>
@@ -305,28 +445,24 @@
                 <input id="registrationCloseAt" name="registrationCloseAt" type="datetime-local" value="<%= formData.registrationCloseAt %>" required>
                 <button type="button" class="btn-now" data-target="registrationCloseAt">Now</button>
               </div>
-              <small class="field-hint">For virtual events, registration can stay open after the event starts.</small>
+              <small class="field-hint" id="registrationCloseAt-hint">Auto-suggested as 1 day before Event Start. For virtual events, registration can stay open after the event starts.</small>
             </div>
-            <div class="form-group">
-              <label for="eventStartAt">Event Start *</label>
-              <div class="input-with-button">
-                <input id="eventStartAt" name="eventStartAt" type="datetime-local" value="<%= formData.eventStartAt %>" required>
-                <button type="button" class="btn-now" data-target="eventStartAt">Now</button>
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="eventEndAt">Event End *</label>
-              <div class="input-with-button">
-                <input id="eventEndAt" name="eventEndAt" type="datetime-local" value="<%= formData.eventEndAt %>" required>
-                <button type="button" class="btn-now" data-target="eventEndAt">Now</button>
-              </div>
-            </div>
+          </div>
+
+          <!-- ON-SITE RACE DAY SCHEDULE CALLOUT -->
+          <div class="schedule-onsite-callout onsite-only-hint" style="display:none; margin-top:1rem; padding:0.85rem 1rem; background:var(--bg-subtle,#f5f7fa); border-left:3px solid var(--brand-primary,#2563eb); border-radius:var(--radius-sm,4px);">
+            <p style="margin:0 0 0.4rem; font-weight:600; font-size:0.9rem; color:var(--text-primary);">&#128197; On-Site Race Day Schedule</p>
+            <p style="margin:0 0 0.5rem; font-size:0.85rem; color:var(--text-muted);">Use <strong>Event Start</strong> for your gun start time. For detailed race day logistics — assembly time, kit claiming window, wave starts, cut-off times per distance — add them in <strong>Event Details</strong> (Step 8).</p>
+            <p style="margin:0; font-size:0.82rem; color:var(--text-muted);">Example: Assembly 3:30 AM &bull; Gun Start 4:00 AM &bull; Finish Line closes 8:00 AM</p>
           </div>
         </div>
 
+        <div id="location-virtual-step" class="wizard-step-anchor" aria-hidden="true"></div>
         <!-- LOCATION SECTION (conditional) -->
-        <div class="form-section form-section-location location-section" style="display: none;">
+        <div class="form-section form-section-location location-section" tabindex="-1" data-wizard-step="location-virtual-step" style="display: none;">
+          <div class="section-kicker">Step 4 of 11</div>
           <div class="section-title">Location (required for on-site/hybrid publishing)</div>
+          <p class="section-helper">Provide the venue runners will use for onsite participation.</p>
           <div class="form-grid">
             <div class="form-group">
               <label for="venueName">Venue Name</label>
@@ -369,33 +505,11 @@
         </div>
 
         <!-- VIRTUAL RULES SECTION (conditional) -->
-        <div class="form-section form-section-virtual virtual-section" style="display: none;">
+        <div class="form-section form-section-virtual virtual-section" tabindex="-1" data-wizard-step="location-virtual-step" style="display: none;">
+          <div class="section-kicker">Step 4 of 11</div>
           <div class="section-title">Virtual Rules (required for virtual/hybrid publishing)</div>
+          <p class="section-helper">Configure the online proof window and completion rules for virtual participation.</p>
           <div class="form-grid">
-            <div class="form-group">
-              <label for="virtualStartAt">Virtual Window Start</label>
-              <div class="input-with-button">
-                <input id="virtualStartAt" name="virtualStartAt" type="datetime-local" value="<%= formData.virtualStartAt %>">
-                <button type="button" class="btn-now" data-target="virtualStartAt">Now</button>
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="virtualEndAt">Virtual Window End</label>
-              <div class="input-with-button">
-                <input id="virtualEndAt" name="virtualEndAt" type="datetime-local" value="<%= formData.virtualEndAt %>">
-                <button type="button" class="btn-now" data-target="virtualEndAt">Now</button>
-              </div>
-            </div>
-            <div class="form-group form-group-full">
-              <label>Proof Types Allowed</label>
-              <div class="checkbox-row">
-                <% const selectedProofs = formData.proofTypesAllowed || []; %>
-                <label><input type="checkbox" name="proofTypesAllowed" value="gps" <%= selectedProofs.includes('gps') ? 'checked' : '' %>> GPS</label>
-                <label><input type="checkbox" name="proofTypesAllowed" value="photo" <%= selectedProofs.includes('photo') ? 'checked' : '' %>> Photo</label>
-                <label><input type="checkbox" name="proofTypesAllowed" value="manual" <%= selectedProofs.includes('manual') ? 'checked' : '' %>> Manual</label>
-              </div>
-            </div>
-
             <div class="form-group form-group-full <%= errors.virtualCompletionMode ? 'has-error' : '' %>">
               <label for="virtualCompletionMode" class="label-with-help">
                 Event Format
@@ -424,25 +538,13 @@
                   <small id="targetDistanceHint" class="field-hint distance-auto-hint">If exactly one race distance is selected, this can be auto-filled from that distance.</small>
                   <% if (errors.targetDistanceKm) { %><small class="error-text"><%= errors.targetDistanceKm %></small><% } %>
                 </div>
-                <div class="form-group <%= errors.minimumActivityDistanceKm ? 'has-error' : '' %>">
-                  <label for="minimumActivityDistanceKm" class="label-with-help">
-                    Minimum Activity Distance
-                    <span class="field-help-icon" tabindex="0" aria-label="Minimum Activity Distance is the smallest distance a runner can submit per proof upload. It does not change the total challenge target.">?</span>
+                <div class="form-group">
+                  <label for="finalSubmissionDeadlineAt" class="label-with-help">
+                    Final Submission Deadline
+                    <span class="field-help-icon" tabindex="0" aria-label="Defaults to 14 days after Event End, giving runners time to upload proof while the event itself still ends on the Event End date.">?</span>
                   </label>
-                  <div class="distance-input-shell">
-                    <input id="minimumActivityDistanceKm" name="minimumActivityDistanceKm" type="number" min="0" step="0.01" value="<%= formData.minimumActivityDistanceKm || '' %>" placeholder="1" aria-describedby="minimumActivityDistanceHint">
-                    <span>km</span>
-                  </div>
-                  <small id="minimumActivityDistanceHint" class="field-hint">Example: with a 1 km minimum, 0.5 km proof is too short, but 3 km proof can count toward the target.</small>
-                  <% if (errors.minimumActivityDistanceKm) { %><small class="error-text"><%= errors.minimumActivityDistanceKm %></small><% } %>
-                </div>
-                <div class="form-group">
-                  <label for="finalSubmissionDeadlineAt">Final Submission Deadline</label>
                   <input id="finalSubmissionDeadlineAt" name="finalSubmissionDeadlineAt" type="datetime-local" value="<%= formData.finalSubmissionDeadlineAt || '' %>">
-                </div>
-                <div class="form-group">
-                  <label for="milestoneDistancesKm">Milestones (km, comma-separated)</label>
-                  <input id="milestoneDistancesKm" name="milestoneDistancesKm" type="text" value="<%= formData.milestoneDistancesText || '' %>" placeholder="25, 50, 75, 100">
+                  <small id="finalSubmissionDeadlineHint" class="field-hint">Auto-filled from Event End plus 14 days unless you edit it.</small>
                 </div>
                 <div class="form-group form-group-full">
                   <label>Accepted Activity Types</label>
@@ -453,6 +555,7 @@
                     <label><input type="checkbox" name="acceptedRunTypes" value="hike" <%= selectedRunTypes.includes('hike') ? 'checked' : '' %>> Hike</label>
                     <label><input type="checkbox" name="acceptedRunTypes" value="trail_run" <%= selectedRunTypes.includes('trail_run') ? 'checked' : '' %>> Trail run</label>
                   </div>
+                  <small class="field-hint">Accepted activity types limit what can count toward accumulated progress.</small>
                   <% if (errors.acceptedRunTypes) { %><small class="error-text"><%= errors.acceptedRunTypes %></small><% } %>
                 </div>
                 <div class="form-group">
@@ -479,12 +582,46 @@
                 </div>
               </div>
             </div>
+            <div class="form-group">
+              <label for="virtualStartAt" class="label-with-help">
+                Virtual Window Start
+                <span class="field-help-icon" tabindex="0" aria-label="Defaults to Event Start when left blank. Change this only if virtual proof should open earlier or later than the public event start.">?</span>
+              </label>
+              <div class="input-with-button">
+                <input id="virtualStartAt" name="virtualStartAt" type="datetime-local" value="<%= formData.virtualStartAt %>">
+                <button type="button" class="btn-now" data-target="virtualStartAt">Now</button>
+              </div>
+              <small class="field-hint">First date and time runners can complete or submit virtual activity proof.</small>
+            </div>
+            <div class="form-group">
+              <label for="virtualEndAt" class="label-with-help">
+                Virtual Window End
+                <span class="field-help-icon" tabindex="0" aria-label="Defaults to Event End when left blank. For accumulated challenges, the separate final submission deadline can still give runners extra upload time.">?</span>
+              </label>
+              <div class="input-with-button">
+                <input id="virtualEndAt" name="virtualEndAt" type="datetime-local" value="<%= formData.virtualEndAt %>">
+                <button type="button" class="btn-now" data-target="virtualEndAt">Now</button>
+              </div>
+              <small class="field-hint">Last date and time eligible virtual activity proof can count.</small>
+            </div>
+            <div class="form-group form-group-full">
+              <label>Proof Types Allowed</label>
+              <div class="checkbox-row">
+                <% const selectedProofs = formData.proofTypesAllowed || []; %>
+                <label><input type="checkbox" name="proofTypesAllowed" value="gps" <%= selectedProofs.includes('gps') ? 'checked' : '' %>> GPS</label>
+                <label><input type="checkbox" name="proofTypesAllowed" value="photo" <%= selectedProofs.includes('photo') ? 'checked' : '' %>> Photo</label>
+                <label><input type="checkbox" name="proofTypesAllowed" value="manual" <%= selectedProofs.includes('manual') ? 'checked' : '' %>> Manual</label>
+              </div>
+              <small class="field-hint">Choose what runners may upload or enter as proof. GPS and photo proof are easier to review than manual entries.</small>
+            </div>
           </div>
         </div>
 
         <!-- BRANDING & MEDIA SECTION (adapted for edit) -->
-        <div class="form-section form-section-media">
+        <div id="media-step" class="form-section form-section-media" tabindex="-1" data-wizard-step="media-step">
+          <div class="section-kicker">Step 9 of 11</div>
           <div class="section-title">Branding & Media</div>
+          <p class="section-helper">Upload or link images used on event cards, details pages, and promotional previews.</p>
 
           <!-- Logo -->
           <div class="media-block">
@@ -621,15 +758,61 @@
           </div>
         </div>
 
-        <!-- FORM ACTIONS -->
-        <div class="actions">
-          <a href="/organizer/dashboard" class="btn btn-secondary">Back to Dashboard</a>
-          <button type="button" class="btn btn-outline" id="previewBtn">Preview</button>
-          <button type="submit" name="actionType" value="draft" class="btn btn-outline">Save Draft</button>
-          <button type="submit" name="actionType" value="publish" class="btn btn-primary" id="publishBtn">
-            <span class="btn-text">Submit for Review</span>
-            <span class="spinner" style="display: none;"></span>
-          </button>
+        <!-- PREVIEW AND SUBMIT SECTION -->
+        <div id="review-step" class="form-section form-section-review" tabindex="-1" data-wizard-step="review-step">
+          <div class="section-kicker">Step 11 of 11</div>
+          <div class="section-title">Preview and Submit</div>
+          <p class="section-helper">Save an incomplete draft at any time, preview the event page, or submit complete setup for admin review.</p>
+          <div class="review-summary-grid" aria-label="Submit readiness summary">
+            <div>
+              <strong>Draft</strong>
+              <span>Requires only a valid title.</span>
+            </div>
+            <div>
+              <strong>Admin Review</strong>
+              <span>Uses the current server validation and keeps the event private until approved.</span>
+            </div>
+            <div class="payment-review-note">
+              <strong>Paid Events</strong>
+              <span>Payment QR is required before submitting for review.</span>
+            </div>
+          </div>
+          <div class="actions">
+            <a href="/organizer/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+            <button type="button" class="btn btn-outline" id="previewBtn">Preview</button>
+            <button type="submit" name="actionType" value="draft" class="btn btn-outline">Save Draft</button>
+            <button type="submit" name="actionType" value="publish" class="btn btn-primary" id="publishBtn">
+              <span class="btn-text">Submit for Review</span>
+              <span class="spinner" style="display: none;"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- MOBILE: NAV OVERLAY -->
+        <div class="wizard-nav-overlay" id="wizardNavOverlay" aria-hidden="true">
+          <button type="button" class="wizard-nav-overlay-backdrop" id="wizardNavOverlayBackdrop" aria-label="Close steps panel"></button>
+          <div class="wizard-nav-overlay-panel" role="dialog" aria-label="Event builder steps">
+            <div class="wizard-nav-overlay-header">
+              <span>Event Builder</span>
+              <button type="button" class="wizard-nav-overlay-close" id="wizardNavOverlayClose" aria-label="Close steps panel">
+                <i data-lucide="x"></i>
+              </button>
+            </div>
+            <ol class="wizard-nav-overlay-list">
+              <li><a href="#event-type-step" data-overlay-step="event-type-step"><span class="overlay-step-num">1</span> Event Type</a></li>
+              <li><a href="#core-details-step" data-overlay-step="core-details-step"><span class="overlay-step-num">2</span> Core Details</a></li>
+              <li><a href="#schedule-step" data-overlay-step="schedule-step"><span class="overlay-step-num">3</span> Schedule</a></li>
+              <li><a href="#location-virtual-step" data-overlay-step="location-virtual-step"><span class="overlay-step-num">4</span> Location or Virtual Rules</a></li>
+              <li><a href="#race-categories-step" data-overlay-step="race-categories-step"><span class="overlay-step-num">5</span> Race Categories</a></li>
+              <li><a href="#rewards-step" data-overlay-step="rewards-step"><span class="overlay-step-num">6</span> Rewards &amp; Merchandise</a></li>
+              <li><a href="#pricing-step" data-overlay-step="pricing-step"><span class="overlay-step-num">7</span> Pricing &amp; Payment</a></li>
+              <li><a href="#event-details-step" data-overlay-step="event-details-step"><span class="overlay-step-num">8</span> Event Details</a></li>
+              <li><a href="#media-step" data-overlay-step="media-step"><span class="overlay-step-num">9</span> Branding &amp; Media</a></li>
+              <li><a href="#waiver-step" data-overlay-step="waiver-step"><span class="overlay-step-num">10</span> Waiver</a></li>
+              <li><a href="#review-step" data-overlay-step="review-step"><span class="overlay-step-num">11</span> Preview &amp; Submit</a></li>
+            </ol>
+          </div>
+        </div>
         </div>
       </form>
     </section>
@@ -643,9 +826,31 @@
     (function() {
       lucide.createIcons();
 
-      const coreDetailsSection = document.querySelector('.form-section-core');
-      if (coreDetailsSection && !window.location.hash) {
-        coreDetailsSection.focus({ preventScroll: true });
+      // Keep sticky wizard nav elements docked below the site nav at every breakpoint
+      function updateNavH() {
+        var nav = document.querySelector('.nav');
+        if (nav) document.documentElement.style.setProperty('--nav-h', nav.offsetHeight + 'px');
+      }
+      updateNavH();
+      window.addEventListener('resize', updateNavH);
+
+      function resetCreateEventScrollTop() {
+        if (window.location.hash) return;
+        window.scrollTo(0, 0);
+      }
+
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+      }
+      resetCreateEventScrollTop();
+      window.addEventListener('pageshow', resetCreateEventScrollTop);
+      window.addEventListener('load', () => {
+        requestAnimationFrame(resetCreateEventScrollTop);
+      });
+
+      const eventTypeSection = document.querySelector('.form-section-event-type');
+      if (eventTypeSection && !window.location.hash) {
+        eventTypeSection.focus({ preventScroll: true });
       }
 
       // ---------- CONDITIONAL SECTIONS ----------
@@ -653,22 +858,129 @@
       const virtualCompletionModeSelect = document.getElementById('virtualCompletionMode');
       const locationSection = document.querySelector('.location-section');
       const virtualSection = document.querySelector('.virtual-section');
+      const raceCategorySection = document.querySelector('.form-section-race-categories');
+      const raceCategoryHelper = document.getElementById('raceCategoryHelper');
+      const eventTypeCards = Array.from(document.querySelectorAll('[data-event-type-card]'));
       const accumulatedSettings = document.querySelector('.accumulated-settings');
       const targetDistanceInput = document.getElementById('targetDistanceKm');
       const targetDistanceHint = document.getElementById('targetDistanceHint');
+      const eventStartInput = document.getElementById('eventStartAt');
+      const eventEndInput = document.getElementById('eventEndAt');
+      const virtualStartInput = document.getElementById('virtualStartAt');
+      const virtualEndInput = document.getElementById('virtualEndAt');
+      const finalSubmissionDeadlineInput = document.getElementById('finalSubmissionDeadlineAt');
+      const finalSubmissionDeadlineHint = document.getElementById('finalSubmissionDeadlineHint');
       const raceDistanceCustomInput = document.getElementById('raceDistanceCustom');
       const raceDistancePresetInputs = Array.from(document.querySelectorAll('input[name="raceDistancePresets"]'));
       const feeModeSelect = document.getElementById('feeMode');
       const paymentFields = Array.from(document.querySelectorAll('.payment-fields'));
       const physicalRewardsEnabledInput = document.getElementById('physicalRewardsEnabled');
       const physicalRewardFields = Array.from(document.querySelectorAll('.physical-reward-fields'));
+      const paymentReviewNote = document.querySelector('.payment-review-note');
+      const progressLinks = Array.from(document.querySelectorAll('[data-step-link]'));
+      const wizardSections = Array.from(document.querySelectorAll('[data-wizard-step]'));
       let targetDistanceWasAutoFilled = !targetDistanceInput?.value;
+      let virtualStartWasAutoFilled = !virtualStartInput?.value;
+      let virtualEndWasAutoFilled = !virtualEndInput?.value;
+      let finalSubmissionDeadlineWasAutoFilled = !finalSubmissionDeadlineInput?.value;
+
+      const WIZARD_STEP_DATA = {
+        'event-type-step':       { num: 1,  label: 'Event Type' },
+        'core-details-step':     { num: 2,  label: 'Core Details' },
+        'schedule-step':         { num: 3,  label: 'Schedule' },
+        'location-virtual-step': { num: 4,  label: 'Location / Virtual' },
+        'race-categories-step':  { num: 5,  label: 'Race Categories' },
+        'rewards-step':          { num: 6,  label: 'Rewards' },
+        'pricing-step':          { num: 7,  label: 'Pricing & Payment' },
+        'event-details-step':    { num: 8,  label: 'Event Details' },
+        'media-step':            { num: 9,  label: 'Branding & Media' },
+        'waiver-step':           { num: 10, label: 'Waiver' },
+        'review-step':           { num: 11, label: 'Preview & Submit' },
+      };
+      const WIZARD_TOTAL_STEPS = 11;
+      const pillLinks = Array.from(document.querySelectorAll('[data-pill-step]'));
+      const overlayLinks = Array.from(document.querySelectorAll('[data-overlay-step]'));
+      const pillsList = document.querySelector('.wizard-pills-list');
+      const wizardMiniStepEl = document.getElementById('wizardMiniStep');
+      const wizardMiniTitleEl = document.getElementById('wizardMiniTitle');
+      const wizardMiniProgressFillEl = document.getElementById('wizardMiniProgressFill');
+
+      function setActiveWizardStep(stepId) {
+        progressLinks.forEach((link) => {
+          link.classList.toggle('is-active', link.dataset.stepLink === stepId);
+        });
+        pillLinks.forEach((link) => {
+          link.classList.toggle('is-active', link.dataset.pillStep === stepId);
+        });
+        const activePill = pillsList && pillsList.querySelector('[data-pill-step="' + stepId + '"]');
+        if (activePill) activePill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        overlayLinks.forEach((link) => {
+          link.classList.toggle('is-active', link.dataset.overlayStep === stepId);
+        });
+        const stepData = WIZARD_STEP_DATA[stepId];
+        if (stepData) {
+          if (wizardMiniStepEl) wizardMiniStepEl.textContent = 'Step ' + stepData.num + ' of ' + WIZARD_TOTAL_STEPS;
+          if (wizardMiniTitleEl) wizardMiniTitleEl.textContent = stepData.label;
+          if (wizardMiniProgressFillEl) wizardMiniProgressFillEl.style.width = ((stepData.num / WIZARD_TOTAL_STEPS) * 100).toFixed(2) + '%';
+        }
+      }
+
+      function initializeWizardProgress() {
+        if (!progressLinks.length || !wizardSections.length) return;
+        setActiveWizardStep('event-type-step');
+        if (!('IntersectionObserver' in window)) return;
+        const observer = new IntersectionObserver((entries) => {
+          const visible = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+          if (visible?.target?.dataset?.wizardStep) {
+            setActiveWizardStep(visible.target.dataset.wizardStep);
+          }
+        }, { rootMargin: '-20% 0px -65% 0px', threshold: [0.1, 0.35, 0.6] });
+        wizardSections.forEach((section) => observer.observe(section));
+      }
+      initializeWizardProgress();
+
+      // ---------- MOBILE NAV OVERLAY ----------
+      const wizardMiniToggleBtn = document.getElementById('wizardMiniToggle');
+      const wizardNavOverlayEl = document.getElementById('wizardNavOverlay');
+      const wizardNavOverlayCloseBtn = document.getElementById('wizardNavOverlayClose');
+      const wizardNavOverlayBackdropEl = document.getElementById('wizardNavOverlayBackdrop');
+
+      function openWizardNavOverlay() {
+        if (!wizardNavOverlayEl) return;
+        wizardNavOverlayEl.classList.add('is-open');
+        wizardNavOverlayEl.setAttribute('aria-hidden', 'false');
+        if (wizardMiniToggleBtn) wizardMiniToggleBtn.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeWizardNavOverlay() {
+        if (!wizardNavOverlayEl) return;
+        wizardNavOverlayEl.classList.remove('is-open');
+        wizardNavOverlayEl.setAttribute('aria-hidden', 'true');
+        if (wizardMiniToggleBtn) wizardMiniToggleBtn.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+      }
+
+      if (wizardMiniToggleBtn) wizardMiniToggleBtn.addEventListener('click', openWizardNavOverlay);
+      if (wizardNavOverlayCloseBtn) wizardNavOverlayCloseBtn.addEventListener('click', closeWizardNavOverlay);
+      if (wizardNavOverlayBackdropEl) wizardNavOverlayBackdropEl.addEventListener('click', closeWizardNavOverlay);
+      overlayLinks.forEach((link) => link.addEventListener('click', closeWizardNavOverlay));
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && wizardNavOverlayEl && wizardNavOverlayEl.classList.contains('is-open')) {
+          closeWizardNavOverlay();
+        }
+      });
 
       function togglePaymentFields() {
         const showPaymentFields = feeModeSelect?.value === 'paid';
         paymentFields.forEach((field) => {
           field.style.display = showPaymentFields ? '' : 'none';
         });
+        if (paymentReviewNote) {
+          paymentReviewNote.style.display = showPaymentFields ? '' : 'none';
+        }
       }
       feeModeSelect?.addEventListener('change', togglePaymentFields);
       togglePaymentFields();
@@ -687,10 +999,39 @@
         const val = eventTypeSelect.value;
         locationSection.style.display = (val === 'onsite' || val === 'hybrid') ? 'block' : 'none';
         virtualSection.style.display = (val === 'virtual' || val === 'hybrid') ? 'block' : 'none';
+
+        // Schedule hints — show contextual hint based on event type
+        const isOnsite = val === 'onsite' || val === 'hybrid';
+        const isVirtual = val === 'virtual' || val === 'hybrid';
+        document.querySelectorAll('.schedule-hint-onsite').forEach(el => { el.style.display = isOnsite ? '' : 'none'; });
+        document.querySelectorAll('.schedule-hint-virtual').forEach(el => { el.style.display = (!isOnsite && isVirtual) ? '' : 'none'; });
+        document.querySelectorAll('.schedule-hint-default').forEach(el => { el.style.display = (!isOnsite && !isVirtual) ? '' : 'none'; });
+        const onsiteCallout = document.querySelector('.schedule-onsite-callout');
+        if (onsiteCallout) onsiteCallout.style.display = isOnsite ? 'block' : 'none';
+        if (raceCategorySection && raceCategoryHelper) {
+          if (val === 'virtual') {
+            raceCategoryHelper.textContent = 'For virtual events, use these as runner-facing registration distance labels. Target Distance controls accumulated challenge completion.';
+          } else if (val === 'onsite') {
+            raceCategoryHelper.textContent = 'For onsite events, use these as the race categories runners can register for.';
+          } else if (val === 'hybrid') {
+            raceCategoryHelper.textContent = 'For hybrid events, use these as shared category labels for onsite and virtual participation.';
+          } else {
+            raceCategoryHelper.textContent = 'Use race distances as the current registration category labels. Detailed per-category pricing is planned for a later phase.';
+          }
+        }
+        eventTypeCards.forEach((card) => {
+          card.classList.toggle('is-selected', Boolean(val) && card.dataset.eventTypeCard === val);
+        });
         if (accumulatedSettings && virtualCompletionModeSelect) {
           const showAccumulated = (val === 'virtual' || val === 'hybrid') && virtualCompletionModeSelect.value === 'accumulated_distance';
           accumulatedSettings.style.display = showAccumulated ? 'block' : 'none';
-          if (showAccumulated) syncTargetDistanceFromRaceDistance();
+          if (val === 'virtual' || val === 'hybrid') {
+            syncVirtualWindowFromEventDates();
+          }
+          if (showAccumulated) {
+            syncTargetDistanceFromRaceDistance();
+            syncFinalSubmissionDeadlineFromEventEnd();
+          }
         }
       }
 
@@ -755,6 +1096,124 @@
       }
       syncTargetDistanceFromRaceDistance();
 
+      function parseDateTimeLocalValue(value) {
+        if (!value) return null;
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+      }
+
+      function formatDateTimeLocalValue(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      }
+
+      function syncVirtualWindowFromEventDates() {
+        const eventType = eventTypeSelect?.value;
+        if (eventType !== 'virtual' && eventType !== 'hybrid') return;
+        if (virtualStartInput && eventStartInput && virtualStartWasAutoFilled) {
+          const eventStart = parseDateTimeLocalValue(eventStartInput.value);
+          if (eventStart) virtualStartInput.value = formatDateTimeLocalValue(eventStart);
+        }
+        if (virtualEndInput && eventEndInput && virtualEndWasAutoFilled) {
+          const eventEnd = parseDateTimeLocalValue(eventEndInput.value);
+          if (eventEnd) virtualEndInput.value = formatDateTimeLocalValue(eventEnd);
+        }
+      }
+
+      if (virtualStartInput) {
+        virtualStartInput.addEventListener('input', () => {
+          virtualStartWasAutoFilled = false;
+        });
+      }
+      if (virtualEndInput) {
+        virtualEndInput.addEventListener('input', () => {
+          virtualEndWasAutoFilled = false;
+        });
+      }
+      if (eventStartInput) {
+        eventStartInput.addEventListener('input', syncVirtualWindowFromEventDates);
+        eventStartInput.addEventListener('change', syncVirtualWindowFromEventDates);
+      }
+      if (eventEndInput) {
+        eventEndInput.addEventListener('input', syncVirtualWindowFromEventDates);
+        eventEndInput.addEventListener('change', syncVirtualWindowFromEventDates);
+      }
+      syncVirtualWindowFromEventDates();
+
+      function syncFinalSubmissionDeadlineFromEventEnd() {
+        if (!finalSubmissionDeadlineInput || !eventEndInput || !finalSubmissionDeadlineWasAutoFilled) return;
+        const eventEnd = parseDateTimeLocalValue(eventEndInput.value);
+        if (!eventEnd) return;
+        const deadline = new Date(eventEnd.getTime());
+        deadline.setDate(deadline.getDate() + 14);
+        finalSubmissionDeadlineInput.value = formatDateTimeLocalValue(deadline);
+        if (finalSubmissionDeadlineHint) {
+          finalSubmissionDeadlineHint.textContent = 'Auto-filled from Event End plus 14 days. Edit this field to use a different upload deadline.';
+          finalSubmissionDeadlineHint.classList.add('is-autofilled');
+          finalSubmissionDeadlineHint.classList.remove('is-manual');
+        }
+      }
+
+      if (finalSubmissionDeadlineInput) {
+        finalSubmissionDeadlineInput.addEventListener('input', () => {
+          finalSubmissionDeadlineWasAutoFilled = false;
+          if (finalSubmissionDeadlineHint) {
+            finalSubmissionDeadlineHint.textContent = 'Custom submission deadline set.';
+            finalSubmissionDeadlineHint.classList.add('is-manual');
+            finalSubmissionDeadlineHint.classList.remove('is-autofilled');
+          }
+        });
+      }
+      if (eventEndInput) {
+        eventEndInput.addEventListener('input', syncFinalSubmissionDeadlineFromEventEnd);
+        eventEndInput.addEventListener('change', syncFinalSubmissionDeadlineFromEventEnd);
+      }
+      syncFinalSubmissionDeadlineFromEventEnd();
+
+      function getIndexedInput(name, index) {
+        return Array.from(document.querySelectorAll(`input[name="${name}"]`))[Number(index)] || null;
+      }
+
+      function setIndexedDateInput(name, index, date) {
+        const input = getIndexedInput(name, index);
+        if (!input || !date) return;
+        input.value = formatDateTimeLocalValue(date);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      function applySuggestedPricingDates(packageIndex) {
+        const registrationOpen = parseDateTimeLocalValue(document.getElementById('registrationOpenAt')?.value);
+        const registrationClose = parseDateTimeLocalValue(document.getElementById('registrationCloseAt')?.value);
+        if (!registrationOpen || !registrationClose || registrationOpen >= registrationClose) {
+          alert('Set a valid Registration Open and Registration Close before using suggested pricing dates.');
+          return;
+        }
+
+        const dayMs = 24 * 60 * 60 * 1000;
+        if (registrationClose.getTime() - registrationOpen.getTime() <= 21 * dayMs) {
+          alert('Suggested Early Bird, Regular, and Late Registration periods need more than 21 days between registration open and close.');
+          return;
+        }
+
+        const earlyEnd = new Date(registrationOpen.getTime() + 14 * dayMs);
+        const lateStart = new Date(registrationClose.getTime() - 7 * dayMs);
+        setIndexedDateInput('registrationPackageEarlyBirdStartAt', packageIndex, registrationOpen);
+        setIndexedDateInput('registrationPackageEarlyBirdEndAt', packageIndex, earlyEnd);
+        setIndexedDateInput('registrationPackageRegularStartAt', packageIndex, earlyEnd);
+        setIndexedDateInput('registrationPackageRegularEndAt', packageIndex, lateStart);
+        setIndexedDateInput('registrationPackageLateStartAt', packageIndex, lateStart);
+        setIndexedDateInput('registrationPackageLateEndAt', packageIndex, registrationClose);
+      }
+
+      document.querySelectorAll('.btn-suggest-pricing-dates').forEach((button) => {
+        button.addEventListener('click', () => applySuggestedPricingDates(button.dataset.packageIndex));
+      });
+
       // ---------- "NOW" BUTTONS ----------
       document.querySelectorAll('.btn-now').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -768,8 +1227,48 @@
           const hours = String(now.getHours()).padStart(2, '0');
           const minutes = String(now.getMinutes()).padStart(2, '0');
           input.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
         });
       });
+
+      // ---------- SMART REGISTRATION DATE SUGGESTIONS ----------
+      function toDatetimeLocalValue(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      }
+
+      const registrationOpenInput = document.getElementById('registrationOpenAt');
+      const registrationCloseInput = document.getElementById('registrationCloseAt');
+
+      if (eventStartInput) {
+        eventStartInput.addEventListener('change', () => {
+          const eventStart = new Date(eventStartInput.value);
+          if (isNaN(eventStart.getTime())) return;
+
+          // Suggest Registration Open = today (start of day), only if blank
+          if (registrationOpenInput && !registrationOpenInput.value) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            registrationOpenInput.value = toDatetimeLocalValue(today);
+            registrationOpenInput.dispatchEvent(new Event('input', { bubbles: true }));
+            registrationOpenInput.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+
+          // Suggest Registration Close = 1 day before Event Start, only if blank
+          if (registrationCloseInput && !registrationCloseInput.value) {
+            const closeDate = new Date(eventStart);
+            closeDate.setDate(closeDate.getDate() - 1);
+            registrationCloseInput.value = toDatetimeLocalValue(closeDate);
+            registrationCloseInput.dispatchEvent(new Event('input', { bubbles: true }));
+            registrationCloseInput.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        });
+      }
 
       // ---------- REAL-TIME VALIDATION ----------
       const form = document.querySelector('.create-event-form');
@@ -803,6 +1302,7 @@
         }
 
         const formGroup = input.closest('.form-group');
+        if (!formGroup) return !error;
         const existingError = formGroup.querySelector('.error-text');
         if (error) {
           if (!existingError) {

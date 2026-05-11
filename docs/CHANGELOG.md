@@ -3,7 +3,64 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 11, 2026 (Session 17: Create Event — Sub-Desktop Wizard Nav)
+
+### [SESSION] SESSION UPDATE:
+- Implemented 3-tier responsive wizard navigation for `/organizer/create-event` at sub-desktop widths:
+  - **Tablet (≤1024px)**: sticky horizontal scrollable pills bar docked below site nav
+  - **Mobile (≤640px)**: sticky mini progress strip (step counter, title, chevron toggle, 3px progress bar)
+  - **Mobile overlay**: full-page nav overlay opened by the mini-strip chevron toggle; shows all 11 steps; dismissed by close button, backdrop click, or Escape key
+- Fixed icons not rendering across all pages: root cause was a duplicate `const eventStartInput` declaration in the create-event IIFE that caused a `SyntaxError`, preventing `lucide.createIcons()` from running
+- Fixed sticky top offsets: wizard nav strips now use CSS custom property `--nav-h` set via JS (`nav.offsetHeight`) on load + resize, so they always dock correctly below the site nav regardless of breakpoint
+- Fixed icon-only button rendering: added `padding: 0; line-height: 1` resets to `.wizard-mini-toggle` and `.wizard-nav-overlay-close` to remove browser default button padding
+- Fixed chevron rotation animation: `transition: transform 0.2s ease` moved to unified `i, svg` rule so animation fires on the Lucide-generated `<svg>` element (not the replaced `<i>`)
+- Fixed global back-to-top icon: updated `style.css` to target both `i` and `svg` for `.global-back-to-top`
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. src/views/organizer/create-event.ejs
+3. src/public/css/create-event.css
+4. src/public/css/style.css
+
+### [VALIDATION] TEST/RUN CHECKS:
+- Server starts and `GET /organizer/create-event` renders without JS errors in browser console
+- At ≤1024px: pills bar appears sticky below site nav; pills scroll horizontally; active pill auto-scrolls into view
+- At ≤640px: mini strip appears sticky; chevron rotates on overlay open/close; progress bar fills per step
+- Overlay: opens on toggle tap; backdrop/close/Escape all dismiss; active step highlighted
+- All Lucide icons (nav, mini-strip chevron, overlay close, back-to-top, waiver toolbar) render correctly
+
+---
+
 ## CHANGELOG - May 10, 2026 (Session: Create Event Organizer Setup V1 Notes)
+
+### [SESSION] SESSION UPDATE:
+- Refined `/organizer/create-event` and organizer edit-event setup defaults and guidance:
+  - guided blank create forms now default Organizer Name from the account owner's first and last name
+  - added Organizer Name and Description tooltips using the existing form help-icon pattern
+  - moved Race Distances before Event Type in Core Details
+  - defaulted Event Format to accumulated distance challenge for virtual/hybrid setup
+  - kept Target Distance visible with race-distance auto-fill, because accumulated progress depends on it
+  - removed organizer-facing Minimum Activity Distance and Milestones controls from create/edit forms
+  - defaulted Final Submission Deadline to Event End + 14 days for accumulated challenges, with tooltip guidance
+  - stopped showing Minimum Activity and Milestones in organizer preview
+  - kept legacy minimum-distance enforcement for existing events that already have a minimum configured
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/create_event.md
+3. src/routes/organizer.routes.js
+4. src/services/event-form.service.js
+5. src/views/organizer/create-event.ejs
+6. src/views/organizer/edit-event.ejs
+7. src/views/organizer/event-preview.ejs
+8. tests/organizer-waiver-routes.test.js
+9. tests/submission.service.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/organizer-waiver-routes.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/submission.service.test.js` -> PASS
+
+---
 
 ### [SESSION] SESSION UPDATE:
 - Updated create-event planning notes after Organizer Setup V1 implementation:
