@@ -240,11 +240,11 @@
         <!-- REWARDS, MERCHANDISE & PACKAGES SECTION -->
         <div id="rewards-step" class="form-section form-section-rewards" tabindex="-1" data-wizard-step="rewards-step">
           <div class="section-kicker">Step 6 of 11</div>
-          <div class="section-title">Rewards, Merchandise, and Registration Packages</div>
-          <p class="section-helper">Set recognition, merchandise, packages, and delivery details before finalizing pricing.</p>
+          <div class="section-title">Recognition, Rewards & Packages</div>
+          <p class="section-helper">Configure digital recognition, physical rewards, registration dates and packages, and delivery options.</p>
           <div class="form-grid">
             <div class="form-group form-group-full">
-              <label>Digital Recognition</label>
+              <div class="subsection-divider">Digital Recognition</div>
               <div class="checkbox-row">
                 <label><input type="checkbox" name="digitalBadgeEnabled" value="1" <%= formData.digitalBadgeEnabled ? 'checked' : '' %>> Digital Badge</label>
                 <label><input type="checkbox" name="digitalCertificateEnabled" value="1" <%= formData.digitalCertificateEnabled ? 'checked' : '' %>> Digital Finisher Certificate</label>
@@ -252,7 +252,8 @@
               <small class="field-hint">Enable only the recognition items this event will actually provide to finishers.</small>
             </div>
             <div class="form-group form-group-full">
-              <label><input type="checkbox" id="physicalRewardsEnabled" name="physicalRewardsEnabled" value="1" <%= formData.physicalRewardsEnabled ? 'checked' : '' %>> Physical Rewards Available</label>
+              <div class="subsection-divider">Physical Rewards</div>
+              <div class="toggle-section-label"><input type="checkbox" id="physicalRewardsEnabled" name="physicalRewardsEnabled" value="1" <%= formData.physicalRewardsEnabled ? 'checked' : '' %>><label for="physicalRewardsEnabled" class="toggle-label-text">Physical Rewards Available <span class="field-help-icon" tabindex="0" aria-label="Tick this if your event includes physical items such as medals, shirts, patches, or a finisher kit. You can set individual costs per item to help calculate a suggested entry fee.">?</span></label></div>
               <div class="physical-reward-fields">
                 <small class="field-hint">For paid events, these items can contribute to the suggested event fee.</small>
                 <div class="reward-cost-grid">
@@ -272,13 +273,36 @@
                     </div>
                   <% } %>
                 </div>
+                <div class="reward-text-fields">
+                  <label for="physicalRewardsDescription">Rewards Description</label>
+                  <textarea id="physicalRewardsDescription" name="physicalRewardsDescription" rows="3" placeholder="Describe the physical rewards runners will receive, e.g. finisher medal, shirt, patch."><%= formData.physicalRewardsDescription || '' %></textarea>
+                  <% if (errors.physicalRewardsDescription) { %><small class="error-text"><%= errors.physicalRewardsDescription %></small><% } %>
+                  <label for="physicalRewardsClaimingNotes">Claiming Instructions (Optional)</label>
+                  <textarea id="physicalRewardsClaimingNotes" name="physicalRewardsClaimingNotes" rows="2" placeholder="How and where runners claim their rewards or merchandise."><%= formData.physicalRewardsClaimingNotes || '' %></textarea>
+                </div>
               </div>
-              <textarea id="physicalRewardsDescription" name="physicalRewardsDescription" rows="3" placeholder="Optional: medal, shirt, patch, finisher kit, claiming instructions."><%= formData.physicalRewardsDescription || '' %></textarea>
-              <textarea id="physicalRewardsClaimingNotes" name="physicalRewardsClaimingNotes" rows="2" placeholder="Optional claiming notes for rewards or merchandise."><%= formData.physicalRewardsClaimingNotes || '' %></textarea>
-              <% if (errors.physicalRewardsDescription) { %><small class="error-text"><%= errors.physicalRewardsDescription %></small><% } %>
             </div>
             <div class="form-group form-group-full">
-              <label>Registration Packages</label>
+              <div class="subsection-divider">Registration Dates</div>
+            </div>
+            <div class="form-group">
+              <label for="registrationOpenAt">Registration Open *</label>
+              <div class="input-with-button">
+                <input id="registrationOpenAt" name="registrationOpenAt" type="datetime-local" value="<%= formData.registrationOpenAt %>" required>
+                <button type="button" class="btn-now" data-target="registrationOpenAt">Now</button>
+              </div>
+              <small class="field-hint" id="registrationOpenAt-hint">When runners can start registering. Auto-suggested as today when you set Event Start.</small>
+            </div>
+            <div class="form-group">
+              <label for="registrationCloseAt">Registration Close *</label>
+              <div class="input-with-button">
+                <input id="registrationCloseAt" name="registrationCloseAt" type="datetime-local" value="<%= formData.registrationCloseAt %>" required>
+                <button type="button" class="btn-now" data-target="registrationCloseAt">Now</button>
+              </div>
+              <small class="field-hint" id="registrationCloseAt-hint">Auto-suggested as 1 day before Event Start. For virtual events, registration can stay open after the event starts.</small>
+            </div>
+            <div class="form-group form-group-full">
+              <div class="subsection-divider">Registration Packages</div>
               <small class="field-hint">Use packages when runners can choose different inclusions, prices, or registration periods.</small>
               <% const packages = formData.registrationPackages || []; %>
               <% for (let packageIndex = 0; packageIndex < 3; packageIndex += 1) { const packageOption = packages[packageIndex] || {}; const periods = packageOption.pricingPeriods || []; const findPeriod = (code) => periods.find((period) => period.code === code) || {}; %>
@@ -298,19 +322,31 @@
                   </div>
                   <div class="pricing-period-grid">
                     <% const early = findPeriod('early_bird'); const regular = findPeriod('regular'); const late = findPeriod('late'); %>
-                    <input name="registrationPackageEarlyBirdStartAt" type="datetime-local" value="<%= early.startAt || '' %>" aria-label="Early bird start">
-                    <input name="registrationPackageEarlyBirdEndAt" type="datetime-local" value="<%= early.endAt || '' %>" aria-label="Early bird end">
-                    <input name="registrationPackageEarlyBirdAmount" type="number" min="0" step="0.01" value="<%= early.amount ?? '' %>" placeholder="Early amount">
-                    <input name="registrationPackageRegularStartAt" type="datetime-local" value="<%= regular.startAt || '' %>" aria-label="Regular start">
-                    <input name="registrationPackageRegularEndAt" type="datetime-local" value="<%= regular.endAt || '' %>" aria-label="Regular end">
-                    <input name="registrationPackageRegularAmount" type="number" min="0" step="0.01" value="<%= regular.amount ?? '' %>" placeholder="Regular amount">
-                    <input name="registrationPackageLateStartAt" type="datetime-local" value="<%= late.startAt || '' %>" aria-label="Late start">
-                    <input name="registrationPackageLateEndAt" type="datetime-local" value="<%= late.endAt || '' %>" aria-label="Late end">
-                    <input name="registrationPackageLateAmount" type="number" min="0" step="0.01" value="<%= late.amount ?? '' %>" placeholder="Late amount">
+                    <div class="pricing-period-row">
+                      <span class="pricing-period-label">Early Bird</span>
+                      <input name="registrationPackageEarlyBirdStartAt" type="datetime-local" value="<%= early.startAt || '' %>" aria-label="Early bird start">
+                      <input name="registrationPackageEarlyBirdEndAt" type="datetime-local" value="<%= early.endAt || '' %>" aria-label="Early bird end">
+                      <input name="registrationPackageEarlyBirdAmount" type="number" min="0" step="0.01" value="<%= early.amount ?? '' %>" placeholder="Price">
+                    </div>
+                    <div class="pricing-period-row">
+                      <span class="pricing-period-label">Regular</span>
+                      <input name="registrationPackageRegularStartAt" type="datetime-local" value="<%= regular.startAt || '' %>" aria-label="Regular start">
+                      <input name="registrationPackageRegularEndAt" type="datetime-local" value="<%= regular.endAt || '' %>" aria-label="Regular end">
+                      <input name="registrationPackageRegularAmount" type="number" min="0" step="0.01" value="<%= regular.amount ?? '' %>" placeholder="Price">
+                    </div>
+                    <div class="pricing-period-row">
+                      <span class="pricing-period-label">Late</span>
+                      <input name="registrationPackageLateStartAt" type="datetime-local" value="<%= late.startAt || '' %>" aria-label="Late start">
+                      <input name="registrationPackageLateEndAt" type="datetime-local" value="<%= late.endAt || '' %>" aria-label="Late end">
+                      <input name="registrationPackageLateAmount" type="number" min="0" step="0.01" value="<%= late.amount ?? '' %>" placeholder="Price">
+                    </div>
                   </div>
                   <textarea name="registrationPackageNotes" rows="2" placeholder="Package notes"><%= packageOption.notes || '' %></textarea>
                 </div>
               <% } %>
+            </div>
+            <div class="form-group form-group-full">
+              <div class="subsection-divider">Delivery & Fulfilment</div>
             </div>
             <div class="form-group form-group-full">
               <label><input type="checkbox" name="deliveryFeeEnabled" value="1" <%= formData.deliveryFeeEnabled ? 'checked' : '' %>> Delivery or Claiming Fee</label>
@@ -331,7 +367,7 @@
               </div>
             </div>
             <div class="form-group form-group-full">
-              <label>Special Reward Benefits</label>
+              <div class="subsection-divider">Special Benefits</div>
               <% const benefits = formData.specialRewardBenefits || []; %>
               <% for (let benefitIndex = 0; benefitIndex < 2; benefitIndex += 1) { const benefit = benefits[benefitIndex] || {}; %>
                 <div class="inline-field-row benefit-row">
@@ -399,7 +435,7 @@
         <div id="schedule-step" class="form-section form-section-schedule" tabindex="-1" data-wizard-step="schedule-step">
           <div class="section-kicker">Step 3 of 11</div>
           <div class="section-title">Schedule</div>
-          <p class="section-helper">Registration dates control when runners can join. Event dates control when the activity or race happens.</p>
+          <p class="section-helper">Set the event start and end dates. Registration open/close is configured in the Packages step.</p>
           <div class="form-grid">
             <div class="form-group">
               <label for="eventStartAt" class="label-with-help">
@@ -430,22 +466,6 @@
                 <span class="schedule-hint-virtual" style="display:none;">Virtual: the last day runners can log their distance. Proof upload deadline can be set separately below.</span>
                 <span class="schedule-hint-default">When the event officially ends for public display.</span>
               </small>
-            </div>
-            <div class="form-group">
-              <label for="registrationOpenAt">Registration Open *</label>
-              <div class="input-with-button">
-                <input id="registrationOpenAt" name="registrationOpenAt" type="datetime-local" value="<%= formData.registrationOpenAt %>" required>
-                <button type="button" class="btn-now" data-target="registrationOpenAt">Now</button>
-              </div>
-              <small class="field-hint" id="registrationOpenAt-hint">When runners can start registering. Auto-suggested as today when you set Event Start.</small>
-            </div>
-            <div class="form-group">
-              <label for="registrationCloseAt">Registration Close *</label>
-              <div class="input-with-button">
-                <input id="registrationCloseAt" name="registrationCloseAt" type="datetime-local" value="<%= formData.registrationCloseAt %>" required>
-                <button type="button" class="btn-now" data-target="registrationCloseAt">Now</button>
-              </div>
-              <small class="field-hint" id="registrationCloseAt-hint">Auto-suggested as 1 day before Event Start. For virtual events, registration can stay open after the event starts.</small>
             </div>
           </div>
 
@@ -607,7 +627,7 @@
             <div class="form-group form-group-full">
               <label>Proof Types Allowed</label>
               <div class="checkbox-row">
-                <% const selectedProofs = formData.proofTypesAllowed || []; %>
+                <% const selectedProofs = formData.proofTypesAllowed && formData.proofTypesAllowed.length ? formData.proofTypesAllowed : ['gps', 'photo', 'manual']; %>
                 <label><input type="checkbox" name="proofTypesAllowed" value="gps" <%= selectedProofs.includes('gps') ? 'checked' : '' %>> GPS</label>
                 <label><input type="checkbox" name="proofTypesAllowed" value="photo" <%= selectedProofs.includes('photo') ? 'checked' : '' %>> Photo</label>
                 <label><input type="checkbox" name="proofTypesAllowed" value="manual" <%= selectedProofs.includes('manual') ? 'checked' : '' %>> Manual</label>
