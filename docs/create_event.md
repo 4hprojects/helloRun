@@ -6,7 +6,15 @@ This document is the dedicated planning and tracking source for the organizer cr
 
 `docs/PRD.md` remains the master roadmap. This file should hold the route-level, field-level, UI-level, model-level, and testing details for create-event work, including example-driven gaps discovered from event setup references.
 
-The guided organizer create-event wizard implementation plan is documented in `docs/create_event_wizard_codex_implementation.md`.
+## Guided Create Event Wizard Reference
+
+The improved organizer create-event workflow is documented in:
+
+`docs/create_event_wizard_codex_implementation.md`
+
+This reference covers the recommended step-by-step wizard flow for creating virtual, onsite, and hybrid events. It includes guidance for free events, paid events, custom registration packages, race-category pricing, early bird pricing, regular pricing, late registration fees, rewards and merchandise, payment setup, waiver handling, event preview, and submit-for-review validation.
+
+Use this document as the implementation guide when updating `/organizer/create-event`.
 
 This document also captures the planned direction for:
 

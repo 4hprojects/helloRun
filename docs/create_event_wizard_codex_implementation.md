@@ -1,28 +1,83 @@
 # HelloRun Create Event Wizard Implementation Guide
 
-## Purpose
+## Document Purpose
 
-This document gives Codex a clear implementation direction for improving the HelloRun organizer create-event workflow at `/organizer/create-event`.
+This document provides a complete implementation guide for improving the HelloRun organizer create-event workflow at:
 
-The goal is to convert the current long create-event form into a more user-friendly guided event builder.
+```text
+/organizer/create-event
+```
 
-The page should help organizers create virtual, onsite, and hybrid running events step by step without being overwhelmed by fields that do not apply to their event type.
+The goal is to convert the create-event page from a long, overwhelming form into a guided event builder that walks organizers through the event setup process step by step.
+
+This guide focuses on:
+
+- Event type selection
+- Free event and paid event setup
+- Custom registration packages
+- Distance-based pricing
+- Early bird, regular, and late registration fees
+- Rewards and merchandise setup
+- Payment setup
+- Draft saving
+- Submit-for-review validation
+- Event preview before submission
+
+This document should be used as a working implementation reference for VS Code Codex and future development tasks.
 
 ---
 
-## Implementation Goal
+## Recommended File Placement
+
+Place this file at:
+
+```text
+docs/create_event_wizard_codex_implementation.md
+```
+
+Then add a short reference in:
+
+```text
+docs/create_event.md
+docs/PRD.md
+```
+
+Suggested reference text:
+
+```md
+## Guided Create Event Wizard
+
+The detailed implementation plan for improving the organizer create-event workflow is documented in:
+
+`docs/create_event_wizard_codex_implementation.md`
+
+This guide covers the step-by-step wizard flow, conditional fields, free and paid event handling, package-based pricing, early bird pricing, regular pricing, late registration fees, payment setup, preview, and submit-for-review validation.
+```
+
+---
+
+## Main Implementation Goal
 
 Build a guided create-event wizard for organizers.
+
+The wizard should help organizers create virtual, onsite, and hybrid running events without being overwhelmed by fields that do not apply to their event type.
 
 The wizard should:
 
 - Show one logical step at a time.
 - Use event type to control which fields appear.
+- Separate pricing setup from payment setup.
+- Support free events.
+- Support paid events.
+- Support same-fee pricing.
+- Support per-distance pricing.
+- Support package-based pricing.
+- Support early bird, regular, and late registration fees.
 - Allow incomplete draft saving.
 - Require full validation only when submitting for admin review.
-- Keep the existing backend behaviour where possible.
-- Preserve existing model fields and route behaviour unless this document explicitly says otherwise.
-- Improve user guidance, helper text, section ordering, and preview before submission.
+- Preserve existing backend behavior where possible.
+- Preserve existing model fields and route behavior unless this document explicitly says otherwise.
+- Improve helper text, section ordering, and preview before submission.
 
 ---
 
@@ -46,9 +101,9 @@ If any filename differs in the repository, find the nearest matching file and co
 
 ---
 
-## Current Behaviour to Preserve
+## Current Behavior to Preserve
 
-Preserve these behaviours:
+Preserve these behaviors:
 
 - Approved organizers can access `/organizer/create-event`.
 - Organizers can save events as drafts.
@@ -56,10 +111,41 @@ Preserve these behaviours:
 - Organizers can submit complete events for admin review.
 - Paid drafts can save without payment QR.
 - Paid events submitted for review require payment QR.
+- Free events should not require payment QR.
 - Admin approval controls public publishing.
 - Event details continue to use `eventDetailsMarkdown` internally.
 - Waiver content continues to be sanitized server-side.
 - Accumulated virtual runs continue using activity-level submissions and rollups.
+- Existing organizer route guards should remain unchanged.
+- Existing admin review flow should remain unchanged.
+- Existing event detail rendering should remain unchanged.
+
+---
+
+## Core UX Principle
+
+The organizer should feel this natural sequence:
+
+```text
+What kind of event am I creating?
+When will it happen?
+Where or how will runners participate?
+What can runners join?
+What rewards or packages will I offer?
+Is it free or paid?
+How much should runners pay?
+How will runners pay?
+What rules should runners read?
+What will the event look like?
+What waiver will runners accept?
+Is everything ready for review?
+```
+
+This flow matches how organizers usually think.
+
+They do not start with payment.
+
+They start with the event idea, then the runners, then the inclusions, then the price.
 
 ---
 
@@ -69,31 +155,32 @@ Use this order:
 
 ```text
 Step 1: Event Type
-Step 2: Core Details
+Step 2: Core Event Details
 Step 3: Schedule
-Step 4: Location or Virtual Rules
-Step 5: Race Categories
-Step 6: Rewards and Merchandise
-Step 7: Pricing and Payment
-Step 8: Event Details
-Step 9: Branding and Media
-Step 10: Waiver
-Step 11: Preview and Submit
+Step 4: Event Format Setup
+Step 5: Race Categories or Challenge Distances
+Step 6: Rewards, Merchandise, and Packages
+Step 7: Pricing Setup
+Step 8: Payment Setup
+Step 9: Event Details and Rules
+Step 10: Branding and Media
+Step 11: Waiver
+Step 12: Preview and Submit
 ```
 
-This flow should replace the feeling of one long form.
-
-If full wizard routing is too large for the first implementation, use collapsible accordion panels with this same order and a sticky progress/sidebar indicator.
+If a full wizard route implementation is too large for the first version, use collapsible accordion panels with the same order and a sticky progress indicator.
 
 ---
 
 ## Step 1: Event Type
 
-Purpose:
+### Purpose
 
 Let the organizer choose the event format first.
 
-Options:
+This decision controls which fields appear in the rest of the form.
+
+### Options
 
 ```text
 virtual
@@ -101,158 +188,343 @@ onsite
 hybrid
 ```
 
-Suggested UI copy:
+### Suggested UI Copy
 
 ```text
 Choose the type of event you want to create.
+```
 
+```text
 Virtual Event
 Best for accumulated runs, screenshot-based submissions, and online participation.
+```
 
+```text
 Onsite Event
 Best for physical races with venue, race categories, and registration fees.
+```
 
+```text
 Hybrid Event
 Best for events that allow both onsite and virtual participation.
 ```
 
-Required for submit-for-review.
+### Validation
 
-Event type controls conditional fields in later steps.
+For draft:
+
+```text
+Event type may be incomplete.
+```
+
+For submit-for-review:
+
+```text
+Event type is required.
+```
+
+### Conditional Logic
+
+If event type is `virtual`:
+
+- Show virtual rules.
+- Hide location by default.
+- Race categories are optional unless multiple distances are offered.
+- Accumulated distance options may appear.
+
+If event type is `onsite`:
+
+- Show location.
+- Show race categories.
+- Hide virtual submission rules.
+- Default pricing mode can be per-distance pricing.
+
+If event type is `hybrid`:
+
+- Show both location and virtual rules.
+- Show race categories.
+- Allow both onsite and virtual participation details.
 
 ---
 
-## Step 2: Core Details
+## Step 2: Core Event Details
 
-Fields:
+### Purpose
 
-- `title`
-- `organiserName`
-- `description`
-- `raceDistancePresets`
-- `raceDistanceCustom`
+Collect the basic public-facing event information.
 
-Suggested helper text:
+### Fields
+
+```text
+title
+organiserName
+description
+raceDistancePresets
+raceDistanceCustom
+```
+
+### Suggested Labels
+
+```text
+Event Title
+Organizer Name
+Short Description
+Race Distance
+Custom Distance
+```
+
+### Suggested Helper Text
 
 ```text
 Short Description
 Used on event cards and listings. Keep this under two sentences. Full rules belong in Event Details.
 ```
 
-Validation:
+### Validation
 
-- Draft: `title` required only.
-- Submit for review: title, description, event type, and at least one race distance or custom distance required.
+For draft:
+
+```text
+Title is required.
+```
+
+For submit-for-review:
+
+```text
+Title is required.
+Description is required.
+Event type is required.
+At least one race distance or custom distance is required unless race categories are used.
+```
+
+### Recommended Behavior
+
 - Organizer name may default from the account owner.
+- Short description should be used for event cards.
+- Full rules should not be placed here.
+- Full rules should be entered in Step 9.
 
 ---
 
 ## Step 3: Schedule
 
-Fields:
+### Purpose
 
-- `registrationOpenAt`
-- `registrationCloseAt`
-- `eventStartAt`
-- `eventEndAt`
+Define registration dates and event dates.
 
-Validation:
+### Fields
 
 ```text
-registrationOpenAt <= registrationCloseAt <= eventStartAt <= eventEndAt
+registrationOpenAt
+registrationCloseAt
+eventStartAt
+eventEndAt
 ```
 
-Suggested helper text:
+### Suggested Labels
+
+```text
+Registration Opens
+Registration Closes
+Event Starts
+Event Ends
+```
+
+### Suggested Helper Text
 
 ```text
 Registration dates control when runners can join. Event dates control when the activity or race happens.
 ```
 
+### Validation
+
+For submit-for-review:
+
+```text
+registrationOpenAt <= registrationCloseAt <= eventStartAt <= eventEndAt
+```
+
+### Recommended Smart Defaults
+
+For virtual and hybrid events:
+
+```text
+virtualStartAt = eventStartAt
+virtualEndAt = eventEndAt
+finalSubmissionDeadlineAt = 14 days after eventEndAt
+```
+
+Only auto-fill these fields while the fields are blank or still auto-filled by the system.
+
+Do not overwrite organizer-edited values.
+
 ---
 
-## Step 4: Location or Virtual Rules
+## Step 4: Event Format Setup
+
+### Purpose
+
+Ask for details specific to the selected event type.
 
 This step should change based on event type.
 
-### For Onsite Events
+---
 
-Show location fields:
+### Virtual Event Setup
 
-- `venueName`
-- `venueAddress`
-- `city`
-- `province`
-- `country`
-- `geoLat`
-- `geoLng`
+Show this section for:
 
-Validation:
+```text
+virtual
+hybrid
+```
 
-- Venue name required for onsite and hybrid events.
-- City, province, and country required for onsite and hybrid events.
-- Latitude and longitude optional.
-- If latitude is provided, longitude should also be provided.
+### Virtual Fields
 
-### For Virtual Events
+```text
+virtualStartAt
+virtualEndAt
+proofTypesAllowed
+virtualCompletionMode
+targetDistanceKm
+acceptedRunTypes
+finalSubmissionDeadlineAt
+recognitionMode
+leaderboardMode
+leaderboardRecognitionEnabled
+```
 
-Show virtual rules:
-
-- `virtualStartAt`
-- `virtualEndAt`
-- `proofTypesAllowed`
-- `virtualCompletionMode`
-- `targetDistanceKm`
-- `acceptedRunTypes`
-- `finalSubmissionDeadlineAt`
-- `recognitionMode`
-- `leaderboardMode`
-- `leaderboardRecognitionEnabled`
-
-Completion mode options:
+### Completion Mode Options
 
 ```text
 single_activity
 accumulated_distance
 ```
 
-Suggested UI copy:
+### Suggested UI Copy
 
 ```text
 Single Activity
 Best for events where runners submit one final run proof.
+```
 
+```text
 Accumulated Distance
 Best for 50K, 100K, 500K, or 2026K challenges where runners submit multiple activities.
 ```
 
-Conditional logic:
+### Conditional Logic
 
-- If `single_activity`, hide target distance and accumulated progress rules.
-- If `accumulated_distance`, show target distance, accepted activity types, final submission deadline, recognition mode, and leaderboard mode.
-- Default virtual window start to event start while the field is blank or still auto-filled.
-- Default virtual window end to event end while the field is blank or still auto-filled.
-- Default final submission deadline to 14 days after event end if blank.
+If `single_activity`:
 
-### For Hybrid Events
+- Hide target distance.
+- Hide accumulated progress rules.
+- Show final proof submission requirements.
 
-Show both:
+If `accumulated_distance`:
 
-- Location fields
-- Virtual rules
+- Show target distance.
+- Show accepted activity types.
+- Show final submission deadline.
+- Show recognition mode.
+- Show leaderboard mode.
+
+### Accepted Activity Types
+
+Suggested options:
+
+```text
+run
+walk
+trail run
+hike
+bike
+other
+```
+
+### Proof Types
+
+Suggested options:
+
+```text
+screenshot
+manual review
+activity import
+```
+
+For the current HelloRun direction, screenshot-based submission remains the main proof type unless future integrations are added.
 
 ---
 
-## Step 5: Race Categories
+### Onsite Event Setup
 
-Show this step for:
+Show this section for:
 
-- Onsite events
-- Hybrid events
-- Virtual events with multiple distances or categories
+```text
+onsite
+hybrid
+```
+
+### Location Fields
+
+```text
+venueName
+venueAddress
+city
+province
+country
+geoLat
+geoLng
+```
+
+### Suggested Labels
+
+```text
+Venue Name
+Venue Address
+City
+Province
+Country
+Latitude
+Longitude
+```
+
+### Validation
+
+For onsite and hybrid submit-for-review:
+
+```text
+Venue name is required.
+City is required.
+Province is required.
+Country is required.
+Latitude and longitude are optional.
+If latitude is provided, longitude should also be provided.
+If longitude is provided, latitude should also be provided.
+```
+
+---
+
+## Step 5: Race Categories or Challenge Distances
+
+### Purpose
+
+Define what runners can join.
+
+This step supports onsite races, hybrid events, and virtual events with multiple distances or challenge options.
+
+### Show This Step For
+
+```text
+onsite events
+hybrid events
+virtual events with multiple distances
+virtual accumulated challenges
+```
+
+### Suggested UI
 
 Use repeatable cards.
-
-Suggested UI:
 
 ```text
 [ + Add Race Category ]
@@ -268,19 +540,44 @@ Notes: Includes race bib, shirt, and finisher medal.
 [ Remove Category ]
 ```
 
-Fields per category:
+### Fields Per Category
 
-- `distanceName`
-- `distanceKm`
-- `categoryType`
-- `baseRegistrationFee`
-- `slotsAvailable`
-- `cutoffTime`
-- `ageGroup`
-- `includedRewards`
-- `notes`
+```text
+distanceName
+distanceKm
+categoryType
+baseRegistrationFee
+slotsAvailable
+cutoffTime
+ageGroup
+includedRewards
+notes
+```
 
-Future model field:
+### Category Type Options
+
+```text
+run
+walk
+trail
+bike
+virtual
+other
+```
+
+### Example Categories
+
+```text
+5K Open
+10K Open
+21K Open
+Kids Run
+50K Accumulated
+100K Accumulated
+2026K Accumulated Challenge
+```
+
+### Future Model Field
 
 ```js
 raceCategories: [
@@ -314,107 +611,264 @@ raceCategories: [
 ]
 ```
 
-Validation:
+### Validation
 
-- Onsite and hybrid events should have at least one race category.
-- Paid race categories must have an amount.
-- Pricing periods must not overlap.
-- Pricing periods should fall within the registration window.
-- Amounts must be zero or higher.
+For onsite and hybrid submit-for-review:
+
+```text
+At least one race category is required.
+```
+
+For paid categories:
+
+```text
+Amount is required.
+Amount must be zero or higher.
+```
+
+For pricing periods:
+
+```text
+Pricing periods must not overlap.
+Pricing periods should fall within the registration window.
+```
 
 ---
 
-## Step 6: Rewards and Merchandise
+## Step 6: Rewards, Merchandise, and Packages
 
-This step must come before Pricing and Payment.
+### Purpose
 
-Reason:
+Let the organizer define what runners receive before setting the final price.
 
-Medals, shirts, towels, finisher kits, packages, delivery fees, and benefits affect pricing decisions.
+This step must come before Pricing Setup.
 
-Sections:
+### Reason
 
-1. Digital Recognition
-2. Physical Rewards or Merchandise
-3. Registration Packages
-4. Category-Specific Rewards
-5. Delivery and Claiming
-6. Special Reward Benefits
-7. Rewards Claiming Notes
+Medals, shirts, towels, finisher kits, delivery fees, and benefits affect pricing decisions.
+
+If pricing comes first, the organizer may need to go back and change amounts after adding rewards.
+
+### Main Sections
+
+```text
+Digital Recognition
+Physical Rewards or Merchandise
+Registration Packages
+Category-Specific Rewards
+Delivery and Claiming
+Special Reward Benefits
+Rewards Claiming Notes
+```
+
+---
 
 ### Digital Recognition
 
-Fields:
+### Fields
 
-- `digitalBadgeEnabled`
-- `digitalCertificateEnabled`
-- `leaderboardRecognitionEnabled`
+```text
+digitalBadgeEnabled
+digitalCertificateEnabled
+leaderboardRecognitionEnabled
+```
 
-### Physical Rewards
+### Suggested Helper Text
 
-Fields:
+```text
+Digital rewards can be shown on the runner dashboard and may be shared or saved by runners.
+```
 
-- `physicalRewardsEnabled`
-- `physicalRewardMedalEnabled`
-- `physicalRewardMedalAmount`
-- `physicalRewardShirtEnabled`
-- `physicalRewardShirtAmount`
-- `physicalRewardPatchEnabled`
-- `physicalRewardPatchAmount`
-- `physicalRewardTowelEnabled`
-- `physicalRewardTowelAmount`
-- `physicalRewardFinisherKitEnabled`
-- `physicalRewardFinisherKitAmount`
-- `physicalRewardOtherItems`
-- `physicalRewardsDescription`
-- `physicalRewardsClaimingNotes`
+---
+
+### Physical Rewards or Merchandise
+
+### Fields
+
+```text
+physicalRewardsEnabled
+physicalRewardMedalEnabled
+physicalRewardMedalAmount
+physicalRewardShirtEnabled
+physicalRewardShirtAmount
+physicalRewardPatchEnabled
+physicalRewardPatchAmount
+physicalRewardTowelEnabled
+physicalRewardTowelAmount
+physicalRewardFinisherKitEnabled
+physicalRewardFinisherKitAmount
+physicalRewardOtherItems
+physicalRewardsDescription
+physicalRewardsClaimingNotes
+```
+
+### Suggested UI
+
+```text
+[ ] Medal
+Amount: ₱____
+
+[ ] Shirt
+Amount: ₱____
+
+[ ] Patch
+Amount: ₱____
+
+[ ] Towel
+Amount: ₱____
+
+[ ] Finisher Kit
+Amount: ₱____
+
+[ ] Other Item
+Item Name: ______
+Amount: ₱____
+```
+
+### Notes
+
+The amount can represent:
+
+- Cost included in the package
+- Add-on amount
+- Organizer reference amount
+
+This should be clarified in the UI once the final pricing model is implemented.
+
+---
 
 ### Registration Packages
 
+### Purpose
+
 Support package-based events.
 
-Examples:
+This is useful for virtual events and merchandise-based events.
+
+### Package Examples
 
 ```text
+Registration Only
 Medal Only
 Medal + Shirt
 Medal + Shirt + Towel
+Finisher Kit Package
+Premium Package
 ```
 
-Fields:
+### Fields Per Package
 
-- Package name
-- Included items
-- Pricing periods
-- Notes
+```text
+packageName
+includedItems
+pricingPeriods
+packageNotes
+isActive
+```
 
-Suggested pricing date defaults:
+### Suggested UI
 
-- Early Bird starts when registration opens and ends 14 days after registration opens.
-- Regular starts after Early Bird and ends 7 days before registration closes.
-- Late Registration starts 7 days before registration closes and ends when registration closes.
-- If the registration window is 21 days or shorter, avoid auto-filling all three pricing periods because the periods would overlap or leave no regular period.
+```text
+[ + Add Package ]
 
-Validation:
+Package Name: Medal + Shirt
+Included Items:
+[x] Medal
+[x] Shirt
+[ ] Patch
+[ ] Towel
+[ ] Finisher Kit
+[ ] Other
 
-- Paid package-based events should have at least one package.
-- Package names should be unique within the event.
-- Package amounts must be zero or higher.
-- Package pricing periods must not overlap.
+Notes: Includes delivery within the Philippines.
+
+[ Duplicate Package ]
+[ Remove Package ]
+```
+
+### Future Model Field
+
+```js
+registrationPackages: [
+  {
+    packageName: String,
+    includedItems: {
+      medal: Boolean,
+      shirt: Boolean,
+      patch: Boolean,
+      towel: Boolean,
+      finisherKit: Boolean,
+      otherItemNames: [String]
+    },
+    pricingPeriods: [
+      {
+        label: String,
+        code: "early_bird" | "regular" | "late" | "custom",
+        startAt: Date,
+        endAt: Date,
+        amount: Number
+      }
+    ],
+    notes: String,
+    isActive: Boolean
+  }
+]
+```
+
+### Validation
+
+For paid package-based events:
+
+```text
+At least one package is required.
+Package names must be unique within the event.
+Package amounts must be zero or higher.
+Package pricing periods must not overlap.
+Package pricing periods should fall within the registration window.
+```
+
+---
+
+### Pricing Period Defaults for Packages
+
+Suggested default behavior:
+
+```text
+Early Bird starts when registration opens.
+Early Bird ends 14 days after registration opens.
+
+Regular starts after Early Bird.
+Regular ends 7 days before registration closes.
+
+Late Registration starts 7 days before registration closes.
+Late Registration ends when registration closes.
+```
+
+If the registration window is 21 days or shorter:
+
+```text
+Do not auto-fill all three pricing periods.
+Show a message that the registration window may be too short for early bird, regular, and late pricing.
+Allow the organizer to use a simpler pricing setup.
+```
+
+---
 
 ### Delivery and Claiming
 
-Fields:
+### Fields
 
-- `deliveryFeeEnabled`
-- `deliveryFeeAmount`
-- `deliveryFeeDescription`
-- `requiresDeliveryAddress`
-- `requiresPhilippineDeliveryAddress`
-- `internationalRunnersAllowed`
-- `claimingMethod`
+```text
+deliveryFeeEnabled
+deliveryFeeAmount
+deliveryFeeDescription
+requiresDeliveryAddress
+requiresPhilippineDeliveryAddress
+internationalRunnersAllowed
+claimingMethod
+```
 
-Claiming method options:
+### Claiming Method Options
 
 ```text
 delivery
@@ -422,9 +876,28 @@ pickup
 both
 ```
 
+### Suggested Helper Text
+
+```text
+Use this section if rewards will be delivered or claimed after the event.
+```
+
+### Delivery Fee Example
+
+```text
+Delivery Fee: ₱100
+Description: Nationwide delivery within the Philippines.
+```
+
+---
+
 ### Special Reward Benefits
 
-Fields:
+### Purpose
+
+Allow organizers to define temporary or package-specific benefits.
+
+### Future Model Field
 
 ```js
 specialRewardBenefits: [
@@ -437,61 +910,364 @@ specialRewardBenefits: [
 ]
 ```
 
-Example:
+### Example
 
 ```text
 Free Medal Engraving
 Free medal engraving is available until May 31, 2026.
+Applies to: Medal + Shirt Package, Premium Package
 ```
 
 ---
 
-## Step 7: Pricing and Payment
+## Step 7: Pricing Setup
 
-Purpose:
+### Purpose
 
-Summarize pricing and configure how runners will pay.
+Define what runners will pay.
 
-Pricing modes:
+Pricing setup answers this question:
 
 ```text
-free
+How much should runners pay?
+```
+
+This should be separate from payment setup.
+
+Payment setup answers this question:
+
+```text
+How will runners pay?
+```
+
+---
+
+## Pricing Decision Flow
+
+Ask the organizer this first:
+
+```text
+Is this event free or paid?
+```
+
+Options:
+
+```text
+Free Event
+Paid Event
+```
+
+---
+
+## Free Event Flow
+
+If the organizer chooses `Free Event`, show only:
+
+```text
+Free event confirmation
+Optional donation note
+Optional merchandise note
+```
+
+Hide:
+
+```text
+Payment QR
+Payment account name
+Payment proof instructions
+Early bird pricing
+Regular pricing
+Late registration pricing
+Fee tables
+```
+
+### Suggested UI Copy
+
+```text
+This event is free to join. Runners will not be asked to upload payment proof.
+```
+
+### Validation
+
+For free events:
+
+```text
+Payment QR is not required.
+Payment account name is not required.
+Payment instructions are not required.
+Fee amount should be zero.
+```
+
+---
+
+## Paid Event Flow
+
+If the organizer chooses `Paid Event`, ask:
+
+```text
+How do you want to price this event?
+```
+
+### Pricing Mode Options
+
+```text
 same_fee
-package_period
 per_distance
+package_based
 per_distance_period
+package_period
 ```
 
-Recommended defaults:
+### User-Friendly Labels
 
 ```text
-Virtual accumulated challenge: same_fee or package_period
-Standard virtual event: same_fee
-Onsite event: per_distance_period
-Hybrid event: per_distance_period
+Same fee for everyone
+Different fee per distance
+Package-based pricing
+Different fee per distance with early bird, regular, and late registration
+Package-based pricing with early bird, regular, and late registration
 ```
 
-Fields:
+---
 
-- `feeMode`
-- `feeAmount`
-- `feeCurrency`
-- `pricingMode`
-- `suggestedEventFee`
-- `finalEventFee`
-- `paymentQrImageFile`
-- `paymentQrImageUrl`
-- `paymentQrImageKey`
-- `paymentAccountName`
-- `paymentInstructions`
+## Pricing Mode 1: Same Fee for Everyone
 
-Payment validation:
+### Best For
 
-- Free events do not require payment QR.
-- Paid drafts may save without payment QR.
-- Paid events submitted for review require payment QR.
+```text
+Simple virtual runs
+Charity fun runs
+Single-distance events
+Small community events
+```
 
-Suggested UI summary:
+### Fields
+
+```text
+feeAmount
+feeCurrency
+pricingDescription
+```
+
+### Example
+
+```text
+Registration Fee: ₱500
+Includes: Digital certificate and digital badge
+```
+
+### Validation
+
+```text
+Fee amount is required for paid events.
+Fee amount must be greater than zero.
+Currency is required.
+```
+
+---
+
+## Pricing Mode 2: Different Fee Per Distance
+
+### Best For
+
+```text
+Onsite events
+Hybrid events
+Events with 5K, 10K, and 21K categories
+```
+
+### Example
+
+```text
+5K: ₱500
+10K: ₱750
+21K: ₱1,200
+```
+
+### Fields
+
+Use race categories from Step 5.
+
+```text
+raceCategory
+amount
+inclusions
+```
+
+### Validation
+
+```text
+Each paid race category must have an amount.
+Amount must be greater than zero.
+```
+
+---
+
+## Pricing Mode 3: Package-Based Pricing
+
+### Best For
+
+```text
+Virtual events with merchandise
+Events where runners can choose inclusions
+Events with medal-only or shirt packages
+```
+
+### Example
+
+```text
+Registration Only: ₱300
+Medal Only: ₱595
+Medal + Shirt: ₱1,095
+Medal + Shirt + Towel: ₱1,295
+```
+
+### Fields
+
+Use packages from Step 6.
+
+```text
+packageName
+amount
+includedItems
+deliveryFee
+notes
+```
+
+### Validation
+
+```text
+At least one package is required.
+Each active package must have an amount.
+Amount must be greater than zero.
+Package names must be unique.
+```
+
+---
+
+## Pricing Mode 4: Per Distance with Pricing Periods
+
+### Best For
+
+```text
+Onsite races
+Hybrid races
+Events that reward early registration
+```
+
+### Example
+
+```text
+5K
+Early Bird: ₱500
+Regular: ₱650
+Late Registration: ₱750
+
+10K
+Early Bird: ₱750
+Regular: ₱900
+Late Registration: ₱1,000
+```
+
+### Fields Per Distance
+
+```text
+earlyBirdAmount
+earlyBirdStartAt
+earlyBirdEndAt
+regularAmount
+regularStartAt
+regularEndAt
+lateAmount
+lateStartAt
+lateEndAt
+```
+
+### Validation
+
+```text
+Pricing periods must not overlap.
+Pricing periods must stay within the registration window.
+Amounts must be greater than zero.
+Each category must have at least one active pricing period.
+```
+
+---
+
+## Pricing Mode 5: Package-Based Pricing with Pricing Periods
+
+### Best For
+
+```text
+Virtual events with merchandise
+Premium virtual challenges
+Events with early bird package discounts
+```
+
+### Example
+
+```text
+Medal Only
+Early Bird: ₱595
+Regular: ₱695
+Late Registration: ₱795
+
+Medal + Shirt
+Early Bird: ₱1,095
+Regular: ₱1,195
+Late Registration: ₱1,295
+```
+
+### Fields Per Package
+
+```text
+packageName
+earlyBirdAmount
+earlyBirdStartAt
+earlyBirdEndAt
+regularAmount
+regularStartAt
+regularEndAt
+lateAmount
+lateStartAt
+lateEndAt
+```
+
+### Validation
+
+```text
+Pricing periods must not overlap.
+Pricing periods must stay within the registration window.
+Amounts must be greater than zero.
+Each package must have at least one active pricing period.
+```
+
+---
+
+## Pricing Summary UI
+
+After pricing setup, show a clear summary.
+
+### Same Fee Example
+
+```text
+Pricing Summary
+
+Everyone pays: ₱500
+Includes: Digital certificate and badge
+```
+
+### Per-Distance Example
+
+```text
+Pricing Summary
+
+5K: ₱500
+10K: ₱750
+21K: ₱1,200
+```
+
+### Per-Distance with Periods Example
 
 ```text
 Pricing Summary
@@ -507,73 +1283,227 @@ Regular: ₱900
 Late Registration: ₱1,000
 ```
 
-For package-based events:
+### Package-Based Example
 
 ```text
+Pricing Summary
+
+Medal Only: ₱595
+Medal + Shirt: ₱1,095
+Medal + Shirt + Towel: ₱1,295
+
+Delivery Fee: ₱100
+```
+
+### Package-Based with Periods Example
+
+```text
+Pricing Summary
+
 Medal Only
 Early Bird: ₱595
 Regular: ₱695
+Late Registration: ₱795
 
 Medal + Shirt
 Early Bird: ₱1,095
 Regular: ₱1,195
+Late Registration: ₱1,295
 
 Delivery Fee: ₱100
 ```
 
 ---
 
-## Step 8: Event Details
+## Step 8: Payment Setup
 
-Field:
+### Purpose
 
-- `eventDetailsMarkdown`
+Define how runners will pay.
 
-User-facing label:
+Show this step only if the event is paid.
+
+### Fields
+
+```text
+paymentQrImageFile
+paymentQrImageUrl
+paymentQrImageKey
+paymentAccountName
+paymentInstructions
+```
+
+### Suggested Labels
+
+```text
+Payment QR Image
+Payment Account Name
+Payment Instructions
+```
+
+### Suggested Helper Text
+
+```text
+Runners will see these payment details before uploading their payment proof.
+```
+
+### Payment Validation
+
+For free events:
+
+```text
+Payment setup is hidden.
+Payment QR is not required.
+```
+
+For paid drafts:
+
+```text
+Payment QR may be missing.
+Draft can still be saved.
+```
+
+For paid submit-for-review:
+
+```text
+Payment QR is required.
+Payment account name is required.
+Payment instructions are recommended.
+```
+
+### Suggested Payment Instructions Placeholder
+
+```text
+Please scan the QR code and upload your payment proof after registration. Use your full name as the payment reference if supported by your payment app.
+```
+
+---
+
+## Step 9: Event Details and Rules
+
+### Purpose
+
+Allow organizers to write the full public event information.
+
+### Field
+
+```text
+eventDetailsMarkdown
+```
+
+### User-Facing Label
 
 ```text
 Event Details
 ```
 
-Suggested helper text:
+### Suggested Helper Text
 
 ```text
 Use this section for full event rules, FAQs, pricing explanation, submission rules, and runner guidance. This content appears on the public event details page.
 ```
 
-Suggested content blocks:
+### Suggested Content Blocks
 
-- Event overview
-- Who can join
-- Registration details
-- Race categories
-- Pricing details
-- Challenge rules
-- Submission rules
-- Completion rules
-- Leaderboard rules
-- Rewards and merchandise
-- Delivery or claiming instructions
-- Payment instructions
-- FAQ
-- Contact or support details
+```text
+Event overview
+Who can join
+Registration details
+Race categories
+Pricing details
+Challenge rules
+Submission rules
+Completion rules
+Leaderboard rules
+Rewards and merchandise
+Delivery or claiming instructions
+Payment instructions
+Frequently asked questions
+Contact or support details
+```
+
+### Suggested Markdown Starter Template
+
+```md
+## Event Overview
+
+Briefly describe the event.
+
+## Who Can Join
+
+Explain who may register.
+
+## Registration Details
+
+Explain registration dates and requirements.
+
+## Race Categories or Challenge Distances
+
+List available distances or categories.
+
+## Pricing Details
+
+Explain fees, packages, and pricing periods.
+
+## Challenge or Race Rules
+
+Explain participation rules.
+
+## Submission Rules
+
+Explain how runners submit proof or results.
+
+## Completion Rules
+
+Explain how finishers are verified.
+
+## Leaderboard Rules
+
+Explain how rankings are calculated.
+
+## Rewards and Merchandise
+
+Explain digital and physical rewards.
+
+## Delivery or Claiming Instructions
+
+Explain how runners receive items.
+
+## Payment Instructions
+
+Explain how payment should be completed.
+
+## Frequently Asked Questions
+
+Add common questions and answers.
+
+## Contact Details
+
+Add organizer contact information.
+```
 
 ---
 
-## Step 9: Branding and Media
+## Step 10: Branding and Media
 
-Fields:
+### Purpose
 
-- `logoFile`
-- `logoUrl`
-- `bannerImageFile`
-- `bannerImageUrl`
-- `posterImageFile`
-- `posterImageUrl`
-- `galleryImageFiles`
-- `galleryImageUrlsText`
+Collect event visuals.
 
-Recommended image usage:
+### Fields
+
+```text
+logoFile
+logoUrl
+bannerImageFile
+bannerImageUrl
+posterImageFile
+posterImageUrl
+galleryImageFiles
+galleryImageUrlsText
+```
+
+### Recommended Image Usage
 
 ```text
 Logo: Event cards and badges
@@ -582,61 +1512,92 @@ Poster: Promotional sharing
 Gallery: Extra visuals
 ```
 
-Validation:
+### Validation
 
-- Upload or URL should be accepted.
-- If upload and URL are both provided, define one clear priority.
+```text
+Upload or URL should be accepted.
+If upload and URL are both provided, define one clear priority.
+```
+
+### Recommended Priority
+
+```text
+Uploaded file should take priority over URL.
+```
+
+### Suggested Helper Text
+
+```text
+Use the banner for the event page and the poster for promotional sharing.
+```
 
 ---
 
-## Step 10: Waiver
+## Step 11: Waiver
 
-Field:
+### Purpose
 
-- `waiverTemplate`
+Collect the participant agreement shown before registration.
 
-Current features to preserve:
+### Field
 
-- Quill rich-text editor
-- Default waiver reset
-- Organizer and event title placeholders
-- Live preview
-- Server-side sanitization
-- Minimum text validation
+```text
+waiverTemplate
+```
 
-Suggested helper text:
+### Current Features to Preserve
+
+```text
+Quill rich-text editor
+Default waiver reset
+Organizer and event title placeholders
+Live preview
+Server-side sanitization
+Minimum text validation
+```
+
+### Suggested Helper Text
 
 ```text
 This agreement is shown to participants before they join the event. You may use the default waiver or customize it for your event.
 ```
 
-Draft behaviour:
+### Draft Behavior
 
-- Drafts may use incomplete waiver content.
+```text
+Drafts may use incomplete waiver content.
+```
 
-Submit-for-review behaviour:
+### Submit-for-Review Behavior
 
-- Waiver must meet minimum content requirements.
+```text
+Waiver must meet minimum content requirements.
+```
 
 ---
 
-## Step 11: Preview and Submit
+## Step 12: Preview and Submit
 
-Show a final review before submission.
+### Purpose
 
-Preview sections:
+Show a final review before the organizer submits the event for admin review.
 
-- Event card preview
-- Event details preview
-- Schedule summary
-- Location or virtual setup summary
-- Race category summary
-- Rewards summary
-- Pricing summary
-- Payment summary
-- Waiver preview
+### Preview Sections
 
-Actions:
+```text
+Event card preview
+Event details preview
+Schedule summary
+Location or virtual setup summary
+Race category summary
+Rewards summary
+Package summary
+Pricing summary
+Payment summary
+Waiver preview
+```
+
+### Actions
 
 ```text
 Save Draft
@@ -644,10 +1605,30 @@ Preview Event
 Submit for Review
 ```
 
-Suggested submit message:
+### Suggested Submit Message
 
 ```text
 Your event will be reviewed by an admin before it becomes public.
+```
+
+### Setup Completeness Checklist
+
+Before submit-for-review, show:
+
+```text
+Required before review:
+
+[ ] Event title
+[ ] Short description
+[ ] Event type
+[ ] Schedule
+[ ] Race distance, category, or challenge distance
+[ ] Location for onsite or hybrid events
+[ ] Virtual rules for virtual or hybrid events
+[ ] Pricing setup
+[ ] Payment QR for paid events
+[ ] Event details
+[ ] Valid waiver
 ```
 
 ---
@@ -661,6 +1642,7 @@ Your event will be reviewed by an admin before it becomes public.
 | Location | Hide | Show | Show |
 | Virtual Rules | Show | Hide | Show |
 | Race Categories | Optional | Show | Show |
+| Challenge Distance | Show | Optional | Show |
 | Rewards | Show | Show | Show |
 | Packages | Show | Optional | Show |
 | Pricing | Show | Show | Show |
@@ -672,98 +1654,130 @@ Your event will be reviewed by an admin before it becomes public.
 
 ---
 
-## UX Requirements
+## Pricing Mode Visibility Matrix
 
-### Progress Indicator
-
-Show the current step.
-
-Example:
-
-```text
-1 Event Type
-2 Details
-3 Schedule
-4 Rules
-5 Pricing
-6 Review
-```
-
-### Save Draft
-
-Save Draft should be available throughout the flow.
-
-Draft minimum requirement:
-
-```text
-Title only
-```
-
-### Setup Completeness Checklist
-
-Before submit-for-review, show a checklist.
-
-Example:
-
-```text
-Required before review:
-
-[ ] Event title
-[ ] Schedule
-[ ] Event type
-[ ] Race distance or category
-[ ] Pricing setup
-[ ] Payment QR for paid event
-[ ] Waiver
-[ ] Event details
-```
-
-### Inline Helper Text
-
-Use short helper text beside fields instead of long instructional paragraphs.
-
-### Smart Defaults
-
-Recommended defaults:
-
-- Virtual event hides location.
-- Onsite event shows race categories.
-- Hybrid event shows both location and virtual rules.
-- Accumulated virtual run shows target distance.
-- Paid event requires payment QR before submit-for-review.
-- Virtual Window Start defaults to Event Start.
-- Virtual Window End defaults to Event End.
-- Final submission deadline defaults to 14 days after event end.
-- Onsite event defaults pricing mode to `per_distance_period`.
-- Virtual accumulated challenge defaults pricing mode to `same_fee` or `package_period`.
+| Pricing Mode | Free Event | Paid Event | Race Categories Needed | Packages Needed | Pricing Periods Needed |
+|---|---:|---:|---:|---:|---:|
+| free | Show | Hide | No | No | No |
+| same_fee | Hide | Show | No | No | No |
+| per_distance | Hide | Show | Yes | No | No |
+| package_based | Hide | Show | No | Yes | No |
+| per_distance_period | Hide | Show | Yes | No | Yes |
+| package_period | Hide | Show | No | Yes | Yes |
 
 ---
 
-## Validation Summary
+## Draft Validation
 
-### Draft Validation
+Drafts should remain easy to save.
 
-Minimum:
+Minimum requirement:
 
-- Valid title
+```text
+Valid title
+```
 
-Draft may be incomplete.
+Drafts may have incomplete:
 
-### Submit-for-Review Validation
+```text
+Schedule
+Event type
+Pricing
+Payment setup
+Media
+Waiver
+Event details
+Race categories
+Packages
+```
 
-Require:
+This allows organizers to build events gradually.
 
-- Title
-- Description
-- Event type
-- Schedule
-- Race distance or race category
-- Location for onsite or hybrid
-- Virtual rules for virtual or hybrid
-- Pricing setup
-- Payment QR for paid events
-- Event details
-- Valid waiver
+---
+
+## Submit-for-Review Validation
+
+Submit-for-review should require a complete public-ready event.
+
+Required:
+
+```text
+Title
+Description
+Event type
+Schedule
+Race distance or race category
+Location for onsite or hybrid events
+Virtual rules for virtual or hybrid events
+Pricing setup
+Payment QR for paid events
+Event details
+Valid waiver
+```
+
+---
+
+## Conditional Logic Summary
+
+### Event Type Logic
+
+```text
+If virtual:
+- Hide location.
+- Show virtual rules.
+- Show challenge distance fields.
+- Race categories are optional.
+
+If onsite:
+- Show location.
+- Hide virtual rules.
+- Show race categories.
+- Default pricing mode can be per_distance_period.
+
+If hybrid:
+- Show location.
+- Show virtual rules.
+- Show race categories.
+```
+
+### Fee Logic
+
+```text
+If free:
+- Hide payment setup.
+- Set fee amount to zero.
+- Hide pricing periods.
+- Hide payment proof instructions.
+
+If paid:
+- Show pricing mode selection.
+- Show payment setup.
+- Require payment QR only when submitting for review.
+```
+
+### Pricing Period Logic
+
+```text
+If pricing mode uses periods:
+- Show early bird, regular, and late registration sections.
+- Validate dates against registration window.
+- Prevent overlapping periods.
+
+If pricing mode does not use periods:
+- Show simple amount fields only.
+```
+
+### Package Logic
+
+```text
+If package-based pricing:
+- Require at least one package.
+- Show package pricing summary.
+- Allow delivery fee if physical rewards are enabled.
+
+If not package-based:
+- Hide package pricing fields unless packages are used only as event details.
+```
 
 ---
 
@@ -771,42 +1785,298 @@ Require:
 
 Implement in small safe increments.
 
-### Phase 1: UI Reordering and Step Structure
+---
 
-- Reorder the create-event form using the wizard flow.
-- Add progress indicator or sidebar step list.
-- Preserve existing form fields and names.
-- Do not change the database model yet unless required.
+## Phase 1: UI Reordering and Step Structure
 
-### Phase 2: Conditional Field Display
+### Goal
 
-- Show/hide location, virtual rules, race categories, and payment sections based on event type and fee mode.
-- Keep server-side validation as the source of truth.
+Improve the user flow without changing the database model.
 
-### Phase 3: Draft vs Submit Validation Messaging
+### Tasks
 
-- Improve visible validation feedback.
-- Add setup completeness checklist before submit.
-- Keep title-only draft saving.
+```text
+Reorder the create-event form using the recommended wizard flow.
+Add progress indicator or sidebar step list.
+Preserve existing form fields and names.
+Keep Save Draft behavior unchanged.
+Keep Submit for Review behavior unchanged.
+Do not add new database fields yet unless required.
+```
 
-### Phase 4: Preview Improvements
+### Expected Result
 
-- Replace fragile GET-query preview if possible.
-- Prefer draft preview ID or server-side temporary preview state.
-- If this is too large, keep current preview but improve summary display.
+The organizer sees a guided structure instead of one long form.
 
-### Phase 5: Race Categories and Pricing Expansion
+---
 
-- Add `raceCategories[]` model support.
-- Add per-distance pricing.
-- Add early bird, regular, and late pricing periods.
-- Add category-specific reward inclusions.
+## Phase 2: Conditional Field Display
 
-### Phase 6: Runner-Facing Price Resolution
+### Goal
 
-- Add active price resolver.
-- Store payment amount snapshot during registration.
-- Add payment proof enforcement against resolved amount.
+Show only the fields that apply to the organizer’s event.
+
+### Tasks
+
+```text
+Show or hide location based on event type.
+Show or hide virtual rules based on event type.
+Show or hide payment setup based on free or paid selection.
+Show or hide pricing period fields based on pricing mode.
+Show or hide package fields based on package-based pricing.
+```
+
+### Expected Result
+
+Organizers are not distracted by irrelevant fields.
+
+---
+
+## Phase 3: Draft vs Submit Validation Messaging
+
+### Goal
+
+Make validation easier to understand.
+
+### Tasks
+
+```text
+Keep draft validation title-only.
+Add visible validation feedback.
+Add setup completeness checklist before submit.
+Show missing items clearly.
+```
+
+### Expected Result
+
+Organizers know what is missing before submitting for admin review.
+
+---
+
+## Phase 4: Preview Improvements
+
+### Goal
+
+Give organizers confidence before submission.
+
+### Tasks
+
+```text
+Improve event card preview.
+Improve schedule summary.
+Improve pricing summary.
+Improve payment summary.
+Improve waiver preview.
+Prefer preview by draft ID or server-side temporary preview state.
+If too large for now, keep current preview behavior and improve summary display.
+```
+
+### Expected Result
+
+Organizers can review the event before submitting.
+
+---
+
+## Phase 5: Race Categories and Pricing Expansion
+
+### Goal
+
+Add structured support for onsite and hybrid event pricing.
+
+### Tasks
+
+```text
+Add raceCategories[] model support.
+Add per-distance pricing.
+Add early bird, regular, and late pricing periods.
+Add category-specific reward inclusions.
+Validate pricing period overlaps.
+Validate pricing dates against registration dates.
+```
+
+### Expected Result
+
+HelloRun can support different prices per race category.
+
+---
+
+## Phase 6: Registration Packages Expansion
+
+### Goal
+
+Add structured support for package-based events.
+
+### Tasks
+
+```text
+Add registrationPackages[] model support.
+Allow packages to include medal, shirt, patch, towel, finisher kit, and other items.
+Allow package-based pricing.
+Allow package-based early bird, regular, and late pricing.
+Allow package-specific notes.
+```
+
+### Expected Result
+
+HelloRun can support virtual events with custom packages.
+
+---
+
+## Phase 7: Runner-Facing Price Resolver
+
+### Goal
+
+Calculate the correct amount during runner registration.
+
+### Price Resolver Inputs
+
+```text
+Selected event
+Selected race category
+Selected package
+Current date
+Pricing mode
+Delivery fee
+```
+
+### Price Resolver Output
+
+```text
+Base amount
+Active pricing period
+Delivery fee
+Final amount due
+Currency
+```
+
+### Example
+
+```text
+Runner selects 10K on May 10.
+System checks the active pricing period.
+System returns Regular Fee: ₱900.
+Runner uploads proof for ₱900.
+```
+
+### Expected Result
+
+Runners see the correct fee automatically.
+
+---
+
+## Phase 8: Registration Price Snapshot
+
+### Goal
+
+Store the amount shown to the runner at the time of registration.
+
+### Fields to Store
+
+```text
+selectedCategory
+selectedPackage
+basePrice
+pricingPeriod
+deliveryFee
+finalAmountDue
+currency
+priceResolvedAt
+```
+
+### Reason
+
+Prices can change later.
+
+The runner’s payment should be checked against the amount shown during registration, not against a future price.
+
+---
+
+## Suggested Frontend State Structure
+
+This can guide JavaScript implementation.
+
+```js
+const createEventState = {
+  eventType: null,
+  feeType: null,
+  pricingMode: null,
+  completionMode: null,
+  hasPhysicalRewards: false,
+  hasPackages: false,
+  hasDeliveryFee: false,
+  currentStep: 1
+};
+```
+
+### Suggested UI Watchers
+
+```js
+function updateEventTypeVisibility(eventType) {
+  // virtual, onsite, hybrid
+}
+
+function updateFeeVisibility(feeType) {
+  // free, paid
+}
+
+function updatePricingModeVisibility(pricingMode) {
+  // same_fee, per_distance, package_based, per_distance_period, package_period
+}
+
+function updateCompletionModeVisibility(completionMode) {
+  // single_activity, accumulated_distance
+}
+
+function updateStepCompleteness() {
+  // checklist status
+}
+```
+
+---
+
+## Suggested Server-Side Validation Structure
+
+Keep server-side validation as the source of truth.
+
+```js
+function validateEventDraft(payload) {
+  const errors = [];
+
+  if (!payload.title || !payload.title.trim()) {
+    errors.push("Event title is required to save a draft.");
+  }
+
+  return errors;
+}
+
+function validateEventForReview(payload) {
+  const errors = [];
+
+  validateCoreDetails(payload, errors);
+  validateSchedule(payload, errors);
+  validateEventTypeRequirements(payload, errors);
+  validatePricing(payload, errors);
+  validatePayment(payload, errors);
+  validateEventDetails(payload, errors);
+  validateWaiver(payload, errors);
+
+  return errors;
+}
+```
+
+### Suggested Validation Groups
+
+```js
+function validateCoreDetails(payload, errors) {}
+function validateSchedule(payload, errors) {}
+function validateEventTypeRequirements(payload, errors) {}
+function validateRaceCategories(payload, errors) {}
+function validatePackages(payload, errors) {}
+function validatePricing(payload, errors) {}
+function validatePayment(payload, errors) {}
+function validateEventDetails(payload, errors) {}
+function validateWaiver(payload, errors) {}
+```
 
 ---
 
@@ -814,90 +2084,201 @@ Implement in small safe increments.
 
 ### General UX
 
-- [ ] Organizer sees a guided create-event flow.
-- [ ] Event Type is the first major decision.
-- [ ] Fields that do not apply are hidden.
-- [ ] Save Draft is available throughout the flow.
-- [ ] Submit for Review shows required missing items.
-- [ ] User can preview before submission.
+```text
+[ ] Organizer sees a guided create-event flow.
+[ ] Event Type is the first major decision.
+[ ] Fields that do not apply are hidden.
+[ ] Save Draft is available throughout the flow.
+[ ] Submit for Review shows required missing items.
+[ ] User can preview before submission.
+[ ] Pricing setup and payment setup are separate steps.
+```
 
-### Draft Behaviour
+### Draft Behavior
 
-- [ ] Draft requires title only.
-- [ ] Draft can save incomplete schedules, pricing, media, and waiver.
-- [ ] Draft remains private to organizer and admins.
+```text
+[ ] Draft requires title only.
+[ ] Draft can save incomplete schedules.
+[ ] Draft can save incomplete pricing.
+[ ] Draft can save incomplete media.
+[ ] Draft can save incomplete waiver.
+[ ] Draft remains private to organizer and admins.
+```
 
-### Submit-for-Review Behaviour
+### Submit-for-Review Behavior
 
-- [ ] Submit validates all publish-ready fields.
-- [ ] Paid event requires payment QR.
-- [ ] Onsite and hybrid events require location.
-- [ ] Virtual and hybrid events require virtual rules.
-- [ ] Submitted event moves to admin review.
+```text
+[ ] Submit validates all publish-ready fields.
+[ ] Paid event requires payment QR.
+[ ] Free event does not require payment QR.
+[ ] Onsite and hybrid events require location.
+[ ] Virtual and hybrid events require virtual rules.
+[ ] Submitted event moves to admin review.
+```
 
 ### Conditional Logic
 
-- [ ] Virtual event hides location.
-- [ ] Onsite event hides virtual rules.
-- [ ] Hybrid event shows both.
-- [ ] Paid event shows payment setup.
-- [ ] Free event hides payment QR requirement.
-- [ ] Accumulated completion mode shows target distance and activity rules.
+```text
+[ ] Virtual event hides location.
+[ ] Onsite event hides virtual rules.
+[ ] Hybrid event shows both.
+[ ] Paid event shows payment setup.
+[ ] Free event hides payment setup.
+[ ] Accumulated completion mode shows target distance and activity rules.
+[ ] Same-fee pricing shows one amount field.
+[ ] Per-distance pricing shows category amount fields.
+[ ] Package-based pricing shows package amount fields.
+[ ] Pricing period modes show early bird, regular, and late registration fields.
+```
 
 ### Pricing
 
-- [ ] Same-fee pricing still works.
-- [ ] Package-based pricing still works.
-- [ ] Delivery fee still works.
-- [ ] Suggested event fee still works.
-- [ ] Final fee override still works.
+```text
+[ ] Free event pricing works.
+[ ] Same-fee pricing works.
+[ ] Per-distance pricing works.
+[ ] Package-based pricing works.
+[ ] Per-distance pricing periods work.
+[ ] Package-based pricing periods work.
+[ ] Delivery fee works.
+[ ] Suggested event fee still works if already implemented.
+[ ] Final fee override still works if already implemented.
+```
 
 ### No Regression
 
-- [ ] Existing tests pass.
-- [ ] Existing organizer route guard still works.
-- [ ] Existing admin review flow still works.
-- [ ] Existing accumulated activity submission behaviour still works.
-- [ ] Existing event details rendering still works.
-- [ ] Existing waiver sanitization still works.
+```text
+[ ] Existing tests pass.
+[ ] Existing organizer route guard still works.
+[ ] Existing admin review flow still works.
+[ ] Existing accumulated activity submission behavior still works.
+[ ] Existing event details rendering still works.
+[ ] Existing waiver sanitization still works.
+```
 
 ---
 
-## Codex Task Prompt
+## Codex Task Prompt for Phase 1 and Phase 2
 
 Use this prompt inside VS Code Codex after placing this file in the repository:
 
 ```text
-Read docs/create_event_wizard_codex_implementation.md and inspect the current create-event implementation. Implement Phase 1 and Phase 2 only.
+Read docs/create_event_wizard_codex_implementation.md and inspect the current create-event implementation.
+
+Implement Phase 1 and Phase 2 only.
 
 Goals:
 1. Reorder the create-event page into the recommended guided wizard flow.
 2. Add a clear progress indicator or step sidebar.
-3. Preserve the existing form field names, backend route behaviour, model fields, and current validation.
-4. Add conditional show/hide behaviour for virtual, onsite, hybrid, free, and paid event sections.
-5. Keep Save Draft and Submit for Review behaviour unchanged.
-6. Do not add new database fields yet unless the current code already supports them.
-7. Add or update tests only for the UI structure and conditional behaviour if the project already has matching test patterns.
+3. Preserve the existing form field names, backend route behavior, model fields, and current validation.
+4. Add conditional show/hide behavior for virtual, onsite, hybrid, free, and paid event sections.
+5. Separate Pricing Setup and Payment Setup into different UI sections.
+6. Keep Save Draft and Submit for Review behavior unchanged.
+7. Do not add new database fields yet unless the current code already supports them.
+8. Add or update tests only for the UI structure and conditional behavior if the project already has matching test patterns.
 
 After implementation, summarize:
 - Files changed
-- Behaviour changed
+- Behavior changed
 - Tests added or updated
 - Any follow-up work needed
 ```
 
 ---
 
-## Recommended File Placement
-
-Place this document at:
+## Codex Task Prompt for Phase 3
 
 ```text
-docs/create_event_wizard_codex_implementation.md
+Read docs/create_event_wizard_codex_implementation.md.
+
+Implement Phase 3 only.
+
+Goals:
+1. Improve validation messaging for Save Draft and Submit for Review.
+2. Keep draft validation title-only.
+3. Add a setup completeness checklist before submission.
+4. Show missing requirements clearly.
+5. Preserve existing backend validation as the source of truth.
+6. Do not add new database fields.
+
+After implementation, summarize:
+- Files changed
+- Validation behavior changed
+- Tests added or updated
+- Any follow-up work needed
 ```
 
-Then update `docs/PRD.md` or `docs/create_event.md` with a short reference:
+---
+
+## Codex Task Prompt for Phase 4
 
 ```text
-The guided organizer create-event wizard implementation plan is documented in docs/create_event_wizard_codex_implementation.md.
+Read docs/create_event_wizard_codex_implementation.md.
+
+Implement Phase 4 only.
+
+Goals:
+1. Improve the event preview experience.
+2. Add event card preview.
+3. Add schedule summary.
+4. Add event type summary.
+5. Add location or virtual setup summary.
+6. Add race category summary if available.
+7. Add rewards and package summary if available.
+8. Add pricing summary.
+9. Add payment summary for paid events.
+10. Add waiver preview.
+11. Keep the existing preview mechanism if replacing it is too large for this phase.
+
+After implementation, summarize:
+- Files changed
+- Preview behavior changed
+- Tests added or updated
+- Any follow-up work needed
 ```
+
+---
+
+## Codex Task Prompt for Phase 5 and Beyond
+
+```text
+Read docs/create_event_wizard_codex_implementation.md.
+
+Plan the implementation for structured race categories, registration packages, pricing periods, runner-facing price resolution, and registration price snapshots.
+
+Do not code yet.
+
+Create a technical implementation plan that includes:
+1. Proposed model changes.
+2. Route changes.
+3. Service changes.
+4. Frontend changes.
+5. Validation changes.
+6. Migration or backward compatibility concerns.
+7. Test plan.
+8. Risks and recommended order of implementation.
+```
+
+---
+
+## Final Recommended Direction
+
+Start with Phase 1 and Phase 2.
+
+Do not immediately add all model changes.
+
+The safest path is:
+
+```text
+1. Improve the create-event flow.
+2. Add conditional field visibility.
+3. Separate pricing setup from payment setup.
+4. Improve validation messaging.
+5. Improve preview.
+6. Add structured race categories.
+7. Add structured packages.
+8. Add price resolver.
+9. Store runner registration price snapshots.
+```
+
+This keeps the current system stable while making the organizer experience much easier to use.

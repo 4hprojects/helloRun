@@ -2558,10 +2558,28 @@ Existing dedicated detail files:
 - `docs/ocr_smart_submission.md`
 - `docs/create_event.md`
 
-Dedicated create-event tracking:
-- `docs/create_event.md` covers `/organizer/create-event` current behavior, field inventory, gaps, and example-driven refinements such as accumulated virtual run requirements.
+## Guided Organizer Create Event Wizard
 
-Recommended future dedicated detail files when those phases begin:
+HelloRun will improve the organizer create-event experience by converting the current long event form into a guided step-by-step wizard.
+
+The detailed implementation guide is documented in:
+
+`docs/create_event_wizard_codex_implementation.md`
+
+The guided wizard supports:
+
+- Virtual, onsite, and hybrid event setup
+- Free and paid event flows
+- Custom registration packages
+- Race-category pricing
+- Early bird, regular, and late registration fees
+- Rewards and merchandise configuration
+- Separate pricing and payment setup
+- Draft saving with minimal requirements
+- Submit-for-review validation
+- Final event preview before submission
+
+This improvement is intended to make event creation easier for small to medium organizers by showing only the fields relevant to their selected event type and pricing model.Recommended future dedicated detail files when those phases begin:
 - `docs/onsite_result_import.md`
 - `docs/organizer_reports.md`
 - `docs/payment_gateway_integration.md`
