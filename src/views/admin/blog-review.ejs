@@ -695,7 +695,7 @@
               <label for="adminGalleryImageUrls">Gallery Image URLs</label>
               <textarea id="adminGalleryImageUrls" name="galleryImageUrls" placeholder="One URL per line"><%- Array.isArray(post.galleryImageUrls) ? post.galleryImageUrls.join('\n') : '' %></textarea>
               <p class="admin-field-help">One image URL per line, max 3 images.</p>
-              <input id="adminGalleryImageFiles" type="file" accept="image/jpeg,image/png" multiple>
+              <input id="adminGalleryImageFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple>
               <p class="admin-field-help">Optional: upload gallery images and append them here automatically.</p>
             </div>
             <% const adminHasStructuredBlocks = post.contentBlocks && post.contentBlocks.length; %>

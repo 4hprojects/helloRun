@@ -241,6 +241,22 @@
   margin-bottom: 1rem;
 }
 
+.form-errors strong {
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.form-errors ul {
+  margin: 0;
+  padding-left: 1.4rem;
+  list-style: disc;
+}
+
+.form-errors ul li {
+  margin-bottom: 0.2rem;
+  line-height: 1.5;
+}
+
 /* ----- FORM SECTIONS (cards) ----- */
 .form-section {
   background: var(--bg-light);
@@ -1138,6 +1154,32 @@ textarea:focus {
   min-height: 400px;
 }
 
+.waiver-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.waiver-label-row label {
+  margin-bottom: 0;
+}
+
+.waiver-label-row .waiver-icon-btn {
+  position: relative;
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 2.25rem;
+  max-width: 2.25rem;
+  padding: 0;
+  flex: 0 0 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .waiver-toolbar {
   display: flex;
   justify-content: flex-end;
@@ -1344,13 +1386,231 @@ textarea:focus {
   justify-content: flex-end; /* change this to flex-start or center to realign */
 }
 
-/* Button group — always a single row regardless of viewport */
+/* Button group - always a single row regardless of viewport */
 .action-btn-group {
   display: flex;
   flex-direction: row;
   align-items: center;
   gap: 0.5rem;
   flex-wrap: nowrap;
+}
+
+/* ─── DISCARD CONFIRM DIALOG ──────────────────────────────────────────── */
+.draft-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 400;
+}
+
+.draft-confirm-overlay[hidden] { display: none; }
+
+.draft-confirm-dialog {
+  background: #fff;
+  border-radius: 14px;
+  padding: 2rem 2rem 1.5rem;
+  max-width: 400px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
+  text-align: center;
+  animation: draftDialogIn 0.18s ease;
+  outline: none;
+}
+
+@keyframes draftDialogIn {
+  from { opacity: 0; transform: scale(0.94) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.draft-confirm-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #fff1f2;
+  margin: 0 auto 1rem;
+}
+
+.draft-confirm-icon i,
+.draft-confirm-icon svg {
+  width: 24px;
+  height: 24px;
+  color: #e11d48;
+}
+
+.draft-confirm-dialog h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.draft-confirm-dialog p {
+  margin: 0 0 1.5rem;
+  font-size: 0.875rem;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.draft-confirm-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+}
+
+.draft-confirm-btn {
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s, color 0.15s;
+}
+
+.draft-confirm-btn--cancel {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.draft-confirm-btn--cancel:hover { background: #e2e8f0; }
+
+.draft-confirm-btn--danger {
+  background: #e11d48;
+  color: #fff;
+}
+
+.draft-confirm-btn--danger:hover { background: #be123c; }
+
+/* Primary (blue) - restore / save / leave */
+.draft-confirm-btn--primary {
+  background: #2563eb;
+  color: #fff;
+}
+.draft-confirm-btn--primary:hover { background: #1d4ed8; }
+
+/* Success (green) - submit for review */
+.draft-confirm-btn--success {
+  background: #16a34a;
+  color: #fff;
+}
+.draft-confirm-btn--success:hover { background: #15803d; }
+
+/* Icon colour variants via data-variant on the icon wrapper */
+.draft-confirm-icon[data-variant="restore"] { background: #fffbeb; }
+.draft-confirm-icon[data-variant="restore"] i,
+.draft-confirm-icon[data-variant="restore"] svg { color: #d97706; }
+
+.draft-confirm-icon[data-variant="leave"] { background: #eff6ff; }
+.draft-confirm-icon[data-variant="leave"] i,
+.draft-confirm-icon[data-variant="leave"] svg { color: #2563eb; }
+
+.draft-confirm-icon[data-variant="save"] { background: #eff6ff; }
+.draft-confirm-icon[data-variant="save"] i,
+.draft-confirm-icon[data-variant="save"] svg { color: #2563eb; }
+
+.draft-confirm-icon[data-variant="submit"] { background: #f0fdf4; }
+.draft-confirm-icon[data-variant="submit"] i,
+.draft-confirm-icon[data-variant="submit"] svg { color: #16a34a; }
+
+/* ─── DRAFT RESTORE BANNER ────────────────────────────────────────────── */
+.draft-restore-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+  background: #fffbeb;
+  border: 1px solid #fbbf24;
+  border-radius: var(--radius-md, 0.5rem);
+  font-size: 0.88rem;
+  color: #78350f;
+}
+
+.draft-restore-banner > [data-lucide],
+.draft-restore-banner > svg {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: #d97706;
+}
+
+.draft-restore-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  line-height: 1.5;
+}
+
+.draft-restore-text strong {
+  display: block;
+  color: #92400e;
+}
+
+.draft-restore-text span {
+  color: #a16207;
+  font-size: 0.82rem;
+}
+
+.draft-restore-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #92400e;
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.82rem;
+  border-radius: var(--radius-sm, 0.375rem);
+}
+
+.btn-ghost:hover {
+  background: #fef3c7;
+}
+
+@media (max-width: 640px) {
+  .draft-restore-banner { flex-wrap: wrap; }
+  .draft-restore-actions { width: 100%; justify-content: flex-end; }
+}
+
+/* ─── AUTOSAVE STATUS PILL ────────────────────────────────────────────── */
+.autosave-status {
+  font-size: 0.78rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  align-self: center;
+  transition: opacity 0.3s ease;
+}
+
+.autosave-status[data-state="saving"] {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+.autosave-status[data-state="saved"] {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #15803d;
+}
+
+.autosave-status[data-state="failed"] {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #be123c;
+  cursor: pointer;
 }
 
 /* Adaptive action buttons: full label on desktop, icon-only on smaller screens */
@@ -1365,7 +1625,7 @@ textarea:focus {
   flex-shrink: 0;
 }
 
-/* Tooltip — hidden on desktop, shown on smaller screens */
+/* Tooltip - hidden on desktop, shown on smaller screens */
 .btn-adaptive::after {
   content: attr(data-tooltip);
   position: absolute;
@@ -1812,7 +2072,7 @@ textarea:focus {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* benefit-row has explicit px columns — reset to auto-fit so it wraps */
+  /* benefit-row has explicit px columns - reset to auto-fit so it wraps */
   .benefit-row {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
@@ -1938,13 +2198,13 @@ textarea:focus {
     grid-row: 1;
   }
 
-  /* start date — full width */
+  /* start date - full width */
   .pricing-period-row > input:nth-child(2) {
     grid-column: 1 / -1;
     grid-row: 2;
   }
 
-  /* end date — full width */
+  /* end date - full width */
   .pricing-period-row > input:nth-child(3) {
     grid-column: 1 / -1;
     grid-row: 3;

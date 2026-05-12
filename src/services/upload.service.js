@@ -2,8 +2,8 @@
 const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
-const DEFAULT_ALLOWED_MIMES = ['image/jpeg', 'image/png', 'application/pdf'];
-const DEFAULT_RESULT_ALLOWED_MIMES = ['image/jpeg', 'image/png'];
+const DEFAULT_ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+const DEFAULT_RESULT_ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_UPLOAD_BYTES = parseInt(process.env.UPLOAD_MAX_SIZE, 10) || 5242880;
 
 const configuredAllowedMimes = String(
@@ -31,7 +31,7 @@ const upload = multer({
       cb(null, true);
       return;
     }
-    cb(new Error('Invalid file type. Only JPEG, PNG, and PDF files are allowed.'), false);
+    cb(new Error('Invalid file type. Only JPEG, PNG, WebP, and PDF files are allowed.'), false);
   },
   limits: {
     fileSize: MAX_UPLOAD_BYTES
@@ -45,7 +45,7 @@ const resultProofUpload = multer({
       cb(null, true);
       return;
     }
-    cb(new Error('Invalid file type. Only JPEG and PNG files are allowed.'), false);
+    cb(new Error('Invalid file type. Only JPEG, PNG, and WebP files are allowed.'), false);
   },
   limits: {
     fileSize: MAX_UPLOAD_BYTES
@@ -55,12 +55,12 @@ const resultProofUpload = multer({
 const brandingUpload = multer({
   storage: multer.memoryStorage(),
   fileFilter(req, file, cb) {
-    const allowedImageMimes = new Set(['image/jpeg', 'image/png']);
+    const allowedImageMimes = new Set(['image/jpeg', 'image/png', 'image/webp']);
     if (allowedImageMimes.has(file.mimetype)) {
       cb(null, true);
       return;
     }
-    const typeError = new Error('Invalid image type. Only JPEG and PNG files are allowed.');
+    const typeError = new Error('Invalid image type. Only JPEG, PNG, and WebP files are allowed.');
     typeError.fieldName = file.fieldname;
     cb(typeError, false);
   },
@@ -228,6 +228,7 @@ exports.uploadOrganizerDocsToR2 = async ({ userId, idProofFile, businessProofFil
 
 exports.uploadEventBrandingToR2 = async ({
   userId,
+  slug,
   bannerImageFile,
   logoFile,
   posterImageFile,
@@ -236,13 +237,18 @@ exports.uploadEventBrandingToR2 = async ({
 }) => {
   assertR2Configured();
 
+  const safeSlug = slug
+    ? String(slug).replace(/[^a-z0-9_-]/gi, '-').toLowerCase().replace(/-+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60)
+    : null;
+
   const result = {};
 
   if (bannerImageFile) {
     result.banner = await uploadFileToR2({
       userId,
       file: bannerImageFile,
-      category: 'event-branding/banner'
+      category: 'event-branding/banner',
+      label: safeSlug ? `${safeSlug}-banner` : 'banner'
     });
   }
 
@@ -250,7 +256,8 @@ exports.uploadEventBrandingToR2 = async ({
     result.logo = await uploadFileToR2({
       userId,
       file: logoFile,
-      category: 'event-branding/logo'
+      category: 'event-branding/logo',
+      label: safeSlug ? `${safeSlug}-logo` : 'logo'
     });
   }
 
@@ -258,7 +265,8 @@ exports.uploadEventBrandingToR2 = async ({
     result.poster = await uploadFileToR2({
       userId,
       file: posterImageFile,
-      category: 'event-branding/poster'
+      category: 'event-branding/poster',
+      label: safeSlug ? `${safeSlug}-poster` : 'poster'
     });
   }
 
@@ -266,18 +274,21 @@ exports.uploadEventBrandingToR2 = async ({
     result.paymentQr = await uploadFileToR2({
       userId,
       file: paymentQrImageFile,
-      category: 'event-payments/qr'
+      category: 'event-payments/qr',
+      label: safeSlug ? `${safeSlug}-payment-qr` : 'payment-qr'
     });
   }
 
   const galleryFiles = Array.isArray(galleryImageFiles) ? galleryImageFiles : [];
   if (galleryFiles.length) {
     result.gallery = [];
-    for (const galleryFile of galleryFiles) {
+    for (const [i, galleryFile] of galleryFiles.entries()) {
+      // eslint-disable-next-line no-await-in-loop
       const uploadedGallery = await uploadFileToR2({
         userId,
         file: galleryFile,
-        category: 'event-branding/gallery'
+        category: 'event-branding/gallery',
+        label: safeSlug ? `${safeSlug}-gallery-${i + 1}` : `gallery-${i + 1}`
       });
       result.gallery.push(uploadedGallery);
     }
@@ -458,14 +469,19 @@ function handleMulterError(err, req, res, next) {
   next();
 }
 
-async function uploadFileToR2({ userId, file, category }) {
+async function uploadFileToR2({ userId, file, category, label }) {
   if (!file || !file.buffer || !file.originalname) {
     throw new Error('Invalid file payload.');
   }
 
   const extension = getSafeExtension(file.originalname);
-  const originalBase = String(file.originalname).replace(/\.[^.]+$/, '');
-  const sanitizedBase = originalBase.replace(/[^a-z0-9_-]/gi, '_').toLowerCase().slice(0, 80) || 'file';
+  let sanitizedBase;
+  if (label) {
+    sanitizedBase = String(label).replace(/[^a-z0-9_-]/gi, '-').toLowerCase().replace(/-+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || 'file';
+  } else {
+    const originalBase = String(file.originalname).replace(/\.[^.]+$/, '');
+    sanitizedBase = originalBase.replace(/[^a-z0-9_-]/gi, '_').toLowerCase().slice(0, 80) || 'file';
+  }
   const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
   const key = `${category}/${String(userId || 'unknown')}/${uniqueSuffix}-${sanitizedBase}${extension}`;
 

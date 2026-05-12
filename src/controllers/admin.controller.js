@@ -1180,6 +1180,7 @@ exports.updateEvent = async (req, res) => {
     if (bannerImageFile || logoFile || posterImageFile || paymentQrImageFile || galleryImageFiles.length) {
       const uploadedBranding = await uploadService.uploadEventBrandingToR2({
         userId: actor?._id || event.organizerId?._id || event.organizerId,
+        slug: event.slug,
         bannerImageFile: bannerImageFile || undefined,
         logoFile: logoFile || undefined,
         posterImageFile: posterImageFile || undefined,

@@ -81,19 +81,26 @@ test('create and edit event views expose ordered create-event sections', () => {
       assert.match(content, /data-event-type-card="virtual"[\s\S]*Virtual Event/, `${file} should explain virtual events`);
       assert.match(content, /raceCategoryHelper\.textContent/, `${file} should update race category guidance by event type`);
     } else {
-      assert.match(content, /class="form-section form-section-core" tabindex="-1"/, `${file} should make Core Details focusable`);
-      assert.match(content, /coreDetailsSection\.focus\(\{ preventScroll: true \}\)/, `${file} should focus Core Details on load`);
+      assert.match(content, /form-section-event-type" tabindex="-1"/, `${file} should make Event Type focusable`);
+      assert.match(content, /eventTypeSection\.focus\(\{ preventScroll: true \}\)/, `${file} should focus Event Type on load`);
+      assert.match(content, /wizard-progress/, `${file} should include guided wizard progress`);
+      assert.match(content, /form-section-race-categories/, `${file} should expose the race category step`);
+      assert.match(content, /form-section-review/, `${file} should expose the review step`);
+      assert.match(content, /data-event-type-card="virtual"[\s\S]*Virtual Event/, `${file} should explain virtual events`);
+      assert.match(content, /raceCategoryHelper\.textContent/, `${file} should update race category guidance by event type`);
+      assert.match(content, /setActiveWizardStep/, `${file} should wire active wizard step state`);
+      assert.match(content, /id="submitReviewBtn"[\s\S]*Submit for Review|value="publish"[\s\S]*id="submitReviewBtn"/, `${file} should expose draft submit-for-review action`);
+      assert.match(content, /id="actionConfirmOverlay"/, `${file} should include the step action confirmation modal`);
+      assert.match(content, /Submit changes for review\?/, `${file} should confirm submit-for-review before proceeding`);
     }
     assert.doesNotMatch(content, /id="title"[\s\S]*?autofocus/, `${file} should not steal focus with the title field`);
     assert.match(content, /Leaderboard Mode[\s\S]*?name="leaderboardRecognitionEnabled"/, `${file} should group leaderboard recognition with leaderboard settings`);
     const rewardsSection = content.match(/form-section-rewards[\s\S]*?form-section-details/);
     assert.ok(rewardsSection, `${file} should include rewards before event details`);
     assert.doesNotMatch(rewardsSection[0], /name="leaderboardRecognitionEnabled"/, `${file} should keep leaderboard recognition out of rewards`);
-    assert.match(content, /Rewards, Merchandise, and Registration Packages/, `${file} should expose the expanded rewards section`);
-    assert.match(content, /Total Event Fee/, `${file} should label paid amount as a total event fee`);
+    assert.match(content, /Rewards, Merchandise, and Registration Packages|Rewards and Inclusions/, `${file} should expose the expanded rewards section`);
+    assert.match(content, /Total Event Fee|Pricing Per Distance/, `${file} should expose paid pricing setup`);
     assert.match(content, /name="pricingMode"/, `${file} should expose pricing mode`);
-    assert.match(content, /name="finalEventFee"/, `${file} should expose organizer final fee override`);
-    assert.match(content, /Include any physical reward\/package cost in this amount/, `${file} should explain reward cost inclusion`);
     assert.match(content, /name="physicalRewardMedalEnabled"/, `${file} should expose medal reward item`);
     assert.match(content, /name="physicalRewardMedalAmount"/, `${file} should expose medal amount`);
     assert.match(content, /name="physicalRewardShirtEnabled"/, `${file} should expose shirt reward item`);
@@ -101,14 +108,10 @@ test('create and edit event views expose ordered create-event sections', () => {
     assert.match(content, /name="physicalRewardTowelEnabled"/, `${file} should expose towel reward item`);
     assert.match(content, /name="physicalRewardFinisherKitEnabled"/, `${file} should expose finisher kit reward item`);
     assert.match(content, /name="physicalRewardOtherItemName"/, `${file} should expose custom merchandise items`);
-    assert.match(content, /name="registrationPackageName"/, `${file} should expose registration packages`);
-    assert.match(content, /Use suggested dates/, `${file} should expose suggested pricing date controls`);
-    assert.match(content, /first 14 days after registration opens/, `${file} should explain early bird suggested dates`);
-    assert.match(content, /final 7 days before registration closes/, `${file} should explain late registration suggested dates`);
-    assert.match(content, /applySuggestedPricingDates/, `${file} should wire suggested pricing date controls`);
     assert.match(content, /name="deliveryFeeAmount"/, `${file} should expose delivery fee`);
     assert.match(content, /name="claimingMethod"/, `${file} should expose claiming method`);
-    assert.match(content, /name="specialRewardBenefitTitle"/, `${file} should expose special reward benefits`);
+    assert.match(content, /rebuildPerDistanceFeeRows/, `${file} should wire per-distance fee rows`);
+    assert.match(content, /Preview current (setup|changes)\?/, `${file} should confirm preview actions`);
     assert.doesNotMatch(content, /name="minimumActivityDistanceKm"/, `${file} should not expose minimum activity distance`);
     assert.doesNotMatch(content, /name="milestoneDistancesKm"/, `${file} should not expose manual milestone setup`);
     assert.match(content, /Final Submission Deadline[\s\S]*Event End plus 14 days/, `${file} should explain the final submission deadline grace period`);
@@ -221,11 +224,62 @@ test('create-event page opens with guided blank defaults and new event setup fie
   assert.doesNotMatch(html, /name="milestoneDistancesKm"/i);
   assert.match(html, /name="eventDetailsMarkdown"/i);
   assert.match(html, /name="feeMode"/i);
-  assert.match(html, /Total Event Fee/i);
+  assert.match(html, /Pricing Per Distance/i);
   assert.match(html, /Payment QR Image/i);
   assert.match(html, /Digital Finisher Certificate/i);
   assert.match(html, /name="physicalRewardMedalEnabled"/i);
-  assert.match(html, /name="physicalRewardFinisherKitEnabled"/i);
+  assert.match(html, /name="physicalRewardPatchEnabled"/i);
+});
+
+test('organizer edit-event page uses wizard UI and preserves draft submit action with media controls', async () => {
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+  const event = await seedEditableEvent(seed, { status: 'draft', title: `Editable Draft ${seed.stamp}` });
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${event._id}/edit`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Edit Event/i);
+  assert.match(html, /Update setup, preview changes, and submit drafts for review/i);
+  assert.match(html, /wizard-progress/i);
+  assert.match(html, /id="event-type-step"/i);
+  assert.match(html, /id="race-categories-step"/i);
+  assert.match(html, /id="review-step"/i);
+  assert.match(html, /Editable Draft/i);
+  assert.match(html, /id="physicalRewardsEnabled"[\s\S]*checked/i);
+  assert.match(html, /name="physicalRewardMedalEnabled"[\s\S]*checked/i);
+  assert.match(html, /name="physicalRewardMedalAmount"[\s\S]*value="125"/i);
+  assert.match(html, /Edit reward details with courier instructions/i);
+  assert.match(html, /Editable (?:&quot;|&#34;|\\")quoted(?:&quot;|&#34;|\\") event details/i);
+  assert.match(html, /Existing edit waiver template/i);
+  assert.match(html, /id="submitReviewBtn"[\s\S]*Submit for Review|value="publish"[\s\S]*id="submitReviewBtn"/i);
+  assert.match(html, /id="removeLogoBtn"/i);
+  assert.match(html, /media\/remove/i);
+});
+
+test('published edit-event page hides draft submit-for-review action', async () => {
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+  const event = await seedEditableEvent(seed, { status: 'published', title: `Editable Published ${seed.stamp}` });
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${event._id}/edit`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /wizard-progress/i);
+  assert.match(html, /Editable Published/i);
+  assert.doesNotMatch(html, /id="submitReviewBtn"/i);
+  assert.match(html, /id="saveBtn"/i);
+  assert.match(html, /id="previewBtn"/i);
 });
 
 test('create-event form normalization returns guided blank defaults without a request body', () => {
@@ -246,9 +300,9 @@ test('create-event form normalization returns guided blank defaults without a re
   assert.equal(formData.feeMode, 'free');
   assert.equal(formData.feeCurrency, 'PHP');
   assert.equal(formData.pricingMode, 'free');
-  assert.equal(formData.digitalBadgeEnabled, false);
-  assert.equal(formData.digitalCertificateEnabled, false);
-  assert.equal(formData.leaderboardRecognitionEnabled, false);
+  assert.equal(formData.digitalBadgeEnabled, true);
+  assert.equal(formData.digitalCertificateEnabled, true);
+  assert.equal(formData.leaderboardRecognitionEnabled, true);
   assert.match(formData.waiverTemplate, /Waiver and Release Form Acknowledgment/i);
 });
 
@@ -605,11 +659,10 @@ test('create-event accumulated-distance publish rejects missing challenge setup'
 
   assert.equal(response.status, 400);
   const html = await response.text();
-  assert.match(html, /Target distance is required for accumulated-distance events/i);
   assert.match(html, /Select at least one accepted activity type/i);
 });
 
-test('create-event paid publish rejects missing fee amount and payment QR', async () => {
+test('create-event paid publish allows blank fee amount but still requires payment QR', async () => {
   const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
   const ready = await waitForSessionReady('/organizer/dashboard', cookie);
   assert.equal(ready, true);
@@ -634,7 +687,8 @@ test('create-event paid publish rejects missing fee amount and payment QR', asyn
 
   assert.equal(response.status, 400);
   const html = await response.text();
-  assert.match(html, /Fee amount is required for paid events/i);
+  assert.doesNotMatch(html, /Fee amount is required for paid events/i);
+  assert.doesNotMatch(html, /Paid event amount must be zero or higher/i);
   assert.match(html, /Payment QR image is required/i);
 });
 
@@ -888,6 +942,48 @@ async function seedOrganizer(tag, options = {}) {
       email: organizer.email
     }
   };
+}
+
+async function seedEditableEvent(currentSeed, overrides = {}) {
+  await ensureConnected();
+  const now = Date.now();
+  return Event.create({
+    organizerId: currentSeed.organizer._id,
+    slug: `editable-${currentSeed.stamp}-${String(overrides.status || 'draft')}-${Math.floor(Math.random() * 100000)}`.toLowerCase(),
+    title: overrides.title || `Editable Event ${currentSeed.stamp}`,
+    organiserName: 'Waiver Owner',
+    description: 'This editable event description is intentionally long enough for validation.',
+    eventDetailsMarkdown: '<p>Editable "quoted" event details and runner instructions.</p>',
+    status: overrides.status || 'draft',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    registrationOpenAt: new Date(now + 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 2 * 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 3 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 4 * 24 * 60 * 60 * 1000),
+    virtualWindow: {
+      startAt: new Date(now + 3 * 24 * 60 * 60 * 1000),
+      endAt: new Date(now + 4 * 24 * 60 * 60 * 1000)
+    },
+    proofTypesAllowed: ['gps'],
+    virtualCompletionMode: 'single_activity',
+    feeMode: 'free',
+    feeCurrency: 'PHP',
+    physicalRewardsEnabled: true,
+    physicalRewardMedalEnabled: true,
+    physicalRewardMedalAmount: 125,
+    physicalRewardShirtEnabled: true,
+    physicalRewardShirtAmount: 250,
+    physicalRewardsDescription: 'Edit reward details with courier instructions.',
+    physicalRewardsClaimingNotes: 'Bring your valid ID at claiming.',
+    claimingMethod: 'both',
+    deliveryFeeAmount: 89,
+    deliveryFeeDescription: 'Doorstep delivery or race-kit pickup.',
+    requiresDeliveryAddress: true,
+    logoUrl: 'https://example.com/logo.png',
+    waiverTemplate: `<p>Existing edit waiver template. ${'I accept all waiver terms and conditions. '.repeat(12)}</p>`
+  });
 }
 
 async function cleanupSeed(currentSeed) {

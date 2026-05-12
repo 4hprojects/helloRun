@@ -443,6 +443,64 @@ router.get('/create-event', requireCanCreateEvents, async (req, res) => {
 });
 
 /* ==========================================
+   POST: Autosave Draft (AJAX, JSON only)
+   ========================================== */
+
+router.post('/create-event/autosave', requireCanCreateEvents, express.json(), requireCsrfProtection, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId);
+    if (!user) return res.status(401).json({ error: 'Unauthorised' });
+
+    const body = req.body || {};
+    const titleRaw = (body.title || '').trim();
+    if (!titleRaw) return res.status(400).json({ error: 'A title is required to autosave.' });
+
+    const { draftEventId } = body;
+
+    if (draftEventId) {
+      // Update existing draft — verify ownership
+      const existing = await Event.findOne({ _id: draftEventId, organizerId: user._id, status: 'draft' });
+      if (!existing) return res.status(404).json({ error: 'Draft not found.' });
+
+      const formData = getCreateEventFormData(body);
+      eventFormService.applyEventFormData(existing, formData, user);
+      existing.status = 'draft'; // ensure applyEventFormData hasn't changed it
+      existing.title = titleRaw;
+      await existing.save();
+      return res.json({ draftEventId });
+    } else {
+      // Create new draft (title only — minimal viable save)
+      const formData = getCreateEventFormData(body);
+      const slug = await generateUniqueSlug(titleRaw);
+      const referenceCode = await generateUniqueReferenceCode({
+        title: titleRaw,
+        date: new Date(),
+        existsFn: async (candidate) => Event.exists({ referenceCode: candidate })
+      });
+      const organiserNameFromUser = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+      const event = new Event({
+        organizerId: user._id,
+        slug,
+        referenceCode,
+        title: titleRaw,
+        organiserName: formData.organiserName || organiserNameFromUser || 'helloRun Organizer',
+        status: 'draft',
+        description: formData.description || '',
+        eventType: formData.eventType || 'virtual',
+        feeMode: formData.feeMode === 'paid' ? 'paid' : 'free'
+      });
+      eventFormService.applyEventFormData(event, formData, user);
+      event.status = 'draft';
+      await event.save();
+      return res.json({ draftEventId: event._id.toString() });
+    }
+  } catch (error) {
+    console.error('Autosave error:', error);
+    return res.status(500).json({ error: 'Autosave failed.' });
+  }
+});
+
+/* ==========================================
    GET: Event Preview (Approved Organizers)
    ========================================== */
 
@@ -1385,7 +1443,10 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
       formData.paymentQrImageUrl = '';
       formData.paymentQrImageKey = '';
     }
-    formData.actionType = event.status === 'published' || event.status === 'pending_review' ? 'publish' : 'draft';
+    const isDraftSubmitForReview = event.status === 'draft' && req.body.actionType === 'publish';
+    formData.actionType = isDraftSubmitForReview || event.status === 'published' || event.status === 'pending_review'
+      ? 'publish'
+      : 'draft';
     if (req.uploadError) {
       const errorField = mapUploadFieldToFormField(req.uploadErrorField);
       return res.status(400).render('organizer/edit-event', {
@@ -1477,6 +1538,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     if (bannerImageFile || logoFile || posterImageFile || paymentQrImageFile || galleryImageFiles.length) {
       const uploadedBranding = await uploadService.uploadEventBrandingToR2({
         userId: user._id,
+        slug: event.slug,
         bannerImageFile: bannerImageFile || undefined,
         logoFile: logoFile || undefined,
         posterImageFile: posterImageFile || undefined,
@@ -1547,6 +1609,10 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     }
 
     eventFormService.applyEventFormData(event, formData, user);
+    if (isDraftSubmitForReview) {
+      event.status = 'pending_review';
+      event.submittedForReviewAt = new Date();
+    }
 
     await event.save();
 
@@ -1580,7 +1646,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
 
     const query = new URLSearchParams({
       type: 'success',
-      msg: 'Event updated successfully.'
+      msg: isDraftSubmitForReview ? 'Event updated and submitted for review.' : 'Event updated successfully.'
     });
     return res.redirect(`/organizer/events/${event._id}?${query.toString()}`);
   } catch (error) {
@@ -1820,6 +1886,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     if (bannerImageFile || logoFile || posterImageFile || paymentQrImageFile || galleryImageFiles.length) {
       const uploadedBranding = await uploadService.uploadEventBrandingToR2({
         userId: user._id,
+        slug,
         bannerImageFile: bannerImageFile || undefined,
         logoFile: logoFile || undefined,
         posterImageFile: posterImageFile || undefined,
@@ -2304,7 +2371,7 @@ function isValidPhone(phone) {
  * Validate uploaded files
  */
 function validateFiles(files) {
-  const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
   const maxSize = parseInt(process.env.UPLOAD_MAX_SIZE) || 5242880; // 5MB
 
   for (const file of files) {
@@ -2312,7 +2379,7 @@ function validateFiles(files) {
     if (!allowedTypes.includes(file.mimetype)) {
       return {
         valid: false,
-        error: `Invalid file type: ${file.originalname}. Please upload PDF, JPG, or PNG files only.`
+        error: `Invalid file type: ${file.originalname}. Please upload PDF, JPG, PNG, or WebP files only.`
       };
     }
 
@@ -2983,8 +3050,8 @@ function validateCreateEventForm(formData) {
     errors.eventDetailsMarkdown = 'Event details must be 20,000 characters or less.';
   }
   if (formData.feeMode === 'paid') {
-    if (!Number.isFinite(formData.feeAmount) || formData.feeAmount <= 0) {
-      errors.feeAmount = 'Fee amount is required for paid events.';
+    if (formData.feeAmount !== null && (!Number.isFinite(formData.feeAmount) || formData.feeAmount < 0)) {
+      errors.feeAmount = 'Paid event amount must be zero or higher.';
     }
     if (!formData.paymentQrImageUrl) {
       errors.paymentQrImageUrl = 'Payment QR image is required before submitting a paid event for review.';
@@ -3059,7 +3126,7 @@ function validateCreateEventForm(formData) {
     if (!formData.proofTypesAllowed.length) errors.proofTypesAllowed = 'Select at least one proof type.';
     if (formData.virtualCompletionMode === 'accumulated_distance') {
       if (!Number.isFinite(formData.targetDistanceKm) || formData.targetDistanceKm <= 0) {
-        errors.targetDistanceKm = 'Target distance is required for accumulated-distance events.';
+        errors.raceDistances = 'Add a numeric race distance (e.g. 100K) — it sets the completion goal for accumulated challenges.';
       }
       if (!Number.isFinite(formData.minimumActivityDistanceKm) || formData.minimumActivityDistanceKm <= 0) {
         errors.minimumActivityDistanceKm = 'Minimum activity distance is required for accumulated-distance events.';
@@ -3141,15 +3208,13 @@ function validateOptionalCreateEventFields(formData, errors) {
     }
   }
 
-  if (formData.targetDistanceKm !== null && (!Number.isFinite(formData.targetDistanceKm) || formData.targetDistanceKm <= 0)) {
-    errors.targetDistanceKm = 'Target distance must be greater than 0.';
-  }
+  // targetDistanceKm is derived from raceDistances — no manual input to validate here
   if (formData.minimumActivityDistanceKm !== null && (!Number.isFinite(formData.minimumActivityDistanceKm) || formData.minimumActivityDistanceKm <= 0)) {
     errors.minimumActivityDistanceKm = 'Minimum activity distance must be greater than 0.';
   }
   if (formData.feeMode === 'paid') {
-    if (formData.feeAmount !== null && (!Number.isFinite(formData.feeAmount) || formData.feeAmount <= 0)) {
-      errors.feeAmount = 'Paid events must use an amount greater than 0.';
+    if (formData.feeAmount !== null && (!Number.isFinite(formData.feeAmount) || formData.feeAmount < 0)) {
+      errors.feeAmount = 'Paid event amount must be zero or higher.';
     }
     if (!/^[A-Z]{3}$/.test(formData.feeCurrency || '')) {
       errors.feeCurrency = 'Currency must be a 3-letter code.';

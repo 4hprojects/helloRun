@@ -36,6 +36,45 @@
         </div>
       <% } %>
 
+      <%# ── DISCARD CONFIRM DIALOG ── %>
+      <div id="draftDiscardOverlay" class="draft-confirm-overlay" hidden>
+        <div class="draft-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="draftDiscardDialogTitle" aria-describedby="draftDiscardDialogDesc" tabindex="-1">
+          <div class="draft-confirm-icon"><i data-lucide="trash-2"></i></div>
+          <h3 id="draftDiscardDialogTitle">Discard saved draft?</h3>
+          <p id="draftDiscardDialogDesc">This will clear your saved progress and start a fresh blank form. This cannot be undone.</p>
+          <div class="draft-confirm-actions">
+            <button type="button" id="draftDiscardCancelBtn" class="draft-confirm-btn draft-confirm-btn--cancel">Keep draft</button>
+            <button type="button" id="draftDiscardConfirmBtn" class="draft-confirm-btn draft-confirm-btn--danger">Yes, discard</button>
+          </div>
+        </div>
+      </div>
+
+      <%# ── ACTION CONFIRM DIALOG (reusable: restore / leave / save / submit) ── %>
+      <div id="actionConfirmOverlay" class="draft-confirm-overlay" hidden>
+        <div class="draft-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="actionConfirmTitle" aria-describedby="actionConfirmDesc" tabindex="-1">
+          <div class="draft-confirm-icon" id="actionConfirmIconWrap"><i id="actionConfirmIcon" data-lucide="help-circle"></i></div>
+          <h3 id="actionConfirmTitle"></h3>
+          <p id="actionConfirmDesc"></p>
+          <div class="draft-confirm-actions">
+            <button type="button" id="actionConfirmCancelBtn" class="draft-confirm-btn draft-confirm-btn--cancel">Cancel</button>
+            <button type="button" id="actionConfirmOkBtn" class="draft-confirm-btn draft-confirm-btn--primary">Confirm</button>
+          </div>
+        </div>
+      </div>
+
+      <%# ── DRAFT RESTORE BANNER (injected by JS if localStorage draft found) ── %>
+      <div id="draftRestoreBanner" class="draft-restore-banner" hidden aria-live="polite">
+        <i data-lucide="file-clock"></i>
+        <div class="draft-restore-text">
+          <strong>You have unsaved changes from a previous session.</strong>
+          <span id="draftRestoreSubtext"></span>
+        </div>
+        <div class="draft-restore-actions">
+          <button type="button" id="draftRestoreBtn" class="btn btn-outline btn-sm">Restore draft</button>
+          <button type="button" id="draftDiscardBtn" class="btn btn-ghost btn-sm">Discard</button>
+        </div>
+      </div>
+
       <form class="create-event-form" method="POST" action="/organizer/create-event" enctype="multipart/form-data" novalidate>
         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
         <aside class="wizard-progress" aria-label="Create event progress">
@@ -158,7 +197,7 @@
             <div class="form-group">
               <label for="eventStartAt" class="label-with-help">
                 Event Start *
-                <span class="field-help-icon" tabindex="0" aria-label="The date and time the event officially begins. For on-site races this is your gun start / race morning start time — set it to the actual race date and gun-off hour. For virtual events this is when the challenge opens. Runners see this date on the public event page.">?</span>
+                <span class="field-help-icon" tabindex="0" aria-label="The date and time the event officially begins. For on-site races this is your gun start / race morning start time - set it to the actual race date and gun-off hour. For virtual events this is when the challenge opens. Runners see this date on the public event page.">?</span>
               </label>
               <div class="input-with-button">
                 <input id="eventStartAt" name="eventStartAt" type="datetime-local" value="<%= formData.eventStartAt %>" required>
@@ -173,7 +212,7 @@
             <div class="form-group">
               <label for="eventEndAt" class="label-with-help">
                 Event End *
-                <span class="field-help-icon" tabindex="0" aria-label="The date and time the event officially closes. For on-site races this is the race day cut-off time or when the finish line closes — typically the same race day, a few hours after gun start. For multi-day virtual challenges this is the last day runners can complete their distance.">?</span>
+                <span class="field-help-icon" tabindex="0" aria-label="The date and time the event officially closes. For on-site races this is the race day cut-off time or when the finish line closes - typically the same race day, a few hours after gun start. For multi-day virtual challenges this is the last day runners can complete their distance.">?</span>
               </label>
               <div class="input-with-button">
                 <input id="eventEndAt" name="eventEndAt" type="datetime-local" value="<%= formData.eventEndAt %>" required>
@@ -395,7 +434,7 @@
               </div>
               <label for="raceDistanceCustom" style="margin-top:0.5rem;">Custom Distances (comma-separated)</label>
               <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" placeholder="e.g., 42K, 50K">
-              <small class="field-hint">Race distances are registration labels. For accumulated challenges, Target Distance controls the completion goal.</small>
+              <small class="field-hint">For accumulated challenges, the race distance you set here is the completion goal runners must reach.</small>
               <% if (errors.raceDistances) { %><small class="error-text"><%= errors.raceDistances %></small><% } %>
             </div>
           </div>
@@ -548,7 +587,7 @@
                 <input type="hidden" id="removePaymentQrImage" name="removePaymentQrImage" value="0">
                 <% } %>
                 <div class="upload-area" id="qrUploadArea">
-                  <input type="file" id="paymentQrImageFile" name="paymentQrImageFile" accept="image/jpeg,image/png">
+                  <input type="file" id="paymentQrImageFile" name="paymentQrImageFile" accept="image/jpeg,image/png,image/webp">
                   <div class="upload-placeholder">
                     <i data-lucide="upload-cloud"></i>
                     <p>Drag &amp; drop or click to upload QR image</p>
@@ -580,8 +619,8 @@
           <p class="section-helper">Use this section for full event rules, FAQs, pricing explanation, submission rules, and runner guidance.</p>
           <div class="waiver-panels">
             <div class="waiver-panel <%= errors.eventDetailsMarkdown ? 'has-error' : '' %>">
-              <label for="eventDetailsEditor">Event Details</label>
-              <div class="waiver-toolbar">
+              <div class="waiver-label-row">
+                <label for="eventDetailsEditor">Event Details</label>
                 <button type="button" id="clearEventDetailsBtn" class="btn btn-outline waiver-icon-btn" aria-label="Clear content" title="Clear all content">
                   <i data-lucide="eraser"></i>
                 </button>
@@ -623,7 +662,7 @@
 
             <!-- Upload area for new logo -->
             <div class="upload-area" id="logoUploadArea">
-              <input type="file" id="logoFile" name="logoFile" accept="image/jpeg,image/png">
+              <input type="file" id="logoFile" name="logoFile" accept="image/jpeg,image/png,image/webp">
               <div class="upload-placeholder">
                 <i data-lucide="upload-cloud"></i>
                 <p>Drag & drop or click to upload new logo</p>
@@ -655,7 +694,7 @@
             <% } %>
 
             <div class="upload-area" id="bannerUploadArea">
-              <input type="file" id="bannerFile" name="bannerImageFile" accept="image/jpeg,image/png">
+              <input type="file" id="bannerFile" name="bannerImageFile" accept="image/jpeg,image/png,image/webp">
               <div class="upload-placeholder">
                 <i data-lucide="upload-cloud"></i>
                 <p>Drag & drop or click to upload new banner</p>
@@ -686,7 +725,7 @@
             <% } %>
 
             <div class="upload-area" id="posterUploadArea">
-              <input type="file" id="posterFile" name="posterImageFile" accept="image/jpeg,image/png">
+              <input type="file" id="posterFile" name="posterImageFile" accept="image/jpeg,image/png,image/webp">
               <div class="upload-placeholder">
                 <i data-lucide="upload-cloud"></i>
                 <p>Drag & drop or click to upload new poster</p>
@@ -727,7 +766,7 @@
 
             <!-- Upload area for new gallery images -->
             <div class="upload-area" id="galleryUploadArea">
-              <input type="file" id="galleryFiles" name="galleryImageFiles" accept="image/jpeg,image/png" multiple>
+              <input type="file" id="galleryFiles" name="galleryImageFiles" accept="image/jpeg,image/png,image/webp" multiple>
               <div class="upload-placeholder">
                 <i data-lucide="images"></i>
                 <p>Drag & drop or click to upload up to 12 new images</p>
@@ -790,11 +829,12 @@
             <p class="field-hint">&#128196; <strong>Submit for Review</strong> requires all required fields to be complete. A payment QR image is required for paid events.</p>
           </div>
           <div class="actions">
+            <span id="autosaveStatus" class="autosave-status" aria-live="polite" hidden></span>
             <div class="action-btn-group">
-              <a href="/organizer/dashboard" class="btn btn-secondary btn-adaptive" aria-label="Back to Dashboard" data-tooltip="Back to Dashboard"><i data-lucide="arrow-left"></i><span class="btn-label">Back to Dashboard</span></a>
+              <a href="/organizer/dashboard" id="backToDashboardBtn" class="btn btn-secondary btn-adaptive" aria-label="Back to Dashboard" data-tooltip="Back to Dashboard"><i data-lucide="arrow-left"></i><span class="btn-label">Back to Dashboard</span></a>
               <button type="button" class="btn btn-outline btn-adaptive" id="previewBtn" aria-label="Preview" data-tooltip="Preview"><i data-lucide="eye"></i><span class="btn-label">Preview</span></button>
-              <button type="submit" name="actionType" value="draft" class="btn btn-outline btn-adaptive" aria-label="Save Draft" data-tooltip="Save Draft"><i data-lucide="save"></i><span class="btn-label">Save Draft</span></button>
-              <button type="submit" name="actionType" value="publish" class="btn btn-primary btn-adaptive" id="publishBtn" aria-label="Submit for Review" data-tooltip="Submit for Review">
+              <button type="button" id="saveDraftBtn" class="btn btn-outline btn-adaptive" aria-label="Save Draft" data-tooltip="Save Draft"><i data-lucide="save"></i><span class="btn-label">Save Draft</span></button>
+              <button type="button" id="publishBtn" class="btn btn-primary btn-adaptive" aria-label="Submit for Review" data-tooltip="Submit for Review">
                 <i data-lucide="send"></i>
                 <span class="btn-label">Submit for Review</span>
                 <span class="spinner" style="display: none;"></span>
@@ -878,8 +918,6 @@
       const raceCategoryHelper = document.getElementById('raceCategoryHelper');
       const eventTypeCards = Array.from(document.querySelectorAll('[data-event-type-card]'));
       const accumulatedSettings = document.querySelector('.accumulated-settings');
-      const targetDistanceInput = document.getElementById('targetDistanceKm');
-      const targetDistanceHint = document.getElementById('targetDistanceHint');
       const eventStartInput = document.getElementById('eventStartAt');
       const eventEndInput = document.getElementById('eventEndAt');
       const virtualStartInput = document.getElementById('virtualStartAt');
@@ -895,7 +933,6 @@
       const paymentReviewNote = document.querySelector('.payment-review-note');
       const progressLinks = Array.from(document.querySelectorAll('[data-step-link]'));
       const wizardSections = Array.from(document.querySelectorAll('[data-wizard-step]'));
-      let targetDistanceWasAutoFilled = !targetDistanceInput?.value;
       let virtualStartWasAutoFilled = !virtualStartInput?.value;
       let virtualEndWasAutoFilled = !virtualEndInput?.value;
       let finalSubmissionDeadlineWasAutoFilled = !finalSubmissionDeadlineInput?.value;
@@ -1076,7 +1113,7 @@
           // Header row
           const header = document.createElement('div');
           header.className = 'per-distance-fee-header';
-          header.innerHTML = '<span></span><span>Early Bird</span><span>Regular</span><span>Late <span class="field-help-icon" tabindex="0" aria-label="Optional — leave blank if you do not offer late registration pricing.">?</span></span><span></span>';
+          header.innerHTML = '<span></span><span>Early Bird</span><span>Regular</span><span>Late <span class="field-help-icon" tabindex="0" aria-label="Optional - leave blank if you do not offer late registration pricing.">?</span></span><span></span>';
           container.appendChild(header);
         }
 
@@ -1190,7 +1227,7 @@
         locationSection.style.display = (val === 'onsite' || val === 'hybrid') ? 'block' : 'none';
         virtualSection.style.display = (val === 'virtual' || val === 'hybrid') ? 'block' : 'none';
 
-        // Schedule hints — show contextual hint based on event type
+        // Schedule hints - show contextual hint based on event type
         const isOnsite = val === 'onsite' || val === 'hybrid';
         const isVirtual = val === 'virtual' || val === 'hybrid';
         document.querySelectorAll('.schedule-hint-onsite').forEach(el => { el.style.display = isOnsite ? '' : 'none'; });
@@ -1219,7 +1256,6 @@
             syncVirtualWindowFromEventDates();
           }
           if (showAccumulated) {
-            syncTargetDistanceFromRaceDistance();
             syncFinalSubmissionDeadlineFromEventEnd();
           }
         }
@@ -1232,59 +1268,6 @@
       if (virtualCompletionModeSelect) {
         virtualCompletionModeSelect.addEventListener('change', toggleSections);
       }
-
-      function parseRaceDistanceKm(label) {
-        const value = String(label || '').trim().toUpperCase().replace(/\s+/g, '');
-        const match = value.match(/^(\d+(?:\.\d+)?)(K|KM)$/);
-        if (!match) return null;
-        const distance = Number(match[1]);
-        return Number.isFinite(distance) && distance > 0 ? distance : null;
-      }
-
-      function getSelectedRaceDistanceTargets() {
-        const values = [];
-        raceDistancePresetInputs.forEach((input) => {
-          if (input.checked) values.push(input.value);
-        });
-        String(raceDistanceCustomInput?.value || '')
-          .split(',')
-          .map((item) => item.trim())
-          .filter(Boolean)
-          .forEach((item) => values.push(item));
-        return Array.from(new Set(values.map(parseRaceDistanceKm).filter((item) => item !== null)));
-      }
-
-      function syncTargetDistanceFromRaceDistance() {
-        if (!targetDistanceInput || !targetDistanceHint) return;
-        const targets = getSelectedRaceDistanceTargets();
-        if (targets.length === 1 && (!targetDistanceInput.value || targetDistanceWasAutoFilled)) {
-          targetDistanceInput.value = String(targets[0]);
-          targetDistanceWasAutoFilled = true;
-          targetDistanceHint.textContent = `Auto-filled from the selected race distance (${targets[0]} km). Adjust if this event uses a different completion target.`;
-          targetDistanceHint.classList.add('is-autofilled');
-          targetDistanceHint.classList.remove('is-manual');
-          return;
-        }
-        if (targets.length > 1) {
-          targetDistanceHint.textContent = 'Multiple race distances are selected, so set one event-level target manually. Per-distance targets need a future setup model.';
-          targetDistanceHint.classList.add('is-manual');
-          targetDistanceHint.classList.remove('is-autofilled');
-          return;
-        }
-        targetDistanceHint.textContent = 'If exactly one race distance is selected, this can be auto-filled from that distance.';
-        targetDistanceHint.classList.remove('is-autofilled', 'is-manual');
-      }
-
-      if (targetDistanceInput) {
-        targetDistanceInput.addEventListener('input', () => {
-          targetDistanceWasAutoFilled = false;
-        });
-      }
-      raceDistancePresetInputs.forEach((input) => input.addEventListener('change', syncTargetDistanceFromRaceDistance));
-      if (raceDistanceCustomInput) {
-        raceDistanceCustomInput.addEventListener('input', syncTargetDistanceFromRaceDistance);
-      }
-      syncTargetDistanceFromRaceDistance();
 
       function parseDateTimeLocalValue(value) {
         if (!value) return null;
@@ -1479,6 +1462,19 @@
       const previewBtn = document.getElementById('previewBtn');
       if (previewBtn) {
         previewBtn.addEventListener('click', () => {
+          const confirmPreview = window.openEventBuilderActionDialog
+            ? window.openEventBuilderActionDialog({
+                icon: 'eye',
+                variant: 'leave',
+                title: 'Preview current setup?',
+                desc: 'A preview will open in a new tab using the current form values. Unsaved image file uploads may not appear until saved.',
+                cancelText: 'Cancel',
+                okText: 'Preview',
+                okClass: 'draft-confirm-btn--primary'
+              })
+            : Promise.resolve(window.confirm('Preview current setup?'));
+          confirmPreview.then((confirmed) => {
+            if (!confirmed) return;
           const params = new URLSearchParams();
           form.querySelectorAll('input:not([type=file]):not([type=checkbox]):not([type=radio]), select, textarea').forEach(el => {
             if (el.name && el.value) params.append(el.name, el.value);
@@ -1487,6 +1483,7 @@
             if (el.name) params.append(el.name, el.value || '1');
           });
           window.open('/organizer/preview-event?' + params.toString(), '_blank');
+          });
         });
       }
 
@@ -1584,7 +1581,7 @@
         reader.readAsDataURL(file);
       }
 
-      const allowedImageTypes = new Set(['image/jpeg', 'image/png']);
+      const allowedImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
       const maxBrandingSizeBytes = 5 * 1024 * 1024;
 
       // Setup upload areas (note: remove buttons for new uploads)
@@ -2009,6 +2006,420 @@
     })();
 
     if (window.lucide) lucide.createIcons();
+  </script>
+
+  <script>
+  // ── CREATE-EVENT DRAFT SAVING & ENTRY RECOVERY ──────────────────────────────
+  (function () {
+    const DRAFT_KEY = 'hellorun_create_event_draft_<%= user._id %>';
+    const AUTOSAVE_ENDPOINT = '/organizer/create-event/autosave';
+    const CSRF_TOKEN = document.querySelector('[name="_csrf"]')?.value || '';
+
+    const form = document.querySelector('.create-event-form');
+    const banner = document.getElementById('draftRestoreBanner');
+    const bannerSubtext = document.getElementById('draftRestoreSubtext');
+    const restoreBtn = document.getElementById('draftRestoreBtn');
+    const discardBtn = document.getElementById('draftDiscardBtn');
+    const statusEl = document.getElementById('autosaveStatus');
+
+    // ── REUSABLE ACTION CONFIRM DIALOG ───────────────────────────────────────
+    const actionOverlay    = document.getElementById('actionConfirmOverlay');
+    const actionIconWrap   = document.getElementById('actionConfirmIconWrap');
+    const actionTitleEl    = document.getElementById('actionConfirmTitle');
+    const actionDescEl     = document.getElementById('actionConfirmDesc');
+    const actionCancelBtn  = document.getElementById('actionConfirmCancelBtn');
+    const actionOkBtn      = document.getElementById('actionConfirmOkBtn');
+
+    let _actionResolve = null;
+
+    function openActionDialog({ icon, variant, title, desc, cancelText, okText, okClass }) {
+      if (!actionOverlay) return Promise.resolve(false);
+      // Recreate icon element so Lucide can replace it fresh (old ref is stale after first createIcons)
+      if (actionIconWrap) {
+        actionIconWrap.innerHTML = '<i data-lucide="' + (icon || 'help-circle') + '"></i>';
+        actionIconWrap.dataset.variant = variant || '';
+      }
+      if (actionTitleEl) actionTitleEl.textContent = title || '';
+      if (actionDescEl)  actionDescEl.textContent  = desc  || '';
+      if (actionCancelBtn) actionCancelBtn.textContent = cancelText || 'Cancel';
+      if (actionOkBtn) {
+        actionOkBtn.textContent = okText || 'Confirm';
+        actionOkBtn.className = 'draft-confirm-btn ' + (okClass || 'draft-confirm-btn--primary');
+      }
+      actionOverlay.hidden = false;
+      if (window.lucide) lucide.createIcons();
+      actionOverlay.querySelector('.draft-confirm-dialog')?.focus();
+      return new Promise((resolve) => { _actionResolve = resolve; });
+    }
+
+    function _closeActionDialog(result) {
+      if (actionOverlay) actionOverlay.hidden = true;
+      if (_actionResolve) { _actionResolve(result); _actionResolve = null; }
+    }
+
+    if (actionCancelBtn) actionCancelBtn.addEventListener('click', () => _closeActionDialog(false));
+    if (actionOkBtn)     actionOkBtn.addEventListener('click',     () => _closeActionDialog(true));
+    if (actionOverlay) {
+      actionOverlay.addEventListener('click', (e) => { if (e.target === actionOverlay) _closeActionDialog(false); });
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && actionOverlay && !actionOverlay.hidden) _closeActionDialog(false);
+    });
+    window.openEventBuilderActionDialog = openActionDialog;
+
+    // ── HELPERS ──────────────────────────────────────────────────────────────
+    function serializeFields() {
+      if (!form) return {};
+      const data = {};
+      form.querySelectorAll('input:not([type=file]):not([type=submit]):not([type=button]), select, textarea').forEach((el) => {
+        if (!el.name) return;
+        if (el.type === 'checkbox' || el.type === 'radio') {
+          if (el.checked) data[el.name] = el.value;
+        } else {
+          data[el.name] = el.value;
+        }
+      });
+      return data;
+    }
+
+    function restoreFields(data) {
+      if (!form || !data) return;
+      Object.entries(data).forEach(([name, value]) => {
+        if (name.startsWith('_')) return; // skip meta keys
+        const els = form.querySelectorAll('[name="' + name + '"]');
+        els.forEach((el) => {
+          if (el.type === 'checkbox') { el.checked = el.value === value; }
+          else if (el.type === 'radio') { el.checked = el.value === value; }
+          else { el.value = value; }
+        });
+      });
+      // re-fire change events so conditional fields re-evaluate
+      ['eventType', 'feeMode', 'pricingMode', 'physicalRewardsEnabled', 'virtualCompletionMode'].forEach((name) => {
+        const el = form.querySelector('[name="' + name + '"]');
+        if (el) el.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    }
+
+    function loadDraft() {
+      try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); }
+      catch (_) { return null; }
+    }
+
+    function saveDraftLocal() {
+      try {
+        const existing = loadDraft() || {};
+        const fields = serializeFields();
+        // preserve meta keys like _draftEventId, _savedAt
+        const meta = {};
+        Object.keys(existing).filter((k) => k.startsWith('_')).forEach((k) => { meta[k] = existing[k]; });
+        const entry = Object.assign({}, fields, meta, { _savedAt: Date.now() });
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(entry));
+      } catch (_) { /* storage full or private mode */ }
+    }
+
+    function clearDraftLocal() {
+      try { localStorage.removeItem(DRAFT_KEY); } catch (_) {}
+    }
+
+    function setDraftEventId(id) {
+      try {
+        const entry = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}');
+        entry._draftEventId = id;
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(entry));
+      } catch (_) {}
+    }
+
+    // ── AUTOSAVE STATUS PILL ─────────────────────────────────────────────────
+    let _statusTimer = null;
+    function setStatus(state, msg) {
+      if (!statusEl) return;
+      statusEl.hidden = false;
+      statusEl.dataset.state = state;
+      statusEl.textContent = msg;
+      clearTimeout(_statusTimer);
+      if (state === 'saved') {
+        _statusTimer = setTimeout(() => { statusEl.hidden = true; }, 4000);
+      }
+    }
+
+    // ── SERVER AUTOSAVE ──────────────────────────────────────────────────────
+    let _serverSaveInFlight = false;
+    let _serverSavePending = false;
+
+    async function serverAutosave() {
+      const title = (form?.querySelector('[name="title"]')?.value || '').trim();
+      if (!title) return;
+
+      if (_serverSaveInFlight) { _serverSavePending = true; return; }
+      _serverSaveInFlight = true;
+      setStatus('saving', 'Saving...');
+
+      try {
+        const draft = loadDraft() || {};
+        const draftEventId = draft._draftEventId || null;
+        const fields = serializeFields();
+
+        const resp = await fetch(AUTOSAVE_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
+          body: JSON.stringify(Object.assign({}, fields, { draftEventId }))
+        });
+
+        if (resp.ok) {
+          const json = await resp.json();
+          if (json.draftEventId) setDraftEventId(json.draftEventId);
+          setStatus('saved', 'Saved just now');
+        } else {
+          setStatus('failed', 'Save failed - retry');
+        }
+      } catch (_) {
+        setStatus('failed', 'Save failed - retry');
+      } finally {
+        _serverSaveInFlight = false;
+        if (_serverSavePending) {
+          _serverSavePending = false;
+          serverAutosave();
+        }
+      }
+    }
+
+    // ── DEBOUNCED LOCAL SAVE ─────────────────────────────────────────────────
+    let _localDebounce = null;
+    function debouncedLocalSave() {
+      clearTimeout(_localDebounce);
+      _localDebounce = setTimeout(saveDraftLocal, 800);
+    }
+
+    if (form) {
+      form.addEventListener('input', debouncedLocalSave);
+      form.addEventListener('change', debouncedLocalSave);
+    }
+
+    // ── HOOK INTO STEP CHANGES ───────────────────────────────────────────────
+    // Patch setActiveWizardStep (defined in the preceding IIFE) by wrapping
+    // the global via a MutationObserver-free approach: we expose a hook that
+    // the outer IIFE's IntersectionObserver already calls.
+    // The simplest safe approach: re-observe the same IntersectionObserver
+    // event via a separate observer with a broader threshold.
+    let _lastObservedStep = null;
+    if ('IntersectionObserver' in window) {
+      const wizardSections = Array.from(document.querySelectorAll('[data-wizard-step]'));
+      const stepChangeObserver = new IntersectionObserver((entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!visible) return;
+        const stepId = visible.target.dataset.wizardStep;
+        if (stepId && stepId !== _lastObservedStep) {
+          _lastObservedStep = stepId;
+          saveDraftLocal();
+          serverAutosave();
+        }
+      }, { rootMargin: '-20% 0px -65% 0px', threshold: [0.1, 0.35, 0.6] });
+      wizardSections.forEach((s) => stepChangeObserver.observe(s));
+    }
+
+    // ── RESTORE BANNER ───────────────────────────────────────────────────────
+    function showRestoreBanner(draft) {
+      if (!banner) return;
+      const draftEventId = draft._draftEventId;
+      const savedAt = draft._savedAt ? new Date(draft._savedAt).toLocaleString() : '';
+      if (bannerSubtext) bannerSubtext.textContent = savedAt ? 'Last saved ' + savedAt + '.' : '';
+      if (draftEventId && restoreBtn) {
+        restoreBtn.textContent = 'Resume editing';
+        restoreBtn.addEventListener('click', () => {
+          openActionDialog({
+            icon: 'file-clock', variant: 'restore',
+            title: 'Resume your saved draft?',
+            desc: 'You\'ll be taken to the saved draft to continue editing where you left off.',
+            cancelText: 'Cancel', okText: 'Resume editing', okClass: 'draft-confirm-btn--primary'
+          }).then((confirmed) => {
+            if (!confirmed) return;
+            clearDraftLocal();
+            window.location.href = '/organizer/events/' + draftEventId + '/edit';
+          });
+        }, { once: true });
+      } else if (restoreBtn) {
+        restoreBtn.addEventListener('click', () => {
+          openActionDialog({
+            icon: 'file-clock', variant: 'restore',
+            title: 'Restore saved draft?',
+            desc: 'This will fill the form with your previously saved data.',
+            cancelText: 'Cancel', okText: 'Restore draft', okClass: 'draft-confirm-btn--primary'
+          }).then((confirmed) => {
+            if (!confirmed) return;
+            restoreFields(draft);
+            banner.hidden = true;
+            saveDraftLocal();
+          });
+        }, { once: true });
+      }
+      const discardOverlay = document.getElementById('draftDiscardOverlay');
+      const discardCancelBtn = document.getElementById('draftDiscardCancelBtn');
+      const discardConfirmBtn = document.getElementById('draftDiscardConfirmBtn');
+
+      function openDiscardDialog() {
+        if (!discardOverlay) return;
+        discardOverlay.hidden = false;
+        discardOverlay.querySelector('.draft-confirm-dialog')?.focus();
+        if (window.lucide) lucide.createIcons();
+      }
+
+      function closeDiscardDialog() {
+        if (discardOverlay) discardOverlay.hidden = true;
+      }
+
+      if (discardBtn) {
+        discardBtn.addEventListener('click', openDiscardDialog);
+      }
+
+      if (discardCancelBtn) discardCancelBtn.addEventListener('click', closeDiscardDialog);
+
+      if (discardConfirmBtn) {
+        discardConfirmBtn.addEventListener('click', () => {
+          clearDraftLocal();
+          window.location.replace('/organizer/create-event');
+        });
+      }
+
+      // Dismiss on backdrop click
+      if (discardOverlay) {
+        discardOverlay.addEventListener('click', (e) => {
+          if (e.target === discardOverlay) closeDiscardDialog();
+        });
+      }
+
+      // Dismiss on Escape
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && discardOverlay && !discardOverlay.hidden) closeDiscardDialog();
+      });
+      // Disable action buttons until user resolves the banner
+      const _actionBtns = [
+        document.getElementById('saveDraftBtn'),
+        document.getElementById('publishBtn'),
+        document.getElementById('backToDashboardBtn')
+      ].filter(Boolean);
+      function _disableActionBtns() {
+        _actionBtns.forEach((b) => { b.disabled = true; b.setAttribute('aria-disabled', 'true'); });
+      }
+      function _enableActionBtns() {
+        _actionBtns.forEach((b) => { b.disabled = false; b.removeAttribute('aria-disabled'); });
+      }
+      _disableActionBtns();
+
+      // Re-enable when banner is resolved (restore confirmed or discard confirmed)
+      // Wrap the restore confirm path
+      if (restoreBtn) {
+        restoreBtn.addEventListener('click', () => {
+          // buttons re-enabled after restore is confirmed inside the then() above,
+          // but we need to hook in after the once listener - use a second listener
+        });
+      }
+      // Patch: after any confirmed action that hides the banner, re-enable
+      function _onBannerResolved() { banner.hidden = true; _enableActionBtns(); }
+
+      // Intercept discard confirm to also re-enable (page reloads anyway, but be safe)
+      if (discardConfirmBtn) {
+        discardConfirmBtn.addEventListener('click', _enableActionBtns);
+      }
+      // Intercept restore path: observe banner hidden state via MutationObserver
+      new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          if (m.type === 'attributes' && m.attributeName === 'hidden' && banner.hidden) {
+            _enableActionBtns();
+          }
+        }
+      }).observe(banner, { attributes: true });
+
+      banner.hidden = false;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // ── INIT: check for existing draft ───────────────────────────────────────
+    (function init() {
+      const draft = loadDraft();
+      if (!draft) return;
+      // Only show banner if at least one field has a non-empty value (skip empty serialized forms)
+      const hasMeaningfulData = Object.keys(draft).some(
+        (k) => !k.startsWith('_') && String(draft[k] || '').trim() !== ''
+      );
+      if (!hasMeaningfulData) return;
+      showRestoreBanner(draft);
+    })();
+
+    // ── ACTION BUTTON GUARDS ─────────────────────────────────────────────────
+
+    // Back to Dashboard - intercept navigation
+    const backToDashboardBtn = document.getElementById('backToDashboardBtn');
+    if (backToDashboardBtn) {
+      backToDashboardBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openActionDialog({
+          icon: 'arrow-left', variant: 'leave',
+          title: 'Leave the event builder?',
+          desc: 'Your form has been auto-saved as a draft. You can return to finish it from your dashboard.',
+          cancelText: 'Stay here', okText: 'Go to Dashboard', okClass: 'draft-confirm-btn--primary'
+        }).then((confirmed) => {
+          if (confirmed) window.location.href = '/organizer/dashboard';
+        });
+      });
+    }
+
+    // Save Draft
+    const saveDraftBtn = document.getElementById('saveDraftBtn');
+    if (saveDraftBtn && form) {
+      saveDraftBtn.addEventListener('click', () => {
+        openActionDialog({
+          icon: 'save', variant: 'save',
+          title: 'Save as draft?',
+          desc: 'This event will be saved privately. You can continue editing it later from your dashboard.',
+          cancelText: 'Cancel', okText: 'Save Draft', okClass: 'draft-confirm-btn--primary'
+        }).then((confirmed) => {
+          if (!confirmed) return;
+          clearDraftLocal();
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'actionType';
+          input.value = 'draft';
+          form.appendChild(input);
+          form.submit();
+        });
+      });
+    }
+
+    // Submit for Review
+    const publishBtn = document.getElementById('publishBtn');
+    if (publishBtn && form) {
+      publishBtn.addEventListener('click', () => {
+        openActionDialog({
+          icon: 'send', variant: 'submit',
+          title: 'Submit for review?',
+          desc: 'An admin will review your event before it goes live. Make sure all details are correct.',
+          cancelText: 'Cancel', okText: 'Submit', okClass: 'draft-confirm-btn--success'
+        }).then((confirmed) => {
+          if (!confirmed) return;
+          clearDraftLocal();
+          // show spinner on publish button
+          const spinner = publishBtn.querySelector('.spinner');
+          if (spinner) spinner.style.display = 'inline-block';
+          publishBtn.disabled = true;
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'actionType';
+          input.value = 'publish';
+          form.appendChild(input);
+          form.submit();
+        });
+      });
+    }
+
+    // ── CLEAR on successful submit ────────────────────────────────────────────
+    if (form) {
+      form.addEventListener('submit', () => {
+        clearDraftLocal();
+      });
+    }
+  })();
   </script>
 </body>
 </html>

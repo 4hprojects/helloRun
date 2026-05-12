@@ -112,7 +112,7 @@
       return;
     }
 
-    const allowedImageMimes = new Set(['image/jpeg', 'image/png']);
+    const allowedImageMimes = new Set(['image/jpeg', 'image/png', 'image/webp']);
     const maxImageBytes = 5 * 1024 * 1024;
 
     const defaultConfig = {

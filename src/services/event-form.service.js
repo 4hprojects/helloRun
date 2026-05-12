@@ -623,12 +623,10 @@ function validateOptionalCreateEventFields(formData, errors) {
     if (Number.isNaN(lng) || lng < -180 || lng > 180) errors.geoLng = 'Longitude must be between -180 and 180.';
   }
 
-  if (formData.targetDistanceKm !== null && (!Number.isFinite(formData.targetDistanceKm) || formData.targetDistanceKm <= 0)) {
-    errors.targetDistanceKm = 'Target distance must be greater than 0.';
-  }
+  // targetDistanceKm is derived from raceDistances — no manual input to validate here
   if (formData.feeMode === 'paid') {
-    if (formData.feeAmount !== null && (!Number.isFinite(formData.feeAmount) || formData.feeAmount <= 0)) {
-      errors.feeAmount = 'Paid events must use an amount greater than 0.';
+    if (formData.feeAmount !== null && (!Number.isFinite(formData.feeAmount) || formData.feeAmount < 0)) {
+      errors.feeAmount = 'Paid event amount must be zero or higher.';
     }
     if (!/^[A-Z]{3}$/.test(formData.feeCurrency || '')) {
       errors.feeCurrency = 'Currency must be a 3-letter code.';
@@ -713,8 +711,8 @@ function validateCreateEventForm(formData) {
   if (!formData.description || formData.description.length < 20) errors.description = 'Description must be at least 20 characters.';
   if ((formData.eventDetailsMarkdown || '').length > 20000) errors.eventDetailsMarkdown = 'Event details must be 20,000 characters or less.';
   if (formData.feeMode === 'paid') {
-    if (!Number.isFinite(formData.feeAmount) || formData.feeAmount <= 0) {
-      errors.feeAmount = 'Fee amount is required for paid events.';
+    if (formData.feeAmount !== null && (!Number.isFinite(formData.feeAmount) || formData.feeAmount < 0)) {
+      errors.feeAmount = 'Paid event amount must be zero or higher.';
     }
     if (!formData.paymentQrImageUrl) {
       errors.paymentQrImageUrl = 'Payment QR image is required before submitting a paid event for review.';
@@ -760,7 +758,7 @@ function validateCreateEventForm(formData) {
     if (!formData.proofTypesAllowed.length) errors.proofTypesAllowed = 'Select at least one proof type.';
     if (formData.virtualCompletionMode === 'accumulated_distance') {
       if (!Number.isFinite(formData.targetDistanceKm) || formData.targetDistanceKm <= 0) {
-        errors.targetDistanceKm = 'Target distance is required for accumulated-distance events.';
+        errors.raceDistances = 'Add a numeric race distance (e.g. 100K) — it sets the completion goal for accumulated challenges.';
       }
       if (!Array.isArray(formData.acceptedRunTypes) || !formData.acceptedRunTypes.length) {
         errors.acceptedRunTypes = 'Select at least one accepted activity type.';

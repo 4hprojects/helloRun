@@ -1137,7 +1137,7 @@
             <label for="coverImageFile">Or upload cover image</label>
             <span class="field-badge field-badge-review" title="Required before submitting for review" aria-label="Required before submitting for review" tabindex="0"><i data-lucide="cloud-upload"></i><span class="field-badge-label">Required for review</span></span>
           </div>
-          <input id="coverImageFile" name="coverImageFile" type="file" accept="image/jpeg,image/png">
+          <input id="coverImageFile" name="coverImageFile" type="file" accept="image/jpeg,image/png,image/webp">
           <input type="hidden" id="removeCoverImage" name="removeCoverImage" value="<%= formData?.removeCoverImage ? '1' : '0' %>">
           <small class="field-help">JPG/PNG, max 5MB. Best result: clear image, wide format, readable on mobile.</small>
           <% const previewCoverUrl = (formData?.coverImageUrl || '').trim(); %>
@@ -1176,7 +1176,7 @@
             <label for="galleryImageFiles">Upload Gallery Images</label>
             <span class="field-badge field-badge-optional" title="Optional" aria-label="Optional" tabindex="0"><i data-lucide="images"></i><span class="field-badge-label">Optional</span></span>
           </div>
-          <input id="galleryImageFiles" name="galleryImageFiles" type="file" accept="image/jpeg,image/png" multiple>
+          <input id="galleryImageFiles" name="galleryImageFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple>
           <small class="field-help">Up to 3 JPG/PNG images total. New uploads are added to the current gallery.</small>
         </div>
         <div class="form-field">
