@@ -149,296 +149,6 @@
           </div>
         </div>
 
-        <!-- RACE CATEGORIES SECTION -->
-        <div id="race-categories-step" class="form-section form-section-race-categories" tabindex="-1" data-wizard-step="race-categories-step">
-          <div class="section-kicker">Step 5 of 12</div>
-          <div class="section-title">Race Categories</div>
-          <p class="section-helper" id="raceCategoryHelper">Use race distances as the current registration category labels. Detailed per-category pricing is planned for a later phase.</p>
-          <div class="form-grid">
-            <div class="form-group form-group-full <%= errors.raceDistances ? 'has-error' : '' %>">
-              <label>Race Distances *</label>
-              <div class="checkbox-row">
-                <% const selectedDistances = formData.raceDistancePresets || []; %>
-                <label><input type="checkbox" name="raceDistancePresets" value="3K" <%= selectedDistances.includes('3K') ? 'checked' : '' %>> 3K</label>
-                <label><input type="checkbox" name="raceDistancePresets" value="5K" <%= selectedDistances.includes('5K') ? 'checked' : '' %>> 5K</label>
-                <label><input type="checkbox" name="raceDistancePresets" value="10K" <%= selectedDistances.includes('10K') ? 'checked' : '' %>> 10K</label>
-                <label><input type="checkbox" name="raceDistancePresets" value="21K" <%= selectedDistances.includes('21K') ? 'checked' : '' %>> 21K</label>
-              </div>
-              <label for="raceDistanceCustom" style="margin-top:0.5rem;">Custom Distances (comma-separated)</label>
-              <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" placeholder="e.g., 42K, 50K">
-              <small class="field-hint">Race distances are registration labels. For accumulated challenges, Target Distance controls the completion goal.</small>
-              <% if (errors.raceDistances) { %><small class="error-text"><%= errors.raceDistances %></small><% } %>
-            </div>
-          </div>
-        </div>
-
-        <!-- PRICING SETUP SECTION -->
-        <div id="pricing-step" class="form-section form-section-fees" tabindex="-1" data-wizard-step="pricing-step">
-          <div class="section-kicker">Step 7 of 12</div>
-          <div class="section-title">Pricing Setup</div>
-          <p class="section-helper">Choose whether the event is free or paid, and how registration fees are structured.</p>
-          <div class="form-grid">
-            <div class="form-group <%= errors.feeMode ? 'has-error' : '' %>">
-              <label for="feeMode">Event Fee *</label>
-              <select id="feeMode" name="feeMode">
-                <option value="free" <%= formData.feeMode !== 'paid' ? 'selected' : '' %>>Free</option>
-                <option value="paid" <%= formData.feeMode === 'paid' ? 'selected' : '' %>>Paid</option>
-              </select>
-              <% if (errors.feeMode) { %><small class="error-text"><%= errors.feeMode %></small><% } %>
-            </div>
-            <div class="form-group payment-fields <%= errors.feeAmount ? 'has-error' : '' %>">
-              <label for="feeAmount">Total Event Fee</label>
-              <input id="feeAmount" name="feeAmount" type="number" min="0" step="0.01" value="<%= formData.feeAmount || '' %>" placeholder="0.00">
-              <small class="field-hint">This is the total amount runners will pay. Include any physical reward/package cost in this amount.</small>
-              <% if (errors.feeAmount) { %><small class="error-text"><%= errors.feeAmount %></small><% } %>
-            </div>
-            <div class="form-group payment-fields <%= errors.pricingMode ? 'has-error' : '' %>">
-              <label for="pricingMode">Pricing Mode</label>
-              <select id="pricingMode" name="pricingMode">
-                <option value="free" <%= formData.pricingMode === 'free' ? 'selected' : '' %>>Free</option>
-                <option value="same_fee" <%= formData.pricingMode === 'same_fee' ? 'selected' : '' %>>Same fee for all distances</option>
-                <option value="package_period" <%= formData.pricingMode === 'package_period' ? 'selected' : '' %>>Package / pricing periods</option>
-                <option value="per_distance" <%= formData.pricingMode === 'per_distance' ? 'selected' : '' %>>Different fee per distance</option>
-                <option value="per_distance_period" <%= formData.pricingMode === 'per_distance_period' ? 'selected' : '' %>>Per distance with pricing periods</option>
-              </select>
-              <small class="field-hint">Use <em>Same fee</em> for one flat registration price. Use <em>Package / pricing periods</em> for early-bird or tiered packages. Use <em>Per distance</em> when each race distance has its own price.</small>
-              <% if (errors.pricingMode) { %><small class="error-text"><%= errors.pricingMode %></small><% } %>
-            </div>
-            <div class="form-group payment-fields">
-              <label for="finalEventFee">Organizer Final Fee</label>
-              <input id="finalEventFee" name="finalEventFee" type="number" min="0" step="0.01" value="<%= formData.finalEventFee ?? '' %>" placeholder="<%= Number(formData.suggestedEventFee || 0).toFixed(2) %>">
-              <small class="field-hint">Optional organizer-side override. Runner checkout still uses Total Event Fee in this version.</small>
-            </div>
-            <div class="form-group payment-fields <%= errors.feeCurrency ? 'has-error' : '' %>">
-              <label for="feeCurrency">Currency</label>
-              <input id="feeCurrency" name="feeCurrency" type="text" value="<%= formData.feeCurrency || 'PHP' %>" maxlength="3" placeholder="PHP">
-              <% if (errors.feeCurrency) { %><small class="error-text"><%= errors.feeCurrency %></small><% } %>
-            </div>
-          </div>
-          <!-- PER-DISTANCE PRICING (shown when pricingMode is per_distance or per_distance_period) -->
-          <div class="per-distance-fields" style="display:none; margin-top:1.25rem;">
-            <div class="subsection-divider">Per-Distance Fees</div>
-            <p class="field-hint" style="margin-bottom:0.75rem;">Set a fee for each race distance. Distances are populated from your Race Categories (Step 5). These fees override the total event fee for individual distance checkouts.</p>
-            <div id="perDistanceFeeRows" class="per-distance-fee-grid">
-              <!-- JS populates rows: one per race category distance -->
-              <p class="field-hint per-distance-empty-hint">No race categories defined yet. Add distances in Step 5, then return here to set per-distance fees.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- PAYMENT SETUP SECTION -->
-        <div id="payment-setup-step" class="form-section form-section-payment" tabindex="-1" data-wizard-step="payment-setup-step">
-          <div class="section-kicker">Step 8 of 12</div>
-          <div class="section-title">Payment Setup</div>
-          <p class="section-helper">Define how runners will pay. Required only for paid events.</p>
-          <p class="payment-free-note field-hint" style="display:none;">&#10003; This event is free &mdash; payment setup is not required.</p>
-          <div class="payment-fields">
-            <div class="form-grid">
-              <div class="form-group">
-                <label for="paymentAccountName">Account Name</label>
-                <input id="paymentAccountName" name="paymentAccountName" type="text" value="<%= formData.paymentAccountName || '' %>" placeholder="Optional">
-                <small class="field-hint">Name associated with your GCash, bank, or payment account.</small>
-              </div>
-              <div class="form-group form-group-full <%= errors.paymentQrImageUrl ? 'has-error' : '' %>">
-                <label for="paymentQrImageFile">Payment QR Image</label>
-                <% if (formData.paymentQrImageUrl) { %>
-                  <div class="existing-media-preview">
-                    <img class="detail-logo-image" src="<%= formData.paymentQrImageUrl %>" alt="Payment QR preview">
-                    <label><input type="checkbox" name="removePaymentQrImage" value="1"> Remove current payment QR</label>
-                  </div>
-                <% } %>
-                <input id="paymentQrImageFile" name="paymentQrImageFile" type="file" accept="image/jpeg,image/png">
-                <input id="paymentQrImageUrl" name="paymentQrImageUrl" type="hidden" value="<%= formData.paymentQrImageUrl || '' %>">
-                <input id="paymentQrImageKey" name="paymentQrImageKey" type="hidden" value="<%= formData.paymentQrImageKey || '' %>">
-                <small class="field-hint">Required before submitting a paid event for review. JPG/PNG only, max 5 MB.</small>
-                <% if (errors.paymentQrImageUrl) { %><small class="error-text"><%= errors.paymentQrImageUrl %></small><% } %>
-              </div>
-              <div class="form-group form-group-full">
-                <label for="paymentInstructions">Payment Instructions</label>
-                <textarea id="paymentInstructions" name="paymentInstructions" rows="3" placeholder="Optional payment notes for runners."><%= formData.paymentInstructions || '' %></textarea>
-                <small class="field-hint">Tell runners where to pay, what reference to include, and when payment proof will be reviewed.</small>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- REWARDS, MERCHANDISE & PACKAGES SECTION -->
-        <div id="rewards-step" class="form-section form-section-rewards" tabindex="-1" data-wizard-step="rewards-step">
-          <div class="section-kicker">Step 6 of 12</div>
-          <div class="section-title">Recognition, Rewards &amp; Packages</div>
-          <p class="section-helper">Configure digital recognition, physical rewards, packages, and delivery options.</p>
-          <div class="form-grid">
-            <div class="form-group form-group-full">
-              <div class="subsection-divider">Digital Recognition</div>
-              <div class="checkbox-row">
-                <label><input type="checkbox" name="digitalBadgeEnabled" value="1" <%= formData.digitalBadgeEnabled ? 'checked' : '' %>> Digital Badge</label>
-                <label><input type="checkbox" name="digitalCertificateEnabled" value="1" <%= formData.digitalCertificateEnabled ? 'checked' : '' %>> Digital Finisher Certificate</label>
-              </div>
-              <small class="field-hint">Enable only the recognition items this event will actually provide to finishers.</small>
-            </div>
-            <div class="form-group form-group-full">
-              <div class="subsection-divider">Physical Rewards</div>
-              <div class="toggle-section-label"><input type="checkbox" id="physicalRewardsEnabled" name="physicalRewardsEnabled" value="1" <%= formData.physicalRewardsEnabled ? 'checked' : '' %>><label for="physicalRewardsEnabled" class="toggle-label-text">Physical Rewards Available <span class="field-help-icon" tabindex="0" aria-label="Tick this if your event includes physical items such as medals, shirts, patches, or a finisher kit. You can set individual costs per item to help calculate a suggested entry fee.">?</span></label></div>
-              <div class="physical-reward-fields">
-                <small class="field-hint">For paid events, these items can contribute to the suggested event fee.</small>
-                <div class="reward-cost-grid">
-                  <label><input type="checkbox" name="physicalRewardMedalEnabled" value="1" <%= formData.physicalRewardMedalEnabled ? 'checked' : '' %>> Medal <input name="physicalRewardMedalAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardMedalAmount ?? '' %>" placeholder="0.00"></label>
-                  <label><input type="checkbox" name="physicalRewardShirtEnabled" value="1" <%= formData.physicalRewardShirtEnabled ? 'checked' : '' %>> Shirt <input name="physicalRewardShirtAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardShirtAmount ?? '' %>" placeholder="0.00"></label>
-                  <label><input type="checkbox" name="physicalRewardPatchEnabled" value="1" <%= formData.physicalRewardPatchEnabled ? 'checked' : '' %>> Patch <input name="physicalRewardPatchAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardPatchAmount ?? '' %>" placeholder="0.00"></label>
-                  <label><input type="checkbox" name="physicalRewardTowelEnabled" value="1" <%= formData.physicalRewardTowelEnabled ? 'checked' : '' %>> Towel <input name="physicalRewardTowelAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardTowelAmount ?? '' %>" placeholder="0.00"></label>
-                  <label><input type="checkbox" name="physicalRewardFinisherKitEnabled" value="1" <%= formData.physicalRewardFinisherKitEnabled ? 'checked' : '' %>> Finisher Kit <input name="physicalRewardFinisherKitAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardFinisherKitAmount ?? '' %>" placeholder="0.00"></label>
-                </div>
-                <% const otherItems = formData.physicalRewardOtherItems || []; %>
-                <div class="mini-repeatable">
-                  <label>Custom Merchandise</label>
-                  <% for (let itemIndex = 0; itemIndex < 3; itemIndex += 1) { const item = otherItems[itemIndex] || {}; %>
-                    <div class="inline-field-row">
-                      <input name="physicalRewardOtherItemName" type="text" value="<%= item.name || '' %>" placeholder="Item name">
-                      <input name="physicalRewardOtherItemAmount" type="number" min="0" step="0.01" value="<%= item.amount ?? '' %>" placeholder="0.00">
-                    </div>
-                  <% } %>
-                </div>
-                <div class="reward-text-fields">
-                  <label for="physicalRewardsDescription">Rewards Description</label>
-                  <textarea id="physicalRewardsDescription" name="physicalRewardsDescription" rows="3" placeholder="Describe the physical rewards runners will receive, e.g. finisher medal, shirt, patch."><%= formData.physicalRewardsDescription || '' %></textarea>
-                  <% if (errors.physicalRewardsDescription) { %><small class="error-text"><%= errors.physicalRewardsDescription %></small><% } %>
-                  <label for="physicalRewardsClaimingNotes">Claiming Instructions (Optional)</label>
-                  <textarea id="physicalRewardsClaimingNotes" name="physicalRewardsClaimingNotes" rows="2" placeholder="How and where runners claim their rewards or merchandise."><%= formData.physicalRewardsClaimingNotes || '' %></textarea>
-                </div>
-              </div>
-            </div>
-            <div class="form-group form-group-full">
-              <div class="subsection-divider">Registration Packages</div>
-              <small class="field-hint">Use packages when runners can choose different inclusions, prices, or registration periods.</small>
-              <% const packages = formData.registrationPackages || []; %>
-              <% for (let packageIndex = 0; packageIndex < 3; packageIndex += 1) { const packageOption = packages[packageIndex] || {}; const periods = packageOption.pricingPeriods || []; const findPeriod = (code) => periods.find((period) => period.code === code) || {}; %>
-                <div class="package-card">
-                  <input name="registrationPackageName" type="text" value="<%= packageOption.name || '' %>" placeholder="Package name, e.g. Medal + Shirt">
-                  <div class="checkbox-row">
-                    <label><input type="checkbox" name="registrationPackageMedal_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.medal ? 'checked' : '' %>> Medal</label>
-                    <label><input type="checkbox" name="registrationPackageShirt_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.shirt ? 'checked' : '' %>> Shirt</label>
-                    <label><input type="checkbox" name="registrationPackageTowel_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.towel ? 'checked' : '' %>> Towel</label>
-                    <label><input type="checkbox" name="registrationPackagePatch_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.patch ? 'checked' : '' %>> Patch</label>
-                    <label><input type="checkbox" name="registrationPackageFinisherKit_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.finisherKit ? 'checked' : '' %>> Finisher Kit</label>
-                  </div>
-                  <input name="registrationPackageOtherItemNames" type="text" value="<%= (packageOption.includedItems?.otherItemNames || []).join(', ') %>" placeholder="Other included item names">
-                  <div class="pricing-period-actions">
-                    <button type="button" class="btn btn-outline btn-suggest-pricing-dates" data-package-index="<%= packageIndex %>">Use suggested dates</button>
-                    <small class="field-hint">Early Bird uses the first 14 days after registration opens. Late Registration uses the final 7 days before registration closes.</small>
-                  </div>
-                  <div class="pricing-period-grid">
-                    <% const early = findPeriod('early_bird'); const regular = findPeriod('regular'); const late = findPeriod('late'); %>
-                    <div class="pricing-period-row">
-                      <span class="pricing-period-label">Early Bird</span>
-                      <input name="registrationPackageEarlyBirdStartAt" type="datetime-local" value="<%= early.startAt || '' %>" aria-label="Early bird start">
-                      <input name="registrationPackageEarlyBirdEndAt" type="datetime-local" value="<%= early.endAt || '' %>" aria-label="Early bird end">
-                      <input name="registrationPackageEarlyBirdAmount" type="number" min="0" step="0.01" value="<%= early.amount ?? '' %>" placeholder="Price">
-                    </div>
-                    <div class="pricing-period-row">
-                      <span class="pricing-period-label">Regular</span>
-                      <input name="registrationPackageRegularStartAt" type="datetime-local" value="<%= regular.startAt || '' %>" aria-label="Regular start">
-                      <input name="registrationPackageRegularEndAt" type="datetime-local" value="<%= regular.endAt || '' %>" aria-label="Regular end">
-                      <input name="registrationPackageRegularAmount" type="number" min="0" step="0.01" value="<%= regular.amount ?? '' %>" placeholder="Price">
-                    </div>
-                    <div class="pricing-period-row">
-                      <span class="pricing-period-label">Late</span>
-                      <input name="registrationPackageLateStartAt" type="datetime-local" value="<%= late.startAt || '' %>" aria-label="Late start">
-                      <input name="registrationPackageLateEndAt" type="datetime-local" value="<%= late.endAt || '' %>" aria-label="Late end">
-                      <input name="registrationPackageLateAmount" type="number" min="0" step="0.01" value="<%= late.amount ?? '' %>" placeholder="Price">
-                    </div>
-                  </div>
-                  <textarea name="registrationPackageNotes" rows="2" placeholder="Package notes"><%= packageOption.notes || '' %></textarea>
-                </div>
-              <% } %>
-            </div>
-            <details class="subsection-toolkit form-group form-group-full" <%= formData.deliveryFeeEnabled || formData.requiresDeliveryAddress || formData.deliveryFeeDescription ? 'open' : '' %>>
-              <summary class="subsection-toolkit-summary">Delivery &amp; Fulfilment</summary>
-              <div class="subsection-toolkit-body">
-                <label><input type="checkbox" name="deliveryFeeEnabled" value="1" <%= formData.deliveryFeeEnabled ? 'checked' : '' %>> Delivery or Claiming Fee</label>
-                <div class="form-grid compact-grid">
-                  <input name="deliveryFeeAmount" type="number" min="0" step="0.01" value="<%= formData.deliveryFeeAmount ?? '' %>" placeholder="Flat delivery fee">
-                  <select name="claimingMethod">
-                    <option value="delivery" <%= formData.claimingMethod === 'delivery' ? 'selected' : '' %>>Delivery</option>
-                    <option value="pickup" <%= formData.claimingMethod === 'pickup' ? 'selected' : '' %>>Pickup</option>
-                    <option value="both" <%= formData.claimingMethod === 'both' ? 'selected' : '' %>>Delivery or pickup</option>
-                  </select>
-                </div>
-                <textarea name="deliveryFeeDescription" rows="2" placeholder="Delivery or pickup instructions."><%= formData.deliveryFeeDescription || '' %></textarea>
-                <div class="checkbox-row">
-                  <label><input type="checkbox" name="requiresDeliveryAddress" value="1" <%= formData.requiresDeliveryAddress ? 'checked' : '' %>> Require delivery address</label>
-                  <label><input type="checkbox" name="requiresPhilippineDeliveryAddress" value="1" <%= formData.requiresPhilippineDeliveryAddress ? 'checked' : '' %>> Philippines only</label>
-                  <input type="hidden" name="internationalRunnersAllowed" value="0">
-                  <label><input type="checkbox" name="internationalRunnersAllowed" value="1" <%= formData.internationalRunnersAllowed !== false ? 'checked' : '' %>> International runners allowed</label>
-                </div>
-              </div>
-            </details>
-            <% const benefits = formData.specialRewardBenefits || []; %>
-            <details class="subsection-toolkit form-group form-group-full" <%= benefits.length && benefits.some(b => b.title || b.description) ? 'open' : '' %>>
-              <summary class="subsection-toolkit-summary">Special Benefits</summary>
-              <div class="subsection-toolkit-body">
-                <% for (let benefitIndex = 0; benefitIndex < 2; benefitIndex += 1) { const benefit = benefits[benefitIndex] || {}; %>
-                  <div class="inline-field-row benefit-row">
-                    <input name="specialRewardBenefitTitle" type="text" value="<%= benefit.title || '' %>" placeholder="Benefit title">
-                    <input name="specialRewardBenefitValidUntil" type="datetime-local" value="<%= benefit.validUntil || '' %>" aria-label="Benefit valid until">
-                    <input name="specialRewardBenefitPackageNames" type="text" value="<%= (benefit.appliesToPackageNames || []).join(', ') %>" placeholder="Applies to packages">
-                    <input name="specialRewardBenefitDescription" type="text" value="<%= benefit.description || '' %>" placeholder="Description">
-                  </div>
-                <% } %>
-              </div>
-            </details>
-          </div>
-        </div>
-
-        <!-- EVENT DETAILS SECTION -->
-        <div id="event-details-step" class="form-section form-section-details" tabindex="-1" data-wizard-step="event-details-step">
-          <div class="section-kicker">Step 9 of 12</div>
-          <div class="section-title">Event Details</div>
-          <p class="section-helper">Use this section for full event rules, FAQs, pricing explanation, submission rules, and runner guidance.</p>
-          <div class="form-group form-group-full <%= errors.eventDetailsMarkdown ? 'has-error' : '' %>">
-            <label for="eventDetailsMarkdown">Event Details</label>
-            <textarea id="eventDetailsMarkdown" name="eventDetailsMarkdown" rows="18" placeholder="Add full event rules, inclusions, FAQs, and instructions."><%= formData.eventDetailsMarkdown || '' %></textarea>
-            <small class="field-hint">Full editable content shown on the public event page. Add rules, reward inclusions, FAQs, proof instructions, and important deadlines here. Limit: 20,000 characters.</small>
-            <% if (errors.eventDetailsMarkdown) { %><small class="error-text"><%= errors.eventDetailsMarkdown %></small><% } %>
-          </div>
-        </div>
-
-        <!-- WAIVER SECTION (same as create) -->
-        <div id="waiver-step" class="form-section form-section-waiver" tabindex="-1" data-wizard-step="waiver-step">
-          <div class="section-kicker">Step 11 of 12</div>
-          <div class="section-title">Waiver (Required for publishing)</div>
-          <p class="section-helper">This agreement is shown to participants before they join the event.</p>
-          <div class="waiver-panels">
-            <div class="waiver-panel <%= errors.waiverTemplate ? 'has-error' : '' %>">
-              <label for="waiverEditor">Waiver Template *</label>
-              <div class="waiver-toolbar">
-                <button type="button" id="insertOrganizerPlaceholderBtn" class="btn btn-outline waiver-icon-btn" aria-label="Insert Organizer Name" title="Insert Organizer Name">
-                  <i data-lucide="user-round"></i>
-                </button>
-                <button type="button" id="insertEventPlaceholderBtn" class="btn btn-outline waiver-icon-btn" aria-label="Insert Event Title" title="Insert Event Title">
-                  <i data-lucide="file-text"></i>
-                </button>
-                <button type="button" id="resetWaiverBtn" class="btn btn-outline waiver-icon-btn" aria-label="Reset to Default Waiver" title="Reset to Default Waiver">
-                  <i data-lucide="rotate-ccw"></i>
-                </button>
-              </div>
-              <div id="waiverEditor" class="waiver-editor"></div>
-              <input type="hidden" id="waiverTemplate" name="waiverTemplate" value="">
-              <small class="field-hint">
-                Use placeholders: <code>{{ORGANIZER_NAME}}</code> and <code>{{EVENT_TITLE}}</code>.
-                This participant agreement is shown during registration. Changing it will bump waiver version for new registrants.
-              </small>
-              <% if (errors.waiverTemplate) { %><small class="error-text"><%= errors.waiverTemplate %></small><% } %>
-            </div>
-            <div class="waiver-panel">
-              <label>Waiver Preview</label>
-              <div id="waiverPreview" class="waiver-preview-box" aria-live="polite"></div>
-              <small class="field-hint">
-                Preview replaces placeholders using current Organizer Name and Event Title values.
-              </small>
-            </div>
-          </div>
-        </div>
-
         <!-- SCHEDULE SECTION (same as create) -->
         <div id="schedule-step" class="form-section form-section-schedule" tabindex="-1" data-wizard-step="schedule-step">
           <div class="section-kicker">Step 3 of 12</div>
@@ -668,6 +378,259 @@
           </div>
         </div>
 
+        <!-- RACE CATEGORIES SECTION -->
+        <div id="race-categories-step" class="form-section form-section-race-categories" tabindex="-1" data-wizard-step="race-categories-step">
+          <div class="section-kicker">Step 5 of 12</div>
+          <div class="section-title">Race Categories</div>
+          <p class="section-helper" id="raceCategoryHelper">Use race distances as the current registration category labels. Detailed per-category pricing is planned for a later phase.</p>
+          <div class="form-grid">
+            <div class="form-group form-group-full <%= errors.raceDistances ? 'has-error' : '' %>">
+              <label>Race Distances *</label>
+              <div class="checkbox-row">
+                <% const selectedDistances = formData.raceDistancePresets || []; %>
+                <label><input type="checkbox" name="raceDistancePresets" value="3K" <%= selectedDistances.includes('3K') ? 'checked' : '' %>> 3K</label>
+                <label><input type="checkbox" name="raceDistancePresets" value="5K" <%= selectedDistances.includes('5K') ? 'checked' : '' %>> 5K</label>
+                <label><input type="checkbox" name="raceDistancePresets" value="10K" <%= selectedDistances.includes('10K') ? 'checked' : '' %>> 10K</label>
+                <label><input type="checkbox" name="raceDistancePresets" value="21K" <%= selectedDistances.includes('21K') ? 'checked' : '' %>> 21K</label>
+              </div>
+              <label for="raceDistanceCustom" style="margin-top:0.5rem;">Custom Distances (comma-separated)</label>
+              <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" placeholder="e.g., 42K, 50K">
+              <small class="field-hint">Race distances are registration labels. For accumulated challenges, Target Distance controls the completion goal.</small>
+              <% if (errors.raceDistances) { %><small class="error-text"><%= errors.raceDistances %></small><% } %>
+            </div>
+          </div>
+        </div>
+
+        <!-- REWARDS, MERCHANDISE & PACKAGES SECTION -->
+        <div id="rewards-step" class="form-section form-section-rewards" tabindex="-1" data-wizard-step="rewards-step">
+          <div class="section-kicker">Step 6 of 12</div>
+          <div class="section-title">Recognition, Rewards &amp; Packages</div>
+          <p class="section-helper">Configure digital recognition, physical rewards, packages, and delivery options.</p>
+          <div class="form-grid">
+            <div class="form-group form-group-full">
+              <div class="subsection-divider">Digital Recognition</div>
+              <div class="checkbox-row">
+                <label><input type="checkbox" name="digitalBadgeEnabled" value="1" <%= formData.digitalBadgeEnabled ? 'checked' : '' %>> Digital Badge</label>
+                <label><input type="checkbox" name="digitalCertificateEnabled" value="1" <%= formData.digitalCertificateEnabled ? 'checked' : '' %>> Digital Finisher Certificate</label>
+              </div>
+              <small class="field-hint">Enable only the recognition items this event will actually provide to finishers.</small>
+            </div>
+            <div class="form-group form-group-full">
+              <div class="subsection-divider">Physical Rewards</div>
+              <div class="toggle-section-label"><input type="checkbox" id="physicalRewardsEnabled" name="physicalRewardsEnabled" value="1" <%= formData.physicalRewardsEnabled ? 'checked' : '' %>><label for="physicalRewardsEnabled" class="toggle-label-text">Physical Rewards Available <span class="field-help-icon" tabindex="0" aria-label="Tick this if your event includes physical items such as medals, shirts, patches, or a finisher kit. You can set individual costs per item to help calculate a suggested entry fee.">?</span></label></div>
+              <div class="physical-reward-fields">
+                <small class="field-hint">For paid events, these items can contribute to the suggested event fee.</small>
+                <div class="reward-cost-grid">
+                  <label><input type="checkbox" name="physicalRewardMedalEnabled" value="1" <%= formData.physicalRewardMedalEnabled ? 'checked' : '' %>> Medal <input name="physicalRewardMedalAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardMedalAmount ?? '' %>" placeholder="0.00"></label>
+                  <label><input type="checkbox" name="physicalRewardShirtEnabled" value="1" <%= formData.physicalRewardShirtEnabled ? 'checked' : '' %>> Shirt <input name="physicalRewardShirtAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardShirtAmount ?? '' %>" placeholder="0.00"></label>
+                  <label><input type="checkbox" name="physicalRewardPatchEnabled" value="1" <%= formData.physicalRewardPatchEnabled ? 'checked' : '' %>> Patch <input name="physicalRewardPatchAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardPatchAmount ?? '' %>" placeholder="0.00"></label>
+                  <label><input type="checkbox" name="physicalRewardTowelEnabled" value="1" <%= formData.physicalRewardTowelEnabled ? 'checked' : '' %>> Towel <input name="physicalRewardTowelAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardTowelAmount ?? '' %>" placeholder="0.00"></label>
+                  <label><input type="checkbox" name="physicalRewardFinisherKitEnabled" value="1" <%= formData.physicalRewardFinisherKitEnabled ? 'checked' : '' %>> Finisher Kit <input name="physicalRewardFinisherKitAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardFinisherKitAmount ?? '' %>" placeholder="0.00"></label>
+                </div>
+                <% const otherItems = formData.physicalRewardOtherItems || []; %>
+                <div class="mini-repeatable">
+                  <label>Custom Merchandise</label>
+                  <% for (let itemIndex = 0; itemIndex < 3; itemIndex += 1) { const item = otherItems[itemIndex] || {}; %>
+                    <div class="inline-field-row">
+                      <input name="physicalRewardOtherItemName" type="text" value="<%= item.name || '' %>" placeholder="Item name">
+                      <input name="physicalRewardOtherItemAmount" type="number" min="0" step="0.01" value="<%= item.amount ?? '' %>" placeholder="0.00">
+                    </div>
+                  <% } %>
+                </div>
+                <div class="reward-text-fields">
+                  <label for="physicalRewardsDescription">Rewards Description</label>
+                  <textarea id="physicalRewardsDescription" name="physicalRewardsDescription" rows="3" placeholder="Describe the physical rewards runners will receive, e.g. finisher medal, shirt, patch."><%= formData.physicalRewardsDescription || '' %></textarea>
+                  <% if (errors.physicalRewardsDescription) { %><small class="error-text"><%= errors.physicalRewardsDescription %></small><% } %>
+                  <label for="physicalRewardsClaimingNotes">Claiming Instructions (Optional)</label>
+                  <textarea id="physicalRewardsClaimingNotes" name="physicalRewardsClaimingNotes" rows="2" placeholder="How and where runners claim their rewards or merchandise."><%= formData.physicalRewardsClaimingNotes || '' %></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="form-group form-group-full">
+              <div class="subsection-divider">Registration Packages</div>
+              <small class="field-hint">Use packages when runners can choose different inclusions, prices, or registration periods.</small>
+              <% const packages = formData.registrationPackages || []; %>
+              <% for (let packageIndex = 0; packageIndex < 3; packageIndex += 1) { const packageOption = packages[packageIndex] || {}; const periods = packageOption.pricingPeriods || []; const findPeriod = (code) => periods.find((period) => period.code === code) || {}; %>
+                <div class="package-card">
+                  <input name="registrationPackageName" type="text" value="<%= packageOption.name || '' %>" placeholder="Package name, e.g. Medal + Shirt">
+                  <div class="checkbox-row">
+                    <label><input type="checkbox" name="registrationPackageMedal_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.medal ? 'checked' : '' %>> Medal</label>
+                    <label><input type="checkbox" name="registrationPackageShirt_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.shirt ? 'checked' : '' %>> Shirt</label>
+                    <label><input type="checkbox" name="registrationPackageTowel_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.towel ? 'checked' : '' %>> Towel</label>
+                    <label><input type="checkbox" name="registrationPackagePatch_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.patch ? 'checked' : '' %>> Patch</label>
+                    <label><input type="checkbox" name="registrationPackageFinisherKit_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.finisherKit ? 'checked' : '' %>> Finisher Kit</label>
+                  </div>
+                  <input name="registrationPackageOtherItemNames" type="text" value="<%= (packageOption.includedItems?.otherItemNames || []).join(', ') %>" placeholder="Other included item names">
+                  <div class="pricing-period-actions">
+                    <button type="button" class="btn btn-outline btn-suggest-pricing-dates" data-package-index="<%= packageIndex %>">Use suggested dates</button>
+                    <small class="field-hint">Early Bird uses the first 14 days after registration opens. Late Registration uses the final 7 days before registration closes.</small>
+                  </div>
+                  <div class="pricing-period-grid">
+                    <% const early = findPeriod('early_bird'); const regular = findPeriod('regular'); const late = findPeriod('late'); %>
+                    <div class="pricing-period-row">
+                      <span class="pricing-period-label">Early Bird</span>
+                      <input name="registrationPackageEarlyBirdStartAt" type="datetime-local" value="<%= early.startAt || '' %>" aria-label="Early bird start">
+                      <input name="registrationPackageEarlyBirdEndAt" type="datetime-local" value="<%= early.endAt || '' %>" aria-label="Early bird end">
+                      <input name="registrationPackageEarlyBirdAmount" type="number" min="0" step="0.01" value="<%= early.amount ?? '' %>" placeholder="Price">
+                    </div>
+                    <div class="pricing-period-row">
+                      <span class="pricing-period-label">Regular</span>
+                      <input name="registrationPackageRegularStartAt" type="datetime-local" value="<%= regular.startAt || '' %>" aria-label="Regular start">
+                      <input name="registrationPackageRegularEndAt" type="datetime-local" value="<%= regular.endAt || '' %>" aria-label="Regular end">
+                      <input name="registrationPackageRegularAmount" type="number" min="0" step="0.01" value="<%= regular.amount ?? '' %>" placeholder="Price">
+                    </div>
+                    <div class="pricing-period-row">
+                      <span class="pricing-period-label">Late</span>
+                      <input name="registrationPackageLateStartAt" type="datetime-local" value="<%= late.startAt || '' %>" aria-label="Late start">
+                      <input name="registrationPackageLateEndAt" type="datetime-local" value="<%= late.endAt || '' %>" aria-label="Late end">
+                      <input name="registrationPackageLateAmount" type="number" min="0" step="0.01" value="<%= late.amount ?? '' %>" placeholder="Price">
+                    </div>
+                  </div>
+                  <textarea name="registrationPackageNotes" rows="2" placeholder="Package notes"><%= packageOption.notes || '' %></textarea>
+                </div>
+              <% } %>
+            </div>
+            <details class="subsection-toolkit form-group form-group-full" <%= formData.deliveryFeeEnabled || formData.requiresDeliveryAddress || formData.deliveryFeeDescription ? 'open' : '' %>>
+              <summary class="subsection-toolkit-summary">Delivery &amp; Fulfilment</summary>
+              <div class="subsection-toolkit-body">
+                <label><input type="checkbox" name="deliveryFeeEnabled" value="1" <%= formData.deliveryFeeEnabled ? 'checked' : '' %>> Delivery or Claiming Fee</label>
+                <div class="form-grid compact-grid">
+                  <input name="deliveryFeeAmount" type="number" min="0" step="0.01" value="<%= formData.deliveryFeeAmount ?? '' %>" placeholder="Flat delivery fee">
+                  <select name="claimingMethod">
+                    <option value="delivery" <%= formData.claimingMethod === 'delivery' ? 'selected' : '' %>>Delivery</option>
+                    <option value="pickup" <%= formData.claimingMethod === 'pickup' ? 'selected' : '' %>>Pickup</option>
+                    <option value="both" <%= formData.claimingMethod === 'both' ? 'selected' : '' %>>Delivery or pickup</option>
+                  </select>
+                </div>
+                <textarea name="deliveryFeeDescription" rows="2" placeholder="Delivery or pickup instructions."><%= formData.deliveryFeeDescription || '' %></textarea>
+                <div class="checkbox-row">
+                  <label><input type="checkbox" name="requiresDeliveryAddress" value="1" <%= formData.requiresDeliveryAddress ? 'checked' : '' %>> Require delivery address</label>
+                  <label><input type="checkbox" name="requiresPhilippineDeliveryAddress" value="1" <%= formData.requiresPhilippineDeliveryAddress ? 'checked' : '' %>> Philippines only</label>
+                  <input type="hidden" name="internationalRunnersAllowed" value="0">
+                  <label><input type="checkbox" name="internationalRunnersAllowed" value="1" <%= formData.internationalRunnersAllowed !== false ? 'checked' : '' %>> International runners allowed</label>
+                </div>
+              </div>
+            </details>
+            <% const benefits = formData.specialRewardBenefits || []; %>
+            <details class="subsection-toolkit form-group form-group-full" <%= benefits.length && benefits.some(b => b.title || b.description) ? 'open' : '' %>>
+              <summary class="subsection-toolkit-summary">Special Benefits</summary>
+              <div class="subsection-toolkit-body">
+                <% for (let benefitIndex = 0; benefitIndex < 2; benefitIndex += 1) { const benefit = benefits[benefitIndex] || {}; %>
+                  <div class="inline-field-row benefit-row">
+                    <input name="specialRewardBenefitTitle" type="text" value="<%= benefit.title || '' %>" placeholder="Benefit title">
+                    <input name="specialRewardBenefitValidUntil" type="datetime-local" value="<%= benefit.validUntil || '' %>" aria-label="Benefit valid until">
+                    <input name="specialRewardBenefitPackageNames" type="text" value="<%= (benefit.appliesToPackageNames || []).join(', ') %>" placeholder="Applies to packages">
+                    <input name="specialRewardBenefitDescription" type="text" value="<%= benefit.description || '' %>" placeholder="Description">
+                  </div>
+                <% } %>
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <!-- PRICING SETUP SECTION -->
+        <div id="pricing-step" class="form-section form-section-fees" tabindex="-1" data-wizard-step="pricing-step">
+          <div class="section-kicker">Step 7 of 12</div>
+          <div class="section-title">Pricing Setup</div>
+          <p class="section-helper">Choose whether the event is free or paid, and how registration fees are structured.</p>
+          <div class="form-grid">
+            <div class="form-group <%= errors.feeMode ? 'has-error' : '' %>">
+              <label for="feeMode">Event Fee *</label>
+              <select id="feeMode" name="feeMode">
+                <option value="free" <%= formData.feeMode !== 'paid' ? 'selected' : '' %>>Free</option>
+                <option value="paid" <%= formData.feeMode === 'paid' ? 'selected' : '' %>>Paid</option>
+              </select>
+              <% if (errors.feeMode) { %><small class="error-text"><%= errors.feeMode %></small><% } %>
+            </div>
+            <div class="form-group payment-fields <%= errors.feeAmount ? 'has-error' : '' %>">
+              <label for="feeAmount">Total Event Fee</label>
+              <input id="feeAmount" name="feeAmount" type="number" min="0" step="0.01" value="<%= formData.feeAmount || '' %>" placeholder="0.00">
+              <small class="field-hint">This is the total amount runners will pay. Include any physical reward/package cost in this amount.</small>
+              <% if (errors.feeAmount) { %><small class="error-text"><%= errors.feeAmount %></small><% } %>
+            </div>
+            <div class="form-group payment-fields <%= errors.pricingMode ? 'has-error' : '' %>">
+              <label for="pricingMode">Pricing Mode</label>
+              <select id="pricingMode" name="pricingMode">
+                <option value="free" <%= formData.pricingMode === 'free' ? 'selected' : '' %>>Free</option>
+                <option value="same_fee" <%= formData.pricingMode === 'same_fee' ? 'selected' : '' %>>Same fee for all distances</option>
+                <option value="package_period" <%= formData.pricingMode === 'package_period' ? 'selected' : '' %>>Package / pricing periods</option>
+                <option value="per_distance" <%= formData.pricingMode === 'per_distance' ? 'selected' : '' %>>Different fee per distance</option>
+                <option value="per_distance_period" <%= formData.pricingMode === 'per_distance_period' ? 'selected' : '' %>>Per distance with pricing periods</option>
+              </select>
+              <small class="field-hint">Use <em>Same fee</em> for one flat registration price. Use <em>Package / pricing periods</em> for early-bird or tiered packages. Use <em>Per distance</em> when each race distance has its own price.</small>
+              <% if (errors.pricingMode) { %><small class="error-text"><%= errors.pricingMode %></small><% } %>
+            </div>
+            <div class="form-group payment-fields">
+              <label for="finalEventFee">Organizer Final Fee</label>
+              <input id="finalEventFee" name="finalEventFee" type="number" min="0" step="0.01" value="<%= formData.finalEventFee ?? '' %>" placeholder="<%= Number(formData.suggestedEventFee || 0).toFixed(2) %>">
+              <small class="field-hint">Optional organizer-side override. Runner checkout still uses Total Event Fee in this version.</small>
+            </div>
+            <div class="form-group payment-fields <%= errors.feeCurrency ? 'has-error' : '' %>">
+              <label for="feeCurrency">Currency</label>
+              <input id="feeCurrency" name="feeCurrency" type="text" value="<%= formData.feeCurrency || 'PHP' %>" maxlength="3" placeholder="PHP">
+              <% if (errors.feeCurrency) { %><small class="error-text"><%= errors.feeCurrency %></small><% } %>
+            </div>
+          </div>
+          <!-- PER-DISTANCE PRICING (shown when pricingMode is per_distance or per_distance_period) -->
+          <div class="per-distance-fields" style="display:none; margin-top:1.25rem;">
+            <div class="subsection-divider">Per-Distance Fees</div>
+            <p class="field-hint" style="margin-bottom:0.75rem;">Set a fee for each race distance. Distances are populated from your Race Categories (Step 5). These fees override the total event fee for individual distance checkouts.</p>
+            <div id="perDistanceFeeRows" class="per-distance-fee-grid">
+              <!-- JS populates rows: one per race category distance -->
+              <p class="field-hint per-distance-empty-hint">No race categories defined yet. Add distances in Step 5, then return here to set per-distance fees.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAYMENT SETUP SECTION -->
+        <div id="payment-setup-step" class="form-section form-section-payment" tabindex="-1" data-wizard-step="payment-setup-step">
+          <div class="section-kicker">Step 8 of 12</div>
+          <div class="section-title">Payment Setup</div>
+          <p class="section-helper">Define how runners will pay. Required only for paid events.</p>
+          <p class="payment-free-note field-hint" style="display:none;">&#10003; This event is free &mdash; payment setup is not required.</p>
+          <div class="payment-fields">
+            <div class="form-grid">
+              <div class="form-group">
+                <label for="paymentAccountName">Account Name</label>
+                <input id="paymentAccountName" name="paymentAccountName" type="text" value="<%= formData.paymentAccountName || '' %>" placeholder="Optional">
+                <small class="field-hint">Name associated with your GCash, bank, or payment account.</small>
+              </div>
+              <div class="form-group form-group-full <%= errors.paymentQrImageUrl ? 'has-error' : '' %>">
+                <label for="paymentQrImageFile">Payment QR Image</label>
+                <% if (formData.paymentQrImageUrl) { %>
+                  <div class="existing-media-preview">
+                    <img class="detail-logo-image" src="<%= formData.paymentQrImageUrl %>" alt="Payment QR preview">
+                    <label><input type="checkbox" name="removePaymentQrImage" value="1"> Remove current payment QR</label>
+                  </div>
+                <% } %>
+                <input id="paymentQrImageFile" name="paymentQrImageFile" type="file" accept="image/jpeg,image/png">
+                <input id="paymentQrImageUrl" name="paymentQrImageUrl" type="hidden" value="<%= formData.paymentQrImageUrl || '' %>">
+                <input id="paymentQrImageKey" name="paymentQrImageKey" type="hidden" value="<%= formData.paymentQrImageKey || '' %>">
+                <small class="field-hint">Required before submitting a paid event for review. JPG/PNG only, max 5 MB.</small>
+                <% if (errors.paymentQrImageUrl) { %><small class="error-text"><%= errors.paymentQrImageUrl %></small><% } %>
+              </div>
+              <div class="form-group form-group-full">
+                <label for="paymentInstructions">Payment Instructions</label>
+                <textarea id="paymentInstructions" name="paymentInstructions" rows="3" placeholder="Optional payment notes for runners."><%= formData.paymentInstructions || '' %></textarea>
+                <small class="field-hint">Tell runners where to pay, what reference to include, and when payment proof will be reviewed.</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- EVENT DETAILS SECTION -->
+        <div id="event-details-step" class="form-section form-section-details" tabindex="-1" data-wizard-step="event-details-step">
+          <div class="section-kicker">Step 9 of 12</div>
+          <div class="section-title">Event Details</div>
+          <p class="section-helper">Use this section for full event rules, FAQs, pricing explanation, submission rules, and runner guidance.</p>
+          <div class="form-group form-group-full <%= errors.eventDetailsMarkdown ? 'has-error' : '' %>">
+            <label for="eventDetailsMarkdown">Event Details</label>
+            <textarea id="eventDetailsMarkdown" name="eventDetailsMarkdown" rows="18" placeholder="Add full event rules, inclusions, FAQs, and instructions."><%= formData.eventDetailsMarkdown || '' %></textarea>
+            <small class="field-hint">Full editable content shown on the public event page. Add rules, reward inclusions, FAQs, proof instructions, and important deadlines here. Limit: 20,000 characters.</small>
+            <% if (errors.eventDetailsMarkdown) { %><small class="error-text"><%= errors.eventDetailsMarkdown %></small><% } %>
+          </div>
+        </div>
+
         <!-- BRANDING & MEDIA SECTION (adapted for edit) -->
         <div id="media-step" class="form-section form-section-media" tabindex="-1" data-wizard-step="media-step">
           <div class="section-kicker">Step 10 of 12</div>
@@ -806,6 +769,43 @@
 
             <label for="galleryImageUrlsText" style="margin-top:0.75rem; display:block;">Gallery Image URLs (optional)</label>
             <textarea id="galleryImageUrlsText" name="galleryImageUrlsText" rows="5" placeholder="One URL per line, or comma-separated"><%= formData.galleryImageUrlsText || '' %></textarea>
+          </div>
+        </div>
+
+        <!-- WAIVER SECTION (same as create) -->
+        <div id="waiver-step" class="form-section form-section-waiver" tabindex="-1" data-wizard-step="waiver-step">
+          <div class="section-kicker">Step 11 of 12</div>
+          <div class="section-title">Waiver (Required for publishing)</div>
+          <p class="section-helper">This agreement is shown to participants before they join the event.</p>
+          <div class="waiver-panels">
+            <div class="waiver-panel <%= errors.waiverTemplate ? 'has-error' : '' %>">
+              <label for="waiverEditor">Waiver Template *</label>
+              <div class="waiver-toolbar">
+                <button type="button" id="insertOrganizerPlaceholderBtn" class="btn btn-outline waiver-icon-btn" aria-label="Insert Organizer Name" title="Insert Organizer Name">
+                  <i data-lucide="user-round"></i>
+                </button>
+                <button type="button" id="insertEventPlaceholderBtn" class="btn btn-outline waiver-icon-btn" aria-label="Insert Event Title" title="Insert Event Title">
+                  <i data-lucide="file-text"></i>
+                </button>
+                <button type="button" id="resetWaiverBtn" class="btn btn-outline waiver-icon-btn" aria-label="Reset to Default Waiver" title="Reset to Default Waiver">
+                  <i data-lucide="rotate-ccw"></i>
+                </button>
+              </div>
+              <div id="waiverEditor" class="waiver-editor"></div>
+              <input type="hidden" id="waiverTemplate" name="waiverTemplate" value="">
+              <small class="field-hint">
+                Use placeholders: <code>{{ORGANIZER_NAME}}</code> and <code>{{EVENT_TITLE}}</code>.
+                This participant agreement is shown during registration. Changing it will bump waiver version for new registrants.
+              </small>
+              <% if (errors.waiverTemplate) { %><small class="error-text"><%= errors.waiverTemplate %></small><% } %>
+            </div>
+            <div class="waiver-panel">
+              <label>Waiver Preview</label>
+              <div id="waiverPreview" class="waiver-preview-box" aria-live="polite"></div>
+              <small class="field-hint">
+                Preview replaces placeholders using current Organizer Name and Event Title values.
+              </small>
+            </div>
           </div>
         </div>
 
