@@ -1,5 +1,53 @@
 # HelloRun Create Event Wizard Implementation Guide
 
+## Implementation Status (May 12, 2026)
+
+### What has been built
+
+The 12-step guided wizard structure is live at `/organizer/create-event` and `/organizer/events/:id/edit`.
+
+**Navigation surfaces built:**
+- Desktop: collapsible sidebar step list (12 steps)
+- Tablet: horizontally scrollable `.wizard-pills-bar` with pill buttons
+- Mobile: sticky `.wizard-mini-strip` with step counter, title, progress bar, and chevron toggle
+- Mobile overlay: full-page `.wizard-nav-overlay` with backdrop, close button, and all 12 step links
+- All surfaces sync via `setActiveWizardStep()` JS function
+
+**Edit-event wizard alignment built:**
+- Organizer edit pages now use the same 12-step builder navigation and responsive wizard surfaces as create-event.
+- Edit mode keeps existing event values, existing media previews, and immediate media removal behavior.
+- Draft edit pages expose `Save Changes`, `Preview`, and `Submit for Review`.
+- Published and pending-review edit pages expose `Save Changes` and `Preview`, but hide the draft submit action.
+- Draft submit from edit validates publish-readiness, saves changes, and transitions the event to `pending_review`.
+
+**Steps implemented (Step 1–12 all present in the form):**
+- Step 7 (Pricing): supports `free`, `per_distance`, `per_distance_period` modes; late fee column with optional tooltip
+- Step 8 (Payment Setup): separate step for QR upload + account name + instructions; QR upload uses full drag-and-drop `upload-area` pattern
+- Step 9 (Event Details): Quill editor; eraser button right-aligned inline with label via `.waiver-label-row`
+- Step 11 (Waiver): Quill editor with organizer/event placeholders, reset to default, live preview
+- Step 12 (Review): JS-populated readiness checklist; preview button opens `/organizer/preview-event`; adaptive action buttons
+
+**UI patterns in use:**
+- `upload-area` drag/drop with `upload-placeholder` and `upload-preview` for logo, banner, poster, QR
+- `subsection-toolkit` accordion for Delivery & Fulfilment fields
+- `.btn-adaptive`: icon+label on desktop ≥1025px; 2.5rem icon squares with hover tooltip on ≤1024px
+- `.action-btn-group` inside `.actions`: always single-row, right-aligned at all breakpoints
+- `.waiver-label-row`: label left, toolbar button right, same flex row
+- `field-help-icon` `?` tooltips on optional/conditional fields
+
+**Defaults set in `getBlankCreateEventDefaults()`:**
+- `requiresDeliveryAddress: '1'`, `requiresPhilippineDeliveryAddress: '1'`, `internationalRunnersAllowed: '0'`
+
+### What is still pending from the spec
+
+- Race categories repeatable card UI (Step 5) — currently uses existing distance preset fields
+- Per-distance pricing table (Step 7) — currently uses existing flat fee field
+- Conditional field visibility by event type (virtual/onsite/hybrid) — partially implemented
+- Pricing period date validation (non-overlapping, within registration window)
+- Preview step full summary cards
+
+---
+
 ## Document Purpose
 
 This document provides a complete implementation guide for improving the HelloRun organizer create-event workflow at:
@@ -1212,6 +1260,19 @@ Event Details
 ```text
 Use this section for full event rules, FAQs, pricing explanation, submission rules, and runner guidance. This content appears on the public event details page.
 ```
+
+Public page reference:
+
+```text
+docs/public_event_page_template.md
+```
+
+Implementation note:
+
+- The field is still named `eventDetailsMarkdown` internally.
+- The organizer editor stores Quill rich HTML.
+- The public `/events/:slug` renderer sanitizes rich HTML directly when the saved value looks like HTML, with markdown fallback for older content.
+- Structured fields should drive public summary sections first; Event Details should provide the long-form explanation.
 
 ### Suggested Content Blocks
 

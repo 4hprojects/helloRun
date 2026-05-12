@@ -59,6 +59,14 @@ Suggested destination:
 
 - `/events/:slug`
 
+The public event page template is documented in:
+
+- `docs/public_event_page_template.md`
+
+Reason:
+
+The public event page is the runner-facing landing page for understanding the event, pricing, rewards, submission rules, and deadlines before registration.
+
 If the product later supports a dedicated registration landing step, the QR destination may point to:
 
 - `/events/:slug/register`

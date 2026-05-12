@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: title }) %>
+  <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
   <link rel="stylesheet" href="/css/events.css">
   <link rel="stylesheet" href="/css/event-details.css">
 </head>
@@ -9,173 +9,314 @@
   <%- include('../layouts/nav') %>
 
   <main class="event-details-page">
-    <section class="event-details-shell">
-      <% const showLocationPanel = event.eventType === 'onsite' || event.eventType === 'hybrid' || (event.eventTypesAllowed || []).includes('onsite'); %>
-      <% const registrationCloseAt = event.registrationCloseAt ? new Date(event.registrationCloseAt) : null; %>
-      <% const registrationOpenAt = event.registrationOpenAt ? new Date(event.registrationOpenAt) : null; %>
-      <% const now = new Date(); %>
-      <% const registrationClosed = registrationCloseAt ? registrationCloseAt < now : false; %>
-      <% const registrationOpen = registrationOpenAt ? registrationOpenAt <= now : true; %>
-      <% const canRegisterNow = !registrationClosed && registrationOpen; %>
-      <% const registrationStateLabel = registrationClosed ? 'Registration Closed' : (registrationOpen ? 'Registration Open' : 'Registration Not Yet Open'); %>
-      <% const defaultEventImageUrl = '/images/helloRun-icon.webp'; %>
-      <% const eventBannerImageUrl = event.bannerImageUrl || defaultEventImageUrl; %>
+    <%
+      const details = publicEvent || {};
+      const registrationToneClass = details.registrationState ? `event-status-${details.registrationState.tone}` : 'event-status-neutral';
+      const defaultEventImageUrl = '/images/helloRun-icon.webp';
+      const heroImageUrl = details.heroImageUrl || defaultEventImageUrl;
+    %>
 
+    <section class="event-landing-hero" style="--event-hero-image: url('<%= heroImageUrl %>');">
+      <div class="event-landing-hero-overlay"></div>
+      <div class="event-landing-hero-inner">
+        <div class="event-hero-copy">
+          <div class="event-hero-meta-row">
+            <div class="event-chip-row">
+              <span class="event-chip event-chip-solid"><%= details.eventTypeLabel || 'Event' %></span>
+              <% if (details.isAccumulatedChallenge) { %>
+                <span class="event-chip event-chip-solid">Accumulated Challenge</span>
+              <% } %>
+              <span class="event-chip event-chip-status <%= registrationToneClass %>"><%= details.registrationState?.label || 'Event Listing' %></span>
+            </div>
+
+          </div>
+
+          <p class="event-organizer">Hosted by <%= details.organizerName || 'helloRun' %></p>
+          <h1><%= details.title %></h1>
+          <p class="event-lead"><%= details.description || 'View event details, registration timing, and completion rules.' %></p>
+
+          <div class="event-hero-actions">
+            <% if (details.primaryCta && !details.primaryCta.disabled) { %>
+              <a href="<%= details.primaryCta.href %>" class="btn btn-primary"><i data-lucide="ticket"></i><span><%= details.primaryCta.label %></span></a>
+            <% } else { %>
+              <button type="button" class="btn btn-outline btn-hero-disabled" disabled><%= details.primaryCta?.label || 'Registration Unavailable' %></button>
+            <% } %>
+            <a href="/events" class="btn btn-outline btn-hero-secondary"><i data-lucide="search"></i><span>Browse Events</span></a>
+          </div>
+        </div>
+
+        <aside class="event-hero-panel">
+          <p class="event-panel-label"><%= details.pricing?.label || 'Pricing' %></p>
+          <strong><%= details.pricing?.amountLabel || 'TBA' %></strong>
+          <span><%= details.pricing?.helper || details.registrationState?.helper || '' %></span>
+          <% if (details.registrationState?.helper) { %>
+            <div class="event-panel-divider"></div>
+            <p class="event-panel-label">Registration</p>
+            <span><%= details.registrationState.helper %></span>
+          <% } %>
+        </aside>
+      </div>
+    </section>
+
+    <section class="event-details-shell">
       <div class="event-nav-row">
-        <a href="/events" class="btn btn-outline">Back to Events</a>
+        <a href="/events" class="btn btn-outline"><i data-lucide="arrow-left"></i><span>Back to Events</span></a>
         <% if (locals.isAuthenticated) { %>
-          <a href="/my-registrations" class="btn btn-outline">My Registrations</a>
+          <a href="/my-registrations" class="btn btn-outline"><i data-lucide="badge-check"></i><span>My Registrations</span></a>
         <% } %>
       </div>
 
-      <header class="event-hero">
-        <div class="event-hero-content">
-          <div class="event-chip-row">
-            <span class="event-chip"><%= event.eventType || 'event' %></span>
-            <span class="event-chip event-chip-muted"><%= (event.eventTypesAllowed || []).join(' / ') || 'N/A' %></span>
-            <span class="event-chip <%= canRegisterNow ? 'event-chip-open' : 'event-chip-closed' %>"><%= registrationStateLabel %></span>
-          </div>
-          <h1><%= event.title %></h1>
-          <p class="event-lead"><%= event.description || 'No description provided.' %></p>
+      <section class="event-stats-strip" aria-label="Event highlights">
+        <% (details.stats || []).forEach((stat) => { %>
+          <article class="event-stat">
+            <span><%= stat.label %></span>
+            <strong><%= stat.value %></strong>
+            <small><%= stat.helper %></small>
+          </article>
+        <% }) %>
+      </section>
+
+      <div class="event-main-layout">
+        <div class="event-main-content">
+          <section class="event-section">
+            <div class="event-section-heading">
+              <span class="event-section-icon"><i data-lucide="route"></i></span>
+              <div>
+                <h2>How This Event Works</h2>
+                <p><%= details.isAccumulatedChallenge ? 'Build your distance over time. Approved submissions count toward your official progress.' : 'Register, complete the event, then submit your result for review.' %></p>
+              </div>
+            </div>
+
+            <div class="event-mechanics-grid">
+              <article>
+                <span>1</span>
+                <h3>Register</h3>
+                <p>Choose your participation mode and confirm your runner profile.</p>
+              </article>
+              <article>
+                <span>2</span>
+                <h3>Complete Activities</h3>
+                <p><%= details.virtualRules?.acceptedActivities?.length ? `Accepted activities: ${details.virtualRules.acceptedActivities.join(', ')}.` : 'Complete the configured event distance during the event window.' %></p>
+              </article>
+              <article>
+                <span>3</span>
+                <h3>Submit Proof</h3>
+                <p><%= details.virtualRules?.proofTypes?.length ? `Proof accepted: ${details.virtualRules.proofTypes.join(', ')}.` : 'Submit your result through helloRun for organizer review.' %></p>
+              </article>
+              <article>
+                <span>4</span>
+                <h3>Earn Recognition</h3>
+                <p><%= details.virtualRules?.recognitionMode || 'Finishers receive the recognition configured for this event.' %></p>
+              </article>
+            </div>
+          </section>
+
+          <% if (details.isAccumulatedChallenge || details.virtualRules?.targetDistanceKm) { %>
+            <section class="event-section event-goal-section">
+              <div>
+                <p class="event-section-kicker">Challenge Goal</p>
+                <h2>Complete <%= details.targetDistanceLabel %></h2>
+                <p>Only approved submissions count toward the official total. Keep submitting valid activities until your progress reaches the event target.</p>
+              </div>
+              <div class="event-goal-panel">
+                <strong><%= details.targetDistanceLabel %></strong>
+                <span><%= details.virtualRules?.completionMode || 'Completion goal' %></span>
+                <% if (details.virtualRules?.minimumDistance) { %><small><%= details.virtualRules.minimumDistance %></small><% } %>
+              </div>
+            </section>
+          <% } %>
+
+          <section class="event-section">
+            <div class="event-section-heading">
+              <span class="event-section-icon"><i data-lucide="gift"></i></span>
+              <div>
+                <h2>Rewards & Recognition</h2>
+                <p>What runners can expect after valid completion.</p>
+              </div>
+            </div>
+
+            <% if ((details.rewardItems || []).length) { %>
+              <div class="event-reward-grid">
+                <% details.rewardItems.forEach((reward) => { %>
+                  <article>
+                    <i data-lucide="<%= reward.type === 'physical' ? 'package' : 'award' %>"></i>
+                    <span><%= reward.label %></span>
+                  </article>
+                <% }) %>
+              </div>
+            <% } else { %>
+              <p class="event-muted">Rewards have not been listed by the organizer yet.</p>
+            <% } %>
+
+            <% if (event.physicalRewardsDescription) { %>
+              <p class="event-supporting-copy"><%= event.physicalRewardsDescription %></p>
+            <% } %>
+          </section>
+
+          <% if ((details.packageOptions || []).length || details.pricing?.hasOptionalCosts) { %>
+            <section class="event-section">
+              <div class="event-section-heading">
+                <span class="event-section-icon"><i data-lucide="shopping-bag"></i></span>
+                <div>
+                  <h2>Pricing & Optional Add-ons</h2>
+                  <p><%= details.pricing?.helper || 'Review registration and package details before joining.' %></p>
+                </div>
+              </div>
+
+              <div class="event-pricing-summary">
+                <strong><%= details.pricing?.amountLabel || 'TBA' %></strong>
+                <span><%= details.pricing?.label || 'Pricing' %></span>
+              </div>
+
+              <% if ((details.packageOptions || []).length) { %>
+                <div class="event-package-grid">
+                  <% details.packageOptions.forEach((packageOption) => { %>
+                    <article>
+                      <h3><%= packageOption.name %></h3>
+                      <strong><%= packageOption.amountLabel %></strong>
+                      <% if (packageOption.includedItems.length) { %>
+                        <p><%= packageOption.includedItems.join(', ') %></p>
+                      <% } %>
+                      <% if (packageOption.notes) { %><small><%= packageOption.notes %></small><% } %>
+                    </article>
+                  <% }) %>
+                </div>
+              <% } %>
+
+              <% if (details.pricing?.deliveryAmount !== null && details.pricing?.deliveryAmount !== undefined) { %>
+                <p class="event-supporting-copy">Delivery or claiming fee: <strong><%= details.pricing.currency || 'PHP' %> <%= Number(details.pricing.deliveryAmount || 0).toLocaleString('en-US') %></strong>.</p>
+              <% } %>
+            </section>
+          <% } %>
+
+          <section class="event-section">
+            <div class="event-section-heading">
+              <span class="event-section-icon"><i data-lucide="upload-cloud"></i></span>
+              <div>
+                <h2>Submission Rules</h2>
+                <p>Use clear proof so the organizer can review your progress accurately.</p>
+              </div>
+            </div>
+
+            <div class="event-rule-list">
+              <p><strong>Event window</strong><span><%= details.virtualRules?.virtualWindowLabel || 'TBA' %></span></p>
+              <p><strong>Accepted activities</strong><span><%= details.virtualRules?.acceptedActivities?.join(', ') || 'See event details' %></span></p>
+              <p><strong>Proof types</strong><span><%= details.virtualRules?.proofTypes?.join(', ') || 'See event details' %></span></p>
+              <p><strong>Final deadline</strong><span><%= details.virtualRules?.finalSubmissionDeadline || 'TBA' %></span></p>
+              <p><strong>Leaderboard</strong><span><%= details.virtualRules?.leaderboardMode || 'N/A' %></span></p>
+            </div>
+          </section>
+
+          <% if (eventDetailsHtml) { %>
+            <section class="event-section event-details-description">
+              <div class="event-section-heading">
+                <span class="event-section-icon"><i data-lucide="file-text"></i></span>
+                <div>
+                  <h2>Full Event Details</h2>
+                  <p>Organizer-published details, reminders, and event-specific rules.</p>
+                </div>
+              </div>
+              <div class="event-rich-details"><%- eventDetailsHtml %></div>
+            </section>
+          <% } %>
+
+          <% if ((details.galleryImageUrls || []).length) { %>
+            <section class="event-section">
+              <div class="event-section-heading">
+                <span class="event-section-icon"><i data-lucide="images"></i></span>
+                <div>
+                  <h2>Gallery</h2>
+                  <p>Visuals shared by the organizer for this event.</p>
+                </div>
+              </div>
+              <div class="event-gallery-grid">
+                <% details.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
+                  <button
+                    type="button"
+                    class="event-gallery-thumb-btn"
+                    data-gallery-index="<%= galleryIndex %>"
+                    data-gallery-src="<%- galleryUrl %>"
+                    aria-label="Open gallery image <%= galleryIndex + 1 %>"
+                  >
+                    <img class="event-gallery-image" src="<%= galleryUrl %>" alt="<%= details.title %> gallery image <%= galleryIndex + 1 %>">
+                  </button>
+                <% }) %>
+              </div>
+            </section>
+          <% } %>
         </div>
 
-        <aside class="event-cta-card">
-          <h3>Ready to join?</h3>
-          <p>Reserve your slot and submit your result after the run.</p>
-          <% if (canRegisterNow) { %>
-            <a href="/events/<%= event.slug %>/register" class="btn btn-primary btn-block">Register for This Event</a>
-          <% } else { %>
-            <button type="button" class="btn btn-outline btn-block" disabled><%= registrationStateLabel %></button>
-          <% } %>
-          <small>Registration closes: <%= registrationCloseAt ? registrationCloseAt.toLocaleString('en-US') : 'TBA' %></small>
-        </aside>
-      </header>
+        <aside class="event-side-panel">
+          <section class="event-side-card event-register-card">
+            <p class="event-side-eyebrow"><%= details.registrationState?.label || 'Registration' %></p>
+            <h2><%= details.pricing?.amountLabel || 'TBA' %></h2>
+            <p><%= details.registrationState?.helper || details.pricing?.helper || '' %></p>
+            <% if (details.primaryCta && !details.primaryCta.disabled) { %>
+              <a href="<%= details.primaryCta.href %>" class="btn btn-primary btn-block">Register Now</a>
+            <% } else { %>
+              <button type="button" class="btn btn-outline btn-block" disabled><%= details.primaryCta?.label || 'Registration Unavailable' %></button>
+            <% } %>
+          </section>
 
-      <section class="event-facts-grid">
-        <article class="event-fact-card">
-          <h4>Schedule</h4>
-          <p><strong>Opens:</strong> <%= registrationOpenAt ? registrationOpenAt.toLocaleString('en-US') : 'TBA' %></p>
-          <p><strong>Closes:</strong> <%= registrationCloseAt ? registrationCloseAt.toLocaleString('en-US') : 'TBA' %></p>
-          <p><strong>Starts:</strong> <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'TBA' %></p>
-          <p><strong>Ends:</strong> <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleString('en-US') : 'TBA' %></p>
-        </article>
+          <section class="event-side-card">
+            <h3>Event Timeline</h3>
+            <div class="event-timeline-list">
+              <% (details.timeline || []).forEach((item) => { %>
+                <p>
+                  <i data-lucide="<%= item.icon %>"></i>
+                  <span><strong><%= item.label %></strong><small><%= item.value %></small></span>
+                </p>
+              <% }) %>
+            </div>
+          </section>
 
-        <article class="event-fact-card">
-          <h4>Run Details</h4>
-          <p><strong>Distances:</strong> <%= (event.raceDistances || []).join(', ') || 'TBA' %></p>
-          <p><strong>Primary Mode:</strong> <%= event.eventType || 'N/A' %></p>
-          <p><strong>Allowed Modes:</strong> <%= (event.eventTypesAllowed || []).join(' / ') || 'N/A' %></p>
-        </article>
+          <section class="event-side-card">
+            <h3>Event Details</h3>
+            <div class="event-side-list">
+              <p><strong>Distance</strong><span><%= (details.raceDistances || []).join(', ') || details.targetDistanceLabel || 'TBA' %></span></p>
+              <p><strong>Mode</strong><span><%= (details.allowedModes || []).join(' / ') || details.eventTypeLabel || 'TBA' %></span></p>
+              <% if (details.showLocation) { %>
+                <p><strong>Location</strong><span><%= details.location.summary %></span></p>
+              <% } else { %>
+                <p><strong>Location</strong><span>Anywhere</span></p>
+              <% } %>
+            </div>
+          </section>
 
-        <article class="event-fact-card">
-          <h4>Fee & Recognition</h4>
-          <% const publicPhysicalRewardItems = [
-            event.physicalRewardMedalEnabled ? 'Medal' : '',
-            event.physicalRewardShirtEnabled ? 'Shirt' : '',
-            event.physicalRewardPatchEnabled ? 'Patch' : '',
-            event.physicalRewardFinisherKitEnabled ? 'Finisher Kit' : ''
-          ].filter(Boolean); %>
-          <p><strong>Fee:</strong> <%= event.feeMode === 'paid' ? `${event.feeCurrency || 'PHP'} ${Number(event.feeAmount || 0).toFixed(2)}` : 'Free' %></p>
-          <p><strong>Digital Badge:</strong> <%= event.digitalBadgeEnabled ? 'Included' : 'Not listed' %></p>
-          <p><strong>Certificate:</strong> <%= event.digitalCertificateEnabled === false ? 'Not listed' : 'Included' %></p>
-          <p><strong>Leaderboard:</strong> <%= event.leaderboardRecognitionEnabled === false ? 'Not listed' : 'Included' %></p>
-          <p><strong>Physical Rewards:</strong> <%= event.physicalRewardsEnabled ? 'Included' : 'Not listed' %></p>
-          <% if (event.physicalRewardsEnabled && publicPhysicalRewardItems.length) { %>
-            <p><strong>Items:</strong> <%= publicPhysicalRewardItems.join(', ') %></p>
-          <% } %>
-        </article>
-
-        <% if (showLocationPanel) { %>
-          <article class="event-fact-card">
-            <h4>Location</h4>
-            <p><strong>Venue:</strong> <%= event.venueName || 'TBA' %></p>
-            <p><strong>Address:</strong> <%= event.venueAddress || 'TBA' %></p>
-            <p><strong>City/Country:</strong> <%= [event.city, countryName(event.country)].filter(Boolean).join(', ') || 'TBA' %></p>
-          </article>
-        <% } %>
-      </section>
-
-      <section class="event-media-grid">
-        <article class="event-details-card">
-          <h3>Event Banner</h3>
-          <img
-            class="event-details-banner-inline"
-            src="<%= eventBannerImageUrl %>"
-            alt="<%= event.title %> banner"
-            onerror="this.onerror=null;this.src='<%= defaultEventImageUrl %>';"
-          >
-        </article>
-
-        <article class="event-details-card">
-          <h3>Promotional Poster</h3>
-          <% if (event.posterImageUrl) { %>
-            <button
-              type="button"
-              class="event-poster-thumb-btn"
-              data-poster-src="<%- event.posterImageUrl %>"
-              aria-label="Open promotional poster"
-            >
-              <img class="event-details-poster-inline" src="<%= event.posterImageUrl %>" alt="<%= event.title %> promotional poster">
-            </button>
-          <% } else { %>
-            <p>No poster uploaded.</p>
-          <% } %>
-        </article>
-      </section>
-
-      <% if (event.galleryImageUrls && event.galleryImageUrls.length) { %>
-        <section class="event-details-card event-details-description">
-          <h3>Gallery</h3>
-          <div class="event-gallery-grid">
-            <% event.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
+          <% if (details.posterImageUrl) { %>
+            <section class="event-side-card">
+              <h3>Event Poster</h3>
               <button
                 type="button"
-                class="event-gallery-thumb-btn"
-                data-gallery-index="<%= galleryIndex %>"
-                data-gallery-src="<%- galleryUrl %>"
-                aria-label="Open gallery image <%= galleryIndex + 1 %>"
+                class="event-poster-thumb-btn"
+                data-poster-src="<%- details.posterImageUrl %>"
+                aria-label="Open promotional poster"
               >
-                <img class="event-gallery-image" src="<%= galleryUrl %>" alt="<%= event.title %> gallery image <%= galleryIndex + 1 %>">
+                <img class="event-details-poster-inline" src="<%= details.posterImageUrl %>" alt="<%= details.title %> promotional poster">
               </button>
-            <% }) %>
-          </div>
-        </section>
-      <% } %>
-
-      <section class="event-details-card event-details-description">
-        <h3>About This Event</h3>
-        <% if (eventDetailsHtml) { %>
-          <div class="event-rich-details"><%- eventDetailsHtml %></div>
-        <% } else { %>
-          <p><%= event.description || 'No description provided.' %></p>
-        <% } %>
-        <% if (event.physicalRewardsEnabled && (publicPhysicalRewardItems.length || event.physicalRewardsDescription)) { %>
-          <h3>Physical Rewards</h3>
-          <% if (publicPhysicalRewardItems.length) { %>
-            <p><strong>Included Items:</strong> <%= publicPhysicalRewardItems.join(', ') %></p>
+            </section>
           <% } %>
-          <% if (event.physicalRewardsDescription) { %><p><%= event.physicalRewardsDescription %></p><% } %>
-        <% } %>
-      </section>
+        </aside>
+      </div>
 
       <section class="event-cta-row">
-        <% if (canRegisterNow) { %>
-          <a href="/events/<%= event.slug %>/register" class="btn btn-primary">Register for This Event</a>
+        <% if (details.primaryCta && !details.primaryCta.disabled) { %>
+          <a href="<%= details.primaryCta.href %>" class="btn btn-primary">Register for This Event</a>
         <% } else { %>
-          <button type="button" class="btn btn-outline" disabled><%= registrationStateLabel %></button>
+          <button type="button" class="btn btn-outline" disabled><%= details.primaryCta?.label || 'Registration Unavailable' %></button>
         <% } %>
         <a href="/events" class="btn btn-outline">Browse Other Events</a>
       </section>
 
       <div class="event-mobile-sticky-cta">
-        <% if (canRegisterNow) { %>
-          <a href="/events/<%= event.slug %>/register" class="btn btn-primary btn-block">Register for This Event</a>
+        <% if (details.primaryCta && !details.primaryCta.disabled) { %>
+          <a href="<%= details.primaryCta.href %>" class="btn btn-primary btn-block">Register Now</a>
         <% } else { %>
-          <button type="button" class="btn btn-outline btn-block" disabled><%= registrationStateLabel %></button>
+          <button type="button" class="btn btn-outline btn-block" disabled><%= details.primaryCta?.label || 'Registration Unavailable' %></button>
         <% } %>
       </div>
 
-      <% if (event.galleryImageUrls && event.galleryImageUrls.length) { %>
+      <% if ((details.galleryImageUrls || []).length) { %>
         <div id="galleryLightbox" class="gallery-lightbox hidden" aria-hidden="true">
           <div class="gallery-lightbox-backdrop" data-close-lightbox="1"></div>
           <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Gallery viewer">
@@ -188,7 +329,7 @@
         </div>
       <% } %>
 
-      <% if (event.posterImageUrl) { %>
+      <% if (details.posterImageUrl) { %>
         <div id="posterLightbox" class="gallery-lightbox hidden" aria-hidden="true">
           <div class="gallery-lightbox-backdrop" data-close-poster-lightbox="1"></div>
           <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-label="Promotional poster viewer">

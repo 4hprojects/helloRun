@@ -28,23 +28,13 @@ const {
   buildAccumulatedProgress
 } = require('../services/accumulated-activity.service');
 const { getLeaderboardData } = require('../services/leaderboard.service');
-const { markdownToHtml } = require('../utils/markdown');
-const { sanitizeHtml } = require('../utils/sanitize');
+const {
+  buildPublicEventSeo,
+  buildPublicEventView,
+  renderEventDetailsContent
+} = require('../utils/event-public-view');
 
 const countries = getCountries();
-const EVENT_DETAILS_SANITIZE_OPTIONS = Object.freeze({
-  allowedTags: ['p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'h4', 'blockquote', 'a', 'hr', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'code'],
-  allowedAttributes: {
-    a: ['href', 'rel', 'target']
-  }
-});
-
-function renderEventDetailsMarkdown(value) {
-  const markdown = String(value || '').trim();
-  if (!markdown) return '';
-  return sanitizeHtml(markdownToHtml(markdown), EVENT_DETAILS_SANITIZE_OPTIONS);
-}
-
 exports.getHome = async (req, res) => {
   try {
     const now = new Date();
@@ -286,10 +276,19 @@ exports.getEventDetails = async (req, res) => {
       return renderEventNotFound(res);
     }
 
+    const registrationCount = await Registration.countDocuments({
+      eventId: event._id,
+      status: { $ne: 'cancelled' }
+    });
+    const baseUrl = getSitemapBaseUrl(req);
+    const publicEvent = buildPublicEventView(event, { registrationCount });
+
     return res.render('pages/event-details', {
       title: `${event.title} - helloRun`,
+      seo: buildPublicEventSeo(event, baseUrl),
       event,
-      eventDetailsHtml: renderEventDetailsMarkdown(event.eventDetailsMarkdown),
+      publicEvent,
+      eventDetailsHtml: renderEventDetailsContent(event.eventDetailsMarkdown),
       countryName: getCountryName
     });
   } catch (error) {

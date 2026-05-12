@@ -3,6 +3,65 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 13, 2026 (Session: Public Event Page Landing Template)
+
+### [SESSION] SESSION UPDATE:
+- Reworked `/events/:slug` as the reusable public event landing-page pattern for all published events:
+  - added a normalized public event view model for registration state, pricing, optional add-ons, rewards, virtual rules, timeline, signup count, SEO, and rich details
+  - rebuilt the public event details EJS template around hero, stats, mechanics, challenge goal, rewards, pricing/add-ons, submission rules, timeline, long-form details, gallery/poster, and CTA sections
+  - updated responsive UI for desktop, tablet, mobile, and very small mobile layouts
+  - added a semi-transparent 50% contrast layer behind the hero short description so text remains readable over organizer-uploaded banner designs
+  - removed the event logo from the public hero after review to keep the hero chips and event message focused
+  - changed Event Details rendering to support sanitized Quill HTML while keeping markdown fallback
+- Added a dedicated maintenance reference for the public event page:
+  - `docs/public_event_page_template.md`
+- Updated related notes to point future QR promotion and organizer preview work at the `/events/:slug` public template.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/PRD.md
+3. docs/create_event.md
+4. docs/create_event_wizard_codex_implementation.md
+5. docs/event_qr_promotion_links.md
+6. docs/public_event_page_template.md
+7. src/controllers/page.controller.js
+8. src/utils/event-public-view.js
+9. src/views/pages/event-details.ejs
+10. src/public/css/event-details.css
+11. tests/event-public-view.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test tests/event-public-view.test.js` -> PASS
+- EJS compile check for `src/views/pages/event-details.ejs` -> PASS
+- Smoke render for `/events/2026k-hellorun-challenge-4` -> PASS, 200
+
+---
+
+## CHANGELOG - May 12, 2026 (Session: Edit Event Wizard Alignment)
+
+### [SESSION] SESSION UPDATE:
+- Refined `/organizer/events/:id/edit` to match the guided `/organizer/create-event` builder experience:
+  - added the 12-step wizard sidebar, tablet pills, mobile mini-strip, and mobile step overlay to edit-event
+  - split edit sections into the same Event Type, Core Details, Schedule, Location/Virtual, Race Categories, Rewards, Pricing, Payment, Event Details, Media, Waiver, and Review flow
+  - preserved existing edit-event media previews and immediate media removal behavior
+  - added an edit-page Preview action using the existing `/organizer/preview-event` path
+  - added draft-only `Submit for Review`, which saves changes, validates publish readiness, and transitions drafts to `pending_review`
+  - hid the draft submit action for published and pending-review events
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/create_event.md
+3. docs/create_event_wizard_codex_implementation.md
+4. src/routes/organizer.routes.js
+5. src/views/organizer/edit-event.ejs
+6. tests/organizer-waiver-routes.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/organizer-waiver-routes.test.js` -> PASS, 22/22.
+- `npm test` was run with a longer timeout; organizer coverage passed, but the full suite still failed on unrelated runner submission route assertions and an existing upload-message assertion.
+
+---
+
 ## CHANGELOG - May 11, 2026 (Session 17: Create Event — Sub-Desktop Wizard Nav)
 
 ### [SESSION] SESSION UPDATE:
@@ -2446,8 +2505,6 @@ helloRun/
 9. src/server.js - Route prefix cleanup
 10. .gitignore - Updated with upload directories
 11. package.json - Dependencies verified
-
-
 
 
 

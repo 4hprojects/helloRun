@@ -3,6 +3,85 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
+## STATUS UPDATE (May 13, 2026 - Public Event Page Landing Template)
+
+### Current reality after latest implementation
+- The public `/events/:slug` page now follows a reusable landing-page pattern documented in `docs/public_event_page_template.md`.
+- Public event rendering is normalized through `src/utils/event-public-view.js` so registration state, pricing, rewards, virtual rules, timeline, signup count, SEO, and rich event details are handled outside the EJS template.
+- Organizer-authored Event Details content now supports sanitized Quill HTML while preserving markdown fallback behavior for older content.
+- The page includes a visual hero, registration/pricing summary, signup count, event mechanics, challenge goal, rewards, pricing/add-ons, submission rules, timeline, full details, gallery/poster, mobile sticky CTA, and responsive tablet/mobile layouts.
+- The hero short description uses a 50% opacity contrast layer to keep text readable over organizer-uploaded banners.
+- The event logo is not displayed in the hero. The hero now keeps the chips and event description focused on the event message.
+
+### COMPLETED in this cycle
+- Added `docs/public_event_page_template.md` as the maintenance reference for `/events/:slug`.
+- Added `src/utils/event-public-view.js`.
+- Rebuilt `src/views/pages/event-details.ejs` around structured public event sections.
+- Rebuilt `src/public/css/event-details.css` for desktop, tablet, and mobile event landing-page UX.
+- Added `tests/event-public-view.test.js`.
+
+### Validation signals recorded
+- `node --test tests/event-public-view.test.js` -> PASS
+- EJS compile check for `src/views/pages/event-details.ejs` -> PASS
+- Smoke render for `/events/2026k-hellorun-challenge-4` -> PASS, 200
+
+### Remaining next tasks
+- Add runner-facing package/add-on selection during registration.
+- Add payment amount snapshot to `Registration`.
+- Add active price resolver for registration date, selected package, race distance/category, and delivery fee.
+- Add payment proof enforcement against the resolved amount.
+- Improve organizer validation so reward and pricing promises cannot conflict with structured public display.
+- Improve organizer preview parity with the public event page template.
+
+---
+
+## STATUS UPDATE (May 12, 2026 - Create Event Wizard 12-Step Build + UX Refinements)
+
+### Current reality after latest implementation
+- The `/organizer/create-event` page is now a fully structured 12-step guided wizard with sidebar nav, scrollable pill nav bar (tablet), mini-strip with progress bar (mobile), and full-page overlay nav panel.
+- Wizard steps: Event Type → Core Details → Schedule → Event Format → Packages → Rewards → Pricing → Payment Setup → Event Details → Branding & Media → Waiver → Preview & Submit.
+- The Review step (Step 12) has a JS-populated readiness checklist that checks 7 required fields + paid-event QR requirement before submit-for-review.
+- The Payment Setup step (Step 8) is its own step separate from Pricing (Step 7), matching the recommended wizard flow in `docs/create_event_wizard_codex_implementation.md`.
+- Pricing modes `per_distance` and `per_distance_period` are now supported in the UI and `event-form.service.js`.
+- Payment QR upload uses the full drag-and-drop `upload-area` pattern matching logo/banner/poster uploads.
+- Delivery & Fulfilment fields are wrapped in a collapsible `subsection-toolkit` accordion; defaults for `requiresDeliveryAddress` and `requiresPhilippineDeliveryAddress` are pre-ticked on new forms.
+- Event Details step (Step 9): eraser button is right-aligned inline with the label using `.waiver-label-row` pattern.
+- Review step action buttons are adaptive: full icon+label on desktop (≥1025px), compact 2.5rem icon squares with hover tooltips on tablet/mobile (≤1024px); always grouped in `.action-btn-group` for single-row right-aligned layout at all breakpoints.
+- Textarea fields now use `resize: vertical` globally to prevent horizontal overflow.
+
+### COMPLETED in this cycle
+- Restructured create-event form into 12 ordered wizard steps
+- Added sidebar step list (desktop), pill nav bar (tablet), mini-strip + overlay nav (mobile)
+- Wizard progress syncs across all nav surfaces via `setActiveWizardStep()`
+- Payment Setup split into its own step (Step 8)
+- `per_distance` and `per_distance_period` pricing mode options added
+- JS readiness checklist on Review step with per-field pass/fail indicators
+- Preview button wired: collects form state and opens `/organizer/preview-event` in new tab
+- Payment QR upgraded to full upload-area drag/drop UI
+- Delivery defaults fixed at source in `getBlankCreateEventDefaults()`
+- Late fee column optional tooltip added
+- Payment QR label tooltip added
+- Upload area double file dialog fixed
+- Textarea global `resize: vertical` fix
+- Adaptive action buttons with icon-only compact mode on tablet/mobile
+- `.action-btn-group` grouping for reliable right-aligned single row
+- Event Details toolbar: eraser button inline-right using `.waiver-label-row`
+- `lucide.createIcons()` added to create-event.ejs script block
+
+### Validation signals recorded
+- `CSRF_PROTECTION=0 node --test tests/organizer-waiver-routes.test.js` -> PASS
+- Manual browser QA on desktop and tablet breakpoints -> PASS
+
+### Remaining next tasks
+- Browser QA: verify delivery address accordion opens on saved data
+- Browser QA: verify readiness checklist flags missing QR on paid events before submit
+- Browser QA: verify adaptive buttons collapse to squares at ≤1024px
+- Browser QA: verify Event Details eraser button right-aligned inline with label
+- Implement race categories repeatable cards (Step 5 — currently uses existing distance preset fields)
+- Implement per-distance pricing table UI (Step 7 — currently uses existing fee field)
+
+---
+
 ## STATUS UPDATE (May 7, 2026 - Project-Wide Button Standard)
 
 ### Current reality after latest implementation

@@ -38,6 +38,7 @@ Primary implementation surfaces:
 - Shared create/edit/admin form normalization: `src/services/event-form.service.js`
 - Shared create/edit styling: `src/public/css/create-event.css`
 - Event model: `src/models/Event.js`
+- Public event page template: `docs/public_event_page_template.md`
 - Submission model constraint relevant to accumulated virtual runs: `src/models/Submission.js`
 - Accumulated activity model: `src/models/AccumulatedActivitySubmission.js`
 - Example references:
@@ -1298,6 +1299,14 @@ Recommended content blocks inside the editor:
 
 This is where organizers can describe a `100K Progress Run` or `2026K Accumulated Run Challenge` without forcing everything into the short description.
 
+Public rendering notes:
+
+- The public `/events/:slug` page pattern is documented in `docs/public_event_page_template.md`.
+- The internal field name remains `eventDetailsMarkdown`, but the organizer UI stores Quill rich HTML.
+- Public rendering must sanitize Quill HTML directly when the value looks like HTML.
+- Markdown fallback should remain available for older or manually seeded content.
+- Critical event mechanics should use structured event fields first; the long-form Event Details content should support deeper explanation, FAQ, and organizer-specific instructions.
+
 ---
 
 ## Branding and Media Panel
@@ -1323,6 +1332,14 @@ Recommended image usage:
 | Banner | Event details page |
 | Poster | Promotional and shareable image |
 | Gallery | Event page visual section |
+
+Current public page behavior:
+
+- Banner is the primary hero image.
+- Poster is used as a fallback hero image when no banner exists and remains available in the side/poster viewer.
+- Gallery appears as a visual section below the main event details.
+- The event logo is not displayed in the current public hero.
+- The hero short description uses a 50% opacity contrast layer so uploaded banner designs remain readable.
 
 Validation:
 
@@ -1645,6 +1662,9 @@ This is now acceptable as an accumulated-distance event setup because activity-l
 - [DONE] Improve draft-vs-publish expectations in product copy.
 - [DONE] Allow incomplete draft saves with title-only minimum.
 - [DONE] Focus the Core Details panel on create/edit event page load.
+- [DONE] Align organizer edit-event with the 12-step create-event wizard UI.
+- [DONE] Add draft edit `Submit for Review` action that saves changes and transitions to `pending_review`.
+- [DONE] Add edit-event preview action using the existing organizer preview route.
 - [DONE] Update create/edit event panel order:
   - Core Details
   - Schedule
@@ -1656,8 +1676,9 @@ This is now acceptable as an accumulated-distance event setup because activity-l
   - Branding and Media
   - Waiver
 - [DONE] Add organizer-facing preview/details summaries for Event Details, fee setup, rewards, packages, delivery, and benefits.
+- [DONE] Add reusable public `/events/:slug` landing-page template with structured hero, mechanics, pricing/add-ons, rewards, signup count, SEO, and responsive CTA layout.
 - [TODO] Add Race Categories and Distance Pricing panel before Virtual Rules when that feature is implemented.
-- [TODO] Improve public-style preview beyond the current configuration snapshot.
+- [TODO] Improve public-style preview beyond the current configuration snapshot, using `docs/public_event_page_template.md` as the target public pattern.
 - [TODO] Add admin review notes display for rejected events.
 - [TODO] Add event visibility rules to UI copy and backend status handling where needed.
 
