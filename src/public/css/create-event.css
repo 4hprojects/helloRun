@@ -208,6 +208,10 @@
   order: 70;
 }
 
+.form-section-payment {
+  order: 75;
+}
+
 .form-section-details {
   order: 80;
 }
@@ -485,25 +489,66 @@
 
 /* ----- PER-DISTANCE FEE GRID ----- */
 .per-distance-fee-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.per-distance-fee-header {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
+  grid-template-columns: 5rem 1fr 1fr 1fr 3rem;
+  gap: 0.5rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.per-distance-fee-header span:first-child {
+  text-align: left;
 }
 
 .per-distance-fee-row {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
+}
+
+/* periods mode: use grid so columns align with header */
+.per-distance-fee-row.has-periods {
+  display: grid;
+  grid-template-columns: 5rem 1fr 1fr 1fr 3rem;
   gap: 0.5rem;
+  align-items: center;
 }
 
 .per-distance-fee-row label {
-  min-width: 6rem;
+  min-width: 5rem;
   font-size: 0.875rem;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 
+/* simple (no periods) mode */
+.per-distance-fee-row:not(.has-periods) input[type="number"] {
+  width: 20%;
+}
+
+/* periods mode inputs fill their column */
+.per-distance-fee-row.has-periods input[type="number"] {
+  width: 100%;
+}
+
+.per-distance-fee-currency {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 .per-distance-empty-hint {
-  grid-column: 1 / -1;
+  margin: 0;
 }
 
 /* ----- FORM GRID ----- */
@@ -616,6 +661,12 @@ textarea {
   color: var(--text-primary);
   background-color: var(--bg-white);
   transition: var(--transition);
+  box-sizing: border-box;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 4rem;
 }
 
 .distance-input-shell {
@@ -1211,6 +1262,26 @@ textarea:focus {
   font-family: var(--font-sans);
 }
 
+/* Restore list rendering inside the Quill editor */
+.waiver-editor .ql-editor ul,
+.waiver-editor .ql-editor ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.5rem;
+}
+
+.waiver-editor .ql-editor ul {
+  list-style-type: disc;
+}
+
+.waiver-editor .ql-editor ol {
+  list-style-type: decimal;
+}
+
+.waiver-editor .ql-editor li {
+  display: list-item;
+  padding-left: 0.25em;
+}
+
 .waiver-preview-box {
   border: 1px solid var(--border-light);
   border-radius: var(--radius);
@@ -1222,6 +1293,26 @@ textarea:focus {
   font-size: 0.9rem;
   line-height: 1.5;
   flex: 1;
+}
+
+/* Restore list rendering inside the preview box */
+.waiver-preview-box ul,
+.waiver-preview-box ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.5rem;
+}
+
+.waiver-preview-box ul {
+  list-style-type: disc;
+}
+
+.waiver-preview-box ol {
+  list-style-type: decimal;
+}
+
+.waiver-preview-box li {
+  display: list-item;
+  padding-left: 0.25em;
 }
 
 .ql-container {
@@ -1250,9 +1341,75 @@ textarea:focus {
 .actions {
   margin-top: 2rem;
   display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  justify-content: flex-end; /* change this to flex-start or center to realign */
+}
+
+/* Button group — always a single row regardless of viewport */
+.action-btn-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+/* Adaptive action buttons: full label on desktop, icon-only on smaller screens */
+.btn-adaptive {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.btn-adaptive svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+}
+
+/* Tooltip — hidden on desktop, shown on smaller screens */
+.btn-adaptive::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.88);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 10;
+}
+
+@media (max-width: 1024px) {
+  .btn-adaptive {
+    padding: 0 !important;
+    width: 2.5rem !important;
+    height: 2.5rem !important;
+    min-width: 2.5rem !important;
+    max-width: 2.5rem !important;
+    border-radius: 0.5rem !important;
+    flex-shrink: 0;
+  }
+
+  .btn-adaptive .btn-label {
+    display: none;
+  }
+
+  .btn-adaptive:hover::after,
+  .btn-adaptive:focus-visible::after {
+    opacity: 1;
+  }
+}
+
+@media (min-width: 1025px) {
+  .btn-adaptive .btn-label {
+    display: inline;
+  }
 }
 
 .btn {
@@ -1680,6 +1837,17 @@ textarea:focus {
 
   .actions .btn {
     width: 100%;
+  }
+
+  /* btn-adaptive always stays as a compact square row */
+  .actions .btn-adaptive {
+    flex-direction: row !important;
+  }
+
+  /* action-btn-group always right-aligned in a row */
+  .actions:has(.action-btn-group) {
+    flex-direction: row;
+    justify-content: flex-end;
   }
 
   .waiver-panels {

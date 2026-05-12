@@ -14,10 +14,9 @@ This guide focuses on:
 
 - Event type selection
 - Free event and paid event setup
-- Custom registration packages
-- Distance-based pricing
-- Early bird, regular, and late registration fees
-- Rewards and merchandise setup
+- Distance-based pricing as the primary paid event model
+- Early bird, regular, and late registration fees per distance
+- Rewards and inclusions per distance or category
 - Payment setup
 - Draft saving
 - Submit-for-review validation
@@ -51,7 +50,11 @@ The detailed implementation plan for improving the organizer create-event workfl
 
 `docs/create_event_wizard_codex_implementation.md`
 
-This guide covers the step-by-step wizard flow, conditional fields, free and paid event handling, package-based pricing, early bird pricing, regular pricing, late registration fees, payment setup, preview, and submit-for-review validation.
+This guide covers the step-by-step wizard flow, conditional fields, free and paid event handling, distance-based pricing, early bird pricing, regular pricing, late registration fees, payment setup, preview, and submit-for-review validation.
+
+For the simplified MVP pricing direction, also read:
+
+`docs/create_event_wizard_pricing_update.md`
 ```
 
 ---
@@ -69,15 +72,29 @@ The wizard should:
 - Separate pricing setup from payment setup.
 - Support free events.
 - Support paid events.
-- Support same-fee pricing.
-- Support per-distance pricing.
-- Support package-based pricing.
-- Support early bird, regular, and late registration fees.
+- Support per-distance pricing as the default paid event model.
+- Support per-distance pricing with early bird, regular, and late registration periods.
 - Allow incomplete draft saving.
 - Require full validation only when submitting for admin review.
 - Preserve existing backend behavior where possible.
 - Preserve existing model fields and route behavior unless this document explicitly says otherwise.
 - Improve helper text, section ordering, and preview before submission.
+
+Supported MVP pricing modes:
+
+```text
+free
+per_distance
+per_distance_period
+```
+
+Postponed pricing modes (add after MVP is stable):
+
+```text
+same_fee
+package_based
+package_period
+```
 
 ---
 
@@ -131,9 +148,9 @@ What kind of event am I creating?
 When will it happen?
 Where or how will runners participate?
 What can runners join?
-What rewards or packages will I offer?
+What rewards or inclusions will I offer?
 Is it free or paid?
-How much should runners pay?
+How much should runners pay per distance?
 How will runners pay?
 What rules should runners read?
 What will the event look like?
@@ -159,8 +176,8 @@ Step 2: Core Event Details
 Step 3: Schedule
 Step 4: Event Format Setup
 Step 5: Race Categories or Challenge Distances
-Step 6: Rewards, Merchandise, and Packages
-Step 7: Pricing Setup
+Step 6: Rewards and Inclusions
+Step 7: Pricing Per Distance
 Step 8: Payment Setup
 Step 9: Event Details and Rules
 Step 10: Branding and Media
@@ -635,17 +652,17 @@ Pricing periods should fall within the registration window.
 
 ---
 
-## Step 6: Rewards, Merchandise, and Packages
+## Step 6: Rewards and Inclusions
 
 ### Purpose
 
-Let the organizer define what runners receive before setting the final price.
+Let the organizer define what runners receive before setting the price.
 
-This step must come before Pricing Setup.
+This step must come before Pricing Per Distance.
 
 ### Reason
 
-Medals, shirts, towels, finisher kits, delivery fees, and benefits affect pricing decisions.
+Medals, shirts, towels, finisher kits, and delivery fees affect pricing decisions.
 
 If pricing comes first, the organizer may need to go back and change amounts after adding rewards.
 
@@ -653,11 +670,8 @@ If pricing comes first, the organizer may need to go back and change amounts aft
 
 ```text
 Digital Recognition
-Physical Rewards or Merchandise
-Registration Packages
-Category-Specific Rewards
+Physical Rewards or Inclusions per Category
 Delivery and Claiming
-Special Reward Benefits
 Rewards Claiming Notes
 ```
 
@@ -681,9 +695,55 @@ Digital rewards can be shown on the runner dashboard and may be shared or saved 
 
 ---
 
-### Physical Rewards or Merchandise
+### Physical Rewards or Inclusions
 
-### Fields
+Each race category may include:
+
+```text
+Race bib
+Shirt
+Medal
+Patch
+Towel
+Finisher kit
+Digital certificate
+Digital badge
+Other item
+```
+
+### Suggested UI Example
+
+```text
+5K Category
+
+Included:
+[x] Race bib
+[x] Shirt
+[ ] Medal
+[x] Digital certificate
+[x] Digital badge
+
+Notes:
+Includes race bib, event shirt, and digital certificate.
+```
+
+```text
+10K Category
+
+Included:
+[x] Race bib
+[x] Shirt
+[x] Medal
+[x] Digital certificate
+[x] Digital badge
+
+Notes:
+Includes race bib, event shirt, finisher medal, and digital certificate.
+```
+
+### Global Reward Fields
+
+Some rewards may apply to the whole event:
 
 ```text
 physicalRewardsEnabled
@@ -700,156 +760,6 @@ physicalRewardFinisherKitAmount
 physicalRewardOtherItems
 physicalRewardsDescription
 physicalRewardsClaimingNotes
-```
-
-### Suggested UI
-
-```text
-[ ] Medal
-Amount: ₱____
-
-[ ] Shirt
-Amount: ₱____
-
-[ ] Patch
-Amount: ₱____
-
-[ ] Towel
-Amount: ₱____
-
-[ ] Finisher Kit
-Amount: ₱____
-
-[ ] Other Item
-Item Name: ______
-Amount: ₱____
-```
-
-### Notes
-
-The amount can represent:
-
-- Cost included in the package
-- Add-on amount
-- Organizer reference amount
-
-This should be clarified in the UI once the final pricing model is implemented.
-
----
-
-### Registration Packages
-
-### Purpose
-
-Support package-based events.
-
-This is useful for virtual events and merchandise-based events.
-
-### Package Examples
-
-```text
-Registration Only
-Medal Only
-Medal + Shirt
-Medal + Shirt + Towel
-Finisher Kit Package
-Premium Package
-```
-
-### Fields Per Package
-
-```text
-packageName
-includedItems
-pricingPeriods
-packageNotes
-isActive
-```
-
-### Suggested UI
-
-```text
-[ + Add Package ]
-
-Package Name: Medal + Shirt
-Included Items:
-[x] Medal
-[x] Shirt
-[ ] Patch
-[ ] Towel
-[ ] Finisher Kit
-[ ] Other
-
-Notes: Includes delivery within the Philippines.
-
-[ Duplicate Package ]
-[ Remove Package ]
-```
-
-### Future Model Field
-
-```js
-registrationPackages: [
-  {
-    packageName: String,
-    includedItems: {
-      medal: Boolean,
-      shirt: Boolean,
-      patch: Boolean,
-      towel: Boolean,
-      finisherKit: Boolean,
-      otherItemNames: [String]
-    },
-    pricingPeriods: [
-      {
-        label: String,
-        code: "early_bird" | "regular" | "late" | "custom",
-        startAt: Date,
-        endAt: Date,
-        amount: Number
-      }
-    ],
-    notes: String,
-    isActive: Boolean
-  }
-]
-```
-
-### Validation
-
-For paid package-based events:
-
-```text
-At least one package is required.
-Package names must be unique within the event.
-Package amounts must be zero or higher.
-Package pricing periods must not overlap.
-Package pricing periods should fall within the registration window.
-```
-
----
-
-### Pricing Period Defaults for Packages
-
-Suggested default behavior:
-
-```text
-Early Bird starts when registration opens.
-Early Bird ends 14 days after registration opens.
-
-Regular starts after Early Bird.
-Regular ends 7 days before registration closes.
-
-Late Registration starts 7 days before registration closes.
-Late Registration ends when registration closes.
-```
-
-If the registration window is 21 days or shorter:
-
-```text
-Do not auto-fill all three pricing periods.
-Show a message that the registration window may be too short for early bird, regular, and late pricing.
-Allow the organizer to use a simpler pricing setup.
 ```
 
 ---
@@ -891,45 +801,20 @@ Description: Nationwide delivery within the Philippines.
 
 ---
 
-### Special Reward Benefits
-
-### Purpose
-
-Allow organizers to define temporary or package-specific benefits.
-
-### Future Model Field
-
-```js
-specialRewardBenefits: [
-  {
-    title: String,
-    description: String,
-    validUntil: Date,
-    appliesToPackageNames: [String]
-  }
-]
-```
-
-### Example
-
-```text
-Free Medal Engraving
-Free medal engraving is available until May 31, 2026.
-Applies to: Medal + Shirt Package, Premium Package
-```
+> **Note:** Package-based pricing is postponed for MVP. Rewards are shown as inclusions per distance or category instead of as separate paid packages.
 
 ---
 
-## Step 7: Pricing Setup
+## Step 7: Pricing Per Distance
 
 ### Purpose
 
-Define what runners will pay.
+Define what runners will pay based on their selected distance or race category.
 
 Pricing setup answers this question:
 
 ```text
-How much should runners pay?
+How much should runners pay for each distance or category?
 ```
 
 This should be separate from payment setup.
@@ -965,8 +850,8 @@ If the organizer chooses `Free Event`, show only:
 
 ```text
 Free event confirmation
-Optional donation note
-Optional merchandise note
+Optional note about free registration
+Optional note about rewards or claiming
 ```
 
 Hide:
@@ -995,93 +880,62 @@ For free events:
 Payment QR is not required.
 Payment account name is not required.
 Payment instructions are not required.
-Fee amount should be zero.
+All category prices should be zero or blank.
 ```
 
 ---
 
 ## Paid Event Flow
 
-If the organizer chooses `Paid Event`, ask:
+If the organizer chooses `Paid Event`, show price fields for each distance or race category created in Step 5.
+
+Example:
 
 ```text
-How do you want to price this event?
+5K - ₱500
+10K - ₱750
+21K - ₱1,200
 ```
 
-### Pricing Mode Options
+The organizer should not need to create packages.
+
+The organizer should only set the price for each distance or category.
+
+---
+
+## Supported MVP Pricing Modes
+
+### 1. Free
+
+Internal mode:
 
 ```text
-same_fee
+free
+```
+
+Use when the event has no registration fee.
+
+---
+
+### 2. Price Per Distance
+
+Internal mode:
+
+```text
 per_distance
-package_based
-per_distance_period
-package_period
 ```
 
-### User-Friendly Labels
+Use when each distance or category has one fixed registration fee.
+
+This is the default paid event pricing mode.
+
+Example:
 
 ```text
-Same fee for everyone
-Different fee per distance
-Package-based pricing
-Different fee per distance with early bird, regular, and late registration
-Package-based pricing with early bird, regular, and late registration
-```
-
----
-
-## Pricing Mode 1: Same Fee for Everyone
-
-### Best For
-
-```text
-Simple virtual runs
-Charity fun runs
-Single-distance events
-Small community events
-```
-
-### Fields
-
-```text
-feeAmount
-feeCurrency
-pricingDescription
-```
-
-### Example
-
-```text
-Registration Fee: ₱500
-Includes: Digital certificate and digital badge
-```
-
-### Validation
-
-```text
-Fee amount is required for paid events.
-Fee amount must be greater than zero.
-Currency is required.
-```
-
----
-
-## Pricing Mode 2: Different Fee Per Distance
-
-### Best For
-
-```text
-Onsite events
-Hybrid events
-Events with 5K, 10K, and 21K categories
-```
-
-### Example
-
-```text
-5K: ₱500
-10K: ₱750
-21K: ₱1,200
+3K - ₱350
+5K - ₱500
+10K - ₱750
+21K - ₱1,200
 ```
 
 ### Fields
@@ -1103,70 +957,33 @@ Amount must be greater than zero.
 
 ---
 
-## Pricing Mode 3: Package-Based Pricing
+### 3. Price Per Distance with Pricing Periods
 
-### Best For
-
-```text
-Virtual events with merchandise
-Events where runners can choose inclusions
-Events with medal-only or shirt packages
-```
-
-### Example
+Internal mode:
 
 ```text
-Registration Only: ₱300
-Medal Only: ₱595
-Medal + Shirt: ₱1,095
-Medal + Shirt + Towel: ₱1,295
+per_distance_period
 ```
 
-### Fields
+Use when each distance or category has early bird, regular, and late registration prices.
 
-Use packages from Step 6.
-
-```text
-packageName
-amount
-includedItems
-deliveryFee
-notes
-```
-
-### Validation
-
-```text
-At least one package is required.
-Each active package must have an amount.
-Amount must be greater than zero.
-Package names must be unique.
-```
-
----
-
-## Pricing Mode 4: Per Distance with Pricing Periods
-
-### Best For
-
-```text
-Onsite races
-Hybrid races
-Events that reward early registration
-```
-
-### Example
+Example:
 
 ```text
 5K
-Early Bird: ₱500
-Regular: ₱650
-Late Registration: ₱750
+Early Bird: ₱450
+Regular: ₱500
+Late Registration: ₱600
 
 10K
-Early Bird: ₱750
-Regular: ₱900
-Late Registration: ₱1,000
+Early Bird: ₱650
+Regular: ₱750
+Late Registration: ₱850
+
+21K
+Early Bird: ₱1,000
+Regular: ₱1,200
+Late Registration: ₱1,400
 ```
 
 ### Fields Per Distance
@@ -1194,52 +1011,56 @@ Each category must have at least one active pricing period.
 
 ---
 
-## Pricing Mode 5: Package-Based Pricing with Pricing Periods
+## Pricing Periods Toggle
 
-### Best For
+Pricing periods are optional.
+
+The organizer should see a checkbox:
 
 ```text
-Virtual events with merchandise
-Premium virtual challenges
-Events with early bird package discounts
+[ ] Add early bird and late registration pricing
 ```
 
-### Example
+If unchecked:
 
 ```text
-Medal Only
-Early Bird: ₱595
-Regular: ₱695
-Late Registration: ₱795
-
-Medal + Shirt
-Early Bird: ₱1,095
-Regular: ₱1,195
-Late Registration: ₱1,295
+Show only Regular Price per distance.
 ```
 
-### Fields Per Package
+If checked:
 
 ```text
-packageName
-earlyBirdAmount
-earlyBirdStartAt
-earlyBirdEndAt
-regularAmount
-regularStartAt
-regularEndAt
-lateAmount
-lateStartAt
-lateEndAt
+Show Early Bird, Regular, and Late Registration prices per distance.
 ```
 
-### Validation
+---
+
+## Suggested Simple Pricing Table
+
+If pricing periods are disabled:
 
 ```text
-Pricing periods must not overlap.
-Pricing periods must stay within the registration window.
-Amounts must be greater than zero.
-Each package must have at least one active pricing period.
+| Category | Regular Price |
+|---|---:|
+| 3K | ₱350 |
+| 5K | ₱500 |
+| 10K | ₱750 |
+| 21K | ₱1,200 |
+```
+
+---
+
+## Suggested Pricing Period Table
+
+If pricing periods are enabled:
+
+```text
+| Category | Early Bird | Regular | Late Registration |
+|---|---:|---:|---:|
+| 3K | ₱300 | ₱350 | ₱400 |
+| 5K | ₱450 | ₱500 | ₱600 |
+| 10K | ₱650 | ₱750 | ₱850 |
+| 21K | ₱1,000 | ₱1,200 | ₱1,400 |
 ```
 
 ---
@@ -1248,20 +1069,12 @@ Each package must have at least one active pricing period.
 
 After pricing setup, show a clear summary.
 
-### Same Fee Example
-
-```text
-Pricing Summary
-
-Everyone pays: ₱500
-Includes: Digital certificate and badge
-```
-
 ### Per-Distance Example
 
 ```text
 Pricing Summary
 
+3K: ₱350
 5K: ₱500
 10K: ₱750
 21K: ₱1,200
@@ -1273,44 +1086,41 @@ Pricing Summary
 Pricing Summary
 
 5K
-Early Bird: ₱500
-Regular: ₱650
-Late Registration: ₱750
+Early Bird: ₱450
+Regular: ₱500
+Late Registration: ₱600
 
 10K
-Early Bird: ₱750
-Regular: ₱900
-Late Registration: ₱1,000
+Early Bird: ₱650
+Regular: ₱750
+Late Registration: ₱850
 ```
 
-### Package-Based Example
+---
+
+## How to Handle Same-Fee Events
+
+For MVP, a same-fee event can be handled by creating one general category.
+
+Example:
 
 ```text
-Pricing Summary
-
-Medal Only: ₱595
-Medal + Shirt: ₱1,095
-Medal + Shirt + Towel: ₱1,295
-
-Delivery Fee: ₱100
+Category: General Registration
+Price: ₱500
 ```
 
-### Package-Based with Periods Example
+Do not create a separate `same_fee` mode for MVP.
+
+---
+
+## Postponed Pricing Modes
+
+The following modes are postponed until after the core event creation flow is stable:
 
 ```text
-Pricing Summary
-
-Medal Only
-Early Bird: ₱595
-Regular: ₱695
-Late Registration: ₱795
-
-Medal + Shirt
-Early Bird: ₱1,095
-Regular: ₱1,195
-Late Registration: ₱1,295
-
-Delivery Fee: ₱100
+same_fee — use one general category instead
+package_based — rewards shown as inclusions per category for now
+package_period — postponed with package_based
 ```
 
 ---
@@ -1590,8 +1400,7 @@ Event details preview
 Schedule summary
 Location or virtual setup summary
 Race category summary
-Rewards summary
-Package summary
+Rewards and inclusions summary
 Pricing summary
 Payment summary
 Waiver preview
@@ -1643,9 +1452,8 @@ Required before review:
 | Virtual Rules | Show | Hide | Show |
 | Race Categories | Optional | Show | Show |
 | Challenge Distance | Show | Optional | Show |
-| Rewards | Show | Show | Show |
-| Packages | Show | Optional | Show |
-| Pricing | Show | Show | Show |
+| Rewards and Inclusions | Show | Show | Show |
+| Pricing Per Distance | Show | Show | Show |
 | Payment | Show if paid | Show if paid | Show if paid |
 | Event Details | Show | Show | Show |
 | Media | Show | Show | Show |
@@ -1656,14 +1464,14 @@ Required before review:
 
 ## Pricing Mode Visibility Matrix
 
-| Pricing Mode | Free Event | Paid Event | Race Categories Needed | Packages Needed | Pricing Periods Needed |
+| Pricing Mode | Free Event | Paid Event | Race Categories Needed | Pricing Periods Needed | MVP Status |
 |---|---:|---:|---:|---:|---:|
-| free | Show | Hide | No | No | No |
-| same_fee | Hide | Show | No | No | No |
-| per_distance | Hide | Show | Yes | No | No |
-| package_based | Hide | Show | No | Yes | No |
-| per_distance_period | Hide | Show | Yes | No | Yes |
-| package_period | Hide | Show | No | Yes | Yes |
+| free | Show | Hide | No | No | Supported |
+| per_distance | Hide | Show | Yes | No | Supported |
+| per_distance_period | Hide | Show | Yes | Yes | Supported |
+| same_fee | Hide | Postponed | No | No | Postponed |
+| package_based | Hide | Postponed | No | No | Postponed |
+| package_period | Hide | Postponed | No | Yes | Postponed |
 
 ---
 
@@ -1688,7 +1496,6 @@ Media
 Waiver
 Event details
 Race categories
-Packages
 ```
 
 This allows organizers to build events gradually.
@@ -1699,20 +1506,50 @@ This allows organizers to build events gradually.
 
 Submit-for-review should require a complete public-ready event.
 
-Required:
+Required for all events:
 
 ```text
 Title
 Description
 Event type
 Schedule
-Race distance or race category
-Location for onsite or hybrid events
-Virtual rules for virtual or hybrid events
-Pricing setup
-Payment QR for paid events
+At least one race category or challenge distance
 Event details
 Valid waiver
+```
+
+Required for onsite or hybrid events:
+
+```text
+Location is required.
+```
+
+Required for virtual or hybrid events:
+
+```text
+Virtual rules are required.
+```
+
+Required for paid events:
+
+```text
+Each race category must have a valid price.
+Payment QR is required.
+Payment account name is required.
+```
+
+Not required for free events:
+
+```text
+Payment QR is not required.
+Payment account name is not required.
+```
+
+For pricing periods:
+
+```text
+Early bird, regular, and late dates must not overlap.
+Pricing period dates must be within the registration period.
 ```
 
 ---
@@ -1769,15 +1606,11 @@ If pricing mode does not use periods:
 
 ### Package Logic
 
-```text
-If package-based pricing:
-- Require at least one package.
-- Show package pricing summary.
-- Allow delivery fee if physical rewards are enabled.
+Package-based pricing is postponed for MVP.
 
-If not package-based:
-- Hide package pricing fields unless packages are used only as event details.
-```
+Rewards are shown as inclusions per distance or category.
+
+Do not show package pricing fields until package-based pricing is implemented in a later phase.
 
 ---
 
@@ -1887,38 +1720,42 @@ Add structured support for onsite and hybrid event pricing.
 
 ```text
 Add raceCategories[] model support.
-Add per-distance pricing.
-Add early bird, regular, and late pricing periods.
+Add per-distance pricing (per_distance).
+Add early bird, regular, and late pricing periods (per_distance_period).
 Add category-specific reward inclusions.
 Validate pricing period overlaps.
 Validate pricing dates against registration dates.
+Add runner-facing price resolver.
+Store runner registration price snapshot.
 ```
 
 ### Expected Result
 
-HelloRun can support different prices per race category.
+HelloRun can support different prices per race category with optional pricing periods.
 
 ---
 
-## Phase 6: Registration Packages Expansion
+## Phase 6: Registration Packages Expansion (Postponed)
 
 ### Goal
 
-Add structured support for package-based events.
+Add structured support for package-based events after the core event creation flow is stable.
 
 ### Tasks
 
 ```text
 Add registrationPackages[] model support.
 Allow packages to include medal, shirt, patch, towel, finisher kit, and other items.
-Allow package-based pricing.
-Allow package-based early bird, regular, and late pricing.
+Allow package-based pricing (package_based).
+Allow package-based early bird, regular, and late pricing (package_period).
 Allow package-specific notes.
 ```
 
 ### Expected Result
 
 HelloRun can support virtual events with custom packages.
+
+> **Note:** Do not implement this phase until Phase 5 is stable and the core create-event flow is working.
 
 ---
 
@@ -2002,7 +1839,7 @@ const createEventState = {
   pricingMode: null,
   completionMode: null,
   hasPhysicalRewards: false,
-  hasPackages: false,
+  hasPricingPeriods: false,
   hasDeliveryFee: false,
   currentStep: 1
 };
@@ -2020,7 +1857,8 @@ function updateFeeVisibility(feeType) {
 }
 
 function updatePricingModeVisibility(pricingMode) {
-  // same_fee, per_distance, package_based, per_distance_period, package_period
+  // free, per_distance, per_distance_period
+  // (same_fee, package_based, package_period postponed)
 }
 
 function updateCompletionModeVisibility(completionMode) {
@@ -2125,24 +1963,21 @@ function validateWaiver(payload, errors) {}
 [ ] Paid event shows payment setup.
 [ ] Free event hides payment setup.
 [ ] Accumulated completion mode shows target distance and activity rules.
-[ ] Same-fee pricing shows one amount field.
 [ ] Per-distance pricing shows category amount fields.
-[ ] Package-based pricing shows package amount fields.
-[ ] Pricing period modes show early bird, regular, and late registration fields.
+[ ] Pricing period mode shows early bird, regular, and late registration fields.
+[ ] Package-based pricing fields are hidden (postponed).
 ```
 
 ### Pricing
 
 ```text
 [ ] Free event pricing works.
-[ ] Same-fee pricing works.
 [ ] Per-distance pricing works.
-[ ] Package-based pricing works.
 [ ] Per-distance pricing periods work.
-[ ] Package-based pricing periods work.
 [ ] Delivery fee works.
 [ ] Suggested event fee still works if already implemented.
 [ ] Final fee override still works if already implemented.
+[ ] Package-based pricing is hidden (postponed for later phase).
 ```
 
 ### No Regression

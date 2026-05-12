@@ -1159,6 +1159,11 @@ textarea {
   color: var(--text);
   background-color: #ffffff;
   transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+textarea {
+  resize: vertical;
 }
 
 /* Focus State - Orange Glow */

@@ -46,8 +46,8 @@
             <li><a href="#schedule-step" data-step-link="schedule-step"><span>3</span> Schedule</a></li>
             <li><a href="#location-virtual-step" data-step-link="location-virtual-step"><span>4</span> Location or Virtual Rules</a></li>
             <li><a href="#race-categories-step" data-step-link="race-categories-step"><span>5</span> Race Categories</a></li>
-            <li><a href="#rewards-step" data-step-link="rewards-step"><span>6</span> Rewards and Merchandise</a></li>
-            <li><a href="#pricing-step" data-step-link="pricing-step"><span>7</span> Pricing Setup</a></li>
+            <li><a href="#rewards-step" data-step-link="rewards-step"><span>6</span> Rewards and Inclusions</a></li>
+            <li><a href="#pricing-step" data-step-link="pricing-step"><span>7</span> Pricing Per Distance</a></li>
             <li><a href="#payment-setup-step" data-step-link="payment-setup-step"><span>8</span> Payment Setup</a></li>
             <li><a href="#event-details-step" data-step-link="event-details-step"><span>9</span> Event Details</a></li>
             <li><a href="#media-step" data-step-link="media-step"><span>10</span> Branding and Media</a></li>
@@ -401,11 +401,11 @@
           </div>
         </div>
 
-        <!-- REWARDS, MERCHANDISE & PACKAGES SECTION -->
+        <!-- REWARDS AND INCLUSIONS SECTION -->
         <div id="rewards-step" class="form-section form-section-rewards" tabindex="-1" data-wizard-step="rewards-step">
           <div class="section-kicker">Step 6 of 12</div>
-          <div class="section-title">Recognition, Rewards &amp; Packages</div>
-          <p class="section-helper">Configure digital recognition, physical rewards, packages, and delivery options.</p>
+          <div class="section-title">Rewards and Inclusions</div>
+          <p class="section-helper">Define what runners receive. These inclusions apply across all distances or categories. Per-category package pricing will be available in a later update.</p>
           <div class="form-grid">
             <div class="form-group form-group-full">
               <div class="subsection-divider">Digital Recognition</div>
@@ -417,9 +417,9 @@
             </div>
             <div class="form-group form-group-full">
               <div class="subsection-divider">Physical Rewards</div>
-              <div class="toggle-section-label"><input type="checkbox" id="physicalRewardsEnabled" name="physicalRewardsEnabled" value="1" <%= formData.physicalRewardsEnabled ? 'checked' : '' %>><label for="physicalRewardsEnabled" class="toggle-label-text">Physical Rewards Available <span class="field-help-icon" tabindex="0" aria-label="Tick this if your event includes physical items such as medals, shirts, patches, or a finisher kit. You can set individual costs per item to help calculate a suggested entry fee.">?</span></label></div>
-              <div class="physical-reward-fields">
-                <small class="field-hint">For paid events, these items can contribute to the suggested event fee.</small>
+              <div class="toggle-section-label"><input type="checkbox" id="physicalRewardsEnabled" name="physicalRewardsEnabled" value="1" <%= formData.physicalRewardsEnabled ? 'checked' : '' %>><label for="physicalRewardsEnabled" class="toggle-label-text">Physical Rewards Available <span class="field-help-icon" tabindex="0" aria-label="Tick this if your event includes physical items such as medals, shirts, patches, or a finisher kit.">?</span></label></div>
+              <div class="physical-reward-fields" style="display:none;">
+                <small class="field-hint">Mark which items are included. Amounts are optional reference costs that can help calculate a suggested entry fee.</small>
                 <div class="reward-cost-grid">
                   <label><input type="checkbox" name="physicalRewardMedalEnabled" value="1" <%= formData.physicalRewardMedalEnabled ? 'checked' : '' %>> Medal <input name="physicalRewardMedalAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardMedalAmount ?? '' %>" placeholder="0.00"></label>
                   <label><input type="checkbox" name="physicalRewardShirtEnabled" value="1" <%= formData.physicalRewardShirtEnabled ? 'checked' : '' %>> Shirt <input name="physicalRewardShirtAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardShirtAmount ?? '' %>" placeholder="0.00"></label>
@@ -428,8 +428,12 @@
                   <label><input type="checkbox" name="physicalRewardFinisherKitEnabled" value="1" <%= formData.physicalRewardFinisherKitEnabled ? 'checked' : '' %>> Finisher Kit <input name="physicalRewardFinisherKitAmount" type="number" min="0" step="0.01" value="<%= formData.physicalRewardFinisherKitAmount ?? '' %>" placeholder="0.00"></label>
                 </div>
                 <% const otherItems = formData.physicalRewardOtherItems || []; %>
-                <div class="mini-repeatable">
-                  <label>Custom Merchandise</label>
+                <% const hasOtherItems = otherItems.some(function(i){ return i && i.name; }); %>
+                <div class="toggle-section-label" style="margin-top:0.75rem;">
+                  <input type="checkbox" id="customMerchandiseEnabled" <%= hasOtherItems ? 'checked' : '' %>>
+                  <label for="customMerchandiseEnabled" class="toggle-label-text">Custom Merchandise</label>
+                </div>
+                <div id="customMerchandiseFields" style="display:<%= hasOtherItems ? '' : 'none' %>;">
                   <% for (let itemIndex = 0; itemIndex < 3; itemIndex += 1) { const item = otherItems[itemIndex] || {}; %>
                     <div class="inline-field-row">
                       <input name="physicalRewardOtherItemName" type="text" value="<%= item.name || '' %>" placeholder="Item name">
@@ -446,93 +450,47 @@
                 </div>
               </div>
             </div>
-            <div class="form-group form-group-full">
-              <div class="subsection-divider">Registration Packages</div>
-              <small class="field-hint">Use packages when runners can choose different inclusions, prices, or registration periods.</small>
-              <% const packages = formData.registrationPackages || []; %>
-              <% for (let packageIndex = 0; packageIndex < 3; packageIndex += 1) { const packageOption = packages[packageIndex] || {}; const periods = packageOption.pricingPeriods || []; const findPeriod = (code) => periods.find((period) => period.code === code) || {}; %>
-                <div class="package-card">
-                  <input name="registrationPackageName" type="text" value="<%= packageOption.name || '' %>" placeholder="Package name, e.g. Medal + Shirt">
-                  <div class="checkbox-row">
-                    <label><input type="checkbox" name="registrationPackageMedal_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.medal ? 'checked' : '' %>> Medal</label>
-                    <label><input type="checkbox" name="registrationPackageShirt_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.shirt ? 'checked' : '' %>> Shirt</label>
-                    <label><input type="checkbox" name="registrationPackageTowel_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.towel ? 'checked' : '' %>> Towel</label>
-                    <label><input type="checkbox" name="registrationPackagePatch_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.patch ? 'checked' : '' %>> Patch</label>
-                    <label><input type="checkbox" name="registrationPackageFinisherKit_<%= packageIndex %>" value="1" <%= packageOption.includedItems?.finisherKit ? 'checked' : '' %>> Finisher Kit</label>
-                  </div>
-                  <input name="registrationPackageOtherItemNames" type="text" value="<%= (packageOption.includedItems?.otherItemNames || []).join(', ') %>" placeholder="Other included item names">
-                  <div class="pricing-period-actions">
-                    <button type="button" class="btn btn-outline btn-suggest-pricing-dates" data-package-index="<%= packageIndex %>">Use suggested dates</button>
-                    <small class="field-hint">Early Bird uses the first 14 days after registration opens. Late Registration uses the final 7 days before registration closes.</small>
-                  </div>
-                  <div class="pricing-period-grid">
-                    <% const early = findPeriod('early_bird'); const regular = findPeriod('regular'); const late = findPeriod('late'); %>
-                    <div class="pricing-period-row">
-                      <span class="pricing-period-label">Early Bird</span>
-                      <input name="registrationPackageEarlyBirdStartAt" type="datetime-local" value="<%= early.startAt || '' %>" aria-label="Early bird start">
-                      <input name="registrationPackageEarlyBirdEndAt" type="datetime-local" value="<%= early.endAt || '' %>" aria-label="Early bird end">
-                      <input name="registrationPackageEarlyBirdAmount" type="number" min="0" step="0.01" value="<%= early.amount ?? '' %>" placeholder="Price">
-                    </div>
-                    <div class="pricing-period-row">
-                      <span class="pricing-period-label">Regular</span>
-                      <input name="registrationPackageRegularStartAt" type="datetime-local" value="<%= regular.startAt || '' %>" aria-label="Regular start">
-                      <input name="registrationPackageRegularEndAt" type="datetime-local" value="<%= regular.endAt || '' %>" aria-label="Regular end">
-                      <input name="registrationPackageRegularAmount" type="number" min="0" step="0.01" value="<%= regular.amount ?? '' %>" placeholder="Price">
-                    </div>
-                    <div class="pricing-period-row">
-                      <span class="pricing-period-label">Late</span>
-                      <input name="registrationPackageLateStartAt" type="datetime-local" value="<%= late.startAt || '' %>" aria-label="Late start">
-                      <input name="registrationPackageLateEndAt" type="datetime-local" value="<%= late.endAt || '' %>" aria-label="Late end">
-                      <input name="registrationPackageLateAmount" type="number" min="0" step="0.01" value="<%= late.amount ?? '' %>" placeholder="Price">
-                    </div>
-                  </div>
-                  <textarea name="registrationPackageNotes" rows="2" placeholder="Package notes"><%= packageOption.notes || '' %></textarea>
-                </div>
-              <% } %>
-            </div>
-            <details class="subsection-toolkit form-group form-group-full" <%= formData.deliveryFeeEnabled || formData.requiresDeliveryAddress || formData.deliveryFeeDescription ? 'open' : '' %>>
+            <details class="subsection-toolkit form-group form-group-full physical-reward-fields" style="display:none;" <%= (formData.claimingMethod && formData.claimingMethod !== 'pickup') || formData.deliveryFeeDescription || formData.requiresDeliveryAddress ? 'open' : '' %>>
               <summary class="subsection-toolkit-summary">Delivery &amp; Fulfilment</summary>
               <div class="subsection-toolkit-body">
-                <label><input type="checkbox" name="deliveryFeeEnabled" value="1" <%= formData.deliveryFeeEnabled ? 'checked' : '' %>> Delivery or Claiming Fee</label>
                 <div class="form-grid compact-grid">
-                  <input name="deliveryFeeAmount" type="number" min="0" step="0.01" value="<%= formData.deliveryFeeAmount ?? '' %>" placeholder="Flat delivery fee">
-                  <select name="claimingMethod">
-                    <option value="delivery" <%= formData.claimingMethod === 'delivery' ? 'selected' : '' %>>Delivery</option>
-                    <option value="pickup" <%= formData.claimingMethod === 'pickup' ? 'selected' : '' %>>Pickup</option>
-                    <option value="both" <%= formData.claimingMethod === 'both' ? 'selected' : '' %>>Delivery or pickup</option>
-                  </select>
-                </div>
-                <textarea name="deliveryFeeDescription" rows="2" placeholder="Delivery or pickup instructions."><%= formData.deliveryFeeDescription || '' %></textarea>
-                <div class="checkbox-row">
-                  <label><input type="checkbox" name="requiresDeliveryAddress" value="1" <%= formData.requiresDeliveryAddress ? 'checked' : '' %>> Require delivery address</label>
-                  <label><input type="checkbox" name="requiresPhilippineDeliveryAddress" value="1" <%= formData.requiresPhilippineDeliveryAddress ? 'checked' : '' %>> Philippines only</label>
-                  <input type="hidden" name="internationalRunnersAllowed" value="0">
-                  <label><input type="checkbox" name="internationalRunnersAllowed" value="1" <%= formData.internationalRunnersAllowed !== false ? 'checked' : '' %>> International runners allowed</label>
-                </div>
-              </div>
-            </details>
-            <% const benefits = formData.specialRewardBenefits || []; %>
-            <details class="subsection-toolkit form-group form-group-full" <%= benefits.length && benefits.some(b => b.title || b.description) ? 'open' : '' %>>
-              <summary class="subsection-toolkit-summary">Special Benefits</summary>
-              <div class="subsection-toolkit-body">
-                <% for (let benefitIndex = 0; benefitIndex < 2; benefitIndex += 1) { const benefit = benefits[benefitIndex] || {}; %>
-                  <div class="inline-field-row benefit-row">
-                    <input name="specialRewardBenefitTitle" type="text" value="<%= benefit.title || '' %>" placeholder="Benefit title">
-                    <input name="specialRewardBenefitValidUntil" type="datetime-local" value="<%= benefit.validUntil || '' %>" aria-label="Benefit valid until">
-                    <input name="specialRewardBenefitPackageNames" type="text" value="<%= (benefit.appliesToPackageNames || []).join(', ') %>" placeholder="Applies to packages">
-                    <input name="specialRewardBenefitDescription" type="text" value="<%= benefit.description || '' %>" placeholder="Description">
+                  <div class="form-group">
+                    <label for="claimingMethod">Claiming Method</label>
+                    <select id="claimingMethod" name="claimingMethod">
+                      <option value="pickup" <%= (!formData.claimingMethod || formData.claimingMethod === 'pickup') ? 'selected' : '' %>>Pickup only (no delivery fee)</option>
+                      <option value="delivery" <%= formData.claimingMethod === 'delivery' ? 'selected' : '' %>>Delivery only</option>
+                      <option value="both" <%= formData.claimingMethod === 'both' ? 'selected' : '' %>>Delivery or Pickup</option>
+                    </select>
                   </div>
-                <% } %>
+                  <div class="form-group" id="deliveryFeeAmountGroup" style="display:<%= (formData.claimingMethod === 'delivery' || formData.claimingMethod === 'both') ? '' : 'none' %>;">
+                    <label for="deliveryFeeAmount">Delivery Fee</label>
+                    <input id="deliveryFeeAmount" name="deliveryFeeAmount" type="number" min="0" step="0.01" value="<%= formData.deliveryFeeAmount ?? '' %>" placeholder="0.00">
+                    <input type="hidden" name="deliveryFeeEnabled" value="1">
+                  </div>
+                </div>
+                <textarea name="deliveryFeeDescription" rows="2" placeholder="Claiming or delivery instructions for runners."><%= formData.deliveryFeeDescription || '' %></textarea>
+                <div id="deliveryAddressFields" style="display:<%= (formData.claimingMethod === 'delivery' || formData.claimingMethod === 'both') ? '' : 'none' %>;">
+                  <div class="checkbox-row">
+                    <label><input type="checkbox" name="requiresDeliveryAddress" value="1" <%= formData.requiresDeliveryAddress ? 'checked' : '' %>> Require delivery address from runner</label>
+                    <label><input type="checkbox" name="requiresPhilippineDeliveryAddress" value="1" <%= formData.requiresPhilippineDeliveryAddress ? 'checked' : '' %>> Philippines addresses only</label>
+                  </div>
+                </div>
+                <div class="checkbox-row">
+                  <input type="hidden" name="internationalRunnersAllowed" value="0">
+                  <label><input type="checkbox" name="internationalRunnersAllowed" value="1" <%= formData.internationalRunnersAllowed ? 'checked' : '' %>> International runners allowed</label>
+                </div>
               </div>
             </details>
           </div>
         </div>
 
-        <!-- PRICING SETUP SECTION -->
+        <!-- PRICING PER DISTANCE SECTION -->
         <div id="pricing-step" class="form-section form-section-fees" tabindex="-1" data-wizard-step="pricing-step">
           <div class="section-kicker">Step 7 of 12</div>
-          <div class="section-title">Pricing Setup</div>
-          <p class="section-helper">Choose whether the event is free or paid, and how registration fees are structured.</p>
+          <div class="section-title">Pricing Per Distance</div>
+          <p class="section-helper">Set whether this event is free or paid, and the registration fee for each distance or race category.</p>
+          <!-- pricingMode is a hidden field controlled by JS (per_distance or per_distance_period based on pricing-periods toggle) -->
+          <input type="hidden" id="pricingMode" name="pricingMode" value="<%= ['per_distance', 'per_distance_period'].includes(formData.pricingMode) ? formData.pricingMode : (formData.feeMode === 'paid' ? 'per_distance' : 'free') %>">
           <div class="form-grid">
             <div class="form-group <%= errors.feeMode ? 'has-error' : '' %>">
               <label for="feeMode">Event Fee *</label>
@@ -542,42 +500,27 @@
               </select>
               <% if (errors.feeMode) { %><small class="error-text"><%= errors.feeMode %></small><% } %>
             </div>
-            <div class="form-group payment-fields <%= errors.feeAmount ? 'has-error' : '' %>">
-              <label for="feeAmount">Total Event Fee</label>
-              <input id="feeAmount" name="feeAmount" type="number" min="0" step="0.01" value="<%= formData.feeAmount || '' %>" placeholder="0.00">
-              <small class="field-hint">This is the total amount runners will pay. Include any physical reward/package cost in this amount.</small>
-              <% if (errors.feeAmount) { %><small class="error-text"><%= errors.feeAmount %></small><% } %>
-            </div>
-            <div class="form-group payment-fields <%= errors.pricingMode ? 'has-error' : '' %>">
-              <label for="pricingMode">Pricing Mode</label>
-              <select id="pricingMode" name="pricingMode">
-                <option value="free" <%= formData.pricingMode === 'free' ? 'selected' : '' %>>Free</option>
-                <option value="same_fee" <%= formData.pricingMode === 'same_fee' ? 'selected' : '' %>>Same fee for all distances</option>
-                <option value="package_period" <%= formData.pricingMode === 'package_period' ? 'selected' : '' %>>Package / pricing periods</option>
-                <option value="per_distance" <%= formData.pricingMode === 'per_distance' ? 'selected' : '' %>>Different fee per distance</option>
-                <option value="per_distance_period" <%= formData.pricingMode === 'per_distance_period' ? 'selected' : '' %>>Per distance with pricing periods</option>
-              </select>
-              <small class="field-hint">Use <em>Same fee</em> for one flat registration price. Use <em>Package / pricing periods</em> for early-bird or tiered packages. Use <em>Per distance</em> when each race distance has its own price.</small>
-              <% if (errors.pricingMode) { %><small class="error-text"><%= errors.pricingMode %></small><% } %>
-            </div>
-            <div class="form-group payment-fields">
-              <label for="finalEventFee">Organizer Final Fee</label>
-              <input id="finalEventFee" name="finalEventFee" type="number" min="0" step="0.01" value="<%= formData.finalEventFee ?? '' %>" placeholder="<%= Number(formData.suggestedEventFee || 0).toFixed(2) %>">
-              <small class="field-hint">Optional organizer-side override. Runner checkout still uses Total Event Fee in this version.</small>
-            </div>
             <div class="form-group payment-fields <%= errors.feeCurrency ? 'has-error' : '' %>">
               <label for="feeCurrency">Currency</label>
               <input id="feeCurrency" name="feeCurrency" type="text" value="<%= formData.feeCurrency || 'PHP' %>" maxlength="3" placeholder="PHP">
               <% if (errors.feeCurrency) { %><small class="error-text"><%= errors.feeCurrency %></small><% } %>
             </div>
           </div>
-          <!-- PER-DISTANCE PRICING (shown when pricingMode is per_distance or per_distance_period) -->
-          <div class="per-distance-fields" style="display:none; margin-top:1.25rem;">
+          <p class="pricing-free-note field-hint" style="display:none;">&#10003; This event is free &mdash; runners will not be asked to pay or upload payment proof.</p>
+          <!-- PER-DISTANCE PRICING (shown when feeMode is paid) -->
+          <div class="per-distance-fields payment-fields" style="display:none; margin-top:1.25rem;">
             <div class="subsection-divider">Per-Distance Fees</div>
-            <p class="field-hint" style="margin-bottom:0.75rem;">Set a fee for each race distance. Distances are populated from your Race Categories (Step 5). These fees override the total event fee for individual distance checkouts.</p>
+            <p class="field-hint" style="margin-bottom:0.75rem;">Set a fee for each race distance. Distances are populated from your Race Categories (Step 5). These fees override the base registration fee for individual distances.</p>
+            <div class="pricing-periods-toggle" style="display:none; margin-bottom:0.75rem;">
+              <label>
+                <input type="checkbox" id="enablePricingPeriods" <%= formData.pricingMode === 'per_distance_period' ? 'checked' : '' %>>
+                Add early bird and late registration pricing
+              </label>
+              <small class="field-hint">When enabled, you can set different prices for early bird, regular, and late registration windows per distance.</small>
+            </div>
             <div id="perDistanceFeeRows" class="per-distance-fee-grid">
               <!-- JS populates rows: one per race category distance -->
-              <p class="field-hint per-distance-empty-hint">No race categories defined yet. Add distances in Step 5, then return here to set per-distance fees.</p>
+              <p class="field-hint per-distance-empty-hint">No race distances selected yet. Add distances in Step 5, then come back here to set fees per distance.</p>
             </div>
           </div>
         </div>
@@ -596,14 +539,26 @@
                 <small class="field-hint">Name associated with your GCash, bank, or payment account.</small>
               </div>
               <div class="form-group form-group-full <%= errors.paymentQrImageUrl ? 'has-error' : '' %>">
-                <label for="paymentQrImageFile">Payment QR Image</label>
+                <label for="paymentQrImageFile">Payment QR Image <span class="field-help-icon" tabindex="0" aria-label="Upload a QR code image that runners will use to complete payment. Required for paid events before submitting for review.">?</span></label>
                 <% if (formData.paymentQrImageUrl) { %>
-                  <div class="existing-media-preview">
-                    <img class="detail-logo-image" src="<%= formData.paymentQrImageUrl %>" alt="Payment QR preview">
-                    <label><input type="checkbox" name="removePaymentQrImage" value="1"> Remove current payment QR</label>
-                  </div>
+                <div class="branding-preview-wrap" id="qrPreviewWrap">
+                  <button type="button" class="branding-remove-btn" id="removeQrBtn" aria-label="Remove current QR image">x</button>
+                  <img src="<%= formData.paymentQrImageUrl %>" alt="Current payment QR" style="max-width:160px;max-height:160px;border-radius:8px;margin-bottom:1rem;">
+                </div>
+                <input type="hidden" id="removePaymentQrImage" name="removePaymentQrImage" value="0">
                 <% } %>
-                <input id="paymentQrImageFile" name="paymentQrImageFile" type="file" accept="image/jpeg,image/png">
+                <div class="upload-area" id="qrUploadArea">
+                  <input type="file" id="paymentQrImageFile" name="paymentQrImageFile" accept="image/jpeg,image/png">
+                  <div class="upload-placeholder">
+                    <i data-lucide="upload-cloud"></i>
+                    <p>Drag &amp; drop or click to upload QR image</p>
+                    <small>JPG/PNG only, max 5 MB</small>
+                  </div>
+                  <div class="upload-preview" id="qrPreviewContainer" style="display:none;">
+                    <img id="qrPreviewImg" src="#" alt="New QR preview">
+                    <button type="button" class="remove-upload" aria-label="Remove new QR" data-for="qr">x</button>
+                  </div>
+                </div>
                 <input id="paymentQrImageUrl" name="paymentQrImageUrl" type="hidden" value="<%= formData.paymentQrImageUrl || '' %>">
                 <input id="paymentQrImageKey" name="paymentQrImageKey" type="hidden" value="<%= formData.paymentQrImageKey || '' %>">
                 <small class="field-hint">Required before submitting a paid event for review. JPG/PNG only, max 5 MB.</small>
@@ -623,11 +578,24 @@
           <div class="section-kicker">Step 9 of 12</div>
           <div class="section-title">Event Details</div>
           <p class="section-helper">Use this section for full event rules, FAQs, pricing explanation, submission rules, and runner guidance.</p>
-          <div class="form-group form-group-full <%= errors.eventDetailsMarkdown ? 'has-error' : '' %>">
-            <label for="eventDetailsMarkdown">Event Details</label>
-            <textarea id="eventDetailsMarkdown" name="eventDetailsMarkdown" rows="18" placeholder="Add full event rules, inclusions, FAQs, and instructions."><%= formData.eventDetailsMarkdown || '' %></textarea>
-            <small class="field-hint">Full editable content shown on the public event page. Add rules, reward inclusions, FAQs, proof instructions, and important deadlines here. Limit: 20,000 characters.</small>
-            <% if (errors.eventDetailsMarkdown) { %><small class="error-text"><%= errors.eventDetailsMarkdown %></small><% } %>
+          <div class="waiver-panels">
+            <div class="waiver-panel <%= errors.eventDetailsMarkdown ? 'has-error' : '' %>">
+              <label for="eventDetailsEditor">Event Details</label>
+              <div class="waiver-toolbar">
+                <button type="button" id="clearEventDetailsBtn" class="btn btn-outline waiver-icon-btn" aria-label="Clear content" title="Clear all content">
+                  <i data-lucide="eraser"></i>
+                </button>
+              </div>
+              <div id="eventDetailsEditor" class="waiver-editor"></div>
+              <input type="hidden" id="eventDetailsMarkdown" name="eventDetailsMarkdown" value="<%- formData.eventDetailsMarkdown || '' %>">
+              <small class="field-hint">Full editable content shown on the public event page. Add rules, reward inclusions, FAQs, proof instructions, and important deadlines here.</small>
+              <% if (errors.eventDetailsMarkdown) { %><small class="error-text"><%= errors.eventDetailsMarkdown %></small><% } %>
+            </div>
+            <div class="waiver-panel">
+              <label>Preview</label>
+              <div id="eventDetailsPreview" class="waiver-preview-box" aria-live="polite"></div>
+              <small class="field-hint">Preview of the formatted content as it will appear on the event page.</small>
+            </div>
           </div>
         </div>
 
@@ -822,13 +790,16 @@
             <p class="field-hint">&#128196; <strong>Submit for Review</strong> requires all required fields to be complete. A payment QR image is required for paid events.</p>
           </div>
           <div class="actions">
-            <a href="/organizer/dashboard" class="btn btn-secondary">Back to Dashboard</a>
-            <button type="button" class="btn btn-outline" id="previewBtn">Preview</button>
-            <button type="submit" name="actionType" value="draft" class="btn btn-outline">Save Draft</button>
-            <button type="submit" name="actionType" value="publish" class="btn btn-primary" id="publishBtn">
-              <span class="btn-text">Submit for Review</span>
-              <span class="spinner" style="display: none;"></span>
-            </button>
+            <div class="action-btn-group">
+              <a href="/organizer/dashboard" class="btn btn-secondary btn-adaptive" aria-label="Back to Dashboard" data-tooltip="Back to Dashboard"><i data-lucide="arrow-left"></i><span class="btn-label">Back to Dashboard</span></a>
+              <button type="button" class="btn btn-outline btn-adaptive" id="previewBtn" aria-label="Preview" data-tooltip="Preview"><i data-lucide="eye"></i><span class="btn-label">Preview</span></button>
+              <button type="submit" name="actionType" value="draft" class="btn btn-outline btn-adaptive" aria-label="Save Draft" data-tooltip="Save Draft"><i data-lucide="save"></i><span class="btn-label">Save Draft</span></button>
+              <button type="submit" name="actionType" value="publish" class="btn btn-primary btn-adaptive" id="publishBtn" aria-label="Submit for Review" data-tooltip="Submit for Review">
+                <i data-lucide="send"></i>
+                <span class="btn-label">Submit for Review</span>
+                <span class="spinner" style="display: none;"></span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -848,8 +819,8 @@
               <li><a href="#schedule-step" data-overlay-step="schedule-step"><span class="overlay-step-num">3</span> Schedule</a></li>
               <li><a href="#location-virtual-step" data-overlay-step="location-virtual-step"><span class="overlay-step-num">4</span> Location or Virtual Rules</a></li>
               <li><a href="#race-categories-step" data-overlay-step="race-categories-step"><span class="overlay-step-num">5</span> Race Categories</a></li>
-              <li><a href="#rewards-step" data-overlay-step="rewards-step"><span class="overlay-step-num">6</span> Rewards &amp; Merchandise</a></li>
-              <li><a href="#pricing-step" data-overlay-step="pricing-step"><span class="overlay-step-num">7</span> Pricing Setup</a></li>
+              <li><a href="#rewards-step" data-overlay-step="rewards-step"><span class="overlay-step-num">6</span> Rewards &amp; Inclusions</a></li>
+              <li><a href="#pricing-step" data-overlay-step="pricing-step"><span class="overlay-step-num">7</span> Pricing Per Distance</a></li>
               <li><a href="#payment-setup-step" data-overlay-step="payment-setup-step"><span class="overlay-step-num">8</span> Payment Setup</a></li>
               <li><a href="#event-details-step" data-overlay-step="event-details-step"><span class="overlay-step-num">9</span> Event Details</a></li>
               <li><a href="#media-step" data-overlay-step="media-step"><span class="overlay-step-num">10</span> Branding &amp; Media</a></li>
@@ -935,8 +906,8 @@
         'schedule-step':         { num: 3,  label: 'Schedule' },
         'location-virtual-step': { num: 4,  label: 'Location / Virtual' },
         'race-categories-step':  { num: 5,  label: 'Race Categories' },
-        'rewards-step':          { num: 6,  label: 'Rewards' },
-        'pricing-step':          { num: 7,  label: 'Pricing Setup' },
+        'rewards-step':          { num: 6,  label: 'Rewards & Inclusions' },
+        'pricing-step':          { num: 7,  label: 'Pricing Per Distance' },
         'payment-setup-step':    { num: 8,  label: 'Payment Setup' },
         'event-details-step':    { num: 9,  label: 'Event Details' },
         'media-step':            { num: 10, label: 'Branding & Media' },
@@ -1021,25 +992,140 @@
       });
 
       function togglePaymentFields() {
-        const showPaymentFields = feeModeSelect?.value === 'paid';
+        const isPaid = feeModeSelect?.value === 'paid';
         paymentFields.forEach((field) => {
-          field.style.display = showPaymentFields ? '' : 'none';
+          field.style.display = isPaid ? '' : 'none';
         });
         const paymentFreeNote = document.querySelector('.payment-free-note');
-        if (paymentFreeNote) paymentFreeNote.style.display = showPaymentFields ? 'none' : '';
+        if (paymentFreeNote) paymentFreeNote.style.display = isPaid ? 'none' : '';
+        // Sync pricingMode hidden field: free when not paid, otherwise per_distance or per_distance_period
+        const pricingModeInput = document.getElementById('pricingMode');
+        if (pricingModeInput) {
+          if (!isPaid) {
+            pricingModeInput.value = 'free';
+          } else if (pricingModeInput.value === 'free') {
+            // Default paid events to per_distance unless pricing periods are enabled
+            const periodsChecked = document.getElementById('enablePricingPeriods')?.checked;
+            pricingModeInput.value = periodsChecked ? 'per_distance_period' : 'per_distance';
+          }
+        }
+        // Show/hide per-distance pricing section and pricing free note in Step 7
+        const perDistanceFieldsEl = document.querySelector('.per-distance-fields');
+        if (perDistanceFieldsEl) perDistanceFieldsEl.style.display = isPaid ? '' : 'none';
+        const pricingFreeNote = document.querySelector('.pricing-free-note');
+        if (pricingFreeNote) pricingFreeNote.style.display = isPaid ? 'none' : '';
+        // Rebuild per-distance rows whenever paid state changes
+        if (isPaid) rebuildPerDistanceFeeRows();
       }
       feeModeSelect?.addEventListener('change', togglePaymentFields);
       togglePaymentFields();
 
-      const pricingModeSelect = document.getElementById('pricingMode');
-      const perDistanceFields = document.querySelector('.per-distance-fields');
-      function togglePricingModeFields() {
-        const mode = pricingModeSelect?.value;
-        const showPerDistance = mode === 'per_distance' || mode === 'per_distance_period';
-        if (perDistanceFields) perDistanceFields.style.display = showPerDistance ? '' : 'none';
+      // Pricing periods toggle: switches pricingMode between per_distance and per_distance_period
+      const enablePricingPeriodsCheckbox = document.getElementById('enablePricingPeriods');
+      function onEnablePricingPeriodsChange() {
+        const pricingModeInput = document.getElementById('pricingMode');
+        if (!pricingModeInput) return;
+        const isPaid = feeModeSelect?.value === 'paid';
+        if (!isPaid) return;
+        pricingModeInput.value = enablePricingPeriodsCheckbox?.checked ? 'per_distance_period' : 'per_distance';
+        rebuildPerDistanceFeeRows();
       }
-      pricingModeSelect?.addEventListener('change', togglePricingModeFields);
-      togglePricingModeFields();
+      enablePricingPeriodsCheckbox?.addEventListener('change', onEnablePricingPeriodsChange);
+
+      // ---------- PER-DISTANCE FEE ROW BUILDER ----------
+      const EXISTING_DISTANCE_PRICING = <%- JSON.stringify((formData.distancePricing || []).map(function(d) { return { distance: d.distance, amount: d.amount, earlyBirdAmount: d.earlyBirdAmount, regularAmount: d.regularAmount, lateAmount: d.lateAmount }; })) %>;
+
+      function getActiveDistances() {
+        const presets = Array.from(document.querySelectorAll('input[name="raceDistancePresets"]:checked'))
+          .map((cb) => cb.value.trim().toUpperCase().replace(/\s+/g, ''));
+        const customRaw = document.getElementById('raceDistanceCustom')?.value || '';
+        const customs = customRaw.split(',').map((v) => v.trim().toUpperCase().replace(/\s+/g, '')).filter(Boolean);
+        const seen = new Set();
+        return [...presets, ...customs].filter((d) => { if (seen.has(d)) return false; seen.add(d); return Boolean(d); });
+      }
+
+      function rebuildPerDistanceFeeRows() {
+        const container = document.getElementById('perDistanceFeeRows');
+        if (!container) return;
+        const periodsToggle = document.querySelector('.pricing-periods-toggle');
+        const distances = getActiveDistances();
+        if (!distances.length) {
+          container.innerHTML = '<p class="field-hint per-distance-empty-hint">No race distances selected yet. Add distances in Step 5, then come back here to set fees per distance.</p>';
+          if (periodsToggle) periodsToggle.style.display = 'none';
+          return;
+        }
+        if (periodsToggle) periodsToggle.style.display = '';
+        const usePeriods = document.getElementById('enablePricingPeriods')?.checked;
+        const currency = document.getElementById('feeCurrency')?.value?.trim() || 'PHP';
+
+        // Preserve currently-entered values before clearing
+        const saved = {};
+        container.querySelectorAll('.per-distance-fee-row[data-dist]').forEach((row) => {
+          const d = row.dataset.dist;
+          saved[d] = {
+            amount:        row.querySelector('input[name="distancePricingAmount"]')?.value ?? '',
+            earlyBird:     row.querySelector('input[name="distancePricingEarlyBirdAmount"]')?.value ?? '',
+            regular:       row.querySelector('input[name="distancePricingRegularAmount"]')?.value ?? '',
+            late:          row.querySelector('input[name="distancePricingLateAmount"]')?.value ?? ''
+          };
+        });
+
+        container.innerHTML = '';
+
+        if (usePeriods) {
+          // Header row
+          const header = document.createElement('div');
+          header.className = 'per-distance-fee-header';
+          header.innerHTML = '<span></span><span>Early Bird</span><span>Regular</span><span>Late <span class="field-help-icon" tabindex="0" aria-label="Optional — leave blank if you do not offer late registration pricing.">?</span></span><span></span>';
+          container.appendChild(header);
+        }
+
+        distances.forEach((dist) => {
+          const existing = EXISTING_DISTANCE_PRICING.find((d) => d.distance === dist) || {};
+          const cur = saved[dist] || {};
+          const val = (curVal, savedVal) => curVal !== undefined && curVal !== ''
+            ? curVal
+            : (savedVal !== null && savedVal !== undefined ? savedVal : '');
+          const row = document.createElement('div');
+          row.className = usePeriods ? 'per-distance-fee-row has-periods' : 'per-distance-fee-row';
+          row.dataset.dist = dist;
+
+          if (usePeriods) {
+            row.innerHTML = `
+              <label>${dist}</label>
+              <input type="hidden" name="distancePricingLabel" value="${dist}">
+              <input type="hidden" name="distancePricingAmount" value="">
+              <input type="number" name="distancePricingEarlyBirdAmount" min="0" step="0.01"
+                value="${val(cur.earlyBird, existing.earlyBirdAmount)}" placeholder="0.00" aria-label="Early bird fee for ${dist}">
+              <input type="number" name="distancePricingRegularAmount" min="0" step="0.01"
+                value="${val(cur.regular || cur.amount, existing.regularAmount)}" placeholder="0.00" aria-label="Regular fee for ${dist}">
+              <input type="number" name="distancePricingLateAmount" min="0" step="0.01"
+                value="${val(cur.late, existing.lateAmount)}" placeholder="0.00" aria-label="Late fee for ${dist}">
+              <span class="per-distance-fee-currency">${currency}</span>
+            `;
+          } else {
+            row.innerHTML = `
+              <label>${dist}</label>
+              <input type="hidden" name="distancePricingLabel" value="${dist}">
+              <input type="number" name="distancePricingAmount" min="0" step="0.01"
+                value="${val(cur.amount || cur.regular, existing.amount)}" placeholder="0.00" aria-label="Fee for ${dist}">
+              <input type="hidden" name="distancePricingEarlyBirdAmount" value="">
+              <input type="hidden" name="distancePricingRegularAmount" value="">
+              <input type="hidden" name="distancePricingLateAmount" value="">
+              <span class="per-distance-fee-currency">${currency}</span>
+            `;
+          }
+          container.appendChild(row);
+        });
+      }
+
+      // Rebuild whenever Step 5 distance inputs change
+      document.querySelectorAll('input[name="raceDistancePresets"]').forEach((cb) => {
+        cb.addEventListener('change', () => { if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows(); });
+      });
+      document.getElementById('raceDistanceCustom')?.addEventListener('input', () => {
+        if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows();
+      });
 
       function togglePhysicalRewardFields() {
         const showPhysicalRewardFields = Boolean(physicalRewardsEnabledInput?.checked);
@@ -1049,6 +1135,25 @@
       }
       physicalRewardsEnabledInput?.addEventListener('change', togglePhysicalRewardFields);
       togglePhysicalRewardFields();
+
+      document.getElementById('customMerchandiseEnabled')?.addEventListener('change', function () {
+        const fields = document.getElementById('customMerchandiseFields');
+        if (fields) fields.style.display = this.checked ? '' : 'none';
+      });
+
+      // ---------- DELIVERY & FULFILMENT TOGGLES ----------
+      document.getElementById('deliveryFeeEnabled')?.addEventListener('change', function () {
+        const fields = document.getElementById('deliveryFeeFields');
+        if (fields) fields.style.display = this.checked ? '' : 'none';
+      });
+
+      document.getElementById('claimingMethod')?.addEventListener('change', function () {
+        const hasDelivery = this.value === 'delivery' || this.value === 'both';
+        const feeGroup = document.getElementById('deliveryFeeAmountGroup');
+        const addressFields = document.getElementById('deliveryAddressFields');
+        if (feeGroup) feeGroup.style.display = hasDelivery ? '' : 'none';
+        if (addressFields) addressFields.style.display = hasDelivery ? '' : 'none';
+      });
 
       // ---------- REVIEW STEP READINESS CHECKLIST ----------
       function buildReadinessChecklist() {
@@ -1259,46 +1364,6 @@
       }
       syncFinalSubmissionDeadlineFromEventEnd();
 
-      function getIndexedInput(name, index) {
-        return Array.from(document.querySelectorAll(`input[name="${name}"]`))[Number(index)] || null;
-      }
-
-      function setIndexedDateInput(name, index, date) {
-        const input = getIndexedInput(name, index);
-        if (!input || !date) return;
-        input.value = formatDateTimeLocalValue(date);
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-      }
-
-      function applySuggestedPricingDates(packageIndex) {
-        const registrationOpen = parseDateTimeLocalValue(document.getElementById('registrationOpenAt')?.value);
-        const registrationClose = parseDateTimeLocalValue(document.getElementById('registrationCloseAt')?.value);
-        if (!registrationOpen || !registrationClose || registrationOpen >= registrationClose) {
-          alert('Set a valid Registration Open and Registration Close before using suggested pricing dates.');
-          return;
-        }
-
-        const dayMs = 24 * 60 * 60 * 1000;
-        if (registrationClose.getTime() - registrationOpen.getTime() <= 21 * dayMs) {
-          alert('Suggested Early Bird, Regular, and Late Registration periods need more than 21 days between registration open and close.');
-          return;
-        }
-
-        const earlyEnd = new Date(registrationOpen.getTime() + 14 * dayMs);
-        const lateStart = new Date(registrationClose.getTime() - 7 * dayMs);
-        setIndexedDateInput('registrationPackageEarlyBirdStartAt', packageIndex, registrationOpen);
-        setIndexedDateInput('registrationPackageEarlyBirdEndAt', packageIndex, earlyEnd);
-        setIndexedDateInput('registrationPackageRegularStartAt', packageIndex, earlyEnd);
-        setIndexedDateInput('registrationPackageRegularEndAt', packageIndex, lateStart);
-        setIndexedDateInput('registrationPackageLateStartAt', packageIndex, lateStart);
-        setIndexedDateInput('registrationPackageLateEndAt', packageIndex, registrationClose);
-      }
-
-      document.querySelectorAll('.btn-suggest-pricing-dates').forEach((button) => {
-        button.addEventListener('click', () => applySuggestedPricingDates(button.dataset.packageIndex));
-      });
-
       // ---------- "NOW" BUTTONS ----------
       document.querySelectorAll('.btn-now').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1474,7 +1539,10 @@
           }
         });
 
-        area.addEventListener('click', () => fileInput.click());
+        area.addEventListener('click', (e) => {
+          if (e.target === fileInput) return;
+          fileInput.click();
+        });
 
         fileInput.addEventListener('change', () => {
           handleFileSelect(fileInput, previewContainer, previewImg, urlInput);
@@ -1523,6 +1591,7 @@
       setupUploadArea('logoUploadArea', 'logoPreviewContainer', 'logoPreviewImg', 'logoFile', 'logoUrl', '.remove-upload[data-for="logo"]');
       setupUploadArea('bannerUploadArea', 'bannerPreviewContainer', 'bannerPreviewImg', 'bannerFile', 'bannerImageUrl', '.remove-upload[data-for="banner"]');
       setupUploadArea('posterUploadArea', 'posterPreviewContainer', 'posterPreviewImg', 'posterFile', 'posterImageUrl', '.remove-upload[data-for="poster"]');
+      setupUploadArea('qrUploadArea', 'qrPreviewContainer', 'qrPreviewImg', 'paymentQrImageFile', null, '.remove-upload[data-for="qr"]');
 
       // Gallery (multiple files)
       const galleryInput = document.getElementById('galleryFiles');
@@ -1643,6 +1712,26 @@
             alert(error.message);
           } finally {
             removePosterBtn.disabled = false;
+          }
+        });
+      }
+
+      // QR remove
+      const removeQrBtn = document.getElementById('removeQrBtn');
+      const removeQrInput = document.getElementById('removePaymentQrImage');
+      if (removeQrBtn && removeQrInput) {
+        removeQrBtn.addEventListener('click', async () => {
+          if (!confirm('Remove current payment QR image?')) return;
+          removeQrBtn.disabled = true;
+          try {
+            await removeEventMediaNow({ kind: 'paymentQr' });
+            removeQrInput.value = '1';
+            document.getElementById('qrPreviewWrap').style.display = 'none';
+            document.getElementById('paymentQrImageUrl').value = '';
+          } catch (error) {
+            alert(error.message);
+          } finally {
+            removeQrBtn.disabled = false;
           }
         });
       }
@@ -1796,6 +1885,10 @@
             renderWaiverPreview();
           });
 
+          // dangerouslyPasteHTML sets Quill focus internally, scroll back to top
+          waiverQuill.blur();
+          requestAnimationFrame(() => { if (!window.location.hash) window.scrollTo(0, 0); });
+
           renderWaiverPreview();
         } catch (error) {
           console.error('Failed to initialize Quill:', error);
@@ -1841,7 +1934,81 @@
       } else {
         initializeWaiverEditor();
       }
+
+      // ---------- EVENT DETAILS RICH TEXT EDITOR ----------
+      const eventDetailsEditorRoot = document.getElementById('eventDetailsEditor');
+      const eventDetailsInput = document.getElementById('eventDetailsMarkdown');
+      const eventDetailsPreview = document.getElementById('eventDetailsPreview');
+      const clearEventDetailsBtn = document.getElementById('clearEventDetailsBtn');
+      const initialEventDetails = <%- JSON.stringify(formData.eventDetailsMarkdown || '') %>;
+      let eventDetailsQuill = null;
+
+      function renderEventDetailsPreview() {
+        if (!eventDetailsPreview) return;
+        const html = eventDetailsQuill ? (eventDetailsQuill.root.innerHTML || '') : (eventDetailsInput?.value || '');
+        eventDetailsPreview.innerHTML = sanitizePreviewHtml(html);
+      }
+
+      function initializeEventDetailsEditor() {
+        if (!eventDetailsEditorRoot || !eventDetailsInput || !window.Quill) {
+          if (eventDetailsInput) eventDetailsInput.value = initialEventDetails;
+          renderEventDetailsPreview();
+          return;
+        }
+        if (eventDetailsQuill) { renderEventDetailsPreview(); return; }
+        eventDetailsEditorRoot.innerHTML = '';
+        try {
+          eventDetailsQuill = new Quill('#eventDetailsEditor', {
+            theme: 'snow',
+            modules: {
+              toolbar: [
+                [{ header: [2, 3, false] }],
+                ['bold', 'italic', 'underline'],
+                [{ list: 'ordered' }, { list: 'bullet' }],
+                ['blockquote', 'link'],
+                ['clean']
+              ]
+            },
+            placeholder: 'Add full event rules, inclusions, FAQs, and instructions...'
+          });
+          if (initialEventDetails) {
+            eventDetailsQuill.clipboard.dangerouslyPasteHTML(initialEventDetails);
+          }
+          eventDetailsInput.value = initialEventDetails;
+          eventDetailsQuill.on('text-change', () => {
+            eventDetailsInput.value = eventDetailsQuill.root.innerHTML || '';
+            renderEventDetailsPreview();
+          });
+          eventDetailsQuill.blur();
+          renderEventDetailsPreview();
+        } catch (err) {
+          console.error('Failed to initialize event details editor:', err);
+          if (eventDetailsInput) eventDetailsInput.value = initialEventDetails;
+          renderEventDetailsPreview();
+        }
+      }
+
+      if (clearEventDetailsBtn) {
+        clearEventDetailsBtn.addEventListener('click', () => {
+          if (!confirm('Clear all event details content?')) return;
+          if (eventDetailsQuill) { eventDetailsQuill.setContents([]); }
+          if (eventDetailsInput) eventDetailsInput.value = '';
+          renderEventDetailsPreview();
+        });
+      }
+      if (form && eventDetailsInput) {
+        form.addEventListener('submit', () => {
+          if (eventDetailsQuill) eventDetailsInput.value = eventDetailsQuill.root.innerHTML || '';
+        });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeEventDetailsEditor, { once: true });
+      } else {
+        initializeEventDetailsEditor();
+      }
     })();
+
+    if (window.lucide) lucide.createIcons();
   </script>
 </body>
 </html>

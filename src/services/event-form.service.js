@@ -223,6 +223,28 @@ function normalizeRegistrationPackages(body = {}) {
   return packages.slice(0, 10);
 }
 
+function normalizeDistancePricing(body = {}) {
+  const labels = normalizeToArray(body.distancePricingLabel);
+  const amounts = normalizeToArray(body.distancePricingAmount);
+  const earlyBird = normalizeToArray(body.distancePricingEarlyBirdAmount);
+  const regular = normalizeToArray(body.distancePricingRegularAmount);
+  const late = normalizeToArray(body.distancePricingLateAmount);
+  const items = [];
+  const max = Math.max(labels.length, amounts.length, earlyBird.length, regular.length, late.length);
+  for (let index = 0; index < max; index += 1) {
+    const distance = normalizeRaceDistanceLabel(labels[index]);
+    if (!distance) continue;
+    items.push({
+      distance,
+      amount: parseOptionalNonNegativeNumber(amounts[index]),
+      earlyBirdAmount: parseOptionalNonNegativeNumber(earlyBird[index]),
+      regularAmount: parseOptionalNonNegativeNumber(regular[index]),
+      lateAmount: parseOptionalNonNegativeNumber(late[index])
+    });
+  }
+  return items.slice(0, 30);
+}
+
 function normalizeSpecialRewardBenefits(body = {}) {
   const titles = normalizeToArray(body.specialRewardBenefitTitle);
   const descriptions = normalizeToArray(body.specialRewardBenefitDescription);
@@ -270,7 +292,13 @@ function getBlankCreateEventDefaults() {
     virtualCompletionMode: 'accumulated_distance',
     acceptedRunTypes: ['run', 'walk', 'hike', 'trail_run'],
     recognitionMode: 'completion_with_optional_ranking',
-    leaderboardMode: 'finishers_and_top_distance'
+    leaderboardMode: 'finishers_and_top_distance',
+    leaderboardRecognitionEnabled: '1',
+    digitalBadgeEnabled: '1',
+    digitalCertificateEnabled: '1',
+    requiresDeliveryAddress: '1',
+    requiresPhilippineDeliveryAddress: '1',
+    internationalRunnersAllowed: '0'
   };
 }
 
@@ -330,6 +358,7 @@ function getCreateEventFormData(body = {}) {
   const physicalRewardsEnabled = normalizeBoolean(body.physicalRewardsEnabled);
   const pricingMode = normalizePricingMode(body.pricingMode, feeMode);
   const registrationPackages = normalizeRegistrationPackages(body);
+  const distancePricing = normalizeDistancePricing(body);
   const physicalRewardOtherItems = normalizeOtherItems(body.physicalRewardOtherItemName, body.physicalRewardOtherItemAmount);
   const deliveryFeeEnabled = normalizeBoolean(body.deliveryFeeEnabled);
   const normalizedFormData = {
@@ -348,6 +377,7 @@ function getCreateEventFormData(body = {}) {
     physicalRewardsDescription: String(body.physicalRewardsDescription || '').trim().slice(0, 1000),
     physicalRewardsClaimingNotes: String(body.physicalRewardsClaimingNotes || '').trim().slice(0, 1000),
     pricingMode,
+    distancePricing,
     registrationPackages,
     deliveryFeeEnabled,
     deliveryFeeAmount: parseOptionalNonNegativeNumber(body.deliveryFeeAmount),
@@ -528,6 +558,13 @@ function getCreateEventFormDataFromEvent(event) {
     physicalRewardsDescription: event.physicalRewardsDescription || '',
     physicalRewardsClaimingNotes: event.physicalRewardsClaimingNotes || '',
     pricingMode: normalizePricingMode(event.pricingMode, event.feeMode || 'free'),
+    distancePricing: (Array.isArray(event.distancePricing) ? event.distancePricing : []).map((item) => ({
+      distance: String(item.distance || '').trim(),
+      amount: Number.isFinite(item.amount) ? item.amount : null,
+      earlyBirdAmount: Number.isFinite(item.earlyBirdAmount) ? item.earlyBirdAmount : null,
+      regularAmount: Number.isFinite(item.regularAmount) ? item.regularAmount : null,
+      lateAmount: Number.isFinite(item.lateAmount) ? item.lateAmount : null
+    })),
     suggestedEventFee: Number.isFinite(event.suggestedEventFee) ? event.suggestedEventFee : 0,
     finalEventFee: Number.isFinite(event.finalEventFee) ? event.finalEventFee : null,
     registrationPackages,
@@ -808,6 +845,7 @@ function applyEventFormData(event, formData, user) {
   event.physicalRewardsDescription = formData.physicalRewardsEnabled ? formData.physicalRewardsDescription || '' : '';
   event.physicalRewardsClaimingNotes = formData.physicalRewardsEnabled ? formData.physicalRewardsClaimingNotes || '' : '';
   event.pricingMode = formData.feeMode === 'free' ? 'free' : normalizePricingMode(formData.pricingMode, formData.feeMode);
+  event.distancePricing = event.feeMode === 'paid' ? (formData.distancePricing || []) : [];
   event.suggestedEventFee = calculateSuggestedEventFee(formData);
   event.finalEventFee = formData.finalEventFee !== null ? formData.finalEventFee : (event.suggestedEventFee || null);
   event.registrationPackages = formData.registrationPackages || [];

@@ -322,6 +322,26 @@
   line-height: 1.7;
 }
 
+.event-rich-details ul,
+.event-rich-details ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.75rem;
+}
+
+.event-rich-details ul {
+  list-style-type: disc;
+}
+
+.event-rich-details ol {
+  list-style-type: decimal;
+}
+
+.event-rich-details li {
+  display: list-item;
+  padding-left: 0.25em;
+  margin-bottom: 0.25rem;
+}
+
 .event-rich-details h1,
 .event-rich-details h2,
 .event-rich-details h3,

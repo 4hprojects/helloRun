@@ -297,6 +297,18 @@ const eventSchema = new mongoose.Schema(
       enum: ['free', 'same_fee', 'package_period', 'per_distance', 'per_distance_period'],
       default: 'free'
     },
+    distancePricing: {
+      type: [
+        {
+          distance: { type: String, trim: true, maxlength: 20 },
+          amount: { type: Number, min: 0, default: null },
+          earlyBirdAmount: { type: Number, min: 0, default: null },
+          regularAmount: { type: Number, min: 0, default: null },
+          lateAmount: { type: Number, min: 0, default: null }
+        }
+      ],
+      default: []
+    },
     suggestedEventFee: {
       type: Number,
       min: 0,
