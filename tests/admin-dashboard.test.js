@@ -58,21 +58,12 @@ test('admin dashboard renders platform stats and pending application queue', asy
 
   assert.match(html, /Admin Dashboard/i);
   assert.match(html, /Action Center/i);
-  assert.match(html, /Quick Links/i);
-  assert.match(html, /Review Work/i);
-  assert.match(html, /Platform Snapshot/i);
-  assert.match(html, /Content & Policies/i);
-  assert.match(html, /Event Operations/i);
-  assert.match(html, /Roadmap Features/i);
+  assert.match(html, /Platform Overview/i);
   assert.match(html, /Shop Management/i);
-  assert.match(html, /OCR Review Intelligence/i);
   assert.match(html, /Roadmap/i);
   assert.match(html, /Pending Organizer Applications/i);
-  assert.match(html, /Pending Payment Reviews/i);
-  assert.match(html, /Pending Result Reviews/i);
   assert.match(html, /Blog Reports/i);
   assert.match(html, /Blog Comments/i);
-  assert.match(html, /Open Blog Reports/i);
   assert.match(html, /\/admin\/privacy-policy/i);
   assert.match(html, /\/admin\/terms-and-conditions/i);
   assert.match(html, /\/admin\/cookie-policy/i);
