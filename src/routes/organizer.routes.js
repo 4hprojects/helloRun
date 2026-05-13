@@ -478,6 +478,12 @@ router.post('/acknowledge-event-creation', requireAuth, requireCsrfProtection, a
       return res.redirect('/organizer/dashboard?ack_error=signature');
     }
 
+    const accountFullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    const normalize = (s) => s.trim().toLowerCase().replace(/\s+/g, ' ');
+    if (normalize(trimmedName) !== normalize(accountFullName)) {
+      return res.redirect('/organizer/dashboard?ack_error=signature_mismatch');
+    }
+
     user.organizerEventCreationAcknowledgement = {
       agreedAt: new Date(),
       signatureName: trimmedName,

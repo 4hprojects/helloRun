@@ -599,7 +599,7 @@
   <%- include('../layouts/footer') %>
 
   <!-- Pending Organizer Event Creation Acknowledgement Modal -->
-  <div id="pendingCreateEventModal" class="pce-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="pceModalTitle" hidden>
+  <div id="pendingCreateEventModal" class="pce-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="pceModalTitle" data-account-name="<%= ((user.firstName || '') + ' ' + (user.lastName || '')).trim() %>" hidden>
     <div class="pce-modal-card">
       <div class="pce-modal-header">
         <div class="pce-modal-icon-wrap">
@@ -662,14 +662,14 @@
           <div class="pce-modal-signature">
             <label for="pceSignatureName" class="pce-modal-signature-label">
               Electronic Signature
-              <span class="pce-modal-signature-hint">Type your full legal name as your electronic signature</span>
+              <span class="pce-modal-signature-hint">Type your full name exactly as it appears on your account: <strong><%= ((user.firstName || '') + ' ' + (user.lastName || '')).trim() %></strong></span>
             </label>
             <input
               type="text"
               id="pceSignatureName"
               name="signatureName"
               class="pce-modal-signature-input"
-              placeholder="Your full name"
+              placeholder="<%= ((user.firstName || '') + ' ' + (user.lastName || '')).trim() %>"
               autocomplete="name"
               maxlength="160"
             >
@@ -757,6 +757,16 @@
       var signatureInput = document.getElementById('pceSignatureName');
       var validationMsg = document.getElementById('pceValidationMsg');
       var ackForm = document.getElementById('pceAckForm');
+      var accountName = (modal.dataset.accountName || '').trim().toLowerCase();
+
+      function normalizeForSig(str) {
+        return str.trim().toLowerCase().replace(/\s+/g, ' ');
+      }
+
+      function signatureMatchesAccount() {
+        var entered = signatureInput ? normalizeForSig(signatureInput.value) : '';
+        return entered.length >= 3 && entered === accountName;
+      }
 
       function openModal() {
         modal.hidden = false;
@@ -772,12 +782,18 @@
         if (signatureInput) signatureInput.value = '';
         if (confirmBtn) confirmBtn.disabled = true;
         if (validationMsg) validationMsg.hidden = true;
+        if (signatureInput) signatureInput.classList.remove('pce-sig-error', 'pce-sig-ok');
       }
 
       function updateConfirmState() {
         var checked = checkbox && checkbox.checked;
-        var signed = signatureInput && signatureInput.value.trim().length >= 3;
-        if (confirmBtn) confirmBtn.disabled = !(checked && signed);
+        var sigOk = signatureMatchesAccount();
+        var typed = signatureInput && signatureInput.value.trim().length > 0;
+        if (signatureInput) {
+          signatureInput.classList.toggle('pce-sig-ok', sigOk);
+          signatureInput.classList.toggle('pce-sig-error', typed && !sigOk);
+        }
+        if (confirmBtn) confirmBtn.disabled = !(checked && sigOk);
       }
 
       if (triggerBtn) triggerBtn.addEventListener('click', openModal);
@@ -799,13 +815,13 @@
       if (ackForm) {
         ackForm.addEventListener('submit', function(e) {
           var checked = checkbox && checkbox.checked;
-          var signed = signatureInput && signatureInput.value.trim().length >= 3;
-          if (!checked || !signed) {
+          var sigOk = signatureMatchesAccount();
+          if (!checked || !sigOk) {
             e.preventDefault();
             if (validationMsg) {
               validationMsg.textContent = !checked
                 ? 'Please check the agreement checkbox to continue.'
-                : 'Please enter your full name as an electronic signature.';
+                : 'Your signature must exactly match the name on your account.';
               validationMsg.hidden = false;
             }
             return;
@@ -816,24 +832,6 @@
             if (window.lucide) lucide.createIcons({ nodes: [confirmBtn] });
           }
         });
-      }
-
-      // Show error toast if redirected back with ack_error
-      var urlParams = new URLSearchParams(window.location.search);
-      var ackError = urlParams.get('ack_error');
-      if (ackError) {
-        var messages = {
-          checkbox: 'Please check the agreement checkbox.',
-          signature: 'Please enter your full legal name as an electronic signature (at least 3 characters).',
-          not_pending: 'This action is only available for pending organizer accounts.',
-          server: 'A server error occurred. Please try again.'
-        };
-        var msg = messages[ackError] || 'An error occurred. Please try again.';
-        openModal();
-        if (validationMsg) {
-          validationMsg.textContent = msg;
-          validationMsg.hidden = false;
-        }
       }
     })();
   </script>

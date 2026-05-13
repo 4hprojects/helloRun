@@ -2075,6 +2075,16 @@
   border-color: #2563eb;
 }
 
+.pce-modal-signature-input.pce-sig-ok {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.pce-modal-signature-input.pce-sig-error {
+  border-color: #dc2626;
+  background: #fef2f2;
+}
+
 .pce-modal-signature-note {
   font-size: 0.76rem;
   color: #94a3b8;
