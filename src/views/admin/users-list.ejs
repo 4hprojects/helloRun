@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'User Management - helloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>User Management</h2>
+          <p>Search, filter, and inspect platform accounts.</p>
+        </div>
+        <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+      </div>
+
+      <% if (message) { %>
+        <div class="admin-alert admin-alert-<%= message.type %>">
+          <%= message.text %>
+        </div>
+      <% } %>
+
+      <form class="admin-filters admin-users-filters" method="GET" action="/admin/users">
+        <div class="filter-field filter-grow admin-user-search-field">
+          <label for="q">Search</label>
+          <div class="admin-search-control">
+            <i data-lucide="search" aria-hidden="true"></i>
+            <input
+              id="q"
+              type="search"
+              name="q"
+              value="<%= filters.q || '' %>"
+              placeholder="Search by user ID, name, or email"
+              autocomplete="off"
+            >
+            <% if (filters.q) { %>
+              <a href="<%= clearSearchHref %>" class="admin-search-clear" aria-label="Clear search">
+                <i data-lucide="x" aria-hidden="true"></i>
+              </a>
+            <% } %>
+          </div>
+        </div>
+
+        <div class="filter-field">
+          <label for="role">Role</label>
+          <select id="role" name="role">
+            <option value="">All roles</option>
+            <option value="runner" <%= filters.role === 'runner' ? 'selected' : '' %>>Runner</option>
+            <option value="organiser" <%= filters.role === 'organiser' ? 'selected' : '' %>>Organiser</option>
+            <option value="admin" <%= filters.role === 'admin' ? 'selected' : '' %>>Admin</option>
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label for="organizerStatus">Organizer Status</label>
+          <select id="organizerStatus" name="organizerStatus">
+            <option value="">All statuses</option>
+            <option value="not_applied" <%= filters.organizerStatus === 'not_applied' ? 'selected' : '' %>>Not Applied</option>
+            <option value="pending" <%= filters.organizerStatus === 'pending' ? 'selected' : '' %>>Pending</option>
+            <option value="approved" <%= filters.organizerStatus === 'approved' ? 'selected' : '' %>>Approved</option>
+            <option value="rejected" <%= filters.organizerStatus === 'rejected' ? 'selected' : '' %>>Rejected</option>
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label for="emailVerified">Email</label>
+          <select id="emailVerified" name="emailVerified">
+            <option value="">Any</option>
+            <option value="yes" <%= filters.emailVerified === 'yes' ? 'selected' : '' %>>Verified</option>
+            <option value="no" <%= filters.emailVerified === 'no' ? 'selected' : '' %>>Unverified</option>
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label for="authProvider">Auth</label>
+          <select id="authProvider" name="authProvider">
+            <option value="">Any</option>
+            <option value="local" <%= filters.authProvider === 'local' ? 'selected' : '' %>>Local</option>
+            <option value="google" <%= filters.authProvider === 'google' ? 'selected' : '' %>>Google</option>
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label for="sort">Sort</label>
+          <select id="sort" name="sort">
+            <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest</option>
+            <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest</option>
+            <option value="updated" <%= filters.sort === 'updated' ? 'selected' : '' %>>Recently Updated</option>
+            <option value="role" <%= filters.sort === 'role' ? 'selected' : '' %>>Role</option>
+          </select>
+        </div>
+
+        <div class="filter-actions">
+          <button type="submit" class="btn">Apply Filters</button>
+          <a href="<%= resetHref %>" class="btn btn-secondary">Reset</a>
+        </div>
+      </form>
+
+      <div class="results-meta">
+        <strong><%= pagination.total %></strong> user<%= pagination.total === 1 ? '' : 's' %> found
+      </div>
+
+      <% if (users && users.length) { %>
+        <div class="admin-users-toolbar">
+          <form method="POST" action="/admin/users/delete" class="admin-users-bulk-form" id="adminUsersBulkForm">
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <div class="admin-users-bulk-actions">
+              <button type="submit" class="btn btn-danger" id="adminUsersBulkDeleteBtn" disabled>
+                Delete Selected
+              </button>
+              <span class="metric-helper" id="adminUsersSelectedCount">0 selected</span>
+            </div>
+          </form>
+
+          <div class="admin-column-menu" data-column-menu>
+            <button type="button" class="btn btn-secondary" id="adminUsersColumnMenuBtn" aria-expanded="false" aria-controls="adminUsersColumnMenu">
+              <i data-lucide="columns-3" aria-hidden="true"></i>
+              Columns
+              <span class="admin-column-count" id="adminUsersColumnCount">7</span>
+            </button>
+            <div class="admin-column-menu-panel" id="adminUsersColumnMenu" hidden>
+              <label><input type="checkbox" data-column-toggle="userId"> User ID</label>
+              <label><input type="checkbox" data-column-toggle="user" checked> User</label>
+              <label><input type="checkbox" data-column-toggle="role" checked> Role</label>
+              <label><input type="checkbox" data-column-toggle="organizer" checked> Organizer</label>
+              <label><input type="checkbox" data-column-toggle="email" checked> Email</label>
+              <label><input type="checkbox" data-column-toggle="auth" checked> Auth</label>
+              <label><input type="checkbox" data-column-toggle="activity" checked> Activity</label>
+              <label><input type="checkbox" data-column-toggle="created" checked> Created</label>
+              <button type="button" class="admin-column-reset" data-column-reset>Reset columns</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-users-table-wrap">
+          <table class="admin-table admin-users-table" id="adminUsersTable">
+            <thead>
+              <tr>
+                <th aria-label="Select users">
+                  <input type="checkbox" id="adminUsersSelectAll" aria-label="Select all deletable users">
+                </th>
+                <th aria-sort="none" data-column="userId" class="is-column-hidden">
+                  <button type="button" class="admin-sort-header" data-sort-key="userId">
+                    User ID <i data-lucide="chevrons-up-down" aria-hidden="true"></i>
+                  </button>
+                </th>
+                <th aria-sort="none" data-column="user">
+                  <button type="button" class="admin-sort-header" data-sort-key="name">
+                    User <i data-lucide="chevrons-up-down" aria-hidden="true"></i>
+                  </button>
+                </th>
+                <th aria-sort="none" data-column="role">
+                  <button type="button" class="admin-sort-header" data-sort-key="role">
+                    Role <i data-lucide="chevrons-up-down" aria-hidden="true"></i>
+                  </button>
+                </th>
+                <th aria-sort="none" data-column="organizer">
+                  <button type="button" class="admin-sort-header" data-sort-key="organizerStatus">
+                    Organizer <i data-lucide="chevrons-up-down" aria-hidden="true"></i>
+                  </button>
+                </th>
+                <th aria-sort="none" data-column="email">
+                  <button type="button" class="admin-sort-header" data-sort-key="emailVerified">
+                    Email <i data-lucide="chevrons-up-down" aria-hidden="true"></i>
+                  </button>
+                </th>
+                <th aria-sort="none" data-column="auth">
+                  <button type="button" class="admin-sort-header" data-sort-key="authProvider">
+                    Auth <i data-lucide="chevrons-up-down" aria-hidden="true"></i>
+                  </button>
+                </th>
+                <th aria-sort="none" data-column="activity">
+                  <button type="button" class="admin-sort-header" data-sort-key="activity">
+                    Activity <i data-lucide="chevrons-up-down" aria-hidden="true"></i>
+                  </button>
+                </th>
+                <th aria-sort="none" data-column="created">
+                  <button type="button" class="admin-sort-header" data-sort-key="createdAt">
+                    Created <i data-lucide="chevrons-up-down" aria-hidden="true"></i>
+                  </button>
+                </th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% users.forEach((item, index) => { %>
+                <tr
+                  data-original-index="<%= index %>"
+                  data-sort-user-id="<%= item.userId %>"
+                  data-sort-name="<%= item.name %>"
+                  data-sort-role="<%= item.role %>"
+                  data-sort-organizer-status="<%= item.organizerStatus %>"
+                  data-sort-email-verified="<%= item.emailVerified ? 1 : 0 %>"
+                  data-sort-auth-provider="<%= item.authProvider %>"
+                  data-sort-activity="<%= item.dependencyCount %>"
+                  data-sort-created-at="<%= item.createdAt ? new Date(item.createdAt).getTime() : 0 %>"
+                >
+                  <td>
+                    <input
+                      type="checkbox"
+                      name="userIds"
+                      value="<%= item.id %>"
+                      form="adminUsersBulkForm"
+                      class="admin-user-row-checkbox"
+                      aria-label="Select <%= item.email %>"
+                      <%= item.canDelete ? '' : 'disabled' %>
+                      data-user-checkbox
+                    >
+                  </td>
+                  <td class="mono admin-users-id-cell is-column-hidden" data-column="userId" title="<%= item.userId %>"><%= item.userId %></td>
+                  <td class="admin-users-person-cell" data-column="user">
+                    <strong title="<%= item.name %>"><%= item.name %></strong>
+                    <div><small title="<%= item.email %>"><%= item.email %></small></div>
+                  </td>
+                  <td data-column="role">
+                    <span class="status-badge status-badge-<%= item.role %> admin-user-compact-badge" title="<%= item.role %>">
+                      <i data-lucide="<%= item.role === 'admin' ? 'shield' : (item.role === 'organiser' ? 'briefcase' : 'user') %>" aria-hidden="true"></i>
+                      <span class="badge-full"><%= item.role %></span>
+                      <span class="badge-short"><%= item.role === 'admin' ? 'A' : (item.role === 'organiser' ? 'O' : 'R') %></span>
+                    </span>
+                  </td>
+                  <td data-column="organizer">
+                    <span class="status-badge status-badge-<%= item.organizerStatus %> admin-user-compact-badge" title="<%= item.organizerStatus.replace('_', ' ') %>">
+                      <span class="badge-full"><%= item.organizerStatus.replace('_', ' ') %></span>
+                      <span class="badge-short"><%= item.organizerStatus === 'not_applied' ? 'N/A' : item.organizerStatus.charAt(0).toUpperCase() %></span>
+                    </span>
+                  </td>
+                  <td data-column="email">
+                    <span class="admin-user-icon-label" title="<%= item.emailVerified ? 'Verified' : 'Unverified' %>">
+                      <i data-lucide="<%= item.emailVerified ? 'mail-check' : 'mail-x' %>" aria-hidden="true"></i>
+                      <span class="label-full"><%= item.emailVerified ? 'Verified' : 'Unverified' %></span>
+                      <span class="label-short"><%= item.emailVerified ? 'OK' : 'No' %></span>
+                    </span>
+                  </td>
+                  <td data-column="auth">
+                    <span class="admin-user-icon-label" title="<%= item.authProvider === 'google' ? 'Google' : 'Local' %>">
+                      <i data-lucide="<%= item.authProvider === 'google' ? 'chrome' : 'key-round' %>" aria-hidden="true"></i>
+                      <span class="label-full"><%= item.authProvider === 'google' ? 'Google' : 'Local' %></span>
+                      <span class="label-short"><%= item.authProvider === 'google' ? 'G' : 'L' %></span>
+                    </span>
+                  </td>
+                  <td class="admin-users-activity-cell" data-column="activity">
+                    <span class="activity-full">
+                      <small><%= item.registrationCount %> registrations</small><br>
+                      <small><%= item.submissionCount %> submissions</small><br>
+                      <small><%= item.ownedEventCount %> events</small>
+                    </span>
+                    <span class="activity-short" title="<%= item.registrationCount %> registrations, <%= item.submissionCount %> submissions, <%= item.ownedEventCount %> events">
+                      <span><%= item.registrationCount %> reg</span>
+                      <span><%= item.submissionCount %> sub</span>
+                      <span><%= item.ownedEventCount %> ev</span>
+                    </span>
+                    <% if (item.applicationCount || item.blogCount || item.commentCount) { %>
+                      <span class="activity-full">
+                        <br>
+                        <small><%= item.applicationCount %> applications, <%= item.blogCount %> posts, <%= item.commentCount %> comments</small>
+                      </span>
+                    <% } %>
+                  </td>
+                  <td class="admin-users-date-cell" data-column="created" title="<%= item.createdAtDetailLabel %>"><%= item.createdAtLabel %></td>
+                  <td class="admin-users-actions-cell">
+                    <div class="admin-user-row-actions">
+                      <button
+                        type="button"
+                        class="btn btn-sm admin-user-action-icon"
+                        data-open-user-modal
+                        aria-label="View <%= item.email %>"
+                        title="View user"
+                        data-user-id="<%= item.userId %>"
+                      data-name="<%= item.name %>"
+                      data-first-name="<%= item.firstName || 'Not set' %>"
+                      data-last-name="<%= item.lastName || 'Not set' %>"
+                      data-email="<%= item.email %>"
+                      data-mobile="<%= item.mobile %>"
+                      data-country="<%= item.country %>"
+                      data-date-of-birth="<%= item.dateOfBirth %>"
+                      data-gender="<%= item.gender %>"
+                      data-emergency-contact-name="<%= item.emergencyContactName %>"
+                      data-emergency-contact-number="<%= item.emergencyContactNumber %>"
+                      data-running-groups="<%= item.runningGroups %>"
+                      data-role="<%= item.role %>"
+                      data-organizer-status="<%= item.organizerStatus.replace('_', ' ') %>"
+                      data-email-status="<%= item.emailVerified ? 'Verified' : 'Unverified' %>"
+                      data-auth-provider="<%= item.authProvider === 'google' ? 'Google' : 'Local' %>"
+                      data-google-link="<%= item.hasGoogleLink ? 'Linked' : 'Not linked' %>"
+                      data-registrations="<%= item.registrationCount %>"
+                      data-submissions="<%= item.submissionCount %>"
+                      data-approved-submissions="<%= item.approvedSubmissionCount %>"
+                      data-owned-events="<%= item.ownedEventCount %>"
+                      data-applications="<%= item.applicationCount %>"
+                      data-blog-count="<%= item.blogCount %>"
+                      data-comments="<%= item.commentCount %>"
+                      data-created-at="<%= item.createdAtDetailLabel %>"
+                        data-updated-at="<%= item.updatedAtLabel %>"
+                        data-detail-url="/admin/users/<%= item.id %>"
+                      ><i data-lucide="eye" aria-hidden="true"></i></button>
+                      <form method="POST" action="/admin/users/<%= item.id %>/delete" class="inline-form admin-user-delete-form">
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                        <button
+                          type="submit"
+                          class="btn btn-sm btn-danger admin-user-action-icon"
+                          aria-label="Delete <%= item.email %>"
+                          <%= item.canDelete ? '' : 'disabled' %>
+                          title="<%= item.canDelete ? 'Delete user' : item.deleteBlockedReason %>"
+                        ><i data-lucide="trash-2" aria-hidden="true"></i></button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+
+        <% if (pagination.totalPages > 1) { %>
+          <div class="pagination">
+            <% if (pagination.prevHref) { %>
+              <a href="<%= pagination.prevHref %>" class="btn btn-secondary">Previous</a>
+            <% } %>
+            <span>Page <%= pagination.page %> of <%= pagination.totalPages %></span>
+            <% if (pagination.nextHref) { %>
+              <a href="<%= pagination.nextHref %>" class="btn btn-secondary">Next</a>
+            <% } %>
+          </div>
+        <% } %>
+      <% } else { %>
+        <div class="empty-state">
+          <h3>No users match this filter</h3>
+          <p>Try a different search term or reset filters to view all accounts.</p>
+          <a href="/admin/users" class="btn btn-secondary">View All Users</a>
+        </div>
+      <% } %>
+
+      <div class="admin-user-modal-backdrop" id="adminUserModal" hidden aria-hidden="true">
+        <div class="admin-user-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="adminUserModalTitle" tabindex="-1">
+          <div class="admin-user-modal-header">
+            <div>
+              <h3 id="adminUserModalTitle">User Details</h3>
+              <p id="adminUserModalEmail" class="metric-helper"></p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" data-close-user-modal aria-label="Close user details">Close</button>
+          </div>
+
+          <div class="admin-user-modal-compact">
+            <section class="admin-user-modal-section">
+              <h4>Identity</h4>
+              <dl class="admin-user-detail-list">
+                <div><dt>User ID</dt><dd class="mono" id="adminUserModalUserId">N/A</dd></div>
+                <div><dt>First Name</dt><dd id="adminUserModalFirstName">N/A</dd></div>
+                <div><dt>Last Name</dt><dd id="adminUserModalLastName">N/A</dd></div>
+                <div><dt>Date of Birth</dt><dd id="adminUserModalDob">N/A</dd></div>
+                <div><dt>Gender</dt><dd id="adminUserModalGender">N/A</dd></div>
+              </dl>
+            </section>
+
+            <section class="admin-user-modal-section">
+              <h4>Contact</h4>
+              <dl class="admin-user-detail-list">
+                <div><dt>Email</dt><dd id="adminUserModalEmailStatus">N/A</dd></div>
+                <div><dt>Mobile</dt><dd id="adminUserModalMobile">N/A</dd></div>
+                <div><dt>Country</dt><dd id="adminUserModalCountry">N/A</dd></div>
+                <div><dt>Emergency Name</dt><dd id="adminUserModalEmergencyName">N/A</dd></div>
+                <div><dt>Emergency Number</dt><dd id="adminUserModalEmergencyNumber">N/A</dd></div>
+                <div><dt>Running Groups</dt><dd id="adminUserModalRunningGroups">N/A</dd></div>
+              </dl>
+            </section>
+
+            <section class="admin-user-modal-section">
+              <h4>Access</h4>
+              <dl class="admin-user-detail-list">
+                <div><dt>Role</dt><dd id="adminUserModalRole">N/A</dd></div>
+                <div><dt>Organizer</dt><dd id="adminUserModalOrganizer">N/A</dd></div>
+                <div><dt>Auth Provider</dt><dd id="adminUserModalAuth">N/A</dd></div>
+                <div><dt>Google Link</dt><dd id="adminUserModalGoogleLink">N/A</dd></div>
+                <div><dt>Created</dt><dd id="adminUserModalCreatedAt">N/A</dd></div>
+                <div><dt>Updated</dt><dd id="adminUserModalUpdatedAt">N/A</dd></div>
+              </dl>
+            </section>
+
+            <section class="admin-user-modal-section">
+              <h4>Activity</h4>
+              <div class="admin-user-modal-stats">
+                <div><strong id="adminUserModalRegistrations">0</strong><span>Registrations</span></div>
+                <div><strong id="adminUserModalSubmissions">0</strong><span>Submissions</span></div>
+                <div><strong id="adminUserModalApprovedSubmissions">0</strong><span>Approved</span></div>
+                <div><strong id="adminUserModalEvents">0</strong><span>Events</span></div>
+                <div><strong id="adminUserModalApplications">0</strong><span>Applications</span></div>
+                <div><strong id="adminUserModalBlogs">0</strong><span>Posts</span></div>
+                <div><strong id="adminUserModalComments">0</strong><span>Comments</span></div>
+              </div>
+            </section>
+          </div>
+          <div class="admin-user-modal-actions">
+            <a href="#" class="btn btn-primary" id="adminUserModalDetailLink" target="_blank" rel="noopener">Open Full Details</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    (function initAdminUsersPage() {
+      const selectAll = document.getElementById('adminUsersSelectAll');
+      const checkboxes = Array.from(document.querySelectorAll('[data-user-checkbox]'));
+      const bulkButton = document.getElementById('adminUsersBulkDeleteBtn');
+      const selectedCount = document.getElementById('adminUsersSelectedCount');
+      const bulkForm = document.getElementById('adminUsersBulkForm');
+      const deleteForms = Array.from(document.querySelectorAll('.admin-user-delete-form'));
+      const modal = document.getElementById('adminUserModal');
+      const modalDialog = modal ? modal.querySelector('.admin-user-modal-dialog') : null;
+      const usersTable = document.getElementById('adminUsersTable');
+      const sortButtons = Array.from(document.querySelectorAll('[data-sort-key]'));
+      const columnMenu = document.querySelector('[data-column-menu]');
+      const columnMenuButton = document.getElementById('adminUsersColumnMenuBtn');
+      const columnMenuPanel = document.getElementById('adminUsersColumnMenu');
+      const columnToggles = Array.from(document.querySelectorAll('[data-column-toggle]'));
+      const columnCount = document.getElementById('adminUsersColumnCount');
+      const columnReset = document.querySelector('[data-column-reset]');
+      const sortState = { key: '', direction: 'none' };
+      const defaultColumns = {
+        userId: false,
+        user: true,
+        role: true,
+        organizer: true,
+        email: true,
+        auth: true,
+        activity: true,
+        created: true
+      };
+      const columnStorageKey = 'adminUsersVisibleColumns';
+      let lastModalTrigger = null;
+
+      function getStoredColumnState() {
+        try {
+          const parsed = JSON.parse(window.localStorage.getItem(columnStorageKey) || '{}');
+          return { ...defaultColumns, ...parsed };
+        } catch (_) {
+          return { ...defaultColumns };
+        }
+      }
+
+      function saveColumnState(state) {
+        try {
+          window.localStorage.setItem(columnStorageKey, JSON.stringify(state));
+        } catch (_) {
+          // Ignore storage failures; controls still work for this page load.
+        }
+      }
+
+      function applyColumnState(state, shouldSave) {
+        columnToggles.forEach((toggle) => {
+          const key = toggle.dataset.columnToggle;
+          toggle.checked = Boolean(state[key]);
+        });
+
+        Object.keys(defaultColumns).forEach((key) => {
+          const isVisible = Boolean(state[key]);
+          document.querySelectorAll(`[data-column="${key}"]`).forEach((element) => {
+            element.classList.toggle('is-column-hidden', !isVisible);
+          });
+        });
+
+        if (columnCount) {
+          const visibleCount = Object.keys(defaultColumns).filter((key) => Boolean(state[key])).length;
+          columnCount.textContent = String(visibleCount);
+        }
+
+        if (shouldSave) saveColumnState(state);
+      }
+
+      function getCurrentColumnState() {
+        return columnToggles.reduce((state, toggle) => {
+          state[toggle.dataset.columnToggle] = toggle.checked;
+          return state;
+        }, { ...defaultColumns });
+      }
+
+      function setColumnMenuOpen(isOpen) {
+        if (!columnMenuButton || !columnMenuPanel) return;
+        columnMenuPanel.hidden = !isOpen;
+        columnMenuButton.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      }
+
+      if (columnMenuButton && columnMenuPanel) {
+        columnMenuButton.addEventListener('click', () => {
+          setColumnMenuOpen(columnMenuPanel.hidden);
+        });
+      }
+
+      columnToggles.forEach((toggle) => {
+        toggle.addEventListener('change', () => {
+          applyColumnState(getCurrentColumnState(), true);
+        });
+      });
+
+      if (columnReset) {
+        columnReset.addEventListener('click', () => {
+          applyColumnState({ ...defaultColumns }, true);
+        });
+      }
+
+      document.addEventListener('click', (event) => {
+        if (!columnMenu || columnMenu.contains(event.target)) return;
+        setColumnMenuOpen(false);
+      });
+
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') setColumnMenuOpen(false);
+      });
+
+      function updateBulkState() {
+        const enabled = checkboxes.filter((checkbox) => !checkbox.disabled);
+        const selected = enabled.filter((checkbox) => checkbox.checked);
+        if (bulkButton) bulkButton.disabled = selected.length === 0;
+        if (selectedCount) selectedCount.textContent = `${selected.length} selected`;
+        if (selectAll) {
+          selectAll.checked = enabled.length > 0 && selected.length === enabled.length;
+          selectAll.indeterminate = selected.length > 0 && selected.length < enabled.length;
+          selectAll.disabled = enabled.length === 0;
+        }
+      }
+
+      if (selectAll) {
+        selectAll.addEventListener('change', () => {
+          checkboxes.forEach((checkbox) => {
+            if (!checkbox.disabled) checkbox.checked = selectAll.checked;
+          });
+          updateBulkState();
+        });
+      }
+
+      checkboxes.forEach((checkbox) => {
+        checkbox.addEventListener('change', updateBulkState);
+      });
+
+      if (bulkForm) {
+        bulkForm.addEventListener('submit', (event) => {
+          const selected = checkboxes.filter((checkbox) => checkbox.checked && !checkbox.disabled);
+          if (!selected.length || !window.confirm(`Delete ${selected.length} selected user(s)?`)) {
+            event.preventDefault();
+          }
+        });
+      }
+
+      deleteForms.forEach((form) => {
+        form.addEventListener('submit', (event) => {
+          if (!window.confirm('Delete this user account?')) {
+            event.preventDefault();
+          }
+        });
+      });
+
+      function getDatasetSortValue(row, key) {
+        const dataKey = `sort${key.charAt(0).toUpperCase()}${key.slice(1)}`;
+        return row.dataset[dataKey] || '';
+      }
+
+      function compareSortValues(a, b, key) {
+        const valueA = getDatasetSortValue(a, key);
+        const valueB = getDatasetSortValue(b, key);
+        if (key === 'activity' || key === 'createdAt' || key === 'emailVerified') {
+          return Number(valueA || 0) - Number(valueB || 0);
+        }
+        return String(valueA).localeCompare(String(valueB), undefined, {
+          numeric: true,
+          sensitivity: 'base'
+        });
+      }
+
+      function resetSortHeaders() {
+        sortButtons.forEach((button) => {
+          button.classList.remove('is-ascending', 'is-descending');
+          button.setAttribute('aria-label', `${button.textContent.trim()} sort none`);
+          const header = button.closest('th');
+          if (header) header.setAttribute('aria-sort', 'none');
+          const icon = button.querySelector('i');
+          if (icon) icon.setAttribute('data-lucide', 'chevrons-up-down');
+        });
+      }
+
+      function renderSortState(activeButton) {
+        resetSortHeaders();
+        if (!activeButton || sortState.direction === 'none') return;
+        activeButton.classList.add(sortState.direction === 'asc' ? 'is-ascending' : 'is-descending');
+        activeButton.setAttribute('aria-label', `${activeButton.textContent.trim()} sorted ${sortState.direction === 'asc' ? 'ascending' : 'descending'}`);
+        const header = activeButton.closest('th');
+        if (header) header.setAttribute('aria-sort', sortState.direction === 'asc' ? 'ascending' : 'descending');
+        const icon = activeButton.querySelector('i');
+        if (icon) icon.setAttribute('data-lucide', sortState.direction === 'asc' ? 'chevron-up' : 'chevron-down');
+      }
+
+      function applyTableSort(key, activeButton) {
+        if (!usersTable) return;
+        const tbody = usersTable.querySelector('tbody');
+        if (!tbody) return;
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        if (sortState.key !== key) {
+          sortState.key = key;
+          sortState.direction = 'asc';
+        } else if (sortState.direction === 'asc') {
+          sortState.direction = 'desc';
+        } else if (sortState.direction === 'desc') {
+          sortState.direction = 'none';
+        } else {
+          sortState.direction = 'asc';
+        }
+
+        const sortedRows = sortState.direction === 'none'
+          ? rows.sort((a, b) => Number(a.dataset.originalIndex || 0) - Number(b.dataset.originalIndex || 0))
+          : rows.sort((a, b) => {
+              const result = compareSortValues(a, b, key);
+              return sortState.direction === 'asc' ? result : -result;
+            });
+
+        sortedRows.forEach((row) => tbody.appendChild(row));
+        renderSortState(sortState.direction === 'none' ? null : activeButton);
+        updateBulkState();
+        if (window.lucide) lucide.createIcons();
+      }
+
+      sortButtons.forEach((button) => {
+        button.addEventListener('click', () => applyTableSort(button.dataset.sortKey, button));
+      });
+
+      function setText(id, value) {
+        const element = document.getElementById(id);
+        if (element) element.textContent = value || 'N/A';
+      }
+
+      function openModal(trigger) {
+        if (!modal || !modalDialog) return;
+        lastModalTrigger = trigger;
+        const data = trigger.dataset;
+        setText('adminUserModalTitle', data.name || 'User Details');
+        setText('adminUserModalEmail', data.email || '');
+        setText('adminUserModalUserId', data.userId || 'N/A');
+        setText('adminUserModalFirstName', data.firstName || 'N/A');
+        setText('adminUserModalLastName', data.lastName || 'N/A');
+        setText('adminUserModalDob', data.dateOfBirth || 'N/A');
+        setText('adminUserModalGender', data.gender || 'N/A');
+        setText('adminUserModalMobile', data.mobile || 'N/A');
+        setText('adminUserModalCountry', data.country || 'N/A');
+        setText('adminUserModalEmergencyName', data.emergencyContactName || 'N/A');
+        setText('adminUserModalEmergencyNumber', data.emergencyContactNumber || 'N/A');
+        setText('adminUserModalRunningGroups', data.runningGroups || 'N/A');
+        setText('adminUserModalRole', data.role || 'N/A');
+        setText('adminUserModalOrganizer', data.organizerStatus || 'N/A');
+        setText('adminUserModalEmailStatus', data.emailStatus || 'N/A');
+        setText('adminUserModalAuth', data.authProvider || 'N/A');
+        setText('adminUserModalGoogleLink', data.googleLink || 'N/A');
+        setText('adminUserModalRegistrations', data.registrations || '0');
+        setText('adminUserModalSubmissions', data.submissions || '0');
+        setText('adminUserModalApprovedSubmissions', data.approvedSubmissions || '0');
+        setText('adminUserModalEvents', data.ownedEvents || '0');
+        setText('adminUserModalApplications', data.applications || '0');
+        setText('adminUserModalBlogs', data.blogCount || '0');
+        setText('adminUserModalComments', data.comments || '0');
+        setText('adminUserModalCreatedAt', data.createdAt || 'N/A');
+        setText('adminUserModalUpdatedAt', data.updatedAt || 'N/A');
+        const detailLink = document.getElementById('adminUserModalDetailLink');
+        if (detailLink) detailLink.href = data.detailUrl || '#';
+        modal.hidden = false;
+        modal.setAttribute('aria-hidden', 'false');
+        modalDialog.focus();
+      }
+
+      function closeModal() {
+        if (!modal) return;
+        modal.hidden = true;
+        modal.setAttribute('aria-hidden', 'true');
+        if (lastModalTrigger) lastModalTrigger.focus();
+      }
+
+      document.querySelectorAll('[data-open-user-modal]').forEach((button) => {
+        button.addEventListener('click', () => openModal(button));
+      });
+
+      document.querySelectorAll('[data-close-user-modal]').forEach((button) => {
+        button.addEventListener('click', closeModal);
+      });
+
+      if (modal) {
+        modal.addEventListener('click', (event) => {
+          if (event.target === modal) closeModal();
+        });
+        modal.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') closeModal();
+        });
+      }
+
+      applyColumnState(getStoredColumnState(), false);
+      updateBulkState();
+    })();
+  </script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

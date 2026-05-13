@@ -26,7 +26,15 @@ router.use((req, res, next) => {
   return next();
 });
 
-// List all organizer applications
+// User management
+router.get('/users', requireAdmin, adminController.listUsers);
+router.post('/users/delete', requireAdmin, adminController.deleteUsers);
+router.get('/users/:id/edit', requireAdmin, adminController.renderEditUser);
+router.post('/users/:id/edit', requireAdmin, adminController.updateUser);
+router.get('/users/:id', requireAdmin, adminController.viewUser);
+router.post('/users/:id/delete', requireAdmin, adminController.deleteUsers);
+
+// Event management
 router.get('/events', requireAdmin, adminController.listEvents);
 router.get('/events/:id', requireAdmin, adminController.viewEvent);
 router.get('/events/:id/edit', requireAdmin, adminController.renderEditEvent);

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Edit User - helloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>Edit User</h2>
+          <p>Update personal profile details and role settings only.</p>
+        </div>
+        <div class="admin-user-header-actions">
+          <a href="/admin/users/<%= managedUser.id %>" class="btn btn-secondary">Cancel</a>
+          <a href="/admin/users" class="btn btn-secondary">Back to Users</a>
+        </div>
+      </div>
+
+      <% if (message) { %>
+        <div class="admin-alert admin-alert-<%= message.type %>" role="<%= message.type === 'error' ? 'alert' : 'status' %>">
+          <%= message.text %>
+        </div>
+      <% } %>
+
+      <div class="application-meta-grid">
+        <div class="meta-card">
+          <p class="meta-label">User ID</p>
+          <p class="meta-value mono"><%= managedUser.userId %></p>
+        </div>
+        <div class="meta-card">
+          <p class="meta-label">Email</p>
+          <p class="meta-value"><%= managedUser.email %></p>
+        </div>
+        <div class="meta-card">
+          <p class="meta-label">Current Role</p>
+          <p class="meta-value"><span class="status-badge status-badge-<%= managedUser.role %>"><%= managedUser.role %></span></p>
+        </div>
+        <div class="meta-card">
+          <p class="meta-label">Organizer Status</p>
+          <p class="meta-value">
+            <span class="status-badge status-badge-<%= managedUser.organizerStatus %>">
+              <%= String(managedUser.organizerStatus).replace('_', ' ') %>
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <form method="POST" action="/admin/users/<%= managedUser.id %>/edit" class="admin-user-edit-form">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+
+        <article class="detail-card detail-card-full">
+          <h3>Personal Information</h3>
+          <div class="admin-form-grid">
+            <label class="admin-form-field">
+              <span>First Name</span>
+              <input type="text" name="firstName" maxlength="60" value="<%= formData.firstName || '' %>">
+              <% if (errors.firstName) { %><small class="field-error"><%= errors.firstName %></small><% } %>
+            </label>
+            <label class="admin-form-field">
+              <span>Last Name</span>
+              <input type="text" name="lastName" maxlength="60" value="<%= formData.lastName || '' %>">
+              <% if (errors.lastName) { %><small class="field-error"><%= errors.lastName %></small><% } %>
+            </label>
+            <label class="admin-form-field">
+              <span>Mobile</span>
+              <input type="text" name="mobile" maxlength="25" value="<%= formData.mobile || '' %>">
+              <% if (errors.mobile) { %><small class="field-error"><%= errors.mobile %></small><% } %>
+            </label>
+            <label class="admin-form-field">
+              <span>Country</span>
+              <select name="country">
+                <option value="">Not set</option>
+                <% countries.forEach((country) => { %>
+                  <option value="<%= country.code %>" <%= formData.country === country.code ? 'selected' : '' %>><%= country.name %></option>
+                <% }) %>
+              </select>
+              <% if (errors.country) { %><small class="field-error"><%= errors.country %></small><% } %>
+            </label>
+            <label class="admin-form-field">
+              <span>Date of Birth</span>
+              <input type="date" name="dateOfBirth" value="<%= formData.dateOfBirth || '' %>">
+              <% if (errors.dateOfBirth) { %><small class="field-error"><%= errors.dateOfBirth %></small><% } %>
+            </label>
+            <label class="admin-form-field">
+              <span>Gender</span>
+              <select name="gender">
+                <option value="" <%= formData.gender === '' ? 'selected' : '' %>>Not set</option>
+                <option value="male" <%= formData.gender === 'male' ? 'selected' : '' %>>Male</option>
+                <option value="female" <%= formData.gender === 'female' ? 'selected' : '' %>>Female</option>
+                <option value="non_binary" <%= formData.gender === 'non_binary' ? 'selected' : '' %>>Non-binary</option>
+                <option value="prefer_not_to_say" <%= formData.gender === 'prefer_not_to_say' ? 'selected' : '' %>>Prefer not to say</option>
+              </select>
+              <% if (errors.gender) { %><small class="field-error"><%= errors.gender %></small><% } %>
+            </label>
+            <label class="admin-form-field">
+              <span>Emergency Contact Name</span>
+              <input type="text" name="emergencyContactName" maxlength="120" value="<%= formData.emergencyContactName || '' %>">
+              <% if (errors.emergencyContactName) { %><small class="field-error"><%= errors.emergencyContactName %></small><% } %>
+            </label>
+            <label class="admin-form-field">
+              <span>Emergency Contact Number</span>
+              <input type="text" name="emergencyContactNumber" maxlength="25" value="<%= formData.emergencyContactNumber || '' %>">
+              <% if (errors.emergencyContactNumber) { %><small class="field-error"><%= errors.emergencyContactNumber %></small><% } %>
+            </label>
+            <label class="admin-form-field admin-form-field-wide">
+              <span>Running Groups</span>
+              <textarea name="runningGroups" rows="3" placeholder="One group per line or comma-separated"><%= (formData.runningGroups || []).join('\n') %></textarea>
+              <% if (errors.runningGroups) { %><small class="field-error"><%= errors.runningGroups %></small><% } %>
+            </label>
+          </div>
+        </article>
+
+        <article class="detail-card detail-card-full">
+          <h3>Roles</h3>
+          <div class="admin-form-grid">
+            <label class="admin-form-field">
+              <span>Platform Role</span>
+              <select name="role" required>
+                <option value="runner" <%= formData.role === 'runner' ? 'selected' : '' %>>Runner</option>
+                <option value="organiser" <%= formData.role === 'organiser' ? 'selected' : '' %>>Organiser</option>
+                <option value="admin" <%= formData.role === 'admin' ? 'selected' : '' %>>Admin</option>
+              </select>
+              <% if (errors.role) { %><small class="field-error"><%= errors.role %></small><% } %>
+            </label>
+            <label class="admin-form-field">
+              <span>Organizer Status</span>
+              <select name="organizerStatus" required>
+                <option value="not_applied" <%= formData.organizerStatus === 'not_applied' ? 'selected' : '' %>>Not applied</option>
+                <option value="pending" <%= formData.organizerStatus === 'pending' ? 'selected' : '' %>>Pending</option>
+                <option value="approved" <%= formData.organizerStatus === 'approved' ? 'selected' : '' %>>Approved</option>
+                <option value="rejected" <%= formData.organizerStatus === 'rejected' ? 'selected' : '' %>>Rejected</option>
+              </select>
+              <% if (errors.organizerStatus) { %><small class="field-error"><%= errors.organizerStatus %></small><% } %>
+            </label>
+          </div>
+        </article>
+
+        <div class="policy-form-actions">
+          <button type="submit" class="btn btn-primary">Save User</button>
+          <a href="/admin/users/<%= managedUser.id %>" class="btn btn-secondary">Cancel</a>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

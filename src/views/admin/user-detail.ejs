@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'User Details - helloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>User Details</h2>
+          <p>Account profile, access state, activity, and compliance summary.</p>
+        </div>
+        <div class="admin-user-header-actions">
+          <a href="/admin/users/<%= managedUser.id %>/edit" class="btn btn-primary">
+            <i data-lucide="edit-2"></i> Edit User
+          </a>
+          <a href="/admin/users" class="btn btn-secondary">Back to Users</a>
+        </div>
+      </div>
+
+      <% if (message) { %>
+        <div class="admin-alert admin-alert-<%= message.type %>" role="<%= message.type === 'error' ? 'alert' : 'status' %>">
+          <%= message.text %>
+        </div>
+      <% } %>
+
+      <div class="application-meta-grid">
+        <div class="meta-card">
+          <p class="meta-label">User ID</p>
+          <p class="meta-value mono"><%= managedUser.userId || 'N/A' %></p>
+        </div>
+        <div class="meta-card">
+          <p class="meta-label">Name</p>
+          <p class="meta-value"><%= managedUser.displayName %></p>
+        </div>
+        <div class="meta-card">
+          <p class="meta-label">Role</p>
+          <p class="meta-value"><span class="status-badge status-badge-<%= managedUser.role %>"><%= managedUser.role %></span></p>
+        </div>
+        <div class="meta-card">
+          <p class="meta-label">Organizer Status</p>
+          <p class="meta-value">
+            <span class="status-badge status-badge-<%= managedUser.organizerStatus || 'not_applied' %>">
+              <%= String(managedUser.organizerStatus || 'not_applied').replace('_', ' ') %>
+            </span>
+          </p>
+        </div>
+        <div class="meta-card">
+          <p class="meta-label">Email Status</p>
+          <p class="meta-value"><%= managedUser.emailVerified ? 'Verified' : 'Unverified' %></p>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <article class="metric-card">
+          <p class="metric-label">Registrations</p>
+          <p class="metric-value"><%= counts.registrations %></p>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Submissions</p>
+          <p class="metric-value"><%= counts.submissions %></p>
+          <p class="metric-helper"><%= counts.approvedSubmissions %> approved</p>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Certificates</p>
+          <p class="metric-value"><%= counts.certificates %></p>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Owned Events</p>
+          <p class="metric-value"><%= counts.ownedEvents %></p>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Blog Posts</p>
+          <p class="metric-value"><%= counts.blogs %></p>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Comments</p>
+          <p class="metric-value"><%= counts.comments %></p>
+        </article>
+      </div>
+
+      <div class="details-grid">
+        <article class="detail-card">
+          <h3>Account</h3>
+          <ul>
+            <li><strong>Email:</strong> <%= managedUser.email || 'N/A' %></li>
+            <li><strong>Auth Provider:</strong> <%= managedUser.authProvider === 'google' ? 'Google' : 'Local' %></li>
+            <li><strong>Google Link:</strong> <%= managedUser.hasGoogleLink ? 'Linked' : 'Not linked' %></li>
+            <li><strong>Local Password:</strong> <%= managedUser.hasLocalPassword ? 'Set' : 'Not set' %></li>
+            <li><strong>Created:</strong> <%= managedUser.createdAt ? new Date(managedUser.createdAt).toLocaleString('en-US') : 'N/A' %></li>
+            <li><strong>Updated:</strong> <%= managedUser.updatedAt ? new Date(managedUser.updatedAt).toLocaleString('en-US') : 'N/A' %></li>
+          </ul>
+        </article>
+
+        <article class="detail-card">
+          <h3>Profile</h3>
+          <ul>
+            <li><strong>First Name:</strong> <%= managedUser.firstName || 'Not set' %></li>
+            <li><strong>Last Name:</strong> <%= managedUser.lastName || 'Not set' %></li>
+            <li><strong>Mobile:</strong> <%= managedUser.mobile || 'Not set' %></li>
+            <li><strong>Country:</strong> <%= managedUser.country || 'Not set' %></li>
+            <li><strong>Date of Birth:</strong> <%= managedUser.maskedDateOfBirth %></li>
+            <li><strong>Gender:</strong> <%= managedUser.gender || 'Not set' %></li>
+            <li><strong>Running Groups:</strong> <%= managedUser.runningGroups && managedUser.runningGroups.length ? managedUser.runningGroups.join(', ') : (managedUser.runningGroup || 'Not set') %></li>
+          </ul>
+        </article>
+
+        <article class="detail-card">
+          <h3>Emergency Contact</h3>
+          <ul>
+            <li><strong>Name:</strong> <%= managedUser.emergencyContactName || 'Not set' %></li>
+            <li><strong>Number:</strong> <%= managedUser.emergencyContactNumber || 'Not set' %></li>
+          </ul>
+        </article>
+
+        <article class="detail-card">
+          <h3>Policy Consent</h3>
+          <ul>
+            <li><strong>Terms Accepted:</strong> <%= managedUser.termsAcceptedAt ? new Date(managedUser.termsAcceptedAt).toLocaleString('en-US') : 'Not recorded' %></li>
+            <li><strong>Privacy Version:</strong> <%= managedUser.agreedPolicies?.privacyPolicyVersion || 'Not recorded' %></li>
+            <li><strong>Terms Version:</strong> <%= managedUser.agreedPolicies?.termsPolicyVersion || 'Not recorded' %></li>
+            <li><strong>Cookie Version:</strong> <%= managedUser.agreedPolicies?.cookiePolicyVersion || 'Not recorded' %></li>
+            <li><strong>Agreed At:</strong> <%= managedUser.agreedPolicies?.agreedAt ? new Date(managedUser.agreedPolicies.agreedAt).toLocaleString('en-US') : 'Not recorded' %></li>
+          </ul>
+        </article>
+
+        <article class="detail-card detail-card-full">
+          <h3>Organizer Application</h3>
+          <% if (application) { %>
+            <ul>
+              <li><strong>Application ID:</strong> <span class="mono"><%= application.applicationId || application._id %></span></li>
+              <li><strong>Business:</strong> <%= application.businessName %></li>
+              <li><strong>Status:</strong> <span class="status-badge status-badge-<%= application.status %>"><%= application.status.replace('_', ' ') %></span></li>
+              <li><strong>Submitted:</strong> <%= application.submittedAt ? new Date(application.submittedAt).toLocaleString('en-US') : 'N/A' %></li>
+              <li><strong>Reviewed:</strong> <%= application.reviewedAt ? new Date(application.reviewedAt).toLocaleString('en-US') : 'Not reviewed' %></li>
+            </ul>
+            <a href="/admin/applications/<%= application._id %>" class="btn btn-sm">Open Application</a>
+          <% } else { %>
+            <p>No organizer application found for this user.</p>
+          <% } %>
+        </article>
+      </div>
+
+      <h3 class="dashboard-section-title">Recent Registrations</h3>
+      <% if (recentRegistrations && recentRegistrations.length) { %>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Confirmation</th>
+              <th>Event</th>
+              <th>Status</th>
+              <th>Payment</th>
+              <th>Registered</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% recentRegistrations.forEach((registration) => { %>
+              <tr>
+                <td class="mono"><%= registration.confirmationCode %></td>
+                <td><%= registration.eventId?.title || 'Event unavailable' %></td>
+                <td><%= registration.status %></td>
+                <td><%= registration.paymentStatus || 'N/A' %></td>
+                <td><%= registration.registeredAt ? new Date(registration.registeredAt).toLocaleString('en-US') : 'N/A' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <div class="empty-state"><p>No registrations found for this user.</p></div>
+      <% } %>
+
+      <h3 class="dashboard-section-title">Recent Submissions</h3>
+      <% if (recentSubmissions && recentSubmissions.length) { %>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Distance</th>
+              <th>Status</th>
+              <th>Submitted</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% recentSubmissions.forEach((submission) => { %>
+              <tr>
+                <td><%= submission.eventId?.title || 'Event unavailable' %></td>
+                <td><%= Number(submission.distanceKm || 0).toFixed(2) %> km</td>
+                <td><span class="status-badge status-badge-<%= submission.status %>"><%= submission.status %></span></td>
+                <td><%= submission.submittedAt ? new Date(submission.submittedAt).toLocaleString('en-US') : 'N/A' %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <div class="empty-state"><p>No submissions found for this user.</p></div>
+      <% } %>
+
+      <h3 class="dashboard-section-title">Owned Events</h3>
+      <% if (ownedEvents && ownedEvents.length) { %>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Status</th>
+              <th>Start</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% ownedEvents.forEach((event) => { %>
+              <tr>
+                <td><%= event.title %></td>
+                <td><span class="status-badge status-badge-<%= event.status %>"><%= event.status.replace('_', ' ') %></span></td>
+                <td><%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US') : 'TBA' %></td>
+                <td><a href="/admin/events/<%= event._id %>" class="btn btn-sm">Open</a></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <div class="empty-state"><p>No owned events found for this user.</p></div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

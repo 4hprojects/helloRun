@@ -99,6 +99,10 @@
 
       <h3 class="dashboard-section-title">Quick Links</h3>
       <nav class="quick-link-grid" aria-label="Admin quick links">
+        <a href="/admin/users" class="quick-link-card">
+          <span class="quick-link-title">User Management</span>
+          <span class="quick-link-meta">Search and inspect accounts</span>
+        </a>
         <a href="/admin/applications" class="quick-link-card">
           <span class="quick-link-title">Organizer Applications</span>
           <span class="quick-link-meta">Review and filter applicants</span>
@@ -184,7 +188,7 @@
         <article class="metric-card">
           <p class="metric-label">Total Users</p>
           <p class="metric-value"><%= stats.totalUsers %></p>
-          <p class="metric-helper">Platform accounts</p>
+          <a href="/admin/users" class="metric-link">Manage Users</a>
         </article>
         <article class="metric-card">
           <p class="metric-label">Total Events</p>

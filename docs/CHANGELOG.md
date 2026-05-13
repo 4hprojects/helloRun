@@ -3,6 +3,40 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 13, 2026 (Session: Admin User Management MVP)
+
+### [SESSION] SESSION UPDATE:
+- Added the admin user management MVP:
+  - new `/admin/users` directory with search, filters, pagination, activity counts, quick user modal, bulk dormant-user delete, and dashboard entry point
+  - new `/admin/users/:id` detail page with account, profile, emergency contact, consent, organizer application, recent registrations/submissions, and owned events
+  - new `/admin/users/:id/edit` form for admin-editable personal profile fields plus role and organizer status only; system/account data remains read-only
+- Refined the `/admin/users` table and modal UX:
+  - themed search field and filter controls
+  - clickable tri-state table sorting for visible rows
+  - compact modal sections with "Open Full Details" in a new tab
+  - responsive table behavior with horizontal overflow, compact labels below desktop, icon-only row actions, and a Columns checklist
+  - User ID is hidden by default and can be enabled from the column picker
+- Added route coverage for admin-only access, list/search/filter, detail views, edit restrictions, delete safeguards, and missing-user handling.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/user_management_improvement_draft.md
+3. src/controllers/admin.controller.js
+4. src/routes/admin.routes.js
+5. src/views/admin/dashboard.ejs
+6. src/views/admin/users-list.ejs
+7. src/views/admin/user-detail.ejs
+8. src/views/admin/user-edit.ejs
+9. src/public/css/admin.css
+10. tests/admin-dashboard.test.js
+11. tests/admin-users.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `$env:CSRF_PROTECTION='0'; node --test --test-concurrency=1 tests/admin-users.test.js` -> PASS, 7/7.
+- Previous dashboard coverage was updated to include the new user-management quick link.
+
+---
+
 ## CHANGELOG - May 13, 2026 (Session: Public Event Page Landing Template)
 
 ### [SESSION] SESSION UPDATE:
@@ -2505,6 +2539,5 @@ helloRun/
 9. src/server.js - Route prefix cleanup
 10. .gitignore - Updated with upload directories
 11. package.json - Dependencies verified
-
 
 

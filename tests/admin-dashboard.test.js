@@ -76,6 +76,7 @@ test('admin dashboard renders platform stats and pending application queue', asy
   assert.match(html, /\/admin\/privacy-policy/i);
   assert.match(html, /\/admin\/terms-and-conditions/i);
   assert.match(html, /\/admin\/cookie-policy/i);
+  assert.match(html, /\/admin\/users/i);
   assert.match(html, /\/admin\/applications/i);
   assert.match(html, /\/admin\/blog\/reports/i);
   assert.match(html, /\/admin\/blog\/comments/i);

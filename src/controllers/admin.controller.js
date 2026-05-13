@@ -21,6 +21,12 @@ const {
   getPublishReadinessErrors,
   validateCreateEventForm
 } = require('../services/event-form.service');
+const {
+  getCountries,
+  getCountryName,
+  isValidCountryCode,
+  normalizeCountryCode
+} = require('../utils/country');
 
 const VALID_FILTER_STATUSES = ['pending', 'under_review', 'approved', 'rejected'];
 const REVIEWABLE_STATUSES = ['pending', 'under_review'];
@@ -36,6 +42,12 @@ const COOKIE_POLICY_MANAGE_PATH = '/admin/cookie-policy';
 const ADMIN_REVIEW_TYPES = ['all', 'payments', 'results'];
 const ADMIN_REVIEW_SORTS = ['oldest', 'newest'];
 const ADMIN_EVENT_STATUSES = ['draft', 'pending_review', 'published', 'closed', 'archived'];
+const ADMIN_USER_ROLES = ['runner', 'organiser', 'admin'];
+const ADMIN_USER_ORGANIZER_STATUSES = ['not_applied', 'pending', 'approved', 'rejected'];
+const ADMIN_USER_AUTH_PROVIDERS = ['local', 'google'];
+const ADMIN_USER_SORTS = ['newest', 'oldest', 'updated', 'role'];
+const ADMIN_USERS_PER_PAGE = 25;
+const adminUserProfileCountries = getCountries();
 const POLICY_HEADING_PATTERNS = [
   /^hello\s*run\s*privacy\s*policy$/i,
   /^privacy\s*policy$/i,
@@ -187,6 +199,380 @@ function buildAdminEventQuery(filters) {
     ];
   }
   return query;
+}
+
+function normalizeAdminUserFilters(query = {}) {
+  const role = ADMIN_USER_ROLES.includes(String(query.role || '').trim()) ? String(query.role).trim() : '';
+  const organizerStatus = ADMIN_USER_ORGANIZER_STATUSES.includes(String(query.organizerStatus || '').trim())
+    ? String(query.organizerStatus).trim()
+    : '';
+  const emailVerified = ['yes', 'no'].includes(String(query.emailVerified || '').trim())
+    ? String(query.emailVerified).trim()
+    : '';
+  const authProvider = ADMIN_USER_AUTH_PROVIDERS.includes(String(query.authProvider || '').trim())
+    ? String(query.authProvider).trim()
+    : '';
+  const sort = ADMIN_USER_SORTS.includes(String(query.sort || '').trim()) ? String(query.sort).trim() : 'newest';
+  const q = String(query.q || '').trim().slice(0, 120);
+  const page = Math.max(1, Number.parseInt(query.page, 10) || 1);
+
+  return {
+    role,
+    organizerStatus,
+    emailVerified,
+    authProvider,
+    sort,
+    q,
+    page
+  };
+}
+
+function buildAdminUserQuery(filters) {
+  const query = {};
+  if (filters.role) query.role = filters.role;
+  if (filters.organizerStatus) query.organizerStatus = filters.organizerStatus;
+  if (filters.emailVerified === 'yes') query.emailVerified = true;
+  if (filters.emailVerified === 'no') query.emailVerified = false;
+  if (filters.authProvider) query.authProvider = filters.authProvider;
+  if (filters.q) {
+    const safeRegex = new RegExp(escapeRegex(filters.q), 'i');
+    query.$or = [
+      { userId: safeRegex },
+      { email: safeRegex },
+      { firstName: safeRegex },
+      { lastName: safeRegex }
+    ];
+  }
+  return query;
+}
+
+function getAdminUserSort(sort) {
+  if (sort === 'oldest') return { createdAt: 1 };
+  if (sort === 'updated') return { updatedAt: -1, createdAt: -1 };
+  if (sort === 'role') return { role: 1, createdAt: -1 };
+  return { createdAt: -1 };
+}
+
+function buildAdminUserListPath(filters, overrides = {}) {
+  const next = { ...filters, ...overrides };
+  const params = new URLSearchParams();
+  ['q', 'role', 'organizerStatus', 'emailVerified', 'authProvider', 'sort'].forEach((key) => {
+    if (next[key]) params.set(key, next[key]);
+  });
+  if (next.page && Number(next.page) > 1) params.set('page', String(next.page));
+  const query = params.toString();
+  return query ? `/admin/users?${query}` : '/admin/users';
+}
+
+function buildAdminUsersRedirect(type, message) {
+  return buildAdminRedirect('/admin/users', type, message);
+}
+
+function formatUserDisplayName(user) {
+  return [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || 'N/A';
+}
+
+function getCountMap(items, key = '_id') {
+  return new Map((items || []).map((item) => [String(item[key]), Number(item.count || 0)]));
+}
+
+function maskDateForAdmin(value) {
+  if (!value) return 'Not set';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Not set';
+  return 'Set';
+}
+
+function formatAdminShortDate(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleDateString('en-US');
+}
+
+function formatAdminDateTime(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleString('en-US');
+}
+
+function formatAdminEnumLabel(value) {
+  const normalized = String(value || '').trim();
+  if (!normalized) return 'Not set';
+  return normalized
+    .split('_')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function formatDateForAdminInput(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function normalizeAdminRunningGroups(value) {
+  const asArray = Array.isArray(value) ? value : String(value || '').split(/[\n,]/);
+  return Array.from(
+    new Set(
+      asArray
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
+    )
+  ).slice(0, 10);
+}
+
+function getAdminUserEditFormData(source = {}) {
+  const runningGroups = normalizeAdminRunningGroups(source.runningGroups || source.runningGroup);
+  return {
+    firstName: String(source.firstName || '').trim(),
+    lastName: String(source.lastName || '').trim(),
+    mobile: String(source.mobile || '').trim(),
+    country: normalizeCountryCode(source.country),
+    dateOfBirth: formatDateForAdminInput(source.dateOfBirth),
+    gender: String(source.gender || '').trim(),
+    emergencyContactName: String(source.emergencyContactName || '').trim(),
+    emergencyContactNumber: String(source.emergencyContactNumber || '').trim(),
+    runningGroups,
+    runningGroup: runningGroups[0] || '',
+    role: String(source.role || '').trim() || 'runner',
+    organizerStatus: String(source.organizerStatus || '').trim() || 'not_applied'
+  };
+}
+
+function validateAdminUserEditForm(formData) {
+  const errors = {};
+  const validGenders = new Set(['', 'male', 'female', 'non_binary', 'prefer_not_to_say']);
+
+  if (formData.firstName && (formData.firstName.length < 2 || formData.firstName.length > 60)) {
+    errors.firstName = 'First name must be 2-60 characters when set.';
+  }
+  if (formData.lastName && (formData.lastName.length < 2 || formData.lastName.length > 60)) {
+    errors.lastName = 'Last name must be 2-60 characters when set.';
+  }
+  if (formData.mobile && !/^[\d\s\-()+]{7,25}$/.test(formData.mobile)) {
+    errors.mobile = 'Enter a valid mobile number.';
+  }
+  if (formData.country && !isValidCountryCode(formData.country)) {
+    errors.country = 'Select a valid country.';
+  }
+  if (formData.dateOfBirth) {
+    const dob = new Date(`${formData.dateOfBirth}T00:00:00.000Z`);
+    if (Number.isNaN(dob.getTime())) {
+      errors.dateOfBirth = 'Enter a valid date of birth.';
+    } else if (dob > new Date()) {
+      errors.dateOfBirth = 'Date of birth cannot be in the future.';
+    }
+  }
+  if (!validGenders.has(formData.gender)) {
+    errors.gender = 'Select a valid gender option.';
+  }
+  if (formData.emergencyContactName.length > 120) {
+    errors.emergencyContactName = 'Emergency contact name must be 120 characters or less.';
+  }
+  if (formData.emergencyContactNumber && !/^[\d\s\-()+]{7,25}$/.test(formData.emergencyContactNumber)) {
+    errors.emergencyContactNumber = 'Enter a valid emergency contact number.';
+  }
+  if (formData.runningGroups.length > 10) {
+    errors.runningGroups = 'You can add up to 10 running groups.';
+  }
+  if (formData.runningGroups.some((item) => item.length > 120)) {
+    errors.runningGroups = 'Each running group must be 120 characters or less.';
+  }
+  if (!ADMIN_USER_ROLES.includes(formData.role)) {
+    errors.role = 'Select a valid role.';
+  }
+  if (!ADMIN_USER_ORGANIZER_STATUSES.includes(formData.organizerStatus)) {
+    errors.organizerStatus = 'Select a valid organizer status.';
+  }
+
+  return errors;
+}
+
+async function findAdminManagedUser(userId) {
+  if (!mongoose.Types.ObjectId.isValid(userId)) return null;
+  return User.findById(userId);
+}
+
+function renderAdminUserNotFound(res) {
+  return res.status(404).render('error', {
+    title: '404 - User Not Found',
+    status: 404,
+    message: 'User not found. The requested user does not exist.'
+  });
+}
+
+function renderAdminUserEdit(res, user, formData, options = {}) {
+  return res.status(options.status || 200).render('admin/user-edit', {
+    title: `Edit ${formatUserDisplayName(user)} - User Management - helloRun Admin`,
+    managedUser: {
+      id: String(user._id),
+      userId: user.userId || 'N/A',
+      email: user.email || 'N/A',
+      displayName: formatUserDisplayName(user),
+      role: user.role || 'runner',
+      organizerStatus: user.organizerStatus || 'not_applied'
+    },
+    formData,
+    countries: adminUserProfileCountries,
+    errors: options.errors || {},
+    message: options.message || null
+  });
+}
+
+async function getAdminUserActivityCounts(userIds) {
+  if (!userIds.length) {
+    return {
+      registrations: new Map(),
+      submissions: new Map(),
+      approvedSubmissions: new Map(),
+      ownedEvents: new Map(),
+      blogs: new Map(),
+      comments: new Map(),
+      applications: new Map()
+    };
+  }
+
+  const [registrations, submissions, approvedSubmissions, ownedEvents, blogs, comments, applications] = await Promise.all([
+    Registration.aggregate([
+      { $match: { userId: { $in: userIds } } },
+      { $group: { _id: '$userId', count: { $sum: 1 } } }
+    ]),
+    Submission.aggregate([
+      { $match: { runnerId: { $in: userIds } } },
+      { $group: { _id: '$runnerId', count: { $sum: 1 } } }
+    ]),
+    Submission.aggregate([
+      { $match: { runnerId: { $in: userIds }, status: 'approved' } },
+      { $group: { _id: '$runnerId', count: { $sum: 1 } } }
+    ]),
+    Event.aggregate([
+      { $match: { organizerId: { $in: userIds }, isDeleted: { $ne: true } } },
+      { $group: { _id: '$organizerId', count: { $sum: 1 } } }
+    ]),
+    Blog.aggregate([
+      { $match: { authorId: { $in: userIds }, isDeleted: { $ne: true } } },
+      { $group: { _id: '$authorId', count: { $sum: 1 } } }
+    ]),
+    BlogComment.aggregate([
+      { $match: { authorId: { $in: userIds }, isDeleted: { $ne: true } } },
+      { $group: { _id: '$authorId', count: { $sum: 1 } } }
+    ]),
+    OrganiserApplication.aggregate([
+      { $match: { userId: { $in: userIds } } },
+      { $group: { _id: '$userId', count: { $sum: 1 } } }
+    ])
+  ]);
+
+  return {
+    registrations: getCountMap(registrations),
+    submissions: getCountMap(submissions),
+    approvedSubmissions: getCountMap(approvedSubmissions),
+    ownedEvents: getCountMap(ownedEvents),
+    blogs: getCountMap(blogs),
+    comments: getCountMap(comments),
+    applications: getCountMap(applications)
+  };
+}
+
+function mapAdminUserListItem(user, counts, currentAdminId = '') {
+  const id = String(user._id);
+  const dependencyCount = (counts.registrations.get(id) || 0)
+    + (counts.submissions.get(id) || 0)
+    + (counts.ownedEvents.get(id) || 0)
+    + (counts.blogs.get(id) || 0)
+    + (counts.comments.get(id) || 0)
+    + (counts.applications.get(id) || 0);
+  const isCurrentAdmin = id === String(currentAdminId || '');
+
+  return {
+    id,
+    userId: user.userId || 'N/A',
+    name: formatUserDisplayName(user),
+    firstName: user.firstName || '',
+    lastName: user.lastName || '',
+    email: user.email || 'N/A',
+    role: user.role || 'runner',
+    organizerStatus: user.organizerStatus || 'not_applied',
+    emailVerified: Boolean(user.emailVerified),
+    authProvider: user.authProvider || 'local',
+    hasGoogleLink: Boolean(user.googleId),
+    mobile: user.mobile || 'Not set',
+    country: user.country ? getCountryName(user.country) : 'Not set',
+    dateOfBirth: maskDateForAdmin(user.dateOfBirth),
+    gender: formatAdminEnumLabel(user.gender),
+    emergencyContactName: user.emergencyContactName || 'Not set',
+    emergencyContactNumber: user.emergencyContactNumber || 'Not set',
+    runningGroups: user.runningGroups && user.runningGroups.length
+      ? user.runningGroups.join(', ')
+      : (user.runningGroup || 'Not set'),
+    createdAt: user.createdAt,
+    createdAtLabel: formatAdminShortDate(user.createdAt),
+    createdAtDetailLabel: formatAdminDateTime(user.createdAt),
+    updatedAt: user.updatedAt,
+    updatedAtLabel: formatAdminDateTime(user.updatedAt),
+    registrationCount: counts.registrations.get(id) || 0,
+    submissionCount: counts.submissions.get(id) || 0,
+    approvedSubmissionCount: counts.approvedSubmissions.get(id) || 0,
+    ownedEventCount: counts.ownedEvents.get(id) || 0,
+    blogCount: counts.blogs.get(id) || 0,
+    commentCount: counts.comments.get(id) || 0,
+    applicationCount: counts.applications.get(id) || 0,
+    dependencyCount,
+    canDelete: !isCurrentAdmin && dependencyCount === 0,
+    deleteBlockedReason: isCurrentAdmin
+      ? 'You cannot delete your own admin account.'
+      : dependencyCount > 0
+        ? 'This user has platform activity and cannot be deleted safely.'
+        : ''
+  };
+}
+
+function normalizeUserIdsForDeletion(req) {
+  const rawValues = []
+    .concat(req.params.id || [])
+    .concat(req.body?.userId || [])
+    .concat(req.body?.userIds || [])
+    .flat();
+
+  return Array.from(new Set(
+    rawValues
+      .flatMap((value) => String(value || '').split(','))
+      .map((value) => value.trim())
+      .filter((value) => mongoose.Types.ObjectId.isValid(value))
+  ));
+}
+
+async function getUserDeleteBlockers(userIds, currentAdminId) {
+  const objectIds = userIds.map((id) => new mongoose.Types.ObjectId(id));
+  const counts = await getAdminUserActivityCounts(objectIds);
+  const blockers = new Map();
+
+  userIds.forEach((id) => {
+    if (String(id) === String(currentAdminId || '')) {
+      blockers.set(id, 'self');
+      return;
+    }
+
+    const dependencyCount = (counts.registrations.get(id) || 0)
+      + (counts.submissions.get(id) || 0)
+      + (counts.ownedEvents.get(id) || 0)
+      + (counts.blogs.get(id) || 0)
+      + (counts.comments.get(id) || 0)
+      + (counts.applications.get(id) || 0);
+
+    if (dependencyCount > 0) {
+      blockers.set(id, 'dependencies');
+    }
+  });
+
+  return blockers;
 }
 
 function formatEventStatusLabel(status) {
@@ -779,6 +1165,225 @@ async function renderApplicationDetails(res, applicationId, options = {}) {
     rejectionReasonDraft: options.rejectionReasonDraft || ''
   });
 }
+
+exports.listUsers = async (req, res) => {
+  try {
+    const filters = normalizeAdminUserFilters(req.query);
+    const query = buildAdminUserQuery(filters);
+    const total = await User.countDocuments(query);
+    const totalPages = Math.max(1, Math.ceil(total / ADMIN_USERS_PER_PAGE));
+    const page = Math.min(filters.page, totalPages);
+
+    const users = await User.find(query)
+      .select('userId email firstName lastName mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified authProvider googleId createdAt updatedAt')
+      .sort(getAdminUserSort(filters.sort))
+      .skip((page - 1) * ADMIN_USERS_PER_PAGE)
+      .limit(ADMIN_USERS_PER_PAGE)
+      .lean();
+
+    const counts = await getAdminUserActivityCounts(users.map((user) => user._id));
+    const mappedUsers = users.map((user) => mapAdminUserListItem(user, counts, req.session.userId));
+
+    return res.render('admin/users-list', {
+      title: 'User Management - helloRun Admin',
+      users: mappedUsers,
+      filters: { ...filters, page },
+      message: getAdminPageMessage(req.query),
+      pagination: {
+        page,
+        totalPages,
+        total,
+        perPage: ADMIN_USERS_PER_PAGE,
+        prevHref: page > 1 ? buildAdminUserListPath(filters, { page: page - 1 }) : '',
+        nextHref: page < totalPages ? buildAdminUserListPath(filters, { page: page + 1 }) : ''
+      },
+      clearSearchHref: buildAdminUserListPath(filters, { q: '', page: 1 }),
+      resetHref: '/admin/users'
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading users.');
+  }
+};
+
+exports.deleteUsers = async (req, res) => {
+  try {
+    const userIds = normalizeUserIdsForDeletion(req);
+    if (!userIds.length) {
+      return res.redirect(buildAdminUsersRedirect('error', 'Select at least one user to delete.'));
+    }
+
+    const users = await User.find({ _id: { $in: userIds } })
+      .select('_id email')
+      .lean();
+    if (!users.length) {
+      return res.redirect(buildAdminUsersRedirect('error', 'No matching users were found.'));
+    }
+
+    const foundIds = users.map((user) => String(user._id));
+    const blockers = await getUserDeleteBlockers(foundIds, req.session.userId);
+    const deletableIds = foundIds.filter((id) => !blockers.has(id));
+
+    if (!deletableIds.length) {
+      return res.redirect(buildAdminUsersRedirect(
+        'error',
+        'No users were deleted. Selected users are protected or have platform activity.'
+      ));
+    }
+
+    const result = await User.deleteMany({ _id: { $in: deletableIds } });
+    const deletedCount = Number(result.deletedCount || 0);
+    const blockedCount = foundIds.length - deletedCount;
+    const message = blockedCount > 0
+      ? `${deletedCount} user(s) deleted. ${blockedCount} user(s) skipped because they are protected or have platform activity.`
+      : `${deletedCount} user(s) deleted.`;
+
+    return res.redirect(buildAdminUsersRedirect('success', message));
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while deleting users.');
+  }
+};
+
+exports.renderEditUser = async (req, res) => {
+  try {
+    const user = await findAdminManagedUser(req.params.id);
+    if (!user) return renderAdminUserNotFound(res);
+
+    return renderAdminUserEdit(res, user, getAdminUserEditFormData(user));
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading the user edit form.');
+  }
+};
+
+exports.updateUser = async (req, res) => {
+  try {
+    const user = await findAdminManagedUser(req.params.id);
+    if (!user) return renderAdminUserNotFound(res);
+
+    const formData = getAdminUserEditFormData(req.body);
+    if (String(user._id) === String(req.session.userId || '') && formData.role !== 'admin') {
+      formData.role = 'admin';
+      return renderAdminUserEdit(res, user, formData, {
+        status: 400,
+        errors: { role: 'You cannot remove the admin role from your own account.' },
+        message: { type: 'error', text: 'Your own admin role cannot be changed here.' }
+      });
+    }
+
+    const errors = validateAdminUserEditForm(formData);
+    if (Object.keys(errors).length) {
+      return renderAdminUserEdit(res, user, formData, {
+        status: 400,
+        errors,
+        message: { type: 'error', text: 'Review the highlighted fields and try again.' }
+      });
+    }
+
+    user.firstName = formData.firstName;
+    user.lastName = formData.lastName;
+    user.mobile = formData.mobile;
+    user.country = formData.country;
+    user.dateOfBirth = formData.dateOfBirth ? new Date(`${formData.dateOfBirth}T00:00:00.000Z`) : null;
+    user.gender = formData.gender;
+    user.emergencyContactName = formData.emergencyContactName;
+    user.emergencyContactNumber = formData.emergencyContactNumber;
+    user.runningGroups = formData.runningGroups;
+    user.runningGroup = formData.runningGroups[0] || '';
+    user.role = formData.role;
+    user.organizerStatus = formData.organizerStatus;
+
+    await user.save();
+
+    return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'success', 'User information updated.'));
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while updating the user.');
+  }
+};
+
+exports.viewUser = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return renderAdminUserNotFound(res);
+    }
+
+    const user = await User.findById(userId).lean();
+    if (!user) {
+      return renderAdminUserNotFound(res);
+    }
+
+    const objectId = user._id;
+    const [
+      registrationCount,
+      submissionCount,
+      approvedSubmissionCount,
+      certificateCount,
+      ownedEventCount,
+      blogCount,
+      commentCount,
+      application,
+      recentRegistrations,
+      recentSubmissions,
+      ownedEvents
+    ] = await Promise.all([
+      Registration.countDocuments({ userId: objectId }),
+      Submission.countDocuments({ runnerId: objectId }),
+      Submission.countDocuments({ runnerId: objectId, status: 'approved' }),
+      Submission.countDocuments({ runnerId: objectId, 'certificate.issuedAt': { $ne: null } }),
+      Event.countDocuments({ organizerId: objectId, isDeleted: { $ne: true } }),
+      Blog.countDocuments({ authorId: objectId, isDeleted: { $ne: true } }),
+      BlogComment.countDocuments({ authorId: objectId, isDeleted: { $ne: true } }),
+      OrganiserApplication.findOne({ userId: objectId })
+        .populate('reviewedBy', 'firstName lastName email')
+        .lean(),
+      Registration.find({ userId: objectId })
+        .populate('eventId', 'title slug status eventStartAt')
+        .sort({ registeredAt: -1, createdAt: -1 })
+        .limit(5)
+        .lean(),
+      Submission.find({ runnerId: objectId })
+        .populate('eventId', 'title slug status')
+        .sort({ submittedAt: -1, createdAt: -1 })
+        .limit(5)
+        .lean(),
+      Event.find({ organizerId: objectId, isDeleted: { $ne: true } })
+        .select('title slug status eventStartAt updatedAt')
+        .sort({ updatedAt: -1, createdAt: -1 })
+        .limit(5)
+        .lean()
+    ]);
+
+    const hasLocalPassword = Boolean(user.passwordHash);
+    delete user.passwordHash;
+
+    return res.render('admin/user-detail', {
+      title: `${formatUserDisplayName(user)} - User Management - helloRun Admin`,
+      managedUser: {
+        ...user,
+        id: String(user._id),
+        displayName: formatUserDisplayName(user),
+        hasLocalPassword,
+        hasGoogleLink: Boolean(user.googleId),
+        maskedDateOfBirth: maskDateForAdmin(user.dateOfBirth)
+      },
+      counts: {
+        registrations: registrationCount,
+        submissions: submissionCount,
+        approvedSubmissions: approvedSubmissionCount,
+        certificates: certificateCount,
+        ownedEvents: ownedEventCount,
+        blogs: blogCount,
+        comments: commentCount
+      },
+      application,
+      recentRegistrations,
+      recentSubmissions,
+      ownedEvents,
+      message: getAdminPageMessage(req.query)
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading the user details.');
+  }
+};
 
 exports.listApplications = async (req, res) => {
   try {
@@ -3468,4 +4073,3 @@ exports.archiveCookiePolicyVersion = async (req, res) => {
     return renderServerError(res, error, 'An error occurred while archiving the cookie policy version.');
   }
 };
-
