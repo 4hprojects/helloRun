@@ -331,15 +331,34 @@ router.get('/dashboard', requireAuth, async (req, res) => {
             description: 'Application status'
           }
         ]
-      : [
-          {
-            icon: application ? 'file-check' : 'file-plus-2',
-            label: applicationAction.label,
-            href: applicationAction.href,
-            description: applicationAction.description,
-            targetBlank: true
-          }
-        ];
+      : user.organizerStatus === 'pending'
+        ? [
+            {
+              icon: 'plus-circle',
+              label: 'Create Event',
+              href: user.organizerEventCreationAcknowledgement?.agreedAt
+                ? '/organizer/create-event'
+                : '#pending-create-event-modal',
+              description: 'Set up a new running event',
+              pendingCreateEvent: !Boolean(user.organizerEventCreationAcknowledgement?.agreedAt)
+            },
+            {
+              icon: 'file-check',
+              label: applicationAction.label,
+              href: applicationAction.href,
+              description: applicationAction.description,
+              targetBlank: true
+            }
+          ]
+        : [
+            {
+              icon: application ? 'file-check' : 'file-plus-2',
+              label: applicationAction.label,
+              href: applicationAction.href,
+              description: applicationAction.description,
+              targetBlank: true
+            }
+          ];
 
     // Build dashboard data
     const dashboardData = {
@@ -423,6 +442,54 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       status: 500,
       message: 'An error occurred while loading the dashboard.'
     });
+  }
+});
+
+/* ==========================================
+   POST: Acknowledge Event Creation (Pending Organizers)
+   ========================================== */
+
+router.post('/acknowledge-event-creation', requireAuth, requireCsrfProtection, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId);
+    if (!user || user.role !== 'organiser') {
+      return res.status(403).render('error', {
+        title: '403 - Access Denied',
+        status: 403,
+        message: 'Access denied.'
+      });
+    }
+
+    if (user.organizerStatus === 'approved') {
+      return res.redirect('/organizer/create-event');
+    }
+
+    if (user.organizerStatus !== 'pending') {
+      return res.redirect('/organizer/dashboard?ack_error=not_pending');
+    }
+
+    const { agreedCheckbox, signatureName } = req.body;
+    if (!agreedCheckbox || agreedCheckbox !== '1') {
+      return res.redirect('/organizer/dashboard?ack_error=checkbox');
+    }
+
+    const trimmedName = (signatureName || '').trim();
+    if (!trimmedName || trimmedName.length < 3) {
+      return res.redirect('/organizer/dashboard?ack_error=signature');
+    }
+
+    user.organizerEventCreationAcknowledgement = {
+      agreedAt: new Date(),
+      signatureName: trimmedName,
+      ipAddress: String(req.headers['x-forwarded-for'] || req.ip || '').split(',')[0].trim().slice(0, 120),
+      userAgent: String(req.headers['user-agent'] || '').slice(0, 500)
+    };
+    await user.save();
+
+    return res.redirect('/organizer/create-event');
+  } catch (error) {
+    console.error('Error saving event creation acknowledgement:', error);
+    return res.redirect('/organizer/dashboard?ack_error=server');
   }
 });
 
