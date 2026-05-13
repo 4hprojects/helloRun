@@ -49,7 +49,9 @@ Primary implementation surfaces:
 
 ## Product Direction
 
-The create-event workflow should allow an approved organizer to configure a running event from draft to admin review.
+The create-event workflow should allow approved organizers to configure a running event from draft to admin review.
+
+Pending organizers may also start event setup after accepting a limited-access acknowledgement from `/organizer/dashboard`. This does not approve the organizer account. It only allows provisional event creation while account requirements are still under review.
 
 The form should support both simple and complex event setups.
 
@@ -139,12 +141,18 @@ Submit-for-review behavior:
 
 ## Current `/organizer/create-event` Capabilities
 
-The current create-event flow supports approved organizers creating drafts or submitting events for admin review. Admin approval publishes the event.
+The current create-event flow supports approved organizers creating drafts or submitting events for admin review. Pending organizers can access the same create-event page only after signing the pending-account acknowledgement on the dashboard. Admin approval publishes the event.
 
 Implemented capabilities:
 
 - Dedicated page at `/organizer/create-event`
-- `canCreateEvents()` route guard, including verified approved organizer requirements
+- `canCreateEvents()` route guard, including verified approved organizer access and pending organizer access after acknowledgement
+- Pending organizer acknowledgement:
+  - modal opens only after clicking `Create New Event` on `/organizer/dashboard`
+  - organizer must tick the limited-access acknowledgement checkbox
+  - organizer must enter an electronic signature matching the account full name
+  - timestamp, signature name, IP address, and user agent are recorded on the user account
+  - `/terms#pending-organizer-terms` explains limited pending-account event creation terms
 - Core event details:
   - event title
   - organizer name, defaulted from the account owner's first and last name on new create forms

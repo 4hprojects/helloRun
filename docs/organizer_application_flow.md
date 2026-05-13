@@ -10,6 +10,7 @@ Routes:
 - `/organizer/complete-profile`: organizer application form.
 - `/organizer/complete-profile?edit=1`: editable application form for `pending`, `under_review`, and `rejected` applications.
 - `/organizer/application-status`: application status page with review state, timeline, submitted details, and edit/dashboard actions.
+- `/organizer/acknowledge-event-creation`: records pending-organizer acknowledgement before provisional create-event access.
 
 ## Status Behavior
 
@@ -19,6 +20,20 @@ Routes:
 - Rejected applications can be corrected and resubmitted through edit mode.
 - Saving edits returns the application to `pending` and clears prior review fields.
 - Approved applications cannot be edited through the organizer application form.
+
+## Pending Organizer Event Creation
+
+Pending organizers can see the normal `/organizer/dashboard` without interruption. The pending-account acknowledgement modal opens only when the organizer clicks a `Create New Event` action.
+
+Before a pending organizer can access `/organizer/create-event`, they must:
+
+- confirm the acknowledgement checkbox for limited pending-account event access;
+- type their full account name as an electronic signature;
+- submit the acknowledgement form.
+
+The typed signature must match the account full name after trimming and normalizing whitespace/case. The server records the acknowledgement timestamp, signature name, IP address, and user agent in `User.organizerEventCreationAcknowledgement`.
+
+After acknowledgement is saved, `canCreateEvents()` allows the pending organizer to open `/organizer/create-event`. Approved organizers continue to have normal create-event access without the modal.
 
 ## Document Requirements
 
@@ -43,4 +58,5 @@ Focused coverage:
 - `tests/upload-validation.test.js`
 - `tests/organiser-application-review.test.js`
 - `tests/organizer-dashboard-analytics.test.js`
+- `tests/organizer-waiver-routes.test.js`
 - `tests/privacy-signup-consent.test.js`

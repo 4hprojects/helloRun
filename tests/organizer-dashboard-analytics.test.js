@@ -109,6 +109,8 @@ test('organizer dashboard renders range analytics and queue links', async () => 
 
 test('unapproved organizer lands on dashboard with application link', async () => {
   const cookie = await login(seed.unapprovedOrganizer.email, seed.password);
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
   const response = await fetch(`${BASE_URL}/organizer/dashboard`, {
     headers: { Cookie: cookie },
     redirect: 'manual'
@@ -460,6 +462,20 @@ async function login(email, password) {
   const setCookie = response.headers.get('set-cookie');
   assert.ok(setCookie);
   return setCookie.split(';')[0];
+}
+
+async function waitForSessionReady(pathname, cookie) {
+  const maxAttempts = 8;
+  for (let i = 0; i < maxAttempts; i += 1) {
+    const response = await fetch(`${BASE_URL}${pathname}`, {
+      method: 'GET',
+      headers: { Cookie: cookie },
+      redirect: 'manual'
+    });
+    if (response.headers.get('location') !== '/login') return true;
+    await new Promise((resolve) => setTimeout(resolve, 80));
+  }
+  return false;
 }
 
 async function waitForServerReady() {

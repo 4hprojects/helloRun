@@ -3,6 +3,37 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 13, 2026 (Session: Pending Organizer Event Creation Gate)
+
+### [SESSION] SESSION UPDATE:
+- Added pending-organizer provisional event creation:
+  - pending organizers stay on `/organizer/dashboard` without an automatic modal
+  - clicking `Create New Event` opens a limited-access acknowledgement modal
+  - acknowledgement requires a checkbox and electronic signature matching the account full name
+  - successful acknowledgement records timestamp, signature name, IP address, and user agent on the user account
+  - after acknowledgement, pending organizers can access `/organizer/create-event`
+- Updated `/terms` with a visible pending-organizer event creation addendum so terms remain available even when the main terms body is DB-driven.
+- Fixed the modal visibility rule so the hidden modal does not display on dashboard load.
+- Added route/UI regression coverage for pending organizer dashboard access, signature mismatch, successful acknowledgement, and create-event access.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/create_event.md
+3. docs/organizer_application_flow.md
+4. src/models/User.js
+5. src/routes/organizer.routes.js
+6. src/views/organizer/dashboard.ejs
+7. src/views/pages/terms.ejs
+8. src/public/css/organizer-dashboard.css
+9. tests/organizer-dashboard-analytics.test.js
+10. tests/organizer-waiver-routes.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `$env:CSRF_PROTECTION='0'; node --test --test-concurrency=1 tests/organizer-dashboard-analytics.test.js tests/organizer-waiver-routes.test.js` -> PASS, 25/25.
+- `$env:CSRF_PROTECTION='0'; node --test --test-concurrency=1 tests/static-pages.test.js` -> PASS, 2/2.
+
+---
+
 ## CHANGELOG - May 13, 2026 (Session: Admin User Management MVP)
 
 ### [SESSION] SESSION UPDATE:
@@ -2539,5 +2570,4 @@ helloRun/
 9. src/server.js - Route prefix cleanup
 10. .gitignore - Updated with upload directories
 11. package.json - Dependencies verified
-
 

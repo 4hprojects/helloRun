@@ -201,6 +201,36 @@ test('pending organizer application can be updated without re-uploading existing
 
 // ─── Blog Cover Image Upload ───────────────────────────────────────────────
 
+test('pending organizer complete-profile status page renders review timing', async () => {
+  const cookie = await login(seed.organiser.email, seed.password);
+  await waitForSessionReady('/organizer/application-status', cookie);
+
+  await OrganiserApplication.findOneAndUpdate(
+    { userId: seed.organiser._id },
+    {
+      $set: {
+        businessName: 'Status Organizer',
+        businessType: 'individual',
+        contactPhone: '09171234567',
+        businessAddress: 'Status Address',
+        idProofUrl: `https://example.com/organizer-docs/id-proof/${seed.stamp}-status-id-proof.pdf`,
+        businessProofUrl: '',
+        status: 'pending'
+      }
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+
+  const response = await fetch(`${BASE_URL}/organizer/complete-profile`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /waiting to be reviewed/i);
+  assert.match(html, /business days/i);
+});
+
 test('blog cover GIF is rejected with 400 invalid file type (API route)', async () => {
   const cookie = await login(seed.runner.email, seed.password);
   await waitForSessionReady('/my-registrations', cookie);

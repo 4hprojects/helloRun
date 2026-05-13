@@ -59,17 +59,10 @@
                       <span>Create Event</span>
                     </a>
                   <% } else if (user.organizerStatus === 'pending') { %>
-                    <% if (user.organizerEventCreationAcknowledgement && user.organizerEventCreationAcknowledgement.agreedAt) { %>
-                      <a href="/organizer/create-event" class="btn btn-create btn-create-tile">
-                        <i data-lucide="plus"></i>
-                        <span>Create Event</span>
-                      </a>
-                    <% } else { %>
-                      <button type="button" class="btn btn-create btn-create-tile" id="pendingCreateEventTrigger">
-                        <i data-lucide="plus"></i>
-                        <span>Create Event</span>
-                      </button>
-                    <% } %>
+                    <button type="button" class="btn btn-create btn-create-tile" id="pendingCreateEventTrigger" data-pending-create-event-trigger>
+                      <i data-lucide="plus"></i>
+                      <span>Create New Event</span>
+                    </button>
                   <% } else { %>
                     <a href="<%= applicationAction.href %>" class="btn btn-create btn-create-tile" target="_blank" rel="noopener noreferrer">
                       <i data-lucide="arrow-up-right"></i>
@@ -252,7 +245,7 @@
             <div class="actions-grid">
               <% quickActions.forEach(action => { %>
                 <% if (action.pendingCreateEvent) { %>
-                  <button type="button" class="action-card action-card-create-event" id="pendingCreateEventQuickAction" data-action-modal="pendingCreateEvent">
+                  <button type="button" class="action-card action-card-create-event" id="pendingCreateEventQuickAction" data-action-modal="pendingCreateEvent" data-pending-create-event-trigger>
                     <div class="action-icon">
                       <i data-lucide="<%= action.icon %>"></i>
                     </div>
@@ -598,6 +591,7 @@
 
   <%- include('../layouts/footer') %>
 
+  <% const hasPendingCreateEventAck = Boolean(user.organizerEventCreationAcknowledgement && user.organizerEventCreationAcknowledgement.agreedAt); %>
   <!-- Pending Organizer Event Creation Acknowledgement Modal -->
   <div id="pendingCreateEventModal" class="pce-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="pceModalTitle" data-account-name="<%= ((user.firstName || '') + ' ' + (user.lastName || '')).trim() %>" hidden>
     <div class="pce-modal-card">
@@ -607,7 +601,7 @@
         </div>
         <div>
           <span class="pce-modal-kicker">Pending Account</span>
-          <h2 class="pce-modal-title" id="pceModalTitle">Create Event with Limited Access</h2>
+          <h2 class="pce-modal-title" id="pceModalTitle">Create New Event with Limited Access</h2>
         </div>
         <button type="button" class="pce-modal-close" id="pceModalClose" aria-label="Close">
           <i data-lucide="x"></i>
@@ -645,50 +639,71 @@
           </p>
         </div>
 
-        <form id="pceAckForm" method="POST" action="/organizer/acknowledge-event-creation">
-          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-
-          <div class="pce-modal-agree-row">
-            <label class="pce-modal-checkbox-label">
-              <input type="checkbox" name="agreedCheckbox" id="pceAgreeCheckbox" value="1">
-              <span>
-                I understand the limitations of pending organizer access and agree to the
-                <a href="/terms#pending-organizer-terms" target="_blank" rel="noopener noreferrer">Pending Organizer Terms</a>.
-                I will complete all required account documentation.
-              </span>
-            </label>
-          </div>
-
-          <div class="pce-modal-signature">
-            <label for="pceSignatureName" class="pce-modal-signature-label">
-              Electronic Signature
-              <span class="pce-modal-signature-hint">Type your full name exactly as it appears on your account: <strong><%= ((user.firstName || '') + ' ' + (user.lastName || '')).trim() %></strong></span>
-            </label>
-            <input
-              type="text"
-              id="pceSignatureName"
-              name="signatureName"
-              class="pce-modal-signature-input"
-              placeholder="<%= ((user.firstName || '') + ' ' + (user.lastName || '')).trim() %>"
-              autocomplete="name"
-              maxlength="160"
-            >
-            <p class="pce-modal-signature-note">
-              By signing, you confirm you have read and agree to the terms above.
-              This signature and a timestamp (<%= new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %>) will be recorded on your account.
+        <% if (hasPendingCreateEventAck) { %>
+          <div class="pce-modal-requirements">
+            <h3 class="pce-modal-requirements-title">
+              <i data-lucide="check-circle-2"></i>
+              Acknowledgement already recorded
+            </h3>
+            <p>
+              You previously agreed on
+              <strong><%= new Date(user.organizerEventCreationAcknowledgement.agreedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %></strong>
+              using the signature <strong><%= user.organizerEventCreationAcknowledgement.signatureName || 'Recorded signature' %></strong>.
             </p>
           </div>
-
-          <p id="pceValidationMsg" class="pce-modal-validation-msg" hidden></p>
-
           <div class="pce-modal-actions">
             <button type="button" class="pce-modal-btn pce-modal-btn-cancel" id="pceModalCancelBtn">Cancel</button>
-            <button type="submit" class="pce-modal-btn pce-modal-btn-confirm" id="pceModalConfirmBtn" disabled>
-              <i data-lucide="check"></i>
-              Agree &amp; Create Event
-            </button>
+            <a href="/organizer/create-event" class="pce-modal-btn pce-modal-btn-confirm">
+              <i data-lucide="arrow-right"></i>
+              Continue to Create Event
+            </a>
           </div>
-        </form>
+        <% } else { %>
+          <form id="pceAckForm" method="POST" action="/organizer/acknowledge-event-creation">
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+
+            <div class="pce-modal-agree-row">
+              <label class="pce-modal-checkbox-label">
+                <input type="checkbox" name="agreedCheckbox" id="pceAgreeCheckbox" value="1">
+                <span>
+                  I understand the limitations of pending organizer access and agree to the
+                  <a href="/terms#pending-organizer-terms" target="_blank" rel="noopener noreferrer">Pending Organizer Terms</a>.
+                  I will complete all required account documentation.
+                </span>
+              </label>
+            </div>
+
+            <div class="pce-modal-signature">
+              <label for="pceSignatureName" class="pce-modal-signature-label">
+                Electronic Signature
+                <span class="pce-modal-signature-hint">Type your full name exactly as it appears on your account: <strong><%= ((user.firstName || '') + ' ' + (user.lastName || '')).trim() %></strong></span>
+              </label>
+              <input
+                type="text"
+                id="pceSignatureName"
+                name="signatureName"
+                class="pce-modal-signature-input"
+                placeholder="<%= ((user.firstName || '') + ' ' + (user.lastName || '')).trim() %>"
+                autocomplete="name"
+                maxlength="160"
+              >
+              <p class="pce-modal-signature-note">
+                By signing, you confirm you have read and agree to the terms above.
+                This signature and a timestamp (<%= new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) %>) will be recorded on your account.
+              </p>
+            </div>
+
+            <p id="pceValidationMsg" class="pce-modal-validation-msg" hidden></p>
+
+            <div class="pce-modal-actions">
+              <button type="button" class="pce-modal-btn pce-modal-btn-cancel" id="pceModalCancelBtn">Cancel</button>
+              <button type="submit" class="pce-modal-btn pce-modal-btn-confirm" id="pceModalConfirmBtn" disabled>
+                <i data-lucide="check"></i>
+                Agree &amp; Create Event
+              </button>
+            </div>
+          </form>
+        <% } %>
       </div>
     </div>
   </div>
@@ -748,8 +763,6 @@
       var modal = document.getElementById('pendingCreateEventModal');
       if (!modal) return;
 
-      var triggerBtn = document.getElementById('pendingCreateEventTrigger');
-      var quickActionBtn = document.getElementById('pendingCreateEventQuickAction');
       var closeBtn = document.getElementById('pceModalClose');
       var cancelBtn = document.getElementById('pceModalCancelBtn');
       var confirmBtn = document.getElementById('pceModalConfirmBtn');
@@ -768,15 +781,18 @@
         return entered.length >= 3 && entered === accountName;
       }
 
-      function openModal() {
+      function openModal(event) {
+        if (event) event.preventDefault();
         modal.hidden = false;
+        modal.removeAttribute('hidden');
         document.body.style.overflow = 'hidden';
         if (closeBtn) closeBtn.focus();
-        if (window.lucide) lucide.createIcons({ nodes: [modal] });
+        if (window.lucide) lucide.createIcons();
       }
 
       function closeModal() {
         modal.hidden = true;
+        modal.setAttribute('hidden', '');
         document.body.style.overflow = '';
         if (checkbox) checkbox.checked = false;
         if (signatureInput) signatureInput.value = '';
@@ -796,8 +812,10 @@
         if (confirmBtn) confirmBtn.disabled = !(checked && sigOk);
       }
 
-      if (triggerBtn) triggerBtn.addEventListener('click', openModal);
-      if (quickActionBtn) quickActionBtn.addEventListener('click', openModal);
+      document.addEventListener('click', function(e) {
+        var trigger = e.target.closest('[data-pending-create-event-trigger]');
+        if (trigger) openModal(e);
+      });
       if (closeBtn) closeBtn.addEventListener('click', closeModal);
       if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
 
@@ -829,7 +847,7 @@
           if (confirmBtn) {
             confirmBtn.disabled = true;
             confirmBtn.innerHTML = '<i data-lucide="loader-2"></i> Processing…';
-            if (window.lucide) lucide.createIcons({ nodes: [confirmBtn] });
+            if (window.lucide) lucide.createIcons();
           }
         });
       }
@@ -837,6 +855,3 @@
   </script>
 </body>
 </html>
-
-
-

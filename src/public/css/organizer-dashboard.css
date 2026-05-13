@@ -1837,13 +1837,18 @@
 .pce-modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 400;
+  z-index: 1300;
   background: rgba(0, 0, 0, 0.55);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 1.25rem;
+  padding: clamp(4.75rem, 9vh, 6.5rem) 1.25rem 1.25rem;
   backdrop-filter: blur(2px);
+  overflow-y: auto;
+}
+
+.pce-modal-backdrop[hidden] {
+  display: none !important;
 }
 
 .pce-modal-card {
@@ -1851,7 +1856,7 @@
   border-radius: 1rem;
   width: 100%;
   max-width: 560px;
-  max-height: 90vh;
+  max-height: calc(100vh - clamp(6rem, 11vh, 8rem));
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
 }
@@ -2167,8 +2172,13 @@ button.action-card {
 }
 
 @media (max-width: 480px) {
+  .pce-modal-backdrop {
+    padding: 4.25rem 0.75rem 0.75rem;
+  }
+
   .pce-modal-card {
     border-radius: 0.75rem;
+    max-height: calc(100vh - 5rem);
   }
 
   .pce-modal-actions {

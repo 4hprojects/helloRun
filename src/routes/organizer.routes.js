@@ -335,12 +335,10 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         ? [
             {
               icon: 'plus-circle',
-              label: 'Create Event',
-              href: user.organizerEventCreationAcknowledgement?.agreedAt
-                ? '/organizer/create-event'
-                : '#pending-create-event-modal',
+              label: 'Create New Event',
+              href: '#pending-create-event-modal',
               description: 'Set up a new running event',
-              pendingCreateEvent: !Boolean(user.organizerEventCreationAcknowledgement?.agreedAt)
+              pendingCreateEvent: true
             },
             {
               icon: 'file-check',
@@ -2154,13 +2152,24 @@ router.get('/complete-profile', requireAuth, async (req, res) => {
       ['pending', 'under_review', 'rejected'].includes(application.status) &&
       String(req.query.edit || '') === '1'
     );
+    const submittedAt = application ? new Date(application.submittedAt || application.createdAt || Date.now()) : null;
+    const reviewDays = parseInt(process.env.ORGANIZER_REVIEW_TIME_DAYS, 10) || 3;
+    const estimatedAt = submittedAt ? new Date(submittedAt) : null;
+    if (estimatedAt) estimatedAt.setDate(estimatedAt.getDate() + reviewDays);
 
     res.render('organizer/complete-profile', {
       title: 'Complete Organizer Profile - helloRun',
       user: user,
       application: application || null,
       editMode,
-      ORGANIZER_REVIEW_TIME_DAYS: process.env.ORGANIZER_REVIEW_TIME_DAYS || 3
+      reviewDays,
+      daysAgo: submittedAt ? Math.floor((Date.now() - submittedAt) / (1000 * 60 * 60 * 24)) : 0,
+      submittedDate: submittedAt
+        ? submittedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : '',
+      estimatedDate: estimatedAt
+        ? estimatedAt.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : ''
     });
   } catch (error) {
     console.error('Error loading complete-profile:', error);

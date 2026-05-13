@@ -198,6 +198,101 @@ test('approved verified organizer can open create-event page', async () => {
   assert.match(html, /Event Format/i);
 });
 
+test('pending organizer sees create-event modal only on dashboard action and must sign matching account name', async () => {
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+
+  await ensureConnected();
+  await User.updateOne(
+    { _id: seed.organizer._id },
+    {
+      $set: { organizerStatus: 'pending' },
+      $unset: { organizerEventCreationAcknowledgement: '' }
+    }
+  );
+
+  try {
+    const dashboardResponse = await fetch(`${BASE_URL}/organizer/dashboard`, {
+      headers: { Cookie: cookie },
+      redirect: 'manual'
+    });
+    assert.equal(dashboardResponse.status, 200);
+    const dashboardHtml = await dashboardResponse.text();
+    assert.match(dashboardHtml, /id="pendingCreateEventTrigger"/);
+    assert.match(dashboardHtml, /id="pendingCreateEventModal"[\s\S]*hidden/);
+    assert.match(dashboardHtml, /Create New Event/);
+
+    const blockedResponse = await fetch(`${BASE_URL}/organizer/create-event`, {
+      headers: { Cookie: cookie },
+      redirect: 'manual'
+    });
+    assert.equal(blockedResponse.status, 403);
+
+    const badAckPayload = new URLSearchParams({
+      agreedCheckbox: '1',
+      signatureName: 'Wrong Name'
+    });
+    await appendDashboardCsrf(badAckPayload, cookie);
+    const badAckResponse = await fetch(`${BASE_URL}/organizer/acknowledge-event-creation`, {
+      method: 'POST',
+      headers: {
+        Cookie: cookie,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: badAckPayload.toString(),
+      redirect: 'manual'
+    });
+    assert.equal(badAckResponse.status, 302);
+    assert.match(String(badAckResponse.headers.get('location') || ''), /ack_error=signature_mismatch/);
+
+    const goodAckPayload = new URLSearchParams({
+      agreedCheckbox: '1',
+      signatureName: 'Waiver Owner'
+    });
+    await appendDashboardCsrf(goodAckPayload, cookie);
+    const goodAckResponse = await fetch(`${BASE_URL}/organizer/acknowledge-event-creation`, {
+      method: 'POST',
+      headers: {
+        Cookie: cookie,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: goodAckPayload.toString(),
+      redirect: 'manual'
+    });
+    assert.equal(goodAckResponse.status, 302);
+    assert.equal(goodAckResponse.headers.get('location'), '/organizer/create-event');
+
+    const updatedUser = await User.findById(seed.organizer._id).lean();
+    assert.ok(updatedUser.organizerEventCreationAcknowledgement?.agreedAt);
+    assert.equal(updatedUser.organizerEventCreationAcknowledgement.signatureName, 'Waiver Owner');
+
+    const acknowledgedDashboardResponse = await fetch(`${BASE_URL}/organizer/dashboard`, {
+      headers: { Cookie: cookie },
+      redirect: 'manual'
+    });
+    assert.equal(acknowledgedDashboardResponse.status, 200);
+    const acknowledgedDashboardHtml = await acknowledgedDashboardResponse.text();
+    assert.match(acknowledgedDashboardHtml, /id="pendingCreateEventTrigger"[\s\S]*data-pending-create-event-trigger/);
+    assert.match(acknowledgedDashboardHtml, /Acknowledgement already recorded/i);
+    assert.match(acknowledgedDashboardHtml, /Continue to Create Event/i);
+
+    const allowedResponse = await fetch(`${BASE_URL}/organizer/create-event`, {
+      headers: { Cookie: cookie },
+      redirect: 'manual'
+    });
+    assert.equal(allowedResponse.status, 200);
+  } finally {
+    await User.updateOne(
+      { _id: seed.organizer._id },
+      {
+        $set: { organizerStatus: 'approved' },
+        $unset: { organizerEventCreationAcknowledgement: '' }
+      }
+    );
+  }
+});
+
 test('create-event page opens with guided blank defaults and new event setup fields', async () => {
   const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
   const ready = await waitForSessionReady('/organizer/dashboard', cookie);
@@ -907,6 +1002,18 @@ async function appendCreateEventCsrf(payload, cookie) {
   const html = await response.text();
   const match = html.match(/name="_csrf"\s+value="([^"]*)"/i);
   assert.ok(match, 'create-event page should include csrf token');
+  payload.set('_csrf', match[1]);
+}
+
+async function appendDashboardCsrf(payload, cookie) {
+  const response = await fetch(`${BASE_URL}/organizer/dashboard`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  const match = html.match(/name="_csrf"\s+value="([^"]*)"/i);
+  assert.ok(match, 'organizer dashboard should include csrf token');
   payload.set('_csrf', match[1]);
 }
 
