@@ -133,6 +133,31 @@ const userSchema = new mongoose.Schema({
     default: 'not_applied'
   },
 
+  organizerEventCreationAcknowledgement: {
+    agreedAt: {
+      type: Date,
+      default: null
+    },
+    signatureName: {
+      type: String,
+      trim: true,
+      maxlength: 160,
+      default: ''
+    },
+    ipAddress: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: ''
+    },
+    userAgent: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: ''
+    }
+  },
+
   termsAcceptedAt: {
     type: Date,
     default: null
@@ -256,9 +281,11 @@ userSchema.methods.canParticipateInEvents = function() {
 };
 
 userSchema.methods.canCreateEvents = function() {
+  if (this.role !== 'organiser' || !this.emailVerified) return false;
+  if (this.organizerStatus === 'approved') return true;
   return this.role === 'organiser' &&
-         this.organizerStatus === 'approved' &&
-         this.emailVerified;
+         this.organizerStatus === 'pending' &&
+         Boolean(this.organizerEventCreationAcknowledgement?.agreedAt);
 };
 
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);
