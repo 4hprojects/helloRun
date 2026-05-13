@@ -3,10 +3,12 @@ const assert = require('node:assert/strict');
 const { spawn } = require('node:child_process');
 const path = require('node:path');
 const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const User = require('../src/models/User');
 const PrivacyPolicy = require('../src/models/PrivacyPolicy');
+const passwordService = require('../src/services/password.service');
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3112;
@@ -117,6 +119,45 @@ test('signup requires terms/privacy/cookie checkbox consent', async () => {
   try {
     const user = await User.findOne({ email }).lean();
     assert.equal(user, null);
+  } finally {
+    await mongoose.disconnect();
+  }
+});
+
+test('verified organizer without application is sent to dashboard', async () => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const email = `phase6.verify.organizer.${stamp}@example.com`;
+  const rawToken = `verify-organizer-${stamp}`;
+  const passwordHash = await bcrypt.hash('Pass1234', 10);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    await User.create({
+      firstName: 'Verify',
+      lastName: 'Organizer',
+      email,
+      passwordHash,
+      role: 'organiser',
+      organizerStatus: 'not_applied',
+      emailVerified: false,
+      emailVerificationToken: passwordService.hashToken(rawToken),
+      emailVerificationExpires: new Date(Date.now() + 60 * 60 * 1000)
+    });
+  } finally {
+    await mongoose.disconnect();
+  }
+
+  const response = await fetch(`${BASE_URL}/verify-email/${encodeURIComponent(rawToken)}`, {
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Go to Dashboard/i);
+  assert.match(html, /href="\/organizer\/dashboard"/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    await User.deleteOne({ email });
   } finally {
     await mongoose.disconnect();
   }

@@ -204,6 +204,49 @@
   width: 9.5rem;
 }
 
+.organizer-application-gate {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.application-gate-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.application-gate-kicker {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--dash-text-light);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.application-gate-header h2 {
+  margin: 0;
+  color: var(--dash-text);
+  font-size: 1.2rem;
+}
+
+.organizer-application-gate p {
+  margin: 0;
+  color: var(--dash-text-muted);
+  line-height: 1.55;
+}
+
+.application-gate-link {
+  width: fit-content;
+}
+
+.application-gate-link i,
+.application-gate-link svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
 .verified-badge {
   display: inline-flex;
   align-items: center;

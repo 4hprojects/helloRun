@@ -79,13 +79,7 @@ function redirectAfterLogin(req, res, user) {
   }
 
   if (user.role === 'organiser') {
-    if (user.organizerStatus === 'pending') {
-      return res.redirect('/organizer/application-status');
-    }
-    if (user.organizerStatus === 'approved') {
-      return res.redirect('/organizer/dashboard');
-    }
-    return res.redirect('/organizer/complete-profile');
+    return res.redirect('/organizer/dashboard');
   }
 
   if (user.role === 'admin') {
@@ -780,6 +774,7 @@ router.get('/verify-email/:token', async (req, res) => {
       email: user.email,
       firstName: user.firstName,
       role: user.role,
+      organizerStatus: user.organizerStatus || 'not_applied',
       isOrganizer: user.role === 'organiser'
     });
 

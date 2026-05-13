@@ -86,11 +86,21 @@
             <ul>
               <li>
                 <strong>ID Proof:</strong>
-                <a href="<%= application.idProofUrl %>" target="_blank" rel="noopener noreferrer">Open document</a>
+                <% if (application.idProofUrl) { %>
+                  <a href="<%= application.idProofUrl %>" target="_blank" rel="noopener noreferrer">Open document</a>
+                <% } else { %>
+                  <span>Purged after verification</span>
+                <% } %>
               </li>
               <li>
                 <strong>Business Proof:</strong>
-                <a href="<%= application.businessProofUrl %>" target="_blank" rel="noopener noreferrer">Open document</a>
+                <% if (application.businessProofUrl) { %>
+                  <a href="<%= application.businessProofUrl %>" target="_blank" rel="noopener noreferrer">Open document</a>
+                <% } else if (isFinalized) { %>
+                  <span>Purged after verification</span>
+                <% } else { %>
+                  <span>Document pending</span>
+                <% } %>
               </li>
             </ul>
           </article>

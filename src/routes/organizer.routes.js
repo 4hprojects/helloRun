@@ -292,6 +292,54 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       count: item.totalPending,
       href: `/organizer/events/${item.eventId}/registrants`
     }));
+    const isApprovedOrganizer = user.role === 'organiser' && user.organizerStatus === 'approved';
+    const applicationAction = application && application.status !== 'rejected'
+      ? {
+          label: 'View Application Status',
+          href: '/organizer/application-status',
+          description: 'Track your organizer review'
+        }
+      : {
+          label: application?.status === 'rejected' ? 'Submit Updated Application' : 'Start Organizer Application',
+          href: application?.status === 'rejected' ? '/organizer/complete-profile?edit=1' : '/organizer/complete-profile',
+          description: 'Complete your business information and upload documents'
+        };
+    const quickActions = isApprovedOrganizer
+      ? [
+          {
+            icon: 'plus-circle',
+            label: 'Create Event',
+            href: '/organizer/create-event',
+            description: 'Set up a new running event'
+          },
+          {
+            icon: 'calendar',
+            label: 'My Events',
+            href: '/organizer/events',
+            description: 'Manage your events'
+          },
+          {
+            icon: 'users',
+            label: 'Participants',
+            href: '/organizer/events',
+            description: 'View registrations'
+          },
+          {
+            icon: 'settings',
+            label: 'Settings',
+            href: '/organizer/application-status',
+            description: 'Application status'
+          }
+        ]
+      : [
+          {
+            icon: application ? 'file-check' : 'file-plus-2',
+            label: applicationAction.label,
+            href: applicationAction.href,
+            description: applicationAction.description,
+            targetBlank: true
+          }
+        ];
 
     // Build dashboard data
     const dashboardData = {
@@ -349,32 +397,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       },
       draftEvents,
       recentEvents,
-      quickActions: [
-        {
-          icon: 'plus-circle',
-          label: 'Create Event',
-          href: '/organizer/create-event',
-          description: 'Set up a new running event'
-        },
-        {
-          icon: 'calendar',
-          label: 'My Events',
-          href: '/organizer/events',
-          description: 'Manage your events'
-        },
-        {
-          icon: 'users',
-          label: 'Participants',
-          href: '/organizer/events',
-          description: 'View registrations'
-        },
-        {
-          icon: 'settings',
-          label: 'Settings',
-          href: '/organizer/application-status',
-          description: 'Application status'
-        }
-      ],
+      isApprovedOrganizer,
+      applicationAction,
+      quickActions,
       approvedDate: application && application.reviewedAt
         ? new Date(application.reviewedAt).toLocaleDateString('en-US', {
             year: 'numeric',
@@ -2051,11 +2076,17 @@ router.get('/complete-profile', requireAuth, async (req, res) => {
     const user = await User.findById(req.session.userId);
     // Try to find the user's organizer application
     const application = await OrganiserApplication.findOne({ userId: user._id });
+    const editMode = Boolean(
+      application &&
+      ['pending', 'under_review', 'rejected'].includes(application.status) &&
+      String(req.query.edit || '') === '1'
+    );
 
     res.render('organizer/complete-profile', {
       title: 'Complete Organizer Profile - helloRun',
       user: user,
       application: application || null,
+      editMode,
       ORGANIZER_REVIEW_TIME_DAYS: process.env.ORGANIZER_REVIEW_TIME_DAYS || 3
     });
   } catch (error) {
@@ -2106,10 +2137,13 @@ router.post(
         });
       }
 
-      if (existingApplication && existingApplication.status === 'pending') {
+      const canUpdateExistingApplication = existingApplication &&
+        ['pending', 'under_review', 'rejected'].includes(existingApplication.status);
+
+      if (existingApplication && !canUpdateExistingApplication) {
         return res.status(400).json({
           success: false,
-          message: 'Your application is already under review. Please wait for feedback.'
+          message: 'This application can no longer be updated.'
         });
       }
 
@@ -2162,30 +2196,27 @@ router.post(
 
       // ========== STEP 4: Validate File Uploads ==========
       if (!req.files || Object.keys(req.files).length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Please upload both ID proof and business proof documents'
-        });
+        if (existingApplication?.idProofUrl) {
+          req.files = {};
+        } else {
+          return res.status(400).json({
+            success: false,
+            message: 'Please upload an ID proof document.'
+          });
+        }
       }
 
       const idProofFile = req.files.idProof ? req.files.idProof[0] : null;
       const businessProofFile = req.files.businessProof ? req.files.businessProof[0] : null;
 
-      if (!idProofFile) {
+      if (!idProofFile && !existingApplication?.idProofUrl) {
         return res.status(400).json({
           success: false,
           message: 'ID proof document is required'
         });
       }
 
-      if (!businessProofFile) {
-        return res.status(400).json({
-          success: false,
-          message: 'Business proof document is required'
-        });
-      }
-
-      const fileValidation = validateFiles([idProofFile, businessProofFile]);
+      const fileValidation = validateFiles([idProofFile, businessProofFile].filter(Boolean));
       if (!fileValidation.valid) {
         return res.status(400).json({
           success: false,
@@ -2194,14 +2225,17 @@ router.post(
       }
 
       // ========== STEP 5: Upload Documents to Cloudflare R2 ==========
-      let uploadedDocs;
+      let uploadedDocs = { idProof: null, businessProof: null };
       try {
-        uploadedDocs = await uploadService.uploadOrganizerDocsToR2({
-          userId,
-          idProofFile,
-          businessProofFile
-        });
-        uploadedObjectKeys.push(uploadedDocs.idProof.key, uploadedDocs.businessProof.key);
+        if (idProofFile || businessProofFile) {
+          uploadedDocs = await uploadService.uploadOrganizerDocsToR2({
+            userId,
+            idProofFile,
+            businessProofFile
+          });
+          if (uploadedDocs.idProof?.key) uploadedObjectKeys.push(uploadedDocs.idProof.key);
+          if (uploadedDocs.businessProof?.key) uploadedObjectKeys.push(uploadedDocs.businessProof.key);
+        }
       } catch (uploadError) {
         console.error('R2 upload error:', uploadError);
         return res.status(500).json({
@@ -2214,22 +2248,35 @@ router.post(
       let application;
 
       try {
-        application = new OrganiserApplication({
+        application = existingApplication || new OrganiserApplication({
           userId: userId,
-          businessName: businessName.trim(),
-          businessType: businessType,
-          contactPhone: contactPhone.trim(),
-          businessRegistrationNumber: businessRegistrationNumber?.trim() || '',
-          businessAddress: businessAddress?.trim() || '',
-          idProofUrl: uploadedDocs.idProof.url,
-          businessProofUrl: uploadedDocs.businessProof.url,
-          additionalInfo: additionalInfo?.trim() || '',
-          status: 'pending',
           submittedAt: new Date()
         });
 
-        // Save application (auto-generates applicationId via pre-save hook)
+        const oldDocumentKeys = [];
+        if (uploadedDocs.idProof?.url && application.idProofUrl) {
+          oldDocumentKeys.push(uploadService.extractObjectKeyFromPublicUrl(application.idProofUrl));
+        }
+        if (uploadedDocs.businessProof?.url && application.businessProofUrl) {
+          oldDocumentKeys.push(uploadService.extractObjectKeyFromPublicUrl(application.businessProofUrl));
+        }
+
+        application.businessName = businessName.trim();
+        application.businessType = businessType;
+        application.contactPhone = contactPhone.trim();
+        application.businessRegistrationNumber = businessRegistrationNumber?.trim() || '';
+        application.businessAddress = businessAddress?.trim() || '';
+        application.idProofUrl = uploadedDocs.idProof?.url || application.idProofUrl || '';
+        application.businessProofUrl = uploadedDocs.businessProof?.url || application.businessProofUrl || '';
+        application.additionalInfo = additionalInfo?.trim() || '';
+        application.status = 'pending';
+        application.rejectionReason = '';
+        application.reviewedBy = undefined;
+        application.reviewedAt = undefined;
+        if (existingApplication) application.submittedAt = new Date();
+
         await application.save();
+        await uploadService.deleteObjects(oldDocumentKeys.filter(Boolean));
       } catch (dbError) {
         console.error('Database save error:', dbError);
 
@@ -2265,9 +2312,12 @@ router.post(
       }
 
       // ========== STEP 9: Send Success Response ==========
+      if (!wantsJsonResponse(req)) {
+        return res.redirect('/organizer/application-status');
+      }
       return res.status(201).json({
         success: true,
-        message: 'Application submitted successfully!',
+        message: existingApplication ? 'Application updated successfully!' : 'Application submitted successfully!',
         applicationId: application.applicationId,
         redirectUrl: '/organizer/application-status'
       });
@@ -2394,6 +2444,12 @@ function validateFiles(files) {
   }
 
   return { valid: true };
+}
+
+function wantsJsonResponse(req) {
+  const accept = String(req.get('accept') || '');
+  const requestedWith = String(req.get('x-requested-with') || '').toLowerCase();
+  return requestedWith === 'xmlhttprequest' || accept.includes('application/json');
 }
 
 function getPageMessage(query) {

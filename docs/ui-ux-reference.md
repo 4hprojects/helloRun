@@ -677,6 +677,13 @@ Both auth pages use keyframe animations for entrance effects:
 
 **CSS:** `src/public/css/organizer-dashboard.css`
 
+### Application status and onboarding
+- Organizer accounts route to `/organizer/dashboard`, including unapproved organizers.
+- Unapproved dashboard state links to application status or profile completion as appropriate.
+- `/organizer/application-status` shows a status hero, timeline, submitted details, dashboard return actions, and an upper-right edit icon for editable application states.
+- The edit icon uses a hover/focus tooltip label instead of visible text in the compact panel control.
+- `/organizer/complete-profile?edit=1` reuses the wizard with prefilled values, cancel action, existing-document notices, and replacement confirmation modal.
+
 ### Analytics panels
 - Range filter: `7d`, `30d`, `all`
 - Range-based metrics: registrations, submissions, approvals

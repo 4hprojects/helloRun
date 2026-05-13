@@ -79,9 +79,9 @@
             <span class="nav-tooltip">Dashboard</span>
           </a>
         <% } else if (locals.isOrganizer) { %>
-          <a href="/organizer/application-status" class="<%= navClass('/organizer/application-status') %>" aria-label="My Application" title="My Application" <% if (ariaCurrent('/organizer/application-status')) { %>aria-current="page"<% } %>>
-            <i data-lucide="file-check"></i>
-            <span class="nav-tooltip">My Application</span>
+          <a href="/organizer/dashboard" class="<%= navClass('/organizer/dashboard') %>" aria-label="Dashboard" title="Dashboard" <% if (ariaCurrent('/organizer/dashboard')) { %>aria-current="page"<% } %>>
+            <i data-lucide="layout-dashboard"></i>
+            <span class="nav-tooltip">Dashboard</span>
           </a>
         <% } else { %>
           <a href="/runner/dashboard" class="<%= navClass('/runner/dashboard') %>" aria-label="Dashboard" title="Dashboard" <% if (ariaCurrent('/runner/dashboard')) { %>aria-current="page"<% } %>>

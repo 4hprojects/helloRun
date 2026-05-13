@@ -21,7 +21,7 @@ Completed capabilities:
 - User detail page with account, profile, emergency contact, policy consent, organizer application, recent registrations/submissions, and owned events.
 - Admin edit page for personal information plus role and organizer status only.
 - System/account data remains read-only from the edit page: email, auth provider, password, verification state, IDs, timestamps, consent, and activity data.
-- User deletion is guarded: admins cannot delete themselves, and users with platform activity are blocked from safe deletion.
+- User deletion is guarded by an admin password confirmation modal. Admins can delete other accounts, but cannot delete their own admin account. Bulk deletion is capped to reduce accidental damage.
 - Focused route coverage exists in `tests/admin-users.test.js`.
 
 Still deferred:

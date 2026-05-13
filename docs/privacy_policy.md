@@ -4,6 +4,19 @@ This document contains:
 1. A cleaned technical specification for legal policy management in the app.
 2. A production-ready public privacy policy draft for `hellorun.online`.
 
+## Update Notes (May 13, 2026)
+
+Implemented:
+- Organizer application document handling now treats verification documents as confidential review files.
+- Step 2 of `/organizer/complete-profile` explains accepted documents, optional business proof, confidentiality, and purge-after-verification behavior.
+- Existing organizer documents are indicated in edit mode without fetching, previewing, or exposing user-facing download links.
+- Replacing an existing organizer document requires a confirmation modal and deletes the previous Cloudflare R2 object after the replacement is saved.
+- Admin approval/rejection purges stored organizer verification documents and clears application document URLs.
+
+Validation completed:
+- `tests/upload-validation.test.js` -> PASS
+- `tests/organiser-application-review.test.js` -> PASS
+
 ## Update Notes (March 10, 2026)
 
 Implemented:

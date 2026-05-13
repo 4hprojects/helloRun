@@ -10,6 +10,12 @@
 
   <main class="dashboard-page" id="main-content">
     <div class="dashboard-container">
+      <%
+        const approvedOrganizer = Boolean(isApprovedOrganizer || user.organizerStatus === 'approved');
+        const statusLabel = user.organizerStatus === 'not_applied'
+          ? 'Application Not Started'
+          : String(user.organizerStatus || 'not_applied').replace('_', ' ');
+      %>
 
       <!-- Welcome Header -->
       <header class="dashboard-header">
@@ -39,18 +45,31 @@
                         <i data-lucide="x-circle"></i>
                         Application Rejected
                       </span>
+                    <% } else { %>
+                      <span class="pending-badge">
+                        <i data-lucide="clipboard-list"></i>
+                        Application Not Started
+                      </span>
                     <% } %>
                   </p>
 
-                  <a href="/organizer/create-event" class="btn btn-create btn-create-tile">
-                    <i data-lucide="plus"></i>
-                    <span>Create Event</span>
-                  </a>
+                  <% if (approvedOrganizer) { %>
+                    <a href="/organizer/create-event" class="btn btn-create btn-create-tile">
+                      <i data-lucide="plus"></i>
+                      <span>Create Event</span>
+                    </a>
+                  <% } else { %>
+                    <a href="<%= applicationAction.href %>" class="btn btn-create btn-create-tile" target="_blank" rel="noopener noreferrer">
+                      <i data-lucide="arrow-up-right"></i>
+                      <span><%= applicationAction.label %></span>
+                    </a>
+                  <% } %>
                 </div>
               </div>
             </div>
 
           <!-- Stats Cards -->
+          <% if (approvedOrganizer) { %>
           <section class="stats-section header-stats-card" aria-label="Dashboard Statistics">
             <form method="GET" action="/organizer/dashboard" class="analytics-range-form">
               <label for="dashboardRange">Analytics range</label>
@@ -148,6 +167,29 @@
               </div>
             </div>
           </section>
+          <% } else { %>
+          <section class="stats-section header-stats-card organizer-application-gate" aria-label="Organizer Application Status">
+            <div class="application-gate-header">
+              <div>
+                <span class="application-gate-kicker">Organizer access</span>
+                <h2><%= statusLabel %></h2>
+              </div>
+              <span class="status-badge status-badge-<%= user.organizerStatus || 'not_applied' %>"><%= statusLabel %></span>
+            </div>
+            <p>
+              <% if (application) { %>
+                Your organizer application is <strong><%= String(application.status || user.organizerStatus).replace('_', ' ') %></strong>.
+                Event creation becomes available after admin approval.
+              <% } else { %>
+                Complete your business information and upload the required documents before admin review can begin.
+              <% } %>
+            </p>
+            <a href="<%= applicationAction.href %>" class="event-link-btn application-gate-link" target="_blank" rel="noopener noreferrer">
+              <%= applicationAction.label %>
+              <i data-lucide="arrow-up-right"></i>
+            </a>
+          </section>
+          <% } %>
           </div>
 
           <div class="header-right">
@@ -178,7 +220,7 @@
                 </div>
               <% } else { %>
                 <div class="profile-detail-item">
-                  <span>No organizer application found. <a href="/organizer/complete-profile">Start Application</a></span>
+                  <span>No organizer application found. <a href="/organizer/complete-profile" target="_blank" rel="noopener noreferrer">Start Application</a></span>
                 </div>
               <% } %>
             </div>
@@ -189,13 +231,15 @@
               <i data-lucide="zap"></i>
               Quick Actions
             </h2>
+            <% if (approvedOrganizer) { %>
             <div class="queue-quick-links">
               <a href="<%= reviewQueue?.paymentReviewHref || '/organizer/events' %>" class="event-link-btn">Open Next Pending Payment</a>
               <a href="<%= reviewQueue?.resultReviewHref || '/organizer/events' %>" class="event-link-btn">Open Next Pending Result</a>
             </div>
+            <% } %>
             <div class="actions-grid">
               <% quickActions.forEach(action => { %>
-                <a href="<%= action.href %>" class="action-card action-card-<%= String(action.label || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') %>">
+                <a href="<%= action.href %>" class="action-card action-card-<%= String(action.label || '').toLowerCase().replace(/[^a-z0-9]+/g, '-') %>" <%= action.targetBlank ? 'target="_blank" rel="noopener noreferrer"' : '' %>>
                   <div class="action-icon">
                     <i data-lucide="<%= action.icon %>"></i>
                   </div>
@@ -213,6 +257,7 @@
       </header>
 
       <!-- Main Content Grid -->
+      <% if (approvedOrganizer) { %>
       <div class="dashboard-grid">
 
         <!-- Left Column -->
@@ -522,6 +567,7 @@
           </div>
         </aside>
       </div>
+      <% } %>
     </div>
   </main>
 

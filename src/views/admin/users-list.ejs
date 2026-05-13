@@ -334,6 +334,40 @@
         </div>
       <% } %>
 
+      <!-- Delete Confirmation Modal -->
+      <div class="admin-delete-confirm-backdrop" id="adminDeleteConfirmModal" hidden aria-hidden="true">
+        <div class="admin-delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="adminDeleteConfirmTitle" tabindex="-1">
+          <div class="admin-delete-confirm-icon-wrap">
+            <i data-lucide="triangle-alert" aria-hidden="true"></i>
+          </div>
+          <h3 id="adminDeleteConfirmTitle">Confirm Deletion</h3>
+          <p id="adminDeleteConfirmDesc" class="admin-delete-confirm-desc"></p>
+          <div class="admin-delete-confirm-pw-group">
+            <label for="adminDeleteConfirmPassword">Enter your password to confirm</label>
+            <div class="admin-delete-confirm-pw-wrap">
+              <input
+                type="password"
+                id="adminDeleteConfirmPassword"
+                autocomplete="current-password"
+                placeholder="Your password"
+                class="admin-delete-confirm-pw-input"
+              >
+              <button type="button" class="admin-delete-confirm-pw-toggle" id="adminDeleteConfirmPwToggle" aria-label="Show password">
+                <i data-lucide="eye" aria-hidden="true"></i>
+              </button>
+            </div>
+            <p class="admin-delete-confirm-pw-error" id="adminDeleteConfirmPwError" hidden></p>
+          </div>
+          <div class="admin-delete-confirm-actions">
+            <button type="button" class="btn btn-secondary" id="adminDeleteConfirmCancelBtn">Cancel</button>
+            <button type="button" class="btn btn-danger" id="adminDeleteConfirmOkBtn">
+              <i data-lucide="trash-2" aria-hidden="true"></i>
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="admin-user-modal-backdrop" id="adminUserModal" hidden aria-hidden="true">
         <div class="admin-user-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="adminUserModalTitle" tabindex="-1">
           <div class="admin-user-modal-header">
@@ -538,20 +572,132 @@
         checkbox.addEventListener('change', updateBulkState);
       });
 
-      if (bulkForm) {
-        bulkForm.addEventListener('submit', (event) => {
-          const selected = checkboxes.filter((checkbox) => checkbox.checked && !checkbox.disabled);
-          if (!selected.length || !window.confirm(`Delete ${selected.length} selected user(s)?`)) {
-            event.preventDefault();
+      const deleteModal = document.getElementById('adminDeleteConfirmModal');
+      const deleteModalDialog = deleteModal ? deleteModal.querySelector('.admin-delete-confirm-dialog') : null;
+      const deleteConfirmDesc = document.getElementById('adminDeleteConfirmDesc');
+      const deleteConfirmInput = document.getElementById('adminDeleteConfirmPassword');
+      const deleteConfirmPwError = document.getElementById('adminDeleteConfirmPwError');
+      const deleteConfirmCancelBtn = document.getElementById('adminDeleteConfirmCancelBtn');
+      const deleteConfirmOkBtn = document.getElementById('adminDeleteConfirmOkBtn');
+      const deleteConfirmPwToggle = document.getElementById('adminDeleteConfirmPwToggle');
+      let deleteModalResolve = null;
+      let lastDeleteModalTrigger = null;
+
+      function openDeleteConfirmModal(description, triggerEl) {
+        if (!deleteModal) return Promise.resolve(null);
+        lastDeleteModalTrigger = triggerEl || null;
+        if (deleteConfirmDesc) deleteConfirmDesc.textContent = description;
+        if (deleteConfirmInput) { deleteConfirmInput.value = ''; deleteConfirmInput.type = 'password'; }
+        if (deleteConfirmPwError) { deleteConfirmPwError.hidden = true; deleteConfirmPwError.textContent = ''; }
+        if (deleteConfirmPwToggle) {
+          const icon = deleteConfirmPwToggle.querySelector('i');
+          if (icon) icon.setAttribute('data-lucide', 'eye');
+          deleteConfirmPwToggle.setAttribute('aria-label', 'Show password');
+          if (window.lucide) lucide.createIcons({ nodes: [deleteConfirmPwToggle] });
+        }
+        deleteModal.hidden = false;
+        deleteModal.setAttribute('aria-hidden', 'false');
+        if (deleteModalDialog) deleteModalDialog.focus();
+        return new Promise((resolve) => { deleteModalResolve = resolve; });
+      }
+
+      function closeDeleteConfirmModal(result) {
+        if (!deleteModal) return;
+        deleteModal.hidden = true;
+        deleteModal.setAttribute('aria-hidden', 'true');
+        if (deleteConfirmInput) deleteConfirmInput.value = '';
+        const resolve = deleteModalResolve;
+        deleteModalResolve = null;
+        if (resolve) resolve(result);
+        if (lastDeleteModalTrigger) lastDeleteModalTrigger.focus();
+        lastDeleteModalTrigger = null;
+      }
+
+      if (deleteConfirmPwToggle && deleteConfirmInput) {
+        deleteConfirmPwToggle.addEventListener('click', () => {
+          const isPassword = deleteConfirmInput.type === 'password';
+          deleteConfirmInput.type = isPassword ? 'text' : 'password';
+          const icon = deleteConfirmPwToggle.querySelector('i');
+          if (icon) icon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+          deleteConfirmPwToggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+          if (window.lucide) lucide.createIcons({ nodes: [deleteConfirmPwToggle] });
+        });
+      }
+
+      if (deleteConfirmCancelBtn) {
+        deleteConfirmCancelBtn.addEventListener('click', () => closeDeleteConfirmModal(null));
+      }
+
+      if (deleteConfirmOkBtn) {
+        deleteConfirmOkBtn.addEventListener('click', () => {
+          const pw = deleteConfirmInput ? deleteConfirmInput.value.trim() : '';
+          if (!pw) {
+            if (deleteConfirmPwError) { deleteConfirmPwError.textContent = 'Please enter your password.'; deleteConfirmPwError.hidden = false; }
+            if (deleteConfirmInput) deleteConfirmInput.focus();
+            return;
           }
+          closeDeleteConfirmModal(pw);
+        });
+      }
+
+      if (deleteConfirmInput) {
+        deleteConfirmInput.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') { event.preventDefault(); if (deleteConfirmOkBtn) deleteConfirmOkBtn.click(); }
+        });
+      }
+
+      if (deleteModal) {
+        deleteModal.addEventListener('click', (event) => {
+          if (event.target === deleteModal) closeDeleteConfirmModal(null);
+        });
+        deleteModal.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') closeDeleteConfirmModal(null);
+        });
+      }
+
+      function injectPasswordAndSubmit(form, password) {
+        let pwInput = form.querySelector('input[name="adminPassword"]');
+        if (!pwInput) {
+          pwInput = document.createElement('input');
+          pwInput.type = 'hidden';
+          pwInput.name = 'adminPassword';
+          form.appendChild(pwInput);
+        }
+        pwInput.value = password;
+        form.submit();
+      }
+
+      const BULK_DELETE_CAP = 50;
+
+      if (bulkForm) {
+        bulkForm.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const selected = checkboxes.filter((checkbox) => checkbox.checked && !checkbox.disabled);
+          if (!selected.length) return;
+          if (selected.length > BULK_DELETE_CAP) {
+            if (deleteConfirmPwError) {
+              deleteConfirmPwError.textContent = `You can delete at most ${BULK_DELETE_CAP} users at a time. Deselect some and try again.`;
+            }
+            const capDesc = `You have selected ${selected.length} users, which exceeds the limit of ${BULK_DELETE_CAP} per operation. Please narrow your selection.`;
+            await openDeleteConfirmModal(capDesc, bulkButton);
+            return;
+          }
+          const desc = `You are about to permanently delete ${selected.length} user account${selected.length === 1 ? '' : 's'}. This cannot be undone.`;
+          const password = await openDeleteConfirmModal(desc, bulkButton);
+          if (!password) return;
+          injectPasswordAndSubmit(bulkForm, password);
         });
       }
 
       deleteForms.forEach((form) => {
-        form.addEventListener('submit', (event) => {
-          if (!window.confirm('Delete this user account?')) {
-            event.preventDefault();
-          }
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const deleteBtn = form.querySelector('button[type="submit"]');
+          const emailLabel = deleteBtn ? deleteBtn.getAttribute('aria-label') : 'this user';
+          const desc = `You are about to permanently delete ${emailLabel.replace('Delete ', '')}. This cannot be undone.`;
+          const password = await openDeleteConfirmModal(desc, deleteBtn);
+          if (!password) return;
+          injectPasswordAndSubmit(form, password);
         });
       });
 

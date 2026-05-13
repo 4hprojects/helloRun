@@ -107,6 +107,25 @@ test('organizer dashboard renders range analytics and queue links', async () => 
   );
 });
 
+test('unapproved organizer lands on dashboard with application link', async () => {
+  const cookie = await login(seed.unapprovedOrganizer.email, seed.password);
+  const response = await fetch(`${BASE_URL}/organizer/dashboard`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /Application Not Started/i);
+  assert.match(html, /Start Organizer Application/i);
+  assert.match(
+    html,
+    /href="\/organizer\/complete-profile" class="(?:btn btn-create btn-create-tile|event-link-btn application-gate-link)" target="_blank" rel="noopener noreferrer"/i
+  );
+  assert.doesNotMatch(html, /Queue by Event/i);
+  assert.doesNotMatch(html, /href="\/organizer\/create-event"/i);
+});
+
 async function seedOrganizerDashboardFixture() {
   await mongoose.connect(process.env.MONGODB_URI);
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -121,6 +140,17 @@ async function seedOrganizerDashboardFixture() {
     organizerStatus: 'approved',
     firstName: 'Organizer',
     lastName: 'Analytics',
+    emailVerified: true
+  });
+
+  const unapprovedOrganizer = await User.create({
+    userId: `UODU${stamp}`.slice(0, 22),
+    email: `oda.organizer.unapproved.${stamp}@example.com`,
+    passwordHash,
+    role: 'organiser',
+    organizerStatus: 'not_applied',
+    firstName: 'Organizer',
+    lastName: 'NotApplied',
     emailVerified: true
   });
 
@@ -389,6 +419,10 @@ async function seedOrganizerDashboardFixture() {
       _id: organizer._id,
       email: organizer.email
     },
+    unapprovedOrganizer: {
+      _id: unapprovedOrganizer._id,
+      email: unapprovedOrganizer.email
+    },
     runners: [
       { _id: runnerSubmitted._id, email: runnerSubmitted.email },
       { _id: runnerApproved._id, email: runnerApproved.email },
@@ -408,7 +442,8 @@ async function cleanupSeed(currentSeed) {
     Event.deleteMany({ _id: currentSeed.eventId }),
     User.deleteMany({
       email: {
-        $in: [currentSeed.organizer.email].concat((currentSeed.runners || []).map((item) => item.email))
+        $in: [currentSeed.organizer.email, currentSeed.unapprovedOrganizer.email]
+          .concat((currentSeed.runners || []).map((item) => item.email))
       }
     })
   ]);

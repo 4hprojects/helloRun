@@ -44,11 +44,11 @@ const organiserApplicationSchema = new mongoose.Schema({
   // Document Uploads
   idProofUrl: {
     type: String,
-    required: true
+    default: ''
   },
   businessProofUrl: {
     type: String,
-    required: true
+    default: ''
   },
   
   additionalInfo: {

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const OrganiserApplication = require('../models/OrganiserApplication');
 const User = require('../models/User');
+const passwordService = require('../services/password.service');
 const Blog = require('../models/Blog');
 const BlogComment = require('../models/BlogComment');
 const BlogReport = require('../models/BlogReport');
@@ -140,6 +141,20 @@ function buildDetailRedirect(applicationId, type, message) {
 
 function canTransitionStatus(currentStatus, targetStatus) {
   return REVIEWABLE_STATUSES.includes(currentStatus) && currentStatus !== targetStatus;
+}
+
+async function purgeApplicationDocuments(application) {
+  const keys = [
+    uploadService.extractObjectKeyFromPublicUrl(application.idProofUrl),
+    uploadService.extractObjectKeyFromPublicUrl(application.businessProofUrl)
+  ].filter(Boolean);
+
+  if (keys.length) {
+    await uploadService.deleteObjects(keys);
+  }
+
+  application.idProofUrl = '';
+  application.businessProofUrl = '';
 }
 
 function renderApplicationNotFound(res) {
@@ -525,12 +540,10 @@ function mapAdminUserListItem(user, counts, currentAdminId = '') {
     commentCount: counts.comments.get(id) || 0,
     applicationCount: counts.applications.get(id) || 0,
     dependencyCount,
-    canDelete: !isCurrentAdmin && dependencyCount === 0,
+    canDelete: !isCurrentAdmin,
     deleteBlockedReason: isCurrentAdmin
       ? 'You cannot delete your own admin account.'
-      : dependencyCount > 0
-        ? 'This user has platform activity and cannot be deleted safely.'
-        : ''
+      : ''
   };
 }
 
@@ -549,27 +562,13 @@ function normalizeUserIdsForDeletion(req) {
   ));
 }
 
+const BULK_DELETE_CAP = 50;
+
 async function getUserDeleteBlockers(userIds, currentAdminId) {
-  const objectIds = userIds.map((id) => new mongoose.Types.ObjectId(id));
-  const counts = await getAdminUserActivityCounts(objectIds);
   const blockers = new Map();
 
   userIds.forEach((id) => {
-    if (String(id) === String(currentAdminId || '')) {
-      blockers.set(id, 'self');
-      return;
-    }
-
-    const dependencyCount = (counts.registrations.get(id) || 0)
-      + (counts.submissions.get(id) || 0)
-      + (counts.ownedEvents.get(id) || 0)
-      + (counts.blogs.get(id) || 0)
-      + (counts.comments.get(id) || 0)
-      + (counts.applications.get(id) || 0);
-
-    if (dependencyCount > 0) {
-      blockers.set(id, 'dependencies');
-    }
+    if (String(id) === String(currentAdminId || '')) blockers.set(id, 'self');
   });
 
   return blockers;
@@ -1207,9 +1206,28 @@ exports.listUsers = async (req, res) => {
 
 exports.deleteUsers = async (req, res) => {
   try {
+    const adminPassword = String(req.body?.adminPassword || '');
+    if (!adminPassword) {
+      return res.redirect(buildAdminUsersRedirect('error', 'Password is required to confirm deletion.'));
+    }
+    const adminUser = await User.findById(req.session.userId).select('passwordHash').lean();
+    if (!adminUser || !adminUser.passwordHash) {
+      return res.redirect(buildAdminUsersRedirect('error', 'Unable to verify your identity. Deletion cancelled.'));
+    }
+    const isValidPassword = await passwordService.comparePassword(adminPassword, adminUser.passwordHash);
+    if (!isValidPassword) {
+      return res.redirect(buildAdminUsersRedirect('error', 'Incorrect password. Deletion cancelled.'));
+    }
+
     const userIds = normalizeUserIdsForDeletion(req);
     if (!userIds.length) {
       return res.redirect(buildAdminUsersRedirect('error', 'Select at least one user to delete.'));
+    }
+    if (userIds.length > BULK_DELETE_CAP) {
+      return res.redirect(buildAdminUsersRedirect(
+        'error',
+        `You can delete at most ${BULK_DELETE_CAP} users at a time. Narrow your selection and try again.`
+      ));
     }
 
     const users = await User.find({ _id: { $in: userIds } })
@@ -1226,7 +1244,7 @@ exports.deleteUsers = async (req, res) => {
     if (!deletableIds.length) {
       return res.redirect(buildAdminUsersRedirect(
         'error',
-        'No users were deleted. Selected users are protected or have platform activity.'
+        'No users were deleted. You cannot delete your own admin account.'
       ));
     }
 
@@ -1234,7 +1252,7 @@ exports.deleteUsers = async (req, res) => {
     const deletedCount = Number(result.deletedCount || 0);
     const blockedCount = foundIds.length - deletedCount;
     const message = blockedCount > 0
-      ? `${deletedCount} user(s) deleted. ${blockedCount} user(s) skipped because they are protected or have platform activity.`
+      ? `${deletedCount} user(s) deleted. ${blockedCount} user(s) skipped because you cannot delete your own admin account.`
       : `${deletedCount} user(s) deleted.`;
 
     return res.redirect(buildAdminUsersRedirect('success', message));
@@ -1477,6 +1495,7 @@ exports.approveApplication = async (req, res) => {
     application.rejectionReason = '';
     application.reviewedBy = req.session.userId;
     application.reviewedAt = new Date();
+    await purgeApplicationDocuments(application);
     await application.save();
 
     const userId = application.userId?._id || application.userId;
@@ -1555,6 +1574,7 @@ exports.rejectApplication = async (req, res) => {
     application.rejectionReason = rejectionReason;
     application.reviewedBy = req.session.userId;
     application.reviewedAt = new Date();
+    await purgeApplicationDocuments(application);
     await application.save();
 
     const userId = application.userId?._id || application.userId;

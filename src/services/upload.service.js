@@ -1,5 +1,6 @@
 ﻿const multer = require('multer');
 const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const sharp = require('sharp');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
 const DEFAULT_ALLOWED_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
@@ -212,16 +213,24 @@ exports.uploadResultProof = (req, res, next) => {
 exports.uploadOrganizerDocsToR2 = async ({ userId, idProofFile, businessProofFile }) => {
   assertR2Configured();
 
-  const idProof = await uploadFileToR2({
-    userId,
-    file: idProofFile,
-    category: 'organizer-docs/id-proof'
-  });
-  const businessProof = await uploadFileToR2({
-    userId,
-    file: businessProofFile,
-    category: 'organizer-docs/business-proof'
-  });
+  const idProof = idProofFile
+    ? await uploadFileToR2({
+        userId,
+        file: idProofFile,
+        category: 'organizer-docs/id-proof',
+        label: 'id-proof',
+        convertImagesToWebp: true
+      })
+    : null;
+  const businessProof = businessProofFile
+    ? await uploadFileToR2({
+        userId,
+        file: businessProofFile,
+        category: 'organizer-docs/business-proof',
+        label: 'business-proof',
+        convertImagesToWebp: true
+      })
+    : null;
 
   return { idProof, businessProof };
 };
@@ -469,12 +478,13 @@ function handleMulterError(err, req, res, next) {
   next();
 }
 
-async function uploadFileToR2({ userId, file, category, label }) {
+async function uploadFileToR2({ userId, file, category, label, convertImagesToWebp = false }) {
   if (!file || !file.buffer || !file.originalname) {
     throw new Error('Invalid file payload.');
   }
 
-  const extension = getSafeExtension(file.originalname);
+  const normalizedFile = await normalizeFileForUpload(file, { convertImagesToWebp });
+  const extension = normalizedFile.extension || getSafeExtension(file.originalname);
   let sanitizedBase;
   if (label) {
     sanitizedBase = String(label).replace(/[^a-z0-9_-]/gi, '-').toLowerCase().replace(/-+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || 'file';
@@ -489,8 +499,8 @@ async function uploadFileToR2({ userId, file, category, label }) {
     new PutObjectCommand({
       Bucket: r2Config.bucket,
       Key: key,
-      Body: file.buffer,
-      ContentType: file.mimetype
+      Body: normalizedFile.buffer,
+      ContentType: normalizedFile.contentType
     })
   );
 
@@ -499,6 +509,33 @@ async function uploadFileToR2({ userId, file, category, label }) {
     url: buildPublicUrl(key)
   };
 }
+
+async function normalizeFileForUpload(file, options = {}) {
+  const shouldConvertImage = Boolean(options.convertImagesToWebp)
+    && String(file.mimetype || '').startsWith('image/')
+    && file.mimetype !== 'image/webp';
+
+  if (!shouldConvertImage) {
+    return {
+      buffer: file.buffer,
+      contentType: file.mimetype,
+      extension: getExtensionForContentType(file.mimetype) || getSafeExtension(file.originalname)
+    };
+  }
+
+  const buffer = await sharp(file.buffer)
+    .rotate()
+    .webp({ quality: 82 })
+    .toBuffer();
+
+  return {
+    buffer,
+    contentType: 'image/webp',
+    extension: '.webp'
+  };
+}
+
+exports._normalizeFileForUpload = normalizeFileForUpload;
 
 function buildPublicUrl(key) {
   const customBase = String(process.env.R2_PUBLIC_BASE_URL || '').trim();
@@ -514,6 +551,21 @@ function getSafeExtension(fileName) {
   if (parts.length < 2) return '';
   const ext = parts.pop().toLowerCase().replace(/[^a-z0-9]/g, '');
   return ext ? `.${ext}` : '';
+}
+
+function getExtensionForContentType(contentType) {
+  switch (String(contentType || '').toLowerCase()) {
+    case 'image/jpeg':
+      return '.jpg';
+    case 'image/png':
+      return '.png';
+    case 'image/webp':
+      return '.webp';
+    case 'application/pdf':
+      return '.pdf';
+    default:
+      return '';
+  }
 }
 
 function isR2Configured() {

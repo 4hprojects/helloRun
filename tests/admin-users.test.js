@@ -230,9 +230,14 @@ test('admin user detail returns 404 for missing user', async () => {
   assert.match(html, /User Not Found/i);
 });
 
-test('admin can delete selected dormant user and cannot delete self', async () => {
+test('admin can delete any other account after password confirmation and cannot delete self', async () => {
   const cookie = await login(seed.admin.email, seed.password);
   await waitForSessionReady('/admin/dashboard', cookie);
+  const listResponse = await fetch(`${BASE_URL}/admin/users`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  const csrfToken = extractCsrfToken(await listResponse.text());
 
   const selfDeleteResponse = await fetch(`${BASE_URL}/admin/users/${seed.admin.id}/delete`, {
     method: 'POST',
@@ -240,6 +245,7 @@ test('admin can delete selected dormant user and cannot delete self', async () =
       Cookie: cookie,
       'Content-Type': 'application/x-www-form-urlencoded'
     },
+    body: new URLSearchParams({ _csrf: csrfToken, adminPassword: seed.password }),
     redirect: 'manual'
   });
   assert.equal(selfDeleteResponse.status, 302);
@@ -248,18 +254,41 @@ test('admin can delete selected dormant user and cannot delete self', async () =
   await ensureConnected();
   assert.ok(await User.findById(seed.admin.id));
 
+  const wrongPasswordResponse = await fetch(`${BASE_URL}/admin/users/delete`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      _csrf: csrfToken,
+      userIds: seed.runner.id,
+      adminPassword: 'WrongPass123'
+    }),
+    redirect: 'manual'
+  });
+  assert.equal(wrongPasswordResponse.status, 302);
+  assert.match(wrongPasswordResponse.headers.get('location') || '', /type=error/i);
+  assert.ok(await User.findById(seed.runner.id));
+
   const deleteResponse = await fetch(`${BASE_URL}/admin/users/delete`, {
     method: 'POST',
     headers: {
       Cookie: cookie,
       'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: new URLSearchParams({ userIds: seed.dormant.id }),
+    body: new URLSearchParams({
+      _csrf: csrfToken,
+      userIds: [seed.runner.id, seed.dormant.id].join(','),
+      adminPassword: seed.password
+    }),
     redirect: 'manual'
   });
   assert.equal(deleteResponse.status, 302);
   assert.match(deleteResponse.headers.get('location') || '', /type=success/i);
 
+  const deletedActiveUser = await User.findById(seed.runner.id);
+  assert.equal(deletedActiveUser, null);
   const deletedUser = await User.findById(seed.dormant.id);
   assert.equal(deletedUser, null);
 });

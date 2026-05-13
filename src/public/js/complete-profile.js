@@ -241,12 +241,13 @@ class ApplicationStatusPage {
 
   validateStep2() {
     let isValid = true;
-    const fileFields = ['idProof', 'businessProof'];
+    const fileFields = ['idProof'];
 
     fileFields.forEach(id => {
       const field = document.getElementById(id);
       const preview = document.getElementById(`${id}Preview`);
-      const hasFile = field.files.length > 0 || (preview && !preview.hidden);
+      const hasExistingFile = field?.dataset?.existingFile === '1';
+      const hasFile = hasExistingFile || (field && field.files.length > 0) || (preview && !preview.hidden);
 
       if (!hasFile) {
         this.showFieldError(field, 'This file is required');
@@ -375,17 +376,27 @@ class ApplicationStatusPage {
       zone.classList.remove('dragover');
     });
 
-    zone.addEventListener('drop', (e) => {
+    zone.addEventListener('drop', async (e) => {
       e.preventDefault();
       zone.classList.remove('dragover');
       if (e.dataTransfer.files.length) {
         input.files = e.dataTransfer.files;
+        const confirmed = await this.confirmFileReplacement(input);
+        if (!confirmed) {
+          this.clearFileInput(input, preview, nameSpan, sizeSpan, thumbnail);
+          return;
+        }
         this.handleFileSelect(input, preview, nameSpan, sizeSpan, thumbnail, removeBtn);
       }
     });
 
     // File selection via input
-    input.addEventListener('change', () => {
+    input.addEventListener('change', async () => {
+      const confirmed = await this.confirmFileReplacement(input);
+      if (!confirmed) {
+        this.clearFileInput(input, preview, nameSpan, sizeSpan, thumbnail);
+        return;
+      }
       this.handleFileSelect(input, preview, nameSpan, sizeSpan, thumbnail, removeBtn);
     });
 
@@ -416,9 +427,9 @@ class ApplicationStatusPage {
     }
 
     // Validate type
-    const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
     if (!allowedTypes.includes(file.type)) {
-      this.showFieldError(input, 'Only PDF, JPG, PNG files are allowed');
+      this.showFieldError(input, 'Only PDF, JPG, PNG, and WebP files are allowed');
       this.clearFileInput(input, preview, nameSpan, sizeSpan, thumbnail);
       return;
     }
@@ -442,6 +453,59 @@ class ApplicationStatusPage {
       thumbnail.innerHTML = '<svg data-lucide="file-text" width="24" height="24"></svg>';
       if (typeof lucide !== 'undefined') lucide.createIcons();
     }
+  }
+
+  confirmFileReplacement(input) {
+    if (!input || input.dataset.existingFile !== '1' || !input.files.length) {
+      return Promise.resolve(true);
+    }
+
+    const existingLabel = input.dataset.existingLabel || 'the previously uploaded document';
+    const selectedFileName = input.files[0]?.name || 'the selected file';
+
+    return new Promise((resolve) => {
+      const modal = document.createElement('div');
+      modal.className = 'replacement-modal-backdrop';
+      modal.setAttribute('role', 'presentation');
+      modal.innerHTML = `
+        <div class="replacement-modal" role="dialog" aria-modal="true" aria-labelledby="replacementModalTitle" aria-describedby="replacementModalDescription">
+          <div class="replacement-modal-icon">
+            <svg data-lucide="file-warning" width="24" height="24" aria-hidden="true"></svg>
+          </div>
+          <div class="replacement-modal-content">
+            <h3 id="replacementModalTitle">Replace uploaded document?</h3>
+            <p id="replacementModalDescription">
+              You already uploaded ${this.escapeHtml(existingLabel)}. If you continue, ${this.escapeHtml(selectedFileName)} will replace it when you save updates, and the previous uploaded file will be deleted.
+            </p>
+          </div>
+          <div class="replacement-modal-actions">
+            <button type="button" class="btn btn-secondary" data-cancel-replacement>Keep Previous File</button>
+            <button type="button" class="btn btn-primary" data-confirm-replacement>Replace File</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(modal);
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+
+      const cancelBtn = modal.querySelector('[data-cancel-replacement]');
+      const confirmBtn = modal.querySelector('[data-confirm-replacement]');
+      const close = (confirmed) => {
+        modal.remove();
+        resolve(confirmed);
+      };
+
+      cancelBtn.addEventListener('click', () => close(false));
+      confirmBtn.addEventListener('click', () => close(true));
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) close(false);
+      });
+      modal.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') close(false);
+      });
+
+      confirmBtn.focus();
+    });
   }
 
   /**
@@ -489,10 +553,16 @@ class ApplicationStatusPage {
     const businessTypeDisplay = typeMap[businessType] || businessType;
 
     // File names
-    const idProofFile = document.getElementById('idProof').files[0];
-    const businessProofFile = document.getElementById('businessProof').files[0];
-    const idProofName = idProofFile ? idProofFile.name : 'Not uploaded';
-    const businessProofName = businessProofFile ? businessProofFile.name : 'Not uploaded';
+    const idProofInput = document.getElementById('idProof');
+    const businessProofInput = document.getElementById('businessProof');
+    const idProofFile = idProofInput.files[0];
+    const businessProofFile = businessProofInput.files[0];
+    const idProofName = idProofFile
+      ? idProofFile.name
+      : (idProofInput?.dataset?.existingFile === '1' ? (idProofInput.dataset.existingLabel || 'Current file on record') : 'Not uploaded');
+    const businessProofName = businessProofFile
+      ? businessProofFile.name
+      : (businessProofInput?.dataset?.existingFile === '1' ? (businessProofInput.dataset.existingLabel || 'Current file on record') : 'Not uploaded');
 
     summary.innerHTML = `
       <div class="review-panel">
@@ -564,20 +634,50 @@ class ApplicationStatusPage {
       return;
     }
 
-    // Show loading state
     this.submitBtn.classList.add('loading');
     this.submitBtn.disabled = true;
+    this.prevBtn.disabled = true;
 
-    // Show success message (simulate, actual submission is via form action)
     const successMsg = document.getElementById('formSuccessMessage');
     if (successMsg) {
       successMsg.hidden = false;
     }
 
-    // Actually submit the form after a short delay (to show message)
-    setTimeout(() => {
-      this.form.submit();
-    }, 1000);
+    try {
+      const response = await fetch(this.form.action, {
+        method: this.form.method || 'POST',
+        body: new FormData(this.form),
+        headers: {
+          Accept: 'application/json'
+        }
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        const message = result.message || 'Application submission failed. Please review the form and try again.';
+        this.showNotification(message, 'error');
+        if (result.errors && typeof result.errors === 'object') {
+          Object.entries(result.errors).forEach(([fieldName, errorMessage]) => {
+            const field = this.form.querySelector(`[name="${fieldName}"]`);
+            if (field) this.showFieldError(field, errorMessage);
+          });
+        }
+        this.submitBtn.classList.remove('loading');
+        this.submitBtn.disabled = false;
+        this.prevBtn.disabled = false;
+        if (successMsg) successMsg.hidden = true;
+        return;
+      }
+
+      window.location.assign(result.redirectUrl || '/organizer/application-status');
+    } catch (error) {
+      console.error('Application submission failed:', error);
+      this.showNotification('Application submission failed. Please try again.', 'error');
+      this.submitBtn.classList.remove('loading');
+      this.submitBtn.disabled = false;
+      this.prevBtn.disabled = false;
+      if (successMsg) successMsg.hidden = true;
+    }
   }
 }
 

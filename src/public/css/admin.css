@@ -13,6 +13,12 @@
   padding: 1.25rem;
 }
 
+@media (min-width: 900px) {
+  .admin-shell {
+    padding: 1.75rem 2rem;
+  }
+}
+
 .admin-header-row {
   display: flex;
   justify-content: space-between;
@@ -435,6 +441,141 @@
   accent-color: #c2410c;
 }
 
+/* Delete Confirmation Modal */
+.admin-delete-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.admin-delete-confirm-backdrop[hidden] {
+  display: none;
+}
+
+.admin-delete-confirm-dialog {
+  width: min(420px, 100%);
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.28);
+  padding: 1.75rem 1.5rem 1.5rem;
+  text-align: center;
+}
+
+.admin-delete-confirm-dialog:focus {
+  outline: 2px solid #fb923c;
+  outline-offset: 3px;
+}
+
+.admin-delete-confirm-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  background: #fef2f2;
+  color: #dc2626;
+  margin-bottom: 1rem;
+}
+
+.admin-delete-confirm-icon-wrap i,
+.admin-delete-confirm-icon-wrap svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+.admin-delete-confirm-dialog h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-delete-confirm-desc {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0 0 1.25rem;
+  line-height: 1.5;
+}
+
+.admin-delete-confirm-pw-group {
+  text-align: left;
+  margin-bottom: 1.25rem;
+}
+
+.admin-delete-confirm-pw-group label {
+  display: block;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 0.4rem;
+}
+
+.admin-delete-confirm-pw-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.admin-delete-confirm-pw-input {
+  width: 100%;
+  padding: 0.5rem 2.4rem 0.5rem 0.75rem;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.admin-delete-confirm-pw-input:focus {
+  border-color: #fb923c;
+}
+
+.admin-delete-confirm-pw-toggle {
+  position: absolute;
+  right: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.admin-delete-confirm-pw-toggle i,
+.admin-delete-confirm-pw-toggle svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.admin-delete-confirm-pw-error {
+  font-size: 0.8rem;
+  color: #dc2626;
+  margin: 0.35rem 0 0;
+}
+
+.admin-delete-confirm-pw-error[hidden] {
+  display: none;
+}
+
+.admin-delete-confirm-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.admin-delete-confirm-actions .btn {
+  flex: 1;
+}
+
+/* User details modal */
 .admin-user-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -772,9 +913,345 @@
   font-size: 0.83rem;
 }
 
+/* ── Dashboard refinements ───────────────────────── */
+
+/* Updated section title treatment */
+.dashboard-section-title {
+  margin-top: 1.75rem;
+  margin-bottom: 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #94a3b8;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.5rem;
+}
+
+/* Section header row: title + optional "View all" link */
+.dash-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1.75rem;
+  margin-bottom: 0.55rem;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.5rem;
+}
+
+.dash-section-header .dashboard-section-title {
+  margin: 0;
+  border: none;
+  padding: 0;
+}
+
+.dash-section-link {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #c2410c;
+  text-decoration: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.dash-section-link:hover { text-decoration: underline; }
+
+.dash-section-link i,
+.dash-section-link svg { width: 0.8rem; height: 0.8rem; }
+
+/* Dashboard header pending badge */
+.admin-dash-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.admin-dash-pending.has-work {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.admin-dash-pending.all-clear {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.admin-dash-pending i,
+.admin-dash-pending svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+/* Action center: full-card clickable link */
+.action-card-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.9rem;
+  background: #fff;
+  transition: box-shadow 0.15s, background 0.15s;
+}
+
+.action-card-link.is-active {
+  border-left-color: #f97316;
+  background: #fffaf6;
+}
+
+.action-card-link.is-clear {
+  border-left-color: #4ade80;
+}
+
+.action-card-link:hover,
+.action-card-link:focus-visible {
+  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.35);
+  background: #fff8f2;
+  outline: none;
+}
+
+.action-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.action-card-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.action-card-icon.icon-amber  { background: #ffedd5; color: #c2410c; }
+.action-card-icon.icon-blue   { background: #dbeafe; color: #1d4ed8; }
+.action-card-icon.icon-violet { background: #ede9fe; color: #6d28d9; }
+.action-card-icon.icon-slate  { background: #f1f5f9; color: #475569; }
+
+.action-card-icon i,
+.action-card-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.action-card-num {
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #0f172a;
+  margin: 0 0 0.2rem;
+}
+
+.action-card-label {
+  font-size: 0.82rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Quick link icon */
+.quick-link-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 7px;
+  background: #f1f5f9;
+  color: #475569;
+  margin-bottom: 0.4rem;
+  transition: background 0.12s, color 0.12s;
+}
+
+.quick-link-icon i,
+.quick-link-icon svg {
+  width: 0.85rem;
+  height: 0.85rem;
+}
+
+.quick-link-card:hover .quick-link-icon,
+.quick-link-card:focus-visible .quick-link-icon {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+/* Small icon in metric card header */
+.metric-card-icon-sm {
+  width: 1rem;
+  height: 1rem;
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+/* Legal docs link row */
+.legal-docs-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.legal-doc-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  background: #fff;
+  color: #0f172a;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.legal-doc-card:hover,
+.legal-doc-card:focus-visible {
+  border-color: #fb923c;
+  background: #fff8f2;
+  outline: none;
+}
+
+.legal-doc-card i,
+.legal-doc-card svg {
+  width: 1rem;
+  height: 1rem;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+/* All-clear banner when review queues are empty */
+.action-center-all-clear {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  color: #166534;
+}
+
+.action-center-all-clear i,
+.action-center-all-clear svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex-shrink: 0;
+  color: #16a34a;
+}
+
+.action-center-all-clear strong {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 0.1rem;
+}
+
+.action-center-all-clear span {
+  font-size: 0.83rem;
+  opacity: 0.8;
+}
+
+/* Watch row: compact horizontal card for monitoring items */
+.action-watch-row {
+  margin-top: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.action-watch-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.65rem 0.9rem;
+  background: #fff;
+  color: inherit;
+  text-decoration: none;
+  transition: box-shadow 0.15s, background 0.15s;
+  max-width: 360px;
+}
+
+.action-watch-card.is-active {
+  border-left-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.action-watch-card:hover,
+.action-watch-card:focus-visible {
+  box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.25);
+  background: #f8fafc;
+  outline: none;
+}
+
+.action-watch-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+
+.action-watch-icon i,
+.action-watch-icon svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.action-watch-body {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.action-watch-num {
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #0f172a;
+}
+
+.action-watch-label {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+/* Metric grid group label (spans full grid width as a sub-heading) */
+.metric-grid-group-label {
+  grid-column: 1 / -1;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #94a3b8;
+  padding-top: 0.85rem;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 0.15rem;
+}
+
+/* ── End dashboard refinements ───────────────────── */
+
 .metric-value-sm {
   font-size: 1.2rem;
 }
+
 
 .admin-alert {
   border-radius: 8px;

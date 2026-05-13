@@ -10,9 +10,25 @@
   
   <main class="status-page" id="main-content">
     <div class="status-container">
+      <% const formApplication = typeof application !== 'undefined' && application ? application : null; %>
+      <%
+        const getStoredDocumentLabel = (url, fallback) => {
+          if (!url) return fallback;
+          try {
+            const pathname = new URL(url).pathname;
+            const fileName = decodeURIComponent(pathname.split('/').filter(Boolean).pop() || '');
+            const extension = (fileName.match(/\.[a-z0-9]+$/i) || [''])[0].replace('.', '').toUpperCase();
+            return extension ? `${fallback} (${extension})` : fallback;
+          } catch {
+            return fallback;
+          }
+        };
+        const idProofLabel = getStoredDocumentLabel(formApplication?.idProofUrl, 'ID proof document');
+        const businessProofLabel = getStoredDocumentLabel(formApplication?.businessProofUrl, 'Business proof document');
+      %>
       
       <!-- ========== STATUS VIEW (Application Exists) ========== -->
-      <% if (application) { %>
+      <% if (application && !editMode) { %>
         <!-- Header with Application ID and Copy -->
         <header class="status-header">
           <div class="header-content">
@@ -254,7 +270,7 @@
               Go to Dashboard
             </a>
           <% } else if (application.status === 'rejected') { %>
-            <a href="/organizer/complete-profile" class="btn btn-primary">
+            <a href="/organizer/complete-profile?edit=1" class="btn btn-primary">
               <svg data-lucide="refresh-cw" width="18" height="18" aria-hidden="true"></svg>
               Reapply
             </a>
@@ -263,6 +279,10 @@
               Back to Home
             </a>
           <% } else { %>
+            <a href="/organizer/complete-profile?edit=1" class="btn btn-primary">
+              <svg data-lucide="file-pen-line" width="18" height="18" aria-hidden="true"></svg>
+              Edit Application
+            </a>
             <button class="btn btn-refresh" id="refreshStatusBtn" aria-label="Refresh page to check latest status">
               <svg data-lucide="refresh-cw" width="18" height="18" aria-hidden="true"></svg>
               Refresh Status
@@ -278,6 +298,14 @@
       <% } else { %>
         <form id="organizerApplicationForm" class="application-form" enctype="multipart/form-data" method="POST" action="/organizer/complete-profile" novalidate>
           <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <% if (editMode) { %>
+            <div class="status-card status-card-pending" role="status">
+              <div class="status-message">
+                <h2>Update Your Organizer Application</h2>
+                <p>You can edit your submitted information or add missing documents while your application is still pending approval.</p>
+              </div>
+            </div>
+          <% } %>
           <!-- Progress Steps (clickable via JS) -->
           <div class="progress-steps" role="tablist" aria-label="Application steps">
             <div class="progress-step active" data-step="1" role="tab" aria-selected="true" aria-controls="step1" id="step1-tab" tabindex="0">
@@ -303,18 +331,18 @@
             
             <div class="form-row">
               <div class="input-group">
-                <input type="text" id="businessName" name="businessName" required maxlength="100" autocomplete="organization" placeholder=" ">
+                <input type="text" id="businessName" name="businessName" required maxlength="100" autocomplete="organization" placeholder=" " value="<%= formApplication?.businessName || '' %>">
                 <label for="businessName">Business Name <span class="required">*</span></label>
                 <div class="input-error" id="businessName-error" role="alert"></div>
               </div>
 
               <div class="input-group">
                 <select id="businessType" name="businessType" required>
-                  <option value="" disabled selected hidden></option>
-                  <option value="individual">Individual/Solo Organizer</option>
-                  <option value="company">Company/Commercial</option>
-                  <option value="ngo">Non-Profit/NGO</option>
-                  <option value="sports_club">Sports Club/Association</option>
+                  <option value="" disabled <%= formApplication?.businessType ? '' : 'selected' %> hidden></option>
+                  <option value="individual" <%= formApplication?.businessType === 'individual' ? 'selected' : '' %>>Individual/Solo Organizer</option>
+                  <option value="company" <%= formApplication?.businessType === 'company' ? 'selected' : '' %>>Company/Commercial</option>
+                  <option value="ngo" <%= formApplication?.businessType === 'ngo' ? 'selected' : '' %>>Non-Profit/NGO</option>
+                  <option value="sports_club" <%= formApplication?.businessType === 'sports_club' ? 'selected' : '' %>>Sports Club/Association</option>
                 </select>
                 <label for="businessType">Business Type <span class="required">*</span></label>
                 <div class="input-error" id="businessType-error" role="alert"></div>
@@ -323,25 +351,25 @@
 
             <div class="form-row">
               <div class="input-group">
-                <input type="tel" id="contactPhone" name="contactPhone" required maxlength="20" autocomplete="tel" placeholder=" ">
+                <input type="tel" id="contactPhone" name="contactPhone" required maxlength="20" autocomplete="tel" placeholder=" " value="<%= formApplication?.contactPhone || '' %>">
                 <label for="contactPhone">Contact Phone <span class="required">*</span></label>
                 <div class="input-error" id="contactPhone-error" role="alert"></div>
               </div>
 
               <div class="input-group">
-                <input type="text" id="businessRegistrationNumber" name="businessRegistrationNumber" maxlength="50" placeholder=" ">
+                <input type="text" id="businessRegistrationNumber" name="businessRegistrationNumber" maxlength="50" placeholder=" " value="<%= formApplication?.businessRegistrationNumber || '' %>">
                 <label for="businessRegistrationNumber">Business Registration Number (optional)</label>
               </div>
             </div>
 
             <div class="input-group">
-              <input type="text" id="businessAddress" name="businessAddress" required maxlength="200" autocomplete="street-address" placeholder=" ">
+              <input type="text" id="businessAddress" name="businessAddress" required maxlength="200" autocomplete="street-address" placeholder=" " value="<%= formApplication?.businessAddress || '' %>">
               <label for="businessAddress">Business Address <span class="required">*</span></label>
               <div class="input-error" id="businessAddress-error" role="alert"></div>
             </div>
 
             <div class="input-group">
-              <textarea id="additionalInfo" name="additionalInfo" maxlength="500" rows="3" placeholder=" "></textarea>
+              <textarea id="additionalInfo" name="additionalInfo" maxlength="500" rows="3" placeholder=" "><%= formApplication?.additionalInfo || '' %></textarea>
               <label for="additionalInfo">Additional Information (optional)</label>
               <div class="char-count"><span>0</span>/500</div>
             </div>
@@ -353,15 +381,36 @@
               <svg data-lucide="upload-cloud" width="20" height="20" aria-hidden="true"></svg>
               Upload Documents
             </h2>
+            <div class="document-guidance" aria-label="Accepted organizer documents">
+              <p><strong>What to upload:</strong> Use clear, readable documents that match the organizer details in Step 1.</p>
+              <ul>
+                <li><strong>ID proof:</strong> government ID, passport, driver's license, or other official photo ID.</li>
+                <li><strong>Business proof, optional for now:</strong> DTI/SEC/CDA registration, mayor's permit, BIR certificate, club/association document, or signed organizer authorization. Solo and small organizers can submit without this document; admins may mark it as document pending and request it later if needed.</li>
+              </ul>
+              <p><strong>Confidentiality:</strong> Uploaded verification documents are used only for organizer review. They are kept confidential and purged from the system after verification is completed to help protect your personal and business information.</p>
+              <p>PDF files are stored as uploaded. JPG and PNG files are converted to WebP before secure storage.</p>
+            </div>
             
             <div class="input-group">
-              <label for="idProof">ID Proof (PDF, JPG, PNG, max 5MB) <span class="required">*</span></label>
+              <label for="idProof">ID Proof (PDF, JPG, PNG, WebP, max 5MB) <span class="required">*</span></label>
+              <% if (formApplication?.idProofUrl) { %>
+                <div class="existing-document-card" aria-label="Current ID proof document">
+                  <svg data-lucide="shield-check" width="20" height="20" aria-hidden="true"></svg>
+                  <div>
+                    <strong><%= idProofLabel %> uploaded</strong>
+                    <span>You already uploaded this ID proof. It will stay securely on file unless you choose a new file. If you upload a replacement, the previous uploaded file will be deleted after the update is saved.</span>
+                  </div>
+                </div>
+              <% } %>
               <div class="file-upload-zone" id="idProofZone" tabindex="0" role="button" aria-label="Upload ID proof">
-                <input type="file" id="idProof" name="idProof" accept=".pdf,.jpg,.jpeg,.png" required>
+                <input type="file" id="idProof" name="idProof" accept=".pdf,.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp,application/pdf" data-existing-file="<%= formApplication?.idProofUrl ? '1' : '0' %>" data-existing-label="<%= idProofLabel %>" <%= formApplication?.idProofUrl ? '' : 'required' %>>
                 <svg data-lucide="upload" width="24" height="24" aria-hidden="true"></svg>
-                <span>Drag & drop or click to upload</span>
-                <span class="file-types">PDF, JPG, PNG up to 5MB</span>
+                <span><%= formApplication?.idProofUrl ? 'Upload a replacement file' : 'Drag & drop or click to upload' %></span>
+                <span class="file-types">Government ID, passport, driver's license, or official photo ID</span>
               </div>
+              <% if (formApplication?.idProofUrl) { %>
+                <p class="file-types">Current ID proof is on file. Upload a new file only if you need to replace it.</p>
+              <% } %>
               <div class="file-preview" id="idProofPreview" hidden>
                 <div class="file-preview-item">
                   <div class="file-preview-thumbnail" id="idProofThumbnail"></div>
@@ -379,13 +428,27 @@
             </div>
 
             <div class="input-group">
-              <label for="businessProof">Business Proof (PDF, JPG, PNG, max 5MB) <span class="required">*</span></label>
+              <label for="businessProof">Business Proof (optional, PDF, JPG, PNG, WebP, max 5MB)</label>
+              <% if (formApplication?.businessProofUrl) { %>
+                <div class="existing-document-card" aria-label="Current business proof document">
+                  <svg data-lucide="shield-check" width="20" height="20" aria-hidden="true"></svg>
+                  <div>
+                    <strong><%= businessProofLabel %> uploaded</strong>
+                    <span>You already uploaded this business proof. It will stay securely on file unless you choose a new file. If you upload a replacement, the previous uploaded file will be deleted after the update is saved.</span>
+                  </div>
+                </div>
+              <% } %>
               <div class="file-upload-zone" id="businessProofZone" tabindex="0" role="button" aria-label="Upload business proof">
-                <input type="file" id="businessProof" name="businessProof" accept=".pdf,.jpg,.jpeg,.png" required>
+                <input type="file" id="businessProof" name="businessProof" accept=".pdf,.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp,application/pdf" data-existing-file="<%= formApplication?.businessProofUrl ? '1' : '0' %>" data-existing-label="<%= businessProofLabel %>">
                 <svg data-lucide="upload" width="24" height="24" aria-hidden="true"></svg>
-                <span>Drag & drop or click to upload</span>
-                <span class="file-types">PDF, JPG, PNG up to 5MB</span>
+                <span><%= formApplication?.businessProofUrl ? 'Upload a replacement file' : 'Drag & drop or click to upload if available' %></span>
+                <span class="file-types">Registration, permit, certificate, club document, or organizer authorization; otherwise leave blank</span>
               </div>
+              <% if (formApplication?.businessProofUrl) { %>
+                <p class="file-types">Current business proof is on file. Upload a new file only if you need to replace it.</p>
+              <% } else if (formApplication) { %>
+                <p class="file-types">No business proof is on file. You can add one now or leave it pending.</p>
+              <% } %>
               <div class="file-preview" id="businessProofPreview" hidden>
                 <div class="file-preview-item">
                   <div class="file-preview-thumbnail" id="businessProofThumbnail"></div>
@@ -426,15 +489,18 @@
 
             <div class="success-message" id="formSuccessMessage" hidden>
               <svg data-lucide="check-circle" width="20" height="20" aria-hidden="true"></svg>
-              <span>Application submitted! Redirecting...</span>
+              <span><%= editMode ? 'Application updates saved! Redirecting...' : 'Application submitted! Redirecting...' %></span>
             </div>
           </section>
 
           <!-- Navigation Buttons -->
           <div class="form-navigation">
+            <% if (editMode) { %>
+              <a href="/organizer/application-status" class="btn btn-secondary">Cancel</a>
+            <% } %>
             <button type="button" id="prevBtn" class="btn btn-secondary" disabled>Previous</button>
             <button type="button" id="nextBtn" class="btn btn-primary">Next</button>
-            <button type="submit" id="submitBtn" class="btn btn-success" hidden>Submit Application</button>
+            <button type="submit" id="submitBtn" class="btn btn-success" hidden><%= editMode ? 'Save Updates' : 'Submit Application' %></button>
           </div>
         </form>
       <% } %>

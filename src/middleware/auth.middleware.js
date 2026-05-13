@@ -4,15 +4,29 @@ const { countUnreadNotifications } = require('../services/notification.service')
 /**
  * Redirect already-authenticated users away from login/signup
  */
-function redirectIfAuth(req, res, next) {
+async function redirectIfAuth(req, res, next) {
   if (req.session && req.session.userId) {
-    // Redirect based on role
-    if (req.session.role === 'admin') {
-      return res.redirect('/admin/dashboard');
-    } else if (req.session.role === 'organiser') {
-      return res.redirect('/organizer/dashboard');
-    } else {
+    try {
+      const user = await User.findById(req.session.userId).select('role organizerStatus');
+      if (!user) {
+        req.session.destroy(() => {});
+        return next();
+      }
+
+      req.session.role = user.role;
+
+      if (user.role === 'admin') {
+        return res.redirect('/admin/dashboard');
+      }
+
+      if (user.role === 'organiser') {
+        return res.redirect('/organizer/dashboard');
+      }
+
       return res.redirect('/runner/dashboard');
+    } catch (error) {
+      console.error('Error in redirectIfAuth:', error);
+      return next(error);
     }
   }
   next();

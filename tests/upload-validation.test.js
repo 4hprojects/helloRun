@@ -4,11 +4,14 @@ const { spawn } = require('node:child_process');
 const path = require('node:path');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const sharp = require('sharp');
 require('dotenv').config();
 
 const User = require('../src/models/User');
 const Event = require('../src/models/Event');
 const Registration = require('../src/models/Registration');
+const OrganiserApplication = require('../src/models/OrganiserApplication');
+const uploadService = require('../src/services/upload.service');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -123,6 +126,77 @@ test('organizer docs GIF is rejected with 400 invalid file type', async () => {
   const body = await response.json();
   assert.equal(body.success, false);
   assert.match(body.message, /Invalid file type/i);
+});
+
+test('organizer document image normalization converts PNG to WebP', async () => {
+  const pngBuffer = await sharp({
+    create: {
+      width: 1,
+      height: 1,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1 }
+    }
+  }).png().toBuffer();
+
+  const result = await uploadService._normalizeFileForUpload({
+    originalname: 'business-proof.png',
+    mimetype: 'image/png',
+    buffer: pngBuffer
+  }, { convertImagesToWebp: true });
+
+  assert.equal(result.contentType, 'image/webp');
+  assert.equal(result.extension, '.webp');
+  const metadata = await sharp(result.buffer).metadata();
+  assert.equal(metadata.format, 'webp');
+});
+
+test('pending organizer application can be updated without re-uploading existing ID proof', async () => {
+  const cookie = await login(seed.organiser.email, seed.password);
+  await waitForSessionReady('/organizer/application-status', cookie);
+
+  const application = await OrganiserApplication.create({
+    userId: seed.organiser._id,
+    businessName: 'Original Organizer',
+    businessType: 'individual',
+    contactPhone: '09170000000',
+    businessAddress: 'Original Address',
+    idProofUrl: `https://example.com/organizer-docs/id-proof/${seed.stamp}-id-proof.pdf`,
+    businessProofUrl: '',
+    status: 'under_review',
+    rejectionReason: 'Needs clearer business details',
+    reviewedAt: new Date()
+  });
+
+  const form = new FormData();
+  form.append('businessName', 'Updated Organizer');
+  form.append('businessType', 'sports_club');
+  form.append('contactPhone', '09171234567');
+  form.append('businessRegistrationNumber', 'REG-123');
+  form.append('businessAddress', 'Updated Address');
+  form.append('additionalInfo', 'Updated pending details');
+  form.append('terms', 'on');
+
+  const response = await fetch(`${BASE_URL}/organizer/complete-profile`, {
+    method: 'POST',
+    headers: { Cookie: cookie, Accept: 'application/json' },
+    body: form,
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 201);
+  const body = await response.json();
+  assert.equal(body.success, true);
+  assert.equal(body.message, 'Application updated successfully!');
+  assert.equal(body.redirectUrl, '/organizer/application-status');
+
+  const updated = await OrganiserApplication.findById(application._id).lean();
+  assert.equal(updated.businessName, 'Updated Organizer');
+  assert.equal(updated.businessType, 'sports_club');
+  assert.equal(updated.idProofUrl, application.idProofUrl);
+  assert.equal(updated.businessProofUrl, '');
+  assert.equal(updated.status, 'pending');
+  assert.equal(updated.rejectionReason, '');
+  assert.equal(updated.reviewedAt, undefined);
 });
 
 // ─── Blog Cover Image Upload ───────────────────────────────────────────────
@@ -274,6 +348,7 @@ async function cleanupFixtures(s) {
   await Promise.all([
     Registration.deleteMany({ _id: s.registration._id }),
     Event.deleteMany({ _id: s.event._id }),
+    OrganiserApplication.deleteMany({ userId: s.organiser._id }),
     User.deleteMany({
       _id: { $in: [s.runner._id, s.organiser._id, s.eventOwner._id] }
     })
