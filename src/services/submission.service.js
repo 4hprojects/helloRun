@@ -29,7 +29,9 @@ async function createSubmission({
   runType,
   elevationGain,
   steps,
-  ocrData
+  ocrData,
+  source,
+  stravaActivity
 }) {
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
     return createPersonalRecordSubmission({
@@ -44,7 +46,9 @@ async function createSubmission({
       runType,
       elevationGain,
       steps,
-      ocrData
+      ocrData,
+      source,
+      stravaActivity
     });
   }
 
@@ -69,7 +73,9 @@ async function createSubmission({
     runType,
     elevationGain,
     steps,
-    ocrData
+    ocrData,
+    source,
+    stravaActivity
   }));
   return applyAutoApprovalIfEligible(submission);
 }
@@ -87,7 +93,9 @@ async function resubmitSubmission({
   runType,
   elevationGain,
   steps,
-  ocrData
+  ocrData,
+  source,
+  stravaActivity
 }) {
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
     throw new Error('Personal record submissions create a new entry each time.');
@@ -117,7 +125,9 @@ async function resubmitSubmission({
     runType,
     elevationGain,
     steps,
-    ocrData
+    ocrData,
+    source,
+    stravaActivity
   });
 
   existing.distanceKm = payload.distanceKm;
@@ -128,6 +138,8 @@ async function resubmitSubmission({
   existing.proof = payload.proof;
   existing.proofNotes = payload.proofNotes;
   existing.ocrData = payload.ocrData;
+  existing.source = payload.source;
+  existing.stravaActivity = payload.stravaActivity;
   existing.runType = payload.runType;
   existing.elevationGain = payload.elevationGain;
   existing.steps = payload.steps;
@@ -463,7 +475,9 @@ async function createPersonalRecordSubmission({
   runType,
   elevationGain,
   steps,
-  ocrData
+  ocrData,
+  source,
+  stravaActivity
 }) {
   const runner = await User.findById(runnerId)
     .select('firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup')
@@ -538,7 +552,9 @@ async function createPersonalRecordSubmission({
       runType,
       elevationGain,
       steps,
-      ocrData
+      ocrData,
+      source,
+      stravaActivity
     }),
     isPersonalRecord: true
   });
@@ -603,6 +619,8 @@ function buildSubmissionPayload(registration, input) {
     proofType: sanitizeProofType(input.proofType),
     proof: sanitizeProof(input.proof),
     proofNotes: String(input.proofNotes || '').trim().slice(0, 1200),
+    source: sanitizeSubmissionSource(input.source),
+    stravaActivity: sanitizeStravaActivity(input.stravaActivity),
     runType: safeRunType,
     elevationGain: safeElevationGain,
     steps: safeSteps,
@@ -621,6 +639,52 @@ function sanitizeProofType(value) {
     return safe;
   }
   return 'manual';
+}
+
+function sanitizeSubmissionSource(value) {
+  return String(value || '').trim().toLowerCase() === 'strava' ? 'strava' : 'manual_upload';
+}
+
+function sanitizeStravaActivity(value) {
+  if (!value || typeof value !== 'object') {
+    return {
+      id: null,
+      athleteId: null,
+      name: '',
+      type: '',
+      sportType: '',
+      distanceMeters: null,
+      distanceKm: null,
+      movingTimeSeconds: null,
+      elapsedTimeSeconds: null,
+      startDate: null,
+      startDateLocal: null,
+      timezone: '',
+      elevationGain: null,
+      averageSpeed: null,
+      url: '',
+      importedAt: null
+    };
+  }
+
+  return {
+    id: sanitizeOptionalNumber(value.id, 1, Number.MAX_SAFE_INTEGER),
+    athleteId: sanitizeOptionalNumber(value.athleteId, 1, Number.MAX_SAFE_INTEGER),
+    name: String(value.name || '').trim().slice(0, 200),
+    type: String(value.type || '').trim().slice(0, 80),
+    sportType: String(value.sportType || '').trim().slice(0, 80),
+    distanceMeters: sanitizeOptionalNumber(value.distanceMeters, 0, 1000000),
+    distanceKm: sanitizeOptionalNumber(value.distanceKm, 0, 1000),
+    movingTimeSeconds: sanitizeOptionalNumber(value.movingTimeSeconds, 0, 7 * 24 * 60 * 60),
+    elapsedTimeSeconds: sanitizeOptionalNumber(value.elapsedTimeSeconds, 0, 7 * 24 * 60 * 60),
+    startDate: sanitizeOptionalDate(value.startDate),
+    startDateLocal: sanitizeOptionalDate(value.startDateLocal),
+    timezone: String(value.timezone || '').trim().slice(0, 120),
+    elevationGain: sanitizeOptionalNumber(value.elevationGain, 0, 20000),
+    averageSpeed: sanitizeOptionalNumber(value.averageSpeed, 0, 100),
+    url: String(value.url || '').trim().slice(0, 500),
+    importedAt: sanitizeOptionalDate(value.importedAt) || new Date()
+  };
 }
 
 function sanitizeRunType(value) {
@@ -666,6 +730,19 @@ function sanitizeNumber(value, min, max, errorMessage) {
     throw new Error(errorMessage);
   }
   return numeric;
+}
+
+function sanitizeOptionalNumber(value, min, max) {
+  if (value === undefined || value === null || value === '') return null;
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric < min || numeric > max) return null;
+  return numeric;
+}
+
+function sanitizeOptionalDate(value) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function sanitizeOcrData(value) {

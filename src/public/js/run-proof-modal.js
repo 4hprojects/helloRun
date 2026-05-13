@@ -84,6 +84,10 @@
     const step1Panel = document.getElementById('runProofStep1');
     const step2Panel = document.getElementById('runProofStep2');
     const stepIndicator = document.getElementById('runProofStepIndicator');
+    const stravaSyncBtn = document.getElementById('runProofStravaSyncBtn');
+    const stravaPanel = document.getElementById('runProofStravaPanel');
+    const stravaStatus = document.getElementById('runProofStravaStatus');
+    const stravaActivityList = document.getElementById('runProofStravaActivityList');
 
     const closeConfirmOverlay = document.getElementById('runProofCloseConfirm');
     const closeConfirmCancel = document.getElementById('runProofCloseConfirmCancel');
@@ -144,7 +148,9 @@
       allowPageExit: false,
       pendingUploadFile: null,
       allowFileDialogOnce: false,
-      pendingNameMismatchAction: ''
+      pendingNameMismatchAction: '',
+      stravaActivities: [],
+      stravaSubmitting: false
     };
 
     const STEP_ONE_ANALYSE_LABEL = 'Submit Screenshot';
@@ -1177,6 +1183,11 @@
       clearFilePreview();
       clearOcrState();
       clearRunDetailFields();
+      state.stravaActivities = [];
+      state.stravaSubmitting = false;
+      if (stravaPanel) stravaPanel.hidden = true;
+      if (stravaActivityList) stravaActivityList.innerHTML = '';
+      setStravaStatus('', '');
 
       state.isSubmitting = false;
       state.currentSurface = '';
@@ -1321,6 +1332,148 @@
         state.isSubmitting = false;
         toggleSubmitState();
       }
+    };
+
+    const setStravaStatus = (text, type) => {
+      if (!stravaStatus) return;
+      stravaStatus.textContent = text || '';
+      stravaStatus.classList.toggle('is-error', type === 'error');
+    };
+
+    const getCsrfToken = () => {
+      const input = form.querySelector('input[name="_csrf"]');
+      return String(input ? input.value : '').trim();
+    };
+
+    const fetchStravaActivities = async () => {
+      if (!stravaPanel || !stravaActivityList || !stravaSyncBtn) return;
+      stravaPanel.hidden = false;
+      stravaActivityList.innerHTML = '';
+      stravaSyncBtn.disabled = true;
+      setStravaStatus('Loading recent Strava activities...', '');
+
+      try {
+        const response = await fetch('/api/strava/activities?per_page=20', {
+          method: 'GET',
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin'
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.success !== true) {
+          throw Object.assign(new Error(payload.message || 'Unable to load Strava activities.'), { status: response.status });
+        }
+
+        state.stravaActivities = Array.isArray(payload.activities) ? payload.activities : [];
+        renderStravaActivities();
+      } catch (error) {
+        if (error.status === 409) {
+          setStravaStatus('Connect Strava before importing activities.', 'error');
+          stravaActivityList.innerHTML = '<a class="btn btn-primary" href="/integrations/strava/connect?returnTo=' + encodeURIComponent(window.location.pathname + window.location.search) + '">Connect Strava</a>';
+        } else {
+          setStravaStatus(error.message || 'Unable to load Strava activities.', 'error');
+        }
+      } finally {
+        stravaSyncBtn.disabled = false;
+      }
+    };
+
+    const renderStravaActivities = () => {
+      if (!stravaActivityList) return;
+      stravaActivityList.innerHTML = '';
+
+      if (!state.stravaActivities.length) {
+        setStravaStatus('No recent Strava activities found.', '');
+        return;
+      }
+
+      setStravaStatus('Select one Strava activity to submit to the selected HelloRun event.', '');
+      state.stravaActivities.forEach((activity) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'run-proof-strava-activity-card';
+        card.setAttribute('role', 'listitem');
+        card.dataset.stravaActivityId = String(activity.id || '');
+
+        const date = activity.startDateLocal || activity.startDate
+          ? new Date(activity.startDateLocal || activity.startDate).toLocaleDateString()
+          : 'Date unavailable';
+        const distance = Number(activity.distanceKm || 0).toFixed(2) + ' km';
+        const duration = formatSeconds(activity.elapsedTimeSeconds || activity.movingTimeSeconds || 0);
+        const elevation = activity.elevationGain !== null && activity.elevationGain !== undefined
+          ? ' | Elevation ' + Math.round(Number(activity.elevationGain || 0)) + ' m'
+          : '';
+
+        card.innerHTML =
+          '<span class="run-proof-strava-activity-title">' +
+            '<span>' + escapeHtml(activity.name || 'Strava activity') + '</span>' +
+            '<span>' + escapeHtml(activity.type || activity.sportType || 'Activity') + '</span>' +
+          '</span>' +
+          '<span class="run-proof-strava-activity-meta">' +
+            escapeHtml(distance + ' | ' + duration + ' | ' + date + elevation) +
+          '</span>' +
+          '<span class="run-proof-strava-activity-meta">This activity will be submitted to the selected HelloRun event. Please check the details before continuing.</span>';
+
+        card.addEventListener('click', () => submitSelectedStravaActivity(activity));
+        stravaActivityList.appendChild(card);
+      });
+    };
+
+    const submitSelectedStravaActivity = async (activity) => {
+      if (state.stravaSubmitting) return;
+      const selected = getSelectedPrimaryMeta();
+      const eventId = String(selected?.eventId || '').trim();
+      if (!eventId) {
+        setStravaStatus('Select an eligible event before submitting a Strava activity.', 'error');
+        validateEvents();
+        return;
+      }
+
+      state.stravaSubmitting = true;
+      if (stravaSyncBtn) stravaSyncBtn.disabled = true;
+      setStravaStatus('Submitting selected Strava activity...', '');
+
+      try {
+        const response = await fetch('/api/events/' + encodeURIComponent(eventId) + '/submissions/strava', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'x-csrf-token': getCsrfToken()
+          },
+          body: JSON.stringify({ stravaActivityId: activity.id })
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || payload.success !== true) {
+          throw new Error(payload.message || 'Unable to submit Strava activity.');
+        }
+
+        if (state.currentSurface === 'runner-dashboard' && typeof window.refreshRunnerDashboardResultSubmissions === 'function') {
+          await window.refreshRunnerDashboardResultSubmissions();
+        }
+        if (postSubmitTitle) postSubmitTitle.textContent = 'Run submitted!';
+        if (postSubmitDesc) postSubmitDesc.textContent = 'Your Strava activity has been received and is pending review. What would you like to do next?';
+        if (postSubmitOverlay) {
+          postSubmitOverlay.hidden = false;
+          if (postSubmitView) postSubmitView.focus();
+        } else {
+          setMessage(payload.message || 'Strava activity submitted for review.', 'success');
+        }
+      } catch (error) {
+        setStravaStatus(error.message || 'Unable to submit Strava activity.', 'error');
+      } finally {
+        state.stravaSubmitting = false;
+        if (stravaSyncBtn) stravaSyncBtn.disabled = false;
+      }
+    };
+
+    const formatSeconds = (value) => {
+      const total = Math.max(0, Math.round(Number(value || 0)));
+      const hours = Math.floor(total / 3600);
+      const minutes = Math.floor((total % 3600) / 60);
+      const seconds = total % 60;
+      if (hours > 0) return hours + 'h ' + String(minutes).padStart(2, '0') + 'm ' + String(seconds).padStart(2, '0') + 's';
+      return minutes + 'm ' + String(seconds).padStart(2, '0') + 's';
     };
 
     const openModal = async (triggerElement, overrides) => {
@@ -1744,6 +1897,13 @@
 
     if (analyseBtn) {
       analyseBtn.addEventListener('click', triggerAnalyse);
+    }
+
+    if (stravaSyncBtn) {
+      stravaSyncBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        void fetchStravaActivities();
+      });
     }
 
     const openCloseConfirm = () => {

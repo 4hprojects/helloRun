@@ -263,5 +263,9 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(partial, /id="runProofOcrSummary"/);
   assert.match(partial, /name="ocrExtractedName"/);
   assert.match(partial, /name="ocrNameMatchStatus"/);
+  assert.match(partial, /id="runProofStravaSyncBtn"/);
+  assert.match(partial, /Sync Strava Data/);
+  assert.match(source, /\/api\/strava\/activities\?per_page=20/);
+  assert.match(source, /\/api\/events\/' \+ encodeURIComponent\(eventId\) \+ '\/submissions\/strava/);
   assert.match(partial, /id="runProofSubmitInlineBtn"/);
 });

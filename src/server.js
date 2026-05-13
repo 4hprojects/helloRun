@@ -146,6 +146,7 @@ const runnerRoutes = require('./routes/runner.routes');
 const blogRoutes = require('./routes/blog.routes');
 const organizerRoutes = require('./routes/organizer.routes');
 const adminRoutes = require('./routes/admin.routes');
+const stravaRoutes = require('./routes/strava.routes');
 
 // Auth locals for all views (BEFORE routes)
 app.use(populateAuthLocals);
@@ -153,6 +154,7 @@ app.use(populateAuthLocals);
 app.use('/', authRoutes);
 app.use('/', pageRoutes);
 app.use('/', runnerRoutes);
+app.use('/', stravaRoutes);
 app.use('/', blogRoutes);
 app.use('/organizer', organizerRoutes);
 app.use('/admin', adminRoutes);

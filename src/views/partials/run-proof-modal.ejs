@@ -85,6 +85,28 @@
         <input type="hidden" id="runProofImageHash" name="proofImageHash" value="">
 
         <div id="runProofStep1">
+          <section class="run-proof-section run-proof-strava-section" aria-labelledby="runProofSectionStrava">
+            <div class="run-proof-strava-content">
+              <div>
+                <h3 id="runProofSectionStrava">Sync from Strava</h3>
+                <p class="run-proof-helper">Import one recent activity from your connected Strava account.</p>
+              </div>
+              <button
+                type="button"
+                class="btn btn-outline run-proof-strava-sync-btn"
+                id="runProofStravaSyncBtn"
+                data-tooltip="Import recent Strava activities"
+              >
+                <i data-lucide="refresh-cw" class="run-proof-btn-icon" aria-hidden="true"></i>
+                <span>Sync Strava Data</span>
+              </button>
+            </div>
+            <div class="run-proof-strava-panel" id="runProofStravaPanel" hidden>
+              <p class="run-proof-strava-status" id="runProofStravaStatus" role="status" aria-live="polite"></p>
+              <div class="run-proof-strava-activity-list" id="runProofStravaActivityList" role="list"></div>
+            </div>
+          </section>
+
           <section class="run-proof-section" aria-labelledby="runProofSectionMedia">
             <div class="run-proof-section-heading">
               <h3 id="runProofSectionMedia">Upload Screenshot</h3>

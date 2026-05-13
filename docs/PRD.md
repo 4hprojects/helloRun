@@ -3,6 +3,52 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
+## STATUS UPDATE (May 14, 2026 - Strava Import MVP)
+
+### Current reality after latest implementation
+- HelloRun now supports optional Strava account linking for runners while keeping HelloRun as the primary account system.
+- Runners connect Strava from `/runner/profile#integrations` through OAuth.
+- Strava tokens are encrypted before storage and never exposed to the frontend.
+- The submit run modal includes a `Sync Strava Data` action that fetches recent activities on demand only.
+- Runners manually choose one Strava activity and submit it to the selected eligible HelloRun event.
+- Imported Strava activities become normal HelloRun submissions, so organiser/admin review, progress, leaderboard, and certificate workflows continue using local HelloRun records.
+- Automatic full sync and background polling remain intentionally out of scope for MVP.
+
+### COMPLETED in this cycle
+- Added `docs/hellorun_strava_integration_codex.md` as the Strava implementation reference.
+- Added `StravaConnection` model with encrypted access/refresh token fields.
+- Added AES-256-GCM token encryption helper.
+- Added Strava OAuth connect/callback/disconnect routes.
+- Added Strava activity fetch API and selected-activity submission API.
+- Extended regular and accumulated submission schemas with `source` and `stravaActivity` snapshots.
+- Reused existing submission services so Strava imports enter the same review and reporting path as screenshot/manual submissions.
+- Added runner profile Connect/Disconnect Strava controls.
+- Upgraded the submit run modal Strava placeholder into an on-demand activity picker.
+- Added focused Strava integration and modal contract tests.
+
+### Validation signals recorded
+- `node --test --test-concurrency=1 tests\strava-integration.test.js tests\runner-dashboard-modal.test.js` -> PASS
+- `node --test --test-concurrency=1 tests\submission.service.test.js` -> PASS
+- `node --check` on changed Strava services, route, modal JS, submission service, and server entrypoint -> PASS
+- `git diff --check` -> PASS
+
+### Setup required before live use
+- Configure Strava app credentials in `.env`:
+  - `STRAVA_CLIENT_ID`
+  - `STRAVA_CLIENT_SECRET`
+  - `STRAVA_REDIRECT_URI`
+  - `STRAVA_ENCRYPTION_KEY`
+- Strava OAuth scope must include `read,activity:read`.
+- Any pasted or exposed Strava client secret, access token, or refresh token should be regenerated before production use.
+
+### Remaining next tasks
+- Improve API CSRF failures so JSON endpoints return JSON instead of the generic HTML 403 page.
+- Add browser QA for the complete Strava OAuth callback and selected-activity submission flow.
+- Consider supporting Personal Record Strava imports when no eligible event registration exists.
+- Add organiser/admin review labels that clearly identify Strava-imported submissions.
+
+---
+
 ## STATUS UPDATE (May 13, 2026 - Public Event Page Landing Template)
 
 ### Current reality after latest implementation

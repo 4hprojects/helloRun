@@ -89,6 +89,30 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
       default: '',
       maxlength: 1200
     },
+    source: {
+      type: String,
+      enum: ['manual_upload', 'strava'],
+      default: 'manual_upload',
+      index: true
+    },
+    stravaActivity: {
+      id: { type: Number, default: null },
+      athleteId: { type: Number, default: null },
+      name: { type: String, trim: true, default: '', maxlength: 200 },
+      type: { type: String, trim: true, default: '', maxlength: 80 },
+      sportType: { type: String, trim: true, default: '', maxlength: 80 },
+      distanceMeters: { type: Number, default: null },
+      distanceKm: { type: Number, default: null },
+      movingTimeSeconds: { type: Number, default: null },
+      elapsedTimeSeconds: { type: Number, default: null },
+      startDate: { type: Date, default: null },
+      startDateLocal: { type: Date, default: null },
+      timezone: { type: String, trim: true, default: '', maxlength: 120 },
+      elevationGain: { type: Number, default: null },
+      averageSpeed: { type: Number, default: null },
+      url: { type: String, trim: true, default: '', maxlength: 500 },
+      importedAt: { type: Date, default: null }
+    },
     status: {
       type: String,
       enum: ['submitted', 'approved', 'rejected'],
@@ -179,6 +203,10 @@ accumulatedActivitySubmissionSchema.index({ eventId: 1, status: 1, submittedAt: 
 accumulatedActivitySubmissionSchema.index({ registrationId: 1, status: 1, submittedAt: -1 });
 accumulatedActivitySubmissionSchema.index({ runnerId: 1, status: 1, submittedAt: -1 });
 accumulatedActivitySubmissionSchema.index({ eventId: 1, status: 1, distanceKm: -1 });
+accumulatedActivitySubmissionSchema.index(
+  { runnerId: 1, eventId: 1, 'stravaActivity.id': 1 },
+  { sparse: true }
+);
 
 module.exports = mongoose.models.AccumulatedActivitySubmission ||
   mongoose.model('AccumulatedActivitySubmission', accumulatedActivitySubmissionSchema);

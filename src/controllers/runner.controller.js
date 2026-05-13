@@ -27,6 +27,7 @@ const {
   markNotificationAsRead,
   markAllNotificationsAsRead
 } = require('../services/notification.service');
+const stravaService = require('../services/strava.service');
 
 const countries = getCountries();
 
@@ -285,6 +286,7 @@ exports.getProfilePage = async (req, res) => {
     const profileData = getRunnerProfileFormData(user);
     const profileCompleteness = getProfileCompleteness(profileData);
     const selectedCountry = (countries || []).find((item) => item.code === profileData.country);
+    const stravaConnection = await stravaService.getConnectionSummary(user._id).catch(() => ({ connected: false }));
 
     return res.render('runner/profile', {
       title: 'Personal Information - helloRun',
@@ -293,7 +295,8 @@ exports.getProfilePage = async (req, res) => {
       message: getRunnerProfileMessage(req.query),
       profileData,
       profileCompleteness,
-      selectedCountryName: selectedCountry?.name || 'Not set'
+      selectedCountryName: selectedCountry?.name || 'Not set',
+      stravaConnection
     });
   } catch (error) {
     console.error('Runner profile page load error:', error);

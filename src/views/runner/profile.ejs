@@ -34,6 +34,7 @@
 <a href="#identity"><i data-lucide="fingerprint"></i>Identity</a>
 <a href="#contact"><i data-lucide="mail"></i>Contact</a>
 <a href="#emergency"><i data-lucide="phone-forwarded"></i>Emergency</a>
+<a href="#integrations"><i data-lucide="plug"></i>Integrations</a>
 <a href="#account"><i data-lucide="settings"></i>Account</a>
         </nav>
       </aside>
@@ -135,6 +136,40 @@
               <button type="button" class="btn btn-outline" data-cancel-edit>Cancel</button>
             </div>
           </form>
+        </article>
+
+        <article class="runner-profile-card" id="integrations">
+          <div class="runner-profile-panel-header">
+            <h3>Integrations</h3>
+            <span class="profile-readonly-note">Connect your Strava account to import your own activities. HelloRun will only submit the activity you choose.</span>
+          </div>
+          <dl class="profile-readonly-grid">
+            <div class="profile-readonly-item">
+              <dt>Strava</dt>
+              <dd><%= stravaConnection && stravaConnection.connected ? 'Connected' : 'Not connected' %></dd>
+            </div>
+            <% if (stravaConnection && stravaConnection.connected) { %>
+              <div class="profile-readonly-item">
+                <dt>Connected As</dt>
+                <dd><%= stravaConnection.athleteName || ('Athlete #' + stravaConnection.stravaAthleteId) %></dd>
+              </div>
+            <% } %>
+          </dl>
+          <div class="runner-profile-actions">
+            <% if (stravaConnection && stravaConnection.connected) { %>
+              <form method="POST" action="/integrations/strava/disconnect" class="inline-form">
+                <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+                <input type="hidden" name="returnTo" value="/runner/profile#integrations">
+                <button type="submit" class="btn btn-outline-danger">
+                  <i data-lucide="unlink"></i> Disconnect Strava
+                </button>
+              </form>
+            <% } else { %>
+              <a href="/integrations/strava/connect?returnTo=/runner/profile%23integrations" class="btn btn-primary">
+                <i data-lucide="plug"></i> Connect Strava
+              </a>
+            <% } %>
+          </div>
         </article>
 
         <article class="runner-profile-card" id="account">

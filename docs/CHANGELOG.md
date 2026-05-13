@@ -3,6 +3,57 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 14, 2026 (Session: Strava Import MVP)
+
+### [SESSION] SESSION UPDATE:
+- Implemented the user-controlled Strava import MVP:
+  - runners can connect Strava through OAuth from the profile integrations panel
+  - Strava access and refresh tokens are stored encrypted with AES-256-GCM
+  - runners can disconnect Strava without deleting existing HelloRun submissions
+  - the submit run modal now fetches recent Strava activities only when the runner clicks `Sync Strava Data`
+  - runners manually select one Strava activity and submit it to the selected eligible HelloRun event
+  - imported Strava activities are saved into the existing regular or accumulated submission review system
+  - duplicate Strava activity submissions are blocked per runner/event
+  - Strava activity details are stored as a minimal local snapshot for review, leaderboard, and certificate flows
+- Added Strava integration routes and APIs:
+  - `GET /integrations/strava/connect`
+  - `GET /integrations/strava/callback`
+  - `POST /integrations/strava/disconnect`
+  - `GET /api/strava/connection`
+  - `GET /api/strava/activities`
+  - `POST /api/events/:eventId/submissions/strava`
+- Added graceful missing-config handling for Strava setup. Real OAuth requires `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET`, `STRAVA_REDIRECT_URI`, and `STRAVA_ENCRYPTION_KEY`.
+- Kept automatic background sync out of scope for MVP.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/PRD.md
+3. docs/hellorun_strava_integration_codex.md
+4. src/models/StravaConnection.js
+5. src/models/Submission.js
+6. src/models/AccumulatedActivitySubmission.js
+7. src/services/token-encryption.service.js
+8. src/services/strava.service.js
+9. src/services/strava-submission.service.js
+10. src/services/submission.service.js
+11. src/routes/strava.routes.js
+12. src/server.js
+13. src/controllers/runner.controller.js
+14. src/views/runner/profile.ejs
+15. src/views/partials/run-proof-modal.ejs
+16. src/public/js/run-proof-modal.js
+17. src/public/css/run-proof-modal.css
+18. tests/strava-integration.test.js
+19. tests/runner-dashboard-modal.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests\strava-integration.test.js tests\runner-dashboard-modal.test.js` -> PASS, 6/6.
+- `node --test --test-concurrency=1 tests\submission.service.test.js` -> PASS, 30/30.
+- `node --check` on changed Strava services, routes, modal JS, submission service, and server entrypoint -> PASS.
+- `git diff --check` -> PASS.
+
+---
+
 ## CHANGELOG - May 13, 2026 (Session: Pending Organizer Event Creation Gate)
 
 ### [SESSION] SESSION UPDATE:
@@ -2570,4 +2621,3 @@ helloRun/
 9. src/server.js - Route prefix cleanup
 10. .gitignore - Updated with upload directories
 11. package.json - Dependencies verified
-
