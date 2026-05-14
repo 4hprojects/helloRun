@@ -110,7 +110,7 @@ test('admin review queue renders payment and result queues with filters', async 
   });
   assert.equal(allResponse.status, 200);
   const allHtml = await allResponse.text();
-  assert.match(allHtml, /Payment and Result Reviews/i);
+  assert.match(allHtml, /Payment Receipt and Run Result Reviews/i);
   assert.match(allHtml, /Payment/i);
   assert.match(allHtml, /Result/i);
   assert.match(allHtml, new RegExp(escapeRegex(seed.eventTitle)));

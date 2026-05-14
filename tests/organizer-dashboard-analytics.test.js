@@ -103,7 +103,7 @@ test('organizer dashboard renders range analytics and queue links', async () => 
   );
   assert.match(
     html,
-    /class="btn btn-secondary review-icon-btn" target="_blank" rel="noopener noreferrer" aria-label="Review result submissions"/i
+    /class="btn btn-secondary review-icon-btn" target="_blank" rel="noopener noreferrer" aria-label="Review run results"/i
   );
 });
 

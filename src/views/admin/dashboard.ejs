@@ -48,7 +48,7 @@
           <i data-lucide="check-circle" aria-hidden="true"></i>
           <div>
             <strong>All review queues are clear</strong>
-            <span>No pending applications, proofs, events, or blog items need attention.</span>
+          <span>No pending applications, payment receipts, run results, events, or blog items need attention.</span>
           </div>
         </div>
       <% } else { %>
@@ -73,7 +73,7 @@
               </span>
             </div>
             <p class="action-card-num"><%= stats.pendingPaymentReviews %></p>
-            <p class="action-card-label">Payment Proof Reviews</p>
+            <p class="action-card-label">Payment Receipt Reviews</p>
           </a>
 
           <a href="/admin/reviews?type=results" class="action-card-link <%= stats.pendingResultReviews > 0 ? 'is-active' : 'is-clear' %>">
@@ -84,7 +84,7 @@
               </span>
             </div>
             <p class="action-card-num"><%= stats.pendingResultReviews %></p>
-            <p class="action-card-label">Run Proof Reviews</p>
+            <p class="action-card-label">Run Result Reviews</p>
           </a>
 
           <a href="/admin/events?needsReview=1" class="action-card-link <%= stats.pendingEventReviews > 0 ? 'is-active' : 'is-clear' %>">

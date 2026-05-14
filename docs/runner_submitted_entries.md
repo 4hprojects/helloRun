@@ -4,7 +4,7 @@
 
 This document defines the dedicated runner-facing page where runners can view, track, filter, inspect, and act on submitted run/activity entries in HelloRun.
 
-This page serves as the runner’s main submission history and proof-status page.
+This page serves as the runner's main submission history and run result status page.
 
 The PRD should only reference this document instead of storing the full implementation plan inside `PRD.md`.
 
@@ -33,7 +33,7 @@ Recommended navigation label:
 Reason:
 
 - It follows the newer runner route structure.
-- It separates registration/payment management from result-proof management.
+- It separates registration/payment receipt management from run result management.
 - It gives OCR-based and manual-entry submissions a dedicated place.
 - It keeps `/my-registrations` focused on registration and payment state.
 
@@ -44,8 +44,8 @@ Reason:
 The first implementation will follow these decisions:
 
 - Route: `/runner/submissions`
-- Proof display: show a `View Proof` action instead of displaying proof screenshots on every card
-- Resubmission: reuse the existing run-proof modal
+- Evidence display: show a `View Run Result Evidence` action instead of displaying screenshots on every card
+- Resubmission: reuse the existing run result modal
 - Scope: runner-owned event submissions and personal-record submissions
 
 ---
@@ -70,8 +70,8 @@ Implementation constraints for the next pass:
 
 - Do not change backend ownership or status semantics unless a UI requirement proves it is necessary.
 - Do not remove personal-record submissions from the page.
-- Do not reintroduce duplicate run-proof modal markup.
-- Reuse the existing shared nav and run-proof modal behavior.
+- Do not reintroduce duplicate run result modal markup.
+- Reuse the existing shared nav and run result modal behavior.
 - Keep the page accessible with clear focus states, semantic headings, usable labels, and preserved `aria-current` behavior.
 - Keep visual changes scoped to `runner-submissions.css` and the runner submissions templates unless shared styles are genuinely required.
 
@@ -106,7 +106,7 @@ The page should answer these runner questions:
 - Which entries were approved?
 - Which entries were rejected?
 - Why was an entry rejected?
-- Can I resubmit a corrected proof?
+- Can I resubmit corrected run result evidence?
 - Can I download my certificate?
 - Did the screenshot analysis or manual entry produce the final submitted values?
 - Which event, distance, and activity type does each entry belong to?
@@ -118,20 +118,20 @@ The page should answer these runner questions:
 HelloRun already supports:
 
 - Runner registration records.
-- Payment proof upload and review.
-- Run-proof submission and resubmission.
-- Organizer/admin review of submitted run proofs.
+- Payment receipt upload and review.
+- Run result submission and resubmission.
+- Organizer/admin review of submitted run results.
 - Submission statuses such as `submitted`, `approved`, and `rejected`.
 - Certificate issuance after approval.
 - Runner dashboard cards backed by real registration and submission data.
-- Run-proof modal with screenshot analysis wording.
+- Run result modal with screenshot analysis and Strava activity wording.
 - Manual-entry fallback when OCR is unavailable or fails.
-- Regression coverage for the run-proof modal and OCR proof reader.
+- Regression coverage for the run result modal and OCR proof reader.
 - CSRF protection for runner upload and submission/resubmission flows.
 
 This new page should reuse the existing submission workflow.
 
-It should not replace the run-proof modal.
+It should not replace the run result modal.
 
 It should not replace `/my-registrations`.
 
@@ -148,7 +148,7 @@ That works for quick access.
 It becomes limited when a runner has:
 
 - multiple registered events
-- multiple submitted proofs
+- multiple submitted run results
 - rejected submissions
 - resubmission attempts
 - certificate-ready entries
@@ -183,7 +183,7 @@ The page should include:
 - Review notes and rejection reason visibility.
 - OCR metadata display when available.
 - Manual-entry indicator when OCR fallback was used.
-- `View Proof` action.
+- `View Run Result Evidence` action.
 - Empty states.
 - Mobile-responsive layout.
 - Pagination.
@@ -237,7 +237,7 @@ Recommended placements:
 - Progress Statistics card
 - Recent Activity card
 - Certificates card
-- Run-proof modal success state
+- Run result modal success state
 
 ## Main Runner Navigation
 
@@ -275,7 +275,7 @@ Title:
 
 Subtitle:
 
-- `Check the status of your uploaded run proofs, review feedback, and certificates in one place.`
+- `Check the status of your uploaded run results, review feedback, and certificates in one place.`
 
 Primary action:
 
@@ -441,7 +441,7 @@ Action visibility should depend on submission status.
 Show:
 
 - `View Details`
-- `View Proof`
+- `View Run Result Evidence`
 
 Do not show:
 
@@ -460,7 +460,7 @@ Only add cancellation if withdrawal is intentionally supported.
 Show:
 
 - `View Details`
-- `View Proof`
+- `View Run Result Evidence`
 - `Download Certificate`
 - `View Leaderboard`
 
@@ -473,11 +473,11 @@ Do not show:
 Show:
 
 - `View Details`
-- `View Proof`
+- `View Run Result Evidence`
 - `View Rejection Reason`
 - `Resubmit Proof`
 
-The `Resubmit Proof` action should trigger the existing run-proof modal.
+The `Resubmit Run Result` action should trigger the existing run result modal.
 
 It should pass the related registration ID through the existing modal trigger pattern.
 
@@ -584,7 +584,7 @@ Do not show the proof image directly on every card.
 
 Use a controlled action:
 
-- `View Proof`
+- `View Run Result Evidence`
 
 Proof display options:
 

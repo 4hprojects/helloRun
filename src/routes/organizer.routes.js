@@ -972,7 +972,7 @@ router.post(
       if (!canOrganizerReviewPaymentProof(registration)) {
         const q = new URLSearchParams({
           type: 'error',
-          msg: 'Only registrations with submitted payment proof can be approved.'
+          msg: 'Only registrations with submitted payment receipts can be approved.'
         });
         return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
       }
@@ -1021,11 +1021,11 @@ router.post(
       const q = new URLSearchParams({ type: 'success', msg: 'Payment marked as approved.' });
       return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
     } catch (error) {
-      console.error('Error approving payment proof:', error);
+      console.error('Error approving payment receipt:', error);
       return res.status(500).render('error', {
         title: 'Server Error',
         status: 500,
-        message: 'An error occurred while approving payment proof.'
+        message: 'An error occurred while approving payment receipt.'
       });
     }
   }
@@ -1074,7 +1074,7 @@ router.post(
       if (!canOrganizerReviewPaymentProof(registration)) {
         const q = new URLSearchParams({
           type: 'error',
-          msg: 'Only registrations with submitted payment proof can be rejected.'
+          msg: 'Only registrations with submitted payment receipts can be rejected.'
         });
         return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
       }
@@ -1101,7 +1101,7 @@ router.post(
           userId: registration.userId,
           type: 'payment_rejected',
           title: 'Payment Needs Update',
-          message: `Your payment proof for ${event.title || 'the event'} was rejected. Please review and resubmit.`,
+          message: `Your payment receipt for ${event.title || 'the event'} was rejected. Please review and resubmit.`,
           href: '/my-registrations',
           metadata: {
             registrationId: String(registration._id),
@@ -1131,14 +1131,14 @@ router.post(
         });
       }
 
-      const q = new URLSearchParams({ type: 'success', msg: 'Payment proof rejected and runner notified.' });
+      const q = new URLSearchParams({ type: 'success', msg: 'Payment receipt rejected and runner notified.' });
       return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
     } catch (error) {
-      console.error('Error rejecting payment proof:', error);
+      console.error('Error rejecting payment receipt:', error);
       return res.status(500).render('error', {
         title: 'Server Error',
         status: 500,
-        message: 'An error occurred while rejecting payment proof.'
+        message: 'An error occurred while rejecting payment receipt.'
       });
     }
   }
@@ -1219,7 +1219,7 @@ router.post(
         reviewNotes
       });
 
-      const q = new URLSearchParams({ type: 'success', msg: 'Result submission approved.' });
+      const q = new URLSearchParams({ type: 'success', msg: 'Run result approved.' });
       return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
     } catch (error) {
       const q = new URLSearchParams({
@@ -1324,7 +1324,7 @@ router.post(
         reviewNotes
       });
 
-      const q = new URLSearchParams({ type: 'success', msg: 'Result submission rejected.' });
+      const q = new URLSearchParams({ type: 'success', msg: 'Run result rejected.' });
       return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
     } catch (error) {
       const q = new URLSearchParams({
@@ -2754,8 +2754,8 @@ function getRegistrantExportData(registrations = []) {
     'Race Distance',
     'Status',
     'Payment Status',
-    'Payment Proof URL',
-    'Payment Proof Uploaded At',
+    'Payment Receipt URL',
+    'Payment Receipt Uploaded At',
     'Payment Reviewed At',
     'Payment Rejection Reason',
     'Payment Review Notes',

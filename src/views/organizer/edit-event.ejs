@@ -177,7 +177,7 @@
               <% if (errors.feeCurrency) { %><small class="error-text"><%= errors.feeCurrency %></small><% } %>
             </div>
           </div>
-          <p class="pricing-free-note field-hint" style="display:none;">&#10003; This event is free &mdash; runners will not be asked to pay or upload payment proof.</p>
+          <p class="pricing-free-note field-hint" style="display:none;">&#10003; This event is free &mdash; runners will not be asked to pay or upload a payment receipt.</p>
           <div class="per-distance-fields payment-fields" style="display:none; margin-top:1.25rem;">
             <div class="subsection-divider">Per-Distance Fees</div>
             <p class="field-hint" style="margin-bottom:0.75rem;">Set a fee for each race distance. Distances are populated from your Race Categories (Step 5). These fees override the base registration fee for individual distances.</p>
@@ -236,7 +236,7 @@
               <div class="form-group form-group-full">
                 <label for="paymentInstructions">Payment Instructions</label>
                 <textarea id="paymentInstructions" name="paymentInstructions" rows="3" placeholder="Optional payment notes for runners."><%= formData.paymentInstructions || '' %></textarea>
-                <small class="field-hint">Tell runners where to pay, what reference to include, and when payment proof will be reviewed.</small>
+                <small class="field-hint">Tell runners where to pay, what reference to include, and when payment receipts will be reviewed.</small>
               </div>
             </div>
           </div>
@@ -478,7 +478,7 @@
             <div class="form-group form-group-full <%= errors.virtualCompletionMode ? 'has-error' : '' %>">
               <label for="virtualCompletionMode" class="label-with-help">
                 Event Format
-                <span class="field-help-icon" tabindex="0" aria-label="Single activity means each runner submits one final run proof. Accumulated distance means runners can submit multiple activity proofs that add up toward the target distance.">?</span>
+                <span class="field-help-icon" tabindex="0" aria-label="Single activity means each runner submits one final run result. Accumulated distance means runners can submit multiple activity entries that add up toward the target distance.">?</span>
               </label>
               <select id="virtualCompletionMode" name="virtualCompletionMode">
                 <option value="single_activity" <%= formData.virtualCompletionMode === 'single_activity' ? 'selected' : '' %>>Single activity</option>

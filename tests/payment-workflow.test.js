@@ -3,7 +3,8 @@ const assert = require('node:assert/strict');
 const {
   canRunnerSubmitPaymentProof,
   canOrganizerReviewPaymentProof,
-  getReviewablePaymentStatuses
+  getReviewablePaymentStatuses,
+  getInitialRegistrationPaymentStatus
 } = require('../src/utils/payment-workflow');
 
 test('runner can submit proof when unpaid and active', () => {
@@ -92,4 +93,14 @@ test('organizer cannot review when payment status is not reviewable', () => {
 
 test('reviewable statuses set remains strict', () => {
   assert.deepEqual(getReviewablePaymentStatuses(), ['proof_submitted']);
+});
+
+test('initial registration payment status skips payment receipts for free events', () => {
+  assert.equal(getInitialRegistrationPaymentStatus({ feeMode: 'free' }), 'paid');
+  assert.equal(getInitialRegistrationPaymentStatus({}), 'paid');
+});
+
+test('initial registration payment status requires receipts for paid events', () => {
+  assert.equal(getInitialRegistrationPaymentStatus({ feeMode: 'paid' }), 'unpaid');
+  assert.equal(getInitialRegistrationPaymentStatus({ feeMode: ' paid ' }), 'unpaid');
 });

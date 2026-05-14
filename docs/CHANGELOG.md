@@ -3,6 +3,66 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 14, 2026 (Session: Payment Receipt and Run Result Split)
+
+### [SESSION] SESSION UPDATE:
+- Distinguished paid-event payment verification from activity completion review:
+  - paid events now require a dedicated `Payment Receipt` upload before run result submission is unlocked
+  - free events now create registrations with `paymentStatus: paid`
+  - run activity evidence is consistently presented as a `Run Result`, not payment proof
+  - the existing data separation remains intact: `Registration.paymentProof` stores payment receipts, while `Submission.proof` stores run result evidence
+- Updated runner registration UI:
+  - `/my-registrations` now renders a distinct `Payment Verification` section for paid/payment-review registrations
+  - payment receipt helper copy warns runners not to upload activity screenshots as payment receipts
+  - run result actions now say `Submit Run Result`, `Resubmit Run Result`, and `View Run Result Evidence`
+  - the run result modal keeps multi-event selection while clarifying that one uploaded activity can be submitted to selected eligible events and personal record
+- Updated organizer/admin review UI:
+  - review queues now use `Payment Receipts` and `Run Results`
+  - payment review screens show fee/payment instructions, confirmation code, and receipt links near the uploaded receipt
+  - organizer copy explicitly says activity screenshots in the payment queue should be rejected
+- Kept route/schema compatibility:
+  - no collection changes
+  - no route renames
+  - `/submit-result`, `/resubmit-result`, and existing payment receipt routes remain stable
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/PRD.md
+3. docs/create_event.md
+4. docs/runner_submitted_entries.md
+5. src/controllers/admin.controller.js
+6. src/controllers/page.controller.js
+7. src/public/css/my-registrations.css
+8. src/public/css/organizer-events.css
+9. src/public/js/run-proof-modal.js
+10. src/routes/organizer.routes.js
+11. src/routes/pageRoutes.js
+12. src/services/email.service.js
+13. src/services/runner-data.service.js
+14. src/services/submission.service.js
+15. src/services/upload.service.js
+16. src/utils/payment-workflow.js
+17. src/views/admin/dashboard.ejs
+18. src/views/admin/review-queue.ejs
+19. src/views/organizer/dashboard.ejs
+20. src/views/organizer/event-registrants.ejs
+21. src/views/pages/my-registrations.ejs
+22. src/views/partials/run-proof-modal.ejs
+23. src/views/runner/dashboard.ejs
+24. src/views/runner/submissions.ejs
+25. tests/admin-dashboard.test.js
+26. tests/organizer-dashboard-analytics.test.js
+27. tests/payment-route-guards.test.js
+28. tests/payment-workflow.test.js
+29. tests/runner-dashboard-modal.test.js
+30. tests/submission-routes.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `npm test` -> PASS, 316/316.
+- Focused payment, submission, admin review, organizer dashboard, runner modal, upload validation, CSRF, and leaderboard tests were also run while isolating regressions.
+
+---
+
 ## CHANGELOG - May 14, 2026 (Session: Strava Import MVP)
 
 ### [SESSION] SESSION UPDATE:

@@ -48,7 +48,7 @@
           <span><%= summary.onsiteCount %></span>
         </div>
         <div class="summary-card">
-          <strong>Proof Submitted</strong>
+          <strong>Payment Receipts Submitted</strong>
           <span><%= summary.proofSubmittedCount %></span>
         </div>
         <div class="summary-card">
@@ -56,19 +56,19 @@
           <span><%= summary.paidCount %></span>
         </div>
         <div class="summary-card">
-          <strong>Proof Rejected</strong>
+          <strong>Payment Receipts Rejected</strong>
           <span><%= summary.proofRejectedCount %></span>
         </div>
         <div class="summary-card">
-          <strong>Results Submitted</strong>
+          <strong>Run Results Submitted</strong>
           <span><%= summary.submissionSubmittedCount %></span>
         </div>
         <div class="summary-card">
-          <strong>Results Approved</strong>
+          <strong>Run Results Approved</strong>
           <span><%= summary.submissionApprovedCount %></span>
         </div>
         <div class="summary-card">
-          <strong>Results Rejected</strong>
+          <strong>Run Results Rejected</strong>
           <span><%= summary.submissionRejectedCount %></span>
         </div>
       </section>
@@ -96,14 +96,14 @@
         <select id="payment" name="payment">
           <option value="" <%= !selectedPaymentStatus ? 'selected' : '' %>>All</option>
           <option value="unpaid" <%= selectedPaymentStatus === 'unpaid' ? 'selected' : '' %>>Unpaid</option>
-          <option value="proof_submitted" <%= selectedPaymentStatus === 'proof_submitted' ? 'selected' : '' %>>Proof Submitted</option>
-          <option value="proof_rejected" <%= selectedPaymentStatus === 'proof_rejected' ? 'selected' : '' %>>Proof Rejected</option>
+          <option value="proof_submitted" <%= selectedPaymentStatus === 'proof_submitted' ? 'selected' : '' %>>Payment Receipt Submitted</option>
+          <option value="proof_rejected" <%= selectedPaymentStatus === 'proof_rejected' ? 'selected' : '' %>>Payment Receipt Rejected</option>
           <option value="paid" <%= selectedPaymentStatus === 'paid' ? 'selected' : '' %>>Paid</option>
           <option value="failed" <%= selectedPaymentStatus === 'failed' ? 'selected' : '' %>>Failed</option>
           <option value="refunded" <%= selectedPaymentStatus === 'refunded' ? 'selected' : '' %>>Refunded</option>
         </select>
 
-        <label for="result">Result</label>
+        <label for="result">Run Result</label>
         <select id="result" name="result">
           <option value="" <%= !selectedResultStatus ? 'selected' : '' %>>All</option>
           <option value="submitted" <%= selectedResultStatus === 'submitted' ? 'selected' : '' %>>Submitted</option>
@@ -114,6 +114,12 @@
         <button type="submit" class="nav-signup-btn">Apply</button>
         <a href="/organizer/events/<%= event._id %>/registrants" class="nav-login-btn">Reset</a>
       </form>
+
+      <% if (selectedPaymentStatus === 'proof_submitted') { %>
+        <div class="page-message page-message-warning">
+          Review payment receipts only in this queue. If the uploaded file is an activity screenshot or run result, reject it and ask the runner to submit it through Run Result after payment is verified.
+        </div>
+      <% } %>
 
       <% if (registrations && registrations.length) { %>
         <div class="registrants-table-wrap">
@@ -134,11 +140,11 @@
                 <th>Distance</th>
                 <th>Status</th>
                 <th>Payment</th>
-                <th>Proof</th>
+                <th>Payment Receipt</th>
                 <th>Review</th>
-                <th>Result</th>
-                <th>Result Proof</th>
-                <th>Result Review</th>
+                <th>Run Result</th>
+                <th>Run Result Evidence</th>
+                <th>Run Result Review</th>
                 <th>Registered At</th>
               </tr>
             </thead>
@@ -175,10 +181,24 @@
                   <td><%= registration.paymentStatus || 'N/A' %></td>
                   <td>
                     <% if (registration.paymentProof && registration.paymentProof.url) { %>
-                      <a href="<%= registration.paymentProof.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">View proof</a>
+                      <a href="<%= registration.paymentProof.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">View payment receipt</a>
                       <% if (registration.paymentProofUploadedAtLabel) { %>
                         <br>
                         <small><%= registration.paymentProofUploadedAtLabel %></small>
+                      <% } %>
+                      <br>
+                      <small><strong>Confirmation:</strong> <%= registration.confirmationCode %></small>
+                      <% if (event.feeMode === 'paid') { %>
+                        <br>
+                        <small><strong>Expected payment:</strong> <%= event.feeCurrency || 'PHP' %> <%= event.feeAmount != null ? Number(event.feeAmount || 0).toFixed(2) : 'See event pricing' %></small>
+                      <% } %>
+                      <% if (event.paymentAccountName) { %>
+                        <br>
+                        <small><strong>Payee:</strong> <%= event.paymentAccountName %></small>
+                      <% } %>
+                      <% if (event.paymentInstructions) { %>
+                        <br>
+                        <small><strong>Instructions:</strong> <%= event.paymentInstructions %></small>
                       <% } %>
                     <% } else { %>
                       <span>N/A</span>
@@ -186,6 +206,7 @@
                   </td>
                   <td>
                     <% if (registration.paymentStatus === 'proof_submitted') { %>
+                      <small class="rejection">Reject activity screenshots here. This queue is only for payment receipts.</small>
                       <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= registration._id %>/payment/approve" class="payment-action-form">
                         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                         <textarea name="reviewNotes" rows="2" maxlength="1000" placeholder="Optional review notes"></textarea>
@@ -239,7 +260,7 @@
                       <br>
                       <small><strong>Run type:</strong> <%= String(registration.submission.runType || 'run').replace('_', ' ') %></small>
                       <br>
-                      <small><strong>Proof type:</strong> <%= String(registration.submission.proofType || 'manual').toUpperCase() %></small>
+                      <small><strong>Evidence type:</strong> <%= String(registration.submission.proofType || 'manual').toUpperCase() %></small>
                       <% if (registration.submission.elevationGain != null) { %>
                         <br>
                         <small><strong>Elevation:</strong> <%= registration.submission.elevationGain %> m</small>
@@ -354,7 +375,7 @@
                   </td>
                   <td>
                     <% if (registration.submission?.proof?.url) { %>
-                      <a href="<%= registration.submission.proof.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">View result proof</a>
+                      <a href="<%= registration.submission.proof.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">View run result evidence</a>
                     <% } else { %>
                       <small>N/A</small>
                     <% } %>
@@ -364,13 +385,13 @@
                       <form method="POST" action="/organizer/events/<%= event._id %>/submissions/<%= registration.submission._id %>/approve" class="payment-action-form">
                         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                         <textarea name="reviewNotes" rows="2" maxlength="1200" placeholder="Optional review notes"></textarea>
-                        <button type="submit" class="nav-signup-btn table-action-btn">Approve Result</button>
+                        <button type="submit" class="nav-signup-btn table-action-btn">Approve Run Result</button>
                       </form>
                       <form method="POST" action="/organizer/events/<%= event._id %>/submissions/<%= registration.submission._id %>/reject" class="payment-action-form">
                         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                         <textarea name="rejectionReason" rows="2" maxlength="500" required placeholder="Required rejection reason (min 5 chars)"></textarea>
                         <textarea name="reviewNotes" rows="2" maxlength="1200" placeholder="Optional review notes"></textarea>
-                        <button type="submit" class="nav-login-btn table-action-btn">Reject Result</button>
+                        <button type="submit" class="nav-login-btn table-action-btn">Reject Run Result</button>
                       </form>
                     <% } else if (registration.submission) { %>
                       <% if (registration.submission.reviewedAtLabel) { %>

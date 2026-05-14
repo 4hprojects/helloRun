@@ -234,6 +234,13 @@
   color: #334155;
 }
 
+.payment-verification-section {
+  background: #f8fafc;
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
 .rejection {
   color: #b91c1c;
   background: #fee2e2;

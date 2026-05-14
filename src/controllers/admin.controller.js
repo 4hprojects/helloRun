@@ -2089,7 +2089,7 @@ exports.reviewQueue = async (req, res) => {
         ? Registration.find({ paymentStatus: 'proof_submitted' })
           .populate('eventId', 'title slug')
           .sort({ 'paymentProof.uploadedAt': sortDirection, updatedAt: sortDirection, createdAt: sortDirection })
-          .limit(100)
+          .limit(300)
           .lean()
         : [],
       includeResults
@@ -2097,17 +2097,17 @@ exports.reviewQueue = async (req, res) => {
           .populate('eventId', 'title slug')
           .populate('registrationId', 'participant confirmationCode')
           .sort({ submittedAt: sortDirection, updatedAt: sortDirection, createdAt: sortDirection })
-          .limit(100)
+          .limit(300)
           .lean()
         : []
     ]);
 
-    const paymentItems = paymentDocs.map((registration) => {
+    const paymentItems = paymentDocs.filter((registration) => registration.eventId?._id).map((registration) => {
       const participant = registration.participant || {};
       const event = registration.eventId || {};
       const submittedAt = registration.paymentProof?.uploadedAt || registration.updatedAt || registration.createdAt;
       return {
-        type: 'Payment',
+        type: 'Payment Receipt',
         typeKey: 'payment',
         eventId: String(event._id || registration.eventId || ''),
         eventTitle: event.title || 'Event unavailable',
@@ -2123,13 +2123,13 @@ exports.reviewQueue = async (req, res) => {
       };
     });
 
-    const resultItems = resultDocs.map((submission) => {
+    const resultItems = resultDocs.filter((submission) => submission.eventId?._id && submission.registrationId?._id).map((submission) => {
       const registration = submission.registrationId || {};
       const participant = registration.participant || {};
       const event = submission.eventId || {};
       const submittedAt = submission.submittedAt || submission.updatedAt || submission.createdAt;
       return {
-        type: 'Result',
+        type: 'Run Result',
         typeKey: 'result',
         eventId: String(event._id || submission.eventId || ''),
         eventTitle: event.title || 'Event unavailable',
@@ -2164,7 +2164,7 @@ exports.reviewQueue = async (req, res) => {
     });
 
     return res.render('admin/review-queue', {
-      title: 'Payment and Result Reviews - helloRun Admin',
+      title: 'Payment Receipt and Run Result Reviews - helloRun Admin',
       filters,
       reviewItems,
       counts: {

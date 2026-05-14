@@ -25,12 +25,17 @@
             <article class="my-reg-card">
               <% const paymentLabelMap = {
                 unpaid: 'Unpaid',
-                proof_submitted: 'Proof Submitted',
-                proof_rejected: 'Proof Rejected',
+                proof_submitted: 'Payment Receipt Submitted',
+                proof_rejected: 'Payment Receipt Rejected',
                 paid: 'Paid',
                 failed: 'Failed',
                 refunded: 'Refunded'
               }; %>
+              <%
+                const eventFeeMode = String(registration.eventId?.feeMode || 'free').toLowerCase();
+                const isPaidEvent = eventFeeMode === 'paid';
+                const needsPaymentVerification = isPaidEvent || ['unpaid', 'proof_submitted', 'proof_rejected', 'failed', 'refunded'].includes(String(registration.paymentStatus || ''));
+              %>
 
               <!-- Card Header -->
               <div class="card-header">
@@ -54,7 +59,7 @@
                 </span>
                 <% if (registration.submission) { %>
                   <span class="badge badge-submission mode-<%= registration.submission.status %>">
-                    <i data-lucide="flag"></i> Result: <%= registration.submission.status %>
+                    <i data-lucide="flag"></i> Run Result: <%= registration.submission.status %>
                   </span>
                 <% } else if (registration.isAccumulatedChallenge && registration.accumulatedProgress) { %>
                   <span class="badge badge-submission mode-submitted">
@@ -100,31 +105,47 @@
                 </div>
               </details>
 
-              <!-- Payment Section -->
-              <section class="card-section">
-                <h4><i data-lucide="credit-card"></i> Payment</h4>
-                <% if (registration.paymentProof && registration.paymentProof.uploadedAt) { %>
-                  <p><strong>Proof submitted:</strong> <%= new Date(registration.paymentProof.uploadedAt).toLocaleString('en-US') %></p>
-                <% } %>
-                <% if (registration.paymentReviewedAt) { %>
-                  <p><strong>Reviewed:</strong> <%= new Date(registration.paymentReviewedAt).toLocaleString('en-US') %></p>
-                <% } %>
-                <% if (registration.paymentRejectionReason) { %>
-                  <p class="rejection"><strong>Rejection reason:</strong> <%= registration.paymentRejectionReason %></p>
-                <% } %>
-                <% if (registration.paymentReviewNotes) { %>
-                  <p><strong>Review notes:</strong> <%= registration.paymentReviewNotes %></p>
-                <% } %>
+              <% if (needsPaymentVerification) { %>
+                <!-- Payment Verification Section -->
+                <section class="card-section payment-verification-section">
+                  <h4><i data-lucide="receipt"></i> Payment Verification</h4>
+                  <% if (isPaidEvent) { %>
+                    <p>Submit a payment receipt that shows your payment confirmation or reference. Activity screenshots belong in Run Result, not here.</p>
+                    <% if (registration.eventId?.feeAmount) { %>
+                      <p><strong>Event fee:</strong> <%= registration.eventId.feeCurrency || 'PHP' %> <%= Number(registration.eventId.feeAmount || 0).toFixed(2) %></p>
+                    <% } %>
+                    <% if (registration.eventId?.paymentAccountName) { %>
+                      <p><strong>Payee:</strong> <%= registration.eventId.paymentAccountName %></p>
+                    <% } %>
+                    <% if (registration.eventId?.paymentInstructions) { %>
+                      <p><strong>Payment instructions:</strong> <%= registration.eventId.paymentInstructions %></p>
+                    <% } %>
+                  <% } else { %>
+                    <p>This registration does not require payment. If a payment receipt was previously requested, review the status below.</p>
+                  <% } %>
+                  <% if (registration.paymentProof && registration.paymentProof.uploadedAt) { %>
+                    <p><strong>Payment receipt submitted:</strong> <%= new Date(registration.paymentProof.uploadedAt).toLocaleString('en-US') %></p>
+                  <% } %>
+                  <% if (registration.paymentReviewedAt) { %>
+                    <p><strong>Payment reviewed:</strong> <%= new Date(registration.paymentReviewedAt).toLocaleString('en-US') %></p>
+                  <% } %>
+                  <% if (registration.paymentRejectionReason) { %>
+                    <p class="rejection"><strong>Payment rejection reason:</strong> <%= registration.paymentRejectionReason %></p>
+                  <% } %>
+                  <% if (registration.paymentReviewNotes) { %>
+                    <p><strong>Payment review notes:</strong> <%= registration.paymentReviewNotes %></p>
+                  <% } %>
 
-                <% if (registration.paymentStatus === 'unpaid' || registration.paymentStatus === 'proof_rejected') { %>
-                  <form method="POST" action="/my-registrations/<%= registration._id %>/payment-proof" enctype="multipart/form-data" class="inline-form">
-                    <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
-                    <label for="paymentProofFile-<%= registration._id %>">Upload payment proof (JPG, PNG, PDF up to 5MB)</label>
-                    <input type="file" id="paymentProofFile-<%= registration._id %>" name="paymentProofFile" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required>
-                    <button type="submit" class="btn btn-secondary">Submit proof</button>
-                  </form>
-                <% } %>
-              </section>
+                  <% if (registration.paymentStatus === 'unpaid' || registration.paymentStatus === 'proof_rejected') { %>
+                    <form method="POST" action="/my-registrations/<%= registration._id %>/payment-proof" enctype="multipart/form-data" class="inline-form">
+                      <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+                      <label for="paymentProofFile-<%= registration._id %>">Upload payment receipt (JPG, PNG, PDF up to 5MB)</label>
+                      <input type="file" id="paymentProofFile-<%= registration._id %>" name="paymentProofFile" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required>
+                      <button type="submit" class="btn btn-secondary">Submit Payment Receipt</button>
+                    </form>
+                  <% } %>
+                </section>
+              <% } %>
 
               <!-- Result Submission Section -->
               <% const submission = registration.submission || null; %>
@@ -132,7 +153,7 @@
               <% const canSubmitResult = registration.paymentStatus === 'paid' && registration.status !== 'cancelled' && registration.status !== 'refunded' && (isAccumulatedChallenge || !submission || submission.status === 'rejected'); %>
               <% if (submission || canSubmitResult || isAccumulatedChallenge) { %>
                 <section class="card-section">
-                  <h4><i data-lucide="flag"></i> <%= isAccumulatedChallenge ? 'Activity Progress' : 'Result' %></h4>
+                  <h4><i data-lucide="flag"></i> <%= isAccumulatedChallenge ? 'Activity Progress' : 'Run Result' %></h4>
                   <% if (isAccumulatedChallenge && registration.accumulatedProgress) { %>
                     <p><strong>Progress:</strong> <%= registration.accumulatedProgress.progressLabel %></p>
                     <p>
@@ -154,7 +175,7 @@
                       <div class="detail-item"><strong>Proof type:</strong> <%= String(submission.proofType || 'manual').toUpperCase() %></div>
                     </div>
                     <% if (submission.proof?.url) { %>
-                      <p><a href="<%= submission.proof.url %>" target="_blank" rel="noopener noreferrer" class="btn btn-link">View submitted proof</a></p>
+                      <p><a href="<%= submission.proof.url %>" target="_blank" rel="noopener noreferrer" class="btn btn-link">View Run Result Evidence</a></p>
                     <% } %>
                     <% if (submission.status === 'approved' && submission.certificate?.url) { %>
                       <p><a href="/my-submissions/<%= submission._id %>/certificate" class="btn btn-link">Download certificate <i data-lucide="download"></i></a></p>
@@ -169,13 +190,13 @@
 
                   <% if (canSubmitResult) { %>
                     <div class="inline-form result-action-box">
-                      <p>Use the run proof modal to submit your race result details and image.</p>
+                      <p>Use the run result modal to submit your activity distance, time, date, location, and screenshot or Strava evidence.</p>
                       <button
                         type="button"
                         class="btn btn-secondary"
                         data-open-run-proof-modal
                         data-registration-id="<%= registration._id %>">
-                        <%= isAccumulatedChallenge ? 'Submit activity' : (submission && submission.status === 'rejected' ? 'Resubmit run' : 'Submit run') %>
+                        <%= isAccumulatedChallenge ? 'Submit Activity' : (submission && submission.status === 'rejected' ? 'Resubmit Run Result' : 'Submit Run Result') %>
                       </button>
                     </div>
                   <% } %>

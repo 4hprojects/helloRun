@@ -230,7 +230,7 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(source, /showModalShell\(\);\s*renderEventOptionsLoading\(\);/);
   assert.match(source, /data-run-proof-registration-id/);
   assert.match(source, /Image analysis is unavailable\. Continue by entering your run details manually\./);
-  assert.match(source, /Submit Screenshot/);
+  assert.match(source, /Analyse Activity Screenshot/);
   assert.match(source, /ocrDetectedSourceInput\.value = result\.detectedSource/);
   assert.match(source, /ocrSummaryEl\.textContent = 'Detected from image:/);
   assert.doesNotMatch(source, /ocrResultsEl\.innerHTML = detailsHtml/);
@@ -267,5 +267,6 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(partial, /Sync Strava Data/);
   assert.match(source, /\/api\/strava\/activities\?per_page=20/);
   assert.match(source, /\/api\/events\/' \+ encodeURIComponent\(eventId\) \+ '\/submissions\/strava/);
+  assert.match(source, /selected\?\.isPersonalRecord\s*\?\s*'personal-record'/);
   assert.match(partial, /id="runProofSubmitInlineBtn"/);
 });

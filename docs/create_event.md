@@ -1502,19 +1502,23 @@ Recommended behavior:
 
 ---
 
-## Paid Registration Follow-up Requirements
+## Paid Registration Payment Receipt Requirements
 
 Current scope:
 
 - Organizer can configure paid event settings during event creation.
-- Runner payment proof enforcement is deferred to a follow-up phase.
+- Paid-event registrations require payment receipt review before run result submission is unlocked.
+- Free-event registrations skip payment verification and start as paid.
 
-Future paid registration behavior:
+Current paid registration behavior:
 
-- Paid events should require payment proof after runner registration.
-- Runner registration should remain pending until payment proof is approved.
-- Organizers or admins should review payment proofs.
+- Paid events require payment receipt upload after runner registration.
+- Runner registration remains pending for run result submission until the payment receipt is approved.
+- Organizers or admins review payment receipts.
 - Only approved paid registrations should appear as confirmed participants.
+
+Future pricing/payment snapshot behavior:
+
 - The amount to pay should be derived from the active event pricing rule.
 - For onsite events, selected race category and active pricing period should determine the amount.
 - For package-based events, selected registration package and active pricing period should determine the amount.
@@ -1738,12 +1742,12 @@ This is now acceptable as an accumulated-distance event setup because activity-l
 - [TODO] Add active price resolver based on selected race category, selected package, registration date, and delivery fee.
 - [TODO] Add pricing validation for non-overlapping pricing periods.
 - [TODO] Add registration amount snapshot when runner registers.
-- [TODO] Add payment proof amount matching or admin review support.
+- [TODO] Add payment receipt amount matching against registration snapshots.
 - [TODO] Add category capacity tracking.
 
 ### Deferred or Separate Roadmap Items
 
-- Runner paid-event registration should require payment proof after signup/registration in a dedicated follow-up.
+- Runner paid-event registration now requires payment receipt review before run result submission; the remaining follow-up is amount snapshot matching.
 - Full merchandise shop and add-on checkout should remain aligned with the shop/merchandise phase.
 - Payment gateway support should remain aligned with payment gateway planning.
 - Onsite result import, bib assignment, race kit claiming, and check-in fields should remain in onsite operations planning.
@@ -2070,7 +2074,7 @@ If the organizer changes the price later, the runner’s registered amount shoul
 - [ ] System can resolve the active price based on race category, package, registration date, and delivery fee.
 - [ ] Runner registration stores an amount snapshot.
 - [x] Organizer can configure payment QR/account details for paid events.
-- [ ] Paid runner registration requires payment proof during the signup/payment step.
+- [x] Paid runner registration requires a payment receipt before run result submission is unlocked.
 
 #### Rewards and Merchandise
 
@@ -2091,7 +2095,7 @@ If the organizer changes the price later, the runner’s registered amount shoul
 
 - [DECIDED] Draft events may be incomplete, with title as the minimum required field.
 - [DECIDED] Accumulated virtual run is represented by a separate virtual event format field.
-- [DECIDED] Event creation stores paid event payment acceptance data first. Runner paid-registration enforcement is a follow-up phase.
+- [DECIDED] Event creation stores paid event payment acceptance data, and paid runner registrations now require payment receipt review before run result submission.
 - [DECIDED] Rewards, Merchandise, and Registration Packages should appear before Fees and Payment because merchandise and package options can affect suggested pricing.
 - [DECIDED] Package-based pricing should be supported for events that offer options such as Medal Only, Medal + Shirt, and Medal + Shirt + Towel.
 - [DECIDED] Delivery fee should be a separate configurable fee, not only text inside Event Details.
@@ -2173,7 +2177,7 @@ The next practical implementation sequence should be:
 5. Add active price resolver for runner registration.
 6. Add payment amount snapshot to runner registration.
 7. Add runner package/category selection UI.
-8. Add paid registration payment proof enforcement against the resolved amount.
+8. Add paid registration payment receipt enforcement against the resolved amount.
 9. Improve runner accumulated progress UI.
 10. Add optional review-period and certificate-release date fields.
 11. Add badge unlock logic for milestones and completion.

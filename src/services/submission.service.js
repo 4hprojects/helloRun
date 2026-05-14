@@ -441,10 +441,10 @@ async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
     throw new Error('Registration not found or inaccessible.');
   }
   if (registration.status !== 'confirmed') {
-    throw new Error('Result submission requires a confirmed registration.');
+    throw new Error('Run result submission requires a confirmed registration.');
   }
   if (registration.paymentStatus !== 'paid') {
-    throw new Error('Result submission requires a paid registration.');
+    throw new Error('Run result submission requires a paid registration.');
   }
   if (registration.status === 'cancelled' || registration.status === 'refunded') {
     throw new Error('Cannot submit results for cancelled or refunded registrations.');
@@ -709,11 +709,11 @@ function sanitizeSteps(value) {
 
 function sanitizeProof(value) {
   if (!value || typeof value !== 'object') {
-    throw new Error('Result proof is required.');
+    throw new Error('Run result evidence is required.');
   }
   const url = String(value.url || '').trim();
   if (!url) {
-    throw new Error('Result proof URL is required.');
+    throw new Error('Run result evidence URL is required.');
   }
   return {
     url: url.slice(0, 2000),

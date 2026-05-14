@@ -31,8 +31,13 @@ function getReviewablePaymentStatuses() {
   return Array.from(ORGANIZER_REVIEWABLE_PAYMENT_STATUSES);
 }
 
+function getInitialRegistrationPaymentStatus(event = {}) {
+  return String(event.feeMode || '').trim().toLowerCase() === 'paid' ? 'unpaid' : 'paid';
+}
+
 module.exports = {
   canRunnerSubmitPaymentProof,
   canOrganizerReviewPaymentProof,
-  getReviewablePaymentStatuses
+  getReviewablePaymentStatuses,
+  getInitialRegistrationPaymentStatus
 };

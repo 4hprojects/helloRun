@@ -182,9 +182,9 @@ exports.uploadPaymentProof = (req, res, next) => {
     }
     req.uploadErrorField = err.field || err.fieldName || 'paymentProofFile';
     if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-      req.uploadError = `Payment proof exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`;
+      req.uploadError = `Payment receipt exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`;
     } else {
-      req.uploadError = err.message || 'Payment proof upload failed.';
+      req.uploadError = err.message || 'Payment receipt upload failed.';
     }
     next();
   });
@@ -202,9 +202,9 @@ exports.uploadResultProof = (req, res, next) => {
     }
     req.uploadErrorField = err.field || err.fieldName || 'resultProofFile';
     if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-      req.uploadError = `Result proof exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`;
+      req.uploadError = `Run result evidence exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`;
     } else {
-      req.uploadError = err.message || 'Result proof upload failed.';
+      req.uploadError = err.message || 'Run result evidence upload failed.';
     }
     next();
   });
@@ -341,7 +341,7 @@ exports.uploadBlogGalleryToR2 = async ({ userId, galleryImageFiles }) => {
 exports.uploadPaymentProofToR2 = async ({ userId, paymentProofFile }) => {
   assertR2Configured();
   if (!paymentProofFile) {
-    throw new Error('Payment proof file is required.');
+    throw new Error('Payment receipt file is required.');
   }
   return uploadFileToR2({
     userId,
@@ -353,7 +353,7 @@ exports.uploadPaymentProofToR2 = async ({ userId, paymentProofFile }) => {
 exports.uploadResultProofToR2 = async ({ userId, resultProofFile }) => {
   assertR2Configured();
   if (!resultProofFile) {
-    throw new Error('Result proof file is required.');
+    throw new Error('Run result evidence file is required.');
   }
   return uploadFileToR2({
     userId,

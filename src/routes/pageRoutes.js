@@ -15,7 +15,7 @@ const { sanitizeHtml } = require('../utils/sanitize');
 const paymentProofUploadLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 8,
-  message: 'Too many payment proof submissions. Please wait a few minutes and try again.'
+  message: 'Too many payment receipt submissions. Please wait a few minutes and try again.'
 });
 const resultSubmissionLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,

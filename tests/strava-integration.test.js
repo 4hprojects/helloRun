@@ -54,11 +54,12 @@ test('Strava activity normalization exposes only submit UI fields', () => {
 
 test('Strava run type mapping supports MVP activity types', () => {
   process.env.RESEND_API_KEY = process.env.RESEND_API_KEY || 're_test_key';
-  const { normalizeStravaRunType } = require('../src/services/strava-submission.service');
+  const { normalizeStravaRunType, _private } = require('../src/services/strava-submission.service');
 
   assert.equal(normalizeStravaRunType('Run'), 'run');
   assert.equal(normalizeStravaRunType('Walk'), 'walk');
   assert.equal(normalizeStravaRunType('Hike'), 'hike');
   assert.equal(normalizeStravaRunType('TrailRun'), 'trail_run');
   assert.equal(normalizeStravaRunType('Ride'), '');
+  assert.equal(_private.PERSONAL_RECORD_EVENT_ID, 'personal-record');
 });

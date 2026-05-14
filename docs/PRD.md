@@ -3,6 +3,37 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
+## STATUS UPDATE (May 14, 2026 - Payment Receipt and Run Result Split)
+
+### Current reality after latest implementation
+- HelloRun now treats paid-event payment verification and runner activity completion as separate product workflows.
+- Paid event registrations start as `paymentStatus: unpaid` and require a `Payment Receipt` upload/review before run result submission is available.
+- Free event registrations start as `paymentStatus: paid`, so runners can proceed directly to run result submission when the event is otherwise eligible.
+- Payment receipt files continue to live on `Registration.paymentProof`.
+- Run result evidence continues to live on `Submission.proof`.
+- Existing route names remain stable for compatibility, including `/submit-result` and `/resubmit-result`.
+
+### COMPLETED in this cycle
+- Added an initial registration payment-status helper so `Event.feeMode === 'paid'` is the source of truth for requiring payment verification.
+- Updated `/my-registrations` with visually separate `Payment Verification` and `Run Result` sections.
+- Renamed runner actions and helper copy from generic proof wording to payment receipt or run result wording.
+- Updated the run result modal to describe activity screenshot upload, Strava activity sync, event selection, and completion review.
+- Updated organizer/admin review queues to label `Payment Receipts` and `Run Results` separately.
+- Added payment review context so organizers can compare uploaded receipts with event fee/payment instructions and confirmation codes.
+- Added warning copy telling reviewers to reject activity screenshots submitted as payment receipts.
+- Updated static/supporting copy, emails, upload messages, and regression tests.
+
+### Validation signals recorded
+- `npm test` -> PASS, 316/316.
+
+### Remaining next tasks
+- Add payment amount snapshot to `Registration` so payment receipt review can compare against the price shown at registration time.
+- Add runner-facing package/category selection and active price resolution for paid events with variable pricing.
+- Consider adding structured payment reference fields in addition to receipt image upload.
+- Add manual data cleanup guidance for historical activity screenshots that were uploaded as payment receipts.
+
+---
+
 ## STATUS UPDATE (May 14, 2026 - Strava Import MVP)
 
 ### Current reality after latest implementation
@@ -2589,12 +2620,12 @@ Estimated remaining: depends on release-hardening findings and external deployme
 CROSS-CUTTING DEVELOPMENT REQUIREMENTS
 
 ### Terminology Rules
-Use these terms consistently: `runner`, `organiser`, `admin`, `virtual run`, `onsite event`, `payment proof`, `run proof`, `submission`, `result`, `certificate`, `leaderboard`, and `report`.
+Use these terms consistently: `runner`, `organiser`, `admin`, `virtual run`, `onsite event`, `payment receipt`, `run result`, `submission`, `result`, `certificate`, `leaderboard`, and `report`.
 
 Avoid legacy in-person event wording, `physical race` when `onsite event` is clearer, `payment platform` when only payment-proof tracking exists, `automatic verification` unless a specific automated rule exists, and `live tracking` unless GPS or timing integration exists.
 
 ### Payment Wording Rule
-Use `payment-proof tracking`, `payment-proof upload`, `organiser payment verification`, `manual payment review`, and `future payment gateway integration`.
+Use `payment receipt tracking`, `payment receipt upload`, `organiser payment verification`, `manual payment review`, and `future payment gateway integration`.
 
 Do not say the platform already has a full payment gateway, automated payment processing, or direct online payment confirmation unless Phase 15 is implemented.
 
@@ -2614,7 +2645,7 @@ Organisers can access reports only for events they own. Admins can access all ev
 ### Audit Requirements
 Important actions should record the actor, timestamp, status transition, and notes or reason where applicable. Actor fields include `createdBy`, `updatedBy`, `reviewedBy`, `approvedBy`, `rejectedBy`, `uploadedBy`, and `publishedBy`.
 
-Audit coverage should apply to payment proof review, run proof review, result import, result publishing, certificate generation, merchandise order status changes, race kit claiming, and report exports where needed.
+Audit coverage should apply to payment receipt review, run result review, result import, result publishing, certificate generation, merchandise order status changes, race kit claiming, and report exports where needed.
 
 ---
 
@@ -2623,7 +2654,7 @@ UPDATED ACCEPTANCE GATES
 ### Release Gate Before New Feature Expansion
 Before starting Phases 13 to 16:
 - [ ] Full `npm test` passes.
-- [ ] Manual smoke tests pass for auth, registration, payment proof, run proof, review queues, dashboards, leaderboard, and certificates.
+- [ ] Manual smoke tests pass for auth, registration, payment receipt upload, run result submission, review queues, dashboards, leaderboard, and certificates.
 - [ ] Production env variables are verified.
 - [ ] `/healthz` and `/readyz` are tested.
 - [ ] Error tracking and uptime monitoring are configured.

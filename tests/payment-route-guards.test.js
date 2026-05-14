@@ -88,7 +88,7 @@ test('organizer cannot approve payment proof when registration is not proof_subm
   assert.equal(response.status, 302);
   const location = response.headers.get('location') || '';
   assert.match(location, /type=error/);
-  assert.match(location, /submitted\+payment\+proof\+can\+be\+approved/);
+  assert.match(location, /submitted\+payment\+receipts\+can\+be\+approved/);
 });
 
 test('non-owner organizer cannot review payment proof for another organizer event', async () => {

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: 'Payment and Result Reviews - helloRun Admin' }) %>
+  <%- include('../layouts/head', { title: 'Payment Receipt and Run Result Reviews - helloRun Admin' }) %>
   <link rel="stylesheet" href="/css/admin.css">
 </head>
 <body>
@@ -11,8 +11,8 @@
     <section class="section admin-shell">
       <div class="admin-header-row">
         <div>
-          <h2>Payment and Result Reviews</h2>
-          <p>Review pending proof queues across all events.</p>
+          <h2>Payment Receipt and Run Result Reviews</h2>
+          <p>Review pending payment receipt and run result queues across all events.</p>
         </div>
         <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
       </div>
@@ -24,14 +24,14 @@
           <a href="<%= links.all %>" class="metric-link">View All</a>
         </article>
         <article class="metric-card">
-          <p class="metric-label">Payment Proofs</p>
+          <p class="metric-label">Payment Receipts</p>
           <p class="metric-value"><%= counts.payments %></p>
-          <a href="<%= links.payments %>" class="metric-link">View Payments</a>
+          <a href="<%= links.payments %>" class="metric-link">View Payment Receipts</a>
         </article>
         <article class="metric-card">
-          <p class="metric-label">Run Proofs</p>
+          <p class="metric-label">Run Results</p>
           <p class="metric-value"><%= counts.results %></p>
-          <a href="<%= links.results %>" class="metric-link">View Results</a>
+          <a href="<%= links.results %>" class="metric-link">View Run Results</a>
         </article>
       </div>
 
@@ -40,8 +40,8 @@
           <label for="type">Queue</label>
           <select id="type" name="type">
             <option value="all" <%= filters.type === 'all' ? 'selected' : '' %>>All reviews</option>
-            <option value="payments" <%= filters.type === 'payments' ? 'selected' : '' %>>Payments</option>
-            <option value="results" <%= filters.type === 'results' ? 'selected' : '' %>>Results</option>
+            <option value="payments" <%= filters.type === 'payments' ? 'selected' : '' %>>Payment Receipts</option>
+            <option value="results" <%= filters.type === 'results' ? 'selected' : '' %>>Run Results</option>
           </select>
         </div>
 
@@ -125,7 +125,7 @@
       <% } else { %>
         <div class="empty-state">
           <h3>No pending reviews found</h3>
-          <p>Try changing the queue or search filters, or return when new proofs are submitted.</p>
+          <p>Try changing the queue or search filters, or return when new receipts or run results are submitted.</p>
           <a href="/admin/reviews" class="btn btn-secondary">View All Reviews</a>
         </div>
       <% } %>

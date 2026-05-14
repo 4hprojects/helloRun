@@ -49,6 +49,12 @@
   color: #991b1b;
 }
 
+.page-message-warning {
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  color: #92400e;
+}
+
 .filter-bar {
   display: flex;
   align-items: center;

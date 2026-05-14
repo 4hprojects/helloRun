@@ -563,8 +563,8 @@
                 <div>
                   <strong><%= reviewQueue?.pendingPaymentReviews || 0 %></strong>
                   <div class="review-queue-label-row">
-                    <p>Payment proofs awaiting review</p>
-                    <a href="<%= reviewQueue?.paymentReviewHref || '/organizer/events' %>" class="btn btn-secondary review-icon-btn" target="_blank" rel="noopener noreferrer" aria-label="Review payment proofs">
+                    <p>Payment receipts awaiting review</p>
+                    <a href="<%= reviewQueue?.paymentReviewHref || '/organizer/events' %>" class="btn btn-secondary review-icon-btn" target="_blank" rel="noopener noreferrer" aria-label="Review payment receipts">
                       <i data-lucide="arrow-up-right"></i>
                     </a>
                   </div>
@@ -574,8 +574,8 @@
                 <div>
                   <strong><%= reviewQueue?.pendingResultReviews || 0 %></strong>
                   <div class="review-queue-label-row">
-                    <p>Result submissions awaiting review</p>
-                    <a href="<%= reviewQueue?.resultReviewHref || '/organizer/events' %>" class="btn btn-secondary review-icon-btn" target="_blank" rel="noopener noreferrer" aria-label="Review result submissions">
+                    <p>Run results awaiting review</p>
+                    <a href="<%= reviewQueue?.resultReviewHref || '/organizer/events' %>" class="btn btn-secondary review-icon-btn" target="_blank" rel="noopener noreferrer" aria-label="Review run results">
                       <i data-lucide="arrow-up-right"></i>
                     </a>
                   </div>

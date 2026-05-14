@@ -14,7 +14,10 @@ const { createNotificationSafe } = require('../services/notification.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
 const { BLOG_CATEGORIES } = require('../utils/blog');
 const { renderWaiverTemplate } = require('../utils/waiver');
-const { canRunnerSubmitPaymentProof } = require('../utils/payment-workflow');
+const {
+  canRunnerSubmitPaymentProof,
+  getInitialRegistrationPaymentStatus
+} = require('../utils/payment-workflow');
 const {
   createSubmission,
   resubmitSubmission,
@@ -484,7 +487,7 @@ exports.postEventRegistration = async (req, res) => {
       participationMode: formData.participationMode,
       raceDistance: formData.raceDistance,
       status: 'confirmed',
-      paymentStatus: 'unpaid',
+      paymentStatus: getInitialRegistrationPaymentStatus(event),
       confirmationCode,
       registeredAt: new Date()
     });
@@ -683,14 +686,14 @@ exports.postSubmitResult = async (req, res) => {
     mode: 'create',
     successMessage: isPersonalRecordSubmission
       ? 'Personal record saved successfully.'
-      : 'Result submitted successfully. Await organizer review.'
+      : 'Run result submitted successfully. Await organizer review.'
   });
 };
 
 exports.postResubmitResult = async (req, res) => {
   return handleRunnerSubmissionWrite(req, res, {
     mode: 'resubmit',
-    successMessage: 'Result resubmitted successfully. Await organizer review.'
+    successMessage: 'Run result resubmitted successfully. Await organizer review.'
   });
 };
 
@@ -776,7 +779,7 @@ exports.postUploadPaymentProof = async (req, res) => {
     if (!proofFile) {
       const query = new URLSearchParams({
         type: 'error',
-        msg: 'Please select a payment proof file before submitting.'
+        msg: 'Please select a payment receipt file before submitting.'
       });
       return res.redirect(`/my-registrations?${query.toString()}`);
     }
@@ -798,7 +801,7 @@ exports.postUploadPaymentProof = async (req, res) => {
     if (!canRunnerSubmitPaymentProof(registration)) {
       const query = new URLSearchParams({
         type: 'error',
-        msg: 'Payment proof upload is only allowed for unpaid/rejected active registrations.'
+        msg: 'Payment receipt upload is only allowed for unpaid/rejected active registrations.'
       });
       return res.redirect(`/my-registrations?${query.toString()}`);
     }
@@ -841,8 +844,8 @@ exports.postUploadPaymentProof = async (req, res) => {
       {
         userId: user._id,
         type: 'payment_proof_submitted',
-        title: 'Payment Proof Submitted',
-        message: `Payment proof submitted for ${registration.eventId.title || 'your event registration'}.`,
+        title: 'Payment Receipt Submitted',
+        message: `Payment receipt submitted for ${registration.eventId.title || 'your event registration'}.`,
         href: '/my-registrations',
         metadata: {
           registrationId: String(registration._id),
@@ -850,7 +853,7 @@ exports.postUploadPaymentProof = async (req, res) => {
           eventTitle: registration.eventId.title || ''
         }
       },
-      'payment proof submitted notification'
+      'payment receipt submitted notification'
     );
 
     const cleanupKeys = [];
@@ -878,7 +881,7 @@ exports.postUploadPaymentProof = async (req, res) => {
         );
       }
     } catch (emailError) {
-      console.error('Payment proof submission organizer email failed:', {
+      console.error('Payment receipt submission organizer email failed:', {
         error: emailError.message,
         registrationId: String(registration._id)
       });
@@ -886,17 +889,17 @@ exports.postUploadPaymentProof = async (req, res) => {
 
     const query = new URLSearchParams({
       type: 'success',
-      msg: 'Payment proof submitted successfully. Await organizer verification.'
+      msg: 'Payment receipt submitted successfully. Await organizer verification.'
     });
     return res.redirect(`/my-registrations?${query.toString()}`);
   } catch (error) {
     if (uploadedProofKey) {
       await uploadService.deleteObjects([uploadedProofKey]);
     }
-    console.error('Error uploading payment proof:', error);
+    console.error('Error uploading payment receipt:', error);
     const query = new URLSearchParams({
       type: 'error',
-      msg: 'An error occurred while uploading payment proof. Please try again.'
+      msg: 'An error occurred while uploading payment receipt. Please try again.'
     });
     return res.redirect(`/my-registrations?${query.toString()}`);
   }
@@ -916,7 +919,7 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
 
     const resultProofFile = req.file;
     if (!resultProofFile) {
-      return redirectWithPageMessage(res, 'error', 'Please select a result proof file before submitting.');
+      return redirectWithPageMessage(res, 'error', 'Please select run result evidence before submitting.');
     }
 
     const registrationId = String(req.params.registrationId || '').trim();
@@ -1066,8 +1069,8 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     }
 
     const successMessage = savedCount > 1
-      ? `Result saved for ${savedCount} entries.`
-      : (options.successMessage || 'Result saved.');
+      ? `Run result saved for ${savedCount} entries.`
+      : (options.successMessage || 'Run result saved.');
     return redirectWithPageMessage(res, 'success', successMessage);
   } catch (error) {
     if (uploadedProofKey) {

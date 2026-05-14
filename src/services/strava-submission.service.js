@@ -2,7 +2,11 @@ const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const Registration = require('../models/Registration');
 const Event = require('../models/Event');
-const { createSubmission, resubmitSubmission } = require('./submission.service');
+const {
+  createSubmission,
+  resubmitSubmission,
+  PERSONAL_RECORD_REGISTRATION_ID
+} = require('./submission.service');
 const { createAccumulatedActivitySubmission } = require('./accumulated-activity.service');
 const stravaService = require('./strava.service');
 
@@ -26,6 +30,30 @@ async function submitStravaActivity({ runnerId, eventId, stravaActivityId }) {
   }
 
   validateActivityShape(activity);
+
+  if (String(eventId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
+    const duplicate = await findDuplicateStravaSubmission({
+      runnerId,
+      stravaActivityId: safeActivityId,
+      personalRecord: true
+    });
+    if (duplicate) {
+      throw new Error('This Strava activity has already been submitted as a personal record.');
+    }
+
+    const submission = await createSubmission(buildSubmissionInput({
+      registration: {
+        _id: PERSONAL_RECORD_REGISTRATION_ID,
+        userId: runnerId,
+        eventId: null,
+        raceDistance: '',
+        participationMode: 'virtual'
+      },
+      activity,
+      connection
+    }));
+    return { submission, type: 'personal_record' };
+  }
 
   const registration = await Registration.findOne({
     userId: runnerId,
@@ -71,8 +99,12 @@ async function submitStravaActivity({ runnerId, eventId, stravaActivityId }) {
   return { submission, type: 'submission' };
 }
 
-async function findDuplicateStravaSubmission({ runnerId, eventId, stravaActivityId }) {
-  const query = {
+async function findDuplicateStravaSubmission({ runnerId, eventId, stravaActivityId, personalRecord = false }) {
+  const query = personalRecord ? {
+    runnerId,
+    isPersonalRecord: true,
+    'stravaActivity.id': Number(stravaActivityId)
+  } : {
     runnerId,
     eventId,
     'stravaActivity.id': Number(stravaActivityId)
@@ -203,6 +235,7 @@ module.exports = {
   submitStravaActivity,
   normalizeStravaRunType,
   _private: {
+    PERSONAL_RECORD_EVENT_ID: PERSONAL_RECORD_REGISTRATION_ID,
     buildSubmissionInput,
     validateAgainstEvent,
     validateActivityShape

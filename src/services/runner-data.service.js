@@ -4,7 +4,7 @@ async function getRunnerRegistrations(userId) {
   return Registration.find({ userId })
     .populate({
       path: 'eventId',
-      select: 'title slug status eventStartAt eventEndAt city country venueName virtualCompletionMode targetDistanceKm minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt',
+      select: 'title slug status eventStartAt eventEndAt city country venueName virtualCompletionMode targetDistanceKm minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt feeMode feeAmount feeCurrency paymentAccountName paymentInstructions paymentQrImageUrl',
       match: { isPersonalRecord: { $ne: true } }
     })
     .sort({ registeredAt: -1 })

@@ -2,10 +2,10 @@
   const isRunnerAuthenticated = Boolean(locals && locals.isAuthenticated && !locals.isAdmin && !locals.isOrganizer);
   const modalConfig = (locals && locals.runProofModalConfig) || {};
   const defaultMode = String(modalConfig.mode || 'submit').trim() || 'submit';
-  const modalTitle = String(modalConfig.title || 'Submit Run').trim() || 'Submit Run';
-  const submitLabel = String(modalConfig.submitLabel || 'Submit Run').trim() || 'Submit Run';
+  const modalTitle = String(modalConfig.title || 'Submit Run Result').trim() || 'Submit Run Result';
+  const submitLabel = String(modalConfig.submitLabel || 'Submit Run Result').trim() || 'Submit Run Result';
   const submitEndpoint = String(modalConfig.submitEndpoint || '').trim();
-  const modalDescription = String(modalConfig.description || 'Submit your run details and proof image for review.').trim();
+  const modalDescription = String(modalConfig.description || 'Submit your activity details and screenshot or Strava evidence for event result review.').trim();
   const initialEvents = Array.isArray(modalConfig.initialEvents) ? modalConfig.initialEvents : [];
   const defaultSelectedEventIds = Array.isArray(modalConfig.defaultSelectedEventIds) ? modalConfig.defaultSelectedEventIds : [];
 %>
@@ -36,7 +36,7 @@
         <div>
           <h2 id="runProofModalTitle"><%= modalTitle %></h2>
           <p class="run-proof-modal-desc" id="runProofModalDesc"><%= modalDescription %></p>
-          <p class="run-proof-step-indicator" id="runProofStepIndicator">Step 1 of 2 &mdash; Submit your screenshot</p>
+          <p class="run-proof-step-indicator" id="runProofStepIndicator">Step 1 of 2 &mdash; Choose activity source</p>
         </div>
         <div class="run-proof-header-actions">
           <button type="button" class="btn btn-outline run-proof-back-btn" id="runProofBackBtn" aria-label="Close" data-tooltip="Close">
@@ -85,6 +85,34 @@
         <input type="hidden" id="runProofImageHash" name="proofImageHash" value="">
 
         <div id="runProofStep1">
+          <section class="run-proof-section" aria-labelledby="runProofSectionMedia">
+            <div class="run-proof-section-heading">
+              <h3 id="runProofSectionMedia">Upload Activity Screenshot</h3>
+              <span class="run-proof-required-tag">Option</span>
+            </div>
+            <div class="run-proof-upload" id="runProofUploadDropzone" tabindex="0" role="button" aria-label="Upload activity screenshot">
+              <input id="runProofImage" name="resultProofFile" type="file" accept="image/jpeg,image/png,image/webp" required>
+              <div class="run-proof-upload-initial" id="runProofUploadInitial">
+                <i data-lucide="image" class="run-proof-upload-icon" aria-hidden="true"></i>
+                <strong>Drop image here or click to upload</strong>
+                <small>JPG or PNG, up to 5MB</small>
+              </div>
+              <div class="run-proof-upload-preview" id="runProofUploadPreview" hidden>
+                <img id="runProofPreviewImage" alt="Run proof preview">
+              </div>
+            </div>
+            <div class="run-proof-upload-actions" id="runProofUploadActions" hidden>
+              <button type="button" class="btn btn-outline" id="runProofReplaceImageBtn">Replace</button>
+              <button type="button" class="btn btn-outline" id="runProofRemoveImageBtn">Remove</button>
+            </div>
+            <p class="run-proof-field-error" id="runProofImageError" aria-live="polite"></p>
+            <p class="run-proof-ocr-status" id="runProofOcrStatus" aria-live="polite">Waiting for file upload.</p>
+          </section>
+          <div class="run-proof-analyse-row">
+            <button type="button" class="btn btn-primary" id="runProofAnalyseBtn" disabled>Analyse Activity Screenshot</button>
+            <p class="run-proof-analyse-hint" id="runProofAnalyseHint" hidden>Upload a screenshot to enable analysis</p>
+          </div>
+
           <section class="run-proof-section run-proof-strava-section" aria-labelledby="runProofSectionStrava">
             <div class="run-proof-strava-content">
               <div>
@@ -106,34 +134,6 @@
               <div class="run-proof-strava-activity-list" id="runProofStravaActivityList" role="list"></div>
             </div>
           </section>
-
-          <section class="run-proof-section" aria-labelledby="runProofSectionMedia">
-            <div class="run-proof-section-heading">
-              <h3 id="runProofSectionMedia">Upload Screenshot</h3>
-              <span class="run-proof-required-tag">Required</span>
-            </div>
-            <div class="run-proof-upload" id="runProofUploadDropzone" tabindex="0" role="button" aria-label="Upload proof image">
-              <input id="runProofImage" name="resultProofFile" type="file" accept="image/jpeg,image/png,image/webp" required>
-              <div class="run-proof-upload-initial" id="runProofUploadInitial">
-                <i data-lucide="image" class="run-proof-upload-icon" aria-hidden="true"></i>
-                <strong>Drop image here or click to upload</strong>
-                <small>JPG or PNG, up to 5MB</small>
-              </div>
-              <div class="run-proof-upload-preview" id="runProofUploadPreview" hidden>
-                <img id="runProofPreviewImage" alt="Run proof preview">
-              </div>
-            </div>
-            <div class="run-proof-upload-actions" id="runProofUploadActions" hidden>
-              <button type="button" class="btn btn-outline" id="runProofReplaceImageBtn">Replace</button>
-              <button type="button" class="btn btn-outline" id="runProofRemoveImageBtn">Remove</button>
-            </div>
-            <p class="run-proof-field-error" id="runProofImageError" aria-live="polite"></p>
-            <p class="run-proof-ocr-status" id="runProofOcrStatus" aria-live="polite">Waiting for file upload.</p>
-          </section>
-          <div class="run-proof-analyse-row">
-            <button type="button" class="btn btn-primary" id="runProofAnalyseBtn" disabled>Submit Screenshot</button>
-            <p class="run-proof-analyse-hint" id="runProofAnalyseHint" hidden>Upload a screenshot to enable analysis</p>
-          </div>
         </div>
 
         <div id="runProofStep2" hidden>
@@ -164,7 +164,7 @@
               <h3 id="runProofSectionEvents">Event Selection</h3>
               <span class="run-proof-required-tag">Required</span>
             </div>
-            <p class="run-proof-helper" id="runProofEventsHelper">Select the event result you want to submit. Personal record stays selected by default.</p>
+            <p class="run-proof-helper" id="runProofEventsHelper">Select each eligible event that this same activity should count toward. Personal record stays selected by default.</p>
 
             <div class="run-proof-event-list" id="runProofEventsList" role="group" tabindex="-1" aria-describedby="runProofEventsHelper runProofEventsError">
               <label class="run-proof-event-card is-locked" for="runProofPersonalRecord">
@@ -290,10 +290,10 @@
   <div class="run-proof-post-submit" id="runProofPostSubmit" hidden>
     <div class="run-proof-post-submit-dialog" role="dialog" aria-modal="true"
          aria-labelledby="runProofPostSubmitTitle" aria-describedby="runProofPostSubmitDesc" tabindex="-1">
-      <h3 id="runProofPostSubmitTitle">Run submitted!</h3>
-      <p id="runProofPostSubmitDesc">Your submission has been received and is pending review. What would you like to do next?</p>
+      <h3 id="runProofPostSubmitTitle">Run result submitted!</h3>
+      <p id="runProofPostSubmitDesc">Your activity details and evidence were received for event result review. What would you like to do next?</p>
       <div class="run-proof-post-submit-actions">
-        <button type="button" class="btn btn-outline" id="runProofPostSubmitAnother">Submit Another Entry</button>
+        <button type="button" class="btn btn-outline" id="runProofPostSubmitAnother">Submit Another Run Result</button>
         <button type="button" class="btn btn-primary" id="runProofPostSubmitView">View Submitted Entries</button>
       </div>
     </div>
@@ -311,7 +311,7 @@
         </div>
       </div>
       <ul class="run-proof-submit-review-rows" id="runProofSubmitReviewRows" aria-label="Submission summary"></ul>
-      <p class="run-proof-submit-review-notice">By submitting, you confirm this activity is your own and the details are accurate.</p>
+      <p class="run-proof-submit-review-notice">By submitting, you confirm this activity is your own and the distance, time, date, location, and selected events are accurate.</p>
       <div class="run-proof-submit-review-actions">
         <button type="button" class="btn btn-outline" id="runProofSubmitReviewEdit">Edit Details</button>
         <button type="button" class="btn btn-primary" id="runProofSubmitReviewConfirm">Submit Now</button>

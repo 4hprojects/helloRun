@@ -74,7 +74,7 @@ test('authenticated submit-result requires proof file', async () => {
   assert.equal(response.status, 302);
   const location = response.headers.get('location') || '';
   assert.match(location, /my-registrations\?type=error/i);
-  assert.match(location, /select\+a\+result\+proof\+file/i);
+  assert.match(location, /select\+run\+result\+evidence/i);
 });
 
 test('authenticated submit-result rejects invalid elapsedTime format', async () => {
@@ -176,7 +176,7 @@ test('authenticated submit-result rejects PDF proof uploads', async () => {
   assert.equal(response.status, 302);
   const location = response.headers.get('location') || '';
   assert.match(location, /my-registrations\?type=error/i);
-  assert.match(location, /Only\+JPEG\+and\+PNG\+files\+are\+allowed/i);
+  assert.match(location, /Only\+JPEG%2C\+PNG%2C\+and\+WebP\+files\+are\+allowed/i);
 });
 
 test('authenticated submit-result allows personal-record submission without a registered event', async () => {

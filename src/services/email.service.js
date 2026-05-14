@@ -1258,12 +1258,12 @@ exports.sendPaymentProofSubmittedEmailToOrganizer = async (
     const { data, error } = await resend.emails.send({
       from: process.env.EMAIL_FROM,
       to: organizerEmail,
-      subject: `Payment Proof Submitted: ${eventTitle}`,
+      subject: `Payment Receipt Submitted: ${eventTitle}`,
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
-          <h2 style="margin:0 0 12px;color:#0f172a;">Payment Proof Needs Review</h2>
+          <h2 style="margin:0 0 12px;color:#0f172a;">Payment Receipt Needs Review</h2>
           <p>Hi ${escapeHtml(organizerFirstName || 'Organizer')},</p>
-          <p>${escapeHtml(runnerName || 'A runner')} submitted payment proof for <strong>${escapeHtml(eventTitle || 'an event')}</strong>.</p>
+          <p>${escapeHtml(runnerName || 'A runner')} submitted a payment receipt for <strong>${escapeHtml(eventTitle || 'an event')}</strong>.</p>
           <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin:16px 0;">
             <p style="margin:0;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode || 'N/A')}</p>
           </div>
@@ -1273,7 +1273,7 @@ exports.sendPaymentProofSubmittedEmailToOrganizer = async (
     });
 
     if (error) {
-      throw new Error('Failed to send payment proof submission email to organizer');
+      throw new Error('Failed to send payment receipt submission email to organizer');
     }
 
     return data;
@@ -1327,7 +1327,7 @@ exports.sendPaymentRejectedEmailToRunner = async (
   reviewNotes
 ) => {
   try {
-    const reasonText = escapeHtml(rejectionReason || 'Payment proof did not pass verification.');
+    const reasonText = escapeHtml(rejectionReason || 'Payment receipt did not pass verification.');
     const notesText = escapeHtml(reviewNotes || '');
 
     const { data, error } = await resend.emails.send({
@@ -1336,15 +1336,15 @@ exports.sendPaymentRejectedEmailToRunner = async (
       subject: `Payment Rejected: ${eventTitle}`,
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
-          <h2 style="margin:0 0 12px;color:#991b1b;">Payment Proof Rejected</h2>
+          <h2 style="margin:0 0 12px;color:#991b1b;">Payment Receipt Rejected</h2>
           <p>Hi ${escapeHtml(runnerFirstName || 'Runner')},</p>
-          <p>Your payment proof for <strong>${escapeHtml(eventTitle || 'your event')}</strong> was rejected.</p>
+          <p>Your payment receipt for <strong>${escapeHtml(eventTitle || 'your event')}</strong> was rejected.</p>
           <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px;margin:16px 0;">
             <p style="margin:0 0 8px;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode || 'N/A')}</p>
             <p style="margin:0 0 8px;"><strong>Reason:</strong> ${reasonText}</p>
             ${notesText ? `<p style="margin:0;"><strong>Notes:</strong> ${notesText}</p>` : ''}
           </div>
-          <p>Please upload a new payment proof from your My Registrations page.</p>
+          <p>Please upload a new payment receipt from your My Registrations page.</p>
         </div>
       `
     });
@@ -1411,7 +1411,7 @@ exports.sendResultRejectedEmailToRunner = async (
     return { skipped: true };
   }
   try {
-    const reasonText = escapeHtml(rejectionReason || 'Result proof did not pass verification.');
+    const reasonText = escapeHtml(rejectionReason || 'Run result evidence did not pass verification.');
     const notesText = escapeHtml(reviewNotes || '');
     const { data, error } = await resend.emails.send({
       from: process.env.EMAIL_FROM,
