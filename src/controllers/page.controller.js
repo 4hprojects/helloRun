@@ -6,11 +6,10 @@ const Submission = require('../models/Submission');
 const OrganiserApplication = require('../models/OrganiserApplication');
 const Blog = require('../models/Blog');
 const BlogLike = require('../models/BlogLike');
-const emailService = require('../services/email.service');
+const communicationService = require('../services/communication.service');
 const { registerBlogView } = require('../services/blog-view.service');
 const { getRunnerRegistrations } = require('../services/runner-data.service');
 const uploadService = require('../services/upload.service');
-const { createNotificationSafe } = require('../services/notification.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
 const { BLOG_CATEGORIES } = require('../utils/blog');
 const { renderWaiverTemplate } = require('../utils/waiver');
@@ -494,8 +493,8 @@ exports.postEventRegistration = async (req, res) => {
 
     await registration.save();
 
-    await createNotificationSafe(
-      {
+    await communicationService.notify('registration.confirmed', {
+      notification: {
         userId: user._id,
         type: 'registration_confirmed',
         title: 'Registration Confirmed',
@@ -507,26 +506,22 @@ exports.postEventRegistration = async (req, res) => {
           eventTitle: event.title || ''
         }
       },
-      'registration confirmation notification'
-    );
-
-    try {
-      await emailService.sendEventRegistrationConfirmationEmail(
-        formData.email,
-        formData.firstName,
-        event.title,
+      email: {
+        to: formData.email,
+        firstName: formData.firstName,
+        eventTitle: event.title,
         confirmationCode,
-        formData.participationMode,
-        event.eventStartAt,
-        formData.raceDistance
-      );
-    } catch (emailError) {
-      console.error('Registration confirmation email failed:', {
-        error: emailError.message,
-        eventId: String(event._id),
-        userId: String(user._id)
-      });
-    }
+        participationMode: formData.participationMode,
+        eventStartAt: event.eventStartAt,
+        raceDistance: formData.raceDistance,
+        recipientUserId: user._id,
+        metadata: {
+          registrationId: String(registration._id),
+          eventId: String(event._id),
+          userId: String(user._id)
+        }
+      }
+    });
 
     const query = new URLSearchParams({
       type: 'success',
@@ -840,22 +835,6 @@ exports.postUploadPaymentProof = async (req, res) => {
     );
     uploadedProofKey = '';
 
-    await createNotificationSafe(
-      {
-        userId: user._id,
-        type: 'payment_proof_submitted',
-        title: 'Payment Receipt Submitted',
-        message: `Payment receipt submitted for ${registration.eventId.title || 'your event registration'}.`,
-        href: '/my-registrations',
-        metadata: {
-          registrationId: String(registration._id),
-          eventId: String(registration.eventId._id || ''),
-          eventTitle: registration.eventId.title || ''
-        }
-      },
-      'payment receipt submitted notification'
-    );
-
     const cleanupKeys = [];
     if (previousProofKey && previousProofKey !== uploadedProof.key) {
       cleanupKeys.push(previousProofKey);
@@ -871,18 +850,36 @@ exports.postUploadPaymentProof = async (req, res) => {
 
     try {
       const organizer = await User.findById(registration.eventId.organizerId).select('firstName email');
-      if (organizer?.email) {
-        await emailService.sendPaymentProofSubmittedEmailToOrganizer(
-          organizer.email,
-          organizer.firstName || 'Organizer',
-          `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
-          registration.eventId.title || 'Event',
-          registration.confirmationCode || ''
-        );
-      }
-    } catch (emailError) {
-      console.error('Payment receipt submission organizer email failed:', {
-        error: emailError.message,
+      await communicationService.notify('payment.receipt_submitted', {
+        notification: {
+          userId: user._id,
+          type: 'payment_proof_submitted',
+          title: 'Payment Receipt Submitted',
+          message: `Payment receipt submitted for ${registration.eventId.title || 'your event registration'}.`,
+          href: '/my-registrations',
+          metadata: {
+            registrationId: String(registration._id),
+            eventId: String(registration.eventId._id || ''),
+            eventTitle: registration.eventId.title || ''
+          }
+        },
+        email: organizer?.email ? {
+          to: organizer.email,
+          organizerFirstName: organizer.firstName || 'Organizer',
+          runnerName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+          eventTitle: registration.eventId.title || 'Event',
+          confirmationCode: registration.confirmationCode || '',
+          recipientUserId: organizer._id,
+          metadata: {
+            registrationId: String(registration._id),
+            eventId: String(registration.eventId._id || ''),
+            runnerId: String(user._id)
+          }
+        } : null
+      });
+    } catch (communicationError) {
+      console.error('Payment receipt submission communication failed:', {
+        error: communicationError.message,
         registrationId: String(registration._id)
       });
     }

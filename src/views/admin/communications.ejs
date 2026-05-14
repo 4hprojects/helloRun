@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Communications - helloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>Communications</h2>
+          <p>Email budget, transactional event controls, and delivery logs.</p>
+        </div>
+        <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+      </div>
+
+      <% if (message) { %>
+        <div class="admin-alert admin-alert-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <%
+        const lockedEvents = events.filter((event) => event.locked);
+        const emailOnCount = events.filter((event) => event.emailEnabled).length;
+        const inAppOnCount = events.filter((event) => event.inAppEnabled).length;
+        const highPriorityEvents = events.filter((event) => event.priority === 'high' || event.priority === 'critical');
+        const criticalReserveRemaining = Math.max(0, (budget.remaining || 0) - (budget.reservedCriticalEmailCount || 0));
+      %>
+
+      <div class="dashboard-grid">
+        <article class="metric-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Sent Today</p>
+            <i data-lucide="send" class="metric-card-icon-sm" aria-hidden="true"></i>
+          </div>
+          <p class="metric-value"><%= budget.sentCount %></p>
+          <p class="metric-helper"><%= budget.remaining %> remaining of <%= budget.dailyLimit %></p>
+        </article>
+        <article class="metric-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Soft Stop</p>
+            <i data-lucide="gauge" class="metric-card-icon-sm" aria-hidden="true"></i>
+          </div>
+          <p class="metric-value"><%= budget.softStopThreshold %></p>
+          <p class="metric-helper">Low/medium email skips after this point</p>
+        </article>
+        <article class="metric-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Mode</p>
+            <i data-lucide="power" class="metric-card-icon-sm" aria-hidden="true"></i>
+          </div>
+          <p class="metric-value metric-value-sm"><%= setting.emailMaintenanceMode ? 'Maintenance' : (setting.emailSystemEnabled ? 'Normal' : 'Email Off') %></p>
+          <p class="metric-helper">In-app <%= setting.inAppNotificationsEnabled ? 'enabled' : 'disabled' %></p>
+        </article>
+      </div>
+
+      <h3 class="dashboard-section-title">Tool Kits</h3>
+      <div class="communication-toolkit-grid" aria-label="Communication management tool kits">
+        <article class="communication-toolkit-card">
+          <div class="communication-toolkit-icon icon-blue">
+            <i data-lucide="shield-check" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h4>Budget Guardrails</h4>
+            <p><strong><%= criticalReserveRemaining %></strong> flexible sends remain after the critical reserve.</p>
+            <div class="communication-toolkit-actions">
+              <a href="#email-budget">Edit limits</a>
+              <a href="/admin/communications?status=skipped">Skipped logs</a>
+            </div>
+          </div>
+        </article>
+        <article class="communication-toolkit-card">
+          <div class="communication-toolkit-icon icon-amber">
+            <i data-lucide="lock-keyhole" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h4>Locked Account Mail</h4>
+            <p><strong><%= lockedEvents.length %></strong> required account events stay email-enabled.</p>
+            <div class="communication-toolkit-actions">
+              <a href="#communication-events">Review locks</a>
+              <a href="/admin/communications?eventKey=account.email_verification">Verification logs</a>
+            </div>
+          </div>
+        </article>
+        <article class="communication-toolkit-card">
+          <div class="communication-toolkit-icon icon-violet">
+            <i data-lucide="bell-ring" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h4>Delivery Coverage</h4>
+            <p><strong><%= emailOnCount %></strong> email events and <strong><%= inAppOnCount %></strong> in-app events are enabled.</p>
+            <div class="communication-toolkit-actions">
+              <a href="#communication-events">Tune events</a>
+              <a href="/admin/communications?channel=in_app">In-app logs</a>
+            </div>
+          </div>
+        </article>
+        <article class="communication-toolkit-card">
+          <div class="communication-toolkit-icon icon-slate">
+            <i data-lucide="mail-check" aria-hidden="true"></i>
+          </div>
+          <div>
+            <h4>Test &amp; Trace</h4>
+            <p><strong><%= highPriorityEvents.length %></strong> high-priority paths are available for review.</p>
+            <div class="communication-toolkit-actions">
+              <a href="#test-email">Send test</a>
+              <a href="#email-logs">Trace logs</a>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <h3 id="email-budget" class="dashboard-section-title">Email Budget</h3>
+      <form method="POST" action="/admin/communications/settings" class="admin-form-grid communication-settings-form">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+        <label class="admin-form-field">
+          <span>Daily email limit</span>
+          <input type="number" min="0" name="dailyEmailLimit" value="<%= setting.dailyEmailLimit %>">
+        </label>
+        <label class="admin-form-field">
+          <span>Reserved critical emails</span>
+          <input type="number" min="0" name="reservedCriticalEmailCount" value="<%= setting.reservedCriticalEmailCount %>">
+        </label>
+        <label class="admin-form-field">
+          <span>Soft stop threshold</span>
+          <input type="number" min="0" name="softStopThreshold" value="<%= setting.softStopThreshold %>">
+        </label>
+        <label class="admin-form-field">
+          <span>Hard stop threshold</span>
+          <input type="number" min="0" name="hardStopThreshold" value="<%= setting.hardStopThreshold %>">
+        </label>
+        <label class="admin-form-field">
+          <span>Sender name</span>
+          <input type="text" name="senderName" value="<%= setting.senderName || 'HelloRun' %>">
+        </label>
+        <label class="admin-form-field">
+          <span>Sender email</span>
+          <input type="email" name="senderEmail" value="<%= setting.senderEmail || '' %>" placeholder="<%= emailFrom || '' %>">
+        </label>
+        <label class="admin-form-field">
+          <span>Reply-to email</span>
+          <input type="email" name="replyToEmail" value="<%= setting.replyToEmail || 'support@hellorun.online' %>">
+        </label>
+        <div class="admin-form-field communication-toggle-field">
+          <span>Global controls</span>
+          <label><input type="checkbox" name="emailSystemEnabled" <%= setting.emailSystemEnabled ? 'checked' : '' %>> Email system enabled</label>
+          <label><input type="checkbox" name="inAppNotificationsEnabled" <%= setting.inAppNotificationsEnabled ? 'checked' : '' %>> In-app notifications enabled</label>
+          <label><input type="checkbox" name="emailMaintenanceMode" <%= setting.emailMaintenanceMode ? 'checked' : '' %>> Email maintenance mode</label>
+        </div>
+        <div class="admin-form-field admin-form-field-wide">
+          <button type="submit" class="btn">Save Settings</button>
+        </div>
+      </form>
+
+      <h3 id="communication-events" class="dashboard-section-title">Communication Events</h3>
+      <div class="admin-users-table-wrap">
+        <table class="admin-table communication-events-table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Category</th>
+              <th>Priority</th>
+              <th>Email</th>
+              <th>In-App</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% events.forEach((event) => { %>
+              <tr>
+                <td>
+                  <strong><%= event.name %></strong>
+                  <div><small class="mono"><%= event.eventKey %></small></div>
+                  <div><small><%= event.description %></small></div>
+                </td>
+                <td><span class="status-badge status-badge-<%= event.category %>"><%= event.category %></span></td>
+                <td><span class="status-badge status-badge-<%= event.priority %>"><%= event.priority %></span></td>
+                <td><%= event.emailEnabled ? 'On' : 'Off' %><%= event.locked ? ' (locked)' : '' %></td>
+                <td><%= event.inAppEnabled ? 'On' : 'Off' %></td>
+                <td>
+                  <form method="POST" action="/admin/communications/events/<%= event.eventKey %>" class="communication-event-form">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                    <% if (event.locked) { %>
+                      <input type="hidden" name="emailEnabled" value="on">
+                    <% } %>
+                    <label>
+                      <input type="checkbox" name="emailEnabled" <%= event.emailEnabled ? 'checked' : '' %> <%= event.locked ? 'disabled' : '' %>>
+                      Email
+                    </label>
+                    <label>
+                      <input type="checkbox" name="inAppEnabled" <%= event.inAppEnabled ? 'checked' : '' %>>
+                      In-app
+                    </label>
+                    <button type="submit" class="btn btn-sm">Save</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 id="test-email" class="dashboard-section-title">Test Email</h3>
+      <form method="POST" action="/admin/communications/test-email" class="admin-form-grid">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+        <label class="admin-form-field">
+          <span>Recipient</span>
+          <input type="email" name="to" required placeholder="name@example.com">
+        </label>
+        <label class="admin-form-field">
+          <span>Subject</span>
+          <input type="text" name="subject" value="HelloRun test email">
+        </label>
+        <label class="admin-form-field admin-form-field-wide">
+          <span>Message</span>
+          <textarea name="message" rows="3">This is a test email from HelloRun.</textarea>
+        </label>
+        <div class="admin-form-field admin-form-field-wide">
+          <button type="submit" class="btn btn-secondary">Send Test Email</button>
+        </div>
+      </form>
+
+      <h3 id="email-logs" class="dashboard-section-title">Email Logs</h3>
+      <form class="admin-filters communication-log-filters" method="GET" action="/admin/communications">
+        <div class="filter-field">
+          <label for="eventKey">Event</label>
+          <select id="eventKey" name="eventKey">
+            <option value="">All events</option>
+            <% events.forEach((event) => { %>
+              <option value="<%= event.eventKey %>" <%= logFilters.eventKey === event.eventKey ? 'selected' : '' %>><%= event.name %></option>
+            <% }) %>
+            <option value="admin.test_email" <%= logFilters.eventKey === 'admin.test_email' ? 'selected' : '' %>>Admin Test Email</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="channel">Channel</label>
+          <select id="channel" name="channel">
+            <option value="">All</option>
+            <option value="email" <%= logFilters.channel === 'email' ? 'selected' : '' %>>Email</option>
+            <option value="in_app" <%= logFilters.channel === 'in_app' ? 'selected' : '' %>>In-app</option>
+            <option value="admin" <%= logFilters.channel === 'admin' ? 'selected' : '' %>>Admin</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="">All</option>
+            <% ['sent', 'failed', 'skipped', 'suppressed', 'fallback_in_app'].forEach((status) => { %>
+              <option value="<%= status %>" <%= logFilters.status === status ? 'selected' : '' %>><%= status %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="recipient">Recipient</label>
+          <input id="recipient" type="search" name="recipient" value="<%= logFilters.recipient || '' %>" placeholder="Email contains">
+        </div>
+        <div class="filter-actions">
+          <button type="submit" class="btn">Filter</button>
+          <a href="/admin/communications" class="btn btn-secondary">Reset</a>
+        </div>
+      </form>
+
+      <div class="admin-users-table-wrap">
+        <table class="admin-table communication-logs-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Event</th>
+              <th>Channel</th>
+              <th>Recipient</th>
+              <th>Status</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (logs.length) { %>
+              <% logs.forEach((log) => { %>
+                <tr>
+                  <td><%= formatDateTime(log.createdAt) %></td>
+                  <td>
+                    <span class="mono"><%= log.eventKey %></span>
+                    <% if (log.isTest) { %><div><small>test</small></div><% } %>
+                  </td>
+                  <td><%= log.channel %></td>
+                  <td><%= log.recipientEmail || 'N/A' %></td>
+                  <td><span class="status-badge status-badge-<%= log.status %>"><%= log.status %></span></td>
+                  <td><small><%= log.statusReason || '' %></small></td>
+                </tr>
+              <% }) %>
+            <% } else { %>
+              <tr>
+                <td colspan="6">No communication logs match this filter.</td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+
+      <% if (pagination.totalPages > 1) { %>
+        <div class="pagination">
+          <% if (pagination.page > 1) { %>
+            <a class="btn btn-secondary" href="<%= buildLogPageHref(pagination.page - 1) %>">Previous</a>
+          <% } %>
+          <span>Page <%= pagination.page %> of <%= pagination.totalPages %></span>
+          <% if (pagination.page < pagination.totalPages) { %>
+            <a class="btn btn-secondary" href="<%= buildLogPageHref(pagination.page + 1) %>">Next</a>
+          <% } %>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

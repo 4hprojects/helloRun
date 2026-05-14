@@ -10,6 +10,8 @@ const Registration = require('../src/models/Registration');
 const Submission = require('../src/models/Submission');
 const AccumulatedActivitySubmission = require('../src/models/AccumulatedActivitySubmission');
 const Notification = require('../src/models/Notification');
+const CommunicationLog = require('../src/models/CommunicationLog');
+const DailyEmailUsage = require('../src/models/DailyEmailUsage');
 const emailService = require('../src/services/email.service');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
 const {
@@ -181,7 +183,7 @@ test('reviewSubmission enforces organizer ownership and action guards', async ()
   assert.ok(approved.certificate?.issuedAt);
 });
 
-test('reviewSubmission triggers runner emails for approve/reject and certificate availability', async () => {
+test('reviewSubmission uses in-app defaults for approvals and emails rejected results', async () => {
   const approveSeed = await seedSubmissionFixture('notify-approve');
   const rejectSeed = await seedSubmissionFixture('notify-reject');
 
@@ -245,11 +247,10 @@ test('reviewSubmission triggers runner emails for approve/reject and certificate
     emailService.sendCertificateIssuedEmailToRunner = originalCertificate;
   }
 
-  assert.equal(calls.approved.length, 1);
-  assert.equal(calls.certificate.length, 1);
+  assert.equal(calls.approved.length, 0);
+  assert.equal(calls.certificate.length, 0);
   assert.equal(calls.rejected.length, 1);
 
-  assert.equal(calls.approved[0][0], approveSeed.runner.email);
   assert.equal(calls.rejected[0][0], rejectSeed.runner.email);
 
   const approveNotifications = await Notification.find({ userId: approveSeed.runner._id }).lean();
@@ -681,7 +682,18 @@ test.afterEach(async () => {
       userId: { $in: phase5UserIds },
       createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }
     });
+    await CommunicationLog.deleteMany({
+      recipientUserId: { $in: phase5UserIds },
+      createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }
+    });
   }
+  await CommunicationLog.deleteMany({
+    'metadata.eventId': { $exists: true },
+    createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }
+  });
+  await DailyEmailUsage.deleteMany({
+    createdAt: { $gte: new Date(Date.now() - 60 * 60 * 1000) }
+  });
 });
 
 test('detectSuspiciousActivity flags distance over 200km', () => {
@@ -950,8 +962,8 @@ test('createSubmission auto-approves clean matched OCR and issues certificate', 
   assert.equal(result.reviewedBy, null);
   assert.equal(result.reviewNotes, 'Auto-approved from OCR name match.');
   assert.ok(String(result.certificate?.url || '').length > 0);
-  assert.equal(calls.approved.length, 1);
-  assert.equal(calls.certificate.length, 1);
+  assert.equal(calls.approved.length, 0);
+  assert.equal(calls.certificate.length, 0);
 });
 
 test('createSubmission auto-approves clean matched OCR personal record without certificate', async () => {

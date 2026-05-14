@@ -9,7 +9,7 @@ const Event = require('../models/Event');
 const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const PrivacyPolicy = require('../models/PrivacyPolicy');
-const emailService = require('../services/email.service');
+const communicationService = require('../services/communication.service');
 const uploadService = require('../services/upload.service');
 const { markdownToHtml } = require('../utils/markdown');
 const { sanitizeHtml } = require('../utils/sanitize');
@@ -177,6 +177,16 @@ function renderServerError(res, error, fallbackMessage) {
 function buildAdminRedirect(pathname, type, message) {
   const params = new URLSearchParams({ type, msg: message });
   return `${pathname}?${params.toString()}`;
+}
+
+function buildCommunicationLogHref(filters = {}, page = 1) {
+  const params = new URLSearchParams();
+  ['eventKey', 'channel', 'status', 'recipient'].forEach((key) => {
+    if (filters[key]) params.set(key, filters[key]);
+  });
+  if (Number(page) > 1) params.set('page', String(page));
+  const query = params.toString();
+  return query ? `/admin/communications?${query}` : '/admin/communications';
 }
 
 function getAdminPageMessage(query = {}) {
@@ -1507,10 +1517,14 @@ exports.approveApplication = async (req, res) => {
 
     if (application.userId?.email) {
       try {
-        await emailService.sendApplicationApprovedEmail(
-          application.userId.email,
-          application.userId.firstName || 'Organizer'
-        );
+        await communicationService.notify('organiser.application_approved', {
+          email: {
+            to: application.userId.email,
+            firstName: application.userId.firstName || 'Organizer',
+            recipientUserId: application.userId._id,
+            metadata: { applicationId: application.applicationId }
+          }
+        });
       } catch (emailError) {
         console.error(
           `[Admin Review] Failed to send approval email for application ${application.applicationId}`,
@@ -1584,11 +1598,15 @@ exports.rejectApplication = async (req, res) => {
 
     if (application.userId?.email) {
       try {
-        await emailService.sendApplicationRejectedEmail(
-          application.userId.email,
-          application.userId.firstName || 'Organizer',
-          rejectionReason
-        );
+        await communicationService.notify('organiser.application_rejected', {
+          email: {
+            to: application.userId.email,
+            firstName: application.userId.firstName || 'Organizer',
+            rejectionReason,
+            recipientUserId: application.userId._id,
+            metadata: { applicationId: application.applicationId }
+          }
+        });
       } catch (emailError) {
         console.error(
           `[Admin Review] Failed to send rejection email for application ${application.applicationId}`,
@@ -2069,6 +2087,60 @@ exports.dashboard = async (req, res) => {
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading the admin dashboard.');
+  }
+};
+
+exports.renderCommunications = async (req, res) => {
+  try {
+    const data = await communicationService.getAdminCommunicationPageData(req.query);
+    return res.render('admin/communications', {
+      title: 'Communications - helloRun Admin',
+      message: getAdminPageMessage(req.query),
+      ...data,
+      emailFrom: process.env.EMAIL_FROM || '',
+      formatDateTime: formatAdminDateTime,
+      buildLogPageHref: (page) => buildCommunicationLogHref(data.logFilters, page)
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading communication settings.');
+  }
+};
+
+exports.updateCommunicationSettings = async (req, res) => {
+  try {
+    await communicationService.updateGlobalSettings(req.body, getAdminActor(req));
+    return res.redirect(buildAdminRedirect('/admin/communications', 'success', 'Communication settings updated.'));
+  } catch (error) {
+    return res.redirect(buildAdminRedirect('/admin/communications', 'error', error.message || 'Could not update communication settings.'));
+  }
+};
+
+exports.updateCommunicationEvent = async (req, res) => {
+  try {
+    await communicationService.updateEventSetting(req.params.eventKey, req.body, getAdminActor(req));
+    return res.redirect(buildAdminRedirect('/admin/communications', 'success', 'Communication event updated.'));
+  } catch (error) {
+    return res.redirect(buildAdminRedirect('/admin/communications', 'error', error.message || 'Could not update communication event.'));
+  }
+};
+
+exports.sendCommunicationTestEmail = async (req, res) => {
+  try {
+    const to = String(req.body.to || '').trim().toLowerCase();
+    const subject = String(req.body.subject || '').trim().slice(0, 180);
+    const message = String(req.body.message || '').trim().slice(0, 1000);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      throw new Error('Enter a valid recipient email.');
+    }
+    await communicationService.sendTestEmail({
+      to,
+      subject: subject || 'HelloRun test email',
+      message: message || 'This is a test email from HelloRun.',
+      actorId: req.session?.userId || null
+    });
+    return res.redirect(buildAdminRedirect('/admin/communications', 'success', 'Test email processed. Check logs for delivery status.'));
+  } catch (error) {
+    return res.redirect(buildAdminRedirect('/admin/communications', 'error', error.message || 'Could not send test email.'));
   }
 };
 

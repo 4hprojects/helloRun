@@ -1,7 +1,9 @@
 const crypto = require('crypto');
 const { Resend } = require('resend');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = process.env.RESEND_API_KEY
+  ? new Resend(process.env.RESEND_API_KEY)
+  : { emails: { send: async () => ({ data: { skipped: true }, error: null }) } };
 
 // Logo URL from GitHub
 const LOGO_URL = 'https://raw.githubusercontent.com/4hprojects/helloRun/main/src/public/images/helloRun-icon.webp';
@@ -1479,6 +1481,31 @@ exports.sendCertificateIssuedEmailToRunner = async (
     console.error('Email service error:', error);
     throw error;
   }
+};
+
+exports.sendBasicTestEmail = async (to, subject, message) => {
+  if (!process.env.RESEND_API_KEY) {
+    return { skipped: true };
+  }
+
+  const { data, error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: subject || 'HelloRun test email',
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+        <h2 style="margin:0 0 12px;color:#0f172a;">HelloRun Test Email</h2>
+        <p>${escapeHtml(message || 'This is a test email from HelloRun.')}</p>
+        <p style="margin-top:20px;color:#64748b;font-size:13px;">This is an admin-triggered test email.</p>
+      </div>
+    `
+  });
+
+  if (error) {
+    throw new Error('Failed to send test email');
+  }
+
+  return data;
 };
 
 function escapeHtml(value) {

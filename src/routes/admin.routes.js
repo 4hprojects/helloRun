@@ -58,6 +58,11 @@ router.post('/applications/:id/reject', requireAdmin, adminController.rejectAppl
 
 // Admin dashboard
 router.get('/dashboard', requireAdmin, adminController.dashboard);
+router.get('/communications', requireAdmin, adminController.renderCommunications);
+router.get('/communications/logs', requireAdmin, adminController.renderCommunications);
+router.post('/communications/settings', requireAdmin, adminController.updateCommunicationSettings);
+router.post('/communications/events/:eventKey', requireAdmin, adminController.updateCommunicationEvent);
+router.post('/communications/test-email', requireAdmin, adminController.sendCommunicationTestEmail);
 router.get('/reviews', requireAdmin, adminController.reviewQueue);
 router.get('/privacy-policy', requireAdmin, adminController.listPrivacyPolicies);
 router.get('/privacy-policy/new', requireAdmin, adminController.renderNewPrivacyPolicyDraft);

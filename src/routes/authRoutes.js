@@ -3,7 +3,7 @@ const router = express.Router();
 const User = require('../models/User');
 const PrivacyPolicy = require('../models/PrivacyPolicy');
 const passwordService = require('../services/password.service');
-const emailService = require('../services/email.service');
+const communicationService = require('../services/communication.service');
 const googleOAuthService = require('../services/google-oauth.service');
 const crypto = require('crypto');
 const { redirectIfAuth } = require('../middleware/auth.middleware');
@@ -293,12 +293,16 @@ async function handleRegistration(req, res) {
 
     // Send verification email (non-blocking for account creation)
     try {
-      await emailService.sendVerificationEmail(
-        newUser.email,
-        verificationToken,
-        newUser.role,
-        newUser.firstName
-      );
+      await communicationService.notify('account.email_verification', {
+        email: {
+          to: newUser.email,
+          verificationToken,
+          firstName: newUser.firstName,
+          role: newUser.role,
+          recipientUserId: newUser._id,
+          metadata: { userId: String(newUser._id), role: newUser.role }
+        }
+      });
     } catch (emailError) {
       console.error('Verification email send failed during signup:', emailError);
     }
@@ -556,7 +560,16 @@ router.post('/forgot-password', requireCsrfProtection, forgotPasswordLimiter, as
       }
     );
 
-    await emailService.sendPasswordResetEmail(email, resetToken, user.firstName);
+    await communicationService.notify('account.password_reset', {
+      throwOnEmailFailure: true,
+      email: {
+        to: email,
+        resetToken,
+        firstName: user.firstName,
+        recipientUserId: user._id,
+        metadata: { userId: String(user._id) }
+      }
+    });
 
     res.render('auth/forgot-password', {
       error: null,
@@ -657,7 +670,14 @@ router.post('/reset-password/:token', requireCsrfProtection, async (req, res) =>
       }
     );
 
-    emailService.sendPasswordResetConfirmation(user.email, user.firstName)
+    communicationService.notify('account.password_reset_confirmation', {
+      email: {
+        to: user.email,
+        firstName: user.firstName,
+        recipientUserId: user._id,
+        metadata: { userId: String(user._id) }
+      }
+    })
       .catch(err => console.error('Failed to send confirmation email:', err));
 
     res.render('auth/reset-password', {
@@ -840,12 +860,17 @@ router.post('/resend-verification', requireCsrfProtection, resendVerificationLim
       user.emailVerificationExpires = verificationExpires;
       await user.save();
 
-      await emailService.sendVerificationEmail(
-        user.email,
-        verificationToken,
-        user.role,
-        user.firstName
-      );
+      await communicationService.notify('account.email_verification', {
+        throwOnEmailFailure: true,
+        email: {
+          to: user.email,
+          verificationToken,
+          firstName: user.firstName,
+          role: user.role,
+          recipientUserId: user._id,
+          metadata: { userId: String(user._id), role: user.role }
+        }
+      });
     }
 
     return renderResendVerificationPage(req, res, {

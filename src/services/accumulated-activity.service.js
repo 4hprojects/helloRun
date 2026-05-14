@@ -3,8 +3,7 @@ const Registration = require('../models/Registration');
 const Event = require('../models/Event');
 const User = require('../models/User');
 const { issueSubmissionCertificate } = require('./certificate.service');
-const { createNotificationSafe } = require('./notification.service');
-const emailService = require('./email.service');
+const communicationService = require('./communication.service');
 const {
   buildSubmissionPayload,
   getEligibleRunnerRegistration
@@ -281,8 +280,8 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
     if (!runner) return;
 
     const approved = action === 'approve';
-    await createNotificationSafe(
-      {
+    await communicationService.notify(approved ? 'result.approved' : 'result.rejected', {
+      notification: {
         userId: activity.runnerId,
         type: approved ? 'result_approved' : 'result_rejected',
         title: approved ? 'Activity Approved' : 'Activity Needs Update',
@@ -297,40 +296,26 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
           eventTitle
         }
       },
-      'accumulated activity review notification'
-    );
-
-    if (runner.email) {
-      try {
-        if (approved) {
-          await emailService.sendResultApprovedEmailToRunner?.(
-            runner.email,
-            runner.firstName || 'Runner',
-            eventTitle,
-            '',
-            ''
-          );
-        } else {
-          await emailService.sendResultRejectedEmailToRunner?.(
-            runner.email,
-            runner.firstName || 'Runner',
-            eventTitle,
-            '',
-            activity.rejectionReason || '',
-            activity.reviewNotes || ''
-          );
+      email: runner.email ? {
+        to: runner.email,
+        firstName: runner.firstName || 'Runner',
+        eventTitle,
+        confirmationCode: '',
+        elapsedLabel: '',
+        rejectionReason: activity.rejectionReason || '',
+        reviewNotes: activity.reviewNotes || '',
+        recipientUserId: activity.runnerId,
+        metadata: {
+          activityId: String(activity._id),
+          registrationId: String(activity.registrationId),
+          eventId: String(activity.eventId)
         }
-      } catch (emailError) {
-        console.error('Accumulated activity review email failed:', {
-          error: emailError.message,
-          activityId: String(activity._id)
-        });
-      }
-    }
+      } : null
+    });
 
     if (certificateWasIssued) {
-      await createNotificationSafe(
-        {
+      await communicationService.notify('certificate.issued', {
+        notification: {
           userId: activity.runnerId,
           type: 'certificate_issued',
           title: 'Certificate Available',
@@ -343,24 +328,20 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
             eventTitle
           }
         },
-        'accumulated completion certificate notification'
-      );
-      if (runner.email) {
-        try {
-          await emailService.sendCertificateIssuedEmailToRunner?.(
-            runner.email,
-            runner.firstName || 'Runner',
-            eventTitle,
-            '',
-            activity.certificate?.url || ''
-          );
-        } catch (emailError) {
-          console.error('Accumulated certificate email failed:', {
-            error: emailError.message,
-            activityId: String(activity._id)
-          });
-        }
-      }
+        email: runner.email ? {
+          to: runner.email,
+          firstName: runner.firstName || 'Runner',
+          eventTitle,
+          confirmationCode: '',
+          certificateUrl: activity.certificate?.url || '',
+          recipientUserId: activity.runnerId,
+          metadata: {
+            activityId: String(activity._id),
+            registrationId: String(activity.registrationId),
+            eventId: String(activity.eventId)
+          }
+        } : null
+      });
     }
   } catch (error) {
     console.error('Accumulated activity review notification failed:', {

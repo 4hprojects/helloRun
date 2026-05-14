@@ -4,8 +4,7 @@ const Registration = require('../models/Registration');
 const Event = require('../models/Event');
 const User = require('../models/User');
 const { issueSubmissionCertificate } = require('./certificate.service');
-const emailService = require('./email.service');
-const { createNotificationSafe } = require('./notification.service');
+const communicationService = require('./communication.service');
 const { isSubmissionWindowOpen } = require('../utils/submission-window');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { detectSuspiciousActivity } = require('../utils/submission-integrity');
@@ -1033,14 +1032,13 @@ async function sendRunnerReviewNotifications({
       Registration.findById(submission.registrationId).select('confirmationCode').lean()
     ]);
 
-    if (!runner?.email) return;
-    const runnerEmail = runner.email;
+    if (!runner) return;
     const runnerFirstName = runner.firstName || 'Runner';
     const confirmationCode = registration?.confirmationCode || '';
 
     if (action === 'approve') {
-      await createNotificationSafe(
-        {
+      await communicationService.notify('result.approved', {
+        notification: {
           userId: submission.runnerId,
           type: 'result_approved',
           title: 'Result Approved',
@@ -1052,27 +1050,24 @@ async function sendRunnerReviewNotifications({
             eventTitle
           }
         },
-        'result approved notification'
-      );
-
-      try {
-        await emailService.sendResultApprovedEmailToRunner(
-          runnerEmail,
+        email: runner.email ? {
+          to: runner.email,
           runnerFirstName,
+          firstName: runnerFirstName,
           eventTitle,
           confirmationCode,
-          formatElapsedMs(submission.elapsedMs)
-        );
-      } catch (error) {
-        console.error('Result approved email failed:', {
-          error: error.message,
-          submissionId: String(submission._id)
-        });
-      }
+          elapsedLabel: formatElapsedMs(submission.elapsedMs),
+          recipientUserId: submission.runnerId,
+          metadata: {
+            submissionId: String(submission._id),
+            registrationId: String(submission.registrationId || '')
+          }
+        } : null
+      });
 
       if (certificateWasIssued && submission.certificate?.url) {
-        await createNotificationSafe(
-          {
+        await communicationService.notify('certificate.issued', {
+          notification: {
             userId: submission.runnerId,
             type: 'certificate_issued',
             title: 'Certificate Ready',
@@ -1084,30 +1079,26 @@ async function sendRunnerReviewNotifications({
               eventTitle
             }
           },
-          'certificate issued notification'
-        );
-
-        try {
-          await emailService.sendCertificateIssuedEmailToRunner(
-            runnerEmail,
-            runnerFirstName,
+          email: runner.email ? {
+            to: runner.email,
+            firstName: runnerFirstName,
             eventTitle,
             confirmationCode,
-            submission.certificate.url
-          );
-        } catch (error) {
-          console.error('Certificate issued email failed:', {
-            error: error.message,
-            submissionId: String(submission._id)
-          });
-        }
+            certificateUrl: submission.certificate.url,
+            recipientUserId: submission.runnerId,
+            metadata: {
+              submissionId: String(submission._id),
+              registrationId: String(submission.registrationId || '')
+            }
+          } : null
+        });
       }
       return;
     }
 
     if (action === 'reject') {
-      await createNotificationSafe(
-        {
+      await communicationService.notify('result.rejected', {
+        notification: {
           userId: submission.runnerId,
           type: 'result_rejected',
           title: 'Result Needs Update',
@@ -1119,24 +1110,20 @@ async function sendRunnerReviewNotifications({
             eventTitle
           }
         },
-        'result rejected notification'
-      );
-
-      try {
-        await emailService.sendResultRejectedEmailToRunner(
-          runnerEmail,
-          runnerFirstName,
+        email: runner.email ? {
+          to: runner.email,
+          firstName: runnerFirstName,
           eventTitle,
           confirmationCode,
-          submission.rejectionReason || '',
-          submission.reviewNotes || ''
-        );
-      } catch (error) {
-        console.error('Result rejected email failed:', {
-          error: error.message,
-          submissionId: String(submission._id)
-        });
-      }
+          rejectionReason: submission.rejectionReason || '',
+          reviewNotes: submission.reviewNotes || '',
+          recipientUserId: submission.runnerId,
+          metadata: {
+            submissionId: String(submission._id),
+            registrationId: String(submission.registrationId || '')
+          }
+        } : null
+      });
     }
   } catch (error) {
     console.error('Submission review notification lookup failed:', {

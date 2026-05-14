@@ -9,8 +9,7 @@ const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const OrganiserApplication = require('../models/OrganiserApplication');
 const uploadService = require('../services/upload.service');
-const emailService = require('../services/email.service');
-const { createNotificationSafe } = require('../services/notification.service');
+const communicationService = require('../services/communication.service');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const { requireAuth, requireApprovedOrganizer, requireCanCreateEvents } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
@@ -985,35 +984,36 @@ router.post(
       registration.paymentRejectionReason = '';
       await registration.save();
 
-      await createNotificationSafe(
-        {
-          userId: registration.userId,
-          type: 'payment_approved',
-          title: 'Payment Approved',
-          message: `Your payment for ${event.title || 'the event'} has been approved.`,
-          href: '/my-registrations',
-          metadata: {
-            registrationId: String(registration._id),
-            eventId: String(event._id),
-            eventTitle: event.title || ''
-          }
-        },
-        'payment approved notification'
-      );
-
       try {
         const runner = await User.findById(registration.userId).select('email firstName');
-        if (runner?.email) {
-          await emailService.sendPaymentApprovedEmailToRunner(
-            runner.email,
-            runner.firstName || 'Runner',
-            event.title || 'Event',
-            registration.confirmationCode || ''
-          );
-        }
-      } catch (emailError) {
-        console.error('Payment approval email failed:', {
-          error: emailError.message,
+        await communicationService.notify('payment.approved', {
+          notification: {
+            userId: registration.userId,
+            type: 'payment_approved',
+            title: 'Payment Approved',
+            message: `Your payment for ${event.title || 'the event'} has been approved.`,
+            href: '/my-registrations',
+            metadata: {
+              registrationId: String(registration._id),
+              eventId: String(event._id),
+              eventTitle: event.title || ''
+            }
+          },
+          email: runner?.email ? {
+            to: runner.email,
+            firstName: runner.firstName || 'Runner',
+            eventTitle: event.title || 'Event',
+            confirmationCode: registration.confirmationCode || '',
+            recipientUserId: registration.userId,
+            metadata: {
+              registrationId: String(registration._id),
+              eventId: String(event._id)
+            }
+          } : null
+        });
+      } catch (communicationError) {
+        console.error('Payment approval communication failed:', {
+          error: communicationError.message,
           registrationId: String(registration._id)
         });
       }
@@ -1096,37 +1096,38 @@ router.post(
       registration.paymentRejectionReason = rejectionReason;
       await registration.save();
 
-      await createNotificationSafe(
-        {
-          userId: registration.userId,
-          type: 'payment_rejected',
-          title: 'Payment Needs Update',
-          message: `Your payment receipt for ${event.title || 'the event'} was rejected. Please review and resubmit.`,
-          href: '/my-registrations',
-          metadata: {
-            registrationId: String(registration._id),
-            eventId: String(event._id),
-            eventTitle: event.title || ''
-          }
-        },
-        'payment rejected notification'
-      );
-
       try {
         const runner = await User.findById(registration.userId).select('email firstName');
-        if (runner?.email) {
-          await emailService.sendPaymentRejectedEmailToRunner(
-            runner.email,
-            runner.firstName || 'Runner',
-            event.title || 'Event',
-            registration.confirmationCode || '',
+        await communicationService.notify('payment.rejected', {
+          notification: {
+            userId: registration.userId,
+            type: 'payment_rejected',
+            title: 'Payment Needs Update',
+            message: `Your payment receipt for ${event.title || 'the event'} was rejected. Please review and resubmit.`,
+            href: '/my-registrations',
+            metadata: {
+              registrationId: String(registration._id),
+              eventId: String(event._id),
+              eventTitle: event.title || ''
+            }
+          },
+          email: runner?.email ? {
+            to: runner.email,
+            firstName: runner.firstName || 'Runner',
+            eventTitle: event.title || 'Event',
+            confirmationCode: registration.confirmationCode || '',
             rejectionReason,
-            reviewNotes
-          );
-        }
-      } catch (emailError) {
-        console.error('Payment rejection email failed:', {
-          error: emailError.message,
+            reviewNotes,
+            recipientUserId: registration.userId,
+            metadata: {
+              registrationId: String(registration._id),
+              eventId: String(event._id)
+            }
+          } : null
+        });
+      } catch (communicationError) {
+        console.error('Payment rejection communication failed:', {
+          error: communicationError.message,
           registrationId: String(registration._id)
         });
       }
@@ -2383,11 +2384,15 @@ router.post(
 
       // ========== STEP 8: Send Confirmation Email ==========
       try {
-        await emailService.sendApplicationSubmittedEmail(
-          user.email,
-          user.firstName || 'Organizer',
-          application.applicationId
-        );
+        await communicationService.notify('organiser.application_submitted', {
+          email: {
+            to: user.email,
+            firstName: user.firstName || 'Organizer',
+            applicationId: application.applicationId,
+            recipientUserId: user._id,
+            metadata: { applicationId: application.applicationId }
+          }
+        });
       } catch (emailError) {
         console.error('Email sending error:', emailError);
         // Don't fail the submission if email fails

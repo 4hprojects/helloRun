@@ -14,6 +14,9 @@ const Blog = require('../src/models/Blog');
 const BlogComment = require('../src/models/BlogComment');
 const BlogReport = require('../src/models/BlogReport');
 const OrganiserApplication = require('../src/models/OrganiserApplication');
+const CommunicationSetting = require('../src/models/CommunicationSetting');
+const CommunicationEventSetting = require('../src/models/CommunicationEventSetting');
+const CommunicationLog = require('../src/models/CommunicationLog');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -28,7 +31,8 @@ test.before(async () => {
     cwd: ROOT,
     env: {
       ...process.env,
-      PORT: String(TEST_PORT)
+      PORT: String(TEST_PORT),
+      RESEND_API_KEY: ''
     },
     stdio: ['ignore', 'ignore', 'ignore']
   });
@@ -98,6 +102,98 @@ test('admin review queue enforces admin access', async () => {
     redirect: 'manual'
   });
   assert.equal(runnerResponse.status, 403);
+});
+
+test('admin communications page enforces access and manages event/test email controls', async () => {
+  const unauthenticated = await fetch(`${BASE_URL}/admin/communications`, {
+    redirect: 'manual'
+  });
+  assert.equal(unauthenticated.status, 302);
+  assert.equal(unauthenticated.headers.get('location'), '/login');
+
+  const runnerCookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', runnerCookie);
+  const runnerResponse = await fetch(`${BASE_URL}/admin/communications`, {
+    headers: { Cookie: runnerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(runnerResponse.status, 403);
+
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(cookie);
+  const pageResponse = await fetch(`${BASE_URL}/admin/communications`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(pageResponse.status, 200);
+  const html = await pageResponse.text();
+  assert.match(html, /Communications/i);
+  assert.match(html, /Email Budget/i);
+  assert.match(html, /account\.email_verification/i);
+
+  const lockedResponse = await fetch(`${BASE_URL}/admin/communications/events/account.email_verification`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ inAppEnabled: '' }),
+    redirect: 'manual'
+  });
+  assert.equal(lockedResponse.status, 302);
+
+  await ensureConnected();
+  const lockedEvent = await CommunicationEventSetting.findOne({ eventKey: 'account.email_verification' }).lean();
+  assert.equal(lockedEvent.emailEnabled, true);
+
+  const settingsResponse = await fetch(`${BASE_URL}/admin/communications/settings`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      emailSystemEnabled: 'on',
+      inAppNotificationsEnabled: 'on',
+      dailyEmailLimit: '20',
+      reservedCriticalEmailCount: '5',
+      softStopThreshold: '10',
+      hardStopThreshold: '20',
+      senderName: 'HelloRun',
+      senderEmail: 'noreply@example.com',
+      replyToEmail: 'support@example.com'
+    }),
+    redirect: 'manual'
+  });
+  assert.equal(settingsResponse.status, 302);
+
+  const setting = await CommunicationSetting.findOne({ key: 'communication.global' }).lean();
+  assert.equal(setting.dailyEmailLimit, 20);
+  assert.equal(setting.softStopThreshold, 10);
+
+  const testEmailResponse = await fetch(`${BASE_URL}/admin/communications/test-email`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      to: `admin.communication.${seed.stamp}@example.com`,
+      subject: 'Admin communication test',
+      message: 'Test email from admin route'
+    }),
+    redirect: 'manual'
+  });
+  assert.equal(testEmailResponse.status, 302);
+
+  const testLog = await CommunicationLog.findOne({
+    eventKey: 'admin.test_email',
+    recipientEmail: `admin.communication.${seed.stamp}@example.com`,
+    isTest: true
+  }).lean();
+  assert.ok(testLog);
+  assert.equal(testLog.channel, 'email');
+  assert.equal(testLog.status, 'skipped');
 });
 
 test('admin review queue renders payment and result queues with filters', async () => {
@@ -600,6 +696,9 @@ async function cleanupSeed(currentSeed) {
     BlogReport.deleteMany({ _id: { $in: [currentSeed.blogReportId] } }),
     BlogComment.deleteMany({ _id: { $in: [currentSeed.blogCommentId] } }),
     Blog.deleteMany({ _id: { $in: [currentSeed.blogId] } }),
+    CommunicationLog.deleteMany({}),
+    CommunicationSetting.deleteMany({}),
+    CommunicationEventSetting.deleteMany({}),
     User.deleteMany({
       _id: {
         $in: [currentSeed.admin.id, currentSeed.organizer.id, currentSeed.runner.id]
