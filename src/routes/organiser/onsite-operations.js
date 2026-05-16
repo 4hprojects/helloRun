@@ -3,7 +3,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticateToken, authorizeRole } = require('../../middleware/auth');
+const { authenticateToken, authorizeRole } = require('../../middleware/auth.middleware');
 const {
   assignBib,
   recordCheckIn,
