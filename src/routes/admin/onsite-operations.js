@@ -3,7 +3,8 @@
 
 const express = require('express');
 const router = express.Router();
-const { authenticateToken, authorizeRole } = require('../../middleware/auth.middleware');
+const { requireAuth } = require('../../middleware/auth.middleware');
+const { requireRole } = require('../../middleware/role.middleware');
 const {
   bulkAssignBibs,
   bulkRecordCheckIns,
@@ -26,7 +27,7 @@ async function verifyAdminAccess(req, res, next) {
 // Bulk bib assignment
 // POST /admin/events/:eventId/bibs/bulk-assign
 // Body: { assignments: [{ registrationId, bibNumber, category }, ...] }
-router.post('/events/:eventId/bibs/bulk-assign', authenticateToken, authorizeRole('admin'), verifyAdminAccess, async (req, res) => {
+router.post('/events/:eventId/bibs/bulk-assign', requireAuth, requireRole('admin'), verifyAdminAccess, async (req, res) => {
   try {
     const { eventId } = req.params;
     const { assignments } = req.body;
@@ -56,7 +57,7 @@ router.post('/events/:eventId/bibs/bulk-assign', authenticateToken, authorizeRol
 // Bulk check-in recording
 // POST /admin/events/:eventId/check-ins/bulk
 // Body: { checkIns: [{ registrationId, participationMode?, verificationMethod?, notes? }, ...] }
-router.post('/events/:eventId/check-ins/bulk', authenticateToken, authorizeRole('admin'), verifyAdminAccess, async (req, res) => {
+router.post('/events/:eventId/check-ins/bulk', requireAuth, requireRole('admin'), verifyAdminAccess, async (req, res) => {
   try {
     const { eventId } = req.params;
     const { checkIns } = req.body;
@@ -88,7 +89,7 @@ router.post('/events/:eventId/check-ins/bulk', authenticateToken, authorizeRole(
 // Process result import batch
 // POST /admin/events/:eventId/result-imports/:importId/process
 // Triggers parsing and row-by-row validation of CSV/XLSX file
-router.post('/events/:eventId/result-imports/:importId/process', authenticateToken, authorizeRole('admin'), verifyAdminAccess, async (req, res) => {
+router.post('/events/:eventId/result-imports/:importId/process', requireAuth, requireRole('admin'), verifyAdminAccess, async (req, res) => {
   try {
     const { eventId, importId } = req.params;
     const { fileKey } = req.body;
@@ -114,7 +115,7 @@ router.post('/events/:eventId/result-imports/:importId/process', authenticateTok
 
 // Retry failed imports
 // POST /admin/events/:eventId/result-imports/:importId/retry-failures
-router.post('/events/:eventId/result-imports/:importId/retry-failures', authenticateToken, authorizeRole('admin'), verifyAdminAccess, async (req, res) => {
+router.post('/events/:eventId/result-imports/:importId/retry-failures', requireAuth, requireRole('admin'), verifyAdminAccess, async (req, res) => {
   try {
     const { eventId, importId } = req.params;
 
@@ -138,7 +139,7 @@ router.post('/events/:eventId/result-imports/:importId/retry-failures', authenti
 
 // Export import errors as CSV
 // GET /admin/events/:eventId/result-imports/:importId/errors/export
-router.get('/events/:eventId/result-imports/:importId/errors/export', authenticateToken, authorizeRole('admin'), verifyAdminAccess, async (req, res) => {
+router.get('/events/:eventId/result-imports/:importId/errors/export', requireAuth, requireRole('admin'), verifyAdminAccess, async (req, res) => {
   try {
     const { eventId, importId } = req.params;
 
@@ -155,7 +156,7 @@ router.get('/events/:eventId/result-imports/:importId/errors/export', authentica
 
 // List all event check-ins with filters
 // GET /admin/events/:eventId/check-ins?status=checked_in&participationMode=onsite
-router.get('/events/:eventId/check-ins', authenticateToken, authorizeRole('admin'), verifyAdminAccess, async (req, res) => {
+router.get('/events/:eventId/check-ins', requireAuth, requireRole('admin'), verifyAdminAccess, async (req, res) => {
   try {
     const { eventId } = req.params;
     const { status, participationMode, verified_after } = req.query;
@@ -180,7 +181,7 @@ router.get('/events/:eventId/check-ins', authenticateToken, authorizeRole('admin
 
 // List all event result imports
 // GET /admin/events/:eventId/result-imports?status=completed
-router.get('/events/:eventId/result-imports', authenticateToken, authorizeRole('admin'), verifyAdminAccess, async (req, res) => {
+router.get('/events/:eventId/result-imports', requireAuth, requireRole('admin'), verifyAdminAccess, async (req, res) => {
   try {
     const { eventId } = req.params;
     const { status } = req.query;
@@ -201,7 +202,7 @@ router.get('/events/:eventId/result-imports', authenticateToken, authorizeRole('
 // Update check-in status (for corrections)
 // PATCH /admin/events/:eventId/check-ins/:checkInId
 // Body: { check_in_status: 'checked_in' | 'no_show' | 'deferred' | 'cancelled', notes? }
-router.patch('/events/:eventId/check-ins/:checkInId', authenticateToken, authorizeRole('admin'), verifyAdminAccess, async (req, res) => {
+router.patch('/events/:eventId/check-ins/:checkInId', requireAuth, requireRole('admin'), verifyAdminAccess, async (req, res) => {
   try {
     const { eventId, checkInId } = req.params;
     const { check_in_status, notes } = req.body;
