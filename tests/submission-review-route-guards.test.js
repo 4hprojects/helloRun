@@ -10,13 +10,16 @@ const User = require('../src/models/User');
 const Event = require('../src/models/Event');
 const Registration = require('../src/models/Registration');
 const Submission = require('../src/models/Submission');
+const Notification = require('../src/models/Notification');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
+const { getPostgresClient, closePostgresClient } = require('../src/db/postgres');
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3105;
 const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
 
 let serverProc = null;
+const seededFixtures = [];
 
 test.before(async () => {
   serverProc = spawn(process.execPath, ['src/server.js'], {
@@ -35,6 +38,8 @@ test.after(async () => {
   if (serverProc && !serverProc.killed) {
     serverProc.kill('SIGTERM');
   }
+  await cleanupSeededFixtures();
+  await closePostgresClient();
 });
 
 test('unauthenticated result-approve redirects to login', async () => {
@@ -102,6 +107,22 @@ test('admin can approve organizer submission through shared review route', async
   } finally {
     await mongoose.disconnect();
   }
+
+  const audit = await waitForAuditRecord({
+    action: 'submission.approved',
+    targetId: String(seed.submission._id)
+  });
+  assert.equal(audit.status_from, 'submitted');
+  assert.equal(audit.status_to, 'approved');
+  assert.equal(audit.actor_mongo_user_id, String(seed.admin._id));
+
+  const certificateAudit = await waitForAuditRecord({
+    action: 'certificate.issued',
+    targetType: 'submission_certificate',
+    targetId: String(seed.submission._id)
+  });
+  assert.equal(certificateAudit.status_to, 'issued');
+  assert.equal(certificateAudit.actor_mongo_user_id, String(seed.admin._id));
 });
 
 async function seedReviewData(tag, options = {}) {
@@ -230,7 +251,9 @@ async function seedReviewData(tag, options = {}) {
       submittedAt: new Date()
     });
 
-    return { password, ownerOrganizer, otherOrganizer, admin, event, submission };
+    const fixture = { password, runner, ownerOrganizer, otherOrganizer, admin, event, registration, submission };
+    seededFixtures.push(fixture);
+    return fixture;
   } finally {
     await mongoose.disconnect();
   }
@@ -304,6 +327,15 @@ test('organizer can reject submission with valid reason', async () => {
   } finally {
     await mongoose.disconnect();
   }
+
+  const audit = await waitForAuditRecord({
+    action: 'submission.rejected',
+    targetId: String(seed.submission._id)
+  });
+  assert.equal(audit.status_from, 'submitted');
+  assert.equal(audit.status_to, 'rejected');
+  assert.equal(audit.actor_mongo_user_id, String(seed.ownerOrganizer._id));
+  assert.equal(audit.notes, 'Proof image is unclear and unverifiable');
 });
 
 test('organizer cannot reject submission with empty rejection reason', async () => {
@@ -342,4 +374,69 @@ async function waitForServerReady() {
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   throw new Error(`Server did not become ready at ${BASE_URL}`);
+}
+
+async function cleanupSeededFixtures() {
+  if (!seededFixtures.length) return;
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    const userIds = [];
+    const eventIds = [];
+    const registrationIds = [];
+    const submissionIds = [];
+
+    for (const seed of seededFixtures) {
+      userIds.push(
+        String(seed.runner._id),
+        String(seed.ownerOrganizer._id),
+        String(seed.otherOrganizer._id),
+        String(seed.admin._id)
+      );
+      eventIds.push(String(seed.event._id));
+      registrationIds.push(String(seed.registration._id));
+      submissionIds.push(String(seed.submission._id));
+    }
+
+    await Promise.all([
+      Notification.deleteMany({ userId: { $in: userIds } }),
+      Submission.deleteMany({ _id: { $in: submissionIds } }),
+      Registration.deleteMany({ _id: { $in: registrationIds } }),
+      Event.deleteMany({ _id: { $in: eventIds } }),
+      User.deleteMany({ _id: { $in: userIds } })
+    ]);
+
+    try {
+      const sql = getPostgresClient();
+      await sql`
+        delete from audit_critical
+        where target_id in ${sql(submissionIds)}
+          and target_type in ('submission', 'submission_certificate')
+      `;
+      await sql`delete from migration_records where source_collection = 'users' and source_id in ${sql(userIds)}`;
+      await sql`delete from app_users where mongo_user_id in ${sql(userIds)}`;
+    } catch (error) {
+      console.error('Failed to clean Supabase submission review test rows:', error.message);
+    }
+  } finally {
+    await mongoose.disconnect();
+  }
+}
+
+async function waitForAuditRecord({ action, targetId, targetType = 'submission' }) {
+  const sql = getPostgresClient();
+  const maxAttempts = 20;
+  for (let i = 0; i < maxAttempts; i += 1) {
+    const rows = await sql`
+      select *
+      from audit_critical
+      where action = ${action}
+        and target_type = ${targetType}
+        and target_id = ${targetId}
+      limit 1
+    `;
+    if (rows[0]) return rows[0];
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  throw new Error(`Expected audit record for ${action} ${targetId}`);
 }

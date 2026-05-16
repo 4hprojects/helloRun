@@ -5,6 +5,7 @@ const PrivacyPolicy = require('../models/PrivacyPolicy');
 const passwordService = require('../services/password.service');
 const communicationService = require('../services/communication.service');
 const googleOAuthService = require('../services/google-oauth.service');
+const { syncPolicyConsentsForMongoUser } = require('../services/policy-consent.service');
 const crypto = require('crypto');
 const { redirectIfAuth } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
@@ -69,6 +70,17 @@ function startAuthenticatedSession(req, user) {
   req.session.userName = user.firstName || '';
   req.session.user = user;
   req.session.loginSuccess = true;
+}
+
+function syncUserComplianceInBackground(user, source = 'live_sync') {
+  syncPolicyConsentsForMongoUser(user, { source })
+    .catch((error) => {
+      console.error('Supabase user compliance sync failed:', {
+        userId: String(user?._id || ''),
+        source,
+        error: error.message
+      });
+    });
 }
 
 function redirectAfterLogin(req, res, user) {
@@ -290,6 +302,7 @@ async function handleRegistration(req, res) {
     });
 
     await newUser.save();
+    syncUserComplianceInBackground(newUser);
 
     // Send verification email (non-blocking for account creation)
     try {
@@ -423,6 +436,7 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
           user.emailVerificationExpires = null;
         }
         await user.save();
+        syncUserComplianceInBackground(user);
       } else {
         if (!oauthSignupConsent) {
           return res.redirect('/signup?type=error&message=You+must+agree+to+the+Terms%2C+Privacy%2C+and+Cookie+policies+before+signing+up+with+Google');
@@ -488,6 +502,7 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
             userAgent: String(oauthSignupConsent?.userAgent || getRequestUserAgent(req))
           }
         });
+        syncUserComplianceInBackground(user);
       }
     }
 

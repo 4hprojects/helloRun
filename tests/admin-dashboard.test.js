@@ -18,6 +18,7 @@ const CommunicationSetting = require('../src/models/CommunicationSetting');
 const CommunicationEventSetting = require('../src/models/CommunicationEventSetting');
 const CommunicationLog = require('../src/models/CommunicationLog');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
+const { getPostgresClient, closePostgresClient } = require('../src/db/postgres');
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3113;
@@ -47,6 +48,7 @@ test.after(async () => {
   }
   await cleanupSeed(seed);
   await mongoose.disconnect();
+  await closePostgresClient();
 });
 
 test('admin dashboard renders platform stats and pending application queue', async () => {
@@ -324,6 +326,13 @@ test('admin approves pending event, then archive hides it from public event deta
   assert.equal(approved.status, 'published');
   assert.ok(approved.approvedAt);
   assert.ok(approved.approvedBy);
+  const publishAudit = await waitForAuditRecord({
+    action: 'event.published',
+    targetId: seed.pendingEvent.id
+  });
+  assert.equal(publishAudit.status_from, 'pending_review');
+  assert.equal(publishAudit.status_to, 'published');
+  assert.equal(publishAudit.actor_mongo_user_id, seed.admin.id);
 
   const publicAfterApprove = await fetch(`${BASE_URL}/events/${seed.pendingEvent.slug}`, {
     redirect: 'manual'
@@ -347,6 +356,13 @@ test('admin approves pending event, then archive hides it from public event deta
   const archived = await Event.findById(seed.pendingEvent.id);
   assert.equal(archived.status, 'archived');
   assert.equal(archived.archiveReason, 'Archiving after admin workflow test.');
+  const archiveAudit = await waitForAuditRecord({
+    action: 'event.archived',
+    targetId: seed.pendingEvent.id
+  });
+  assert.equal(archiveAudit.status_from, 'published');
+  assert.equal(archiveAudit.status_to, 'archived');
+  assert.equal(archiveAudit.notes, 'Archiving after admin workflow test.');
 
   const publicAfterArchive = await fetch(`${BASE_URL}/events/${seed.pendingEvent.slug}`, {
     redirect: 'manual'
@@ -376,6 +392,13 @@ test('admin soft deletes event while preserving registrations', async () => {
   const deleted = await Event.findById(seed.deleteEvent.id);
   assert.equal(deleted.isDeleted, true);
   assert.equal(deleted.deleteReason, 'Soft delete workflow test.');
+  const deleteAudit = await waitForAuditRecord({
+    action: 'event.deleted',
+    targetId: seed.deleteEvent.id
+  });
+  assert.equal(deleteAudit.status_from, 'published');
+  assert.equal(deleteAudit.status_to, 'deleted');
+  assert.equal(deleteAudit.notes, 'Soft delete workflow test.');
 
   const preservedRegistrations = await Registration.countDocuments({ eventId: seed.deleteEvent.id });
   assert.equal(preservedRegistrations, 1);
@@ -687,11 +710,13 @@ async function seedAdminDashboardFixture() {
 async function cleanupSeed(currentSeed) {
   if (!currentSeed || !currentSeed.stamp) return;
   await ensureConnected();
+  const userIds = [currentSeed.admin.id, currentSeed.organizer.id, currentSeed.runner.id];
+  const eventIds = [currentSeed.eventId, currentSeed.pendingEvent?.id, currentSeed.draftEvent?.id, currentSeed.deleteEvent?.id].filter(Boolean);
 
   await Promise.all([
     Submission.deleteMany({ _id: { $in: [currentSeed.submissionId] } }),
     Registration.deleteMany({ _id: { $in: [currentSeed.registrationId, currentSeed.deleteEvent?.registrationId].filter(Boolean) } }),
-    Event.deleteMany({ _id: { $in: [currentSeed.eventId, currentSeed.pendingEvent?.id, currentSeed.draftEvent?.id, currentSeed.deleteEvent?.id].filter(Boolean) } }),
+    Event.deleteMany({ _id: { $in: eventIds } }),
     OrganiserApplication.deleteMany({ _id: { $in: [currentSeed.pendingApplication.id] } }),
     BlogReport.deleteMany({ _id: { $in: [currentSeed.blogReportId] } }),
     BlogComment.deleteMany({ _id: { $in: [currentSeed.blogCommentId] } }),
@@ -701,10 +726,19 @@ async function cleanupSeed(currentSeed) {
     CommunicationEventSetting.deleteMany({}),
     User.deleteMany({
       _id: {
-        $in: [currentSeed.admin.id, currentSeed.organizer.id, currentSeed.runner.id]
+        $in: userIds
       }
     })
   ]);
+
+  try {
+    const sql = getPostgresClient();
+    await sql`delete from audit_critical where target_type = 'event' and target_id in ${sql(eventIds)}`;
+    await sql`delete from migration_records where source_collection = 'users' and source_id in ${sql(userIds)}`;
+    await sql`delete from app_users where mongo_user_id in ${sql(userIds)}`;
+  } catch (error) {
+    console.error('Failed to clean Supabase admin dashboard test rows:', error.message);
+  }
 }
 
 async function login(email, password) {
@@ -759,4 +793,23 @@ async function ensureConnected() {
 
 function escapeRegex(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function waitForAuditRecord({ action, targetId }) {
+  const sql = getPostgresClient();
+  const maxAttempts = 20;
+  for (let i = 0; i < maxAttempts; i += 1) {
+    const rows = await sql`
+      select *
+      from audit_critical
+      where action = ${action}
+        and target_type = 'event'
+        and target_id = ${targetId}
+      limit 1
+    `;
+    if (rows[0]) return rows[0];
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  throw new Error(`Expected audit record for ${action} ${targetId}`);
 }

@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
+const { syncEventShadow } = require('../services/event-shadow.service');
 
 const eventSchema = new mongoose.Schema(
   {
@@ -506,5 +507,26 @@ eventSchema.index({ status: 1, eventStartAt: 1, createdAt: -1 });
 eventSchema.index({ organizerId: 1, status: 1, eventStartAt: -1 });
 eventSchema.index({ status: 1, isDeleted: 1, updatedAt: -1 });
 eventSchema.index({ organizerId: 1, status: 1, isDeleted: 1 });
+
+function shouldSyncSupabase() {
+  return Boolean(process.env.DATABASE_URL);
+}
+
+function syncEventShadowInBackground(doc) {
+  if (!shouldSyncSupabase() || !doc || !doc._id) {
+    return;
+  }
+
+  syncEventShadow(doc, { operation: 'live_sync' }).catch((error) => {
+    console.error('Supabase event shadow sync failed:', {
+      eventId: String(doc._id),
+      error: error?.message || String(error)
+    });
+  });
+}
+
+eventSchema.post('save', function (doc) {
+  syncEventShadowInBackground(doc);
+});
 
 module.exports = mongoose.models.Event || mongoose.model('Event', eventSchema);

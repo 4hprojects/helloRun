@@ -9,7 +9,9 @@ require('dotenv').config();
 const User = require('../src/models/User');
 const Event = require('../src/models/Event');
 const Registration = require('../src/models/Registration');
+const Notification = require('../src/models/Notification');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
+const { getPostgresClient, closePostgresClient } = require('../src/db/postgres');
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3101;
@@ -20,6 +22,7 @@ const PNG_1PX_BUFFER = Buffer.from(
 );
 
 let serverProc = null;
+const seededFixtures = [];
 
 test.before(async () => {
   await mongoose.connect(process.env.MONGODB_URI);
@@ -40,7 +43,9 @@ test.after(async () => {
   if (serverProc && !serverProc.killed) {
     serverProc.kill('SIGTERM');
   }
+  await cleanupSeededFixtures();
   await mongoose.disconnect();
+  await closePostgresClient();
 });
 
 test('unauthenticated payment-proof upload redirects to login', async () => {
@@ -121,6 +126,14 @@ test('payment approve creates runner in-app notification', async () => {
 
   assert.equal(response.status, 302);
 
+  const audit = await waitForAuditRecord({
+    action: 'payment.approved',
+    targetId: String(seed.registrationA._id)
+  });
+  assert.equal(audit.status_from, 'proof_submitted');
+  assert.equal(audit.status_to, 'paid');
+  assert.equal(audit.actor_mongo_user_id, String(seed.ownerOrganizer._id));
+
   const runnerSession = await login(seed.runnerA.email, seed.password);
   await assertRunnerSessionReady(runnerSession);
   const notificationsPage = await fetch(`${BASE_URL}/runner/notifications`, {
@@ -148,6 +161,15 @@ test('payment reject creates runner in-app notification', async () => {
   );
 
   assert.equal(response.status, 302);
+
+  const audit = await waitForAuditRecord({
+    action: 'payment.rejected',
+    targetId: String(seed.registrationA._id)
+  });
+  assert.equal(audit.status_from, 'proof_submitted');
+  assert.equal(audit.status_to, 'proof_rejected');
+  assert.equal(audit.actor_mongo_user_id, String(seed.ownerOrganizer._id));
+  assert.equal(audit.notes, 'Need clearer receipt');
 
   const runnerSession = await login(seed.runnerA.email, seed.password);
   await assertRunnerSessionReady(runnerSession);
@@ -254,7 +276,7 @@ async function seedRouteGuardData(tag, options = {}) {
     })
   );
 
-  return {
+  const fixture = {
     password,
     runnerA,
     runnerB,
@@ -264,6 +286,8 @@ async function seedRouteGuardData(tag, options = {}) {
     registrationA,
     registrationB
   };
+  seededFixtures.push(fixture);
+  return fixture;
 }
 
 function buildRegistrationPayload({ eventId, user, paymentStatus, paymentProofUrl = '' }) {
@@ -393,4 +417,57 @@ async function waitForServerReady() {
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
   throw new Error(`Server did not become ready at ${BASE_URL}`);
+}
+
+async function cleanupSeededFixtures() {
+  if (!seededFixtures.length) return;
+  const userIds = [];
+  const eventIds = [];
+  const registrationIds = [];
+
+  for (const seed of seededFixtures) {
+    userIds.push(
+      String(seed.runnerA._id),
+      String(seed.runnerB._id),
+      String(seed.ownerOrganizer._id),
+      String(seed.otherOrganizer._id)
+    );
+    eventIds.push(String(seed.event._id));
+    registrationIds.push(String(seed.registrationA._id), String(seed.registrationB._id));
+  }
+
+  await Promise.all([
+    Notification.deleteMany({ userId: { $in: userIds } }),
+    Registration.deleteMany({ _id: { $in: registrationIds } }),
+    Event.deleteMany({ _id: { $in: eventIds } }),
+    User.deleteMany({ _id: { $in: userIds } })
+  ]);
+
+  try {
+    const sql = getPostgresClient();
+    await sql`delete from audit_critical where target_type = 'registration' and target_id in ${sql(registrationIds)}`;
+    await sql`delete from migration_records where source_collection = 'users' and source_id in ${sql(userIds)}`;
+    await sql`delete from app_users where mongo_user_id in ${sql(userIds)}`;
+  } catch (error) {
+    console.error('Failed to clean Supabase payment route guard test rows:', error.message);
+  }
+}
+
+async function waitForAuditRecord({ action, targetId }) {
+  const sql = getPostgresClient();
+  const maxAttempts = 20;
+  for (let i = 0; i < maxAttempts; i += 1) {
+    const rows = await sql`
+      select *
+      from audit_critical
+      where action = ${action}
+        and target_type = 'registration'
+        and target_id = ${targetId}
+      limit 1
+    `;
+    if (rows[0]) return rows[0];
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  throw new Error(`Expected audit record for ${action} ${targetId}`);
 }

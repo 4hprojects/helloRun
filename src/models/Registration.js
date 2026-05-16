@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { syncRegistrationPaymentShadow } = require('../services/registration-payment-shadow.service');
 
 const registrationSchema = new mongoose.Schema(
   {
@@ -120,5 +121,26 @@ registrationSchema.index({ userId: 1, registeredAt: -1 });
 registrationSchema.index({ eventId: 1, registeredAt: -1 });
 registrationSchema.index({ eventId: 1, paymentStatus: 1, registeredAt: -1 });
 registrationSchema.index({ eventId: 1, participationMode: 1 });
+
+function shouldSyncSupabase() {
+  return Boolean(process.env.DATABASE_URL);
+}
+
+function syncRegistrationPaymentShadowInBackground(doc) {
+  if (!shouldSyncSupabase() || !doc || !doc._id) {
+    return;
+  }
+
+  syncRegistrationPaymentShadow(doc, { operation: 'live_sync' }).catch((error) => {
+    console.error('Supabase registration/payment shadow sync failed:', {
+      registrationId: String(doc._id),
+      error: error?.message || String(error)
+    });
+  });
+}
+
+registrationSchema.post('save', function (doc) {
+  syncRegistrationPaymentShadowInBackground(doc);
+});
 
 module.exports = mongoose.models.Registration || mongoose.model('Registration', registrationSchema);

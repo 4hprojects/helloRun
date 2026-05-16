@@ -1,5 +1,27 @@
 const mongoose = require('mongoose');
+const { syncSubmissionShadow } = require('../services/submission-shadow.service');
 
+/**
+ * Submission model for single-activity result submissions
+ * 
+ * OFFICIAL SUBMISSION STATE (synced to Supabase submissions_core):
+ * - registrationId, eventId, runnerId: identification
+ * - distanceKm, elapsedMs, runDate, runType: official result metrics
+ * - proofType, proof (url/key): proof metadata
+ * - status (submitted/approved/rejected): official submission state
+ * - submittedAt, reviewedAt, reviewedBy: official review audit trail
+ * - certificate: issued certificate metadata
+ * - isPersonalRecord: official flag
+ * 
+ * OCR ANALYSIS PAYLOAD (stays in MongoDB, NOT synced to Supabase):
+ * - ocrData: OCR recognition scores, extracted metrics, candidate names, confidence levels
+ * - suspiciousFlag, suspiciousFlagReason: manual review flagging for suspicious entries
+ * - stravaActivity: Strava API response metadata (for import traceability only)
+ * - proofNotes, runLocation, elevationGain, steps: flexible run details
+ * 
+ * This separation allows OCR analysis, detection metadata, and suspicious flags to evolve
+ * independently in MongoDB while keeping Supabase as the official transactional ledger.
+ */
 const submissionSchema = new mongoose.Schema(
   {
     registrationId: {
@@ -219,5 +241,21 @@ submissionSchema.index(
   { runnerId: 1, eventId: 1, 'stravaActivity.id': 1 },
   { sparse: true }
 );
+
+// Background Supabase submission shadow sync on save (non-blocking)
+function syncSubmissionShadowInBackground(doc) {
+  if (!process.env.DATABASE_URL) {
+    return;
+  }
+  
+  // Fire and forget: don't await, catch errors independently
+  syncSubmissionShadow(doc, { operation: 'live_sync' }).catch(error => {
+    console.error(`[Submission Shadow Sync] Failed to sync submission ${doc._id}: ${error.message}`);
+  });
+}
+
+submissionSchema.post('save', function(doc) {
+  syncSubmissionShadowInBackground(doc);
+});
 
 module.exports = mongoose.models.Submission || mongoose.model('Submission', submissionSchema);

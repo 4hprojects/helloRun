@@ -8,6 +8,7 @@ const {
   buildSubmissionPayload,
   getEligibleRunnerRegistration
 } = require('./submission.service');
+const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 
 const REVIEWABLE_STATUS = new Set(['submitted']);
 
@@ -66,6 +67,7 @@ async function reviewAccumulatedActivitySubmission({
     throw new Error('Activity submission not found or inaccessible.');
   }
 
+  const previousStatus = activity.status;
   activity.reviewedAt = new Date();
   activity.reviewedBy = organizerId;
   activity.reviewNotes = String(reviewNotes || '').trim().slice(0, 1200);
@@ -83,6 +85,18 @@ async function reviewAccumulatedActivitySubmission({
   }
 
   await activity.save();
+  recordCriticalAuditEventInBackground({
+    actorMongoUserId: organizerId,
+    action: safeAction === 'approve' ? 'submission.approved' : 'submission.rejected',
+    targetType: 'accumulated_activity_submission',
+    targetId: String(activity._id),
+    statusFrom: previousStatus,
+    statusTo: activity.status,
+    notes: safeAction === 'approve'
+      ? activity.reviewNotes
+      : (activity.rejectionReason || activity.reviewNotes),
+    occurredAt: activity.reviewedAt
+  });
 
   let certificateWasIssued = false;
   if (safeAction === 'approve') {
@@ -249,6 +263,16 @@ async function attachCompletionCertificateIfNeeded(activity) {
   });
   activity.certificate = certificate;
   await activity.save();
+  recordCriticalAuditEventInBackground({
+    actorMongoUserId: activity.reviewedBy ? String(activity.reviewedBy) : '',
+    action: 'certificate.issued',
+    targetType: 'accumulated_activity_certificate',
+    targetId: String(activity._id),
+    statusFrom: '',
+    statusTo: 'issued',
+    notes: `Certificate issued for accumulated activity ${String(activity._id)}`,
+    occurredAt: activity.certificate?.issuedAt || new Date()
+  });
   return Boolean(certificate?.url);
 }
 

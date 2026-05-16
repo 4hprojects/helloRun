@@ -8,6 +8,7 @@ require('dotenv').config();
 
 const User = require('../src/models/User');
 const OrganiserApplication = require('../src/models/OrganiserApplication');
+const { getPostgresClient, closePostgresClient } = require('../src/db/postgres');
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3119;
@@ -32,6 +33,7 @@ test.after(async () => {
   }
   await cleanupSeed(seed);
   await mongoose.disconnect();
+  await closePostgresClient();
 });
 
 // ─── Access Control ──────────────────────────────────────────────────────────
@@ -103,6 +105,14 @@ test('admin can approve a pending application', async () => {
 
   const updatedUser = await User.findById(seed.organiser.id);
   assert.equal(updatedUser.organizerStatus, 'approved');
+
+  const audit = await waitForAuditRecord({
+    action: 'organiser.application.approved',
+    targetId: seed.application.id
+  });
+  assert.equal(audit.status_from, 'pending');
+  assert.equal(audit.status_to, 'approved');
+  assert.equal(audit.actor_mongo_user_id, seed.admin.id);
 });
 
 // ─── Reject ──────────────────────────────────────────────────────────────────
@@ -172,6 +182,15 @@ test('admin can reject application with a valid reason', async () => {
 
   const updatedUser = await User.findById(seed.organiser2.id);
   assert.equal(updatedUser.organizerStatus, 'rejected');
+
+  const audit = await waitForAuditRecord({
+    action: 'organiser.application.rejected',
+    targetId: seed.application2.id
+  });
+  assert.equal(audit.status_from, 'pending');
+  assert.equal(audit.status_to, 'rejected');
+  assert.equal(audit.actor_mongo_user_id, seed.admin2.id);
+  assert.equal(audit.notes, validReason);
 });
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -281,9 +300,17 @@ async function seedFixture() {
 async function cleanupSeed(currentSeed) {
   if (!currentSeed || !currentSeed.stamp) return;
   await ensureConnected();
+  const userIds = [
+    currentSeed.admin.id,
+    currentSeed.admin2.id,
+    currentSeed.runner.id,
+    currentSeed.organiser.id,
+    currentSeed.organiser2.id
+  ];
+  const applicationIds = [currentSeed.application.id, currentSeed.application2.id];
   await Promise.all([
     OrganiserApplication.deleteMany({
-      _id: { $in: [currentSeed.application.id, currentSeed.application2.id] }
+      _id: { $in: applicationIds }
     }),
     User.deleteMany({
       email: {
@@ -297,6 +324,15 @@ async function cleanupSeed(currentSeed) {
       }
     })
   ]);
+
+  try {
+    const sql = getPostgresClient();
+    await sql`delete from audit_critical where target_type = 'organiser_application' and target_id in ${sql(applicationIds)}`;
+    await sql`delete from migration_records where source_collection = 'users' and source_id in ${sql(userIds)}`;
+    await sql`delete from app_users where mongo_user_id in ${sql(userIds)}`;
+  } catch (error) {
+    console.error('Failed to clean Supabase organiser application test rows:', error.message);
+  }
 }
 
 async function login(email, password) {
@@ -347,4 +383,23 @@ async function waitForAdminSessionReady(cookie) {
 
 function escapeRegex(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function waitForAuditRecord({ action, targetId }) {
+  const sql = getPostgresClient();
+  const maxAttempts = 20;
+  for (let i = 0; i < maxAttempts; i += 1) {
+    const rows = await sql`
+      select *
+      from audit_critical
+      where action = ${action}
+        and target_type = 'organiser_application'
+        and target_id = ${targetId}
+      limit 1
+    `;
+    if (rows[0]) return rows[0];
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((resolve) => setTimeout(resolve, 150));
+  }
+  throw new Error(`Expected audit record for ${action} ${targetId}`);
 }

@@ -23,6 +23,7 @@ const {
   getRunnerSubmissions,
   PERSONAL_RECORD_REGISTRATION_ID
 } = require('../services/submission.service');
+let { syncRegistrationPaymentShadow } = require('../services/registration-payment-shadow.service');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const {
   createAccumulatedActivitySubmission,
@@ -833,6 +834,17 @@ exports.postUploadPaymentProof = async (req, res) => {
         }
       }
     );
+
+    const updatedRegistration = await Registration.findById(registration._id);
+    if (updatedRegistration) {
+      syncRegistrationPaymentShadow(updatedRegistration, { operation: 'live_sync' }).catch((error) => {
+        console.error('Supabase registration/payment shadow sync failed:', {
+          registrationId: String(registration._id),
+          error: error?.message || String(error)
+        });
+      });
+    }
+
     uploadedProofKey = '';
 
     const cleanupKeys = [];
@@ -900,6 +912,14 @@ exports.postUploadPaymentProof = async (req, res) => {
     });
     return res.redirect(`/my-registrations?${query.toString()}`);
   }
+};
+
+exports.__setSyncRegistrationPaymentShadow = (fn) => {
+  syncRegistrationPaymentShadow = fn;
+};
+
+exports.__resetSyncRegistrationPaymentShadow = () => {
+  syncRegistrationPaymentShadow = require('../services/registration-payment-shadow.service').syncRegistrationPaymentShadow;
 };
 
 async function handleRunnerSubmissionWrite(req, res, options = {}) {

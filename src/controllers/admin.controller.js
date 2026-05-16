@@ -10,6 +10,7 @@ const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const PrivacyPolicy = require('../models/PrivacyPolicy');
 const communicationService = require('../services/communication.service');
+const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
 const uploadService = require('../services/upload.service');
 const { markdownToHtml } = require('../utils/markdown');
 const { sanitizeHtml } = require('../utils/sanitize');
@@ -141,6 +142,16 @@ function buildDetailRedirect(applicationId, type, message) {
 
 function canTransitionStatus(currentStatus, targetStatus) {
   return REVIEWABLE_STATUSES.includes(currentStatus) && currentStatus !== targetStatus;
+}
+
+function getRequestIpAddress(req) {
+  const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const directIp = String(req.ip || '').trim();
+  return (forwardedFor || directIp).slice(0, 120);
+}
+
+function getRequestUserAgent(req) {
+  return String(req.get('user-agent') || '').trim().slice(0, 500);
 }
 
 async function purgeApplicationDocuments(application) {
@@ -1501,6 +1512,7 @@ exports.approveApplication = async (req, res) => {
       });
     }
 
+    const previousStatus = application.status;
     application.status = 'approved';
     application.rejectionReason = '';
     application.reviewedBy = req.session.userId;
@@ -1513,6 +1525,19 @@ exports.approveApplication = async (req, res) => {
       role: 'organiser',
       organizerStatus: 'approved',
       organizerApplicationId: application._id
+    });
+
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: req.session.userId,
+      action: 'organiser.application.approved',
+      targetType: 'organiser_application',
+      targetId: String(application._id),
+      statusFrom: previousStatus,
+      statusTo: 'approved',
+      notes: `Application ${application.applicationId || application._id} approved.`,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: application.reviewedAt
     });
 
     if (application.userId?.email) {
@@ -1584,6 +1609,7 @@ exports.rejectApplication = async (req, res) => {
       });
     }
 
+    const previousStatus = application.status;
     application.status = 'rejected';
     application.rejectionReason = rejectionReason;
     application.reviewedBy = req.session.userId;
@@ -1594,6 +1620,19 @@ exports.rejectApplication = async (req, res) => {
     const userId = application.userId?._id || application.userId;
     await User.findByIdAndUpdate(userId, {
       organizerStatus: 'rejected'
+    });
+
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: req.session.userId,
+      action: 'organiser.application.rejected',
+      targetType: 'organiser_application',
+      targetId: String(application._id),
+      statusFrom: previousStatus,
+      statusTo: 'rejected',
+      notes: rejectionReason,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: application.reviewedAt
     });
 
     if (application.userId?.email) {
@@ -1874,10 +1913,23 @@ exports.approveEvent = async (req, res) => {
     if (readinessErrors.length) {
       return res.status(400).json({ success: false, message: readinessErrors[0], errors: readinessErrors });
     }
+    const previousStatus = event.status;
     event.status = 'published';
     event.approvedAt = new Date();
     event.approvedBy = req.session.userId;
     await event.save();
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: req.session.userId,
+      action: 'event.published',
+      targetType: 'event',
+      targetId: String(event._id),
+      statusFrom: previousStatus,
+      statusTo: 'published',
+      notes: `Event ${event.referenceCode || event.slug || event._id} approved and published.`,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: event.approvedAt
+    });
     return res.json({ success: true, message: 'Event approved and published.' });
   } catch (error) {
     console.error('approveEvent error:', error);
@@ -1892,11 +1944,24 @@ exports.archiveEvent = async (req, res) => {
     const reason = String(req.body.reason || req.body.archiveReason || '').trim();
     if (reason.length < 8) return res.status(400).json({ success: false, message: 'Archive reason must be at least 8 characters.' });
     if (event.status === 'archived') return res.status(409).json({ success: false, message: 'Event is already archived.' });
+    const previousStatus = event.status;
     event.status = 'archived';
     event.archivedAt = new Date();
     event.archivedBy = req.session.userId;
     event.archiveReason = reason.slice(0, 500);
     await event.save();
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: req.session.userId,
+      action: 'event.archived',
+      targetType: 'event',
+      targetId: String(event._id),
+      statusFrom: previousStatus,
+      statusTo: 'archived',
+      notes: event.archiveReason,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: event.archivedAt
+    });
     return res.json({ success: true, message: 'Event archived.' });
   } catch (error) {
     console.error('archiveEvent error:', error);
@@ -1910,11 +1975,24 @@ exports.deleteEvent = async (req, res) => {
     if (!event) return res.status(404).json({ success: false, message: 'Event not found.' });
     const reason = String(req.body.reason || req.body.deleteReason || '').trim();
     if (reason.length < 8) return res.status(400).json({ success: false, message: 'Delete reason must be at least 8 characters.' });
+    const previousStatus = event.isDeleted ? 'deleted' : event.status;
     event.isDeleted = true;
     event.deletedAt = new Date();
     event.deletedBy = req.session.userId;
     event.deleteReason = reason.slice(0, 500);
     await event.save();
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: req.session.userId,
+      action: 'event.deleted',
+      targetType: 'event',
+      targetId: String(event._id),
+      statusFrom: previousStatus,
+      statusTo: 'deleted',
+      notes: event.deleteReason,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: event.deletedAt
+    });
     return res.json({ success: true, message: 'Event soft-deleted.' });
   } catch (error) {
     console.error('deleteEvent error:', error);

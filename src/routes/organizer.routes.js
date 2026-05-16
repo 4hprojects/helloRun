@@ -20,6 +20,7 @@ const { markdownToHtml } = require('../utils/markdown');
 const { generateUniqueReferenceCode } = require('../utils/referenceCode');
 const { canOrganizerReviewPaymentProof } = require('../utils/payment-workflow');
 const { reviewSubmission } = require('../services/submission.service');
+const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
 const eventFormService = require('../services/event-form.service');
 const {
   reviewAccumulatedActivitySubmission,
@@ -27,6 +28,8 @@ const {
   getEventAccumulatedActivityCounts,
   buildAccumulatedProgress
 } = require('../services/accumulated-activity.service');
+const onsiteOperationsRoutes = require('./organiser/onsite-operations');
+const qrAndDashboardRoutes = require('./organiser/qr-and-dashboard');
 
 const countries = getCountries();
 const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K']);
@@ -54,6 +57,26 @@ const paymentReviewActionLimiter = createRateLimiter({
   maxRequests: 60,
   message: 'Too many payment review actions. Please wait before trying again.'
 });
+
+/* ==========================================
+   Phase 7: Onsite Operations Routes
+   ========================================== */
+router.use('/', onsiteOperationsRoutes);
+router.use('/', qrAndDashboardRoutes);
+
+/* ==========================================
+   UTILITY FUNCTIONS
+   ========================================== */
+
+function getRequestIpAddress(req) {
+  const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const directIp = String(req.ip || '').trim();
+  return (forwardedFor || directIp).slice(0, 120);
+}
+
+function getRequestUserAgent(req) {
+  return String(req.get('user-agent') || '').trim().slice(0, 500);
+}
 
 /* ==========================================
    GET: Organizer Dashboard
@@ -977,12 +1000,25 @@ router.post(
       }
 
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1000);
+      const previousPaymentStatus = registration.paymentStatus;
       registration.paymentStatus = 'paid';
       registration.paymentReviewedAt = new Date();
       registration.paymentReviewedBy = user._id;
       registration.paymentReviewNotes = reviewNotes;
       registration.paymentRejectionReason = '';
       await registration.save();
+      recordCriticalAuditEventInBackground({
+        actorMongoUserId: user._id,
+        action: 'payment.approved',
+        targetType: 'registration',
+        targetId: String(registration._id),
+        statusFrom: previousPaymentStatus,
+        statusTo: 'paid',
+        notes: reviewNotes || `Payment approved for registration ${registration.confirmationCode || registration._id}.`,
+        ipAddress: getRequestIpAddress(req),
+        userAgent: getRequestUserAgent(req),
+        occurredAt: registration.paymentReviewedAt
+      });
 
       try {
         const runner = await User.findById(registration.userId).select('email firstName');
@@ -1089,12 +1125,25 @@ router.post(
         return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
       }
 
+      const previousPaymentStatus = registration.paymentStatus;
       registration.paymentStatus = 'proof_rejected';
       registration.paymentReviewedAt = new Date();
       registration.paymentReviewedBy = user._id;
       registration.paymentReviewNotes = reviewNotes;
       registration.paymentRejectionReason = rejectionReason;
       await registration.save();
+      recordCriticalAuditEventInBackground({
+        actorMongoUserId: user._id,
+        action: 'payment.rejected',
+        targetType: 'registration',
+        targetId: String(registration._id),
+        statusFrom: previousPaymentStatus,
+        statusTo: 'proof_rejected',
+        notes: rejectionReason,
+        ipAddress: getRequestIpAddress(req),
+        userAgent: getRequestUserAgent(req),
+        occurredAt: registration.paymentReviewedAt
+      });
 
       try {
         const runner = await User.findById(registration.userId).select('email firstName');

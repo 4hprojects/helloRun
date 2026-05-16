@@ -1,5 +1,25 @@
 const mongoose = require('mongoose');
 
+/**
+ * AccumulatedActivitySubmission model for accumulated-distance activity submissions
+ * 
+ * OFFICIAL SUBMISSION STATE (synced to Supabase submissions_core):
+ * - registrationId, eventId, runnerId: identification
+ * - distanceKm, elapsedMs, runDate, runType: official accumulated result metrics
+ * - proofType, proof (url/key): proof metadata
+ * - status (submitted/approved/rejected): official submission state
+ * - submittedAt, reviewedAt, reviewedBy: official review audit trail
+ * - certificate: issued certificate metadata
+ * 
+ * OCR ANALYSIS PAYLOAD (stays in MongoDB, NOT synced to Supabase):
+ * - ocrData: OCR recognition scores, extracted metrics, candidate names, confidence levels
+ * - suspiciousFlag, suspiciousFlagReason: manual review flagging for suspicious entries
+ * - stravaActivity: Strava API response metadata (for import traceability only)
+ * - proofNotes, runLocation, elevationGain, steps: flexible run details
+ * 
+ * This separation allows OCR analysis, detection metadata, and suspicious flags to evolve
+ * independently in MongoDB while keeping Supabase as the official transactional ledger.
+ */
 const accumulatedActivitySubmissionSchema = new mongoose.Schema(
   {
     registrationId: {

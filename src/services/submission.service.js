@@ -8,6 +8,7 @@ const communicationService = require('./communication.service');
 const { isSubmissionWindowOpen } = require('../utils/submission-window');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { detectSuspiciousActivity } = require('../utils/submission-integrity');
+const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 
 const REVIEWABLE_STATUS = new Set(['submitted']);
 const FINAL_STATUSES = new Set(['approved']);
@@ -191,6 +192,7 @@ async function reviewSubmission({
     throw new Error('Submission not found or inaccessible.');
   }
 
+  const previousStatus = submission.status;
   submission.reviewedAt = new Date();
   submission.reviewedBy = organizerId;
   submission.reviewNotes = String(reviewNotes || '').trim().slice(0, 1200);
@@ -209,6 +211,18 @@ async function reviewSubmission({
 
   const hadCertificate = Boolean(submission.certificate?.url);
   await submission.save();
+  recordCriticalAuditEventInBackground({
+    actorMongoUserId: organizerId,
+    action: safeAction === 'approve' ? 'submission.approved' : 'submission.rejected',
+    targetType: 'submission',
+    targetId: String(submission._id),
+    statusFrom: previousStatus,
+    statusTo: submission.status,
+    notes: safeAction === 'approve'
+      ? submission.reviewNotes
+      : (submission.rejectionReason || submission.reviewNotes),
+    occurredAt: submission.reviewedAt
+  });
   if (safeAction === 'approve') {
     await attachCertificateIfNeeded(submission);
   }
@@ -989,6 +1003,16 @@ async function attachCertificateIfNeeded(submission) {
       issuedAt: certificate.issuedAt || new Date()
     };
     await submission.save();
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: submission.reviewedBy ? String(submission.reviewedBy) : '',
+      action: 'certificate.issued',
+      targetType: 'submission_certificate',
+      targetId: String(submission._id),
+      statusFrom: '',
+      statusTo: 'issued',
+      notes: `Certificate issued for submission ${String(submission._id)}`,
+      occurredAt: submission.certificate.issuedAt
+    });
   } catch (error) {
     // Certificate generation should not block review completion.
     console.error('Submission certificate generation failed:', error.message);
@@ -1007,6 +1031,16 @@ async function applyAutoApprovalIfEligible(submission) {
   submission.reviewNotes = AUTO_APPROVAL_REVIEW_NOTE;
   submission.rejectionReason = '';
   await submission.save();
+  recordCriticalAuditEventInBackground({
+    actorMongoUserId: '',
+    action: 'submission.auto_approved',
+    targetType: 'submission',
+    targetId: String(submission._id),
+    statusFrom: 'submitted',
+    statusTo: 'approved',
+    notes: AUTO_APPROVAL_REVIEW_NOTE,
+    occurredAt: submission.reviewedAt
+  });
 
   await attachCertificateIfNeeded(submission);
   const event = await Event.findById(submission.eventId).select('title').lean();
