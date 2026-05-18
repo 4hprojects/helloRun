@@ -167,6 +167,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     locked: false,
     recipientRoles: ['runner'],
     displayOrder: 500
+  },
+  {
+    eventKey: 'badge.earned',
+    name: 'Badge Earned',
+    description: 'Emails runners for earned badges only when this event is enabled and the badge definition email level opts in.',
+    category: 'achievement',
+    priority: 'low',
+    required: false,
+    emailEnabled: false,
+    inAppEnabled: true,
+    locked: false,
+    recipientRoles: ['runner'],
+    displayOrder: 600
   }
 ]);
 

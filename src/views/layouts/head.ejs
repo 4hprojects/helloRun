@@ -12,7 +12,12 @@
   <meta property="og:title" content="<%= seo.ogTitle || title %>">
   <% if (seo.description) { %><meta property="og:description" content="<%= seo.description %>"><% } %>
   <% if (seo.canonicalUrl) { %><meta property="og:url" content="<%= seo.canonicalUrl %>"><% } %>
-  <% if (seo.ogImage) { %><meta property="og:image" content="<%= seo.ogImage %>"><% } %>
+  <% if (seo.ogImage) { %>
+    <meta property="og:image" content="<%= seo.ogImage %>">
+    <meta property="og:image:width" content="<%= seo.ogImageWidth || 1200 %>">
+    <meta property="og:image:height" content="<%= seo.ogImageHeight || 630 %>">
+    <% if (seo.ogImageType) { %><meta property="og:image:type" content="<%= seo.ogImageType %>"><% } %>
+  <% } %>
 <% } %>
 <% if (typeof seo !== 'undefined' && seo && (seo.twitterTitle || title)) { %>
   <meta name="twitter:card" content="<%= seo.twitterCard || 'summary_large_image' %>">

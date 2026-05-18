@@ -42,6 +42,31 @@ const registrationSchema = new mongoose.Schema(
       trim: true,
       maxlength: 30
     },
+    addOns: {
+      type: [
+        {
+          productId: { type: String, required: true, trim: true, maxlength: 64 },
+          name: { type: String, required: true, trim: true, maxlength: 180 },
+          productType: { type: String, trim: true, default: 'event_shop_item', maxlength: 50 },
+          currency: { type: String, trim: true, default: 'PHP', maxlength: 10 },
+          unitPrice: { type: Number, min: 0, default: 0 },
+          quantity: { type: Number, min: 1, default: 1 },
+          lineTotal: { type: Number, min: 0, default: 0 }
+        }
+      ],
+      default: []
+    },
+    addOnsSubtotal: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    addOnsCurrency: {
+      type: String,
+      trim: true,
+      default: 'PHP',
+      maxlength: 10
+    },
     status: {
       type: String,
       enum: ['pending_payment', 'paid', 'confirmed', 'cancelled', 'refunded'],

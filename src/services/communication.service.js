@@ -490,6 +490,19 @@ async function sendEventEmail(eventKey, payload = {}) {
       email.certificateUrl
     );
   }
+  if (eventKey === 'badge.earned') {
+    return emailService.sendBadgeEarnedEmailToRunner(
+      email.to,
+      email.firstName,
+      email.badgeName,
+      email.badgeDescription,
+      email.badgeUrl,
+      {
+        badgeType: email.badgeType,
+        badgeScope: email.badgeScope
+      }
+    );
+  }
   throw new Error(`No email sender registered for ${eventKey}`);
 }
 
@@ -509,7 +522,8 @@ function getSubjectForEvent(eventKey, payload = {}) {
     'payment.rejected': `Payment Rejected: ${eventTitle}`,
     'result.approved': `Result Approved: ${eventTitle}`,
     'result.rejected': `Result Rejected: ${eventTitle}`,
-    'certificate.issued': `Certificate Available: ${eventTitle}`
+    'certificate.issued': `Certificate Available: ${eventTitle}`,
+    'badge.earned': `Badge Earned: ${email.badgeName || 'Achievement Badge'}`
   };
   return subjects[eventKey] || eventKey;
 }

@@ -30,12 +30,21 @@ const {
   getAccumulatedActivitiesForRegistrations,
   buildAccumulatedProgress
 } = require('../services/accumulated-activity.service');
+const {
+  evaluateRegistrationAchievementsInBackground,
+  getRunnerEarnedBadges,
+  getPublicBadgeVerification: loadPublicBadgeVerification
+} = require('../services/achievement.service');
 const { getLeaderboardData } = require('../services/leaderboard.service');
 const {
   buildPublicEventSeo,
   buildPublicEventView,
   renderEventDetailsContent
 } = require('../utils/event-public-view');
+const { getEventBadgesByMongoEventId } = require('../services/event-badge.service');
+const { listProductsByMongoEventId } = require('../services/shop/product.service');
+const { recalculateOrderTotals } = require('../services/shop/order.service');
+const { getPostgresClient } = require('../db/postgres');
 
 const countries = getCountries();
 exports.getHome = async (req, res) => {
@@ -279,10 +288,13 @@ exports.getEventDetails = async (req, res) => {
       return renderEventNotFound(res);
     }
 
-    const registrationCount = await Registration.countDocuments({
-      eventId: event._id,
-      status: { $ne: 'cancelled' }
-    });
+    const [registrationCount, badges] = await Promise.all([
+      Registration.countDocuments({
+        eventId: event._id,
+        status: { $ne: 'cancelled' }
+      }),
+      getEventBadgesByMongoEventId(event._id).catch(() => [])
+    ]);
     const baseUrl = getSitemapBaseUrl(req);
     const publicEvent = buildPublicEventView(event, { registrationCount });
 
@@ -291,6 +303,7 @@ exports.getEventDetails = async (req, res) => {
       seo: buildPublicEventSeo(event, baseUrl),
       event,
       publicEvent,
+      badges,
       eventDetailsHtml: renderEventDetailsContent(event.eventDetailsMarkdown),
       countryName: getCountryName
     });
@@ -301,6 +314,260 @@ exports.getEventDetails = async (req, res) => {
       status: 500,
       message: 'An error occurred while loading event details.'
     });
+  }
+};
+
+exports.getEventBadges = async (req, res) => {
+  try {
+    const event = await getPublishedEventBySlug(req.params.slug);
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found.' });
+    }
+
+    const badges = await getEventBadgesByMongoEventId(event._id);
+    return res.json({ success: true, badges });
+  } catch (error) {
+    console.error('Event badges load error:', error);
+    return res.status(500).json({ success: false, message: 'Unable to load event badges.' });
+  }
+};
+
+exports.getPublicBadgePage = async (req, res) => {
+  try {
+    const badge = await loadPublicBadgeVerification(req.params.userBadgeId);
+    if (!badge) {
+      return res.status(404).render('error', {
+        title: 'Badge Not Found - helloRun',
+        status: 404,
+        message: 'This badge could not be verified. It may have been revoked or the link may be incorrect.'
+      });
+    }
+
+    const baseUrl = getSitemapBaseUrl(req);
+    const badgeUrl = `${baseUrl}/badges/${badge.userBadgeId}`;
+    const badgeShareImageUrl = `${baseUrl}/badges/${badge.userBadgeId}/share-image.svg`;
+    const openBadgeUrl = `${baseUrl}/badges/${badge.userBadgeId}/open-badge.json`;
+    const shareText = `${badge.runnerName} earned the ${badge.name} badge on helloRun.`;
+    const openBadgeMetadata = buildOpenBadgeMetadata(badge, { baseUrl, badgeUrl, badgeShareImageUrl, openBadgeUrl });
+    return res.render('pages/badge-verification', {
+      title: `${badge.name} - Verified Badge - helloRun`,
+      additionalCSS: ['/css/badge-verification.css'],
+      seo: {
+        description: `${badge.runnerName} earned the ${badge.name} badge on helloRun.`,
+        canonicalUrl: badgeUrl,
+        ogType: 'article',
+        ogTitle: `${badge.name} - Verified HelloRun Badge`,
+        twitterTitle: `${badge.name} - Verified HelloRun Badge`,
+        ogImage: badgeShareImageUrl
+      },
+      badge,
+      badgeUrl,
+      openBadgeUrl,
+      openBadgeMetadata,
+      shareText,
+      facebookShareUrl: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(badgeUrl)}`,
+      xShareUrl: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(badgeUrl)}`,
+      linkedInShareUrl: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(badgeUrl)}`,
+      mailShareUrl: `mailto:?subject=${encodeURIComponent(`${badge.name} - Verified HelloRun Badge`)}&body=${encodeURIComponent(`${shareText}\n\n${badgeUrl}`)}`,
+      formatDateOnly
+    });
+  } catch (error) {
+    console.error('Public badge verification page error:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'Unable to verify this badge right now.'
+    });
+  }
+};
+
+exports.getPublicOpenBadgeMetadata = async (req, res) => {
+  try {
+    const badge = await loadPublicBadgeVerification(req.params.userBadgeId);
+    if (!badge) {
+      return res.status(404).json({ success: false, message: 'Badge not found or not verified.' });
+    }
+
+    const baseUrl = getSitemapBaseUrl(req);
+    const badgeUrl = `${baseUrl}/badges/${badge.userBadgeId}`;
+    const badgeShareImageUrl = `${baseUrl}/badges/${badge.userBadgeId}/share-image.svg`;
+    const openBadgeUrl = `${baseUrl}/badges/${badge.userBadgeId}/open-badge.json`;
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return res.json(buildOpenBadgeMetadata(badge, { baseUrl, badgeUrl, badgeShareImageUrl, openBadgeUrl }));
+  } catch (error) {
+    console.error('Public Open Badge metadata error:', error);
+    return res.status(500).json({ success: false, message: 'Unable to load badge metadata.' });
+  }
+};
+
+exports.getPublicBadgeShareImage = async (req, res) => {
+  try {
+    const badge = await loadPublicBadgeVerification(req.params.userBadgeId);
+    if (!badge) {
+      return res.status(404).type('image/svg+xml').send(buildShareImageSvg({
+        title: 'Badge Not Found',
+        subtitle: 'This HelloRun badge could not be verified.',
+        kicker: 'helloRun',
+        statLabel: 'Verification',
+        statValue: 'Unavailable'
+      }));
+    }
+
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return res.type('image/svg+xml').send(buildShareImageSvg({
+      title: badge.name,
+      subtitle: `${badge.runnerName} earned this verified HelloRun badge.`,
+      kicker: 'Verified Badge',
+      statLabel: badge.eventTitle ? 'Event' : 'Scope',
+      statValue: badge.eventTitle || formatBadgeScopeLabel(badge.badgeScope),
+      footer: `Verification ID ${badge.verificationCode}`
+    }));
+  } catch (error) {
+    console.error('Public badge share image error:', error);
+    return res.status(500).type('image/svg+xml').send(buildShareImageSvg({
+      title: 'HelloRun Badge',
+      subtitle: 'Verified achievement preview is unavailable right now.',
+      kicker: 'helloRun',
+      statLabel: 'Status',
+      statValue: 'Unavailable'
+    }));
+  }
+};
+
+exports.getPublicBadgeVerification = async (req, res) => {
+  try {
+    const badge = await loadPublicBadgeVerification(req.params.userBadgeId);
+    if (!badge) {
+      return res.status(404).json({ success: false, message: 'Badge not found or not verified.' });
+    }
+    return res.json({
+      success: true,
+      badge: {
+        userBadgeId: badge.userBadgeId,
+        badgeCode: badge.badgeCode,
+        name: badge.name,
+        description: badge.description,
+        badgeScope: badge.badgeScope,
+        badgeType: badge.badgeType,
+        requirementType: badge.requirementType,
+        runnerName: badge.runnerName,
+        eventTitle: badge.eventTitle,
+        eventSlug: badge.eventSlug,
+        earnedAt: badge.earnedAt,
+        verificationStatus: badge.verificationStatus,
+        verificationCode: badge.verificationCode,
+        evidenceLabel: badge.evidenceLabel
+      }
+    });
+  } catch (error) {
+    console.error('Public badge verification API error:', error);
+    return res.status(500).json({ success: false, message: 'Unable to verify badge.' });
+  }
+};
+
+exports.getPublicRunnerBadgeCollection = async (req, res) => {
+  try {
+    const publicUserId = String(req.params.userId || '').trim();
+    const runner = await User.findOne({
+      userId: publicUserId,
+      role: 'runner'
+    }).select('_id userId firstName lastName createdAt').lean();
+
+    if (!runner) {
+      return res.status(404).render('error', {
+        title: 'Badge Collection Not Found - helloRun',
+        status: 404,
+        message: 'This public badge collection could not be found.'
+      });
+    }
+
+    const badges = await getRunnerEarnedBadges(runner._id, { limit: 100 });
+    const baseUrl = getSitemapBaseUrl(req);
+    const collectionUrl = `${baseUrl}/runners/${encodeURIComponent(runner.userId)}/badges`;
+    const collectionShareImageUrl = `${baseUrl}/runners/${encodeURIComponent(runner.userId)}/badges/share-image.svg`;
+    const runnerName = [runner.firstName, runner.lastName].filter(Boolean).join(' ') || 'HelloRun Runner';
+    const featuredBadge = badges.find((badge) => badge.isFeatured) || badges[0] || null;
+    const badgesByScope = buildBadgeCollectionScopeSummary(badges);
+
+    return res.render('pages/runner-badge-collection', {
+      title: `${runnerName} - Badge Collection - helloRun`,
+      additionalCSS: ['/css/badge-verification.css'],
+      seo: {
+        description: `${runnerName}'s verified HelloRun badge collection.`,
+        canonicalUrl: collectionUrl,
+        ogType: 'profile',
+        ogTitle: `${runnerName} - Verified HelloRun Badge Collection`,
+        twitterTitle: `${runnerName} - Verified HelloRun Badge Collection`,
+        ogImage: collectionShareImageUrl
+      },
+      runner: {
+        userId: runner.userId,
+        name: runnerName,
+        joinedAt: runner.createdAt || null
+      },
+      badges,
+      featuredBadge,
+      badgesByScope,
+      collectionUrl,
+      shareText: `${runnerName}'s verified HelloRun badge collection.`,
+      facebookShareUrl: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(collectionUrl)}`,
+      xShareUrl: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${runnerName}'s verified HelloRun badge collection.`)}&url=${encodeURIComponent(collectionUrl)}`,
+      linkedInShareUrl: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(collectionUrl)}`,
+      mailShareUrl: `mailto:?subject=${encodeURIComponent(`${runnerName} - HelloRun Badge Collection`)}&body=${encodeURIComponent(`${runnerName}'s verified HelloRun badge collection.\n\n${collectionUrl}`)}`,
+      formatDateOnly
+    });
+  } catch (error) {
+    console.error('Public runner badge collection error:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'Unable to load this badge collection right now.'
+    });
+  }
+};
+
+exports.getPublicRunnerBadgeCollectionShareImage = async (req, res) => {
+  try {
+    const publicUserId = String(req.params.userId || '').trim();
+    const runner = await User.findOne({
+      userId: publicUserId,
+      role: 'runner'
+    }).select('_id userId firstName lastName').lean();
+
+    if (!runner) {
+      return res.status(404).type('image/svg+xml').send(buildShareImageSvg({
+        title: 'Collection Not Found',
+        subtitle: 'This HelloRun badge collection could not be found.',
+        kicker: 'helloRun',
+        statLabel: 'Collection',
+        statValue: 'Unavailable'
+      }));
+    }
+
+    const badges = await getRunnerEarnedBadges(runner._id, { limit: 100 });
+    const runnerName = [runner.firstName, runner.lastName].filter(Boolean).join(' ') || 'HelloRun Runner';
+    const featuredBadge = badges.find((badge) => badge.isFeatured) || badges[0] || null;
+
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    return res.type('image/svg+xml').send(buildShareImageSvg({
+      title: runnerName,
+      subtitle: featuredBadge
+        ? `Featured badge: ${featuredBadge.name}`
+        : 'Verified HelloRun badge collection.',
+      kicker: 'Verified Collection',
+      statLabel: 'Badges',
+      statValue: String(badges.length),
+      footer: `Runner ID ${runner.userId}`
+    }));
+  } catch (error) {
+    console.error('Public runner badge collection share image error:', error);
+    return res.status(500).type('image/svg+xml').send(buildShareImageSvg({
+      title: 'HelloRun Collection',
+      subtitle: 'Verified collection preview is unavailable right now.',
+      kicker: 'helloRun',
+      statLabel: 'Status',
+      statValue: 'Unavailable'
+    }));
   }
 };
 
@@ -333,6 +600,7 @@ exports.getEventRegistrationForm = async (req, res) => {
     const allowedRaceDistances = getAllowedRaceDistances(event);
     const profileSnapshot = getRegistrationProfileSnapshot(user);
     const requiresEmergencyContact = !profileSnapshot.emergencyContactName || !profileSnapshot.emergencyContactNumber;
+    const registrationAddOns = await loadRegistrationAddOns(event._id);
     const existing = await Registration.findOne({ eventId: event._id, userId: user._id })
       .select('confirmationCode participationMode raceDistance status paymentStatus registeredAt');
 
@@ -359,6 +627,7 @@ exports.getEventRegistrationForm = async (req, res) => {
       waiverVersion: Number(event.waiverVersion || 1),
       registrationWindowError,
       existingRegistration: existing || null,
+      registrationAddOns,
       justRegistered: req.query.registered === '1'
     });
   } catch (error) {
@@ -401,12 +670,14 @@ exports.postEventRegistration = async (req, res) => {
     const requiresEmergencyContact = !profileSnapshot.emergencyContactName || !profileSnapshot.emergencyContactNumber;
     const emergencyContactName = profileSnapshot.emergencyContactName || String(req.body.emergencyContactName || '').trim();
     const emergencyContactNumber = profileSnapshot.emergencyContactNumber || String(req.body.emergencyContactNumber || '').trim();
+    const registrationAddOns = await loadRegistrationAddOns(event._id);
     const formData = getRegistrationFormData({
       ...profileSnapshot,
       emergencyContactName,
       emergencyContactNumber,
       participationMode: req.body.participationMode,
       raceDistance: req.body.raceDistance,
+      addOnProductIds: req.body.addOnProductIds,
       waiverAccepted: req.body.waiverAccepted,
       waiverSignature: req.body.waiverSignature
     });
@@ -433,6 +704,11 @@ exports.postEventRegistration = async (req, res) => {
       }
     );
 
+    const selectedAddOnsResult = resolveSelectedRegistrationAddOns(formData.addOnProductIds, registrationAddOns);
+    if (selectedAddOnsResult.invalidIds.length > 0) {
+      validationErrors.addOnProductIds = 'One or more selected add-ons are no longer available.';
+    }
+
     if (Object.keys(validationErrors).length > 0) {
       return res.status(400).render('pages/event-register', {
         title: `Register - ${event.title}`,
@@ -451,6 +727,7 @@ exports.postEventRegistration = async (req, res) => {
         waiverVersion: Number(event.waiverVersion || 1),
         registrationWindowError,
         existingRegistration: null,
+        registrationAddOns,
         justRegistered: false
       });
     }
@@ -492,7 +769,22 @@ exports.postEventRegistration = async (req, res) => {
       registeredAt: new Date()
     });
 
+    registration.addOns = selectedAddOnsResult.selected;
+    registration.addOnsSubtotal = selectedAddOnsResult.subtotal;
+    registration.addOnsCurrency = selectedAddOnsResult.currency;
+
     await registration.save();
+    await createRegistrationAddOnOrderIfNeeded({
+      registration,
+      event,
+      user,
+      selectedAddOns: selectedAddOnsResult.selected,
+      addOnsSubtotal: selectedAddOnsResult.subtotal,
+      currency: selectedAddOnsResult.currency
+    });
+    evaluateRegistrationAchievementsInBackground(registration, {
+      performedBy: user._id
+    });
 
     await communicationService.notify('registration.confirmed', {
       notification: {
@@ -843,6 +1135,11 @@ exports.postUploadPaymentProof = async (req, res) => {
           error: error?.message || String(error)
         });
       });
+
+      await upsertShopPaymentForRegistrationProof({
+        registration: updatedRegistration,
+        proof: nextPaymentProof
+      });
     }
 
     uploadedProofKey = '';
@@ -921,6 +1218,8 @@ exports.__setSyncRegistrationPaymentShadow = (fn) => {
 exports.__resetSyncRegistrationPaymentShadow = () => {
   syncRegistrationPaymentShadow = require('../services/registration-payment-shadow.service').syncRegistrationPaymentShadow;
 };
+
+exports.__testCreateRegistrationAddOnOrderIfNeeded = createRegistrationAddOnOrderIfNeeded;
 
 async function handleRunnerSubmissionWrite(req, res, options = {}) {
   let uploadedProofKey = '';
@@ -2131,9 +2430,21 @@ function getRegistrationFormData(body = {}) {
     runningGroup: runningGroups[0] || '',
     participationMode: String(body.participationMode || '').trim(),
     raceDistance: String(body.raceDistance || '').trim().toUpperCase(),
+    addOnProductIds: normalizeRegistrationAddOnIds(body.addOnProductIds),
     waiverAccepted: body.waiverAccepted === '1' || body.waiverAccepted === 'true' || body.waiverAccepted === true || body.waiverAccepted === 'on',
     waiverSignature: String(body.waiverSignature || '').trim()
   };
+}
+
+function normalizeRegistrationAddOnIds(value) {
+  const values = Array.isArray(value) ? value : [value];
+  return Array.from(
+    new Set(
+      values
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
+    )
+  ).slice(0, 25);
 }
 
 function getQuickProfileUpdatePayload(body = {}) {
@@ -2231,6 +2542,313 @@ function getAllowedRaceDistances(event) {
   return values
     .map((item) => String(item || '').trim().toUpperCase())
     .filter(Boolean);
+}
+
+async function loadRegistrationAddOns(eventId) {
+  try {
+    const products = await listProductsByMongoEventId(String(eventId || ''), { limit: 150 });
+    return products
+      .filter((item) => item
+        && item.status === 'active'
+        && item.is_visible !== false
+        && item.show_during_registration === true)
+      .map((item) => ({
+        id: String(item.id || ''),
+        name: String(item.name || '').trim(),
+        slug: String(item.slug || '').trim(),
+        productType: String(item.product_type || '').trim() || 'event_shop_item',
+        currency: String(item.currency || 'PHP').trim().toUpperCase(),
+        basePrice: Math.max(0, Number(item.base_price || 0))
+      }))
+      .filter((item) => item.name.length > 0)
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  } catch (error) {
+    console.warn('Registration add-ons unavailable:', error.message || error);
+    return [];
+  }
+}
+
+function resolveSelectedRegistrationAddOns(selectedIds = [], availableAddOns = []) {
+  const byId = new Map(availableAddOns.map((item) => [String(item.id || ''), item]));
+  const selected = [];
+  const invalidIds = [];
+
+  for (const id of selectedIds) {
+    const key = String(id || '').trim();
+    if (!key) continue;
+    const match = byId.get(key);
+    if (!match) {
+      invalidIds.push(key);
+      continue;
+    }
+
+    const unitPrice = Math.max(0, Number(match.basePrice || 0));
+    selected.push({
+      productId: key,
+      name: match.name,
+      productType: match.productType || 'event_shop_item',
+      currency: match.currency || 'PHP',
+      unitPrice,
+      quantity: 1,
+      lineTotal: unitPrice
+    });
+  }
+
+  const subtotal = selected.reduce((sum, item) => sum + Number(item.lineTotal || 0), 0);
+  const currency = selected[0]?.currency || 'PHP';
+
+  return {
+    selected,
+    invalidIds,
+    subtotal,
+    currency
+  };
+}
+
+async function createRegistrationAddOnOrderIfNeeded({
+  registration,
+  event,
+  user,
+  selectedAddOns = [],
+  addOnsSubtotal = 0,
+  currency = 'PHP'
+} = {}) {
+  if (!process.env.DATABASE_URL) return;
+  if (!registration || !event || !user) return;
+  if (!Array.isArray(selectedAddOns) || selectedAddOns.length === 0) return;
+
+  const sql = getPostgresClient();
+  const totals = recalculateOrderTotals({
+    subtotal: addOnsSubtotal,
+    deliveryFee: 0,
+    platformFee: 0
+  });
+  const orderNote = buildRegistrationOrderNote(registration._id);
+
+  try {
+    const existingOrderRows = await sql`
+      select id
+      from orders
+      where order_source = 'registration_checkout'
+        and customer_note = ${orderNote}
+      limit 1
+    `;
+    if (existingOrderRows.length > 0) return;
+
+    const appUserRows = await sql`
+      insert into app_users (mongo_user_id, email, role_snapshot, display_name)
+      values (
+        ${String(user._id)},
+        ${String(user.email || '').trim().toLowerCase()},
+        'runner',
+        ${`${String(user.firstName || '').trim()} ${String(user.lastName || '').trim()}`.trim()}
+      )
+      on conflict (mongo_user_id)
+      do update set
+        email = excluded.email,
+        role_snapshot = excluded.role_snapshot,
+        display_name = excluded.display_name
+      returning id
+    `;
+    const appUserId = appUserRows[0]?.id;
+    if (!appUserId) return;
+
+    const eventCoreRows = await sql`
+      insert into events_core (
+        mongo_event_id,
+        mongo_organizer_user_id,
+        slug,
+        title,
+        organiser_name,
+        status,
+        event_type
+      )
+      values (
+        ${String(event._id)},
+        ${String(event.organizerId || '')},
+        ${String(event.slug || '')},
+        ${String(event.title || '')},
+        ${String(event.organiserName || '')},
+        ${String(event.status || 'published')},
+        ${String(event.eventType || 'virtual')}
+      )
+      on conflict (mongo_event_id)
+      do update set
+        slug = excluded.slug,
+        title = excluded.title,
+        organiser_name = excluded.organiser_name,
+        status = excluded.status,
+        event_type = excluded.event_type,
+        mongo_organizer_user_id = excluded.mongo_organizer_user_id
+      returning id, organiser_id
+    `;
+    const eventCore = eventCoreRows[0];
+    if (!eventCore?.id) return;
+
+    const orderNumber = buildRegistrationOrderNumber();
+    const createdOrders = await sql`
+      insert into orders (
+        order_number,
+        buyer_user_id,
+        event_id,
+        organiser_id,
+        subtotal,
+        total_amount,
+        payment_status,
+        order_status,
+        order_source,
+        fulfilment_status,
+        delivery_fee,
+        platform_fee,
+        currency,
+        customer_note
+      )
+      values (
+        ${orderNumber},
+        ${appUserId},
+        ${eventCore.id},
+        ${eventCore.organiser_id || null},
+        ${totals.subtotal},
+        ${totals.totalAmount},
+        'unpaid',
+        'pending',
+        'registration_checkout',
+        'not_started',
+        ${totals.deliveryFee},
+        ${totals.platformFee},
+        ${String(currency || 'PHP').trim().toUpperCase()},
+        ${orderNote}
+      )
+      returning id
+    `;
+    const orderId = createdOrders[0]?.id;
+    if (!orderId) return;
+
+    for (const item of selectedAddOns) {
+      const lineTotal = Number(item.lineTotal || 0);
+      const unitPrice = Number(item.unitPrice || 0);
+      await sql`
+        insert into order_items (
+          order_id,
+          product_id,
+          variant_id,
+          name_snapshot,
+          variant_snapshot,
+          quantity,
+          unit_price,
+          line_total
+        )
+        values (
+          ${orderId},
+          ${String(item.productId || '') || null},
+          null,
+          ${String(item.name || '').trim() || 'Registration add-on'},
+          ${sql.json({
+            productType: item.productType || 'event_shop_item',
+            currency: item.currency || currency || 'PHP',
+            source: 'registration_addon'
+          })},
+          ${Number(item.quantity || 1)},
+          ${unitPrice},
+          ${lineTotal}
+        )
+      `;
+    }
+  } catch (error) {
+    console.error('Registration add-on order bridge failed:', {
+      registrationId: String(registration._id || ''),
+      eventId: String(event._id || ''),
+      userId: String(user._id || ''),
+      error: error?.message || String(error)
+    });
+  }
+}
+
+async function upsertShopPaymentForRegistrationProof({ registration, proof } = {}) {
+  if (!process.env.DATABASE_URL) return;
+  if (!registration?._id) return;
+
+  const sql = getPostgresClient();
+  const orderNote = buildRegistrationOrderNote(registration._id);
+  const proofUrl = String(proof?.url || '').trim();
+  const paymentReference = String(registration.confirmationCode || '').trim();
+
+  try {
+    const orderRows = await sql`
+      select id, total_amount
+      from orders
+      where order_source = 'registration_checkout'
+        and customer_note = ${orderNote}
+      order by created_at desc
+      limit 1
+    `;
+    const order = orderRows[0];
+    if (!order?.id) return;
+
+    const existingRows = await sql`
+      select id
+      from shop_payments
+      where order_id = ${order.id}
+      order by created_at desc
+      limit 1
+    `;
+
+    if (existingRows[0]?.id) {
+      await sql`
+        update shop_payments
+        set payment_method = 'manual_receipt',
+            payment_reference = ${paymentReference || null},
+            proof_image_url = ${proofUrl || null},
+            amount_paid = ${Number(order.total_amount || 0)},
+            status = 'pending_review',
+            reviewed_by = null,
+            reviewed_at = null,
+            rejection_reason = null,
+            review_note = null
+        where id = ${existingRows[0].id}
+      `;
+    } else {
+      await sql`
+        insert into shop_payments (
+          order_id,
+          payment_method,
+          payment_reference,
+          proof_image_url,
+          amount_paid,
+          status
+        )
+        values (
+          ${order.id},
+          'manual_receipt',
+          ${paymentReference || null},
+          ${proofUrl || null},
+          ${Number(order.total_amount || 0)},
+          'pending_review'
+        )
+      `;
+    }
+
+    await sql`
+      update orders
+      set payment_status = 'proof_submitted'
+      where id = ${order.id}
+    `;
+  } catch (error) {
+    console.error('Registration payment review bridge failed:', {
+      registrationId: String(registration._id || ''),
+      error: error?.message || String(error)
+    });
+  }
+}
+
+function buildRegistrationOrderNumber() {
+  const dateToken = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const randomToken = Math.random().toString(36).slice(2, 8).toUpperCase();
+  return `HR-REG-${dateToken}-${randomToken}`;
+}
+
+function buildRegistrationOrderNote(registrationId) {
+  return `registration:${String(registrationId || '').trim()}`;
 }
 
 function getRegistrationWindowError(event) {
@@ -2405,6 +3023,215 @@ function formatDateOnly(value) {
     month: 'short',
     day: 'numeric'
   });
+}
+
+function buildBadgeCollectionScopeSummary(badges = []) {
+  const order = ['event', 'challenge', 'global', 'organiser'];
+  const labels = {
+    event: 'Event',
+    challenge: 'Challenge',
+    global: 'Global',
+    organiser: 'Organiser'
+  };
+  const counts = new Map();
+  for (const badge of badges) {
+    const scope = String(badge.badgeScope || 'event').trim() || 'event';
+    counts.set(scope, (counts.get(scope) || 0) + 1);
+  }
+
+  return Array.from(new Set(order.concat(Array.from(counts.keys()))))
+    .filter((scope) => counts.has(scope))
+    .map((scope) => ({
+      scope,
+      label: labels[scope] || scope,
+      count: counts.get(scope) || 0
+    }));
+}
+
+function buildOpenBadgeMetadata(badge = {}, options = {}) {
+  const baseUrl = String(options.baseUrl || '').replace(/\/$/, '');
+  const badgeUrl = options.badgeUrl || `${baseUrl}/badges/${badge.userBadgeId}`;
+  const openBadgeUrl = options.openBadgeUrl || `${badgeUrl}/open-badge.json`;
+  const badgeShareImageUrl = options.badgeShareImageUrl || `${badgeUrl}/share-image.svg`;
+  const achievementId = `${baseUrl}/badge-definitions/${encodeURIComponent(badge.badgeCode || badge.badgeDefinitionId || badge.userBadgeId)}`;
+  const criteriaNarrative = badge.evidenceLabel || getBadgeCriteriaNarrative(badge.requirementType);
+
+  return {
+    '@context': [
+      'https://www.w3.org/ns/credentials/v2',
+      'https://purl.imsglobal.org/spec/ob/v3p0/context-3.0.3.json'
+    ],
+    id: openBadgeUrl,
+    type: ['VerifiableCredential', 'OpenBadgeCredential'],
+    name: `${badge.name} - HelloRun Badge`,
+    description: badge.description || 'Verified HelloRun achievement.',
+    issuer: {
+      id: `${baseUrl}/`,
+      type: ['Profile'],
+      name: 'HelloRun',
+      url: `${baseUrl}/`
+    },
+    issuanceDate: formatIsoDate(badge.earnedAt),
+    validFrom: formatIsoDate(badge.earnedAt),
+    credentialSubject: {
+      type: ['AchievementSubject'],
+      name: badge.runnerName || 'HelloRun Runner',
+      achievement: {
+        id: achievementId,
+        type: ['Achievement'],
+        achievementType: formatBadgeScopeLabel(badge.badgeScope),
+        name: badge.name || 'HelloRun Badge',
+        description: badge.description || 'Verified HelloRun achievement.',
+        criteria: {
+          narrative: criteriaNarrative
+        },
+        image: {
+          id: badgeShareImageUrl,
+          type: 'Image'
+        },
+        tags: [
+          badge.badgeScope,
+          badge.badgeType,
+          badge.requirementType
+        ].filter(Boolean)
+      }
+    },
+    evidence: [{
+      id: badgeUrl,
+      type: ['Evidence'],
+      name: badge.evidenceLabel || 'Verified HelloRun evidence',
+      narrative: criteriaNarrative
+    }],
+    verification: {
+      type: 'HostedBadge',
+      verificationProperty: 'id'
+    },
+    image: {
+      id: badgeShareImageUrl,
+      type: 'Image'
+    },
+    url: badgeUrl,
+    helloRun: {
+      userBadgeId: badge.userBadgeId,
+      badgeCode: badge.badgeCode,
+      verificationCode: badge.verificationCode,
+      verificationStatus: badge.verificationStatus,
+      eventTitle: badge.eventTitle || '',
+      eventUrl: badge.eventSlug ? `${baseUrl}/events/${badge.eventSlug}` : ''
+    }
+  };
+}
+
+function buildShareImageSvg(input = {}) {
+  const titleLines = splitSvgText(input.title || 'HelloRun Badge', 26, 2);
+  const subtitleLines = splitSvgText(input.subtitle || 'Verified HelloRun achievement.', 54, 2);
+  const footer = String(input.footer || 'hellorun.ph').trim();
+  const statLabel = String(input.statLabel || 'Verified').trim();
+  const statValue = String(input.statValue || 'HelloRun').trim();
+  const kicker = String(input.kicker || 'helloRun').trim();
+  const titleY = titleLines.length === 1 ? 365 : 330;
+  const subtitleY = titleY + (titleLines.length * 76) + 28;
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="${escapeXml(input.title || 'HelloRun Badge')}">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="55%" stop-color="#eef7fb"/>
+      <stop offset="100%" stop-color="#fff7ed"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FA9A4B"/>
+      <stop offset="100%" stop-color="#1495d1"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#0f172a" flood-opacity="0.14"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="64" y="56" width="1072" height="518" rx="28" fill="#ffffff" filter="url(#shadow)"/>
+  <circle cx="988" cy="168" r="92" fill="#ecfdf5"/>
+  <circle cx="1018" cy="140" r="38" fill="#dbeafe"/>
+  <rect x="96" y="90" width="196" height="48" rx="24" fill="#ecfdf5"/>
+  <text x="126" y="122" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="800" fill="#047857">${escapeXml(kicker)}</text>
+  <g transform="translate(96 176)">
+    <rect width="132" height="132" rx="28" fill="url(#accent)"/>
+    <circle cx="66" cy="52" r="24" fill="#ffffff" opacity="0.95"/>
+    <path d="M44 92h44l12 20H32l12-20Z" fill="#ffffff" opacity="0.95"/>
+    <path d="M42 34l12 10 14-22 14 22 12-10-10 34H52L42 34Z" fill="#ffffff" opacity="0.9"/>
+  </g>
+  ${titleLines.map((line, index) => `<text x="260" y="${titleY + (index * 76)}" font-family="Poppins, Arial, sans-serif" font-size="62" font-weight="800" fill="#0f172a">${escapeXml(line)}</text>`).join('\n  ')}
+  ${subtitleLines.map((line, index) => `<text x="260" y="${subtitleY + (index * 34)}" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="600" fill="#475569">${escapeXml(line)}</text>`).join('\n  ')}
+  <rect x="96" y="458" width="332" height="78" rx="18" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="122" y="488" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" fill="#64748b">${escapeXml(statLabel.toUpperCase())}</text>
+  <text x="122" y="522" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800" fill="#0f172a">${escapeXml(truncateText(statValue, 22))}</text>
+  <text x="96" y="604" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#64748b">${escapeXml(footer)}</text>
+  <text x="1000" y="604" text-anchor="end" font-family="Poppins, Arial, sans-serif" font-size="28" font-weight="900" fill="#0f172a">helloRun</text>
+</svg>`;
+}
+
+function splitSvgText(value, maxLength, maxLines) {
+  const words = String(value || '').trim().replace(/\s+/g, ' ').split(' ').filter(Boolean);
+  const lines = [];
+  let current = '';
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length > maxLength && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+    if (lines.length === maxLines) break;
+  }
+  if (current && lines.length < maxLines) lines.push(current);
+  if (!lines.length) lines.push('HelloRun');
+  if (words.join(' ').length > lines.join(' ').length) {
+    lines[lines.length - 1] = `${truncateText(lines[lines.length - 1], Math.max(8, maxLength - 1))}...`;
+  }
+  return lines;
+}
+
+function truncateText(value, maxLength) {
+  const safe = String(value || '').trim();
+  if (safe.length <= maxLength) return safe;
+  return safe.slice(0, Math.max(0, maxLength - 3)).trimEnd() + '...';
+}
+
+function escapeXml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function formatBadgeScopeLabel(value) {
+  const scope = String(value || '').trim();
+  if (scope === 'organiser') return 'Organiser achievement';
+  if (scope === 'challenge') return 'Challenge achievement';
+  if (scope === 'global') return 'Global achievement';
+  return 'Event achievement';
+}
+
+function getBadgeCriteriaNarrative(requirementType) {
+  const type = String(requirementType || '').trim();
+  if (type === 'registration_confirmed') return 'Registration was confirmed in HelloRun.';
+  if (type === 'result_approved') return 'A submitted result was reviewed and approved in HelloRun.';
+  if (type === 'distance_completed') return 'The runner completed the required distance with an approved result.';
+  if (type === 'mode_completed') return 'The runner completed the required participation mode with an approved result.';
+  if (type === 'challenge_progress') return 'The runner reached the required verified challenge progress.';
+  if (type === 'global_distance') return 'The runner reached the required verified lifetime distance.';
+  if (type === 'rank_achieved') return 'The runner achieved the required rank on a published leaderboard.';
+  if (type === 'organiser_activity') return 'The organiser completed the required verified platform activity.';
+  return 'The achievement was verified by HelloRun.';
+}
+
+function formatIsoDate(value) {
+  const date = value ? new Date(value) : new Date();
+  if (Number.isNaN(date.getTime())) return new Date().toISOString();
+  return date.toISOString();
 }
 
 function formatAgeFromDob(value) {

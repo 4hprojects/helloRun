@@ -1483,6 +1483,64 @@ exports.sendCertificateIssuedEmailToRunner = async (
   }
 };
 
+exports.sendBadgeEarnedEmailToRunner = async (
+  runnerEmail,
+  runnerFirstName,
+  badgeName,
+  badgeDescription,
+  badgeUrl,
+  options = {}
+) => {
+  if (!process.env.RESEND_API_KEY) {
+    return { skipped: true };
+  }
+  try {
+    const safeBadgeUrl = escapeHtml(badgeUrl || `${process.env.APP_URL || ''}/runner/profile#badges`);
+    const safeBadgeName = escapeHtml(badgeName || 'Achievement Badge');
+    const safeBadgeType = formatBadgeEmailLabel(options.badgeType || options.badgeScope || 'Achievement');
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: runnerEmail,
+      subject: `Badge Earned: ${badgeName || 'Achievement Badge'}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:0;color:#1f2937;line-height:1.5;background:#ffffff;">
+          <div style="background:#0f766e;padding:24px 28px;color:#ffffff;">
+            <p style="margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;">HelloRun Achievement</p>
+            <h2 style="margin:0;font-size:28px;line-height:1.2;">Badge Earned</h2>
+          </div>
+          <div style="padding:28px;">
+          <p>Hi ${escapeHtml(runnerFirstName || 'Runner')},</p>
+            <p>You earned the <strong>${safeBadgeName}</strong> badge on HelloRun.</p>
+          ${badgeDescription ? `<p>${escapeHtml(badgeDescription)}</p>` : ''}
+            <div style="background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;padding:16px;margin:18px 0;">
+              <p style="margin:0 0 8px;color:#115e59;font-size:13px;">${safeBadgeType}</p>
+              <p style="margin:0;"><a href="${safeBadgeUrl}" style="color:#0f766e;font-weight:700;">View verified badge</a></p>
+          </div>
+            <p>You can also manage featured badges from your runner profile.</p>
+            <p style="margin-top:24px;color:#64748b;font-size:13px;">Badge emails are sent only for badge definitions enabled by HelloRun admins.</p>
+          </div>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send badge earned email');
+    }
+    return data;
+  } catch (error) {
+    console.error('Email service error:', error);
+    throw error;
+  }
+};
+
+function formatBadgeEmailLabel(value) {
+  return String(value || 'Achievement')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 exports.sendBasicTestEmail = async (to, subject, message) => {
   if (!process.env.RESEND_API_KEY) {
     return { skipped: true };

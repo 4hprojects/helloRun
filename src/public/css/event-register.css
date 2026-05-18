@@ -97,6 +97,59 @@
   font-size: 0.84rem;
 }
 
+.registration-addon-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.registration-addon-list li {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.62rem 0.7rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+  background: #f8fafc;
+}
+
+.registration-addon-list p {
+  margin: 0;
+  display: grid;
+  gap: 0.16rem;
+}
+
+.registration-addon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.registration-addon-label input {
+  margin: 0;
+}
+
+.registration-addon-list strong {
+  color: #0f172a;
+  font-size: 0.92rem;
+}
+
+.registration-addon-list small {
+  color: #64748b;
+  font-size: 0.76rem;
+  text-transform: capitalize;
+}
+
+.registration-addon-list span {
+  color: #0f172a;
+  font-size: 0.86rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .snapshot-grid,
 .registration-state-grid {
   display: grid;

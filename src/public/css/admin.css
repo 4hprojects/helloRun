@@ -817,6 +817,21 @@
   color: #9a3412;
 }
 
+.status-badge-event {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.status-badge-challenge {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.status-badge-global {
+  background: #dcfce7;
+  color: #166534;
+}
+
 .status-badge-admin {
   background: #ede9fe;
   color: #5b21b6;
@@ -1534,6 +1549,190 @@
   grid-column: 1 / -1;
 }
 
+.admin-badge-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 1.2rem;
+}
+
+.admin-badge-shortcut-card {
+  color: inherit;
+  text-decoration: none;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.admin-badge-shortcut-card:hover,
+.admin-badge-shortcut-card:focus-visible {
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.admin-badge-table-wrap {
+  margin-bottom: 1.25rem;
+}
+
+.admin-badge-analytics {
+  margin: 0 0 1.25rem;
+}
+
+.admin-badge-analytics-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-badge-analytics-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+.admin-badge-analytics-card h4 {
+  color: #1e293b;
+  font-size: 0.96rem;
+  margin: 0 0 0.75rem;
+}
+
+.admin-badge-analytics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin-badge-analytics-list li {
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding-bottom: 0.55rem;
+}
+
+.admin-badge-analytics-list li:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.admin-badge-analytics-list span {
+  color: #334155;
+  font-size: 0.9rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.admin-badge-analytics-list strong {
+  color: #0f172a;
+  font-size: 1.05rem;
+}
+
+.admin-badge-analytics-list small {
+  color: #64748b;
+  grid-column: 1 / -1;
+}
+
+.admin-badge-table td {
+  vertical-align: top;
+}
+
+.admin-badge-awards-header {
+  align-items: end;
+}
+
+.admin-badge-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.admin-badge-filter label {
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.admin-badge-filter select,
+.admin-badge-revoke-form input {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.52rem 0.65rem;
+  font: inherit;
+}
+
+.admin-badge-revoke-form {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.admin-badge-definition-status-form {
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: minmax(11rem, 1fr) auto;
+}
+
+.admin-badge-revoke-form input,
+.admin-badge-definition-status-form input {
+  min-width: 0;
+}
+
+.admin-badge-definition-status-form input[type="text"] {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+  padding: 0.52rem 0.65rem;
+}
+
+.admin-badge-deferred {
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 0.9rem;
+}
+
+.admin-badge-deferred h3 {
+  margin: 0 0 0.35rem;
+}
+
+.admin-badge-deferred p {
+  margin: 0;
+  color: #475569;
+}
+
+.admin-badge-clear-filter {
+  color: #c2410c;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.admin-badge-clear-filter:hover,
+.admin-badge-clear-filter:focus-visible {
+  text-decoration: underline;
+}
+
+.status-badge-verified {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-badge-revoked {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-badge-pending_review {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
 .field-error {
   color: #b91c1c;
   font-weight: 600;
@@ -1851,6 +2050,29 @@
 
   .admin-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-badge-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-badge-analytics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-badge-awards-header,
+  .admin-badge-filter,
+  .admin-badge-revoke-form,
+  .admin-badge-definition-status-form {
+    align-items: stretch;
+  }
+
+  .admin-badge-filter,
+  .admin-badge-revoke-form,
+  .admin-badge-definition-status-form {
+    width: 100%;
+    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .admin-user-modal-compact {

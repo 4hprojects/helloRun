@@ -27,6 +27,11 @@ const {
   markNotificationAsRead,
   markAllNotificationsAsRead
 } = require('../services/notification.service');
+const {
+  getRunnerEarnedBadges,
+  setFeaturedRunnerBadge
+} = require('../services/achievement.service');
+const { getRunnerBadgeProgress } = require('../services/badge-progress.service');
 const stravaService = require('../services/strava.service');
 
 const countries = getCountries();
@@ -41,7 +46,7 @@ exports.getDashboard = async (req, res) => {
 
     const groupQuery = String(req.query.groupQ || '').trim().slice(0, 80);
     const dashboardFilters = getDashboardFilters(req.query);
-    const [registrations, topGroups, searchedGroups, currentRunningGroups, recentGroupActivity, performanceSnapshot] = await Promise.all([
+    const [registrations, topGroups, searchedGroups, currentRunningGroups, recentGroupActivity, performanceSnapshot, recentBadges, badgeProgress] = await Promise.all([
       getRunnerRegistrations(user._id),
       getTopRunningGroups(8),
       groupQuery ? searchRunningGroups(groupQuery, { limit: 10 }) : Promise.resolve([]),
@@ -50,7 +55,9 @@ exports.getDashboard = async (req, res) => {
       getRunnerPerformanceSnapshot(user._id, {
         recentLimit: 8,
         resultStatus: dashboardFilters.resultStatus
-      })
+      }),
+      getRunnerEarnedBadges(user._id, { limit: 4 }).catch(() => []),
+      getRunnerBadgeProgress(user._id, { limit: 4 }).catch(() => [])
     ]);
     const dashboardData = buildRunnerDashboardData(registrations);
     const mergedActivity = mergeRunnerActivity(
@@ -95,7 +102,9 @@ exports.getDashboard = async (req, res) => {
           ...item,
           issuedAtLabel: formatDateTime(item.issuedAt, locale)
         })),
-        results: resultSubmissions
+        results: resultSubmissions,
+        badges: recentBadges,
+        badgeProgress
       },
       stats: dashboardData.stats,
       submissionStats: performanceSnapshot.counts || { total: 0, submitted: 0, approved: 0, rejected: 0, certificates: 0 },
@@ -156,7 +165,7 @@ exports.updateProfile = async (req, res) => {
     const dashboardFilters = getDashboardFilters(req.query);
 
     if (Object.keys(errors).length > 0) {
-      const [registrations, topGroups, currentRunningGroups, recentGroupActivity, performanceSnapshot] = await Promise.all([
+      const [registrations, topGroups, currentRunningGroups, recentGroupActivity, performanceSnapshot, recentBadges, badgeProgress] = await Promise.all([
         getRunnerRegistrations(user._id),
         getTopRunningGroups(8),
         getCurrentRunnerGroups(user),
@@ -164,7 +173,9 @@ exports.updateProfile = async (req, res) => {
         getRunnerPerformanceSnapshot(user._id, {
           recentLimit: 8,
           resultStatus: dashboardFilters.resultStatus
-        })
+        }),
+        getRunnerEarnedBadges(user._id, { limit: 4 }).catch(() => []),
+        getRunnerBadgeProgress(user._id, { limit: 4 }).catch(() => [])
       ]);
       const dashboardData = buildRunnerDashboardData(registrations);
       const mergedActivity = mergeRunnerActivity(
@@ -214,7 +225,9 @@ exports.updateProfile = async (req, res) => {
             reviewedAtLabel: formatDateTime(item.reviewedAt, locale),
             submittedAtRelativeLabel: formatRelativeTime(item.submittedAt),
             reviewedAtRelativeLabel: formatRelativeTime(item.reviewedAt)
-          }))
+          })),
+          badges: recentBadges,
+          badgeProgress
         },
         stats: dashboardData.stats,
         submissionStats: performanceSnapshot.counts || { total: 0, submitted: 0, approved: 0, rejected: 0, certificates: 0 },
@@ -286,7 +299,11 @@ exports.getProfilePage = async (req, res) => {
     const profileData = getRunnerProfileFormData(user);
     const profileCompleteness = getProfileCompleteness(profileData);
     const selectedCountry = (countries || []).find((item) => item.code === profileData.country);
-    const stravaConnection = await stravaService.getConnectionSummary(user._id).catch(() => ({ connected: false }));
+    const [stravaConnection, badges, badgeProgress] = await Promise.all([
+      stravaService.getConnectionSummary(user._id).catch(() => ({ connected: false })),
+      getRunnerEarnedBadges(user._id, { limit: 30 }).catch(() => []),
+      getRunnerBadgeProgress(user._id, { limit: 30 }).catch(() => [])
+    ]);
 
     return res.render('runner/profile', {
       title: 'Personal Information - helloRun',
@@ -296,7 +313,10 @@ exports.getProfilePage = async (req, res) => {
       profileData,
       profileCompleteness,
       selectedCountryName: selectedCountry?.name || 'Not set',
-      stravaConnection
+      stravaConnection,
+      badges,
+      badgeProgress,
+      publicBadgeCollectionPath: user.userId ? `/runners/${encodeURIComponent(user.userId)}/badges` : ''
     });
   } catch (error) {
     console.error('Runner profile page load error:', error);
@@ -305,6 +325,58 @@ exports.getProfilePage = async (req, res) => {
       status: 500,
       message: 'An error occurred while loading your profile page.'
     });
+  }
+};
+
+exports.getRunnerBadges = async (req, res) => {
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Authentication required.' });
+    }
+
+    const badges = await getRunnerEarnedBadges(user._id, {
+      limit: normalizePositiveInt(req.query.limit, 30)
+    });
+
+    return res.json({ success: true, badges });
+  } catch (error) {
+    console.error('Runner badges load error:', error);
+    return res.status(500).json({ success: false, message: 'Unable to load badges.' });
+  }
+};
+
+exports.getRunnerBadgeProgress = async (req, res) => {
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Authentication required.' });
+    }
+
+    const progress = await getRunnerBadgeProgress(user._id, {
+      limit: normalizePositiveInt(req.query.limit, 30)
+    });
+
+    return res.json({ success: true, progress });
+  } catch (error) {
+    console.error('Runner badge progress load error:', error);
+    return res.status(500).json({ success: false, message: 'Unable to load badge progress.' });
+  }
+};
+
+exports.updateFeaturedBadge = async (req, res) => {
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) {
+      return res.redirect('/login');
+    }
+
+    const userBadgeId = String(req.body.userBadgeId || '').trim();
+    await setFeaturedRunnerBadge(user._id, userBadgeId);
+    return res.redirect('/runner/profile?type=success&msg=Featured%20badge%20updated.#badges');
+  } catch (error) {
+    console.error('Featured badge update error:', error);
+    return res.redirect('/runner/profile?type=error&msg=Unable%20to%20update%20featured%20badge.#badges');
   }
 };
 

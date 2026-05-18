@@ -153,6 +153,14 @@ async function syncSubmissionShadow(submission, options = {}) {
       throw new Error(`App user not found for submission ${submission._id} (user mongo_id: ${normalizedSubmission.runner_user_id})`);
     }
 
+    let reviewedByAppUserId = null;
+    if (normalizedSubmission.reviewed_by) {
+      const reviewerRows = await sql`
+        SELECT id FROM app_users WHERE mongo_user_id = ${normalizedSubmission.reviewed_by} LIMIT 1
+      `;
+      reviewedByAppUserId = reviewerRows[0]?.id || null;
+    }
+
     // Upsert submissions_core
     const submissionResult = await sql`
       INSERT INTO submissions_core (
@@ -178,7 +186,7 @@ async function syncSubmissionShadow(submission, options = {}) {
         ${normalizedSubmission.is_personal_record},
         ${normalizedSubmission.submitted_at},
         ${normalizedSubmission.reviewed_at},
-        ${normalizedSubmission.reviewed_by},
+        ${reviewedByAppUserId},
         CURRENT_TIMESTAMP
       )
       ON CONFLICT (mongo_submission_id) DO UPDATE SET

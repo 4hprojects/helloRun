@@ -147,6 +147,9 @@ const blogRoutes = require('./routes/blog.routes');
 const organizerRoutes = require('./routes/organizer.routes');
 const adminRoutes = require('./routes/admin.routes');
 const stravaRoutes = require('./routes/strava.routes');
+const shopRoutes = require('./routes/shop.routes');
+const organizerShopRoutes = require('./routes/organizer-shop.routes');
+const adminShopRoutes = require('./routes/admin-shop.routes');
 const timingSystemWebhooks = require('./routes/webhooks/timing-system');
 
 // Auth locals for all views (BEFORE routes)
@@ -157,8 +160,11 @@ app.use('/', pageRoutes);
 app.use('/', runnerRoutes);
 app.use('/', stravaRoutes);
 app.use('/', blogRoutes);
+app.use('/', shopRoutes);
 app.use('/organizer', organizerRoutes);
+app.use('/organizer', organizerShopRoutes);
 app.use('/admin', adminRoutes);
+app.use('/admin', adminShopRoutes);
 app.use('/webhooks/timing-system', timingSystemWebhooks);
 
 // Chrome DevTools occasionally probes this path; return empty success to avoid noisy 404 logs.

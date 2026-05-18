@@ -34,6 +34,7 @@
 <a href="#identity"><i data-lucide="fingerprint"></i>Identity</a>
 <a href="#contact"><i data-lucide="mail"></i>Contact</a>
 <a href="#emergency"><i data-lucide="phone-forwarded"></i>Emergency</a>
+<a href="#badges"><i data-lucide="award"></i>Badges</a>
 <a href="#integrations"><i data-lucide="plug"></i>Integrations</a>
 <a href="#account"><i data-lucide="settings"></i>Account</a>
         </nav>
@@ -136,6 +137,91 @@
               <button type="button" class="btn btn-outline" data-cancel-edit>Cancel</button>
             </div>
           </form>
+        </article>
+
+        <article class="runner-profile-card" id="badges">
+          <div class="runner-profile-panel-header">
+            <h3>Achievement Badges</h3>
+            <span class="profile-readonly-note"><%= (badges || []).length %> earned</span>
+          </div>
+          <% const earnedBadges = badges || []; %>
+          <% const progressBadges = badgeProgress || []; %>
+          <% if (publicBadgeCollectionPath) { %>
+            <div class="runner-profile-actions profile-badge-public-actions">
+              <a href="<%= publicBadgeCollectionPath %>" class="btn btn-outline btn-sm" target="_blank" rel="noopener noreferrer">
+                <i data-lucide="external-link"></i>
+                Public Collection
+              </a>
+            </div>
+          <% } %>
+          <section class="profile-badge-progress-section" aria-label="Challenge badge progress">
+            <h4>Challenge Progress</h4>
+            <% if (progressBadges.length) { %>
+              <div class="profile-badge-progress-grid">
+                <% progressBadges.slice(0, 8).forEach((item) => { %>
+                  <% const percent = Math.max(0, Math.min(100, Number(item.progressPercent || 0))); %>
+                  <article class="profile-badge-progress-card">
+                    <div class="profile-badge-progress-card-top">
+                      <span class="profile-badge-icon"><i data-lucide="trending-up"></i></span>
+                      <strong><%= percent.toFixed(percent % 1 === 0 ? 0 : 1) %>%</strong>
+                    </div>
+                    <h5><%= item.name %></h5>
+                    <div class="profile-badge-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= Math.round(percent) %>">
+                      <span style="width: <%= percent %>%"></span>
+                    </div>
+                    <p><%= Number(item.currentValue || 0).toFixed(2) %> km / <%= Number(item.targetValue || 0).toFixed(2) %> km</p>
+                  </article>
+                <% }) %>
+              </div>
+            <% } else { %>
+              <p class="profile-badge-progress-empty">No active challenge progress yet.</p>
+            <% } %>
+          </section>
+          <% if (earnedBadges.length) { %>
+            <% const featuredBadge = earnedBadges.find((badge) => badge.isFeatured); %>
+            <% if (featuredBadge) { %>
+              <div class="profile-featured-badge">
+                <span class="profile-badge-icon"><i data-lucide="award"></i></span>
+                <div>
+                  <p>Featured Badge</p>
+                  <strong><%= featuredBadge.name %></strong>
+                  <small><%= featuredBadge.description || 'Verified HelloRun achievement.' %></small>
+                </div>
+              </div>
+            <% } %>
+            <div class="profile-badge-grid" aria-label="Earned achievement badges">
+              <% earnedBadges.slice(0, 12).forEach((badge) => { %>
+                <article class="profile-badge-card<%= badge.isFeatured ? ' is-featured' : '' %>">
+                  <div class="profile-badge-card-top">
+                    <span class="profile-badge-icon"><i data-lucide="award"></i></span>
+                    <% if (badge.isFeatured) { %>
+                      <span class="profile-badge-state">Featured</span>
+                    <% } %>
+                  </div>
+                  <h4><%= badge.name %></h4>
+                  <p><%= badge.description || 'Verified HelloRun achievement.' %></p>
+                  <small><%= badge.badgeType ? badge.badgeType.replace(/_/g, ' ') : 'achievement' %></small>
+                  <a href="/badges/<%= badge.userBadgeId %>" class="profile-badge-share-link" target="_blank" rel="noopener noreferrer">
+                    <i data-lucide="external-link"></i>
+                    <span>Share</span>
+                  </a>
+                  <% if (!badge.isFeatured) { %>
+                    <form method="POST" action="/runner/profile/badges/featured" class="inline-form profile-badge-action">
+                      <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+                      <input type="hidden" name="userBadgeId" value="<%= badge.userBadgeId %>">
+                      <button type="submit" class="btn btn-outline btn-sm">Feature</button>
+                    </form>
+                  <% } %>
+                </article>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <div class="profile-empty-state">
+              <i data-lucide="award"></i>
+              <strong>No badges yet</strong>
+              <p>Verified event badges will appear here after eligible registrations or approved results.</p>
+            </div>
+          <% } %>
         </article>
 
         <article class="runner-profile-card" id="integrations">

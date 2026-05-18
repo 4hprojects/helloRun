@@ -20,8 +20,12 @@ router.use((req, res, next) => {
 
 router.get('/runner/dashboard', requireAuth, runnerController.getDashboard);
 router.get('/runner/dashboard/result-submissions', requireAuth, runnerController.getDashboardResultSubmissions);
+router.get('/runner/dashboard/badges', requireAuth, runnerController.getRunnerBadges);
+router.get('/runner/dashboard/badge-progress', requireAuth, runnerController.getRunnerBadgeProgress);
 router.get('/runner/submissions/eligible', requireAuth, runnerController.getEligibleResultSubmissionOptions);
 router.get('/runner/profile', requireAuth, runnerController.getProfilePage);
+router.get('/runner/profile/badges', requireAuth, runnerController.getRunnerBadges);
+router.get('/runner/profile/badge-progress', requireAuth, runnerController.getRunnerBadgeProgress);
 router.get('/runner/notifications', requireAuth, runnerController.getNotifications);
 router.get('/runner/groups', requireAuth, runnerController.getRunningGroupsPage);
 router.get('/runner/groups/create', requireAuth, runnerController.getCreateRunningGroupPage);
@@ -33,6 +37,7 @@ router.get('/runner/security/password', requireAuth, runnerController.getPasswor
 router.post('/runner/profile', requireAuth, runnerController.updateProfile);
 router.post('/runner/profile/contact', requireAuth, runnerController.updateProfileContact);
 router.post('/runner/profile/emergency', requireAuth, runnerController.updateProfileEmergency);
+router.post('/runner/profile/badges/featured', requireAuth, runnerController.updateFeaturedBadge);
 router.post('/runner/security/password', requireAuth, runnerController.updatePasswordSettings);
 router.post('/runner/auth/google/unlink', requireAuth, runnerController.unlinkGoogleAuth);
 router.post('/runner/notifications/read-all', requireAuth, runnerController.markAllNotificationsRead);

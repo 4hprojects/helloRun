@@ -120,6 +120,7 @@ router.post('/results', verifyWebhookSignature, async (req, res) => {
           pacePerKm: pace_per_km,
           placeInCategory: otherFields.place_in_category || null,
           dataSource: 'timing_system_import',
+          resultStatus: 'approved',
           notes: `Imported from ${system_name} via webhook`
         });
 

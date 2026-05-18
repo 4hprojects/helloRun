@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Badge Management - helloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="admin-page admin-badges-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row admin-dashboard-header">
+        <div>
+          <h2>Badge Management</h2>
+          <p>Review badge definitions, earned awards, and revocation history.</p>
+        </div>
+        <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+      </div>
+
+      <% if (message) { %>
+        <div class="admin-alert admin-alert-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <%
+        const badgeAnalytics = analytics || {};
+        const scopeBreakdown = Array.isArray(badgeAnalytics.byScope) ? badgeAnalytics.byScope : [];
+        const typeBreakdown = Array.isArray(badgeAnalytics.byType) ? badgeAnalytics.byType : [];
+        const topDefinitions = Array.isArray(badgeAnalytics.topDefinitions) ? badgeAnalytics.topDefinitions : [];
+      %>
+
+      <div class="admin-badge-metrics">
+        <article class="metric-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Badge Definitions</p>
+            <i data-lucide="award" class="metric-card-icon-sm" aria-hidden="true"></i>
+          </div>
+          <p class="metric-value"><%= Number(badgeAnalytics.totalDefinitions || badges.length || 0) %></p>
+          <p class="metric-helper"><%= Number(badgeAnalytics.activeDefinitions || 0) %> active / <%= Number(badgeAnalytics.disabledDefinitions || 0) %> disabled</p>
+        </article>
+        <article class="metric-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Verified Awards</p>
+            <i data-lucide="medal" class="metric-card-icon-sm" aria-hidden="true"></i>
+          </div>
+          <p class="metric-value"><%= Number(badgeAnalytics.verifiedAwards || 0) %></p>
+          <p class="metric-helper"><%= Number(badgeAnalytics.awardedUsers || 0) %> awarded users</p>
+        </article>
+        <article class="metric-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Revocation Rate</p>
+            <i data-lucide="shield-alert" class="metric-card-icon-sm" aria-hidden="true"></i>
+          </div>
+          <p class="metric-value"><%= Number(badgeAnalytics.revocationRate || 0).toFixed(1) %>%</p>
+          <p class="metric-helper"><%= Number(badgeAnalytics.revokedAwards || 0) %> revoked / <%= Number(badgeAnalytics.totalAwards || 0) %> total</p>
+        </article>
+        <a href="/admin/badges?scope=organiser&status=verified" class="metric-card admin-badge-shortcut-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Organiser Awards</p>
+            <i data-lucide="shield-check" class="metric-card-icon-sm" aria-hidden="true"></i>
+          </div>
+          <p class="metric-value metric-value-sm">Review</p>
+          <p class="metric-helper">Jump to organiser-scope awards</p>
+        </a>
+      </div>
+
+      <section class="admin-badge-analytics" aria-labelledby="badge-analytics-heading">
+        <div class="dash-section-header">
+          <h3 id="badge-analytics-heading" class="dashboard-section-title">Badge Analytics</h3>
+          <span class="metric-helper">Scope: <%= filters.scope %></span>
+        </div>
+        <div class="admin-badge-analytics-grid">
+          <article class="admin-badge-analytics-card">
+            <h4>By Scope</h4>
+            <% if (scopeBreakdown.length) { %>
+              <ul class="admin-badge-analytics-list">
+                <% scopeBreakdown.forEach((item) => { %>
+                  <li>
+                    <span><span class="status-badge status-badge-<%= item.scope %>"><%= item.scope %></span></span>
+                    <strong><%= item.verifiedAwards %></strong>
+                    <small><%= item.definitionCount %> definitions / <%= item.revokedAwards %> revoked</small>
+                  </li>
+                <% }) %>
+              </ul>
+            <% } else { %>
+              <p class="metric-helper">No badge scope data yet.</p>
+            <% } %>
+          </article>
+          <article class="admin-badge-analytics-card">
+            <h4>By Type</h4>
+            <% if (typeBreakdown.length) { %>
+              <ul class="admin-badge-analytics-list">
+                <% typeBreakdown.forEach((item) => { %>
+                  <li>
+                    <span><%= item.type %></span>
+                    <strong><%= item.verifiedAwards %></strong>
+                    <small><%= item.definitionCount %> definitions / <%= item.revokedAwards %> revoked</small>
+                  </li>
+                <% }) %>
+              </ul>
+            <% } else { %>
+              <p class="metric-helper">No badge type data yet.</p>
+            <% } %>
+          </article>
+          <article class="admin-badge-analytics-card">
+            <h4>Top Awarded Definitions</h4>
+            <% if (topDefinitions.length) { %>
+              <ul class="admin-badge-analytics-list">
+                <% topDefinitions.forEach((item) => { %>
+                  <li>
+                    <span>
+                      <%= item.name %>
+                      <% if (!item.isActive) { %><small>disabled</small><% } %>
+                    </span>
+                    <strong><%= item.verifiedAwards %></strong>
+                    <small><%= item.badgeScope %> / <%= item.revokedAwards %> revoked</small>
+                  </li>
+                <% }) %>
+              </ul>
+            <% } else { %>
+              <p class="metric-helper">No awarded definitions yet.</p>
+            <% } %>
+          </article>
+        </div>
+      </section>
+
+      <div class="dash-section-header">
+        <h3 class="dashboard-section-title">Badge Definitions</h3>
+        <form method="GET" action="/admin/badges" class="admin-badge-filter">
+          <input type="hidden" name="status" value="<%= filters.status %>">
+          <label for="definitionScope">Scope</label>
+          <select id="definitionScope" name="scope" onchange="this.form.submit()">
+            <% badgeScopes.forEach((scopeOption) => { %>
+              <option value="<%= scopeOption %>" <%= filters.scope === scopeOption ? 'selected' : '' %>><%= scopeOption.replace('_', ' ') %></option>
+            <% }) %>
+          </select>
+        </form>
+      </div>
+      <% if (badges.length) { %>
+        <div class="admin-users-table-wrap admin-badge-table-wrap">
+          <table class="admin-table admin-badge-table">
+            <thead>
+              <tr>
+                <th>Badge</th>
+                <th>Scope</th>
+                <th>Type</th>
+                <th>Requirement</th>
+                <th>Status</th>
+                <th>Email</th>
+                <th>Events</th>
+                <th>Earned</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% badges.forEach((badge) => { %>
+                <% const badgeDefinitionId = badge.id || badge.badgeDefinitionId; const badgeIsActive = badge.is_active !== false && badge.isActive !== false; %>
+                <tr>
+                  <td>
+                    <strong><%= badge.name %></strong>
+                    <div><small><%= badge.badge_code || badge.badgeCode || '' %></small></div>
+                  </td>
+                  <td><span class="status-badge status-badge-<%= badge.badge_scope || badge.badgeScope || 'event' %>"><%= badge.badge_scope || badge.badgeScope || 'event' %></span></td>
+                  <td><span class="status-badge status-badge-admin"><%= badge.badge_type || badge.badgeType || 'badge' %></span></td>
+                  <td><%= badge.requirement_type || badge.requirementType || 'N/A' %></td>
+                  <td>
+                    <span class="status-badge status-badge-<%= badgeIsActive ? 'verified' : 'revoked' %>"><%= badgeIsActive ? 'active' : 'disabled' %></span>
+                  </td>
+                  <td>
+                    <form
+                      method="POST"
+                      action="/admin/badge-definitions/<%= badgeDefinitionId %>/email"
+                      class="admin-badge-definition-status-form"
+                    >
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                      <input type="hidden" name="scope" value="<%= filters.scope %>">
+                      <input type="hidden" name="status" value="<%= filters.status %>">
+                      <% const emailNotificationLevel = badge.email_notification_level || badge.emailNotificationLevel || 'none'; %>
+                      <select name="emailNotificationLevel" aria-label="Email notification level for <%= badge.name %>">
+                        <% ['none', 'major', 'all'].forEach((emailLevel) => { %>
+                          <option value="<%= emailLevel %>" <%= emailNotificationLevel === emailLevel ? 'selected' : '' %>><%= emailLevel %></option>
+                        <% }) %>
+                      </select>
+                      <input type="hidden" name="reason" value="Admin badge email rollout update">
+                      <button type="submit" class="btn btn-sm btn-secondary">Save</button>
+                    </form>
+                  </td>
+                  <td><%= Number(badge.event_badge_count || badge.eventBadgeCount || 0) %></td>
+                  <td><%= Number(badge.earned_count || badge.earnedCount || 0) %></td>
+                  <td>
+                    <form
+                      method="POST"
+                      action="/admin/badge-definitions/<%= badgeDefinitionId %>/status"
+                      class="admin-badge-definition-status-form"
+                      onsubmit="return confirm('<%= badgeIsActive ? 'Disable this badge definition? Future awards will pause, but existing awards remain.' : 'Enable this badge definition for future awards?' %>');"
+                    >
+                      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                      <input type="hidden" name="scope" value="<%= filters.scope %>">
+                      <input type="hidden" name="status" value="<%= filters.status %>">
+                      <input type="hidden" name="action" value="<%= badgeIsActive ? 'disable' : 'enable' %>">
+                      <% if (badgeIsActive) { %>
+                        <input type="text" name="reason" minlength="10" placeholder="Disable reason" aria-label="Disable reason for <%= badge.name %>">
+                        <button type="submit" class="btn btn-sm btn-danger">Disable</button>
+                      <% } else { %>
+                        <input type="hidden" name="reason" value="Admin enabled badge definition">
+                        <button type="submit" class="btn btn-sm btn-secondary">Enable</button>
+                      <% } %>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <p>No badge definitions exist yet.</p>
+        </div>
+      <% } %>
+
+      <div class="dash-section-header admin-badge-awards-header">
+        <h3 class="dashboard-section-title">Earned Badge Awards</h3>
+        <form method="GET" action="/admin/badges" class="admin-badge-filter">
+          <label for="badgeScope">Scope</label>
+          <select id="badgeScope" name="scope" onchange="this.form.submit()">
+            <% badgeScopes.forEach((scopeOption) => { %>
+              <option value="<%= scopeOption %>" <%= filters.scope === scopeOption ? 'selected' : '' %>><%= scopeOption.replace('_', ' ') %></option>
+            <% }) %>
+          </select>
+          <label for="badgeStatus">Status</label>
+          <select id="badgeStatus" name="status" onchange="this.form.submit()">
+            <% badgeStatuses.forEach((statusOption) => { %>
+              <option value="<%= statusOption %>" <%= filters.status === statusOption ? 'selected' : '' %>><%= statusOption.replace('_', ' ') %></option>
+            <% }) %>
+          </select>
+        </form>
+      </div>
+
+      <% if (userBadges.length) { %>
+        <div class="admin-users-table-wrap admin-badge-table-wrap">
+          <table class="admin-table admin-badge-table">
+            <thead>
+              <tr>
+                <th>Award</th>
+                <th>Scope</th>
+                <th>Runner</th>
+                <th>Event</th>
+                <th>Status</th>
+                <th>Earned</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% userBadges.forEach((award) => { %>
+                <tr>
+                  <td>
+                    <strong><%= award.badgeName %></strong>
+                    <div><small><%= award.badgeType %> / <%= award.requirementType %></small></div>
+                    <% if (award.verificationStatus === 'verified') { %>
+                      <div><small><a href="/badges/<%= award.userBadgeId %>" target="_blank" rel="noopener noreferrer">Open public badge</a></small></div>
+                    <% } %>
+                  </td>
+                  <td><span class="status-badge status-badge-<%= award.badgeScope || 'event' %>"><%= award.badgeScope || 'event' %></span></td>
+                  <td>
+                    <strong><%= award.runnerName || 'Runner' %></strong>
+                    <div><small><%= award.runnerEmail || award.mongoUserId || 'N/A' %></small></div>
+                  </td>
+                  <td><%= award.eventTitle || award.mongoEventId || 'N/A' %></td>
+                  <td>
+                    <span class="status-badge status-badge-<%= award.verificationStatus %>"><%= award.verificationStatus %></span>
+                    <% if (award.revokeReason) { %>
+                      <div><small><%= award.revokeReason %></small></div>
+                    <% } %>
+                  </td>
+                  <td><%= award.earnedAt ? formatDateTime(award.earnedAt) : 'N/A' %></td>
+                  <td>
+                    <% if (award.verificationStatus === 'verified') { %>
+                      <form method="POST" action="/admin/user-badges/<%= award.userBadgeId %>/revoke" class="admin-badge-revoke-form" onsubmit="return confirm('Revoke this badge award?');">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <input type="text" name="reason" value="Admin review revocation" minlength="5" aria-label="Revocation reason">
+                        <button type="submit" class="btn btn-sm btn-danger">Revoke</button>
+                      </form>
+                    <% } else { %>
+                      <span class="metric-helper">No action</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <p>No badge awards match this filter.</p>
+        </div>
+      <% } %>
+
+      <div class="dash-section-header">
+        <h3 class="dashboard-section-title">Recent Badge Audit Logs</h3>
+        <% if (filters.scope !== 'all') { %>
+          <a href="/admin/badges?status=<%= filters.status %>" class="admin-badge-clear-filter">Clear scope filter</a>
+        <% } %>
+      </div>
+      <% if (auditLogs.length) { %>
+        <div class="admin-users-table-wrap admin-badge-table-wrap">
+          <table class="admin-table admin-badge-table">
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Badge</th>
+                <th>Scope</th>
+                <th>Runner</th>
+                <th>Actor</th>
+                <th>Reason</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% auditLogs.forEach((log) => { %>
+                <tr>
+                  <td><span class="status-badge status-badge-admin"><%= log.action %></span></td>
+                  <td><%= log.badgeName || log.metadata?.badgeCode || 'N/A' %></td>
+                  <td><span class="status-badge status-badge-<%= log.badgeScope || 'event' %>"><%= log.badgeScope || 'event' %></span></td>
+                  <td>
+                    <strong><%= log.runnerName || 'N/A' %></strong>
+                    <% if (log.runnerEmail) { %><div><small><%= log.runnerEmail %></small></div><% } %>
+                  </td>
+                  <td>
+                    <strong><%= log.actorName || 'System' %></strong>
+                    <% if (log.actorEmail) { %><div><small><%= log.actorEmail %></small></div><% } %>
+                  </td>
+                  <td><%= log.reason || log.metadata?.requirementType || 'N/A' %></td>
+                  <td><%= log.createdAt ? formatDateTime(log.createdAt) : 'N/A' %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <p>No badge audit logs have been recorded yet.</p>
+        </div>
+      <% } %>
+
+      <section class="admin-badge-deferred">
+        <h3>Recalculate Badge Awards</h3>
+        <p>Run an additive recalculation after rule or data changes. Existing awards stay intact, revoked awards are not recreated, and each run is capped.</p>
+        <form
+          method="POST"
+          action="/admin/badges/recalculate"
+          class="admin-badge-filter"
+          onsubmit="return confirm('Recalculate badge awards for the selected scope? This may create new awards but will not revoke existing awards.');"
+        >
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <label for="recalculateScope">Scope</label>
+          <select id="recalculateScope" name="scope">
+            <option value="all">all</option>
+            <option value="event">event</option>
+            <option value="organiser">organiser</option>
+          </select>
+          <label for="recalculateLimit">Batch limit</label>
+          <select id="recalculateLimit" name="limit">
+            <option value="25">25</option>
+            <option value="50" selected>50</option>
+            <option value="100">100</option>
+            <option value="250">250</option>
+          </select>
+          <input type="text" name="reason" minlength="10" value="Admin badge rule recalculation" aria-label="Recalculation reason">
+          <button type="submit" class="btn btn-sm btn-secondary">Recalculate</button>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

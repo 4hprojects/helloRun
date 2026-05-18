@@ -11,6 +11,7 @@ const {
   createRaceKit,
   logResultImport,
   recordOnsiteResult,
+  approveOnsiteResult,
   getEventCheckInSummary,
   getEventBibAssignmentStatus
 } = require('../../services/onsite-operations.service');
@@ -140,7 +141,7 @@ router.post('/events/:eventId/result-imports', requireAuth, requireRole('organis
 router.post('/events/:eventId/onsite-results', requireAuth, requireRole('organiser', 'admin'), verifyEventAccess, async (req, res) => {
   try {
     const { eventId } = req.params;
-    const { registrationId, category, distanceKm, elapsedMs, displayTime, pacePerKm, placeInCategory, dataSource, notes } = req.body;
+    const { registrationId, category, distanceKm, elapsedMs, displayTime, pacePerKm, placeInCategory, dataSource, notes, resultStatus } = req.body;
 
     if (!registrationId) {
       return res.status(400).json({ error: 'registrationId required' });
@@ -154,7 +155,9 @@ router.post('/events/:eventId/onsite-results', requireAuth, requireRole('organis
       pacePerKm,
       placeInCategory,
       dataSource: dataSource || 'manual_entry',
-      notes
+      notes,
+      resultStatus,
+      performedBy: req.user?.mongoUserId || req.session?.userId || null
     });
 
     res.status(201).json({
@@ -164,6 +167,27 @@ router.post('/events/:eventId/onsite-results', requireAuth, requireRole('organis
     });
   } catch (error) {
     console.error('Error recording onsite result:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Approve an onsite result and evaluate achievement badges
+router.post('/events/:eventId/onsite-results/:resultId/approve', requireAuth, requireRole('organiser', 'admin'), verifyEventAccess, async (req, res) => {
+  try {
+    const { eventId, resultId } = req.params;
+    const approved = await approveOnsiteResult(eventId, resultId, {
+      performedBy: req.user?.mongoUserId || req.session?.userId || null,
+      notes: req.body?.notes || null
+    });
+
+    res.json({
+      success: true,
+      message: 'Onsite result approved',
+      result: approved.result,
+      awardsCreated: approved.awards.length
+    });
+  } catch (error) {
+    console.error('Error approving onsite result:', error);
     res.status(500).json({ error: error.message });
   }
 });

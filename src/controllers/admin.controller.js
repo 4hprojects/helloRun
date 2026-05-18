@@ -11,6 +11,18 @@ const Submission = require('../models/Submission');
 const PrivacyPolicy = require('../models/PrivacyPolicy');
 const communicationService = require('../services/communication.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
+const { listRecentBadgeAuditLogs } = require('../services/badge-audit.service');
+const { generateDefaultEventBadgesInBackground } = require('../services/event-badge.service');
+const { evaluateOrganiserAchievementsInBackground } = require('../services/achievement.service');
+const {
+  listBadgeDefinitions,
+  listAdminUserBadges,
+  getAdminBadgeAnalytics,
+  revokeUserBadge,
+  updateBadgeDefinitionStatus,
+  updateBadgeDefinitionEmailLevel,
+  recalculateBadgeAwards
+} = require('../services/achievement.service');
 const uploadService = require('../services/upload.service');
 const { markdownToHtml } = require('../utils/markdown');
 const { sanitizeHtml } = require('../utils/sanitize');
@@ -49,6 +61,8 @@ const ADMIN_USER_ORGANIZER_STATUSES = ['not_applied', 'pending', 'approved', 're
 const ADMIN_USER_AUTH_PROVIDERS = ['local', 'google'];
 const ADMIN_USER_SORTS = ['newest', 'oldest', 'updated', 'role'];
 const ADMIN_USERS_PER_PAGE = 25;
+const ADMIN_BADGE_STATUSES = ['verified', 'revoked', 'pending_review', 'all'];
+const ADMIN_BADGE_SCOPES = ['all', 'event', 'challenge', 'global', 'organiser'];
 const adminUserProfileCountries = getCountries();
 const POLICY_HEADING_PATTERNS = [
   /^hello\s*run\s*privacy\s*policy$/i,
@@ -205,6 +219,19 @@ function getAdminPageMessage(query = {}) {
   const text = String(query.msg || '').trim();
   if (!text || !['success', 'error', 'info', 'warning'].includes(type)) return null;
   return { type, text };
+}
+
+function acceptsJson(req) {
+  const accept = String(req.get('accept') || '').toLowerCase();
+  if (accept.includes('text/html') && !accept.includes('application/json')) {
+    return false;
+  }
+  return true;
+}
+
+function normalizePositiveInt(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
 function normalizeAdminEventFilters(query = {}) {
@@ -1526,6 +1553,9 @@ exports.approveApplication = async (req, res) => {
       organizerStatus: 'approved',
       organizerApplicationId: application._id
     });
+    evaluateOrganiserAchievementsInBackground(userId, {
+      performedBy: req.session.userId
+    });
 
     recordCriticalAuditEventInBackground({
       actorMongoUserId: req.session.userId,
@@ -1930,6 +1960,12 @@ exports.approveEvent = async (req, res) => {
       userAgent: getRequestUserAgent(req),
       occurredAt: event.approvedAt
     });
+    generateDefaultEventBadgesInBackground(event, {
+      performedBy: req.session.userId
+    });
+    evaluateOrganiserAchievementsInBackground(event.organizerId, {
+      performedBy: req.session.userId
+    });
     return res.json({ success: true, message: 'Event approved and published.' });
   } catch (error) {
     console.error('approveEvent error:', error);
@@ -2165,6 +2201,215 @@ exports.dashboard = async (req, res) => {
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading the admin dashboard.');
+  }
+};
+
+exports.listBadges = async (req, res) => {
+  try {
+    const wantsJson = acceptsJson(req);
+    const statusFilter = ADMIN_BADGE_STATUSES.includes(String(req.query.status || '').trim())
+      ? String(req.query.status).trim()
+      : 'verified';
+    const scopeFilter = ADMIN_BADGE_SCOPES.includes(String(req.query.scope || '').trim())
+      ? String(req.query.scope).trim()
+      : 'all';
+    const badgeScope = scopeFilter === 'all' ? '' : scopeFilter;
+    const [badges, userBadges, auditLogs, analytics] = await Promise.all([
+      listBadgeDefinitions({ limit: 200, badgeScope }),
+      listAdminUserBadges({
+        limit: normalizePositiveInt(req.query.limit, 50),
+        status: statusFilter,
+        badgeScope
+      }),
+      listRecentBadgeAuditLogs({ limit: 30, badgeScope }),
+      getAdminBadgeAnalytics({ badgeScope })
+    ]);
+    if (!wantsJson) {
+      return res.render('admin/badges', {
+        title: 'Badge Management - helloRun Admin',
+        badges,
+        userBadges,
+        auditLogs,
+        analytics,
+        filters: {
+          status: statusFilter,
+          scope: scopeFilter
+        },
+        badgeStatuses: ADMIN_BADGE_STATUSES,
+        badgeScopes: ADMIN_BADGE_SCOPES,
+        message: getAdminPageMessage(req.query),
+        formatDateTime: formatAdminDateTime
+      });
+    }
+    return res.json({ success: true, badges, userBadges, auditLogs, analytics, filters: { status: statusFilter, scope: scopeFilter } });
+  } catch (error) {
+    console.error('listBadges error:', error);
+    if (!acceptsJson(req)) {
+      return renderServerError(res, error, 'An error occurred while loading badge management.');
+    }
+    return res.status(500).json({ success: false, message: 'Failed to load badges.' });
+  }
+};
+
+exports.revokeBadge = async (req, res) => {
+  try {
+    const wantsJson = acceptsJson(req);
+    const reason = String(req.body.reason || '').trim();
+    if (reason.length < 5) {
+      if (!wantsJson) {
+        return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'Revocation reason is required.'));
+      }
+      return res.status(400).json({ success: false, message: 'Revocation reason is required.' });
+    }
+
+    const revoked = await revokeUserBadge(req.params.userBadgeId, {
+      performedBy: req.session.userId,
+      reason
+    });
+    if (!revoked) {
+      if (!wantsJson) {
+        return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'Badge award not found.'));
+      }
+      return res.status(404).json({ success: false, message: 'Badge award not found.' });
+    }
+
+    if (!wantsJson) {
+      return res.redirect(buildAdminRedirect('/admin/badges', 'success', 'Badge award revoked.'));
+    }
+    return res.json({ success: true, badge: revoked });
+  } catch (error) {
+    console.error('revokeBadge error:', error);
+    if (!acceptsJson(req)) {
+      return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'Failed to revoke badge.'));
+    }
+    return res.status(500).json({ success: false, message: 'Failed to revoke badge.' });
+  }
+};
+
+exports.updateBadgeDefinitionStatus = async (req, res) => {
+  try {
+    const wantsJson = acceptsJson(req);
+    const action = String(req.body.action || '').trim();
+    const isActive = action === 'enable';
+    if (!['enable', 'disable'].includes(action)) {
+      if (!wantsJson) {
+        return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'Invalid badge definition action.'));
+      }
+      return res.status(400).json({ success: false, message: 'Invalid badge definition action.' });
+    }
+
+    const reason = String(req.body.reason || '').trim();
+    if (!isActive && reason.length < 10) {
+      if (!wantsJson) {
+        return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'A disable reason of at least 10 characters is required.'));
+      }
+      return res.status(400).json({ success: false, message: 'A disable reason of at least 10 characters is required.' });
+    }
+
+    const updated = await updateBadgeDefinitionStatus(req.params.badgeDefinitionId, {
+      performedBy: req.session.userId,
+      isActive,
+      reason: reason || (isActive ? 'Admin enabled badge definition' : '')
+    });
+    if (!updated) {
+      if (!wantsJson) {
+        return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'Badge definition not found or already in that state.'));
+      }
+      return res.status(404).json({ success: false, message: 'Badge definition not found or already in that state.' });
+    }
+
+    const params = new URLSearchParams({
+      type: 'success',
+      msg: isActive ? 'Badge definition enabled.' : 'Badge definition disabled.'
+    });
+    const scope = String(req.body.scope || '').trim();
+    const status = String(req.body.status || '').trim();
+    if (scope) params.set('scope', scope);
+    if (status) params.set('status', status);
+
+    if (!wantsJson) {
+      return res.redirect(`/admin/badges?${params.toString()}`);
+    }
+    return res.json({ success: true, badgeDefinition: updated });
+  } catch (error) {
+    console.error('updateBadgeDefinitionStatus error:', error);
+    if (!acceptsJson(req)) {
+      return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'Failed to update badge definition.'));
+    }
+    return res.status(500).json({ success: false, message: 'Failed to update badge definition.' });
+  }
+};
+
+exports.updateBadgeDefinitionEmailLevel = async (req, res) => {
+  try {
+    const wantsJson = acceptsJson(req);
+    const emailNotificationLevel = String(req.body.emailNotificationLevel || '').trim();
+    const reason = String(req.body.reason || '').trim();
+
+    const updated = await updateBadgeDefinitionEmailLevel(req.params.badgeDefinitionId, {
+      performedBy: req.session.userId,
+      emailNotificationLevel,
+      reason: reason || `Admin set badge email level to ${emailNotificationLevel}`
+    });
+    if (!updated) {
+      if (!wantsJson) {
+        return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'Badge email notification level was unchanged or invalid.'));
+      }
+      return res.status(400).json({ success: false, message: 'Badge email notification level was unchanged or invalid.' });
+    }
+
+    const params = new URLSearchParams({
+      type: 'success',
+      msg: 'Badge email notification level updated.'
+    });
+    const scope = String(req.body.scope || '').trim();
+    const status = String(req.body.status || '').trim();
+    if (scope) params.set('scope', scope);
+    if (status) params.set('status', status);
+
+    if (!wantsJson) {
+      return res.redirect(`/admin/badges?${params.toString()}`);
+    }
+    return res.json({ success: true, badgeDefinition: updated });
+  } catch (error) {
+    console.error('updateBadgeDefinitionEmailLevel error:', error);
+    if (!acceptsJson(req)) {
+      return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'Failed to update badge email notification level.'));
+    }
+    return res.status(500).json({ success: false, message: 'Failed to update badge email notification level.' });
+  }
+};
+
+exports.recalculateBadges = async (req, res) => {
+  try {
+    const wantsJson = acceptsJson(req);
+    const scope = String(req.body.scope || 'all').trim();
+    const limit = normalizePositiveInt(req.body.limit, 50);
+    const reason = String(req.body.reason || '').trim();
+    if (reason.length < 10) {
+      if (!wantsJson) {
+        return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'A recalculation reason of at least 10 characters is required.'));
+      }
+      return res.status(400).json({ success: false, message: 'A recalculation reason of at least 10 characters is required.' });
+    }
+
+    const result = await recalculateBadgeAwards({
+      scope,
+      limit,
+      reason,
+      performedBy: req.session.userId
+    });
+    const message = `Badge recalculation finished. ${result.awardsCreated} new award${result.awardsCreated === 1 ? '' : 's'} created.`;
+    if (!wantsJson) {
+      return res.redirect(buildAdminRedirect('/admin/badges', result.errors.length ? 'error' : 'success', message));
+    }
+    return res.json({ success: true, result });
+  } catch (error) {
+    console.error('recalculateBadges error:', error);
+    if (!acceptsJson(req)) {
+      return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'Failed to recalculate badge awards.'));
+    }
+    return res.status(500).json({ success: false, message: 'Failed to recalculate badge awards.' });
   }
 };
 

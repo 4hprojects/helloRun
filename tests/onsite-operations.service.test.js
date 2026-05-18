@@ -3,6 +3,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 require('dotenv').config();
 
 const {
@@ -19,12 +20,21 @@ const { getPostgresClient, closePostgresClient } = require('../src/db/postgres')
 
 // Test data helpers
 let testCounter = 0;
+const createdEventCoreIds = new Set();
+const createdAppUserIds = new Set();
+const createdRegistrationIds = new Set();
+const eventCoreIdByMongoId = new Map();
+const appUserIdByMongoId = new Map();
+
+function uniqueMongoId() {
+  return crypto.randomBytes(12).toString('hex');
+}
 
 async function createTestEvent() {
   testCounter++;
   const sql = getPostgresClient();
   try {
-    const mongoEventId = `507f1f77bcf86cd79943${String(testCounter).padStart(4, '0')}`;
+    const mongoEventId = uniqueMongoId();
     const result = await sql`
       INSERT INTO events_core (
         mongo_event_id, 
@@ -42,7 +52,9 @@ async function createTestEvent() {
       )
       RETURNING id
     `;
-    return result[0].id;
+    createdEventCoreIds.add(result[0].id);
+    eventCoreIdByMongoId.set(mongoEventId, result[0].id);
+    return mongoEventId;
   } catch (err) {
     console.error('Error creating test event:', err.message);
     throw err;
@@ -53,29 +65,35 @@ async function createTestUser() {
   testCounter++;
   const sql = getPostgresClient();
   try {
-    const mongoUserId = `507f1f77bcf86cd79943${String(testCounter).padStart(4, '0')}`;
+    const mongoUserId = uniqueMongoId();
     const result = await sql`
       INSERT INTO app_users (mongo_user_id, email, role_snapshot, created_at)
       VALUES (
         ${mongoUserId},
-        ${`phase7-test-${testCounter}@example.com`},
+        ${`phase7-test-${uniqueMongoId()}@example.com`},
         'runner',
         CURRENT_TIMESTAMP
       )
       RETURNING id
     `;
-    return result[0].id;
+    createdAppUserIds.add(result[0].id);
+    appUserIdByMongoId.set(mongoUserId, result[0].id);
+    return mongoUserId;
   } catch (err) {
     console.error('Error creating test user:', err.message);
     throw err;
   }
 }
 
-async function createTestRegistration(eventId, userId) {
+async function createTestRegistration(mongoEventId, mongoUserId) {
   testCounter++;
   const sql = getPostgresClient();
   try {
-    const mongoRegistrationId = `507f1f77bcf86cd79943${String(testCounter).padStart(4, '0')}`;
+    const eventId = eventCoreIdByMongoId.get(mongoEventId);
+    const userId = appUserIdByMongoId.get(mongoUserId);
+    assert.ok(eventId, 'Test event core ID should be available');
+    assert.ok(userId, 'Test app user ID should be available');
+    const mongoRegistrationId = uniqueMongoId();
     const result = await sql`
       INSERT INTO registrations (
         mongo_registration_id, 
@@ -94,9 +112,9 @@ async function createTestRegistration(eventId, userId) {
         ${mongoRegistrationId},
         ${eventId},
         ${userId},
-        'test-event-mongo-${testCounter}',
-        'test-user-mongo-${testCounter}',
-        'CONF' + ${String(testCounter).padStart(6, '0')},
+        ${mongoEventId},
+        ${mongoUserId},
+        ${`CONF${Date.now()}${String(testCounter).padStart(6, '0')}`.slice(0, 32)},
         'onsite',
         '5K',
         'confirmed',
@@ -105,7 +123,8 @@ async function createTestRegistration(eventId, userId) {
       )
       RETURNING id
     `;
-    return result[0].id;
+    createdRegistrationIds.add(result[0].id);
+    return mongoRegistrationId;
   } catch (err) {
     console.error('Error creating test registration:', err.message);
     throw err;
@@ -115,8 +134,30 @@ async function createTestRegistration(eventId, userId) {
 async function cleanup() {
   const sql = getPostgresClient();
   try {
-    // Cleanup test data (won't work perfectly since IDs are unique)
-    // Just ensure tests pass - full cleanup happens with fresh DB
+    const eventIds = Array.from(createdEventCoreIds);
+    const userIds = Array.from(createdAppUserIds);
+    const registrationIds = Array.from(createdRegistrationIds);
+    if (eventIds.length) {
+      await sql`DELETE FROM onsite_results WHERE event_core_id = ANY(${eventIds})`;
+      await sql`DELETE FROM result_imports WHERE event_core_id = ANY(${eventIds})`;
+      await sql`DELETE FROM check_ins WHERE event_core_id = ANY(${eventIds})`;
+      await sql`DELETE FROM bib_assignments WHERE event_core_id = ANY(${eventIds})`;
+      await sql`DELETE FROM race_kits WHERE event_core_id = ANY(${eventIds})`;
+    }
+    if (registrationIds.length) {
+      await sql`DELETE FROM registrations WHERE id = ANY(${registrationIds})`;
+    }
+    if (eventIds.length) {
+      await sql`DELETE FROM events_core WHERE id = ANY(${eventIds})`;
+    }
+    if (userIds.length) {
+      await sql`DELETE FROM app_users WHERE id = ANY(${userIds})`;
+    }
+    createdEventCoreIds.clear();
+    createdAppUserIds.clear();
+    createdRegistrationIds.clear();
+    eventCoreIdByMongoId.clear();
+    appUserIdByMongoId.clear();
   } catch (err) {
     // Ignore cleanup errors
   }
@@ -257,7 +298,7 @@ test('Phase 7: recordOnsiteResult records with performance metrics', async (t) =
     });
     assert.ok(result.id, 'Result should have ID');
     assert.equal(result.result_status, 'submitted', 'Initial status should be submitted');
-    assert.equal(result.pace_per_km, 4.0, 'Pace should match');
+    assert.equal(Number(result.pace_per_km), 4.0, 'Pace should match');
   } finally {
     await cleanup();
   }

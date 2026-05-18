@@ -8,6 +8,7 @@
 <body>
   <%- include('../layouts/nav') %>
   <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
+  <% const visibleRegistrationAddOns = Array.isArray(registrationAddOns) ? registrationAddOns : []; %>
 
   <main class="event-register-page">
     <section class="event-register-shell">
@@ -107,6 +108,37 @@
               </div>
             <% } %>
           </section>
+
+          <% if (visibleRegistrationAddOns.length) { %>
+            <section class="register-card">
+              <h2>Optional Add-ons</h2>
+              <p class="card-helper">Select optional add-ons to include in this registration. Charges and checkout linking will be finalized in the next phase.</p>
+              <% if (errors.addOnProductIds) { %><small class="error-text"><%= errors.addOnProductIds %></small><% } %>
+              <ul class="registration-addon-list">
+                <% visibleRegistrationAddOns.forEach((addOn) => { %>
+                  <li>
+                    <p>
+                      <label class="registration-addon-label" for="addon-<%= addOn.id %>">
+                        <input
+                          type="checkbox"
+                          id="addon-<%= addOn.id %>"
+                          name="addOnProductIds"
+                          value="<%= addOn.id %>"
+                          <%= (formData.addOnProductIds || []).includes(addOn.id) ? 'checked' : '' %>
+                          <%= registrationWindowError ? 'disabled' : '' %>
+                        >
+                        <strong><%= addOn.name %></strong>
+                      </label>
+                      <% if (addOn.productType && addOn.productType !== 'event_shop_item') { %>
+                        <small><%= addOn.productType.replace(/_/g, ' ') %></small>
+                      <% } %>
+                    </p>
+                    <span><%= addOn.currency %> <%= Number(addOn.basePrice || 0).toLocaleString('en-US') %></span>
+                  </li>
+                <% }) %>
+              </ul>
+            </section>
+          <% } %>
 
           <section class="register-card">
             <div class="register-card-head">

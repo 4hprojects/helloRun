@@ -184,6 +184,50 @@ test('notify records sent, skipped, failed, and fallback communication logs', as
   assert.ok(logs.some((log) => log.status === 'fallback_in_app'));
 });
 
+test('badge earned email uses communication controls and badge metadata', async () => {
+  const runner = await createRunner('communication-badge-earned');
+  const originalBadgeEarned = emailService.sendBadgeEarnedEmailToRunner;
+  const calls = [];
+
+  emailService.sendBadgeEarnedEmailToRunner = async (...args) => {
+    calls.push(args);
+    return { id: 'msg-badge-earned' };
+  };
+
+  try {
+    await communicationService.updateEventSetting('badge.earned', { emailEnabled: 'on', inAppEnabled: 'on' }, 'test-admin');
+    await communicationService.notify('badge.earned', {
+      notification: buildNotification(runner._id, 'badge_earned'),
+      email: {
+        to: runner.email,
+        recipientUserId: runner._id,
+        firstName: runner.firstName,
+        badgeName: '100K Club',
+        badgeDescription: 'Awarded for verified lifetime distance.',
+        badgeUrl: 'https://hellorun.test/badges/badge-100k',
+        badgeType: 'global_distance',
+        badgeScope: 'global',
+        metadata: { testSuite: 'communication', badgeType: 'global_distance' }
+      }
+    });
+  } finally {
+    emailService.sendBadgeEarnedEmailToRunner = originalBadgeEarned;
+  }
+
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][2], '100K Club');
+  assert.equal(calls[0][5].badgeType, 'global_distance');
+
+  const log = await CommunicationLog.findOne({
+    recipientUserId: runner._id,
+    eventKey: 'badge.earned',
+    channel: 'email'
+  }).lean();
+  assert.ok(log);
+  assert.equal(log.status, 'sent');
+  assert.equal(log.subject, 'Badge Earned: 100K Club');
+});
+
 test('test email is logged as test and does not create product notifications', async () => {
   const originalTestEmail = emailService.sendBasicTestEmail;
   emailService.sendBasicTestEmail = async () => ({ skipped: true });

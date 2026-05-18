@@ -60,6 +60,13 @@ router.post(
   pageController.postResubmitResult
 );
 router.get('/my-submissions/:submissionId/certificate', requireAuth, pageController.getSubmissionCertificateDownload);
+router.get('/runners/:userId/badges/share-image.svg', pageController.getPublicRunnerBadgeCollectionShareImage);
+router.get('/runners/:userId/badges', pageController.getPublicRunnerBadgeCollection);
+router.get('/badges/:userBadgeId/share-image.svg', pageController.getPublicBadgeShareImage);
+router.get('/badges/:userBadgeId/open-badge.json', pageController.getPublicOpenBadgeMetadata);
+router.get('/badges/:userBadgeId/verify', pageController.getPublicBadgeVerification);
+router.get('/badges/:userBadgeId', pageController.getPublicBadgePage);
+router.get('/events/:slug/badges', pageController.getEventBadges);
 router.get('/events/:slug', pageController.getEventDetails);
 router.get('/sitemap.xml', pageController.getSitemapXml);
 

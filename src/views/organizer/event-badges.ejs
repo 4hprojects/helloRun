@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/event-manage.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="manage-page organizer-badge-manager-page">
+    <section class="manage-shell">
+      <header class="manage-header">
+        <div class="manage-header-copy">
+          <p class="manage-eyebrow">Badge Manager</p>
+          <h1><%= event.title %></h1>
+          <p>Control the badge names, descriptions, images, and event-page visibility for this event.</p>
+        </div>
+        <div class="header-actions">
+          <a href="/organizer/events/<%= event._id %>" class="nav-login-btn detail-nav-btn">Back to Event</a>
+          <a href="/events/<%= event.slug %>" class="nav-login-btn detail-nav-btn" target="_blank" rel="noopener noreferrer">Public Page</a>
+        </div>
+      </header>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <section class="badge-manager-summary detail-card detail-card-full">
+        <div>
+          <h3>Event Badges</h3>
+          <p><strong>Status:</strong> <span class="status status-<%= event.status %>"><%= event.status %></span></p>
+          <p><strong>Digital Badges:</strong> <%= event.digitalBadgeEnabled ? 'Enabled' : 'Disabled' %></p>
+        </div>
+        <div class="badge-manager-count">
+          <strong><%= badges.length %></strong>
+          <span>configured badge<%= badges.length === 1 ? '' : 's' %></span>
+        </div>
+      </section>
+
+      <% if (badges.length) { %>
+        <div class="organizer-badge-grid" data-organizer-badge-manager>
+          <% badges.forEach((badge) => { %>
+            <article class="organizer-badge-card">
+              <div class="organizer-badge-preview">
+                <span class="organizer-badge-art">
+                  <% if (badge.imageUrl) { %>
+                    <img src="<%= badge.imageUrl %>" alt="" loading="lazy">
+                  <% } else { %>
+                    <i data-lucide="award"></i>
+                  <% } %>
+                </span>
+                <div class="organizer-badge-preview-copy">
+                  <h3><%= badge.name %></h3>
+                  <p><%= badge.description || 'No badge description set.' %></p>
+                  <div class="organizer-badge-tags">
+                    <span><%= badge.badgeType.replace(/_/g, ' ') %></span>
+                    <span><%= badge.requirementType.replace(/_/g, ' ') %></span>
+                    <% if (!badge.isVisibleOnEventPage) { %><span>Hidden</span><% } %>
+                    <% if (!badge.isActive) { %><span>Inactive</span><% } %>
+                  </div>
+                </div>
+              </div>
+
+              <form method="POST" action="/organizer/events/<%= event._id %>/badges/<%= badge.eventBadgeId %>" class="organizer-badge-form">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="badge-form-grid">
+                  <label>
+                    <span>Name</span>
+                    <input type="text" name="name" value="<%= badge.name %>" maxlength="120">
+                  </label>
+                  <label>
+                    <span>Image URL</span>
+                    <input type="url" name="imageUrl" value="<%= badge.imageUrl || '' %>" placeholder="https://...">
+                  </label>
+                  <label class="badge-form-description">
+                    <span>Description</span>
+                    <textarea name="description" rows="3" maxlength="300"><%= badge.description || '' %></textarea>
+                  </label>
+                </div>
+
+                <div class="badge-form-toggles">
+                  <label class="badge-toggle">
+                    <input type="hidden" name="isVisible" value="0">
+                    <input type="checkbox" name="isVisible" value="1" <%= badge.isVisibleOnEventPage ? 'checked' : '' %>>
+                    <span>Show on event page</span>
+                  </label>
+                  <label class="badge-toggle">
+                    <input type="hidden" name="isActive" value="0">
+                    <input type="checkbox" name="isActive" value="1" <%= badge.isActive ? 'checked' : '' %>>
+                    <span>Allow future awards</span>
+                  </label>
+                </div>
+
+                <div class="badge-form-footer">
+                  <code><%= badge.badgeCode %></code>
+                  <button type="submit" class="nav-signup-btn detail-status-btn">Save Badge</button>
+                </div>
+              </form>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <section class="detail-card detail-card-full badge-manager-empty">
+          <h3>No badges configured</h3>
+          <p>Badges are generated for published events with digital badges enabled. If this event was recently published, refresh this page after the event badge job completes.</p>
+          <a href="/organizer/events/<%= event._id %>" class="nav-login-btn detail-nav-btn">Back to Event</a>
+        </section>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+  </script>
+</body>
+</html>

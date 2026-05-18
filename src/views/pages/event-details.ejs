@@ -151,6 +151,38 @@
             <% if (event.physicalRewardsDescription) { %>
               <p class="event-supporting-copy"><%= event.physicalRewardsDescription %></p>
             <% } %>
+
+            <% const eventBadges = badges || []; %>
+            <% if (eventBadges.length) { %>
+              <div class="event-badge-grid" aria-label="Available achievement badges">
+                <% eventBadges.forEach((badge) => { %>
+                  <article class="event-badge-card">
+                    <span class="event-badge-icon"><i data-lucide="award"></i></span>
+                    <div>
+                      <h3><%= badge.name %></h3>
+                      <p><%= badge.description || 'Awarded after verified event activity.' %></p>
+                      <small><%= badge.badgeType ? badge.badgeType.replace(/_/g, ' ') : 'achievement' %></small>
+                    </div>
+                  </article>
+                <% }) %>
+              </div>
+            <% } else if (event.digitalBadgeEnabled) { %>
+              <div class="event-badge-empty">
+                <i data-lucide="award"></i>
+                <div>
+                  <strong>Badges pending</strong>
+                  <p>Achievement badges are enabled for this event but have not been generated yet.</p>
+                </div>
+              </div>
+            <% } else { %>
+              <div class="event-badge-empty">
+                <i data-lucide="award"></i>
+                <div>
+                  <strong>Badges not enabled</strong>
+                  <p>This event is not currently issuing digital achievement badges.</p>
+                </div>
+              </div>
+            <% } %>
           </section>
 
           <% if ((details.packageOptions || []).length || details.pricing?.hasOptionalCosts) { %>

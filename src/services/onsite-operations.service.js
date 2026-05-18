@@ -1,7 +1,9 @@
 // src/services/onsite-operations.service.js
 // Service for managing onsite event operations: bibs, race kits, check-ins, result imports
 
+const crypto = require('node:crypto');
 const { getPostgresClient } = require('../db/postgres');
+const { evaluateOnsiteResultAchievements } = require('./achievement.service');
 
 /**
  * Assign a bib number to a registration
@@ -128,6 +130,9 @@ async function recordCheckIn(eventId, registrationId, options = {}) {
  */
 async function createRaceKit(eventId, kitData) {
   const sql = getPostgresClient();
+  if (!String(kitData?.name || '').trim()) {
+    throw new Error('Race kit name is required');
+  }
 
   try {
     const eventRows = await sql`
@@ -138,11 +143,11 @@ async function createRaceKit(eventId, kitData) {
 
     const result = await sql`
       INSERT INTO race_kits (
-        event_core_id, kit_name, kit_description, included_items,
+        mongo_race_kit_id, event_core_id, kit_name, kit_description, included_items,
         quantity_available, cost_per_kit, notes
       ) VALUES (
-        ${eventCoreId}, ${kitData.name}, ${kitData.description || null},
-        ${JSON.stringify(kitData.includedItems || {})},
+        ${kitData.mongoRaceKitId || crypto.randomUUID()}, ${eventCoreId}, ${kitData.name}, ${kitData.description || null},
+        ${sql.json(Array.isArray(kitData.includedItems) ? kitData.includedItems : [])},
         ${kitData.quantity || 0}, ${kitData.cost || null}, ${kitData.notes || null}
       )
       RETURNING *
@@ -212,6 +217,7 @@ async function logResultImport(eventId, userId, importData) {
  */
 async function recordOnsiteResult(eventId, registrationId, resultData) {
   const sql = getPostgresClient();
+  const resultStatus = normalizeOnsiteResultStatus(resultData.resultStatus, 'submitted');
 
   try {
     const eventRows = await sql`
@@ -245,17 +251,59 @@ async function recordOnsiteResult(eventId, registrationId, resultData) {
         ${resultData.category || null}, ${resultData.distanceKm || null},
         ${resultData.elapsedMs || null}, ${resultData.displayTime || null},
         ${resultData.pacePerKm || null}, ${resultData.placeInCategory || null},
-        'submitted', ${resultData.dataSource || 'manual_entry'}, ${resultData.notes || null}
+        ${resultStatus}, ${resultData.dataSource || 'manual_entry'}, ${resultData.notes || null}
       )
       RETURNING *
     `;
 
     if (result.length === 0) throw new Error('Failed to record onsite result');
 
+    if (resultStatus === 'approved') {
+      await evaluateOnsiteResultAchievements(result[0].id, {
+        performedBy: resultData.performedBy || null,
+        sql
+      });
+    }
+
     console.log(`[Onsite] Result recorded for registration ${registrationId} at event ${eventId}`);
     return result[0];
   } catch (error) {
     console.error(`[Onsite] Error recording onsite result: ${error.message}`);
+    throw error;
+  }
+}
+
+async function approveOnsiteResult(eventId, onsiteResultId, options = {}) {
+  const sql = getPostgresClient();
+
+  try {
+    const result = await sql`
+      UPDATE onsite_results
+      SET
+        result_status = 'approved',
+        entered_by = COALESCE(entered_by, ${options.performedByAppUserId || null}),
+        notes = COALESCE(${options.notes || null}, notes),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${String(onsiteResultId)}
+        AND event_core_id = (
+          SELECT id FROM events_core WHERE mongo_event_id = ${String(eventId)} LIMIT 1
+        )
+        AND result_status != 'disqualified'
+      RETURNING *
+    `;
+    if (result.length === 0) throw new Error('Onsite result not found or cannot be approved');
+
+    const awards = await evaluateOnsiteResultAchievements(result[0].id, {
+      performedBy: options.performedBy || null,
+      sql
+    });
+
+    return {
+      result: result[0],
+      awards
+    };
+  } catch (error) {
+    console.error(`[Onsite] Error approving onsite result: ${error.message}`);
     throw error;
   }
 }
@@ -308,6 +356,13 @@ module.exports = {
   createRaceKit,
   logResultImport,
   recordOnsiteResult,
+  approveOnsiteResult,
   getEventCheckInSummary,
   getEventBibAssignmentStatus
 };
+
+function normalizeOnsiteResultStatus(value, fallback = 'submitted') {
+  const safe = String(value || '').trim().toLowerCase();
+  if (safe === 'submitted' || safe === 'approved' || safe === 'disqualified') return safe;
+  return fallback;
+}

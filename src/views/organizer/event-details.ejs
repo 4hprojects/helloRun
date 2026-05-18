@@ -20,6 +20,7 @@
           <% if (event.status !== 'closed' && event.status !== 'archived') { %>
             <a href="/organizer/events/<%= event._id %>/edit" class="nav-signup-btn detail-nav-btn">Edit Event</a>
           <% } %>
+          <a href="/organizer/events/<%= event._id %>/badges/manage" class="nav-login-btn detail-nav-btn">Manage Badges</a>
           <a href="/organizer/events/<%= event._id %>/registrants" class="nav-login-btn detail-nav-btn">View Registrants</a>
         </div>
       </header>

@@ -9,6 +9,10 @@ const {
   getEligibleRunnerRegistration
 } = require('./submission.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
+const {
+  refreshAccumulatedChallengeProgress,
+  refreshGlobalDistanceMilestoneProgressInBackground
+} = require('./badge-progress.service');
 
 const REVIEWABLE_STATUS = new Set(['submitted']);
 
@@ -101,6 +105,18 @@ async function reviewAccumulatedActivitySubmission({
   let certificateWasIssued = false;
   if (safeAction === 'approve') {
     certificateWasIssued = await attachCompletionCertificateIfNeeded(activity);
+    refreshAccumulatedChallengeProgress(activity.registrationId, {
+      performedBy: organizerId
+    }).catch((error) => {
+      console.error('Accumulated challenge badge progress refresh failed:', {
+        activityId: String(activity._id || ''),
+        registrationId: String(activity.registrationId || ''),
+        error: error.message
+      });
+    });
+    refreshGlobalDistanceMilestoneProgressInBackground(activity.runnerId, {
+      performedBy: organizerId
+    });
   }
 
   await sendActivityReviewNotifications({

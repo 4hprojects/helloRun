@@ -490,6 +490,157 @@ body {
   transition: opacity var(--transition);
 }
 
+.runner-badges-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-badge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-badge-row {
+  display: grid;
+  grid-template-columns: 2.7rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem;
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.dashboard-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.7rem;
+  height: 2.7rem;
+  border-radius: 14px;
+  background: #fff3e8;
+  color: var(--orange);
+  overflow: hidden;
+}
+
+.dashboard-badge-icon svg {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.dashboard-badge-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dashboard-badge-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.18rem;
+}
+
+.dashboard-badge-title {
+  overflow: hidden;
+  color: var(--text-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-badge-meta {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.dashboard-badge-state {
+  align-self: start;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(20, 149, 209, 0.12);
+  color: #0f6895;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.runner-badges-empty {
+  min-height: 9rem;
+}
+
+.runner-badge-progress-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-badge-progress-list {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.dashboard-badge-progress-row {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.9rem;
+  border: 1px solid rgba(226, 232, 240, 0.92);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.dashboard-badge-progress-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dashboard-badge-progress-header strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-strong);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-badge-progress-header span {
+  flex-shrink: 0;
+  color: #0f6895;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.dashboard-badge-progress-track {
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.dashboard-badge-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #1495d1;
+}
+
+.dashboard-badge-progress-row small {
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
 .running-groups-content {
   display: flex;
   flex-direction: column;
@@ -1823,6 +1974,30 @@ code {
 
   .running-groups-content {
     gap: 0.9rem;
+  }
+
+  .runner-badges-header {
+    align-items: flex-start;
+  }
+
+  .runner-badges-action {
+    flex-shrink: 0;
+  }
+
+  .dashboard-badge-row {
+    grid-template-columns: 2.45rem minmax(0, 1fr);
+    align-items: start;
+    padding: 0.75rem;
+  }
+
+  .dashboard-badge-icon {
+    width: 2.45rem;
+    height: 2.45rem;
+  }
+
+  .dashboard-badge-state {
+    grid-column: 2;
+    justify-self: start;
   }
 
   .running-group-row {

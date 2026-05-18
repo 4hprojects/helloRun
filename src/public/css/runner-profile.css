@@ -360,6 +360,224 @@
   font-style: italic;
 }
 
+.profile-featured-badge {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #cde7f7;
+  border-radius: 8px;
+  background: #f0f9ff;
+}
+
+.profile-featured-badge p,
+.profile-featured-badge small,
+.profile-badge-card p,
+.profile-badge-card small,
+.profile-empty-state p {
+  margin: 0;
+  color: var(--text-secondary, #64748b);
+  line-height: 1.5;
+}
+
+.profile-featured-badge p {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  color: #0369a1;
+}
+
+.profile-featured-badge strong {
+  display: block;
+  margin: 2px 0 4px;
+  color: var(--text-primary, #1e293b);
+  font-size: 1.15rem;
+}
+
+.profile-badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.profile-badge-progress-section {
+  margin-bottom: 18px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.profile-badge-progress-section h4 {
+  margin: 0 0 12px;
+  color: var(--text-primary, #1e293b);
+  font-size: 1rem;
+}
+
+.profile-badge-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.profile-badge-progress-card {
+  display: grid;
+  gap: 9px;
+  padding: 14px;
+  border: 1px solid #d7e8f5;
+  border-radius: 8px;
+  background: #f8fcff;
+}
+
+.profile-badge-progress-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.profile-badge-progress-card-top strong {
+  color: #0369a1;
+  font-size: 0.95rem;
+}
+
+.profile-badge-progress-card h5 {
+  margin: 0;
+  color: var(--text-primary, #1e293b);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.profile-badge-progress-track {
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.profile-badge-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #1495d1;
+}
+
+.profile-badge-progress-card p {
+  margin: 0;
+  color: var(--text-secondary, #64748b);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.profile-badge-progress-empty {
+  margin: 0;
+  color: var(--text-secondary, #64748b);
+  font-size: 0.92rem;
+}
+
+.profile-badge-card {
+  min-height: 190px;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto auto;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.profile-badge-card.is-featured {
+  border-color: #bae6fd;
+  background: #f8fcff;
+}
+
+.profile-badge-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.profile-badge-icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.profile-badge-state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.profile-badge-card h4 {
+  margin: 0;
+  color: var(--text-primary, #1e293b);
+  font-size: 1rem;
+  line-height: 1.3;
+}
+
+.profile-badge-card small {
+  text-transform: capitalize;
+  font-weight: 700;
+}
+
+.profile-badge-share-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #0369a1;
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.profile-badge-share-link svg {
+  width: 16px;
+  height: 16px;
+}
+
+.profile-badge-share-link:hover {
+  color: #075985;
+  text-decoration: underline;
+}
+
+.profile-badge-action {
+  align-self: end;
+}
+
+.profile-empty-state {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  padding: 28px 16px;
+  border: 1px dashed var(--border-color, #cbd5e1);
+  border-radius: 8px;
+  background: var(--bg-subtle, #f8fafc);
+  text-align: center;
+}
+
+.profile-empty-state i {
+  width: 34px;
+  height: 34px;
+  color: #64748b;
+}
+
+.profile-empty-state strong {
+  color: var(--text-primary, #1e293b);
+}
+
 /* responsive */
 @media (max-width: 900px) {
   .runner-profile-layout {
@@ -396,6 +614,10 @@
   }
 
   .profile-readonly-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-badge-grid {
     grid-template-columns: 1fr;
   }
 

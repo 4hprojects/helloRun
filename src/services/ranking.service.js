@@ -193,11 +193,26 @@ async function publishRankings(filter = {}, options = {}) {
     query += ' RETURNING id';
 
     // Use template literal for safe query construction
-    const result = await sql(query, params);
+    const result = await sql.unsafe(query, params);
+    if (result.length) {
+      await evaluatePublishedRankingAchievementsSafe({
+        rankingIds: result.map((row) => row.id)
+      }, options);
+    }
     return result.length;
   } catch (error) {
     console.error('Ranking publish error:', error.message);
     throw error;
+  }
+}
+
+async function evaluatePublishedRankingAchievementsSafe(input = {}, options = {}) {
+  try {
+    const { evaluatePublishedRankingAchievements } = require('./achievement.service');
+    return await evaluatePublishedRankingAchievements(input, options);
+  } catch (error) {
+    console.error('Ranking achievement evaluation failed:', error.message);
+    return [];
   }
 }
 

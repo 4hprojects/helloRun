@@ -225,6 +225,14 @@ async function reviewSubmission({
   });
   if (safeAction === 'approve') {
     await attachCertificateIfNeeded(submission);
+    evaluateSubmissionAchievementsSafe(submission, {
+      performedBy: organizerId
+    });
+    if (!submission.isPersonalRecord) {
+      refreshGlobalDistanceMilestonesSafe(submission.runnerId, {
+        performedBy: organizerId
+      });
+    }
   }
   await sendRunnerReviewNotifications({
     submission,
@@ -1043,6 +1051,14 @@ async function applyAutoApprovalIfEligible(submission) {
   });
 
   await attachCertificateIfNeeded(submission);
+  evaluateSubmissionAchievementsSafe(submission, {
+    performedBy: ''
+  });
+  if (!submission.isPersonalRecord) {
+    refreshGlobalDistanceMilestonesSafe(submission.runnerId, {
+      performedBy: ''
+    });
+  }
   const event = await Event.findById(submission.eventId).select('title').lean();
   await sendRunnerReviewNotifications({
     submission,
@@ -1194,6 +1210,30 @@ function buildPersonalRecordSignature(runner) {
   const fullName = `${String(runner?.firstName || '').trim()} ${String(runner?.lastName || '').trim()}`.trim();
   if (fullName) return fullName.slice(0, 160);
   return String(runner?.email || 'Runner').slice(0, 160);
+}
+
+function evaluateSubmissionAchievementsSafe(submission, options = {}) {
+  try {
+    const { evaluateSubmissionAchievementsInBackground } = require('./achievement.service');
+    evaluateSubmissionAchievementsInBackground(submission, options);
+  } catch (error) {
+    console.error('Submission achievement hook failed:', {
+      submissionId: String(submission?._id || ''),
+      error: error.message
+    });
+  }
+}
+
+function refreshGlobalDistanceMilestonesSafe(mongoUserId, options = {}) {
+  try {
+    const { refreshGlobalDistanceMilestoneProgressInBackground } = require('./badge-progress.service');
+    refreshGlobalDistanceMilestoneProgressInBackground(mongoUserId, options);
+  } catch (error) {
+    console.error('Global distance badge progress hook failed:', {
+      mongoUserId: String(mongoUserId || ''),
+      error: error.message
+    });
+  }
 }
 
 module.exports = {

@@ -21,6 +21,15 @@ const { generateUniqueReferenceCode } = require('../utils/referenceCode');
 const { canOrganizerReviewPaymentProof } = require('../utils/payment-workflow');
 const { reviewSubmission } = require('../services/submission.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
+const {
+  evaluateRegistrationAchievementsInBackground,
+  getRunnerEarnedBadges
+} = require('../services/achievement.service');
+const {
+  generateDefaultEventBadges,
+  getEventBadgesByMongoEventId,
+  updateEventBadgeDisplay
+} = require('../services/event-badge.service');
 const eventFormService = require('../services/event-form.service');
 const {
   reviewAccumulatedActivitySubmission,
@@ -315,6 +324,12 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       href: `/organizer/events/${item.eventId}/registrants`
     }));
     const isApprovedOrganizer = user.role === 'organiser' && user.organizerStatus === 'approved';
+    const organiserBadges = isApprovedOrganizer
+      ? await getRunnerEarnedBadges(user._id, { limit: 6, badgeScopes: ['organiser'] }).catch((error) => {
+          console.error('Error loading organiser dashboard badges:', error);
+          return [];
+        })
+      : [];
     const applicationAction = application && application.status !== 'rejected'
       ? {
           label: 'View Application Status',
@@ -436,6 +451,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       },
       draftEvents,
       recentEvents,
+      organiserBadges,
       isApprovedOrganizer,
       applicationAction,
       quickActions,
@@ -784,6 +800,104 @@ router.get('/events/:id', requireApprovedOrganizer, async (req, res) => {
   }
 });
 
+router.get('/events/:id/badges', requireApprovedOrganizer, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId);
+    const event = await getOwnedEventOrNull(req.params.id, user?._id);
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found or inaccessible.' });
+    }
+
+    const badges = await getEventBadgesByMongoEventId(event._id);
+    return res.json({ success: true, badges });
+  } catch (error) {
+    console.error('Organizer event badges load error:', error);
+    return res.status(500).json({ success: false, message: 'Unable to load event badges.' });
+  }
+});
+
+router.get('/events/:id/badges/manage', requireApprovedOrganizer, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId);
+    const event = await getOwnedEventOrNull(req.params.id, user?._id);
+    if (!event) {
+      return res.status(404).render('error', {
+        title: '404 - Event Not Found',
+        status: 404,
+        message: 'Event not found or you do not have access.'
+      });
+    }
+
+    await generateDefaultEventBadges(event, { performedBy: user._id }).catch((error) => {
+      console.error('Organizer badge manager generation error:', error);
+    });
+
+    const badges = await getEventBadgesByMongoEventId(event._id, {
+      includeHidden: true,
+      includeInactive: true
+    });
+
+    return res.render('organizer/event-badges', {
+      title: `Badge Manager - ${event.title}`,
+      user,
+      event,
+      badges,
+      message: getPageMessage(req.query)
+    });
+  } catch (error) {
+    console.error('Organizer badge manager load error:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading the badge manager.'
+    });
+  }
+});
+
+router.post('/events/:id/badges/:badgeId', requireApprovedOrganizer, requireCsrfProtection, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId);
+    const event = await getOwnedEventOrNull(req.params.id, user?._id);
+    const wantsJson = acceptsJson(req);
+    if (!event) {
+      if (!wantsJson) {
+        return res.redirect(`/organizer/events/${req.params.id}/badges/manage?type=error&msg=Event%20not%20found%20or%20inaccessible.`);
+      }
+      return res.status(404).json({ success: false, message: 'Event not found or inaccessible.' });
+    }
+
+    const updated = await updateEventBadgeDisplay({
+      mongoEventId: event._id,
+      eventBadgeId: req.params.badgeId,
+      updates: {
+        name: req.body.name,
+        description: req.body.description,
+        imageUrl: req.body.imageUrl,
+        isVisible: isChecked(req.body.isVisible),
+        isActive: isChecked(req.body.isActive)
+      }
+    });
+
+    if (!updated) {
+      if (!wantsJson) {
+        return res.redirect(`/organizer/events/${event._id}/badges/manage?type=error&msg=Badge%20not%20found.`);
+      }
+      return res.status(404).json({ success: false, message: 'Badge not found.' });
+    }
+
+    if (!wantsJson) {
+      return res.redirect(`/organizer/events/${event._id}/badges/manage?type=success&msg=Badge%20updated.`);
+    }
+    return res.json({ success: true, badge: updated });
+  } catch (error) {
+    console.error('Organizer event badge update error:', error);
+    if (!acceptsJson(req)) {
+      return res.redirect(`/organizer/events/${req.params.id}/badges/manage?type=error&msg=Unable%20to%20update%20event%20badge.`);
+    }
+    return res.status(500).json({ success: false, message: 'Unable to update event badge.' });
+  }
+});
+
 /* ==========================================
    GET: Event Registrants (Owner/Admin)
    ========================================== */
@@ -1007,6 +1121,9 @@ router.post(
       registration.paymentReviewNotes = reviewNotes;
       registration.paymentRejectionReason = '';
       await registration.save();
+      evaluateRegistrationAchievementsInBackground(registration, {
+        performedBy: user._id
+      });
       recordCriticalAuditEventInBackground({
         actorMongoUserId: user._id,
         action: 'payment.approved',
@@ -3502,6 +3619,21 @@ function mapUploadFieldToFormField(fieldName) {
   if (normalizedField === 'paymentQrImageFile') return 'paymentQrImageUrl';
   if (normalizedField === 'galleryImageFiles') return 'galleryImageUrls';
   return 'bannerImageUrl';
+}
+
+function acceptsJson(req) {
+  const accept = String(req.get('accept') || '').toLowerCase();
+  if (accept.includes('text/html') && !accept.includes('application/json')) {
+    return false;
+  }
+  return true;
+}
+
+function isChecked(value) {
+  if (Array.isArray(value)) {
+    return value.some((item) => item === '1' || item === 'true' || item === 'on');
+  }
+  return value === '1' || value === 'true' || value === 'on';
 }
 
 function getPublishReadinessErrors(event) {

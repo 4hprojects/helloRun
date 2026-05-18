@@ -1213,6 +1213,92 @@
 }
 
 /* ==========================================
+   ORGANIZER BADGES
+   ========================================== */
+
+.organizer-badges-card {
+  width: 340px;
+}
+
+.organizer-badge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.organizer-badge-item {
+  align-items: center;
+  border: 1px solid var(--dash-border);
+  border-radius: 8px;
+  color: var(--dash-dark);
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 0.75rem;
+  text-decoration: none;
+  transition: var(--dash-transition);
+}
+
+.organizer-badge-item:hover,
+.organizer-badge-item:focus-visible {
+  border-color: rgba(250, 154, 75, 0.45);
+  box-shadow: var(--dash-shadow-sm);
+  transform: translateY(-1px);
+}
+
+.organizer-badge-icon {
+  align-items: center;
+  background: rgba(72, 187, 120, 0.12);
+  border-radius: 8px;
+  color: var(--dash-success);
+  display: flex;
+  height: 36px;
+  justify-content: center;
+  width: 36px;
+}
+
+.organizer-badge-icon i,
+.organizer-badge-share {
+  height: 17px;
+  width: 17px;
+}
+
+.organizer-badge-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.organizer-badge-copy strong,
+.organizer-badge-copy small {
+  overflow-wrap: anywhere;
+}
+
+.organizer-badge-copy strong {
+  font-size: 0.9rem;
+  line-height: 1.2;
+}
+
+.organizer-badge-copy small {
+  color: var(--dash-gray);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.organizer-badge-share {
+  color: var(--dash-gray);
+  flex-shrink: 0;
+}
+
+.organizer-badge-empty {
+  color: var(--dash-gray);
+  font-size: 0.86rem;
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* ==========================================
    CHECKLIST
    ========================================== */
 
@@ -1472,7 +1558,8 @@
     margin-left: 0;
   }
 
-  .header-profile-card {
+  .header-profile-card,
+  .organizer-badges-card {
     width: 100%;
     max-width: 34rem;
   }

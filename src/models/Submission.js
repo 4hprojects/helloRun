@@ -2,6 +2,76 @@ const mongoose = require('mongoose');
 const { syncSubmissionShadow } = require('../services/submission-shadow.service');
 
 /**
+ * Shared schema fragments for activity metrics and metadata
+ */
+const commonActivityFields = {
+  proofType: {
+    type: String,
+    enum: ['gps', 'photo', 'manual'],
+    default: 'manual'
+  },
+  proof: {
+    url: { type: String, default: '' },
+    key: { type: String, default: '' },
+    mimeType: { type: String, default: '' },
+    size: { type: Number, default: 0 },
+    hash: { type: String, default: '', maxlength: 64 }
+  },
+  stravaActivity: {
+    id: { type: Number, default: null },
+    athleteId: { type: Number, default: null },
+    name: { type: String, trim: true, default: '', maxlength: 200 },
+    // ... other strava fields
+  },
+  ocrData: {
+    extractedDistanceKm: { type: Number, default: null },
+    extractedTimeMs: { type: Number, default: null },
+    extractedElevationGain: { type: Number, default: null },
+    extractedSteps: { type: Number, default: null },
+    extractedRunDate: { type: String, default: '', maxlength: 10 },
+    extractedRunLocation: { type: String, trim: true, default: '', maxlength: 200 },
+    extractedRunType: {
+      type: String,
+      enum: ['run', 'walk', 'hike', 'trail_run', ''],
+      default: ''
+    },
+    rawText: { type: String, default: '', maxlength: 2000 },
+    confidence: { type: Number, default: 0, min: 0, max: 1 },
+    distanceMismatch: { type: Boolean, default: false },
+    timeMismatch: { type: Boolean, default: false },
+    elevationMismatch: { type: Boolean, default: false },
+    stepsMismatch: { type: Boolean, default: false },
+    dateMismatch: { type: Boolean, default: false },
+    locationMismatch: { type: Boolean, default: false },
+    runTypeMismatch: { type: Boolean, default: false },
+    detectedSource: {
+      type: String,
+      enum: ['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', ''],
+      default: ''
+    },
+    extractedName: { type: String, trim: true, default: '', maxlength: 120 },
+    nameMatchStatus: {
+      type: String,
+      enum: ['matched', 'mismatched', 'not_detected', 'not_checked'],
+      default: 'not_checked'
+    },
+    nameMismatchAcknowledged: { type: Boolean, default: false }
+  },
+  status: {
+    type: String,
+    enum: ['submitted', 'approved', 'rejected'],
+    default: 'submitted',
+    index: true
+  },
+  reviewedAt: { type: Date, default: null },
+  reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  reviewNotes: { type: String, trim: true, default: '', maxlength: 1200 },
+  rejectionReason: { type: String, trim: true, default: '', maxlength: 500 },
+  suspiciousFlag: { type: Boolean, default: false },
+  suspiciousFlagReason: { type: String, trim: true, default: '', maxlength: 500 }
+};
+
+/**
  * Submission model for single-activity result submissions
  * 
  * OFFICIAL SUBMISSION STATE (synced to Supabase submissions_core):

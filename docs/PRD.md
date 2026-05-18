@@ -3,6 +3,48 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
+## STATUS UPDATE (May 19, 2026 - Achievement Badges Release-Readiness + Shop Validation)
+
+### Current reality after latest implementation
+- HelloRun now has a release-ready achievement badge MVP across event, challenge, global distance, leaderboard, organiser, verification/share, admin, and communication paths.
+- Badge-enabled published events auto-create participant, finisher, distance finisher, mode finisher, challenge milestone, leaderboard, distance winner, and mode winner badges as applicable.
+- Runner badge awards are written only after verified registration/payment, approved result submission, approved accumulated activity, published rankings, or approved onsite result data.
+- Organiser badges now cover verified organiser, first published event, first confirmed registration, five published events, and 100 confirmed registrations.
+- Public badge verification pages, Open Badges-ready JSON, share SVGs, and public runner badge collections are implemented.
+- Admin badge management now includes definition enable/disable, email notification levels, revocation, analytics, audit logs, and capped additive recalculation.
+- Badge earned email is routed through the communication manager and remains globally disabled until admins intentionally enable `badge.earned`.
+- Shop Phase 1A/registration add-on paths remain backend-ready and were included in the latest release-readiness validation.
+
+### COMPLETED in this cycle
+- Added Phase 9 badge migration for `badge_definitions`, `event_badges`, `user_badges`, and `badge_audit_logs`.
+- Added MongoDB badge content/template models.
+- Added badge definition, event badge, achievement, audit, notification, and normalization services.
+- Wired badge generation into admin event approval/publish flow.
+- Wired participant badge evaluation into registration and payment-paid flows.
+- Wired finisher/distance/mode badge evaluation into submission approval flows.
+- Added runner badge JSON routes, featured badge update, and profile badge collection UI.
+- Added public event badge JSON route and event details badge display.
+- Added organiser event badge JSON read/update routes for display fields.
+- Added organiser badge manager UI for event badge names, descriptions, images, visibility, and active state.
+- Added admin badge listing and user badge revocation routes.
+- Added admin badge management UI for definitions, earned awards, revocation, and recent audit logs.
+- Added a runner dashboard recent badges widget.
+- Fixed submission shadow sync so `reviewed_by` resolves to Supabase `app_users.id`.
+- Added badge service, integration, route, and adjacent shadow/payment regression coverage.
+- Added challenge/global distance progress, leaderboard variants, organiser variants, social share previews, Open Badges metadata, badge email rollout controls, and admin recalculation.
+- Hardened onsite race kit creation against current schema requirements.
+- Updated badge and shop handoff notes with migration, rollout, smoke, and validation status.
+
+### Validation signals recorded
+- Latest split release-readiness sweep passed 101/101 across badge, ranking, communication, onsite operations, submission, shadow sync, shop read/payment-review, and validation middleware coverage.
+
+### Remaining next tasks
+- Move back to Phase 11 shop UI: event shop page, product detail page, and runner order detail pages.
+- Keep `badge.earned` email disabled until production sender readiness is confirmed.
+- Run production smoke from `docs/achievement_badges.md` after migrations are applied.
+
+---
+
 ## STATUS UPDATE (May 14, 2026 - Payment Receipt and Run Result Split)
 
 ### Current reality after latest implementation
@@ -1789,7 +1831,7 @@ PROJECT OVERVIEW & STATUS (Updated Apr 24, 2026)
 
 ### UPCOMING PHASES
 [PENDING] Phase 10: Production Deployment Launch Gate
-[DRAFT] Phase 11: Shop / Merchandise Feature
+[IN_PROGRESS] Phase 11: Shop / Merchandise Feature (backend foundation complete; UI polish pending)
 [DRAFT/MVP HARDENING] Phase 12: OCR Smart Activity Submission
 [DRAFT] Phase 13: Onsite Event Result Import
 [DRAFT] Phase 14: Organiser Reports and Export Centre
@@ -1885,7 +1927,7 @@ The current priority remains release hardening and production-readiness verifica
 ```text
 Phase 9:  [NOW] Release hardening, regression stability, and production-readiness verification
 Phase 10: [NEXT] Production deployment launch gate
-Phase 11: [DRAFT] Shop / Merchandise Feature
+Phase 11: [IN_PROGRESS] Shop / Merchandise Feature (backend foundation complete; UI polish pending)
 Phase 12: [DRAFT/MVP HARDENING] OCR Smart Activity Submission
 Phase 13: [DRAFT] Onsite Event Result Import
 Phase 14: [DRAFT] Organiser Reports and Export Centre
@@ -2108,13 +2150,13 @@ Phase 10: Production Deployment Launch Gate [DEPLOY] PENDING
 
 ---
 
-Phase 11: Shop / Merchandise Feature [COMMERCE] DRAFT
+Phase 11: Shop / Merchandise Feature [COMMERCE] IN PROGRESS
 
 Goal: Add a HelloRun shop for running-related and achievement-based merchandise that supports the platform brand, runners, organisers, and event-specific collections.
 
 Product scope:
-[DRAFT] HelloRun-branded merchandise
-[DRAFT] Event-specific merchandise
+[IN_PROGRESS] HelloRun-branded merchandise foundation
+[IN_PROGRESS] Event-specific merchandise foundation
 [DRAFT] Achievement-based products
 [DRAFT] Optional organiser-linked merchandise collections
 [DRAFT] Future bundle offers connected to event registration
@@ -2123,34 +2165,34 @@ Target merchandise:
 [DRAFT] Event shirts, finisher shirts, medals, patches, caps, towels, socks, race belts, bib holders, digital medals, and certificate add-ons
 
 Core workflows:
-[DRAFT] Public shop/catalog page for HelloRun-related merch
-[DRAFT] Product detail pages with images, variants, pricing, and stock status
-[DRAFT] Cart and checkout planning
-[DRAFT] Admin product management
-[DRAFT] Order tracking for runners/customers
+[IN_PROGRESS] Backend routes/services for event shop listing/detail, cart, checkout, order history, and manual payment proof
+[PENDING] Public storefront pages and product discovery UI polish
+[IN_PROGRESS] Organizer/admin backend routes for product, order, payment review, and reporting operations
+[PENDING] Organizer/admin dashboard UX polish
+[IN_PROGRESS] Registration add-on to order/payment bridge
 [DRAFT] Optional organiser/event-specific merch collections
 
-Suggested models:
-[DRAFT] Product: `name`, `slug`, `description`, `category`, `images`, `basePrice`, `status`, `isFeatured`, optional `eventId`, optional `organizerId`, `createdBy`, timestamps
-[DRAFT] ProductVariant: `productId`, `size`, `color`, `sku`, `priceOverride`, `stockQuantity`, `status`
-[DRAFT] Order: `orderNumber`, `userId`, `items`, `subtotal`, `serviceFee`, `shippingFee`, `totalAmount`, `paymentStatus`, `orderStatus`, `paymentProof`, `shippingDetails`, timestamps
-[DRAFT] OrderItem: `productId`, `variantId`, `nameSnapshot`, `variantSnapshot`, `quantity`, `unitPrice`, `lineTotal`
+Implemented data foundation (PostgreSQL + Mongo hybrid):
+[DONE] Core commerce tables and additive migration hardening (`products_core`, `product_variants`, `orders`, `order_items`, `inventory_movements`, `shop_payments`, `shop_fulfilment_logs`, `shop_platform_fees`)
+[DONE] Mongo support models for flexible content (`ShopProductContent`, `ShopMediaMetadata`, `ShopOrderNotes`, `ShopPolicySnapshot`)
+[DONE] Registration add-on snapshot fields and registration-to-order bridge
 
-Suggested routes:
-[DRAFT] Public/runner: `GET /shop`, `GET /shop/:slug`, `POST /shop/cart/add`, `GET /shop/cart`, `POST /shop/checkout`, `GET /runner/orders`, `GET /runner/orders/:orderNumber`
-[DRAFT] Admin: `GET /admin/shop/products`, `GET /admin/shop/products/new`, `POST /admin/shop/products`, `GET /admin/shop/products/:id/edit`, `POST /admin/shop/products/:id`, `POST /admin/shop/products/:id/archive`, `GET /admin/shop/orders`, `GET /admin/shop/orders/:id`, `POST /admin/shop/orders/:id/status`
-[DRAFT] Optional organiser routes: `GET /organizer/events/:id/merch`, `POST /organizer/events/:id/merch/link`, `GET /organizer/events/:id/merch/orders`
+Implemented routes:
+[DONE] Public/runner: `GET /events/:eventSlug/shop`, `GET /events/:eventSlug/shop/:productSlug`, `GET /shop/cart`, `POST /shop/cart/add`, `PATCH /shop/cart/items/:itemId`, `DELETE /shop/cart/items/:itemId`, `GET /shop/checkout`, `POST /shop/checkout`, `GET /orders`, `GET /orders/:orderNumber`, `GET /orders/:orderNumber/payment`, `POST /orders/:orderNumber/payment-proof`, `POST /orders/:orderNumber/cancel`
+[DONE] Organizer: `/organizer/events/:eventId/shop/*` product, variant, orders, fulfilment, payment-review, and report routes
+[DONE] Admin: `/admin/shop`, `/admin/shop/products`, `/admin/shop/product-approvals`, `/admin/shop/orders`, `/admin/shop/payments`, `/admin/shop/reports`, `/admin/shop/settings`
+[DRAFT] Optional merch-link routes remain a future enhancement if event merch collections are separated further
 
 Acceptance criteria:
-[PENDING] Public users can browse available products.
-[PENDING] Product detail pages show images, price, variants, and stock status.
-[PENDING] Logged-in runners can place merchandise orders.
-[PENDING] Admin can create, edit, archive, and manage products.
-[PENDING] Admin can update order status.
-[PENDING] Event-specific merchandise can be linked to an event.
-[PENDING] Order records preserve product and variant snapshots.
+[DONE] Core shop backend workflows have route and service tests.
+[DONE] Order records preserve product and variant snapshots.
+[DONE] Registration add-ons can bridge into orders and payment-review queue for paid events.
+[PENDING] Public users can browse available products via finalized storefront pages.
+[PENDING] Product detail pages show full production UI with image and variant presentation.
+[PENDING] Logged-in runners can complete end-to-end merchandise orders through polished pages.
+[PENDING] Admin/organizer dashboards for full CRUD and operations are production-polished.
+[PENDING] Event-specific merchandise collection pages are finalized.
 [PENDING] Mobile layout is usable for browsing, checkout, and order tracking.
-[PENDING] Core shop workflows have route and service tests.
 
 Deferred scope:
 [DEFERRED] Full payment gateway integration
@@ -2606,7 +2648,7 @@ Phase 7:  [DONE] Completed
 Phase 8:  [DONE] Completed (optional scope shipped)
 Phase 9:  [NOW] Release hardening, regression stability, and production-readiness verification
 Phase 10: [NEXT] Production deployment launch gate
-Phase 11: [DRAFT] Shop / Merchandise Feature
+Phase 11: [IN_PROGRESS] Shop / Merchandise Feature (backend foundation complete; UI polish pending)
 Phase 12: [DRAFT/MVP HARDENING] OCR Smart Activity Submission
 Phase 13: [DRAFT] Onsite Event Result Import
 Phase 14: [DRAFT] Organiser Reports and Export Centre
@@ -2840,13 +2882,13 @@ Data Source: Approved submissions from Phase 5
 
 ---
 
-SHOP FEATURE PLAN (Phase 11 - Draft)
+SHOP FEATURE PLAN (Phase 11 - In Progress)
 
 Detailed planning source: docs/shop_feature.md
 
 ### Product intent
 [DRAFT] Sell merch related to running, HelloRun events, and runner community identity.
-[DRAFT] Keep the first version lightweight: catalog, product detail, basic cart/order intent, and admin-managed products.
+[IN_PROGRESS] Keep the first version lightweight: backend foundation shipped, storefront/admin UI refinement pending.
 [DRAFT] Avoid making marketplace/vendor complexity part of the MVP unless needed later.
 
 ### Example merch categories
@@ -2856,13 +2898,13 @@ Detailed planning source: docs/shop_feature.md
 [DRAFT] Digital or printable event add-ons if useful later
 
 ### MVP scope
-[PENDING] Product model
-[PENDING] Product image upload/storage
-[PENDING] Public `/shop` catalog
-[PENDING] Public `/shop/:slug` product detail page
-[PENDING] Admin product create/edit/archive flow
-[PENDING] Cart and checkout decision: payment gateway now vs manual order/reservation first
-[PENDING] Order model and customer order history
+[DONE] Product model and commerce migrations baseline
+[IN_PROGRESS] Product image and media metadata foundations
+[PENDING] Public `/shop` marketing catalog page
+[PENDING] Public product discovery and detail page polish
+[IN_PROGRESS] Admin/organizer route/controller foundations for product and payment operations
+[DONE] Manual payment-proof MVP selected; gateway deferred to later phase
+[IN_PROGRESS] Order model and customer order history backend flows
 
 ### Future scope
 [PENDING] Event-specific merch bundles during registration
