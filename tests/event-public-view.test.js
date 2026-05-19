@@ -81,6 +81,41 @@ test('buildPublicEventView surfaces packages as optional add-ons', () => {
   assert.deepEqual(publicEvent.packageOptions[0].includedItems, ['Shirt']);
 });
 
+test('buildPublicEventView shows all race distances for non-accumulated events', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Multi Distance Race',
+    slug: 'multi-distance-race',
+    eventType: 'onsite',
+    eventTypesAllowed: ['onsite'],
+    raceDistances: ['3K', '5K', '10K'],
+    virtualCompletionMode: 'single_activity',
+    feeMode: 'free'
+  });
+
+  assert.deepEqual(publicEvent.raceDistances, ['3K', '5K', '10K']);
+  assert.equal(publicEvent.distanceSummaryLabel, '3K, 5K, 10K');
+  assert.equal(publicEvent.stats[1].label, 'Distances');
+  assert.equal(publicEvent.stats[1].value, '3K, 5K, 10K');
+});
+
+test('buildPublicEventView shows accumulated registration options without duplicating the target stat', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Accumulated Race',
+    slug: 'accumulated-race',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K', '10K'],
+    virtualCompletionMode: 'accumulated_distance',
+    targetDistanceKm: 10,
+    feeMode: 'free'
+  });
+
+  assert.equal(publicEvent.targetDistanceLabel, '10 km');
+  assert.equal(publicEvent.distanceSummaryLabel, '5K, 10K');
+  assert.deepEqual(publicEvent.stats[1], { label: 'Registration Options', value: '5K, 10K', helper: 'Distance labels' });
+  assert.equal(publicEvent.stats.some((stat) => stat.label === 'Target'), false);
+});
+
 test('buildPublicEventSeo uses event image and canonical URL', () => {
   const seo = buildPublicEventSeo({
     title: 'SEO Event',

@@ -214,7 +214,7 @@ test('admin review queue renders payment and result queues with filters', async 
   assert.match(allHtml, new RegExp(escapeRegex(seed.eventTitle)));
   assert.match(allHtml, new RegExp(escapeRegex(seed.runner.email)));
   assert.match(allHtml, /\/organizer\/events\/[a-f0-9]{24}\/payment-proofs\/review/i);
-  assert.match(allHtml, /\/organizer\/events\/[a-f0-9]{24}\/registrants\?result=submitted/i);
+  assert.match(allHtml, /\/organizer\/events\/[a-f0-9]{24}\/submissions\/[a-f0-9]{24}\/review/i);
 
   const paymentsResponse = await fetch(`${BASE_URL}/admin/reviews?type=payments`, {
     headers: { Cookie: cookie },

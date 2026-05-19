@@ -595,8 +595,8 @@
                 <label><input type="checkbox" name="raceDistancePresets" value="21K" <%= selectedDistances.includes('21K') ? 'checked' : '' %>> 21K</label>
               </div>
               <label for="raceDistanceCustom" style="margin-top:0.5rem;">Custom Distances (comma-separated)</label>
-              <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" placeholder="e.g., 42K, 50K">
-              <small class="field-hint">Final values are normalized like 3K, 5K, 10K.</small>
+              <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" placeholder="e.g., 42K, 50, 100">
+              <small class="field-hint">Numbers are treated as kilometers, so 10, 10k, and 10 km become 10K.</small>
             </div>
           </div>
         </div>
@@ -969,10 +969,18 @@
       const EXISTING_DISTANCE_PRICING = <%- JSON.stringify((formData.distancePricing || []).map(function(d) { return { distance: d.distance, amount: d.amount, earlyBirdAmount: d.earlyBirdAmount, regularAmount: d.regularAmount, lateAmount: d.lateAmount }; })) %>;
 
       function getActiveDistances() {
+        function normalizeDistanceLabel(value) {
+          const compact = String(value || '').trim().toUpperCase().replace(/\s+/g, '');
+          const numericOnly = compact.match(/^(\d+(?:\.\d+)?)$/);
+          if (numericOnly) return `${numericOnly[1]}K`;
+          const kmValue = compact.match(/^(\d+(?:\.\d+)?)(KM|K)$/);
+          if (kmValue) return `${kmValue[1]}K`;
+          return compact;
+        }
         const presets = Array.from(document.querySelectorAll('input[name="raceDistancePresets"]:checked'))
-          .map((cb) => cb.value.trim().toUpperCase().replace(/\s+/g, ''));
+          .map((cb) => normalizeDistanceLabel(cb.value));
         const customRaw = document.getElementById('raceDistanceCustom')?.value || '';
-        const customs = customRaw.split(',').map((v) => v.trim().toUpperCase().replace(/\s+/g, '')).filter(Boolean);
+        const customs = customRaw.split(',').map(normalizeDistanceLabel).filter(Boolean);
         const seen = new Set();
         return [...presets, ...customs].filter((d) => { if (seen.has(d)) return false; seen.add(d); return Boolean(d); });
       }
@@ -1159,7 +1167,7 @@
 
       function parseRaceDistanceKm(label) {
         const value = String(label || '').trim().toUpperCase().replace(/\s+/g, '');
-        const match = value.match(/^(\d+(?:\.\d+)?)(K|KM)$/);
+        const match = value.match(/^(\d+(?:\.\d+)?)(K|KM)?$/);
         if (!match) return null;
         const distance = Number(match[1]);
         return Number.isFinite(distance) && distance > 0 ? distance : null;
@@ -1465,6 +1473,8 @@
             if (value instanceof File) data.delete(key);
           }
           const params = new URLSearchParams();
+          params.set('previewSource', 'edit');
+          params.set('eventId', '<%= event._id %>');
           for (const [key, value] of data.entries()) {
             params.append(key, value);
           }
@@ -1475,6 +1485,8 @@
 
       // ---------- LOADING STATE ON SUBMIT ----------
       form.addEventListener('submit', (e) => {
+        if (e.defaultPrevented) return;
+
         let isValid = true;
         const actionType = e.submitter?.value;
         const fieldsToValidate = (isPublishedEdit || isPendingReviewEdit || actionType === 'publish') ? requiredFields : [{ id: 'title', message: 'Event title is required.' }];

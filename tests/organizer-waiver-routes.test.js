@@ -76,6 +76,7 @@ test('create and edit event views expose ordered create-event sections', () => {
       assert.match(content, /form-section-event-type" tabindex="-1"/, `${file} should make Event Type focusable`);
       assert.match(content, /eventTypeSection\.focus\(\{ preventScroll: true \}\)/, `${file} should focus Event Type on load`);
       assert.match(content, /wizard-progress/, `${file} should include guided wizard progress`);
+      assert.doesNotMatch(content, /AUTO_SAVE|autosave|hellorun_create_event_draft|draftRestore|draftDiscard|previous session/i, `${file} should not include create-event autosave or recovery code`);
       assert.match(content, /form-section-race-categories/, `${file} should expose the race category step`);
       assert.match(content, /form-section-review/, `${file} should expose the preview and submit step`);
       assert.match(content, /data-event-type-card="virtual"[\s\S]*Virtual Event/, `${file} should explain virtual events`);
@@ -92,6 +93,7 @@ test('create and edit event views expose ordered create-event sections', () => {
       assert.match(content, /id="submitReviewBtn"[\s\S]*Submit for Review|value="publish"[\s\S]*id="submitReviewBtn"/, `${file} should expose draft submit-for-review action`);
       assert.match(content, /id="actionConfirmOverlay"/, `${file} should include the step action confirmation modal`);
       assert.match(content, /Submit changes for review\?/, `${file} should confirm submit-for-review before proceeding`);
+      assert.match(content, /form\.addEventListener\('submit', \(e\) => \{\s*if \(e\.defaultPrevented\) return;/, `${file} should not disable save buttons before confirmation resolves`);
     }
     assert.doesNotMatch(content, /id="title"[\s\S]*?autofocus/, `${file} should not steal focus with the title field`);
     assert.match(content, /Leaderboard Mode[\s\S]*?name="leaderboardRecognitionEnabled"/, `${file} should group leaderboard recognition with leaderboard settings`);
@@ -123,6 +125,14 @@ test('create and edit event views expose ordered create-event sections', () => {
   }
 
   const css = fs.readFileSync(path.join(ROOT, 'src/public/css/create-event.css'), 'utf8');
+  const organizerRoutes = fs.readFileSync(path.join(ROOT, 'src/routes/organizer.routes.js'), 'utf8');
+  const publicEventDetailsView = fs.readFileSync(path.join(ROOT, 'src/views/pages/event-details.ejs'), 'utf8');
+  assert.doesNotMatch(organizerRoutes, /create-event\/autosave|Autosave Draft|CREATE_EVENT_AUTOSAVE|A title is required to autosave/i, 'create-event autosave route should be removed');
+  assert.match(organizerRoutes, /buildPublicEventView\(previewEvent/, 'organizer preview should use the public event detail view model');
+  assert.match(organizerRoutes, /res\.render\('pages\/event-details'/, 'organizer preview should render the actual public event details page');
+  assert.match(publicEventDetailsView, /Preview mode/, 'public event details page should expose a preview mode banner');
+  assert.match(publicEventDetailsView, /isPreviewMode[\s\S]*Back to Editor/, 'public event details page should route preview navigation back to the editor');
+  assert.doesNotMatch(css, /draft-restore|autosave-status/i, 'create-event recovery and autosave styles should be removed');
   assert.match(css, /\.create-event-form\s*\{[^}]*display:\s*grid/s);
   assert.match(css, /\.wizard-progress\s*\{[^}]*position:\s*sticky/s);
   assert.match(css, /\.form-section:focus\s*\{[^}]*outline:\s*2px solid var\(--border-focus\)/s);
@@ -196,6 +206,40 @@ test('approved verified organizer can open create-event page', async () => {
   const html = await response.text();
   assert.match(html, /Create Event/i);
   assert.match(html, /Event Format/i);
+});
+
+test('organizer preview renders actual event details page with multiple race distances', async () => {
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+
+  const params = buildValidCreateEventPayload({
+    title: `Preview Multi Distance ${seed.stamp}`
+  });
+  params.set('eventType', 'virtual');
+  params.set('virtualCompletionMode', 'accumulated_distance');
+  params.set('targetDistanceKm', '10');
+  params.delete('raceDistancePresets');
+  params.append('raceDistancePresets', '10K');
+  params.set('raceDistanceCustom', '25, 50 km, 100');
+  params.set('previewSource', 'create');
+  params.delete('_csrf');
+
+  const response = await fetch(`${BASE_URL}/organizer/preview-event?${params.toString()}`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Preview mode/i);
+  assert.match(html, /How This Event Works/i);
+  assert.match(html, /<span>Registration Options<\/span>\s*<strong>10K, 25K, 50K, 100K<\/strong>/i);
+  assert.match(html, /Registration options:<\/strong>\s*10K, 25K, 50K, 100K\./i);
+  assert.match(html, /<strong>10 km<\/strong>\s*<span>Completion goal<\/span>/i);
+  assert.match(html, /<strong>Registration Options<\/strong><span>10K, 25K, 50K, 100K<\/span>/i);
+  assert.match(html, /<strong>Completion Goal<\/strong><span>10 km<\/span>/i);
+  assert.doesNotMatch(html, /organizer-event-preview-page/i);
 });
 
 test('pending organizer sees create-event modal only on dashboard action and must sign matching account name', async () => {
@@ -436,6 +480,18 @@ test('create-event form normalization still supports explicit 2026K accumulated 
   assert.equal(formData.digitalBadgeEnabled, true);
   assert.equal(formData.digitalCertificateEnabled, true);
   assert.equal(formData.leaderboardRecognitionEnabled, true);
+});
+
+test('create-event form normalization treats bare custom distances as kilometers', () => {
+  const formData = getCreateEventFormData({
+    eventType: 'virtual',
+    raceDistancePresets: ['10K'],
+    raceDistanceCustom: '10k, 25, 50 km, 100',
+    virtualCompletionMode: 'accumulated_distance'
+  });
+
+  assert.deepEqual(formData.raceDistances, ['10K', '25K', '50K', '100K']);
+  assert.equal(formData.targetDistanceKm, null);
 });
 
 test('applyEventFormData clears physical reward item flags when physical rewards are disabled', () => {

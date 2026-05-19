@@ -89,9 +89,11 @@ test('organizer dashboard renders range analytics and queue links', async () => 
 
   const paymentLink = `/organizer/events/${seed.eventId}/payment-proofs/review`;
   const resultLink = `/organizer/events/${seed.eventId}/registrants?result=submitted`;
+  const nextResultLink = `/organizer/events/${seed.eventId}/submissions/${seed.submittedSubmissionId}/review`;
   const approvedLink = `/organizer/events/${seed.eventId}/registrants?result=approved`;
   assert.match(html, new RegExp(escapeRegex(paymentLink)));
   assert.match(html, new RegExp(escapeRegex(resultLink)));
+  assert.match(html, new RegExp(escapeRegex(nextResultLink)));
   assert.match(html, new RegExp(escapeRegex(approvedLink)));
   assert.match(
     html,
@@ -104,6 +106,10 @@ test('organizer dashboard renders range analytics and queue links', async () => 
   assert.match(
     html,
     /class="btn btn-secondary review-icon-btn" target="_blank" rel="noopener noreferrer" aria-label="Review run results"/i
+  );
+  assert.match(
+    html,
+    new RegExp(`${escapeRegex(nextResultLink)}" class="btn btn-secondary review-icon-btn" target="_blank" rel="noopener noreferrer" aria-label="Review run results"`)
   );
 });
 
@@ -320,7 +326,7 @@ async function seedOrganizerDashboardFixture() {
     registeredAt: new Date(now - 9 * 24 * 60 * 60 * 1000)
   });
 
-  await Submission.create({
+  const submittedSubmission = await Submission.create({
     registrationId: registrationSubmitted._id,
     eventId: event._id,
     runnerId: runnerSubmitted._id,
@@ -407,6 +413,7 @@ async function seedOrganizerDashboardFixture() {
     stamp,
     password,
     eventId: String(event._id),
+    submittedSubmissionId: String(submittedSubmission._id),
     registrationIds: [
       registrationSubmitted._id,
       registrationApproved._id,

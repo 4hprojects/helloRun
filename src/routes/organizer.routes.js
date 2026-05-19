@@ -19,6 +19,10 @@ const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
 const { markdownToHtml } = require('../utils/markdown');
 const { generateUniqueReferenceCode } = require('../utils/referenceCode');
 const { canOrganizerReviewPaymentProof } = require('../utils/payment-workflow');
+const {
+  buildPublicEventView,
+  renderEventDetailsContent
+} = require('../utils/event-public-view');
 const { reviewSubmission } = require('../services/submission.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
 const {
@@ -439,8 +443,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         paymentReviewHref: nextPaymentReview?.eventId
           ? `/organizer/events/${String(nextPaymentReview.eventId)}/payment-proofs/review`
           : '/organizer/events',
-        resultReviewHref: nextResultReview?.eventId
-          ? `/organizer/events/${String(nextResultReview.eventId)}/registrants?result=submitted`
+        resultReviewHref: nextResultReview?._id && nextResultReview?.eventId
+          ? `/organizer/events/${String(nextResultReview.eventId)}/submissions/${String(nextResultReview._id)}/review`
           : '/organizer/events',
         byEvent: queueBreakdown,
         topEvents: {
@@ -577,64 +581,6 @@ router.get('/create-event', requireCanCreateEvents, async (req, res) => {
 });
 
 /* ==========================================
-   POST: Autosave Draft (AJAX, JSON only)
-   ========================================== */
-
-router.post('/create-event/autosave', requireCanCreateEvents, express.json(), requireCsrfProtection, async (req, res) => {
-  try {
-    const user = await User.findById(req.session.userId);
-    if (!user) return res.status(401).json({ error: 'Unauthorised' });
-
-    const body = req.body || {};
-    const titleRaw = (body.title || '').trim();
-    if (!titleRaw) return res.status(400).json({ error: 'A title is required to autosave.' });
-
-    const { draftEventId } = body;
-
-    if (draftEventId) {
-      // Update existing draft — verify ownership
-      const existing = await Event.findOne({ _id: draftEventId, organizerId: user._id, status: 'draft' });
-      if (!existing) return res.status(404).json({ error: 'Draft not found.' });
-
-      const formData = getCreateEventFormData(body);
-      eventFormService.applyEventFormData(existing, formData, user);
-      existing.status = 'draft'; // ensure applyEventFormData hasn't changed it
-      existing.title = titleRaw;
-      await existing.save();
-      return res.json({ draftEventId });
-    } else {
-      // Create new draft (title only — minimal viable save)
-      const formData = getCreateEventFormData(body);
-      const slug = await generateUniqueSlug(titleRaw);
-      const referenceCode = await generateUniqueReferenceCode({
-        title: titleRaw,
-        date: new Date(),
-        existsFn: async (candidate) => Event.exists({ referenceCode: candidate })
-      });
-      const organiserNameFromUser = `${user.firstName || ''} ${user.lastName || ''}`.trim();
-      const event = new Event({
-        organizerId: user._id,
-        slug,
-        referenceCode,
-        title: titleRaw,
-        organiserName: formData.organiserName || organiserNameFromUser || 'helloRun Organizer',
-        status: 'draft',
-        description: formData.description || '',
-        eventType: formData.eventType || 'virtual',
-        feeMode: formData.feeMode === 'paid' ? 'paid' : 'free'
-      });
-      eventFormService.applyEventFormData(event, formData, user);
-      event.status = 'draft';
-      await event.save();
-      return res.json({ draftEventId: event._id.toString() });
-    }
-  } catch (error) {
-    console.error('Autosave error:', error);
-    return res.status(500).json({ error: 'Autosave failed.' });
-  }
-});
-
-/* ==========================================
    GET: Event Preview (Approved Organizers)
    ========================================== */
 
@@ -652,33 +598,45 @@ router.get('/preview-event', requireCanCreateEvents, async (req, res) => {
 
     const formData = getCreateEventFormData(req.query);
     const errors = validateCreateEventForm(formData);
-    const eventTypesAllowed = getEventTypesAllowed(formData.eventType);
+    const previewEvent = new Event({
+      _id: new mongoose.Types.ObjectId(),
+      organizerId: user._id,
+      slug: 'preview-event',
+      status: 'draft',
+      referenceCode: 'PREVIEW',
+      waiverVersion: 1
+    });
+    eventFormService.applyEventFormData(previewEvent, formData, user);
+    previewEvent.slug = 'preview-event';
+    previewEvent.status = 'draft';
+    previewEvent.referenceCode = 'PREVIEW';
 
-    const previewEvent = {
-      ...formData,
-      eventTypesAllowed,
-      registrationOpenAt: parseDateSafe(formData.registrationOpenAt),
-      registrationCloseAt: parseDateSafe(formData.registrationCloseAt),
-      eventStartAt: parseDateSafe(formData.eventStartAt),
-      eventEndAt: parseDateSafe(formData.eventEndAt),
-      virtualWindow: {
-        startAt: parseDateSafe(formData.virtualStartAt),
-        endAt: parseDateSafe(formData.virtualEndAt)
-      },
-      finalSubmissionDeadlineAt: formData.virtualCompletionMode === 'accumulated_distance'
-        ? resolveFinalSubmissionDeadline(formData)
-        : null,
-      geo: formData.geoLat && formData.geoLng
-        ? { lat: Number(formData.geoLat), lng: Number(formData.geoLng) }
-        : null
+    const publicEvent = buildPublicEventView(previewEvent, { registrationCount: 0 });
+    publicEvent.registrationState = {
+      label: Object.keys(errors).length ? 'Preview Has Issues' : 'Preview Mode',
+      tone: Object.keys(errors).length ? 'closed' : 'upcoming',
+      canRegisterNow: false,
+      helper: 'This preview is generated from the current editor values and has not been published.'
     };
+    publicEvent.primaryCta = { label: 'Preview Only', href: '', disabled: true };
+    publicEvent.secondaryCtas = [];
 
-    return res.render('organizer/event-preview', {
-      title: 'Preview Event - helloRun',
+    const previewBackHref = req.query.previewSource === 'edit' && mongoose.Types.ObjectId.isValid(req.query.eventId)
+      ? `/organizer/events/${req.query.eventId}/edit`
+      : '/organizer/create-event';
+
+    return res.render('pages/event-details', {
+      title: `Preview Event - ${previewEvent.title || 'helloRun'}`,
+      seo: null,
       user,
-      previewEvent,
-      eventDetailsHtml: renderEventDetailsMarkdown(formData.eventDetailsMarkdown),
-      errors
+      event: previewEvent,
+      publicEvent,
+      badges: [],
+      eventDetailsHtml: renderEventDetailsContent(previewEvent.eventDetailsMarkdown),
+      countryName: getCountryName,
+      previewMode: true,
+      previewBackHref,
+      previewErrors: Object.values(errors)
     });
   } catch (error) {
     console.error('Error loading event preview page:', error);
@@ -1156,6 +1114,61 @@ router.get('/events/:eventId/payment-proofs/review', requireAuth, async (req, re
   }
 });
 
+router.get('/events/:id/submissions/:submissionId/review', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+    if (!user) {
+      return res.status(404).render('error', {
+        title: '404 - User Not Found',
+        status: 404,
+        message: 'User account not found.'
+      });
+    }
+
+    if (!canAccessRegistrantReview(user)) {
+      return res.status(403).render('error', {
+        title: '403 - Access Denied',
+        status: 403,
+        message: 'Only approved organizers or admins can review submissions.'
+      });
+    }
+
+    const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
+    if (!event) {
+      return res.status(404).render('error', {
+        title: '404 - Event Not Found',
+        status: 404,
+        message: 'Event not found or you do not have access.'
+      });
+    }
+
+    const context = await getSubmissionReviewContext(event, req.params.submissionId);
+    if (!context) {
+      return res.status(404).render('error', {
+        title: '404 - Submission Not Found',
+        status: 404,
+        message: 'Submission record not found for this event.'
+      });
+    }
+
+    return res.render('organizer/submission-review', {
+      title: `Submission Review - ${event.title}`,
+      user,
+      isAdminViewer: user.role === 'admin',
+      event,
+      message: getPageMessage(req.query),
+      ...context
+    });
+  } catch (error) {
+    console.error('Error loading submission review:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading submission review.'
+    });
+  }
+});
+
 router.post(
   '/events/:id/registrants/:registrationId/payment/approve',
   requireAuth,
@@ -1465,7 +1478,7 @@ router.post(
         });
 
         const q = new URLSearchParams({ type: 'success', msg: 'Activity submission approved.' });
-        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+        return res.redirect(`/organizer/events/${event._id}/submissions/${activityRecord._id}/review?${q.toString()}`);
       }
 
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
@@ -1478,13 +1491,13 @@ router.post(
       });
 
       const q = new URLSearchParams({ type: 'success', msg: 'Run result approved.' });
-      return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+      return res.redirect(`/organizer/events/${event._id}/submissions/${submissionRecord._id}/review?${q.toString()}`);
     } catch (error) {
       const q = new URLSearchParams({
         type: 'error',
         msg: String(error?.message || 'Unable to approve submission.')
       });
-      return res.redirect(`/organizer/events/${req.params.id}/registrants?${q.toString()}`);
+      return res.redirect(`/organizer/events/${req.params.id}/submissions/${req.params.submissionId}/review?${q.toString()}`);
     }
   }
 );
@@ -1548,7 +1561,7 @@ router.post(
             type: 'error',
             msg: 'Rejection reason must be at least 5 characters.'
           });
-          return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+          return res.redirect(`/organizer/events/${event._id}/submissions/${activityRecord._id}/review?${q.toString()}`);
         }
         const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
         await reviewAccumulatedActivitySubmission({
@@ -1561,7 +1574,7 @@ router.post(
         });
 
         const q = new URLSearchParams({ type: 'success', msg: 'Activity submission rejected.' });
-        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+        return res.redirect(`/organizer/events/${event._id}/submissions/${activityRecord._id}/review?${q.toString()}`);
       }
 
       const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
@@ -1570,7 +1583,7 @@ router.post(
           type: 'error',
           msg: 'Rejection reason must be at least 5 characters.'
         });
-        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+        return res.redirect(`/organizer/events/${event._id}/submissions/${submissionRecord._id}/review?${q.toString()}`);
       }
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
       await reviewSubmission({
@@ -1583,13 +1596,13 @@ router.post(
       });
 
       const q = new URLSearchParams({ type: 'success', msg: 'Run result rejected.' });
-      return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+      return res.redirect(`/organizer/events/${event._id}/submissions/${submissionRecord._id}/review?${q.toString()}`);
     } catch (error) {
       const q = new URLSearchParams({
         type: 'error',
         msg: String(error?.message || 'Unable to reject submission.')
       });
-      return res.redirect(`/organizer/events/${req.params.id}/registrants?${q.toString()}`);
+      return res.redirect(`/organizer/events/${req.params.id}/submissions/${req.params.submissionId}/review?${q.toString()}`);
     }
   }
 );
@@ -1814,70 +1827,6 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
         message: null
       });
     }
-    const validationErrors = validateCreateEventForm(formData);
-
-    if (Object.keys(validationErrors).length > 0) {
-      return res.status(400).render('organizer/edit-event', {
-        title: `Edit Event - ${event.title}`,
-        user,
-        event,
-        errors: validationErrors,
-        formData,
-        countries,
-        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
-        message: null
-      });
-    }
-
-    const organiserNameFromUser = `${user.firstName || ''} ${user.lastName || ''}`.trim();
-    const organiserName = formData.organiserName || organiserNameFromUser || 'helloRun Organizer';
-    const eventTypesAllowed = getEventTypesAllowed(formData.eventType);
-
-    event.title = formData.title;
-    event.organiserName = organiserName;
-    event.description = formData.description;
-    event.eventType = formData.eventType || undefined;
-    event.eventTypesAllowed = eventTypesAllowed;
-    event.raceDistances = formData.raceDistances;
-    event.registrationOpenAt = parseDateSafe(formData.registrationOpenAt);
-    event.registrationCloseAt = parseDateSafe(formData.registrationCloseAt);
-    event.eventStartAt = parseDateSafe(formData.eventStartAt);
-    event.eventEndAt = parseDateSafe(formData.eventEndAt);
-    event.venueName = formData.venueName || '';
-    event.venueAddress = formData.venueAddress || '';
-    event.city = formData.city || '';
-    event.province = formData.province || '';
-    event.country = formData.country || '';
-    event.geo = formData.geoLat && formData.geoLng
-      ? { lat: Number(formData.geoLat), lng: Number(formData.geoLng) }
-      : undefined;
-    const isVirtualMode = formData.eventType === 'virtual' || formData.eventType === 'hybrid';
-
-    event.virtualWindow = isVirtualMode && formData.virtualStartAt && formData.virtualEndAt
-      ? {
-          startAt: parseDateSafe(formData.virtualStartAt),
-          endAt: parseDateSafe(formData.virtualEndAt)
-        }
-      : undefined;
-    event.proofTypesAllowed = isVirtualMode ? formData.proofTypesAllowed : [];
-    event.virtualCompletionMode = isVirtualMode ? formData.virtualCompletionMode : 'single_activity';
-    event.targetDistanceKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-      ? formData.targetDistanceKm
-      : null;
-    event.minimumActivityDistanceKm = null;
-    event.acceptedRunTypes = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-      ? formData.acceptedRunTypes
-      : [];
-    event.finalSubmissionDeadlineAt = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-      ? resolveFinalSubmissionDeadline(formData)
-      : null;
-    event.milestoneDistancesKm = [];
-    event.recognitionMode = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-      ? formData.recognitionMode
-      : 'completion_only';
-    event.leaderboardMode = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
-      ? formData.leaderboardMode
-      : 'finishers';
     const bannerImageFile = req.files?.bannerImageFile?.[0] || null;
     const logoFile = req.files?.logoFile?.[0] || null;
     const posterImageFile = req.files?.posterImageFile?.[0] || null;
@@ -1946,10 +1895,6 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     }
 
     if ((formData.galleryImageUrls || []).length > MAX_GALLERY_IMAGES) {
-      if (uploadedBrandingKeys.length) {
-        await uploadService.deleteObjects(uploadedBrandingKeys);
-        uploadedBrandingKeys.length = 0;
-      }
       return res.status(400).render('organizer/edit-event', {
         title: `Edit Event - ${event.title}`,
         user,
@@ -1961,6 +1906,71 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
         message: null
       });
     }
+
+    const validationErrors = validateCreateEventForm(formData);
+
+    if (Object.keys(validationErrors).length > 0) {
+      return res.status(400).render('organizer/edit-event', {
+        title: `Edit Event - ${event.title}`,
+        user,
+        event,
+        errors: validationErrors,
+        formData,
+        countries,
+        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+        message: null
+      });
+    }
+
+    const organiserNameFromUser = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    const organiserName = formData.organiserName || organiserNameFromUser || 'helloRun Organizer';
+    const eventTypesAllowed = getEventTypesAllowed(formData.eventType);
+
+    event.title = formData.title;
+    event.organiserName = organiserName;
+    event.description = formData.description;
+    event.eventType = formData.eventType || undefined;
+    event.eventTypesAllowed = eventTypesAllowed;
+    event.raceDistances = formData.raceDistances;
+    event.registrationOpenAt = parseDateSafe(formData.registrationOpenAt);
+    event.registrationCloseAt = parseDateSafe(formData.registrationCloseAt);
+    event.eventStartAt = parseDateSafe(formData.eventStartAt);
+    event.eventEndAt = parseDateSafe(formData.eventEndAt);
+    event.venueName = formData.venueName || '';
+    event.venueAddress = formData.venueAddress || '';
+    event.city = formData.city || '';
+    event.province = formData.province || '';
+    event.country = formData.country || '';
+    event.geo = formData.geoLat && formData.geoLng
+      ? { lat: Number(formData.geoLat), lng: Number(formData.geoLng) }
+      : undefined;
+    const isVirtualMode = formData.eventType === 'virtual' || formData.eventType === 'hybrid';
+
+    event.virtualWindow = isVirtualMode && formData.virtualStartAt && formData.virtualEndAt
+      ? {
+          startAt: parseDateSafe(formData.virtualStartAt),
+          endAt: parseDateSafe(formData.virtualEndAt)
+        }
+      : undefined;
+    event.proofTypesAllowed = isVirtualMode ? formData.proofTypesAllowed : [];
+    event.virtualCompletionMode = isVirtualMode ? formData.virtualCompletionMode : 'single_activity';
+    event.targetDistanceKm = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      ? formData.targetDistanceKm
+      : null;
+    event.minimumActivityDistanceKm = null;
+    event.acceptedRunTypes = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      ? formData.acceptedRunTypes
+      : [];
+    event.finalSubmissionDeadlineAt = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      ? resolveFinalSubmissionDeadline(formData)
+      : null;
+    event.milestoneDistancesKm = [];
+    event.recognitionMode = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      ? formData.recognitionMode
+      : 'completion_only';
+    event.leaderboardMode = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
+      ? formData.leaderboardMode
+      : 'finishers';
 
     eventFormService.applyEventFormData(event, formData, user);
     if (isDraftSubmitForReview) {
@@ -2208,24 +2218,11 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
         message: null
       });
     }
-    const validationErrors = validateCreateEventForm(formData);
-
-    if (Object.keys(validationErrors).length > 0) {
-      return res.status(400).render('organizer/create-event', {
-        title: 'Create Event - helloRun',
-        user,
-        errors: validationErrors,
-        formData,
-        countries,
-        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
-        message: null
-      });
-    }
 
     const organiserNameFromUser = `${user.firstName || ''} ${user.lastName || ''}`.trim();
     const organiserName = formData.organiserName || organiserNameFromUser || 'helloRun Organizer';
     const status = formData.actionType === 'publish' ? 'pending_review' : 'draft';
-    const slug = await generateUniqueSlug(formData.title);
+    let slug = null;
     const eventTypesAllowed = getEventTypesAllowed(formData.eventType);
     const isVirtualMode = formData.eventType === 'virtual' || formData.eventType === 'hybrid';
     const finalSubmissionDeadlineAt = isVirtualMode && formData.virtualCompletionMode === 'accumulated_distance'
@@ -2238,6 +2235,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     const paymentQrImageFile = incomingPaymentQrFile;
     const galleryImageFiles = req.files?.galleryImageFiles || [];
     if (bannerImageFile || logoFile || posterImageFile || paymentQrImageFile || galleryImageFiles.length) {
+      slug = await generateUniqueSlug(formData.title || `event-upload-${Date.now()}`);
       const uploadedBranding = await uploadService.uploadEventBrandingToR2({
         userId: user._id,
         slug,
@@ -2274,10 +2272,6 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     }
 
     if ((formData.galleryImageUrls || []).length > MAX_GALLERY_IMAGES) {
-      if (uploadedBrandingKeys.length) {
-        await uploadService.deleteObjects(uploadedBrandingKeys);
-        uploadedBrandingKeys.length = 0;
-      }
       return res.status(400).render('organizer/create-event', {
         title: 'Create Event - helloRun',
         user,
@@ -2288,6 +2282,22 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
         message: null
       });
     }
+
+    const validationErrors = validateCreateEventForm(formData);
+
+    if (Object.keys(validationErrors).length > 0) {
+      return res.status(400).render('organizer/create-event', {
+        title: 'Create Event - helloRun',
+        user,
+        errors: validationErrors,
+        formData,
+        countries,
+        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+        message: null
+      });
+    }
+
+    slug = slug || await generateUniqueSlug(formData.title);
 
     const referenceCode = await generateUniqueReferenceCode({
       title: formData.title,
@@ -2856,6 +2866,10 @@ function normalizeRaceDistanceLabel(value) {
     .toUpperCase()
     .replace(/[^0-9A-Z.]/g, '');
   if (!compact || compact.length > 30) return '';
+  const numericOnly = compact.match(/^(\d+(?:\.\d+)?)$/);
+  if (numericOnly) return `${numericOnly[1]}K`;
+  const kmValue = compact.match(/^(\d+(?:\.\d+)?)(KM|K)$/);
+  if (kmValue) return `${kmValue[1]}K`;
   return compact;
 }
 
@@ -3035,6 +3049,81 @@ function buildRegistrantExportQuery(filterContext) {
   if (filterContext.selectedResultStatus) params.set('result', filterContext.selectedResultStatus);
   if (filterContext.searchQuery) params.set('q', filterContext.searchQuery);
   return params.toString();
+}
+
+async function getSubmissionReviewContext(event, submissionId) {
+  if (!event || !mongoose.Types.ObjectId.isValid(submissionId)) return null;
+  const eventId = event._id;
+  const basePopulate = [
+    { path: 'reviewedBy', select: 'firstName lastName email' },
+    { path: 'runnerId', select: 'firstName lastName email mobile country gender' },
+    { path: 'registrationId', select: 'participant confirmationCode raceDistance participationMode status paymentStatus registeredAt' }
+  ];
+
+  let submission = await Submission.findOne({ _id: submissionId, eventId })
+    .populate(basePopulate)
+    .lean();
+  let submissionKind = 'standard';
+
+  if (!submission) {
+    submission = await AccumulatedActivitySubmission.findOne({ _id: submissionId, eventId })
+      .populate(basePopulate)
+      .lean();
+    submissionKind = submission ? 'accumulated' : '';
+  }
+  if (!submission) return null;
+
+  const registration = submission.registrationId || null;
+  const participant = registration?.participant || {};
+  const runner = submission.runnerId || {};
+  const mappedSubmission = mapSubmissionForRegistrant(submission, {
+    isAccumulatedActivity: submissionKind === 'accumulated'
+  });
+
+  const accumulatedActivities = submissionKind === 'accumulated' && registration?._id
+    ? await AccumulatedActivitySubmission.find({ registrationId: registration._id })
+      .sort({ submittedAt: -1, createdAt: -1 })
+      .lean()
+    : [];
+
+  return {
+    submission: mappedSubmission,
+    submissionKind,
+    participant: {
+      name: [participant.firstName, participant.lastName].filter(Boolean).join(' ').trim() ||
+        [runner.firstName, runner.lastName].filter(Boolean).join(' ').trim() ||
+        'N/A',
+      email: participant.email || runner.email || 'N/A',
+      mobile: participant.mobile || runner.mobile || 'N/A',
+      countryLabel: getCountryName(participant.country || runner.country) || participant.country || runner.country || 'N/A',
+      genderLabel: formatGenderLabel(participant.gender || runner.gender) || 'N/A'
+    },
+    registration: registration ? {
+      id: String(registration._id),
+      confirmationCode: registration.confirmationCode || 'N/A',
+      raceDistance: registration.raceDistance || submission.raceDistance || 'N/A',
+      participationMode: registration.participationMode || submission.participationMode || 'N/A',
+      status: registration.status || 'N/A',
+      paymentStatus: registration.paymentStatus || 'N/A',
+      registeredAtLabel: formatDateTime(registration.registeredAt)
+    } : {
+      id: '',
+      confirmationCode: 'N/A',
+      raceDistance: submission.raceDistance || 'N/A',
+      participationMode: submission.participationMode || 'N/A',
+      status: 'N/A',
+      paymentStatus: 'N/A',
+      registeredAtLabel: ''
+    },
+    accumulatedProgress: submissionKind === 'accumulated'
+      ? buildAccumulatedProgress({
+        activities: accumulatedActivities,
+        targetDistanceKm: event.targetDistanceKm
+      })
+      : null,
+    backHref: `/organizer/events/${String(event._id)}/registrants?result=${submission.status || 'submitted'}`,
+    reviewActionBase: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}`
+  };
 }
 
 function mapSubmissionForRegistrant(submission, options = {}) {
@@ -3604,7 +3693,7 @@ function validateCreateEventForm(formData) {
     if (!formData.proofTypesAllowed.length) errors.proofTypesAllowed = 'Select at least one proof type.';
     if (formData.virtualCompletionMode === 'accumulated_distance') {
       if (!Number.isFinite(formData.targetDistanceKm) || formData.targetDistanceKm <= 0) {
-        errors.raceDistances = 'Add a numeric race distance (e.g. 100K) — it sets the completion goal for accumulated challenges.';
+        errors.raceDistances = 'Add a numeric race distance (e.g. 100K) - it sets the completion goal for accumulated challenges.';
       }
       if (!Number.isFinite(formData.minimumActivityDistanceKm) || formData.minimumActivityDistanceKm <= 0) {
         errors.minimumActivityDistanceKm = 'Minimum activity distance is required for accumulated-distance events.';
@@ -3686,7 +3775,7 @@ function validateOptionalCreateEventFields(formData, errors) {
     }
   }
 
-  // targetDistanceKm is derived from raceDistances — no manual input to validate here
+  // targetDistanceKm is derived from raceDistances - no manual input to validate here
   if (formData.minimumActivityDistanceKm !== null && (!Number.isFinite(formData.minimumActivityDistanceKm) || formData.minimumActivityDistanceKm <= 0)) {
     errors.minimumActivityDistanceKm = 'Minimum activity distance must be greater than 0.';
   }

@@ -383,17 +383,7 @@
                   </td>
                   <td>
                     <% if (registration.submission && registration.submission.status === 'submitted') { %>
-                      <form method="POST" action="/organizer/events/<%= event._id %>/submissions/<%= registration.submission._id %>/approve" class="payment-action-form">
-                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                        <textarea name="reviewNotes" rows="2" maxlength="1200" placeholder="Optional review notes"></textarea>
-                        <button type="submit" class="nav-signup-btn table-action-btn">Approve Run Result</button>
-                      </form>
-                      <form method="POST" action="/organizer/events/<%= event._id %>/submissions/<%= registration.submission._id %>/reject" class="payment-action-form">
-                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                        <textarea name="rejectionReason" rows="2" maxlength="500" required placeholder="Required rejection reason (min 5 chars)"></textarea>
-                        <textarea name="reviewNotes" rows="2" maxlength="1200" placeholder="Optional review notes"></textarea>
-                        <button type="submit" class="nav-login-btn table-action-btn">Reject Run Result</button>
-                      </form>
+                      <a href="/organizer/events/<%= event._id %>/submissions/<%= registration.submission._id %>/review" class="nav-signup-btn table-action-btn">Open Review</a>
                     <% } else if (registration.submission) { %>
                       <% if (registration.submission.reviewedAtLabel) { %>
                         <small>Reviewed: <%= registration.submission.reviewedAtLabel %></small>

@@ -26,6 +26,11 @@ Thumbs.db
 logs/
 *.log
 
+# Local smoke-test artifacts
+*_cookie.txt
+test-results*.txt
+verify-phase*-status.js
+
 # Uploads (keep directory structure but ignore files)
 src/public/uploads/*
 !src/public/uploads/.gitkeep

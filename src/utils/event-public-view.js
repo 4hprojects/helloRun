@@ -67,6 +67,10 @@ function buildPublicEventView(event, options = {}) {
   const targetDistanceLabel = Number.isFinite(Number(event.targetDistanceKm)) && Number(event.targetDistanceKm) > 0
     ? `${formatNumber(event.targetDistanceKm)} km`
     : (raceDistances[0] || 'Open distance');
+  const isAccumulatedChallenge = event.virtualCompletionMode === 'accumulated_distance';
+  const distanceSummaryLabel = raceDistances.length
+    ? raceDistances.join(', ')
+    : targetDistanceLabel;
 
   return {
     title: event.title || 'helloRun Event',
@@ -78,7 +82,8 @@ function buildPublicEventView(event, options = {}) {
     allowedModes,
     raceDistances,
     targetDistanceLabel,
-    isAccumulatedChallenge: event.virtualCompletionMode === 'accumulated_distance',
+    distanceSummaryLabel,
+    isAccumulatedChallenge,
     registrationState,
     pricing,
     rewardItems,
@@ -91,7 +96,7 @@ function buildPublicEventView(event, options = {}) {
     posterImageUrl,
     galleryImageUrls,
     logoUrl: event.logoUrl || '',
-    stats: buildStats({ event, registrationCount, targetDistanceLabel }),
+    stats: buildStats({ event, registrationCount, targetDistanceLabel, raceDistances, distanceSummaryLabel }),
     primaryCta: registrationState.canRegisterNow
       ? { label: 'Register Now', href: `/events/${event.slug}/register`, disabled: false }
       : { label: registrationState.label, href: '', disabled: true },
@@ -325,11 +330,26 @@ function buildLocation(event) {
   };
 }
 
-function buildStats({ event, registrationCount, targetDistanceLabel }) {
+function buildStats({ event, registrationCount, targetDistanceLabel, raceDistances = [], distanceSummaryLabel = '' }) {
+  const isAccumulatedChallenge = event.virtualCompletionMode === 'accumulated_distance';
+  const hasMultipleDistances = !isAccumulatedChallenge && raceDistances.length > 1;
   const stats = [
-    { label: 'Signups', value: String(registrationCount), helper: 'Registered runners' },
-    { label: 'Target', value: targetDistanceLabel, helper: event.virtualCompletionMode === 'accumulated_distance' ? 'Accumulated goal' : 'Race distance' }
+    { label: 'Signups', value: String(registrationCount), helper: 'Registered runners' }
   ];
+
+  if (isAccumulatedChallenge && raceDistances.length) {
+    stats.push({
+      label: raceDistances.length > 1 ? 'Registration Options' : 'Registration Option',
+      value: distanceSummaryLabel || raceDistances.join(', '),
+      helper: raceDistances.length > 1 ? 'Distance labels' : 'Distance label'
+    });
+  } else {
+    stats.push({
+      label: isAccumulatedChallenge ? 'Target' : (hasMultipleDistances ? 'Distances' : 'Distance'),
+      value: isAccumulatedChallenge ? targetDistanceLabel : (distanceSummaryLabel || targetDistanceLabel),
+      helper: isAccumulatedChallenge ? 'Accumulated goal' : (hasMultipleDistances ? 'Race distances' : 'Race distance')
+    });
+  }
 
   if (event.eventEndAt && event.eventStartAt) {
     const start = parseDate(event.eventStartAt);

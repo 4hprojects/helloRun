@@ -37,18 +37,6 @@
       <% } %>
 
       <%# ── DISCARD CONFIRM DIALOG ── %>
-      <div id="draftDiscardOverlay" class="draft-confirm-overlay" hidden>
-        <div class="draft-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="draftDiscardDialogTitle" aria-describedby="draftDiscardDialogDesc" tabindex="-1">
-          <div class="draft-confirm-icon"><i data-lucide="trash-2"></i></div>
-          <h3 id="draftDiscardDialogTitle">Discard saved draft?</h3>
-          <p id="draftDiscardDialogDesc">This will clear your saved progress and start a fresh blank form. This cannot be undone.</p>
-          <div class="draft-confirm-actions">
-            <button type="button" id="draftDiscardCancelBtn" class="draft-confirm-btn draft-confirm-btn--cancel">Keep draft</button>
-            <button type="button" id="draftDiscardConfirmBtn" class="draft-confirm-btn draft-confirm-btn--danger">Yes, discard</button>
-          </div>
-        </div>
-      </div>
-
       <%# ── ACTION CONFIRM DIALOG (reusable: restore / leave / save / submit) ── %>
       <div id="actionConfirmOverlay" class="draft-confirm-overlay" hidden>
         <div class="draft-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="actionConfirmTitle" aria-describedby="actionConfirmDesc" tabindex="-1">
@@ -59,19 +47,6 @@
             <button type="button" id="actionConfirmCancelBtn" class="draft-confirm-btn draft-confirm-btn--cancel">Cancel</button>
             <button type="button" id="actionConfirmOkBtn" class="draft-confirm-btn draft-confirm-btn--primary">Confirm</button>
           </div>
-        </div>
-      </div>
-
-      <%# ── DRAFT RESTORE BANNER (injected by JS if localStorage draft found) ── %>
-      <div id="draftRestoreBanner" class="draft-restore-banner" hidden aria-live="polite">
-        <i data-lucide="file-clock"></i>
-        <div class="draft-restore-text">
-          <strong>You have unsaved changes from a previous session.</strong>
-          <span id="draftRestoreSubtext"></span>
-        </div>
-        <div class="draft-restore-actions">
-          <button type="button" id="draftRestoreBtn" class="btn btn-outline btn-sm">Restore draft</button>
-          <button type="button" id="draftDiscardBtn" class="btn btn-ghost btn-sm">Discard</button>
         </div>
       </div>
 
@@ -433,7 +408,8 @@
                 <label><input type="checkbox" name="raceDistancePresets" value="21K" <%= selectedDistances.includes('21K') ? 'checked' : '' %>> 21K</label>
               </div>
               <label for="raceDistanceCustom" style="margin-top:0.5rem;">Custom Distances (comma-separated)</label>
-              <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" placeholder="e.g., 42K, 50K">
+              <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" placeholder="e.g., 42K, 50, 100">
+              <small class="field-hint">Numbers are treated as kilometers, so 10, 10k, and 10 km become 10K.</small>
               <small class="field-hint">For accumulated challenges, the race distance you set here is the completion goal runners must reach.</small>
               <% if (errors.raceDistances) { %><small class="error-text"><%= errors.raceDistances %></small><% } %>
             </div>
@@ -829,7 +805,6 @@
             <p class="field-hint">&#128196; <strong>Submit for Review</strong> requires all required fields to be complete. A payment QR image is required for paid events.</p>
           </div>
           <div class="actions">
-            <span id="autosaveStatus" class="autosave-status" aria-live="polite" hidden></span>
             <div class="action-btn-group">
               <a href="/organizer/dashboard" id="backToDashboardBtn" class="btn btn-secondary btn-adaptive" aria-label="Back to Dashboard" data-tooltip="Back to Dashboard"><i data-lucide="arrow-left"></i><span class="btn-label">Back to Dashboard</span></a>
               <button type="button" class="btn btn-outline btn-adaptive" id="previewBtn" aria-label="Preview" data-tooltip="Preview"><i data-lucide="eye"></i><span class="btn-label">Preview</span></button>
@@ -1073,10 +1048,18 @@
       const EXISTING_DISTANCE_PRICING = <%- JSON.stringify((formData.distancePricing || []).map(function(d) { return { distance: d.distance, amount: d.amount, earlyBirdAmount: d.earlyBirdAmount, regularAmount: d.regularAmount, lateAmount: d.lateAmount }; })) %>;
 
       function getActiveDistances() {
+        function normalizeDistanceLabel(value) {
+          const compact = String(value || '').trim().toUpperCase().replace(/\s+/g, '');
+          const numericOnly = compact.match(/^(\d+(?:\.\d+)?)$/);
+          if (numericOnly) return `${numericOnly[1]}K`;
+          const kmValue = compact.match(/^(\d+(?:\.\d+)?)(KM|K)$/);
+          if (kmValue) return `${kmValue[1]}K`;
+          return compact;
+        }
         const presets = Array.from(document.querySelectorAll('input[name="raceDistancePresets"]:checked'))
-          .map((cb) => cb.value.trim().toUpperCase().replace(/\s+/g, ''));
+          .map((cb) => normalizeDistanceLabel(cb.value));
         const customRaw = document.getElementById('raceDistanceCustom')?.value || '';
-        const customs = customRaw.split(',').map((v) => v.trim().toUpperCase().replace(/\s+/g, '')).filter(Boolean);
+        const customs = customRaw.split(',').map(normalizeDistanceLabel).filter(Boolean);
         const seen = new Set();
         return [...presets, ...customs].filter((d) => { if (seen.has(d)) return false; seen.add(d); return Boolean(d); });
       }
@@ -1474,8 +1457,9 @@
               })
             : Promise.resolve(window.confirm('Preview current setup?'));
           confirmPreview.then((confirmed) => {
-            if (!confirmed) return;
+          if (!confirmed) return;
           const params = new URLSearchParams();
+          params.set('previewSource', 'create');
           form.querySelectorAll('input:not([type=file]):not([type=checkbox]):not([type=radio]), select, textarea').forEach(el => {
             if (el.name && el.value) params.append(el.name, el.value);
           });
@@ -1725,6 +1709,7 @@
             removeQrInput.value = '1';
             document.getElementById('qrPreviewWrap').style.display = 'none';
             document.getElementById('paymentQrImageUrl').value = '';
+            document.getElementById('paymentQrImageKey').value = '';
           } catch (error) {
             alert(error.message);
           } finally {
@@ -2009,18 +1994,9 @@
   </script>
 
   <script>
-  // ── CREATE-EVENT DRAFT SAVING & ENTRY RECOVERY ──────────────────────────────
+  // Create-event action confirmations
   (function () {
-    const DRAFT_KEY = 'hellorun_create_event_draft_<%= user._id %>';
-    const AUTOSAVE_ENDPOINT = '/organizer/create-event/autosave';
-    const CSRF_TOKEN = document.querySelector('[name="_csrf"]')?.value || '';
-
     const form = document.querySelector('.create-event-form');
-    const banner = document.getElementById('draftRestoreBanner');
-    const bannerSubtext = document.getElementById('draftRestoreSubtext');
-    const restoreBtn = document.getElementById('draftRestoreBtn');
-    const discardBtn = document.getElementById('draftDiscardBtn');
-    const statusEl = document.getElementById('autosaveStatus');
 
     // ── REUSABLE ACTION CONFIRM DIALOG ───────────────────────────────────────
     const actionOverlay    = document.getElementById('actionConfirmOverlay');
@@ -2067,288 +2043,6 @@
     });
     window.openEventBuilderActionDialog = openActionDialog;
 
-    // ── HELPERS ──────────────────────────────────────────────────────────────
-    function serializeFields() {
-      if (!form) return {};
-      const data = {};
-      form.querySelectorAll('input:not([type=file]):not([type=submit]):not([type=button]), select, textarea').forEach((el) => {
-        if (!el.name) return;
-        if (el.type === 'checkbox' || el.type === 'radio') {
-          if (el.checked) data[el.name] = el.value;
-        } else {
-          data[el.name] = el.value;
-        }
-      });
-      return data;
-    }
-
-    function restoreFields(data) {
-      if (!form || !data) return;
-      Object.entries(data).forEach(([name, value]) => {
-        if (name.startsWith('_')) return; // skip meta keys
-        const els = form.querySelectorAll('[name="' + name + '"]');
-        els.forEach((el) => {
-          if (el.type === 'checkbox') { el.checked = el.value === value; }
-          else if (el.type === 'radio') { el.checked = el.value === value; }
-          else { el.value = value; }
-        });
-      });
-      // re-fire change events so conditional fields re-evaluate
-      ['eventType', 'feeMode', 'pricingMode', 'physicalRewardsEnabled', 'virtualCompletionMode'].forEach((name) => {
-        const el = form.querySelector('[name="' + name + '"]');
-        if (el) el.dispatchEvent(new Event('change', { bubbles: true }));
-      });
-    }
-
-    function loadDraft() {
-      try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null'); }
-      catch (_) { return null; }
-    }
-
-    function saveDraftLocal() {
-      try {
-        const existing = loadDraft() || {};
-        const fields = serializeFields();
-        // preserve meta keys like _draftEventId, _savedAt
-        const meta = {};
-        Object.keys(existing).filter((k) => k.startsWith('_')).forEach((k) => { meta[k] = existing[k]; });
-        const entry = Object.assign({}, fields, meta, { _savedAt: Date.now() });
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(entry));
-      } catch (_) { /* storage full or private mode */ }
-    }
-
-    function clearDraftLocal() {
-      try { localStorage.removeItem(DRAFT_KEY); } catch (_) {}
-    }
-
-    function setDraftEventId(id) {
-      try {
-        const entry = JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}');
-        entry._draftEventId = id;
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(entry));
-      } catch (_) {}
-    }
-
-    // ── AUTOSAVE STATUS PILL ─────────────────────────────────────────────────
-    let _statusTimer = null;
-    function setStatus(state, msg) {
-      if (!statusEl) return;
-      statusEl.hidden = false;
-      statusEl.dataset.state = state;
-      statusEl.textContent = msg;
-      clearTimeout(_statusTimer);
-      if (state === 'saved') {
-        _statusTimer = setTimeout(() => { statusEl.hidden = true; }, 4000);
-      }
-    }
-
-    // ── SERVER AUTOSAVE ──────────────────────────────────────────────────────
-    let _serverSaveInFlight = false;
-    let _serverSavePending = false;
-
-    async function serverAutosave() {
-      const title = (form?.querySelector('[name="title"]')?.value || '').trim();
-      if (!title) return;
-
-      if (_serverSaveInFlight) { _serverSavePending = true; return; }
-      _serverSaveInFlight = true;
-      setStatus('saving', 'Saving...');
-
-      try {
-        const draft = loadDraft() || {};
-        const draftEventId = draft._draftEventId || null;
-        const fields = serializeFields();
-
-        const resp = await fetch(AUTOSAVE_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
-          body: JSON.stringify(Object.assign({}, fields, { draftEventId }))
-        });
-
-        if (resp.ok) {
-          const json = await resp.json();
-          if (json.draftEventId) setDraftEventId(json.draftEventId);
-          setStatus('saved', 'Saved just now');
-        } else {
-          setStatus('failed', 'Save failed - retry');
-        }
-      } catch (_) {
-        setStatus('failed', 'Save failed - retry');
-      } finally {
-        _serverSaveInFlight = false;
-        if (_serverSavePending) {
-          _serverSavePending = false;
-          serverAutosave();
-        }
-      }
-    }
-
-    // ── DEBOUNCED LOCAL SAVE ─────────────────────────────────────────────────
-    let _localDebounce = null;
-    function debouncedLocalSave() {
-      clearTimeout(_localDebounce);
-      _localDebounce = setTimeout(saveDraftLocal, 800);
-    }
-
-    if (form) {
-      form.addEventListener('input', debouncedLocalSave);
-      form.addEventListener('change', debouncedLocalSave);
-    }
-
-    // ── HOOK INTO STEP CHANGES ───────────────────────────────────────────────
-    // Patch setActiveWizardStep (defined in the preceding IIFE) by wrapping
-    // the global via a MutationObserver-free approach: we expose a hook that
-    // the outer IIFE's IntersectionObserver already calls.
-    // The simplest safe approach: re-observe the same IntersectionObserver
-    // event via a separate observer with a broader threshold.
-    let _lastObservedStep = null;
-    if ('IntersectionObserver' in window) {
-      const wizardSections = Array.from(document.querySelectorAll('[data-wizard-step]'));
-      const stepChangeObserver = new IntersectionObserver((entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!visible) return;
-        const stepId = visible.target.dataset.wizardStep;
-        if (stepId && stepId !== _lastObservedStep) {
-          _lastObservedStep = stepId;
-          saveDraftLocal();
-          serverAutosave();
-        }
-      }, { rootMargin: '-20% 0px -65% 0px', threshold: [0.1, 0.35, 0.6] });
-      wizardSections.forEach((s) => stepChangeObserver.observe(s));
-    }
-
-    // ── RESTORE BANNER ───────────────────────────────────────────────────────
-    function showRestoreBanner(draft) {
-      if (!banner) return;
-      const draftEventId = draft._draftEventId;
-      const savedAt = draft._savedAt ? new Date(draft._savedAt).toLocaleString() : '';
-      if (bannerSubtext) bannerSubtext.textContent = savedAt ? 'Last saved ' + savedAt + '.' : '';
-      if (draftEventId && restoreBtn) {
-        restoreBtn.textContent = 'Resume editing';
-        restoreBtn.addEventListener('click', () => {
-          openActionDialog({
-            icon: 'file-clock', variant: 'restore',
-            title: 'Resume your saved draft?',
-            desc: 'You\'ll be taken to the saved draft to continue editing where you left off.',
-            cancelText: 'Cancel', okText: 'Resume editing', okClass: 'draft-confirm-btn--primary'
-          }).then((confirmed) => {
-            if (!confirmed) return;
-            clearDraftLocal();
-            window.location.href = '/organizer/events/' + draftEventId + '/edit';
-          });
-        }, { once: true });
-      } else if (restoreBtn) {
-        restoreBtn.addEventListener('click', () => {
-          openActionDialog({
-            icon: 'file-clock', variant: 'restore',
-            title: 'Restore saved draft?',
-            desc: 'This will fill the form with your previously saved data.',
-            cancelText: 'Cancel', okText: 'Restore draft', okClass: 'draft-confirm-btn--primary'
-          }).then((confirmed) => {
-            if (!confirmed) return;
-            restoreFields(draft);
-            banner.hidden = true;
-            saveDraftLocal();
-          });
-        }, { once: true });
-      }
-      const discardOverlay = document.getElementById('draftDiscardOverlay');
-      const discardCancelBtn = document.getElementById('draftDiscardCancelBtn');
-      const discardConfirmBtn = document.getElementById('draftDiscardConfirmBtn');
-
-      function openDiscardDialog() {
-        if (!discardOverlay) return;
-        discardOverlay.hidden = false;
-        discardOverlay.querySelector('.draft-confirm-dialog')?.focus();
-        if (window.lucide) lucide.createIcons();
-      }
-
-      function closeDiscardDialog() {
-        if (discardOverlay) discardOverlay.hidden = true;
-      }
-
-      if (discardBtn) {
-        discardBtn.addEventListener('click', openDiscardDialog);
-      }
-
-      if (discardCancelBtn) discardCancelBtn.addEventListener('click', closeDiscardDialog);
-
-      if (discardConfirmBtn) {
-        discardConfirmBtn.addEventListener('click', () => {
-          clearDraftLocal();
-          window.location.replace('/organizer/create-event');
-        });
-      }
-
-      // Dismiss on backdrop click
-      if (discardOverlay) {
-        discardOverlay.addEventListener('click', (e) => {
-          if (e.target === discardOverlay) closeDiscardDialog();
-        });
-      }
-
-      // Dismiss on Escape
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && discardOverlay && !discardOverlay.hidden) closeDiscardDialog();
-      });
-      // Disable action buttons until user resolves the banner
-      const _actionBtns = [
-        document.getElementById('saveDraftBtn'),
-        document.getElementById('publishBtn'),
-        document.getElementById('backToDashboardBtn')
-      ].filter(Boolean);
-      function _disableActionBtns() {
-        _actionBtns.forEach((b) => { b.disabled = true; b.setAttribute('aria-disabled', 'true'); });
-      }
-      function _enableActionBtns() {
-        _actionBtns.forEach((b) => { b.disabled = false; b.removeAttribute('aria-disabled'); });
-      }
-      _disableActionBtns();
-
-      // Re-enable when banner is resolved (restore confirmed or discard confirmed)
-      // Wrap the restore confirm path
-      if (restoreBtn) {
-        restoreBtn.addEventListener('click', () => {
-          // buttons re-enabled after restore is confirmed inside the then() above,
-          // but we need to hook in after the once listener - use a second listener
-        });
-      }
-      // Patch: after any confirmed action that hides the banner, re-enable
-      function _onBannerResolved() { banner.hidden = true; _enableActionBtns(); }
-
-      // Intercept discard confirm to also re-enable (page reloads anyway, but be safe)
-      if (discardConfirmBtn) {
-        discardConfirmBtn.addEventListener('click', _enableActionBtns);
-      }
-      // Intercept restore path: observe banner hidden state via MutationObserver
-      new MutationObserver((mutations) => {
-        for (const m of mutations) {
-          if (m.type === 'attributes' && m.attributeName === 'hidden' && banner.hidden) {
-            _enableActionBtns();
-          }
-        }
-      }).observe(banner, { attributes: true });
-
-      banner.hidden = false;
-      if (window.lucide) lucide.createIcons();
-    }
-
-    // ── INIT: check for existing draft ───────────────────────────────────────
-    (function init() {
-      const draft = loadDraft();
-      if (!draft) return;
-      // Only show banner if at least one field has a non-empty value (skip empty serialized forms)
-      const hasMeaningfulData = Object.keys(draft).some(
-        (k) => !k.startsWith('_') && String(draft[k] || '').trim() !== ''
-      );
-      if (!hasMeaningfulData) return;
-      showRestoreBanner(draft);
-    })();
-
-    // ── ACTION BUTTON GUARDS ─────────────────────────────────────────────────
-
     // Back to Dashboard - intercept navigation
     const backToDashboardBtn = document.getElementById('backToDashboardBtn');
     if (backToDashboardBtn) {
@@ -2357,7 +2051,7 @@
         openActionDialog({
           icon: 'arrow-left', variant: 'leave',
           title: 'Leave the event builder?',
-          desc: 'Your form has been auto-saved as a draft. You can return to finish it from your dashboard.',
+          desc: 'Your changes are not saved automatically. Use Save Draft if you want to continue editing later.',
           cancelText: 'Stay here', okText: 'Go to Dashboard', okClass: 'draft-confirm-btn--primary'
         }).then((confirmed) => {
           if (confirmed) window.location.href = '/organizer/dashboard';
@@ -2376,7 +2070,6 @@
           cancelText: 'Cancel', okText: 'Save Draft', okClass: 'draft-confirm-btn--primary'
         }).then((confirmed) => {
           if (!confirmed) return;
-          clearDraftLocal();
           const input = document.createElement('input');
           input.type = 'hidden';
           input.name = 'actionType';
@@ -2398,7 +2091,6 @@
           cancelText: 'Cancel', okText: 'Submit', okClass: 'draft-confirm-btn--success'
         }).then((confirmed) => {
           if (!confirmed) return;
-          clearDraftLocal();
           // show spinner on publish button
           const spinner = publishBtn.querySelector('.spinner');
           if (spinner) spinner.style.display = 'inline-block';
@@ -2414,11 +2106,6 @@
     }
 
     // ── CLEAR on successful submit ────────────────────────────────────────────
-    if (form) {
-      form.addEventListener('submit', () => {
-        clearDraftLocal();
-      });
-    }
   })();
   </script>
 </body>

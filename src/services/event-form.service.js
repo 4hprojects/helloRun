@@ -32,7 +32,12 @@ function normalizeToArray(value) {
 function normalizeRaceDistanceLabel(value) {
   const raw = String(value || '').trim().toUpperCase();
   if (!raw) return '';
-  return raw.replace(/\s+/g, '');
+  const compact = raw.replace(/\s+/g, '');
+  const numericOnly = compact.match(/^(\d+(?:\.\d+)?)$/);
+  if (numericOnly) return `${numericOnly[1]}K`;
+  const kmValue = compact.match(/^(\d+(?:\.\d+)?)(KM|K)$/);
+  if (kmValue) return `${kmValue[1]}K`;
+  return compact;
 }
 
 function normalizeRaceDistances(body = {}) {
@@ -316,7 +321,7 @@ function normalizeMilestoneDistances(value) {
 
 function parseRaceDistanceKm(label) {
   const value = String(label || '').trim().toUpperCase().replace(/\s+/g, '');
-  const match = value.match(/^(\d+(?:\.\d+)?)(K|KM)$/);
+  const match = value.match(/^(\d+(?:\.\d+)?)(K|KM)?$/);
   if (!match) return null;
   const distance = Number(match[1]);
   return Number.isFinite(distance) && distance > 0 ? distance : null;

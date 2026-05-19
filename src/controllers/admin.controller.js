@@ -8,6 +8,7 @@ const BlogReport = require('../models/BlogReport');
 const Event = require('../models/Event');
 const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
+const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const PrivacyPolicy = require('../models/PrivacyPolicy');
 const communicationService = require('../services/communication.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
@@ -2479,7 +2480,7 @@ exports.reviewQueue = async (req, res) => {
     const includeResults = filters.type === 'all' || filters.type === 'results';
     const searchRegex = filters.q ? new RegExp(escapeRegex(filters.q), 'i') : null;
 
-    const [paymentDocs, resultDocs] = await Promise.all([
+    const [paymentDocs, resultDocs, accumulatedResultDocs] = await Promise.all([
       includePayments
         ? Registration.find({ paymentStatus: 'proof_submitted' })
           .populate('eventId', 'title slug')
@@ -2489,6 +2490,14 @@ exports.reviewQueue = async (req, res) => {
         : [],
       includeResults
         ? Submission.find({ status: 'submitted' })
+          .populate('eventId', 'title slug')
+          .populate('registrationId', 'participant confirmationCode')
+          .sort({ submittedAt: sortDirection, updatedAt: sortDirection, createdAt: sortDirection })
+          .limit(300)
+          .lean()
+        : [],
+      includeResults
+        ? AccumulatedActivitySubmission.find({ status: 'submitted' })
           .populate('eventId', 'title slug')
           .populate('registrationId', 'participant confirmationCode')
           .sort({ submittedAt: sortDirection, updatedAt: sortDirection, createdAt: sortDirection })
@@ -2538,11 +2547,34 @@ exports.reviewQueue = async (req, res) => {
         status: submission.status || 'submitted',
         suspiciousFlag: Boolean(submission.suspiciousFlag),
         suspiciousFlagReason: String(submission.suspiciousFlagReason || '').trim(),
-        actionHref: `/organizer/events/${String(event._id || submission.eventId)}/registrants?result=submitted`
+        actionHref: `/organizer/events/${String(event._id || submission.eventId)}/submissions/${String(submission._id)}/review`
+      };
+    });
+    const accumulatedResultItems = accumulatedResultDocs.filter((submission) => submission.eventId?._id && submission.registrationId?._id).map((submission) => {
+      const registration = submission.registrationId || {};
+      const participant = registration.participant || {};
+      const event = submission.eventId || {};
+      const submittedAt = submission.submittedAt || submission.updatedAt || submission.createdAt;
+      return {
+        type: 'Run Result',
+        typeKey: 'result',
+        eventId: String(event._id || submission.eventId || ''),
+        eventTitle: event.title || 'Event unavailable',
+        participantName: [participant.firstName, participant.lastName].filter(Boolean).join(' ').trim() || 'N/A',
+        participantEmail: participant.email || 'N/A',
+        confirmationCode: registration.confirmationCode || 'N/A',
+        raceDistance: submission.raceDistance || 'N/A',
+        participationMode: submission.participationMode || 'N/A',
+        submittedAt,
+        submittedAtLabel: formatAdminReviewDate(submittedAt),
+        status: submission.status || 'submitted',
+        suspiciousFlag: Boolean(submission.suspiciousFlag),
+        suspiciousFlagReason: String(submission.suspiciousFlagReason || '').trim(),
+        actionHref: `/organizer/events/${String(event._id || submission.eventId)}/submissions/${String(submission._id)}/review`
       };
     });
 
-    let reviewItems = paymentItems.concat(resultItems);
+    let reviewItems = paymentItems.concat(resultItems, accumulatedResultItems);
     if (searchRegex) {
       reviewItems = reviewItems.filter((item) => (
         searchRegex.test(item.eventTitle) ||
@@ -2563,9 +2595,9 @@ exports.reviewQueue = async (req, res) => {
       filters,
       reviewItems,
       counts: {
-        all: paymentItems.length + resultItems.length,
+        all: paymentItems.length + resultItems.length + accumulatedResultItems.length,
         payments: paymentItems.length,
-        results: resultItems.length
+        results: resultItems.length + accumulatedResultItems.length
       },
       links: {
         all: buildReviewQueueParams(filters, { type: 'all' }),

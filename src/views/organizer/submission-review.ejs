@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="events-page organizer-registrants-page">
+    <section class="events-shell">
+      <header class="events-header">
+        <div>
+          <h1>Submission Review</h1>
+          <p><%= event.title %></p>
+        </div>
+        <div class="header-actions">
+          <a href="<%= backHref %>" class="nav-login-btn registrant-header-btn">Back to Registrants</a>
+          <% if (isAdminViewer) { %>
+            <a href="/admin/reviews?type=results" class="nav-login-btn registrant-header-btn">Admin Queue</a>
+          <% } else { %>
+            <a href="/organizer/dashboard" class="nav-login-btn registrant-header-btn">Organizer Dashboard</a>
+          <% } %>
+        </div>
+      </header>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <section class="registrant-summary">
+        <div class="summary-card">
+          <strong>Status</strong>
+          <span><%= submission.status %></span>
+        </div>
+        <div class="summary-card">
+          <strong>Type</strong>
+          <span><%= submissionKind === 'accumulated' ? 'Accumulated Activity' : 'Run Result' %></span>
+        </div>
+        <div class="summary-card">
+          <strong>Confirmation</strong>
+          <span><%= registration.confirmationCode %></span>
+        </div>
+        <div class="summary-card">
+          <strong>Submitted</strong>
+          <span><%= submission.submittedAtLabel || 'N/A' %></span>
+        </div>
+      </section>
+
+      <div class="registrants-table-wrap">
+        <table class="registrants-table">
+          <tbody>
+            <tr>
+              <th>Participant</th>
+              <td>
+                <strong><%= participant.name %></strong><br>
+                <small><%= participant.email %></small><br>
+                <small><%= participant.mobile %></small><br>
+                <small><%= participant.countryLabel %> / <%= participant.genderLabel %></small>
+              </td>
+              <th>Registration</th>
+              <td>
+                <strong><%= registration.raceDistance %></strong><br>
+                <small><%= registration.participationMode %></small><br>
+                <small>Status: <%= registration.status %></small><br>
+                <small>Payment: <%= registration.paymentStatus %></small>
+              </td>
+            </tr>
+            <tr>
+              <th>Activity Metrics</th>
+              <td>
+                <strong><%= Number(submission.distanceKm || 0).toFixed(2) %> km</strong><br>
+                <small>Elapsed: <%= submission.elapsedLabel || 'N/A' %></small><br>
+                <small>Run date: <%= submission.runDateLabel || 'N/A' %></small><br>
+                <small>Run location: <%= submission.runLocation || 'N/A' %></small><br>
+                <small>Run type: <%= String(submission.runType || 'run').replace('_', ' ') %></small>
+                <% if (submission.elevationGain != null) { %><br><small>Elevation: <%= submission.elevationGain %> m</small><% } %>
+                <% if (submission.steps != null) { %><br><small>Steps: <%= Number(submission.steps || 0).toLocaleString() %></small><% } %>
+              </td>
+              <th>Evidence</th>
+              <td>
+                <small>Proof type: <%= String(submission.proofType || 'manual').toUpperCase() %></small><br>
+                <small>Source: <%= String(submission.source || 'manual_upload').replace('_', ' ') %></small><br>
+                <% if (submission.proof?.url) { %>
+                  <a href="<%= submission.proof.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">View run result evidence</a>
+                <% } else { %>
+                  <small>No proof link available</small>
+                <% } %>
+                <% if (submission.proofNotes) { %><br><small>Notes: <%= submission.proofNotes %></small><% } %>
+              </td>
+            </tr>
+
+            <% if (submission.suspiciousFlag || (submission.ocrData && submission.ocrData.confidence > 0)) { %>
+              <tr>
+                <th>Review Signals</th>
+                <td colspan="3">
+                  <% if (submission.suspiciousFlag) { %>
+                    <span class="mode-badge mode-warning">Suspicious</span>
+                    <small><%= submission.suspiciousFlagReason || 'No reason provided' %></small><br>
+                  <% } %>
+                  <% if (submission.ocrData && submission.ocrData.confidence > 0) { %>
+                    <details class="ocr-analysis-details" open>
+                      <summary><strong>OCR Analysis</strong> (confidence: <%= Math.round((submission.ocrData.confidence || 0) * 100) %>%)</summary>
+                      <div class="ocr-analysis-body">
+                        <% if (submission.ocrData.extractedDistanceKm != null) { %>
+                          <small>Image distance: <%= Number(submission.ocrData.extractedDistanceKm).toFixed(2) %> km <%= submission.ocrData.distanceMismatch ? '(mismatch)' : '(matches)' %></small><br>
+                        <% } %>
+                        <% if (submission.ocrData.extractedTimeMs != null) { %>
+                          <small>Image time: <%= submission.ocrTimeLabel || 'N/A' %> <%= submission.ocrData.timeMismatch ? '(mismatch)' : '(matches)' %></small><br>
+                        <% } %>
+                        <% if (submission.ocrData.extractedRunDate) { %>
+                          <small>Image date: <%= submission.ocrData.extractedRunDate %> <%= submission.ocrData.dateMismatch ? '(mismatch)' : '(matches)' %></small><br>
+                        <% } %>
+                        <% if (submission.ocrData.extractedRunLocation) { %>
+                          <small>Image location: <%= submission.ocrData.extractedRunLocation %> <%= submission.ocrData.locationMismatch ? '(mismatch)' : '(similar)' %></small><br>
+                        <% } %>
+                        <% if (submission.ocrData.extractedName || submission.ocrData.nameMatchStatus !== 'not_checked') { %>
+                          <small>Name analysis: <%= submission.ocrData.nameMatchStatus || 'not checked' %><%= submission.ocrData.extractedName ? ` (${submission.ocrData.extractedName})` : '' %></small>
+                        <% } %>
+                      </div>
+                    </details>
+                  <% } %>
+                </td>
+              </tr>
+            <% } %>
+
+            <% if (submission.stravaActivity && submission.stravaActivity.id) { %>
+              <tr>
+                <th>Strava Snapshot</th>
+                <td colspan="3">
+                  <strong><%= submission.stravaActivity.name || 'Strava activity' %></strong><br>
+                  <small><%= submission.stravaActivity.sportType || submission.stravaActivity.type || 'Activity' %></small>
+                  <% if (submission.stravaActivity.url) { %>
+                    <br><a href="<%= submission.stravaActivity.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">Open Strava activity</a>
+                  <% } %>
+                </td>
+              </tr>
+            <% } %>
+
+            <% if (accumulatedProgress) { %>
+              <tr>
+                <th>Accumulated Progress</th>
+                <td colspan="3">
+                  <strong><%= accumulatedProgress.progressLabel %></strong><br>
+                  <small><%= accumulatedProgress.approvedActivityCount %> approved, <%= accumulatedProgress.pendingActivityCount %> pending, <%= accumulatedProgress.rejectedActivityCount %> rejected</small>
+                </td>
+              </tr>
+            <% } %>
+
+            <tr>
+              <th>Review</th>
+              <td colspan="3">
+                <% if (submission.status === 'submitted') { %>
+                  <form method="POST" action="<%= reviewActionBase %>/approve" class="payment-action-form">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                    <textarea name="reviewNotes" rows="3" maxlength="1200" placeholder="Optional review notes"></textarea>
+                    <button type="submit" class="nav-signup-btn table-action-btn">Approve Run Result</button>
+                  </form>
+                  <form method="POST" action="<%= reviewActionBase %>/reject" class="payment-action-form">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                    <textarea name="rejectionReason" rows="3" maxlength="500" required placeholder="Required rejection reason (min 5 chars)"></textarea>
+                    <textarea name="reviewNotes" rows="3" maxlength="1200" placeholder="Optional review notes"></textarea>
+                    <button type="submit" class="nav-login-btn table-action-btn">Reject Run Result</button>
+                  </form>
+                <% } else { %>
+                  <small>Reviewed: <%= submission.reviewedAtLabel || 'N/A' %></small>
+                  <% if (submission.reviewerName) { %><br><small>By: <%= submission.reviewerName %></small><% } %>
+                  <% if (submission.rejectionReason) { %><br><small>Reason: <%= submission.rejectionReason %></small><% } %>
+                  <% if (submission.reviewNotes) { %><br><small>Notes: <%= submission.reviewNotes %></small><% } %>
+                <% } %>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

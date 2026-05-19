@@ -14,7 +14,33 @@
       const registrationToneClass = details.registrationState ? `event-status-${details.registrationState.tone}` : 'event-status-neutral';
       const defaultEventImageUrl = '/images/helloRun-icon.webp';
       const heroImageUrl = details.heroImageUrl || defaultEventImageUrl;
+      const isPreviewMode = Boolean(typeof previewMode !== 'undefined' && previewMode);
+      const previewReturnHref = typeof previewBackHref !== 'undefined' && previewBackHref ? previewBackHref : '/organizer/create-event';
+      const previewErrorsRaw = typeof previewErrors !== 'undefined' ? previewErrors : [];
+      const previewErrorMessages = Array.isArray(previewErrorsRaw)
+        ? previewErrorsRaw
+        : Object.values(previewErrorsRaw || {});
     %>
+
+    <% if (isPreviewMode) { %>
+      <section class="event-preview-notice" role="status" aria-label="Event preview status">
+        <div>
+          <strong>Preview mode</strong>
+          <span>This is the same public event page participants will see. File selections only appear here after they have been uploaded.</span>
+        </div>
+        <a href="<%= previewReturnHref %>" class="btn btn-outline"><i data-lucide="arrow-left"></i><span>Back to Editor</span></a>
+      </section>
+      <% if (previewErrorMessages.length) { %>
+        <section class="event-preview-errors" aria-label="Preview validation issues">
+          <strong>Some required details still need attention before this event can be submitted.</strong>
+          <ul>
+            <% previewErrorMessages.forEach((message) => { %>
+              <li><%= message %></li>
+            <% }) %>
+          </ul>
+        </section>
+      <% } %>
+    <% } %>
 
     <section class="event-landing-hero" style="--event-hero-image: url('<%= heroImageUrl %>');">
       <div class="event-landing-hero-overlay"></div>
@@ -41,7 +67,11 @@
             <% } else { %>
               <button type="button" class="btn btn-outline btn-hero-disabled" disabled><%= details.primaryCta?.label || 'Registration Unavailable' %></button>
             <% } %>
-            <a href="/events" class="btn btn-outline btn-hero-secondary"><i data-lucide="search"></i><span>Browse Events</span></a>
+            <% if (isPreviewMode) { %>
+              <a href="<%= previewReturnHref %>" class="btn btn-outline btn-hero-secondary"><i data-lucide="arrow-left"></i><span>Back to Editor</span></a>
+            <% } else { %>
+              <a href="/events" class="btn btn-outline btn-hero-secondary"><i data-lucide="search"></i><span>Browse Events</span></a>
+            <% } %>
           </div>
         </div>
 
@@ -60,7 +90,11 @@
 
     <section class="event-details-shell">
       <div class="event-nav-row">
-        <a href="/events" class="btn btn-outline"><i data-lucide="arrow-left"></i><span>Back to Events</span></a>
+        <% if (isPreviewMode) { %>
+          <a href="<%= previewReturnHref %>" class="btn btn-outline"><i data-lucide="arrow-left"></i><span>Back to Editor</span></a>
+        <% } else { %>
+          <a href="/events" class="btn btn-outline"><i data-lucide="arrow-left"></i><span>Back to Events</span></a>
+        <% } %>
         <% if (locals.isAuthenticated) { %>
           <a href="/my-registrations" class="btn btn-outline"><i data-lucide="badge-check"></i><span>My Registrations</span></a>
         <% } %>
@@ -114,13 +148,21 @@
           <% if (details.isAccumulatedChallenge || details.virtualRules?.targetDistanceKm) { %>
             <section class="event-section event-goal-section">
               <div>
-                <p class="event-section-kicker">Challenge Goal</p>
+                <p class="event-section-kicker">Accumulated Completion Goal</p>
                 <h2>Complete <%= details.targetDistanceLabel %></h2>
-                <p>Only approved submissions count toward the official total. Keep submitting valid activities until your progress reaches the event target.</p>
+                <p>Only approved submissions count toward the official total. Keep submitting valid activities until your progress reaches the completion goal.</p>
+                <% if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
+                  <p class="event-goal-options"><strong>Registration options:</strong> <%= details.distanceSummaryLabel %>. These are runner-facing distance labels; completion is measured against the goal above.</p>
+                <% } %>
               </div>
               <div class="event-goal-panel">
                 <strong><%= details.targetDistanceLabel %></strong>
-                <span><%= details.virtualRules?.completionMode || 'Completion goal' %></span>
+                <span>Completion goal</span>
+                <% if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
+                  <small>Options: <%= details.distanceSummaryLabel %></small>
+                <% } else { %>
+                  <small><%= details.virtualRules?.completionMode || 'Completion goal' %></small>
+                <% } %>
                 <% if (details.virtualRules?.minimumDistance) { %><small><%= details.virtualRules.minimumDistance %></small><% } %>
               </div>
             </section>
@@ -305,7 +347,10 @@
           <section class="event-side-card">
             <h3>Event Details</h3>
             <div class="event-side-list">
-              <p><strong>Distance</strong><span><%= (details.raceDistances || []).join(', ') || details.targetDistanceLabel || 'TBA' %></span></p>
+              <p><strong><%= details.isAccumulatedChallenge ? ((details.raceDistances || []).length > 1 ? 'Registration Options' : 'Registration Option') : ((details.raceDistances || []).length > 1 ? 'Distances' : 'Distance') %></strong><span><%= details.distanceSummaryLabel || (details.raceDistances || []).join(', ') || details.targetDistanceLabel || 'TBA' %></span></p>
+              <% if (details.isAccumulatedChallenge) { %>
+                <p><strong>Completion Goal</strong><span><%= details.targetDistanceLabel || 'TBA' %></span></p>
+              <% } %>
               <p><strong>Mode</strong><span><%= (details.allowedModes || []).join(' / ') || details.eventTypeLabel || 'TBA' %></span></p>
               <% if (details.showLocation) { %>
                 <p><strong>Location</strong><span><%= details.location.summary %></span></p>
@@ -337,7 +382,11 @@
         <% } else { %>
           <button type="button" class="btn btn-outline" disabled><%= details.primaryCta?.label || 'Registration Unavailable' %></button>
         <% } %>
-        <a href="/events" class="btn btn-outline">Browse Other Events</a>
+        <% if (isPreviewMode) { %>
+          <a href="<%= previewReturnHref %>" class="btn btn-outline">Back to Editor</a>
+        <% } else { %>
+          <a href="/events" class="btn btn-outline">Browse Other Events</a>
+        <% } %>
       </section>
 
       <div class="event-mobile-sticky-cta">

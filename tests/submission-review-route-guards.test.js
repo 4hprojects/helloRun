@@ -10,6 +10,7 @@ const User = require('../src/models/User');
 const Event = require('../src/models/Event');
 const Registration = require('../src/models/Registration');
 const Submission = require('../src/models/Submission');
+const AccumulatedActivitySubmission = require('../src/models/AccumulatedActivitySubmission');
 const Notification = require('../src/models/Notification');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
 const { getPostgresClient, closePostgresClient } = require('../src/db/postgres');
@@ -49,6 +50,126 @@ test('unauthenticated result-approve redirects to login', async () => {
   });
   assert.equal(response.status, 302);
   assert.equal(response.headers.get('location'), '/login');
+});
+
+test('unauthenticated submission review page redirects to login', async () => {
+  const response = await fetch(`${BASE_URL}/organizer/events/000000000000000000000000/submissions/000000000000000000000000/review`, {
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 302);
+  assert.equal(response.headers.get('location'), '/login');
+});
+
+test('runner cannot access submission review page', async () => {
+  const seed = await seedReviewData('runner-denied');
+  const runnerCookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', runnerCookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/review`, {
+    headers: { Cookie: runnerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 403);
+});
+
+test('owner organizer can view standard submission review page', async () => {
+  const seed = await seedReviewData('owner-review-page');
+  const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', ownerCookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/review`, {
+    headers: { Cookie: ownerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Submission Review/i);
+  assert.match(html, /View run result evidence/i);
+  assert.match(html, /Approve Run Result/i);
+  assert.match(html, /Reject Run Result/i);
+});
+
+test('registrants table links pending results to standalone review page', async () => {
+  const seed = await seedReviewData('registrants-review-link');
+  const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', ownerCookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/registrants?result=submitted`, {
+    headers: { Cookie: ownerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/review`, 'i'));
+  assert.doesNotMatch(html, new RegExp(`action="/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/approve"`, 'i'));
+  assert.doesNotMatch(html, new RegExp(`action="/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/reject"`, 'i'));
+});
+
+test('admin can view standard submission review page', async () => {
+  const seed = await seedReviewData('admin-review-page');
+  const adminCookie = await login(seed.admin.email, seed.password);
+  await waitForSessionReady('/admin/dashboard', adminCookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/review`, {
+    headers: { Cookie: adminCookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Submission Review/i);
+  assert.match(html, /Admin Queue/i);
+});
+
+test('non-owner organizer cannot view another organizer submission review page', async () => {
+  const seed = await seedReviewData('review-page-ownership');
+  const otherOrganizerCookie = await login(seed.otherOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', otherOrganizerCookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/review`, {
+    headers: { Cookie: otherOrganizerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 404);
+});
+
+test('reviewed standard submission page is read-only', async () => {
+  const seed = await seedReviewData('review-page-readonly', { submissionStatus: 'approved' });
+  const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', ownerCookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/review`, {
+    headers: { Cookie: ownerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Reviewed:/i);
+  assert.doesNotMatch(html, /action="[^"]+\/approve"/i);
+  assert.doesNotMatch(html, /action="[^"]+\/reject"/i);
+});
+
+test('owner and admin can view accumulated activity review page', async () => {
+  const seed = await seedAccumulatedReviewData('accumulated-review-page');
+  const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', ownerCookie);
+
+  const ownerResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/submissions/${seed.activity._id}/review`, {
+    headers: { Cookie: ownerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(ownerResponse.status, 200);
+  const ownerHtml = await ownerResponse.text();
+  assert.match(ownerHtml, /Accumulated Activity/i);
+  assert.match(ownerHtml, /Accumulated Progress/i);
+  assert.match(ownerHtml, /Approve Run Result/i);
+
+  const adminCookie = await login(seed.admin.email, seed.password);
+  await waitForSessionReady('/admin/dashboard', adminCookie);
+  const adminResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/submissions/${seed.activity._id}/review`, {
+    headers: { Cookie: adminCookie },
+    redirect: 'manual'
+  });
+  assert.equal(adminResponse.status, 200);
 });
 
 test('non-owner organizer cannot approve another organizer submission', async () => {
@@ -98,6 +219,7 @@ test('admin can approve organizer submission through shared review route', async
   assert.equal(response.status, 302);
   const location = response.headers.get('location') || '';
   assert.match(location, /type=success/i);
+  assert.match(location, /\/submissions\/[a-f0-9]{24}\/review/i);
 
   await mongoose.connect(process.env.MONGODB_URI);
   try {
@@ -259,6 +381,49 @@ async function seedReviewData(tag, options = {}) {
   }
 }
 
+async function seedAccumulatedReviewData(tag) {
+  const seed = await seedReviewData(tag);
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    await Event.updateOne(
+      { _id: seed.event._id },
+      {
+        $set: {
+          virtualCompletionMode: 'accumulated_distance',
+          targetDistanceKm: 20,
+          minimumActivityDistanceKm: 1,
+          acceptedRunTypes: ['run', 'walk', 'hike', 'trail_run']
+        }
+      }
+    );
+    const activity = await AccumulatedActivitySubmission.create({
+      registrationId: seed.registration._id,
+      eventId: seed.event._id,
+      runnerId: seed.runner._id,
+      participationMode: 'virtual',
+      raceDistance: seed.registration.raceDistance,
+      distanceKm: 6,
+      elapsedMs: 2100000,
+      runDate: new Date(),
+      runLocation: 'Test City',
+      runType: 'run',
+      proofType: 'photo',
+      proof: {
+        url: 'https://example.com/activity-proof.png',
+        key: 'activity-proof-key',
+        mimeType: 'image/png',
+        size: 2048
+      },
+      status: 'submitted',
+      submittedAt: new Date()
+    });
+    seed.activity = activity;
+    return seed;
+  } finally {
+    await mongoose.disconnect();
+  }
+}
+
 function buildUserId(prefix) {
   const stamp = `${Date.now()}${Math.floor(Math.random() * 100000)}`;
   return `${prefix}${stamp}`.slice(0, 22);
@@ -319,6 +484,7 @@ test('organizer can reject submission with valid reason', async () => {
   assert.equal(response.status, 302);
   const location = response.headers.get('location') || '';
   assert.match(location, /type=success/i);
+  assert.match(location, /\/submissions\/[a-f0-9]{24}\/review/i);
 
   await mongoose.connect(process.env.MONGODB_URI);
   try {
@@ -352,6 +518,7 @@ test('organizer cannot reject submission with empty rejection reason', async () 
   assert.equal(response.status, 302);
   const location = response.headers.get('location') || '';
   assert.match(location, /type=error/i);
+  assert.match(location, /\/submissions\/[a-f0-9]{24}\/review/i);
 
   await mongoose.connect(process.env.MONGODB_URI);
   try {
@@ -384,6 +551,7 @@ async function cleanupSeededFixtures() {
     const eventIds = [];
     const registrationIds = [];
     const submissionIds = [];
+    const activityIds = [];
 
     for (const seed of seededFixtures) {
       userIds.push(
@@ -395,10 +563,12 @@ async function cleanupSeededFixtures() {
       eventIds.push(String(seed.event._id));
       registrationIds.push(String(seed.registration._id));
       submissionIds.push(String(seed.submission._id));
+      if (seed.activity?._id) activityIds.push(String(seed.activity._id));
     }
 
     await Promise.all([
       Notification.deleteMany({ userId: { $in: userIds } }),
+      AccumulatedActivitySubmission.deleteMany({ _id: { $in: activityIds } }),
       Submission.deleteMany({ _id: { $in: submissionIds } }),
       Registration.deleteMany({ _id: { $in: registrationIds } }),
       Event.deleteMany({ _id: { $in: eventIds } }),
