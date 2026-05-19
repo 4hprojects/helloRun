@@ -118,6 +118,7 @@
       <% if (selectedPaymentStatus === 'proof_submitted') { %>
         <div class="page-message page-message-warning">
           Review payment receipts only in this queue. If the uploaded file is an activity screenshot or run result, reject it and ask the runner to submit it through Run Result after payment is verified.
+          <a href="/organizer/events/<%= event._id %>/payment-proofs/review">Open focused payment-proof review page</a>
         </div>
       <% } %>
 

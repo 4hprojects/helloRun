@@ -647,6 +647,146 @@
   border-radius: 50px;
 }
 
+.payment-proof-summary-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.payment-proof-summary-link:hover {
+  border-color: #2563eb;
+}
+
+.payment-proof-filter-bar {
+  grid-template-columns: auto minmax(160px, 220px) auto minmax(220px, 1fr) auto auto;
+}
+
+.payment-proof-review-list {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.payment-proof-review-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #dbe4ee;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.payment-proof-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.payment-proof-card-header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.1rem;
+}
+
+.payment-proof-card-header p {
+  margin: 0.2rem 0 0;
+  color: #475569;
+}
+
+.payment-proof-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.payment-proof-meta-grid div {
+  min-width: 0;
+}
+
+.payment-proof-meta-grid dt {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.payment-proof-meta-grid dd {
+  margin: 0.15rem 0 0;
+  color: #0f172a;
+  overflow-wrap: anywhere;
+}
+
+.payment-proof-instructions {
+  margin-top: 0.9rem;
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.payment-proof-instructions p {
+  margin: 0.25rem 0 0;
+  white-space: pre-wrap;
+}
+
+.payment-proof-preview {
+  margin-top: 0.9rem;
+}
+
+.payment-proof-image-link {
+  display: block;
+  max-width: 360px;
+  margin-top: 0.65rem;
+}
+
+.payment-proof-image-link img {
+  display: block;
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.payment-proof-card-actions {
+  border-left: 1px solid #e2e8f0;
+  padding-left: 1rem;
+}
+
+.payment-proof-card-actions label {
+  display: block;
+  margin: 0.5rem 0 0.25rem;
+  color: #334155;
+  font-weight: 700;
+}
+
+.payment-proof-card-actions textarea {
+  width: 100%;
+  resize: vertical;
+}
+
+.payment-proof-card-actions .payment-action-form + .payment-action-form {
+  margin-top: 1rem;
+}
+
+.payment-proof-history {
+  color: #334155;
+}
+
+.payment-proof-history strong {
+  color: #0f172a;
+}
+
+.payment-proof-history p {
+  margin: 0.45rem 0;
+  overflow-wrap: anywhere;
+}
+
 @media (max-width: 920px) {
   .organizer-events-page .events-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -690,5 +830,28 @@
   .organizer-events-page .events-create-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .payment-proof-filter-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-proof-review-card {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-proof-card-header {
+    flex-direction: column;
+  }
+
+  .payment-proof-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-proof-card-actions {
+    border-left: 0;
+    border-top: 1px solid #e2e8f0;
+    padding-left: 0;
+    padding-top: 1rem;
   }
 }

@@ -87,7 +87,7 @@ test('organizer dashboard renders range analytics and queue links', async () => 
   assert.match(html, /Pending Queue/i);
   assert.match(html, new RegExp(escapeRegex(seed.eventTitle)));
 
-  const paymentLink = `/organizer/events/${seed.eventId}/registrants?payment=proof_submitted`;
+  const paymentLink = `/organizer/events/${seed.eventId}/payment-proofs/review`;
   const resultLink = `/organizer/events/${seed.eventId}/registrants?result=submitted`;
   const approvedLink = `/organizer/events/${seed.eventId}/registrants?result=approved`;
   assert.match(html, new RegExp(escapeRegex(paymentLink)));

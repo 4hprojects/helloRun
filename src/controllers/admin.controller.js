@@ -2514,7 +2514,7 @@ exports.reviewQueue = async (req, res) => {
         submittedAt,
         submittedAtLabel: formatAdminReviewDate(submittedAt),
         status: registration.paymentStatus || 'proof_submitted',
-        actionHref: `/organizer/events/${String(event._id || registration.eventId)}/registrants?payment=proof_submitted`
+        actionHref: `/organizer/events/${String(event._id || registration.eventId)}/payment-proofs/review`
       };
     });
 

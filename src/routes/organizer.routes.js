@@ -299,7 +299,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         ...item,
         eventTitle: queueTitlesByEventId.get(item.eventId) || 'Event unavailable',
         totalPending: Number(item.paymentPending || 0) + Number(item.resultPending || 0),
-        paymentHref: `/organizer/events/${item.eventId}/registrants?payment=proof_submitted`,
+        paymentHref: `/organizer/events/${item.eventId}/payment-proofs/review`,
         resultHref: `/organizer/events/${item.eventId}/registrants?result=submitted`
       }))
       .sort((a, b) => b.totalPending - a.totalPending || a.eventTitle.localeCompare(b.eventTitle))
@@ -437,7 +437,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         pendingPaymentReviews,
         pendingResultReviews,
         paymentReviewHref: nextPaymentReview?.eventId
-          ? `/organizer/events/${String(nextPaymentReview.eventId)}/registrants?payment=proof_submitted`
+          ? `/organizer/events/${String(nextPaymentReview.eventId)}/payment-proofs/review`
           : '/organizer/events',
         resultReviewHref: nextResultReview?.eventId
           ? `/organizer/events/${String(nextResultReview.eventId)}/registrants?result=submitted`
@@ -1061,6 +1061,97 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       title: 'Server Error',
       status: 500,
       message: 'An error occurred while loading event registrants.'
+    });
+  }
+});
+
+router.get('/events/:eventId/payment-proofs/review', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+    if (!user) {
+      return res.status(404).render('error', {
+        title: '404 - User Not Found',
+        status: 404,
+        message: 'User account not found.'
+      });
+    }
+
+    if (!canAccessRegistrantReview(user)) {
+      return res.status(403).render('error', {
+        title: '403 - Access Denied',
+        status: 403,
+        message: 'Only approved organizers or admins can review payment proofs.'
+      });
+    }
+
+    const event = await getRegistrantAccessibleEventOrNull(req.params.eventId, user);
+    if (!event) {
+      return res.status(404).render('error', {
+        title: '404 - Event Not Found',
+        status: 404,
+        message: 'Event not found or you do not have access.'
+      });
+    }
+
+    const filters = normalizePaymentProofReviewFilters(req.query);
+    const statusQuery = getPaymentProofReviewStatusQuery(filters.status);
+    const query = {
+      eventId: event._id,
+      paymentStatus: statusQuery
+    };
+
+    if (filters.q) {
+      const safePattern = new RegExp(escapeRegex(filters.q), 'i');
+      query.$or = [
+        { confirmationCode: safePattern },
+        { 'participant.firstName': safePattern },
+        { 'participant.lastName': safePattern },
+        { 'participant.email': safePattern }
+      ];
+    }
+
+    const [registrationsRaw, pendingCount, paidCount, rejectedCount] = await Promise.all([
+      Registration.find(query)
+        .sort({ 'paymentProof.uploadedAt': -1, paymentReviewedAt: -1, updatedAt: -1, registeredAt: -1 })
+        .populate('paymentReviewedBy', 'firstName lastName email')
+        .lean(),
+      Registration.countDocuments({ eventId: event._id, paymentStatus: 'proof_submitted' }),
+      Registration.countDocuments({ eventId: event._id, paymentStatus: 'paid' }),
+      Registration.countDocuments({ eventId: event._id, paymentStatus: 'proof_rejected' })
+    ]);
+
+    const reviewItems = registrationsRaw.map((registration) => buildPaymentProofReviewRow(registration, event));
+    const reviewedCount = paidCount + rejectedCount;
+
+    return res.render('organizer/payment-proof-review', {
+      title: `Payment Proof Review - ${event.title}`,
+      user,
+      isAdminViewer: user.role === 'admin',
+      event,
+      filters,
+      reviewItems,
+      message: getPageMessage(req.query),
+      counts: {
+        pending: pendingCount,
+        reviewed: reviewedCount,
+        rejected: rejectedCount,
+        paid: paidCount
+      },
+      links: {
+        pending: buildPaymentProofReviewPath(event._id, filters, { status: 'pending' }),
+        approved: buildPaymentProofReviewPath(event._id, filters, { status: 'approved' }),
+        rejected: buildPaymentProofReviewPath(event._id, filters, { status: 'rejected' }),
+        all: buildPaymentProofReviewPath(event._id, filters, { status: 'all' }),
+        reset: `/organizer/events/${event._id}/payment-proofs/review`,
+        registrants: `/organizer/events/${event._id}/registrants`
+      }
+    });
+  } catch (error) {
+    console.error('Error loading payment proof review:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading payment proof review.'
     });
   }
 });
@@ -2856,6 +2947,84 @@ function getRegistrantFilterContext(event, queryParams = {}) {
     eventRaceDistances,
     searchQuery
   };
+}
+
+function normalizePaymentProofReviewFilters(queryParams = {}) {
+  const status = ['pending', 'approved', 'rejected', 'all'].includes(String(queryParams.status || '').trim())
+    ? String(queryParams.status).trim()
+    : 'pending';
+  const q = typeof queryParams.q === 'string' ? queryParams.q.trim().slice(0, 80) : '';
+  return { status, q };
+}
+
+function getPaymentProofReviewStatusQuery(status) {
+  if (status === 'approved') return 'paid';
+  if (status === 'rejected') return 'proof_rejected';
+  if (status === 'all') return { $in: ['proof_submitted', 'paid', 'proof_rejected'] };
+  return 'proof_submitted';
+}
+
+function buildPaymentProofReviewPath(eventId, filters = {}, overrides = {}) {
+  const next = { ...filters, ...overrides };
+  const params = new URLSearchParams();
+  if (next.status && next.status !== 'pending') params.set('status', next.status);
+  if (next.q) params.set('q', next.q);
+  const query = params.toString();
+  return `/organizer/events/${String(eventId)}/payment-proofs/review${query ? `?${query}` : ''}`;
+}
+
+function buildPaymentProofReviewRow(registration, event) {
+  const participant = registration.participant || {};
+  const reviewer = registration.paymentReviewedBy || null;
+  const reviewerName = reviewer
+    ? [reviewer.firstName, reviewer.lastName].filter(Boolean).join(' ').trim() || reviewer.email || ''
+    : '';
+  const paymentStatus = registration.paymentStatus || '';
+
+  return {
+    id: String(registration._id),
+    confirmationCode: registration.confirmationCode || 'N/A',
+    participantName: [participant.firstName, participant.lastName].filter(Boolean).join(' ').trim() || 'N/A',
+    participantEmail: participant.email || 'N/A',
+    participantMobile: participant.mobile || '',
+    raceDistance: registration.raceDistance || 'N/A',
+    participationMode: registration.participationMode || 'N/A',
+    paymentStatus,
+    paymentStatusLabel: formatPaymentProofStatusLabel(paymentStatus),
+    isPending: paymentStatus === 'proof_submitted',
+    proofUrl: registration.paymentProof?.url || '',
+    proofUploadedAtLabel: formatDateTime(registration.paymentProof?.uploadedAt),
+    proofMimeType: registration.paymentProof?.mimeType || '',
+    expectedPaymentLabel: formatExpectedPaymentLabel(registration, event),
+    payeeName: event.paymentAccountName || '',
+    paymentInstructions: event.paymentInstructions || '',
+    reviewedAtLabel: formatDateTime(registration.paymentReviewedAt),
+    reviewerName,
+    reviewerEmail: reviewer?.email || '',
+    rejectionReason: registration.paymentRejectionReason || '',
+    reviewNotes: registration.paymentReviewNotes || ''
+  };
+}
+
+function formatPaymentProofStatusLabel(value) {
+  if (value === 'proof_submitted') return 'Pending Review';
+  if (value === 'proof_rejected') return 'Rejected';
+  if (value === 'paid') return 'Approved';
+  return String(value || 'N/A').replace(/_/g, ' ');
+}
+
+function formatExpectedPaymentLabel(registration, event) {
+  const currency = event.feeCurrency || registration.addOnsCurrency || 'PHP';
+  const eventFee = Number(event.feeAmount || 0);
+  const addOnsSubtotal = Number(registration.addOnsSubtotal || 0);
+  const total = Math.max(0, eventFee) + Math.max(0, addOnsSubtotal);
+  if (Number.isFinite(total) && total > 0) {
+    return `${currency} ${total.toFixed(2)}`;
+  }
+  if (event.feeMode === 'paid') {
+    return `${currency} ${Math.max(0, eventFee || 0).toFixed(2)}`;
+  }
+  return 'No payment required';
 }
 
 function buildRegistrantExportQuery(filterContext) {

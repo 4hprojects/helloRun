@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="events-page organizer-registrants-page payment-proof-review-page">
+    <section class="events-shell">
+      <header class="events-header">
+        <div>
+          <h1>Payment Proof Review</h1>
+          <p><%= event.title %></p>
+        </div>
+        <div class="header-actions">
+          <a href="<%= links.registrants %>" class="nav-login-btn registrant-header-btn">Registrants</a>
+          <% if (isAdminViewer) { %>
+            <a href="/admin/dashboard" class="nav-login-btn registrant-header-btn">Admin Dashboard</a>
+          <% } else { %>
+            <a href="/organizer/events/<%= event._id %>" class="nav-login-btn registrant-header-btn">Back to Event</a>
+            <a href="/organizer/events" class="nav-login-btn registrant-header-btn">My Events</a>
+          <% } %>
+        </div>
+      </header>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <section class="registrant-summary">
+        <a href="<%= links.pending %>" class="summary-card payment-proof-summary-link">
+          <strong>Pending Review</strong>
+          <span><%= counts.pending %></span>
+        </a>
+        <a href="<%= links.all %>" class="summary-card payment-proof-summary-link">
+          <strong>Reviewed</strong>
+          <span><%= counts.reviewed %></span>
+        </a>
+        <a href="<%= links.approved %>" class="summary-card payment-proof-summary-link">
+          <strong>Approved</strong>
+          <span><%= counts.paid %></span>
+        </a>
+        <a href="<%= links.rejected %>" class="summary-card payment-proof-summary-link">
+          <strong>Rejected</strong>
+          <span><%= counts.rejected %></span>
+        </a>
+      </section>
+
+      <form method="GET" action="/organizer/events/<%= event._id %>/payment-proofs/review" class="filter-bar payment-proof-filter-bar">
+        <label for="status">Queue</label>
+        <select id="status" name="status">
+          <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Pending</option>
+          <option value="approved" <%= filters.status === 'approved' ? 'selected' : '' %>>Approved</option>
+          <option value="rejected" <%= filters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+          <option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All</option>
+        </select>
+
+        <label for="q">Search</label>
+        <input id="q" name="q" type="search" placeholder="Code, name, or email" value="<%= filters.q || '' %>">
+
+        <button type="submit" class="nav-signup-btn">Apply</button>
+        <a href="<%= links.reset %>" class="nav-login-btn">Reset</a>
+      </form>
+
+      <% if (filters.status === 'pending') { %>
+        <div class="page-message page-message-warning">
+          Review payment receipts only in this queue. If the uploaded file is an activity screenshot or run result, reject it and ask the runner to submit it through Run Result after payment is verified.
+        </div>
+      <% } %>
+
+      <% if (reviewItems && reviewItems.length) { %>
+        <section class="payment-proof-review-list">
+          <% reviewItems.forEach((item) => { %>
+            <article class="payment-proof-review-card">
+              <div class="payment-proof-card-main">
+                <div class="payment-proof-card-header">
+                  <div>
+                    <h2><%= item.participantName %></h2>
+                    <p><%= item.participantEmail %></p>
+                  </div>
+                  <span class="status-badge status-badge-<%= item.paymentStatus %>"><%= item.paymentStatusLabel %></span>
+                </div>
+
+                <dl class="payment-proof-meta-grid">
+                  <div>
+                    <dt>Confirmation</dt>
+                    <dd><code><%= item.confirmationCode %></code></dd>
+                  </div>
+                  <div>
+                    <dt>Distance / Mode</dt>
+                    <dd><%= item.raceDistance %> / <%= item.participationMode %></dd>
+                  </div>
+                  <div>
+                    <dt>Expected Payment</dt>
+                    <dd><%= item.expectedPaymentLabel %></dd>
+                  </div>
+                  <div>
+                    <dt>Uploaded</dt>
+                    <dd><%= item.proofUploadedAtLabel || 'N/A' %></dd>
+                  </div>
+                  <% if (item.payeeName) { %>
+                    <div>
+                      <dt>Payee</dt>
+                      <dd><%= item.payeeName %></dd>
+                    </div>
+                  <% } %>
+                  <% if (item.participantMobile) { %>
+                    <div>
+                      <dt>Mobile</dt>
+                      <dd><%= item.participantMobile %></dd>
+                    </div>
+                  <% } %>
+                </dl>
+
+                <% if (item.paymentInstructions) { %>
+                  <div class="payment-proof-instructions">
+                    <strong>Payment Instructions</strong>
+                    <p><%= item.paymentInstructions %></p>
+                  </div>
+                <% } %>
+
+                <% if (item.proofUrl) { %>
+                  <div class="payment-proof-preview">
+                    <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="proof-link">Open payment proof</a>
+                    <% if (String(item.proofMimeType || '').startsWith('image/')) { %>
+                      <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="payment-proof-image-link">
+                        <img src="<%= item.proofUrl %>" alt="Payment proof for <%= item.confirmationCode %>">
+                      </a>
+                    <% } %>
+                  </div>
+                <% } else { %>
+                  <p class="rejection">No payment proof file is available for this registration.</p>
+                <% } %>
+              </div>
+
+              <aside class="payment-proof-card-actions">
+                <% if (item.isPending) { %>
+                  <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= item.id %>/payment/approve" class="payment-action-form">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                    <label for="approve-notes-<%= item.id %>">Approval Notes</label>
+                    <textarea id="approve-notes-<%= item.id %>" name="reviewNotes" rows="3" maxlength="1000" placeholder="Optional review notes"></textarea>
+                    <button type="submit" class="nav-signup-btn table-action-btn">Approve Payment</button>
+                  </form>
+
+                  <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= item.id %>/payment/reject" class="payment-action-form">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                    <label for="reject-reason-<%= item.id %>">Rejection Reason</label>
+                    <textarea id="reject-reason-<%= item.id %>" name="rejectionReason" rows="3" maxlength="500" required placeholder="Required rejection reason"></textarea>
+                    <label for="reject-notes-<%= item.id %>">Review Notes</label>
+                    <textarea id="reject-notes-<%= item.id %>" name="reviewNotes" rows="3" maxlength="1000" placeholder="Optional review notes"></textarea>
+                    <button type="submit" class="nav-login-btn table-action-btn">Reject Payment</button>
+                  </form>
+                <% } else { %>
+                  <div class="payment-proof-history">
+                    <strong>Review History</strong>
+                    <p>Reviewed: <%= item.reviewedAtLabel || 'N/A' %></p>
+                    <% if (item.reviewerName) { %>
+                      <p>By: <%= item.reviewerName %></p>
+                    <% } %>
+                    <% if (item.reviewerEmail) { %>
+                      <p><%= item.reviewerEmail %></p>
+                    <% } %>
+                    <% if (item.rejectionReason) { %>
+                      <p><strong>Reason:</strong> <%= item.rejectionReason %></p>
+                    <% } %>
+                    <% if (item.reviewNotes) { %>
+                      <p><strong>Notes:</strong> <%= item.reviewNotes %></p>
+                    <% } %>
+                  </div>
+                <% } %>
+              </aside>
+            </article>
+          <% }) %>
+        </section>
+      <% } else { %>
+        <div class="empty-state">
+          <i data-lucide="receipt-text"></i>
+          <% if (filters.status === 'pending' && !filters.q) { %>
+            <h3>No pending payment proofs</h3>
+            <p>There are no submitted payment receipts waiting for review for this event.</p>
+          <% } else { %>
+            <h3>No payment proofs found</h3>
+            <p>No payment proof records match the current queue and search filters.</p>
+          <% } %>
+          <a href="<%= links.reset %>" class="nav-login-btn">View Pending Queue</a>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

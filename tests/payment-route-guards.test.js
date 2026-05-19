@@ -110,6 +110,114 @@ test('non-owner organizer cannot review payment proof for another organizer even
   assert.equal(response.status, 404);
 });
 
+test('payment-proof review page enforces auth and event ownership', async () => {
+  const seed = await seedRouteGuardData('review-page-access', {
+    paymentStatusA: 'proof_submitted',
+    paymentProofUrlA: 'https://example.com/proofs/access.png'
+  });
+
+  const unauthenticated = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/payment-proofs/review`, {
+    redirect: 'manual'
+  });
+  assert.equal(unauthenticated.status, 302);
+  assert.equal(unauthenticated.headers.get('location'), '/login');
+
+  const runnerSession = await login(seed.runnerA.email, seed.password);
+  await assertRunnerSessionReady(runnerSession);
+  const runnerResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/payment-proofs/review`, {
+    headers: { Cookie: runnerSession },
+    redirect: 'manual'
+  });
+  assert.equal(runnerResponse.status, 403);
+
+  const otherOrganizerSession = await login(seed.otherOrganizer.email, seed.password);
+  await assertOrganizerSessionReady(otherOrganizerSession);
+  const otherOrganizerResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/payment-proofs/review`, {
+    headers: { Cookie: otherOrganizerSession },
+    redirect: 'manual'
+  });
+  assert.equal(otherOrganizerResponse.status, 404);
+});
+
+test('payment-proof review page renders pending proof workflow', async () => {
+  const seed = await seedRouteGuardData('review-page-render', {
+    paymentStatusA: 'proof_submitted',
+    paymentProofUrlA: 'https://example.com/proofs/render.png'
+  });
+  const organizerSession = await login(seed.ownerOrganizer.email, seed.password);
+  await assertOrganizerSessionReady(organizerSession);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/payment-proofs/review`, {
+    headers: { Cookie: organizerSession },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /Payment Proof Review/i);
+  assert.match(html, new RegExp(escapeRegex(seed.event.title)));
+  assert.match(html, /Pending Review/i);
+  assert.match(html, /Runner Alpha/i);
+  assert.match(html, new RegExp(escapeRegex(seed.runnerA.email)));
+  assert.match(html, new RegExp(escapeRegex(seed.registrationA.confirmationCode)));
+  assert.match(html, /PHP 380\.00/i);
+  assert.match(html, /Owner Organizer Payments/i);
+  assert.match(html, /Use confirmation code as transfer reference/i);
+  assert.match(html, /https:\/\/example\.com\/proofs\/render\.png/i);
+  assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/registrants/${seed.registrationA._id}/payment/approve`));
+  assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/registrants/${seed.registrationA._id}/payment/reject`));
+});
+
+test('payment-proof review page filters reviewed items and empty search states', async () => {
+  const seed = await seedRouteGuardData('review-page-filters', {
+    paymentStatusA: 'proof_submitted',
+    paymentProofUrlA: 'https://example.com/proofs/filter-pending.png',
+    paymentStatusB: 'proof_rejected',
+    paymentProofUrlB: 'https://example.com/proofs/filter-rejected.png'
+  });
+  await Registration.updateOne(
+    { _id: seed.registrationB._id },
+    {
+      $set: {
+        paymentReviewedAt: new Date(),
+        paymentReviewedBy: seed.ownerOrganizer._id,
+        paymentRejectionReason: 'Receipt reference does not match',
+        paymentReviewNotes: 'Ask runner to upload the correct receipt.'
+      }
+    }
+  );
+
+  const organizerSession = await login(seed.ownerOrganizer.email, seed.password);
+  await assertOrganizerSessionReady(organizerSession);
+
+  const rejectedResponse = await fetch(
+    `${BASE_URL}/organizer/events/${seed.event._id}/payment-proofs/review?status=rejected&q=${encodeURIComponent(seed.runnerB.email)}`,
+    {
+      headers: { Cookie: organizerSession },
+      redirect: 'manual'
+    }
+  );
+  assert.equal(rejectedResponse.status, 200);
+  const rejectedHtml = await rejectedResponse.text();
+  assert.match(rejectedHtml, /Rejected/i);
+  assert.match(rejectedHtml, /Runner Beta/i);
+  assert.match(rejectedHtml, /Receipt reference does not match/i);
+  assert.match(rejectedHtml, /Ask runner to upload the correct receipt/i);
+  assert.match(rejectedHtml, /Owner Organizer/i);
+  assert.doesNotMatch(rejectedHtml, /Approve Payment/i);
+
+  const noMatchResponse = await fetch(
+    `${BASE_URL}/organizer/events/${seed.event._id}/payment-proofs/review?q=no-match-${Date.now()}`,
+    {
+      headers: { Cookie: organizerSession },
+      redirect: 'manual'
+    }
+  );
+  assert.equal(noMatchResponse.status, 200);
+  const noMatchHtml = await noMatchResponse.text();
+  assert.match(noMatchHtml, /No payment proofs found/i);
+});
+
 test('payment approve creates runner in-app notification', async () => {
   const seed = await seedRouteGuardData('notify-approve', {
     paymentStatusA: 'proof_submitted',
@@ -248,6 +356,11 @@ async function seedRouteGuardData(tag, options = {}) {
     status: 'published',
     eventType: 'virtual',
     eventTypesAllowed: ['virtual'],
+    feeMode: 'paid',
+    feeAmount: 380,
+    feeCurrency: 'PHP',
+    paymentAccountName: 'Owner Organizer Payments',
+    paymentInstructions: 'Use confirmation code as transfer reference.',
     raceDistances: ['5K'],
     registrationOpenAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
     registrationCloseAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
@@ -288,6 +401,10 @@ async function seedRouteGuardData(tag, options = {}) {
   };
   seededFixtures.push(fixture);
   return fixture;
+}
+
+function escapeRegex(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function buildRegistrationPayload({ eventId, user, paymentStatus, paymentProofUrl = '' }) {

@@ -19,6 +19,7 @@ Implemented and live enough for backend validation:
 - Runner order list returns JSON at `GET /orders`.
 - Organiser event product list, variant list, and payment-review list return JSON.
 - Organiser payment review approve/reject flow is implemented and syncs registration payment status, notifications, critical audit logs, and badge participant-award evaluation.
+- Event registration payment-proof review has a dedicated organizer/admin page at `GET /organizer/events/:eventId/payment-proofs/review`.
 - Registration add-ons can create linked shop orders and shop payment records during paid-event registration/payment proof flows.
 - Release-readiness regression includes shop read/payment-review paths and passed in the latest split sweep.
 
@@ -226,6 +227,7 @@ The first version should be practical and focused. It should help runners buy br
 ### Phase 11C: Payment and Fulfillment
 - Status: manual proof MVP path is implemented for registration add-on linked orders.
 - Payment review queue and approve/reject actions are live for organisers as JSON.
+- Registration payment-proof tracking and verification is live as a focused organizer/admin page.
 - Fulfilment update endpoints are scaffolded but not live.
 - Remaining work: organiser payment dashboard UI, fulfilment actions, notifications polish, and optional gateway/webhooks.
 
@@ -240,7 +242,7 @@ The first version should be practical and focused. It should help runners buy br
 - `[PENDING]` Customers can place standalone shop orders with selected variants and quantities.
 - `[PARTIAL]` Registration add-ons create linked shop orders without blocking registration.
 - `[PENDING]` Admin can publish merchandise products through UI.
-- `[PARTIAL]` Organisers can review linked manual payment proof through JSON action flow.
+- `[PARTIAL]` Organisers can review registration-linked manual payment proof through a focused page; standalone shop-order payment review UI is still pending.
 - `[PENDING]` Admin/organisers can update product/order/fulfilment status through production UI.
 - `[DONE]` Shop does not block or complicate the existing event registration flow in covered tests.
 
@@ -251,6 +253,7 @@ The first version should be practical and focused. It should help runners buy br
 - Read-only route coverage: `tests/shop-readonly-routes.test.js`.
 - Registration add-on bridge coverage: `tests/registration-addons-read.test.js`.
 - Organiser payment-review action coverage: `tests/organizer-shop-payment-review-actions.test.js`.
+- Registration payment-proof review page coverage: `tests/payment-route-guards.test.js`.
 - Latest related release-readiness run:
   - `tests/organizer-shop-payment-review-actions.test.js`
   - `tests/registration-addons-read.test.js`
