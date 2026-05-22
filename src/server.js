@@ -4,6 +4,7 @@ const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const path = require('path');
 const mongoose = require('mongoose');
+const logger = require('./utils/logger');
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -11,12 +12,12 @@ const { attachCsrfToken } = require('./middleware/csrf.middleware');
 
 // Fail fast if critical env vars are missing
 if (!process.env.SESSION_SECRET) {
-  console.error('FATAL: SESSION_SECRET environment variable is not set. Refusing to start.');
+  logger.error('FATAL: SESSION_SECRET environment variable is not set. Refusing to start.');
   process.exit(1);
 }
 
 // ===== STEP 1: MIDDLEWARE (MUST BE FIRST) =====
-console.log('Loading middleware...');
+logger.info('Loading middleware...');
 
 app.disable('x-powered-by');
 if (isProduction) {
@@ -85,13 +86,13 @@ app.get('/favicon.ico', (_req, res) => {
 if (!isProduction && process.env.DEBUG_HTTP_BODIES === '1') {
   app.use((req, res, next) => {
     if (req.method === 'POST') {
-      console.log('Received POST:', req.url);
+      logger.info('Received POST:', req.url);
       const safeBody = { ...req.body };
       delete safeBody.password;
       delete safeBody.confirmPassword;
       delete safeBody.currentPassword;
       delete safeBody.newPassword;
-      console.log('Body:', safeBody);
+      logger.info('Body:', safeBody);
     }
     next();
   });
@@ -111,9 +112,9 @@ async function connectToDatabase() {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000
     });
-    console.log('MongoDB connected');
+    logger.info('MongoDB connected');
   } catch (err) {
-    console.error('MongoDB connection error:', err.message);
+    logger.error('MongoDB connection error:', err.message);
     process.exit(1);
   }
 }
@@ -138,7 +139,7 @@ app.use(session({
 app.use(attachCsrfToken);
 
 // ===== ROUTES =====
-console.log('Loading routes...');
+logger.info('Loading routes...');
 const { populateAuthLocals } = require('./middleware/auth.middleware');
 const authRoutes = require('./routes/authRoutes');
 const pageRoutes = require('./routes/pageRoutes');
@@ -156,11 +157,11 @@ const timingSystemWebhooks = require('./routes/webhooks/timing-system');
 app.use(populateAuthLocals);
 
 app.use('/', authRoutes);
+app.use('/', shopRoutes);
 app.use('/', pageRoutes);
 app.use('/', runnerRoutes);
 app.use('/', stravaRoutes);
 app.use('/', blogRoutes);
-app.use('/', shopRoutes);
 app.use('/organizer', organizerRoutes);
 app.use('/organizer', organizerShopRoutes);
 app.use('/admin', adminRoutes);
@@ -174,7 +175,7 @@ app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => {
 
 // ===== STEP 6: 404 HANDLER (LAST) =====
 app.use((req, res) => {
-  console.log('404 Not Found:', req.method, req.url);
+  logger.info('404 Not Found:', `${req.method} ${req.url}`);
   res.status(404).render('error', {
     title: '404 - Page Not Found',
     status: 404,
@@ -184,7 +185,7 @@ app.use((req, res) => {
 
 // ===== STEP 7: ERROR HANDLER =====
 app.use((err, req, res, next) => {
-  console.error('Error:', err.message);
+  logger.error('Error:', err.message);
   res.status(500).render('error', {
     title: '500 - Server Error',
     status: 500,
@@ -199,8 +200,8 @@ async function startServer() {
   await connectToDatabase();
 
   app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    logger.info(`Server running on http://localhost:${PORT}`);
+    logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 }
 

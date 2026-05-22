@@ -36,7 +36,12 @@ test('public static pages render successfully', async () => {
     { path: '/faq', heading: /FAQ/i },
     { path: '/privacy', heading: /Privacy Policy/i },
     { path: '/terms', heading: /Terms (of Service|and Conditions)/i },
-    { path: '/cookie-policy', heading: /Cookie Policy/i }
+    { path: '/cookie-policy', heading: /Cookie Policy/i },
+    { path: '/data-usage-policy', heading: /Data Usage Policy/i },
+    { path: '/refund-and-cancellation-policy', heading: /Refund and Cancellation Policy/i },
+    { path: '/organiser-terms', heading: /Organiser Terms/i },
+    { path: '/community-guidelines', heading: /Community Guidelines/i },
+    { path: '/acceptable-use-policy', heading: /Acceptable Use Policy/i }
   ];
 
   for (const item of cases) {

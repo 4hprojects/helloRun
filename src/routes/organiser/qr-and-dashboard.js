@@ -3,6 +3,9 @@
 
 const express = require('express');
 const router = express.Router();
+const { requireAuth } = require('../../middleware/auth.middleware');
+const { requireCsrfProtection } = require('../../middleware/csrf.middleware');
+const { requireOrganizerEventAccess } = require('../../middleware/organizer-event-access.middleware');
 const { 
   generateBibQRCode, 
   generateBatchQRCodes,
@@ -16,9 +19,12 @@ const {
   estimateCheckInCompletion
 } = require('../../services/realtime-checkin.service');
 
+const protectEventRead = [requireAuth, requireOrganizerEventAccess];
+const protectEventMutation = [requireAuth, requireCsrfProtection, requireOrganizerEventAccess];
+
 // Generate QR code for single bib
 // GET /organizer/events/:eventId/bibs/:bibNumber/qr
-router.get('/events/:eventId/bibs/:bibNumber/qr', async (req, res) => {
+router.get('/events/:eventId/bibs/:bibNumber/qr', protectEventRead, async (req, res) => {
   try {
     const { eventId, bibNumber } = req.params;
     const { format = 'data-url' } = req.query;
@@ -46,7 +52,7 @@ router.get('/events/:eventId/bibs/:bibNumber/qr', async (req, res) => {
 // Generate QR codes for all bibs in event (batch)
 // POST /organizer/events/:eventId/bibs/qr/batch
 // Body: { bibAssignments: [{ bib_number: '001' }, ...] }
-router.post('/events/:eventId/bibs/qr/batch', async (req, res) => {
+router.post('/events/:eventId/bibs/qr/batch', protectEventMutation, async (req, res) => {
   try {
     const { eventId } = req.params;
     const { bibAssignments } = req.body;
@@ -76,8 +82,9 @@ router.post('/events/:eventId/bibs/qr/batch', async (req, res) => {
 // Decode QR code
 // POST /organizer/events/:eventId/bibs/qr/decode
 // Body: { qr_data: 'EVENT:...|BIB:...|TIME:...' }
-router.post('/events/:eventId/bibs/qr/decode', async (req, res) => {
+router.post('/events/:eventId/bibs/qr/decode', protectEventMutation, async (req, res) => {
   try {
+    const { eventId } = req.params;
     const { qr_data } = req.body;
 
     if (!qr_data) {
@@ -88,6 +95,10 @@ router.post('/events/:eventId/bibs/qr/decode', async (req, res) => {
 
     if (!decoded.success) {
       return res.status(400).json({ error: decoded.error });
+    }
+
+    if (String(decoded.eventId) !== String(eventId)) {
+      return res.status(400).json({ error: 'QR code does not belong to this event' });
     }
 
     res.json({
@@ -105,7 +116,7 @@ router.post('/events/:eventId/bibs/qr/decode', async (req, res) => {
 
 // Real-time check-in dashboard summary
 // GET /organizer/events/:eventId/check-in-dashboard/summary
-router.get('/events/:eventId/check-in-dashboard/summary', async (req, res) => {
+router.get('/events/:eventId/check-in-dashboard/summary', protectEventRead, async (req, res) => {
   try {
     const { eventId } = req.params;
 
@@ -128,7 +139,7 @@ router.get('/events/:eventId/check-in-dashboard/summary', async (req, res) => {
 
 // Real-time check-in activity feed
 // GET /organizer/events/:eventId/check-in-dashboard/activity?limit=20
-router.get('/events/:eventId/check-in-dashboard/activity', async (req, res) => {
+router.get('/events/:eventId/check-in-dashboard/activity', protectEventRead, async (req, res) => {
   try {
     const { eventId } = req.params;
     const limit = parseInt(req.query.limit || '20');
@@ -148,7 +159,7 @@ router.get('/events/:eventId/check-in-dashboard/activity', async (req, res) => {
 
 // Real-time check-ins by mode
 // GET /organizer/events/:eventId/check-in-dashboard/by-mode
-router.get('/events/:eventId/check-in-dashboard/by-mode', async (req, res) => {
+router.get('/events/:eventId/check-in-dashboard/by-mode', protectEventRead, async (req, res) => {
   try {
     const { eventId } = req.params;
 
@@ -167,7 +178,7 @@ router.get('/events/:eventId/check-in-dashboard/by-mode', async (req, res) => {
 
 // Polling endpoint for real-time updates (5-second poll)
 // GET /organizer/events/:eventId/check-in-dashboard/poll?since=timestamp
-router.get('/events/:eventId/check-in-dashboard/poll', async (req, res) => {
+router.get('/events/:eventId/check-in-dashboard/poll', protectEventRead, async (req, res) => {
   try {
     const { eventId } = req.params;
     const sinceTimestamp = req.query.since;

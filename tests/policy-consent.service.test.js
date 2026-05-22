@@ -14,19 +14,22 @@ test('buildPolicyConsentRecords creates one record per accepted policy version',
       termsPolicyVersion: '1.1',
       cookiePolicyId: 'cookie-id',
       cookiePolicyVersion: '1.2',
+      dataUsagePolicyId: 'data-usage-id',
+      dataUsagePolicyVersion: '1.3',
       agreedAt: acceptedAt,
       ipAddress: '127.0.0.1',
       userAgent: 'node:test'
     }
   });
 
-  assert.equal(records.length, 3);
+  assert.equal(records.length, 4);
   assert.deepEqual(records.map((record) => record.policyType), [
     'privacy_policy',
     'terms_policy',
-    'cookie_policy'
+    'cookie_policy',
+    'data_usage_policy'
   ]);
-  assert.deepEqual(records.map((record) => record.version), ['1.0', '1.1', '1.2']);
+  assert.deepEqual(records.map((record) => record.version), ['1.0', '1.1', '1.2', '1.3']);
   assert.equal(records[0].acceptedAt, acceptedAt);
 });
 
@@ -37,6 +40,7 @@ test('buildPolicyConsentRecords skips policies without versions', () => {
       privacyPolicyVersion: '1.0',
       termsPolicyVersion: '',
       cookiePolicyVersion: null,
+      dataUsagePolicyVersion: '',
       agreedAt: new Date()
     }
   });

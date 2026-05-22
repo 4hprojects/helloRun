@@ -8,13 +8,6 @@ const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
 const BlogReport = require('../models/BlogReport');
 const { analyzePostSpamSignals, detectSimilarityFlags } = require('../utils/blog-safety');
 const {
-  BLOG_BLOCK_TYPES,
-  BLOG_TEMPLATE_KEYS,
-  TEMPLATE_LABELS,
-  TEMPLATE_DESCRIPTIONS,
-  BLOCK_LABELS,
-  BLOCK_DESCRIPTIONS,
-  getTemplateBlocks,
   normalizeTemplateKey,
   normalizeContentBlocks,
   validateContentBlocks,
@@ -22,6 +15,11 @@ const {
   getStructuredContentText,
   isStructuredPost
 } = require('../utils/blog-composer');
+const {
+  getComposerTemplateOptions,
+  getComposerBlockTypeOptions,
+  getComposerTemplateBlocksByKey
+} = require('../services/blog-composer-options.service');
 
 const EDITABLE_STATUSES = new Set(['draft', 'pending', 'rejected']);
 const ADMIN_REVIEW_STATUSES = new Set(['pending', 'published', 'rejected', 'archived', 'draft']);
@@ -2343,29 +2341,6 @@ function estimateReadingTime(contentHtml) {
     .trim();
   const words = plainText ? plainText.split(' ').length : 0;
   return Math.max(1, Math.ceil(words / 200));
-}
-
-function getComposerTemplateOptions() {
-  return BLOG_TEMPLATE_KEYS.map((key) => ({
-    key,
-    label: TEMPLATE_LABELS[key] || key,
-    description: TEMPLATE_DESCRIPTIONS[key] || ''
-  }));
-}
-
-function getComposerBlockTypeOptions() {
-  return BLOG_BLOCK_TYPES.map((key) => ({
-    key,
-    label: BLOCK_LABELS[key] || key,
-    description: BLOCK_DESCRIPTIONS[key] || ''
-  }));
-}
-
-function getComposerTemplateBlocksByKey() {
-  return BLOG_TEMPLATE_KEYS.reduce((acc, key) => {
-    acc[key] = getTemplateBlocks(key);
-    return acc;
-  }, {});
 }
 
 function isValidHttpUrl(value) {

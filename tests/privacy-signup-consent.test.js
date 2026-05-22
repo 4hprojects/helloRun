@@ -39,6 +39,7 @@ test('signup records accepted privacy policy version and organizer status', asyn
   const { policyId, versionNumber } = await ensureCurrentPrivacyPolicy();
   const { termsPolicyId, termsVersionNumber } = await ensureCurrentTermsPolicy();
   const { cookiePolicyId, cookieVersionNumber } = await ensureCurrentCookiePolicy();
+  const { dataUsagePolicyId, dataUsageVersionNumber } = await ensureCurrentDataUsagePolicy();
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const email = `phase6.privacy.signup.${stamp}@example.com`;
   const { csrfToken, cookie } = await getCsrfSession('/signup');
@@ -82,6 +83,8 @@ test('signup records accepted privacy policy version and organizer status', asyn
     assert.equal(user.agreedPolicies.termsPolicyVersion || '', termsVersionNumber);
     assert.equal(String(user.agreedPolicies.cookiePolicyId || ''), String(cookiePolicyId));
     assert.equal(user.agreedPolicies.cookiePolicyVersion || '', cookieVersionNumber);
+    assert.equal(String(user.agreedPolicies.dataUsagePolicyId || ''), String(dataUsagePolicyId));
+    assert.equal(user.agreedPolicies.dataUsagePolicyVersion || '', dataUsageVersionNumber);
     assert.ok((user.agreedPolicies.ipAddress || '').length > 0, 'Expected IP address to be captured.');
     assert.ok((user.agreedPolicies.userAgent || '').length > 0, 'Expected user agent to be captured.');
   } finally {
@@ -89,7 +92,7 @@ test('signup records accepted privacy policy version and organizer status', asyn
   }
 });
 
-test('signup requires terms/privacy/cookie checkbox consent', async () => {
+test('signup requires terms/privacy/cookie/data usage checkbox consent', async () => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const email = `phase6.privacy.no-consent.${stamp}@example.com`;
   const { csrfToken, cookie } = await getCsrfSession('/signup');
@@ -113,7 +116,7 @@ test('signup requires terms/privacy/cookie checkbox consent', async () => {
 
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /must agree to the Terms and Conditions, Privacy Policy, and Cookie Policy/i);
+  assert.match(html, /must agree to the Terms and Conditions, Privacy Policy, Cookie Policy, and Data Usage Policy/i);
 
   await mongoose.connect(process.env.MONGODB_URI);
   try {
@@ -292,6 +295,51 @@ async function ensureCurrentCookiePolicy() {
     return {
       cookiePolicyId: created._id,
       cookieVersionNumber: created.versionNumber
+    };
+  } finally {
+    await mongoose.disconnect();
+  }
+}
+
+async function ensureCurrentDataUsagePolicy() {
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    const existing = await PrivacyPolicy.findOne({
+      slug: 'data-usage-policy',
+      status: 'published',
+      isCurrent: true
+    })
+      .select('_id versionNumber')
+      .lean();
+
+    if (existing) {
+      return {
+        dataUsagePolicyId: existing._id,
+        dataUsageVersionNumber: existing.versionNumber || ''
+      };
+    }
+
+    const now = new Date();
+    const created = await PrivacyPolicy.create({
+      title: 'HelloRun Data Usage Policy',
+      slug: 'data-usage-policy',
+      versionNumber: '1.0',
+      status: 'published',
+      effectiveDate: now,
+      contentMarkdown: '# Data Usage Policy\n\nInitial data usage policy.',
+      contentHtml: '<h1>Data Usage Policy</h1><p>Initial data usage policy.</p>',
+      summaryOfChanges: 'Initial Data Usage Policy',
+      isCurrent: true,
+      source: 'seed',
+      createdBy: { userId: null, name: 'Test Seed' },
+      updatedBy: { userId: null, name: 'Test Seed' },
+      publishedBy: { userId: null, name: 'Test Seed' },
+      publishedAt: now
+    });
+
+    return {
+      dataUsagePolicyId: created._id,
+      dataUsageVersionNumber: created.versionNumber
     };
   } finally {
     await mongoose.disconnect();

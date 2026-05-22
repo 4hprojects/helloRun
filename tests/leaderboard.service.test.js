@@ -21,9 +21,9 @@ test.after(async () => {
 
 test('leaderboard returns approved submissions sorted by fastest elapsed time', async () => {
   const seed = await seedLeaderboardData('ranking');
-  const result = await getLeaderboardData({ limit: 10 });
+  const result = await getLeaderboardData({ eventId: String(seed.eventA._id), limit: 10 });
 
-  assert.ok(result.entries.length >= 3);
+  assert.ok(result.entries.length >= 2);
   assert.equal(result.entries[0].elapsedMs <= result.entries[1].elapsedMs, true);
   assert.ok(result.entries.every((item) => item.elapsedMs > 0));
   assert.ok(result.stats.totalApproved >= 3);

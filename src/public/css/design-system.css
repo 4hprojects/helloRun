@@ -1,0 +1,215 @@
+/* Shared helloRun UI primitives.
+   Page CSS should handle layout; this file owns reusable colors, surfaces,
+   form controls, tables, alerts, badges, and compact dashboard metrics. */
+
+:root {
+  --hr-color-brand: #c2410c;
+  --hr-color-brand-hover: #9a3412;
+  --hr-color-accent: #2563eb;
+  --hr-color-success: #15803d;
+  --hr-color-warning: #d97706;
+  --hr-color-danger: #dc2626;
+  --hr-color-ink: #111827;
+  --hr-color-muted: #475569;
+  --hr-color-subtle: #64748b;
+  --hr-color-border: #e2e8f0;
+  --hr-color-border-strong: #94a3b8;
+  --hr-color-surface: #ffffff;
+  --hr-color-page: #f8fafc;
+  --hr-color-info-bg: #eff6ff;
+  --hr-color-success-bg: #f0fdf4;
+  --hr-color-warning-bg: #fffbeb;
+  --hr-color-danger-bg: #fff1f2;
+
+  --hr-font-heading: 'Poppins', sans-serif;
+  --hr-font-body: 'Inter', sans-serif;
+  --hr-radius-xs: 4px;
+  --hr-radius-sm: 6px;
+  --hr-radius-md: 8px;
+  --hr-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --hr-shadow-sm: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --hr-shadow-md: 0 10px 24px rgba(15, 23, 42, 0.1);
+  --hr-focus-ring: 0 0 0 3px rgba(194, 65, 12, 0.18);
+  --hr-control-height: 44px;
+  --hr-container: 1200px;
+}
+
+:where(.ui-card, .metric-card, .dashboard-card, .admin-badge-analytics-card, .communication-toolkit-card) {
+  border: 1px solid var(--hr-color-border);
+  border-radius: var(--hr-radius-md);
+  background: var(--hr-color-surface);
+  box-shadow: var(--hr-shadow-xs);
+}
+
+:where(.ui-alert, .status-note, .admin-alert, .alert-box) {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border: 1px solid #bfdbfe;
+  border-radius: var(--hr-radius-md);
+  background: var(--hr-color-info-bg);
+  color: #1e3a8a;
+  padding: 0.9rem 1rem;
+}
+
+:where(.ui-alert-success, .admin-alert-success) {
+  border-color: #bbf7d0;
+  background: var(--hr-color-success-bg);
+  color: #14532d;
+}
+
+:where(.ui-alert-warning, .admin-alert-warning) {
+  border-color: #fde68a;
+  background: var(--hr-color-warning-bg);
+  color: #713f12;
+}
+
+:where(.ui-alert-error, .status-note-error, .admin-alert-error, .admin-alert-danger) {
+  border-color: #fecdd3;
+  background: var(--hr-color-danger-bg);
+  color: #9f1239;
+}
+
+:where(.ui-field, .filter-field, .form-group, .form-field) label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--hr-color-muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+:where(.ui-input, .ui-select, .ui-textarea, .filter-field input, .filter-field select) {
+  width: 100%;
+  min-height: var(--hr-control-height);
+  border: 1px solid var(--hr-color-border-strong);
+  border-radius: var(--hr-radius-md);
+  background: var(--hr-color-surface);
+  color: var(--hr-color-ink);
+  font: inherit;
+}
+
+:where(.ui-input, .ui-select, .filter-field input, .filter-field select) {
+  padding: 0.65rem 0.8rem;
+}
+
+:where(.ui-textarea) {
+  min-height: 8rem;
+  padding: 0.8rem;
+  resize: vertical;
+}
+
+:where(.ui-input, .ui-select, .ui-textarea, .filter-field input, .filter-field select):focus {
+  border-color: var(--hr-color-brand);
+  box-shadow: var(--hr-focus-ring);
+  outline: none;
+}
+
+:where(.ui-table, .admin-table) {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--hr-color-border);
+  border-radius: var(--hr-radius-md);
+  overflow: hidden;
+  background: var(--hr-color-surface);
+}
+
+:where(.ui-table, .admin-table) th {
+  background: var(--hr-color-page);
+  color: var(--hr-color-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+:where(.ui-table, .admin-table) th,
+:where(.ui-table, .admin-table) td {
+  border-bottom: 1px solid var(--hr-color-border);
+  padding: 0.75rem;
+  vertical-align: middle;
+}
+
+:where(.ui-table, .admin-table) tr:last-child td {
+  border-bottom: 0;
+}
+
+:where(.ui-badge, .status-badge) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  min-height: 1.5rem;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--hr-color-border);
+  background: var(--hr-color-page);
+  color: var(--hr-color-muted);
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+:where(.ui-badge-success, .status-badge-approved, .status-badge-active, .status-badge-verified, .status-badge-paid) {
+  border-color: #bbf7d0;
+  background: var(--hr-color-success-bg);
+  color: #14532d;
+}
+
+:where(.ui-badge-warning, .status-badge-pending, .status-badge-pending_review, .status-badge-correction_required) {
+  border-color: #fde68a;
+  background: var(--hr-color-warning-bg);
+  color: #713f12;
+}
+
+:where(.ui-badge-danger, .status-badge-rejected, .status-badge-archived, .status-badge-revoked, .status-badge-cancelled) {
+  border-color: #fecdd3;
+  background: var(--hr-color-danger-bg);
+  color: #9f1239;
+}
+
+:where(.ui-metric-grid, .dashboard-metrics, .admin-badge-metrics) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 0.9rem;
+}
+
+:where(.metric-card) {
+  padding: 1rem;
+}
+
+:where(.metric-value) {
+  margin: 0;
+  color: var(--hr-color-ink);
+  font-family: var(--hr-font-heading);
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+:where(.metric-helper) {
+  margin: 0.35rem 0 0;
+  color: var(--hr-color-subtle);
+  font-size: 0.88rem;
+}
+
+:where(.ui-actions, .filter-actions, .admin-actions) {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  :where(.ui-actions, .filter-actions, .admin-actions) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  :where(.ui-actions, .filter-actions, .admin-actions) > * {
+    width: 100%;
+  }
+}

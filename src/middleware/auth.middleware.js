@@ -1,5 +1,9 @@
 const User = require('../models/User');
 const { countUnreadNotifications } = require('../services/notification.service');
+const logger = require('../utils/logger');
+
+const AUTH_LOCAL_USER_FIELDS = 'userId email firstName lastName role organizerStatus emailVerified authProvider profileImageUrl avatarUrl';
+const RUNNER_UNREAD_CACHE_MS = 30 * 1000;
 
 /**
  * Redirect already-authenticated users away from login/signup
@@ -25,11 +29,42 @@ async function redirectIfAuth(req, res, next) {
 
       return res.redirect('/runner/dashboard');
     } catch (error) {
-      console.error('Error in redirectIfAuth:', error);
+      logger.error('Error in redirectIfAuth:', error);
       return next(error);
     }
   }
   next();
+}
+
+async function getRunnerUnreadCountForLocals(req, user) {
+  if (user.role !== 'runner') return 0;
+  if (!shouldLoadRunnerUnreadCount(req)) return 0;
+
+  const cache = req.session?.runnerUnreadNotifications;
+  const cachedAt = Number(cache?.cachedAt || 0);
+  const forceFresh = req.path.startsWith('/runner/notifications');
+  if (!forceFresh && cache && Date.now() - cachedAt < RUNNER_UNREAD_CACHE_MS) {
+    return Number(cache.count || 0);
+  }
+
+  const count = await countUnreadNotifications(user._id);
+  if (req.session) {
+    req.session.runnerUnreadNotifications = {
+      count,
+      cachedAt: Date.now()
+    };
+  }
+  return count;
+}
+
+function shouldLoadRunnerUnreadCount(req) {
+  const method = String(req.method || '').toUpperCase();
+  if (!['GET', 'HEAD'].includes(method)) return false;
+  if (req.path.startsWith('/admin') || req.path.startsWith('/organizer') || req.path.startsWith('/webhooks')) return false;
+
+  const accept = String(req.get('accept') || '').toLowerCase();
+  if (accept.includes('application/json') && !accept.includes('text/html')) return false;
+  return true;
 }
 
 /**
@@ -41,7 +76,9 @@ async function populateAuthLocals(req, res, next) {
 
   if (req.session && req.session.userId) {
     try {
-      const user = await User.findById(req.session.userId).select('-passwordHash');
+      const user = await User.findById(req.session.userId)
+        .select(AUTH_LOCAL_USER_FIELDS)
+        .lean();
 
       if (user) {
         res.locals.user = user;
@@ -49,9 +86,7 @@ async function populateAuthLocals(req, res, next) {
         res.locals.isOrganizer = user.role === 'organiser';
         res.locals.isAdmin = user.role === 'admin';
         res.locals.isApprovedOrganizer = user.role === 'organiser' && user.organizerStatus === 'approved';
-        res.locals.runnerUnreadNotifications = user.role === 'runner'
-          ? await countUnreadNotifications(user._id)
-          : 0;
+        res.locals.runnerUnreadNotifications = await getRunnerUnreadCountForLocals(req, user);
       } else {
         req.session.destroy(() => {});
         res.locals.user = null;
@@ -62,7 +97,7 @@ async function populateAuthLocals(req, res, next) {
         res.locals.runnerUnreadNotifications = 0;
       }
     } catch (error) {
-      console.error('Error in populateAuthLocals:', error);
+      logger.error('Error in populateAuthLocals:', error);
       res.locals.user = null;
       res.locals.isAuthenticated = false;
       res.locals.isOrganizer = false;
@@ -102,7 +137,7 @@ async function requireAdmin(req, res, next) {
   if (!req.session || !req.session.userId) {
     return res.redirect('/login');
   }
-  const user = await User.findById(req.session.userId);
+  const user = await User.findById(req.session.userId).select('role').lean();
   if (!user || user.role !== 'admin') {
     return res.status(403).send('Access denied');
   }
@@ -116,7 +151,7 @@ async function requireOrganizer(req, res, next) {
   if (!req.session || !req.session.userId) {
     return res.redirect('/login');
   }
-  const user = await User.findById(req.session.userId);
+  const user = await User.findById(req.session.userId).select('role').lean();
   if (!user || user.role !== 'organiser') {
     return res.status(403).send('Access denied');
   }
@@ -130,7 +165,7 @@ async function requireApprovedOrganizer(req, res, next) {
   if (!req.session || !req.session.userId) {
     return res.redirect('/login');
   }
-  const user = await User.findById(req.session.userId);
+  const user = await User.findById(req.session.userId).select('role organizerStatus').lean();
   if (!user || user.role !== 'organiser' || user.organizerStatus !== 'approved') {
     return res.status(403).send('Access denied - Organizer approval required');
   }
@@ -144,11 +179,19 @@ async function requireCanCreateEvents(req, res, next) {
   if (!req.session || !req.session.userId) {
     return res.redirect('/login');
   }
-  const user = await User.findById(req.session.userId);
-  if (!user || typeof user.canCreateEvents !== 'function' || !user.canCreateEvents()) {
+  const user = await User.findById(req.session.userId)
+    .select('role organizerStatus emailVerified organizerEventCreationAcknowledgement')
+    .lean();
+  if (!user || !canCreateEventsFromLeanUser(user)) {
     return res.status(403).send('Access denied - verified organizer approval required');
   }
   next();
+}
+
+function canCreateEventsFromLeanUser(user) {
+  if (user.role !== 'organiser' || !user.emailVerified) return false;
+  if (user.organizerStatus === 'approved') return true;
+  return user.organizerStatus === 'pending' && Boolean(user.organizerEventCreationAcknowledgement?.agreedAt);
 }
 
 module.exports = {

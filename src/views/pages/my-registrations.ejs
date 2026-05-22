@@ -141,6 +141,7 @@
                       <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
                       <label for="paymentProofFile-<%= registration._id %>">Upload payment receipt (JPG, PNG, PDF up to 5MB)</label>
                       <input type="file" id="paymentProofFile-<%= registration._id %>" name="paymentProofFile" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required>
+                      <p class="form-hint">I confirm that this payment proof is valid and related to my registration. I understand that HelloRun and the organiser may review the uploaded image, transaction reference, amount, date, and visible payment details for verification and dispute resolution.</p>
                       <button type="submit" class="btn btn-secondary">Submit Payment Receipt</button>
                     </form>
                   <% } %>

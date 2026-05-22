@@ -4,7 +4,7 @@
  * Copies Tesseract.js browser assets from node_modules to src/public/js/vendor/tesseract/
  * so the OCR engine can be served entirely from our own server (no CDN at runtime).
  *
- * Run automatically via postinstall. Safe to re-run (overwrites existing files).
+ * Run automatically via postinstall. Safe to re-run; unchanged files are skipped.
  */
 
 const fs = require('fs');
@@ -29,9 +29,12 @@ for (const file of TESSERACT_DIST_FILES) {
   const src = path.join(distDir, file);
   const dest = path.join(DEST, file);
   if (fs.existsSync(src)) {
-    fs.copyFileSync(src, dest);
-    console.log('[copy-tesseract-assets] Copied:', file);
-    copied++;
+    if (copyIfChanged(src, dest)) {
+      console.log('[copy-tesseract-assets] Copied:', file);
+      copied++;
+    } else {
+      console.log('[copy-tesseract-assets] Cached:', file);
+    }
   } else {
     console.warn('[copy-tesseract-assets] WARNING: not found:', src);
   }
@@ -47,9 +50,12 @@ if (fs.existsSync(coreDir)) {
   for (const file of coreFiles) {
     const src = path.join(coreDir, file);
     const dest = path.join(DEST, file);
-    fs.copyFileSync(src, dest);
-    console.log('[copy-tesseract-assets] Copied:', file);
-    copied++;
+    if (copyIfChanged(src, dest)) {
+      console.log('[copy-tesseract-assets] Copied:', file);
+      copied++;
+    } else {
+      console.log('[copy-tesseract-assets] Cached:', file);
+    }
   }
 } else {
   console.warn('[copy-tesseract-assets] WARNING: tesseract.js-core not found at', coreDir);
@@ -57,3 +63,16 @@ if (fs.existsSync(coreDir)) {
 }
 
 console.log('[copy-tesseract-assets] Done. Copied', copied, 'files to', DEST);
+
+function copyIfChanged(src, dest) {
+  if (fs.existsSync(dest)) {
+    const srcStat = fs.statSync(src);
+    const destStat = fs.statSync(dest);
+    if (srcStat.size === destStat.size && Math.trunc(srcStat.mtimeMs) <= Math.trunc(destStat.mtimeMs)) {
+      return false;
+    }
+  }
+
+  fs.copyFileSync(src, dest);
+  return true;
+}

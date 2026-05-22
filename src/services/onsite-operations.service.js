@@ -4,6 +4,7 @@
 const crypto = require('node:crypto');
 const { getPostgresClient } = require('../db/postgres');
 const { evaluateOnsiteResultAchievements } = require('./achievement.service');
+const logger = require('../utils/logger');
 
 /**
  * Assign a bib number to a registration
@@ -58,10 +59,10 @@ async function assignBib(eventId, registrationId, bibNumber, options = {}) {
 
     if (result.length === 0) throw new Error('Failed to assign bib');
 
-    console.log(`[Onsite] Bib ${bibNumber} assigned to registration ${registrationId} for event ${eventId}`);
+    logger.debug(`[Onsite] Bib ${bibNumber} assigned to registration ${registrationId} for event ${eventId}`);
     return result[0];
   } catch (error) {
-    console.error(`[Onsite] Error assigning bib: ${error.message}`);
+    logger.error(`[Onsite] Error assigning bib: ${error.message}`);
     throw error;
   }
 }
@@ -114,10 +115,10 @@ async function recordCheckIn(eventId, registrationId, options = {}) {
 
     if (result.length === 0) throw new Error('Failed to record check-in');
 
-    console.log(`[Onsite] Check-in recorded for registration ${registrationId} at event ${eventId}`);
+    logger.debug(`[Onsite] Check-in recorded for registration ${registrationId} at event ${eventId}`);
     return result[0];
   } catch (error) {
-    console.error(`[Onsite] Error recording check-in: ${error.message}`);
+    logger.error(`[Onsite] Error recording check-in: ${error.message}`);
     throw error;
   }
 }
@@ -155,10 +156,10 @@ async function createRaceKit(eventId, kitData) {
 
     if (result.length === 0) throw new Error('Failed to create race kit');
 
-    console.log(`[Onsite] Race kit "${kitData.name}" created for event ${eventId}`);
+    logger.debug(`[Onsite] Race kit "${kitData.name}" created for event ${eventId}`);
     return result[0];
   } catch (error) {
-    console.error(`[Onsite] Error creating race kit: ${error.message}`);
+    logger.error(`[Onsite] Error creating race kit: ${error.message}`);
     throw error;
   }
 }
@@ -200,10 +201,10 @@ async function logResultImport(eventId, userId, importData) {
 
     if (result.length === 0) throw new Error('Failed to log result import');
 
-    console.log(`[Onsite] Result import logged for event ${eventId}, file: ${importData.fileName}`);
+    logger.debug(`[Onsite] Result import logged for event ${eventId}, file: ${importData.fileName}`);
     return result[0];
   } catch (error) {
-    console.error(`[Onsite] Error logging result import: ${error.message}`);
+    logger.error(`[Onsite] Error logging result import: ${error.message}`);
     throw error;
   }
 }
@@ -265,10 +266,10 @@ async function recordOnsiteResult(eventId, registrationId, resultData) {
       });
     }
 
-    console.log(`[Onsite] Result recorded for registration ${registrationId} at event ${eventId}`);
+    logger.debug(`[Onsite] Result recorded for registration ${registrationId} at event ${eventId}`);
     return result[0];
   } catch (error) {
-    console.error(`[Onsite] Error recording onsite result: ${error.message}`);
+    logger.error(`[Onsite] Error recording onsite result: ${error.message}`);
     throw error;
   }
 }
@@ -303,7 +304,7 @@ async function approveOnsiteResult(eventId, onsiteResultId, options = {}) {
       awards
     };
   } catch (error) {
-    console.error(`[Onsite] Error approving onsite result: ${error.message}`);
+    logger.error(`[Onsite] Error approving onsite result: ${error.message}`);
     throw error;
   }
 }
@@ -324,7 +325,7 @@ async function getEventCheckInSummary(eventId) {
 
     return result.length > 0 ? result[0] : null;
   } catch (error) {
-    console.error(`[Onsite] Error getting check-in summary: ${error.message}`);
+    logger.error(`[Onsite] Error getting check-in summary: ${error.message}`);
     throw error;
   }
 }
@@ -345,7 +346,7 @@ async function getEventBibAssignmentStatus(eventId) {
 
     return result.length > 0 ? result[0] : null;
   } catch (error) {
-    console.error(`[Onsite] Error getting bib assignment status: ${error.message}`);
+    logger.error(`[Onsite] Error getting bib assignment status: ${error.message}`);
     throw error;
   }
 }

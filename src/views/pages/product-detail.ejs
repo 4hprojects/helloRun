@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="shop-page">
+    <section class="shop-header shop-product-header">
+      <div>
+        <a href="/events/<%= event.slug %>/shop" class="shop-back-link"><i data-lucide="arrow-left"></i><span>Event Shop</span></a>
+        <p class="shop-eyebrow"><%= event.title %></p>
+        <h1><%= product.name %></h1>
+      </div>
+      <div class="shop-price-panel">
+        <span>Price</span>
+        <strong><%= product.priceLabel %></strong>
+      </div>
+    </section>
+
+    <section class="shop-detail-layout">
+      <div class="shop-detail-media" aria-hidden="true">
+        <i data-lucide="package"></i>
+      </div>
+
+      <div class="shop-detail-main">
+        <section class="shop-detail-section">
+          <h2>Product Details</h2>
+          <div class="shop-detail-list">
+            <p><strong>Availability</strong><span>Visible in this event shop</span></p>
+            <% if (product.category) { %><p><strong>Category</strong><span><%= product.category %></span></p><% } %>
+            <p><strong>Fulfilment</strong><span><%= product.allowDelivery ? 'Pickup or delivery' : 'Pickup' %></span></p>
+            <% if (product.allowDelivery) { %><p><strong>Delivery Fee</strong><span><%= product.deliveryFeeLabel %></span></p><% } %>
+          </div>
+        </section>
+
+        <section class="shop-detail-section">
+          <h2>Variants</h2>
+          <% if (variants.length) { %>
+            <div class="shop-variant-list">
+              <% variants.forEach((variant) => { %>
+                <article>
+                  <div>
+                    <h3><%= variant.name %></h3>
+                    <% if (variant.sku) { %><p><%= variant.sku %></p><% } %>
+                  </div>
+                  <span><%= variant.availableQuantity > 0 ? `${variant.availableQuantity} available` : 'Out of stock' %></span>
+                </article>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <p class="shop-muted">No variants are listed for this product yet.</p>
+          <% } %>
+        </section>
+
+        <section class="shop-readonly-note">
+          <i data-lucide="info"></i>
+          <p>Checkout is not enabled yet. This page is currently read-only while event shop operations are being completed.</p>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

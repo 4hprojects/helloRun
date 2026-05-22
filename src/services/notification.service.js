@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
+const logger = require('../utils/logger');
 
 async function createNotification(payload = {}) {
   const userId = normalizeObjectId(payload.userId);
@@ -30,7 +31,7 @@ async function createNotificationSafe(payload = {}, context = 'notification') {
   try {
     return await createNotification(payload);
   } catch (error) {
-    console.error(`Failed to create ${context}:`, error.message);
+    logger.error(`Failed to create ${context}:`, error.message);
     return null;
   }
 }
@@ -58,10 +59,12 @@ async function getUserNotifications(userId, options = {}) {
     query.readAt = null;
   }
 
-  const [totalItems, unreadCount] = await Promise.all([
-    Notification.countDocuments(query),
-    Notification.countDocuments({ userId: query.userId, readAt: null })
-  ]);
+  const [totalItems, unreadCount] = unreadOnly
+    ? await Notification.countDocuments(query).then((count) => [count, count])
+    : await Promise.all([
+      Notification.countDocuments(query),
+      Notification.countDocuments({ userId: query.userId, readAt: null })
+    ]);
 
   const totalPages = Math.max(1, Math.ceil(totalItems / limit));
   const currentPage = Math.min(page, totalPages);

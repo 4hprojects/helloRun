@@ -73,6 +73,11 @@ test('admin dashboard renders platform stats and pending application queue', asy
   assert.match(html, /\/admin\/privacy-policy/i);
   assert.match(html, /\/admin\/terms-and-conditions/i);
   assert.match(html, /\/admin\/cookie-policy/i);
+  assert.match(html, /\/admin\/data-usage-policy/i);
+  assert.match(html, /\/admin\/refund-and-cancellation-policy/i);
+  assert.match(html, /\/admin\/organiser-terms/i);
+  assert.match(html, /\/admin\/community-guidelines/i);
+  assert.match(html, /\/admin\/acceptable-use-policy/i);
   assert.match(html, /\/admin\/users/i);
   assert.match(html, /\/admin\/applications/i);
   assert.match(html, /\/admin\/blog\/reports/i);
@@ -88,6 +93,21 @@ test('admin dashboard renders platform stats and pending application queue', asy
   assert.match(html, new RegExp(escapeRegex(seed.pendingApplication.applicantEmail)));
   assert.match(html, new RegExp(escapeRegex(`/admin/applications/${seed.pendingApplication.id}`)));
   assert.match(html, new RegExp(escapeRegex(`/admin/events/${seed.pendingEvent.id}`)));
+});
+
+test('admin policy management pages render for existing and new policy documents', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(cookie);
+
+  for (const pathName of ['/admin/privacy-policy', '/admin/data-usage-policy', '/admin/data-usage-policy/new']) {
+    const response = await fetch(`${BASE_URL}${pathName}`, {
+      headers: { Cookie: cookie },
+      redirect: 'manual'
+    });
+    assert.equal(response.status, 200, `${pathName} should render for admins`);
+    const html = await response.text();
+    assert.match(html, /Policy|Data Usage|Privacy/i);
+  }
 });
 
 test('admin review queue enforces admin access', async () => {

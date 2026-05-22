@@ -239,7 +239,7 @@ async function handleRegistration(req, res) {
 
     if (agreeTerms !== 'on') {
       return renderSignupPage(req, res, {
-        error: 'You must agree to the Terms and Conditions, Privacy Policy, and Cookie Policy.',
+        error: 'You must agree to the Terms and Conditions, Privacy Policy, Cookie Policy, and Data Usage Policy.',
         formData: req.body
       });
     }
@@ -250,7 +250,7 @@ async function handleRegistration(req, res) {
     // Generate email verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = passwordService.hashToken(verificationToken);
-    const [currentPrivacyPolicy, currentTermsPolicy, currentCookiePolicy] = await Promise.all([
+    const [currentPrivacyPolicy, currentTermsPolicy, currentCookiePolicy, currentDataUsagePolicy] = await Promise.all([
       PrivacyPolicy.findOne({
         slug: 'privacy-policy',
         status: 'published',
@@ -267,6 +267,13 @@ async function handleRegistration(req, res) {
         .lean(),
       PrivacyPolicy.findOne({
         slug: 'cookie-policy',
+        status: 'published',
+        isCurrent: true
+      })
+        .select('_id versionNumber')
+        .lean(),
+      PrivacyPolicy.findOne({
+        slug: 'data-usage-policy',
         status: 'published',
         isCurrent: true
       })
@@ -295,6 +302,8 @@ async function handleRegistration(req, res) {
         termsPolicyVersion: currentTermsPolicy?.versionNumber || '',
         cookiePolicyId: currentCookiePolicy?._id || null,
         cookiePolicyVersion: currentCookiePolicy?.versionNumber || '',
+        dataUsagePolicyId: currentDataUsagePolicy?._id || null,
+        dataUsagePolicyVersion: currentDataUsagePolicy?.versionNumber || '',
         agreedAt: consentTimestamp,
         ipAddress: getRequestIpAddress(req),
         userAgent: getRequestUserAgent(req)
@@ -344,7 +353,7 @@ router.get('/auth/google', redirectIfAuth, (req, res) => {
   const intent = String(req.query.intent || '').trim().toLowerCase();
   if (intent === 'signup') {
     if (String(req.query.agreePolicies || '').trim().toLowerCase() !== 'on') {
-      return res.redirect('/signup?type=error&message=You+must+agree+to+the+Terms%2C+Privacy%2C+and+Cookie+policies+before+signing+up+with+Google');
+      return res.redirect('/signup?type=error&message=You+must+agree+to+the+Terms%2C+Privacy%2C+Cookie%2C+and+Data+Usage+policies+before+signing+up+with+Google');
     }
 
     req.session.googleOAuthSignupConsent = {
@@ -439,7 +448,7 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
         syncUserComplianceInBackground(user);
       } else {
         if (!oauthSignupConsent) {
-          return res.redirect('/signup?type=error&message=You+must+agree+to+the+Terms%2C+Privacy%2C+and+Cookie+policies+before+signing+up+with+Google');
+          return res.redirect('/signup?type=error&message=You+must+agree+to+the+Terms%2C+Privacy%2C+Cookie%2C+and+Data+Usage+policies+before+signing+up+with+Google');
         }
 
         const fullName = String(profile.name || '').trim();
@@ -452,7 +461,7 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
           lastName = parts.slice(1).join(' ');
         }
 
-        const [currentPrivacyPolicy, currentTermsPolicy, currentCookiePolicy] = await Promise.all([
+        const [currentPrivacyPolicy, currentTermsPolicy, currentCookiePolicy, currentDataUsagePolicy] = await Promise.all([
           PrivacyPolicy.findOne({
             slug: 'privacy-policy',
             status: 'published',
@@ -469,6 +478,13 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
             .lean(),
           PrivacyPolicy.findOne({
             slug: 'cookie-policy',
+            status: 'published',
+            isCurrent: true
+          })
+            .select('_id versionNumber')
+            .lean(),
+          PrivacyPolicy.findOne({
+            slug: 'data-usage-policy',
             status: 'published',
             isCurrent: true
           })
@@ -497,6 +513,8 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
             termsPolicyVersion: currentTermsPolicy?.versionNumber || '',
             cookiePolicyId: currentCookiePolicy?._id || null,
             cookiePolicyVersion: currentCookiePolicy?.versionNumber || '',
+            dataUsagePolicyId: currentDataUsagePolicy?._id || null,
+            dataUsagePolicyVersion: currentDataUsagePolicy?.versionNumber || '',
             agreedAt: consentTimestamp,
             ipAddress: String(oauthSignupConsent?.ipAddress || getRequestIpAddress(req)),
             userAgent: String(oauthSignupConsent?.userAgent || getRequestUserAgent(req))

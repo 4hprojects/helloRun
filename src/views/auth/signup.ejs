@@ -171,7 +171,7 @@
                 <%= locals.formData && locals.formData.agreeTerms === 'on' ? 'checked' : '' %>
                 required>
               <label for="agreeTerms">
-                I agree to the <a href="/terms" target="_blank" rel="noopener">Terms and Conditions</a>, <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>, and <a href="/cookie-policy" target="_blank" rel="noopener">Cookie Policy</a> <span class="required">*</span>
+                I have read and agree to the HelloRun <a href="/terms" target="_blank" rel="noopener">Terms and Conditions</a>, <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>, <a href="/cookie-policy" target="_blank" rel="noopener">Cookie Policy</a>, and <a href="/data-usage-policy" target="_blank" rel="noopener">Data Usage Policy</a>. I understand that HelloRun may process my personal data, uploaded activity proof, payment proof, and event participation records for account management, event registration, payment verification, run submission review, fraud prevention, leaderboard publication, certificates, and platform security. <span class="required">*</span>
               </label>
             </div>
             <small class="checkbox-error" id="termsError"></small>
@@ -438,7 +438,7 @@
 
           // Validate policy consent checkbox
           if (!agreeTerms.checked) {
-            showCheckboxError('termsError', 'You must agree to the Terms, Privacy, and Cookie policies');
+            showCheckboxError('termsError', 'You must agree to the Terms, Privacy, Cookie, and Data Usage policies');
             termsGroup.classList.add('error');
             isValid = false;
           }
@@ -468,7 +468,7 @@
         googleSignupBtn.addEventListener('click', function(e) {
           if (!agreeTerms.checked) {
             e.preventDefault();
-            showCheckboxError('termsError', 'You must agree to the Terms, Privacy, and Cookie policies');
+            showCheckboxError('termsError', 'You must agree to the Terms, Privacy, Cookie, and Data Usage policies');
             termsGroup.classList.add('error');
             termsGroup.scrollIntoView({ behavior: 'smooth', block: 'center' });
             return;

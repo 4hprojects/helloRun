@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "setup": "node src/scripts/setup-uploads.js",
     "backfill:event-reference-codes": "node src/scripts/backfill-event-reference-codes.js",
+    "seed:policies": "node src/scripts/seed-policies.js",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",
     "seed:cookie-policy": "node src/scripts/seed-cookie-policy.js",
@@ -31,8 +32,16 @@
     "copy-tesseract-assets": "node src/scripts/copy-tesseract-assets.js",
     "download-tessdata": "node src/scripts/download-tessdata.js",
     "postinstall": "npm run setup && npm run copy-tesseract-assets && npm run download-tessdata",
-    "test": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, CSRF_PROTECTION: '0' }; const result = spawnSync(process.execPath, ['--test', '--test-concurrency=1', 'tests/*.test.js'], { stdio: 'inherit', env }); process.exit(result.status ?? 1);\"",
-    "test:parallel": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, CSRF_PROTECTION: '0' }; const result = spawnSync(process.execPath, ['--test', 'tests/*.test.js'], { stdio: 'inherit', env }); process.exit(result.status ?? 1);\""
+    "test": "node src/scripts/run-test-group.js",
+    "test:parallel": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, CSRF_PROTECTION: '0' }; const result = spawnSync(process.execPath, ['--test', 'tests/*.test.js'], { stdio: 'inherit', env }); process.exit(result.status ?? 1);\"",
+    "test:audit": "npm audit --omit=dev",
+    "test:auth": "node src/scripts/run-test-group.js tests/*auth*.test.js tests/*csrf*.test.js tests/*security*.test.js tests/privacy-signup-consent.test.js tests/google-oauth-routes.test.js tests/rate-limiter-enforcement.test.js",
+    "test:shop": "node src/scripts/run-test-group.js tests/*shop*.test.js tests/registration-addons-read.test.js",
+    "test:runner": "node src/scripts/run-test-group.js tests/runner*.test.js tests/running-group*.test.js tests/submission*.test.js tests/run-proof-integrity.test.js tests/ocr*.test.js tests/strava-integration.test.js",
+    "test:organizer": "node src/scripts/run-test-group.js tests/organizer*.test.js tests/organiser*.test.js tests/onsite*.test.js tests/phase7*.test.js tests/payment*.test.js",
+    "test:admin": "node src/scripts/run-test-group.js tests/admin*.test.js tests/blog-admin-workflow.test.js tests/organiser-application-review.test.js",
+    "test:services": "node src/scripts/run-test-group.js tests/*.service.test.js tests/*shadow*.test.js tests/*bridge*.test.js",
+    "test:smoke": "npm run test:audit && node src/scripts/run-test-group.js tests/static-pages.test.js tests/sitemap-readiness.test.js tests/event-public-view.test.js tests/public-search-filters.test.js tests/organizer-onsite-qr-security.test.js tests/shop-readonly-routes.test.js"
   },
   "keywords": [
     "running",
@@ -49,11 +58,11 @@
     "connect-mongo": "^5.1.0",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
-    "express": "^4.19.2",
+    "exceljs": "3.10.0",
+    "express": "4.22.2",
     "express-session": "^1.18.0",
-    "git": "^0.1.5",
     "ioredis": "^5.10.0",
-    "mongoose": "^8.4.0",
+    "mongoose": "8.24.0",
     "multer": "^1.4.5-lts.1",
     "postgres": "^3.4.9",
     "qrcode": "^1.5.4",
@@ -61,10 +70,12 @@
     "sanitize-html": "^2.13.0",
     "sharp": "^0.34.5",
     "tesseract.js": "^5.0.0",
-    "tesseract.js-core": "^5.0.0",
-    "xlsx": "^0.18.5"
+    "tesseract.js-core": "^5.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
+  },
+  "overrides": {
+    "uuid": "11.1.1"
   }
 }

@@ -95,6 +95,9 @@
         <% } else { %>
           <a href="/events" class="btn btn-outline"><i data-lucide="arrow-left"></i><span>Back to Events</span></a>
         <% } %>
+        <% if (!isPreviewMode && eventShop && eventShop.count > 0) { %>
+          <a href="<%= eventShop.href %>" class="btn btn-outline"><i data-lucide="shopping-bag"></i><span>Event Shop</span></a>
+        <% } %>
         <% if (locals.isAuthenticated) { %>
           <a href="/my-registrations" class="btn btn-outline"><i data-lucide="badge-check"></i><span>My Registrations</span></a>
         <% } %>
@@ -371,6 +374,14 @@
               >
                 <img class="event-details-poster-inline" src="<%= details.posterImageUrl %>" alt="<%= details.title %> promotional poster">
               </button>
+            </section>
+          <% } %>
+
+          <% if (!isPreviewMode && eventShop && eventShop.count > 0) { %>
+            <section class="event-side-card">
+              <h3>Event Shop</h3>
+              <p class="event-side-card-copy"><%= eventShop.count %> item<%= eventShop.count === 1 ? '' : 's' %> available for this event.</p>
+              <a href="<%= eventShop.href %>" class="btn btn-outline btn-block"><i data-lucide="shopping-bag"></i><span>Browse Shop</span></a>
             </section>
           <% } %>
         </aside>

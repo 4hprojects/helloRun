@@ -7,6 +7,7 @@ const adminController = require('../controllers/admin.controller');
 const blogController = require('../controllers/blog.controller');
 const blogInteractionController = require('../controllers/blog-interaction.controller');
 const uploadService = require('../services/upload.service');
+const { listPolicyDocuments } = require('../services/policy-registry.service');
 
 const adminModerationLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
@@ -108,6 +109,23 @@ router.post('/cookie-policy/:id/preview', requireAdmin, adminController.previewE
 router.post('/cookie-policy/:id/publish', requireAdmin, adminController.publishCookiePolicyDraft);
 router.post('/cookie-policy/:id/clone', requireAdmin, adminController.cloneCookiePolicyVersion);
 router.post('/cookie-policy/:id/archive', requireAdmin, adminController.archiveCookiePolicyVersion);
+
+for (const policyDocument of listPolicyDocuments().filter((item) => !['privacy', 'terms', 'cookie'].includes(item.key))) {
+  const adminSlug = policyDocument.adminPath.replace(/^\/admin\//, '');
+  router.get(`/${adminSlug}`, requireAdmin, adminController.listPolicyDocument);
+  router.get(`/${adminSlug}/new`, requireAdmin, adminController.renderNewPolicyDocumentDraft);
+  router.post(`/${adminSlug}`, requireAdmin, adminController.createPolicyDocumentDraft);
+  router.post(`/${adminSlug}/format`, requireAdmin, adminController.formatNewPolicyDocumentDraft);
+  router.post(`/${adminSlug}/preview`, requireAdmin, adminController.previewNewPolicyDocumentDraft);
+  router.get(`/${adminSlug}/:id`, requireAdmin, adminController.viewPolicyDocumentVersion);
+  router.get(`/${adminSlug}/:id/edit`, requireAdmin, adminController.renderEditPolicyDocumentDraft);
+  router.post(`/${adminSlug}/:id/save`, requireAdmin, adminController.updatePolicyDocumentDraft);
+  router.post(`/${adminSlug}/:id/format`, requireAdmin, adminController.formatExistingPolicyDocumentDraft);
+  router.post(`/${adminSlug}/:id/preview`, requireAdmin, adminController.previewExistingPolicyDocumentDraft);
+  router.post(`/${adminSlug}/:id/publish`, requireAdmin, adminController.publishPolicyDocumentDraft);
+  router.post(`/${adminSlug}/:id/clone`, requireAdmin, adminController.clonePolicyDocumentVersion);
+  router.post(`/${adminSlug}/:id/archive`, requireAdmin, adminController.archivePolicyDocumentVersion);
+}
 
 // Blog moderation queue
 router.get('/blog/review', requireAdmin, blogController.renderAdminQueuePage);

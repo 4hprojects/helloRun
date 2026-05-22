@@ -42,6 +42,20 @@ async function listPendingPaymentReviewsByMongoEventId(mongoEventId, options = {
   `;
 }
 
+async function listPaymentsForAdmin(options = {}) {
+  const limit = normalizeLimit(options.limit, 50);
+  return getPostgresClient()`
+    select sp.id, sp.order_id, sp.payment_method, sp.payment_reference, sp.proof_image_url,
+           sp.amount_paid, sp.status, sp.created_at, sp.reviewed_at,
+           o.order_number, o.total_amount, o.currency, ec.slug as event_slug, ec.title as event_title
+    from shop_payments sp
+    join orders o on o.id = sp.order_id
+    left join events_core ec on ec.id = o.event_id
+    order by sp.created_at desc
+    limit ${limit}
+  `;
+}
+
 async function getPaymentReviewByIdForMongoEvent(paymentId, mongoEventId) {
   const sql = getPostgresClient();
   const safePaymentId = String(paymentId || '').trim();
@@ -119,6 +133,7 @@ function normalizeLimit(value, fallback) {
 module.exports = {
   listPendingPaymentReviews,
   listPendingPaymentReviewsByMongoEventId,
+  listPaymentsForAdmin,
   getPaymentReviewByIdForMongoEvent,
   updatePaymentReviewDecision,
   updateOrderPaymentStatus,

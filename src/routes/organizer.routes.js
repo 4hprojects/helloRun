@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
-const XLSX = require('xlsx');
+const ExcelJS = require('exceljs');
 const User = require('../models/User');
 const Event = require('../models/Event');
 const Registration = require('../models/Registration');
@@ -1692,12 +1692,22 @@ router.get('/events/:id/registrants/export-xlsx', requireAuth, async (req, res) 
     const registrations = await Registration.find(query).sort({ registeredAt: -1 }).lean();
     const { headers, rows } = getRegistrantExportData(registrations);
 
-    const worksheetData = [headers, ...rows];
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Registrants');
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'HelloRun';
+    workbook.created = new Date();
+    const worksheet = workbook.addWorksheet('Registrants');
+    worksheet.addRow(headers);
+    rows.forEach((row) => worksheet.addRow(row));
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.columns.forEach((column) => {
+      let maxLength = 12;
+      column.eachCell({ includeEmpty: true }, (cell) => {
+        maxLength = Math.max(maxLength, String(cell.value || '').length);
+      });
+      column.width = Math.min(maxLength + 2, 48);
+    });
 
-    const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+    const buffer = await workbook.xlsx.writeBuffer();
     const safeSlug = String(event.slug || 'event').replace(/[^a-zA-Z0-9-_]/g, '');
     const timestamp = new Date().toISOString().slice(0, 10);
     const filename = `${safeSlug}-registrants-${timestamp}.xlsx`;

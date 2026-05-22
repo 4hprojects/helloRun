@@ -50,5 +50,9 @@ const notificationSchema = new mongoose.Schema(
 
 notificationSchema.index({ userId: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, readAt: 1, createdAt: -1 });
+notificationSchema.index(
+  { userId: 1, createdAt: -1 },
+  { partialFilterExpression: { readAt: null }, name: 'idx_notifications_user_unread_created' }
+);
 
 module.exports = mongoose.models.Notification || mongoose.model('Notification', notificationSchema);

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/static-pages.css">
+  <link rel="stylesheet" href="/css/privacy-policy.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="static-page privacy-page">
+    <div class="static-wrap privacy-wrap">
+      <header class="static-hero privacy-hero">
+        <span class="privacy-kicker">Legal</span>
+        <h1><%= policyDocument.title %></h1>
+        <% if (policyMeta && (policyMeta.versionNumber || policyMeta.effectiveDate || policyMeta.updatedAt)) { %>
+          <div class="privacy-meta-pills">
+            <% if (policyMeta.versionNumber) { %>
+              <span class="privacy-meta-pill">Version <%= policyMeta.versionNumber %></span>
+            <% } %>
+            <% if (policyMeta.effectiveDate) { %>
+              <span class="privacy-meta-pill">Effective <%= new Date(policyMeta.effectiveDate).toLocaleDateString('en-US') %></span>
+            <% } %>
+            <% if (policyMeta.updatedAt) { %>
+              <span class="privacy-meta-pill">Updated <%= new Date(policyMeta.updatedAt).toLocaleDateString('en-US') %></span>
+            <% } %>
+          </div>
+        <% } %>
+      </header>
+
+      <div class="privacy-layout">
+        <section class="static-card privacy-content-card">
+          <% if (policyHtml) { %>
+            <article class="legal-markdown"><%- policyHtml %></article>
+          <% } else { %>
+            <article class="privacy-fallback">
+              <h2><%= policyDocument.title %></h2>
+              <p>This policy is being prepared. Please contact HelloRun support for policy questions.</p>
+            </article>
+          <% } %>
+        </section>
+
+        <aside class="privacy-side-stack">
+          <section class="static-card privacy-side-card">
+            <h2>Policy Support</h2>
+            <div class="privacy-side-body">
+              <p class="privacy-side-note">Questions about this policy:</p>
+              <a class="privacy-contact-link" href="mailto:hellorunonline@gmail.com">hellorunonline@gmail.com</a>
+            </div>
+          </section>
+          <section class="static-card privacy-toc-card" id="policyTocCard" hidden>
+            <h2>On this page</h2>
+            <ul class="privacy-toc-list" id="policyTocList"></ul>
+          </section>
+        </aside>
+      </div>
+    </div>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const tocCard = document.getElementById('policyTocCard');
+      const tocList = document.getElementById('policyTocList');
+      const contentRoot = document.querySelector('.privacy-content-card .legal-markdown, .privacy-content-card .privacy-fallback');
+      if (!tocCard || !tocList || !contentRoot) return;
+
+      const headings = Array.from(contentRoot.querySelectorAll('h2, h3')).filter(function (heading) {
+        return heading.textContent.trim().length > 0;
+      });
+      if (!headings.length) return;
+
+      headings.forEach(function (heading, index) {
+        const text = heading.textContent.trim();
+        const slug = text
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '') || `section-${index + 1}`;
+        const id = heading.id || `${slug}-${index + 1}`;
+        heading.id = id;
+        heading.classList.add('privacy-anchor-target');
+
+        const item = document.createElement('li');
+        const link = document.createElement('a');
+        link.href = `#${id}`;
+        link.className = `privacy-toc-link level-${heading.tagName.toLowerCase() === 'h3' ? '3' : '2'}`;
+        link.textContent = text;
+        item.appendChild(link);
+        tocList.appendChild(item);
+      });
+
+      tocCard.hidden = false;
+    });
+  </script>
+</body>
+</html>

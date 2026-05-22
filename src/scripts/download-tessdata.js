@@ -16,14 +16,21 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..', '..');
 const DEST_DIR = path.join(ROOT, 'src', 'public', 'assets', 'tessdata');
 const DEST_FILE = path.join(DEST_DIR, 'eng.traineddata.gz');
+const MIN_VALID_TESSDATA_BYTES = 1024 * 1024;
 
 // Tessdata source — same URL Tesseract.js uses by default
 const TESSDATA_URL = 'https://tessdata.projectnaptha.com/4.0.0/eng.traineddata.gz';
 
 if (fs.existsSync(DEST_FILE)) {
-  const sizeKb = Math.round(fs.statSync(DEST_FILE).size / 1024);
-  console.log('[download-tessdata] eng.traineddata.gz already exists (' + sizeKb + ' KB). Skipping download.');
-  process.exit(0);
+  const size = fs.statSync(DEST_FILE).size;
+  if (size >= MIN_VALID_TESSDATA_BYTES) {
+    const sizeKb = Math.round(size / 1024);
+    console.log('[download-tessdata] eng.traineddata.gz already exists (' + sizeKb + ' KB). Skipping download.');
+    process.exit(0);
+  }
+
+  console.warn('[download-tessdata] Existing eng.traineddata.gz is too small. Re-downloading.');
+  fs.unlinkSync(DEST_FILE);
 }
 
 fs.mkdirSync(DEST_DIR, { recursive: true });

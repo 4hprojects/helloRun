@@ -124,6 +124,7 @@
             <li><strong>Privacy Version:</strong> <%= managedUser.agreedPolicies?.privacyPolicyVersion || 'Not recorded' %></li>
             <li><strong>Terms Version:</strong> <%= managedUser.agreedPolicies?.termsPolicyVersion || 'Not recorded' %></li>
             <li><strong>Cookie Version:</strong> <%= managedUser.agreedPolicies?.cookiePolicyVersion || 'Not recorded' %></li>
+            <li><strong>Data Usage Version:</strong> <%= managedUser.agreedPolicies?.dataUsagePolicyVersion || 'Not recorded' %></li>
             <li><strong>Agreed At:</strong> <%= managedUser.agreedPolicies?.agreedAt ? new Date(managedUser.agreedPolicies.agreedAt).toLocaleString('en-US') : 'Not recorded' %></li>
           </ul>
         </article>

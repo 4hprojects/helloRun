@@ -63,6 +63,18 @@ test('dynamic sitemap includes live public content and excludes auth and placeho
   const xml = await response.text();
   assert.match(xml, new RegExp(`<loc>${escapeForRegex(`${BASE_URL}/`)}</loc>`));
   assert.match(xml, new RegExp(`<loc>${escapeForRegex(`${BASE_URL}/blog`)}</loc>`));
+  for (const policyPath of [
+    '/privacy',
+    '/terms',
+    '/cookie-policy',
+    '/data-usage-policy',
+    '/refund-and-cancellation-policy',
+    '/organiser-terms',
+    '/community-guidelines',
+    '/acceptable-use-policy'
+  ]) {
+    assert.match(xml, new RegExp(`<loc>${escapeForRegex(`${BASE_URL}${policyPath}`)}</loc>`));
+  }
   assert.match(xml, new RegExp(`<loc>${escapeForRegex(`${BASE_URL}/events/${encodeURIComponent(seed.event.slug)}`)}</loc>`));
   assert.match(xml, new RegExp(`<loc>${escapeForRegex(`${BASE_URL}/blog/${encodeURIComponent(seed.blog.slug)}`)}</loc>`));
 

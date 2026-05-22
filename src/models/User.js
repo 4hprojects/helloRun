@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { getNextSequence, formatUserId } = require('../utils/counter');
+const logger = require('../utils/logger');
 
 // ── User Schema ──
 const userSchema = new mongoose.Schema({
@@ -194,6 +195,16 @@ const userSchema = new mongoose.Schema({
       trim: true,
       default: ''
     },
+    dataUsagePolicyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'PrivacyPolicy',
+      default: null
+    },
+    dataUsagePolicyVersion: {
+      type: String,
+      trim: true,
+      default: ''
+    },
     agreedAt: {
       type: Date,
       default: null
@@ -226,9 +237,9 @@ userSchema.pre('save', async function(next) {
     try {
       const count = await getNextSequence('userId');
       this.userId = formatUserId(count);
-      console.log('Generated userId:', this.userId);
+      logger.debug('Generated userId:', this.userId);
     } catch (error) {
-      console.error('Error generating userId:', error);
+      logger.error('Error generating userId:', error);
       return next(error);
     }
   }

@@ -1,25 +1,25 @@
 /* ===== VARIABLES ===== */
 :root {
-  --primary: #2563eb;
+  --primary: var(--hr-color-accent, #2563eb);
   --primary-dark: #1d4ed8;
   --primary-light: #3b82f6;
-  --secondary: #e2e8f0;
+  --secondary: var(--hr-color-border, #e2e8f0);
   --secondary-dark: #cbd5e1;
-  --success: #10b981;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --text-primary: #1e293b;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --bg-light: #f8fafc;
-  --bg-white: #ffffff;
-  --border-light: #e2e8f0;
+  --success: var(--hr-color-success, #15803d);
+  --danger: var(--hr-color-danger, #dc2626);
+  --warning: var(--hr-color-warning, #d97706);
+  --text-primary: var(--hr-color-ink, #1e293b);
+  --text-secondary: var(--hr-color-muted, #475569);
+  --text-muted: var(--hr-color-subtle, #64748b);
+  --bg-light: var(--hr-color-page, #f8fafc);
+  --bg-white: var(--hr-color-surface, #ffffff);
+  --border-light: var(--hr-color-border, #e2e8f0);
   --border-focus: #2563eb;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-  --radius: 0.5rem;
-  --radius-sm: 0.375rem;
+  --radius: var(--hr-radius-md, 0.5rem);
+  --radius-sm: var(--hr-radius-sm, 0.375rem);
   --transition: all 0.2s ease;
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
@@ -96,6 +96,11 @@
   grid-template-columns: minmax(210px, 260px) minmax(0, 1fr);
   gap: 1.5rem;
   align-items: start;
+}
+
+.create-event-form :is(input, select, textarea, button, a):focus-visible {
+  outline: 2px solid var(--hr-color-brand, #c2410c);
+  outline-offset: 2px;
 }
 
 .wizard-progress {
@@ -1383,7 +1388,7 @@ textarea:focus {
 .actions {
   margin-top: 2rem;
   display: flex;
-  justify-content: flex-end; /* change this to flex-start or center to realign */
+  justify-content: flex-end;
 }
 
 /* Button group - always a single row regardless of viewport */
@@ -1585,6 +1590,31 @@ textarea:focus {
   .btn-adaptive:hover::after,
   .btn-adaptive:focus-visible::after {
     opacity: 1;
+  }
+}
+
+@media (min-width: 1025px) {
+  .wizard-step-anchor,
+  .form-section {
+    scroll-margin-top: 1.25rem;
+  }
+
+  .actions:has(.action-btn-group) {
+    position: sticky;
+    bottom: 0;
+    z-index: 30;
+    margin: 2rem -1rem -1rem;
+    padding: 0.85rem 1rem;
+    border-top: 1px solid var(--border-light);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 -8px 22px rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(8px);
+  }
+
+  .actions:has(.action-btn-group) .action-btn-group {
+    max-width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.1rem;
   }
 }
 

@@ -208,11 +208,11 @@ document.addEventListener('DOMContentLoaded', function() {
         isValid = false;
       }
 
-      // Validate terms and conditions checkbox
+      // Validate policy consent checkbox
       const agreeTerms = document.getElementById('agreeTerms');
       const termsGroup = document.getElementById('termsGroup');
       if (!agreeTerms.checked) {
-        showCheckboxError('termsError', 'You must agree to the Terms, Privacy, and Cookie policies');
+        showCheckboxError('termsError', 'You must agree to the Terms, Privacy, Cookie, and Data Usage policies');
         termsGroup.classList.add('error');
         isValid = false;
       }

@@ -4,7 +4,8 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../../middleware/auth.middleware');
-const { requireRole } = require('../../middleware/role.middleware');
+const { requireCsrfProtection } = require('../../middleware/csrf.middleware');
+const { requireOrganizerEventAccess } = require('../../middleware/organizer-event-access.middleware');
 const {
   assignBib,
   recordCheckIn,
@@ -16,22 +17,11 @@ const {
   getEventBibAssignmentStatus
 } = require('../../services/onsite-operations.service');
 
-// Middleware: verify organiser can manage this event
-async function verifyEventAccess(req, res, next) {
-  const { eventId } = req.params;
-  const userId = req.user.id;
-
-  // Verify user is organiser for this event
-  // This is a simplified check; in production, query MongoDB Event.organizerId
-  if (!userId) {
-    return res.status(403).json({ error: 'Not authorized' });
-  }
-
-  next();
-}
+const protectEventRead = [requireAuth, requireOrganizerEventAccess];
+const protectEventMutation = [requireAuth, requireCsrfProtection, requireOrganizerEventAccess];
 
 // Assign a bib number to a registration
-router.post('/events/:eventId/bibs/assign', requireAuth, requireRole('organiser', 'admin'), verifyEventAccess, async (req, res) => {
+router.post('/events/:eventId/bibs/assign', protectEventMutation, async (req, res) => {
   try {
     const { eventId } = req.params;
     const { registrationId, bibNumber, category } = req.body;
@@ -54,7 +44,7 @@ router.post('/events/:eventId/bibs/assign', requireAuth, requireRole('organiser'
 });
 
 // Record a check-in
-router.post('/events/:eventId/check-ins', requireAuth, requireRole('organiser', 'admin'), verifyEventAccess, async (req, res) => {
+router.post('/events/:eventId/check-ins', protectEventMutation, async (req, res) => {
   try {
     const { eventId } = req.params;
     const { registrationId, participationMode, verificationMethod, notes } = req.body;
@@ -81,7 +71,7 @@ router.post('/events/:eventId/check-ins', requireAuth, requireRole('organiser', 
 });
 
 // Create a race kit
-router.post('/events/:eventId/race-kits', requireAuth, requireRole('organiser', 'admin'), verifyEventAccess, async (req, res) => {
+router.post('/events/:eventId/race-kits', protectEventMutation, async (req, res) => {
   try {
     const { eventId } = req.params;
     const { name, description, includedItems, quantity, cost, notes } = req.body;
@@ -111,7 +101,7 @@ router.post('/events/:eventId/race-kits', requireAuth, requireRole('organiser', 
 });
 
 // Log a result import file
-router.post('/events/:eventId/result-imports', requireAuth, requireRole('organiser', 'admin'), verifyEventAccess, async (req, res) => {
+router.post('/events/:eventId/result-imports', protectEventMutation, async (req, res) => {
   try {
     const { eventId } = req.params;
     const { source, fileName, fileKey, mimeType, fileSize, notes } = req.body;
@@ -138,7 +128,7 @@ router.post('/events/:eventId/result-imports', requireAuth, requireRole('organis
 });
 
 // Record an onsite result
-router.post('/events/:eventId/onsite-results', requireAuth, requireRole('organiser', 'admin'), verifyEventAccess, async (req, res) => {
+router.post('/events/:eventId/onsite-results', protectEventMutation, async (req, res) => {
   try {
     const { eventId } = req.params;
     const { registrationId, category, distanceKm, elapsedMs, displayTime, pacePerKm, placeInCategory, dataSource, notes, resultStatus } = req.body;
@@ -172,7 +162,7 @@ router.post('/events/:eventId/onsite-results', requireAuth, requireRole('organis
 });
 
 // Approve an onsite result and evaluate achievement badges
-router.post('/events/:eventId/onsite-results/:resultId/approve', requireAuth, requireRole('organiser', 'admin'), verifyEventAccess, async (req, res) => {
+router.post('/events/:eventId/onsite-results/:resultId/approve', protectEventMutation, async (req, res) => {
   try {
     const { eventId, resultId } = req.params;
     const approved = await approveOnsiteResult(eventId, resultId, {
@@ -193,7 +183,7 @@ router.post('/events/:eventId/onsite-results/:resultId/approve', requireAuth, re
 });
 
 // Get event check-in summary
-router.get('/events/:eventId/check-in-summary', requireAuth, requireRole('organiser', 'admin'), verifyEventAccess, async (req, res) => {
+router.get('/events/:eventId/check-in-summary', protectEventRead, async (req, res) => {
   try {
     const { eventId } = req.params;
 
@@ -210,7 +200,7 @@ router.get('/events/:eventId/check-in-summary', requireAuth, requireRole('organi
 });
 
 // Get event bib assignment status
-router.get('/events/:eventId/bib-assignment-status', requireAuth, requireRole('organiser', 'admin'), verifyEventAccess, async (req, res) => {
+router.get('/events/:eventId/bib-assignment-status', protectEventRead, async (req, res) => {
   try {
     const { eventId } = req.params;
 

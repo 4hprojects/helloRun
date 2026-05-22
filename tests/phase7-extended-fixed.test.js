@@ -173,10 +173,10 @@ test.describe('Phase 7 Extended Features', () => {
     });
 
     test('validateResultRow: should validate time format', () => {
-      const validTimes = ['01:23:45', '23:59:59', '12:30'];
-      const invalidTimes = ['1:23:45', 'invalid', '25:00:00'];
+      const validTimes = ['01:23:45', '23:59:59', '12:30', '1:23:45', '5:30', '25:00:00', '99:59:59'];
+      const invalidTimes = ['invalid', '1:60:00', '1:59:60', 'abc:def:ghi', '1:2:3', 'HH:MM:SS'];
 
-      const timeRegex = /^(\d{1,2}):(\d{2}):(\d{2})(\.\d+)?$|^(\d{1,2}):(\d{2})$/;
+      const timeRegex = /^(\d{1,2}):([0-5]\d):([0-5]\d)(\.\d+)?$|^(\d{1,2}):([0-5]\d)$/;
 
       validTimes.forEach(t => {
         assert(timeRegex.test(t), `Valid time rejected: ${t}`);
@@ -195,9 +195,19 @@ test.describe('Phase 7 Extended Features', () => {
       };
 
       Object.entries(conversions).forEach(([timeStr, expectedMs]) => {
-        const hours = parseInt(timeStr.split(':')[0]) || 0;
-        const minutes = parseInt(timeStr.split(':')[1]) || 0;
-        const seconds = parseInt(timeStr.split(':')[2]) || 0;
+        const parts = timeStr.split(':');
+        let hours = 0;
+        let minutes = 0;
+        let seconds = 0;
+
+        if (parts.length === 3) {
+          hours = parseInt(parts[0]);
+          minutes = parseInt(parts[1]);
+          seconds = parseInt(parts[2]);
+        } else if (parts.length === 2) {
+          minutes = parseInt(parts[0]);
+          seconds = parseInt(parts[1]);
+        }
 
         const ms = hours * 3600000 + minutes * 60000 + seconds * 1000;
         assert.strictEqual(ms, expectedMs);

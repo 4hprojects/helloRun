@@ -507,6 +507,9 @@ eventSchema.index({ status: 1, eventStartAt: 1, createdAt: -1 });
 eventSchema.index({ organizerId: 1, status: 1, eventStartAt: -1 });
 eventSchema.index({ status: 1, isDeleted: 1, updatedAt: -1 });
 eventSchema.index({ organizerId: 1, status: 1, isDeleted: 1 });
+eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, eventStartAt: 1, createdAt: -1 });
+eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, registrationCloseAt: 1, eventStartAt: 1 });
+eventSchema.index({ status: 1, isDeleted: 1, eventType: 1, createdAt: -1 });
 
 function shouldSyncSupabase() {
   return Boolean(process.env.DATABASE_URL);

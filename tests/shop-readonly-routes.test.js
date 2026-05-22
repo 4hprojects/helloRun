@@ -70,6 +70,23 @@ test('runner can read own shop orders JSON', async () => {
   assert.equal(body.orders[0].order_number, seed.orderNumber);
 });
 
+test('runner can read own shop order detail JSON', async () => {
+  const cookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
+
+  const response = await fetch(`${BASE_URL}/orders/${seed.orderNumber}`, {
+    headers: { Cookie: cookie, Accept: 'application/json' },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.success, true);
+  assert.equal(body.order.order_number, seed.orderNumber);
+  assert.ok(Array.isArray(body.order.items));
+  assert.ok(body.order.items.some((item) => item.name_snapshot === seed.productName));
+});
+
 test('public event shop route returns read-only product list JSON', async () => {
   const response = await fetch(`${BASE_URL}/events/${seed.event.slug}/shop`, {
     redirect: 'manual'
@@ -81,6 +98,79 @@ test('public event shop route returns read-only product list JSON', async () => 
   assert.equal(body.event.slug, seed.event.slug);
   assert.ok(Array.isArray(body.products));
   assert.ok(body.products.some((item) => item.name === seed.productName));
+});
+
+test('public event shop route renders product listing HTML for browser requests', async () => {
+  const response = await fetch(`${BASE_URL}/events/${seed.event.slug}/shop`, {
+    headers: { Accept: 'text/html' },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, new RegExp(seed.productName));
+  assert.match(html, /Event Shop/i);
+  assert.match(html, new RegExp(`/events/${seed.event.slug}/shop/${seed.productSlug}`));
+  assert.doesNotMatch(html, /Add to Cart/i);
+  assert.doesNotMatch(html, /Checkout Now/i);
+});
+
+test('public product detail renders read-only HTML for browser requests', async () => {
+  const response = await fetch(`${BASE_URL}/events/${seed.event.slug}/shop/${seed.productSlug}`, {
+    headers: { Accept: 'text/html' },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, new RegExp(seed.productName));
+  assert.match(html, /Medium \/ Blue/i);
+  assert.match(html, /currently read-only/i);
+  assert.doesNotMatch(html, /Add to Cart/i);
+});
+
+test('public product detail returns JSON for API-style requests', async () => {
+  const response = await fetch(`${BASE_URL}/events/${seed.event.slug}/shop/${seed.productSlug}`, {
+    headers: { Accept: 'application/json' },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.success, true);
+  assert.equal(body.event.slug, seed.event.slug);
+  assert.equal(body.product.slug, seed.productSlug);
+  assert.ok(body.variants.some((item) => item.name === 'Medium / Blue'));
+});
+
+test('public event shop renders empty state when no visible products exist', async () => {
+  const response = await fetch(`${BASE_URL}/events/${seed.emptyEvent.slug}/shop`, {
+    headers: { Accept: 'text/html' },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /No shop items yet/i);
+  assert.doesNotMatch(html, /Add to Cart/i);
+});
+
+test('public event detail links to shop only when visible products exist', async () => {
+  const withShop = await fetch(`${BASE_URL}/events/${seed.event.slug}`, {
+    headers: { Accept: 'text/html' },
+    redirect: 'manual'
+  });
+  assert.equal(withShop.status, 200);
+  const withShopHtml = await withShop.text();
+  assert.match(withShopHtml, new RegExp(`/events/${seed.event.slug}/shop`));
+
+  const withoutShop = await fetch(`${BASE_URL}/events/${seed.emptyEvent.slug}`, {
+    headers: { Accept: 'text/html' },
+    redirect: 'manual'
+  });
+  assert.equal(withoutShop.status, 200);
+  const withoutShopHtml = await withoutShop.text();
+  assert.doesNotMatch(withoutShopHtml, new RegExp(`/events/${seed.emptyEvent.slug}/shop`));
 });
 
 test('owner organizer can read event shop products and payment review queue JSON', async () => {
@@ -106,6 +196,165 @@ test('owner organizer can read event shop products and payment review queue JSON
   assert.equal(reviewsBody.success, true);
   assert.ok(Array.isArray(reviewsBody.items));
   assert.ok(reviewsBody.items.some((item) => item.order_number === seed.orderNumber));
+});
+
+test('owner organizer can read product variants after product ownership check', async () => {
+  const cookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', cookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/shop/products/${seed.productId}/variants`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.success, true);
+  assert.ok(body.variants.some((item) => item.variant_name === 'Medium / Blue'));
+});
+
+test('owner organizer can create and update products and variants', async () => {
+  const cookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', cookie);
+  const csrfToken = await getCsrfToken(`/organizer/events/${seed.event._id}/shop`, cookie);
+
+  const productResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/shop/products`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/json',
+      'x-csrf-token': csrfToken
+    },
+    body: JSON.stringify({
+      name: `Managed Product ${Date.now()}`,
+      basePrice: 375,
+      status: 'draft'
+    }),
+    redirect: 'manual'
+  });
+  assert.equal(productResponse.status, 201);
+  const productBody = await productResponse.json();
+  assert.equal(productBody.success, true);
+  assert.equal(productBody.product.status, 'draft');
+
+  const updateResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/shop/products/${productBody.product.id}`, {
+    method: 'PATCH',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/json',
+      'x-csrf-token': csrfToken
+    },
+    body: JSON.stringify({
+      name: productBody.product.name,
+      slug: productBody.product.slug,
+      basePrice: 425,
+      status: 'active',
+      isVisible: true,
+      showInEventShop: true
+    }),
+    redirect: 'manual'
+  });
+  assert.equal(updateResponse.status, 200);
+  const updateBody = await updateResponse.json();
+  assert.equal(updateBody.success, true);
+  assert.equal(Number(updateBody.product.base_price), 425);
+
+  const variantResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/shop/products/${productBody.product.id}/variants`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/json',
+      'x-csrf-token': csrfToken
+    },
+    body: JSON.stringify({
+      variantName: 'Large / Green',
+      sku: `SKU-${Date.now()}`,
+      stockQuantity: 12
+    }),
+    redirect: 'manual'
+  });
+  assert.equal(variantResponse.status, 201);
+  const variantBody = await variantResponse.json();
+  assert.equal(variantBody.success, true);
+  assert.equal(variantBody.variant.variant_name, 'Large / Green');
+});
+
+test('owner organizer can update order fulfilment', async () => {
+  const cookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', cookie);
+  const csrfToken = await getCsrfToken(`/organizer/events/${seed.event._id}/shop`, cookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/shop/orders/${seed.orderId}/fulfilment`, {
+    method: 'PATCH',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/json',
+      'x-csrf-token': csrfToken
+    },
+    body: JSON.stringify({
+      fulfilmentStatus: 'preparing',
+      note: 'Preparing for pickup'
+    }),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.success, true);
+  assert.equal(body.order.fulfilment_status, 'preparing');
+
+  const sql = getPostgresClient();
+  const logs = await sql`
+    select new_status, note
+    from shop_fulfilment_logs
+    where order_id::text = ${seed.orderId}
+    order by created_at desc
+    limit 1
+  `;
+  assert.equal(logs[0].new_status, 'preparing');
+});
+
+test('admin can list and approve shop products', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForSessionReady('/admin/dashboard', cookie);
+  const csrfToken = await getCsrfToken('/admin/shop', cookie);
+
+  const approvalsResponse = await fetch(`${BASE_URL}/admin/shop/product-approvals`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(approvalsResponse.status, 200);
+  const approvalsBody = await approvalsResponse.json();
+  assert.equal(approvalsBody.success, true);
+  assert.ok(approvalsBody.products.some((product) => String(product.id) === seed.productId));
+
+  const approveResponse = await fetch(`${BASE_URL}/admin/shop/product-approvals/${seed.productId}`, {
+    method: 'PATCH',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/json',
+      'x-csrf-token': csrfToken
+    },
+    body: JSON.stringify({ status: 'approved' }),
+    redirect: 'manual'
+  });
+  assert.equal(approveResponse.status, 200);
+  const approveBody = await approveResponse.json();
+  assert.equal(approveBody.success, true);
+  assert.equal(approveBody.product.requires_admin_approval, false);
+  assert.equal(approveBody.product.status, 'active');
+});
+
+test('non-owner organizer cannot read product variants for another organizer event', async () => {
+  const cookie = await login(seed.otherOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', cookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/shop/products/${seed.productId}/variants`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 403);
 });
 
 test('non-owner organizer is denied when reading another organizer event shop data', async () => {
@@ -157,6 +406,16 @@ async function seedShopReadonlyFixtures() {
     emailVerified: true
   });
 
+  const admin = await User.create({
+    userId: `USHOPADM${stamp}`.slice(0, 22),
+    email: `shop.admin.${stamp}@example.com`,
+    passwordHash,
+    role: 'admin',
+    firstName: 'Admin',
+    lastName: 'Shop',
+    emailVerified: true
+  });
+
   const now = Date.now();
   const event = await Event.create({
     organizerId: ownerOrganizer._id,
@@ -178,13 +437,34 @@ async function seedShopReadonlyFixtures() {
     waiverVersion: 1
   });
 
+  const emptyEvent = await Event.create({
+    organizerId: ownerOrganizer._id,
+    slug: `shop-empty-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `SHE-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Shop Empty Event ${stamp}`.slice(0, 150),
+    organiserName: 'Shop Organizer',
+    description: 'Shop readonly empty state fixture',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    registrationOpenAt: new Date(now - 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 8 * 24 * 60 * 60 * 1000),
+    proofTypesAllowed: ['gps'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
   const sql = getPostgresClient();
 
   const appUsers = await sql`
     insert into app_users (mongo_user_id, email, role_snapshot, display_name)
     values
       (${String(runner._id)}, ${runner.email}, 'runner', ${`${runner.firstName} ${runner.lastName}`}),
-      (${String(ownerOrganizer._id)}, ${ownerOrganizer.email}, 'organiser', ${`${ownerOrganizer.firstName} ${ownerOrganizer.lastName}`})
+      (${String(ownerOrganizer._id)}, ${ownerOrganizer.email}, 'organiser', ${`${ownerOrganizer.firstName} ${ownerOrganizer.lastName}`}),
+      (${String(admin._id)}, ${admin.email}, 'admin', ${`${admin.firstName} ${admin.lastName}`})
     on conflict (mongo_user_id)
     do update set email = excluded.email
     returning id, mongo_user_id
@@ -201,8 +481,18 @@ async function seedShopReadonlyFixtures() {
   `;
   const eventCore = eventCoreRows[0];
 
+  const emptyEventCoreRows = await sql`
+    insert into events_core (mongo_event_id, slug, title, status, event_type, mongo_organizer_user_id)
+    values (${String(emptyEvent._id)}, ${emptyEvent.slug}, ${emptyEvent.title}, 'published', 'virtual', ${String(ownerOrganizer._id)})
+    on conflict (mongo_event_id)
+    do update set title = excluded.title
+    returning id, mongo_event_id
+  `;
+  const emptyEventCore = emptyEventCoreRows[0];
+
   const productName = `Shop Product ${stamp}`;
-  await sql`
+  const productSlug = `shop-product-${stamp}`.toLowerCase().slice(0, 120);
+  const productRows = await sql`
     insert into products_core (
       event_id,
       organiser_id,
@@ -221,7 +511,7 @@ async function seedShopReadonlyFixtures() {
       ${eventCore.id},
       null,
       ${productName},
-      ${`shop-product-${stamp}`.toLowerCase().slice(0, 120)},
+      ${productSlug},
       250,
       'PHP',
       'active',
@@ -229,6 +519,33 @@ async function seedShopReadonlyFixtures() {
       'event_shop_item',
       true,
       false,
+      true
+    )
+    returning id, slug
+  `;
+  const product = productRows[0];
+
+  await sql`
+    insert into product_variants (
+      product_id,
+      variant_name,
+      sku,
+      size,
+      colour,
+      stock_quantity,
+      reserved_quantity,
+      sold_quantity,
+      is_active
+    )
+    values (
+      ${product.id},
+      'Medium / Blue',
+      ${`SKU-${String(stamp).replace(/\W/g, '').slice(-10)}`},
+      'M',
+      'Blue',
+      10,
+      1,
+      2,
       true
     )
   `;
@@ -267,6 +584,29 @@ async function seedShopReadonlyFixtures() {
   `;
 
   await sql`
+    insert into order_items (
+      order_id,
+      product_id,
+      variant_id,
+      name_snapshot,
+      variant_snapshot,
+      quantity,
+      unit_price,
+      line_total
+    )
+    values (
+      ${orders[0].id},
+      ${product.id},
+      null,
+      ${productName},
+      '{}'::jsonb,
+      1,
+      250,
+      250
+    )
+  `;
+
+  await sql`
     insert into shop_payments (
       order_id,
       payment_method,
@@ -287,14 +627,21 @@ async function seedShopReadonlyFixtures() {
     password,
     ownerOrganizer,
     otherOrganizer,
+    admin,
     runner,
     event,
+    emptyEvent,
     orderNumber,
+    orderId: String(orders[0].id),
     productName,
+    productId: String(product.id),
+    productSlug: product.slug,
     ids: {
       mongoEventId: String(event._id),
+      emptyMongoEventId: String(emptyEvent._id),
       mongoRunnerId: String(runner._id),
-      mongoOwnerOrganizerId: String(ownerOrganizer._id)
+      mongoOwnerOrganizerId: String(ownerOrganizer._id),
+      mongoAdminId: String(admin._id)
     }
   };
 }
@@ -304,36 +651,47 @@ async function cleanupShopReadonlyFixtures(currentSeed) {
 
   const sql = getPostgresClient();
   const eventMongoId = currentSeed.ids?.mongoEventId;
+  const emptyEventMongoId = currentSeed.ids?.emptyMongoEventId;
   const runnerMongoId = currentSeed.ids?.mongoRunnerId;
   const ownerMongoId = currentSeed.ids?.mongoOwnerOrganizerId;
+  const adminMongoId = currentSeed.ids?.mongoAdminId;
 
-  if (eventMongoId) {
-    const eventCoreRows = await sql`select id from events_core where mongo_event_id = ${eventMongoId}`;
+  if (eventMongoId || emptyEventMongoId) {
+    const mongoEventIds = [eventMongoId, emptyEventMongoId].filter(Boolean);
+    const eventCoreRows = await sql`select id from events_core where mongo_event_id = any(${mongoEventIds})`;
     if (eventCoreRows.length) {
-      const eventCoreId = eventCoreRows[0].id;
-      const orderRows = await sql`select id from orders where event_id = ${eventCoreId}`;
+      const eventCoreIds = eventCoreRows.map((row) => row.id);
+      const orderRows = await sql`select id from orders where event_id = any(${eventCoreIds})`;
       const orderIds = orderRows.map((row) => row.id);
 
       if (orderIds.length) {
         await sql`delete from shop_payments where order_id = any(${orderIds})`;
+        await sql`delete from shop_fulfilment_logs where order_id = any(${orderIds})`;
+        await sql`delete from order_items where order_id = any(${orderIds})`;
       }
-      await sql`delete from orders where event_id = ${eventCoreId}`;
-      await sql`delete from products_core where event_id = ${eventCoreId}`;
-      await sql`delete from events_core where id = ${eventCoreId}`;
+      await sql`delete from orders where event_id = any(${eventCoreIds})`;
+      const productRows = await sql`select id from products_core where event_id = any(${eventCoreIds})`;
+      const productIds = productRows.map((row) => row.id);
+      if (productIds.length) {
+        await sql`delete from product_variants where product_id = any(${productIds})`;
+      }
+      await sql`delete from products_core where event_id = any(${eventCoreIds})`;
+      await sql`delete from events_core where id = any(${eventCoreIds})`;
     }
   }
 
-  if (runnerMongoId || ownerMongoId) {
-    const ids = [runnerMongoId, ownerMongoId].filter(Boolean);
+  if (runnerMongoId || ownerMongoId || adminMongoId) {
+    const ids = [runnerMongoId, ownerMongoId, adminMongoId].filter(Boolean);
     await sql`delete from app_users where mongo_user_id = any(${ids})`;
   }
 
-  await Event.deleteOne({ _id: currentSeed.event._id });
+  await Event.deleteMany({ _id: { $in: [currentSeed.event._id, currentSeed.emptyEvent._id] } });
   await User.deleteMany({
     _id: {
       $in: [
         currentSeed.ownerOrganizer._id,
         currentSeed.otherOrganizer._id,
+        currentSeed.admin._id,
         currentSeed.runner._id
       ]
     }
@@ -380,6 +738,21 @@ async function login(email, password) {
   const sessionCookie = cookies.find((value) => value.startsWith('hr.sid='));
   assert.ok(sessionCookie, 'Expected session cookie from login response');
   return sessionCookie.split(';')[0];
+}
+
+async function getCsrfToken(pathname, cookie) {
+  const response = await fetch(`${BASE_URL}${pathname}`, {
+    headers: {
+      Cookie: cookie,
+      Accept: 'text/html'
+    },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  const match = html.match(/name="_csrf"\s+value="([^"]*)"/i);
+  assert.ok(match, `Expected CSRF token on ${pathname}`);
+  return match[1];
 }
 
 function sleep(ms) {

@@ -116,6 +116,21 @@ test('organizer shop payment review approve/reject syncs statuses, notifications
   await waitForSessionReady('/organizer/dashboard', organizerCookie);
 
   const organizerCsrf = await getCsrfFromAuthedPage('/organizer/dashboard', organizerCookie);
+  const invalidReviewResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/shop/payment-reviews/${shopPayments[0].id}`, {
+    method: 'PATCH',
+    headers: {
+      Cookie: organizerCookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      _csrf: organizerCsrf.csrfToken,
+      status: 'rejected',
+      rejectionReason: 'bad'
+    }),
+    redirect: 'manual'
+  });
+  assert.equal(invalidReviewResponse.status, 400);
+
   const approveResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/shop/payment-reviews/${shopPayments[0].id}`, {
     method: 'PATCH',
     headers: {

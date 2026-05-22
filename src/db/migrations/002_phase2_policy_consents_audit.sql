@@ -11,7 +11,7 @@ create table if not exists policy_consents (
   source text not null default 'live_sync',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint policy_consents_policy_type_check check (policy_type in ('privacy_policy', 'terms_policy', 'cookie_policy')),
+  constraint policy_consents_policy_type_check check (policy_type in ('privacy_policy', 'terms_policy', 'cookie_policy', 'data_usage_policy')),
   constraint policy_consents_source_check check (source in ('backfill', 'live_sync', 'repair'))
 );
 

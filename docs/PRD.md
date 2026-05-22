@@ -3,6 +3,34 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
+## STATUS UPDATE (May 23, 2026 - Policy Pack Organization)
+
+### Current reality after latest implementation
+- `docs/policy-markdown-pack` is now the canonical source for the HelloRun policy set.
+- Public policy coverage now includes Privacy Policy, Terms and Conditions, Cookie Policy, Data Usage Policy, Refund and Cancellation Policy, Organiser Terms, Community Guidelines, and Acceptable Use Policy.
+- Terms and Conditions keeps the existing `terms-of-service` database slug for compatibility while public/admin UI uses the official document name.
+- Signup consent now includes Data Usage Policy and stores the accepted Data Usage Policy ID/version with the existing policy consent metadata.
+- Supabase policy consent sync now supports `data_usage_policy`.
+
+### COMPLETED in this cycle
+- Normalized the individual policy-pack markdown files with the May 23, 2026 implementation date and synced Privacy, Terms, and Cookie content into `docs/contents`.
+- Added a shared policy registry for public paths, admin paths, source files, and DB slugs.
+- Refactored public policy pages to use one DB-first markdown fallback renderer.
+- Added admin management routes for all new policy documents using the existing policy draft/publish/archive workflow.
+- Added `npm run seed:policies` while keeping the individual seed commands as compatibility wrappers.
+- Updated footer links, sitemap coverage, signup consent copy, Google signup consent messaging, event registration confirmation copy, run proof confirmation copy, and payment proof confirmation copy.
+- Added policy-pack phase tracking to `docs/todo refinement/hellorun_project_refinement_analysis.md`.
+
+### Validation and data hygiene notes
+- Focused static, sitemap, policy consent, and signup consent checks should cover the policy set.
+- Smoke tests and future policy workflow tests must delete any users, events, posts, policy drafts, or other records they create so the database does not accumulate persistent test data.
+
+### Remaining next tasks
+- Run staging admin smoke for at least one existing policy and one newly added policy: draft, preview, publish, clone, archive.
+- Apply the Supabase policy consent constraint migration before relying on `data_usage_policy` live sync in production.
+
+---
+
 ## STATUS UPDATE (May 19, 2026 - Achievement Badges Release-Readiness + Shop Validation)
 
 ### Current reality after latest implementation
@@ -2697,12 +2725,18 @@ UPDATED ACCEPTANCE GATES
 Before starting Phases 13 to 16:
 - [ ] Full `npm test` passes.
 - [ ] Manual smoke tests pass for auth, registration, payment receipt upload, run result submission, review queues, dashboards, leaderboard, and certificates.
+- [ ] Smoke-test database records and uploaded test files are removed or cleaned up after validation so staging/production databases and storage do not accumulate test artifacts.
 - [ ] Production env variables are verified.
 - [ ] `/healthz` and `/readyz` are tested.
 - [ ] Error tracking and uptime monitoring are configured.
 - [ ] Backup and restore runbook is ready.
 - [ ] Security route matrix is updated.
 - [ ] Production readiness checklist is signed off.
+
+### Smoke Test Data Hygiene
+Smoke tests should use clearly identifiable test accounts, events, registrations, submissions, orders, payment receipts, and uploaded proof files. After each staging or production smoke run, test records and uploaded files must be deleted or archived according to the deployment runbook.
+
+Smoke cleanup should cover both database records and object/file storage so long-running environments do not build up fake users, fake events, proof screenshots, payment receipts, result images, exports, or other temporary test artifacts.
 
 ### Onsite Event Readiness Gate
 Before publishing onsite event result import:

@@ -602,6 +602,12 @@
   line-height: 1.55;
 }
 
+.event-side-card-copy {
+  margin: 8px 0 14px;
+  color: #56657a;
+  line-height: 1.55;
+}
+
 .btn-block {
   width: 100%;
   justify-content: center;

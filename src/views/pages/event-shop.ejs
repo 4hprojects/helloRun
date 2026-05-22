@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="shop-page">
+    <section class="shop-header">
+      <div>
+        <a href="/events/<%= event.slug %>" class="shop-back-link"><i data-lucide="arrow-left"></i><span>Event Details</span></a>
+        <p class="shop-eyebrow">Event Shop</p>
+        <h1><%= event.title %></h1>
+      </div>
+    </section>
+
+    <section class="shop-content" aria-label="Event shop products">
+      <% if (products.length) { %>
+        <div class="shop-product-grid">
+          <% products.forEach((product) => { %>
+            <article class="shop-product-card">
+              <a href="/events/<%= event.slug %>/shop/<%= product.slug %>" class="shop-product-media" aria-label="View <%= product.name %>">
+                <i data-lucide="package"></i>
+              </a>
+              <div class="shop-product-body">
+                <div>
+                  <h2><a href="/events/<%= event.slug %>/shop/<%= product.slug %>"><%= product.name %></a></h2>
+                  <% if (product.category) { %><p><%= product.category %></p><% } %>
+                </div>
+                <div class="shop-product-footer">
+                  <strong><%= product.priceLabel %></strong>
+                  <a class="btn btn-outline" href="/events/<%= event.slug %>/shop/<%= product.slug %>"><i data-lucide="eye"></i><span>View</span></a>
+                </div>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <section class="shop-empty-state">
+          <i data-lucide="shopping-bag"></i>
+          <h2>No shop items yet</h2>
+          <p>This event does not have visible shop products at the moment.</p>
+          <a href="/events/<%= event.slug %>" class="btn btn-outline"><i data-lucide="arrow-left"></i><span>Back to Event</span></a>
+        </section>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

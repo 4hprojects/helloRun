@@ -4,7 +4,8 @@ const { syncAppUserFromMongoUser } = require('./user-bridge.service');
 const POLICY_TYPES = Object.freeze({
   privacy: 'privacy_policy',
   terms: 'terms_policy',
-  cookie: 'cookie_policy'
+  cookie: 'cookie_policy',
+  dataUsage: 'data_usage_policy'
 });
 
 function buildPolicyConsentRecords(user, options = {}) {
@@ -38,6 +39,14 @@ function buildPolicyConsentRecords(user, options = {}) {
       policyType: POLICY_TYPES.cookie,
       mongoPolicyId: stringOrEmpty(agreedPolicies.cookiePolicyId),
       version: stringOrEmpty(agreedPolicies.cookiePolicyVersion),
+      acceptedAt,
+      ipAddress,
+      userAgent
+    },
+    {
+      policyType: POLICY_TYPES.dataUsage,
+      mongoPolicyId: stringOrEmpty(agreedPolicies.dataUsagePolicyId),
+      version: stringOrEmpty(agreedPolicies.dataUsagePolicyVersion),
       acceptedAt,
       ipAddress,
       userAgent
