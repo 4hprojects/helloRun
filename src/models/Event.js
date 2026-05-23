@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { syncEventShadow } = require('../services/event-shadow.service');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const eventSchema = new mongoose.Schema(
   {
@@ -510,6 +511,7 @@ eventSchema.index({ organizerId: 1, status: 1, isDeleted: 1 });
 eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, eventStartAt: 1, createdAt: -1 });
 eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, registrationCloseAt: 1, eventStartAt: 1 });
 eventSchema.index({ status: 1, isDeleted: 1, eventType: 1, createdAt: -1 });
+applySmokeTestSchema(eventSchema);
 
 function shouldSyncSupabase() {
   return Boolean(process.env.DATABASE_URL);

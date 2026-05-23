@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { syncRegistrationPaymentShadow } = require('../services/registration-payment-shadow.service');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const registrationSchema = new mongoose.Schema(
   {
@@ -146,6 +147,7 @@ registrationSchema.index({ userId: 1, registeredAt: -1 });
 registrationSchema.index({ eventId: 1, registeredAt: -1 });
 registrationSchema.index({ eventId: 1, paymentStatus: 1, registeredAt: -1 });
 registrationSchema.index({ eventId: 1, participationMode: 1 });
+applySmokeTestSchema(registrationSchema);
 
 function shouldSyncSupabase() {
   return Boolean(process.env.DATABASE_URL);

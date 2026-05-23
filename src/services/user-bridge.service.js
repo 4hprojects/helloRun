@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { getPostgresClient } = require('../db/postgres');
+const { toPostgresSmokeMeta } = require('../utils/smoke-test-meta');
 
 const PHASE = 'phase_1_app_users';
 
@@ -19,12 +20,14 @@ function normalizeMongoUser(user) {
   const firstName = String(user.firstName || '').trim();
   const lastName = String(user.lastName || '').trim();
   const displayName = `${firstName} ${lastName}`.trim() || email.split('@')[0] || null;
+  const smokeMeta = toPostgresSmokeMeta(user);
 
   return {
     mongoUserId,
     email,
     roleSnapshot,
-    displayName
+    displayName,
+    ...(smokeMeta.is_smoke_test ? { smokeMeta } : {})
   };
 }
 
@@ -45,6 +48,7 @@ async function syncAppUserFromMongoUser(user, options = {}) {
   const operation = options.operation || 'live_sync';
   const normalized = normalizeMongoUser(user);
   const checksum = buildChecksum(normalized);
+  const smokeMeta = normalized.smokeMeta || toPostgresSmokeMeta();
 
   try {
     const rows = await sql`
@@ -52,19 +56,31 @@ async function syncAppUserFromMongoUser(user, options = {}) {
         mongo_user_id,
         email,
         role_snapshot,
-        display_name
+        display_name,
+        is_smoke_test,
+        test_run_id,
+        created_by_test,
+        expires_at
       )
       values (
         ${normalized.mongoUserId},
         ${normalized.email},
         ${normalized.roleSnapshot},
-        ${normalized.displayName}
+        ${normalized.displayName},
+        ${smokeMeta.is_smoke_test},
+        ${smokeMeta.test_run_id || null},
+        ${smokeMeta.created_by_test || null},
+        ${smokeMeta.expires_at}
       )
       on conflict (mongo_user_id)
       do update set
         email = excluded.email,
         role_snapshot = excluded.role_snapshot,
-        display_name = excluded.display_name
+        display_name = excluded.display_name,
+        is_smoke_test = excluded.is_smoke_test,
+        test_run_id = excluded.test_run_id,
+        created_by_test = excluded.created_by_test,
+        expires_at = excluded.expires_at
       returning id, mongo_user_id, email, role_snapshot, display_name, created_at, updated_at
     `;
 
@@ -112,7 +128,11 @@ async function upsertMigrationRecord(sql, input) {
       error_code,
       error_message,
       attempted_at,
-      synced_at
+      synced_at,
+      is_smoke_test,
+      test_run_id,
+      created_by_test,
+      expires_at
     )
     values (
       ${PHASE},
@@ -128,7 +148,11 @@ async function upsertMigrationRecord(sql, input) {
       ${input.errorCode || ''},
       ${input.errorMessage || ''},
       ${now},
-      ${syncedAt}
+      ${syncedAt},
+      ${input.normalized.smokeMeta?.is_smoke_test || false},
+      ${input.normalized.smokeMeta?.test_run_id || null},
+      ${input.normalized.smokeMeta?.created_by_test || null},
+      ${input.normalized.smokeMeta?.expires_at || null}
     )
     on conflict (
       source_system,
@@ -145,7 +169,11 @@ async function upsertMigrationRecord(sql, input) {
       error_code = excluded.error_code,
       error_message = excluded.error_message,
       attempted_at = excluded.attempted_at,
-      synced_at = excluded.synced_at
+      synced_at = excluded.synced_at,
+      is_smoke_test = excluded.is_smoke_test,
+      test_run_id = excluded.test_run_id,
+      created_by_test = excluded.created_by_test,
+      expires_at = excluded.expires_at
     returning *
   `;
 }

@@ -3,6 +3,7 @@
 
 const crypto = require('crypto');
 const { getPostgresClient } = require('../db/postgres');
+const { toPostgresSmokeMeta } = require('../utils/smoke-test-meta');
 
 /**
  * Normalize MongoDB Submission into Supabase submissions_core record
@@ -44,7 +45,8 @@ function normalizeMongoSubmission(submission) {
     is_personal_record: submission.isPersonalRecord || false,
     submitted_at: submission.submittedAt ? new Date(submission.submittedAt) : new Date(),
     reviewed_at: submission.reviewedAt ? new Date(submission.reviewedAt) : null,
-    reviewed_by: submission.reviewedBy?.toString() || null
+    reviewed_by: submission.reviewedBy?.toString() || null,
+    smokeMeta: toPostgresSmokeMeta(submission)
   };
 }
 
@@ -167,7 +169,8 @@ async function syncSubmissionShadow(submission, options = {}) {
         mongo_submission_id, registration_id, runner_user_id, event_id, 
         distance_km, elapsed_ms, run_date, participation_mode, run_type, 
         proof_type, proof_url, proof_key, proof_mime_type, submission_status, 
-        is_personal_record, submitted_at, reviewed_at, reviewed_by, updated_at
+        is_personal_record, submitted_at, reviewed_at, reviewed_by, updated_at,
+        is_smoke_test, test_run_id, created_by_test, expires_at
       ) VALUES (
         ${normalizedSubmission.mongo_submission_id}, 
         ${registrationId}, 
@@ -187,7 +190,11 @@ async function syncSubmissionShadow(submission, options = {}) {
         ${normalizedSubmission.submitted_at},
         ${normalizedSubmission.reviewed_at},
         ${reviewedByAppUserId},
-        CURRENT_TIMESTAMP
+        CURRENT_TIMESTAMP,
+        ${normalizedSubmission.smokeMeta.is_smoke_test},
+        ${normalizedSubmission.smokeMeta.test_run_id || null},
+        ${normalizedSubmission.smokeMeta.created_by_test || null},
+        ${normalizedSubmission.smokeMeta.expires_at}
       )
       ON CONFLICT (mongo_submission_id) DO UPDATE SET
         submission_status = EXCLUDED.submission_status,
@@ -195,7 +202,11 @@ async function syncSubmissionShadow(submission, options = {}) {
         proof_key = EXCLUDED.proof_key,
         reviewed_at = EXCLUDED.reviewed_at,
         reviewed_by = EXCLUDED.reviewed_by,
-        updated_at = CURRENT_TIMESTAMP
+        updated_at = CURRENT_TIMESTAMP,
+        is_smoke_test = EXCLUDED.is_smoke_test,
+        test_run_id = EXCLUDED.test_run_id,
+        created_by_test = EXCLUDED.created_by_test,
+        expires_at = EXCLUDED.expires_at
       RETURNING *
     `;
 
@@ -208,7 +219,8 @@ async function syncSubmissionShadow(submission, options = {}) {
       const certResult = await sql`
         INSERT INTO certificates (
           mongo_certificate_id, submission_id, runner_user_id, event_id,
-          certificate_url, certificate_key, issued_at, issued_by, certificate_type, updated_at
+          certificate_url, certificate_key, issued_at, issued_by, certificate_type, updated_at,
+          is_smoke_test, test_run_id, created_by_test, expires_at
         ) VALUES (
           ${normalizedCertificate.mongo_certificate_id},
           ${normalizedCertificate.submission_id},
@@ -219,13 +231,21 @@ async function syncSubmissionShadow(submission, options = {}) {
           ${normalizedCertificate.issued_at},
           ${normalizedCertificate.issued_by},
           ${normalizedCertificate.certificate_type},
-          CURRENT_TIMESTAMP
+          CURRENT_TIMESTAMP,
+          ${normalizedSubmission.smokeMeta.is_smoke_test},
+          ${normalizedSubmission.smokeMeta.test_run_id || null},
+          ${normalizedSubmission.smokeMeta.created_by_test || null},
+          ${normalizedSubmission.smokeMeta.expires_at}
         )
         ON CONFLICT (mongo_certificate_id) DO UPDATE SET
           certificate_url = EXCLUDED.certificate_url,
           certificate_key = EXCLUDED.certificate_key,
           issued_at = EXCLUDED.issued_at,
-          updated_at = CURRENT_TIMESTAMP
+          updated_at = CURRENT_TIMESTAMP,
+          is_smoke_test = EXCLUDED.is_smoke_test,
+          test_run_id = EXCLUDED.test_run_id,
+          created_by_test = EXCLUDED.created_by_test,
+          expires_at = EXCLUDED.expires_at
         RETURNING *
       `;
       certificateRow = certResult[0];
@@ -235,7 +255,8 @@ async function syncSubmissionShadow(submission, options = {}) {
     await sql`
       INSERT INTO migration_records (
         phase, source_system, source_collection, source_id, 
-        target_system, target_table, target_id, operation, status, checksum, synced_at
+        target_system, target_table, target_id, operation, status, checksum, synced_at,
+        is_smoke_test, test_run_id, created_by_test, expires_at
       ) VALUES (
         'phase_5_submission_certificate',
         'mongodb',
@@ -247,10 +268,20 @@ async function syncSubmissionShadow(submission, options = {}) {
         ${operation},
         'synced',
         ${checksum},
-        CURRENT_TIMESTAMP
+        CURRENT_TIMESTAMP,
+        ${normalizedSubmission.smokeMeta.is_smoke_test},
+        ${normalizedSubmission.smokeMeta.test_run_id || null},
+        ${normalizedSubmission.smokeMeta.created_by_test || null},
+        ${normalizedSubmission.smokeMeta.expires_at}
       )
       ON CONFLICT (source_system, source_collection, source_id, target_system, target_table) 
-      DO UPDATE SET status = 'synced', synced_at = CURRENT_TIMESTAMP
+      DO UPDATE SET
+        status = 'synced',
+        synced_at = CURRENT_TIMESTAMP,
+        is_smoke_test = EXCLUDED.is_smoke_test,
+        test_run_id = EXCLUDED.test_run_id,
+        created_by_test = EXCLUDED.created_by_test,
+        expires_at = EXCLUDED.expires_at
     `;
 
     return {

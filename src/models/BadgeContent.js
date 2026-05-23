@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const badgeContentSchema = new mongoose.Schema(
   {
@@ -67,5 +68,6 @@ const badgeContentSchema = new mongoose.Schema(
 );
 
 badgeContentSchema.index({ badgeDefinitionId: 1, eventCoreId: 1 }, { unique: true });
+applySmokeTestSchema(badgeContentSchema);
 
 module.exports = mongoose.models.BadgeContent || mongoose.model('BadgeContent', badgeContentSchema);

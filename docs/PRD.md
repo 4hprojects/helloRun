@@ -2687,7 +2687,7 @@ Estimated remaining: depends on release-hardening findings and external deployme
 
 ---
 
-CROSS-CUTTING DEVELOPMENT REQUIREMENTS
+TECHNICAL REQUIREMENTS
 
 ### Terminology Rules
 Use these terms consistently: `runner`, `organiser`, `admin`, `virtual run`, `onsite event`, `payment receipt`, `run result`, `submission`, `result`, `certificate`, `leaderboard`, and `report`.
@@ -2717,6 +2717,17 @@ Important actions should record the actor, timestamp, status transition, and not
 
 Audit coverage should apply to payment receipt review, run result review, result import, result publishing, certificate generation, merchandise order status changes, race kit claiming, and report exports where needed.
 
+### Testing and Quality Assurance
+
+#### Smoke Test Data Cleanup
+HelloRun shall implement a reusable smoke test cleanup mechanism to prevent test-created records and files from remaining in the database or object storage after testing.
+
+All smoke-test-created records must be tagged with test metadata, including `isSmokeTest`, `testRunId`, `createdByTest`, and `expiresAt`. Smoke test files uploaded to object storage must use a dedicated path such as `smoke-tests/{testRunId}/`.
+
+After each smoke test run, the system must execute a cleanup process that removes records and files associated with the current `testRunId`. A fallback expiration mechanism must also remove expired smoke test data that was not cleaned up due to failed or interrupted tests.
+
+The cleanup process must support dry-run mode, audit logging, and safe deletion rules. It must never delete records based only on title, slug, email, filename, or display name.
+
 ---
 
 UPDATED ACCEPTANCE GATES
@@ -2725,7 +2736,7 @@ UPDATED ACCEPTANCE GATES
 Before starting Phases 13 to 16:
 - [ ] Full `npm test` passes.
 - [ ] Manual smoke tests pass for auth, registration, payment receipt upload, run result submission, review queues, dashboards, leaderboard, and certificates.
-- [ ] Smoke-test database records and uploaded test files are removed or cleaned up after validation so staging/production databases and storage do not accumulate test artifacts.
+- [ ] Smoke test data cleanup requirements in Technical Requirements > Testing and Quality Assurance > Smoke Test Data Cleanup are verified in staging.
 - [ ] Production env variables are verified.
 - [ ] `/healthz` and `/readyz` are tested.
 - [ ] Error tracking and uptime monitoring are configured.
@@ -2734,9 +2745,9 @@ Before starting Phases 13 to 16:
 - [ ] Production readiness checklist is signed off.
 
 ### Smoke Test Data Hygiene
-Smoke tests should use clearly identifiable test accounts, events, registrations, submissions, orders, payment receipts, and uploaded proof files. After each staging or production smoke run, test records and uploaded files must be deleted or archived according to the deployment runbook.
+Smoke test data hygiene is a release gate verification area. The normative implementation requirements are defined in Technical Requirements > Testing and Quality Assurance > Smoke Test Data Cleanup.
 
-Smoke cleanup should cover both database records and object/file storage so long-running environments do not build up fake users, fake events, proof screenshots, payment receipts, result images, exports, or other temporary test artifacts.
+Staging and production-like environments must not retain smoke-test-created records or uploaded smoke-test files after validation runs. Cleanup coverage must include both database records and object/file storage.
 
 ### Onsite Event Readiness Gate
 Before publishing onsite event result import:

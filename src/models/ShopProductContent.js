@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const shopProductContentSchema = new mongoose.Schema(
   {
@@ -68,5 +69,6 @@ const shopProductContentSchema = new mongoose.Schema(
     timestamps: true
   }
 );
+applySmokeTestSchema(shopProductContentSchema);
 
 module.exports = mongoose.models.ShopProductContent || mongoose.model('ShopProductContent', shopProductContentSchema);

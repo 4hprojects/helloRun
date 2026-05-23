@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { BLOG_STATUSES, BLOG_CATEGORIES } = require('../utils/blog');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const blogSchema = new mongoose.Schema(
   {
@@ -284,5 +285,6 @@ blogSchema.index({ authorId: 1, createdAt: -1 });
 blogSchema.index({ category: 1, publishedAt: -1 });
 blogSchema.index({ tags: 1, publishedAt: -1 });
 blogSchema.index({ title: 'text', excerpt: 'text', contentText: 'text', tags: 'text' });
+applySmokeTestSchema(blogSchema);
 
 module.exports = mongoose.models.Blog || mongoose.model('Blog', blogSchema);

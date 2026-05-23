@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const REPORT_REASONS = Object.freeze([
   'spam',
@@ -79,6 +80,7 @@ blogReportSchema.index(
 );
 blogReportSchema.index({ blogId: 1, status: 1, createdAt: -1 });
 blogReportSchema.index({ commentId: 1, status: 1, createdAt: -1 });
+applySmokeTestSchema(blogReportSchema);
 
 module.exports = mongoose.models.BlogReport || mongoose.model('BlogReport', blogReportSchema);
 module.exports.REPORT_REASONS = REPORT_REASONS;

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const COMMENT_STATUSES = Object.freeze(['active', 'removed']);
 const MAX_COMMENT_LENGTH = 1000;
@@ -71,6 +72,7 @@ const blogCommentSchema = new mongoose.Schema(
 
 blogCommentSchema.index({ blogId: 1, createdAt: -1 });
 blogCommentSchema.index({ authorId: 1, createdAt: -1 });
+applySmokeTestSchema(blogCommentSchema);
 
 module.exports = mongoose.model('BlogComment', blogCommentSchema);
 module.exports.MAX_COMMENT_LENGTH = MAX_COMMENT_LENGTH;

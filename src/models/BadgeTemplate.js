@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const badgeTemplateSchema = new mongoose.Schema(
   {
@@ -60,5 +61,6 @@ const badgeTemplateSchema = new mongoose.Schema(
     timestamps: true
   }
 );
+applySmokeTestSchema(badgeTemplateSchema);
 
 module.exports = mongoose.models.BadgeTemplate || mongoose.model('BadgeTemplate', badgeTemplateSchema);

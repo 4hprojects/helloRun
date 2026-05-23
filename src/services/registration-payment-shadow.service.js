@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { getPostgresClient } = require('../db/postgres');
+const { toPostgresSmokeMeta } = require('../utils/smoke-test-meta');
 
 const PHASE = 'phase_4_registration_payment_shadow';
 
@@ -49,7 +50,8 @@ function normalizeMongoRegistration(registration) {
     paymentReviewedAt: registration.paymentReviewedAt || null,
     paymentReviewedByMongoUserId: registration.paymentReviewedBy ? String(registration.paymentReviewedBy) : null,
     paymentReviewNotes: String(registration.paymentReviewNotes || '').trim(),
-    paymentRejectionReason: String(registration.paymentRejectionReason || '').trim()
+    paymentRejectionReason: String(registration.paymentRejectionReason || '').trim(),
+    smokeMeta: toPostgresSmokeMeta(registration)
   };
 }
 
@@ -118,7 +120,11 @@ async function syncRegistrationPaymentShadow(registration, options = {}) {
         waiver_accepted_at,
         registered_at,
         mongo_created_at,
-        mongo_updated_at
+        mongo_updated_at,
+        is_smoke_test,
+        test_run_id,
+        created_by_test,
+        expires_at
       )
       values (
         ${eventRows[0]?.id || null},
@@ -146,7 +152,11 @@ async function syncRegistrationPaymentShadow(registration, options = {}) {
         ${normalized.waiverAcceptedAt},
         ${normalized.registeredAt},
         ${normalized.mongoCreatedAt},
-        ${normalized.mongoUpdatedAt}
+        ${normalized.mongoUpdatedAt},
+        ${normalized.smokeMeta.is_smoke_test},
+        ${normalized.smokeMeta.test_run_id || null},
+        ${normalized.smokeMeta.created_by_test || null},
+        ${normalized.smokeMeta.expires_at}
       )
       on conflict (mongo_registration_id)
       do update set
@@ -174,7 +184,11 @@ async function syncRegistrationPaymentShadow(registration, options = {}) {
         waiver_accepted_at = excluded.waiver_accepted_at,
         registered_at = excluded.registered_at,
         mongo_created_at = excluded.mongo_created_at,
-        mongo_updated_at = excluded.mongo_updated_at
+        mongo_updated_at = excluded.mongo_updated_at,
+        is_smoke_test = excluded.is_smoke_test,
+        test_run_id = excluded.test_run_id,
+        created_by_test = excluded.created_by_test,
+        expires_at = excluded.expires_at
       returning *
     `;
 
@@ -196,7 +210,11 @@ async function syncRegistrationPaymentShadow(registration, options = {}) {
         reviewed_by_mongo_user_id,
         reviewed_by_user_id,
         review_notes,
-        rejection_reason
+        rejection_reason,
+        is_smoke_test,
+        test_run_id,
+        created_by_test,
+        expires_at
       )
       values (
         ${shadowRegistration.id},
@@ -214,7 +232,11 @@ async function syncRegistrationPaymentShadow(registration, options = {}) {
         ${normalized.paymentReviewedByMongoUserId},
         ${reviewedByRows[0]?.id || null},
         ${normalized.paymentReviewNotes},
-        ${normalized.paymentRejectionReason}
+        ${normalized.paymentRejectionReason},
+        ${normalized.smokeMeta.is_smoke_test},
+        ${normalized.smokeMeta.test_run_id || null},
+        ${normalized.smokeMeta.created_by_test || null},
+        ${normalized.smokeMeta.expires_at}
       )
       on conflict (mongo_registration_id)
       do update set
@@ -232,7 +254,11 @@ async function syncRegistrationPaymentShadow(registration, options = {}) {
         reviewed_by_mongo_user_id = excluded.reviewed_by_mongo_user_id,
         reviewed_by_user_id = excluded.reviewed_by_user_id,
         review_notes = excluded.review_notes,
-        rejection_reason = excluded.rejection_reason
+        rejection_reason = excluded.rejection_reason,
+        is_smoke_test = excluded.is_smoke_test,
+        test_run_id = excluded.test_run_id,
+        created_by_test = excluded.created_by_test,
+        expires_at = excluded.expires_at
     `;
 
     await upsertMigrationRecord(sql, {
@@ -241,7 +267,8 @@ async function syncRegistrationPaymentShadow(registration, options = {}) {
       targetId: String(shadowRegistration.id),
       operation,
       status: 'synced',
-      checksum
+      checksum,
+      smokeMeta: normalized.smokeMeta
     });
 
     return shadowRegistration;
@@ -253,6 +280,7 @@ async function syncRegistrationPaymentShadow(registration, options = {}) {
       operation,
       status: 'failed',
       checksum,
+      smokeMeta: normalized.smokeMeta,
       errorCode: error.code || '',
       errorMessage: error.message || 'Unknown registration/payment shadow sync failure.'
     }).catch(() => {});
@@ -278,7 +306,11 @@ async function upsertMigrationRecord(sql, input) {
       error_code,
       error_message,
       attempted_at,
-      synced_at
+      synced_at,
+      is_smoke_test,
+      test_run_id,
+      created_by_test,
+      expires_at
     )
     values (
       ${PHASE},
@@ -294,7 +326,11 @@ async function upsertMigrationRecord(sql, input) {
       ${input.errorCode || ''},
       ${input.errorMessage || ''},
       ${now},
-      ${syncedAt}
+      ${syncedAt},
+      ${input.smokeMeta?.is_smoke_test || false},
+      ${input.smokeMeta?.test_run_id || null},
+      ${input.smokeMeta?.created_by_test || null},
+      ${input.smokeMeta?.expires_at || null}
     )
     on conflict (
       source_system,
@@ -312,7 +348,11 @@ async function upsertMigrationRecord(sql, input) {
       error_code = excluded.error_code,
       error_message = excluded.error_message,
       attempted_at = excluded.attempted_at,
-      synced_at = excluded.synced_at
+      synced_at = excluded.synced_at,
+      is_smoke_test = excluded.is_smoke_test,
+      test_run_id = excluded.test_run_id,
+      created_by_test = excluded.created_by_test,
+      expires_at = excluded.expires_at
     returning *
   `;
 }

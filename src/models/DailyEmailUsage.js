@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const dailyEmailUsageSchema = new mongoose.Schema(
   {
@@ -65,6 +66,7 @@ const dailyEmailUsageSchema = new mongoose.Schema(
 );
 
 dailyEmailUsageSchema.index({ dateKey: 1, provider: 1 }, { unique: true });
+applySmokeTestSchema(dailyEmailUsageSchema);
 
 module.exports = mongoose.models.DailyEmailUsage ||
   mongoose.model('DailyEmailUsage', dailyEmailUsageSchema);

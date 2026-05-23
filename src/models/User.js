@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const { getNextSequence, formatUserId } = require('../utils/counter');
 const logger = require('../utils/logger');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 // ── User Schema ──
 const userSchema = new mongoose.Schema({
@@ -230,6 +231,7 @@ const userSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+applySmokeTestSchema(userSchema);
 
 // Auto-generate userId for new users
 userSchema.pre('save', async function(next) {

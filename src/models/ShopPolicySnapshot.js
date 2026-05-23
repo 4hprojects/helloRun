@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const shopPolicySnapshotSchema = new mongoose.Schema(
   {
@@ -35,5 +36,6 @@ const shopPolicySnapshotSchema = new mongoose.Schema(
     timestamps: true
   }
 );
+applySmokeTestSchema(shopPolicySnapshotSchema);
 
 module.exports = mongoose.models.ShopPolicySnapshot || mongoose.model('ShopPolicySnapshot', shopPolicySnapshotSchema);

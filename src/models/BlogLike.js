@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const blogLikeSchema = new mongoose.Schema(
   {
@@ -19,5 +20,6 @@ const blogLikeSchema = new mongoose.Schema(
 // Enforce one like per user per post
 blogLikeSchema.index({ blogId: 1, userId: 1 }, { unique: true });
 blogLikeSchema.index({ blogId: 1 });
+applySmokeTestSchema(blogLikeSchema);
 
 module.exports = mongoose.model('BlogLike', blogLikeSchema);

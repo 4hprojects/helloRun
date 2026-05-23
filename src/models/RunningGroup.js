@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const runningGroupSchema = new mongoose.Schema(
   {
@@ -48,5 +49,6 @@ const runningGroupSchema = new mongoose.Schema(
 );
 
 runningGroupSchema.index({ memberCount: -1, updatedAt: -1 });
+applySmokeTestSchema(runningGroupSchema);
 
 module.exports = mongoose.models.RunningGroup || mongoose.model('RunningGroup', runningGroupSchema);

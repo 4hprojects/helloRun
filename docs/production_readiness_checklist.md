@@ -50,6 +50,15 @@ Use this as the release gate for Phase 9 closeout. Every item must be marked `PA
   - legal pages
   - `/sitemap.xml`
 
+### 4.1 Smoke Test Data Cleanup
+- `PASS/BLOCKED` smoke-test-created records are tagged with `isSmokeTest`, `testRunId`, `createdByTest`, and `expiresAt`.
+- `PASS/BLOCKED` smoke-test-created files are stored under a scoped path such as `smoke-tests/{testRunId}/`.
+- `PASS/BLOCKED` post-run cleanup removes database records and uploaded files for the current `testRunId`.
+- `PASS/BLOCKED` fallback expiration cleanup removes expired smoke test data after failed or interrupted runs.
+- `PASS/BLOCKED` cleanup supports dry-run mode and audit logging.
+- `PASS/BLOCKED` safe deletion rules are enforced; cleanup never deletes by only title, slug, email, filename, or display name.
+- `PASS/BLOCKED` staging and production-like environments do not retain smoke test data after validation runs.
+
 ## 5. External Operations
 - `PASS/BLOCKED` SSL certificate issued and validated.
 - `PASS/BLOCKED` domain and DNS are correctly configured.

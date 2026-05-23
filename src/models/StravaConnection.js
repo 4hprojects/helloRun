@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const stravaConnectionSchema = new mongoose.Schema(
   {
@@ -61,6 +62,7 @@ const stravaConnectionSchema = new mongoose.Schema(
 
 stravaConnectionSchema.index({ userId: 1, status: 1 });
 stravaConnectionSchema.index({ userId: 1 }, { unique: true });
+applySmokeTestSchema(stravaConnectionSchema);
 
 module.exports = mongoose.models.StravaConnection ||
   mongoose.model('StravaConnection', stravaConnectionSchema);

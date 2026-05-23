@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const communicationSettingSchema = new mongoose.Schema(
   {
@@ -70,6 +71,7 @@ const communicationSettingSchema = new mongoose.Schema(
     timestamps: true
   }
 );
+applySmokeTestSchema(communicationSettingSchema);
 
 module.exports = mongoose.models.CommunicationSetting ||
   mongoose.model('CommunicationSetting', communicationSettingSchema);

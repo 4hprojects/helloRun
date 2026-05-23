@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const { getPostgresClient } = require('../db/postgres');
 const { syncAppUserFromMongoUser } = require('./user-bridge.service');
+const { toPostgresSmokeMeta } = require('../utils/smoke-test-meta');
 
 const PHASE = 'phase_3_event_core_shadow';
 
@@ -21,7 +22,8 @@ function normalizeMongoOrganiser({ user, application }) {
     businessAddress: String(application?.businessAddress || '').trim(),
     status: normalizeOrganiserStatus(application?.status || user.organizerStatus || 'approved'),
     reviewedAt: application?.reviewedAt || null,
-    submittedAt: application?.submittedAt || application?.createdAt || null
+    submittedAt: application?.submittedAt || application?.createdAt || null,
+    smokeMeta: toPostgresSmokeMeta(application?.isSmokeTest ? application : user)
   };
 }
 
@@ -76,6 +78,7 @@ function normalizeMongoEvent(event) {
     deletedAt: event.deletedAt || null,
     mongoCreatedAt: event.createdAt || null,
     mongoUpdatedAt: event.updatedAt || null,
+    smokeMeta: toPostgresSmokeMeta(event),
     distances
   };
 }
@@ -125,7 +128,11 @@ async function syncOrganiserShadow({ user, application }, options = {}) {
       business_address,
       status,
       reviewed_at,
-      submitted_at
+      submitted_at,
+      is_smoke_test,
+      test_run_id,
+      created_by_test,
+      expires_at
     )
     values (
       ${appUser.id},
@@ -139,7 +146,11 @@ async function syncOrganiserShadow({ user, application }, options = {}) {
       ${normalized.businessAddress},
       ${normalized.status},
       ${normalized.reviewedAt},
-      ${normalized.submittedAt}
+      ${normalized.submittedAt},
+      ${normalized.smokeMeta.is_smoke_test},
+      ${normalized.smokeMeta.test_run_id || null},
+      ${normalized.smokeMeta.created_by_test || null},
+      ${normalized.smokeMeta.expires_at}
     )
     on conflict (mongo_user_id)
     do update set
@@ -153,7 +164,11 @@ async function syncOrganiserShadow({ user, application }, options = {}) {
       business_address = excluded.business_address,
       status = excluded.status,
       reviewed_at = excluded.reviewed_at,
-      submitted_at = excluded.submitted_at
+      submitted_at = excluded.submitted_at,
+      is_smoke_test = excluded.is_smoke_test,
+      test_run_id = excluded.test_run_id,
+      created_by_test = excluded.created_by_test,
+      expires_at = excluded.expires_at
     returning *
   `;
 
@@ -164,7 +179,8 @@ async function syncOrganiserShadow({ user, application }, options = {}) {
     targetId: String(rows[0].id),
     operation,
     status: 'synced',
-    checksum: buildGenericChecksum(normalized)
+    checksum: buildGenericChecksum(normalized),
+    smokeMeta: normalized.smokeMeta
   });
 
   return rows[0];
@@ -222,7 +238,11 @@ async function syncEventShadow(event, options = {}) {
         archived_at,
         deleted_at,
         mongo_created_at,
-        mongo_updated_at
+        mongo_updated_at,
+        is_smoke_test,
+        test_run_id,
+        created_by_test,
+        expires_at
       )
       values (
         ${organiserId},
@@ -263,7 +283,11 @@ async function syncEventShadow(event, options = {}) {
         ${normalized.archivedAt},
         ${normalized.deletedAt},
         ${normalized.mongoCreatedAt},
-        ${normalized.mongoUpdatedAt}
+        ${normalized.mongoUpdatedAt},
+        ${normalized.smokeMeta.is_smoke_test},
+        ${normalized.smokeMeta.test_run_id || null},
+        ${normalized.smokeMeta.created_by_test || null},
+        ${normalized.smokeMeta.expires_at}
       )
       on conflict (mongo_event_id)
       do update set
@@ -304,7 +328,11 @@ async function syncEventShadow(event, options = {}) {
         archived_at = excluded.archived_at,
         deleted_at = excluded.deleted_at,
         mongo_created_at = excluded.mongo_created_at,
-        mongo_updated_at = excluded.mongo_updated_at
+        mongo_updated_at = excluded.mongo_updated_at,
+        is_smoke_test = excluded.is_smoke_test,
+        test_run_id = excluded.test_run_id,
+        created_by_test = excluded.created_by_test,
+        expires_at = excluded.expires_at
       returning *
     `;
 
@@ -317,7 +345,8 @@ async function syncEventShadow(event, options = {}) {
       targetId: String(eventCore.id),
       operation,
       status: 'synced',
-      checksum
+      checksum,
+      smokeMeta: normalized.smokeMeta
     });
     return eventCore;
   } catch (error) {
@@ -329,6 +358,7 @@ async function syncEventShadow(event, options = {}) {
       operation,
       status: 'failed',
       checksum,
+      smokeMeta: normalized.smokeMeta,
       errorCode: error.code || '',
       errorMessage: error.message || 'Unknown event shadow sync failure.'
     }).catch(() => {});
@@ -346,16 +376,29 @@ async function syncEventDistances(sql, eventCoreId, normalized) {
         event_core_id,
         mongo_event_id,
         distance_label,
-        sort_order
+        sort_order,
+        is_smoke_test,
+        test_run_id,
+        created_by_test,
+        expires_at
       )
       values (
         ${eventCoreId},
         ${normalized.mongoEventId},
         ${distance},
-        ${index}
+        ${index},
+        ${normalized.smokeMeta.is_smoke_test},
+        ${normalized.smokeMeta.test_run_id || null},
+        ${normalized.smokeMeta.created_by_test || null},
+        ${normalized.smokeMeta.expires_at}
       )
       on conflict (event_core_id, distance_label)
-      do update set sort_order = excluded.sort_order
+      do update set
+        sort_order = excluded.sort_order,
+        is_smoke_test = excluded.is_smoke_test,
+        test_run_id = excluded.test_run_id,
+        created_by_test = excluded.created_by_test,
+        expires_at = excluded.expires_at
     `;
   }
 }
@@ -378,7 +421,11 @@ async function upsertMigrationRecord(sql, input) {
       error_code,
       error_message,
       attempted_at,
-      synced_at
+      synced_at,
+      is_smoke_test,
+      test_run_id,
+      created_by_test,
+      expires_at
     )
     values (
       ${PHASE},
@@ -394,7 +441,11 @@ async function upsertMigrationRecord(sql, input) {
       ${input.errorCode || ''},
       ${input.errorMessage || ''},
       ${now},
-      ${syncedAt}
+      ${syncedAt},
+      ${input.smokeMeta?.is_smoke_test || false},
+      ${input.smokeMeta?.test_run_id || null},
+      ${input.smokeMeta?.created_by_test || null},
+      ${input.smokeMeta?.expires_at || null}
     )
     on conflict (
       source_system,
@@ -412,7 +463,11 @@ async function upsertMigrationRecord(sql, input) {
       error_code = excluded.error_code,
       error_message = excluded.error_message,
       attempted_at = excluded.attempted_at,
-      synced_at = excluded.synced_at
+      synced_at = excluded.synced_at,
+      is_smoke_test = excluded.is_smoke_test,
+      test_run_id = excluded.test_run_id,
+      created_by_test = excluded.created_by_test,
+      expires_at = excluded.expires_at
     returning *
   `;
 }

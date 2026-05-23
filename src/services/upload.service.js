@@ -1,5 +1,11 @@
 ﻿const multer = require('multer');
-const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
+const {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+  ListObjectsV2Command
+} = require('@aws-sdk/client-s3');
 const sharp = require('sharp');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 
@@ -372,7 +378,9 @@ exports.uploadBufferToR2 = async ({ userId, buffer, contentType, category, fileN
   const originalBase = String(fileName || 'file').replace(/\.[^.]+$/, '');
   const sanitizedBase = originalBase.replace(/[^a-z0-9_-]/gi, '_').toLowerCase().slice(0, 80) || 'file';
   const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-  const key = `${String(category || 'misc/files').replace(/^\/+|\/+$/g, '')}/${String(userId || 'unknown')}/${uniqueSuffix}-${sanitizedBase}${extension}`;
+  const baseCategory = String(category || 'misc/files').replace(/^\/+|\/+$/g, '');
+  const scopedCategory = scopeCategoryForSmokeTests(baseCategory);
+  const key = `${scopedCategory}/${String(userId || 'unknown')}/${uniqueSuffix}-${sanitizedBase}${extension}`;
 
   await r2Client.send(
     new PutObjectCommand({
@@ -410,6 +418,36 @@ exports.deleteObjects = async (keys = []) => {
       }
     })
   );
+};
+
+exports.listObjectKeysByPrefix = async (prefix) => {
+  if (!r2Client || !r2Config.bucket) return [];
+
+  const safePrefix = String(prefix || '').trim().replace(/^\/+/, '');
+  if (!safePrefix) return [];
+
+  const keys = [];
+  let continuationToken;
+
+  do {
+    const response = await r2Client.send(
+      new ListObjectsV2Command({
+        Bucket: r2Config.bucket,
+        Prefix: safePrefix,
+        ContinuationToken: continuationToken
+      })
+    );
+
+    const objects = Array.isArray(response.Contents) ? response.Contents : [];
+    for (const object of objects) {
+      const key = String(object?.Key || '').trim();
+      if (key) keys.push(key);
+    }
+
+    continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined;
+  } while (continuationToken);
+
+  return keys;
 };
 
 exports.extractObjectKeyFromPublicUrl = (urlValue) => {
@@ -493,7 +531,8 @@ async function uploadFileToR2({ userId, file, category, label, convertImagesToWe
     sanitizedBase = originalBase.replace(/[^a-z0-9_-]/gi, '_').toLowerCase().slice(0, 80) || 'file';
   }
   const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-  const key = `${category}/${String(userId || 'unknown')}/${uniqueSuffix}-${sanitizedBase}${extension}`;
+  const scopedCategory = scopeCategoryForSmokeTests(String(category || 'misc/files'));
+  const key = `${scopedCategory}/${String(userId || 'unknown')}/${uniqueSuffix}-${sanitizedBase}${extension}`;
 
   await r2Client.send(
     new PutObjectCommand({
@@ -567,6 +606,21 @@ function getExtensionForContentType(contentType) {
       return '';
   }
 }
+
+function scopeCategoryForSmokeTests(category) {
+  const safeCategory = String(category || 'misc/files').replace(/^\/+|\/+$/g, '');
+  const runId = getSmokeTestRunId();
+  if (!runId) return safeCategory;
+  return `smoke-tests/${runId}/${safeCategory}`;
+}
+
+function getSmokeTestRunId() {
+  if (process.env.SMOKE_TEST_OBJECT_PREFIX === '0') return '';
+  const runId = String(process.env.SMOKE_TEST_RUN_ID || '').trim();
+  return runId.replace(/[^a-zA-Z0-9._-]/g, '-');
+}
+
+exports._scopeCategoryForSmokeTests = scopeCategoryForSmokeTests;
 
 function isR2Configured() {
   return Boolean(

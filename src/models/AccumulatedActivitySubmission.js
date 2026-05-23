@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 /**
  * AccumulatedActivitySubmission model for accumulated-distance activity submissions
@@ -227,6 +228,7 @@ accumulatedActivitySubmissionSchema.index(
   { runnerId: 1, eventId: 1, 'stravaActivity.id': 1 },
   { sparse: true }
 );
+applySmokeTestSchema(accumulatedActivitySubmissionSchema);
 
 module.exports = mongoose.models.AccumulatedActivitySubmission ||
   mongoose.model('AccumulatedActivitySubmission', accumulatedActivitySubmissionSchema);

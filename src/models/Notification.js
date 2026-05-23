@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const notificationSchema = new mongoose.Schema(
   {
@@ -54,5 +55,6 @@ notificationSchema.index(
   { userId: 1, createdAt: -1 },
   { partialFilterExpression: { readAt: null }, name: 'idx_notifications_user_unread_created' }
 );
+applySmokeTestSchema(notificationSchema);
 
 module.exports = mongoose.models.Notification || mongoose.model('Notification', notificationSchema);

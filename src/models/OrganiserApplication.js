@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { getNextSequence } = require('../utils/counter');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const organiserApplicationSchema = new mongoose.Schema({
   applicationId: {
@@ -96,5 +97,6 @@ organiserApplicationSchema.pre('save', async function(next) {
 // Add indexes for common admin queries
 organiserApplicationSchema.index({ status: 1 });
 organiserApplicationSchema.index({ createdAt: -1 });
+applySmokeTestSchema(organiserApplicationSchema);
 
 module.exports = mongoose.model('OrganiserApplication', organiserApplicationSchema);

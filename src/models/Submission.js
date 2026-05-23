@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const { syncSubmissionShadow } = require('../services/submission-shadow.service');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 /**
  * Shared schema fragments for activity metrics and metadata
@@ -311,6 +312,7 @@ submissionSchema.index(
   { runnerId: 1, eventId: 1, 'stravaActivity.id': 1 },
   { sparse: true }
 );
+applySmokeTestSchema(submissionSchema);
 
 // Background Supabase submission shadow sync on save (non-blocking)
 function syncSubmissionShadowInBackground(doc) {

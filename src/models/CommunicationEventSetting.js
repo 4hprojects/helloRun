@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const PRIORITIES = ['critical', 'high', 'medium', 'low', 'info'];
 
@@ -71,6 +72,7 @@ const communicationEventSettingSchema = new mongoose.Schema(
 );
 
 communicationEventSettingSchema.index({ category: 1, priority: 1 });
+applySmokeTestSchema(communicationEventSettingSchema);
 
 module.exports = mongoose.models.CommunicationEventSetting ||
   mongoose.model('CommunicationEventSetting', communicationEventSettingSchema);

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const blogRevisionSchema = new mongoose.Schema(
   {
@@ -85,5 +86,6 @@ const blogRevisionSchema = new mongoose.Schema(
 
 blogRevisionSchema.index({ postId: 1, editedAt: -1 });
 blogRevisionSchema.index({ postId: 1, source: 1, status: 1, editedAt: -1 });
+applySmokeTestSchema(blogRevisionSchema);
 
 module.exports = mongoose.models.BlogRevision || mongoose.model('BlogRevision', blogRevisionSchema);

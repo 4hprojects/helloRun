@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const POLICY_STATUSES = ['draft', 'published', 'archived'];
 
@@ -114,5 +115,6 @@ privacyPolicySchema.index(
     partialFilterExpression: { isCurrent: true, status: 'published' }
   }
 );
+applySmokeTestSchema(privacyPolicySchema);
 
 module.exports = mongoose.models.PrivacyPolicy || mongoose.model('PrivacyPolicy', privacyPolicySchema);

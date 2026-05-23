@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
 
 const STATUSES = ['queued', 'sent', 'failed', 'skipped', 'suppressed', 'fallback_in_app'];
 const CHANNELS = ['email', 'in_app', 'admin'];
@@ -85,6 +86,7 @@ const communicationLogSchema = new mongoose.Schema(
 communicationLogSchema.index({ eventKey: 1, createdAt: -1 });
 communicationLogSchema.index({ recipientUserId: 1, createdAt: -1 });
 communicationLogSchema.index({ channel: 1, status: 1, createdAt: -1 });
+applySmokeTestSchema(communicationLogSchema);
 
 module.exports = mongoose.models.CommunicationLog ||
   mongoose.model('CommunicationLog', communicationLogSchema);
