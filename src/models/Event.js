@@ -74,6 +74,26 @@ const eventSchema = new mongoose.Schema(
       ],
       default: []
     },
+    raceCategories: {
+      type: [
+        {
+          categoryId: { type: String, trim: true, maxlength: 80 },
+          name: { type: String, trim: true, maxlength: 100 },
+          type: {
+            type: String,
+            enum: ['distance', 'challenge', 'open', 'other'],
+            default: 'distance'
+          },
+          distanceLabel: { type: String, trim: true, maxlength: 30 },
+          distanceKm: { type: Number, min: 0, default: null },
+          slots: { type: Number, min: 0, default: null },
+          cutoffTime: { type: String, trim: true, maxlength: 80, default: '' },
+          ageGroup: { type: String, trim: true, maxlength: 80, default: '' },
+          rewardsDescription: { type: String, trim: true, maxlength: 500, default: '' }
+        }
+      ],
+      default: []
+    },
     registrationOpenAt: Date,
     registrationCloseAt: Date,
     eventStartAt: Date,
@@ -121,7 +141,7 @@ const eventSchema = new mongoose.Schema(
       type: [
         {
           type: String,
-          enum: ['gps', 'photo', 'manual']
+          enum: ['running_app_sync', 'gps', 'photo', 'manual']
         }
       ],
       default: []
@@ -296,17 +316,53 @@ const eventSchema = new mongoose.Schema(
     },
     pricingMode: {
       type: String,
-      enum: ['free', 'same_fee', 'package_period', 'per_distance', 'per_distance_period'],
+      enum: [
+        'free',
+        'distance_based',
+        'customized_options',
+        'distance_based_period',
+        'customized_options_period',
+        'package_period',
+        // Legacy values kept readable during migration.
+        'same_fee',
+        'per_distance',
+        'per_distance_period'
+      ],
       default: 'free'
     },
     distancePricing: {
       type: [
         {
-          distance: { type: String, trim: true, maxlength: 20 },
+          categoryId: { type: String, trim: true, maxlength: 80, default: '' },
+          distance: { type: String, trim: true, maxlength: 30 },
           amount: { type: Number, min: 0, default: null },
           earlyBirdAmount: { type: Number, min: 0, default: null },
           regularAmount: { type: Number, min: 0, default: null },
           lateAmount: { type: Number, min: 0, default: null }
+        }
+      ],
+      default: []
+    },
+    pricingPeriods: {
+      type: [
+        {
+          label: { type: String, trim: true, maxlength: 60 },
+          code: {
+            type: String,
+            enum: ['early_bird', 'regular', 'late', 'custom'],
+            default: 'custom'
+          },
+          startAt: { type: Date, default: null },
+          endAt: { type: Date, default: null }
+        }
+      ],
+      default: []
+    },
+    customizedOptions: {
+      type: [
+        {
+          shortDescription: { type: String, trim: true, maxlength: 160 },
+          amount: { type: Number, min: 0, default: null }
         }
       ],
       default: []
@@ -324,6 +380,7 @@ const eventSchema = new mongoose.Schema(
     registrationPackages: {
       type: [
         {
+          packageId: { type: String, trim: true, maxlength: 80 },
           name: { type: String, trim: true, maxlength: 100 },
           includedItems: {
             medal: { type: Boolean, default: false },

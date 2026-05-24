@@ -116,6 +116,141 @@ test('buildPublicEventView shows accumulated registration options without duplic
   assert.equal(publicEvent.stats.some((stat) => stat.label === 'Target'), false);
 });
 
+test('buildPublicEventView surfaces customized signup pricing options', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Custom Pricing Race',
+    slug: 'custom-pricing-race',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    feeMode: 'paid',
+    pricingMode: 'customized_options',
+    feeCurrency: 'PHP',
+    customizedOptions: [
+      { shortDescription: '5K - Medal + Shirt + Race Kit', amount: 850 },
+      { shortDescription: 'Virtual 100K - Digital Badge Only', amount: 300 }
+    ]
+  });
+
+  assert.equal(publicEvent.pricing.label, 'Signup options');
+  assert.equal(publicEvent.pricing.amountLabel, 'PHP 300 - PHP 850');
+  assert.equal(publicEvent.pricingOptions.length, 2);
+  assert.deepEqual(publicEvent.pricingOptions.map((option) => option.amountLabel), ['PHP 850', 'PHP 300']);
+});
+
+test('buildPublicEventView normalizes legacy same fee pricing as signup options', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Legacy Same Fee Race',
+    slug: 'legacy-same-fee-race',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    feeMode: 'paid',
+    pricingMode: 'same_fee',
+    feeCurrency: 'PHP',
+    customizedOptions: [
+      { shortDescription: '5K - Medal + Shirt + Race Kit', amount: 850 }
+    ]
+  });
+
+  assert.equal(publicEvent.pricing.label, 'Signup options');
+  assert.equal(publicEvent.pricing.amountLabel, 'PHP 850');
+});
+
+test('buildPublicEventView surfaces distance based pricing options', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Distance Pricing Race',
+    slug: 'distance-pricing-race',
+    eventType: 'onsite',
+    eventTypesAllowed: ['onsite'],
+    raceDistances: ['5K', '10K'],
+    feeMode: 'paid',
+    pricingMode: 'distance_based',
+    feeCurrency: 'PHP',
+    distancePricing: [
+      { distance: '5K', amount: 500 },
+      { distance: '10K', amount: 750 }
+    ]
+  });
+
+  assert.equal(publicEvent.pricing.label, 'Registration pricing');
+  assert.equal(publicEvent.pricing.amountLabel, 'PHP 500 - PHP 750');
+  assert.deepEqual(publicEvent.pricingOptions.map((option) => `${option.label}:${option.amountLabel}`), ['5K:PHP 500', '10K:PHP 750']);
+});
+
+test('buildPublicEventView surfaces structured race category summaries and pricing labels', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Category Race',
+    slug: 'category-race',
+    eventType: 'onsite',
+    eventTypesAllowed: ['onsite'],
+    raceCategories: [
+      {
+        categoryId: 'cat-open-10k',
+        name: '10K Open',
+        type: 'distance',
+        distanceLabel: '10K',
+        distanceKm: 10,
+        slots: 150,
+        cutoffTime: '2 hours',
+        ageGroup: '18+',
+        rewardsDescription: 'Medal for finishers'
+      },
+      {
+        categoryId: 'cat-kids',
+        name: 'Kids Dash',
+        type: 'open',
+        distanceLabel: '1K',
+        distanceKm: 1
+      }
+    ],
+    feeMode: 'paid',
+    pricingMode: 'distance_based',
+    feeCurrency: 'PHP',
+    distancePricing: [
+      { categoryId: 'cat-open-10k', distance: '10K', amount: 750 },
+      { categoryId: 'cat-kids', distance: '1K', amount: 250 }
+    ]
+  });
+
+  assert.deepEqual(publicEvent.raceDistances, ['10K', '1K']);
+  assert.equal(publicEvent.raceCategories.length, 2);
+  assert.equal(publicEvent.raceCategories[0].name, '10K Open');
+  assert.equal(publicEvent.raceCategories[0].typeLabel, 'Distance');
+  assert.equal(publicEvent.raceCategories[0].summary, '10K | 10 km | 150 slots | 2 hours | 18+');
+  assert.equal(publicEvent.raceCategories[0].rewardsDescription, 'Medal for finishers');
+  assert.deepEqual(publicEvent.pricingOptions.map((option) => `${option.label}:${option.amountLabel}`), ['10K Open (10K):PHP 750', 'Kids Dash (1K):PHP 250']);
+});
+
+test('buildPublicEventView surfaces package period pricing options', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Package Pricing Race',
+    slug: 'package-pricing-race',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    feeMode: 'paid',
+    pricingMode: 'package_period',
+    feeCurrency: 'PHP',
+    registrationPackages: [
+      {
+        packageId: 'pkg-medal-shirt',
+        name: 'Medal + Shirt',
+        includedItems: { medal: true, shirt: true },
+        pricingPeriods: [
+          { label: 'Early Bird', amount: 899 },
+          { label: 'Regular', amount: 999 }
+        ]
+      }
+    ]
+  });
+
+  assert.equal(publicEvent.pricing.label, 'Registration pricing');
+  assert.equal(publicEvent.pricing.amountLabel, 'PHP 899');
+  assert.equal(publicEvent.pricingOptions.length, 1);
+  assert.deepEqual(publicEvent.pricingOptions.map((option) => `${option.label}:${option.amountLabel}`), ['Medal + Shirt:From PHP 899']);
+});
+
 test('buildPublicEventSeo uses event image and canonical URL', () => {
   const seo = buildPublicEventSeo({
     title: 'SEO Event',

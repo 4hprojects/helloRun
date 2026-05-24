@@ -54,10 +54,15 @@ function buildPublicEventView(event, options = {}) {
   const registrationState = buildRegistrationState(event, now);
   const eventTypeLabel = formatEventTypeLabel(event.eventType);
   const allowedModes = normalizeList(event.eventTypesAllowed).map(formatEventTypeLabel).filter(Boolean);
-  const raceDistances = normalizeList(event.raceDistances).map((item) => item.toUpperCase());
+  const raceCategories = buildRaceCategorySummaries(event);
+  const categoryDistanceLabels = raceCategories
+    .map((category) => category.distanceLabel)
+    .filter(Boolean);
+  const raceDistances = uniqueList(normalizeList(event.raceDistances).map((item) => item.toUpperCase()).concat(categoryDistanceLabels));
   const rewardItems = buildRewardItems(event);
   const packageOptions = buildPackageOptions(event);
-  const pricing = buildPricingSummary(event, packageOptions);
+  const pricingOptions = buildPricingOptions(event, raceCategories);
+  const pricing = buildPricingSummary(event, packageOptions, pricingOptions);
   const timeline = buildTimeline(event);
   const virtualRules = buildVirtualRules(event);
   const location = buildLocation(event);
@@ -81,11 +86,13 @@ function buildPublicEventView(event, options = {}) {
     eventTypeLabel,
     allowedModes,
     raceDistances,
+    raceCategories,
     targetDistanceLabel,
     distanceSummaryLabel,
     isAccumulatedChallenge,
     registrationState,
     pricing,
+    pricingOptions,
     rewardItems,
     packageOptions,
     timeline,
@@ -167,12 +174,14 @@ function buildRegistrationState(event, now) {
   };
 }
 
-function buildPricingSummary(event, packageOptions) {
+function buildPricingSummary(event, packageOptions, pricingOptions = []) {
   const currency = event.feeCurrency || 'PHP';
+  const pricingMode = normalizePricingMode(event.pricingMode, event.feeMode);
   const registrationAmount = firstFiniteNumber(event.feeAmount);
   const finalAmount = firstFiniteNumber(event.finalEventFee, event.suggestedEventFee);
   const deliveryAmount = event.deliveryFeeEnabled ? firstFiniteNumber(event.deliveryFeeAmount) : null;
   const hasPackages = packageOptions.length > 0;
+  const hasPricingOptions = pricingOptions.length > 0;
 
   if (event.feeMode !== 'paid') {
     return {
@@ -185,6 +194,31 @@ function buildPricingSummary(event, packageOptions) {
       registrationAmount: 0,
       deliveryAmount,
       hasOptionalCosts: deliveryAmount !== null || hasPackages
+    };
+  }
+
+  if (hasPricingOptions) {
+    const prices = pricingOptions
+      .map((option) => firstFiniteNumber(option.amount))
+      .filter((amount) => amount !== null);
+    const minAmount = prices.length ? Math.min(...prices) : null;
+    const maxAmount = prices.length ? Math.max(...prices) : null;
+    const amountLabel = minAmount === null
+      ? 'See options'
+      : minAmount === maxAmount
+        ? formatMoney(minAmount, currency)
+        : `${formatMoney(minAmount, currency)} - ${formatMoney(maxAmount, currency)}`;
+    const isCustomizedPricing = pricingMode === 'customized_options' || pricingMode === 'customized_options_period';
+    return {
+      label: isCustomizedPricing ? 'Signup options' : 'Registration pricing',
+      amountLabel,
+      helper: isCustomizedPricing
+        ? 'Choose your signup option during registration.'
+        : 'Price depends on the distance selected during registration.',
+      currency,
+      registrationAmount: minAmount,
+      deliveryAmount,
+      hasOptionalCosts: true
     };
   }
 
@@ -247,6 +281,83 @@ function buildPricingSummary(event, packageOptions) {
   };
 }
 
+function buildPricingOptions(event, raceCategories = []) {
+  if (event.feeMode !== 'paid') return [];
+  const pricingMode = normalizePricingMode(event.pricingMode, event.feeMode);
+  const currency = event.feeCurrency || 'PHP';
+
+  if (pricingMode === 'customized_options' || pricingMode === 'customized_options_period') {
+    return (Array.isArray(event.customizedOptions) ? event.customizedOptions : [])
+      .map((option) => {
+        const label = String(option?.shortDescription || '').trim();
+        const amount = firstFiniteNumber(option?.amount);
+        if (!label || amount === null) return null;
+        return {
+          type: 'customized_option',
+          label,
+          amount,
+          amountLabel: formatMoney(amount, currency),
+          helper: 'Selectable during signup'
+        };
+      })
+      .filter(Boolean);
+  }
+
+  if (pricingMode === 'package_period') {
+    return (Array.isArray(event.registrationPackages) ? event.registrationPackages : [])
+      .map((packageOption) => {
+        const label = String(packageOption?.name || '').trim();
+        const prices = (Array.isArray(packageOption?.pricingPeriods) ? packageOption.pricingPeriods : [])
+          .map((period) => firstFiniteNumber(period?.amount))
+          .filter((value) => value !== null);
+        const amount = prices.length ? Math.min(...prices) : null;
+        if (!label || amount === null) return null;
+        return {
+          type: 'registration_package',
+          label,
+          amount,
+          amountLabel: prices.length > 1 ? `From ${formatMoney(amount, currency)}` : formatMoney(amount, currency),
+          helper: 'Based on selected package and registration date'
+        };
+      })
+      .filter(Boolean);
+  }
+
+  if (pricingMode === 'distance_based' || pricingMode === 'distance_based_period') {
+    const categoriesById = new Map();
+    const categoriesByDistance = new Map();
+    raceCategories.forEach((category) => {
+      if (category.id) categoriesById.set(category.id, category);
+      if (category.distanceLabel && !categoriesByDistance.has(category.distanceLabel)) {
+        categoriesByDistance.set(category.distanceLabel, category);
+      }
+    });
+
+    return (Array.isArray(event.distancePricing) ? event.distancePricing : [])
+      .map((item) => {
+        const distanceLabel = String(item?.distance || '').trim().toUpperCase();
+        const categoryId = String(item?.categoryId || '').trim();
+        const category = (categoryId && categoriesById.get(categoryId)) || categoriesByDistance.get(distanceLabel);
+        const label = category ? category.pricingLabel : distanceLabel;
+        const prices = [item?.amount, item?.earlyBirdAmount, item?.regularAmount, item?.lateAmount]
+          .map((value) => firstFiniteNumber(value))
+          .filter((value) => value !== null);
+        const amount = prices.length ? Math.min(...prices) : null;
+        if (!label || amount === null) return null;
+        return {
+          type: 'distance_based',
+          label,
+          amount,
+          amountLabel: prices.length > 1 ? `From ${formatMoney(amount, currency)}` : formatMoney(amount, currency),
+          helper: pricingMode === 'distance_based_period' ? 'Based on selected distance and registration date' : 'Based on selected distance'
+        };
+      })
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
 function buildRewardItems(event) {
   const items = [];
   if (event.digitalCertificateEnabled !== false) items.push({ label: 'Digital certificate', type: 'digital' });
@@ -265,6 +376,70 @@ function buildRewardItems(event) {
   }
 
   return items;
+}
+
+function buildRaceCategorySummaries(event) {
+  const structuredCategories = Array.isArray(event.raceCategories) ? event.raceCategories : [];
+  const summaries = structuredCategories
+    .map((category, index) => {
+      const name = String(category?.name || '').trim();
+      const distanceLabel = String(category?.distanceLabel || '').trim().toUpperCase();
+      const displayName = name || distanceLabel;
+      if (!displayName) return null;
+
+      const typeLabel = formatRaceCategoryTypeLabel(category?.type);
+      const distanceKm = firstFiniteNumber(category?.distanceKm);
+      const distanceKmLabel = distanceKm !== null && distanceKm > 0 ? `${formatNumber(distanceKm)} km` : '';
+      const slots = firstFiniteNumber(category?.slots);
+      const slotsLabel = slots !== null && slots > 0 ? `${formatNumber(slots)} slots` : '';
+      const cutoffTime = String(category?.cutoffTime || '').trim();
+      const ageGroup = String(category?.ageGroup || '').trim();
+      const rewardsDescription = String(category?.rewardsDescription || '').trim();
+      const details = [distanceLabel, distanceKmLabel, slotsLabel, cutoffTime, ageGroup].filter(Boolean);
+
+      return {
+        id: String(category?.categoryId || category?._id || category?.id || `category-${index + 1}`).trim(),
+        name: displayName,
+        type: String(category?.type || 'distance').trim() || 'distance',
+        typeLabel,
+        distanceLabel,
+        distanceKm,
+        distanceKmLabel,
+        slots,
+        slotsLabel,
+        cutoffTime,
+        ageGroup,
+        rewardsDescription,
+        summary: details.join(' | ') || typeLabel,
+        pricingLabel: name && distanceLabel && name.toUpperCase() !== distanceLabel ? `${name} (${distanceLabel})` : displayName,
+        isLegacy: false
+      };
+    })
+    .filter(Boolean);
+
+  if (summaries.length) return summaries;
+
+  return normalizeList(event.raceDistances)
+    .map((distance, index) => {
+      const label = distance.toUpperCase();
+      return {
+        id: `legacy-distance-${index + 1}`,
+        name: label,
+        type: 'distance',
+        typeLabel: 'Distance',
+        distanceLabel: label,
+        distanceKm: null,
+        distanceKmLabel: '',
+        slots: null,
+        slotsLabel: '',
+        cutoffTime: '',
+        ageGroup: '',
+        rewardsDescription: '',
+        summary: label,
+        pricingLabel: label,
+        isLegacy: true
+      };
+    });
 }
 
 function buildPackageOptions(event) {
@@ -389,6 +564,18 @@ function normalizeList(value) {
     .filter(Boolean);
 }
 
+function uniqueList(items) {
+  const seen = new Set();
+  const result = [];
+  items.forEach((item) => {
+    const value = String(item || '').trim();
+    if (!value || seen.has(value)) return;
+    seen.add(value);
+    result.push(value);
+  });
+  return result;
+}
+
 function formatEventTypeLabel(value) {
   const normalized = String(value || '').trim();
   if (normalized === 'onsite') return 'Onsite';
@@ -407,13 +594,34 @@ function formatActivityTypeLabel(value) {
   return labels[value] || value;
 }
 
+function formatRaceCategoryTypeLabel(value) {
+  const labels = {
+    distance: 'Distance',
+    challenge: 'Challenge',
+    open: 'Open',
+    other: 'Other'
+  };
+  return labels[value] || 'Category';
+}
+
 function formatProofTypeLabel(value) {
   const labels = {
+    running_app_sync: 'Strava or running app sync',
     gps: 'GPS activity',
     photo: 'Photo proof',
     manual: 'Manual entry'
   };
   return labels[value] || value;
+}
+
+function normalizePricingMode(value, feeMode = 'free') {
+  if (String(feeMode || '').trim() !== 'paid') return 'free';
+  const raw = String(value || '').trim();
+  if (!raw || raw === 'free') return 'distance_based';
+  if (raw === 'same_fee') return 'customized_options';
+  if (raw === 'per_distance') return 'distance_based';
+  if (raw === 'per_distance_period') return 'distance_based_period';
+  return raw;
 }
 
 function formatLeaderboardMode(value) {

@@ -188,7 +188,7 @@
 - The `/organizer/create-event` page is now a fully structured 12-step guided wizard with sidebar nav, scrollable pill nav bar (tablet), mini-strip with progress bar (mobile), and full-page overlay nav panel.
 - Wizard steps: Event Type → Core Details → Schedule → Event Format → Packages → Rewards → Pricing → Payment Setup → Event Details → Branding & Media → Waiver → Preview & Submit.
 - The Review step (Step 12) has a JS-populated readiness checklist that checks 7 required fields + paid-event QR requirement before submit-for-review.
-- The Payment Setup step (Step 8) is its own step separate from Pricing (Step 7), matching the recommended wizard flow in `docs/create_event_wizard_codex_implementation.md`.
+- The Payment Setup step (Step 8) is its own step separate from Pricing (Step 7), matching the recommended wizard flow in `docs/create_event/create_event_wizard_codex_implementation.md`.
 - Pricing modes `per_distance` and `per_distance_period` are now supported in the UI and `event-form.service.js`.
 - Payment QR upload uses the full drag-and-drop `upload-area` pattern matching logo/banner/poster uploads.
 - Delivery & Fulfilment fields are wrapped in a collapsible `subsection-toolkit` accordion; defaults for `requiresDeliveryAddress` and `requiresPhilippineDeliveryAddress` are pre-ticked on new forms.
@@ -2799,7 +2799,7 @@ Keep PRD.md as the master planning document.
 Existing dedicated detail files:
 - `docs/shop_feature.md`
 - `docs/ocr_smart_submission.md`
-- `docs/create_event.md`
+- `docs/create_event/create_event.md`
 
 ## Guided Organizer Create Event Wizard
 
@@ -2807,7 +2807,7 @@ HelloRun will improve the organizer create-event experience by converting the cu
 
 The detailed implementation guide is documented in:
 
-`docs/create_event_wizard_codex_implementation.md`
+`docs/create_event/create_event_wizard_codex_implementation.md`
 
 The guided wizard supports:
 
@@ -2963,13 +2963,4 @@ Detailed planning source: docs/shop_feature.md
 DETAILED CHANGELOGS -> See CHANGELOG.md
 All session-by-session changelogs are maintained in CHANGELOG.md.
 This file (PRD.md) focuses on phase plans, architecture, and status tracking.
-
-
-
-
-
-
-
-
-
 

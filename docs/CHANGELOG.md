@@ -1,4 +1,4 @@
-# DOCUMENT ROLE (REPOSITORY TRACKER)
+﻿# DOCUMENT ROLE (REPOSITORY TRACKER)
 - Purpose: File-level repository tracking and chronological implementation changelog.
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
@@ -28,7 +28,7 @@
 ### [UPDATED] UPDATED FILES:
 1. docs/CHANGELOG.md
 2. docs/PRD.md
-3. docs/create_event.md
+3. docs/create_event/create_event.md
 4. docs/runner_submitted_entries.md
 5. src/controllers/admin.controller.js
 6. src/controllers/page.controller.js
@@ -129,7 +129,7 @@
 
 ### [UPDATED] UPDATED FILES:
 1. docs/CHANGELOG.md
-2. docs/create_event.md
+2. docs/create_event/create_event.md
 3. docs/organizer_application_flow.md
 4. src/models/User.js
 5. src/routes/organizer.routes.js
@@ -196,8 +196,8 @@
 ### [UPDATED] UPDATED FILES:
 1. docs/CHANGELOG.md
 2. docs/PRD.md
-3. docs/create_event.md
-4. docs/create_event_wizard_codex_implementation.md
+3. docs/create_event/create_event.md
+4. docs/create_event/create_event_wizard_codex_implementation.md
 5. docs/event_qr_promotion_links.md
 6. docs/public_event_page_template.md
 7. src/controllers/page.controller.js
@@ -226,8 +226,8 @@
 
 ### [UPDATED] UPDATED FILES:
 1. docs/CHANGELOG.md
-2. docs/create_event.md
-3. docs/create_event_wizard_codex_implementation.md
+2. docs/create_event/create_event.md
+3. docs/create_event/create_event_wizard_codex_implementation.md
 4. src/routes/organizer.routes.js
 5. src/views/organizer/edit-event.ejs
 6. tests/organizer-waiver-routes.test.js
@@ -238,12 +238,12 @@
 
 ---
 
-## CHANGELOG - May 11, 2026 (Session 17: Create Event — Sub-Desktop Wizard Nav)
+## CHANGELOG - May 11, 2026 (Session 17: Create Event â€” Sub-Desktop Wizard Nav)
 
 ### [SESSION] SESSION UPDATE:
 - Implemented 3-tier responsive wizard navigation for `/organizer/create-event` at sub-desktop widths:
-  - **Tablet (≤1024px)**: sticky horizontal scrollable pills bar docked below site nav
-  - **Mobile (≤640px)**: sticky mini progress strip (step counter, title, chevron toggle, 3px progress bar)
+  - **Tablet (â‰¤1024px)**: sticky horizontal scrollable pills bar docked below site nav
+  - **Mobile (â‰¤640px)**: sticky mini progress strip (step counter, title, chevron toggle, 3px progress bar)
   - **Mobile overlay**: full-page nav overlay opened by the mini-strip chevron toggle; shows all 11 steps; dismissed by close button, backdrop click, or Escape key
 - Fixed icons not rendering across all pages: root cause was a duplicate `const eventStartInput` declaration in the create-event IIFE that caused a `SyntaxError`, preventing `lucide.createIcons()` from running
 - Fixed sticky top offsets: wizard nav strips now use CSS custom property `--nav-h` set via JS (`nav.offsetHeight`) on load + resize, so they always dock correctly below the site nav regardless of breakpoint
@@ -259,8 +259,8 @@
 
 ### [VALIDATION] TEST/RUN CHECKS:
 - Server starts and `GET /organizer/create-event` renders without JS errors in browser console
-- At ≤1024px: pills bar appears sticky below site nav; pills scroll horizontally; active pill auto-scrolls into view
-- At ≤640px: mini strip appears sticky; chevron rotates on overlay open/close; progress bar fills per step
+- At â‰¤1024px: pills bar appears sticky below site nav; pills scroll horizontally; active pill auto-scrolls into view
+- At â‰¤640px: mini strip appears sticky; chevron rotates on overlay open/close; progress bar fills per step
 - Overlay: opens on toggle tap; backdrop/close/Escape all dismiss; active step highlighted
 - All Lucide icons (nav, mini-strip chevron, overlay close, back-to-top, waiver toolbar) render correctly
 
@@ -282,7 +282,7 @@
 
 ### [UPDATED] UPDATED FILES:
 1. docs/CHANGELOG.md
-2. docs/create_event.md
+2. docs/create_event/create_event.md
 3. src/routes/organizer.routes.js
 4. src/services/event-form.service.js
 5. src/views/organizer/create-event.ejs
@@ -306,7 +306,7 @@
 
 ### [UPDATED] UPDATED FILES:
 1. docs/CHANGELOG.md
-2. docs/create_event.md
+2. docs/create_event/create_event.md
 
 ### [VALIDATION] TEST/RUN CHECKS:
 - Documentation-only update; automated tests not rerun in this note pass.
@@ -337,7 +337,7 @@
 
 ### [UPDATED] UPDATED FILES:
 1. docs/CHANGELOG.md
-2. docs/create_event.md
+2. docs/create_event/create_event.md
 3. src/controllers/admin.controller.js
 4. src/controllers/page.controller.js
 5. src/models/Event.js
@@ -497,7 +497,7 @@
 2. docs/CHANGELOG.md
 3. docs/ui-ux-reference.md
 4. docs/sitetheme.md
-5. docs/create_event.md
+5. docs/create_event/create_event.md
 6. src/public/css/project-buttons.css
 7. src/public/css/style.css
 8. src/views/layouts/head.ejs

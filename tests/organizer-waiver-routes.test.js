@@ -101,8 +101,18 @@ test('create and edit event views expose ordered create-event sections', () => {
     assert.ok(rewardsSection, `${file} should include rewards before event details`);
     assert.doesNotMatch(rewardsSection[0], /name="leaderboardRecognitionEnabled"/, `${file} should keep leaderboard recognition out of rewards`);
     assert.match(content, /Rewards, Merchandise, and Registration Packages|Rewards and Inclusions/, `${file} should expose the expanded rewards section`);
-    assert.match(content, /Total Event Fee|Pricing Per Distance/, `${file} should expose paid pricing setup`);
+    assert.match(content, /Paid Pricing Type|Customized Signup Options/, `${file} should expose paid pricing setup`);
     assert.match(content, /name="pricingMode"/, `${file} should expose pricing mode`);
+    assert.match(content, /value="package_period"[\s\S]*Registration packages/, `${file} should expose package-period pricing mode`);
+    assert.match(content, /name="registrationPackageName"/, `${file} should expose registration package names`);
+    assert.match(content, /name="registrationPackageEarlyBirdAmount"/, `${file} should expose package early-bird prices`);
+    assert.match(content, /btn-suggest-pricing-dates/, `${file} should expose package pricing date suggestions`);
+    assert.match(content, /id="addRegistrationPackageBtn"/, `${file} should expose add package control`);
+    assert.match(content, /btn-remove-registration-package/, `${file} should expose remove package controls`);
+    assert.match(content, /id="registrationPackageTemplate"/, `${file} should expose dynamic package template`);
+    assert.match(content, /updateRegistrationPackageIndexes/, `${file} should reindex dynamic package fields`);
+    assert.match(content, /value="running_app_sync"/, `${file} should expose running app proof sync`);
+    assert.doesNotMatch(content, /name="targetDistanceKm"/, `${file} should not expose manual target distance input`);
     assert.match(content, /name="physicalRewardMedalEnabled"/, `${file} should expose medal reward item`);
     assert.match(content, /name="physicalRewardMedalAmount"/, `${file} should expose medal amount`);
     assert.match(content, /name="physicalRewardShirtEnabled"/, `${file} should expose shirt reward item`);
@@ -236,10 +246,126 @@ test('organizer preview renders actual event details page with multiple race dis
   assert.match(html, /How This Event Works/i);
   assert.match(html, /<span>Registration Options<\/span>\s*<strong>10K, 25K, 50K, 100K<\/strong>/i);
   assert.match(html, /Registration options:<\/strong>\s*10K, 25K, 50K, 100K\./i);
-  assert.match(html, /<strong>10 km<\/strong>\s*<span>Completion goal<\/span>/i);
+  assert.match(html, /<strong>10K<\/strong>\s*<span>Completion goal<\/span>/i);
   assert.match(html, /<strong>Registration Options<\/strong><span>10K, 25K, 50K, 100K<\/span>/i);
-  assert.match(html, /<strong>Completion Goal<\/strong><span>10 km<\/span>/i);
+  assert.match(html, /<strong>Completion Goal<\/strong><span>10K<\/span>/i);
   assert.doesNotMatch(html, /organizer-event-preview-page/i);
+});
+
+test('organizer preview can render from a server-side preview session', async () => {
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+
+  const payload = buildValidCreateEventPayload({
+    title: `Session Preview Event ${seed.stamp}`
+  });
+  payload.set('previewSource', 'create');
+  payload.set('eventDetailsMarkdown', '<h2>Session Preview Details</h2><p>Rendered from server-side preview storage.</p>');
+  await appendCreateEventCsrf(payload, cookie);
+
+  const createPreviewResponse = await fetch(`${BASE_URL}/organizer/preview-event`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: payload.toString(),
+    redirect: 'manual'
+  });
+
+  assert.equal(createPreviewResponse.status, 200);
+  const previewResult = await createPreviewResponse.json();
+  assert.equal(previewResult.ok, true);
+  assert.match(previewResult.previewUrl, /^\/organizer\/preview-event\?previewId=/);
+  assert.doesNotMatch(previewResult.previewUrl, /Session\+Preview\+Event/);
+
+  const previewResponse = await fetch(`${BASE_URL}${previewResult.previewUrl}`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+
+  assert.equal(previewResponse.status, 200);
+  const html = await previewResponse.text();
+  assert.match(html, /Preview mode/i);
+  assert.match(html, /Session Preview Event/i);
+  assert.match(html, /Session Preview Details/i);
+  assert.match(html, /Back to Editor/i);
+});
+
+test('organizer saved draft preview renders by event id and denies non-owners', async () => {
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+
+  const event = await seedEditableEvent(seed, {
+    status: 'draft',
+    title: `Saved Draft Preview ${seed.stamp}`
+  });
+
+  const detailsResponse = await fetch(`${BASE_URL}/organizer/events/${event._id}`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(detailsResponse.status, 200);
+  const detailsHtml = await detailsResponse.text();
+  assert.match(detailsHtml, new RegExp(`/organizer/preview-event\\?eventId=${event._id}`));
+  assert.match(detailsHtml, /Preview Saved Event/i);
+
+  const previewResponse = await fetch(`${BASE_URL}/organizer/preview-event?eventId=${event._id}&previewSource=edit`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(previewResponse.status, 200);
+  const html = await previewResponse.text();
+  assert.match(html, /Preview mode/i);
+  assert.match(html, /Saved Draft Preview/i);
+  assert.match(html, /Saved Preview/i);
+  assert.match(html, new RegExp(`/organizer/events/${event._id}/edit`));
+
+  const otherOrganizer = await createApprovedOrganizer(`other.preview.${seed.stamp}`, seed.password);
+  seed.extraUsers.push(otherOrganizer._id);
+  const otherCookie = await login(otherOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', otherCookie);
+
+  const deniedResponse = await fetch(`${BASE_URL}/organizer/preview-event?eventId=${event._id}&previewSource=edit`, {
+    headers: { Cookie: otherCookie },
+    redirect: 'manual'
+  });
+  assert.equal(deniedResponse.status, 404);
+});
+
+test('organizer readiness endpoint returns backend checklist and summary data', async () => {
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+
+  const payload = buildValidCreateEventPayload({
+    title: `Readiness API Event ${seed.stamp}`
+  });
+  payload.set('feeMode', 'paid');
+  payload.set('paymentAccountName', '');
+  payload.delete('paymentQrImageUrl');
+  await appendCreateEventCsrf(payload, cookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/event-readiness`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: payload.toString(),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const result = await response.json();
+  assert.equal(result.ok, true);
+  assert.equal(result.readinessChecklist.ready, false);
+  assert.equal(result.readinessChecklist.items.find((item) => item.id === 'paymentQr')?.ok, false);
+  assert.equal(result.readinessChecklist.items.find((item) => item.id === 'paymentAccountName')?.ok, false);
+  assert.ok(result.reviewSummary.some((card) => card.title === 'Payment'));
+  assert.ok(result.reviewSummary.some((card) => card.title === 'Pricing'));
 });
 
 test('pending organizer sees create-event modal only on dashboard action and must sign matching account name', async () => {
@@ -363,7 +489,8 @@ test('create-event page opens with guided blank defaults and new event setup fie
   assert.doesNotMatch(html, /name="milestoneDistancesKm"/i);
   assert.match(html, /name="eventDetailsMarkdown"/i);
   assert.match(html, /name="feeMode"/i);
-  assert.match(html, /Pricing Per Distance/i);
+  assert.match(html, /Paid Pricing Type/i);
+  assert.match(html, /Customized Signup Options/i);
   assert.match(html, /Payment QR Image/i);
   assert.match(html, /Digital Finisher Certificate/i);
   assert.match(html, /name="physicalRewardMedalEnabled"/i);
@@ -475,7 +602,7 @@ test('create-event form normalization still supports explicit 2026K accumulated 
   assert.deepEqual(formData.raceDistances, ['2026K']);
   assert.equal(formData.virtualCompletionMode, 'accumulated_distance');
   assert.equal(formData.targetDistanceKm, 2026);
-  assert.deepEqual(formData.proofTypesAllowed, ['gps', 'photo']);
+  assert.deepEqual(formData.proofTypesAllowed, ['running_app_sync', 'photo']);
   assert.deepEqual(formData.acceptedRunTypes, ['run', 'walk', 'hike', 'trail_run']);
   assert.equal(formData.digitalBadgeEnabled, true);
   assert.equal(formData.digitalCertificateEnabled, true);
@@ -709,7 +836,7 @@ test('create-event accumulated-distance draft saves setup fields', async () => {
     eventType: 'virtual',
     actionType: 'draft',
     virtualCompletionMode: 'accumulated_distance',
-    targetDistanceKm: '100',
+    raceDistanceCustom: '100K',
     finalSubmissionDeadlineAt: toLocalDateTimeString(new Date(Date.now() + 5 * 24 * 60 * 60 * 1000)),
     recognitionMode: 'completion_with_optional_ranking',
     leaderboardMode: 'finishers_and_top_distance'
@@ -754,7 +881,8 @@ test('create-event accumulated-distance publish accepts configured challenge', a
     actionType: 'publish',
     virtualCompletionMode: 'accumulated_distance'
   });
-  payload.set('targetDistanceKm', '100');
+  payload.delete('raceDistancePresets');
+  payload.set('raceDistanceCustom', '100K');
   payload.append('acceptedRunTypes', 'run');
   await appendCreateEventCsrf(payload, cookie);
 
@@ -852,6 +980,8 @@ test('create-event paid publish persists fee payment and reward setup', async ()
     title,
     actionType: 'publish'
   });
+  const packagePeriodStartAt = payload.get('registrationOpenAt');
+  const packagePeriodEndAt = payload.get('registrationCloseAt');
   payload.set('eventDetailsMarkdown', '# Paid Event Details\n\nFull editable details.');
   payload.set('feeMode', 'paid');
   payload.set('feeAmount', '599');
@@ -884,8 +1014,8 @@ test('create-event paid publish persists fee payment and reward setup', async ()
   payload.set('registrationPackageMedal_0', '1');
   payload.set('registrationPackageShirt_0', '1');
   payload.append('registrationPackageOtherItemNames', 'Sticker');
-  payload.append('registrationPackageEarlyBirdStartAt', '2026-05-01T00:00');
-  payload.append('registrationPackageEarlyBirdEndAt', '2026-05-10T23:59');
+  payload.append('registrationPackageEarlyBirdStartAt', packagePeriodStartAt);
+  payload.append('registrationPackageEarlyBirdEndAt', packagePeriodEndAt);
   payload.append('registrationPackageEarlyBirdAmount', '999');
   payload.append('registrationPackageRegularStartAt', '');
   payload.append('registrationPackageRegularEndAt', '');
@@ -903,7 +1033,7 @@ test('create-event paid publish persists fee payment and reward setup', async ()
   payload.set('claimingMethod', 'both');
   payload.append('specialRewardBenefitTitle', 'Free engraving');
   payload.append('specialRewardBenefitDescription', 'Available during early bird.');
-  payload.append('specialRewardBenefitValidUntil', '2026-05-10T23:59');
+  payload.append('specialRewardBenefitValidUntil', packagePeriodEndAt);
   payload.append('specialRewardBenefitPackageNames', 'Medal + Shirt');
   await appendCreateEventCsrf(payload, cookie);
 
@@ -1105,6 +1235,22 @@ async function seedOrganizer(tag, options = {}) {
       email: organizer.email
     }
   };
+}
+
+async function createApprovedOrganizer(tag, password) {
+  await ensureConnected();
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const passwordHash = await bcrypt.hash(password, 10);
+  return User.create({
+    userId: `UOWR${stamp}`.slice(0, 22),
+    email: `org.waiver.${tag}.${stamp}@example.com`,
+    passwordHash,
+    role: 'organiser',
+    organizerStatus: 'approved',
+    firstName: 'Other',
+    lastName: 'Owner',
+    emailVerified: true
+  });
 }
 
 async function seedEditableEvent(currentSeed, overrides = {}) {

@@ -171,6 +171,29 @@
             </section>
           <% } %>
 
+          <% if ((details.raceCategories || []).length) { %>
+            <section class="event-section">
+              <div class="event-section-heading">
+                <span class="event-section-icon"><i data-lucide="list-checks"></i></span>
+                <div>
+                  <h2>Race Categories</h2>
+                  <p>Choose the category that matches your distance, eligibility, and event goal.</p>
+                </div>
+              </div>
+
+              <div class="event-package-grid">
+                <% details.raceCategories.forEach((category) => { %>
+                  <article>
+                    <h3><%= category.name %></h3>
+                    <strong><%= category.typeLabel %></strong>
+                    <% if (category.summary) { %><p><%= category.summary %></p><% } %>
+                    <% if (category.rewardsDescription) { %><small><%= category.rewardsDescription %></small><% } %>
+                  </article>
+                <% }) %>
+              </div>
+            </section>
+          <% } %>
+
           <section class="event-section">
             <div class="event-section-heading">
               <span class="event-section-icon"><i data-lucide="gift"></i></span>
@@ -230,12 +253,12 @@
             <% } %>
           </section>
 
-          <% if ((details.packageOptions || []).length || details.pricing?.hasOptionalCosts) { %>
+          <% if ((details.pricingOptions || []).length || (details.packageOptions || []).length || details.pricing?.hasOptionalCosts) { %>
             <section class="event-section">
               <div class="event-section-heading">
                 <span class="event-section-icon"><i data-lucide="shopping-bag"></i></span>
                 <div>
-                  <h2>Pricing & Optional Add-ons</h2>
+                  <h2>Pricing & Registration Options</h2>
                   <p><%= details.pricing?.helper || 'Review registration and package details before joining.' %></p>
                 </div>
               </div>
@@ -244,6 +267,18 @@
                 <strong><%= details.pricing?.amountLabel || 'TBA' %></strong>
                 <span><%= details.pricing?.label || 'Pricing' %></span>
               </div>
+
+              <% if ((details.pricingOptions || []).length) { %>
+                <div class="event-package-grid">
+                  <% details.pricingOptions.forEach((pricingOption) => { %>
+                    <article>
+                      <h3><%= pricingOption.label %></h3>
+                      <strong><%= pricingOption.amountLabel %></strong>
+                      <p><%= pricingOption.helper %></p>
+                    </article>
+                  <% }) %>
+                </div>
+              <% } %>
 
               <% if ((details.packageOptions || []).length) { %>
                 <div class="event-package-grid">
@@ -351,6 +386,9 @@
             <h3>Event Details</h3>
             <div class="event-side-list">
               <p><strong><%= details.isAccumulatedChallenge ? ((details.raceDistances || []).length > 1 ? 'Registration Options' : 'Registration Option') : ((details.raceDistances || []).length > 1 ? 'Distances' : 'Distance') %></strong><span><%= details.distanceSummaryLabel || (details.raceDistances || []).join(', ') || details.targetDistanceLabel || 'TBA' %></span></p>
+              <% if ((details.raceCategories || []).length) { %>
+                <p><strong>Categories</strong><span><%= details.raceCategories.map((category) => category.name).join(', ') %></span></p>
+              <% } %>
               <% if (details.isAccumulatedChallenge) { %>
                 <p><strong>Completion Goal</strong><span><%= details.targetDistanceLabel || 'TBA' %></span></p>
               <% } %>

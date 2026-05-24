@@ -36,6 +36,17 @@
           <strong>Looks good:</strong> this event is valid based on current create-event rules.
         </div>
       <% } %>
+      <%
+        const previewRaceCategories = Array.isArray(previewEvent.raceCategories) ? previewEvent.raceCategories : [];
+        const previewCategoryTypeLabel = (value) => ({ distance: 'Distance', challenge: 'Challenge', open: 'Open', other: 'Other' }[value] || 'Category');
+        const previewCategorySummary = (category) => [
+          category.distanceLabel,
+          Number(category.distanceKm || 0) > 0 ? `${Number(category.distanceKm).toLocaleString('en-US')} km` : '',
+          Number(category.slots || 0) > 0 ? `${Number(category.slots).toLocaleString('en-US')} slots` : '',
+          category.cutoffTime,
+          category.ageGroup
+        ].filter(Boolean).join(' | ') || previewCategoryTypeLabel(category.type);
+      %>
 
       <div class="detail-grid">
         <article class="detail-card">
@@ -48,6 +59,24 @@
           <p><strong>Race Distances:</strong> <%= (previewEvent.raceDistances || []).join(', ') || 'N/A' %></p>
           <p><strong>Fee:</strong> <%= previewEvent.feeMode === 'paid' ? `${previewEvent.feeCurrency || 'PHP'} ${Number(previewEvent.feeAmount || 0).toFixed(2)}` : 'Free' %></p>
           <p><strong>Pricing Mode:</strong> <%= previewEvent.pricingMode || 'free' %></p>
+        </article>
+
+        <article class="detail-card">
+          <h3>Race Categories</h3>
+          <% if (previewRaceCategories.length) { %>
+            <% previewRaceCategories.forEach((category) => { %>
+              <p>
+                <strong><%= category.name || category.distanceLabel || 'Unnamed category' %>:</strong>
+                <%= previewCategorySummary(category) %>
+                <% if (category.rewardsDescription) { %>
+                  <br>
+                  <small><%= category.rewardsDescription %></small>
+                <% } %>
+              </p>
+            <% }) %>
+          <% } else { %>
+            <p><strong>Configured Categories:</strong> N/A</p>
+          <% } %>
         </article>
 
         <article class="detail-card">

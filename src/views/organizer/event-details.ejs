@@ -20,6 +20,7 @@
           <% if (event.status !== 'closed' && event.status !== 'archived') { %>
             <a href="/organizer/events/<%= event._id %>/edit" class="nav-signup-btn detail-nav-btn">Edit Event</a>
           <% } %>
+          <a href="/organizer/preview-event?eventId=<%= event._id %>&previewSource=edit" class="nav-login-btn detail-nav-btn">Preview Saved Event</a>
           <a href="/organizer/events/<%= event._id %>/badges/manage" class="nav-login-btn detail-nav-btn">Manage Badges</a>
           <a href="/organizer/events/<%= event._id %>/registrants" class="nav-login-btn detail-nav-btn">View Registrants</a>
         </div>
@@ -31,6 +32,17 @@
       <% const showLocationPanel = event.eventType === 'onsite' || event.eventType === 'hybrid' || (event.eventTypesAllowed || []).includes('onsite'); %>
       <% const eventReferenceCode = event.referenceCode || `EVT-${String(event._id || '').slice(0, 8).toUpperCase()}`; %>
       <% const publicEventPath = `/events/${event.slug}`; %>
+      <%
+        const organizerRaceCategories = Array.isArray(event.raceCategories) ? event.raceCategories : [];
+        const organizerCategoryTypeLabel = (value) => ({ distance: 'Distance', challenge: 'Challenge', open: 'Open', other: 'Other' }[value] || 'Category');
+        const organizerCategorySummary = (category) => [
+          category.distanceLabel,
+          Number(category.distanceKm || 0) > 0 ? `${Number(category.distanceKm).toLocaleString('en-US')} km` : '',
+          Number(category.slots || 0) > 0 ? `${Number(category.slots).toLocaleString('en-US')} slots` : '',
+          category.cutoffTime,
+          category.ageGroup
+        ].filter(Boolean).join(' | ') || organizerCategoryTypeLabel(category.type);
+      %>
 
       <div class="detail-grid">
         <article class="detail-card">
@@ -50,6 +62,24 @@
           <p><strong>Fee:</strong> <%= event.feeMode === 'paid' ? `${event.feeCurrency || 'PHP'} ${Number(event.feeAmount || 0).toFixed(2)}` : 'Free' %></p>
           <p><strong>Pricing Mode:</strong> <%= event.pricingMode || 'free' %></p>
           <p><strong>Event URL:</strong> <code><%= event.slug %></code></p>
+        </article>
+
+        <article class="detail-card">
+          <h3>Race Categories</h3>
+          <% if (organizerRaceCategories.length) { %>
+            <% organizerRaceCategories.forEach((category) => { %>
+              <p>
+                <strong><%= category.name || category.distanceLabel || 'Unnamed category' %>:</strong>
+                <%= organizerCategorySummary(category) %>
+                <% if (category.rewardsDescription) { %>
+                  <br>
+                  <small><%= category.rewardsDescription %></small>
+                <% } %>
+              </p>
+            <% }) %>
+          <% } else { %>
+            <p><strong>Configured Categories:</strong> N/A</p>
+          <% } %>
         </article>
 
         <article class="detail-card">

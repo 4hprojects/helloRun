@@ -35,6 +35,8 @@
                 const eventFeeMode = String(registration.eventId?.feeMode || 'free').toLowerCase();
                 const isPaidEvent = eventFeeMode === 'paid';
                 const needsPaymentVerification = isPaidEvent || ['unpaid', 'proof_submitted', 'proof_rejected', 'failed', 'refunded'].includes(String(registration.paymentStatus || ''));
+                const selectedRaceCategoryName = registration.pricingSnapshot?.raceCategoryName || '';
+                const selectedRaceCategoryType = registration.pricingSnapshot?.raceCategoryType || '';
               %>
 
               <!-- Card Header -->
@@ -72,7 +74,15 @@
               <div class="details-grid">
                 <div class="detail-item">
                   <i data-lucide="ruler"></i>
-                  <span><strong>Distance:</strong> <%= registration.raceDistance || 'N/A' %></span>
+                  <span>
+                    <strong>Distance:</strong> <%= selectedRaceCategoryName || registration.raceDistance || 'N/A' %>
+                    <% if (selectedRaceCategoryName && registration.raceDistance && selectedRaceCategoryName !== registration.raceDistance) { %>
+                      <small>(<%= registration.raceDistance %>)</small>
+                    <% } %>
+                    <% if (selectedRaceCategoryType) { %>
+                      <small><%= selectedRaceCategoryType %></small>
+                    <% } %>
+                  </span>
                 </div>
                 <div class="detail-item">
                   <i data-lucide="users"></i>
@@ -111,8 +121,22 @@
                   <h4><i data-lucide="receipt"></i> Payment Verification</h4>
                   <% if (isPaidEvent) { %>
                     <p>Submit a payment receipt that shows your payment confirmation or reference. Activity screenshots belong in Run Result, not here.</p>
-                    <% if (registration.eventId?.feeAmount) { %>
+                    <% if (Number(registration.paymentAmountDue || 0) > 0) { %>
+                      <p><strong>Registration fee:</strong> <%= registration.paymentCurrency || registration.eventId?.feeCurrency || 'PHP' %> <%= Number(registration.paymentAmountDue || 0).toFixed(2) %></p>
+                    <% } else if (registration.eventId?.feeAmount) { %>
                       <p><strong>Event fee:</strong> <%= registration.eventId.feeCurrency || 'PHP' %> <%= Number(registration.eventId.feeAmount || 0).toFixed(2) %></p>
+                    <% } %>
+                    <% if (registration.pricingSnapshot?.optionDescription) { %>
+                      <p><strong>Signup option:</strong> <%= registration.pricingSnapshot.optionDescription %></p>
+                    <% } %>
+                    <% if (registration.pricingSnapshot?.raceCategoryName) { %>
+                      <p><strong>Race category:</strong> <%= registration.pricingSnapshot.raceCategoryName %></p>
+                    <% } %>
+                    <% if (registration.pricingSnapshot?.packageName) { %>
+                      <p><strong>Registration package:</strong> <%= registration.pricingSnapshot.packageName %></p>
+                    <% } %>
+                    <% if (registration.pricingSnapshot?.pricingPeriodLabel) { %>
+                      <p><strong>Pricing period:</strong> <%= registration.pricingSnapshot.pricingPeriodLabel %></p>
                     <% } %>
                     <% if (registration.eventId?.paymentAccountName) { %>
                       <p><strong>Payee:</strong> <%= registration.eventId.paymentAccountName %></p>

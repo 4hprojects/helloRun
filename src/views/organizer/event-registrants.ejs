@@ -141,6 +141,7 @@
                 <th>Distance</th>
                 <th>Status</th>
                 <th>Payment</th>
+                <th>Expected Payment</th>
                 <th>Payment Receipt</th>
                 <th>Review</th>
                 <th>Run Result</th>
@@ -151,6 +152,10 @@
             </thead>
             <tbody>
               <% registrations.forEach((registration) => { %>
+                <%
+                  const selectedRaceCategoryName = registration.pricingSnapshot?.raceCategoryName || '';
+                  const selectedRaceCategoryType = registration.pricingSnapshot?.raceCategoryType || '';
+                %>
                 <tr>
                   <td><code><%= registration.confirmationCode %></code></td>
                   <td><%= [registration.participant?.firstName, registration.participant?.lastName].filter(Boolean).join(' ') || 'N/A' %></td>
@@ -177,9 +182,34 @@
                     <% } %>
                   </td>
                   <td><span class="mode-badge mode-<%= registration.participationMode %>"><%= registration.participationMode %></span></td>
-                  <td><%= registration.raceDistance || 'N/A' %></td>
+                  <td>
+                    <%= selectedRaceCategoryName || registration.raceDistance || 'N/A' %>
+                    <% if (selectedRaceCategoryName && registration.raceDistance && selectedRaceCategoryName !== registration.raceDistance) { %>
+                      <br>
+                      <small><%= registration.raceDistance %></small>
+                    <% } %>
+                    <% if (selectedRaceCategoryType) { %>
+                      <br>
+                      <small><%= selectedRaceCategoryType %></small>
+                    <% } %>
+                  </td>
                   <td><%= registration.status %></td>
                   <td><%= registration.paymentStatus || 'N/A' %></td>
+                  <td>
+                    <%= registration.expectedPaymentLabel || 'N/A' %>
+                    <% if (registration.pricingSnapshot?.packageName) { %>
+                      <br>
+                      <small><%= registration.pricingSnapshot.packageName %></small>
+                    <% } %>
+                    <% if (registration.signupOptionLabel) { %>
+                      <br>
+                      <small><%= registration.signupOptionLabel %></small>
+                    <% } %>
+                    <% if (registration.pricingPeriodLabel) { %>
+                      <br>
+                      <small><%= registration.pricingPeriodLabel %></small>
+                    <% } %>
+                  </td>
                   <td>
                     <% if (registration.paymentProof && registration.paymentProof.url) { %>
                       <a href="<%= registration.paymentProof.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">View payment receipt</a>
@@ -189,9 +219,9 @@
                       <% } %>
                       <br>
                       <small><strong>Confirmation:</strong> <%= registration.confirmationCode %></small>
-                      <% if (event.feeMode === 'paid') { %>
+                      <% if (registration.expectedPaymentLabel) { %>
                         <br>
-                        <small><strong>Expected payment:</strong> <%= event.feeCurrency || 'PHP' %> <%= event.feeAmount != null ? Number(event.feeAmount || 0).toFixed(2) : 'See event pricing' %></small>
+                        <small><strong>Expected payment:</strong> <%= registration.expectedPaymentLabel %></small>
                       <% } %>
                       <% if (event.paymentAccountName) { %>
                         <br>

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 const ExcelJS = require('exceljs');
 const User = require('../models/User');
 const Event = require('../models/Event');
@@ -47,6 +48,8 @@ const qrAndDashboardRoutes = require('./organiser/qr-and-dashboard');
 const countries = getCountries();
 const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K']);
 const MAX_GALLERY_IMAGES = 12;
+const PREVIEW_SESSION_TTL_MS = 30 * 60 * 1000;
+const MAX_PREVIEW_SESSION_ENTRIES = 5;
 const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_distance']);
 const ACCEPTED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
 const RECOGNITION_MODES = new Set(['completion_only', 'completion_with_optional_ranking']);
@@ -76,6 +79,36 @@ const paymentReviewActionLimiter = createRateLimiter({
    ========================================== */
 router.use('/', onsiteOperationsRoutes);
 router.use('/', qrAndDashboardRoutes);
+
+function getPreviewSessionStore(req) {
+  if (!req.session) return {};
+  const now = Date.now();
+  const existing = req.session.eventPreviewDrafts && typeof req.session.eventPreviewDrafts === 'object'
+    ? req.session.eventPreviewDrafts
+    : {};
+  const validEntries = Object.entries(existing)
+    .filter(([, entry]) => entry && Number(entry.expiresAt || 0) > now)
+    .sort((a, b) => Number(b[1].createdAt || 0) - Number(a[1].createdAt || 0))
+    .slice(0, MAX_PREVIEW_SESSION_ENTRIES);
+  req.session.eventPreviewDrafts = Object.fromEntries(validEntries);
+  return req.session.eventPreviewDrafts;
+}
+
+function savePreviewSession(req) {
+  return new Promise((resolve, reject) => {
+    if (!req.session || typeof req.session.save !== 'function') return resolve();
+    req.session.save((error) => {
+      if (error) reject(error);
+      else resolve();
+    });
+  });
+}
+
+function buildPreviewBackHref(source, eventId) {
+  return source === 'edit' && mongoose.Types.ObjectId.isValid(eventId)
+    ? `/organizer/events/${eventId}/edit`
+    : '/organizer/create-event';
+}
 
 /* ==========================================
    UTILITY FUNCTIONS
@@ -566,6 +599,8 @@ router.get('/create-event', requireCanCreateEvents, async (req, res) => {
       user,
       errors: {},
       formData,
+      readinessChecklist: getEventReadinessChecklist(formData),
+      reviewSummary: getEventReviewSummary(formData),
       countries,
       defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
       message: getPageMessage(req.query)
@@ -584,6 +619,50 @@ router.get('/create-event', requireCanCreateEvents, async (req, res) => {
    GET: Event Preview (Approved Organizers)
    ========================================== */
 
+router.post('/preview-event', requireCanCreateEvents, requireCsrfProtection, async (req, res) => {
+  try {
+    const previewId = crypto.randomBytes(16).toString('hex');
+    const now = Date.now();
+    const payload = { ...req.body };
+    delete payload._csrf;
+
+    const store = getPreviewSessionStore(req);
+    store[previewId] = {
+      payload,
+      createdAt: now,
+      expiresAt: now + PREVIEW_SESSION_TTL_MS
+    };
+
+    await savePreviewSession(req);
+
+    return res.json({
+      ok: true,
+      previewId,
+      previewUrl: `/organizer/preview-event?previewId=${encodeURIComponent(previewId)}`
+    });
+  } catch (error) {
+    console.error('Error creating event preview session:', error);
+    return res.status(500).json({ ok: false, message: 'An error occurred while preparing the event preview.' });
+  }
+});
+
+router.post('/event-readiness', requireCanCreateEvents, requireCsrfProtection, async (req, res) => {
+  try {
+    const payload = { ...req.body };
+    delete payload._csrf;
+    const formData = getCreateEventFormData(payload);
+
+    return res.json({
+      ok: true,
+      readinessChecklist: getEventReadinessChecklist(formData),
+      reviewSummary: getEventReviewSummary(formData)
+    });
+  } catch (error) {
+    console.error('Error refreshing event readiness:', error);
+    return res.status(500).json({ ok: false, message: 'An error occurred while refreshing event readiness.' });
+  }
+});
+
 router.get('/preview-event', requireCanCreateEvents, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
@@ -596,7 +675,49 @@ router.get('/preview-event', requireCanCreateEvents, async (req, res) => {
       });
     }
 
-    const formData = getCreateEventFormData(req.query);
+    const previewId = String(req.query.previewId || '').trim();
+    const previewStore = getPreviewSessionStore(req);
+    const previewSession = previewId ? previewStore[previewId] : null;
+    const previewSource = previewSession?.payload?.previewSource || req.query.previewSource;
+    const previewEventId = previewSession?.payload?.eventId || req.query.eventId;
+
+    if (!previewSession && previewEventId) {
+      const savedEvent = await getOwnedEventOrNull(previewEventId, user._id);
+      if (!savedEvent) {
+        return res.status(404).render('error', {
+          title: '404 - Event Not Found',
+          status: 404,
+          message: 'Event not found or you do not have access.'
+        });
+      }
+
+      const publicEvent = buildPublicEventView(savedEvent, { registrationCount: 0 });
+      publicEvent.registrationState = {
+        label: 'Saved Preview',
+        tone: 'upcoming',
+        canRegisterNow: false,
+        helper: 'This preview is generated from the saved event draft and is not a public listing.'
+      };
+      publicEvent.primaryCta = { label: 'Preview Only', href: '', disabled: true };
+      publicEvent.secondaryCtas = [];
+
+      return res.render('pages/event-details', {
+        title: `Preview Event - ${savedEvent.title || 'helloRun'}`,
+        seo: null,
+        user,
+        event: savedEvent,
+        publicEvent,
+        badges: [],
+        eventDetailsHtml: renderEventDetailsContent(savedEvent.eventDetailsMarkdown),
+        countryName: getCountryName,
+        previewMode: true,
+        previewBackHref: buildPreviewBackHref('edit', savedEvent._id),
+        previewErrors: []
+      });
+    }
+
+    const previewPayload = previewSession ? previewSession.payload : req.query;
+    const formData = getCreateEventFormData(previewPayload);
     const errors = validateCreateEventForm(formData);
     const previewEvent = new Event({
       _id: new mongoose.Types.ObjectId(),
@@ -621,9 +742,7 @@ router.get('/preview-event', requireCanCreateEvents, async (req, res) => {
     publicEvent.primaryCta = { label: 'Preview Only', href: '', disabled: true };
     publicEvent.secondaryCtas = [];
 
-    const previewBackHref = req.query.previewSource === 'edit' && mongoose.Types.ObjectId.isValid(req.query.eventId)
-      ? `/organizer/events/${req.query.eventId}/edit`
-      : '/organizer/create-event';
+    const previewBackHref = buildPreviewBackHref(previewSource, previewEventId);
 
     return res.render('pages/event-details', {
       title: `Preview Event - ${previewEvent.title || 'helloRun'}`,
@@ -946,6 +1065,9 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       waiverAcceptedAtLabel: formatDateTime(item.waiver?.acceptedAt),
       paymentProofUploadedAtLabel: formatDateTime(item.paymentProof?.uploadedAt),
       paymentReviewedAtLabel: formatDateTime(item.paymentReviewedAt),
+      expectedPaymentLabel: formatExpectedPaymentLabel(item, event),
+      signupOptionLabel: item.pricingSnapshot?.optionDescription || '',
+      pricingPeriodLabel: item.pricingSnapshot?.pricingPeriodLabel || '',
       accumulatedProgress: event.virtualCompletionMode === 'accumulated_distance'
         ? buildAccumulatedProgress({
           activities: accumulatedActivitiesByRegistrationId.get(String(item._id)) || [],
@@ -1759,12 +1881,15 @@ router.get('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
       return res.redirect(`/organizer/events/${event._id}?${query.toString()}`);
     }
 
+    const formData = getCreateEventFormDataFromEvent(event);
     return res.render('organizer/edit-event', {
       title: `Edit Event - ${event.title}`,
       user,
       event,
       errors: {},
-      formData: getCreateEventFormDataFromEvent(event),
+      formData,
+      readinessChecklist: getEventReadinessChecklist(formData),
+      reviewSummary: getEventReviewSummary(formData),
       countries,
       defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
       message: getPageMessage(req.query)
@@ -1832,6 +1957,8 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
         event,
         errors: { [errorField]: req.uploadError },
         formData,
+        readinessChecklist: getEventReadinessChecklist(formData),
+        reviewSummary: getEventReviewSummary(formData),
         countries,
         defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
         message: null
@@ -1911,6 +2038,8 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
         event,
         errors: { galleryImageUrls: `Gallery supports up to ${MAX_GALLERY_IMAGES} images.` },
         formData,
+        readinessChecklist: getEventReadinessChecklist(formData),
+        reviewSummary: getEventReviewSummary(formData),
         countries,
         defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
         message: null
@@ -1926,6 +2055,8 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
         event,
         errors: validationErrors,
         formData,
+        readinessChecklist: getEventReadinessChecklist(formData),
+        reviewSummary: getEventReviewSummary(formData),
         countries,
         defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
         message: null
@@ -2223,6 +2354,8 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
         user,
         errors: { [errorField]: req.uploadError },
         formData,
+        readinessChecklist: getEventReadinessChecklist(formData),
+        reviewSummary: getEventReviewSummary(formData),
         countries,
         defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
         message: null
@@ -2287,6 +2420,8 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
         user,
         errors: { galleryImageUrls: `Gallery supports up to ${MAX_GALLERY_IMAGES} images.` },
         formData,
+        readinessChecklist: getEventReadinessChecklist(formData),
+        reviewSummary: getEventReviewSummary(formData),
         countries,
         defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
         message: null
@@ -2301,6 +2436,8 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
         user,
         errors: validationErrors,
         formData,
+        readinessChecklist: getEventReadinessChecklist(formData),
+        reviewSummary: getEventReviewSummary(formData),
         countries,
         defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
         message: null
@@ -3038,8 +3175,14 @@ function formatPaymentProofStatusLabel(value) {
 }
 
 function formatExpectedPaymentLabel(registration, event) {
-  const currency = event.feeCurrency || registration.addOnsCurrency || 'PHP';
-  const eventFee = Number(event.feeAmount || 0);
+  const currency = registration.paymentCurrency || event.feeCurrency || registration.addOnsCurrency || 'PHP';
+  const savedPaymentAmount = Number(registration.paymentAmountDue);
+  const snapshotAmount = Number(registration.pricingSnapshot?.amount);
+  const eventFee = Number.isFinite(savedPaymentAmount) && savedPaymentAmount > 0
+    ? savedPaymentAmount
+    : Number.isFinite(snapshotAmount) && snapshotAmount > 0
+      ? snapshotAmount
+      : Number(event.feeAmount || 0);
   const addOnsSubtotal = Number(registration.addOnsSubtotal || 0);
   const total = Math.max(0, eventFee) + Math.max(0, addOnsSubtotal);
   if (Number.isFinite(total) && total > 0) {
@@ -3191,8 +3334,15 @@ function getRegistrantExportData(registrations = []) {
     'Waiver Accepted At',
     'Participation Mode',
     'Race Distance',
+    'Race Category ID',
+    'Race Category Name',
+    'Race Category Type',
     'Status',
     'Payment Status',
+    'Expected Payment',
+    'Signup Option',
+    'Registration Package',
+    'Pricing Period',
     'Payment Receipt URL',
     'Payment Receipt Uploaded At',
     'Payment Reviewed At',
@@ -3220,8 +3370,15 @@ function getRegistrantExportData(registrations = []) {
       registration.waiver?.acceptedAt ? new Date(registration.waiver.acceptedAt).toISOString() : '',
       registration.participationMode || '',
       registration.raceDistance || '',
+      registration.pricingSnapshot?.raceCategoryId || '',
+      registration.pricingSnapshot?.raceCategoryName || '',
+      registration.pricingSnapshot?.raceCategoryType || '',
       registration.status || '',
       registration.paymentStatus || '',
+      formatRegistrationExpectedPayment(registration),
+      registration.pricingSnapshot?.optionDescription || '',
+      registration.pricingSnapshot?.packageName || '',
+      registration.pricingSnapshot?.pricingPeriodLabel || '',
       registration.paymentProof?.url || '',
       registration.paymentProof?.uploadedAt ? new Date(registration.paymentProof.uploadedAt).toISOString() : '',
       registration.paymentReviewedAt ? new Date(registration.paymentReviewedAt).toISOString() : '',
@@ -3232,6 +3389,16 @@ function getRegistrantExportData(registrations = []) {
   });
 
   return { headers, rows };
+}
+
+function formatRegistrationExpectedPayment(registration) {
+  const currency = registration.paymentCurrency || registration.pricingSnapshot?.currency || registration.addOnsCurrency || 'PHP';
+  const registrationFee = Number.isFinite(Number(registration.paymentAmountDue))
+    ? Number(registration.paymentAmountDue)
+    : Number(registration.pricingSnapshot?.amount || 0);
+  const addOnsSubtotal = Number(registration.addOnsSubtotal || 0);
+  const total = Math.max(0, registrationFee) + Math.max(0, addOnsSubtotal);
+  return total > 0 ? `${currency} ${total.toFixed(2)}` : '';
 }
 
 function csvEscape(value) {
@@ -3910,6 +4077,14 @@ function getPublishReadinessErrors(event) {
   formData.actionType = 'publish';
   const errors = validateCreateEventForm(formData);
   return Object.values(errors);
+}
+
+function getEventReadinessChecklist(formData) {
+  return eventFormService.getEventReadinessChecklist(formData);
+}
+
+function getEventReviewSummary(formData) {
+  return eventFormService.getEventReviewSummary(formData);
 }
 
 module.exports = router;

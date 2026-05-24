@@ -68,6 +68,39 @@ const registrationSchema = new mongoose.Schema(
       default: 'PHP',
       maxlength: 10
     },
+    pricingSnapshot: {
+      pricingMode: { type: String, trim: true, default: 'free', maxlength: 50 },
+      source: { type: String, trim: true, default: 'free', maxlength: 50 },
+      selectedOptionId: { type: String, trim: true, default: '', maxlength: 80 },
+      optionDescription: { type: String, trim: true, default: '', maxlength: 160 },
+      raceCategoryId: { type: String, trim: true, default: '', maxlength: 80 },
+      raceCategoryName: { type: String, trim: true, default: '', maxlength: 100 },
+      raceCategoryType: { type: String, trim: true, default: '', maxlength: 50 },
+      raceDistance: { type: String, trim: true, default: '', maxlength: 30 },
+      packageId: { type: String, trim: true, default: '', maxlength: 80 },
+      packageName: { type: String, trim: true, default: '', maxlength: 100 },
+      packagePeriodCode: { type: String, trim: true, default: '', maxlength: 50 },
+      packagePeriodLabel: { type: String, trim: true, default: '', maxlength: 80 },
+      packageIncludedItems: {
+        type: [{ type: String, trim: true, maxlength: 80 }],
+        default: []
+      },
+      pricingPeriodCode: { type: String, trim: true, default: '', maxlength: 50 },
+      pricingPeriodLabel: { type: String, trim: true, default: '', maxlength: 80 },
+      amount: { type: Number, min: 0, default: 0 },
+      currency: { type: String, trim: true, default: 'PHP', maxlength: 10 }
+    },
+    paymentAmountDue: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
+    paymentCurrency: {
+      type: String,
+      trim: true,
+      default: 'PHP',
+      maxlength: 10
+    },
     status: {
       type: String,
       enum: ['pending_payment', 'paid', 'confirmed', 'cancelled', 'refunded'],

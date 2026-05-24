@@ -61,7 +61,7 @@
             <li><a href="#location-virtual-step" data-step-link="location-virtual-step"><span>4</span> Location or Virtual Rules</a></li>
             <li><a href="#race-categories-step" data-step-link="race-categories-step"><span>5</span> Race Categories</a></li>
             <li><a href="#rewards-step" data-step-link="rewards-step"><span>6</span> Rewards and Inclusions</a></li>
-            <li><a href="#pricing-step" data-step-link="pricing-step"><span>7</span> Pricing Per Distance</a></li>
+            <li><a href="#pricing-step" data-step-link="pricing-step"><span>7</span> Pricing</a></li>
             <li><a href="#payment-setup-step" data-step-link="payment-setup-step"><span>8</span> Payment Setup</a></li>
             <li><a href="#event-details-step" data-step-link="event-details-step"><span>9</span> Event Details</a></li>
             <li><a href="#media-step" data-step-link="media-step"><span>10</span> Branding and Media</a></li>
@@ -301,17 +301,12 @@
             <div class="form-group form-group-full accumulated-settings" style="display: none;">
               <label>Accumulated Challenge Setup</label>
               <div class="form-grid">
-                <div class="form-group <%= errors.targetDistanceKm ? 'has-error' : '' %>">
-                  <label for="targetDistanceKm" class="label-with-help">
-                    Target Distance
-                    <span class="field-help-icon" tabindex="0" aria-label="Target Distance is the numeric completion goal used for accumulated progress. Race Distances are registration labels; this value controls when the runner reaches completion.">?</span>
+                <div class="form-group">
+                  <label class="label-with-help">
+                    Completion Goal
+                    <span class="field-help-icon" tabindex="0" aria-label="The accumulated challenge target is derived from the race distance selected in Race Categories.">?</span>
                   </label>
-                  <div class="distance-input-shell">
-                    <input id="targetDistanceKm" name="targetDistanceKm" type="number" min="0" step="0.01" value="<%= formData.targetDistanceKm || '' %>" placeholder="100" aria-describedby="targetDistanceHint">
-                    <span>km</span>
-                  </div>
-                  <small id="targetDistanceHint" class="field-hint distance-auto-hint">If exactly one race distance is selected, this can be auto-filled from that distance.</small>
-                  <% if (errors.targetDistanceKm) { %><small class="error-text"><%= errors.targetDistanceKm %></small><% } %>
+                  <p id="targetDistanceHint" class="field-hint distance-auto-hint">For accumulated challenges, select exactly one race distance in Step 5. That distance becomes the completion goal.</p>
                 </div>
                 <div class="form-group">
                   <label for="finalSubmissionDeadlineAt" class="label-with-help">
@@ -382,12 +377,13 @@
             <div class="form-group form-group-full">
               <label>Proof Types Allowed</label>
               <div class="checkbox-row">
-                <% const selectedProofs = formData.proofTypesAllowed && formData.proofTypesAllowed.length ? formData.proofTypesAllowed : ['gps', 'photo', 'manual']; %>
-                <label><input type="checkbox" name="proofTypesAllowed" value="gps" <%= selectedProofs.includes('gps') ? 'checked' : '' %>> GPS</label>
+                <% const selectedProofs = formData.proofTypesAllowed && formData.proofTypesAllowed.length ? formData.proofTypesAllowed : ['running_app_sync', 'photo', 'manual']; %>
+                <% const hasRunningAppProof = selectedProofs.includes('running_app_sync') || selectedProofs.includes('gps'); %>
+                <label><input type="checkbox" name="proofTypesAllowed" value="running_app_sync" <%= hasRunningAppProof ? 'checked' : '' %>> Strava sync or other running app sync</label>
                 <label><input type="checkbox" name="proofTypesAllowed" value="photo" <%= selectedProofs.includes('photo') ? 'checked' : '' %>> Photo</label>
                 <label><input type="checkbox" name="proofTypesAllowed" value="manual" <%= selectedProofs.includes('manual') ? 'checked' : '' %>> Manual</label>
               </div>
-              <small class="field-hint">Choose what runners may upload or enter as proof. GPS and photo proof are easier to review than manual entries.</small>
+              <small class="field-hint">Choose what runners may sync, upload, or enter as proof. Running app sync and photo proof are easier to review than manual entries.</small>
             </div>
           </div>
         </div>
@@ -396,19 +392,38 @@
         <div id="race-categories-step" class="form-section form-section-race-categories" tabindex="-1" data-wizard-step="race-categories-step">
           <div class="section-kicker">Step 5 of 12</div>
           <div class="section-title">Race Categories</div>
-          <p class="section-helper" id="raceCategoryHelper">Use race distances as the current registration category labels. Detailed per-category pricing is planned for a later phase.</p>
+          <p class="section-helper" id="raceCategoryHelper">Define the categories runners can join. Distance labels still sync to the legacy distance fields for compatibility.</p>
           <div class="form-grid">
             <div class="form-group form-group-full <%= errors.raceDistances ? 'has-error' : '' %>">
-              <label>Race Distances *</label>
-              <div class="checkbox-row">
-                <% const selectedDistances = formData.raceDistancePresets || []; %>
-                <label><input type="checkbox" name="raceDistancePresets" value="3K" <%= selectedDistances.includes('3K') ? 'checked' : '' %>> 3K</label>
-                <label><input type="checkbox" name="raceDistancePresets" value="5K" <%= selectedDistances.includes('5K') ? 'checked' : '' %>> 5K</label>
-                <label><input type="checkbox" name="raceDistancePresets" value="10K" <%= selectedDistances.includes('10K') ? 'checked' : '' %>> 10K</label>
-                <label><input type="checkbox" name="raceDistancePresets" value="21K" <%= selectedDistances.includes('21K') ? 'checked' : '' %>> 21K</label>
+              <label>Race Categories *</label>
+              <div id="raceCategoryRows" class="customized-option-grid">
+                <% const raceCategories = (formData.raceCategories && formData.raceCategories.length ? formData.raceCategories : [{ distanceLabel: '5K', name: '5K', type: 'distance' }]).slice(0, 12); %>
+                <% raceCategories.forEach(function(category, categoryIndex) { %>
+                  <div class="race-category-card customized-option-row" data-race-category-row>
+                    <input type="hidden" name="raceCategoryId" value="<%= category.categoryId || '' %>">
+                    <input name="raceCategoryName" type="text" maxlength="100" value="<%= category.name || category.distanceLabel || '' %>" placeholder="Category name">
+                    <select name="raceCategoryType" aria-label="Category type">
+                      <option value="distance" <%= !category.type || category.type === 'distance' ? 'selected' : '' %>>Distance</option>
+                      <option value="challenge" <%= category.type === 'challenge' ? 'selected' : '' %>>Challenge</option>
+                      <option value="open" <%= category.type === 'open' ? 'selected' : '' %>>Open</option>
+                      <option value="other" <%= category.type === 'other' ? 'selected' : '' %>>Other</option>
+                    </select>
+                    <input name="raceCategoryDistanceLabel" type="text" maxlength="30" value="<%= category.distanceLabel || category.name || '' %>" placeholder="Distance label, e.g. 10K">
+                    <input name="raceCategoryDistanceKm" type="number" min="0" step="0.01" value="<%= category.distanceKm ?? '' %>" placeholder="KM">
+                    <input name="raceCategorySlots" type="number" min="0" step="1" value="<%= category.slots ?? '' %>" placeholder="Slots">
+                    <input name="raceCategoryCutoffTime" type="text" maxlength="80" value="<%= category.cutoffTime || '' %>" placeholder="Cut-off time">
+                    <input name="raceCategoryAgeGroup" type="text" maxlength="80" value="<%= category.ageGroup || '' %>" placeholder="Age group">
+                    <input name="raceCategoryRewardsDescription" type="text" maxlength="500" value="<%= category.rewardsDescription || '' %>" placeholder="Category reward note">
+                    <button type="button" class="btn btn-secondary remove-race-category-btn">Remove</button>
+                  </div>
+                  <% if (errors['raceCategoryName' + categoryIndex]) { %><small class="error-text"><%= errors['raceCategoryName' + categoryIndex] %></small><% } %>
+                  <% if (errors['raceCategoryDistanceKm' + categoryIndex]) { %><small class="error-text"><%= errors['raceCategoryDistanceKm' + categoryIndex] %></small><% } %>
+                  <% if (errors['raceCategorySlots' + categoryIndex]) { %><small class="error-text"><%= errors['raceCategorySlots' + categoryIndex] %></small><% } %>
+                <% }) %>
               </div>
-              <label for="raceDistanceCustom" style="margin-top:0.5rem;">Custom Distances (comma-separated)</label>
-              <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" placeholder="e.g., 42K, 50, 100">
+              <button type="button" class="btn btn-secondary" id="addRaceCategoryBtn">Add Category</button>
+              <div id="legacyRaceDistanceFields" hidden></div>
+              <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" hidden>
               <small class="field-hint">Numbers are treated as kilometers, so 10, 10k, and 10 km become 10K.</small>
               <small class="field-hint">For accumulated challenges, the race distance you set here is the completion goal runners must reach.</small>
               <% if (errors.raceDistances) { %><small class="error-text"><%= errors.raceDistances %></small><% } %>
@@ -502,10 +517,11 @@
         <!-- PRICING PER DISTANCE SECTION -->
         <div id="pricing-step" class="form-section form-section-fees" tabindex="-1" data-wizard-step="pricing-step">
           <div class="section-kicker">Step 7 of 12</div>
-          <div class="section-title">Pricing Per Distance</div>
-          <p class="section-helper">Set whether this event is free or paid, and the registration fee for each distance or race category.</p>
-          <!-- pricingMode is a hidden field controlled by JS (per_distance or per_distance_period based on pricing-periods toggle) -->
-          <input type="hidden" id="pricingMode" name="pricingMode" value="<%= ['per_distance', 'per_distance_period'].includes(formData.pricingMode) ? formData.pricingMode : (formData.feeMode === 'paid' ? 'per_distance' : 'free') %>">
+          <div class="section-title">Pricing</div>
+          <p class="section-helper">Set whether this event is free or paid, then choose distance-based pricing or custom signup options.</p>
+          <% const pricingModeValue = ['distance_based', 'customized_options', 'distance_based_period', 'customized_options_period', 'package_period', 'per_distance', 'per_distance_period', 'same_fee'].includes(formData.pricingMode) ? formData.pricingMode : (formData.feeMode === 'paid' ? 'distance_based' : 'free'); %>
+          <% const pricingModeBase = pricingModeValue === 'package_period' ? 'package_period' : (['customized_options', 'customized_options_period', 'same_fee'].includes(pricingModeValue) ? 'customized_options' : 'distance_based'); %>
+          <input type="hidden" id="pricingMode" name="pricingMode" value="<%= pricingModeValue === 'per_distance' ? 'distance_based' : pricingModeValue === 'per_distance_period' ? 'distance_based_period' : pricingModeValue === 'same_fee' ? 'customized_options' : pricingModeValue %>">
           <div class="form-grid">
             <div class="form-group <%= errors.feeMode ? 'has-error' : '' %>">
               <label for="feeMode">Event Fee *</label>
@@ -520,23 +536,192 @@
               <input id="feeCurrency" name="feeCurrency" type="text" value="<%= formData.feeCurrency || 'PHP' %>" maxlength="3" placeholder="PHP">
               <% if (errors.feeCurrency) { %><small class="error-text"><%= errors.feeCurrency %></small><% } %>
             </div>
+            <div class="form-group payment-fields">
+              <label for="pricingType">Paid Pricing Type</label>
+              <select id="pricingType">
+                <option value="distance_based" <%= pricingModeBase === 'distance_based' ? 'selected' : '' %>>Based on distance</option>
+                <option value="customized_options" <%= pricingModeBase === 'customized_options' ? 'selected' : '' %>>Customized signup options</option>
+                <option value="package_period" <%= pricingModeBase === 'package_period' ? 'selected' : '' %>>Registration packages</option>
+              </select>
+              <small class="field-hint">Registration packages let runners choose an inclusion bundle with early, regular, or late prices.</small>
+            </div>
           </div>
           <p class="pricing-free-note field-hint" style="display:none;">&#10003; This event is free &mdash; runners will not be asked to pay or upload a payment receipt.</p>
           <!-- PER-DISTANCE PRICING (shown when feeMode is paid) -->
-          <div class="per-distance-fields payment-fields" style="display:none; margin-top:1.25rem;">
+          <div class="per-distance-fields payment-fields pricing-mode-panel" data-pricing-panel="distance_based" style="display:none; margin-top:1.25rem;">
             <div class="subsection-divider">Per-Distance Fees</div>
             <p class="field-hint" style="margin-bottom:0.75rem;">Set a fee for each race distance. Distances are populated from your Race Categories (Step 5). These fees override the base registration fee for individual distances.</p>
             <div class="pricing-periods-toggle" style="display:none; margin-bottom:0.75rem;">
               <label>
-                <input type="checkbox" id="enablePricingPeriods" <%= formData.pricingMode === 'per_distance_period' ? 'checked' : '' %>>
+                <input type="checkbox" id="enablePricingPeriods" <%= ['distance_based_period', 'per_distance_period'].includes(formData.pricingMode) ? 'checked' : '' %>>
                 Add early bird and late registration pricing
               </label>
               <small class="field-hint">When enabled, you can set different prices for early bird, regular, and late registration windows per distance.</small>
+            </div>
+            <div class="pricing-period-date-fields <%= errors.pricingPeriods ? 'has-error' : '' %>" style="display:none; margin-bottom:0.75rem;">
+              <div class="pricing-period-grid">
+                <div class="pricing-period-row">
+                  <span class="pricing-period-label">Early Bird</span>
+                  <input name="pricingPeriodEarlyBirdStartAt" type="datetime-local" value="<%= formData.pricingPeriodEarlyBirdStartAt || '' %>" aria-label="Early bird pricing start">
+                  <input name="pricingPeriodEarlyBirdEndAt" type="datetime-local" value="<%= formData.pricingPeriodEarlyBirdEndAt || '' %>" aria-label="Early bird pricing end">
+                  <span></span>
+                </div>
+                <div class="pricing-period-row">
+                  <span class="pricing-period-label">Regular</span>
+                  <input name="pricingPeriodRegularStartAt" type="datetime-local" value="<%= formData.pricingPeriodRegularStartAt || '' %>" aria-label="Regular pricing start">
+                  <input name="pricingPeriodRegularEndAt" type="datetime-local" value="<%= formData.pricingPeriodRegularEndAt || '' %>" aria-label="Regular pricing end">
+                  <span></span>
+                </div>
+                <div class="pricing-period-row">
+                  <span class="pricing-period-label">Late</span>
+                  <input name="pricingPeriodLateStartAt" type="datetime-local" value="<%= formData.pricingPeriodLateStartAt || '' %>" aria-label="Late pricing start">
+                  <input name="pricingPeriodLateEndAt" type="datetime-local" value="<%= formData.pricingPeriodLateEndAt || '' %>" aria-label="Late pricing end">
+                  <span></span>
+                </div>
+              </div>
+              <small class="field-hint">Pricing periods must be inside the registration window and cannot overlap.</small>
+              <% if (errors.pricingPeriods) { %><small class="error-text"><%= errors.pricingPeriods %></small><% } %>
             </div>
             <div id="perDistanceFeeRows" class="per-distance-fee-grid">
               <!-- JS populates rows: one per race category distance -->
               <p class="field-hint per-distance-empty-hint">No race distances selected yet. Add distances in Step 5, then come back here to set fees per distance.</p>
             </div>
+          </div>
+          <div class="customized-options-fields payment-fields pricing-mode-panel <%= errors.customizedOptions ? 'has-error' : '' %>" data-pricing-panel="customized_options" style="display:none; margin-top:1.25rem;">
+            <div class="subsection-divider">Customized Signup Options</div>
+            <p class="field-hint" style="margin-bottom:0.75rem;">Add the paid options runners can choose during signup. Example: 5K - Medal + Shirt + Race Kit.</p>
+            <div class="customized-option-grid">
+              <% const customizedOptions = (formData.customizedOptions && formData.customizedOptions.length ? formData.customizedOptions : [{}, {}, {}]).slice(0, 5); %>
+              <% customizedOptions.forEach(function(option, optionIndex) { %>
+                <div class="customized-option-row">
+                  <input name="customizedOptionShortDescription" type="text" maxlength="160" value="<%= option.shortDescription || '' %>" placeholder="Short description">
+                  <input name="customizedOptionAmount" type="number" min="0" step="0.01" value="<%= option.amount ?? '' %>" placeholder="Amount">
+                </div>
+                <% if (errors['customizedOptionShortDescription' + optionIndex]) { %><small class="error-text"><%= errors['customizedOptionShortDescription' + optionIndex] %></small><% } %>
+                <% if (errors['customizedOptionAmount' + optionIndex]) { %><small class="error-text"><%= errors['customizedOptionAmount' + optionIndex] %></small><% } %>
+              <% }) %>
+            </div>
+            <% if (errors.customizedOptions) { %><small class="error-text"><%= errors.customizedOptions %></small><% } %>
+          </div>
+          <div class="registration-package-fields payment-fields pricing-mode-panel <%= errors.registrationPackages ? 'has-error' : '' %>" data-pricing-panel="package_period" style="display:none; margin-top:1.25rem;">
+            <div class="subsection-divider">Registration Packages</div>
+            <p class="field-hint" style="margin-bottom:0.75rem;">Create runner-selectable bundles with package-specific early, regular, and late pricing windows.</p>
+            <% const registrationPackageRows = (formData.registrationPackages && formData.registrationPackages.length ? formData.registrationPackages : [{}, {}]).slice(0, 5); %>
+            <% function getPackagePricingPeriod(packageOption, code) { return ((packageOption && packageOption.pricingPeriods) || []).find(function(period) { return period.code === code; }) || {}; } %>
+            <div class="registration-package-actions">
+              <button type="button" class="btn btn-outline" id="addRegistrationPackageBtn">Add Package</button>
+            </div>
+            <div class="registration-package-grid" id="registrationPackageGrid">
+              <% registrationPackageRows.forEach(function(packageOption, packageIndex) { %>
+                <% const includedItems = packageOption.includedItems || {}; %>
+                <% const earlyPeriod = getPackagePricingPeriod(packageOption, 'early_bird'); %>
+                <% const regularPeriod = getPackagePricingPeriod(packageOption, 'regular'); %>
+                <% const latePeriod = getPackagePricingPeriod(packageOption, 'late'); %>
+                <div class="registration-package-card" data-registration-package-card data-package-index="<%= packageIndex %>">
+                  <input type="hidden" name="registrationPackageId" value="<%= packageOption.packageId || '' %>">
+                  <div class="registration-package-card-header">
+                    <strong data-registration-package-title>Package <%= packageIndex + 1 %></strong>
+                    <div class="registration-package-card-actions">
+                      <button type="button" class="btn btn-outline btn-suggest-pricing-dates" data-package-index="<%= packageIndex %>">Suggest dates</button>
+                      <button type="button" class="btn btn-outline btn-remove-registration-package" aria-label="Remove package <%= packageIndex + 1 %>">Remove</button>
+                    </div>
+                  </div>
+                  <div class="form-grid">
+                    <div class="form-group <%= errors['registrationPackageName' + packageIndex] ? 'has-error' : '' %>">
+                      <label>Package Name</label>
+                      <input name="registrationPackageName" type="text" maxlength="100" value="<%= packageOption.name || '' %>" placeholder="Medal + Shirt">
+                      <% if (errors['registrationPackageName' + packageIndex]) { %><small class="error-text"><%= errors['registrationPackageName' + packageIndex] %></small><% } %>
+                    </div>
+                    <div class="form-group">
+                      <label>Other Included Items</label>
+                      <input name="registrationPackageOtherItemNames" type="text" value="<%= (includedItems.otherItemNames || []).join(', ') %>" placeholder="Sticker, tote bag">
+                    </div>
+                  </div>
+                  <div class="checkbox-row registration-package-inclusions">
+                    <label><input type="checkbox" name="registrationPackageMedal_<%= packageIndex %>" value="1" <%= includedItems.medal ? 'checked' : '' %>> Medal</label>
+                    <label><input type="checkbox" name="registrationPackageShirt_<%= packageIndex %>" value="1" <%= includedItems.shirt ? 'checked' : '' %>> Shirt</label>
+                    <label><input type="checkbox" name="registrationPackagePatch_<%= packageIndex %>" value="1" <%= includedItems.patch ? 'checked' : '' %>> Patch</label>
+                    <label><input type="checkbox" name="registrationPackageTowel_<%= packageIndex %>" value="1" <%= includedItems.towel ? 'checked' : '' %>> Towel</label>
+                    <label><input type="checkbox" name="registrationPackageFinisherKit_<%= packageIndex %>" value="1" <%= includedItems.finisherKit ? 'checked' : '' %>> Finisher Kit</label>
+                  </div>
+                  <div class="pricing-period-grid">
+                    <div class="pricing-period-row">
+                      <span class="pricing-period-label">Early Bird</span>
+                      <input name="registrationPackageEarlyBirdStartAt" type="datetime-local" value="<%= earlyPeriod.startAt || '' %>" aria-label="Package <%= packageIndex + 1 %> early bird start">
+                      <input name="registrationPackageEarlyBirdEndAt" type="datetime-local" value="<%= earlyPeriod.endAt || '' %>" aria-label="Package <%= packageIndex + 1 %> early bird end">
+                      <input name="registrationPackageEarlyBirdAmount" type="number" min="0" step="0.01" value="<%= earlyPeriod.amount ?? '' %>" placeholder="Amount" aria-label="Package <%= packageIndex + 1 %> early bird amount">
+                    </div>
+                    <div class="pricing-period-row">
+                      <span class="pricing-period-label">Regular</span>
+                      <input name="registrationPackageRegularStartAt" type="datetime-local" value="<%= regularPeriod.startAt || '' %>" aria-label="Package <%= packageIndex + 1 %> regular start">
+                      <input name="registrationPackageRegularEndAt" type="datetime-local" value="<%= regularPeriod.endAt || '' %>" aria-label="Package <%= packageIndex + 1 %> regular end">
+                      <input name="registrationPackageRegularAmount" type="number" min="0" step="0.01" value="<%= regularPeriod.amount ?? '' %>" placeholder="Amount" aria-label="Package <%= packageIndex + 1 %> regular amount">
+                    </div>
+                    <div class="pricing-period-row">
+                      <span class="pricing-period-label">Late</span>
+                      <input name="registrationPackageLateStartAt" type="datetime-local" value="<%= latePeriod.startAt || '' %>" aria-label="Package <%= packageIndex + 1 %> late start">
+                      <input name="registrationPackageLateEndAt" type="datetime-local" value="<%= latePeriod.endAt || '' %>" aria-label="Package <%= packageIndex + 1 %> late end">
+                      <input name="registrationPackageLateAmount" type="number" min="0" step="0.01" value="<%= latePeriod.amount ?? '' %>" placeholder="Amount" aria-label="Package <%= packageIndex + 1 %> late amount">
+                    </div>
+                  </div>
+                  <% if (errors['registrationPackage' + packageIndex + 'PricingPeriods']) { %><small class="error-text"><%= errors['registrationPackage' + packageIndex + 'PricingPeriods'] %></small><% } %>
+                  <label class="registration-package-notes-label">Package Notes</label>
+                  <textarea name="registrationPackageNotes" rows="2" maxlength="500" placeholder="Optional package notes for runners."><%= packageOption.notes || '' %></textarea>
+                </div>
+              <% }) %>
+            </div>
+            <template id="registrationPackageTemplate">
+              <div class="registration-package-card" data-registration-package-card data-package-index="__INDEX__">
+                <input type="hidden" name="registrationPackageId" value="">
+                <div class="registration-package-card-header">
+                  <strong data-registration-package-title>Package __NUMBER__</strong>
+                  <div class="registration-package-card-actions">
+                    <button type="button" class="btn btn-outline btn-suggest-pricing-dates" data-package-index="__INDEX__">Suggest dates</button>
+                    <button type="button" class="btn btn-outline btn-remove-registration-package" aria-label="Remove package __NUMBER__">Remove</button>
+                  </div>
+                </div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label>Package Name</label>
+                    <input name="registrationPackageName" type="text" maxlength="100" value="" placeholder="Medal + Shirt">
+                  </div>
+                  <div class="form-group">
+                    <label>Other Included Items</label>
+                    <input name="registrationPackageOtherItemNames" type="text" value="" placeholder="Sticker, tote bag">
+                  </div>
+                </div>
+                <div class="checkbox-row registration-package-inclusions">
+                  <label><input type="checkbox" name="registrationPackageMedal___INDEX__" value="1"> Medal</label>
+                  <label><input type="checkbox" name="registrationPackageShirt___INDEX__" value="1"> Shirt</label>
+                  <label><input type="checkbox" name="registrationPackagePatch___INDEX__" value="1"> Patch</label>
+                  <label><input type="checkbox" name="registrationPackageTowel___INDEX__" value="1"> Towel</label>
+                  <label><input type="checkbox" name="registrationPackageFinisherKit___INDEX__" value="1"> Finisher Kit</label>
+                </div>
+                <div class="pricing-period-grid">
+                  <div class="pricing-period-row">
+                    <span class="pricing-period-label">Early Bird</span>
+                    <input name="registrationPackageEarlyBirdStartAt" type="datetime-local" value="" aria-label="Package __NUMBER__ early bird start">
+                    <input name="registrationPackageEarlyBirdEndAt" type="datetime-local" value="" aria-label="Package __NUMBER__ early bird end">
+                    <input name="registrationPackageEarlyBirdAmount" type="number" min="0" step="0.01" value="" placeholder="Amount" aria-label="Package __NUMBER__ early bird amount">
+                  </div>
+                  <div class="pricing-period-row">
+                    <span class="pricing-period-label">Regular</span>
+                    <input name="registrationPackageRegularStartAt" type="datetime-local" value="" aria-label="Package __NUMBER__ regular start">
+                    <input name="registrationPackageRegularEndAt" type="datetime-local" value="" aria-label="Package __NUMBER__ regular end">
+                    <input name="registrationPackageRegularAmount" type="number" min="0" step="0.01" value="" placeholder="Amount" aria-label="Package __NUMBER__ regular amount">
+                  </div>
+                  <div class="pricing-period-row">
+                    <span class="pricing-period-label">Late</span>
+                    <input name="registrationPackageLateStartAt" type="datetime-local" value="" aria-label="Package __NUMBER__ late start">
+                    <input name="registrationPackageLateEndAt" type="datetime-local" value="" aria-label="Package __NUMBER__ late end">
+                    <input name="registrationPackageLateAmount" type="number" min="0" step="0.01" value="" placeholder="Amount" aria-label="Package __NUMBER__ late amount">
+                  </div>
+                </div>
+                <label class="registration-package-notes-label">Package Notes</label>
+                <textarea name="registrationPackageNotes" rows="2" maxlength="500" placeholder="Optional package notes for runners."></textarea>
+              </div>
+            </template>
+            <% if (errors.registrationPackages) { %><small class="error-text"><%= errors.registrationPackages %></small><% } %>
           </div>
         </div>
 
@@ -550,8 +735,9 @@
             <div class="form-grid">
               <div class="form-group">
                 <label for="paymentAccountName">Account Name</label>
-                <input id="paymentAccountName" name="paymentAccountName" type="text" value="<%= formData.paymentAccountName || '' %>" placeholder="Optional">
-                <small class="field-hint">Name associated with your GCash, bank, or payment account.</small>
+                <input id="paymentAccountName" name="paymentAccountName" type="text" value="<%= formData.paymentAccountName || '' %>" placeholder="Required for paid events">
+                <small class="field-hint">Name associated with your GCash, bank, or payment account. Required before submitting a paid event for review.</small>
+                <% if (errors.paymentAccountName) { %><small class="error-text"><%= errors.paymentAccountName %></small><% } %>
               </div>
               <div class="form-group form-group-full <%= errors.paymentQrImageUrl ? 'has-error' : '' %>">
                 <label for="paymentQrImageFile">Payment QR Image <span class="field-help-icon" tabindex="0" aria-label="Upload a QR code image that runners will use to complete payment. Required for paid events before submitting for review.">?</span></label>
@@ -798,7 +984,27 @@
           <div class="section-title">Preview and Submit</div>
           <p class="section-helper">Save an incomplete draft at any time, preview the event page, or submit complete setup for admin review.</p>
           <div id="submitReadinessChecklist" class="submit-readiness-checklist" aria-live="polite">
-            <!-- JS populates readiness check items when this step becomes visible -->
+            <% const initialReadiness = typeof readinessChecklist !== 'undefined' ? readinessChecklist : { ready: false, missingCount: 0, items: [] }; %>
+            <p class="<%= initialReadiness.ready ? 'readiness-all-clear' : 'readiness-incomplete' %>">
+              <%= initialReadiness.ready ? 'All required fields are complete. Ready to submit for review.' : `${initialReadiness.missingCount || 0} required item${(initialReadiness.missingCount || 0) === 1 ? '' : 's'} still needed before submitting for review.` %>
+            </p>
+            <% (initialReadiness.items || []).forEach(function(item) { %>
+              <div class="readiness-item <%= item.ok ? 'readiness-ok' : 'readiness-missing' %>">
+                <span class="readiness-icon" aria-hidden="true"><%= item.ok ? 'OK' : 'Missing' %></span>
+                <span class="readiness-label"><%= item.label %></span>
+              </div>
+            <% }) %>
+          </div>
+          <div class="review-summary-grid" id="reviewSummaryGrid" aria-live="polite">
+            <% const summaryCards = typeof reviewSummary !== 'undefined' ? reviewSummary : []; %>
+            <% summaryCards.forEach(function(card) { %>
+              <article class="review-summary-card">
+                <h3><%= card.title %></h3>
+                <% (card.rows || []).forEach(function(row) { %>
+                  <p><strong><%= row.label %></strong><span><%= row.value || 'Not set' %></span></p>
+                <% }) %>
+              </article>
+            <% }) %>
           </div>
           <div class="review-summary-notes">
             <p class="field-hint">&#128396; <strong>Save Draft</strong> requires only a valid event title.</p>
@@ -835,7 +1041,7 @@
               <li><a href="#location-virtual-step" data-overlay-step="location-virtual-step"><span class="overlay-step-num">4</span> Location or Virtual Rules</a></li>
               <li><a href="#race-categories-step" data-overlay-step="race-categories-step"><span class="overlay-step-num">5</span> Race Categories</a></li>
               <li><a href="#rewards-step" data-overlay-step="rewards-step"><span class="overlay-step-num">6</span> Rewards &amp; Inclusions</a></li>
-              <li><a href="#pricing-step" data-overlay-step="pricing-step"><span class="overlay-step-num">7</span> Pricing Per Distance</a></li>
+              <li><a href="#pricing-step" data-overlay-step="pricing-step"><span class="overlay-step-num">7</span> Pricing</a></li>
               <li><a href="#payment-setup-step" data-overlay-step="payment-setup-step"><span class="overlay-step-num">8</span> Payment Setup</a></li>
               <li><a href="#event-details-step" data-overlay-step="event-details-step"><span class="overlay-step-num">9</span> Event Details</a></li>
               <li><a href="#media-step" data-overlay-step="media-step"><span class="overlay-step-num">10</span> Branding &amp; Media</a></li>
@@ -902,7 +1108,9 @@
       const raceDistanceCustomInput = document.getElementById('raceDistanceCustom');
       const raceDistancePresetInputs = Array.from(document.querySelectorAll('input[name="raceDistancePresets"]'));
       const feeModeSelect = document.getElementById('feeMode');
+      const pricingTypeSelect = document.getElementById('pricingType');
       const paymentFields = Array.from(document.querySelectorAll('.payment-fields'));
+      const pricingPanels = Array.from(document.querySelectorAll('[data-pricing-panel]'));
       const physicalRewardsEnabledInput = document.getElementById('physicalRewardsEnabled');
       const physicalRewardFields = Array.from(document.querySelectorAll('.physical-reward-fields'));
       const paymentReviewNote = document.querySelector('.payment-review-note');
@@ -919,7 +1127,7 @@
         'location-virtual-step': { num: 4,  label: 'Location / Virtual' },
         'race-categories-step':  { num: 5,  label: 'Race Categories' },
         'rewards-step':          { num: 6,  label: 'Rewards & Inclusions' },
-        'pricing-step':          { num: 7,  label: 'Pricing Per Distance' },
+        'pricing-step':          { num: 7,  label: 'Pricing' },
         'payment-setup-step':    { num: 8,  label: 'Payment Setup' },
         'event-details-step':    { num: 9,  label: 'Event Details' },
         'media-step':            { num: 10, label: 'Branding & Media' },
@@ -1003,6 +1211,48 @@
         }
       });
 
+      function getSelectedPricingType() {
+        if (pricingTypeSelect?.value === 'customized_options') return 'customized_options';
+        if (pricingTypeSelect?.value === 'package_period') return 'package_period';
+        return 'distance_based';
+      }
+
+      function syncPricingModeInput() {
+        const pricingModeInput = document.getElementById('pricingMode');
+        if (!pricingModeInput) return;
+        const isPaid = feeModeSelect?.value === 'paid';
+        if (!isPaid) {
+          pricingModeInput.value = 'free';
+          return;
+        }
+        const selectedPricingType = getSelectedPricingType();
+        if (selectedPricingType === 'package_period') {
+          pricingModeInput.value = 'package_period';
+          return;
+        }
+        pricingModeInput.value = selectedPricingType === 'distance_based' && document.getElementById('enablePricingPeriods')?.checked
+          ? 'distance_based_period'
+          : selectedPricingType;
+      }
+
+      function togglePricingPanels() {
+        const isPaid = feeModeSelect?.value === 'paid';
+        const selectedPricingType = getSelectedPricingType();
+        pricingPanels.forEach((panel) => {
+          panel.style.display = isPaid && panel.dataset.pricingPanel === selectedPricingType ? '' : 'none';
+        });
+        const periodsToggle = document.querySelector('.pricing-periods-toggle');
+        const periodDateFields = document.querySelector('.pricing-period-date-fields');
+        if (periodsToggle) {
+          periodsToggle.style.display = isPaid && selectedPricingType === 'distance_based' ? '' : 'none';
+        }
+        if (periodDateFields) {
+          periodDateFields.style.display = isPaid && selectedPricingType === 'distance_based' && document.getElementById('enablePricingPeriods')?.checked ? '' : 'none';
+        }
+        syncPricingModeInput();
+        if (isPaid && selectedPricingType === 'distance_based') rebuildPerDistanceFeeRows();
+      }
+
       function togglePaymentFields() {
         const isPaid = feeModeSelect?.value === 'paid';
         paymentFields.forEach((field) => {
@@ -1010,66 +1260,84 @@
         });
         const paymentFreeNote = document.querySelector('.payment-free-note');
         if (paymentFreeNote) paymentFreeNote.style.display = isPaid ? 'none' : '';
-        // Sync pricingMode hidden field: free when not paid, otherwise per_distance or per_distance_period
-        const pricingModeInput = document.getElementById('pricingMode');
-        if (pricingModeInput) {
-          if (!isPaid) {
-            pricingModeInput.value = 'free';
-          } else if (pricingModeInput.value === 'free') {
-            // Default paid events to per_distance unless pricing periods are enabled
-            const periodsChecked = document.getElementById('enablePricingPeriods')?.checked;
-            pricingModeInput.value = periodsChecked ? 'per_distance_period' : 'per_distance';
-          }
-        }
-        // Show/hide per-distance pricing section and pricing free note in Step 7
-        const perDistanceFieldsEl = document.querySelector('.per-distance-fields');
-        if (perDistanceFieldsEl) perDistanceFieldsEl.style.display = isPaid ? '' : 'none';
         const pricingFreeNote = document.querySelector('.pricing-free-note');
         if (pricingFreeNote) pricingFreeNote.style.display = isPaid ? 'none' : '';
-        // Rebuild per-distance rows whenever paid state changes
-        if (isPaid) rebuildPerDistanceFeeRows();
+        togglePricingPanels();
       }
       feeModeSelect?.addEventListener('change', togglePaymentFields);
+      pricingTypeSelect?.addEventListener('change', togglePricingPanels);
       togglePaymentFields();
 
-      // Pricing periods toggle: switches pricingMode between per_distance and per_distance_period
+      // Pricing periods toggle: switches pricingMode between distance_based and distance_based_period.
       const enablePricingPeriodsCheckbox = document.getElementById('enablePricingPeriods');
       function onEnablePricingPeriodsChange() {
-        const pricingModeInput = document.getElementById('pricingMode');
-        if (!pricingModeInput) return;
-        const isPaid = feeModeSelect?.value === 'paid';
-        if (!isPaid) return;
-        pricingModeInput.value = enablePricingPeriodsCheckbox?.checked ? 'per_distance_period' : 'per_distance';
+        syncPricingModeInput();
+        togglePricingPanels();
         rebuildPerDistanceFeeRows();
       }
       enablePricingPeriodsCheckbox?.addEventListener('change', onEnablePricingPeriodsChange);
 
       // ---------- PER-DISTANCE FEE ROW BUILDER ----------
-      const EXISTING_DISTANCE_PRICING = <%- JSON.stringify((formData.distancePricing || []).map(function(d) { return { distance: d.distance, amount: d.amount, earlyBirdAmount: d.earlyBirdAmount, regularAmount: d.regularAmount, lateAmount: d.lateAmount }; })) %>;
+      const EXISTING_DISTANCE_PRICING = <%- JSON.stringify((formData.distancePricing || []).map(function(d) { return { categoryId: d.categoryId || '', distance: d.distance, amount: d.amount, earlyBirdAmount: d.earlyBirdAmount, regularAmount: d.regularAmount, lateAmount: d.lateAmount }; })) %>;
+
+      function normalizeDistanceLabel(value) {
+        const raw = String(value || '').trim();
+        const compact = raw.toUpperCase().replace(/\s+/g, '');
+        const numericOnly = compact.match(/^(\d+(?:\.\d+)?)$/);
+        if (numericOnly) return `${numericOnly[1]}K`;
+        const kmValue = compact.match(/^(\d+(?:\.\d+)?)(KM|K)$/);
+        if (kmValue) return `${kmValue[1]}K`;
+        return raw.toUpperCase().replace(/\s+/g, ' ');
+      }
+
+      function getActiveRaceCategories() {
+        return Array.from(document.querySelectorAll('[data-race-category-row]'))
+          .map((row, index) => {
+            const idInput = row.querySelector('input[name="raceCategoryId"]');
+            const name = row.querySelector('input[name="raceCategoryName"]')?.value?.trim() || '';
+            const label = normalizeDistanceLabel(row.querySelector('input[name="raceCategoryDistanceLabel"]')?.value || name);
+            if (!idInput.value) idInput.value = `cat-${index + 1}-${(label || name || 'category').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}`;
+            return { id: idInput.value, label, name };
+          })
+          .filter((category) => category.label || category.name);
+      }
 
       function getActiveDistances() {
-        function normalizeDistanceLabel(value) {
-          const compact = String(value || '').trim().toUpperCase().replace(/\s+/g, '');
-          const numericOnly = compact.match(/^(\d+(?:\.\d+)?)$/);
-          if (numericOnly) return `${numericOnly[1]}K`;
-          const kmValue = compact.match(/^(\d+(?:\.\d+)?)(KM|K)$/);
-          if (kmValue) return `${kmValue[1]}K`;
-          return compact;
-        }
-        const presets = Array.from(document.querySelectorAll('input[name="raceDistancePresets"]:checked'))
-          .map((cb) => normalizeDistanceLabel(cb.value));
-        const customRaw = document.getElementById('raceDistanceCustom')?.value || '';
-        const customs = customRaw.split(',').map(normalizeDistanceLabel).filter(Boolean);
         const seen = new Set();
-        return [...presets, ...customs].filter((d) => { if (seen.has(d)) return false; seen.add(d); return Boolean(d); });
+        return getActiveRaceCategories()
+          .map((category) => category.label || normalizeDistanceLabel(category.name))
+          .filter((d) => { if (seen.has(d)) return false; seen.add(d); return Boolean(d); });
+      }
+
+      function syncLegacyRaceDistanceFields() {
+        const container = document.getElementById('legacyRaceDistanceFields');
+        if (!container) return;
+        const presets = new Set(['3K', '5K', '10K', '21K']);
+        const distances = getActiveDistances();
+        container.innerHTML = '';
+        const custom = [];
+        distances.forEach((distance) => {
+          if (presets.has(distance)) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'raceDistancePresets';
+            input.value = distance;
+            container.appendChild(input);
+          } else {
+            custom.push(distance);
+          }
+        });
+        const customInput = document.getElementById('raceDistanceCustom');
+        if (customInput) customInput.value = custom.join(', ');
       }
 
       function rebuildPerDistanceFeeRows() {
         const container = document.getElementById('perDistanceFeeRows');
         if (!container) return;
         const periodsToggle = document.querySelector('.pricing-periods-toggle');
-        const distances = getActiveDistances();
-        if (!distances.length) {
+        const categories = getActiveRaceCategories();
+        syncLegacyRaceDistanceFields();
+        if (!categories.length) {
           container.innerHTML = '<p class="field-hint per-distance-empty-hint">No race distances selected yet. Add distances in Step 5, then come back here to set fees per distance.</p>';
           if (periodsToggle) periodsToggle.style.display = 'none';
           return;
@@ -1100,8 +1368,9 @@
           container.appendChild(header);
         }
 
-        distances.forEach((dist) => {
-          const existing = EXISTING_DISTANCE_PRICING.find((d) => d.distance === dist) || {};
+        categories.forEach((category) => {
+          const dist = category.label || normalizeDistanceLabel(category.name);
+          const existing = EXISTING_DISTANCE_PRICING.find((d) => d.categoryId === category.id || d.distance === dist) || {};
           const cur = saved[dist] || {};
           const val = (curVal, savedVal) => curVal !== undefined && curVal !== ''
             ? curVal
@@ -1113,6 +1382,7 @@
           if (usePeriods) {
             row.innerHTML = `
               <label>${dist}</label>
+              <input type="hidden" name="distancePricingCategoryId" value="${category.id}">
               <input type="hidden" name="distancePricingLabel" value="${dist}">
               <input type="hidden" name="distancePricingAmount" value="">
               <input type="number" name="distancePricingEarlyBirdAmount" min="0" step="0.01"
@@ -1126,6 +1396,7 @@
           } else {
             row.innerHTML = `
               <label>${dist}</label>
+              <input type="hidden" name="distancePricingCategoryId" value="${category.id}">
               <input type="hidden" name="distancePricingLabel" value="${dist}">
               <input type="number" name="distancePricingAmount" min="0" step="0.01"
                 value="${val(cur.amount || cur.regular, existing.amount)}" placeholder="0.00" aria-label="Fee for ${dist}">
@@ -1139,10 +1410,52 @@
         });
       }
 
-      // Rebuild whenever Step 5 distance inputs change
-      document.querySelectorAll('input[name="raceDistancePresets"]').forEach((cb) => {
-        cb.addEventListener('change', () => { if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows(); });
+      function bindRaceCategoryRow(row) {
+        row.querySelector('.remove-race-category-btn')?.addEventListener('click', () => {
+          if (document.querySelectorAll('[data-race-category-row]').length > 1) row.remove();
+          syncLegacyRaceDistanceFields();
+          if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows();
+        });
+        row.querySelectorAll('input, select').forEach((input) => {
+          input.addEventListener('input', () => {
+            syncLegacyRaceDistanceFields();
+            if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows();
+          });
+          input.addEventListener('change', () => {
+            syncLegacyRaceDistanceFields();
+            if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows();
+          });
+        });
+      }
+
+      document.querySelectorAll('[data-race-category-row]').forEach(bindRaceCategoryRow);
+      document.getElementById('addRaceCategoryBtn')?.addEventListener('click', () => {
+        const rows = document.getElementById('raceCategoryRows');
+        if (!rows || rows.querySelectorAll('[data-race-category-row]').length >= 12) return;
+        const row = document.createElement('div');
+        row.className = 'race-category-card customized-option-row';
+        row.setAttribute('data-race-category-row', '');
+        row.innerHTML = `
+          <input type="hidden" name="raceCategoryId" value="">
+          <input name="raceCategoryName" type="text" maxlength="100" value="" placeholder="Category name">
+          <select name="raceCategoryType" aria-label="Category type">
+            <option value="distance" selected>Distance</option>
+            <option value="challenge">Challenge</option>
+            <option value="open">Open</option>
+            <option value="other">Other</option>
+          </select>
+          <input name="raceCategoryDistanceLabel" type="text" maxlength="30" value="" placeholder="Distance label, e.g. 10K">
+          <input name="raceCategoryDistanceKm" type="number" min="0" step="0.01" value="" placeholder="KM">
+          <input name="raceCategorySlots" type="number" min="0" step="1" value="" placeholder="Slots">
+          <input name="raceCategoryCutoffTime" type="text" maxlength="80" value="" placeholder="Cut-off time">
+          <input name="raceCategoryAgeGroup" type="text" maxlength="80" value="" placeholder="Age group">
+          <input name="raceCategoryRewardsDescription" type="text" maxlength="500" value="" placeholder="Category reward note">
+          <button type="button" class="btn btn-secondary remove-race-category-btn">Remove</button>
+        `;
+        rows.appendChild(row);
+        bindRaceCategoryRow(row);
       });
+      syncLegacyRaceDistanceFields();
       document.getElementById('raceDistanceCustom')?.addEventListener('input', () => {
         if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows();
       });
@@ -1176,9 +1489,58 @@
       });
 
       // ---------- REVIEW STEP READINESS CHECKLIST ----------
-      function buildReadinessChecklist() {
+      function escapeReviewHtml(value) {
+        return String(value ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function renderReadinessChecklist(readiness) {
         const checklist = document.getElementById('submitReadinessChecklist');
         if (!checklist) return;
+        const items = Array.isArray(readiness?.items) ? readiness.items : [];
+        const missingCount = Number(readiness?.missingCount || items.filter((item) => !item.ok).length);
+        const summary = readiness?.ready
+          ? '<p class="readiness-all-clear">&#10003; All required fields are complete. Ready to submit for review.</p>'
+          : `<p class="readiness-incomplete">&#9888; ${missingCount} required item${missingCount === 1 ? '' : 's'} still needed before submitting for review.</p>`;
+        checklist.innerHTML = summary + items.map((item) =>
+          `<div class="readiness-item ${item.ok ? 'readiness-ok' : 'readiness-missing'}">
+            <span class="readiness-icon" aria-hidden="true">${item.ok ? '&#10003;' : '&#10007;'}</span>
+            <span class="readiness-label">${escapeReviewHtml(item.label)}</span>
+          </div>`
+        ).join('');
+      }
+
+      function renderReviewSummary(cards) {
+        const grid = document.getElementById('reviewSummaryGrid');
+        if (!grid || !Array.isArray(cards)) return;
+        grid.innerHTML = cards.map((card) => (
+          `<article class="review-summary-card">
+            <h3>${escapeReviewHtml(card.title)}</h3>
+            ${(Array.isArray(card.rows) ? card.rows : []).map((row) => (
+              `<p><strong>${escapeReviewHtml(row.label)}</strong><span>${escapeReviewHtml(row.value || 'Not set')}</span></p>`
+            )).join('')}
+          </article>`
+        )).join('');
+      }
+
+      function collectReadinessParams() {
+        const data = new FormData(form);
+        for (const key of Array.from(data.keys())) {
+          const value = data.get(key);
+          if (value instanceof File) data.delete(key);
+        }
+        const params = new URLSearchParams();
+        for (const [key, value] of data.entries()) {
+          params.append(key, value);
+        }
+        return params;
+      }
+
+      function buildLocalReadinessChecklist() {
         const checks = [
           { label: 'Event title',               ok: (document.getElementById('title')?.value?.trim().length || 0) >= 3 },
           { label: 'Event type',                ok: !!document.getElementById('eventType')?.value },
@@ -1187,23 +1549,58 @@
           { label: 'Event end date',            ok: !!document.getElementById('eventEndAt')?.value },
           { label: 'Registration open date',   ok: !!document.getElementById('registrationOpenAt')?.value },
           { label: 'Registration close date',  ok: !!document.getElementById('registrationCloseAt')?.value },
+          { label: 'Race category',            ok: getActiveRaceCategories().length > 0 },
         ];
         const isPaid = document.getElementById('feeMode')?.value === 'paid';
         if (isPaid) {
           const hasQr = !!(document.getElementById('paymentQrImageUrl')?.value || document.getElementById('paymentQrImageFile')?.files?.length);
           checks.push({ label: 'Payment QR image (required for paid events)', ok: hasQr });
+          checks.push({ label: 'Payment account name', ok: Boolean(document.getElementById('paymentAccountName')?.value?.trim()) });
+          const pricingType = getSelectedPricingType();
+          if (pricingType === 'customized_options') {
+            const hasCustomOption = Array.from(document.querySelectorAll('.customized-option-row')).some((row) => {
+              const description = row.querySelector('input[name="customizedOptionShortDescription"]')?.value?.trim();
+              const amount = Number(row.querySelector('input[name="customizedOptionAmount"]')?.value || 0);
+              return Boolean(description) && Number.isFinite(amount) && amount > 0;
+            });
+            checks.push({ label: 'At least one custom signup option', ok: hasCustomOption });
+          }
         }
-        const allOk = checks.every(c => c.ok);
-        const summary = allOk
-          ? '<p class="readiness-all-clear">&#10003; All required fields are complete. Ready to submit for review.</p>'
-          : `<p class="readiness-incomplete">&#9888; ${checks.filter(c => !c.ok).length} required item${checks.filter(c => !c.ok).length === 1 ? '' : 's'} still needed before submitting for review.</p>`;
-        checklist.innerHTML = summary + checks.map(c =>
-          `<div class="readiness-item ${c.ok ? 'readiness-ok' : 'readiness-missing'}">
-            <span class="readiness-icon" aria-hidden="true">${c.ok ? '&#10003;' : '&#10007;'}</span>
-            <span class="readiness-label">${c.label}</span>
-          </div>`
-        ).join('');
+        renderReadinessChecklist({
+          ready: checks.every((item) => item.ok),
+          missingCount: checks.filter((item) => !item.ok).length,
+          items: checks
+        });
       }
+
+      async function refreshReadinessFromServer() {
+        try {
+          const response = await fetch('/organizer/event-readiness', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: collectReadinessParams().toString()
+          });
+          const result = await response.json();
+          if (!response.ok || !result.ok) throw new Error(result.message || 'Readiness refresh failed.');
+          renderReadinessChecklist(result.readinessChecklist);
+          renderReviewSummary(result.reviewSummary);
+        } catch (_) {
+          buildLocalReadinessChecklist();
+        }
+      }
+
+      let readinessRefreshTimer = null;
+      function buildReadinessChecklist() {
+        buildLocalReadinessChecklist();
+        window.clearTimeout(readinessRefreshTimer);
+        readinessRefreshTimer = window.setTimeout(refreshReadinessFromServer, 250);
+      }
+      form.addEventListener('input', () => {
+        if (document.querySelector('[data-step-link="review-step"]')?.classList.contains('is-active')) buildReadinessChecklist();
+      });
+      form.addEventListener('change', () => {
+        if (document.querySelector('[data-step-link="review-step"]')?.classList.contains('is-active')) buildReadinessChecklist();
+      });
 
       function toggleSections() {
         const val = eventTypeSelect.value;
@@ -1329,6 +1726,107 @@
         eventEndInput.addEventListener('change', syncFinalSubmissionDeadlineFromEventEnd);
       }
       syncFinalSubmissionDeadlineFromEventEnd();
+
+      function getIndexedInput(name, index) {
+        return Array.from(document.querySelectorAll(`input[name="${name}"]`))[Number(index)] || null;
+      }
+
+      function setIndexedDateInput(name, index, date) {
+        const input = getIndexedInput(name, index);
+        if (!input || !date) return;
+        input.value = formatDateTimeLocalValue(date);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      function applySuggestedPricingDates(packageIndex) {
+        const registrationOpen = parseDateTimeLocalValue(document.getElementById('registrationOpenAt')?.value);
+        const registrationClose = parseDateTimeLocalValue(document.getElementById('registrationCloseAt')?.value);
+        if (!registrationOpen || !registrationClose || registrationOpen >= registrationClose) {
+          alert('Set a valid Registration Open and Registration Close before using suggested pricing dates.');
+          return;
+        }
+
+        const dayMs = 24 * 60 * 60 * 1000;
+        if (registrationClose.getTime() - registrationOpen.getTime() <= 21 * dayMs) {
+          alert('Suggested Early Bird, Regular, and Late Registration periods need more than 21 days between registration open and close.');
+          return;
+        }
+
+        const earlyEnd = new Date(registrationOpen.getTime() + 14 * dayMs);
+        const lateStart = new Date(registrationClose.getTime() - 7 * dayMs);
+        setIndexedDateInput('registrationPackageEarlyBirdStartAt', packageIndex, registrationOpen);
+        setIndexedDateInput('registrationPackageEarlyBirdEndAt', packageIndex, earlyEnd);
+        setIndexedDateInput('registrationPackageRegularStartAt', packageIndex, earlyEnd);
+        setIndexedDateInput('registrationPackageRegularEndAt', packageIndex, lateStart);
+        setIndexedDateInput('registrationPackageLateStartAt', packageIndex, lateStart);
+        setIndexedDateInput('registrationPackageLateEndAt', packageIndex, registrationClose);
+      }
+
+      const registrationPackageGrid = document.getElementById('registrationPackageGrid');
+      const registrationPackageTemplate = document.getElementById('registrationPackageTemplate');
+      const addRegistrationPackageBtn = document.getElementById('addRegistrationPackageBtn');
+
+      function getRegistrationPackageCards() {
+        return Array.from(registrationPackageGrid?.querySelectorAll('[data-registration-package-card]') || []);
+      }
+
+      function updateRegistrationPackageIndexes() {
+        getRegistrationPackageCards().forEach((card, index) => {
+          const number = index + 1;
+          card.dataset.packageIndex = String(index);
+          const title = card.querySelector('[data-registration-package-title]');
+          if (title) title.textContent = `Package ${number}`;
+          const suggestButton = card.querySelector('.btn-suggest-pricing-dates');
+          if (suggestButton) suggestButton.dataset.packageIndex = String(index);
+          const removeButton = card.querySelector('.btn-remove-registration-package');
+          if (removeButton) removeButton.setAttribute('aria-label', `Remove package ${number}`);
+          [
+            ['registrationPackageMedal_', 'medal'],
+            ['registrationPackageShirt_', 'shirt'],
+            ['registrationPackagePatch_', 'patch'],
+            ['registrationPackageTowel_', 'towel'],
+            ['registrationPackageFinisherKit_', 'finisher kit']
+          ].forEach(([prefix]) => {
+            const input = Array.from(card.querySelectorAll('input[type="checkbox"]')).find((checkbox) => checkbox.name.startsWith(prefix));
+            if (input) input.name = `${prefix}${index}`;
+          });
+        });
+      }
+
+      function addRegistrationPackageCard() {
+        if (!registrationPackageGrid || !registrationPackageTemplate) return;
+        const nextIndex = getRegistrationPackageCards().length;
+        if (nextIndex >= 10) {
+          alert('You can add up to 10 registration packages.');
+          return;
+        }
+        const html = registrationPackageTemplate.innerHTML
+          .replace(/__INDEX__/g, String(nextIndex))
+          .replace(/__NUMBER__/g, String(nextIndex + 1));
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = html.trim();
+        registrationPackageGrid.appendChild(wrapper.firstElementChild);
+        updateRegistrationPackageIndexes();
+      }
+
+      function removeRegistrationPackageCard(card) {
+        if (!card) return;
+        card.remove();
+        updateRegistrationPackageIndexes();
+      }
+
+      registrationPackageGrid?.addEventListener('click', (event) => {
+        const suggestButton = event.target.closest('.btn-suggest-pricing-dates');
+        if (suggestButton) {
+          applySuggestedPricingDates(suggestButton.dataset.packageIndex);
+          return;
+        }
+        const removeButton = event.target.closest('.btn-remove-registration-package');
+        if (removeButton) removeRegistrationPackageCard(removeButton.closest('[data-registration-package-card]'));
+      });
+      addRegistrationPackageBtn?.addEventListener('click', addRegistrationPackageCard);
+      updateRegistrationPackageIndexes();
 
       // ---------- "NOW" BUTTONS ----------
       document.querySelectorAll('.btn-now').forEach(btn => {
@@ -1456,17 +1954,36 @@
                 okClass: 'draft-confirm-btn--primary'
               })
             : Promise.resolve(window.confirm('Preview current setup?'));
-          confirmPreview.then((confirmed) => {
+          confirmPreview.then(async (confirmed) => {
           if (!confirmed) return;
+          const previewWindow = window.open('', '_blank');
+          const data = new FormData(form);
+          data.set('previewSource', 'create');
+          for (const key of Array.from(data.keys())) {
+            const value = data.get(key);
+            if (value instanceof File) data.delete(key);
+          }
           const params = new URLSearchParams();
-          params.set('previewSource', 'create');
-          form.querySelectorAll('input:not([type=file]):not([type=checkbox]):not([type=radio]), select, textarea').forEach(el => {
-            if (el.name && el.value) params.append(el.name, el.value);
-          });
-          form.querySelectorAll('input[type=checkbox]:checked').forEach(el => {
-            if (el.name) params.append(el.name, el.value || '1');
-          });
-          window.open('/organizer/preview-event?' + params.toString(), '_blank');
+          for (const [key, value] of data.entries()) {
+            params.append(key, value);
+          }
+          try {
+            const response = await fetch('/organizer/preview-event', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: params.toString()
+            });
+            const result = await response.json();
+            if (!response.ok || !result.previewUrl) throw new Error(result.message || 'Preview failed.');
+            if (previewWindow) {
+              previewWindow.location.href = result.previewUrl;
+            } else {
+              window.open(result.previewUrl, '_blank');
+            }
+          } catch (error) {
+            if (previewWindow) previewWindow.close();
+            window.alert(error.message || 'Unable to open preview.');
+          }
           });
         });
       }

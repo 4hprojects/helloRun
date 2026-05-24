@@ -9,6 +9,8 @@
   <%- include('../layouts/nav') %>
   <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
   <% const visibleRegistrationAddOns = Array.isArray(registrationAddOns) ? registrationAddOns : []; %>
+  <% const visibleCustomizedOptions = Array.isArray(customizedRegistrationOptions) ? customizedRegistrationOptions : []; %>
+  <% const visibleRegistrationPackages = event.pricingMode === 'package_period' && Array.isArray(registrationPackageOptions) ? registrationPackageOptions : []; %>
 
   <main class="event-register-page">
     <section class="event-register-shell">
@@ -42,6 +44,18 @@
             <p><strong>Participation Mode</strong><span><%= existingRegistration.participationMode || 'N/A' %></span></p>
             <p><strong>Status</strong><span><%= existingRegistration.status || 'N/A' %></span></p>
             <p><strong>Payment Status</strong><span><%= existingRegistration.paymentStatus || 'N/A' %></span></p>
+            <% if (Number(existingRegistration.paymentAmountDue || 0) > 0) { %>
+              <p><strong>Expected Payment</strong><span><%= existingRegistration.paymentCurrency || event.feeCurrency || 'PHP' %> <%= Number(existingRegistration.paymentAmountDue || 0).toFixed(2) %></span></p>
+            <% } %>
+            <% if (existingRegistration.pricingSnapshot?.optionDescription) { %>
+              <p><strong>Signup Option</strong><span><%= existingRegistration.pricingSnapshot.optionDescription %></span></p>
+            <% } %>
+            <% if (existingRegistration.pricingSnapshot?.packageName) { %>
+              <p><strong>Registration Package</strong><span><%= existingRegistration.pricingSnapshot.packageName %></span></p>
+            <% } %>
+            <% if (existingRegistration.pricingSnapshot?.pricingPeriodLabel) { %>
+              <p><strong>Pricing Period</strong><span><%= existingRegistration.pricingSnapshot.pricingPeriodLabel %></span></p>
+            <% } %>
             <p><strong>Registered At</strong><span><%= existingRegistration.registeredAt ? new Date(existingRegistration.registeredAt).toLocaleString('en-US') : 'N/A' %></span></p>
           </div>
           <div class="register-actions">
@@ -73,12 +87,67 @@
                 <label for="raceDistance">Race Distance *</label>
                 <select id="raceDistance" name="raceDistance" <%= registrationWindowError ? 'disabled' : '' %>>
                   <% sortedRaceDistances.forEach((distance) => { %>
-                    <option value="<%= distance %>" <%= formData.raceDistance === distance ? 'selected' : '' %>><%= distance %></option>
+                    <% const matchingCategory = (raceCategoryOptions || []).find(function(category) { return String(category.distanceLabel || category.name || '').toUpperCase() === String(distance || '').toUpperCase(); }); %>
+                    <option value="<%= distance %>" <%= formData.raceDistance === distance ? 'selected' : '' %>><%= matchingCategory && matchingCategory.name && matchingCategory.name !== distance ? matchingCategory.name + ' (' + distance + ')' : distance %></option>
                   <% }) %>
                 </select>
                 <% if (errors.raceDistance) { %><small class="error-text"><%= errors.raceDistance %></small><% } %>
               </div>
             </div>
+
+            <% if (visibleCustomizedOptions.length) { %>
+              <div class="form-group form-group-full <%= errors.customizedOptionId ? 'has-error' : '' %>">
+                <label>Signup Option *</label>
+                <div class="registration-option-list">
+                  <% visibleCustomizedOptions.forEach((option) => { %>
+                    <label class="registration-option-card" for="customizedOption-<%= option.id %>">
+                      <input
+                        type="radio"
+                        id="customizedOption-<%= option.id %>"
+                        name="customizedOptionId"
+                        value="<%= option.id %>"
+                        <%= formData.customizedOptionId === option.id ? 'checked' : '' %>
+                        <%= registrationWindowError ? 'disabled' : '' %>
+                      >
+                      <span>
+                        <strong><%= option.shortDescription %></strong>
+                        <small><%= option.currency %> <%= Number(option.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></small>
+                      </span>
+                    </label>
+                  <% }) %>
+                </div>
+                <% if (errors.customizedOptionId) { %><small class="error-text"><%= errors.customizedOptionId %></small><% } %>
+              </div>
+            <% } %>
+
+            <% if (visibleRegistrationPackages.length) { %>
+              <div class="form-group form-group-full <%= errors.registrationPackageId ? 'has-error' : '' %>">
+                <label>Registration Package *</label>
+                <div class="registration-option-list">
+                  <% visibleRegistrationPackages.forEach((packageOption) => { %>
+                    <label class="registration-option-card" for="registrationPackage-<%= packageOption.id %>">
+                      <input
+                        type="radio"
+                        id="registrationPackage-<%= packageOption.id %>"
+                        name="registrationPackageId"
+                        value="<%= packageOption.id %>"
+                        <%= formData.registrationPackageId === packageOption.id ? 'checked' : '' %>
+                        <%= registrationWindowError ? 'disabled' : '' %>
+                      >
+                      <span>
+                        <strong><%= packageOption.name %></strong>
+                        <% if ((packageOption.includedItems || []).length) { %>
+                          <small><%= packageOption.includedItems.join(', ') %></small>
+                        <% } else { %>
+                          <small>Package registration</small>
+                        <% } %>
+                      </span>
+                    </label>
+                  <% }) %>
+                </div>
+                <% if (errors.registrationPackageId) { %><small class="error-text"><%= errors.registrationPackageId %></small><% } %>
+              </div>
+            <% } %>
 
             <% if (requiresEmergencyContact) { %>
               <div class="register-field-grid">

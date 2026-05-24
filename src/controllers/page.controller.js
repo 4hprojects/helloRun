@@ -42,6 +42,12 @@ const {
   buildPublicEventView,
   renderEventDetailsContent
 } = require('../utils/event-public-view');
+const {
+  getCustomizedRegistrationOptions,
+  getRegistrationPackageOptions,
+  getRaceCategoryOptions,
+  resolveRegistrationPrice
+} = require('../services/registration-price.service');
 const { getEventBadgesByMongoEventId } = require('../services/event-badge.service');
 const { listProductsByMongoEventId } = require('../services/shop/product.service');
 const { recalculateOrderTotals } = require('../services/shop/order.service');
@@ -479,11 +485,14 @@ exports.getEventRegistrationForm = async (req, res) => {
     const registrationWindowError = getRegistrationWindowError(event) || getRegistrationConfigurationError(event);
     const allowedModes = getAllowedParticipationModes(event);
     const allowedRaceDistances = getAllowedRaceDistances(event);
+    const raceCategoryOptions = getRaceCategoryOptions(event);
     const profileSnapshot = getRegistrationProfileSnapshot(user);
     const requiresEmergencyContact = !profileSnapshot.emergencyContactName || !profileSnapshot.emergencyContactNumber;
     const registrationAddOns = await loadRegistrationAddOns(event._id);
+    const customizedRegistrationOptions = getCustomizedRegistrationOptions(event);
+    const registrationPackageOptions = getRegistrationPackageOptions(event);
     const existing = await Registration.findOne({ eventId: event._id, userId: user._id })
-      .select('confirmationCode participationMode raceDistance status paymentStatus registeredAt');
+      .select('confirmationCode participationMode raceDistance status paymentStatus pricingSnapshot paymentAmountDue paymentCurrency registeredAt');
 
     return res.render('pages/event-register', {
       title: `Register - ${event.title}`,
@@ -496,7 +505,9 @@ exports.getEventRegistrationForm = async (req, res) => {
       formData: getRegistrationFormData({
         ...profileSnapshot,
         participationMode: allowedModes[0] || '',
-        raceDistance: allowedRaceDistances[0] || '',
+      raceDistance: allowedRaceDistances[0] || '',
+      customizedOptionId: customizedRegistrationOptions[0]?.id || '',
+      registrationPackageId: registrationPackageOptions[0]?.id || '',
         waiverAccepted: false,
         waiverSignature: ''
       }),
@@ -509,6 +520,9 @@ exports.getEventRegistrationForm = async (req, res) => {
       registrationWindowError,
       existingRegistration: existing || null,
       registrationAddOns,
+      raceCategoryOptions,
+      customizedRegistrationOptions,
+      registrationPackageOptions,
       justRegistered: req.query.registered === '1'
     });
   } catch (error) {
@@ -547,24 +561,29 @@ exports.postEventRegistration = async (req, res) => {
 
     const allowedModes = getAllowedParticipationModes(event);
     const allowedRaceDistances = getAllowedRaceDistances(event);
+    const raceCategoryOptions = getRaceCategoryOptions(event);
     const profileSnapshot = getRegistrationProfileSnapshot(user);
     const requiresEmergencyContact = !profileSnapshot.emergencyContactName || !profileSnapshot.emergencyContactNumber;
     const emergencyContactName = profileSnapshot.emergencyContactName || String(req.body.emergencyContactName || '').trim();
     const emergencyContactNumber = profileSnapshot.emergencyContactNumber || String(req.body.emergencyContactNumber || '').trim();
     const registrationAddOns = await loadRegistrationAddOns(event._id);
+    const customizedRegistrationOptions = getCustomizedRegistrationOptions(event);
+    const registrationPackageOptions = getRegistrationPackageOptions(event);
     const formData = getRegistrationFormData({
       ...profileSnapshot,
       emergencyContactName,
       emergencyContactNumber,
       participationMode: req.body.participationMode,
       raceDistance: req.body.raceDistance,
+      customizedOptionId: req.body.customizedOptionId,
+      registrationPackageId: req.body.registrationPackageId,
       addOnProductIds: req.body.addOnProductIds,
       waiverAccepted: req.body.waiverAccepted,
       waiverSignature: req.body.waiverSignature
     });
 
     const existingRegistration = await Registration.findOne({ eventId: event._id, userId: user._id })
-      .select('confirmationCode participationMode raceDistance status paymentStatus registeredAt');
+      .select('confirmationCode participationMode raceDistance status paymentStatus pricingSnapshot paymentAmountDue paymentCurrency registeredAt');
     if (existingRegistration) {
       const query = new URLSearchParams({
         type: 'error',
@@ -589,6 +608,10 @@ exports.postEventRegistration = async (req, res) => {
     if (selectedAddOnsResult.invalidIds.length > 0) {
       validationErrors.addOnProductIds = 'One or more selected add-ons are no longer available.';
     }
+    const resolvedPrice = resolveRegistrationPrice(event, formData);
+    if (!resolvedPrice.ok) {
+      validationErrors[resolvedPrice.errorField || 'pricing'] = resolvedPrice.error || 'Select a valid registration price option.';
+    }
 
     if (Object.keys(validationErrors).length > 0) {
       return res.status(400).render('pages/event-register', {
@@ -609,6 +632,9 @@ exports.postEventRegistration = async (req, res) => {
         registrationWindowError,
         existingRegistration: null,
         registrationAddOns,
+        raceCategoryOptions,
+        customizedRegistrationOptions,
+        registrationPackageOptions,
         justRegistered: false
       });
     }
@@ -646,6 +672,27 @@ exports.postEventRegistration = async (req, res) => {
       raceDistance: formData.raceDistance,
       status: 'confirmed',
       paymentStatus: getInitialRegistrationPaymentStatus(event),
+      pricingSnapshot: {
+        pricingMode: resolvedPrice.pricingMode,
+        source: resolvedPrice.source,
+        selectedOptionId: resolvedPrice.selectedOptionId || '',
+        optionDescription: resolvedPrice.source === 'customized_option' ? resolvedPrice.label : '',
+        raceCategoryId: resolvedPrice.raceCategoryId || '',
+        raceCategoryName: resolvedPrice.raceCategoryName || '',
+        raceCategoryType: resolvedPrice.raceCategoryType || '',
+        raceDistance: resolvedPrice.raceDistance || formData.raceDistance,
+        packageId: resolvedPrice.packageId || '',
+        packageName: resolvedPrice.packageName || '',
+        packagePeriodCode: resolvedPrice.source === 'registration_package' ? resolvedPrice.pricingPeriodCode || '' : '',
+        packagePeriodLabel: resolvedPrice.source === 'registration_package' ? resolvedPrice.pricingPeriodLabel || '' : '',
+        packageIncludedItems: resolvedPrice.packageIncludedItems || [],
+        pricingPeriodCode: resolvedPrice.pricingPeriodCode || '',
+        pricingPeriodLabel: resolvedPrice.pricingPeriodLabel || '',
+        amount: resolvedPrice.amount,
+        currency: resolvedPrice.currency
+      },
+      paymentAmountDue: resolvedPrice.amount,
+      paymentCurrency: resolvedPrice.currency,
       confirmationCode,
       registeredAt: new Date()
     });
@@ -655,7 +702,7 @@ exports.postEventRegistration = async (req, res) => {
     registration.addOnsCurrency = selectedAddOnsResult.currency;
 
     await registration.save();
-    await createRegistrationAddOnOrderIfNeeded({
+    await createRegistrationCheckoutOrderIfNeeded({
       registration,
       event,
       user,
@@ -1100,7 +1147,8 @@ exports.__resetSyncRegistrationPaymentShadow = () => {
   syncRegistrationPaymentShadow = require('../services/registration-payment-shadow.service').syncRegistrationPaymentShadow;
 };
 
-exports.__testCreateRegistrationAddOnOrderIfNeeded = createRegistrationAddOnOrderIfNeeded;
+exports.__testCreateRegistrationAddOnOrderIfNeeded = createRegistrationCheckoutOrderIfNeeded;
+exports.__testCreateRegistrationCheckoutOrderIfNeeded = createRegistrationCheckoutOrderIfNeeded;
 
 async function handleRunnerSubmissionWrite(req, res, options = {}) {
   let uploadedProofKey = '';
@@ -1952,6 +2000,8 @@ function getRegistrationFormData(body = {}) {
     runningGroup: runningGroups[0] || '',
     participationMode: String(body.participationMode || '').trim(),
     raceDistance: String(body.raceDistance || '').trim().toUpperCase(),
+    customizedOptionId: String(body.customizedOptionId || '').trim(),
+    registrationPackageId: String(body.registrationPackageId || '').trim(),
     addOnProductIds: normalizeRegistrationAddOnIds(body.addOnProductIds),
     waiverAccepted: body.waiverAccepted === '1' || body.waiverAccepted === 'true' || body.waiverAccepted === true || body.waiverAccepted === 'on',
     waiverSignature: String(body.waiverSignature || '').trim()
@@ -2060,6 +2110,14 @@ function getAllowedParticipationModes(event) {
 }
 
 function getAllowedRaceDistances(event) {
+  const categories = getRaceCategoryOptions(event);
+  if (categories.length) {
+    return Array.from(new Set(
+      categories
+        .map((category) => String(category.distanceLabel || category.name || '').trim().toUpperCase())
+        .filter(Boolean)
+    ));
+  }
   const values = Array.isArray(event.raceDistances) ? event.raceDistances : [];
   return values
     .map((item) => String(item || '').trim().toUpperCase())
@@ -2127,7 +2185,7 @@ function resolveSelectedRegistrationAddOns(selectedIds = [], availableAddOns = [
   };
 }
 
-async function createRegistrationAddOnOrderIfNeeded({
+async function createRegistrationCheckoutOrderIfNeeded({
   registration,
   event,
   user,
@@ -2137,11 +2195,19 @@ async function createRegistrationAddOnOrderIfNeeded({
 } = {}) {
   if (!process.env.DATABASE_URL) return;
   if (!registration || !event || !user) return;
-  if (!Array.isArray(selectedAddOns) || selectedAddOns.length === 0) return;
+
+  const registrationFeeAmount = Math.max(0, Number(registration.paymentAmountDue || registration.pricingSnapshot?.amount || 0));
+  const addOnsAmount = Math.max(0, Number(addOnsSubtotal || 0));
+  const checkoutSubtotal = registrationFeeAmount + addOnsAmount;
+  if (!Number.isFinite(checkoutSubtotal) || checkoutSubtotal <= 0) return;
+
+  const orderCurrency = String(registration.paymentCurrency || registration.pricingSnapshot?.currency || currency || 'PHP')
+    .trim()
+    .toUpperCase() || 'PHP';
 
   const sql = getPostgresClient();
   const totals = recalculateOrderTotals({
-    subtotal: addOnsSubtotal,
+    subtotal: checkoutSubtotal,
     deliveryFee: 0,
     platformFee: 0
   });
@@ -2238,7 +2304,7 @@ async function createRegistrationAddOnOrderIfNeeded({
         'not_started',
         ${totals.deliveryFee},
         ${totals.platformFee},
-        ${String(currency || 'PHP').trim().toUpperCase()},
+        ${orderCurrency},
         ${orderNote}
       )
       returning id
@@ -2246,7 +2312,44 @@ async function createRegistrationAddOnOrderIfNeeded({
     const orderId = createdOrders[0]?.id;
     if (!orderId) return;
 
-    for (const item of selectedAddOns) {
+    if (registrationFeeAmount > 0) {
+      const pricingSnapshot = registration.pricingSnapshot || {};
+      const feeLabel = String(pricingSnapshot.packageName || pricingSnapshot.optionDescription || pricingSnapshot.raceDistance || registration.raceDistance || 'Registration fee').trim();
+      await sql`
+        insert into order_items (
+          order_id,
+          product_id,
+          variant_id,
+          name_snapshot,
+          variant_snapshot,
+          quantity,
+          unit_price,
+          line_total
+        )
+        values (
+          ${orderId},
+          null,
+          null,
+          ${feeLabel},
+          ${sql.json({
+            source: 'registration_fee',
+            pricingMode: pricingSnapshot.pricingMode || '',
+            pricingSource: pricingSnapshot.source || '',
+            selectedOptionId: pricingSnapshot.selectedOptionId || '',
+            packageId: pricingSnapshot.packageId || '',
+            packageName: pricingSnapshot.packageName || '',
+            pricingPeriodCode: pricingSnapshot.pricingPeriodCode || '',
+            pricingPeriodLabel: pricingSnapshot.pricingPeriodLabel || '',
+            currency: orderCurrency
+          })},
+          1,
+          ${registrationFeeAmount},
+          ${registrationFeeAmount}
+        )
+      `;
+    }
+
+    for (const item of Array.isArray(selectedAddOns) ? selectedAddOns : []) {
       const lineTotal = Number(item.lineTotal || 0);
       const unitPrice = Number(item.unitPrice || 0);
       await sql`
@@ -2267,7 +2370,7 @@ async function createRegistrationAddOnOrderIfNeeded({
           ${String(item.name || '').trim() || 'Registration add-on'},
           ${sql.json({
             productType: item.productType || 'event_shop_item',
-            currency: item.currency || currency || 'PHP',
+            currency: item.currency || orderCurrency,
             source: 'registration_addon'
           })},
           ${Number(item.quantity || 1)},
