@@ -251,6 +251,11 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(source, /confirmOverlay && mismatchWarningWasVisible/);
   assert.match(source, /selectedRegistrationIds/);
   assert.match(source, /Submit ' \+ selectedCount \+ ' Entries/);
+  assert.match(source, /getSubmissionTargetLabel/);
+  assert.match(source, /Challenge Activity/);
+  assert.match(source, /Event Result/);
+  assert.match(source, /Strava submissions target one event or Personal Record/);
+  assert.match(source, /enforceSingleStravaTarget/);
   assert.match(source, /retrying original image/);
   assert.match(source, /requestOcrInterrupt\('replace-image'/);
   assert.match(source, /requestOcrInterrupt\('remove-image'/);
@@ -265,6 +270,10 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(partial, /name="ocrNameMatchStatus"/);
   assert.match(partial, /id="runProofStravaSyncBtn"/);
   assert.match(partial, /Sync Strava Data/);
+  assert.match(partial, /Activity Screenshot/);
+  assert.match(partial, /Strava Activity/);
+  assert.match(partial, /Strava submissions currently target one HelloRun event or Personal Record/);
+  assert.match(partial, /Personal log/);
   assert.match(source, /\/api\/strava\/activities\?per_page=20/);
   assert.match(source, /\/api\/events\/' \+ encodeURIComponent\(eventId\) \+ '\/submissions\/strava/);
   assert.match(source, /selected\?\.isPersonalRecord\s*\?\s*'personal-record'/);

@@ -437,6 +437,10 @@ async function getRunnerEligibleSubmissionRegistrations(runnerId, options = {}) 
         raceDistance: registration.raceDistance || '',
         eventStartAt: registration.eventId?.eventStartAt || null,
         eventEndAt: registration.eventId?.eventEndAt || null,
+        virtualCompletionMode: registration.eventId?.virtualCompletionMode || '',
+        submissionMode: registration.eventId?.virtualCompletionMode === 'accumulated_distance'
+          ? 'accumulated'
+          : 'standard',
         venueName: registration.eventId?.venueName || '',
         city: registration.eventId?.city || '',
         country: registration.eventId?.country || '',
@@ -593,6 +597,8 @@ function buildPersonalRecordEligibleOption() {
     raceDistance: '',
     eventStartAt: null,
     eventEndAt: null,
+    virtualCompletionMode: '',
+    submissionMode: 'personal_record',
     venueName: '',
     city: '',
     country: '',

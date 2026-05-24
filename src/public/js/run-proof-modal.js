@@ -122,7 +122,7 @@
     const defaultConfig = {
       mode: String(modal.dataset.defaultMode || 'submit').trim() || 'submit',
       title: String(modal.dataset.defaultTitle || 'Submit Run Result').trim() || 'Submit Run Result',
-      description: String(modal.dataset.defaultDescription || descEl.textContent || 'Submit your activity details and screenshot or Strava evidence for event result review.').trim(),
+      description: String(modal.dataset.defaultDescription || descEl.textContent || 'Choose a screenshot or Strava activity, review the detected details, then submit to an eligible event or Personal Record.').trim(),
       submitLabel: String(modal.dataset.defaultSubmitLabel || submitBtn.dataset.defaultLabel || 'Submit Run Result').trim() || 'Submit Run Result',
       submitEndpoint: String(modal.dataset.defaultEndpoint || '').trim()
     };
@@ -285,7 +285,7 @@
           syncFormAction();
           updateSubmitLabelForSelection();
         }
-        setEventsHelperText('You can submit this run as a personal record even without a registered event.');
+        setEventsHelperText('No eligible event is accepting submissions right now. You can still save this activity as a Personal Record.');
         validateEvents();
         return;
       }
@@ -313,15 +313,18 @@
         const end = formatEventDate(item.eventEndAt || item.challengeEnd);
         const dateRange = start && end ? start + ' - ' + end : (start || end || 'Schedule TBA');
 
+        const targetLabel = getSubmissionTargetLabel(item);
+        const targetMeta = getSubmissionTargetMeta(item, dateRange);
+
         label.innerHTML =
           '<span class="run-proof-event-main">' +
             '<input type="checkbox" id="runProofEventOption-' + registrationId + '" data-registration-id="' + registrationId + '" ' + (checked ? 'checked' : '') + '>' +
             '<span>' +
               '<strong>' + escapeHtml(String(item.eventTitle || 'Event')) + '</strong>' +
-              '<small>' + escapeHtml(dateRange) + '</small>' +
+              '<small>' + escapeHtml(targetMeta) + '</small>' +
             '</span>' +
           '</span>' +
-          '<span class="run-proof-event-pill">' + escapeHtml(item.canResubmit ? 'Resubmission' : 'New') + '</span>';
+          '<span class="run-proof-event-pill">' + escapeHtml(targetLabel) + '</span>';
 
         if (checked) label.classList.add('is-selected');
         eventsList.appendChild(label);
@@ -333,7 +336,7 @@
           `${String(onlyOption?.eventTitle || 'Your eligible event')} is ready and preselected for this run result.`
         );
       } else {
-        setEventsHelperText('Select each eligible event that this same activity should count toward. Personal record stays selected by default.');
+        setEventsHelperText('For screenshot uploads, select each eligible event this activity should count toward. Strava submissions target one event or Personal Record.');
       }
 
       syncSelectedRegistrationFields();
@@ -367,6 +370,36 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+    };
+
+    const getSubmissionMode = (item) => {
+      if (item && item.isPersonalRecord) return 'personal_record';
+      const explicit = String(item?.submissionMode || '').trim().toLowerCase();
+      if (explicit) return explicit;
+      const completionMode = String(item?.virtualCompletionMode || '').trim().toLowerCase();
+      if (completionMode === 'accumulated_distance') return 'accumulated';
+      return 'standard';
+    };
+
+    const getSubmissionTargetLabel = (item) => {
+      if (item?.canResubmit) return 'Resubmission';
+      const mode = getSubmissionMode(item);
+      if (mode === 'accumulated') return 'Challenge Activity';
+      if (mode === 'personal_record') return 'Personal log';
+      return 'Event Result';
+    };
+
+    const getSubmissionTargetMeta = (item, dateRange) => {
+      const parts = [dateRange || 'Schedule TBA'];
+      const mode = getSubmissionMode(item);
+      if (mode === 'accumulated') {
+        parts.push('Adds distance after organizer approval');
+      } else if (item?.canResubmit) {
+        parts.push('Rejected result can be replaced');
+      } else {
+        parts.push('Single result submission');
+      }
+      return parts.filter(Boolean).join(' | ');
     };
 
     const syncSelectedRegistrationFields = () => {
@@ -441,6 +474,23 @@
         return;
       }
       form.action = action;
+    };
+
+    const enforceSingleStravaTarget = () => {
+      if (!state.selectedStravaActivity || state.selectedRegistrationIds.size <= 1) return;
+      const keepId = state.primaryRegistrationId || Array.from(state.selectedRegistrationIds)[0] || '';
+      state.selectedRegistrationIds.clear();
+      if (keepId) state.selectedRegistrationIds.add(keepId);
+      eventsList.querySelectorAll('input[type="checkbox"][data-registration-id]').forEach((input) => {
+        const checked = String(input.dataset.registrationId || '') === keepId;
+        input.checked = checked;
+        const card = input.closest('.run-proof-event-card');
+        if (card) card.classList.toggle('is-selected', checked);
+      });
+      syncSelectedRegistrationFields();
+      syncFormAction();
+      updateSubmitLabelForSelection();
+      setEventsHelperText('Strava submissions target one event or Personal Record. Use screenshot upload to submit the same activity to multiple events.');
     };
 
     const toggleSubmitState = () => {
@@ -1142,7 +1192,7 @@
       const config = {
         mode: String(incomingConfig.mode || defaultConfig.mode || 'submit').trim() || 'submit',
         title: String(incomingConfig.title || defaultConfig.title || 'Submit Run Result').trim() || 'Submit Run Result',
-        description: String(incomingConfig.description || defaultConfig.description || 'Submit your activity details and screenshot or Strava evidence for event result review.').trim(),
+        description: String(incomingConfig.description || defaultConfig.description || 'Choose a screenshot or Strava activity, review the detected details, then submit to an eligible event or Personal Record.').trim(),
         submitLabel: String(incomingConfig.submitLabel || defaultConfig.submitLabel || 'Submit Run Result').trim() || 'Submit Run Result',
         submitEndpoint: String(incomingConfig.submitEndpoint || defaultConfig.submitEndpoint || '').trim()
       };
@@ -1402,7 +1452,7 @@
         return;
       }
 
-      setStravaStatus('Select one Strava activity to submit to the selected HelloRun event.', '');
+      setStravaStatus('Select one Strava activity. It can be submitted to one HelloRun event or Personal Record.', '');
       state.stravaActivities.forEach((activity) => {
         const card = document.createElement('button');
         card.type = 'button';
@@ -1427,7 +1477,7 @@
           '<span class="run-proof-strava-activity-meta">' +
             escapeHtml(distance + ' | ' + duration + ' | ' + date + elevation) +
           '</span>' +
-          '<span class="run-proof-strava-activity-meta">Select this activity, then choose the HelloRun event and confirm before submitting.</span>';
+          '<span class="run-proof-strava-activity-meta">Select this activity, then choose one HelloRun target and confirm before submitting.</span>';
 
         card.addEventListener('click', () => selectStravaActivity(activity));
         stravaActivityList.appendChild(card);
@@ -1465,7 +1515,7 @@
       }
 
       if (autoFillBannerEl) {
-        autoFillBannerEl.textContent = 'Auto-filled from your selected Strava activity. Choose the HelloRun event result and review before submitting.';
+        autoFillBannerEl.textContent = 'Auto-filled from your selected Strava activity. Choose one HelloRun target and review before submitting.';
         autoFillBannerEl.hidden = false;
       }
       if (ocrResultsEl && ocrSummaryEl) {
@@ -1479,7 +1529,8 @@
       stravaActivityList.querySelectorAll('.run-proof-strava-activity-card').forEach((node) => {
         node.classList.toggle('is-selected', String(node.dataset.stravaActivityId || '') === String(activity.id || ''));
       });
-      setStravaStatus('Strava activity selected. Choose the HelloRun event on the next step, then confirm submission.', '');
+      enforceSingleStravaTarget();
+      setStravaStatus('Strava activity selected. Choose one HelloRun target on the next step, then confirm submission.', '');
       goToStep(2);
     };
 
@@ -1492,6 +1543,11 @@
       if (!eventId) {
         setStravaStatus('Select an event or Personal Record before submitting a Strava activity.', 'error');
         validateEvents();
+        return;
+      }
+      if (state.selectedRegistrationIds.size > 1) {
+        enforceSingleStravaTarget();
+        setStravaStatus('Strava submissions can use one target only. Confirm the selected target before submitting.', 'error');
         return;
       }
 
@@ -1804,6 +1860,16 @@
       if (!registrationId) return;
 
       if (input.checked) {
+        if (state.selectedStravaActivity) {
+          state.selectedRegistrationIds.clear();
+          eventsList.querySelectorAll('input[type="checkbox"][data-registration-id]').forEach((node) => {
+            if (node !== input) {
+              node.checked = false;
+              const otherCard = node.closest('.run-proof-event-card');
+              if (otherCard) otherCard.classList.remove('is-selected');
+            }
+          });
+        }
         state.selectedRegistrationIds.add(registrationId);
       } else {
         state.selectedRegistrationIds.delete(registrationId);
@@ -1816,6 +1882,9 @@
       syncFormAction();
       updateSubmitLabelForSelection();
       validateEvents();
+      if (state.selectedStravaActivity) {
+        setEventsHelperText('Strava submissions target one event or Personal Record. Use screenshot upload to submit the same activity to multiple events.');
+      }
     });
 
     [runDateInput, distanceInput, locationInput].forEach((input) => {

@@ -5,7 +5,7 @@
   const modalTitle = String(modalConfig.title || 'Submit Run Result').trim() || 'Submit Run Result';
   const submitLabel = String(modalConfig.submitLabel || 'Submit Run Result').trim() || 'Submit Run Result';
   const submitEndpoint = String(modalConfig.submitEndpoint || '').trim();
-  const modalDescription = String(modalConfig.description || 'Submit your activity details and screenshot or Strava evidence for event result review.').trim();
+  const modalDescription = String(modalConfig.description || 'Choose a screenshot or Strava activity, review the detected details, then submit to an eligible event or Personal Record.').trim();
   const initialEvents = Array.isArray(modalConfig.initialEvents) ? modalConfig.initialEvents : [];
   const defaultSelectedEventIds = Array.isArray(modalConfig.defaultSelectedEventIds) ? modalConfig.defaultSelectedEventIds : [];
 %>
@@ -36,7 +36,7 @@
         <div>
           <h2 id="runProofModalTitle"><%= modalTitle %></h2>
           <p class="run-proof-modal-desc" id="runProofModalDesc"><%= modalDescription %></p>
-          <p class="run-proof-step-indicator" id="runProofStepIndicator">Step 1 of 2 &mdash; Choose activity source</p>
+          <p class="run-proof-step-indicator" id="runProofStepIndicator">Step 1 of 2 &mdash; Choose proof source</p>
         </div>
         <div class="run-proof-header-actions">
           <button type="button" class="btn btn-outline run-proof-back-btn" id="runProofBackBtn" aria-label="Close" data-tooltip="Close">
@@ -87,15 +87,15 @@
         <div id="runProofStep1">
           <section class="run-proof-section" aria-labelledby="runProofSectionMedia">
             <div class="run-proof-section-heading">
-              <h3 id="runProofSectionMedia">Upload Activity Screenshot</h3>
-              <span class="run-proof-required-tag">Option</span>
+              <h3 id="runProofSectionMedia">Activity Screenshot</h3>
+              <span class="run-proof-required-tag">Source option</span>
             </div>
             <div class="run-proof-upload" id="runProofUploadDropzone" tabindex="0" role="button" aria-label="Upload activity screenshot">
               <input id="runProofImage" name="resultProofFile" type="file" accept="image/jpeg,image/png,image/webp" required>
               <div class="run-proof-upload-initial" id="runProofUploadInitial">
                 <i data-lucide="image" class="run-proof-upload-icon" aria-hidden="true"></i>
-                <strong>Drop image here or click to upload</strong>
-                <small>JPG or PNG, up to 5MB</small>
+                <strong>Drop screenshot here or click to upload</strong>
+                <small>JPG, PNG, or WebP up to 5MB. Analysis helps fill the form; you confirm the final values.</small>
               </div>
               <div class="run-proof-upload-preview" id="runProofUploadPreview" hidden>
                 <img id="runProofPreviewImage" alt="Run proof preview">
@@ -116,8 +116,8 @@
           <section class="run-proof-section run-proof-strava-section" aria-labelledby="runProofSectionStrava">
             <div class="run-proof-strava-content">
               <div>
-                <h3 id="runProofSectionStrava">Sync from Strava</h3>
-                <p class="run-proof-helper">Import one recent activity from your connected Strava account.</p>
+                <h3 id="runProofSectionStrava">Strava Activity</h3>
+                <p class="run-proof-helper">Import one recent activity from your connected Strava account. Strava submissions currently target one HelloRun event or Personal Record.</p>
               </div>
               <button
                 type="button"
@@ -164,7 +164,7 @@
               <h3 id="runProofSectionEvents">Event Selection</h3>
               <span class="run-proof-required-tag">Required</span>
             </div>
-            <p class="run-proof-helper" id="runProofEventsHelper">Select each eligible event that this same activity should count toward. Personal record stays selected by default.</p>
+            <p class="run-proof-helper" id="runProofEventsHelper">For screenshots, select each eligible event this activity should count toward. Strava submissions target one event or Personal Record.</p>
 
             <div class="run-proof-event-list" id="runProofEventsList" role="group" tabindex="-1" aria-describedby="runProofEventsHelper runProofEventsError">
               <label class="run-proof-event-card is-locked" for="runProofPersonalRecord">
@@ -172,10 +172,10 @@
                   <input id="runProofPersonalRecord" type="checkbox" checked disabled aria-disabled="true">
                   <span>
                     <strong>Personal Record</strong>
-                    <small>Always included in your run log</small>
+                    <small>Available even when no event is accepting submissions</small>
                   </span>
                 </span>
-                <span class="run-proof-event-pill">Default</span>
+                <span class="run-proof-event-pill">Personal log</span>
               </label>
             </div>
             <p class="run-proof-field-error" id="runProofEventsError" aria-live="polite"></p>
