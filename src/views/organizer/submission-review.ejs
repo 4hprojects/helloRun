@@ -95,8 +95,16 @@
                 <th>Review Signals</th>
                 <td colspan="3">
                   <% if (submission.suspiciousFlag) { %>
-                    <span class="mode-badge mode-warning">Suspicious</span>
+                    <span class="mode-badge mode-warning"><%= submission.reviewSignal?.label || 'Suspicious' %></span>
+                    <% if (submission.reviewSignal?.description) { %>
+                      <small><%= submission.reviewSignal.description %></small><br>
+                    <% } %>
                     <small><%= submission.suspiciousFlagReason || 'No reason provided' %></small><br>
+                  <% } else if (submission.reviewSignal && submission.reviewSignal.label) { %>
+                    <span class="mode-badge mode-warning"><%= submission.reviewSignal.label %></span>
+                    <% if (submission.reviewSignal.description) { %>
+                      <small><%= submission.reviewSignal.description %></small><br>
+                    <% } %>
                   <% } %>
                   <% if (submission.ocrData && submission.ocrData.confidence > 0) { %>
                     <details class="ocr-analysis-details" open>

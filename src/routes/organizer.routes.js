@@ -20,6 +20,7 @@ const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
 const { markdownToHtml } = require('../utils/markdown');
 const { generateUniqueReferenceCode } = require('../utils/referenceCode');
 const { canOrganizerReviewPaymentProof } = require('../utils/payment-workflow');
+const { buildSubmissionReviewSignal } = require('../utils/submission-review-labels');
 const {
   buildPublicEventView,
   renderEventDetailsContent
@@ -1030,7 +1031,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
     }
     const submissions = registrationIds.length
       ? await Submission.find(submissionFilter)
-        .select('registrationId status distanceKm elapsedMs runDate runLocation proofType proof submittedAt reviewedAt reviewedBy reviewNotes rejectionReason ocrData runType elevationGain steps suspiciousFlag suspiciousFlagReason')
+        .select('registrationId status distanceKm elapsedMs runDate runLocation proofType proof submittedAt reviewedAt reviewedBy reviewNotes rejectionReason ocrData runType elevationGain steps suspiciousFlag suspiciousFlagReason validation')
         .populate('reviewedBy', 'firstName lastName')
         .lean()
       : [];
@@ -3312,7 +3313,8 @@ function mapSubmissionForRegistrant(submission, options = {}) {
     runType: submission.runType || 'run',
     elevationGain: submission.elevationGain != null ? submission.elevationGain : null,
     suspiciousFlag: Boolean(submission.suspiciousFlag),
-    suspiciousFlagReason: String(submission.suspiciousFlagReason || '').trim()
+    suspiciousFlagReason: String(submission.suspiciousFlagReason || '').trim(),
+    reviewSignal: buildSubmissionReviewSignal(submission)
   };
 }
 

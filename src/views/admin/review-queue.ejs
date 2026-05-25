@@ -109,10 +109,12 @@
                 <td>
                   <span class="status-badge status-badge-<%= item.status %>"><%= item.status.replace('_', ' ') %></span>
                   <% if (item.suspiciousFlag) { %>
-                    <div><small class="status-badge status-badge-proof_rejected" title="<%= item.suspiciousFlagReason %>">Suspicious</small></div>
+                    <div><small class="status-badge status-badge-proof_rejected" title="<%= item.reviewSignal?.description || item.suspiciousFlagReason %>"><%= item.reviewSignal?.label || 'Suspicious' %></small></div>
                     <% if (item.suspiciousFlagReason) { %>
                       <div><small><%= item.suspiciousFlagReason %></small></div>
                     <% } %>
+                  <% } else if (item.reviewSignal && item.reviewSignal.label) { %>
+                    <div><small class="status-badge status-badge-proof_rejected" title="<%= item.reviewSignal.description || '' %>"><%= item.reviewSignal.label %></small></div>
                   <% } %>
                 </td>
                 <td>

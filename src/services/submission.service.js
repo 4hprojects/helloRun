@@ -138,6 +138,7 @@ async function resubmitSubmission({
   existing.proof = payload.proof;
   existing.proofNotes = payload.proofNotes;
   existing.ocrData = payload.ocrData;
+  existing.validation = payload.validation;
   existing.source = payload.source;
   existing.stravaActivity = payload.stravaActivity;
   existing.runType = payload.runType;
@@ -402,7 +403,7 @@ async function getRunnerEligibleSubmissionRegistrations(runnerId, options = {}) 
     .sort({ registeredAt: -1 })
     .populate({
       path: 'eventId',
-      select: 'title slug status eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country'
+      select: 'title slug status eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode raceCategories targetDistanceKm minimumActivityDistanceKm'
     })
     .lean();
 
@@ -428,6 +429,7 @@ async function getRunnerEligibleSubmissionRegistrations(runnerId, options = {}) 
     .slice(0, limit)
     .map((registration) => {
       const submission = submissionByRegistrationId.get(String(registration._id)) || null;
+      const minimumDistanceKm = getStandardSubmissionMinimumDistanceKm(registration, registration.eventId);
       return {
         registrationId: String(registration._id),
         eventId: String(registration.eventId?._id || ''),
@@ -441,6 +443,8 @@ async function getRunnerEligibleSubmissionRegistrations(runnerId, options = {}) 
         submissionMode: registration.eventId?.virtualCompletionMode === 'accumulated_distance'
           ? 'accumulated'
           : 'standard',
+        minimumRequiredDistanceKm: minimumDistanceKm,
+        minimumActivityDistanceKm: Number(registration.eventId?.minimumActivityDistanceKm || 0) || null,
         venueName: registration.eventId?.venueName || '',
         city: registration.eventId?.city || '',
         country: registration.eventId?.country || '',
@@ -476,7 +480,7 @@ async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
   }
 
   const event = await Event.findById(registration.eventId)
-    .select('status isDeleted eventStartAt eventEndAt virtualWindow onsiteCheckinWindows virtualCompletionMode finalSubmissionDeadlineAt')
+    .select('status isDeleted eventStartAt eventEndAt virtualWindow onsiteCheckinWindows virtualCompletionMode finalSubmissionDeadlineAt raceCategories targetDistanceKm')
     .lean();
   if (!event || event.isDeleted || event.status !== 'published') {
     throw new Error('Event not found for this registration.');
@@ -485,7 +489,10 @@ async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
     throw new Error('Event is not currently accepting result submissions.');
   }
 
-  return registration;
+  return {
+    ...registration,
+    resultProofMinimumDistanceKm: getStandardSubmissionMinimumDistanceKm(registration, event)
+  };
 }
 
 async function createPersonalRecordSubmission({
@@ -564,25 +571,30 @@ async function createPersonalRecordSubmission({
     registeredAt: new Date()
   });
 
-  const submission = await Submission.create({
-    ...buildSubmissionPayload(registration, {
-      distanceKm,
-      elapsedMs,
-      runDate,
-      runLocation,
-      proofType,
-      proof,
-      proofNotes,
-      submissionCount: 1,
-      runType,
-      elevationGain,
-      steps,
-      ocrData,
-      source,
-      stravaActivity
-    }),
-    isPersonalRecord: true
+  const payload = buildSubmissionPayload(registration, {
+    distanceKm,
+    elapsedMs,
+    runDate,
+    runLocation,
+    proofType,
+    proof,
+    proofNotes,
+    submissionCount: 1,
+    runType,
+    elevationGain,
+    steps,
+    ocrData,
+    source,
+    stravaActivity
   });
+  payload.isPersonalRecord = true;
+  payload.validation = {
+    ...(payload.validation || {}),
+    submissionMode: 'personal_record',
+    minimumRequiredDistanceKm: null
+  };
+
+  const submission = await Submission.create(payload);
 
   return applyAutoApprovalIfEligible(submission);
 }
@@ -627,10 +639,22 @@ function buildSubmissionPayload(registration, input) {
     steps: safeSteps,
     ocrData
   });
+  const minimumDistanceCheck = detectBelowMinimumStandardSubmissionDistance({
+    submittedDistanceKm: safeDistance,
+    ocrData,
+    minimumRequiredDistanceKm: registration.resultProofMinimumDistanceKm
+  });
+  const suspiciousReasons = integrity.reasons ? integrity.reasons.slice() : [];
+  if (minimumDistanceCheck.belowMinimum) {
+    suspiciousReasons.push(
+      `Submitted distance is below the minimum required distance for this one-time result (${formatDistanceForMessage(minimumDistanceCheck.minimumRequiredDistanceKm)} km).`
+    );
+  }
   const mergedOcrData = {
     ...ocrData,
     ...integrity.comparisons
   };
+  const suspiciousFlag = integrity.suspicious || minimumDistanceCheck.belowMinimum;
 
   return {
     registrationId: registration._id,
@@ -652,8 +676,15 @@ function buildSubmissionPayload(registration, input) {
     elevationGain: safeElevationGain,
     steps: safeSteps,
     ocrData: mergedOcrData,
-    suspiciousFlag: integrity.suspicious,
-    suspiciousFlagReason: integrity.reason.slice(0, 500),
+    suspiciousFlag,
+    suspiciousFlagReason: suspiciousReasons.join(' ').slice(0, 500),
+    validation: buildSubmissionValidationMetadata({
+      input,
+      registration,
+      ocrData: mergedOcrData,
+      suspiciousFlag,
+      minimumDistanceCheck
+    }),
     status: 'submitted',
     submissionCount: Number(input.submissionCount || 1),
     submittedAt: new Date()
@@ -865,6 +896,225 @@ function cleanOcrNameCandidate(value) {
   return name;
 }
 
+function getStandardSubmissionMinimumDistanceKm(registration, event) {
+  if (!registration || !event || event.virtualCompletionMode === 'accumulated_distance') {
+    return null;
+  }
+
+  const categories = Array.isArray(event.raceCategories) ? event.raceCategories : [];
+  const snapshot = registration.pricingSnapshot || {};
+  const categoryId = String(snapshot.raceCategoryId || '').trim();
+  if (categoryId) {
+    const matchedCategory = categories.find((category) => String(category.categoryId || '').trim() === categoryId);
+    const categoryDistance = normalizePositiveDistance(matchedCategory?.distanceKm);
+    if (categoryDistance !== null) return categoryDistance;
+  }
+
+  const distanceLabel = String(snapshot.raceDistance || registration.raceDistance || '').trim();
+  if (distanceLabel) {
+    const matchedCategory = categories.find((category) => {
+      const labels = [
+        category.distanceLabel,
+        category.name
+      ].map((value) => String(value || '').trim().toLowerCase()).filter(Boolean);
+      return labels.includes(distanceLabel.toLowerCase());
+    });
+    const categoryDistance = normalizePositiveDistance(matchedCategory?.distanceKm);
+    if (categoryDistance !== null) return categoryDistance;
+
+    const parsedDistance = parseDistanceLabelKm(distanceLabel);
+    if (parsedDistance !== null) return parsedDistance;
+  }
+
+  return normalizePositiveDistance(event.targetDistanceKm);
+}
+
+function detectBelowMinimumStandardSubmissionDistance({
+  submittedDistanceKm,
+  ocrData,
+  minimumRequiredDistanceKm
+}) {
+  const minimum = normalizePositiveDistance(minimumRequiredDistanceKm);
+  if (minimum === null) {
+    return {
+      belowMinimum: false,
+      detectedDistanceKm: null,
+      minimumRequiredDistanceKm: null
+    };
+  }
+
+  const ocrDistance = normalizePositiveDistance(ocrData?.extractedDistanceKm);
+  const submittedDistance = normalizePositiveDistance(submittedDistanceKm);
+  const detectedDistance = ocrDistance !== null ? ocrDistance : submittedDistance;
+  const belowMinimum = detectedDistance !== null && detectedDistance < minimum;
+
+  return {
+    belowMinimum,
+    detectedDistanceKm: detectedDistance,
+    minimumRequiredDistanceKm: minimum
+  };
+}
+
+function parseDistanceLabelKm(value) {
+  const safe = String(value || '').trim().toLowerCase();
+  if (!safe) return null;
+
+  const kmMatch = safe.match(/(\d+(?:\.\d+)?)\s*(?:k|km|kilometer|kilometers|kilometre|kilometres)\b/);
+  if (kmMatch) return normalizePositiveDistance(kmMatch[1]);
+
+  const plainMatch = safe.match(/^(\d+(?:\.\d+)?)$/);
+  if (plainMatch) return normalizePositiveDistance(plainMatch[1]);
+
+  return null;
+}
+
+function normalizePositiveDistance(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0 || numeric > 500) return null;
+  return Math.round(numeric * 100) / 100;
+}
+
+function formatDistanceForMessage(value) {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric)) return '0';
+  return Number(numeric.toFixed(2)).toString();
+}
+
+function buildSubmissionValidationMetadata({
+  input,
+  registration,
+  ocrData,
+  suspiciousFlag,
+  minimumDistanceCheck
+}) {
+  const method = normalizeValidationMethod(input?.source, ocrData);
+  const submissionMode = registration?.isPersonalRecord ? 'personal_record' : 'one_time';
+  const autoApprovalEligible = isAutoApprovablePayload({
+    source: input?.source,
+    stravaActivity: input?.stravaActivity,
+    ocrData,
+    suspiciousFlag
+  });
+  return {
+    method,
+    autoApprovalEligible,
+    reviewRequired: !autoApprovalEligible,
+    reviewReason: autoApprovalEligible
+      ? ''
+      : getSubmissionReviewReason({
+        method,
+        ocrData,
+        suspiciousFlag,
+        minimumDistanceCheck
+      }),
+    submissionMode,
+    detectedDistanceKm: minimumDistanceCheck.detectedDistanceKm,
+    minimumRequiredDistanceKm: minimumDistanceCheck.minimumRequiredDistanceKm
+  };
+}
+
+function normalizeValidationMethod(source, ocrData) {
+  const safeSource = String(source || '').trim().toLowerCase();
+  if (safeSource === 'strava') return 'strava';
+  const hasOcrSignals = Boolean(
+    ocrData &&
+    (
+      Number(ocrData.confidence || 0) > 0 ||
+      ocrData.extractedDistanceKm !== null ||
+      ocrData.extractedTimeMs !== null ||
+      String(ocrData.rawText || '').trim()
+    )
+  );
+  return hasOcrSignals ? 'ocr' : 'manual_upload';
+}
+
+function getSubmissionReviewReason({
+  method,
+  ocrData,
+  suspiciousFlag,
+  minimumDistanceCheck
+}) {
+  if (minimumDistanceCheck?.belowMinimum) {
+    return 'below_minimum_distance_one_time_submission';
+  }
+  if (suspiciousFlag) {
+    return 'suspicious_activity';
+  }
+  if (method === 'strava') {
+    return 'strava_auto_approval_criteria_not_met';
+  }
+  if (method !== 'ocr') {
+    return `${method}_review_required`;
+  }
+  if (ocrData?.nameMatchStatus !== 'matched') {
+    return 'ocr_name_not_matched';
+  }
+  if (!normalizePositiveDistance(ocrData?.extractedDistanceKm)) {
+    return 'ocr_distance_missing';
+  }
+  if (!normalizePositiveNumber(ocrData?.extractedTimeMs)) {
+    return 'ocr_time_missing';
+  }
+  if (Number(ocrData?.confidence || 0) < AUTO_APPROVAL_CONFIDENCE_THRESHOLD) {
+    return 'ocr_confidence_below_threshold';
+  }
+  return 'ocr_auto_approval_criteria_not_met';
+}
+
+function isAutoApprovableOcrPayload({ ocrData, suspiciousFlag }) {
+  const extractedDistanceKm = Number(ocrData?.extractedDistanceKm);
+  const extractedTimeMs = Number(ocrData?.extractedTimeMs);
+  return (
+    ocrData?.nameMatchStatus === 'matched' &&
+    Number.isFinite(extractedDistanceKm) &&
+    extractedDistanceKm > 0 &&
+    Number.isFinite(extractedTimeMs) &&
+    extractedTimeMs > 0 &&
+    !ocrData.distanceMismatch &&
+    !ocrData.timeMismatch &&
+    !ocrData.elevationMismatch &&
+    !ocrData.stepsMismatch &&
+    !ocrData.dateMismatch &&
+    !ocrData.locationMismatch &&
+    !ocrData.runTypeMismatch &&
+    !suspiciousFlag &&
+    Number(ocrData.confidence || 0) >= AUTO_APPROVAL_CONFIDENCE_THRESHOLD
+  );
+}
+
+function isAutoApprovableSyncedPayload({ source, stravaActivity, suspiciousFlag }) {
+  const safeSource = String(source || '').trim().toLowerCase();
+  if (safeSource !== 'strava') return false;
+  if (suspiciousFlag) return false;
+  const activityId = Number(stravaActivity?.id || 0);
+  const athleteId = Number(stravaActivity?.athleteId || 0);
+  const distanceKm = Number(stravaActivity?.distanceKm || 0);
+  const elapsedSeconds = Number(stravaActivity?.elapsedTimeSeconds || stravaActivity?.movingTimeSeconds || 0);
+  return (
+    Number.isFinite(activityId) &&
+    activityId > 0 &&
+    Number.isFinite(athleteId) &&
+    athleteId > 0 &&
+    Number.isFinite(distanceKm) &&
+    distanceKm > 0 &&
+    Number.isFinite(elapsedSeconds) &&
+    elapsedSeconds > 0
+  );
+}
+
+function isAutoApprovablePayload({ source, stravaActivity, ocrData, suspiciousFlag }) {
+  if (isAutoApprovableSyncedPayload({ source, stravaActivity, suspiciousFlag })) {
+    return true;
+  }
+  return isAutoApprovableOcrPayload({ ocrData, suspiciousFlag });
+}
+
+function normalizePositiveNumber(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+  return numeric;
+}
+
 function isAutoApprovableOcrSubmission(submission) {
   if (!submission) return false;
   const ocrData = submission.ocrData || {};
@@ -887,6 +1137,16 @@ function isAutoApprovableOcrSubmission(submission) {
     !submission.suspiciousFlag &&
     Number(ocrData.confidence || 0) >= AUTO_APPROVAL_CONFIDENCE_THRESHOLD
   );
+}
+
+function isAutoApprovableSubmission(submission) {
+  if (!submission || String(submission.status || '') !== 'submitted') return false;
+  return isAutoApprovablePayload({
+    source: submission.source,
+    stravaActivity: submission.stravaActivity,
+    ocrData: submission.ocrData || {},
+    suspiciousFlag: submission.suspiciousFlag
+  });
 }
 
 function sanitizeRunDate(value) {
@@ -1034,7 +1294,7 @@ async function attachCertificateIfNeeded(submission) {
 }
 
 async function applyAutoApprovalIfEligible(submission) {
-  if (!isAutoApprovableOcrSubmission(submission)) {
+  if (!isAutoApprovableSubmission(submission)) {
     return submission;
   }
 
@@ -1254,6 +1514,7 @@ module.exports = {
   PERSONAL_RECORD_REGISTRATION_ID,
   detectSuspiciousActivity,
   isAutoApprovableOcrSubmission,
+  isAutoApprovableSubmission,
   buildSubmissionPayload,
   getEligibleRunnerRegistration
 };

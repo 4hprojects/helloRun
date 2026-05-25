@@ -97,6 +97,8 @@
     const closeConfirmDesc = document.getElementById('runProofCloseConfirmDesc');
 
     const submitReviewOverlay = document.getElementById('runProofSubmitReview');
+    const submitReviewTitle = document.getElementById('runProofSubmitReviewTitle');
+    const submitReviewDesc = document.getElementById('runProofSubmitReviewDesc');
     const submitReviewRows = document.getElementById('runProofSubmitReviewRows');
     const submitReviewEdit = document.getElementById('runProofSubmitReviewEdit');
     const submitReviewConfirm = document.getElementById('runProofSubmitReviewConfirm');
@@ -394,12 +396,26 @@
       const mode = getSubmissionMode(item);
       if (mode === 'accumulated') {
         parts.push('Adds distance after organizer approval');
+        const minimumActivityDistanceKm = Number(item?.minimumActivityDistanceKm || 0);
+        if (Number.isFinite(minimumActivityDistanceKm) && minimumActivityDistanceKm > 0) {
+          parts.push('Minimum activity ' + formatDistanceKm(minimumActivityDistanceKm) + ' km');
+        }
       } else if (item?.canResubmit) {
         parts.push('Rejected result can be replaced');
       } else {
         parts.push('Single result submission');
+        const minimumRequiredDistanceKm = Number(item?.minimumRequiredDistanceKm || 0);
+        if (Number.isFinite(minimumRequiredDistanceKm) && minimumRequiredDistanceKm > 0) {
+          parts.push('Required distance ' + formatDistanceKm(minimumRequiredDistanceKm) + ' km');
+        }
       }
       return parts.filter(Boolean).join(' | ');
+    };
+
+    const formatDistanceKm = (value) => {
+      const numeric = Number(value || 0);
+      if (!Number.isFinite(numeric)) return '0';
+      return Number(numeric.toFixed(2)).toString();
     };
 
     const syncSelectedRegistrationFields = () => {
@@ -2211,9 +2227,62 @@
       return li;
     };
 
+    const getSelectedOptions = () => {
+      const selected = [];
+      state.selectedRegistrationIds.forEach((registrationId) => {
+        const item = state.options.find((option) => String(option.registrationId || '') === String(registrationId));
+        if (item) selected.push(item);
+      });
+      return selected;
+    };
+
+    const getDetectedReviewDistanceKm = () => {
+      const ocrDistance = state.ocrResult && state.ocrResult.distance ? Number(state.ocrResult.distance.valueKm) : NaN;
+      if (Number.isFinite(ocrDistance) && ocrDistance > 0) return ocrDistance;
+      const submittedDistance = Number(distanceInput ? distanceInput.value : 0);
+      return Number.isFinite(submittedDistance) && submittedDistance > 0 ? submittedDistance : null;
+    };
+
+    const getBelowMinimumStandardSelections = () => {
+      if (state.selectedStravaActivity) return [];
+      const detectedDistanceKm = getDetectedReviewDistanceKm();
+      if (!detectedDistanceKm) return [];
+      return getSelectedOptions()
+        .filter((item) => getSubmissionMode(item) === 'standard')
+        .map((item) => ({
+          item,
+          detectedDistanceKm,
+          minimumRequiredDistanceKm: Number(item.minimumRequiredDistanceKm || 0)
+        }))
+        .filter((entry) => (
+          Number.isFinite(entry.minimumRequiredDistanceKm) &&
+          entry.minimumRequiredDistanceKm > 0 &&
+          entry.detectedDistanceKm < entry.minimumRequiredDistanceKm
+        ));
+    };
+
     const buildSubmitReview = () => {
       if (!submitReviewRows) return;
       submitReviewRows.innerHTML = '';
+      const belowMinimumSelections = getBelowMinimumStandardSelections();
+      const hasBelowMinimumSelection = belowMinimumSelections.length > 0;
+
+      if (submitReviewTitle) {
+        submitReviewTitle.textContent = hasBelowMinimumSelection
+          ? 'Run proof does not meet the minimum distance'
+          : 'Review before submitting';
+      }
+      if (submitReviewDesc) {
+        submitReviewDesc.textContent = hasBelowMinimumSelection
+          ? 'This proof can still be submitted, but it will not be auto-approved. It will be held for organiser review.'
+          : 'Please confirm your details are correct. Once submitted, changes require admin assistance.';
+      }
+      if (submitReviewEdit) {
+        submitReviewEdit.textContent = hasBelowMinimumSelection ? 'Cancel and Upload Another Proof' : 'Edit Details';
+      }
+      if (submitReviewConfirm) {
+        submitReviewConfirm.textContent = hasBelowMinimumSelection ? 'Submit for Review' : 'Submit Now';
+      }
 
       // Event (selected event name or Personal Record)
       const selectedCards = eventsList ? eventsList.querySelectorAll('.run-proof-event-card.is-selected input[type="checkbox"]') : [];
@@ -2259,6 +2328,15 @@
       } else {
         submitReviewRows.appendChild(makeReviewRow('Distance', 'Not entered', 'missing'));
       }
+
+      belowMinimumSelections.forEach((entry) => {
+        const eventTitle = String(entry.item.eventTitle || 'Selected event');
+        submitReviewRows.appendChild(makeReviewRow(
+          'Minimum distance',
+          eventTitle + ' requires at least ' + formatDistanceKm(entry.minimumRequiredDistanceKm) + ' km; detected/submitted distance is ' + formatDistanceKm(entry.detectedDistanceKm) + ' km. This entry will be sent for organiser review.',
+          'warn'
+        ));
+      });
 
       // Duration
       const h = String(hoursInput ? hoursInput.value : '').padStart(2, '0') || '00';

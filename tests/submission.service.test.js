@@ -559,6 +559,165 @@ test('accumulated activities keep enforcing legacy minimum distance when configu
   );
 });
 
+test('accumulated activities auto-approve clean OCR and issue certificate only on completion', async () => {
+  const seed = await seedSubmissionFixture('accumulated-auto-approve');
+  await Event.updateOne(
+    { _id: seed.event._id },
+    {
+      $set: {
+        virtualCompletionMode: 'accumulated_distance',
+        targetDistanceKm: 10,
+        minimumActivityDistanceKm: 1,
+        acceptedRunTypes: ['run']
+      }
+    }
+  );
+
+  const first = await createAccumulatedActivitySubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 4,
+    elapsedMs: 25 * 60 * 1000,
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof/accumulated-auto-1.png', key: 'accumulated-auto-1', size: 1200 },
+    runType: 'run',
+    ocrData: {
+      extractedDistanceKm: 4,
+      extractedTimeMs: 25 * 60 * 1000,
+      rawText: 'Submit Runner\n4.00 km\n25:00',
+      confidence: 0.9,
+      extractedName: 'Submit Runner',
+      nameMatchStatus: 'matched'
+    }
+  });
+
+  assert.equal(first.status, 'approved');
+  assert.equal(first.reviewedBy, null);
+  assert.equal(first.reviewNotes, 'Auto-approved from OCR name match.');
+  assert.equal(first.certificate?.url || '', '');
+
+  let progress = await getRegistrationAccumulatedProgress(seed.registration._id);
+  assert.equal(progress.approvedDistanceKm, 4);
+  assert.equal(progress.completed, false);
+  assert.equal(progress.certificateUrl, '');
+
+  const second = await createAccumulatedActivitySubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 6,
+    elapsedMs: 40 * 60 * 1000,
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof/accumulated-auto-2.png', key: 'accumulated-auto-2', size: 1200 },
+    runType: 'run',
+    ocrData: {
+      extractedDistanceKm: 6,
+      extractedTimeMs: 40 * 60 * 1000,
+      rawText: 'Submit Runner\n6.00 km\n40:00',
+      confidence: 0.9,
+      extractedName: 'Submit Runner',
+      nameMatchStatus: 'matched'
+    }
+  });
+
+  assert.equal(second.status, 'approved');
+  assert.ok(String(second.certificate?.url || '').length > 0);
+
+  progress = await getRegistrationAccumulatedProgress(seed.registration._id);
+  assert.equal(progress.approvedDistanceKm, 10);
+  assert.equal(progress.completed, true);
+  assert.equal(progress.pendingDistanceKm, 0);
+  assert.ok(progress.certificateUrl);
+});
+
+test('accumulated activities keep suspicious OCR pending', async () => {
+  const seed = await seedSubmissionFixture('accumulated-auto-pending');
+  await Event.updateOne(
+    { _id: seed.event._id },
+    {
+      $set: {
+        virtualCompletionMode: 'accumulated_distance',
+        targetDistanceKm: 10,
+        minimumActivityDistanceKm: 1,
+        acceptedRunTypes: ['run']
+      }
+    }
+  );
+
+  const activity = await createAccumulatedActivitySubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 4,
+    elapsedMs: 25 * 60 * 1000,
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof/accumulated-pending.png', key: 'accumulated-pending', size: 1200 },
+    runType: 'run',
+    ocrData: {
+      extractedDistanceKm: 4,
+      extractedTimeMs: 25 * 60 * 1000,
+      rawText: 'Different Runner\n4.00 km\n25:00',
+      confidence: 0.9,
+      extractedName: 'Different Runner',
+      nameMatchStatus: 'mismatched',
+      nameMismatchAcknowledged: true
+    }
+  });
+
+  assert.equal(activity.status, 'submitted');
+  assert.equal(activity.suspiciousFlag, true);
+  assert.match(activity.suspiciousFlagReason, /name does not match/i);
+});
+
+test('accumulated activities auto-approve validated Strava source', async () => {
+  const seed = await seedSubmissionFixture('accumulated-strava-auto');
+  await Event.updateOne(
+    { _id: seed.event._id },
+    {
+      $set: {
+        virtualCompletionMode: 'accumulated_distance',
+        targetDistanceKm: 10,
+        minimumActivityDistanceKm: 1,
+        acceptedRunTypes: ['run']
+      }
+    }
+  );
+
+  const activity = await createAccumulatedActivitySubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 4,
+    elapsedMs: 25 * 60 * 1000,
+    proofType: 'gps',
+    proof: { url: 'https://www.strava.com/activities/32345', key: '', mimeType: 'text/uri-list', size: 0, hash: 'strava:32345' },
+    runType: 'run',
+    source: 'strava',
+    stravaActivity: {
+      id: 32345,
+      athleteId: 98765,
+      name: 'Accumulated Strava Run',
+      type: 'Run',
+      sportType: 'Run',
+      distanceKm: 4,
+      elapsedTimeSeconds: 1500,
+      movingTimeSeconds: 1450,
+      startDate: new Date(),
+      startDateLocal: new Date(),
+      url: 'https://www.strava.com/activities/32345'
+    },
+    ocrData: {
+      extractedDistanceKm: 4,
+      extractedTimeMs: 25 * 60 * 1000,
+      rawText: 'Accumulated Strava Run',
+      confidence: 1,
+      detectedSource: 'strava',
+      nameMatchStatus: 'not_checked'
+    }
+  });
+
+  assert.equal(activity.status, 'approved');
+  assert.equal(activity.reviewedBy, null);
+  assert.equal(activity.reviewNotes, 'Auto-approved from OCR name match.');
+});
+
 async function seedSubmissionFixture(tag, options = {}) {
   const runner = await createRunnerUser(`runner-${tag}`);
   const organizer = await createOrganizerUser(`organizer-${tag}`);
@@ -964,6 +1123,157 @@ test('createSubmission auto-approves clean matched OCR and issues certificate', 
   assert.ok(String(result.certificate?.url || '').length > 0);
   assert.equal(calls.approved.length, 0);
   assert.equal(calls.certificate.length, 0);
+  assert.equal(result.validation.method, 'ocr');
+  assert.equal(result.validation.autoApprovalEligible, true);
+  assert.equal(result.validation.reviewRequired, false);
+  assert.equal(result.validation.reviewReason, '');
+  assert.equal(result.validation.submissionMode, 'one_time');
+});
+
+test('createSubmission auto-approves validated Strava source without OCR name match', async () => {
+  const seed = await seedSubmissionFixture('strava-auto-approve');
+  const result = await createSubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 5,
+    elapsedMs: 1800000,
+    runDate: new Date(),
+    runLocation: 'Strava activity',
+    proofType: 'gps',
+    proof: { url: 'https://www.strava.com/activities/12345', key: '', mimeType: 'text/uri-list', size: 0, hash: 'strava:12345' },
+    runType: 'run',
+    source: 'strava',
+    stravaActivity: {
+      id: 12345,
+      athleteId: 98765,
+      name: 'Morning Run',
+      type: 'Run',
+      sportType: 'Run',
+      distanceKm: 5,
+      elapsedTimeSeconds: 1800,
+      movingTimeSeconds: 1750,
+      startDate: new Date(),
+      startDateLocal: new Date(),
+      url: 'https://www.strava.com/activities/12345'
+    },
+    ocrData: {
+      extractedDistanceKm: 5,
+      extractedTimeMs: 1800000,
+      rawText: 'Morning Run',
+      confidence: 1,
+      detectedSource: 'strava',
+      nameMatchStatus: 'not_checked'
+    }
+  });
+
+  assert.equal(result.status, 'approved');
+  assert.equal(result.reviewedBy, null);
+  assert.equal(result.reviewNotes, 'Auto-approved from OCR name match.');
+  assert.equal(result.validation.method, 'strava');
+  assert.equal(result.validation.autoApprovalEligible, true);
+  assert.equal(result.validation.reviewRequired, false);
+  assert.equal(result.validation.reviewReason, '');
+});
+
+test('createSubmission keeps one-time proof below category distance pending', async () => {
+  const seed = await seedSubmissionFixture('ocr-below-minimum');
+  seed.registration.raceDistance = '10K';
+  await seed.registration.save();
+
+  const result = await createSubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 7.8,
+    elapsedMs: 2700000,
+    runDate: new Date(),
+    runLocation: 'Manila',
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof-below-minimum.png', key: 'proof-below-minimum-key', mimeType: 'image/png', size: 1024 },
+    ocrData: {
+      extractedDistanceKm: 7.8,
+      extractedTimeMs: 2700000,
+      rawText: 'Submit Runner\n7.8 km\n45:00',
+      confidence: 0.9,
+      distanceMismatch: false,
+      timeMismatch: false,
+      detectedSource: 'strava',
+      extractedName: 'Submit Runner',
+      nameMatchStatus: 'matched',
+      nameMismatchAcknowledged: false
+    }
+  });
+
+  assert.equal(result.status, 'submitted');
+  assert.equal(result.suspiciousFlag, true);
+  assert.match(result.suspiciousFlagReason, /below the minimum required distance/i);
+  assert.equal(result.reviewedAt, null);
+  assert.equal(result.certificate?.url || '', '');
+  assert.equal(result.validation.method, 'ocr');
+  assert.equal(result.validation.autoApprovalEligible, false);
+  assert.equal(result.validation.reviewRequired, true);
+  assert.equal(result.validation.reviewReason, 'below_minimum_distance_one_time_submission');
+  assert.equal(result.validation.submissionMode, 'one_time');
+  assert.equal(result.validation.detectedDistanceKm, 7.8);
+  assert.equal(result.validation.minimumRequiredDistanceKm, 10);
+});
+
+test('createSubmission keeps below-minimum Strava one-time proof pending', async () => {
+  const seed = await seedSubmissionFixture('strava-below-minimum');
+  seed.registration.raceDistance = '10K';
+  await seed.registration.save();
+
+  const result = await createSubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 7.8,
+    elapsedMs: 2700000,
+    runDate: new Date(),
+    runLocation: 'Strava activity',
+    proofType: 'gps',
+    proof: { url: 'https://www.strava.com/activities/22345', key: '', mimeType: 'text/uri-list', size: 0, hash: 'strava:22345' },
+    runType: 'run',
+    source: 'strava',
+    stravaActivity: {
+      id: 22345,
+      athleteId: 98765,
+      name: 'Short Run',
+      type: 'Run',
+      sportType: 'Run',
+      distanceKm: 7.8,
+      elapsedTimeSeconds: 2700,
+      movingTimeSeconds: 2600,
+      startDate: new Date(),
+      startDateLocal: new Date(),
+      url: 'https://www.strava.com/activities/22345'
+    },
+    ocrData: {
+      extractedDistanceKm: 7.8,
+      extractedTimeMs: 2700000,
+      rawText: 'Short Run',
+      confidence: 1,
+      detectedSource: 'strava',
+      nameMatchStatus: 'not_checked'
+    }
+  });
+
+  assert.equal(result.status, 'submitted');
+  assert.equal(result.suspiciousFlag, true);
+  assert.equal(result.validation.method, 'strava');
+  assert.equal(result.validation.autoApprovalEligible, false);
+  assert.equal(result.validation.reviewReason, 'below_minimum_distance_one_time_submission');
+});
+
+test('eligible submission options expose one-time minimum required distance', async () => {
+  const seed = await seedSubmissionFixture('eligible-minimum-distance');
+  seed.registration.raceDistance = '10K';
+  await seed.registration.save();
+
+  const items = await getRunnerEligibleSubmissionRegistrations(seed.runner._id);
+  const option = items.find((item) => String(item.registrationId) === String(seed.registration._id));
+
+  assert.ok(option);
+  assert.equal(option.submissionMode, 'standard');
+  assert.equal(option.minimumRequiredDistanceKm, 10);
 });
 
 test('createSubmission auto-approves clean matched OCR personal record without certificate', async () => {
@@ -1003,6 +1313,11 @@ test('createSubmission auto-approves clean matched OCR personal record without c
   assert.equal(result.isPersonalRecord, true);
   assert.equal(result.reviewNotes, 'Auto-approved from OCR name match.');
   assert.equal(result.certificate?.url || '', '');
+  assert.equal(result.validation.method, 'ocr');
+  assert.equal(result.validation.autoApprovalEligible, true);
+  assert.equal(result.validation.reviewRequired, false);
+  assert.equal(result.validation.submissionMode, 'personal_record');
+  assert.equal(result.validation.minimumRequiredDistanceKm, null);
 });
 
 test('createSubmission keeps mismatched and undetected names pending with correct flags', async () => {

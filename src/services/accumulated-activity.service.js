@@ -6,7 +6,8 @@ const { issueSubmissionCertificate } = require('./certificate.service');
 const communicationService = require('./communication.service');
 const {
   buildSubmissionPayload,
-  getEligibleRunnerRegistration
+  getEligibleRunnerRegistration,
+  isAutoApprovableSubmission
 } = require('./submission.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 const {
@@ -15,6 +16,7 @@ const {
 } = require('./badge-progress.service');
 
 const REVIEWABLE_STATUS = new Set(['submitted']);
+const AUTO_APPROVAL_REVIEW_NOTE = 'Auto-approved from OCR name match.';
 
 async function createAccumulatedActivitySubmission(input) {
   const registration = await getEligibleRunnerRegistration({
@@ -35,7 +37,8 @@ async function createAccumulatedActivitySubmission(input) {
   delete payload.isPersonalRecord;
   delete payload.submissionCount;
 
-  return AccumulatedActivitySubmission.create(payload);
+  const activity = await AccumulatedActivitySubmission.create(payload);
+  return applyAccumulatedAutoApprovalIfEligible(activity, event);
 }
 
 async function reviewAccumulatedActivitySubmission({
@@ -290,6 +293,61 @@ async function attachCompletionCertificateIfNeeded(activity) {
     occurredAt: activity.certificate?.issuedAt || new Date()
   });
   return Boolean(certificate?.url);
+}
+
+async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
+  if (!isAutoApprovableSubmission(activity)) {
+    return activity;
+  }
+
+  const eventDoc = event || await Event.findById(activity.eventId)
+    .select('title targetDistanceKm virtualCompletionMode')
+    .lean();
+  if (!eventDoc || eventDoc.virtualCompletionMode !== 'accumulated_distance') {
+    return activity;
+  }
+
+  const hadCertificate = Boolean(activity.certificate?.url);
+  activity.status = 'approved';
+  activity.reviewedAt = new Date();
+  activity.reviewedBy = null;
+  activity.reviewNotes = AUTO_APPROVAL_REVIEW_NOTE;
+  activity.rejectionReason = '';
+  await activity.save();
+
+  recordCriticalAuditEventInBackground({
+    actorMongoUserId: '',
+    action: 'submission.auto_approved',
+    targetType: 'accumulated_activity_submission',
+    targetId: String(activity._id),
+    statusFrom: 'submitted',
+    statusTo: 'approved',
+    notes: AUTO_APPROVAL_REVIEW_NOTE,
+    occurredAt: activity.reviewedAt
+  });
+
+  const certificateWasIssued = !hadCertificate && await attachCompletionCertificateIfNeeded(activity);
+  refreshAccumulatedChallengeProgress(activity.registrationId, {
+    performedBy: ''
+  }).catch((error) => {
+    console.error('Accumulated challenge badge progress refresh failed:', {
+      activityId: String(activity._id || ''),
+      registrationId: String(activity.registrationId || ''),
+      error: error.message
+    });
+  });
+  refreshGlobalDistanceMilestoneProgressInBackground(activity.runnerId, {
+    performedBy: ''
+  });
+
+  await sendActivityReviewNotifications({
+    activity,
+    eventTitle: eventDoc.title || 'Event',
+    action: 'approve',
+    certificateWasIssued
+  });
+
+  return activity;
 }
 
 function assertAccumulatedEvent(event) {

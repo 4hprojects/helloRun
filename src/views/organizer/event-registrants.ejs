@@ -275,7 +275,9 @@
                         <small><strong>Activity counts:</strong> <%= registration.accumulatedProgress.approvedActivityCount %> approved, <%= registration.accumulatedProgress.pendingActivityCount %> pending, <%= registration.accumulatedProgress.rejectedActivityCount %> rejected</small>
                       <% } %>
                       <% if (registration.submission.suspiciousFlag) { %>
-                        <span class="mode-badge mode-warning" title="<%= registration.submission.suspiciousFlagReason %>">&#9888; Suspicious</span>
+                        <span class="mode-badge mode-warning" title="<%= registration.submission.reviewSignal?.description || registration.submission.suspiciousFlagReason %>">&#9888; <%= registration.submission.reviewSignal?.label || 'Suspicious' %></span>
+                      <% } else if (registration.submission.reviewSignal && registration.submission.reviewSignal.label) { %>
+                        <span class="mode-badge mode-warning" title="<%= registration.submission.reviewSignal.description || '' %>">&#9888; <%= registration.submission.reviewSignal.label %></span>
                       <% } %>
                       <% if (registration.submission.ocrData && (registration.submission.ocrData.distanceMismatch || registration.submission.ocrData.timeMismatch)) { %>
                         <span class="mode-badge mode-warning" title="OCR detected possible mismatch">&#9888; Mismatch</span>
@@ -303,8 +305,11 @@
                       <% if (registration.submission.suspiciousFlag) { %>
                         <br>
                         <details class="ocr-analysis-details">
-                          <summary><strong>&#9888; Suspicious activity flag</strong></summary>
+                          <summary><strong>&#9888; <%= registration.submission.reviewSignal?.label || 'Suspicious activity flag' %></strong></summary>
                           <div class="ocr-analysis-body">
+                            <% if (registration.submission.reviewSignal?.description) { %>
+                              <small><%= registration.submission.reviewSignal.description %></small><br>
+                            <% } %>
                             <small><%= registration.submission.suspiciousFlagReason %></small>
                           </div>
                         </details>

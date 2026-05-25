@@ -43,6 +43,7 @@ const {
   isValidCountryCode,
   normalizeCountryCode
 } = require('../utils/country');
+const { buildSubmissionReviewSignal } = require('../utils/submission-review-labels');
 
 const VALID_FILTER_STATUSES = ['pending', 'under_review', 'approved', 'rejected'];
 const REVIEWABLE_STATUSES = ['pending', 'under_review'];
@@ -2548,6 +2549,7 @@ exports.reviewQueue = async (req, res) => {
         status: submission.status || 'submitted',
         suspiciousFlag: Boolean(submission.suspiciousFlag),
         suspiciousFlagReason: String(submission.suspiciousFlagReason || '').trim(),
+        reviewSignal: buildSubmissionReviewSignal(submission),
         actionHref: `/organizer/events/${String(event._id || submission.eventId)}/submissions/${String(submission._id)}/review`
       };
     });
@@ -2571,6 +2573,7 @@ exports.reviewQueue = async (req, res) => {
         status: submission.status || 'submitted',
         suspiciousFlag: Boolean(submission.suspiciousFlag),
         suspiciousFlagReason: String(submission.suspiciousFlagReason || '').trim(),
+        reviewSignal: buildSubmissionReviewSignal(submission),
         actionHref: `/organizer/events/${String(event._id || submission.eventId)}/submissions/${String(submission._id)}/review`
       };
     });

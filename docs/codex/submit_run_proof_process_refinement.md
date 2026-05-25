@@ -208,7 +208,7 @@ Recommended direction:
 
 ### 5. OCR Trust Signals Are Strong But Need A Cleaner Review Contract
 
-The current system stores OCR metadata and suspicious flags. Auto-approval exists for clean OCR name matches and no mismatch flags.
+The current system stores OCR metadata, suspicious flags, and structured validation metadata. Auto-approval exists for clean OCR name matches and no mismatch flags. Standard one-time submissions are held for review when the proof distance is below the resolved category minimum, accumulated activity submissions can auto-approve when clean OCR criteria pass, and Strava uses a separate synced-source validation path.
 
 Refinement opportunities:
 
@@ -543,6 +543,9 @@ Do not promote OCR fields to official result data unless a new requirement expli
 - Accumulated events remain eligible for additional activities.
 - Suspicious OCR mismatches save with flags.
 - Clean OCR matched submissions can auto-approve when existing criteria are met.
+- Below-minimum one-time submissions remain submitted with a review reason.
+- Clean accumulated activity submissions can auto-approve and only issue certificates when approved total progress reaches the event target.
+- Strava source-validated submissions can auto-approve without OCR name matching when source validation, event rules, and integrity checks pass.
 
 ### Modal Tests
 

@@ -87,6 +87,7 @@ const commonActivityFields = {
  * OCR ANALYSIS PAYLOAD (stays in MongoDB, NOT synced to Supabase):
  * - ocrData: OCR recognition scores, extracted metrics, candidate names, confidence levels
  * - suspiciousFlag, suspiciousFlagReason: manual review flagging for suspicious entries
+ * - validation: structured proof validation and auto-approval decision metadata
  * - stravaActivity: Strava API response metadata (for import traceability only)
  * - proofNotes, runLocation, elevationGain, steps: flexible run details
  * 
@@ -296,6 +297,40 @@ const submissionSchema = new mongoose.Schema(
       trim: true,
       default: '',
       maxlength: 500
+    },
+    validation: {
+      method: {
+        type: String,
+        enum: ['ocr', 'strava', 'manual_upload', 'unknown'],
+        default: 'unknown'
+      },
+      autoApprovalEligible: {
+        type: Boolean,
+        default: false
+      },
+      reviewRequired: {
+        type: Boolean,
+        default: true
+      },
+      reviewReason: {
+        type: String,
+        trim: true,
+        default: '',
+        maxlength: 120
+      },
+      submissionMode: {
+        type: String,
+        enum: ['one_time', 'personal_record', 'accumulated', 'unknown'],
+        default: 'unknown'
+      },
+      detectedDistanceKm: {
+        type: Number,
+        default: null
+      },
+      minimumRequiredDistanceKm: {
+        type: Number,
+        default: null
+      }
     }
   },
   {

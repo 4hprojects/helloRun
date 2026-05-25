@@ -1509,6 +1509,10 @@ Tasks:
 - [DONE] Add impossible pace checks
 - [DONE] Add flag-only impossible/suspicious checks for distance, duration, elevation, steps, OCR mismatches, name mismatch, date mismatch, run type mismatch, and location mismatch
 - [DONE] Show OCR metadata and mismatch fields in organizer/admin review surfaces
+- [DONE] Add standard one-time minimum-distance gating before auto-approval
+- [DONE] Persist structured submission validation metadata and readable review reasons
+- [DONE] Auto-approve clean accumulated activity submissions without issuing partial-progress certificates
+- [DONE] Add a separate Strava synced-source auto-approval path
 - [PARTIAL] Low-confidence and unknown-source handling remain review signals, but thresholds may still be tuned from real screenshots
 
 Validation:
@@ -1517,6 +1521,8 @@ Validation:
 - Suspicious submissions require review instead of being blocked
 - Suspicious submissions do not auto-approve
 - Approved submissions remain leaderboard-eligible only after review
+- Below-minimum standard one-time submissions remain submitted for organiser/admin review
+- Accumulated challenge certificates are issued only when approved total progress reaches the event target distance
 
 ---
 
