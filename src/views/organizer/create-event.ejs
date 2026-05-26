@@ -50,6 +50,8 @@
         </div>
       </div>
 
+      <div id="inlineActionToast" class="inline-action-toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+
       <form class="create-event-form" method="POST" action="/organizer/create-event" enctype="multipart/form-data" novalidate>
         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
         <aside class="wizard-progress" aria-label="Create event progress">
@@ -212,6 +214,21 @@
           <div class="form-grid" style="margin-top:1.5rem;">
             <div class="form-group form-group-full">
               <div class="subsection-divider">Registration Dates</div>
+            </div>
+            <div class="form-group form-group-full">
+              <label for="publicListingImmediateToggle">Public Posting Available At</label>
+              <div class="toggle-section-label">
+                <input type="checkbox" id="publicListingImmediateToggle" <%= formData.publicListingAvailableAt ? '' : 'checked' %>>
+                <label for="publicListingImmediateToggle" class="toggle-label-text">Immediately after admin approval</label>
+              </div>
+              <div id="publicListingCustomAtFields" style="display:<%= formData.publicListingAvailableAt ? '' : 'none' %>; margin-top:0.55rem;">
+                <div class="input-with-button">
+                  <input id="publicListingAvailableAt" name="publicListingAvailableAt" type="datetime-local" value="<%= formData.publicListingAvailableAt || '' %>">
+                  <button type="button" class="btn-now" data-target="publicListingAvailableAt">Now</button>
+                </div>
+              </div>
+              <small class="field-hint">Keep this checked to post immediately once approved. Uncheck to schedule a specific posting date and time.</small>
+              <% if (errors.publicListingAvailableAt) { %><small class="error-text"><%= errors.publicListingAvailableAt %></small><% } %>
             </div>
             <div class="form-group">
               <label for="registrationOpenAt">Registration Opens *</label>
@@ -392,36 +409,54 @@
         <div id="race-categories-step" class="form-section form-section-race-categories" tabindex="-1" data-wizard-step="race-categories-step">
           <div class="section-kicker">Step 5 of 12</div>
           <div class="section-title">Race Categories</div>
-          <p class="section-helper" id="raceCategoryHelper">Define the categories runners can join. Distance labels still sync to the legacy distance fields for compatibility.</p>
+          <p class="section-helper" id="raceCategoryHelper">Choose the distances runners can join, then adjust the display name and optional limits only when needed.</p>
           <div class="form-grid">
             <div class="form-group form-group-full <%= errors.raceDistances ? 'has-error' : '' %>">
               <label>Race Categories *</label>
+              <% const raceCategories = (formData.raceCategories && formData.raceCategories.length ? formData.raceCategories : [{ distanceLabel: '5K', name: '5K', type: 'distance' }]).slice(0, 12); %>
+              <% const presetDistanceValues = ['3K', '5K', '10K', '21K', '42K']; %>
+              <% const selectedPresetDistances = new Set(raceCategories.map(function(category) { return String(category.distanceLabel || category.name || '').toUpperCase().replace(/\s+/g, ''); })); %>
+              <div class="race-category-preset-builder" aria-label="Race category presets">
+                <span class="preset-builder-label">Standard distances:</span>
+                <% presetDistanceValues.forEach(function(preset) { %>
+                  <label class="race-category-preset-checkbox smart-tooltip" data-tooltip="Adds a <%= preset %> race category and fills Distance km automatically.">
+                    <input type="checkbox" value="<%= preset %>" data-race-preset-checkbox <%= selectedPresetDistances.has(preset) ? 'checked' : '' %>>
+                    <span><%= preset %></span>
+                  </label>
+                <% }) %>
+                <button type="button" class="btn btn-outline race-category-preset-btn smart-tooltip" data-race-preset="custom" data-tooltip="Adds a blank category for unusual distances or named divisions.">Custom</button>
+              </div>
               <div id="raceCategoryRows" class="customized-option-grid">
-                <% const raceCategories = (formData.raceCategories && formData.raceCategories.length ? formData.raceCategories : [{ distanceLabel: '5K', name: '5K', type: 'distance' }]).slice(0, 12); %>
                 <% raceCategories.forEach(function(category, categoryIndex) { %>
+                  <% const renderedRaceCategoryLabel = category.distanceLabel || category.name || ''; %>
+                  <% const renderedRaceCategoryKm = category.distanceKm ?? (function(label) { const match = String(label || '').trim().match(/^(\d+(?:\.\d+)?)\s*(?:k|km)$/i); return match ? match[1] : ''; })(renderedRaceCategoryLabel); %>
                   <div class="race-category-card customized-option-row" data-race-category-row>
+                    <div class="race-category-header">
+                      <div class="race-category-summary" data-race-category-summary><%= [category.name || category.distanceLabel || 'Race category', renderedRaceCategoryKm ? renderedRaceCategoryKm + ' km' : '', category.slots ? category.slots + ' slots' : ''].filter(Boolean).join(' - ') %></div>
+                      <div class="race-category-meta-actions">
+                        <div class="race-category-toggle-group">
+                          <label class="race-category-toggle smart-tooltip" aria-label="Limit slots" data-tooltip="Turn this on only when this category has a maximum number of runners."><input type="checkbox" data-race-category-toggle="slots" <%= category.slots !== null && category.slots !== undefined && category.slots !== '' ? 'checked' : '' %>><span class="toggle-switch" aria-hidden="true"></span><span class="toggle-label-full">Limit slots</span></label>
+                          <label class="race-category-toggle smart-tooltip" aria-label="Add cut-off" data-tooltip="Turn this on when this category has a finish time or challenge deadline."><input type="checkbox" data-race-category-toggle="cutoff" <%= category.cutoffTime ? 'checked' : '' %>><span class="toggle-switch" aria-hidden="true"></span><span class="toggle-label-full">Add cut-off</span></label>
+                        </div>
+                        <button type="button" class="remove-race-category-btn smart-tooltip" aria-label="Remove category" data-tooltip="Remove this category."><i data-lucide="trash-2"></i></button>
+                      </div>
+                    </div>
                     <input type="hidden" name="raceCategoryId" value="<%= category.categoryId || '' %>">
-                    <input name="raceCategoryName" type="text" maxlength="100" value="<%= category.name || category.distanceLabel || '' %>" placeholder="Category name">
-                    <select name="raceCategoryType" aria-label="Category type">
-                      <option value="distance" <%= !category.type || category.type === 'distance' ? 'selected' : '' %>>Distance</option>
-                      <option value="challenge" <%= category.type === 'challenge' ? 'selected' : '' %>>Challenge</option>
-                      <option value="open" <%= category.type === 'open' ? 'selected' : '' %>>Open</option>
-                      <option value="other" <%= category.type === 'other' ? 'selected' : '' %>>Other</option>
-                    </select>
-                    <input name="raceCategoryDistanceLabel" type="text" maxlength="30" value="<%= category.distanceLabel || category.name || '' %>" placeholder="Distance label, e.g. 10K">
-                    <input name="raceCategoryDistanceKm" type="number" min="0" step="0.01" value="<%= category.distanceKm ?? '' %>" placeholder="KM">
-                    <input name="raceCategorySlots" type="number" min="0" step="1" value="<%= category.slots ?? '' %>" placeholder="Slots">
-                    <input name="raceCategoryCutoffTime" type="text" maxlength="80" value="<%= category.cutoffTime || '' %>" placeholder="Cut-off time">
-                    <input name="raceCategoryAgeGroup" type="text" maxlength="80" value="<%= category.ageGroup || '' %>" placeholder="Age group">
-                    <input name="raceCategoryRewardsDescription" type="text" maxlength="500" value="<%= category.rewardsDescription || '' %>" placeholder="Category reward note">
-                    <button type="button" class="btn btn-secondary remove-race-category-btn">Remove</button>
+                    <input type="hidden" name="raceCategoryDistanceLabel" value="<%= category.distanceLabel || category.name || '' %>">
+                    <div class="race-category-fields">
+                      <label class="smart-tooltip" data-tooltip="This is what runners see in the registration dropdown."><span>Display name</span><input name="raceCategoryName" type="text" maxlength="100" value="<%= category.name || category.distanceLabel || '' %>" placeholder="e.g. 10K Open"></label>
+                      <label class="smart-tooltip" data-tooltip="Used for challenge distance, summaries, and compatibility with pricing. Presets fill this automatically."><span>Distance km</span><input name="raceCategoryDistanceKm" type="number" min="0" step="0.01" value="<%= renderedRaceCategoryKm %>" placeholder="10"></label>
+                      <label class="race-category-optional-field smart-tooltip" data-race-category-optional="slots" data-tooltip="Registration can use this as the category capacity. Leave blank if uncapped."><span>Slot limit</span><input name="raceCategorySlots" type="number" min="0" step="1" value="<%= category.slots ?? '' %>" placeholder="100"></label>
+                      <label class="race-category-optional-field smart-tooltip" data-race-category-optional="cutoff" data-tooltip="A short public note like 2 hours, 6 PM, or finish within event window."><span>Cut-off time</span><input name="raceCategoryCutoffTime" type="text" maxlength="80" value="<%= category.cutoffTime || '' %>" placeholder="e.g. 2 hours"></label>
+                      <label class="race-category-wide-field smart-tooltip" data-tooltip="Optional note for category-specific inclusions or awards."><span>Reward note</span><input name="raceCategoryRewardsDescription" type="text" maxlength="500" value="<%= category.rewardsDescription || '' %>" placeholder="e.g. Medal and shirt"></label>
+                    </div>
                   </div>
                   <% if (errors['raceCategoryName' + categoryIndex]) { %><small class="error-text"><%= errors['raceCategoryName' + categoryIndex] %></small><% } %>
                   <% if (errors['raceCategoryDistanceKm' + categoryIndex]) { %><small class="error-text"><%= errors['raceCategoryDistanceKm' + categoryIndex] %></small><% } %>
                   <% if (errors['raceCategorySlots' + categoryIndex]) { %><small class="error-text"><%= errors['raceCategorySlots' + categoryIndex] %></small><% } %>
                 <% }) %>
               </div>
-              <button type="button" class="btn btn-secondary" id="addRaceCategoryBtn">Add Category</button>
+              <button type="button" class="add-race-category-btn smart-tooltip" id="addRaceCategoryBtn" aria-label="Add category" title="Add category" data-tooltip="Adds another category row. You can have up to 12 public categories."><i data-lucide="plus"></i></button>
               <div id="legacyRaceDistanceFields" hidden></div>
               <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" hidden>
               <small class="field-hint">Numbers are treated as kilometers, so 10, 10k, and 10 km become 10K.</small>
@@ -811,7 +846,7 @@
             <h3>1) Event Logo</h3>
             <p>Small square or transparent image.</p>
             <p class="media-used-in"><strong>Used in:</strong> Event listings, leaderboard header, search results.</p>
-            <p class="media-rules">Optional. JPG/PNG only, max 5MB.</p>
+            <p class="media-rules">Optional. JPG/PNG/WebP, max 5MB.</p>
 
             <!-- Existing logo preview if any -->
             <% if (formData.logoUrl) { %>
@@ -828,7 +863,7 @@
               <div class="upload-placeholder">
                 <i data-lucide="upload-cloud"></i>
                 <p>Drag & drop or click to upload new logo</p>
-                <small>Square image recommended (200x200+), JPG/PNG, max 5MB</small>
+                <small>Square image recommended (200x200+), JPG/PNG/WebP, max 5MB</small>
               </div>
               <div class="upload-preview" id="logoPreviewContainer" style="display: none;">
                 <img id="logoPreviewImg" src="#" alt="New logo preview">
@@ -845,7 +880,7 @@
             <h3>2) Event Banner</h3>
             <p>Wide rectangular image for event branding.</p>
             <p class="media-used-in"><strong>Used in:</strong> Event page hero section, landing page, promotional header.</p>
-            <p class="media-rules">Optional. JPG/PNG only, max 5MB. Recommended ratio: 3:1.</p>
+            <p class="media-rules">Optional. JPG/PNG/WebP, max 5MB. Recommended ratio: 3:1.</p>
 
             <% if (formData.bannerImageUrl) { %>
             <div class="branding-preview-wrap" id="bannerPreviewWrap">
@@ -860,7 +895,7 @@
               <div class="upload-placeholder">
                 <i data-lucide="upload-cloud"></i>
                 <p>Drag & drop or click to upload new banner</p>
-                <small>Recommended ratio 3:1, JPG/PNG, max 5MB</small>
+                <small>Recommended ratio 3:1, JPG/PNG/WebP, max 5MB</small>
               </div>
               <div class="upload-preview" id="bannerPreviewContainer" style="display: none;">
                 <img id="bannerPreviewImg" src="#" alt="New banner preview">
@@ -876,7 +911,7 @@
             <h3>3) Promotional Poster</h3>
             <p>Edited promotional image (details, dates, sponsors, prizes, instructions).</p>
             <p class="media-used-in"><strong>Used in:</strong> Event details page and promotional header blocks.</p>
-            <p class="media-rules">Optional. JPG/PNG only, max 5MB.</p>
+            <p class="media-rules">Optional. JPG/PNG/WebP, max 5MB.</p>
 
             <% if (formData.posterImageUrl) { %>
             <div class="branding-preview-wrap" id="posterPreviewWrap">
@@ -891,7 +926,7 @@
               <div class="upload-placeholder">
                 <i data-lucide="upload-cloud"></i>
                 <p>Drag & drop or click to upload new poster</p>
-                <small>JPG/PNG, max 5MB</small>
+                <small>JPG/PNG/WebP, max 5MB</small>
               </div>
               <div class="upload-preview" id="posterPreviewContainer" style="display: none;">
                 <img id="posterPreviewImg" src="#" alt="New poster preview">
@@ -907,7 +942,7 @@
             <h3>4) Gallery Images (Optional)</h3>
             <p>Past event photos, route preview, medal preview.</p>
             <p class="media-used-in"><strong>Used in:</strong> Event details gallery section.</p>
-            <p class="media-rules">Optional. JPG/PNG only, max 5MB each, up to 12 images.</p>
+            <p class="media-rules">Optional. JPG/PNG/WebP, max 5MB each, up to 12 images.</p>
 
             <input type="hidden" id="removeGalleryImages" name="removeGalleryImages" value="0">
 
@@ -932,7 +967,7 @@
               <div class="upload-placeholder">
                 <i data-lucide="images"></i>
                 <p>Drag & drop or click to upload up to 12 new images</p>
-                <small>JPG/PNG, max 5MB each</small>
+                <small>JPG/PNG/WebP, max 5MB each</small>
               </div>
             </div>
 
@@ -1072,7 +1107,6 @@
       window.addEventListener('resize', updateNavH);
 
       function resetCreateEventScrollTop() {
-        if (window.location.hash) return;
         window.scrollTo(0, 0);
       }
 
@@ -1086,7 +1120,7 @@
       });
 
       const eventTypeSection = document.querySelector('.form-section-event-type');
-      if (eventTypeSection && !window.location.hash) {
+      if (eventTypeSection) {
         eventTypeSection.focus({ preventScroll: true });
       }
 
@@ -1290,6 +1324,91 @@
         return raw.toUpperCase().replace(/\s+/g, ' ');
       }
 
+      function distanceKmFromLabel(value) {
+        const normalized = normalizeDistanceLabel(value);
+        const match = normalized.match(/^(\d+(?:\.\d+)?)K$/);
+        return match ? match[1] : '';
+      }
+
+      function escapeAttr(value) {
+        return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        }[char]));
+      }
+
+      function updateRaceCategorySummary(row) {
+        const summary = row.querySelector('[data-race-category-summary]');
+        if (!summary) return;
+        const name = row.querySelector('input[name="raceCategoryName"]')?.value?.trim() || '';
+        const label = normalizeDistanceLabel(row.querySelector('input[name="raceCategoryDistanceLabel"]')?.value || name);
+        const km = row.querySelector('input[name="raceCategoryDistanceKm"]')?.value?.trim() || distanceKmFromLabel(label);
+        const slots = row.querySelector('input[name="raceCategorySlots"]')?.value?.trim() || '';
+        summary.textContent = [
+          name || label || 'Race category',
+          km ? `${km} km` : '',
+          slots ? `${slots} slots` : ''
+        ].filter(Boolean).join(' - ');
+      }
+
+      function syncRaceCategoryOptionalFields(row, options = {}) {
+        const animate = options.animate !== false;
+        const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const shouldAnimate = animate && !prefersReducedMotion;
+        const setVisibility = (field, enabled) => {
+          if (!field) return;
+          const isVisible = field.style.display !== 'none';
+          if (enabled) {
+            field.style.display = '';
+            if (shouldAnimate && !isVisible) {
+              field.animate(
+                [
+                  { opacity: 0, transform: 'translateY(-4px)' },
+                  { opacity: 1, transform: 'translateY(0)' }
+                ],
+                { duration: 160, easing: 'ease-out' }
+              );
+            }
+            return;
+          }
+          if (!isVisible) return;
+          if (!shouldAnimate) {
+            field.style.display = 'none';
+            return;
+          }
+          const hideAnimation = field.animate(
+            [
+              { opacity: 1, transform: 'translateY(0)' },
+              { opacity: 0, transform: 'translateY(-4px)' }
+            ],
+            { duration: 140, easing: 'ease-in', fill: 'forwards' }
+          );
+          hideAnimation.onfinish = () => {
+            field.style.display = 'none';
+          };
+        };
+        ['slots', 'cutoff'].forEach((key) => {
+          const toggle = row.querySelector(`[data-race-category-toggle="${key}"]`);
+          const field = row.querySelector(`[data-race-category-optional="${key}"]`);
+          const input = field?.querySelector('input');
+          const enabled = Boolean(toggle?.checked);
+          setVisibility(field, enabled);
+          if (!enabled && input) input.value = '';
+        });
+      }
+
+      function updateRaceCategoryRemoveState() {
+        const rows = Array.from(document.querySelectorAll('[data-race-category-row]'));
+        rows.forEach((row) => {
+          const button = row.querySelector('.remove-race-category-btn');
+          if (button) button.disabled = rows.length <= 1;
+        });
+        syncPresetCheckboxes();
+      }
+
       function getActiveRaceCategories() {
         return Array.from(document.querySelectorAll('[data-race-category-row]'))
           .map((row, index) => {
@@ -1309,10 +1428,40 @@
           .filter((d) => { if (seen.has(d)) return false; seen.add(d); return Boolean(d); });
       }
 
+      function syncPresetCheckboxes() {
+        const activeDistances = new Set(getActiveDistances());
+        document.querySelectorAll('[data-race-preset-checkbox]').forEach((checkbox) => {
+          checkbox.checked = activeDistances.has(normalizeDistanceLabel(checkbox.value));
+        });
+      }
+
+      function removePresetCategory(label) {
+        const normalized = normalizeDistanceLabel(label);
+        const rows = Array.from(document.querySelectorAll('[data-race-category-row]'));
+        const matchingRows = rows.filter((row) => {
+          const name = row.querySelector('input[name="raceCategoryName"]')?.value || '';
+          const rowLabel = normalizeDistanceLabel(row.querySelector('input[name="raceCategoryDistanceLabel"]')?.value || name);
+          return rowLabel === normalized;
+        });
+        matchingRows.forEach((row) => {
+          if (document.querySelectorAll('[data-race-category-row]').length > 1) {
+            row.remove();
+          } else {
+            row.querySelectorAll('input').forEach((input) => { input.value = ''; });
+            row.querySelectorAll('[data-race-category-toggle]').forEach((input) => { input.checked = false; });
+            syncRaceCategoryOptionalFields(row);
+            updateRaceCategorySummary(row);
+          }
+        });
+        updateRaceCategoryRemoveState();
+        syncLegacyRaceDistanceFields();
+        if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows();
+      }
+
       function syncLegacyRaceDistanceFields() {
         const container = document.getElementById('legacyRaceDistanceFields');
         if (!container) return;
-        const presets = new Set(['3K', '5K', '10K', '21K']);
+        const presets = new Set(['3K', '5K', '10K', '21K', '42K']);
         const distances = getActiveDistances();
         container.innerHTML = '';
         const custom = [];
@@ -1411,51 +1560,135 @@
       }
 
       function bindRaceCategoryRow(row) {
+        syncRaceCategoryOptionalFields(row, { animate: false });
+        updateRaceCategorySummary(row);
         row.querySelector('.remove-race-category-btn')?.addEventListener('click', () => {
-          if (document.querySelectorAll('[data-race-category-row]').length > 1) row.remove();
+          const categoryNameInput = row.querySelector('input[name="raceCategoryName"]');
+          const categoryDistanceLabelInput = row.querySelector('input[name="raceCategoryDistanceLabel"]');
+          const removedCategoryLabel = categoryNameInput?.value?.trim() || categoryDistanceLabelInput?.value?.trim() || 'category';
+          if (document.querySelectorAll('[data-race-category-row]').length > 1) {
+            row.remove();
+            showInlineActionToast(`Removed ${removedCategoryLabel}.`, 'danger');
+          }
+          updateRaceCategoryRemoveState();
           syncLegacyRaceDistanceFields();
           if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows();
         });
+        row.querySelectorAll('[data-race-category-toggle]').forEach((toggle) => {
+          toggle.addEventListener('change', () => {
+            const categoryNameInput = row.querySelector('input[name="raceCategoryName"]');
+            const categoryDistanceLabelInput = row.querySelector('input[name="raceCategoryDistanceLabel"]');
+            const categoryLabel = categoryNameInput?.value?.trim() || categoryDistanceLabelInput?.value?.trim() || 'Category';
+            const toggleKey = toggle.dataset.raceCategoryToggle;
+            const toggleLabel = toggleKey === 'slots' ? 'Limit slots' : 'Add cut-off';
+            syncRaceCategoryOptionalFields(row, { animate: true });
+            updateRaceCategorySummary(row);
+            syncLegacyRaceDistanceFields();
+            if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows();
+            showInlineActionToast(
+              `${toggleLabel} ${toggle.checked ? 'enabled' : 'disabled'} for ${categoryLabel}.`,
+              toggle.checked ? 'success' : 'warning'
+            );
+          });
+        });
         row.querySelectorAll('input, select').forEach((input) => {
           input.addEventListener('input', () => {
+            updateRaceCategorySummary(row);
             syncLegacyRaceDistanceFields();
             if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows();
           });
           input.addEventListener('change', () => {
+            updateRaceCategorySummary(row);
             syncLegacyRaceDistanceFields();
             if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows();
           });
         });
+        updateRaceCategoryRemoveState();
       }
 
       document.querySelectorAll('[data-race-category-row]').forEach(bindRaceCategoryRow);
-      document.getElementById('addRaceCategoryBtn')?.addEventListener('click', () => {
+      function addRaceCategoryRow(options = {}) {
         const rows = document.getElementById('raceCategoryRows');
-        if (!rows || rows.querySelectorAll('[data-race-category-row]').length >= 12) return;
+        if (!rows || rows.querySelectorAll('[data-race-category-row]').length >= 12) return null;
+        const label = options.label ? normalizeDistanceLabel(options.label) : '';
+        const name = options.name || label || '';
+        const km = options.distanceKm || distanceKmFromLabel(label);
         const row = document.createElement('div');
         row.className = 'race-category-card customized-option-row';
         row.setAttribute('data-race-category-row', '');
         row.innerHTML = `
+          <div class="race-category-header">
+            <div class="race-category-summary" data-race-category-summary></div>
+            <div class="race-category-meta-actions">
+              <div class="race-category-toggle-group">
+                <label class="race-category-toggle smart-tooltip" aria-label="Limit slots" data-tooltip="Turn this on only when this category has a maximum number of runners."><input type="checkbox" data-race-category-toggle="slots"><span class="toggle-switch" aria-hidden="true"></span><span class="toggle-label-full">Limit slots</span></label>
+                <label class="race-category-toggle smart-tooltip" aria-label="Add cut-off" data-tooltip="Turn this on when this category has a finish time or challenge deadline."><input type="checkbox" data-race-category-toggle="cutoff"><span class="toggle-switch" aria-hidden="true"></span><span class="toggle-label-full">Add cut-off</span></label>
+              </div>
+              <button type="button" class="remove-race-category-btn smart-tooltip" aria-label="Remove category" data-tooltip="Remove this category."><i data-lucide="trash-2"></i></button>
+            </div>
+          </div>
           <input type="hidden" name="raceCategoryId" value="">
-          <input name="raceCategoryName" type="text" maxlength="100" value="" placeholder="Category name">
-          <select name="raceCategoryType" aria-label="Category type">
-            <option value="distance" selected>Distance</option>
-            <option value="challenge">Challenge</option>
-            <option value="open">Open</option>
-            <option value="other">Other</option>
-          </select>
-          <input name="raceCategoryDistanceLabel" type="text" maxlength="30" value="" placeholder="Distance label, e.g. 10K">
-          <input name="raceCategoryDistanceKm" type="number" min="0" step="0.01" value="" placeholder="KM">
-          <input name="raceCategorySlots" type="number" min="0" step="1" value="" placeholder="Slots">
-          <input name="raceCategoryCutoffTime" type="text" maxlength="80" value="" placeholder="Cut-off time">
-          <input name="raceCategoryAgeGroup" type="text" maxlength="80" value="" placeholder="Age group">
-          <input name="raceCategoryRewardsDescription" type="text" maxlength="500" value="" placeholder="Category reward note">
-          <button type="button" class="btn btn-secondary remove-race-category-btn">Remove</button>
+          <input type="hidden" name="raceCategoryDistanceLabel" value="${escapeAttr(label)}">
+          <div class="race-category-fields">
+            <label class="smart-tooltip" data-tooltip="This is what runners see in the registration dropdown."><span>Display name</span><input name="raceCategoryName" type="text" maxlength="100" value="${escapeAttr(name)}" placeholder="e.g. 10K Open"></label>
+            <label class="smart-tooltip" data-tooltip="Used for challenge distance, summaries, and compatibility with pricing. Presets fill this automatically."><span>Distance km</span><input name="raceCategoryDistanceKm" type="number" min="0" step="0.01" value="${escapeAttr(km)}" placeholder="10"></label>
+            <label class="race-category-optional-field smart-tooltip" data-race-category-optional="slots" data-tooltip="Registration can use this as the category capacity. Leave blank if uncapped."><span>Slot limit</span><input name="raceCategorySlots" type="number" min="0" step="1" value="" placeholder="100"></label>
+            <label class="race-category-optional-field smart-tooltip" data-race-category-optional="cutoff" data-tooltip="A short public note like 2 hours, 6 PM, or finish within event window."><span>Cut-off time</span><input name="raceCategoryCutoffTime" type="text" maxlength="80" value="" placeholder="e.g. 2 hours"></label>
+            <label class="race-category-wide-field smart-tooltip" data-tooltip="Optional note for category-specific inclusions or awards."><span>Reward note</span><input name="raceCategoryRewardsDescription" type="text" maxlength="500" value="" placeholder="e.g. Medal and shirt"></label>
+          </div>
         `;
         rows.appendChild(row);
         bindRaceCategoryRow(row);
+        if (window.lucide) lucide.createIcons();
+        updateRaceCategorySummary(row);
+        syncLegacyRaceDistanceFields();
+        if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows();
+        return row;
+      }
+      document.getElementById('addRaceCategoryBtn')?.addEventListener('click', () => {
+        const addedRow = addRaceCategoryRow();
+        if (addedRow) {
+          showInlineActionToast('Category added. Fill in the details.', 'success');
+          addedRow.querySelector('input[name="raceCategoryName"]')?.focus();
+        } else {
+          showInlineActionToast('Maximum of 12 categories reached.', 'warning');
+        }
+      });
+      document.querySelectorAll('[data-race-preset-checkbox]').forEach((checkbox) => {
+        checkbox.addEventListener('change', () => {
+          const preset = checkbox.value || '';
+          if (checkbox.checked) {
+            if (!getActiveDistances().includes(normalizeDistanceLabel(preset))) {
+              const addedRow = addRaceCategoryRow({ label: preset, name: preset });
+              if (addedRow) {
+                showInlineActionToast(`${preset} category added.`, 'success');
+              } else {
+                showInlineActionToast('Maximum of 12 categories reached.', 'warning');
+              }
+            }
+          } else {
+            removePresetCategory(preset);
+            showInlineActionToast(`${preset} category removed.`, 'warning');
+          }
+          syncPresetCheckboxes();
+        });
+      });
+      document.querySelectorAll('[data-race-preset]').forEach((button) => {
+        button.addEventListener('click', () => {
+          const preset = button.dataset.racePreset || '';
+          const addedRow = addRaceCategoryRow(preset === 'custom' ? {} : { label: preset, name: preset });
+          if (preset === 'custom') {
+            if (addedRow) {
+              showInlineActionToast('Custom category added. Fill in the details.', 'success');
+              addedRow.querySelector('input[name="raceCategoryName"]')?.focus();
+            } else {
+              showInlineActionToast('Maximum of 12 categories reached.', 'warning');
+            }
+          }
+        });
       });
       syncLegacyRaceDistanceFields();
+      syncPresetCheckboxes();
       document.getElementById('raceDistanceCustom')?.addEventListener('input', () => {
         if (feeModeSelect?.value === 'paid') rebuildPerDistanceFeeRows();
       });
@@ -1489,6 +1722,25 @@
       });
 
       // ---------- REVIEW STEP READINESS CHECKLIST ----------
+      const form = document.querySelector('.create-event-form');
+      const inlineActionToast = document.getElementById('inlineActionToast');
+      let inlineActionToastTimer = null;
+
+      function showInlineActionToast(message, variant = 'success') {
+        if (!inlineActionToast || !message) return;
+        inlineActionToast.hidden = false;
+        inlineActionToast.textContent = message;
+        inlineActionToast.dataset.variant = variant;
+        inlineActionToast.classList.add('is-visible');
+        window.clearTimeout(inlineActionToastTimer);
+        inlineActionToastTimer = window.setTimeout(() => {
+          inlineActionToast.classList.remove('is-visible');
+          window.setTimeout(() => {
+            inlineActionToast.hidden = true;
+          }, 220);
+        }, 1900);
+      }
+
       function escapeReviewHtml(value) {
         return String(value ?? '')
           .replace(/&/g, '&amp;')
@@ -1743,13 +1995,13 @@
         const registrationOpen = parseDateTimeLocalValue(document.getElementById('registrationOpenAt')?.value);
         const registrationClose = parseDateTimeLocalValue(document.getElementById('registrationCloseAt')?.value);
         if (!registrationOpen || !registrationClose || registrationOpen >= registrationClose) {
-          alert('Set a valid Registration Open and Registration Close before using suggested pricing dates.');
+          showInlineActionToast('Set valid Registration Open and Registration Close dates first.', 'warning');
           return;
         }
 
         const dayMs = 24 * 60 * 60 * 1000;
         if (registrationClose.getTime() - registrationOpen.getTime() <= 21 * dayMs) {
-          alert('Suggested Early Bird, Regular, and Late Registration periods need more than 21 days between registration open and close.');
+          showInlineActionToast('Suggested dates need more than 21 days between registration open and close.', 'warning');
           return;
         }
 
@@ -1761,6 +2013,7 @@
         setIndexedDateInput('registrationPackageRegularEndAt', packageIndex, lateStart);
         setIndexedDateInput('registrationPackageLateStartAt', packageIndex, lateStart);
         setIndexedDateInput('registrationPackageLateEndAt', packageIndex, registrationClose);
+        showInlineActionToast('Suggested pricing dates applied.', 'success');
       }
 
       const registrationPackageGrid = document.getElementById('registrationPackageGrid');
@@ -1798,7 +2051,7 @@
         if (!registrationPackageGrid || !registrationPackageTemplate) return;
         const nextIndex = getRegistrationPackageCards().length;
         if (nextIndex >= 10) {
-          alert('You can add up to 10 registration packages.');
+          showInlineActionToast('You can add up to 10 registration packages.', 'warning');
           return;
         }
         const html = registrationPackageTemplate.innerHTML
@@ -1808,12 +2061,15 @@
         wrapper.innerHTML = html.trim();
         registrationPackageGrid.appendChild(wrapper.firstElementChild);
         updateRegistrationPackageIndexes();
+        showInlineActionToast(`Package ${nextIndex + 1} added.`, 'success');
       }
 
       function removeRegistrationPackageCard(card) {
         if (!card) return;
+        const packageTitle = card.querySelector('[data-registration-package-title]')?.textContent?.trim() || 'Package';
         card.remove();
         updateRegistrationPackageIndexes();
+        showInlineActionToast(`${packageTitle} removed.`, 'danger');
       }
 
       registrationPackageGrid?.addEventListener('click', (event) => {
@@ -1827,6 +2083,25 @@
       });
       addRegistrationPackageBtn?.addEventListener('click', addRegistrationPackageCard);
       updateRegistrationPackageIndexes();
+
+      const publicListingImmediateToggle = document.getElementById('publicListingImmediateToggle');
+      const publicListingCustomAtFields = document.getElementById('publicListingCustomAtFields');
+      const publicListingAvailableAtInput = document.getElementById('publicListingAvailableAt');
+
+      function syncPublicListingAvailabilityMode() {
+        const immediatePosting = Boolean(publicListingImmediateToggle?.checked);
+        if (publicListingCustomAtFields) {
+          publicListingCustomAtFields.style.display = immediatePosting ? 'none' : '';
+        }
+        if (publicListingAvailableAtInput && immediatePosting) {
+          publicListingAvailableAtInput.value = '';
+          publicListingAvailableAtInput.dispatchEvent(new Event('input', { bubbles: true }));
+          publicListingAvailableAtInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      }
+
+      publicListingImmediateToggle?.addEventListener('change', syncPublicListingAvailabilityMode);
+      syncPublicListingAvailabilityMode();
 
       // ---------- "NOW" BUTTONS ----------
       document.querySelectorAll('.btn-now').forEach(btn => {
@@ -1877,6 +2152,7 @@
           if (registrationCloseInput && !registrationCloseInput.value) {
             const closeDate = new Date(eventStart);
             closeDate.setDate(closeDate.getDate() - 1);
+            closeDate.setHours(23, 59, 0, 0);
             registrationCloseInput.value = toDatetimeLocalValue(closeDate);
             registrationCloseInput.dispatchEvent(new Event('input', { bubbles: true }));
             registrationCloseInput.dispatchEvent(new Event('change', { bubbles: true }));
@@ -1885,7 +2161,6 @@
       }
 
       // ---------- REAL-TIME VALIDATION ----------
-      const form = document.querySelector('.create-event-form');
       const requiredFields = [
         { id: 'title', message: 'Event title is required.' },
         { id: 'description', message: 'Description is required.' },
@@ -2063,12 +2338,12 @@
         if (!file) return;
 
         if (!allowedImageTypes.has(file.type)) {
-          alert('Invalid file type. Only JPG and PNG files are allowed.');
+          showInlineActionToast('Invalid file type. Use JPG, PNG, or WebP.', 'warning');
           input.value = '';
           return;
         }
         if (file.size > maxBrandingSizeBytes) {
-          alert('Image exceeds 5MB limit.');
+          showInlineActionToast('Image exceeds the 5MB limit.', 'warning');
           input.value = '';
           return;
         }
@@ -2100,18 +2375,18 @@
         galleryInput.addEventListener('change', () => {
           const files = Array.from(galleryInput.files);
           if (files.length > 12) {
-            alert('You can upload up to 12 gallery images.');
+            showInlineActionToast('You can upload up to 12 gallery images.', 'warning');
             galleryInput.value = '';
             return;
           }
           for (const file of files) {
             if (!allowedImageTypes.has(file.type)) {
-              alert('Invalid file type. Only JPG and PNG files are allowed.');
+              showInlineActionToast('Invalid gallery file type. Use JPG, PNG, or WebP.', 'warning');
               galleryInput.value = '';
               return;
             }
             if (file.size > maxBrandingSizeBytes) {
-              alert('One or more images exceed 5MB limit.');
+              showInlineActionToast('One or more gallery images exceed the 5MB limit.', 'warning');
               galleryInput.value = '';
               return;
             }
@@ -2386,7 +2661,7 @@
 
           // dangerouslyPasteHTML sets Quill focus internally, scroll back to top
           waiverQuill.blur();
-          requestAnimationFrame(() => { if (!window.location.hash) window.scrollTo(0, 0); });
+          requestAnimationFrame(() => { window.scrollTo(0, 0); });
 
           renderWaiverPreview();
         } catch (error) {
