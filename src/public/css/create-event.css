@@ -1042,6 +1042,72 @@
   align-items: center;
 }
 
+.customized-options-section-note {
+  margin-bottom: 0.85rem;
+}
+
+.customized-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.customized-option-card {
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  padding: 0.95rem;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.02);
+}
+
+.customized-option-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.customized-option-card-header strong {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.customized-option-card-header span {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.customized-option-card-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.28fr);
+  gap: 0.75rem;
+}
+
+.customized-option-field {
+  margin-bottom: 0;
+}
+
+.customized-option-field label {
+  font-size: 0.88rem;
+}
+
+.customized-option-price-field input {
+  text-align: right;
+}
+
+.customized-option-card-hint {
+  margin-top: 0.7rem;
+  margin-bottom: 0;
+}
+
 .registration-package-grid {
   display: flex;
   flex-direction: column;
@@ -1052,6 +1118,80 @@
   display: flex;
   justify-content: flex-end;
   margin-bottom: 0.75rem;
+}
+
+.registration-package-actions .registration-package-icon-btn,
+.registration-package-card-actions .registration-package-icon-btn {
+  position: relative;
+  width: 2.25rem;
+  height: 2.25rem;
+  min-width: 2.25rem;
+  max-width: 2.25rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.registration-package-actions .registration-package-icon-btn svg,
+.registration-package-card-actions .registration-package-icon-btn svg {
+  width: 1rem;
+  height: 1rem;
+  pointer-events: none;
+}
+
+.registration-package-actions .registration-package-icon-btn::after,
+.registration-package-card-actions .registration-package-icon-btn::after {
+  content: attr(aria-label);
+  position: absolute;
+  right: 50%;
+  bottom: calc(100% + 0.5rem);
+  transform: translateX(50%) translateY(0.25rem);
+  z-index: 20;
+  max-width: 12rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: var(--text-primary);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+}
+
+.registration-package-actions .registration-package-icon-btn::before,
+.registration-package-card-actions .registration-package-icon-btn::before {
+  content: "";
+  position: absolute;
+  right: 50%;
+  bottom: calc(100% + 0.25rem);
+  transform: translateX(50%) translateY(0.25rem);
+  z-index: 21;
+  border: 0.3rem solid transparent;
+  border-top-color: var(--text-primary);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+}
+
+.registration-package-actions .registration-package-icon-btn:hover::after,
+.registration-package-actions .registration-package-icon-btn:focus-visible::after,
+.registration-package-actions .registration-package-icon-btn:hover::before,
+.registration-package-actions .registration-package-icon-btn:focus-visible::before,
+.registration-package-card-actions .registration-package-icon-btn:hover::after,
+.registration-package-card-actions .registration-package-icon-btn:focus-visible::after,
+.registration-package-card-actions .registration-package-icon-btn:hover::before,
+.registration-package-card-actions .registration-package-icon-btn:focus-visible::before {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(50%) translateY(0);
 }
 
 .registration-package-card {
@@ -1067,6 +1207,30 @@
   justify-content: space-between;
   gap: 0.75rem;
   margin-bottom: 0.85rem;
+}
+
+.registration-package-card-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.9rem;
+}
+
+.registration-package-card-summary span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.registration-package-section-note {
+  margin-bottom: 0.75rem;
 }
 
 .registration-package-card-actions {
@@ -2505,6 +2669,50 @@ textarea:focus {
     grid-template-columns: 1fr;
   }
 
+  .form-section-review .submit-readiness-checklist {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    align-items: stretch;
+  }
+
+  .form-section-review .readiness-all-clear,
+  .form-section-review .readiness-incomplete {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    background: var(--bg-white);
+    padding: 0.7rem 0.8rem;
+  }
+
+  .form-section-review .readiness-item {
+    border-bottom: none;
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    background: var(--bg-white);
+    padding: 0.65rem 0.75rem;
+    min-height: 3rem;
+  }
+
+  .form-section-review .review-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .form-section-review .review-summary-notes {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .form-section-review .review-summary-notes .field-hint {
+    margin: 0;
+    border: 1px solid var(--border-light);
+    border-radius: 10px;
+    background: var(--bg-white);
+    padding: 0.65rem 0.75rem;
+  }
+
   .wizard-progress {
     display: none;
   }
@@ -2547,6 +2755,11 @@ textarea:focus {
 
   .review-summary-grid,
   .wizard-progress ol {
+    grid-template-columns: 1fr;
+  }
+
+  .form-section-review .submit-readiness-checklist,
+  .form-section-review .review-summary-notes {
     grid-template-columns: 1fr;
   }
 
@@ -2607,6 +2820,10 @@ textarea:focus {
   }
 
   .customized-option-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .customized-option-card-grid {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -2732,6 +2949,10 @@ textarea:focus {
   .customized-option-row.race-category-card {
     padding: 0.8rem;
     gap: 0.55rem;
+  }
+
+  .customized-option-card {
+    padding: 0.8rem;
   }
 
   .race-category-header {

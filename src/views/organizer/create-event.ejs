@@ -553,7 +553,7 @@
         <div id="pricing-step" class="form-section form-section-fees" tabindex="-1" data-wizard-step="pricing-step">
           <div class="section-kicker">Step 7 of 12</div>
           <div class="section-title">Pricing Setup</div>
-          <p class="section-helper">Choose if the event is free or paid, then configure one pricing method. Step 8 handles payment account and QR details.</p>
+          <p class="section-helper">Choose Free or Paid first, then configure one pricing method. Step 8 handles payment account and QR details.</p>
           <% const pricingModeValue = ['distance_based', 'customized_options', 'distance_based_period', 'customized_options_period', 'package_period', 'per_distance', 'per_distance_period', 'same_fee'].includes(formData.pricingMode) ? formData.pricingMode : (formData.feeMode === 'paid' ? 'distance_based' : 'free'); %>
           <% const pricingModeBase = pricingModeValue === 'package_period' ? 'package_period' : (['customized_options', 'customized_options_period', 'same_fee'].includes(pricingModeValue) ? 'customized_options' : 'distance_based'); %>
           <input type="hidden" id="pricingMode" name="pricingMode" value="<%= pricingModeValue === 'per_distance' ? 'distance_based' : pricingModeValue === 'per_distance_period' ? 'distance_based_period' : pricingModeValue === 'same_fee' ? 'customized_options' : pricingModeValue %>">
@@ -632,13 +632,26 @@
           </div>
           <div class="customized-options-fields payment-fields pricing-mode-panel <%= errors.customizedOptions ? 'has-error' : '' %>" data-pricing-panel="customized_options" style="display:none; margin-top:1.25rem;">
             <div class="subsection-divider">Customized Signup Options</div>
-            <p class="field-hint" style="margin-bottom:0.75rem;">Add the paid options runners can choose during signup. Example: 5K - Medal + Shirt + Race Kit.</p>
-            <div class="customized-option-grid">
+            <p class="field-hint customized-options-section-note">Add fixed signup bundles runners can pick during registration. Keep each option short, specific, and easy to compare.</p>
+            <div class="customized-option-grid customized-options-grid">
               <% const customizedOptions = (formData.customizedOptions && formData.customizedOptions.length ? formData.customizedOptions : [{}, {}, {}]).slice(0, 5); %>
               <% customizedOptions.forEach(function(option, optionIndex) { %>
-                <div class="customized-option-row">
-                  <input name="customizedOptionShortDescription" type="text" maxlength="160" value="<%= option.shortDescription || '' %>" placeholder="Short description">
-                  <input name="customizedOptionAmount" type="number" min="0" step="0.01" value="<%= option.amount ?? '' %>" placeholder="Amount">
+                <div class="customized-option-card customized-option-row">
+                  <div class="customized-option-card-header">
+                    <strong>Option <%= optionIndex + 1 %></strong>
+                    <span>Runner-selectable bundle</span>
+                  </div>
+                  <div class="customized-option-card-grid">
+                    <div class="form-group customized-option-field">
+                      <label>Option Name</label>
+                      <input name="customizedOptionShortDescription" type="text" maxlength="160" value="<%= option.shortDescription || '' %>" placeholder="5K Medal + Shirt">
+                    </div>
+                    <div class="form-group customized-option-field customized-option-price-field">
+                      <label>Price</label>
+                      <input name="customizedOptionAmount" type="number" min="0" step="0.01" value="<%= option.amount ?? '' %>" placeholder="e.g. 350.00">
+                    </div>
+                  </div>
+                  <small class="field-hint customized-option-card-hint">Shown on the signup form as a single paid choice.</small>
                 </div>
                 <% if (errors['customizedOptionShortDescription' + optionIndex]) { %><small class="error-text"><%= errors['customizedOptionShortDescription' + optionIndex] %></small><% } %>
                 <% if (errors['customizedOptionAmount' + optionIndex]) { %><small class="error-text"><%= errors['customizedOptionAmount' + optionIndex] %></small><% } %>
@@ -648,11 +661,25 @@
           </div>
           <div class="registration-package-fields payment-fields pricing-mode-panel <%= errors.registrationPackages ? 'has-error' : '' %>" data-pricing-panel="package_period" style="display:none; margin-top:1.25rem;">
             <div class="subsection-divider">Registration Packages</div>
-            <p class="field-hint" style="margin-bottom:0.75rem;">Create runner-selectable bundles with package-specific early, regular, and late pricing windows.</p>
+            <p class="field-hint registration-package-section-note">Create runner-selectable bundles. Give each package a clear name, list what it includes, and set early, regular, and late pricing only when needed.</p>
             <% const registrationPackageRows = (formData.registrationPackages && formData.registrationPackages.length ? formData.registrationPackages : [{}, {}]).slice(0, 5); %>
             <% function getPackagePricingPeriod(packageOption, code) { return ((packageOption && packageOption.pricingPeriods) || []).find(function(period) { return period.code === code; }) || {}; } %>
+            <% function getPackageSummaryText(packageOption) {
+              const includedItems = packageOption && packageOption.includedItems ? packageOption.includedItems : {};
+              const includedCount = [includedItems.medal, includedItems.shirt, includedItems.patch, includedItems.towel, includedItems.finisherKit].filter(Boolean).length + ((includedItems.otherItemNames || []).filter(Boolean).length);
+              const pricingPeriods = (packageOption && packageOption.pricingPeriods) || [];
+              const pricedWindows = pricingPeriods.filter(function(period) { return Number.isFinite(Number(period && period.amount)); }).length;
+              const hasName = Boolean(String(packageOption && packageOption.name || '').trim());
+              return {
+                inclusions: includedCount > 0 ? `${includedCount} inclusion${includedCount === 1 ? '' : 's'}` : 'No inclusions selected',
+                pricing: pricedWindows > 0 ? `${pricedWindows} pricing window${pricedWindows === 1 ? '' : 's'} set` : 'Add pricing windows',
+                status: hasName ? (pricedWindows > 0 ? 'Ready' : 'Needs pricing') : 'Needs bundle name'
+              };
+            } %>
             <div class="registration-package-actions">
-              <button type="button" class="btn btn-outline" id="addRegistrationPackageBtn">Add Package</button>
+              <button type="button" class="btn btn-outline registration-package-icon-btn" id="addRegistrationPackageBtn" aria-label="Add package">
+                <svg data-lucide="plus" width="16" height="16" aria-hidden="true"></svg>
+              </button>
             </div>
             <div class="registration-package-grid" id="registrationPackageGrid">
               <% registrationPackageRows.forEach(function(packageOption, packageIndex) { %>
@@ -660,23 +687,33 @@
                 <% const earlyPeriod = getPackagePricingPeriod(packageOption, 'early_bird'); %>
                 <% const regularPeriod = getPackagePricingPeriod(packageOption, 'regular'); %>
                 <% const latePeriod = getPackagePricingPeriod(packageOption, 'late'); %>
+                <% const packageSummary = getPackageSummaryText(packageOption); %>
                 <div class="registration-package-card" data-registration-package-card data-package-index="<%= packageIndex %>">
                   <input type="hidden" name="registrationPackageId" value="<%= packageOption.packageId || '' %>">
                   <div class="registration-package-card-header">
                     <strong data-registration-package-title>Package <%= packageIndex + 1 %></strong>
                     <div class="registration-package-card-actions">
-                      <button type="button" class="btn btn-outline btn-suggest-pricing-dates" data-package-index="<%= packageIndex %>">Suggest dates</button>
-                      <button type="button" class="btn btn-outline btn-remove-registration-package" aria-label="Remove package <%= packageIndex + 1 %>">Remove</button>
+                      <button type="button" class="btn btn-outline registration-package-icon-btn btn-suggest-pricing-dates" data-package-index="<%= packageIndex %>" aria-label="Suggest pricing dates for package <%= packageIndex + 1 %>">
+                        <svg data-lucide="calendar-clock" width="16" height="16" aria-hidden="true"></svg>
+                      </button>
+                      <button type="button" class="btn btn-outline registration-package-icon-btn btn-remove-registration-package" aria-label="Remove package <%= packageIndex + 1 %>">
+                        <svg data-lucide="trash-2" width="16" height="16" aria-hidden="true"></svg>
+                      </button>
                     </div>
+                  </div>
+                  <div class="registration-package-card-summary" aria-label="Package summary">
+                    <span data-registration-package-summary-inclusions><%= packageSummary.inclusions %></span>
+                    <span data-registration-package-summary-pricing><%= packageSummary.pricing %></span>
+                    <span data-registration-package-summary-status><%= packageSummary.status %></span>
                   </div>
                   <div class="form-grid">
                     <div class="form-group <%= errors['registrationPackageName' + packageIndex] ? 'has-error' : '' %>">
-                      <label>Package Name</label>
-                      <input name="registrationPackageName" type="text" maxlength="100" value="<%= packageOption.name || '' %>" placeholder="Medal + Shirt">
+                      <label>Bundle Name</label>
+                      <input name="registrationPackageName" type="text" maxlength="100" value="<%= packageOption.name || '' %>" placeholder="5K Medal Bundle">
                       <% if (errors['registrationPackageName' + packageIndex]) { %><small class="error-text"><%= errors['registrationPackageName' + packageIndex] %></small><% } %>
                     </div>
                     <div class="form-group">
-                      <label>Other Included Items</label>
+                      <label>Extra Included Items</label>
                       <input name="registrationPackageOtherItemNames" type="text" value="<%= (includedItems.otherItemNames || []).join(', ') %>" placeholder="Sticker, tote bag">
                     </div>
                   </div>
@@ -708,8 +745,8 @@
                     </div>
                   </div>
                   <% if (errors['registrationPackage' + packageIndex + 'PricingPeriods']) { %><small class="error-text"><%= errors['registrationPackage' + packageIndex + 'PricingPeriods'] %></small><% } %>
-                  <label class="registration-package-notes-label">Package Notes</label>
-                  <textarea name="registrationPackageNotes" rows="2" maxlength="500" placeholder="Optional package notes for runners."><%= packageOption.notes || '' %></textarea>
+                  <label class="registration-package-notes-label">Runner Notes</label>
+                  <textarea name="registrationPackageNotes" rows="2" maxlength="500" placeholder="Optional notes runners should see."><%= packageOption.notes || '' %></textarea>
                 </div>
               <% }) %>
             </div>
@@ -719,17 +756,26 @@
                 <div class="registration-package-card-header">
                   <strong data-registration-package-title>Package __NUMBER__</strong>
                   <div class="registration-package-card-actions">
-                    <button type="button" class="btn btn-outline btn-suggest-pricing-dates" data-package-index="__INDEX__">Suggest dates</button>
-                    <button type="button" class="btn btn-outline btn-remove-registration-package" aria-label="Remove package __NUMBER__">Remove</button>
+                    <button type="button" class="btn btn-outline registration-package-icon-btn btn-suggest-pricing-dates" data-package-index="__INDEX__" aria-label="Suggest pricing dates for package __NUMBER__">
+                      <svg data-lucide="calendar-clock" width="16" height="16" aria-hidden="true"></svg>
+                    </button>
+                    <button type="button" class="btn btn-outline registration-package-icon-btn btn-remove-registration-package" aria-label="Remove package __NUMBER__">
+                      <svg data-lucide="trash-2" width="16" height="16" aria-hidden="true"></svg>
+                    </button>
                   </div>
+                </div>
+                <div class="registration-package-card-summary" aria-label="Package summary">
+                  <span data-registration-package-summary-inclusions>No inclusions selected</span>
+                  <span data-registration-package-summary-pricing>Add pricing windows</span>
+                  <span data-registration-package-summary-status>Needs bundle name</span>
                 </div>
                 <div class="form-grid">
                   <div class="form-group">
-                    <label>Package Name</label>
-                    <input name="registrationPackageName" type="text" maxlength="100" value="" placeholder="Medal + Shirt">
+                    <label>Bundle Name</label>
+                    <input name="registrationPackageName" type="text" maxlength="100" value="" placeholder="5K Medal Bundle">
                   </div>
                   <div class="form-group">
-                    <label>Other Included Items</label>
+                    <label>Extra Included Items</label>
                     <input name="registrationPackageOtherItemNames" type="text" value="" placeholder="Sticker, tote bag">
                   </div>
                 </div>
@@ -760,8 +806,8 @@
                     <input name="registrationPackageLateAmount" type="number" min="0" step="0.01" value="" placeholder="Amount" aria-label="Package __NUMBER__ late amount">
                   </div>
                 </div>
-                <label class="registration-package-notes-label">Package Notes</label>
-                <textarea name="registrationPackageNotes" rows="2" maxlength="500" placeholder="Optional package notes for runners."></textarea>
+                <label class="registration-package-notes-label">Runner Notes</label>
+                <textarea name="registrationPackageNotes" rows="2" maxlength="500" placeholder="Optional notes runners should see."></textarea>
               </div>
             </template>
             <% if (errors.registrationPackages) { %><small class="error-text"><%= errors.registrationPackages %></small><% } %>
@@ -1101,6 +1147,7 @@
   <%- include('../layouts/footer') %>
 
   <script src="/js/main.js"></script>
+  <script src="/js/organizer-pricing-step.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.min.js"></script>
   <script>
     (function() {
@@ -1253,191 +1300,28 @@
         }
       });
 
-      function getSelectedPricingType() {
-        if (pricingTypeSelect?.value === 'customized_options') return 'customized_options';
-        if (pricingTypeSelect?.value === 'package_period') return 'package_period';
-        return 'distance_based';
-      }
+      const pricingTypeHintEl = document.getElementById('pricingTypeHint');
 
-      function getPricingTypeDisplayName(selectedPricingType) {
-        if (selectedPricingType === 'customized_options') return 'Customized signup options';
-        if (selectedPricingType === 'package_period') return 'Registration packages';
-        return 'Based on distance';
-      }
+      const pricingStepController = window.createOrganizerPricingStepController({
+        feeModeSelect,
+        pricingTypeSelect,
+        paymentFields,
+        pricingPanels,
+        pricingTypeHintEl,
+        enablePricingPeriodsCheckbox: document.getElementById('enablePricingPeriods'),
+        rebuildPerDistanceFeeRows,
+        showInlineActionToast
+      });
 
-      function updatePricingTypeHint(selectedPricingType) {
-        const hint = document.getElementById('pricingTypeHint');
-        if (!hint) return;
-        if (selectedPricingType === 'customized_options') {
-          hint.textContent = 'Customized signup options are best when runners choose inclusion bundles instead of only distance.';
-          return;
-        }
-        if (selectedPricingType === 'package_period') {
-          hint.textContent = 'Registration packages combine inclusions and time-based pricing windows for each bundle.';
-          return;
-        }
-        hint.textContent = 'Based on distance uses Step 5 race categories and sets one fee per distance.';
-      }
-
-      function updatePricingStepSnapshot() {
-        const modeEl = document.getElementById('pricingSnapshotMode');
-        const configuredEl = document.getElementById('pricingSnapshotConfigured');
-        const missingEl = document.getElementById('pricingSnapshotMissing');
-        if (!modeEl || !configuredEl || !missingEl) return;
-
-        const isPaid = feeModeSelect?.value === 'paid';
-        if (!isPaid) {
-          modeEl.textContent = 'Free event';
-          configuredEl.textContent = 'No pricing required';
-          missingEl.textContent = 'No issues';
-          return;
-        }
-
-        const selectedPricingType = getSelectedPricingType();
-        modeEl.textContent = getPricingTypeDisplayName(selectedPricingType);
-
-        if (selectedPricingType === 'distance_based') {
-          const feeRows = Array.from(document.querySelectorAll('#perDistanceFeeRows .per-distance-fee-row'));
-          const configuredCount = feeRows.filter((row) => {
-            const amountInput = row.querySelector('input[name="distancePricingAmount"]');
-            const regularInput = row.querySelector('input[name="distancePricingRegularAmount"]');
-            const amount = String(amountInput?.value || regularInput?.value || '').trim();
-            return amount !== '' && !Number.isNaN(Number(amount));
-          }).length;
-          configuredEl.textContent = `${configuredCount} of ${feeRows.length || 0} distances priced`;
-          missingEl.textContent = configuredCount === (feeRows.length || 0)
-            ? 'No issues'
-            : `${(feeRows.length || 0) - configuredCount} distance${(feeRows.length || 0) - configuredCount === 1 ? '' : 's'} missing price`;
-          return;
-        }
-
-        if (selectedPricingType === 'customized_options') {
-          const optionRows = Array.from(document.querySelectorAll('.customized-options-fields .customized-option-row'));
-          const configuredCount = optionRows.filter((row) => {
-            const description = row.querySelector('input[name="customizedOptionShortDescription"]')?.value?.trim() || '';
-            const amountRaw = row.querySelector('input[name="customizedOptionAmount"]')?.value || '';
-            const amount = Number(amountRaw);
-            return Boolean(description) && amountRaw !== '' && !Number.isNaN(amount) && amount > 0;
-          }).length;
-          configuredEl.textContent = `${configuredCount} signup option${configuredCount === 1 ? '' : 's'} configured`;
-          missingEl.textContent = configuredCount > 0 ? 'No issues' : 'Add at least one priced signup option';
-          return;
-        }
-
-        const packageCards = Array.from(document.querySelectorAll('#registrationPackageGrid [data-registration-package-card]'));
-        const configuredCount = packageCards.filter((card) => {
-          const name = card.querySelector('input[name="registrationPackageName"]')?.value?.trim() || '';
-          const hasAmount = Array.from(card.querySelectorAll('input[name="registrationPackageEarlyBirdAmount"], input[name="registrationPackageRegularAmount"], input[name="registrationPackageLateAmount"]'))
-            .some((input) => String(input.value || '').trim() !== '');
-          return Boolean(name) && hasAmount;
-        }).length;
-        configuredEl.textContent = `${configuredCount} package${configuredCount === 1 ? '' : 's'} configured`;
-        missingEl.textContent = configuredCount > 0 ? 'No issues' : 'Add at least one named package with pricing';
-      }
-
-      function syncPricingModeInput() {
-        const pricingModeInput = document.getElementById('pricingMode');
-        if (!pricingModeInput) return;
-        const isPaid = feeModeSelect?.value === 'paid';
-        if (!isPaid) {
-          pricingModeInput.value = 'free';
-          return;
-        }
-        const selectedPricingType = getSelectedPricingType();
-        if (selectedPricingType === 'package_period') {
-          pricingModeInput.value = 'package_period';
-          return;
-        }
-        pricingModeInput.value = selectedPricingType === 'distance_based' && document.getElementById('enablePricingPeriods')?.checked
-          ? 'distance_based_period'
-          : selectedPricingType;
-      }
-
-      function togglePricingPanels(options = {}) {
-        const shouldAnimate = Boolean(options.animate);
-        const notify = Boolean(options.notify);
-        const isPaid = feeModeSelect?.value === 'paid';
-        const selectedPricingType = getSelectedPricingType();
-        updatePricingTypeHint(selectedPricingType);
-        pricingPanels.forEach((panel) => {
-          panel.getAnimations().forEach((animation) => animation.cancel());
-          const shouldShow = isPaid && panel.dataset.pricingPanel === selectedPricingType;
-          if (!shouldAnimate) {
-            panel.style.display = shouldShow ? '' : 'none';
-            return;
-          }
-          const currentlyVisible = window.getComputedStyle(panel).display !== 'none';
-          if (shouldShow && !currentlyVisible) {
-            panel.style.display = '';
-            panel.animate(
-              [
-                { opacity: 0, transform: 'translateY(-6px)' },
-                { opacity: 1, transform: 'translateY(0)' }
-              ],
-              { duration: 170, easing: 'ease-out' }
-            );
-            return;
-          }
-          if (!shouldShow && currentlyVisible) {
-            const hideAnimation = panel.animate(
-              [
-                { opacity: 1, transform: 'translateY(0)' },
-                { opacity: 0, transform: 'translateY(-5px)' }
-              ],
-              { duration: 130, easing: 'ease-in', fill: 'forwards' }
-            );
-            hideAnimation.onfinish = () => {
-              const stillShouldShow = feeModeSelect?.value === 'paid' && panel.dataset.pricingPanel === getSelectedPricingType();
-              if (!stillShouldShow) panel.style.display = 'none';
-            };
-          }
-        });
-        const periodsToggle = document.querySelector('.pricing-periods-toggle');
-        const periodDateFields = document.querySelector('.pricing-period-date-fields');
-        if (periodsToggle) {
-          periodsToggle.style.display = isPaid && selectedPricingType === 'distance_based' ? '' : 'none';
-        }
-        if (periodDateFields) {
-          periodDateFields.style.display = isPaid && selectedPricingType === 'distance_based' && document.getElementById('enablePricingPeriods')?.checked ? '' : 'none';
-        }
-        syncPricingModeInput();
-        if (isPaid && selectedPricingType === 'distance_based') rebuildPerDistanceFeeRows();
-        updatePricingStepSnapshot();
-        if (notify && isPaid) {
-          showInlineActionToast(`Pricing mode switched to ${getPricingTypeDisplayName(selectedPricingType)}.`, 'success');
-        }
-      }
-
-      function togglePaymentFields(options = {}) {
-        const notify = Boolean(options.notify);
-        const isPaid = feeModeSelect?.value === 'paid';
-        paymentFields.forEach((field) => {
-          field.style.display = isPaid ? '' : 'none';
-        });
-        const paymentFreeNote = document.querySelector('.payment-free-note');
-        if (paymentFreeNote) paymentFreeNote.style.display = isPaid ? 'none' : '';
-        const pricingFreeNote = document.querySelector('.pricing-free-note');
-        if (pricingFreeNote) pricingFreeNote.style.display = isPaid ? 'none' : '';
-        togglePricingPanels({ animate: true });
-        updatePricingStepSnapshot();
-        if (notify) {
-          showInlineActionToast(isPaid ? 'Paid event enabled. Configure pricing below.' : 'Free event selected. Pricing setup is optional.', isPaid ? 'success' : 'warning');
-        }
-      }
-      feeModeSelect?.addEventListener('change', () => togglePaymentFields({ notify: true }));
-      pricingTypeSelect?.addEventListener('change', () => togglePricingPanels({ animate: true, notify: true }));
+      const getSelectedPricingType = pricingStepController.getSelectedPricingType;
+      const getPricingTypeDisplayName = pricingStepController.getPricingTypeDisplayName;
+      const updatePricingStepSnapshot = pricingStepController.updatePricingStepSnapshot;
+      const updatePricingTypeHint = pricingStepController.updatePricingTypeHint;
+      const syncPricingModeInput = pricingStepController.syncPricingModeInput;
+      const togglePricingPanels = pricingStepController.togglePricingPanels;
+      const togglePaymentFields = pricingStepController.togglePaymentFields;
+      const enablePricingPeriodsCheckbox = pricingStepController.enablePricingPeriodsCheckbox;
       togglePaymentFields();
-
-      // Pricing periods toggle: switches pricingMode between distance_based and distance_based_period.
-      const enablePricingPeriodsCheckbox = document.getElementById('enablePricingPeriods');
-      function onEnablePricingPeriodsChange() {
-        syncPricingModeInput();
-        togglePricingPanels({ animate: true });
-        rebuildPerDistanceFeeRows();
-        updatePricingStepSnapshot();
-        showInlineActionToast(enablePricingPeriodsCheckbox?.checked ? 'Pricing periods enabled for per-distance fees.' : 'Pricing periods disabled. Using one fee per distance.', enablePricingPeriodsCheckbox?.checked ? 'success' : 'warning');
-      }
-      enablePricingPeriodsCheckbox?.addEventListener('change', onEnablePricingPeriodsChange);
 
       // ---------- PER-DISTANCE FEE ROW BUILDER ----------
       const EXISTING_DISTANCE_PRICING = <%- JSON.stringify((formData.distancePricing || []).map(function(d) { return { categoryId: d.categoryId || '', distance: d.distance, amount: d.amount, earlyBirdAmount: d.earlyBirdAmount, regularAmount: d.regularAmount, lateAmount: d.lateAmount }; })) %>;
@@ -2197,6 +2081,7 @@
         setIndexedDateInput('registrationPackageRegularEndAt', packageIndex, suggested.regularEnd);
         setIndexedDateInput('registrationPackageLateStartAt', packageIndex, suggested.lateStart);
         setIndexedDateInput('registrationPackageLateEndAt', packageIndex, suggested.lateEnd);
+        updatePricingStepSnapshot();
         showInlineActionToast('Suggested pricing dates applied (Early Bird first, Regular middle, Late final window).', 'success');
       }
 
@@ -2204,73 +2089,12 @@
       const registrationPackageTemplate = document.getElementById('registrationPackageTemplate');
       const addRegistrationPackageBtn = document.getElementById('addRegistrationPackageBtn');
 
-      function getRegistrationPackageCards() {
-        return Array.from(registrationPackageGrid?.querySelectorAll('[data-registration-package-card]') || []);
-      }
-
-      function updateRegistrationPackageIndexes() {
-        getRegistrationPackageCards().forEach((card, index) => {
-          const number = index + 1;
-          card.dataset.packageIndex = String(index);
-          const title = card.querySelector('[data-registration-package-title]');
-          if (title) title.textContent = `Package ${number}`;
-          const suggestButton = card.querySelector('.btn-suggest-pricing-dates');
-          if (suggestButton) suggestButton.dataset.packageIndex = String(index);
-          const removeButton = card.querySelector('.btn-remove-registration-package');
-          if (removeButton) removeButton.setAttribute('aria-label', `Remove package ${number}`);
-          [
-            ['registrationPackageMedal_', 'medal'],
-            ['registrationPackageShirt_', 'shirt'],
-            ['registrationPackagePatch_', 'patch'],
-            ['registrationPackageTowel_', 'towel'],
-            ['registrationPackageFinisherKit_', 'finisher kit']
-          ].forEach(([prefix]) => {
-            const input = Array.from(card.querySelectorAll('input[type="checkbox"]')).find((checkbox) => checkbox.name.startsWith(prefix));
-            if (input) input.name = `${prefix}${index}`;
-          });
-        });
-      }
-
-      function addRegistrationPackageCard() {
-        if (!registrationPackageGrid || !registrationPackageTemplate) return;
-        const nextIndex = getRegistrationPackageCards().length;
-        if (nextIndex >= 10) {
-          showInlineActionToast('You can add up to 10 registration packages.', 'warning');
-          return;
-        }
-        const html = registrationPackageTemplate.innerHTML
-          .replace(/__INDEX__/g, String(nextIndex))
-          .replace(/__NUMBER__/g, String(nextIndex + 1));
-        const wrapper = document.createElement('div');
-        wrapper.innerHTML = html.trim();
-        registrationPackageGrid.appendChild(wrapper.firstElementChild);
-        updateRegistrationPackageIndexes();
-        updatePricingStepSnapshot();
-        showInlineActionToast(`Package ${nextIndex + 1} added.`, 'success');
-      }
-
-      function removeRegistrationPackageCard(card) {
-        if (!card) return;
-        const packageTitle = card.querySelector('[data-registration-package-title]')?.textContent?.trim() || 'Package';
-        card.remove();
-        updateRegistrationPackageIndexes();
-        updatePricingStepSnapshot();
-        showInlineActionToast(`${packageTitle} removed.`, 'danger');
-      }
-
-      registrationPackageGrid?.addEventListener('click', (event) => {
-        const suggestButton = event.target.closest('.btn-suggest-pricing-dates');
-        if (suggestButton) {
-          applySuggestedPricingDates(suggestButton.dataset.packageIndex);
-          return;
-        }
-        const removeButton = event.target.closest('.btn-remove-registration-package');
-        if (removeButton) removeRegistrationPackageCard(removeButton.closest('[data-registration-package-card]'));
+      pricingStepController.setupRegistrationPackageHandlers({
+        registrationPackageGrid,
+        registrationPackageTemplate,
+        addRegistrationPackageBtn,
+        applySuggestedPricingDates
       });
-      registrationPackageGrid?.addEventListener('input', updatePricingStepSnapshot);
-      registrationPackageGrid?.addEventListener('change', updatePricingStepSnapshot);
-      addRegistrationPackageBtn?.addEventListener('click', addRegistrationPackageCard);
-      updateRegistrationPackageIndexes();
       document.getElementById('pricing-step')?.addEventListener('input', () => {
         if (document.querySelector('[data-step-link="pricing-step"]')?.classList.contains('is-active')) updatePricingStepSnapshot();
       });

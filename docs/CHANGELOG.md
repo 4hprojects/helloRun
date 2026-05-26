@@ -3,6 +3,35 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 26, 2026 (Session: Step 7 Pricing Refactor + Step 12 Responsive Tiles)
+
+### [SESSION] SESSION UPDATE:
+- Centralized Step 7 pricing behavior into a shared client module used by both organizer create and edit flows:
+  - introduced `src/public/js/organizer-pricing-step.js` as the shared controller for pricing mode toggles, panel visibility, payment field behavior, pricing period toggle handling, package summaries, package add/remove/index handlers, and Step 7 snapshot generation
+  - removed duplicated inline package handlers and duplicated snapshot logic from both `create-event.ejs` and `edit-event.ejs`
+  - wired both pages to use controller APIs (`setupRegistrationPackageHandlers`, `updatePricingStepSnapshot`, and related helpers) for parity and easier maintenance
+- Improved Step 7 reliability and UX consistency:
+  - pricing panel switching now uses deterministic non-animated toggles for dropdown mode changes with animation cancellation safeguards
+  - package action aria labels and indexing remain synchronized after add/remove operations
+  - suggested pricing date actions now trigger refreshed Step 7 snapshot updates
+- Updated Step 12 Review content presentation for tablet/mobile:
+  - readiness checklist items now render as tile cards at tablet and mobile breakpoints
+  - review notes now render as tile cards at tablet and mobile breakpoints
+  - review summary remains card-based with explicit 2-column tablet and single-column mobile behavior
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. src/public/js/organizer-pricing-step.js
+3. src/views/organizer/create-event.ejs
+4. src/views/organizer/edit-event.ejs
+5. src/public/css/create-event.css
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `get_errors` on changed files -> PASS (no syntax/template/CSS errors reported).
+- Static verification confirmed create/edit pages both consume shared pricing controller APIs.
+
+---
+
 ## CHANGELOG - May 14, 2026 (Session: Payment Receipt and Run Result Split)
 
 ### [SESSION] SESSION UPDATE:
