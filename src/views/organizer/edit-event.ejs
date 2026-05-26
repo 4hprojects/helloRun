@@ -2221,7 +2221,7 @@
             }
           } catch (error) {
             if (previewWindow) previewWindow.close();
-            window.alert(error.message || 'Unable to open preview.');
+            showInlineActionToast(error.message || 'Unable to open preview.', 'danger');
           }
           });
         });
@@ -2240,7 +2240,7 @@
         });
         if (!isValid) {
           e.preventDefault();
-          alert('Please fix the highlighted errors before saving.');
+          showInlineActionToast('Please fix the highlighted errors before saving.', 'warning');
           return;
         }
 
@@ -2301,12 +2301,12 @@
         if (!file) return;
 
         if (!allowedImageTypes.has(file.type)) {
-          alert('Invalid file type. Only JPG and PNG files are allowed.');
+          showInlineActionToast('Invalid file type. Only JPG, PNG, and WEBP images are allowed.', 'warning');
           input.value = '';
           return;
         }
         if (file.size > maxBrandingSizeBytes) {
-          alert('Image exceeds 5MB limit.');
+          showInlineActionToast('Image exceeds 5MB limit.', 'warning');
           input.value = '';
           return;
         }
@@ -2338,18 +2338,18 @@
         galleryInput.addEventListener('change', () => {
           const files = Array.from(galleryInput.files);
           if (files.length > 12) {
-            alert('You can upload up to 12 gallery images.');
+            showInlineActionToast('You can upload up to 12 gallery images.', 'warning');
             galleryInput.value = '';
             return;
           }
           for (const file of files) {
             if (!allowedImageTypes.has(file.type)) {
-              alert('Invalid file type. Only JPG and PNG files are allowed.');
+              showInlineActionToast('Invalid file type. Only JPG, PNG, and WEBP images are allowed.', 'warning');
               galleryInput.value = '';
               return;
             }
             if (file.size > maxBrandingSizeBytes) {
-              alert('One or more images exceed 5MB limit.');
+              showInlineActionToast('One or more images exceed 5MB limit.', 'warning');
               galleryInput.value = '';
               return;
             }
@@ -2396,7 +2396,16 @@
       const removeLogoInput = document.getElementById('removeLogoImage');
       if (removeLogoBtn && removeLogoInput) {
         removeLogoBtn.addEventListener('click', async () => {
-          if (!confirm('Remove current logo image?')) return;
+          const confirmed = await openActionDialog({
+            icon: 'trash-2',
+            variant: 'restore',
+            title: 'Remove current logo image?',
+            desc: 'This removes the existing logo from the event branding.',
+            cancelText: 'Cancel',
+            okText: 'Remove Logo',
+            okClass: 'draft-confirm-btn--danger'
+          });
+          if (!confirmed) return;
           removeLogoBtn.disabled = true;
           try {
             await removeEventMediaNow({ kind: 'logo' });
@@ -2404,8 +2413,9 @@
             document.getElementById('logoPreviewWrap').style.display = 'none';
             // Also clear any URL input
             document.getElementById('logoUrl').value = '';
+            showInlineActionToast('Logo removed.', 'success');
           } catch (error) {
-            alert(error.message);
+            showInlineActionToast(error.message || 'Unable to remove logo.', 'danger');
           } finally {
             removeLogoBtn.disabled = false;
           }
@@ -2417,15 +2427,25 @@
       const removeBannerInput = document.getElementById('removeBannerImage');
       if (removeBannerBtn && removeBannerInput) {
         removeBannerBtn.addEventListener('click', async () => {
-          if (!confirm('Remove current banner image?')) return;
+          const confirmed = await openActionDialog({
+            icon: 'trash-2',
+            variant: 'restore',
+            title: 'Remove current banner image?',
+            desc: 'This removes the existing banner from the event branding.',
+            cancelText: 'Cancel',
+            okText: 'Remove Banner',
+            okClass: 'draft-confirm-btn--danger'
+          });
+          if (!confirmed) return;
           removeBannerBtn.disabled = true;
           try {
             await removeEventMediaNow({ kind: 'banner' });
             removeBannerInput.value = '1';
             document.getElementById('bannerPreviewWrap').style.display = 'none';
             document.getElementById('bannerImageUrl').value = '';
+            showInlineActionToast('Banner removed.', 'success');
           } catch (error) {
-            alert(error.message);
+            showInlineActionToast(error.message || 'Unable to remove banner.', 'danger');
           } finally {
             removeBannerBtn.disabled = false;
           }
@@ -2437,15 +2457,25 @@
       const removePosterInput = document.getElementById('removePosterImage');
       if (removePosterBtn && removePosterInput) {
         removePosterBtn.addEventListener('click', async () => {
-          if (!confirm('Remove current promotional poster?')) return;
+          const confirmed = await openActionDialog({
+            icon: 'trash-2',
+            variant: 'restore',
+            title: 'Remove current promotional poster?',
+            desc: 'This removes the current event poster image.',
+            cancelText: 'Cancel',
+            okText: 'Remove Poster',
+            okClass: 'draft-confirm-btn--danger'
+          });
+          if (!confirmed) return;
           removePosterBtn.disabled = true;
           try {
             await removeEventMediaNow({ kind: 'poster' });
             removePosterInput.value = '1';
             document.getElementById('posterPreviewWrap').style.display = 'none';
             document.getElementById('posterImageUrl').value = '';
+            showInlineActionToast('Poster removed.', 'success');
           } catch (error) {
-            alert(error.message);
+            showInlineActionToast(error.message || 'Unable to remove poster.', 'danger');
           } finally {
             removePosterBtn.disabled = false;
           }
@@ -2457,7 +2487,16 @@
       const removeQrInput = document.getElementById('removePaymentQrImage');
       if (removeQrBtn && removeQrInput) {
         removeQrBtn.addEventListener('click', async () => {
-          if (!confirm('Remove current payment QR image?')) return;
+          const confirmed = await openActionDialog({
+            icon: 'trash-2',
+            variant: 'restore',
+            title: 'Remove current payment QR image?',
+            desc: 'This removes the current payment QR image for this event.',
+            cancelText: 'Cancel',
+            okText: 'Remove QR',
+            okClass: 'draft-confirm-btn--danger'
+          });
+          if (!confirmed) return;
           removeQrBtn.disabled = true;
           try {
             await removeEventMediaNow({ kind: 'paymentQr' });
@@ -2465,8 +2504,9 @@
             document.getElementById('qrPreviewWrap').style.display = 'none';
             document.getElementById('paymentQrImageUrl').value = '';
             document.getElementById('paymentQrImageKey').value = '';
+            showInlineActionToast('Payment QR removed.', 'success');
           } catch (error) {
-            alert(error.message);
+            showInlineActionToast(error.message || 'Unable to remove payment QR.', 'danger');
           } finally {
             removeQrBtn.disabled = false;
           }
@@ -2478,7 +2518,16 @@
       const removeGalleryInput = document.getElementById('removeGalleryImages');
       if (removeAllGalleryBtn && removeGalleryInput) {
         removeAllGalleryBtn.addEventListener('click', async () => {
-          if (!confirm('Remove all current gallery images?')) return;
+          const confirmed = await openActionDialog({
+            icon: 'trash-2',
+            variant: 'restore',
+            title: 'Remove all current gallery images?',
+            desc: 'This will clear all existing gallery images for this event.',
+            cancelText: 'Cancel',
+            okText: 'Remove All',
+            okClass: 'draft-confirm-btn--danger'
+          });
+          if (!confirmed) return;
           removeAllGalleryBtn.disabled = true;
           try {
             await removeEventMediaNow({ kind: 'gallery', all: '1' });
@@ -2486,8 +2535,9 @@
             document.getElementById('galleryPreviewGrid').innerHTML = '';
             removeAllGalleryBtn.style.display = 'none';
             galleryUrlsText.value = '';
+            showInlineActionToast('All gallery images removed.', 'success');
           } catch (error) {
-            alert(error.message);
+            showInlineActionToast(error.message || 'Unable to remove gallery images.', 'danger');
           } finally {
             removeAllGalleryBtn.disabled = false;
           }
@@ -2499,7 +2549,16 @@
         btn.addEventListener('click', async () => {
           const url = btn.dataset.galleryUrl;
           if (!url) return;
-          if (!confirm('Remove this gallery image?')) return;
+          const confirmed = await openActionDialog({
+            icon: 'trash-2',
+            variant: 'restore',
+            title: 'Remove this gallery image?',
+            desc: 'This image will be removed from the event gallery.',
+            cancelText: 'Cancel',
+            okText: 'Remove Image',
+            okClass: 'draft-confirm-btn--danger'
+          });
+          if (!confirmed) return;
           btn.disabled = true;
           try {
             await removeEventMediaNow({ kind: 'gallery', url: url });
@@ -2512,8 +2571,9 @@
             galleryUrlsText.value = newUrls.join('\n');
             removeGalleryInput.value = newUrls.length ? '0' : '1';
             if (!newUrls.length && removeAllGalleryBtn) removeAllGalleryBtn.style.display = 'none';
+            showInlineActionToast('Gallery image removed.', 'success');
           } catch (error) {
-            alert(error.message);
+            showInlineActionToast(error.message || 'Unable to remove gallery image.', 'danger');
           } finally {
             btn.disabled = false;
           }
@@ -2645,10 +2705,20 @@
         if (el) el.addEventListener('input', renderWaiverPreview);
       });
       if (resetWaiverBtn) {
-        resetWaiverBtn.addEventListener('click', () => {
-          if (!confirm('Reset waiver template to the default version?')) return;
+        resetWaiverBtn.addEventListener('click', async () => {
+          const confirmed = await openActionDialog({
+            icon: 'rotate-ccw',
+            variant: 'restore',
+            title: 'Reset waiver template to default?',
+            desc: 'This replaces your current waiver content with the default template.',
+            cancelText: 'Cancel',
+            okText: 'Reset Template',
+            okClass: 'draft-confirm-btn--primary'
+          });
+          if (!confirmed) return;
           setWaiverTemplateValue(defaultWaiverTemplate);
           renderWaiverPreview();
+          showInlineActionToast('Waiver template reset to default.', 'success');
         });
       }
       if (insertOrganizerPlaceholderBtn) {
@@ -2722,11 +2792,21 @@
       }
 
       if (clearEventDetailsBtn) {
-        clearEventDetailsBtn.addEventListener('click', () => {
-          if (!confirm('Clear all event details content?')) return;
+        clearEventDetailsBtn.addEventListener('click', async () => {
+          const confirmed = await openActionDialog({
+            icon: 'eraser',
+            variant: 'restore',
+            title: 'Clear all event details content?',
+            desc: 'This removes all rich content in Event Details. You can still add new content before saving.',
+            cancelText: 'Cancel',
+            okText: 'Clear Content',
+            okClass: 'draft-confirm-btn--danger'
+          });
+          if (!confirmed) return;
           if (eventDetailsQuill) { eventDetailsQuill.setContents([]); }
           if (eventDetailsInput) eventDetailsInput.value = '';
           renderEventDetailsPreview();
+          showInlineActionToast('Event details cleared.', 'success');
         });
       }
       if (form && eventDetailsInput) {
