@@ -8,7 +8,7 @@
 <body>
   <%- include('../layouts/nav') %>
   <main class="admin-page">
-    <section class="section admin-shell">
+    <section class="section admin-shell admin-dashboard-shell">
 
       <%
         var totalPending = (stats.pendingApplications || 0)
@@ -32,8 +32,9 @@
 
       <div class="admin-header-row admin-dashboard-header">
         <div>
+          <p class="dashboard-kicker">Admin operations</p>
           <h2>Admin Dashboard</h2>
-          <p>Platform health, review queues, and quick navigation.</p>
+          <p>Review triage, platform health, and quick navigation.</p>
         </div>
         <span class="admin-dash-pending <%= totalPending > 0 ? 'has-work' : 'all-clear' %>">
           <i data-lucide="<%= totalPending > 0 ? 'bell-ring' : 'check-circle' %>" aria-hidden="true"></i>
@@ -41,386 +42,449 @@
         </span>
       </div>
 
-      <%# ── ACTION CENTER ──────────────────────────────── %>
-      <h3 class="dashboard-section-title">Action Center</h3>
-      <% if (totalPending === 0) { %>
-        <div class="action-center-all-clear">
-          <i data-lucide="check-circle" aria-hidden="true"></i>
+      <section class="dashboard-band dashboard-band-priority" aria-labelledby="action-center-title">
+        <div class="dashboard-band-header">
           <div>
-            <strong>All review queues are clear</strong>
-          <span>No pending applications, payment receipts, run results, events, or blog items need attention.</span>
+            <h3 id="action-center-title" class="dashboard-section-title">Action Center</h3>
+            <p class="dashboard-section-copy">Needs Review items are the highest-priority admin queues.</p>
+          </div>
+          <a href="/admin/reviews" class="dash-section-link">
+            Open review queue <i data-lucide="arrow-right" aria-hidden="true"></i>
+          </a>
+        </div>
+
+        <% if (totalPending === 0) { %>
+          <div class="action-center-all-clear">
+            <i data-lucide="check-circle" aria-hidden="true"></i>
+            <div>
+              <strong>All review queues are clear</strong>
+              <span>No pending applications, payment receipts, run results, events, or blog items need attention.</span>
+            </div>
+          </div>
+        <% } else { %>
+          <div class="dashboard-grid action-center-grid">
+            <a href="/admin/applications?status=pending" class="action-card-link <%= stats.pendingApplications > 0 ? 'is-active' : 'is-clear' %>">
+              <div class="action-card-top">
+                <div class="action-card-icon icon-amber"><i data-lucide="user-check" aria-hidden="true"></i></div>
+                <span class="status-badge <%= stats.pendingApplications > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
+                  <%= stats.pendingApplications > 0 ? 'Needs Review' : 'Clear' %>
+                </span>
+              </div>
+              <p class="action-card-num"><%= stats.pendingApplications %></p>
+              <p class="action-card-label">Organizer Applications</p>
+            </a>
+
+            <a href="/admin/reviews?type=payments" class="action-card-link <%= stats.pendingPaymentReviews > 0 ? 'is-active' : 'is-clear' %>">
+              <div class="action-card-top">
+                <div class="action-card-icon icon-blue"><i data-lucide="receipt" aria-hidden="true"></i></div>
+                <span class="status-badge <%= stats.pendingPaymentReviews > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
+                  <%= stats.pendingPaymentReviews > 0 ? 'Needs Review' : 'Clear' %>
+                </span>
+              </div>
+              <p class="action-card-num"><%= stats.pendingPaymentReviews %></p>
+              <p class="action-card-label">Payment Receipt Reviews</p>
+            </a>
+
+            <a href="/admin/reviews?type=results" class="action-card-link <%= stats.pendingResultReviews > 0 ? 'is-active' : 'is-clear' %>">
+              <div class="action-card-top">
+                <div class="action-card-icon icon-blue"><i data-lucide="activity" aria-hidden="true"></i></div>
+                <span class="status-badge <%= stats.pendingResultReviews > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
+                  <%= stats.pendingResultReviews > 0 ? 'Needs Review' : 'Clear' %>
+                </span>
+              </div>
+              <p class="action-card-num"><%= stats.pendingResultReviews %></p>
+              <p class="action-card-label">Run Result Reviews</p>
+            </a>
+
+            <a href="/admin/events?needsReview=1" class="action-card-link <%= stats.pendingEventReviews > 0 ? 'is-active' : 'is-clear' %>">
+              <div class="action-card-top">
+                <div class="action-card-icon icon-amber"><i data-lucide="calendar-check" aria-hidden="true"></i></div>
+                <span class="status-badge <%= stats.pendingEventReviews > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
+                  <%= stats.pendingEventReviews > 0 ? 'Needs Review' : 'Clear' %>
+                </span>
+              </div>
+              <p class="action-card-num"><%= stats.pendingEventReviews %></p>
+              <p class="action-card-label">Pending Event Reviews</p>
+            </a>
+
+            <a href="/admin/blog/review?status=pending" class="action-card-link <%= stats.pendingBlogs > 0 ? 'is-active' : 'is-clear' %>">
+              <div class="action-card-top">
+                <div class="action-card-icon icon-violet"><i data-lucide="file-text" aria-hidden="true"></i></div>
+                <span class="status-badge <%= stats.pendingBlogs > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
+                  <%= stats.pendingBlogs > 0 ? 'Needs Review' : 'Clear' %>
+                </span>
+              </div>
+              <p class="action-card-num"><%= stats.pendingBlogs %></p>
+              <p class="action-card-label">Blog Reviews</p>
+            </a>
+
+            <a href="/admin/blog/reports" class="action-card-link <%= stats.openBlogReports > 0 ? 'is-active' : 'is-clear' %>">
+              <div class="action-card-top">
+                <div class="action-card-icon icon-amber"><i data-lucide="flag" aria-hidden="true"></i></div>
+                <span class="status-badge <%= stats.openBlogReports > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
+                  <%= stats.openBlogReports > 0 ? 'Needs Review' : 'Clear' %>
+                </span>
+              </div>
+              <p class="action-card-num"><%= stats.openBlogReports %></p>
+              <p class="action-card-label">Blog Reports</p>
+            </a>
+          </div>
+        <% } %>
+      </section>
+
+      <section class="dashboard-band dashboard-band-muted" aria-labelledby="watchlist-title">
+        <div class="dashboard-band-header dashboard-band-header-compact">
+          <div>
+            <h3 id="watchlist-title" class="dashboard-section-title">Watchlist</h3>
+            <p class="dashboard-section-copy">Follow-up items that are not urgent approvals.</p>
           </div>
         </div>
-      <% } else { %>
-        <div class="dashboard-grid action-center-grid">
-
-          <a href="/admin/applications?status=pending" class="action-card-link <%= stats.pendingApplications > 0 ? 'is-active' : 'is-clear' %>">
-            <div class="action-card-top">
-              <div class="action-card-icon icon-amber"><i data-lucide="user-check" aria-hidden="true"></i></div>
-              <span class="status-badge <%= stats.pendingApplications > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
-                <%= stats.pendingApplications > 0 ? 'Needs Review' : 'Clear' %>
-              </span>
+        <div class="action-watch-row">
+          <a href="/admin/events?status=draft" class="action-watch-card <%= stats.draftEvents > 0 ? 'is-active' : 'is-clear' %>">
+            <div class="action-watch-icon icon-slate"><i data-lucide="file-pen" aria-hidden="true"></i></div>
+            <div class="action-watch-body">
+              <span class="action-watch-num"><%= stats.draftEvents %></span>
+              <span class="action-watch-label">Draft Events</span>
             </div>
-            <p class="action-card-num"><%= stats.pendingApplications %></p>
-            <p class="action-card-label">Organizer Applications</p>
+            <span class="status-badge <%= stats.draftEvents > 0 ? 'status-badge-draft' : 'status-badge-clear' %>">
+              <%= stats.draftEvents > 0 ? 'Needs Follow-up' : 'Clear' %>
+            </span>
           </a>
-
-          <a href="/admin/reviews?type=payments" class="action-card-link <%= stats.pendingPaymentReviews > 0 ? 'is-active' : 'is-clear' %>">
-            <div class="action-card-top">
-              <div class="action-card-icon icon-blue"><i data-lucide="receipt" aria-hidden="true"></i></div>
-              <span class="status-badge <%= stats.pendingPaymentReviews > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
-                <%= stats.pendingPaymentReviews > 0 ? 'Needs Review' : 'Clear' %>
-              </span>
-            </div>
-            <p class="action-card-num"><%= stats.pendingPaymentReviews %></p>
-            <p class="action-card-label">Payment Receipt Reviews</p>
-          </a>
-
-          <a href="/admin/reviews?type=results" class="action-card-link <%= stats.pendingResultReviews > 0 ? 'is-active' : 'is-clear' %>">
-            <div class="action-card-top">
-              <div class="action-card-icon icon-blue"><i data-lucide="activity" aria-hidden="true"></i></div>
-              <span class="status-badge <%= stats.pendingResultReviews > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
-                <%= stats.pendingResultReviews > 0 ? 'Needs Review' : 'Clear' %>
-              </span>
-            </div>
-            <p class="action-card-num"><%= stats.pendingResultReviews %></p>
-            <p class="action-card-label">Run Result Reviews</p>
-          </a>
-
-          <a href="/admin/events?needsReview=1" class="action-card-link <%= stats.pendingEventReviews > 0 ? 'is-active' : 'is-clear' %>">
-            <div class="action-card-top">
-              <div class="action-card-icon icon-amber"><i data-lucide="calendar-check" aria-hidden="true"></i></div>
-              <span class="status-badge <%= stats.pendingEventReviews > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
-                <%= stats.pendingEventReviews > 0 ? 'Needs Review' : 'Clear' %>
-              </span>
-            </div>
-            <p class="action-card-num"><%= stats.pendingEventReviews %></p>
-            <p class="action-card-label">Pending Event Reviews</p>
-          </a>
-
-          <a href="/admin/blog/review?status=pending" class="action-card-link <%= stats.pendingBlogs > 0 ? 'is-active' : 'is-clear' %>">
-            <div class="action-card-top">
-              <div class="action-card-icon icon-violet"><i data-lucide="file-text" aria-hidden="true"></i></div>
-              <span class="status-badge <%= stats.pendingBlogs > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
-                <%= stats.pendingBlogs > 0 ? 'Needs Review' : 'Clear' %>
-              </span>
-            </div>
-            <p class="action-card-num"><%= stats.pendingBlogs %></p>
-            <p class="action-card-label">Blog Reviews</p>
-          </a>
-
-          <a href="/admin/blog/reports" class="action-card-link <%= stats.openBlogReports > 0 ? 'is-active' : 'is-clear' %>">
-            <div class="action-card-top">
-              <div class="action-card-icon icon-amber"><i data-lucide="flag" aria-hidden="true"></i></div>
-              <span class="status-badge <%= stats.openBlogReports > 0 ? 'status-badge-needs-review' : 'status-badge-clear' %>">
-                <%= stats.openBlogReports > 0 ? 'Needs Review' : 'Clear' %>
-              </span>
-            </div>
-            <p class="action-card-num"><%= stats.openBlogReports %></p>
-            <p class="action-card-label">Blog Reports</p>
-          </a>
-
         </div>
-      <% } %>
+      </section>
 
-      <%# Watch list: draft events monitoring (not urgent review) %>
-      <div class="action-watch-row">
-        <a href="/admin/events?status=draft" class="action-watch-card <%= stats.draftEvents > 0 ? 'is-active' : 'is-clear' %>">
-          <div class="action-watch-icon icon-slate"><i data-lucide="file-pen" aria-hidden="true"></i></div>
-          <div class="action-watch-body">
-            <span class="action-watch-num"><%= stats.draftEvents %></span>
-            <span class="action-watch-label">Draft Events</span>
+      <section class="dashboard-queue-grid" aria-label="Current queues">
+        <article class="dashboard-queue-panel">
+          <div class="dash-section-header">
+            <h3 class="dashboard-section-title">Recent Draft Events</h3>
+            <a href="/admin/events?status=draft" class="dash-section-link">
+              View all <i data-lucide="arrow-right" aria-hidden="true"></i>
+            </a>
           </div>
-          <span class="status-badge <%= stats.draftEvents > 0 ? 'status-badge-draft' : 'status-badge-clear' %>">
-            <%= stats.draftEvents > 0 ? 'Needs Follow-up' : 'Clear' %>
-          </span>
-        </a>
-      </div>
+          <% if (draftEventsList && draftEventsList.length) { %>
+            <div class="admin-users-table-wrap dashboard-table-wrap">
+              <table class="admin-table dashboard-compact-table">
+                <thead>
+                  <tr>
+                    <th>Event</th>
+                    <th>Organizer</th>
+                    <th>Status</th>
+                    <th>Updated</th>
+                    <th>Start Date</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% draftEventsList.forEach((item) => { %>
+                    <tr>
+                      <td><strong><%= item.title %></strong></td>
+                      <td>
+                        <strong><%= item.organizerName %></strong>
+                        <div><small><%= item.organizerEmail %></small></div>
+                      </td>
+                      <td><span class="status-badge status-badge-draft"><%= item.status %></span></td>
+                      <td>
+                        <span title="<%= item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('en-US') : '' %>">
+                          <%= relativeTime(item.updatedAt) %>
+                        </span>
+                      </td>
+                      <td><%= item.eventStartAt ? new Date(item.eventStartAt).toLocaleDateString('en-US') : 'TBA' %></td>
+                      <td>
+                        <% if (item.actionHref) { %>
+                          <a href="<%= item.actionHref %>" class="btn btn-sm"><%= item.actionLabel || 'Open' %></a>
+                        <% } else { %>
+                          <span class="metric-helper"><%= item.actionLabel || '-' %></span>
+                        <% } %>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } else { %>
+            <div class="empty-state dashboard-empty-state">
+              <p>No draft events need follow-up right now.</p>
+              <a href="/events" class="btn btn-secondary">Open Public Events</a>
+            </div>
+          <% } %>
+        </article>
 
-      <%# ── RECENT DRAFT EVENTS ────────────────────────── %>
-      <div class="dash-section-header">
-        <h3 class="dashboard-section-title">Recent Draft Events</h3>
-        <a href="/admin/events?status=draft" class="dash-section-link">
-          View all <i data-lucide="arrow-right" aria-hidden="true"></i>
-        </a>
-      </div>
-      <% if (draftEventsList && draftEventsList.length) { %>
-        <div class="admin-users-table-wrap" style="margin-bottom:1.25rem;">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Event</th>
-                <th>Organizer</th>
-                <th>Status</th>
-                <th>Updated</th>
-                <th>Start Date</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% draftEventsList.forEach((item) => { %>
-                <tr>
-                  <td><strong><%= item.title %></strong></td>
-                  <td>
-                    <strong><%= item.organizerName %></strong>
-                    <div><small><%= item.organizerEmail %></small></div>
-                  </td>
-                  <td><span class="status-badge status-badge-draft"><%= item.status %></span></td>
-                  <td>
-                    <span title="<%= item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('en-US') : '' %>">
-                      <%= relativeTime(item.updatedAt) %>
-                    </span>
-                  </td>
-                  <td><%= item.eventStartAt ? new Date(item.eventStartAt).toLocaleDateString('en-US') : 'TBA' %></td>
-                  <td>
-                    <% if (item.actionHref) { %>
-                      <a href="<%= item.actionHref %>" class="btn btn-sm"><%= item.actionLabel || 'Open' %></a>
-                    <% } else { %>
-                      <span class="metric-helper"><%= item.actionLabel || '—' %></span>
-                    <% } %>
-                  </td>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
+        <article class="dashboard-queue-panel">
+          <div class="dash-section-header">
+            <h3 class="dashboard-section-title">Pending Organizer Applications</h3>
+            <a href="/admin/applications?status=pending" class="dash-section-link">
+              View all <i data-lucide="arrow-right" aria-hidden="true"></i>
+            </a>
+          </div>
+          <% if (pendingApplicationsList && pendingApplicationsList.length) { %>
+            <div class="admin-users-table-wrap dashboard-table-wrap">
+              <table class="admin-table dashboard-compact-table">
+                <thead>
+                  <tr>
+                    <th>Application ID</th>
+                    <th>Business</th>
+                    <th>Applicant</th>
+                    <th>Status</th>
+                    <th>Submitted</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% pendingApplicationsList.forEach((item) => { %>
+                    <tr>
+                      <td class="mono"><%= item.applicationId %></td>
+                      <td><%= item.businessName %></td>
+                      <td>
+                        <strong><%= item.applicantName %></strong>
+                        <div><small><%= item.applicantEmail %></small></div>
+                      </td>
+                      <td><span class="status-badge status-badge-<%= item.status %>"><%= item.status %></span></td>
+                      <td>
+                        <span title="<%= item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('en-US') : '' %>">
+                          <%= relativeTime(item.submittedAt) %>
+                        </span>
+                      </td>
+                      <td><a href="/admin/applications/<%= item.id %>" class="btn btn-sm">Review</a></td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } else { %>
+            <div class="empty-state dashboard-empty-state">
+              <p>The application queue is clear.</p>
+              <a href="/admin/applications" class="btn btn-secondary">View All Applications</a>
+            </div>
+          <% } %>
+        </article>
+      </section>
+
+      <section class="dashboard-metric-section" aria-labelledby="platform-overview-title">
+        <h3 id="platform-overview-title" class="dashboard-section-title">Platform Overview</h3>
+
+        <div class="metric-grid-group-label">Users and Events</div>
+        <div class="dashboard-grid dashboard-metric-grid">
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Total Users</p>
+              <i data-lucide="users" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value"><%= stats.totalUsers %></p>
+            <a href="/admin/users" class="metric-link">Manage Users</a>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Total Events</p>
+              <i data-lucide="calendar" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value"><%= stats.totalEvents %></p>
+            <a href="/admin/events" class="metric-link">Manage Events</a>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Draft Events</p>
+              <i data-lucide="file-pen" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value"><%= stats.draftEvents %></p>
+            <a href="/admin/events?status=draft" class="metric-link">View Drafts</a>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Published Events</p>
+              <i data-lucide="globe" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value"><%= stats.publishedEvents %></p>
+            <a href="/events" class="metric-link">Open Public Events</a>
+          </article>
         </div>
-      <% } else { %>
-        <div class="empty-state" style="margin-bottom:1.25rem;">
-          <p>No draft events need follow-up right now.</p>
-          <a href="/events" class="btn btn-secondary" style="margin-top:0.6rem;">Open Public Events</a>
+
+        <div class="metric-grid-group-label">Registrations and Results</div>
+        <div class="dashboard-grid dashboard-metric-grid">
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Total Registrations</p>
+              <i data-lucide="clipboard-list" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value"><%= stats.totalRegistrations %></p>
+            <p class="metric-helper">Runner signups</p>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Total Submissions</p>
+              <i data-lucide="upload" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value"><%= stats.totalSubmissions %></p>
+            <p class="metric-helper">All result statuses</p>
+          </article>
+
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Approved Submissions</p>
+              <i data-lucide="check-circle" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value"><%= stats.approvedSubmissions %></p>
+            <a href="/leaderboard" class="metric-link">View Leaderboard</a>
+          </article>
         </div>
-      <% } %>
-
-      <%# ── PENDING APPLICATIONS ───────────────────────── %>
-      <div class="dash-section-header">
-        <h3 class="dashboard-section-title">Pending Organizer Applications</h3>
-        <a href="/admin/applications?status=pending" class="dash-section-link">
-          View all <i data-lucide="arrow-right" aria-hidden="true"></i>
-        </a>
-      </div>
-      <% if (pendingApplicationsList && pendingApplicationsList.length) { %>
-        <div class="admin-users-table-wrap" style="margin-bottom:1.25rem;">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th>Application ID</th>
-                <th>Business</th>
-                <th>Applicant</th>
-                <th>Status</th>
-                <th>Submitted</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% pendingApplicationsList.forEach((item) => { %>
-                <tr>
-                  <td class="mono"><%= item.applicationId %></td>
-                  <td><%= item.businessName %></td>
-                  <td>
-                    <strong><%= item.applicantName %></strong>
-                    <div><small><%= item.applicantEmail %></small></div>
-                  </td>
-                  <td><span class="status-badge status-badge-<%= item.status %>"><%= item.status %></span></td>
-                  <td>
-                    <span title="<%= item.submittedAt ? new Date(item.submittedAt).toLocaleDateString('en-US') : '' %>">
-                      <%= relativeTime(item.submittedAt) %>
-                    </span>
-                  </td>
-                  <td><a href="/admin/applications/<%= item.id %>" class="btn btn-sm">Review</a></td>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
-        </div>
-      <% } else { %>
-        <div class="empty-state" style="margin-bottom:1.25rem;">
-          <p>The application queue is clear.</p>
-          <a href="/admin/applications" class="btn btn-secondary" style="margin-top:0.6rem;">View All Applications</a>
-        </div>
-      <% } %>
-
-      <%# ── PLATFORM OVERVIEW ───────────────────────────── %>
-      <h3 class="dashboard-section-title">Platform Overview</h3>
-      <div class="dashboard-grid">
-
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Total Users</p>
-            <i data-lucide="users" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value"><%= stats.totalUsers %></p>
-          <a href="/admin/users" class="metric-link">Manage Users</a>
-        </article>
-
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Total Events</p>
-            <i data-lucide="calendar" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value"><%= stats.totalEvents %></p>
-          <a href="/admin/events" class="metric-link">Manage Events</a>
-        </article>
-
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Draft Events</p>
-            <i data-lucide="file-pen" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value"><%= stats.draftEvents %></p>
-          <a href="/admin/events?status=draft" class="metric-link">View Drafts</a>
-        </article>
-
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Published Events</p>
-            <i data-lucide="globe" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value"><%= stats.publishedEvents %></p>
-          <a href="/events" class="metric-link">Open Public Events</a>
-        </article>
-
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Total Registrations</p>
-            <i data-lucide="clipboard-list" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value"><%= stats.totalRegistrations %></p>
-          <p class="metric-helper">Runner signups</p>
-        </article>
-
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Total Submissions</p>
-            <i data-lucide="upload" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value"><%= stats.totalSubmissions %></p>
-          <p class="metric-helper">All result statuses</p>
-        </article>
-
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Approved Submissions</p>
-            <i data-lucide="check-circle" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value"><%= stats.approvedSubmissions %></p>
-          <a href="/leaderboard" class="metric-link">View Leaderboard</a>
-        </article>
-
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Achievement Badges</p>
-            <i data-lucide="award" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value metric-value-sm">Core Phase 1</p>
-          <a href="/admin/badges" class="metric-link">Manage badges</a>
-        </article>
 
         <div class="metric-grid-group-label">Blog Content</div>
+        <div class="dashboard-grid dashboard-metric-grid">
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Total Blog Posts</p>
+              <i data-lucide="newspaper" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value"><%= stats.totalBlogs %></p>
+            <a href="/admin/blog/review" class="metric-link">View All Statuses</a>
+          </article>
 
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Total Blog Posts</p>
-            <i data-lucide="newspaper" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value"><%= stats.totalBlogs %></p>
-          <a href="/admin/blog/review" class="metric-link">View All Statuses</a>
-        </article>
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Published Blogs</p>
+              <i data-lucide="check-circle" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value"><%= stats.publishedBlogs %></p>
+            <a href="/admin/blog/review?status=published" class="metric-link">View Published</a>
+          </article>
 
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Published Blogs</p>
-            <i data-lucide="check-circle" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value"><%= stats.publishedBlogs %></p>
-          <a href="/admin/blog/review?status=published" class="metric-link">View Published</a>
-        </article>
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Rejected Blogs</p>
+              <i data-lucide="x-circle" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value"><%= stats.rejectedBlogs %></p>
+            <a href="/admin/blog/review?status=rejected" class="metric-link">View Rejected</a>
+          </article>
 
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Rejected Blogs</p>
-            <i data-lucide="x-circle" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value"><%= stats.rejectedBlogs %></p>
-          <a href="/admin/blog/review?status=rejected" class="metric-link">View Rejected</a>
-        </article>
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Archived Blogs</p>
+              <i data-lucide="archive" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value"><%= stats.archivedBlogs %></p>
+            <a href="/admin/blog/review?status=archived" class="metric-link">View Archived</a>
+          </article>
 
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Archived Blogs</p>
-            <i data-lucide="archive" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value"><%= stats.archivedBlogs %></p>
-          <a href="/admin/blog/review?status=archived" class="metric-link">View Archived</a>
-        </article>
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Blog Comments</p>
+              <i data-lucide="message-square" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value"><%= stats.totalBlogComments %></p>
+            <a href="/admin/blog/comments" class="metric-link"><%= stats.removedBlogComments %> removed</a>
+          </article>
+        </div>
 
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Blog Comments</p>
-            <i data-lucide="message-square" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value"><%= stats.totalBlogComments %></p>
-          <a href="/admin/blog/comments" class="metric-link"><%= stats.removedBlogComments %> removed</a>
-        </article>
+        <div class="metric-grid-group-label">Tools</div>
+        <div class="dashboard-grid dashboard-metric-grid">
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Achievement Badges</p>
+              <i data-lucide="award" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value metric-value-sm">Core Phase 1</p>
+            <a href="/admin/badges" class="metric-link">Manage badges</a>
+          </article>
 
-        <article class="metric-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Communications</p>
-            <i data-lucide="mail-check" class="metric-card-icon-sm" aria-hidden="true"></i>
-          </div>
-          <p class="metric-value metric-value-sm">Email Control</p>
-          <a href="/admin/communications" class="metric-link">Manage email budget and logs</a>
-        </article>
+          <article class="metric-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Communications</p>
+              <i data-lucide="mail-check" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value metric-value-sm">Email Control</p>
+            <a href="/admin/communications" class="metric-link">Manage email budget and logs</a>
+          </article>
+        </div>
+      </section>
 
-      </div>
+      <section class="dashboard-shortcut-section" aria-labelledby="admin-shortcuts-title">
+        <h3 id="admin-shortcuts-title" class="dashboard-section-title">Admin Shortcuts</h3>
+        <div class="quick-link-grid dashboard-shortcut-grid">
+          <a href="/admin/users" class="quick-link-card">
+            <span class="quick-link-icon"><i data-lucide="users" aria-hidden="true"></i></span>
+            <span class="quick-link-title">Users</span>
+            <span class="quick-link-meta">Accounts and roles</span>
+          </a>
+          <a href="/admin/events" class="quick-link-card">
+            <span class="quick-link-icon"><i data-lucide="calendar-days" aria-hidden="true"></i></span>
+            <span class="quick-link-title">Events</span>
+            <span class="quick-link-meta">Review and manage events</span>
+          </a>
+          <a href="/admin/blog/review" class="quick-link-card">
+            <span class="quick-link-icon"><i data-lucide="newspaper" aria-hidden="true"></i></span>
+            <span class="quick-link-title">Blog Management</span>
+            <span class="quick-link-meta">Posts, statuses, and moderation</span>
+          </a>
+          <a href="/admin/blog/comments" class="quick-link-card">
+            <span class="quick-link-icon"><i data-lucide="message-square" aria-hidden="true"></i></span>
+            <span class="quick-link-title">Blog Comments</span>
+            <span class="quick-link-meta">Comment moderation</span>
+          </a>
+          <a href="/admin/communications" class="quick-link-card">
+            <span class="quick-link-icon"><i data-lucide="mail-check" aria-hidden="true"></i></span>
+            <span class="quick-link-title">Communications</span>
+            <span class="quick-link-meta">Email budget and logs</span>
+          </a>
+          <a href="/admin/badges" class="quick-link-card">
+            <span class="quick-link-icon"><i data-lucide="award" aria-hidden="true"></i></span>
+            <span class="quick-link-title">Badges</span>
+            <span class="quick-link-meta">Achievement settings</span>
+          </a>
+        </div>
 
-      <%# ── ROADMAP ──────────────────────────────────────── %>
-      <h3 class="dashboard-section-title">Roadmap</h3>
-      <div class="dashboard-grid roadmap-grid">
-        <article class="metric-card roadmap-card">
-          <div class="metric-card-head">
-            <p class="metric-label">Shop Management</p>
-            <span class="status-badge status-badge-roadmap">Planned</span>
-          </div>
-          <p class="metric-value metric-value-sm" style="color:#6d28d9;">Draft</p>
-          <p class="metric-helper">Product management, orders, and inventory alerts are planned but not live.</p>
-        </article>
-      </div>
+        <div class="legal-docs-row dashboard-legal-docs-row">
+          <a href="/admin/privacy-policy" class="legal-doc-card">
+            <i data-lucide="shield" aria-hidden="true"></i>
+            Privacy Policy
+          </a>
+          <a href="/admin/terms-and-conditions" class="legal-doc-card">
+            <i data-lucide="scroll" aria-hidden="true"></i>
+            Terms &amp; Conditions
+          </a>
+          <a href="/admin/cookie-policy" class="legal-doc-card">
+            <i data-lucide="cookie" aria-hidden="true"></i>
+            Cookie Policy
+          </a>
+          <a href="/admin/data-usage-policy" class="legal-doc-card">
+            <i data-lucide="database" aria-hidden="true"></i>
+            Data Usage
+          </a>
+          <a href="/admin/refund-and-cancellation-policy" class="legal-doc-card">
+            <i data-lucide="receipt" aria-hidden="true"></i>
+            Refunds
+          </a>
+          <a href="/admin/organiser-terms" class="legal-doc-card">
+            <i data-lucide="clipboard-check" aria-hidden="true"></i>
+            Organiser Terms
+          </a>
+          <a href="/admin/community-guidelines" class="legal-doc-card">
+            <i data-lucide="users" aria-hidden="true"></i>
+            Guidelines
+          </a>
+          <a href="/admin/acceptable-use-policy" class="legal-doc-card">
+            <i data-lucide="shield-check" aria-hidden="true"></i>
+            Acceptable Use
+          </a>
+        </div>
+      </section>
 
-      <%# Legal documents row %>
-      <div class="legal-docs-row">
-        <a href="/admin/privacy-policy" class="legal-doc-card">
-          <i data-lucide="shield" aria-hidden="true"></i>
-          Privacy Policy
-        </a>
-        <a href="/admin/terms-and-conditions" class="legal-doc-card">
-          <i data-lucide="scroll" aria-hidden="true"></i>
-          Terms &amp; Conditions
-        </a>
-        <a href="/admin/cookie-policy" class="legal-doc-card">
-          <i data-lucide="cookie" aria-hidden="true"></i>
-          Cookie Policy
-        </a>
-        <a href="/admin/data-usage-policy" class="legal-doc-card">
-          <i data-lucide="database" aria-hidden="true"></i>
-          Data Usage
-        </a>
-        <a href="/admin/refund-and-cancellation-policy" class="legal-doc-card">
-          <i data-lucide="receipt" aria-hidden="true"></i>
-          Refunds
-        </a>
-        <a href="/admin/organiser-terms" class="legal-doc-card">
-          <i data-lucide="clipboard-check" aria-hidden="true"></i>
-          Organiser Terms
-        </a>
-        <a href="/admin/community-guidelines" class="legal-doc-card">
-          <i data-lucide="users" aria-hidden="true"></i>
-          Guidelines
-        </a>
-        <a href="/admin/acceptable-use-policy" class="legal-doc-card">
-          <i data-lucide="shield-check" aria-hidden="true"></i>
-          Acceptable Use
-        </a>
-      </div>
+      <section class="dashboard-band dashboard-roadmap-band" aria-labelledby="roadmap-title">
+        <h3 id="roadmap-title" class="dashboard-section-title">Roadmap</h3>
+        <div class="dashboard-grid roadmap-grid">
+          <article class="metric-card roadmap-card">
+            <div class="metric-card-head">
+              <p class="metric-label">Shop Management</p>
+              <span class="status-badge status-badge-roadmap">Planned</span>
+            </div>
+            <p class="metric-value metric-value-sm roadmap-status-value">Draft</p>
+            <p class="metric-helper">Product management, orders, and inventory alerts are planned but not live.</p>
+          </article>
+        </div>
+      </section>
 
     </section>
   </main>
