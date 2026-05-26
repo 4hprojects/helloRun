@@ -237,14 +237,36 @@ function normalizePositiveInt(value, fallback) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+async function verifyAdminDeletionPassword(req) {
+  const adminPassword = String(req.body?.adminPassword || '').trim();
+  if (!adminPassword) {
+    return { ok: false, status: 400, message: 'Password is required to confirm deletion.' };
+  }
+  const adminUser = await User.findById(req.session.userId).select('passwordHash').lean();
+  if (!adminUser || !adminUser.passwordHash) {
+    return { ok: false, status: 403, message: 'Unable to verify your identity. Deletion cancelled.' };
+  }
+  const isValidPassword = await passwordService.comparePassword(adminPassword, adminUser.passwordHash);
+  if (!isValidPassword) {
+    return { ok: false, status: 403, message: 'Incorrect password. Deletion cancelled.' };
+  }
+  return { ok: true };
+}
+
 function normalizeAdminEventFilters(query = {}) {
-  const status = ADMIN_EVENT_STATUSES.includes(String(query.status || '').trim()) ? String(query.status).trim() : '';
+  const statusRaw = String(query.status || '').trim();
+  const status = ADMIN_EVENT_STATUSES.includes(statusRaw) ? statusRaw : '';
   const eventType = ['virtual', 'onsite', 'hybrid'].includes(String(query.eventType || '').trim()) ? String(query.eventType).trim() : '';
-  const deleted = String(query.deleted || '').trim() === '1';
+  const deleted = statusRaw === 'deleted' || String(query.deleted || '').trim() === '1';
   const q = String(query.q || '').trim().slice(0, 100);
   const needsReview = String(query.needsReview || '').trim() === '1';
   const page = Math.max(1, Number.parseInt(query.page, 10) || 1);
-  return { status, eventType, deleted, q, needsReview, page };
+  const perPageRaw = String(query.perPage || '').trim().toLowerCase();
+  const perPageParsed = Number.parseInt(perPageRaw, 10);
+  const perPage = perPageRaw === 'all'
+    ? 'all'
+    : ([25, 50, 100].includes(perPageParsed) ? perPageParsed : 25);
+  return { status, eventType, deleted, q, needsReview, page, perPage };
 }
 
 function buildAdminEventQuery(filters) {
@@ -1698,8 +1720,9 @@ exports.rejectApplication = async (req, res) => {
 exports.listEvents = async (req, res) => {
   try {
     const filters = normalizeAdminEventFilters(req.query);
-    const limit = 20;
-    const skip = (filters.page - 1) * limit;
+    const isAll = filters.perPage === 'all';
+    const limit = isAll ? 0 : Number(filters.perPage || 25);
+    const skip = isAll ? 0 : (filters.page - 1) * limit;
     const query = buildAdminEventQuery(filters);
     if (filters.q) {
       const safePattern = new RegExp(String(filters.q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
@@ -1719,14 +1742,16 @@ exports.listEvents = async (req, res) => {
       ? { updatedAt: -1, createdAt: -1 }
       : { status: 1, submittedForReviewAt: 1, updatedAt: -1 };
 
+    const eventQuery = Event.find(query)
+      .populate('organizerId', 'firstName lastName email')
+      .sort(sort);
+    if (!isAll) {
+      eventQuery.skip(skip).limit(limit);
+    }
+
     const [totalEvents, events, statusCounts] = await Promise.all([
       Event.countDocuments(query),
-      Event.find(query)
-        .populate('organizerId', 'firstName lastName email')
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+      eventQuery.lean(),
       Event.aggregate([
         { $match: { isDeleted: { $ne: true } } },
         { $group: { _id: '$status', count: { $sum: 1 } } }
@@ -1755,7 +1780,7 @@ exports.listEvents = async (req, res) => {
       events: eventRows,
       pagination: {
         page: filters.page,
-        totalPages: Math.max(1, Math.ceil(totalEvents / limit)),
+        totalPages: isAll ? 1 : Math.max(1, Math.ceil(totalEvents / limit)),
         totalEvents
       },
       statusCounts: {
@@ -2012,6 +2037,8 @@ exports.deleteEvent = async (req, res) => {
   try {
     const event = await findAdminEventOrNull(req.params.id);
     if (!event) return res.status(404).json({ success: false, message: 'Event not found.' });
+    const passwordResult = await verifyAdminDeletionPassword(req);
+    if (!passwordResult.ok) return res.status(passwordResult.status).json({ success: false, message: passwordResult.message });
     const reason = String(req.body.reason || req.body.deleteReason || '').trim();
     if (reason.length < 8) return res.status(400).json({ success: false, message: 'Delete reason must be at least 8 characters.' });
     const previousStatus = event.isDeleted ? 'deleted' : event.status;
@@ -2036,6 +2063,55 @@ exports.deleteEvent = async (req, res) => {
   } catch (error) {
     console.error('deleteEvent error:', error);
     return res.status(500).json({ success: false, message: 'Failed to delete event.' });
+  }
+};
+
+exports.bulkDeleteEvents = async (req, res) => {
+  try {
+    const passwordResult = await verifyAdminDeletionPassword(req);
+    if (!passwordResult.ok) return res.status(passwordResult.status).json({ success: false, message: passwordResult.message });
+    const rawIds = [].concat(req.body?.eventIds || []).flatMap((v) => String(v || '').split(','));
+    const eventIds = Array.from(new Set(
+      rawIds.map((v) => v.trim()).filter((v) => mongoose.Types.ObjectId.isValid(v))
+    ));
+    if (!eventIds.length) {
+      return res.status(400).json({ success: false, message: 'No valid event IDs provided.' });
+    }
+    const reason = String(req.body?.reason || '').trim();
+    if (reason.length < 8) {
+      return res.status(400).json({ success: false, message: 'Delete reason must be at least 8 characters.' });
+    }
+    const events = await Event.find({ _id: { $in: eventIds }, isDeleted: { $ne: true } });
+    if (!events.length) {
+      return res.status(404).json({ success: false, message: 'No eligible events found (they may already be deleted).' });
+    }
+    const now = new Date();
+    const deletedIds = [];
+    for (const event of events) {
+      const previousStatus = event.status;
+      event.isDeleted = true;
+      event.deletedAt = now;
+      event.deletedBy = req.session.userId;
+      event.deleteReason = reason.slice(0, 500);
+      await event.save();
+      deletedIds.push(String(event._id));
+      recordCriticalAuditEventInBackground({
+        actorMongoUserId: req.session.userId,
+        action: 'event.deleted',
+        targetType: 'event',
+        targetId: String(event._id),
+        statusFrom: previousStatus,
+        statusTo: 'deleted',
+        notes: event.deleteReason,
+        ipAddress: getRequestIpAddress(req),
+        userAgent: getRequestUserAgent(req),
+        occurredAt: now
+      });
+    }
+    return res.json({ success: true, message: `${deletedIds.length} event${deletedIds.length === 1 ? '' : 's'} soft-deleted.`, deletedCount: deletedIds.length });
+  } catch (error) {
+    console.error('bulkDeleteEvents error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to bulk-delete events.' });
   }
 };
 

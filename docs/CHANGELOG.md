@@ -3,6 +3,52 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 26, 2026 (Session: Admin Event Deletion Stabilization + Pricing Snapshot Hardening)
+
+### [SESSION] SESSION UPDATE:
+- Stabilized admin event deletion workflows:
+  - single event soft-delete now requires admin password confirmation alongside the deletion reason
+  - added bulk event soft-delete from `/admin/events` with password confirmation, selected-row handling, progress state, and disabled selection for already deleted events
+  - preserved soft-delete semantics: registrations, submissions, media, orders, and uploads are not removed
+  - shared admin deletion password verification across single and bulk delete handlers
+- Improved admin event management UI maintainability:
+  - moved the large inline bulk-delete list script into `src/public/js/admin-events-list.js`
+  - kept the EJS template responsible only for markup and CSRF config handoff
+  - retained CSRF submission through both `X-CSRF-Token` and `_csrf` payload fields
+- Hardened registration pricing snapshot coverage:
+  - added route-level coverage for distance-based pricing snapshots
+  - added active distance-period pricing snapshot coverage
+  - confirmed customized option and package-period registration snapshots remain persisted correctly
+  - added inactive package-period rejection coverage
+  - confirmed payment proof review uses saved `Registration.paymentAmountDue` rather than recalculating from the current event fee
+- Stabilized public smoke coverage:
+  - added a session-ready wait in the future-public-posting registration visibility test to avoid a login/session-store race.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. src/controllers/admin.controller.js
+3. src/routes/admin.routes.js
+4. src/views/admin/event-detail.ejs
+5. src/views/admin/events-list.ejs
+6. src/public/css/admin.css
+7. src/public/js/admin-events-list.js
+8. tests/admin-dashboard.test.js
+9. tests/registration-addons-read.test.js
+10. tests/payment-route-guards.test.js
+11. tests/public-search-filters.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --check` on changed controller, route-adjacent static JS, and updated test files -> PASS.
+- `node src/scripts/run-test-group.js tests/admin-dashboard.test.js tests/admin-users.test.js` -> PASS, 19/19, about 104 seconds.
+- `node src/scripts/run-test-group.js tests/registration-price.service.test.js tests/registration-addons-read.test.js tests/payment-route-guards.test.js` -> PASS, 30/30, about 142 seconds.
+- `npm run test:admin` -> PASS, 38/38, about 161 seconds.
+- `npm run test:shop` -> PASS, 44/44, about 193 seconds.
+- `npm run test:smoke` -> PASS, 48/48, about 151 seconds.
+- `npm audit --omit=dev` -> PASS, 0 vulnerabilities.
+- `git diff --check` -> PASS, CRLF warnings only.
+
+---
+
 ## CHANGELOG - May 26, 2026 (Session: Step 7 Pricing Refactor + Step 12 Responsive Tiles)
 
 ### [SESSION] SESSION UPDATE:

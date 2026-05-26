@@ -167,6 +167,49 @@
       </section>
     </section>
   </main>
+  <div class="admin-delete-confirm-backdrop" id="adminEventDeleteConfirmModal" hidden aria-hidden="true">
+    <div class="admin-delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="adminEventDeleteConfirmTitle" tabindex="-1">
+      <div class="admin-delete-confirm-icon-wrap">
+        <i data-lucide="triangle-alert" aria-hidden="true"></i>
+      </div>
+      <h3 id="adminEventDeleteConfirmTitle">Confirm Event Deletion</h3>
+      <p id="adminEventDeleteConfirmDesc" class="admin-delete-confirm-desc"></p>
+      <div class="admin-delete-confirm-pw-group">
+        <label for="adminEventDeleteReason">Reason for deletion <span aria-hidden="true">(min 8 characters)</span></label>
+        <textarea
+          id="adminEventDeleteReason"
+          rows="3"
+          placeholder="Enter a reason..."
+          class="admin-delete-confirm-pw-input"
+          style="resize:vertical;"
+        ></textarea>
+        <p class="admin-delete-confirm-pw-error" id="adminEventDeleteReasonError" hidden></p>
+      </div>
+      <div class="admin-delete-confirm-pw-group">
+        <label for="adminEventDeletePassword">Enter your password to confirm</label>
+        <div class="admin-delete-confirm-pw-wrap">
+          <input
+            type="password"
+            id="adminEventDeletePassword"
+            autocomplete="current-password"
+            placeholder="Your password"
+            class="admin-delete-confirm-pw-input"
+          >
+          <button type="button" class="admin-delete-confirm-pw-toggle" id="adminEventDeletePwToggle" aria-label="Show password">
+            <i data-lucide="eye" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p class="admin-delete-confirm-pw-error" id="adminEventDeletePwError" hidden></p>
+      </div>
+      <div class="admin-delete-confirm-actions">
+        <button type="button" class="btn btn-secondary" id="adminEventDeleteCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-danger" id="adminEventDeleteOkBtn">
+          <i data-lucide="trash-2" aria-hidden="true"></i>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
   <script>
@@ -174,11 +217,121 @@
       const csrfToken = <%- JSON.stringify(locals.csrfToken || '') %>;
       const eventId = <%- JSON.stringify(String(event._id)) %>;
       const messageBox = document.getElementById('eventActionMessage');
+      const deleteModal = document.getElementById('adminEventDeleteConfirmModal');
+      const deleteModalDialog = deleteModal ? deleteModal.querySelector('.admin-delete-confirm-dialog') : null;
+      const deleteConfirmDesc = document.getElementById('adminEventDeleteConfirmDesc');
+      const deleteReasonInput = document.getElementById('adminEventDeleteReason');
+      const deleteReasonError = document.getElementById('adminEventDeleteReasonError');
+      const deletePwInput = document.getElementById('adminEventDeletePassword');
+      const deletePwError = document.getElementById('adminEventDeletePwError');
+      const deletePwToggle = document.getElementById('adminEventDeletePwToggle');
+      const deleteCancelBtn = document.getElementById('adminEventDeleteCancelBtn');
+      const deleteOkBtn = document.getElementById('adminEventDeleteOkBtn');
+      let deleteModalResolve = null;
+      let lastDeleteModalTrigger = null;
+
       function showMessage(type, text) {
         messageBox.className = `admin-alert admin-alert-${type}`;
         messageBox.textContent = text;
         messageBox.style.display = 'block';
       }
+
+      function openDeleteConfirmModal(description, triggerEl) {
+        if (!deleteModal) return Promise.resolve(null);
+        lastDeleteModalTrigger = triggerEl || null;
+        if (deleteConfirmDesc) deleteConfirmDesc.textContent = description;
+        if (deleteReasonInput) deleteReasonInput.value = '';
+        if (deleteReasonError) { deleteReasonError.hidden = true; deleteReasonError.textContent = ''; }
+        if (deletePwInput) { deletePwInput.value = ''; deletePwInput.type = 'password'; }
+        if (deletePwError) { deletePwError.hidden = true; deletePwError.textContent = ''; }
+        if (deletePwToggle) {
+          const icon = deletePwToggle.querySelector('i');
+          if (icon) icon.setAttribute('data-lucide', 'eye');
+          deletePwToggle.setAttribute('aria-label', 'Show password');
+          if (window.lucide) lucide.createIcons({ nodes: [deletePwToggle] });
+        }
+        deleteModal.hidden = false;
+        deleteModal.setAttribute('aria-hidden', 'false');
+        if (deleteModalDialog) deleteModalDialog.focus();
+        return new Promise((resolve) => { deleteModalResolve = resolve; });
+      }
+
+      function closeDeleteConfirmModal(result) {
+        if (!deleteModal) return;
+        deleteModal.hidden = true;
+        deleteModal.setAttribute('aria-hidden', 'true');
+        if (deleteReasonInput) deleteReasonInput.value = '';
+        if (deletePwInput) deletePwInput.value = '';
+        const resolve = deleteModalResolve;
+        deleteModalResolve = null;
+        if (resolve) resolve(result);
+        if (lastDeleteModalTrigger) lastDeleteModalTrigger.focus();
+        lastDeleteModalTrigger = null;
+      }
+
+      if (deletePwToggle && deletePwInput) {
+        deletePwToggle.addEventListener('click', () => {
+          const isPassword = deletePwInput.type === 'password';
+          deletePwInput.type = isPassword ? 'text' : 'password';
+          const icon = deletePwToggle.querySelector('i');
+          if (icon) icon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+          deletePwToggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+          if (window.lucide) lucide.createIcons({ nodes: [deletePwToggle] });
+        });
+      }
+
+      if (deleteCancelBtn) {
+        deleteCancelBtn.addEventListener('click', () => closeDeleteConfirmModal(null));
+      }
+
+      if (deleteOkBtn) {
+        deleteOkBtn.addEventListener('click', () => {
+          const reason = deleteReasonInput ? deleteReasonInput.value.trim() : '';
+          const pw = deletePwInput ? deletePwInput.value.trim() : '';
+          let valid = true;
+          if (reason.length < 8) {
+            if (deleteReasonError) {
+              deleteReasonError.textContent = 'Reason must be at least 8 characters.';
+              deleteReasonError.hidden = false;
+            }
+            if (deleteReasonInput) deleteReasonInput.focus();
+            valid = false;
+          } else if (deleteReasonError) {
+            deleteReasonError.hidden = true;
+          }
+          if (!pw) {
+            if (deletePwError) {
+              deletePwError.textContent = 'Please enter your password.';
+              deletePwError.hidden = false;
+            }
+            if (valid && deletePwInput) deletePwInput.focus();
+            valid = false;
+          } else if (deletePwError) {
+            deletePwError.hidden = true;
+          }
+          if (!valid) return;
+          closeDeleteConfirmModal({ reason, adminPassword: pw });
+        });
+      }
+
+      if (deletePwInput) {
+        deletePwInput.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            if (deleteOkBtn) deleteOkBtn.click();
+          }
+        });
+      }
+
+      if (deleteModal) {
+        deleteModal.addEventListener('click', (event) => {
+          if (event.target === deleteModal) closeDeleteConfirmModal(null);
+        });
+        deleteModal.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') closeDeleteConfirmModal(null);
+        });
+      }
+
       async function postAction(action, body = {}) {
         const response = await fetch(`/admin/events/${eventId}/${action}`, {
           method: 'POST',
@@ -198,7 +351,12 @@
         button.addEventListener('click', async () => {
           const action = button.dataset.action;
           let body = {};
-          if (action === 'archive' || action === 'delete') {
+          if (action === 'delete') {
+            const desc = 'You are about to soft-delete this event. Enter a reason and your password to continue.';
+            const result = await openDeleteConfirmModal(desc, button);
+            if (!result) return;
+            body = result;
+          } else if (action === 'archive') {
             const reason = prompt(`Reason for ${action === 'archive' ? 'archiving' : 'soft-deleting'} this event:`);
             if (!reason) return;
             body.reason = reason;

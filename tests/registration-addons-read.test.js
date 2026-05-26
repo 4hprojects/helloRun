@@ -226,6 +226,100 @@ test('registration submit persists selected add-ons snapshot', async () => {
   assert.match(String(shopPayments[0].proof_image_url || ''), /https?:\/\//i);
 });
 
+test('registration submit persists distance-based price snapshot', async () => {
+  const cookie = await login(seed.distanceRunner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
+
+  const { csrfToken, html } = await getCsrfFromAuthedPage(`/events/${seed.distanceEvent.slug}/register`, cookie);
+  assert.match(html, /Race Distance/i);
+  assert.match(html, /10K/i);
+
+  const response = await fetch(`${BASE_URL}/events/${seed.distanceEvent.slug}/register`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      _csrf: csrfToken,
+      participationMode: 'virtual',
+      raceDistance: '10K',
+      waiverAccepted: 'on',
+      waiverSignature: `${seed.distanceRunner.firstName} ${seed.distanceRunner.lastName}`
+    }),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  assert.match(String(response.headers.get('location') || ''), /registered=1/i);
+
+  const registration = await Registration.findOne({ eventId: seed.distanceEvent._id, userId: seed.distanceRunner._id })
+    .select('raceDistance pricingSnapshot paymentAmountDue paymentCurrency paymentStatus')
+    .lean();
+
+  assert.ok(registration, 'Expected created registration');
+  assert.equal(registration.raceDistance, '10K');
+  assert.equal(registration.paymentStatus, 'unpaid');
+  assert.equal(registration.paymentAmountDue, 750);
+  assert.equal(registration.paymentCurrency, 'PHP');
+  assert.equal(registration.pricingSnapshot.pricingMode, 'distance_based');
+  assert.equal(registration.pricingSnapshot.source, 'distance_based');
+  assert.equal(registration.pricingSnapshot.raceDistance, '10K');
+  assert.equal(registration.pricingSnapshot.amount, 750);
+});
+
+test('registration submit persists active distance-period price snapshot', async () => {
+  const cookie = await login(seed.periodRunner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
+
+  const { csrfToken, html } = await getCsrfFromAuthedPage(`/events/${seed.distancePeriodEvent.slug}/register`, cookie);
+  assert.match(html, /raceDistancePricingPreviewData/i);
+  assert.match(html, /Early Bird/i);
+
+  const response = await fetch(`${BASE_URL}/events/${seed.distancePeriodEvent.slug}/register`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      _csrf: csrfToken,
+      participationMode: 'virtual',
+      raceDistance: '5K',
+      waiverAccepted: 'on',
+      waiverSignature: `${seed.periodRunner.firstName} ${seed.periodRunner.lastName}`
+    }),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  assert.match(String(response.headers.get('location') || ''), /registered=1/i);
+
+  const registration = await Registration.findOne({ eventId: seed.distancePeriodEvent._id, userId: seed.periodRunner._id })
+    .select('pricingSnapshot paymentAmountDue paymentCurrency paymentStatus')
+    .lean();
+
+  assert.ok(registration, 'Expected created registration');
+  assert.equal(registration.paymentStatus, 'unpaid');
+  assert.equal(registration.paymentAmountDue, 400);
+  assert.equal(registration.paymentCurrency, 'PHP');
+  assert.equal(registration.pricingSnapshot.pricingMode, 'distance_based_period');
+  assert.equal(registration.pricingSnapshot.source, 'distance_based');
+  assert.equal(registration.pricingSnapshot.raceDistance, '5K');
+  assert.equal(registration.pricingSnapshot.pricingPeriodCode, 'early_bird');
+  assert.equal(registration.pricingSnapshot.pricingPeriodLabel, 'Early Bird');
+  assert.equal(registration.pricingSnapshot.amount, 400);
+
+  const myRegistrationsResponse = await fetch(`${BASE_URL}/my-registrations`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(myRegistrationsResponse.status, 200);
+  const myRegistrationsHtml = await myRegistrationsResponse.text();
+  assert.match(myRegistrationsHtml, /Registration fee:<\/strong>\s*PHP 400\.00/i);
+  assert.match(myRegistrationsHtml, /Pricing period:<\/strong>\s*Early Bird/i);
+});
+
 test('registration submit persists customized paid signup option snapshot', async () => {
   const cookie = await login(seed.customRunner.email, seed.password);
   await waitForSessionReady('/runner/dashboard', cookie);
@@ -399,6 +493,41 @@ test('registration submit persists package-period selection snapshot', async () 
   assert.match(csv, /Medal \+ Shirt/);
 });
 
+test('registration submit rejects inactive package-period pricing', async () => {
+  const cookie = await login(seed.inactivePackageRunner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
+
+  const { csrfToken, html } = await getCsrfFromAuthedPage(`/events/${seed.inactivePackageEvent.slug}/register`, cookie);
+  assert.match(html, /Registration Package/i);
+  assert.match(html, /Inactive Medal Pack/i);
+
+  const response = await fetch(`${BASE_URL}/events/${seed.inactivePackageEvent.slug}/register`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      _csrf: csrfToken,
+      participationMode: 'virtual',
+      raceDistance: '5K',
+      registrationPackageId: 'pkg-inactive-medal',
+      waiverAccepted: 'on',
+      waiverSignature: `${seed.inactivePackageRunner.firstName} ${seed.inactivePackageRunner.lastName}`
+    }),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 400);
+  const errorHtml = await response.text();
+  assert.match(errorHtml, /No registration package is currently open for pricing dates/i);
+
+  const registration = await Registration.findOne({ eventId: seed.inactivePackageEvent._id, userId: seed.inactivePackageRunner._id })
+    .select('_id')
+    .lean();
+  assert.equal(registration, null);
+});
+
 test('registrant export includes structured race category snapshot columns', async () => {
   const organizerCookie = await login(seed.organizer.email, seed.password);
   await waitForSessionReady('/organizer/dashboard', organizerCookie);
@@ -463,6 +592,48 @@ async function seedRegistrationAddonFixtures() {
     country: 'PH',
     emergencyContactName: 'Emergency Package',
     emergencyContactNumber: '09170000032'
+  });
+
+  const distanceRunner = await User.create({
+    userId: `URDIST${stamp}`.slice(0, 22),
+    email: `registration.distance.runner.${stamp}@example.com`,
+    passwordHash,
+    role: 'runner',
+    firstName: 'Distance',
+    lastName: 'Runner',
+    emailVerified: true,
+    mobile: '09170000051',
+    country: 'PH',
+    emergencyContactName: 'Emergency Distance',
+    emergencyContactNumber: '09170000052'
+  });
+
+  const periodRunner = await User.create({
+    userId: `URPER${stamp}`.slice(0, 22),
+    email: `registration.period.runner.${stamp}@example.com`,
+    passwordHash,
+    role: 'runner',
+    firstName: 'Period',
+    lastName: 'Runner',
+    emailVerified: true,
+    mobile: '09170000061',
+    country: 'PH',
+    emergencyContactName: 'Emergency Period',
+    emergencyContactNumber: '09170000062'
+  });
+
+  const inactivePackageRunner = await User.create({
+    userId: `URINPKG${stamp}`.slice(0, 22),
+    email: `registration.inactive.package.runner.${stamp}@example.com`,
+    passwordHash,
+    role: 'runner',
+    firstName: 'Inactive',
+    lastName: 'Package',
+    emailVerified: true,
+    mobile: '09170000071',
+    country: 'PH',
+    emergencyContactName: 'Emergency Inactive',
+    emergencyContactNumber: '09170000072'
   });
 
   const organizer = await User.create({
@@ -563,6 +734,118 @@ async function seedRegistrationAddonFixtures() {
             startAt: new Date(now + 24 * 60 * 60 * 1000),
             endAt: new Date(now + 3 * 24 * 60 * 60 * 1000),
             amount: 999
+          }
+        ]
+      }
+    ],
+    registrationOpenAt: new Date(now - 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 8 * 24 * 60 * 60 * 1000),
+    proofTypesAllowed: ['running_app_sync'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
+  const distanceEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `registration-distance-price-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `RGD-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Registration Distance Price Event ${stamp}`.slice(0, 150),
+    organiserName: 'Add-ons Organizer',
+    description: 'Registration distance-based pricing fixture',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    feeMode: 'paid',
+    pricingMode: 'distance_based',
+    feeCurrency: 'PHP',
+    paymentAccountName: 'HelloRun Payments',
+    paymentQrImageUrl: 'https://example.com/payment-qr.png',
+    raceDistances: ['5K', '10K'],
+    distancePricing: [
+      { distance: '5K', amount: 500 },
+      { distance: '10K', amount: 750 }
+    ],
+    registrationOpenAt: new Date(now - 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 8 * 24 * 60 * 60 * 1000),
+    proofTypesAllowed: ['running_app_sync'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
+  const distancePeriodEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `registration-distance-period-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `RGE-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Registration Distance Period Event ${stamp}`.slice(0, 150),
+    organiserName: 'Add-ons Organizer',
+    description: 'Registration distance period pricing fixture',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    feeMode: 'paid',
+    pricingMode: 'distance_based_period',
+    feeCurrency: 'PHP',
+    paymentAccountName: 'HelloRun Payments',
+    paymentQrImageUrl: 'https://example.com/payment-qr.png',
+    raceDistances: ['5K'],
+    pricingPeriods: [
+      {
+        label: 'Early Bird',
+        code: 'early_bird',
+        startAt: new Date(now - 24 * 60 * 60 * 1000),
+        endAt: new Date(now + 24 * 60 * 60 * 1000)
+      },
+      {
+        label: 'Regular',
+        code: 'regular',
+        startAt: new Date(now + 24 * 60 * 60 * 1000),
+        endAt: new Date(now + 3 * 24 * 60 * 60 * 1000)
+      }
+    ],
+    distancePricing: [
+      { distance: '5K', earlyBirdAmount: 400, regularAmount: 500 }
+    ],
+    registrationOpenAt: new Date(now - 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 8 * 24 * 60 * 60 * 1000),
+    proofTypesAllowed: ['running_app_sync'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
+  const inactivePackageEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `registration-inactive-package-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `RGI-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Registration Inactive Package Event ${stamp}`.slice(0, 150),
+    organiserName: 'Add-ons Organizer',
+    description: 'Registration inactive package pricing fixture',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    feeMode: 'paid',
+    pricingMode: 'package_period',
+    feeCurrency: 'PHP',
+    paymentAccountName: 'HelloRun Payments',
+    paymentQrImageUrl: 'https://example.com/payment-qr.png',
+    raceDistances: ['5K'],
+    registrationPackages: [
+      {
+        packageId: 'pkg-inactive-medal',
+        name: 'Inactive Medal Pack',
+        includedItems: { medal: true },
+        pricingPeriods: [
+          {
+            label: 'Expired Early Bird',
+            code: 'early_bird',
+            startAt: new Date(now - 5 * 24 * 60 * 60 * 1000),
+            endAt: new Date(now - 4 * 24 * 60 * 60 * 1000),
+            amount: 499
           }
         ]
       }
@@ -747,10 +1030,16 @@ async function seedRegistrationAddonFixtures() {
     runner,
     customRunner,
     packageRunner,
+    distanceRunner,
+    periodRunner,
+    inactivePackageRunner,
     organizer,
     event,
     customEvent,
     packageEvent,
+    distanceEvent,
+    distancePeriodEvent,
+    inactivePackageEvent,
     categoryEvent,
     visibleAddOnName,
     visibleAddOnId: String(visibleAddOn?.id || ''),
@@ -761,6 +1050,9 @@ async function seedRegistrationAddonFixtures() {
       mongoEventId: String(event._id),
       customMongoEventId: String(customEvent._id),
       packageMongoEventId: String(packageEvent._id),
+      distanceMongoEventId: String(distanceEvent._id),
+      distancePeriodMongoEventId: String(distancePeriodEvent._id),
+      inactivePackageMongoEventId: String(inactivePackageEvent._id),
       categoryMongoEventId: String(categoryEvent._id)
     }
   };
@@ -770,7 +1062,15 @@ async function cleanupRegistrationAddonFixtures(currentSeed) {
   if (!currentSeed) return;
 
   const sql = getPostgresClient();
-  const eventMongoIds = [currentSeed.ids?.mongoEventId, currentSeed.ids?.customMongoEventId, currentSeed.ids?.packageMongoEventId, currentSeed.ids?.categoryMongoEventId].filter(Boolean);
+  const eventMongoIds = [
+    currentSeed.ids?.mongoEventId,
+    currentSeed.ids?.customMongoEventId,
+    currentSeed.ids?.packageMongoEventId,
+    currentSeed.ids?.distanceMongoEventId,
+    currentSeed.ids?.distancePeriodMongoEventId,
+    currentSeed.ids?.inactivePackageMongoEventId,
+    currentSeed.ids?.categoryMongoEventId
+  ].filter(Boolean);
 
   for (const eventMongoId of eventMongoIds) {
     const eventCoreRows = await sql`select id from events_core where mongo_event_id = ${eventMongoId}`;
@@ -790,20 +1090,42 @@ async function cleanupRegistrationAddonFixtures(currentSeed) {
 
   await sql`
     delete from app_users
-    where mongo_user_id = any(${[String(currentSeed.runner._id), String(currentSeed.customRunner._id), String(currentSeed.packageRunner._id), String(currentSeed.organizer._id)]})
+    where mongo_user_id = any(${[
+      String(currentSeed.runner._id),
+      String(currentSeed.customRunner._id),
+      String(currentSeed.packageRunner._id),
+      String(currentSeed.distanceRunner._id),
+      String(currentSeed.periodRunner._id),
+      String(currentSeed.inactivePackageRunner._id),
+      String(currentSeed.organizer._id)
+    ]})
   `;
 
   await Event.deleteOne({ _id: currentSeed.event._id });
   await Event.deleteOne({ _id: currentSeed.customEvent._id });
   await Event.deleteOne({ _id: currentSeed.packageEvent._id });
+  await Event.deleteOne({ _id: currentSeed.distanceEvent._id });
+  await Event.deleteOne({ _id: currentSeed.distancePeriodEvent._id });
+  await Event.deleteOne({ _id: currentSeed.inactivePackageEvent._id });
   await Event.deleteOne({ _id: currentSeed.categoryEvent._id });
   await Registration.deleteMany({ eventId: currentSeed.event._id, userId: currentSeed.runner._id });
   await Registration.deleteMany({ eventId: currentSeed.customEvent._id, userId: currentSeed.customRunner._id });
   await Registration.deleteMany({ eventId: currentSeed.packageEvent._id, userId: currentSeed.packageRunner._id });
+  await Registration.deleteMany({ eventId: currentSeed.distanceEvent._id, userId: currentSeed.distanceRunner._id });
+  await Registration.deleteMany({ eventId: currentSeed.distancePeriodEvent._id, userId: currentSeed.periodRunner._id });
+  await Registration.deleteMany({ eventId: currentSeed.inactivePackageEvent._id, userId: currentSeed.inactivePackageRunner._id });
   await Registration.deleteMany({ eventId: currentSeed.categoryEvent._id, userId: currentSeed.runner._id });
   await User.deleteMany({
     _id: {
-      $in: [currentSeed.runner._id, currentSeed.customRunner._id, currentSeed.packageRunner._id, currentSeed.organizer._id]
+      $in: [
+        currentSeed.runner._id,
+        currentSeed.customRunner._id,
+        currentSeed.packageRunner._id,
+        currentSeed.distanceRunner._id,
+        currentSeed.periodRunner._id,
+        currentSeed.inactivePackageRunner._id,
+        currentSeed.organizer._id
+      ]
     }
   });
 }

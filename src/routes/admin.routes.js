@@ -37,6 +37,7 @@ router.post('/users/:id/delete', requireAdmin, adminController.deleteUsers);
 
 // Event management
 router.get('/events', requireAdmin, adminController.listEvents);
+router.post('/events/bulk-delete', requireAdmin, adminModerationLimiter, adminController.bulkDeleteEvents);
 router.get('/badges', requireAdmin, adminController.listBadges);
 router.post('/badges/recalculate', requireAdmin, adminController.recalculateBadges);
 router.post('/badge-definitions/:badgeDefinitionId/status', requireAdmin, adminController.updateBadgeDefinitionStatus);

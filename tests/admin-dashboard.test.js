@@ -275,6 +275,18 @@ test('admin events page enforces admin access', async () => {
   assert.equal(unauthenticated.status, 302);
   assert.equal(unauthenticated.headers.get('location'), '/login');
 
+  const unauthenticatedBulkDelete = await fetch(`${BASE_URL}/admin/events/bulk-delete`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify({ eventIds: seed.bulkDeleteEvents.activeIds, reason: 'Blocked unauthenticated bulk delete.', adminPassword: seed.password }),
+    redirect: 'manual'
+  });
+  assert.equal(unauthenticatedBulkDelete.status, 302);
+  assert.equal(unauthenticatedBulkDelete.headers.get('location'), '/login');
+
   const runnerCookie = await login(seed.runner.email, seed.password);
   await waitForSessionReady('/runner/dashboard', runnerCookie);
   const runnerResponse = await fetch(`${BASE_URL}/admin/events`, {
@@ -282,6 +294,18 @@ test('admin events page enforces admin access', async () => {
     redirect: 'manual'
   });
   assert.equal(runnerResponse.status, 403);
+
+  const runnerBulkDelete = await fetch(`${BASE_URL}/admin/events/bulk-delete`, {
+    method: 'POST',
+    headers: {
+      Cookie: runnerCookie,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify({ eventIds: seed.bulkDeleteEvents.activeIds, reason: 'Blocked runner bulk delete.', adminPassword: seed.password }),
+    redirect: 'manual'
+  });
+  assert.equal(runnerBulkDelete.status, 403);
 });
 
 test('admin can list and inspect event management records', async () => {
@@ -317,6 +341,14 @@ test('admin can list and inspect event management records', async () => {
   const editHtml = await editResponse.text();
   assert.match(editHtml, /Admin Edit Event/i);
   assert.match(editHtml, new RegExp(escapeRegex(`/admin/events/${seed.pendingEvent.id}/edit`)));
+
+  const perPageResponse = await fetch(`${BASE_URL}/admin/events?perPage=all`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(perPageResponse.status, 200);
+  const perPageHtml = await perPageResponse.text();
+  assert.match(perPageHtml, /<option value="all" selected>All<\/option>/i);
 });
 
 test('admin approves pending event, then archive hides it from public event detail', async () => {
@@ -394,7 +426,7 @@ test('admin soft deletes event while preserving registrations', async () => {
   const cookie = await login(seed.admin.email, seed.password);
   await waitForAdminSessionReady(cookie);
 
-  const deleteResponse = await fetch(`${BASE_URL}/admin/events/${seed.deleteEvent.id}/delete`, {
+  const missingPasswordResponse = await fetch(`${BASE_URL}/admin/events/${seed.deleteEvent.id}/delete`, {
     method: 'POST',
     headers: {
       Cookie: cookie,
@@ -402,6 +434,32 @@ test('admin soft deletes event while preserving registrations', async () => {
       Accept: 'application/json'
     },
     body: JSON.stringify({ reason: 'Soft delete workflow test.' }),
+    redirect: 'manual'
+  });
+  assert.equal(missingPasswordResponse.status, 400);
+  assert.equal((await missingPasswordResponse.json()).success, false);
+
+  const wrongPasswordResponse = await fetch(`${BASE_URL}/admin/events/${seed.deleteEvent.id}/delete`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify({ reason: 'Soft delete workflow test.', adminPassword: 'WrongPass123' }),
+    redirect: 'manual'
+  });
+  assert.equal(wrongPasswordResponse.status, 403);
+  assert.equal((await wrongPasswordResponse.json()).success, false);
+
+  const deleteResponse = await fetch(`${BASE_URL}/admin/events/${seed.deleteEvent.id}/delete`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify({ reason: 'Soft delete workflow test.', adminPassword: `  ${seed.password}  ` }),
     redirect: 'manual'
   });
   assert.equal(deleteResponse.status, 200);
@@ -431,6 +489,110 @@ test('admin soft deletes event while preserving registrations', async () => {
   const deletedListHtml = await deletedListResponse.text();
   assert.match(deletedListHtml, new RegExp(escapeRegex(seed.deleteEvent.title)));
   assert.match(deletedListHtml, /Deleted/i);
+  assert.match(deletedListHtml, /disabled[^>]*data-event-checkbox/i);
+
+  const statusDeletedListResponse = await fetch(`${BASE_URL}/admin/events?status=deleted&q=${encodeURIComponent(seed.deleteEvent.title)}`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(statusDeletedListResponse.status, 200);
+  const statusDeletedListHtml = await statusDeletedListResponse.text();
+  assert.match(statusDeletedListHtml, new RegExp(escapeRegex(seed.deleteEvent.title)));
+  assert.match(statusDeletedListHtml, /Deleted/i);
+});
+
+test('admin bulk deletes eligible events with password confirmation', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForAdminSessionReady(cookie);
+
+  const postBulkDelete = (payload) => fetch(`${BASE_URL}/admin/events/bulk-delete`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    body: JSON.stringify(payload),
+    redirect: 'manual'
+  });
+
+  const missingPasswordResponse = await postBulkDelete({
+    eventIds: seed.bulkDeleteEvents.activeIds,
+    reason: 'Bulk delete workflow test.'
+  });
+  assert.equal(missingPasswordResponse.status, 400);
+  assert.equal((await missingPasswordResponse.json()).success, false);
+
+  const wrongPasswordResponse = await postBulkDelete({
+    eventIds: seed.bulkDeleteEvents.activeIds,
+    reason: 'Bulk delete workflow test.',
+    adminPassword: 'WrongPass123'
+  });
+  assert.equal(wrongPasswordResponse.status, 403);
+  assert.equal((await wrongPasswordResponse.json()).success, false);
+
+  const missingIdsResponse = await postBulkDelete({
+    reason: 'Bulk delete workflow test.',
+    adminPassword: seed.password
+  });
+  assert.equal(missingIdsResponse.status, 400);
+  assert.equal((await missingIdsResponse.json()).success, false);
+
+  const invalidIdsResponse = await postBulkDelete({
+    eventIds: ['not-an-object-id'],
+    reason: 'Bulk delete workflow test.',
+    adminPassword: seed.password
+  });
+  assert.equal(invalidIdsResponse.status, 400);
+  assert.equal((await invalidIdsResponse.json()).success, false);
+
+  const shortReasonResponse = await postBulkDelete({
+    eventIds: seed.bulkDeleteEvents.activeIds,
+    reason: 'short',
+    adminPassword: seed.password
+  });
+  assert.equal(shortReasonResponse.status, 400);
+  assert.equal((await shortReasonResponse.json()).success, false);
+
+  const deletedOnlyResponse = await postBulkDelete({
+    eventIds: [seed.bulkDeleteEvents.alreadyDeletedId],
+    reason: 'Bulk delete deleted-only test.',
+    adminPassword: seed.password
+  });
+  assert.equal(deletedOnlyResponse.status, 404);
+  assert.equal((await deletedOnlyResponse.json()).success, false);
+
+  const validResponse = await postBulkDelete({
+    eventIds: [...seed.bulkDeleteEvents.activeIds, seed.bulkDeleteEvents.alreadyDeletedId],
+    reason: 'Bulk delete workflow test.',
+    adminPassword: ` ${seed.password} `
+  });
+  assert.equal(validResponse.status, 200);
+  const validBody = await validResponse.json();
+  assert.equal(validBody.success, true);
+  assert.equal(validBody.deletedCount, 2);
+
+  await ensureConnected();
+  const deletedEvents = await Event.find({ _id: { $in: seed.bulkDeleteEvents.activeIds } }).lean();
+  assert.equal(deletedEvents.length, 2);
+  deletedEvents.forEach((event) => {
+    assert.equal(event.isDeleted, true);
+    assert.equal(event.deleteReason, 'Bulk delete workflow test.');
+  });
+
+  const alreadyDeleted = await Event.findById(seed.bulkDeleteEvents.alreadyDeletedId).lean();
+  assert.equal(alreadyDeleted.isDeleted, true);
+  assert.equal(alreadyDeleted.deleteReason, 'Pre-deleted before bulk test.');
+
+  for (const eventId of seed.bulkDeleteEvents.activeIds) {
+    const audit = await waitForAuditRecord({
+      action: 'event.deleted',
+      targetId: eventId
+    });
+    assert.equal(audit.status_from, 'published');
+    assert.equal(audit.status_to, 'deleted');
+    assert.equal(audit.notes, 'Bulk delete workflow test.');
+  }
 });
 
 test('admin cannot approve non-pending event', async () => {
@@ -580,6 +742,82 @@ async function seedAdminDashboardFixture() {
     waiverVersion: 1
   });
 
+  const bulkDeleteEventA = await Event.create({
+    organizerId: organizer._id,
+    slug: `admin-bulk-delete-a-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `BDA-${String(stamp).replace(/\D/g, '').slice(-5)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Admin Bulk Delete A ${stamp}`,
+    organiserName: 'Admin Delete Org',
+    description: 'Admin bulk delete event A has enough description text.',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    registrationOpenAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 5 * 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 8 * 24 * 60 * 60 * 1000),
+    virtualWindow: {
+      startAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+      endAt: new Date(now + 8 * 24 * 60 * 60 * 1000)
+    },
+    proofTypesAllowed: ['gps'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
+  const bulkDeleteEventB = await Event.create({
+    organizerId: organizer._id,
+    slug: `admin-bulk-delete-b-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `BDB-${String(stamp).replace(/\D/g, '').slice(-5)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Admin Bulk Delete B ${stamp}`,
+    organiserName: 'Admin Delete Org',
+    description: 'Admin bulk delete event B has enough description text.',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['10K'],
+    registrationOpenAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 5 * 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 8 * 24 * 60 * 60 * 1000),
+    virtualWindow: {
+      startAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+      endAt: new Date(now + 8 * 24 * 60 * 60 * 1000)
+    },
+    proofTypesAllowed: ['gps'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
+  const alreadyDeletedBulkEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `admin-bulk-deleted-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `BDD-${String(stamp).replace(/\D/g, '').slice(-5)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Admin Already Deleted Bulk ${stamp}`,
+    organiserName: 'Admin Delete Org',
+    description: 'Admin already deleted event for bulk delete checks.',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    registrationOpenAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 5 * 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 8 * 24 * 60 * 60 * 1000),
+    virtualWindow: {
+      startAt: new Date(now + 7 * 24 * 60 * 60 * 1000),
+      endAt: new Date(now + 8 * 24 * 60 * 60 * 1000)
+    },
+    proofTypesAllowed: ['gps'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1,
+    isDeleted: true,
+    deletedAt: new Date(now - 60 * 60 * 1000),
+    deletedBy: admin._id,
+    deleteReason: 'Pre-deleted before bulk test.'
+  });
+
   const registration = await Registration.create({
     eventId: event._id,
     userId: runner._id,
@@ -719,6 +957,10 @@ async function seedAdminDashboardFixture() {
       title: deleteEvent.title,
       registrationId: String(deleteEventRegistration._id)
     },
+    bulkDeleteEvents: {
+      activeIds: [String(bulkDeleteEventA._id), String(bulkDeleteEventB._id)],
+      alreadyDeletedId: String(alreadyDeletedBulkEvent._id)
+    },
     registrationId: String(registration._id),
     submissionId: String(submission._id),
     blogId: String(blog._id),
@@ -731,7 +973,14 @@ async function cleanupSeed(currentSeed) {
   if (!currentSeed || !currentSeed.stamp) return;
   await ensureConnected();
   const userIds = [currentSeed.admin.id, currentSeed.organizer.id, currentSeed.runner.id];
-  const eventIds = [currentSeed.eventId, currentSeed.pendingEvent?.id, currentSeed.draftEvent?.id, currentSeed.deleteEvent?.id].filter(Boolean);
+  const eventIds = [
+    currentSeed.eventId,
+    currentSeed.pendingEvent?.id,
+    currentSeed.draftEvent?.id,
+    currentSeed.deleteEvent?.id,
+    ...(currentSeed.bulkDeleteEvents?.activeIds || []),
+    currentSeed.bulkDeleteEvents?.alreadyDeletedId
+  ].filter(Boolean);
 
   await Promise.all([
     Submission.deleteMany({ _id: { $in: [currentSeed.submissionId] } }),

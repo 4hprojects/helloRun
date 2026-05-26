@@ -47,15 +47,23 @@
       </div>
 
       <form method="GET" action="/admin/events" class="admin-filters event-admin-filters">
+        <div class="filter-field filter-grow">
+          <label for="q">Search</label>
+          <input id="q" name="q" type="search" value="<%= filters.q %>" placeholder="Title, slug, organizer, city, reference">
+        </div>
+        <button type="button" class="event-filter-separator" id="eventSearchSubmitBtn" aria-label="Search events" title="Search events">
+          <i data-lucide="search" aria-hidden="true"></i>
+        </button>
         <div class="filter-field">
           <label for="status">Status</label>
           <select id="status" name="status">
-            <option value="" <%= !filters.status ? 'selected' : '' %>>All</option>
+            <option value="" <%= !filters.status && !filters.deleted && !filters.needsReview ? 'selected' : '' %>>All</option>
             <option value="draft" <%= filters.status === 'draft' ? 'selected' : '' %>>Draft</option>
-            <option value="pending_review" <%= filters.status === 'pending_review' ? 'selected' : '' %>>Pending Review</option>
+            <option value="pending_review" <%= filters.status === 'pending_review' || filters.needsReview ? 'selected' : '' %>>Needs Review</option>
             <option value="published" <%= filters.status === 'published' ? 'selected' : '' %>>Published</option>
             <option value="closed" <%= filters.status === 'closed' ? 'selected' : '' %>>Closed</option>
             <option value="archived" <%= filters.status === 'archived' ? 'selected' : '' %>>Archived</option>
+            <option value="deleted" <%= filters.deleted ? 'selected' : '' %>>Deleted</option>
           </select>
         </div>
         <div class="filter-field">
@@ -67,27 +75,14 @@
             <option value="hybrid" <%= filters.eventType === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
           </select>
         </div>
-        <div class="filter-field filter-grow">
-          <label for="q">Search</label>
-          <input id="q" name="q" type="search" value="<%= filters.q %>" placeholder="Title, slug, organizer, city, reference">
-        </div>
-        <label class="editor-mode-option">
-          <input type="checkbox" name="needsReview" value="1" <%= filters.needsReview ? 'checked' : '' %>>
-          Needs review
-        </label>
-        <label class="editor-mode-option">
-          <input type="checkbox" name="deleted" value="1" <%= filters.deleted ? 'checked' : '' %>>
-          Deleted
-        </label>
-        <div class="filter-actions">
-          <button type="submit" class="btn admin-event-action-btn">
-            <i data-lucide="filter"></i>
-            <span>Filter</span>
-          </button>
-          <a href="/admin/events" class="btn btn-secondary admin-event-action-btn">
-            <i data-lucide="rotate-ccw"></i>
-            <span>Reset</span>
-          </a>
+        <div class="filter-field">
+          <label for="perPage">Show</label>
+          <select id="perPage" name="perPage">
+            <option value="25" <%= String(filters.perPage || 25) === '25' ? 'selected' : '' %>>25</option>
+            <option value="50" <%= String(filters.perPage || 25) === '50' ? 'selected' : '' %>>50</option>
+            <option value="100" <%= String(filters.perPage || 25) === '100' ? 'selected' : '' %>>100</option>
+            <option value="all" <%= String(filters.perPage || 25).toLowerCase() === 'all' ? 'selected' : '' %>>All</option>
+          </select>
         </div>
       </form>
 
@@ -96,55 +91,80 @@
       </p>
 
       <% if (events.length) { %>
-        <table class="admin-table">
-          <thead>
-            <tr>
-              <th>Event</th>
-              <th>Organizer</th>
-              <th>Status</th>
-              <th>Dates</th>
-              <th>Activity</th>
-              <th>Updated</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% events.forEach((event) => { %>
+        <div class="admin-users-toolbar">
+          <div class="admin-users-bulk-actions">
+            <button type="button" class="btn btn-danger" id="adminEventsBulkDeleteBtn" disabled>
+              Delete Selected
+            </button>
+            <span class="metric-helper" id="adminEventsSelectedCount">0 selected</span>
+          </div>
+        </div>
+
+        <div class="admin-users-table-wrap">
+          <table class="admin-table">
+            <thead>
               <tr>
-                <td>
-                  <strong><%= event.title %></strong>
-                  <div><small><%= event.referenceCode || event.slug %></small></div>
-                </td>
-                <td>
-                  <strong><%= event.organizerName %></strong>
-                  <div><small><%= event.organizerEmail %></small></div>
-                </td>
-                <td><span class="status-badge status-badge-<%= event.isDeleted ? 'archived' : event.status %>"><%= event.isDeleted ? 'Deleted' : event.statusLabel %></span></td>
-                <td>
-                  <div><small>Start: <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US') : 'TBA' %></small></div>
-                  <div><small>End: <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleDateString('en-US') : 'TBA' %></small></div>
-                </td>
-                <td>
-                  <div><small><%= event.registrationsCount %> registrations</small></div>
-                  <div><small><%= event.submissionsCount %> submissions</small></div>
-                </td>
-                <td><%= event.updatedAt ? new Date(event.updatedAt).toLocaleDateString('en-US') : 'N/A' %></td>
-                <td class="policy-row-actions">
-                  <a href="/admin/events/<%= event._id %>" class="btn btn-sm admin-event-action-btn">
-                    <i data-lucide="external-link"></i>
-                    <span>Open</span>
-                  </a>
-                  <% if (!event.isDeleted) { %>
-                    <a href="/admin/events/<%= event._id %>/edit" class="btn btn-sm btn-secondary admin-event-action-btn">
-                      <i data-lucide="pencil"></i>
-                      <span>Edit</span>
-                    </a>
-                  <% } %>
-                </td>
+                <th style="width:2.5rem;">
+                  <input type="checkbox" id="adminEventsSelectAll" aria-label="Select all events">
+                </th>
+                <th>Event</th>
+                <th>Organizer</th>
+                <th>Status</th>
+                <th>Dates</th>
+                <th>Activity</th>
+                <th>Updated</th>
+                <th>Actions</th>
               </tr>
-            <% }) %>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              <% events.forEach((event) => { %>
+                <tr>
+                  <td>
+                    <input
+                      type="checkbox"
+                      name="eventIds"
+                      value="<%= event._id %>"
+                      class="admin-event-row-checkbox"
+                      aria-label="Select <%= event.title %>"
+                      <%= event.isDeleted ? 'disabled' : '' %>
+                      data-event-checkbox
+                    >
+                  </td>
+                  <td>
+                    <strong><%= event.title %></strong>
+                    <div><small><%= event.referenceCode || event.slug %></small></div>
+                  </td>
+                  <td>
+                    <strong><%= event.organizerName %></strong>
+                    <div><small><%= event.organizerEmail %></small></div>
+                  </td>
+                  <td><span class="status-badge status-badge-<%= event.isDeleted ? 'archived' : event.status %>"><%= event.isDeleted ? 'Deleted' : event.statusLabel %></span></td>
+                  <td>
+                    <div><small>Start: <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US') : 'TBA' %></small></div>
+                    <div><small>End: <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleDateString('en-US') : 'TBA' %></small></div>
+                  </td>
+                  <td>
+                    <div><small><%= event.registrationsCount %> registrations</small></div>
+                    <div><small><%= event.submissionsCount %> submissions</small></div>
+                  </td>
+                  <td><%= event.updatedAt ? new Date(event.updatedAt).toLocaleDateString('en-US') : 'N/A' %></td>
+                  <td class="policy-row-actions">
+                    <a href="/admin/events/<%= event._id %>" class="btn btn-sm admin-event-action-btn">
+                      <i data-lucide="external-link"></i>
+                      <span>Open</span>
+                    </a>
+                    <% if (!event.isDeleted) { %>
+                      <a href="/admin/events/<%= event._id %>/edit" class="btn btn-sm btn-secondary admin-event-action-btn">
+                        <i data-lucide="pencil"></i>
+                        <span>Edit</span>
+                      </a>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
       <% } else { %>
         <div class="empty-state">
           <h3>No events found</h3>
@@ -157,8 +177,76 @@
       <% } %>
     </section>
   </main>
+
+  <div class="admin-delete-confirm-backdrop" id="adminEventsBulkDeleteModal" hidden aria-hidden="true">
+    <div class="admin-delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="adminEventsBulkDeleteTitle" tabindex="-1">
+      <div class="admin-delete-confirm-icon-wrap">
+        <i data-lucide="triangle-alert" aria-hidden="true"></i>
+      </div>
+      <h3 id="adminEventsBulkDeleteTitle">Confirm Bulk Delete</h3>
+      <p id="adminEventsBulkDeleteDesc" class="admin-delete-confirm-desc"></p>
+      <div class="admin-delete-confirm-pw-group">
+        <label for="adminEventsBulkDeleteReason">Reason for deletion <span aria-hidden="true">(min 8 characters)</span></label>
+        <textarea
+          id="adminEventsBulkDeleteReason"
+          rows="3"
+          placeholder="Enter a reason..."
+          class="admin-delete-confirm-pw-input"
+          style="resize:vertical;"
+        ></textarea>
+        <p class="admin-delete-confirm-pw-error" id="adminEventsBulkDeleteReasonError" hidden></p>
+      </div>
+      <div class="admin-delete-confirm-pw-group">
+        <label for="adminEventsBulkDeletePassword">Enter your password to confirm</label>
+        <div class="admin-delete-confirm-pw-wrap">
+          <input
+            type="password"
+            id="adminEventsBulkDeletePassword"
+            autocomplete="current-password"
+            placeholder="Your password"
+            class="admin-delete-confirm-pw-input"
+          >
+          <button type="button" class="admin-delete-confirm-pw-toggle" id="adminEventsBulkDeletePwToggle" aria-label="Show password">
+            <i data-lucide="eye" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p class="admin-delete-confirm-pw-error" id="adminEventsBulkDeletePwError" hidden></p>
+      </div>
+      <div class="admin-delete-confirm-progress" id="adminEventsBulkDeleteProgress" hidden aria-live="polite">
+        <div class="admin-delete-confirm-progress-label-row">
+          <span class="admin-delete-confirm-progress-label">Processing deletion</span>
+          <span class="admin-delete-confirm-progress-status" id="adminEventsBulkDeleteProgressStatus">Working...</span>
+        </div>
+        <p class="admin-delete-confirm-progress-reason" id="adminEventsBulkDeleteProgressReason">
+          Preparing your request.
+        </p>
+        <div class="admin-delete-confirm-progress-track" aria-hidden="true">
+          <div class="admin-delete-confirm-progress-bar"></div>
+        </div>
+        <ol class="admin-delete-confirm-progress-steps" id="adminEventsBulkDeleteProgressSteps">
+          <li data-progress-step="prepare">Preparing request</li>
+          <li data-progress-step="verify">Verifying password and security token</li>
+          <li data-progress-step="delete">Soft-deleting events and writing audit logs</li>
+        </ol>
+      </div>
+      <div class="admin-delete-confirm-actions">
+        <button type="button" class="btn btn-secondary" id="adminEventsBulkDeleteCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-danger" id="adminEventsBulkDeleteOkBtn">
+          <i data-lucide="trash-2" aria-hidden="true"></i>
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
   <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    window.helloRunAdminEventsList = {
+      csrfToken: <%- JSON.stringify(locals.csrfToken || '') %>
+    };
+  </script>
+  <script src="/js/admin-events-list.js"></script>
 </body>
 </html>

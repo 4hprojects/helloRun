@@ -79,6 +79,7 @@ test('future public posting date hides published event from public list and deta
 
 test('future public posting date hides registration page', async () => {
   const cookie = await login(seed.runnerEmail, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
   const response = await fetch(`${BASE_URL}/events/${seed.futurePostedSlug}/register`, {
     headers: { Cookie: cookie },
     redirect: 'manual'
@@ -484,6 +485,18 @@ async function login(email, password) {
   const setCookie = response.headers.get('set-cookie');
   assert.ok(setCookie);
   return setCookie.split(';')[0];
+}
+
+async function waitForSessionReady(pathname, cookie) {
+  const maxAttempts = 10;
+  for (let i = 0; i < maxAttempts; i += 1) {
+    const response = await fetch(`${BASE_URL}${pathname}`, {
+      headers: { Cookie: cookie },
+      redirect: 'manual'
+    });
+    if (response.status !== 302 || response.headers.get('location') !== '/login') return;
+    await new Promise((resolve) => setTimeout(resolve, 80));
+  }
 }
 
 async function cleanupPublicFilterArtifacts() {

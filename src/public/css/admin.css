@@ -63,7 +63,64 @@
 }
 
 .event-admin-filters {
-  grid-template-columns: minmax(150px, 180px) minmax(140px, 170px) minmax(240px, 1fr) auto auto auto;
+  grid-template-columns: minmax(260px, 1fr) auto repeat(3, minmax(120px, 170px));
+}
+
+.event-admin-filters .filter-field label {
+  margin-bottom: 0.25rem;
+  font-size: 0.78rem;
+}
+
+.event-admin-filters .filter-field input,
+.event-admin-filters .filter-field select {
+  min-height: 40px;
+  padding: 0.5rem 0.7rem;
+  border-radius: 10px;
+}
+
+.event-admin-filters .filter-field {
+  min-width: 120px;
+  min-width: 0;
+}
+
+.event-admin-filters .event-filter-separator {
+  align-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  width: 2.2rem;
+  margin-bottom: 0.1rem;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.event-admin-filters .event-filter-separator:hover,
+.event-admin-filters .event-filter-separator:focus-visible {
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: #c2410c;
+  outline: none;
+}
+
+.event-admin-filters .event-filter-separator i,
+.event-admin-filters .event-filter-separator svg {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.event-admin-filters .filter-grow {
+  min-width: 0;
+}
+
+@media (max-width: 1200px) {
+  .event-admin-filters {
+    grid-template-columns: minmax(220px, 1fr) auto repeat(3, minmax(110px, 1fr));
+  }
 }
 
 .filter-field label {
@@ -565,6 +622,118 @@
   display: none;
 }
 
+.admin-delete-confirm-progress {
+  margin: -0.15rem 0 1rem;
+  text-align: left;
+}
+
+.admin-delete-confirm-progress[hidden] {
+  display: none;
+}
+
+.admin-delete-confirm-progress-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.admin-delete-confirm-progress-label {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.admin-delete-confirm-progress-status {
+  white-space: nowrap;
+}
+
+.admin-delete-confirm-progress-reason {
+  margin: 0 0 0.6rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.admin-delete-confirm-progress-track {
+  position: relative;
+  overflow: hidden;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #e2e8f0;
+}
+
+.admin-delete-confirm-progress-bar {
+  position: absolute;
+  inset: 0 auto 0 -40%;
+  width: 40%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f97316 0%, #fb923c 45%, #fdba74 100%);
+  animation: admin-delete-progress-slide 1.15s ease-in-out infinite;
+}
+
+.admin-delete-confirm-progress-steps {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.admin-delete-confirm-progress-steps li {
+  position: relative;
+  padding-left: 1.35rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.admin-delete-confirm-progress-steps li::before {
+  content: '';
+  position: absolute;
+  top: 0.35rem;
+  left: 0;
+  width: 0.58rem;
+  height: 0.58rem;
+  border-radius: 999px;
+  background: #cbd5e1;
+  box-shadow: 0 0 0 3px rgba(203, 213, 225, 0.35);
+}
+
+.admin-delete-confirm-progress-steps li.is-active {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.admin-delete-confirm-progress-steps li.is-active::before {
+  background: #f97316;
+  box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.18);
+}
+
+.admin-delete-confirm-progress-steps li.is-complete {
+  color: #334155;
+}
+
+.admin-delete-confirm-progress-steps li.is-complete::before {
+  background: #16a34a;
+  box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.14);
+}
+
+.admin-delete-confirm-dialog.is-pending {
+  cursor: progress;
+}
+
+.admin-delete-confirm-dialog.is-pending .admin-delete-confirm-icon-wrap {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.admin-delete-confirm-dialog.is-pending .admin-delete-confirm-pw-group {
+  opacity: 0.7;
+}
+
 .admin-delete-confirm-actions {
   display: flex;
   gap: 0.75rem;
@@ -573,6 +742,16 @@
 
 .admin-delete-confirm-actions .btn {
   flex: 1;
+}
+
+@keyframes admin-delete-progress-slide {
+  0% {
+    left: -40%;
+  }
+
+  100% {
+    left: 100%;
+  }
 }
 
 /* User details modal */
@@ -2021,6 +2200,21 @@
 @media (max-width: 900px) {
   .admin-filters {
     grid-template-columns: 1fr;
+  }
+
+  .event-admin-filters {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .event-admin-filters .filter-grow {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .event-admin-filters .event-filter-separator {
+    justify-self: end;
+    width: 2.1rem;
   }
 
   .filter-actions {

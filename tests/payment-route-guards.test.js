@@ -142,7 +142,8 @@ test('payment-proof review page enforces auth and event ownership', async () => 
 test('payment-proof review page renders pending proof workflow', async () => {
   const seed = await seedRouteGuardData('review-page-render', {
     paymentStatusA: 'proof_submitted',
-    paymentProofUrlA: 'https://example.com/proofs/render.png'
+    paymentProofUrlA: 'https://example.com/proofs/render.png',
+    paymentAmountDueA: 615
   });
   const organizerSession = await login(seed.ownerOrganizer.email, seed.password);
   await assertOrganizerSessionReady(organizerSession);
@@ -160,7 +161,7 @@ test('payment-proof review page renders pending proof workflow', async () => {
   assert.match(html, /Runner Alpha/i);
   assert.match(html, new RegExp(escapeRegex(seed.runnerA.email)));
   assert.match(html, new RegExp(escapeRegex(seed.registrationA.confirmationCode)));
-  assert.match(html, /PHP 380\.00/i);
+  assert.match(html, /PHP 615\.00/i);
   assert.match(html, /Owner Organizer Payments/i);
   assert.match(html, /Use confirmation code as transfer reference/i);
   assert.match(html, /https:\/\/example\.com\/proofs\/render\.png/i);
@@ -376,7 +377,8 @@ async function seedRouteGuardData(tag, options = {}) {
       eventId: event._id,
       user: runnerA,
       paymentStatus: options.paymentStatusA || 'unpaid',
-      paymentProofUrl: options.paymentProofUrlA || ''
+      paymentProofUrl: options.paymentProofUrlA || '',
+      paymentAmountDue: options.paymentAmountDueA
     })
   );
 
@@ -385,7 +387,8 @@ async function seedRouteGuardData(tag, options = {}) {
       eventId: event._id,
       user: runnerB,
       paymentStatus: options.paymentStatusB || 'unpaid',
-      paymentProofUrl: options.paymentProofUrlB || ''
+      paymentProofUrl: options.paymentProofUrlB || '',
+      paymentAmountDue: options.paymentAmountDueB
     })
   );
 
@@ -407,8 +410,11 @@ function escapeRegex(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function buildRegistrationPayload({ eventId, user, paymentStatus, paymentProofUrl = '' }) {
+function buildRegistrationPayload({ eventId, user, paymentStatus, paymentProofUrl = '', paymentAmountDue = 380 }) {
   const hasProof = String(paymentProofUrl || '').trim().length > 0;
+  const amountDue = Number.isFinite(Number(paymentAmountDue)) && Number(paymentAmountDue) >= 0
+    ? Number(paymentAmountDue)
+    : 380;
   return {
     eventId,
     userId: user._id,
@@ -425,6 +431,15 @@ function buildRegistrationPayload({ eventId, user, paymentStatus, paymentProofUr
     },
     participationMode: 'virtual',
     raceDistance: '5K',
+    pricingSnapshot: {
+      pricingMode: 'distance_based',
+      source: 'distance_based',
+      raceDistance: '5K',
+      amount: amountDue,
+      currency: 'PHP'
+    },
+    paymentAmountDue: amountDue,
+    paymentCurrency: 'PHP',
     status: 'confirmed',
     paymentStatus,
     ...(hasProof
