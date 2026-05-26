@@ -2119,6 +2119,62 @@
         input.dispatchEvent(new Event('change', { bubbles: true }));
       }
 
+      function toMinuteFloor(date) {
+        const minuteMs = 60 * 1000;
+        return new Date(Math.floor(date.getTime() / minuteMs) * minuteMs);
+      }
+
+      function buildSuggestedPricingWindows(registrationOpen, registrationClose) {
+        const minuteMs = 60 * 1000;
+        const dayMs = 24 * 60 * 60 * 1000;
+        const totalMs = registrationClose.getTime() - registrationOpen.getTime();
+        if (totalMs < 3 * dayMs) return null;
+
+        let earlyMs = Math.round(totalMs * 0.4);
+        let lateMs = Math.round(totalMs * 0.2);
+        let regularMs = totalMs - earlyMs - lateMs;
+        const minBucketMs = dayMs;
+
+        earlyMs = Math.max(minBucketMs, earlyMs);
+        lateMs = Math.max(minBucketMs, lateMs);
+        regularMs = totalMs - earlyMs - lateMs;
+
+        if (regularMs < minBucketMs) {
+          const deficit = minBucketMs - regularMs;
+          const earlySpare = Math.max(0, earlyMs - minBucketMs);
+          const lateSpare = Math.max(0, lateMs - minBucketMs);
+          const takeEarly = Math.min(deficit, earlySpare);
+          const takeLate = Math.min(deficit - takeEarly, lateSpare);
+          earlyMs -= takeEarly;
+          lateMs -= takeLate;
+          regularMs = totalMs - earlyMs - lateMs;
+        }
+
+        let regularStart = toMinuteFloor(new Date(registrationOpen.getTime() + earlyMs));
+        let lateStart = toMinuteFloor(new Date(registrationClose.getTime() - lateMs));
+
+        if (lateStart.getTime() <= regularStart.getTime()) {
+          regularStart = toMinuteFloor(new Date(registrationOpen.getTime() + totalMs / 3));
+          lateStart = toMinuteFloor(new Date(registrationOpen.getTime() + (2 * totalMs) / 3));
+        }
+
+        const earlyEnd = toMinuteFloor(new Date(regularStart.getTime() - minuteMs));
+        const regularEnd = toMinuteFloor(new Date(lateStart.getTime() - minuteMs));
+
+        if (earlyEnd.getTime() <= registrationOpen.getTime() || regularEnd.getTime() <= regularStart.getTime() || registrationClose.getTime() <= lateStart.getTime()) {
+          return null;
+        }
+
+        return {
+          earlyStart: toMinuteFloor(registrationOpen),
+          earlyEnd,
+          regularStart,
+          regularEnd,
+          lateStart,
+          lateEnd: toMinuteFloor(registrationClose)
+        };
+      }
+
       function applySuggestedPricingDates(packageIndex) {
         const registrationOpen = parseDateTimeLocalValue(document.getElementById('registrationOpenAt')?.value);
         const registrationClose = parseDateTimeLocalValue(document.getElementById('registrationCloseAt')?.value);
@@ -2127,21 +2183,19 @@
           return;
         }
 
-        const dayMs = 24 * 60 * 60 * 1000;
-        if (registrationClose.getTime() - registrationOpen.getTime() <= 21 * dayMs) {
-          showInlineActionToast('Suggested dates need more than 21 days between registration open and close.', 'warning');
+        const suggested = buildSuggestedPricingWindows(registrationOpen, registrationClose);
+        if (!suggested) {
+          showInlineActionToast('Suggested dates need at least a 3-day registration window to split Early Bird, Regular, and Late periods.', 'warning');
           return;
         }
 
-        const earlyEnd = new Date(registrationOpen.getTime() + 14 * dayMs);
-        const lateStart = new Date(registrationClose.getTime() - 7 * dayMs);
-        setIndexedDateInput('registrationPackageEarlyBirdStartAt', packageIndex, registrationOpen);
-        setIndexedDateInput('registrationPackageEarlyBirdEndAt', packageIndex, earlyEnd);
-        setIndexedDateInput('registrationPackageRegularStartAt', packageIndex, earlyEnd);
-        setIndexedDateInput('registrationPackageRegularEndAt', packageIndex, lateStart);
-        setIndexedDateInput('registrationPackageLateStartAt', packageIndex, lateStart);
-        setIndexedDateInput('registrationPackageLateEndAt', packageIndex, registrationClose);
-        showInlineActionToast('Suggested pricing dates applied.', 'success');
+        setIndexedDateInput('registrationPackageEarlyBirdStartAt', packageIndex, suggested.earlyStart);
+        setIndexedDateInput('registrationPackageEarlyBirdEndAt', packageIndex, suggested.earlyEnd);
+        setIndexedDateInput('registrationPackageRegularStartAt', packageIndex, suggested.regularStart);
+        setIndexedDateInput('registrationPackageRegularEndAt', packageIndex, suggested.regularEnd);
+        setIndexedDateInput('registrationPackageLateStartAt', packageIndex, suggested.lateStart);
+        setIndexedDateInput('registrationPackageLateEndAt', packageIndex, suggested.lateEnd);
+        showInlineActionToast('Suggested pricing dates applied (Early Bird first, Regular middle, Late final window).', 'success');
       }
 
       const registrationPackageGrid = document.getElementById('registrationPackageGrid');
