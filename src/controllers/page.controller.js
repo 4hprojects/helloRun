@@ -53,6 +53,7 @@ const { listProductsByMongoEventId } = require('../services/shop/product.service
 const { recalculateOrderTotals } = require('../services/shop/order.service');
 const { buildPublicEventListPage } = require('../services/public-event-list.service');
 const { getPostgresClient } = require('../db/postgres');
+const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
 
 const countries = getCountries();
 exports.getHome = async (req, res) => {
@@ -64,9 +65,7 @@ exports.getHome = async (req, res) => {
 
     const [activeEventsCount, approvedFinishersCount, approvedOrganizersCount, recentPostsRaw] = await Promise.all([
       Event.countDocuments({
-        isPersonalRecord: { $ne: true },
-        isDeleted: { $ne: true },
-        status: 'published',
+        ...getPublicEventVisibilityQuery(now),
         $or: [
           { eventEndAt: { $gte: now } },
           { eventEndAt: null },
@@ -1590,7 +1589,7 @@ exports.getSitemapXml = async (req, res) => {
     ];
 
     const [events, blogPosts] = await Promise.all([
-      Event.find({ status: 'published', isDeleted: { $ne: true } })
+      Event.find(getPublicEventVisibilityQuery(new Date()))
         .select('slug updatedAt createdAt')
         .sort({ updatedAt: -1 })
         .lean(),
@@ -2905,7 +2904,7 @@ async function generateConfirmationCode() {
 async function getPublishedEventBySlug(slugInput) {
   const slug = typeof slugInput === 'string' ? slugInput.trim() : '';
   if (!slug) return null;
-  return Event.findOne({ slug, status: 'published', isDeleted: { $ne: true }, isPersonalRecord: { $ne: true } });
+  return Event.findOne({ slug, ...getPublicEventVisibilityQuery(new Date()) });
 }
 
 function renderEventNotFound(res) {

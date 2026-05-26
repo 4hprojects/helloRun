@@ -63,6 +63,37 @@ test('events page applies combined filters and status filter', async () => {
   assert.match(closedHtml, /Past Event/i);
 });
 
+test('future public posting date hides published event from public list and detail pages', async () => {
+  const listResponse = await fetch(`${BASE_URL}/events?q=Scheduled%20Posting`);
+  assert.equal(listResponse.status, 200);
+  const listHtml = await listResponse.text();
+  assert.doesNotMatch(listHtml, /Scheduled Posting Hidden Run/i);
+  assert.match(listHtml, /Scheduled Posting Visible Run/i);
+
+  const hiddenDetail = await fetch(`${BASE_URL}/events/${seed.futurePostedSlug}`, { redirect: 'manual' });
+  assert.equal(hiddenDetail.status, 404);
+
+  const visibleDetail = await fetch(`${BASE_URL}/events/${seed.pastPostedSlug}`, { redirect: 'manual' });
+  assert.equal(visibleDetail.status, 200);
+});
+
+test('future public posting date hides registration page', async () => {
+  const cookie = await login(seed.runnerEmail, seed.password);
+  const response = await fetch(`${BASE_URL}/events/${seed.futurePostedSlug}/register`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 404);
+});
+
+test('future public posting date excludes event from sitemap', async () => {
+  const response = await fetch(`${BASE_URL}/sitemap.xml`);
+  assert.equal(response.status, 200);
+  const xml = await response.text();
+  assert.doesNotMatch(xml, new RegExp(`/events/${seed.futurePostedSlug}`));
+  assert.match(xml, new RegExp(`/events/${seed.pastPostedSlug}`));
+});
+
 test('events page search matches organiser name and rendered country name', async () => {
   const organiserSearch = await fetch(`${BASE_URL}/events?q=Public%20Organizer`);
   assert.equal(organiserSearch.status, 200);
@@ -179,6 +210,16 @@ async function seedPublicFilterFixture() {
     role: 'runner',
     firstName: 'Blog',
     lastName: 'Author',
+    emailVerified: true
+  });
+
+  const runner = await User.create({
+    userId: `UPSR${stamp}`.slice(0, 22),
+    email: `public.filters.runner.${stamp}@example.com`,
+    passwordHash,
+    role: 'runner',
+    firstName: 'Public',
+    lastName: 'Runner',
     emailVerified: true
   });
 
@@ -325,6 +366,52 @@ async function seedPublicFilterFixture() {
     waiverVersion: 1
   });
 
+  const futurePostedEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `scheduled-posting-hidden-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `PF-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: 'Scheduled Posting Hidden Run',
+    organiserName: 'Public Organizer',
+    description: 'Scheduled Posting event hidden until its public posting date.',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    registrationOpenAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 10 * 24 * 60 * 60 * 1000),
+    publicListingAvailableAt: new Date(now + 2 * 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 11 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 12 * 24 * 60 * 60 * 1000),
+    city: 'Manila',
+    country: 'PH',
+    proofTypesAllowed: ['gps', 'photo'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
+  const pastPostedEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `scheduled-posting-visible-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `PY-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: 'Scheduled Posting Visible Run',
+    organiserName: 'Public Organizer',
+    description: 'Scheduled Posting event already available publicly.',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    registrationOpenAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 10 * 24 * 60 * 60 * 1000),
+    publicListingAvailableAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 11 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 12 * 24 * 60 * 60 * 1000),
+    city: 'Manila',
+    country: 'PH',
+    proofTypesAllowed: ['gps', 'photo'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
   const nutritionBlog = await Blog.create({
     authorId: author._id,
     title: 'Nutrition for New Runners',
@@ -364,10 +451,14 @@ async function seedPublicFilterFixture() {
   });
 
   return {
-    userIds: [String(organizer._id), String(author._id)],
+    userIds: [String(organizer._id), String(author._id), String(runner._id)],
+    password,
+    runnerEmail: runner.email,
+    futurePostedSlug: futurePostedEvent.slug,
+    pastPostedSlug: pastPostedEvent.slug,
     eventIds: [String(upcomingVirtual._id)]
       .concat(extraUpcomingVirtualEvents.map((item) => String(item._id)))
-      .concat([String(upcomingOnsite._id), String(descriptionOnlyEvent._id), String(oldEvent._id), String(recentClosedEvent._id)]),
+      .concat([String(upcomingOnsite._id), String(descriptionOnlyEvent._id), String(oldEvent._id), String(recentClosedEvent._id), String(futurePostedEvent._id), String(pastPostedEvent._id)]),
     blogIds: [String(nutritionBlog._id), String(trainingBlog._id), String(draftBlog._id)]
   };
 }
@@ -382,11 +473,24 @@ async function cleanupSeed(currentSeed) {
   ]);
 }
 
+async function login(email, password) {
+  const response = await fetch(`${BASE_URL}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ email, password }),
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 302);
+  const setCookie = response.headers.get('set-cookie');
+  assert.ok(setCookie);
+  return setCookie.split(';')[0];
+}
+
 async function cleanupPublicFilterArtifacts() {
   await Promise.all([
     Event.deleteMany({
       slug: {
-        $regex: /^(virtual-sunrise|onsite-trail|old-city-run|recent-closed-run|description-only-public-organizer)-/
+        $regex: /^(virtual-sunrise|onsite-trail|old-city-run|recent-closed-run|description-only-public-organizer|scheduled-posting-hidden|scheduled-posting-visible)-/
       }
     }),
     Blog.deleteMany({

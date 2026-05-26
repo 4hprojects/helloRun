@@ -495,6 +495,22 @@ test('create-event page opens with guided blank defaults and new event setup fie
   assert.match(html, /Digital Finisher Certificate/i);
   assert.match(html, /name="physicalRewardMedalEnabled"/i);
   assert.match(html, /name="physicalRewardPatchEnabled"/i);
+  assert.match(html, /name="publicListingAvailableAt"/i);
+  assert.match(html, /Public Posting Available At/i);
+  assert.match(html, /data-race-preset-checkbox/i);
+  assert.match(html, /value="42K"/i);
+  assert.match(html, /data-race-preset="custom"/i);
+  assert.match(html, /data-race-category-summary/i);
+  assert.match(html, /Display name/i);
+  assert.match(html, /name="raceCategoryDistanceKm"[^>]*value="5"/i);
+  assert.match(html, /Limit slots/i);
+  assert.match(html, /Add cut-off/i);
+  assert.match(html, /smart-tooltip/i);
+  assert.match(html, /fills Distance km automatically/i);
+  assert.match(html, /registration dropdown/i);
+  assert.doesNotMatch(html, /name="raceCategoryType"/i);
+  assert.doesNotMatch(html, />\s*Distance label\s*</i);
+  assert.doesNotMatch(html, />\s*Age group\s*</i);
 });
 
 test('organizer edit-event page uses wizard UI and preserves draft submit action with media controls', async () => {
@@ -523,6 +539,18 @@ test('organizer edit-event page uses wizard UI and preserves draft submit action
   assert.match(html, /Edit reward details with courier instructions/i);
   assert.match(html, /Editable (?:&quot;|&#34;|\\")quoted(?:&quot;|&#34;|\\") event details/i);
   assert.match(html, /Existing edit waiver template/i);
+  assert.match(html, /name="publicListingAvailableAt"/i);
+  assert.match(html, /data-race-preset-checkbox/i);
+  assert.match(html, /value="42K"/i);
+  assert.match(html, /data-race-category-summary/i);
+  assert.match(html, /Limit slots/i);
+  assert.match(html, /Add cut-off/i);
+  assert.match(html, /smart-tooltip/i);
+  assert.match(html, /fills Distance km automatically/i);
+  assert.match(html, /registration dropdown/i);
+  assert.doesNotMatch(html, /name="raceCategoryType"/i);
+  assert.doesNotMatch(html, />\s*Distance label\s*</i);
+  assert.doesNotMatch(html, />\s*Age group\s*</i);
   assert.match(html, /id="submitReviewBtn"[\s\S]*Submit for Review|value="publish"[\s\S]*id="submitReviewBtn"/i);
   assert.match(html, /id="removeLogoBtn"/i);
   assert.match(html, /media\/remove/i);
@@ -824,6 +852,73 @@ test('create-event submit for review accepts valid single-activity virtual event
   assert.equal(event.status, 'pending_review');
   assert.ok(event.submittedForReviewAt);
   assert.equal(event.virtualCompletionMode, 'single_activity');
+});
+
+test('create-event saves public posting availability date', async () => {
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+  const title = `Scheduled Public Posting ${seed.stamp}`;
+  const publicListingAvailableAt = toLocalDateTimeString(new Date(Date.now() + 2 * 60 * 60 * 1000));
+  const payload = buildValidCreateEventPayload({
+    title,
+    actionType: 'publish',
+    publicListingAvailableAt
+  });
+  await appendCreateEventCsrf(payload, cookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/create-event`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: payload.toString(),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  await ensureConnected();
+  const event = await Event.findOne({ title }).lean();
+  assert.ok(event, 'event should be saved');
+  assert.equal(event.publicListingAvailableAt.toISOString(), new Date(publicListingAvailableAt).toISOString());
+});
+
+test('edit-event saves and re-renders public posting availability date', async () => {
+  const cookie = seed.organizerCookie || (seed.organizerCookie = await login(seed.organizer.email, seed.password));
+  const ready = await waitForSessionReady('/organizer/dashboard', cookie);
+  assert.equal(ready, true);
+  const event = await seedEditableEvent(seed, { status: 'draft', title: `Editable Scheduled ${seed.stamp}` });
+  const publicListingAvailableAt = toLocalDateTimeString(new Date(Date.now() + 2 * 60 * 60 * 1000));
+  const payload = buildValidCreateEventPayload({
+    title: `Editable Scheduled Updated ${seed.stamp}`,
+    actionType: 'draft',
+    publicListingAvailableAt
+  });
+  await appendEditEventCsrf(payload, cookie, event._id);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${event._id}/edit`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: payload.toString(),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  await ensureConnected();
+  const updated = await Event.findById(event._id).lean();
+  assert.equal(updated.publicListingAvailableAt.toISOString(), new Date(publicListingAvailableAt).toISOString());
+
+  const editResponse = await fetch(`${BASE_URL}/organizer/events/${event._id}/edit`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(editResponse.status, 200);
+  const html = await editResponse.text();
+  assert.match(html, new RegExp(`name="publicListingAvailableAt"[^>]*value="${publicListingAvailableAt}"`));
 });
 
 test('create-event accumulated-distance draft saves setup fields', async () => {
@@ -1165,6 +1260,7 @@ function buildValidCreateEventPayload(overrides = {}) {
     eventType: 'virtual',
     registrationOpenAt: registrationOpen,
     registrationCloseAt: registrationClose,
+    publicListingAvailableAt: overrides.publicListingAvailableAt || '',
     eventStartAt: eventStart,
     eventEndAt: eventEnd,
     virtualStartAt: virtualStart,
@@ -1188,6 +1284,18 @@ async function appendCreateEventCsrf(payload, cookie) {
   const html = await response.text();
   const match = html.match(/name="_csrf"\s+value="([^"]*)"/i);
   assert.ok(match, 'create-event page should include csrf token');
+  payload.set('_csrf', match[1]);
+}
+
+async function appendEditEventCsrf(payload, cookie, eventId) {
+  const response = await fetch(`${BASE_URL}/organizer/events/${eventId}/edit`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  const match = html.match(/name="_csrf"\s+value="([^"]*)"/i);
+  assert.ok(match, 'edit-event page should include csrf token');
   payload.set('_csrf', match[1]);
 }
 

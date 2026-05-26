@@ -4,6 +4,7 @@ const Event = require('../models/Event');
 const Registration = require('../models/Registration');
 const User = require('../models/User');
 const { getAccumulatedLeaderboardRows } = require('./accumulated-activity.service');
+const { getPublicEventVisibilityQuery, isPublicEventVisible } = require('../utils/public-event-visibility');
 
 async function getLeaderboardData(rawFilters = {}) {
   const filters = normalizeLeaderboardFilters(rawFilters);
@@ -13,11 +14,11 @@ async function getLeaderboardData(rawFilters = {}) {
     .sort({ elapsedMs: 1, submittedAt: 1, createdAt: 1 })
     .limit(filters.limit)
     .populate({ path: 'runnerId', select: 'firstName lastName email' })
-    .populate({ path: 'eventId', select: 'title slug status isDeleted' })
+    .populate({ path: 'eventId', select: 'title slug status isDeleted isPersonalRecord publicListingAvailableAt' })
     .select('eventId runnerId raceDistance participationMode elapsedMs submittedAt')
     .lean();
 
-  const visibleRows = rows.filter((item) => item.eventId && item.eventId.status === 'published' && item.eventId.isDeleted !== true);
+  const visibleRows = rows.filter((item) => isPublicEventVisible(item.eventId));
   const singleEntries = visibleRows.map((item) => ({
     rank: 0,
     submissionId: String(item._id),
@@ -84,7 +85,7 @@ async function hydrateAccumulatedLeaderboardRows(rows = []) {
   const runnerIds = rows.map((item) => item.runnerId).filter(Boolean);
   const registrationIds = rows.map((item) => item._id).filter(Boolean);
   const [events, runners, registrations] = await Promise.all([
-    Event.find({ _id: { $in: eventIds }, status: 'published', isDeleted: { $ne: true } })
+    Event.find({ _id: { $in: eventIds }, ...getPublicEventVisibilityQuery(new Date()) })
       .select('title slug status isDeleted')
       .lean(),
     User.find({ _id: { $in: runnerIds } }).select('firstName lastName email').lean(),
@@ -162,7 +163,7 @@ async function getLeaderboardEvents() {
     .filter(Boolean);
   if (!ids.length) return [];
 
-  const events = await Event.find({ _id: { $in: ids }, status: 'published', isDeleted: { $ne: true }, isPersonalRecord: { $ne: true } }).select('title slug').lean();
+  const events = await Event.find({ _id: { $in: ids }, ...getPublicEventVisibilityQuery(new Date()) }).select('title slug').lean();
   const eventById = new Map(events.map((item) => [String(item._id), item]));
 
   return grouped

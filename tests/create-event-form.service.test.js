@@ -59,6 +59,42 @@ test('create-event form maps legacy pricing modes to current pricing modes', () 
   assert.equal(getCreateEventFormData({ feeMode: 'paid', pricingMode: 'per_distance_period' }).pricingMode, 'distance_based_period');
 });
 
+test('create-event form normalizes optional public posting date', () => {
+  const blank = getCreateEventFormData();
+  assert.equal(blank.publicListingAvailableAt, '');
+
+  const formData = getCreateEventFormData({
+    publicListingAvailableAt: '2026-06-01T08:30'
+  });
+  assert.equal(formData.publicListingAvailableAt, '2026-06-01T08:30');
+});
+
+test('publish validation rejects invalid or too-late public posting date', () => {
+  const invalid = validateCreateEventForm(getCreateEventFormData(buildPublishPayload({
+    publicListingAvailableAt: 'not-a-date'
+  })));
+  assert.equal(invalid.publicListingAvailableAt, 'Invalid date format.');
+
+  const tooLate = validateCreateEventForm(getCreateEventFormData(buildPublishPayload({
+    publicListingAvailableAt: '2026-06-10T00:01'
+  })));
+  assert.equal(tooLate.publicListingAvailableAt, 'Public posting date must be on or before registration close.');
+});
+
+test('applyEventFormData persists public posting date', () => {
+  const event = { waiverTemplate: '' };
+  const formData = getCreateEventFormData(buildPublishPayload({
+    feeMode: 'free',
+    paymentQrImageUrl: '',
+    paymentAccountName: '',
+    publicListingAvailableAt: '2026-06-02T09:15'
+  }));
+
+  applyEventFormData(event, formData, null);
+
+  assert.equal(event.publicListingAvailableAt.toISOString(), new Date('2026-06-02T09:15').toISOString());
+});
+
 test('customized paid pricing requires runner-selectable option amount and description for publish', () => {
   const missingOption = getCreateEventFormData(buildPublishPayload({
     pricingMode: 'customized_options'
@@ -140,6 +176,56 @@ test('structured race categories derive legacy distances and category-backed pri
   assert.equal(event.raceCategories[0].name, '5K Open');
   assert.equal(event.raceCategories[1].distanceLabel, 'KIDS DASH');
   assert.equal(event.distancePricing[1].categoryId, 'cat-kids');
+});
+
+test('race category presets include marathon distance and numeric custom labels normalize', () => {
+  const formData = getCreateEventFormData(buildPublishPayload({
+    feeMode: 'free',
+    paymentQrImageUrl: '',
+    paymentAccountName: '',
+    raceDistanceCustom: '',
+    raceCategoryName: ['42K', 'Custom Ten'],
+    raceCategoryType: ['distance', 'distance'],
+    raceCategoryDistanceLabel: ['42K', '10 km'],
+    raceCategoryDistanceKm: ['42', '10']
+  }));
+
+  assert.deepEqual(formData.raceDistances, ['42K', '10K']);
+  assert.equal(formData.raceCategories[0].distanceKm, 42);
+  assert.equal(formData.raceCategories[1].distanceLabel, '10K');
+});
+
+test('race category validation rejects duplicate ids and ambiguous labels', () => {
+  const duplicateIds = validateCreateEventForm(getCreateEventFormData(buildPublishPayload({
+    feeMode: 'free',
+    paymentQrImageUrl: '',
+    paymentAccountName: '',
+    raceDistanceCustom: '',
+    raceCategoryId: ['cat-5k', 'cat-5k'],
+    raceCategoryName: ['5K Open', '10K Open'],
+    raceCategoryDistanceLabel: ['5K', '10K']
+  })));
+  assert.equal(duplicateIds.raceCategoryName1, 'Race category IDs must be unique. Remove and re-add the duplicate category.');
+
+  const duplicateNames = validateCreateEventForm(getCreateEventFormData(buildPublishPayload({
+    feeMode: 'free',
+    paymentQrImageUrl: '',
+    paymentAccountName: '',
+    raceDistanceCustom: '',
+    raceCategoryName: ['Open', 'Open'],
+    raceCategoryDistanceLabel: ['5K', '10K']
+  })));
+  assert.equal(duplicateNames.raceCategoryName1, 'Race category display names must be unique.');
+
+  const duplicateDistances = validateCreateEventForm(getCreateEventFormData(buildPublishPayload({
+    feeMode: 'free',
+    paymentQrImageUrl: '',
+    paymentAccountName: '',
+    raceDistanceCustom: '',
+    raceCategoryName: ['5K Open', '5K Elite'],
+    raceCategoryDistanceLabel: ['5K', '5K']
+  })));
+  assert.equal(duplicateDistances.raceCategoryName1, 'Race category distance labels must be unique for registration and pricing.');
 });
 
 test('package-period pricing normalizes stable package ids and validates publish readiness', () => {

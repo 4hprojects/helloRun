@@ -2076,6 +2076,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     event.raceDistances = formData.raceDistances;
     event.registrationOpenAt = parseDateSafe(formData.registrationOpenAt);
     event.registrationCloseAt = parseDateSafe(formData.registrationCloseAt);
+    event.publicListingAvailableAt = parseDateSafe(formData.publicListingAvailableAt);
     event.eventStartAt = parseDateSafe(formData.eventStartAt);
     event.eventEndAt = parseDateSafe(formData.eventEndAt);
     event.venueName = formData.venueName || '';
@@ -2467,6 +2468,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
       raceDistances: formData.raceDistances,
       registrationOpenAt: parseDateSafe(formData.registrationOpenAt),
       registrationCloseAt: parseDateSafe(formData.registrationCloseAt),
+      publicListingAvailableAt: parseDateSafe(formData.publicListingAvailableAt),
       eventStartAt: parseDateSafe(formData.eventStartAt),
       eventEndAt: parseDateSafe(formData.eventEndAt),
       venueName: formData.venueName || '',

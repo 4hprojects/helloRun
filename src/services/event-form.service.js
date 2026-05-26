@@ -4,7 +4,7 @@ const { DEFAULT_WAIVER_TEMPLATE, normalizeWaiverTemplate } = require('../utils/w
 const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
 
 const countries = getCountries();
-const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K']);
+const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K', '42K']);
 const MAX_GALLERY_IMAGES = 12;
 const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_distance']);
 const ACCEPTED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
@@ -619,6 +619,7 @@ function getCreateEventFormData(body = {}) {
     eventType: String(body.eventType || '').trim(),
     registrationOpenAt: body.registrationOpenAt || '',
     registrationCloseAt: body.registrationCloseAt || '',
+    publicListingAvailableAt: body.publicListingAvailableAt || '',
     eventStartAt: body.eventStartAt || '',
     eventEndAt: body.eventEndAt || '',
     venueName: String(body.venueName || '').trim(),
@@ -746,6 +747,7 @@ function getCreateEventFormDataFromEvent(event) {
     eventType: event.eventType || '',
     registrationOpenAt: formatDateForInput(event.registrationOpenAt),
     registrationCloseAt: formatDateForInput(event.registrationCloseAt),
+    publicListingAvailableAt: formatDateForInput(event.publicListingAvailableAt),
     eventStartAt: formatDateForInput(event.eventStartAt),
     eventEndAt: formatDateForInput(event.eventEndAt),
     venueName: event.venueName || '',
@@ -866,7 +868,7 @@ function validateOptionalCreateEventFields(formData, errors) {
     errors.galleryImageUrls = 'Each gallery URL must be a valid URL.';
   }
 
-  for (const field of ['registrationOpenAt', 'registrationCloseAt', 'eventStartAt', 'eventEndAt', 'virtualStartAt', 'virtualEndAt', 'finalSubmissionDeadlineAt']) {
+  for (const field of ['registrationOpenAt', 'registrationCloseAt', 'publicListingAvailableAt', 'eventStartAt', 'eventEndAt', 'virtualStartAt', 'virtualEndAt', 'finalSubmissionDeadlineAt']) {
     if (formData[field] && !parseDateSafe(formData[field])) errors[field] = 'Invalid date format.';
   }
 
@@ -1137,6 +1139,7 @@ function validateOrganizerSetupFields(formData, errors) {
     validateNonNegativeAmount(category.distanceKm, `raceCategoryDistanceKm${categoryIndex}`, 'Category distance', errors);
     validateNonNegativeAmount(category.slots, `raceCategorySlots${categoryIndex}`, 'Category slots', errors);
   }
+  validateRaceCategories(formData, errors);
   validateRegistrationPackages(formData, errors);
   for (const [benefitIndex, benefit] of (formData.specialRewardBenefits || []).entries()) {
     if (!benefit.title) errors[`specialRewardBenefitTitle${benefitIndex}`] = 'Benefit title is required when benefit details are entered.';
@@ -1146,6 +1149,43 @@ function validateOrganizerSetupFields(formData, errors) {
   }
   validateDistancePricingFields(formData, errors);
   validateCustomizedOptions(formData, errors);
+}
+
+function validateRaceCategories(formData, errors) {
+  const categories = Array.isArray(formData.raceCategories) ? formData.raceCategories : [];
+  const seenIds = new Map();
+  const seenDisplayLabels = new Map();
+  const seenDistanceLabels = new Map();
+
+  for (const [index, category] of categories.entries()) {
+    const categoryId = String(category.categoryId || '').trim();
+    const displayLabel = String(category.name || category.distanceLabel || '').trim().toUpperCase();
+    const distanceLabel = normalizeRaceCategoryLabel(category.distanceLabel || category.name || '');
+
+    if (categoryId) {
+      if (seenIds.has(categoryId)) {
+        errors[`raceCategoryName${index}`] = 'Race category IDs must be unique. Remove and re-add the duplicate category.';
+      } else {
+        seenIds.set(categoryId, index);
+      }
+    }
+
+    if (displayLabel) {
+      if (seenDisplayLabels.has(displayLabel)) {
+        errors[`raceCategoryName${index}`] = 'Race category display names must be unique.';
+      } else {
+        seenDisplayLabels.set(displayLabel, index);
+      }
+    }
+
+    if (distanceLabel) {
+      if (seenDistanceLabels.has(distanceLabel)) {
+        errors[`raceCategoryName${index}`] = 'Race category distance labels must be unique for registration and pricing.';
+      } else {
+        seenDistanceLabels.set(distanceLabel, index);
+      }
+    }
+  }
 }
 
 function validateCreateEventForm(formData) {
@@ -1187,10 +1227,14 @@ function validateCreateEventForm(formData) {
 
   const registrationOpenAt = parseDateSafe(formData.registrationOpenAt);
   const registrationCloseAt = parseDateSafe(formData.registrationCloseAt);
+  const publicListingAvailableAt = parseDateSafe(formData.publicListingAvailableAt);
   const eventStartAt = parseDateSafe(formData.eventStartAt);
   const eventEndAt = parseDateSafe(formData.eventEndAt);
   if (registrationOpenAt && registrationCloseAt && registrationOpenAt >= registrationCloseAt) {
     errors.registrationCloseAt = 'Registration close must be after registration open.';
+  }
+  if (publicListingAvailableAt && registrationCloseAt && publicListingAvailableAt > registrationCloseAt) {
+    errors.publicListingAvailableAt = 'Public posting date must be on or before registration close.';
   }
   if (eventStartAt && eventEndAt && eventStartAt >= eventEndAt) errors.eventEndAt = 'Event end must be after event start.';
   if (formData.eventType !== 'virtual' && registrationCloseAt && eventStartAt && registrationCloseAt > eventStartAt) {
@@ -1421,6 +1465,7 @@ function getEventReviewSummary(formData = {}) {
       title: 'Schedule',
       rows: [
         { label: 'Registration', value: formatSummaryWindow(formData.registrationOpenAt, formData.registrationCloseAt) },
+        { label: 'Public Posting', value: formData.publicListingAvailableAt ? formatSummaryDate(formData.publicListingAvailableAt) : 'Immediately after approval' },
         { label: 'Event Window', value: formatSummaryWindow(formData.eventStartAt, formData.eventEndAt) },
         { label: 'Virtual', value: formatSummaryWindow(formData.virtualStartAt, formData.virtualEndAt) }
       ]
@@ -1488,6 +1533,7 @@ function applyEventFormData(event, formData, user) {
   event.raceCategories = formData.raceCategories || [];
   event.registrationOpenAt = parseDateSafe(formData.registrationOpenAt);
   event.registrationCloseAt = parseDateSafe(formData.registrationCloseAt);
+  event.publicListingAvailableAt = parseDateSafe(formData.publicListingAvailableAt);
   event.eventStartAt = parseDateSafe(formData.eventStartAt);
   event.eventEndAt = parseDateSafe(formData.eventEndAt);
   event.venueName = formData.venueName || '';

@@ -2,11 +2,12 @@ const productService = require('../services/shop/product.service');
 const orderService = require('../services/shop/order.service');
 const variantService = require('../services/shop/variant.service');
 const Event = require('../models/Event');
+const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
 
 exports.getEventShop = async (req, res, next) => {
   try {
     const slug = String(req.params.eventSlug || '').trim();
-    const event = await Event.findOne({ slug, status: 'published', isDeleted: { $ne: true } })
+    const event = await Event.findOne({ slug, ...getPublicEventVisibilityQuery(new Date()) })
       .select('_id slug title')
       .lean();
 
@@ -57,6 +58,21 @@ exports.getProductDetail = async (req, res, next) => {
     );
 
     if (!product) {
+      if (wantsHtml(req)) {
+        return res.status(404).render('error', {
+          title: 'Product Not Found',
+          status: 404,
+          message: 'This product is not available in the event shop.'
+        });
+      }
+      return res.status(404).json({ success: false, message: 'Product not found.' });
+    }
+
+    const event = await Event.findOne({
+      slug: String(req.params.eventSlug || '').trim(),
+      ...getPublicEventVisibilityQuery(new Date())
+    }).select('_id').lean();
+    if (!event) {
       if (wantsHtml(req)) {
         return res.status(404).render('error', {
           title: 'Product Not Found',

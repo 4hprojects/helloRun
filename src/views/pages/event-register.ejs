@@ -87,8 +87,19 @@
                 <label for="raceDistance">Race Distance *</label>
                 <select id="raceDistance" name="raceDistance" <%= registrationWindowError ? 'disabled' : '' %>>
                   <% sortedRaceDistances.forEach((distance) => { %>
-                    <% const matchingCategory = (raceCategoryOptions || []).find(function(category) { return String(category.distanceLabel || category.name || '').toUpperCase() === String(distance || '').toUpperCase(); }); %>
-                    <option value="<%= distance %>" <%= formData.raceDistance === distance ? 'selected' : '' %>><%= matchingCategory && matchingCategory.name && matchingCategory.name !== distance ? matchingCategory.name + ' (' + distance + ')' : distance %></option>
+                    <%
+                      const matchingCategories = (raceCategoryOptions || []).filter(function(category) {
+                        return String(category.distanceLabel || category.name || '').toUpperCase() === String(distance || '').toUpperCase();
+                      });
+                      const categoryNames = matchingCategories
+                        .map(function(category) { return String(category.name || '').trim(); })
+                        .filter(Boolean);
+                      const uniqueCategoryNames = Array.from(new Set(categoryNames));
+                      const optionLabel = uniqueCategoryNames.length
+                        ? uniqueCategoryNames.join(' / ') + ' (' + distance + ')'
+                        : distance;
+                    %>
+                    <option value="<%= distance %>" <%= formData.raceDistance === distance ? 'selected' : '' %>><%= optionLabel %></option>
                   <% }) %>
                 </select>
                 <% if (errors.raceDistance) { %><small class="error-text"><%= errors.raceDistance %></small><% } %>

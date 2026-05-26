@@ -96,6 +96,10 @@ const eventSchema = new mongoose.Schema(
     },
     registrationOpenAt: Date,
     registrationCloseAt: Date,
+    publicListingAvailableAt: {
+      type: Date,
+      default: null
+    },
     eventStartAt: Date,
     eventEndAt: Date,
     venueName: {
@@ -568,6 +572,7 @@ eventSchema.index({ organizerId: 1, status: 1, isDeleted: 1 });
 eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, eventStartAt: 1, createdAt: -1 });
 eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, registrationCloseAt: 1, eventStartAt: 1 });
 eventSchema.index({ status: 1, isDeleted: 1, eventType: 1, createdAt: -1 });
+eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, publicListingAvailableAt: 1 });
 applySmokeTestSchema(eventSchema);
 
 function shouldSyncSupabase() {

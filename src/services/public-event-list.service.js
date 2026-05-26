@@ -1,5 +1,6 @@
 const Event = require('../models/Event');
 const { getCountries, getCountryName } = require('../utils/country');
+const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
 
 const countries = getCountries();
 
@@ -7,11 +8,7 @@ async function buildPublicEventListPage(queryParams = {}) {
   const filterValues = getEventsFilterValues(queryParams);
   const now = new Date();
   const matchingCountryCodes = getMatchingCountryCodes(filterValues.q);
-  const query = {
-    status: 'published',
-    isDeleted: { $ne: true },
-    isPersonalRecord: { $ne: true }
-  };
+  const query = getPublicEventVisibilityQuery(now);
 
   if (filterValues.eventType) {
     query.$or = [
@@ -58,9 +55,7 @@ async function buildPublicEventListPage(queryParams = {}) {
   const [totalEvents, distanceOptions] = await Promise.all([
     Event.countDocuments(query),
     Event.distinct('raceDistances', {
-      status: 'published',
-      isDeleted: { $ne: true },
-      isPersonalRecord: { $ne: true }
+      ...getPublicEventVisibilityQuery(now)
     })
   ]);
   const totalPages = Math.max(1, Math.ceil(totalEvents / limit));
