@@ -1282,12 +1282,13 @@
         const selectedPricingType = getSelectedPricingType();
         updatePricingTypeHint(selectedPricingType);
         pricingPanels.forEach((panel) => {
+          panel.getAnimations().forEach((animation) => animation.cancel());
           const shouldShow = isPaid && panel.dataset.pricingPanel === selectedPricingType;
           if (!shouldAnimate) {
             panel.style.display = shouldShow ? '' : 'none';
             return;
           }
-          const currentlyVisible = panel.style.display !== 'none';
+          const currentlyVisible = window.getComputedStyle(panel).display !== 'none';
           if (shouldShow && !currentlyVisible) {
             panel.style.display = '';
             panel.animate(
@@ -1308,7 +1309,8 @@
               { duration: 130, easing: 'ease-in', fill: 'forwards' }
             );
             hideAnimation.onfinish = () => {
-              panel.style.display = 'none';
+              const stillShouldShow = feeModeSelect?.value === 'paid' && panel.dataset.pricingPanel === getSelectedPricingType();
+              if (!stillShouldShow) panel.style.display = 'none';
             };
           }
         });
