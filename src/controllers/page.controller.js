@@ -485,11 +485,13 @@ exports.getEventRegistrationForm = async (req, res) => {
     const allowedModes = getAllowedParticipationModes(event);
     const allowedRaceDistances = getAllowedRaceDistances(event);
     const raceCategoryOptions = getRaceCategoryOptions(event);
+    const raceDistancePricingPreview = buildRaceDistancePricingPreview(event, allowedRaceDistances);
     const profileSnapshot = getRegistrationProfileSnapshot(user);
     const requiresEmergencyContact = !profileSnapshot.emergencyContactName || !profileSnapshot.emergencyContactNumber;
     const registrationAddOns = await loadRegistrationAddOns(event._id);
     const customizedRegistrationOptions = getCustomizedRegistrationOptions(event);
-    const registrationPackageOptions = getRegistrationPackageOptions(event);
+    const registrationPackageOptions = buildRegistrationPackageDisplayOptions(event, getRegistrationPackageOptions(event));
+    const defaultRegistrationPackage = registrationPackageOptions.find((packageOption) => packageOption.isAvailableNow) || registrationPackageOptions[0] || null;
     const existing = await Registration.findOne({ eventId: event._id, userId: user._id })
       .select('confirmationCode participationMode raceDistance status paymentStatus pricingSnapshot paymentAmountDue paymentCurrency registeredAt');
 
@@ -506,7 +508,7 @@ exports.getEventRegistrationForm = async (req, res) => {
         participationMode: allowedModes[0] || '',
       raceDistance: allowedRaceDistances[0] || '',
       customizedOptionId: customizedRegistrationOptions[0]?.id || '',
-      registrationPackageId: registrationPackageOptions[0]?.id || '',
+      registrationPackageId: defaultRegistrationPackage?.id || '',
         waiverAccepted: false,
         waiverSignature: ''
       }),
@@ -520,6 +522,8 @@ exports.getEventRegistrationForm = async (req, res) => {
       existingRegistration: existing || null,
       registrationAddOns,
       raceCategoryOptions,
+      raceDistancePricingPreview,
+      showRaceDistancePricePreview: isDistancePricingMode(event),
       customizedRegistrationOptions,
       registrationPackageOptions,
       justRegistered: req.query.registered === '1'
@@ -561,13 +565,15 @@ exports.postEventRegistration = async (req, res) => {
     const allowedModes = getAllowedParticipationModes(event);
     const allowedRaceDistances = getAllowedRaceDistances(event);
     const raceCategoryOptions = getRaceCategoryOptions(event);
+    const raceDistancePricingPreview = buildRaceDistancePricingPreview(event, allowedRaceDistances);
     const profileSnapshot = getRegistrationProfileSnapshot(user);
     const requiresEmergencyContact = !profileSnapshot.emergencyContactName || !profileSnapshot.emergencyContactNumber;
     const emergencyContactName = profileSnapshot.emergencyContactName || String(req.body.emergencyContactName || '').trim();
     const emergencyContactNumber = profileSnapshot.emergencyContactNumber || String(req.body.emergencyContactNumber || '').trim();
     const registrationAddOns = await loadRegistrationAddOns(event._id);
     const customizedRegistrationOptions = getCustomizedRegistrationOptions(event);
-    const registrationPackageOptions = getRegistrationPackageOptions(event);
+    const registrationPackageOptions = buildRegistrationPackageDisplayOptions(event, getRegistrationPackageOptions(event));
+    const defaultRegistrationPackage = registrationPackageOptions.find((packageOption) => packageOption.isAvailableNow) || registrationPackageOptions[0] || null;
     const formData = getRegistrationFormData({
       ...profileSnapshot,
       emergencyContactName,
@@ -575,7 +581,7 @@ exports.postEventRegistration = async (req, res) => {
       participationMode: req.body.participationMode,
       raceDistance: req.body.raceDistance,
       customizedOptionId: req.body.customizedOptionId,
-      registrationPackageId: req.body.registrationPackageId,
+      registrationPackageId: req.body.registrationPackageId || defaultRegistrationPackage?.id || '',
       addOnProductIds: req.body.addOnProductIds,
       waiverAccepted: req.body.waiverAccepted,
       waiverSignature: req.body.waiverSignature
@@ -609,7 +615,14 @@ exports.postEventRegistration = async (req, res) => {
     }
     const resolvedPrice = resolveRegistrationPrice(event, formData);
     if (!resolvedPrice.ok) {
-      validationErrors[resolvedPrice.errorField || 'pricing'] = resolvedPrice.error || 'Select a valid registration price option.';
+      if (
+        resolvedPrice.errorField === 'registrationPackageId'
+        && !registrationPackageOptions.some((packageOption) => packageOption.isAvailableNow)
+      ) {
+        validationErrors.registrationPackageId = 'No registration package is currently open for pricing dates. Please try again later.';
+      } else {
+        validationErrors[resolvedPrice.errorField || 'pricing'] = resolvedPrice.error || 'Select a valid registration price option.';
+      }
     }
 
     if (Object.keys(validationErrors).length > 0) {
@@ -632,6 +645,8 @@ exports.postEventRegistration = async (req, res) => {
         existingRegistration: null,
         registrationAddOns,
         raceCategoryOptions,
+        raceDistancePricingPreview,
+        showRaceDistancePricePreview: isDistancePricingMode(event),
         customizedRegistrationOptions,
         registrationPackageOptions,
         justRegistered: false
@@ -2486,10 +2501,84 @@ function getRegistrationWindowError(event) {
   return null;
 }
 
+function formatRegistrationCurrency(amount, currency = 'PHP') {
+  const parsed = Number(amount);
+  if (!Number.isFinite(parsed) || parsed < 0) return '';
+  const safeCurrency = String(currency || 'PHP').trim().toUpperCase() || 'PHP';
+  return `${safeCurrency} ${parsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function isDistancePricingMode(event = {}) {
+  if (String(event.feeMode || '').trim() !== 'paid') return false;
+  const mode = String(event.pricingMode || '').trim();
+  return ['distance_based', 'distance_based_period', 'per_distance', 'per_distance_period'].includes(mode);
+}
+
+function buildRaceDistancePricingPreview(event, distances = [], now = new Date()) {
+  if (!isDistancePricingMode(event)) return {};
+  const preview = {};
+  (Array.isArray(distances) ? distances : []).forEach((distance) => {
+    const normalizedDistance = String(distance || '').trim().toUpperCase();
+    if (!normalizedDistance) return;
+    const resolved = resolveRegistrationPrice(event, { raceDistance: normalizedDistance }, { now });
+    if (!resolved.ok) {
+      preview[normalizedDistance] = {
+        ok: false,
+        amountLabel: '',
+        pricingPeriodLabel: '',
+        helper: resolved.error || 'Pricing unavailable for this distance right now.'
+      };
+      return;
+    }
+    preview[normalizedDistance] = {
+      ok: true,
+      amountLabel: formatRegistrationCurrency(resolved.amount, resolved.currency || event.feeCurrency || 'PHP'),
+      pricingPeriodLabel: String(resolved.pricingPeriodLabel || '').trim(),
+      helper: resolved.pricingPeriodLabel
+        ? 'Current active period'
+        : 'Current registration amount'
+    };
+  });
+  return preview;
+}
+
+function buildRegistrationPackageDisplayOptions(event, packageOptions = [], now = new Date()) {
+  return (Array.isArray(packageOptions) ? packageOptions : []).map((packageOption) => {
+    const resolved = resolveRegistrationPrice(event, { registrationPackageId: packageOption.id }, { now });
+    if (!resolved.ok) {
+      return {
+        ...packageOption,
+        isAvailableNow: false,
+        currentAmount: null,
+        currentAmountLabel: '',
+        currentPricingPeriodLabel: '',
+        availabilityMessage: resolved.error || 'Pricing is not available for this package right now.'
+      };
+    }
+    return {
+      ...packageOption,
+      isAvailableNow: true,
+      currentAmount: resolved.amount,
+      currentAmountLabel: formatRegistrationCurrency(resolved.amount, resolved.currency || event.feeCurrency || 'PHP'),
+      currentPricingPeriodLabel: String(resolved.pricingPeriodLabel || '').trim(),
+      availabilityMessage: ''
+    };
+  });
+}
+
 function getRegistrationConfigurationError(event) {
   const allowedRaceDistances = getAllowedRaceDistances(event);
   if (!allowedRaceDistances.length) {
     return 'Registration is temporarily unavailable because this event has no configured race distances.';
+  }
+  if (String(event.feeMode || '').trim() === 'paid' && String(event.pricingMode || '').trim() === 'package_period') {
+    const registrationPackageOptions = buildRegistrationPackageDisplayOptions(event, getRegistrationPackageOptions(event));
+    if (!registrationPackageOptions.length) {
+      return 'Registration is temporarily unavailable because no registration packages are configured.';
+    }
+    if (!registrationPackageOptions.some((packageOption) => packageOption.isAvailableNow)) {
+      return 'Registration is temporarily unavailable because no package pricing window is active right now.';
+    }
   }
   return null;
 }

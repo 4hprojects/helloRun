@@ -61,7 +61,7 @@ function buildPublicEventView(event, options = {}) {
   const raceDistances = uniqueList(normalizeList(event.raceDistances).map((item) => item.toUpperCase()).concat(categoryDistanceLabels));
   const rewardItems = buildRewardItems(event);
   const packageOptions = buildPackageOptions(event);
-  const pricingOptions = buildPricingOptions(event, raceCategories);
+  const pricingOptions = buildPricingOptions(event, raceCategories, now);
   const pricing = buildPricingSummary(event, packageOptions, pricingOptions);
   const timeline = buildTimeline(event);
   const virtualRules = buildVirtualRules(event);
@@ -281,7 +281,7 @@ function buildPricingSummary(event, packageOptions, pricingOptions = []) {
   };
 }
 
-function buildPricingOptions(event, raceCategories = []) {
+function buildPricingOptions(event, raceCategories = [], now = new Date()) {
   if (event.feeMode !== 'paid') return [];
   const pricingMode = normalizePricingMode(event.pricingMode, event.feeMode);
   const currency = event.feeCurrency || 'PHP';
@@ -307,23 +307,33 @@ function buildPricingOptions(event, raceCategories = []) {
     return (Array.isArray(event.registrationPackages) ? event.registrationPackages : [])
       .map((packageOption) => {
         const label = String(packageOption?.name || '').trim();
+        const activePeriod = getActivePricingPeriod(packageOption?.pricingPeriods, now);
+        const activeAmount = activePeriod ? firstFiniteNumber(activePeriod.amount) : null;
         const prices = (Array.isArray(packageOption?.pricingPeriods) ? packageOption.pricingPeriods : [])
           .map((period) => firstFiniteNumber(period?.amount))
           .filter((value) => value !== null);
-        const amount = prices.length ? Math.min(...prices) : null;
+        const amount = activeAmount !== null ? activeAmount : (prices.length ? Math.min(...prices) : null);
         if (!label || amount === null) return null;
         return {
           type: 'registration_package',
           label,
           amount,
-          amountLabel: prices.length > 1 ? `From ${formatMoney(amount, currency)}` : formatMoney(amount, currency),
-          helper: 'Based on selected package and registration date'
+          amountLabel: activeAmount !== null
+            ? formatMoney(amount, currency)
+            : (prices.length > 1 ? `From ${formatMoney(amount, currency)}` : formatMoney(amount, currency)),
+          helper: activeAmount !== null
+            ? 'Current package amount'
+            : 'Based on selected package and registration date',
+          pricingPeriodBadge: activePeriod?.label || ''
         };
       })
       .filter(Boolean);
   }
 
   if (pricingMode === 'distance_based' || pricingMode === 'distance_based_period') {
+    const activePeriod = pricingMode === 'distance_based_period'
+      ? getActivePricingPeriod(event.pricingPeriods, now)
+      : null;
     const categoriesById = new Map();
     const categoriesByDistance = new Map();
     raceCategories.forEach((category) => {
@@ -339,17 +349,25 @@ function buildPricingOptions(event, raceCategories = []) {
         const categoryId = String(item?.categoryId || '').trim();
         const category = (categoryId && categoriesById.get(categoryId)) || categoriesByDistance.get(distanceLabel);
         const label = category ? category.pricingLabel : distanceLabel;
+        const activeAmount = activePeriod
+          ? firstFiniteNumber(getDistancePeriodAmount(item, activePeriod.code))
+          : null;
         const prices = [item?.amount, item?.earlyBirdAmount, item?.regularAmount, item?.lateAmount]
           .map((value) => firstFiniteNumber(value))
           .filter((value) => value !== null);
-        const amount = prices.length ? Math.min(...prices) : null;
+        const amount = activeAmount !== null ? activeAmount : (prices.length ? Math.min(...prices) : null);
         if (!label || amount === null) return null;
         return {
           type: 'distance_based',
           label,
           amount,
-          amountLabel: prices.length > 1 ? `From ${formatMoney(amount, currency)}` : formatMoney(amount, currency),
-          helper: pricingMode === 'distance_based_period' ? 'Based on selected distance and registration date' : 'Based on selected distance'
+          amountLabel: activeAmount !== null
+            ? formatMoney(amount, currency)
+            : (prices.length > 1 ? `From ${formatMoney(amount, currency)}` : formatMoney(amount, currency)),
+          helper: pricingMode === 'distance_based_period'
+            ? (activeAmount !== null ? 'Current active period amount' : 'Based on selected distance and registration date')
+            : 'Based on selected distance',
+          pricingPeriodBadge: pricingMode === 'distance_based_period' ? (activePeriod?.label || '') : ''
         };
       })
       .filter(Boolean);
@@ -679,6 +697,34 @@ function parseDate(value) {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getActivePricingPeriod(periods = [], now = new Date()) {
+  const nowTime = now instanceof Date ? now.getTime() : Number.NaN;
+  if (!Number.isFinite(nowTime)) return null;
+
+  return (Array.isArray(periods) ? periods : [])
+    .map((period) => {
+      const startAt = parseDate(period?.startAt);
+      const endAt = parseDate(period?.endAt);
+      if (!startAt || !endAt) return null;
+      return {
+        code: String(period?.code || '').trim(),
+        label: String(period?.label || '').trim(),
+        amount: firstFiniteNumber(period?.amount),
+        startAt,
+        endAt
+      };
+    })
+    .filter(Boolean)
+    .find((period) => period.startAt.getTime() <= nowTime && nowTime <= period.endAt.getTime()) || null;
+}
+
+function getDistancePeriodAmount(distancePrice = {}, code = '') {
+  if (code === 'early_bird') return distancePrice?.earlyBirdAmount;
+  if (code === 'regular') return distancePrice?.regularAmount;
+  if (code === 'late') return distancePrice?.lateAmount;
+  return distancePrice?.amount;
 }
 
 function firstFiniteNumber(...values) {

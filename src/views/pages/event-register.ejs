@@ -11,6 +11,7 @@
   <% const visibleRegistrationAddOns = Array.isArray(registrationAddOns) ? registrationAddOns : []; %>
   <% const visibleCustomizedOptions = Array.isArray(customizedRegistrationOptions) ? customizedRegistrationOptions : []; %>
   <% const visibleRegistrationPackages = event.pricingMode === 'package_period' && Array.isArray(registrationPackageOptions) ? registrationPackageOptions : []; %>
+  <% const raceDistancePricePreviewData = (typeof raceDistancePricingPreview === 'object' && raceDistancePricingPreview) ? raceDistancePricingPreview : {}; %>
 
   <main class="event-register-page">
     <section class="event-register-shell">
@@ -103,6 +104,12 @@
                   <% }) %>
                 </select>
                 <% if (errors.raceDistance) { %><small class="error-text"><%= errors.raceDistance %></small><% } %>
+                <% if (showRaceDistancePricePreview) { %>
+                  <div class="race-distance-price-preview" id="raceDistancePricePreview" aria-live="polite">
+                    <strong id="raceDistancePriceValue">-</strong>
+                    <small id="raceDistancePricePeriod"></small>
+                  </div>
+                <% } %>
               </div>
             </div>
 
@@ -136,21 +143,27 @@
                 <label>Registration Package *</label>
                 <div class="registration-option-list">
                   <% visibleRegistrationPackages.forEach((packageOption) => { %>
-                    <label class="registration-option-card" for="registrationPackage-<%= packageOption.id %>">
+                    <label class="registration-option-card <%= packageOption.isAvailableNow ? '' : 'is-unavailable' %>" for="registrationPackage-<%= packageOption.id %>">
                       <input
                         type="radio"
                         id="registrationPackage-<%= packageOption.id %>"
                         name="registrationPackageId"
                         value="<%= packageOption.id %>"
                         <%= formData.registrationPackageId === packageOption.id ? 'checked' : '' %>
-                        <%= registrationWindowError ? 'disabled' : '' %>
+                        <%= registrationWindowError || !packageOption.isAvailableNow ? 'disabled' : '' %>
                       >
                       <span>
                         <strong><%= packageOption.name %></strong>
+                        <% if (packageOption.currentAmountLabel) { %>
+                          <small class="registration-option-price"><%= packageOption.currentAmountLabel %><%= packageOption.currentPricingPeriodLabel ? ` - ${packageOption.currentPricingPeriodLabel}` : '' %></small>
+                        <% } %>
                         <% if ((packageOption.includedItems || []).length) { %>
                           <small><%= packageOption.includedItems.join(', ') %></small>
                         <% } else { %>
                           <small>Package registration</small>
+                        <% } %>
+                        <% if (packageOption.availabilityMessage) { %>
+                          <small class="registration-option-warning"><%= packageOption.availabilityMessage %></small>
                         <% } %>
                       </span>
                     </label>
@@ -323,5 +336,46 @@
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
   <script src="/js/quick-profile-modal.js"></script>
+  <% if (showRaceDistancePricePreview) { %>
+    <script type="application/json" id="raceDistancePricingPreviewData"><%- JSON.stringify(raceDistancePricePreviewData) %></script>
+    <script>
+      (function initRaceDistancePricingPreview() {
+        const raceDistanceSelect = document.getElementById('raceDistance');
+        const previewValue = document.getElementById('raceDistancePriceValue');
+        const previewPeriod = document.getElementById('raceDistancePricePeriod');
+        const previewDataEl = document.getElementById('raceDistancePricingPreviewData');
+        if (!raceDistanceSelect || !previewValue || !previewPeriod || !previewDataEl) return;
+
+        let previewData = {};
+        try {
+          previewData = JSON.parse(previewDataEl.textContent || '{}');
+        } catch (_) {
+          previewData = {};
+        }
+
+        function updatePreview() {
+          const key = String(raceDistanceSelect.value || '').trim().toUpperCase();
+          const detail = previewData[key];
+          if (!detail) {
+            previewValue.textContent = 'Pricing unavailable';
+            previewPeriod.textContent = 'No pricing data available for this distance right now.';
+            return;
+          }
+          if (!detail.ok) {
+            previewValue.textContent = 'Pricing unavailable';
+            previewPeriod.textContent = detail.helper || 'Pricing data unavailable right now.';
+            return;
+          }
+          previewValue.textContent = detail.amountLabel || 'Pricing unavailable';
+          previewPeriod.textContent = detail.pricingPeriodLabel
+            ? 'Period: ' + detail.pricingPeriodLabel
+            : (detail.helper || 'Current registration amount');
+        }
+
+        raceDistanceSelect.addEventListener('change', updatePreview);
+        updatePreview();
+      })();
+    </script>
+  <% } %>
 </body>
 </html>

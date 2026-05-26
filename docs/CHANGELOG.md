@@ -18,6 +18,10 @@
   - readiness checklist items now render as tile cards at tablet and mobile breakpoints
   - review notes now render as tile cards at tablet and mobile breakpoints
   - review summary remains card-based with explicit 2-column tablet and single-column mobile behavior
+- Improved runner pricing visibility on event registration and public event details:
+  - `/events/:slug/register` now shows live amount preview for selected race distance when distance-based pricing is active
+  - package pricing options on registration now show current active amount/period and disable packages with inactive pricing windows
+  - public `/events/:slug` pricing cards now show a current pricing-period badge (when active) for distance-period and package-period pricing
 
 ### [UPDATED] UPDATED FILES:
 1. docs/CHANGELOG.md
@@ -25,6 +29,12 @@
 3. src/views/organizer/create-event.ejs
 4. src/views/organizer/edit-event.ejs
 5. src/public/css/create-event.css
+6. src/controllers/page.controller.js
+7. src/views/pages/event-register.ejs
+8. src/public/css/event-register.css
+9. src/utils/event-public-view.js
+10. src/views/pages/event-details.ejs
+11. src/public/css/event-details.css
 
 ### [VALIDATION] TEST/RUN CHECKS:
 - `get_errors` on changed files -> PASS (no syntax/template/CSS errors reported).

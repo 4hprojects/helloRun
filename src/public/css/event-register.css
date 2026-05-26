@@ -166,6 +166,13 @@
   cursor: pointer;
 }
 
+.registration-option-card.is-unavailable {
+  border-style: dashed;
+  background: #f1f5f9;
+  opacity: 0.8;
+  cursor: not-allowed;
+}
+
 .registration-option-card input {
   width: auto;
   min-height: 0;
@@ -186,6 +193,37 @@
   color: #334155;
   font-size: 0.82rem;
   font-weight: 700;
+}
+
+.registration-option-card .registration-option-price {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.registration-option-card .registration-option-warning {
+  color: #b45309;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.race-distance-price-preview {
+  margin-top: 0.55rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 0.52rem 0.62rem;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.race-distance-price-preview strong {
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.race-distance-price-preview small {
+  font-size: 0.78rem;
+  color: #475569;
 }
 
 .snapshot-grid,

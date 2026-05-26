@@ -272,6 +272,9 @@
                 <div class="event-package-grid">
                   <% details.pricingOptions.forEach((pricingOption) => { %>
                     <article>
+                      <% if (pricingOption.pricingPeriodBadge) { %>
+                        <small class="event-pricing-period-badge"><%= pricingOption.pricingPeriodBadge %></small>
+                      <% } %>
                       <h3><%= pricingOption.label %></h3>
                       <strong><%= pricingOption.amountLabel %></strong>
                       <p><%= pricingOption.helper %></p>
