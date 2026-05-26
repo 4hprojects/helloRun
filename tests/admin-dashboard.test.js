@@ -378,6 +378,9 @@ test('admin approves pending event, then archive hides it from public event deta
   assert.equal(approved.status, 'published');
   assert.ok(approved.approvedAt);
   assert.ok(approved.approvedBy);
+  assert.equal(approved.approvalSource, 'admin');
+  assert.equal(approved.autoApprovedAt, null);
+  assert.equal(approved.autoApprovalRuleVersion, '');
   const publishAudit = await waitForAuditRecord({
     action: 'event.published',
     targetId: seed.pendingEvent.id

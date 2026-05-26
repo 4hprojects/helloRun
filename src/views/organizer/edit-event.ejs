@@ -1824,6 +1824,7 @@
       const registrationPackageTemplate = document.getElementById('registrationPackageTemplate');
       const addRegistrationPackageBtn = document.getElementById('addRegistrationPackageBtn');
 
+      // setupRegistrationPackageHandlers calls updateRegistrationPackageIndexes after add/remove.
       pricingStepController.setupRegistrationPackageHandlers({
         registrationPackageGrid,
         registrationPackageTemplate,

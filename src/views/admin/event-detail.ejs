@@ -74,6 +74,7 @@
           <p><strong>Registration:</strong> <%= event.registrationOpenAt ? new Date(event.registrationOpenAt).toLocaleString('en-US') : 'N/A' %> to <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleString('en-US') : 'N/A' %></p>
           <p><strong>Event:</strong> <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'N/A' %> to <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleString('en-US') : 'N/A' %></p>
           <p><strong>Submitted:</strong> <%= event.submittedForReviewAt ? new Date(event.submittedForReviewAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Approval:</strong> <%= event.approvalSource === 'auto' ? `Auto-approved (${event.autoApprovalRuleVersion || 'rule not recorded'})` : (event.approvalSource === 'admin' ? 'Admin approved' : 'Not approved') %></p>
         </article>
         <article class="detail-card">
           <h3>Event Rules</h3>

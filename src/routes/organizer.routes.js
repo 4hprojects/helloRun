@@ -37,6 +37,7 @@ const {
   updateEventBadgeDisplay
 } = require('../services/event-badge.service');
 const eventFormService = require('../services/event-form.service');
+const { tryAutoApproveEvent } = require('../services/event-approval.service');
 const {
   reviewAccumulatedActivitySubmission,
   getAccumulatedActivitiesForRegistrations,
@@ -2123,6 +2124,10 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
 
     await event.save();
 
+    const autoApproval = isDraftSubmitForReview
+      ? await tryAutoApproveEvent(event, { organizer: user })
+      : { approved: false };
+
     const keysToDelete = [];
     if ((bannerImageFile || formData.removeBannerImage) && previousBannerUrl && previousBannerUrl !== event.bannerImageUrl) {
       const previousBannerKey = uploadService.extractObjectKeyFromPublicUrl(previousBannerUrl);
@@ -2153,7 +2158,9 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
 
     const query = new URLSearchParams({
       type: 'success',
-      msg: isDraftSubmitForReview ? 'Event updated and submitted for review.' : 'Event updated successfully.'
+      msg: autoApproval.approved
+        ? 'Event updated and automatically published.'
+        : (isDraftSubmitForReview ? 'Event updated and submitted for review.' : 'Event updated successfully.')
     });
     return res.redirect(`/organizer/events/${event._id}?${query.toString()}`);
   } catch (error) {
@@ -2217,9 +2224,15 @@ router.post('/events/:id/status', requireApprovedOrganizer, async (req, res) => 
     }
     await event.save();
 
+    const autoApproval = nextStatus === 'pending_review'
+      ? await tryAutoApproveEvent(event, { organizer: user })
+      : { approved: false };
+
     const q = new URLSearchParams({
       type: 'success',
-      msg: `Event status updated to ${nextStatus}.`
+      msg: autoApproval.approved
+        ? 'Event automatically published.'
+        : `Event status updated to ${nextStatus}.`
     });
     return res.redirect(`/organizer/events/${event._id}?${q.toString()}`);
   } catch (error) {
@@ -2537,8 +2550,12 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
 
     await event.save();
 
+    const autoApproval = status === 'pending_review'
+      ? await tryAutoApproveEvent(event, { organizer: user })
+      : { approved: false };
+
     const successText = status === 'pending_review'
-      ? 'Event submitted for admin review.'
+      ? (autoApproval.approved ? 'Event submitted and automatically published.' : 'Event submitted for admin review.')
       : 'Event saved as draft successfully.';
 
     const query = new URLSearchParams({ type: 'success', msg: successText });

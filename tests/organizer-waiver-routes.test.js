@@ -848,9 +848,14 @@ test('create-event submit for review accepts valid single-activity virtual event
   assert.equal(response.status, 302);
   await ensureConnected();
   const event = await Event.findOne({ title }).lean();
-  assert.ok(event, 'pending review event should be saved');
-  assert.equal(event.status, 'pending_review');
+  assert.ok(event, 'auto-approved event should be saved');
+  assert.equal(event.status, 'published');
+  assert.equal(event.approvalSource, 'auto');
+  assert.ok(event.autoApprovedAt);
+  assert.equal(event.autoApprovalRuleVersion, 'event_auto_approval_v1_free_virtual');
   assert.ok(event.submittedForReviewAt);
+  assert.ok(event.approvedAt);
+  assert.equal(event.approvedBy, null);
   assert.equal(event.virtualCompletionMode, 'single_activity');
 });
 
@@ -995,7 +1000,9 @@ test('create-event accumulated-distance publish accepts configured challenge', a
   await ensureConnected();
   const event = await Event.findOne({ title }).lean();
   assert.ok(event, 'accumulated event should be saved');
-  assert.equal(event.status, 'pending_review');
+  assert.equal(event.status, 'published');
+  assert.equal(event.approvalSource, 'auto');
+  assert.ok(event.autoApprovedAt);
   assert.equal(event.virtualCompletionMode, 'accumulated_distance');
   assert.equal(event.targetDistanceKm, 100);
   assert.equal(event.minimumActivityDistanceKm, null);

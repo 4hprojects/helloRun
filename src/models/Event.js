@@ -535,6 +535,21 @@ const eventSchema = new mongoose.Schema(
       ref: 'User',
       default: null
     },
+    approvalSource: {
+      type: String,
+      enum: ['', 'admin', 'auto'],
+      default: ''
+    },
+    autoApprovedAt: {
+      type: Date,
+      default: null
+    },
+    autoApprovalRuleVersion: {
+      type: String,
+      trim: true,
+      maxlength: 120,
+      default: ''
+    },
     archivedAt: {
       type: Date,
       default: null

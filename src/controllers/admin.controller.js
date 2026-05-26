@@ -13,8 +13,7 @@ const PrivacyPolicy = require('../models/PrivacyPolicy');
 const communicationService = require('../services/communication.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
 const { listRecentBadgeAuditLogs } = require('../services/badge-audit.service');
-const { generateDefaultEventBadgesInBackground } = require('../services/event-badge.service');
-const { evaluateOrganiserAchievementsInBackground } = require('../services/achievement.service');
+const { publishEvent } = require('../services/event-approval.service');
 const { getPolicyByAdminPath } = require('../services/policy-registry.service');
 const {
   listBadgeDefinitions,
@@ -1967,33 +1966,19 @@ exports.approveEvent = async (req, res) => {
     if (event.status !== 'pending_review') {
       return res.status(409).json({ success: false, message: 'Only pending review events can be approved.' });
     }
-    const readinessErrors = getPublishReadinessErrors(event);
-    if (readinessErrors.length) {
-      return res.status(400).json({ success: false, message: readinessErrors[0], errors: readinessErrors });
+    try {
+      await publishEvent(event, {
+        approvalSource: 'admin',
+        actorUserId: req.session.userId,
+        ipAddress: getRequestIpAddress(req),
+        userAgent: getRequestUserAgent(req)
+      });
+    } catch (error) {
+      if (Array.isArray(error.readinessErrors) && error.readinessErrors.length) {
+        return res.status(400).json({ success: false, message: error.readinessErrors[0], errors: error.readinessErrors });
+      }
+      throw error;
     }
-    const previousStatus = event.status;
-    event.status = 'published';
-    event.approvedAt = new Date();
-    event.approvedBy = req.session.userId;
-    await event.save();
-    recordCriticalAuditEventInBackground({
-      actorMongoUserId: req.session.userId,
-      action: 'event.published',
-      targetType: 'event',
-      targetId: String(event._id),
-      statusFrom: previousStatus,
-      statusTo: 'published',
-      notes: `Event ${event.referenceCode || event.slug || event._id} approved and published.`,
-      ipAddress: getRequestIpAddress(req),
-      userAgent: getRequestUserAgent(req),
-      occurredAt: event.approvedAt
-    });
-    generateDefaultEventBadgesInBackground(event, {
-      performedBy: req.session.userId
-    });
-    evaluateOrganiserAchievementsInBackground(event.organizerId, {
-      performedBy: req.session.userId
-    });
     return res.json({ success: true, message: 'Event approved and published.' });
   } catch (error) {
     console.error('approveEvent error:', error);
