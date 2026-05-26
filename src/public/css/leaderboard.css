@@ -52,7 +52,8 @@
   flex: 0 0 auto;
 }
 
-.leaderboard-filters select {
+.leaderboard-filters select,
+.leaderboard-filters input {
   width: 100%;
   min-height: 48px;
   border: 1px solid #cbd5e1;
@@ -63,10 +64,203 @@
   color: #0f172a;
 }
 
-.leaderboard-filters select:focus {
+.leaderboard-filters select:focus,
+.leaderboard-filters input:focus {
   border-color: #c2410c;
   box-shadow: 0 0 0 3px rgba(194, 65, 12, 0.12);
   outline: none;
+}
+
+.leaderboard-shell-event {
+  display: grid;
+  gap: 1rem;
+}
+
+.leaderboard-event-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.leaderboard-back-link {
+  display: inline-flex;
+  margin-bottom: 0.4rem;
+  color: #0f766e;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.leaderboard-event-meta {
+  display: grid;
+  gap: 0.4rem;
+  max-width: 28rem;
+  color: #475569;
+  font-size: 0.86rem;
+  text-align: right;
+}
+
+.leaderboard-standing-card {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #fff7ed;
+}
+
+.leaderboard-standing-card h2,
+.leaderboard-standing-card p {
+  margin: 0;
+}
+
+.leaderboard-card-kicker {
+  color: #c2410c;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.leaderboard-standing-card dl {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.leaderboard-standing-card dt,
+.leaderboard-mobile-card dt {
+  color: #64748b;
+  font-size: 0.78rem;
+}
+
+.leaderboard-standing-card dd,
+.leaderboard-mobile-card dd {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.leaderboard-standing-card-muted {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.leaderboard-nearby {
+  border-top: 1px solid rgba(194, 65, 12, 0.18);
+  padding-top: 0.85rem;
+}
+
+.leaderboard-nearby h3 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.leaderboard-nearby ol {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.leaderboard-nearby li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+}
+
+.leaderboard-nearby li.is-current {
+  background: #ffffff;
+}
+
+.leaderboard-card-list {
+  display: none;
+}
+
+.leaderboard-mobile-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem;
+  background: #ffffff;
+}
+
+.leaderboard-mobile-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.leaderboard-mobile-card h2,
+.leaderboard-mobile-card p {
+  margin: 0;
+}
+
+.leaderboard-mobile-card p,
+.leaderboard-mobile-card span {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.leaderboard-mobile-card dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 1rem 0 0;
+}
+
+.leaderboard-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.76rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.leaderboard-status-verified {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.leaderboard-status-pending_review {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.leaderboard-status-rejected,
+.leaderboard-status-incomplete {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.leaderboard-status-legend {
+  display: grid;
+  gap: 0.4rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1rem;
+}
+
+.leaderboard-status-legend h2,
+.leaderboard-status-legend p {
+  margin: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .leaderboard-filter-actions {
@@ -247,13 +441,36 @@
     white-space: nowrap;
   }
 
-  .leaderboard-filters select {
+  .leaderboard-filters select,
+  .leaderboard-filters input {
     min-height: 34px;
     padding: 0.4rem 0.45rem;
     border: 0;
     border-radius: 8px;
     background: #f8fafc;
     font-size: 0.82rem;
+  }
+
+  .leaderboard-event-header {
+    display: grid;
+  }
+
+  .leaderboard-event-meta {
+    max-width: none;
+    text-align: left;
+  }
+
+  .leaderboard-standing-card dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .leaderboard-card-list {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .leaderboard-desktop-table {
+    display: none;
   }
 
   .leaderboard-filter-actions {

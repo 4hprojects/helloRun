@@ -3,8 +3,11 @@ const Submission = require('../models/Submission');
 const Event = require('../models/Event');
 const Registration = require('../models/Registration');
 const User = require('../models/User');
+const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const { getAccumulatedLeaderboardRows } = require('./accumulated-activity.service');
 const { getPublicEventVisibilityQuery, isPublicEventVisible } = require('../utils/public-event-visibility');
+
+const DEFAULT_EVENT_LEADERBOARD_COLUMNS = ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status'];
 
 async function getLeaderboardData(rawFilters = {}) {
   const filters = normalizeLeaderboardFilters(rawFilters);
@@ -77,6 +80,245 @@ async function getLeaderboardData(rawFilters = {}) {
       totalShown: entries.length
     }
   };
+}
+
+async function getEventLeaderboard(eventSlug, rawOptions = {}) {
+  const event = await getLeaderboardEventBySlug(eventSlug);
+  if (!event) return null;
+  const settings = resolveEventLeaderboardSettings(event);
+  if (!settings.enabled) return null;
+
+  const options = normalizeEventLeaderboardOptions(rawOptions);
+  const officialEntries = settings.type === 'accumulated_challenge'
+    ? await getAccumulatedEventEntries(event, settings)
+    : await getRaceResultEventEntries(event, settings);
+  const pendingEntries = settings.showPending
+    ? await getPendingEventEntries(event, settings)
+    : [];
+
+  const searched = applyEventLeaderboardFilters([...officialEntries, ...pendingEntries], options);
+  const paged = searched.slice((options.page - 1) * options.limit, options.page * options.limit);
+
+  return {
+    event: formatLeaderboardEvent(event),
+    settings,
+    filters: options,
+    entries: paged,
+    pagination: {
+      page: options.page,
+      limit: options.limit,
+      total: searched.length,
+      totalPages: Math.max(1, Math.ceil(searched.length / options.limit))
+    },
+    stats: {
+      totalEntries: officialEntries.length + pendingEntries.length,
+      verifiedEntries: officialEntries.length,
+      pendingEntries: pendingEntries.length,
+      lastUpdatedAt: getLastUpdatedAt([...officialEntries, ...pendingEntries])
+    },
+    rankingExplanation: settings.type === 'accumulated_challenge'
+      ? 'Ranked by highest verified accumulated distance. Official rankings include approved submissions only.'
+      : 'Ranked by fastest verified time. Official rankings include approved submissions only.'
+  };
+}
+
+async function getMyStanding(eventSlug, userId, rawOptions = {}) {
+  const safeUserId = normalizeObjectId(userId);
+  if (!safeUserId) return null;
+  const data = await getEventLeaderboard(eventSlug, {
+    ...rawOptions,
+    page: 1,
+    limit: 500
+  });
+  if (!data) return null;
+  const entry = data.entries.find((item) => String(item.userId || '') === safeUserId) || null;
+  if (entry) {
+    return {
+      event: data.event,
+      settings: data.settings,
+      standing: entry,
+      nearby: await getNearbyRunners(eventSlug, userId, rawOptions)
+    };
+  }
+
+  const pending = await getRunnerPendingStanding(data.event.id, safeUserId, data.settings);
+  return {
+    event: data.event,
+    settings: data.settings,
+    standing: pending,
+    nearby: []
+  };
+}
+
+async function getNearbyRunners(eventSlug, userId, rawOptions = {}) {
+  const safeUserId = normalizeObjectId(userId);
+  if (!safeUserId) return [];
+  const data = await getEventLeaderboard(eventSlug, {
+    ...rawOptions,
+    page: 1,
+    limit: 500
+  });
+  if (!data) return [];
+  const official = data.entries.filter((item) => Number.isInteger(item.rank));
+  const currentIndex = official.findIndex((item) => String(item.userId || '') === safeUserId);
+  if (currentIndex < 0) return [];
+  return official.slice(Math.max(0, currentIndex - 2), currentIndex + 3).map((item) => ({
+    ...item,
+    isCurrentUser: String(item.userId || '') === safeUserId
+  }));
+}
+
+async function getLeaderboardEventBySlug(eventSlug) {
+  const slug = String(eventSlug || '').trim();
+  if (!slug) return null;
+  return Event.findOne({ slug, ...getPublicEventVisibilityQuery(new Date()) })
+    .select('title slug status eventStartAt eventEndAt virtualWindow virtualCompletionMode targetDistanceKm leaderboardRecognitionEnabled leaderboardSettings raceDistances raceCategories updatedAt')
+    .lean();
+}
+
+function resolveEventLeaderboardSettings(event = {}) {
+  const existing = event.leaderboardSettings || {};
+  const type = ['race_result', 'accumulated_challenge'].includes(existing.type)
+    ? existing.type
+    : (event.virtualCompletionMode === 'accumulated_distance' ? 'accumulated_challenge' : 'race_result');
+  return {
+    enabled: typeof existing.enabled === 'boolean' ? existing.enabled : event.leaderboardRecognitionEnabled !== false,
+    type,
+    rankingBasis: type === 'accumulated_challenge' ? 'highest_verified_distance' : 'fastest_time',
+    visibility: ['public', 'registered_only', 'private_until_published'].includes(existing.visibility) ? existing.visibility : 'public',
+    showPending: Boolean(existing.showPending),
+    hideFlagged: typeof existing.hideFlagged === 'boolean' ? existing.hideFlagged : true,
+    nameDisplayMode: ['full_name', 'first_name_last_initial', 'display_name', 'anonymous_runner_id'].includes(existing.nameDisplayMode)
+      ? existing.nameDisplayMode
+      : 'first_name_last_initial',
+    visibleColumns: Array.isArray(existing.visibleColumns) && existing.visibleColumns.length
+      ? existing.visibleColumns.filter((item) => DEFAULT_EVENT_LEADERBOARD_COLUMNS.includes(item))
+      : DEFAULT_EVENT_LEADERBOARD_COLUMNS.slice()
+  };
+}
+
+async function getRaceResultEventEntries(event, settings) {
+  const rows = await Submission.find({
+    eventId: event._id,
+    status: 'approved',
+    isPersonalRecord: { $ne: true },
+    ...(settings.hideFlagged ? { suspiciousFlag: { $ne: true } } : {})
+  })
+    .sort({ elapsedMs: 1, reviewedAt: 1, submittedAt: 1, createdAt: 1 })
+    .populate({ path: 'runnerId', select: 'firstName lastName displayName email userId' })
+    .populate({ path: 'registrationId', select: 'confirmationCode raceDistance participationMode participant registeredAt' })
+    .select('eventId runnerId registrationId raceDistance participationMode distanceKm elapsedMs status submittedAt reviewedAt updatedAt')
+    .lean();
+
+  return rows.map((row, index) => formatRaceEntry(row, event, settings, index + 1));
+}
+
+async function getAccumulatedEventEntries(event, settings) {
+  const rows = await AccumulatedActivitySubmission.aggregate([
+    {
+      $match: {
+        eventId: event._id,
+        status: 'approved',
+        ...(settings.hideFlagged ? { suspiciousFlag: { $ne: true } } : {})
+      }
+    },
+    {
+      $group: {
+        _id: '$registrationId',
+        eventId: { $first: '$eventId' },
+        runnerId: { $first: '$runnerId' },
+        raceDistance: { $first: '$raceDistance' },
+        participationMode: { $first: '$participationMode' },
+        totalDistanceKm: { $sum: '$distanceKm' },
+        activityCount: { $sum: 1 },
+        submittedAt: { $min: '$submittedAt' },
+        verifiedAt: { $max: '$reviewedAt' },
+        updatedAt: { $max: '$updatedAt' }
+      }
+    },
+    { $sort: { totalDistanceKm: -1, verifiedAt: 1, submittedAt: 1 } }
+  ]);
+  if (!rows.length) return [];
+
+  const [runners, registrations] = await Promise.all([
+    User.find({ _id: { $in: rows.map((item) => item.runnerId).filter(Boolean) } })
+      .select('firstName lastName displayName email userId')
+      .lean(),
+    Registration.find({ _id: { $in: rows.map((item) => item._id).filter(Boolean) } })
+      .select('confirmationCode raceDistance participationMode participant registeredAt')
+      .lean()
+  ]);
+  const runnerById = new Map(runners.map((item) => [String(item._id), item]));
+  const registrationById = new Map(registrations.map((item) => [String(item._id), item]));
+
+  return rows.map((row, index) => formatAccumulatedEntry({
+    row,
+    event,
+    settings,
+    runner: runnerById.get(String(row.runnerId)),
+    registration: registrationById.get(String(row._id)),
+    rank: index + 1
+  }));
+}
+
+async function getPendingEventEntries(event, settings) {
+  if (settings.type === 'accumulated_challenge') {
+    return getPendingAccumulatedEventEntries(event, settings);
+  }
+  const rows = await Submission.find({
+    eventId: event._id,
+    status: 'submitted',
+    isPersonalRecord: { $ne: true },
+    ...(settings.hideFlagged ? { suspiciousFlag: { $ne: true } } : {})
+  })
+    .sort({ submittedAt: -1 })
+    .populate({ path: 'runnerId', select: 'firstName lastName displayName email userId' })
+    .populate({ path: 'registrationId', select: 'confirmationCode raceDistance participationMode participant registeredAt' })
+    .select('eventId runnerId registrationId raceDistance participationMode distanceKm elapsedMs status submittedAt updatedAt')
+    .lean();
+  return rows.map((row) => formatRaceEntry(row, event, settings, null));
+}
+
+async function getPendingAccumulatedEventEntries(event, settings) {
+  const rows = await AccumulatedActivitySubmission.aggregate([
+    {
+      $match: {
+        eventId: event._id,
+        status: 'submitted',
+        ...(settings.hideFlagged ? { suspiciousFlag: { $ne: true } } : {})
+      }
+    },
+    {
+      $group: {
+        _id: '$registrationId',
+        eventId: { $first: '$eventId' },
+        runnerId: { $first: '$runnerId' },
+        raceDistance: { $first: '$raceDistance' },
+        participationMode: { $first: '$participationMode' },
+        totalDistanceKm: { $sum: '$distanceKm' },
+        activityCount: { $sum: 1 },
+        submittedAt: { $min: '$submittedAt' },
+        updatedAt: { $max: '$updatedAt' }
+      }
+    },
+    { $sort: { submittedAt: -1 } }
+  ]);
+  if (!rows.length) return [];
+  const [runners, registrations] = await Promise.all([
+    User.find({ _id: { $in: rows.map((item) => item.runnerId).filter(Boolean) } }).select('firstName lastName displayName email userId').lean(),
+    Registration.find({ _id: { $in: rows.map((item) => item._id).filter(Boolean) } }).select('confirmationCode raceDistance participationMode participant registeredAt').lean()
+  ]);
+  const runnerById = new Map(runners.map((item) => [String(item._id), item]));
+  const registrationById = new Map(registrations.map((item) => [String(item._id), item]));
+  return rows.map((row) => formatAccumulatedEntry({
+    row,
+    event,
+    settings,
+    runner: runnerById.get(String(row.runnerId)),
+    registration: registrationById.get(String(row._id)),
+    rank: null,
+    status: 'submitted'
+  }));
 }
 
 async function hydrateAccumulatedLeaderboardRows(rows = []) {
@@ -239,6 +481,185 @@ function formatDistance(value) {
   return Number(numeric.toFixed(2)).toString();
 }
 
+function formatLeaderboardEvent(event = {}) {
+  return {
+    id: String(event._id || ''),
+    title: event.title || 'Event unavailable',
+    slug: event.slug || '',
+    eventStartAt: event.eventStartAt || null,
+    eventEndAt: event.eventEndAt || null,
+    virtualWindow: event.virtualWindow || null,
+    targetDistanceKm: Number(event.targetDistanceKm || 0) || null,
+    leaderboardType: event.virtualCompletionMode === 'accumulated_distance' ? 'accumulated_challenge' : 'race_result'
+  };
+}
+
+function normalizeEventLeaderboardOptions(rawOptions = {}) {
+  return {
+    view: String(rawOptions.view || 'overall').trim().toLowerCase(),
+    category: normalizeDistance(rawOptions.category || rawOptions.categoryId || rawOptions.distance),
+    mode: normalizeMode(rawOptions.mode || rawOptions.participationMode),
+    status: normalizePublicStatus(rawOptions.status),
+    search: String(rawOptions.search || '').trim().toLowerCase().slice(0, 80),
+    page: clampInt(rawOptions.page, 1, 10000, 1),
+    limit: clampInt(rawOptions.limit, 1, 500, 25)
+  };
+}
+
+function normalizePublicStatus(value) {
+  const safe = String(value || '').trim().toLowerCase();
+  if (['verified', 'pending_review', 'rejected'].includes(safe)) return safe;
+  if (safe === 'approved') return 'verified';
+  if (safe === 'submitted' || safe === 'pending') return 'pending_review';
+  return '';
+}
+
+function formatRaceEntry(row, event, settings, rank) {
+  const registration = row.registrationId || {};
+  const distanceKm = Number(row.distanceKm || 0);
+  const elapsedMs = Number(row.elapsedMs || 0);
+  const paceSecondsPerKm = distanceKm > 0 && elapsedMs > 0 ? Math.round((elapsedMs / 1000) / distanceKm) : 0;
+  return {
+    rank: Number.isInteger(rank) ? rank : null,
+    registrationId: String(registration._id || row.registrationId || ''),
+    submissionId: String(row._id || ''),
+    userId: String(row.runnerId?._id || row.runnerId || ''),
+    runnerName: formatRunnerName(row.runnerId, settings.nameDisplayMode, registration),
+    category: registration.raceDistance || row.raceDistance || '',
+    participationMode: registration.participationMode || row.participationMode || '',
+    distanceKm,
+    distanceLabel: distanceKm > 0 ? `${formatDistance(distanceKm)} km` : '',
+    timeMs: elapsedMs,
+    timeLabel: formatElapsedMs(elapsedMs),
+    paceSecondsPerKm,
+    paceLabel: formatPace(paceSecondsPerKm),
+    activityCount: 1,
+    status: mapPublicStatus(row.status),
+    statusLabel: getPublicStatusLabel(mapPublicStatus(row.status)),
+    submittedAt: row.submittedAt || null,
+    verifiedAt: row.reviewedAt || null,
+    updatedAt: row.updatedAt || row.reviewedAt || row.submittedAt || null,
+    searchableText: buildSearchableText({ runner: row.runnerId, registration, row, event })
+  };
+}
+
+function formatAccumulatedEntry({ row, event, settings, runner, registration, rank, status = 'approved' }) {
+  const totalDistanceKm = Number(row.totalDistanceKm || 0);
+  const target = Number(event.targetDistanceKm || 0);
+  return {
+    rank: Number.isInteger(rank) ? rank : null,
+    registrationId: String(registration?._id || row._id || ''),
+    submissionId: String(row._id || ''),
+    userId: String(runner?._id || row.runnerId || ''),
+    runnerName: formatRunnerName(runner, settings.nameDisplayMode, registration),
+    category: registration?.raceDistance || row.raceDistance || '',
+    participationMode: registration?.participationMode || row.participationMode || '',
+    distanceKm: totalDistanceKm,
+    totalDistanceKm,
+    distanceLabel: `${formatDistance(totalDistanceKm)} km total`,
+    timeMs: 0,
+    timeLabel: '',
+    paceSecondsPerKm: 0,
+    paceLabel: '',
+    activityCount: Number(row.activityCount || 0),
+    completionPercentage: target > 0 ? Math.min(100, Math.round((totalDistanceKm / target) * 100)) : null,
+    status: mapPublicStatus(status),
+    statusLabel: getPublicStatusLabel(mapPublicStatus(status)),
+    submittedAt: row.submittedAt || null,
+    verifiedAt: row.verifiedAt || null,
+    updatedAt: row.updatedAt || row.verifiedAt || row.submittedAt || null,
+    searchableText: buildSearchableText({ runner, registration, row, event })
+  };
+}
+
+function applyEventLeaderboardFilters(entries, options) {
+  return entries
+    .filter((entry) => !options.category || normalizeDistance(entry.category) === options.category)
+    .filter((entry) => !options.mode || entry.participationMode === options.mode)
+    .filter((entry) => !options.status || entry.status === options.status)
+    .filter((entry) => !options.search || entry.searchableText.includes(options.search))
+    .map(stripInternalLeaderboardFields);
+}
+
+function stripInternalLeaderboardFields(entry) {
+  const { searchableText, ...publicEntry } = entry;
+  return publicEntry;
+}
+
+function formatRunnerName(runner, mode, registration = {}) {
+  const participant = registration?.participant || {};
+  const first = String(runner?.firstName || participant.firstName || '').trim();
+  const last = String(runner?.lastName || participant.lastName || '').trim();
+  const displayName = String(runner?.displayName || '').trim();
+  const confirmationCode = String(registration?.confirmationCode || '').replace(/^HR-/, '');
+  if (mode === 'full_name') return `${first} ${last}`.trim() || displayName || 'Runner';
+  if (mode === 'display_name') return displayName || `${first} ${last.charAt(0)}.`.trim() || 'Runner';
+  if (mode === 'anonymous_runner_id') return `Runner #${confirmationCode || String(registration?._id || '').slice(-6) || '----'}`;
+  return `${first || 'Runner'}${last ? ` ${last.charAt(0)}.` : ''}`;
+}
+
+function buildSearchableText({ runner, registration, row, event }) {
+  return [
+    runner?.firstName,
+    runner?.lastName,
+    runner?.displayName,
+    registration?.participant?.firstName,
+    registration?.participant?.lastName,
+    registration?.confirmationCode,
+    row?.raceDistance,
+    row?.participationMode,
+    event?.title
+  ].map((item) => String(item || '').trim().toLowerCase()).filter(Boolean).join(' ');
+}
+
+function mapPublicStatus(status) {
+  const safe = String(status || '').trim().toLowerCase();
+  if (safe === 'approved' || safe === 'verified') return 'verified';
+  if (safe === 'submitted' || safe === 'pending_review') return 'pending_review';
+  if (safe === 'rejected') return 'rejected';
+  return 'incomplete';
+}
+
+function getPublicStatusLabel(status) {
+  if (status === 'verified') return 'Verified';
+  if (status === 'pending_review') return 'Pending Review';
+  if (status === 'rejected') return 'Rejected';
+  return 'Incomplete';
+}
+
+function formatPace(secondsPerKm) {
+  const totalSeconds = Number(secondsPerKm || 0);
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return '';
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}/km`;
+}
+
+function getLastUpdatedAt(entries = []) {
+  const timestamps = entries
+    .map((item) => new Date(item.updatedAt || item.verifiedAt || item.submittedAt || 0).getTime())
+    .filter((item) => Number.isFinite(item) && item > 0);
+  if (!timestamps.length) return null;
+  return new Date(Math.max(...timestamps));
+}
+
+async function getRunnerPendingStanding(eventId, userId, settings) {
+  const Model = settings.type === 'accumulated_challenge' ? AccumulatedActivitySubmission : Submission;
+  const row = await Model.findOne({
+    eventId,
+    runnerId: userId,
+    status: { $in: ['submitted', 'rejected'] },
+    ...(settings.hideFlagged ? { suspiciousFlag: { $ne: true } } : {})
+  })
+    .sort({ submittedAt: -1 })
+    .populate({ path: 'runnerId', select: 'firstName lastName displayName email userId' })
+    .populate({ path: 'registrationId', select: 'confirmationCode raceDistance participationMode participant registeredAt' })
+    .select('runnerId registrationId raceDistance participationMode distanceKm elapsedMs status submittedAt updatedAt')
+    .lean();
+  if (!row) return null;
+  return formatRaceEntry(row, { _id: eventId }, settings, null);
+}
+
 function clampInt(value, min, max, fallback) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed)) return fallback;
@@ -246,5 +667,9 @@ function clampInt(value, min, max, fallback) {
 }
 
 module.exports = {
-  getLeaderboardData
+  getLeaderboardData,
+  getEventLeaderboard,
+  getMyStanding,
+  getNearbyRunners,
+  resolveEventLeaderboardSettings
 };

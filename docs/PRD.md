@@ -2914,10 +2914,18 @@ LEADERBOARD PLAN (Phase 5 - Future)
 
 Data Source: Approved submissions from Phase 5
 
+### Leaderboard and Results Experience
+
+[IN_PROGRESS] HelloRun provides an event-scoped leaderboard and results experience for race results and accumulated virtual challenges first.
+[IN_PROGRESS] The V1 leaderboard prioritizes runner clarity by showing personal standing, nearby runners, verification status, category/distance filters, search, and mobile-friendly result cards.
+[IN_PROGRESS] Only approved submissions affect official rankings by default. Submitted or suspicious entries are excluded unless organiser settings allow safe pending labels.
+[IN_PROGRESS] Public leaderboard endpoints must return only public-safe fields and never expose proof images, OCR raw text, contact details, payment proof, internal notes, or suspicious flag details.
+[PENDING] Later phases may add team leaderboards, awards, manual overrides, result inquiries, live display links, timing-provider imports, and cached leaderboard generation for high-volume events.
+
 ### Features
 [PENDING] Top runners by total distance
 [PENDING] Fastest times per event
-[PENDING] Event-specific rankings
+[IN_PROGRESS] Event-specific rankings
 [PENDING] Filter by distance category (5K, 10K, 21K, 42K)
 [PENDING] Filter by event
 [PENDING] Filter by time period (weekly, monthly, all-time)

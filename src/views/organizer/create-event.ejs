@@ -367,6 +367,63 @@
                   </div>
                   <small class="field-hint">Controls whether leaderboard recognition is advertised for this accumulated challenge.</small>
                 </div>
+                <div class="form-group form-group-full">
+                  <div class="subsection-divider">Leaderboard Settings</div>
+                  <% const leaderboardSettings = formData.leaderboardSettings || {}; %>
+                  <% const selectedLeaderboardColumns = leaderboardSettings.visibleColumns || []; %>
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label for="leaderboardSettingsType">Leaderboard Type</label>
+                      <select id="leaderboardSettingsType" name="leaderboardSettingsType">
+                        <option value="race_result" <%= leaderboardSettings.type === 'race_result' ? 'selected' : '' %>>Race result</option>
+                        <option value="accumulated_challenge" <%= leaderboardSettings.type === 'accumulated_challenge' ? 'selected' : '' %>>Accumulated challenge</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="leaderboardSettingsRankingBasis">Ranking Basis</label>
+                      <select id="leaderboardSettingsRankingBasis" name="leaderboardSettingsRankingBasis">
+                        <option value="fastest_time" <%= leaderboardSettings.rankingBasis === 'fastest_time' ? 'selected' : '' %>>Fastest verified time</option>
+                        <option value="highest_verified_distance" <%= leaderboardSettings.rankingBasis === 'highest_verified_distance' ? 'selected' : '' %>>Highest verified distance</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="leaderboardSettingsNameDisplayMode">Runner Name Display</label>
+                      <select id="leaderboardSettingsNameDisplayMode" name="leaderboardSettingsNameDisplayMode">
+                        <option value="full_name" <%= leaderboardSettings.nameDisplayMode === 'full_name' ? 'selected' : '' %>>Full name</option>
+                        <option value="first_name_last_initial" <%= leaderboardSettings.nameDisplayMode === 'first_name_last_initial' ? 'selected' : '' %>>First name + last initial</option>
+                        <option value="display_name" <%= leaderboardSettings.nameDisplayMode === 'display_name' ? 'selected' : '' %>>Display name</option>
+                        <option value="anonymous_runner_id" <%= leaderboardSettings.nameDisplayMode === 'anonymous_runner_id' ? 'selected' : '' %>>Anonymous runner ID</option>
+                      </select>
+                    </div>
+                    <div class="form-group">
+                      <label for="leaderboardSettingsVisibility">Visibility</label>
+                      <select id="leaderboardSettingsVisibility" name="leaderboardSettingsVisibility">
+                        <option value="public" <%= leaderboardSettings.visibility === 'public' ? 'selected' : '' %>>Public</option>
+                        <option value="registered_only" <%= leaderboardSettings.visibility === 'registered_only' ? 'selected' : '' %>>Registered runners only</option>
+                        <option value="private_until_published" <%= leaderboardSettings.visibility === 'private_until_published' ? 'selected' : '' %>>Private until published</option>
+                      </select>
+                    </div>
+                    <div class="form-group form-group-full">
+                      <label>Visible Columns</label>
+                      <div class="checkbox-row">
+                        <% ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status'].forEach((column) => { %>
+                          <label><input type="checkbox" name="leaderboardSettingsVisibleColumns" value="<%= column %>" <%= selectedLeaderboardColumns.includes(column) ? 'checked' : '' %>> <%= column.charAt(0).toUpperCase() + column.slice(1) %></label>
+                        <% }) %>
+                      </div>
+                    </div>
+                    <div class="form-group form-group-full">
+                      <label>Review Visibility</label>
+                      <input type="hidden" name="leaderboardSettingsEnabled" value="0">
+                      <input type="hidden" name="leaderboardSettingsHideFlagged" value="0">
+                      <div class="checkbox-row">
+                        <label><input type="checkbox" name="leaderboardSettingsEnabled" value="1" <%= leaderboardSettings.enabled !== false ? 'checked' : '' %>> Enable event leaderboard</label>
+                        <label><input type="checkbox" name="leaderboardSettingsShowPending" value="1" <%= leaderboardSettings.showPending ? 'checked' : '' %>> Show pending submissions with labels</label>
+                        <label><input type="checkbox" name="leaderboardSettingsHideFlagged" value="1" <%= leaderboardSettings.hideFlagged !== false ? 'checked' : '' %>> Hide suspicious submissions publicly</label>
+                      </div>
+                      <small class="field-hint">Official ranking includes approved submissions only. Pending rows can be shown without receiving a rank.</small>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="form-group">

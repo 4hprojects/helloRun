@@ -36,7 +36,11 @@ const {
   getRunnerEarnedBadges,
   getPublicBadgeVerification: loadPublicBadgeVerification
 } = require('../services/achievement.service');
-const { getLeaderboardData } = require('../services/leaderboard.service');
+const {
+  getLeaderboardData,
+  getEventLeaderboard,
+  getMyStanding
+} = require('../services/leaderboard.service');
 const {
   buildPublicEventSeo,
   buildPublicEventView,
@@ -1585,6 +1589,88 @@ exports.getLeaderboard = async (req, res) => {
       status: 500,
       message: 'An error occurred while loading leaderboard data.'
     });
+  }
+};
+
+exports.getEventLeaderboardPage = async (req, res) => {
+  try {
+    const data = await getEventLeaderboard(req.params.slug, {
+      category: req.query.category,
+      mode: req.query.mode,
+      status: req.query.status,
+      search: req.query.search,
+      page: req.query.page,
+      limit: req.query.limit
+    });
+
+    if (!data) {
+      return res.status(404).render('error', {
+        title: '404 - Leaderboard Not Found',
+        status: 404,
+        message: 'Leaderboard is not available for this event.'
+      });
+    }
+
+    const myStanding = req.session?.userId
+      ? await getMyStanding(req.params.slug, req.session.userId, {
+          category: req.query.category,
+          mode: req.query.mode,
+          status: req.query.status
+        })
+      : null;
+
+    return res.render('pages/event-leaderboard', {
+      title: `${data.event.title} Leaderboard - helloRun`,
+      leaderboard: data,
+      myStanding
+    });
+  } catch (error) {
+    console.error('Error loading event leaderboard:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading event leaderboard data.'
+    });
+  }
+};
+
+exports.getEventLeaderboardData = async (req, res) => {
+  try {
+    const data = await getEventLeaderboard(req.params.slug, {
+      category: req.query.category,
+      mode: req.query.mode,
+      status: req.query.status,
+      search: req.query.search,
+      page: req.query.page,
+      limit: req.query.limit
+    });
+    if (!data) {
+      return res.status(404).json({ success: false, message: 'Leaderboard is not available for this event.' });
+    }
+    return res.json({ success: true, leaderboard: data });
+  } catch (error) {
+    console.error('Error loading event leaderboard data:', error);
+    return res.status(500).json({ success: false, message: 'Unable to load leaderboard data.' });
+  }
+};
+
+exports.getEventLeaderboardMyStanding = async (req, res) => {
+  try {
+    if (!req.session?.userId) {
+      return res.status(401).json({ success: false, message: 'Log in to view your standing.' });
+    }
+    const data = await getMyStanding(req.params.slug, req.session.userId, {
+      category: req.query.category,
+      mode: req.query.mode,
+      status: req.query.status
+    });
+    if (!data) {
+      return res.status(404).json({ success: false, message: 'Standing is not available for this event.' });
+    }
+    return res.json({ success: true, myStanding: data });
+  } catch (error) {
+    console.error('Error loading my leaderboard standing:', error);
+    return res.status(500).json({ success: false, message: 'Unable to load your standing.' });
   }
 };
 

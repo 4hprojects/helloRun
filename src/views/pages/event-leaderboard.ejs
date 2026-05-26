@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/leaderboard.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <% const event = leaderboard.event || {}; %>
+  <% const settings = leaderboard.settings || {}; %>
+  <% const filters = leaderboard.filters || {}; %>
+  <% const standing = myStanding && myStanding.standing ? myStanding.standing : null; %>
+  <% const nearby = myStanding && myStanding.nearby ? myStanding.nearby : []; %>
+
+  <main class="leaderboard-page">
+    <section class="leaderboard-shell leaderboard-shell-event">
+      <header class="leaderboard-header leaderboard-event-header">
+        <div>
+          <a class="leaderboard-back-link" href="/events/<%= event.slug %>">Back to event</a>
+          <h1><%= event.title %></h1>
+          <p><%= settings.type === 'accumulated_challenge' ? 'Accumulated Challenge Leaderboard' : 'Race Result Leaderboard' %></p>
+        </div>
+        <div class="leaderboard-event-meta">
+          <span><%= leaderboard.rankingExplanation %></span>
+          <span>Last updated: <%= leaderboard.stats.lastUpdatedAt ? new Date(leaderboard.stats.lastUpdatedAt).toLocaleString('en-US') : 'No results yet' %></span>
+        </div>
+      </header>
+
+      <% if (standing) { %>
+        <section class="leaderboard-standing-card" aria-labelledby="my-standing-heading">
+          <div>
+            <p class="leaderboard-card-kicker">My Standing</p>
+            <h2 id="my-standing-heading"><%= standing.rank ? `#${standing.rank} Overall` : standing.statusLabel %></h2>
+            <p><%= standing.category || 'Registered category' %></p>
+          </div>
+          <dl>
+            <div><dt>Status</dt><dd><%= standing.statusLabel %></dd></div>
+            <div><dt>Distance</dt><dd><%= standing.distanceLabel || 'N/A' %></dd></div>
+            <% if (standing.timeLabel) { %><div><dt>Time</dt><dd><%= standing.timeLabel %></dd></div><% } %>
+            <% if (standing.paceLabel) { %><div><dt>Pace</dt><dd><%= standing.paceLabel %></dd></div><% } %>
+          </dl>
+          <% if (nearby.length) { %>
+            <div class="leaderboard-nearby">
+              <h3>Nearby Runners</h3>
+              <ol>
+                <% nearby.forEach((item) => { %>
+                  <li class="<%= item.isCurrentUser ? 'is-current' : '' %>">
+                    <span><%= item.rank ? `#${item.rank}` : '-' %> <%= item.isCurrentUser ? 'You' : item.runnerName %></span>
+                    <strong><%= item.timeLabel || item.distanceLabel %></strong>
+                  </li>
+                <% }) %>
+              </ol>
+            </div>
+          <% } %>
+        </section>
+      <% } else { %>
+        <section class="leaderboard-standing-card leaderboard-standing-card-muted">
+          <div>
+            <p class="leaderboard-card-kicker">My Standing</p>
+            <h2>Log in to view your standing</h2>
+            <p>Your rank and review status appear here after you submit proof for this event.</p>
+          </div>
+        </section>
+      <% } %>
+
+      <form method="GET" action="/events/<%= event.slug %>/leaderboard" class="leaderboard-filters leaderboard-event-filters">
+        <div class="leaderboard-filter-field leaderboard-search-field">
+          <label for="search">
+            <i data-lucide="search" aria-hidden="true"></i>
+            <span>Search runner or bib</span>
+          </label>
+          <input id="search" name="search" type="search" value="<%= filters.search || '' %>" placeholder="Name or HR code">
+        </div>
+        <div class="leaderboard-filter-field">
+          <label for="category">Category</label>
+          <input id="category" name="category" type="text" value="<%= filters.category || '' %>" placeholder="All">
+        </div>
+        <div class="leaderboard-filter-field">
+          <label for="mode">Mode</label>
+          <select id="mode" name="mode">
+            <option value="" <%= !filters.mode ? 'selected' : '' %>>All</option>
+            <option value="virtual" <%= filters.mode === 'virtual' ? 'selected' : '' %>>Virtual</option>
+            <option value="onsite" <%= filters.mode === 'onsite' ? 'selected' : '' %>>Onsite</option>
+          </select>
+        </div>
+        <div class="leaderboard-filter-field">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="" <%= !filters.status ? 'selected' : '' %>>All public statuses</option>
+            <option value="verified" <%= filters.status === 'verified' ? 'selected' : '' %>>Verified</option>
+            <option value="pending_review" <%= filters.status === 'pending_review' ? 'selected' : '' %>>Pending Review</option>
+          </select>
+        </div>
+        <div class="leaderboard-filter-actions">
+          <button type="submit" class="btn btn-primary leaderboard-action-btn">Apply</button>
+          <a href="/events/<%= event.slug %>/leaderboard" class="btn btn-secondary leaderboard-action-btn">Clear</a>
+        </div>
+      </form>
+
+      <p class="leaderboard-results-meta">
+        Showing <strong><%= leaderboard.entries.length %></strong> result<%= leaderboard.entries.length === 1 ? '' : 's' %>.
+        <strong><%= leaderboard.stats.verifiedEntries %></strong> verified result<%= leaderboard.stats.verifiedEntries === 1 ? '' : 's' %> count toward official ranking.
+      </p>
+
+      <% if (leaderboard.entries && leaderboard.entries.length) { %>
+        <div class="leaderboard-card-list" aria-label="Leaderboard result cards">
+          <% leaderboard.entries.forEach((entry) => { %>
+            <article class="leaderboard-mobile-card">
+              <div class="leaderboard-mobile-card-head">
+                <div>
+                  <p>#<%= entry.rank || '-' %> Overall</p>
+                  <h2><%= entry.runnerName %></h2>
+                  <span><%= entry.category || 'Category' %></span>
+                </div>
+                <span class="leaderboard-status-badge leaderboard-status-<%= entry.status %>"><%= entry.statusLabel %></span>
+              </div>
+              <dl>
+                <div><dt>Distance</dt><dd><%= entry.distanceLabel || 'N/A' %></dd></div>
+                <div><dt>Time</dt><dd><%= entry.timeLabel || '-' %></dd></div>
+                <div><dt>Pace</dt><dd><%= entry.paceLabel || '-' %></dd></div>
+              </dl>
+            </article>
+          <% }) %>
+        </div>
+
+        <div class="leaderboard-table-wrap leaderboard-desktop-table">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <% if (settings.visibleColumns.includes('rank')) { %><th>Rank</th><% } %>
+                <% if (settings.visibleColumns.includes('runner')) { %><th>Runner</th><% } %>
+                <% if (settings.visibleColumns.includes('category')) { %><th>Category</th><% } %>
+                <% if (settings.visibleColumns.includes('distance')) { %><th>Distance</th><% } %>
+                <% if (settings.visibleColumns.includes('time')) { %><th>Time</th><% } %>
+                <% if (settings.visibleColumns.includes('pace')) { %><th>Pace</th><% } %>
+                <% if (settings.visibleColumns.includes('status')) { %><th>Status</th><% } %>
+              </tr>
+            </thead>
+            <tbody>
+              <% leaderboard.entries.forEach((entry) => { %>
+                <tr>
+                  <% if (settings.visibleColumns.includes('rank')) { %><td data-label="Rank"><span class="leaderboard-rank-badge"><%= entry.rank ? `#${entry.rank}` : '-' %></span></td><% } %>
+                  <% if (settings.visibleColumns.includes('runner')) { %><td data-label="Runner"><%= entry.runnerName %></td><% } %>
+                  <% if (settings.visibleColumns.includes('category')) { %><td data-label="Category"><%= entry.category || 'N/A' %></td><% } %>
+                  <% if (settings.visibleColumns.includes('distance')) { %><td data-label="Distance"><%= entry.distanceLabel || 'N/A' %></td><% } %>
+                  <% if (settings.visibleColumns.includes('time')) { %><td data-label="Time"><strong><%= entry.timeLabel || '-' %></strong></td><% } %>
+                  <% if (settings.visibleColumns.includes('pace')) { %><td data-label="Pace"><%= entry.paceLabel || '-' %></td><% } %>
+                  <% if (settings.visibleColumns.includes('status')) { %><td data-label="Status"><span class="leaderboard-status-badge leaderboard-status-<%= entry.status %>"><span class="sr-only">Submission status: </span><%= entry.statusLabel %></span></td><% } %>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <h2>No leaderboard results yet.</h2>
+          <p>No verified results match the selected filters. Results will appear here once submissions are approved.</p>
+        </div>
+      <% } %>
+
+      <section class="leaderboard-status-legend" aria-label="Status legend">
+        <h2>Status Legend</h2>
+        <p><span class="leaderboard-status-badge leaderboard-status-verified">Verified</span> Counts toward official ranking.</p>
+        <p><span class="leaderboard-status-badge leaderboard-status-pending_review">Pending Review</span> Waiting for organiser review and not officially ranked.</p>
+      </section>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+  </script>
+</body>
+</html>

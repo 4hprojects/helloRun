@@ -10,6 +10,12 @@ const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_distan
 const ACCEPTED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
 const RECOGNITION_MODES = new Set(['completion_only', 'completion_with_optional_ranking']);
 const LEADERBOARD_MODES = new Set(['finishers', 'top_distance', 'finishers_and_top_distance']);
+const LEADERBOARD_SETTING_TYPES = new Set(['race_result', 'accumulated_challenge']);
+const LEADERBOARD_RANKING_BASES = new Set(['fastest_time', 'highest_verified_distance']);
+const LEADERBOARD_VISIBILITIES = new Set(['public', 'registered_only', 'private_until_published']);
+const LEADERBOARD_NAME_DISPLAY_MODES = new Set(['full_name', 'first_name_last_initial', 'display_name', 'anonymous_runner_id']);
+const LEADERBOARD_VISIBLE_COLUMNS = new Set(['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status']);
+const DEFAULT_LEADERBOARD_VISIBLE_COLUMNS = ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status'];
 const FEE_MODES = new Set(['free', 'paid']);
 const PRICING_MODES = new Set([
   'free',
@@ -231,6 +237,73 @@ function hasOwnValue(body, key) {
 function normalizeBoolean(value) {
   if (Array.isArray(value)) return normalizeBoolean(value[value.length - 1]);
   return value === true || value === 'true' || value === '1' || value === 'on';
+}
+
+function normalizeLeaderboardVisibleColumns(value) {
+  const columns = normalizeToArray(value)
+    .map((item) => String(item || '').trim())
+    .filter((item) => LEADERBOARD_VISIBLE_COLUMNS.has(item));
+  return columns.length ? Array.from(new Set(columns)) : DEFAULT_LEADERBOARD_VISIBLE_COLUMNS.slice();
+}
+
+function getDefaultLeaderboardType(virtualCompletionMode) {
+  return virtualCompletionMode === 'accumulated_distance' ? 'accumulated_challenge' : 'race_result';
+}
+
+function getDefaultLeaderboardRankingBasis(type) {
+  return type === 'accumulated_challenge' ? 'highest_verified_distance' : 'fastest_time';
+}
+
+function normalizeLeaderboardSettings(body = {}, context = {}) {
+  const typeFallback = getDefaultLeaderboardType(context.virtualCompletionMode);
+  const type = normalizeModeValue(body.leaderboardSettingsType || body.leaderboardType || body.type, LEADERBOARD_SETTING_TYPES, typeFallback);
+  const rankingBasis = normalizeModeValue(
+    body.leaderboardSettingsRankingBasis || body.leaderboardRankingBasis || body.rankingBasis,
+    LEADERBOARD_RANKING_BASES,
+    getDefaultLeaderboardRankingBasis(type)
+  );
+  const hasSettingsEnabledValue = hasOwnValue(body, 'leaderboardSettingsEnabled') || hasOwnValue(body, 'enabled');
+  const hasEnabledValue = hasSettingsEnabledValue || hasOwnValue(body, 'leaderboardRecognitionEnabled');
+  const enabledValue = hasSettingsEnabledValue
+    ? (body.leaderboardSettingsEnabled ?? body.enabled)
+    : body.leaderboardRecognitionEnabled;
+  return {
+    enabled: hasEnabledValue
+      ? normalizeBoolean(enabledValue)
+      : context.leaderboardRecognitionEnabled !== false,
+    type,
+    rankingBasis: type === 'accumulated_challenge' ? 'highest_verified_distance' : rankingBasis,
+    visibility: normalizeModeValue(
+      body.leaderboardSettingsVisibility || body.leaderboardVisibility || body.visibility,
+      LEADERBOARD_VISIBILITIES,
+      'public'
+    ),
+    showPending: normalizeBoolean(body.leaderboardSettingsShowPending || body.leaderboardShowPending || body.showPending),
+    hideFlagged: hasOwnValue(body, 'leaderboardSettingsHideFlagged') || hasOwnValue(body, 'leaderboardHideFlagged') || hasOwnValue(body, 'hideFlagged')
+      ? normalizeBoolean(body.leaderboardSettingsHideFlagged || body.leaderboardHideFlagged || body.hideFlagged)
+      : true,
+    nameDisplayMode: normalizeModeValue(
+      body.leaderboardSettingsNameDisplayMode || body.leaderboardNameDisplayMode || body.nameDisplayMode,
+      LEADERBOARD_NAME_DISPLAY_MODES,
+      'first_name_last_initial'
+    ),
+    visibleColumns: normalizeLeaderboardVisibleColumns(body.leaderboardSettingsVisibleColumns || body.leaderboardVisibleColumns || body.visibleColumns)
+  };
+}
+
+function normalizeLeaderboardSettingsFromEvent(event = {}) {
+  const existing = event.leaderboardSettings || {};
+  const type = normalizeModeValue(existing.type, LEADERBOARD_SETTING_TYPES, getDefaultLeaderboardType(event.virtualCompletionMode));
+  return {
+    enabled: typeof existing.enabled === 'boolean' ? existing.enabled : event.leaderboardRecognitionEnabled !== false,
+    type,
+    rankingBasis: normalizeModeValue(existing.rankingBasis, LEADERBOARD_RANKING_BASES, getDefaultLeaderboardRankingBasis(type)),
+    visibility: normalizeModeValue(existing.visibility, LEADERBOARD_VISIBILITIES, 'public'),
+    showPending: Boolean(existing.showPending),
+    hideFlagged: typeof existing.hideFlagged === 'boolean' ? existing.hideFlagged : true,
+    nameDisplayMode: normalizeModeValue(existing.nameDisplayMode, LEADERBOARD_NAME_DISPLAY_MODES, 'first_name_last_initial'),
+    visibleColumns: normalizeLeaderboardVisibleColumns(existing.visibleColumns)
+  };
 }
 
 function normalizeCurrency(value) {
@@ -570,6 +643,13 @@ function getCreateEventFormData(body = {}) {
   const customizedOptions = normalizeCustomizedOptions(body);
   const physicalRewardOtherItems = normalizeOtherItems(body.physicalRewardOtherItemName, body.physicalRewardOtherItemAmount);
   const deliveryFeeEnabled = normalizeBoolean(body.deliveryFeeEnabled);
+  const leaderboardRecognitionEnabled = isDefaultCreateBody
+    ? normalizeBoolean(body.leaderboardRecognitionEnabled)
+    : normalizeBoolean(body.leaderboardRecognitionEnabled);
+  const leaderboardSettings = normalizeLeaderboardSettings(body, {
+    virtualCompletionMode: normalizeVirtualCompletionMode(body.virtualCompletionMode),
+    leaderboardRecognitionEnabled
+  });
   const normalizedFormData = {
     physicalRewardsEnabled,
     physicalRewardMedalEnabled: normalizeBoolean(body.physicalRewardMedalEnabled),
@@ -664,7 +744,8 @@ function getCreateEventFormData(body = {}) {
     paymentInstructions: String(body.paymentInstructions || '').trim().slice(0, 1000),
     digitalBadgeEnabled: isDefaultCreateBody ? normalizeBoolean(body.digitalBadgeEnabled) : normalizeBoolean(body.digitalBadgeEnabled),
     digitalCertificateEnabled: isDefaultCreateBody ? normalizeBoolean(body.digitalCertificateEnabled) : normalizeBoolean(body.digitalCertificateEnabled),
-    leaderboardRecognitionEnabled: isDefaultCreateBody ? normalizeBoolean(body.leaderboardRecognitionEnabled) : normalizeBoolean(body.leaderboardRecognitionEnabled),
+    leaderboardRecognitionEnabled,
+    leaderboardSettings,
     ...normalizedFormData,
     waiverTemplate: sanitizeWaiverTemplate(waiverTemplateRaw),
     actionType: body.actionType === 'publish' || body.actionType === 'submit_review' ? 'publish' : 'draft'
@@ -793,6 +874,7 @@ function getCreateEventFormDataFromEvent(event) {
     digitalBadgeEnabled: Boolean(event.digitalBadgeEnabled),
     digitalCertificateEnabled: event.digitalCertificateEnabled !== false,
     leaderboardRecognitionEnabled: event.leaderboardRecognitionEnabled !== false,
+    leaderboardSettings: normalizeLeaderboardSettingsFromEvent(event),
     physicalRewardsEnabled: Boolean(event.physicalRewardsEnabled),
     physicalRewardMedalEnabled: Boolean(event.physicalRewardMedalEnabled),
     physicalRewardMedalAmount: Number.isFinite(event.physicalRewardMedalAmount) ? event.physicalRewardMedalAmount : null,
@@ -1566,6 +1648,10 @@ function applyEventFormData(event, formData, user) {
   event.digitalBadgeEnabled = Boolean(formData.digitalBadgeEnabled);
   event.digitalCertificateEnabled = formData.digitalCertificateEnabled !== false;
   event.leaderboardRecognitionEnabled = formData.leaderboardRecognitionEnabled !== false;
+  event.leaderboardSettings = normalizeLeaderboardSettings(formData.leaderboardSettings || {}, {
+    virtualCompletionMode: event.virtualCompletionMode,
+    leaderboardRecognitionEnabled: event.leaderboardRecognitionEnabled
+  });
   event.physicalRewardsEnabled = Boolean(formData.physicalRewardsEnabled);
   event.physicalRewardMedalEnabled = event.physicalRewardsEnabled ? Boolean(formData.physicalRewardMedalEnabled) : false;
   event.physicalRewardMedalAmount = event.physicalRewardsEnabled && event.physicalRewardMedalEnabled ? formData.physicalRewardMedalAmount : null;

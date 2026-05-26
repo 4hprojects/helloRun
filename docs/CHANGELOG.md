@@ -3,6 +3,56 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 26, 2026 (Session: Event Leaderboard Aligned V1)
+
+### [SESSION] SESSION UPDATE:
+- Implemented the aligned V1 leaderboard scope from `docs/features/hellorun_leaderboard_improvement_spec.md`:
+  - kept the existing global `/leaderboard` page intact
+  - added event-scoped leaderboard routes for page, JSON data, and logged-in runner standing
+  - added race-result ranking from approved `Submission` records
+  - added accumulated-challenge ranking from approved `AccumulatedActivitySubmission` totals
+  - added My Standing and nearby runners support
+  - added public-safe search by runner name and registration/confirmation code
+- Added compact event leaderboard settings:
+  - stored `leaderboardSettings` on `Event`
+  - preserved existing `recognitionMode`, `leaderboardMode`, and `leaderboardRecognitionEnabled`
+  - mapped current statuses to public labels instead of adding new submission statuses
+  - defaulted older events from existing event fields
+- Updated public and organiser UI:
+  - added `/events/:slug/leaderboard` results page
+  - added event summary, filters, status legend, My Standing card, nearby runners, mobile cards, and desktop table
+  - added V1 settings controls to organiser create/edit event forms
+- Documented V1 leaderboard scope in the PRD:
+  - limited current scope to race result and accumulated challenge leaderboards
+  - left teams, awards, manual overrides, result inquiries, imports, and caching for later phases
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/PRD.md
+3. docs/features/hellorun_leaderboard_improvement_spec.md
+4. src/models/Event.js
+5. src/services/leaderboard.service.js
+6. src/services/event-form.service.js
+7. src/controllers/page.controller.js
+8. src/routes/pageRoutes.js
+9. src/views/pages/event-leaderboard.ejs
+10. src/views/organizer/create-event.ejs
+11. src/views/organizer/edit-event.ejs
+12. src/public/css/leaderboard.css
+13. tests/leaderboard.service.test.js
+14. tests/event-leaderboard-routes.test.js
+15. tests/organizer-waiver-routes.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --check src/services/leaderboard.service.js` -> PASS.
+- `node --check src/services/event-form.service.js` -> PASS.
+- `node --check src/controllers/page.controller.js` -> PASS.
+- `node --test tests/leaderboard.service.test.js tests/event-leaderboard-routes.test.js` -> PASS, 8/8.
+- `node --test tests/organizer-waiver-routes.test.js` -> PASS, 31/31.
+- Test runs emitted existing Supabase shadow-sync warnings for Mongo-only seeded test records, but all assertions passed.
+
+---
+
 ## CHANGELOG - May 26, 2026 (Session: Admin Event Deletion Stabilization + Pricing Snapshot Hardening)
 
 ### [SESSION] SESSION UPDATE:

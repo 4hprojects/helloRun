@@ -34,6 +34,9 @@ router.get('/events', pageController.getEvents);
 router.get('/my-registrations', requireAuth, pageController.getMyRegistrations);
 router.get('/events/:slug/register', requireAuth, pageController.getEventRegistrationForm);
 router.post('/events/:slug/register', requireAuth, requireCsrfProtection, pageController.postEventRegistration);
+router.get('/events/:slug/leaderboard', pageController.getEventLeaderboardPage);
+router.get('/events/:slug/leaderboard/data', pageController.getEventLeaderboardData);
+router.get('/events/:slug/leaderboard/my-standing', pageController.getEventLeaderboardMyStanding);
 router.post('/profile/quick-update', requireAuth, requireCsrfProtection, quickProfileUpdateLimiter, pageController.postQuickProfileUpdate);
 router.post(
   '/my-registrations/:registrationId/payment-proof',

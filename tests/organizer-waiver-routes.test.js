@@ -711,6 +711,39 @@ test('applyEventFormData clears physical reward item flags when physical rewards
   assert.equal(event.physicalRewardsDescription, '');
 });
 
+test('event form normalizes and applies leaderboard settings', () => {
+  const formData = getCreateEventFormData({
+    title: 'Leaderboard Settings Event',
+    organiserName: 'Organizer',
+    description: 'A leaderboard settings event.',
+    eventType: 'virtual',
+    virtualCompletionMode: 'single_activity',
+    leaderboardRecognitionEnabled: '1',
+    leaderboardSettingsEnabled: '1',
+    leaderboardSettingsType: 'race_result',
+    leaderboardSettingsRankingBasis: 'fastest_time',
+    leaderboardSettingsNameDisplayMode: 'anonymous_runner_id',
+    leaderboardSettingsShowPending: '1',
+    leaderboardSettingsHideFlagged: '1',
+    leaderboardSettingsVisibleColumns: ['rank', 'runner', 'time', 'status']
+  });
+  const event = {};
+
+  applyEventFormData(event, formData, null);
+
+  assert.equal(event.leaderboardRecognitionEnabled, true);
+  assert.deepEqual(event.leaderboardSettings, {
+    enabled: true,
+    type: 'race_result',
+    rankingBasis: 'fastest_time',
+    visibility: 'public',
+    showPending: true,
+    hideFlagged: true,
+    nameDisplayMode: 'anonymous_runner_id',
+    visibleColumns: ['rank', 'runner', 'time', 'status']
+  });
+});
+
 test('create-event form normalization supports organizer setup pricing fields', () => {
   const formData = getCreateEventFormData({
     title: 'Organizer Setup Event',

@@ -248,6 +248,49 @@ const eventSchema = new mongoose.Schema(
       type: Boolean,
       default: true
     },
+    leaderboardSettings: {
+      enabled: {
+        type: Boolean,
+        default: true
+      },
+      type: {
+        type: String,
+        enum: ['race_result', 'accumulated_challenge'],
+        default: 'race_result'
+      },
+      rankingBasis: {
+        type: String,
+        enum: ['fastest_time', 'highest_verified_distance'],
+        default: 'fastest_time'
+      },
+      visibility: {
+        type: String,
+        enum: ['public', 'registered_only', 'private_until_published'],
+        default: 'public'
+      },
+      showPending: {
+        type: Boolean,
+        default: false
+      },
+      hideFlagged: {
+        type: Boolean,
+        default: true
+      },
+      nameDisplayMode: {
+        type: String,
+        enum: ['full_name', 'first_name_last_initial', 'display_name', 'anonymous_runner_id'],
+        default: 'first_name_last_initial'
+      },
+      visibleColumns: {
+        type: [
+          {
+            type: String,
+            enum: ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status']
+          }
+        ],
+        default: ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status']
+      }
+    },
     physicalRewardsEnabled: {
       type: Boolean,
       default: false
