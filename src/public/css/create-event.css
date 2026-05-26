@@ -573,6 +573,58 @@
   margin-bottom: 1rem;
 }
 
+.pricing-step-snapshot {
+  margin-top: 0.75rem;
+  margin-bottom: 0.85rem;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  background: #f8fafc;
+  padding: 0.7rem 0.8rem;
+}
+
+.pricing-step-snapshot > strong {
+  display: block;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  margin-bottom: 0.45rem;
+}
+
+.pricing-step-snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.pricing-step-snapshot-grid p {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.pricing-step-snapshot-grid p span {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.pricing-step-snapshot-grid p b {
+  font-size: 0.86rem;
+  color: var(--text-primary);
+}
+
+.pricing-mode-panel {
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 0.9rem;
+  background: var(--bg-white);
+}
+
+.pricing-mode-panel .subsection-divider {
+  margin-top: 0;
+}
+
 /* ----- PER-DISTANCE FEE GRID ----- */
 .per-distance-fee-grid {
   display: flex;
@@ -2740,6 +2792,15 @@ textarea:focus {
 
   .waiver-toolbar {
     justify-content: flex-end;
+  }
+
+  .pricing-step-snapshot-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+  }
+
+  .pricing-mode-panel {
+    padding: 0.75rem;
   }
 
   .waiver-toolbar .waiver-icon-btn {

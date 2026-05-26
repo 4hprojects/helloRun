@@ -552,8 +552,8 @@
         <!-- PRICING PER DISTANCE SECTION -->
         <div id="pricing-step" class="form-section form-section-fees" tabindex="-1" data-wizard-step="pricing-step">
           <div class="section-kicker">Step 7 of 12</div>
-          <div class="section-title">Pricing</div>
-          <p class="section-helper">Set whether this event is free or paid, then choose distance-based pricing or custom signup options.</p>
+          <div class="section-title">Pricing Setup</div>
+          <p class="section-helper">Choose if the event is free or paid, then configure one pricing method. Step 8 handles payment account and QR details.</p>
           <% const pricingModeValue = ['distance_based', 'customized_options', 'distance_based_period', 'customized_options_period', 'package_period', 'per_distance', 'per_distance_period', 'same_fee'].includes(formData.pricingMode) ? formData.pricingMode : (formData.feeMode === 'paid' ? 'distance_based' : 'free'); %>
           <% const pricingModeBase = pricingModeValue === 'package_period' ? 'package_period' : (['customized_options', 'customized_options_period', 'same_fee'].includes(pricingModeValue) ? 'customized_options' : 'distance_based'); %>
           <input type="hidden" id="pricingMode" name="pricingMode" value="<%= pricingModeValue === 'per_distance' ? 'distance_based' : pricingModeValue === 'per_distance_period' ? 'distance_based_period' : pricingModeValue === 'same_fee' ? 'customized_options' : pricingModeValue %>">
@@ -578,7 +578,15 @@
                 <option value="customized_options" <%= pricingModeBase === 'customized_options' ? 'selected' : '' %>>Customized signup options</option>
                 <option value="package_period" <%= pricingModeBase === 'package_period' ? 'selected' : '' %>>Registration packages</option>
               </select>
-              <small class="field-hint">Registration packages let runners choose an inclusion bundle with early, regular, or late prices.</small>
+              <small class="field-hint" id="pricingTypeHint">Based on distance uses Step 5 race categories and sets one fee per distance.</small>
+            </div>
+          </div>
+          <div class="pricing-step-snapshot" id="pricingStepSnapshot" aria-live="polite">
+            <strong>Pricing snapshot</strong>
+            <div class="pricing-step-snapshot-grid">
+              <p><span>Mode</span><b id="pricingSnapshotMode">Free event</b></p>
+              <p><span>Configured</span><b id="pricingSnapshotConfigured">0 entries</b></p>
+              <p><span>Needs attention</span><b id="pricingSnapshotMissing">No issues</b></p>
             </div>
           </div>
           <p class="pricing-free-note field-hint" style="display:none;">&#10003; This event is free &mdash; runners will not be asked to pay or upload a payment receipt.</p>
@@ -1251,6 +1259,82 @@
         return 'distance_based';
       }
 
+      function getPricingTypeDisplayName(selectedPricingType) {
+        if (selectedPricingType === 'customized_options') return 'Customized signup options';
+        if (selectedPricingType === 'package_period') return 'Registration packages';
+        return 'Based on distance';
+      }
+
+      function updatePricingTypeHint(selectedPricingType) {
+        const hint = document.getElementById('pricingTypeHint');
+        if (!hint) return;
+        if (selectedPricingType === 'customized_options') {
+          hint.textContent = 'Customized signup options are best when runners choose inclusion bundles instead of only distance.';
+          return;
+        }
+        if (selectedPricingType === 'package_period') {
+          hint.textContent = 'Registration packages combine inclusions and time-based pricing windows for each bundle.';
+          return;
+        }
+        hint.textContent = 'Based on distance uses Step 5 race categories and sets one fee per distance.';
+      }
+
+      function updatePricingStepSnapshot() {
+        const modeEl = document.getElementById('pricingSnapshotMode');
+        const configuredEl = document.getElementById('pricingSnapshotConfigured');
+        const missingEl = document.getElementById('pricingSnapshotMissing');
+        if (!modeEl || !configuredEl || !missingEl) return;
+
+        const isPaid = feeModeSelect?.value === 'paid';
+        if (!isPaid) {
+          modeEl.textContent = 'Free event';
+          configuredEl.textContent = 'No pricing required';
+          missingEl.textContent = 'No issues';
+          return;
+        }
+
+        const selectedPricingType = getSelectedPricingType();
+        modeEl.textContent = getPricingTypeDisplayName(selectedPricingType);
+
+        if (selectedPricingType === 'distance_based') {
+          const feeRows = Array.from(document.querySelectorAll('#perDistanceFeeRows .per-distance-fee-row'));
+          const configuredCount = feeRows.filter((row) => {
+            const amountInput = row.querySelector('input[name="distancePricingAmount"]');
+            const regularInput = row.querySelector('input[name="distancePricingRegularAmount"]');
+            const amount = String(amountInput?.value || regularInput?.value || '').trim();
+            return amount !== '' && !Number.isNaN(Number(amount));
+          }).length;
+          configuredEl.textContent = `${configuredCount} of ${feeRows.length || 0} distances priced`;
+          missingEl.textContent = configuredCount === (feeRows.length || 0)
+            ? 'No issues'
+            : `${(feeRows.length || 0) - configuredCount} distance${(feeRows.length || 0) - configuredCount === 1 ? '' : 's'} missing price`;
+          return;
+        }
+
+        if (selectedPricingType === 'customized_options') {
+          const optionRows = Array.from(document.querySelectorAll('.customized-options-fields .customized-option-row'));
+          const configuredCount = optionRows.filter((row) => {
+            const description = row.querySelector('input[name="customizedOptionShortDescription"]')?.value?.trim() || '';
+            const amountRaw = row.querySelector('input[name="customizedOptionAmount"]')?.value || '';
+            const amount = Number(amountRaw);
+            return Boolean(description) && amountRaw !== '' && !Number.isNaN(amount) && amount > 0;
+          }).length;
+          configuredEl.textContent = `${configuredCount} signup option${configuredCount === 1 ? '' : 's'} configured`;
+          missingEl.textContent = configuredCount > 0 ? 'No issues' : 'Add at least one priced signup option';
+          return;
+        }
+
+        const packageCards = Array.from(document.querySelectorAll('#registrationPackageGrid [data-registration-package-card]'));
+        const configuredCount = packageCards.filter((card) => {
+          const name = card.querySelector('input[name="registrationPackageName"]')?.value?.trim() || '';
+          const hasAmount = Array.from(card.querySelectorAll('input[name="registrationPackageEarlyBirdAmount"], input[name="registrationPackageRegularAmount"], input[name="registrationPackageLateAmount"]'))
+            .some((input) => String(input.value || '').trim() !== '');
+          return Boolean(name) && hasAmount;
+        }).length;
+        configuredEl.textContent = `${configuredCount} package${configuredCount === 1 ? '' : 's'} configured`;
+        missingEl.textContent = configuredCount > 0 ? 'No issues' : 'Add at least one named package with pricing';
+      }
+
       function syncPricingModeInput() {
         const pricingModeInput = document.getElementById('pricingMode');
         if (!pricingModeInput) return;
@@ -1269,11 +1353,42 @@
           : selectedPricingType;
       }
 
-      function togglePricingPanels() {
+      function togglePricingPanels(options = {}) {
+        const shouldAnimate = Boolean(options.animate);
+        const notify = Boolean(options.notify);
         const isPaid = feeModeSelect?.value === 'paid';
         const selectedPricingType = getSelectedPricingType();
+        updatePricingTypeHint(selectedPricingType);
         pricingPanels.forEach((panel) => {
-          panel.style.display = isPaid && panel.dataset.pricingPanel === selectedPricingType ? '' : 'none';
+          const shouldShow = isPaid && panel.dataset.pricingPanel === selectedPricingType;
+          if (!shouldAnimate) {
+            panel.style.display = shouldShow ? '' : 'none';
+            return;
+          }
+          const currentlyVisible = panel.style.display !== 'none';
+          if (shouldShow && !currentlyVisible) {
+            panel.style.display = '';
+            panel.animate(
+              [
+                { opacity: 0, transform: 'translateY(-6px)' },
+                { opacity: 1, transform: 'translateY(0)' }
+              ],
+              { duration: 170, easing: 'ease-out' }
+            );
+            return;
+          }
+          if (!shouldShow && currentlyVisible) {
+            const hideAnimation = panel.animate(
+              [
+                { opacity: 1, transform: 'translateY(0)' },
+                { opacity: 0, transform: 'translateY(-5px)' }
+              ],
+              { duration: 130, easing: 'ease-in', fill: 'forwards' }
+            );
+            hideAnimation.onfinish = () => {
+              panel.style.display = 'none';
+            };
+          }
         });
         const periodsToggle = document.querySelector('.pricing-periods-toggle');
         const periodDateFields = document.querySelector('.pricing-period-date-fields');
@@ -1285,9 +1400,14 @@
         }
         syncPricingModeInput();
         if (isPaid && selectedPricingType === 'distance_based') rebuildPerDistanceFeeRows();
+        updatePricingStepSnapshot();
+        if (notify && isPaid) {
+          showInlineActionToast(`Pricing mode switched to ${getPricingTypeDisplayName(selectedPricingType)}.`, 'success');
+        }
       }
 
-      function togglePaymentFields() {
+      function togglePaymentFields(options = {}) {
+        const notify = Boolean(options.notify);
         const isPaid = feeModeSelect?.value === 'paid';
         paymentFields.forEach((field) => {
           field.style.display = isPaid ? '' : 'none';
@@ -1296,18 +1416,24 @@
         if (paymentFreeNote) paymentFreeNote.style.display = isPaid ? 'none' : '';
         const pricingFreeNote = document.querySelector('.pricing-free-note');
         if (pricingFreeNote) pricingFreeNote.style.display = isPaid ? 'none' : '';
-        togglePricingPanels();
+        togglePricingPanels({ animate: true });
+        updatePricingStepSnapshot();
+        if (notify) {
+          showInlineActionToast(isPaid ? 'Paid event enabled. Configure pricing below.' : 'Free event selected. Pricing setup is optional.', isPaid ? 'success' : 'warning');
+        }
       }
-      feeModeSelect?.addEventListener('change', togglePaymentFields);
-      pricingTypeSelect?.addEventListener('change', togglePricingPanels);
+      feeModeSelect?.addEventListener('change', () => togglePaymentFields({ notify: true }));
+      pricingTypeSelect?.addEventListener('change', () => togglePricingPanels({ animate: true, notify: true }));
       togglePaymentFields();
 
       // Pricing periods toggle: switches pricingMode between distance_based and distance_based_period.
       const enablePricingPeriodsCheckbox = document.getElementById('enablePricingPeriods');
       function onEnablePricingPeriodsChange() {
         syncPricingModeInput();
-        togglePricingPanels();
+        togglePricingPanels({ animate: true });
         rebuildPerDistanceFeeRows();
+        updatePricingStepSnapshot();
+        showInlineActionToast(enablePricingPeriodsCheckbox?.checked ? 'Pricing periods enabled for per-distance fees.' : 'Pricing periods disabled. Using one fee per distance.', enablePricingPeriodsCheckbox?.checked ? 'success' : 'warning');
       }
       enablePricingPeriodsCheckbox?.addEventListener('change', onEnablePricingPeriodsChange);
 
@@ -1489,6 +1615,7 @@
         if (!categories.length) {
           container.innerHTML = '<p class="field-hint per-distance-empty-hint">No race distances selected yet. Add distances in Step 5, then come back here to set fees per distance.</p>';
           if (periodsToggle) periodsToggle.style.display = 'none';
+          updatePricingStepSnapshot();
           return;
         }
         if (periodsToggle) periodsToggle.style.display = '';
@@ -1557,6 +1684,7 @@
           }
           container.appendChild(row);
         });
+        updatePricingStepSnapshot();
       }
 
       function bindRaceCategoryRow(row) {
@@ -2061,6 +2189,7 @@
         wrapper.innerHTML = html.trim();
         registrationPackageGrid.appendChild(wrapper.firstElementChild);
         updateRegistrationPackageIndexes();
+        updatePricingStepSnapshot();
         showInlineActionToast(`Package ${nextIndex + 1} added.`, 'success');
       }
 
@@ -2069,6 +2198,7 @@
         const packageTitle = card.querySelector('[data-registration-package-title]')?.textContent?.trim() || 'Package';
         card.remove();
         updateRegistrationPackageIndexes();
+        updatePricingStepSnapshot();
         showInlineActionToast(`${packageTitle} removed.`, 'danger');
       }
 
@@ -2081,8 +2211,16 @@
         const removeButton = event.target.closest('.btn-remove-registration-package');
         if (removeButton) removeRegistrationPackageCard(removeButton.closest('[data-registration-package-card]'));
       });
+      registrationPackageGrid?.addEventListener('input', updatePricingStepSnapshot);
+      registrationPackageGrid?.addEventListener('change', updatePricingStepSnapshot);
       addRegistrationPackageBtn?.addEventListener('click', addRegistrationPackageCard);
       updateRegistrationPackageIndexes();
+      document.getElementById('pricing-step')?.addEventListener('input', () => {
+        if (document.querySelector('[data-step-link="pricing-step"]')?.classList.contains('is-active')) updatePricingStepSnapshot();
+      });
+      document.getElementById('pricing-step')?.addEventListener('change', updatePricingStepSnapshot);
+      updatePricingTypeHint(getSelectedPricingType());
+      updatePricingStepSnapshot();
 
       const publicListingImmediateToggle = document.getElementById('publicListingImmediateToggle');
       const publicListingCustomAtFields = document.getElementById('publicListingCustomAtFields');
