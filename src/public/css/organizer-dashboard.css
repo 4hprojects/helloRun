@@ -700,6 +700,8 @@
 .event-info {
   flex: 1;
   min-width: 0;
+  padding-right: 8rem;
+  position: relative;
 }
 
 .event-info h3 {
@@ -782,14 +784,56 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  flex-wrap: wrap;
-  margin-top: 0.45rem;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  margin-top: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
 }
 
-.edit-event-btn,
-.view-registrants-btn {
+.event-action-icon-btn {
+  position: relative;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  margin: 0;
+  max-width: none;
+  border-radius: 999px;
   justify-content: center;
-  flex: 1 1 150px;
+  flex: 0 0 auto;
+}
+
+.event-action-icon-btn i {
+  width: 0.95rem;
+  height: 0.95rem;
+}
+
+.event-action-icon-btn::after {
+  content: attr(data-action-label);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 0.45rem);
+  transform: translate(-50%, 4px);
+  background: #1f2937;
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  padding: 0.4rem 0.5rem;
+  border-radius: 0.45rem;
+  box-shadow: var(--dash-shadow-sm);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  z-index: 4;
+}
+
+.event-action-icon-btn:hover::after,
+.event-action-icon-btn:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 .event-link-btn {
@@ -825,6 +869,31 @@
   font-weight: 600;
   text-transform: capitalize;
   flex-shrink: 0;
+}
+
+@media (min-width: 769px) {
+  .event-card {
+    position: relative;
+  }
+
+  .event-info {
+    padding-right: 10rem;
+    position: static;
+  }
+
+  .event-card .event-card-actions {
+    margin-top: 0;
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    width: auto;
+  }
+
+  .event-card > .event-status {
+    position: absolute;
+    right: 1rem;
+    top: 3.9rem;
+  }
 }
 
 .event-status-draft {
@@ -1667,6 +1736,69 @@
     width: 110px;
     height: 44px;
   }
+
+  .event-info {
+    padding-right: 0;
+  }
+
+  .event-card-actions {
+    justify-content: flex-end;
+    margin-top: 0.55rem;
+    position: static;
+    width: 100%;
+    display: flex;
+    align-self: flex-end;
+  }
+
+  .event-card-actions .event-action-icon-btn {
+    margin: 0 !important;
+  }
+
+  .event-links-actions-row {
+    align-items: center;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: space-between;
+    margin-top: 0.45rem;
+    min-width: 0;
+  }
+
+  .event-meta-links {
+    align-items: center;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    gap: 0.4rem;
+    margin-top: 0;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .event-meta-links a {
+    display: inline-flex;
+    flex: 0 1 auto;
+    font-size: 0.68rem;
+    max-width: 6.25rem;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0.2rem 0.45rem;
+    border: 1px solid rgba(120, 192, 233, 0.45);
+    border-radius: 999px;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .event-meta-links a:hover {
+    border-color: var(--dash-blue-dark);
+    text-decoration: none;
+  }
+
+  .event-links-actions-row .event-card-actions {
+    flex: 0 0 auto;
+    margin-top: 0;
+    width: auto;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1763,7 +1895,7 @@
     line-height: 1.45;
   }
 
-  .event-card-actions .event-link-btn,
+  .event-card-actions .event-link-btn:not(.event-action-icon-btn),
   .draft-events-item .event-link-btn,
   .review-queue-item .event-link-btn {
     justify-content: center;
@@ -1829,8 +1961,13 @@
   }
 
   .event-meta-links {
-    flex-direction: column;
-    align-items: stretch;
+    align-items: center;
+    flex-direction: row;
+    gap: 0.3rem;
+  }
+
+  .event-meta-links a {
+    max-width: 5.35rem;
   }
 
   .queue-quick-links .event-link-btn {

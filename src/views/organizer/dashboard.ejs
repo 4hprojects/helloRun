@@ -475,18 +475,26 @@
                         <span class="meta-separator">&bull;</span>
                         <i data-lucide="users"></i> <%= event.registrations || 0 %> registered
                       </p>
-                      <div class="event-meta-links">
-                        <% if (event.bannerImageUrl) { %>
-                          <a href="<%= event.bannerImageUrl %>" target="_blank" rel="noopener noreferrer">Open Banner URL</a>
-                        <% } %>
-                        <% if (event.logoUrl) { %>
-                          <a href="<%= event.logoUrl %>" target="_blank" rel="noopener noreferrer">Open Logo URL</a>
-                        <% } %>
-                      </div>
-                      <div class="event-card-actions">
-                        <a href="/organizer/events/<%= event.id %>/edit" class="btn btn-secondary edit-event-btn" target="_blank" rel="noopener noreferrer">Edit Event</a>
-                        <a href="/organizer/events/<%= event.id %>/certificate" class="btn btn-secondary edit-certificate-btn" target="_blank" rel="noopener noreferrer">Edit Certificate</a>
-                        <a href="/organizer/events/<%= event.id %>/registrants" class="btn btn-secondary view-registrants-btn" target="_blank" rel="noopener noreferrer">View Registrants</a>
+                      <div class="event-links-actions-row">
+                        <div class="event-meta-links">
+                          <% if (event.bannerImageUrl) { %>
+                            <a href="<%= event.bannerImageUrl %>" target="_blank" rel="noopener noreferrer" class="event-url-link">Banner URL</a>
+                          <% } %>
+                          <% if (event.logoUrl) { %>
+                            <a href="<%= event.logoUrl %>" target="_blank" rel="noopener noreferrer" class="event-url-link">Logo URL</a>
+                          <% } %>
+                        </div>
+                        <div class="event-card-actions">
+                          <a href="/organizer/events/<%= event.id %>/edit" class="btn btn-secondary event-link-btn event-action-icon-btn edit-event-btn" target="_blank" rel="noopener noreferrer" aria-label="Edit Event" data-action-label="Edit Event">
+                            <i data-lucide="pencil"></i>
+                          </a>
+                          <a href="/organizer/events/<%= event.id %>/certificate" class="btn btn-secondary event-link-btn event-action-icon-btn edit-certificate-btn" target="_blank" rel="noopener noreferrer" aria-label="Edit Certificate" data-action-label="Edit Certificate">
+                            <i data-lucide="award"></i>
+                          </a>
+                          <a href="/organizer/events/<%= event.id %>/registrants" class="btn btn-secondary event-link-btn event-action-icon-btn view-registrants-btn" target="_blank" rel="noopener noreferrer" aria-label="View Registrants" data-action-label="View Registrants">
+                            <i data-lucide="users"></i>
+                          </a>
+                        </div>
                       </div>
                     </div>
                     <span class="event-status event-status-<%= event.status %>"><%= event.status %></span>
