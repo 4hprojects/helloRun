@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Certificate Setup - helloRun' }) %>
+  <link rel="stylesheet" href="/css/create-event.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="create-event-page">
+  <section class="create-event-shell">
+    <div class="page-header">
+      <div>
+        <p class="eyebrow">Certificate Template</p>
+        <h1><%= event.title %></h1>
+        <p class="header-subtitle">Configure the certificate runners receive after an approved result or completed challenge.</p>
+      </div>
+      <a class="btn btn-outline" href="/organizer/events/<%= event._id %>/edit">Back to Event</a>
+    </div>
+
+    <% if (message) { %>
+      <div class="alert alert-<%= message.type === 'success' ? 'success' : 'error' %>"><%= message.text %></div>
+    <% } %>
+
+    <% if (event.digitalCertificateEnabled === false) { %>
+      <div class="alert alert-warning">Digital certificates are currently disabled for this event. Enable them in Rewards and Inclusions before publishing certificates.</div>
+    <% } %>
+
+    <form class="create-event-form" method="POST" action="/organizer/events/<%= event._id %>/certificate">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="form-section">
+        <div class="section-header">
+          <div>
+            <h2>Template Layout</h2>
+            <p>Choose a fixed layout for reliable PDF generation.</p>
+          </div>
+        </div>
+        <label for="layoutKey">Layout</label>
+        <select id="layoutKey" name="layoutKey">
+          <% [
+            ['modern_race', 'Modern Race'],
+            ['classic', 'Classic'],
+            ['minimal', 'Minimal'],
+            ['school_event', 'School Event'],
+            ['charity_run', 'Charity Run'],
+            ['split_panel_event', 'Split Panel Event']
+          ].forEach(([value, label]) => { %>
+            <option value="<%= value %>" <%= template.layoutKey === value ? 'selected' : '' %>><%= label %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="form-section">
+        <div class="section-header">
+          <div>
+            <h2>Certificate Text</h2>
+            <p>Use placeholders like {{runnerName}}, {{distance}}, {{eventTitle}}, and {{certificateNumber}}.</p>
+          </div>
+        </div>
+        <label for="heading">Heading</label>
+        <input id="heading" name="heading" value="<%= template.content.heading %>" maxlength="120">
+
+        <label for="bodyText">Body text</label>
+        <textarea id="bodyText" name="bodyText" rows="4" maxlength="1000"><%= template.content.bodyText %></textarea>
+
+        <label for="footerText">Footer text</label>
+        <input id="footerText" name="footerText" value="<%= template.content.footerText %>" maxlength="300">
+
+        <div class="form-grid two-col">
+          <label>Signature name
+            <input name="signatureName" value="<%= template.content.signatureName %>" maxlength="120">
+          </label>
+          <label>Signature role
+            <input name="signatureRole" value="<%= template.content.signatureRole %>" maxlength="120">
+          </label>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="section-header">
+          <div>
+            <h2>Displayed Runner Data</h2>
+            <p>Control which fields appear in generated certificates.</p>
+          </div>
+        </div>
+        <div class="checkbox-grid">
+          <% [
+            ['showDistance', 'Distance'],
+            ['showFinishTime', 'Finish time'],
+            ['showRank', 'Rank'],
+            ['showEventDate', 'Event date'],
+            ['showCertificateNumber', 'Certificate number'],
+            ['showQrCode', 'QR code'],
+            ['showOrganizerLogo', 'Organiser logo'],
+            ['showEventLogo', 'Event logo'],
+            ['showSponsorLogos', 'Sponsor logos']
+          ].forEach(([name, label]) => { %>
+            <input type="hidden" name="<%= name %>" value="0">
+            <label><input type="checkbox" name="<%= name %>" value="1" <%= template.displayOptions[name] ? 'checked' : '' %>> <%= label %></label>
+          <% }) %>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Save Draft</button>
+        <button type="submit" formaction="/organizer/events/<%= event._id %>/certificate/publish" class="btn btn-success">Publish Template</button>
+        <button type="submit" formaction="/organizer/events/<%= event._id %>/certificate/preview" formtarget="_blank" class="btn btn-outline">Preview PDF</button>
+      </div>
+    </form>
+
+    <form class="form-section" method="POST" action="/organizer/events/<%= event._id %>/certificate/assets" enctype="multipart/form-data">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="section-header">
+        <div>
+          <h2>Branding Assets</h2>
+          <p>JPEG, PNG, and WebP images are supported.</p>
+        </div>
+      </div>
+      <div class="form-grid two-col">
+        <label>Background image
+          <input type="file" name="backgroundImageFile" accept="image/jpeg,image/png,image/webp">
+        </label>
+        <label>Event logo override
+          <input type="file" name="eventLogoFile" accept="image/jpeg,image/png,image/webp">
+        </label>
+        <label>Event artwork or medal image
+          <input type="file" name="eventArtworkFile" accept="image/jpeg,image/png,image/webp">
+        </label>
+        <label>Organiser logo
+          <input type="file" name="organizerLogoFile" accept="image/jpeg,image/png,image/webp">
+        </label>
+        <label>Signature image
+          <input type="file" name="signatureImageFile" accept="image/jpeg,image/png,image/webp">
+        </label>
+        <label>Sponsor logos
+          <input type="file" name="sponsorLogoFiles" accept="image/jpeg,image/png,image/webp" multiple>
+        </label>
+      </div>
+      <button type="submit" class="btn btn-outline">Upload Assets</button>
+    </form>
+  </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+</body>
+</html>

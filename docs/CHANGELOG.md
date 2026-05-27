@@ -3,6 +3,64 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 27, 2026 (Session: Certificate Template Workflow)
+
+### [SESSION] SESSION UPDATE:
+- Implemented the certificate template workflow foundation on top of the existing HelloRun certificate issuing flow.
+- Added organiser-managed certificate templates with draft/active/archive states, event-linked setup page, asset upload support, preview PDF generation, and a direct Edit Certificate dashboard action.
+- Added public certificate verification routes using certificate numbers and QR verification URLs.
+- Extended generated certificates with certificate numbers, verification URLs, template IDs, regeneration/revocation status, and Postgres shadow-sync fields.
+- Added the `split_panel_event` fixed layout:
+  - full-height event branding panel
+  - event logo/artwork support with fallbacks
+  - right-side certificate content area
+  - uppercase participant name with underline
+  - dynamic distance, finish time, event date, rank, certificate number, and QR display
+- Removed registration confirmation code rendering from certificate detail cards. Certificates should use the public certificate number as the certificate reference.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/features/hellorun_certificate_template_workflow.md
+3. src/controllers/certificate.controller.js
+4. src/controllers/certificateTemplate.controller.js
+5. src/controllers/certificateVerification.controller.js
+6. src/controllers/page.controller.js
+7. src/db/migrations/016_certificate_template_and_verification.sql
+8. src/models/CertificateTemplate.js
+9. src/models/Submission.js
+10. src/models/AccumulatedActivitySubmission.js
+11. src/routes/certificate.routes.js
+12. src/routes/certificateTemplate.routes.js
+13. src/routes/certificateVerification.routes.js
+14. src/server.js
+15. src/services/certificate.service.js
+16. src/services/certificateAudit.service.js
+17. src/services/certificateNumber.service.js
+18. src/services/certificateTemplate.service.js
+19. src/services/certificateVerification.service.js
+20. src/services/submission.service.js
+21. src/services/accumulated-activity.service.js
+22. src/services/submission-shadow.service.js
+23. src/services/upload.service.js
+24. src/views/certificates/verify.ejs
+25. src/views/certificates/verification-result.ejs
+26. src/views/organizer/certificate-setup.ejs
+27. src/views/organizer/dashboard.ejs
+28. src/views/organizer/events.ejs
+29. tests/certificate-number.service.test.js
+30. tests/certificate.service.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --check src/services/certificate.service.js` -> PASS.
+- `node --check src/models/CertificateTemplate.js` -> PASS.
+- `node --check src/services/certificateTemplate.service.js` -> PASS.
+- `node --check src/services/upload.service.js` -> PASS.
+- `node --check src/controllers/certificateTemplate.controller.js` -> PASS.
+- `node --test tests/certificate.service.test.js tests/certificate-number.service.test.js` -> PASS, 7/7.
+- `node --test tests/certificate-access.test.js` -> PASS, 3/3.
+
+---
+
 ## CHANGELOG - May 27, 2026 (Session: Runner Dashboard Event Progress Status)
 
 ### [SESSION] SESSION UPDATE:

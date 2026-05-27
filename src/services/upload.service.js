@@ -133,6 +133,33 @@ exports.uploadEventBranding = (req, res, next) => {
   });
 };
 
+exports.uploadCertificateAssets = (req, res, next) => {
+  const uploadFields = brandingUpload.fields([
+    { name: 'backgroundImageFile', maxCount: 1 },
+    { name: 'organizerLogoFile', maxCount: 1 },
+    { name: 'eventLogoFile', maxCount: 1 },
+    { name: 'eventArtworkFile', maxCount: 1 },
+    { name: 'signatureImageFile', maxCount: 1 },
+    { name: 'sponsorLogoFiles', maxCount: 6 }
+  ]);
+
+  uploadFields(req, res, (err) => {
+    if (!err) {
+      req.uploadError = null;
+      req.uploadErrorField = null;
+      next();
+      return;
+    }
+    req.uploadErrorField = err.field || err.fieldName || null;
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      req.uploadError = `Certificate image exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`;
+    } else {
+      req.uploadError = err.message || 'Certificate asset upload failed.';
+    }
+    next();
+  });
+};
+
 exports.uploadBlogCover = (req, res, next) => {
   const uploadSingle = brandingUpload.single('coverImageFile');
 
@@ -306,6 +333,79 @@ exports.uploadEventBrandingToR2 = async ({
         label: safeSlug ? `${safeSlug}-gallery-${i + 1}` : `gallery-${i + 1}`
       });
       result.gallery.push(uploadedGallery);
+    }
+  }
+
+  return result;
+};
+
+exports.uploadCertificateAssetsToR2 = async ({
+  userId,
+  eventId,
+  backgroundImageFile,
+  organizerLogoFile,
+  eventLogoFile,
+  eventArtworkFile,
+  signatureImageFile,
+  sponsorLogoFiles
+}) => {
+  assertR2Configured();
+  const safeEventId = String(eventId || 'event').replace(/[^a-z0-9_-]/gi, '-').slice(0, 80);
+  const result = {};
+
+  if (backgroundImageFile) {
+    result.background = await uploadFileToR2({
+      userId,
+      file: backgroundImageFile,
+      category: `events/${safeEventId}/certificate-assets/backgrounds`,
+      label: 'certificate-background'
+    });
+  }
+  if (organizerLogoFile) {
+    result.organizerLogo = await uploadFileToR2({
+      userId,
+      file: organizerLogoFile,
+      category: `events/${safeEventId}/certificate-assets/logos`,
+      label: 'organizer-logo'
+    });
+  }
+  if (eventLogoFile) {
+    result.eventLogo = await uploadFileToR2({
+      userId,
+      file: eventLogoFile,
+      category: `events/${safeEventId}/certificate-assets/logos`,
+      label: 'event-logo'
+    });
+  }
+  if (eventArtworkFile) {
+    result.eventArtwork = await uploadFileToR2({
+      userId,
+      file: eventArtworkFile,
+      category: `events/${safeEventId}/certificate-assets/artwork`,
+      label: 'event-artwork'
+    });
+  }
+  if (signatureImageFile) {
+    result.signature = await uploadFileToR2({
+      userId,
+      file: signatureImageFile,
+      category: `events/${safeEventId}/certificate-assets/signatures`,
+      label: 'signature'
+    });
+  }
+
+  const sponsorFiles = Array.isArray(sponsorLogoFiles) ? sponsorLogoFiles : [];
+  if (sponsorFiles.length) {
+    result.sponsorLogos = [];
+    for (const [index, file] of sponsorFiles.entries()) {
+      // eslint-disable-next-line no-await-in-loop
+      const uploaded = await uploadFileToR2({
+        userId,
+        file,
+        category: `events/${safeEventId}/certificate-assets/sponsors`,
+        label: `sponsor-${index + 1}`
+      });
+      result.sponsorLogos.push(uploaded);
     }
   }
 

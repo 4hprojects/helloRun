@@ -268,6 +268,7 @@ async function attachCompletionCertificateIfNeeded(activity) {
     AccumulatedActivitySubmission.find({ registrationId: activity.registrationId }).lean()
   ]);
   if (!registration || !event || !runner) return false;
+  if (event.digitalCertificateEnabled === false) return false;
   const progress = buildAccumulatedProgress({
     activities,
     targetDistanceKm: event.targetDistanceKm
@@ -280,7 +281,18 @@ async function attachCompletionCertificateIfNeeded(activity) {
     event,
     runner
   });
-  activity.certificate = certificate;
+  activity.certificate = {
+    url: certificate.url || '',
+    key: certificate.key || '',
+    issuedAt: certificate.issuedAt || new Date(),
+    certificateNumber: certificate.certificateNumber || '',
+    verificationUrl: certificate.verificationUrl || '',
+    templateId: certificate.templateId || null,
+    status: certificate.status || 'generated',
+    revokedAt: null,
+    regeneratedAt: null,
+    generationError: ''
+  };
   await activity.save();
   recordCriticalAuditEventInBackground({
     actorMongoUserId: activity.reviewedBy ? String(activity.reviewedBy) : '',

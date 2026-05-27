@@ -156,7 +156,14 @@ async function resubmitSubmission({
   existing.certificate = {
     url: '',
     key: '',
-    issuedAt: null
+    issuedAt: null,
+    certificateNumber: '',
+    verificationUrl: '',
+    templateId: null,
+    status: '',
+    revokedAt: null,
+    regeneratedAt: null,
+    generationError: ''
   };
   await existing.save();
   return applyAutoApprovalIfEligible(existing);
@@ -289,8 +296,8 @@ async function getRunnerSubmissionSummary(runnerId, options = {}) {
       .sort({ 'certificate.issuedAt': -1, reviewedAt: -1, submittedAt: -1 })
       .limit(certificateLimit)
       .populate({ path: 'eventId', select: 'title slug' })
-      .populate({ path: 'registrationId', select: 'confirmationCode' })
-      .select('eventId registrationId certificate reviewedAt submittedAt')
+      .populate({ path: 'registrationId', select: 'confirmationCode raceDistance' })
+      .select('eventId registrationId certificate reviewedAt submittedAt distanceKm elapsedMs raceDistance')
       .lean()
   ]);
 
@@ -301,6 +308,9 @@ async function getRunnerSubmissionSummary(runnerId, options = {}) {
       eventTitle: item.eventId?.title || 'Event unavailable',
       eventSlug: item.eventId?.slug || '',
       confirmationCode: item.registrationId?.confirmationCode || '',
+      raceDistance: item.registrationId?.raceDistance || item.raceDistance || '',
+      distanceKm: Number(item.distanceKm || 0),
+      elapsedLabel: formatElapsedMs(item.elapsedMs),
       certificateUrl: item.certificate?.url || '',
       issuedAt: item.certificate?.issuedAt || item.reviewedAt || item.submittedAt || null
     }))
@@ -1260,10 +1270,13 @@ async function attachCertificateIfNeeded(submission) {
   try {
     const [registration, event, runner] = await Promise.all([
       Registration.findById(submission.registrationId).select('confirmationCode raceDistance').lean(),
-      Event.findById(submission.eventId).select('title').lean(),
+      Event.findById(submission.eventId)
+        .select('title organiserName logoUrl referenceCode slug eventStartAt eventEndAt raceDistances targetDistanceKm digitalCertificateEnabled organizerId')
+        .lean(),
       User.findById(submission.runnerId).select('firstName lastName').lean()
     ]);
     if (!registration || !event || !runner) return;
+    if (event.digitalCertificateEnabled === false) return;
 
     const certificate = await issueSubmissionCertificate({
       submission,
@@ -1274,7 +1287,14 @@ async function attachCertificateIfNeeded(submission) {
     submission.certificate = {
       url: certificate.url || '',
       key: certificate.key || '',
-      issuedAt: certificate.issuedAt || new Date()
+      issuedAt: certificate.issuedAt || new Date(),
+      certificateNumber: certificate.certificateNumber || '',
+      verificationUrl: certificate.verificationUrl || '',
+      templateId: certificate.templateId || null,
+      status: certificate.status || 'generated',
+      revokedAt: null,
+      regeneratedAt: null,
+      generationError: ''
     };
     await submission.save();
     recordCriticalAuditEventInBackground({

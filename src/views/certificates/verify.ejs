@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Verify Certificate - helloRun' }) %>
+  <link rel="stylesheet" href="/css/static-pages.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="static-page">
+  <section class="static-hero">
+    <p class="eyebrow">Certificate Verification</p>
+    <h1>Verify a HelloRun certificate</h1>
+    <p>Enter the certificate number printed on the PDF.</p>
+  </section>
+
+  <section class="static-content">
+    <% if (message) { %>
+      <div class="alert alert-error"><%= message %></div>
+    <% } %>
+    <form method="POST" action="/certificates/verify" class="policy-form">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <label for="certificateNumber">Certificate number</label>
+      <input id="certificateNumber" name="certificateNumber" value="<%= certificateNumber || '' %>" placeholder="HR-CERT-2026-BAG10K-000123" required>
+      <button type="submit" class="btn btn-primary">Verify Certificate</button>
+    </form>
+  </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+</body>
+</html>

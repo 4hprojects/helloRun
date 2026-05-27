@@ -86,7 +86,15 @@ function normalizeMongoSubmissionCertificate(submission, submissionCoreRow) {
     certificate_key: submission.certificate.key || '',
     issued_at: new Date(submission.certificate.issuedAt),
     issued_by: submission.reviewedBy?.toString() || null,
-    certificate_type: 'finisher'
+    certificate_type: 'finisher',
+    certificate_template_id: submission.certificate.templateId?.toString() || null,
+    certificate_number: submission.certificate.certificateNumber || null,
+    verification_url: submission.certificate.verificationUrl || null,
+    status: submission.certificate.status || 'generated',
+    generated_at: new Date(submission.certificate.issuedAt),
+    regenerated_at: submission.certificate.regeneratedAt ? new Date(submission.certificate.regeneratedAt) : null,
+    revoked_at: submission.certificate.revokedAt ? new Date(submission.certificate.revokedAt) : null,
+    generation_error: submission.certificate.generationError || null
   };
 }
 
@@ -219,18 +227,29 @@ async function syncSubmissionShadow(submission, options = {}) {
       const certResult = await sql`
         INSERT INTO certificates (
           mongo_certificate_id, submission_id, runner_user_id, event_id,
-          certificate_url, certificate_key, issued_at, issued_by, certificate_type, updated_at,
+          registration_id, certificate_url, certificate_key, issued_at, issued_by, certificate_type,
+          certificate_template_id, certificate_number, verification_url, status, generated_at,
+          regenerated_at, revoked_at, generation_error, updated_at,
           is_smoke_test, test_run_id, created_by_test, expires_at
         ) VALUES (
           ${normalizedCertificate.mongo_certificate_id},
           ${normalizedCertificate.submission_id},
           ${appUserId},
           ${eventId},
+          ${registrationId},
           ${normalizedCertificate.certificate_url},
           ${normalizedCertificate.certificate_key},
           ${normalizedCertificate.issued_at},
           ${normalizedCertificate.issued_by},
           ${normalizedCertificate.certificate_type},
+          ${normalizedCertificate.certificate_template_id},
+          ${normalizedCertificate.certificate_number},
+          ${normalizedCertificate.verification_url},
+          ${normalizedCertificate.status},
+          ${normalizedCertificate.generated_at},
+          ${normalizedCertificate.regenerated_at},
+          ${normalizedCertificate.revoked_at},
+          ${normalizedCertificate.generation_error},
           CURRENT_TIMESTAMP,
           ${normalizedSubmission.smokeMeta.is_smoke_test},
           ${normalizedSubmission.smokeMeta.test_run_id || null},
@@ -241,6 +260,15 @@ async function syncSubmissionShadow(submission, options = {}) {
           certificate_url = EXCLUDED.certificate_url,
           certificate_key = EXCLUDED.certificate_key,
           issued_at = EXCLUDED.issued_at,
+          registration_id = EXCLUDED.registration_id,
+          certificate_template_id = EXCLUDED.certificate_template_id,
+          certificate_number = EXCLUDED.certificate_number,
+          verification_url = EXCLUDED.verification_url,
+          status = EXCLUDED.status,
+          generated_at = EXCLUDED.generated_at,
+          regenerated_at = EXCLUDED.regenerated_at,
+          revoked_at = EXCLUDED.revoked_at,
+          generation_error = EXCLUDED.generation_error,
           updated_at = CURRENT_TIMESTAMP,
           is_smoke_test = EXCLUDED.is_smoke_test,
           test_run_id = EXCLUDED.test_run_id,

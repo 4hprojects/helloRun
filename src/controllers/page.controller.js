@@ -963,6 +963,9 @@ exports.getSubmissionCertificateDownload = async (req, res) => {
     if (certificateRecord.status !== 'approved') {
       return redirectWithPageMessage(res, 'error', 'Certificate is available only for approved submissions.');
     }
+    if (certificateRecord.certificate?.status === 'revoked' || certificateRecord.certificate?.revokedAt) {
+      return redirectWithPageMessage(res, 'error', 'This certificate is no longer valid.');
+    }
 
     const certificateUrl = String(certificateRecord.certificate?.url || '').trim();
     if (!certificateUrl) {

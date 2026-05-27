@@ -168,7 +168,22 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
     certificate: {
       url: { type: String, default: '' },
       key: { type: String, default: '' },
-      issuedAt: { type: Date, default: null }
+      issuedAt: { type: Date, default: null },
+      certificateNumber: { type: String, trim: true, default: '' },
+      verificationUrl: { type: String, trim: true, default: '' },
+      templateId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'CertificateTemplate',
+        default: null
+      },
+      status: {
+        type: String,
+        enum: ['pending', 'generated', 'regenerated', 'revoked', 'failed', ''],
+        default: ''
+      },
+      revokedAt: { type: Date, default: null },
+      regeneratedAt: { type: Date, default: null },
+      generationError: { type: String, trim: true, default: '', maxlength: 1000 }
     },
     ocrData: {
       extractedDistanceKm: { type: Number, default: null },
