@@ -1951,6 +1951,16 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     formData.actionType = isDraftSubmitForReview || event.status === 'published' || event.status === 'pending_review'
       ? 'publish'
       : 'draft';
+    if (
+      (event.eventType === 'virtual' || event.eventType === 'hybrid') &&
+      event.virtualCompletionMode === 'accumulated_distance' &&
+      formData.virtualCompletionMode === 'accumulated_distance' &&
+      (!Number.isFinite(formData.targetDistanceKm) || formData.targetDistanceKm <= 0) &&
+      Number.isFinite(event.targetDistanceKm) &&
+      event.targetDistanceKm > 0
+    ) {
+      formData.targetDistanceKm = event.targetDistanceKm;
+    }
     if (req.uploadError) {
       const errorField = mapUploadFieldToFormField(req.uploadErrorField);
       return res.status(400).render('organizer/edit-event', {

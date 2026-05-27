@@ -779,14 +779,17 @@
 }
 
 .event-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
   margin-top: 0.45rem;
 }
 
+.edit-event-btn,
 .view-registrants-btn {
   justify-content: center;
-  margin-left: auto;
-  margin-right: auto;
-  width: 60%;
+  flex: 1 1 150px;
 }
 
 .event-link-btn {

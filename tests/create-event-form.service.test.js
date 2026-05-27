@@ -4,6 +4,7 @@ const assert = require('node:assert/strict');
 const {
   applyEventFormData,
   getCreateEventFormData,
+  getCreateEventFormDataFromEvent,
   getEventReadinessChecklist,
   getEventReviewSummary,
   validateCreateEventForm
@@ -48,6 +49,37 @@ test('create-event form derives accumulated target from distance labels and igno
     raceDistanceCustom: '100K',
     virtualCompletionMode: 'accumulated_distance',
     targetDistanceKm: '999'
+  });
+
+  assert.equal(formData.targetDistanceKm, 100);
+});
+
+test('create-event form derives accumulated target from structured category distance', () => {
+  const formData = getCreateEventFormData({
+    eventType: 'virtual',
+    virtualCompletionMode: 'accumulated_distance',
+    raceCategoryName: '100K Challenge',
+    raceCategoryDistanceLabel: '100K Challenge',
+    raceCategoryDistanceKm: '100'
+  });
+
+  assert.equal(formData.targetDistanceKm, 100);
+});
+
+test('edit form restores accumulated target from category distance when stored target is missing', () => {
+  const formData = getCreateEventFormDataFromEvent({
+    title: 'Accumulated Challenge',
+    eventType: 'virtual',
+    virtualCompletionMode: 'accumulated_distance',
+    raceDistances: ['100K Challenge'],
+    raceCategories: [
+      {
+        categoryId: 'cat-100k-challenge',
+        name: '100K Challenge',
+        distanceLabel: '100K Challenge',
+        distanceKm: 100
+      }
+    ]
   });
 
   assert.equal(formData.targetDistanceKm, 100);

@@ -91,10 +91,15 @@ test('organizer dashboard renders range analytics and queue links', async () => 
   const resultLink = `/organizer/events/${seed.eventId}/registrants?result=submitted`;
   const nextResultLink = `/organizer/events/${seed.eventId}/submissions/${seed.submittedSubmissionId}/review`;
   const approvedLink = `/organizer/events/${seed.eventId}/registrants?result=approved`;
+  const editEventLink = `/organizer/events/${seed.eventId}/edit`;
   assert.match(html, new RegExp(escapeRegex(paymentLink)));
   assert.match(html, new RegExp(escapeRegex(resultLink)));
   assert.match(html, new RegExp(escapeRegex(nextResultLink)));
   assert.match(html, new RegExp(escapeRegex(approvedLink)));
+  assert.match(
+    html,
+    new RegExp(`${escapeRegex(editEventLink)}" class="btn btn-secondary edit-event-btn" target="_blank" rel="noopener noreferrer">Edit Event`)
+  );
   assert.match(
     html,
     new RegExp(`${escapeRegex(paymentLink)}" class="queue-review-btn" target="_blank" rel="noopener noreferrer"`)
