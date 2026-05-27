@@ -3,6 +3,34 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 27, 2026 (Session: Runner Dashboard Event Progress Status)
+
+### [SESSION] SESSION UPDATE:
+- Updated `/runner/dashboard` so runners can see progress and review status for events they signed up for after submitting run proof.
+- Added a dedicated Event Progress dashboard card showing:
+  - payment-required and payment-review states before proof submission is available
+  - run proof needed, pending review, approved, rejected, and certificate-ready states for standard event results
+  - accumulated challenge progress with approved distance, pending activity count, rejected activity count, and progress bar
+  - contextual actions for payment, submit proof, resubmit proof, view submission, and download certificate
+- Kept the existing Result Submissions card intact as the recent submission-history surface.
+- Added service-level normalization so dashboard EJS renders prepared status labels, helper text, progress values, and actions instead of owning business-state logic.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. src/controllers/runner.controller.js
+3. src/services/runner-data.service.js
+4. src/views/runner/dashboard.ejs
+5. src/public/css/runner-dashboard.css
+6. tests/runner-dashboard-profile.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --check src\services\runner-data.service.js` -> PASS.
+- `node --check src\controllers\runner.controller.js` -> PASS.
+- `node --test --test-concurrency=1 tests\runner-dashboard-profile.test.js` -> PASS, 9/9.
+- `node --test --test-concurrency=1 tests\runner-dashboard-modal.test.js` -> PASS, 3/3.
+
+---
+
 ## CHANGELOG - May 26, 2026 (Session: Event Leaderboard Aligned V1)
 
 ### [SESSION] SESSION UPDATE:

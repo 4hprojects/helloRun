@@ -1,7 +1,11 @@
 const User = require('../models/User');
 const passwordService = require('../services/password.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode } = require('../utils/country');
-const { getRunnerRegistrations, buildRunnerDashboardData } = require('../services/runner-data.service');
+const {
+  getRunnerRegistrations,
+  getRunnerEventProgressCards,
+  buildRunnerDashboardData
+} = require('../services/runner-data.service');
 const { getRunnerPerformanceSnapshot, getRunnerEligibleSubmissionRegistrations } = require('../services/submission.service');
 const {
   listRunnerSubmissions,
@@ -60,6 +64,7 @@ exports.getDashboard = async (req, res) => {
       getRunnerBadgeProgress(user._id, { limit: 4 }).catch(() => [])
     ]);
     const dashboardData = buildRunnerDashboardData(registrations);
+    const eventProgressCards = await getRunnerEventProgressCards(registrations);
     const mergedActivity = mergeRunnerActivity(
       dashboardData.activity,
       recentGroupActivity,
@@ -103,6 +108,7 @@ exports.getDashboard = async (req, res) => {
           issuedAtLabel: formatDateTime(item.issuedAt, locale)
         })),
         results: resultSubmissions,
+        eventProgress: formatRunnerEventProgressCards(eventProgressCards, locale).slice(0, 6),
         badges: recentBadges,
         badgeProgress
       },
@@ -178,6 +184,7 @@ exports.updateProfile = async (req, res) => {
         getRunnerBadgeProgress(user._id, { limit: 4 }).catch(() => [])
       ]);
       const dashboardData = buildRunnerDashboardData(registrations);
+      const eventProgressCards = await getRunnerEventProgressCards(registrations);
       const mergedActivity = mergeRunnerActivity(
         dashboardData.activity,
         recentGroupActivity,
@@ -226,6 +233,7 @@ exports.updateProfile = async (req, res) => {
             submittedAtRelativeLabel: formatRelativeTime(item.submittedAt),
             reviewedAtRelativeLabel: formatRelativeTime(item.reviewedAt)
           })),
+          eventProgress: formatRunnerEventProgressCards(eventProgressCards, locale).slice(0, 6),
           badges: recentBadges,
           badgeProgress
         },
@@ -1057,6 +1065,17 @@ function formatRunnerResultSubmissions(performanceSnapshot, locale) {
     isPersonalRecord: Boolean(item.isPersonalRecord),
     runType: item.runType || 'run',
     registrationId: String(item.registrationId || '')
+  }));
+}
+
+function formatRunnerEventProgressCards(cards = [], locale) {
+  return (cards || []).map((item) => ({
+    ...item,
+    eventStartAtLabel: formatDateTime(item.eventStartAt, locale),
+    submittedAtLabel: formatDateTime(item.submittedAt, locale),
+    reviewedAtLabel: formatDateTime(item.reviewedAt, locale),
+    submittedAtRelativeLabel: formatRelativeTime(item.submittedAt),
+    reviewedAtRelativeLabel: formatRelativeTime(item.reviewedAt)
   }));
 }
 

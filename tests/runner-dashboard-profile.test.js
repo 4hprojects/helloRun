@@ -7,7 +7,10 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const User = require('../src/models/User');
-const { buildRunnerDashboardData } = require('../src/services/runner-data.service');
+const {
+  buildRunnerDashboardData,
+  buildRunnerEventProgressCards
+} = require('../src/services/runner-data.service');
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3103;
@@ -66,6 +69,92 @@ test('buildRunnerDashboardData groups upcoming/past and computes stats', () => {
   assert.equal(data.stats.unpaid, 2);
   assert.equal(data.stats.paid, 1);
   assert.equal(data.activity[0].eventTitle, 'Future 1');
+});
+
+test('buildRunnerEventProgressCards summarizes registered event proof status', () => {
+  const registrations = [
+    {
+      _id: 'reg-standard',
+      paymentStatus: 'paid',
+      status: 'confirmed',
+      raceDistance: '10K',
+      confirmationCode: 'HR-ABC123',
+      eventId: {
+        title: 'Standard Challenge',
+        slug: 'standard-challenge',
+        virtualCompletionMode: 'single_activity'
+      }
+    },
+    {
+      _id: 'reg-accumulated',
+      paymentStatus: 'paid',
+      status: 'confirmed',
+      raceDistance: '100K',
+      confirmationCode: 'HR-DEF456',
+      eventId: {
+        title: '100K Builder',
+        slug: '100k-builder',
+        virtualCompletionMode: 'accumulated_distance',
+        targetDistanceKm: 100
+      }
+    },
+    {
+      _id: 'reg-unpaid',
+      paymentStatus: 'unpaid',
+      status: 'pending_payment',
+      raceDistance: '5K',
+      confirmationCode: 'HR-GHI789',
+      eventId: {
+        title: 'Payment First Run',
+        slug: 'payment-first-run',
+        virtualCompletionMode: 'single_activity'
+      }
+    }
+  ];
+
+  const cards = buildRunnerEventProgressCards(registrations, {
+    standardSubmissions: [
+      {
+        _id: 'sub-standard',
+        registrationId: 'reg-standard',
+        status: 'submitted',
+        submittedAt: new Date('2026-03-10T08:00:00.000Z')
+      }
+    ],
+    accumulatedActivities: [
+      {
+        _id: 'act-approved',
+        registrationId: 'reg-accumulated',
+        status: 'approved',
+        distanceKm: 25,
+        submittedAt: new Date('2026-03-09T08:00:00.000Z')
+      },
+      {
+        _id: 'act-pending',
+        registrationId: 'reg-accumulated',
+        status: 'submitted',
+        distanceKm: 10,
+        submittedAt: new Date('2026-03-11T08:00:00.000Z')
+      }
+    ]
+  });
+
+  const standard = cards.find((item) => item.registrationId === 'reg-standard');
+  assert.equal(standard.state, 'submitted');
+  assert.equal(standard.stateLabel, 'Pending Review');
+  assert.equal(standard.nextAction.href, '/runner/submissions/sub-standard');
+
+  const accumulated = cards.find((item) => item.registrationId === 'reg-accumulated');
+  assert.equal(accumulated.isAccumulated, true);
+  assert.equal(accumulated.state, 'in_progress');
+  assert.equal(accumulated.progress.approvedDistanceKm, 25);
+  assert.equal(accumulated.progress.pendingActivityCount, 1);
+  assert.equal(accumulated.progress.percent, 25);
+  assert.equal(accumulated.nextAction.type, 'submit');
+
+  const unpaid = cards.find((item) => item.registrationId === 'reg-unpaid');
+  assert.equal(unpaid.state, 'payment_required');
+  assert.equal(unpaid.nextAction.href, '/my-registrations');
 });
 
 test('runner profile update validates and persists normalized data', async () => {
@@ -237,6 +326,8 @@ test('runner dashboard submit trigger includes dashboard-specific modal configur
   assert.match(html, /data-run-proof-surface="runner-dashboard"/i);
   assert.match(html, /data-run-proof-empty-link-href="\/my-registrations"/i);
   assert.match(html, /Submit latest run result/i);
+  assert.match(html, /Event Progress/i);
+  assert.match(html, /No registered event progress yet/i);
 });
 
 test('runner change password requires valid current password', async () => {
