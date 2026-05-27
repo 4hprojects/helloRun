@@ -158,6 +158,37 @@
           </div>
         </div>
 
+        <% if (typeof formAction !== 'undefined' && String(formAction).startsWith('/admin/events/')) { %>
+          <div id="homepage-promotion-step" class="form-section" tabindex="-1">
+            <div class="section-kicker">Admin promotion</div>
+            <div class="section-title">Homepage Featured Placement</div>
+            <p class="section-helper">Admin-only controls for prioritizing this event in the public landing-page carousel.</p>
+            <div class="form-grid">
+              <div class="form-group form-group-full">
+                <label class="checkbox-card">
+                  <input type="checkbox" name="homeFeatured" value="1" <%= formData.homeFeatured ? 'checked' : '' %>>
+                  <span>
+                    <strong>Feature this event on the homepage</strong>
+                    <small>Featured events appear before automatic upcoming/open event recommendations.</small>
+                  </span>
+                </label>
+              </div>
+              <div class="form-group <%= errors.homeFeaturedRank ? 'has-error' : '' %>">
+                <label for="homeFeaturedRank">Featured Rank</label>
+                <input id="homeFeaturedRank" name="homeFeaturedRank" type="number" min="0" step="1" value="<%= formData.homeFeaturedRank ?? '' %>" placeholder="0">
+                <small class="field-hint">Lower numbers appear first. Leave blank to sort after ranked featured events.</small>
+                <% if (errors.homeFeaturedRank) { %><small class="error-text"><%= errors.homeFeaturedRank %></small><% } %>
+              </div>
+              <div class="form-group <%= errors.homeFeaturedUntil ? 'has-error' : '' %>">
+                <label for="homeFeaturedUntil">Feature Until</label>
+                <input id="homeFeaturedUntil" name="homeFeaturedUntil" type="datetime-local" value="<%= formData.homeFeaturedUntil || '' %>">
+                <small class="field-hint">Optional. After this date, the event can still appear through automatic fallback if eligible.</small>
+                <% if (errors.homeFeaturedUntil) { %><small class="error-text"><%= errors.homeFeaturedUntil %></small><% } %>
+              </div>
+            </div>
+          </div>
+        <% } %>
+
         <!-- PRICING PER DISTANCE SECTION -->
         <div id="pricing-step" class="form-section form-section-fees" tabindex="-1" data-wizard-step="pricing-step">
           <div class="section-kicker">Step 7 of 12</div>

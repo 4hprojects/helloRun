@@ -3,6 +3,7 @@ const { getCountries, getCountryName } = require('../utils/country');
 const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
 
 const countries = getCountries();
+const DEFAULT_EVENT_IMAGE_URL = '/images/helloRun-icon.webp';
 
 async function buildPublicEventListPage(queryParams = {}) {
   const filterValues = getEventsFilterValues(queryParams);
@@ -124,6 +125,109 @@ async function buildPublicEventListPage(queryParams = {}) {
       pageSize: limit,
       getPageUrl: (pageNumber) => buildEventsPageUrl(filterValues, pageNumber)
     }
+  };
+}
+
+async function listHomepagePromotedEvents(options = {}) {
+  const now = options.now instanceof Date ? options.now : new Date();
+  const limit = normalizePositiveInt(options.limit, 8);
+  const baseQuery = {
+    ...getPublicEventVisibilityQuery(now),
+    $and: [
+      ...(getPublicEventVisibilityQuery(now).$and || []),
+      {
+        $or: [
+          { eventEndAt: { $exists: false } },
+          { eventEndAt: null },
+          { eventEndAt: { $gte: now } }
+        ]
+      }
+    ]
+  };
+  const eventSelect = 'title slug description organiserName eventType eventTypesAllowed raceDistances eventStartAt eventEndAt venueName city country bannerImageUrl registrationCloseAt registrationOpenAt createdAt homeFeatured homeFeaturedRank homeFeaturedUntil';
+
+  const featuredQuery = {
+    ...baseQuery,
+    homeFeatured: true,
+    $and: [
+      ...(baseQuery.$and || []),
+      {
+        $or: [
+          { homeFeaturedUntil: { $exists: false } },
+          { homeFeaturedUntil: null },
+          { homeFeaturedUntil: { $gte: now } }
+        ]
+      }
+    ]
+  };
+
+  const featuredEvents = await Event.find(featuredQuery)
+    .sort({ homeFeaturedRank: 1, eventStartAt: 1, createdAt: -1 })
+    .limit(limit)
+    .select(eventSelect)
+    .lean();
+
+  const selected = featuredEvents.slice().sort(compareFeaturedHomepageEvents);
+  const selectedIds = new Set(selected.map((event) => String(event._id)));
+
+  if (selected.length < limit) {
+    const fallbackEvents = await Event.find({
+      ...baseQuery,
+      _id: { $nin: Array.from(selectedIds) }
+    })
+      .sort({ registrationCloseAt: 1, eventStartAt: 1, createdAt: -1 })
+      .limit(limit * 2)
+      .select(eventSelect)
+      .lean();
+    selected.push(...fallbackEvents.slice(0, limit - selected.length));
+  }
+
+  return selected.slice(0, limit).map((event) => normalizeHomepageEventCard(event, now));
+}
+
+function compareFeaturedHomepageEvents(a, b) {
+  const leftRank = Number.isFinite(a?.homeFeaturedRank) ? a.homeFeaturedRank : Number.POSITIVE_INFINITY;
+  const rightRank = Number.isFinite(b?.homeFeaturedRank) ? b.homeFeaturedRank : Number.POSITIVE_INFINITY;
+  if (leftRank !== rightRank) return leftRank - rightRank;
+  const startDiff = getTimeValue(a?.eventStartAt) - getTimeValue(b?.eventStartAt);
+  if (startDiff !== 0) return startDiff;
+  return getTimeValue(b?.createdAt) - getTimeValue(a?.createdAt);
+}
+
+function getTimeValue(value) {
+  if (!value) return Number.POSITIVE_INFINITY;
+  const date = new Date(value);
+  const time = date.getTime();
+  return Number.isNaN(time) ? Number.POSITIVE_INFINITY : time;
+}
+
+function normalizeHomepageEventCard(event, now = new Date()) {
+  const raceDistances = Array.isArray(event.raceDistances)
+    ? event.raceDistances.map((distanceItem) => String(distanceItem || '').trim().toUpperCase()).filter(Boolean)
+    : [];
+  const countryLabel = getCountryName(event.country);
+
+  return {
+    id: String(event._id || ''),
+    title: event.title || 'Untitled Event',
+    slug: event.slug,
+    href: `/events/${event.slug}`,
+    description: event.description || 'View event details, registration windows, and race options.',
+    organiserName: event.organiserName || '',
+    eventType: event.eventType || 'event',
+    eventTypeLabel: formatEventTypeLabel(event.eventType || 'event'),
+    raceDistances,
+    distanceLabel: raceDistances.join(', ') || 'Distances TBA',
+    imageUrl: event.bannerImageUrl || DEFAULT_EVENT_IMAGE_URL,
+    fallbackImageUrl: DEFAULT_EVENT_IMAGE_URL,
+    dateLabel: event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    }) : 'Start date TBA',
+    locationLabel: [event.venueName, event.city, countryLabel].filter(Boolean).join(', ') || 'Location TBA',
+    displayState: getEventCardDisplayState(event, now),
+    isFeatured: Boolean(event.homeFeatured)
   };
 }
 
@@ -480,6 +584,9 @@ function getAppBaseUrl() {
 
 module.exports = {
   buildPublicEventListPage,
+  getEventCardDisplayState,
   getEventsFilterValues,
-  buildEventsPageUrl
+  buildEventsPageUrl,
+  listHomepagePromotedEvents,
+  normalizeHomepageEventCard
 };

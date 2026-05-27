@@ -230,6 +230,13 @@ function parseOptionalNonNegativeNumber(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function parseOptionalNonNegativeInteger(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return null;
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isInteger(parsed) && parsed >= 0 ? parsed : null;
+}
+
 function hasOwnValue(body, key) {
   return Object.prototype.hasOwnProperty.call(body || {}, key);
 }
@@ -642,6 +649,9 @@ function sanitizeWaiverTemplate(value) {
 
 function getCreateEventFormData(body = {}) {
   const isDefaultCreateBody = !Object.keys(body || {}).length;
+  const hasHomePromotionFields = hasOwnValue(body, 'homeFeatured')
+    || hasOwnValue(body, 'homeFeaturedRank')
+    || hasOwnValue(body, 'homeFeaturedUntil');
   body = getDefaultedCreateEventBody(body);
   const legacyRaceDistances = normalizeRaceDistances(body);
   const raceCategories = normalizeRaceCategories(body, legacyRaceDistances);
@@ -714,6 +724,10 @@ function getCreateEventFormData(body = {}) {
     registrationOpenAt: body.registrationOpenAt || '',
     registrationCloseAt: body.registrationCloseAt || '',
     publicListingAvailableAt: body.publicListingAvailableAt || '',
+    hasHomePromotionFields,
+    homeFeatured: normalizeBoolean(body.homeFeatured),
+    homeFeaturedRank: parseOptionalNonNegativeInteger(body.homeFeaturedRank),
+    homeFeaturedUntil: body.homeFeaturedUntil || '',
     eventStartAt: body.eventStartAt || '',
     eventEndAt: body.eventEndAt || '',
     venueName: String(body.venueName || '').trim(),
@@ -843,6 +857,10 @@ function getCreateEventFormDataFromEvent(event) {
     registrationOpenAt: formatDateForInput(event.registrationOpenAt),
     registrationCloseAt: formatDateForInput(event.registrationCloseAt),
     publicListingAvailableAt: formatDateForInput(event.publicListingAvailableAt),
+    hasHomePromotionFields: false,
+    homeFeatured: Boolean(event.homeFeatured),
+    homeFeaturedRank: Number.isFinite(event.homeFeaturedRank) ? event.homeFeaturedRank : null,
+    homeFeaturedUntil: formatDateForInput(event.homeFeaturedUntil),
     eventStartAt: formatDateForInput(event.eventStartAt),
     eventEndAt: formatDateForInput(event.eventEndAt),
     venueName: event.venueName || '',
@@ -964,8 +982,11 @@ function validateOptionalCreateEventFields(formData, errors) {
     errors.galleryImageUrls = 'Each gallery URL must be a valid URL.';
   }
 
-  for (const field of ['registrationOpenAt', 'registrationCloseAt', 'publicListingAvailableAt', 'eventStartAt', 'eventEndAt', 'virtualStartAt', 'virtualEndAt', 'finalSubmissionDeadlineAt']) {
+  for (const field of ['registrationOpenAt', 'registrationCloseAt', 'publicListingAvailableAt', 'homeFeaturedUntil', 'eventStartAt', 'eventEndAt', 'virtualStartAt', 'virtualEndAt', 'finalSubmissionDeadlineAt']) {
     if (formData[field] && !parseDateSafe(formData[field])) errors[field] = 'Invalid date format.';
+  }
+  if (formData.homeFeaturedRank !== null && (!Number.isInteger(formData.homeFeaturedRank) || formData.homeFeaturedRank < 0)) {
+    errors.homeFeaturedRank = 'Homepage featured rank must be zero or higher.';
   }
 
   const hasGeoLat = !!formData.geoLat;
@@ -1630,6 +1651,11 @@ function applyEventFormData(event, formData, user) {
   event.registrationOpenAt = parseDateSafe(formData.registrationOpenAt);
   event.registrationCloseAt = parseDateSafe(formData.registrationCloseAt);
   event.publicListingAvailableAt = parseDateSafe(formData.publicListingAvailableAt);
+  if (formData.hasHomePromotionFields) {
+    event.homeFeatured = Boolean(formData.homeFeatured);
+    event.homeFeaturedRank = formData.homeFeaturedRank;
+    event.homeFeaturedUntil = parseDateSafe(formData.homeFeaturedUntil);
+  }
   event.eventStartAt = parseDateSafe(formData.eventStartAt);
   event.eventEndAt = parseDateSafe(formData.eventEndAt);
   event.venueName = formData.venueName || '';

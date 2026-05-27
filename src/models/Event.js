@@ -100,6 +100,20 @@ const eventSchema = new mongoose.Schema(
       type: Date,
       default: null
     },
+    homeFeatured: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    homeFeaturedRank: {
+      type: Number,
+      min: 0,
+      default: null
+    },
+    homeFeaturedUntil: {
+      type: Date,
+      default: null
+    },
     eventStartAt: Date,
     eventEndAt: Date,
     venueName: {
@@ -631,6 +645,7 @@ eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, eventStartAt: 
 eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, registrationCloseAt: 1, eventStartAt: 1 });
 eventSchema.index({ status: 1, isDeleted: 1, eventType: 1, createdAt: -1 });
 eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, publicListingAvailableAt: 1 });
+eventSchema.index({ status: 1, isDeleted: 1, isPersonalRecord: 1, homeFeatured: 1, homeFeaturedRank: 1, eventStartAt: 1 });
 applySmokeTestSchema(eventSchema);
 
 function shouldSyncSupabase() {

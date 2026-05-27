@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Homepage Carousel Settings - helloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>Homepage Carousel</h2>
+          <p>Control the landing-page event carousel shown to public visitors.</p>
+        </div>
+        <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+      </div>
+
+      <% if (message) { %>
+        <div class="admin-alert admin-alert-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <div class="dashboard-grid">
+        <article class="metric-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Visibility</p>
+            <i data-lucide="eye" class="metric-card-icon-sm" aria-hidden="true"></i>
+          </div>
+          <p class="metric-value metric-value-sm"><%= setting.enabled ? 'Enabled' : 'Hidden' %></p>
+          <p class="metric-helper">Controls whether the homepage section renders.</p>
+        </article>
+        <article class="metric-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Max Items</p>
+            <i data-lucide="layout-grid" class="metric-card-icon-sm" aria-hidden="true"></i>
+          </div>
+          <p class="metric-value"><%= setting.maxItems %></p>
+          <p class="metric-helper">Curated events first, then automatic fallback.</p>
+        </article>
+        <article class="metric-card">
+          <div class="metric-card-head">
+            <p class="metric-label">Navigation</p>
+            <i data-lucide="repeat" class="metric-card-icon-sm" aria-hidden="true"></i>
+          </div>
+          <p class="metric-value metric-value-sm"><%= setting.loopEnabled ? 'Looping' : 'Stops at ends' %></p>
+          <p class="metric-helper">Affects previous and next arrow behavior.</p>
+        </article>
+      </div>
+
+      <h3 class="dashboard-section-title">Carousel Settings</h3>
+      <form method="POST" action="/admin/homepage-carousel" class="admin-form-grid">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+
+        <div class="admin-form-field">
+          <span>Global controls</span>
+          <label><input type="checkbox" name="enabled" value="1" <%= setting.enabled ? 'checked' : '' %>> Show homepage event carousel</label>
+          <label><input type="checkbox" name="loopEnabled" value="1" <%= setting.loopEnabled ? 'checked' : '' %>> Loop previous/next navigation</label>
+        </div>
+
+        <label class="admin-form-field">
+          <span>Maximum events</span>
+          <input type="number" min="1" max="12" step="1" name="maxItems" value="<%= setting.maxItems %>">
+          <small class="metric-helper">Allowed range: 1 to 12. The current homepage card layout still shows 1 on mobile, 2 on tablet, and 3 on desktop.</small>
+        </label>
+
+        <div class="admin-form-field admin-form-field-wide">
+          <button type="submit" class="btn">Save Settings</button>
+          <a href="/" class="btn btn-secondary">Preview Homepage</a>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

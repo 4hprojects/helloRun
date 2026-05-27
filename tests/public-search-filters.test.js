@@ -87,6 +87,19 @@ test('future public posting date hides registration page', async () => {
   assert.equal(response.status, 404);
 });
 
+test('homepage renders featured event carousel cards for eligible public events', async () => {
+  const response = await fetch(`${BASE_URL}/`);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+
+  assert.match(html, /Featured events/i);
+  assert.match(html, /data-event-carousel/i);
+  assert.match(html, /Virtual Sunrise 5K/i);
+  assert.match(html, new RegExp(`/events/${seed.upcomingVirtualSlug}`));
+  assert.match(html, /\/images\/helloRun-icon\.webp/i);
+  assert.doesNotMatch(html, /Scheduled Posting Hidden Run/i);
+});
+
 test('future public posting date excludes event from sitemap', async () => {
   const response = await fetch(`${BASE_URL}/sitemap.xml`);
   assert.equal(response.status, 200);
@@ -455,6 +468,7 @@ async function seedPublicFilterFixture() {
     userIds: [String(organizer._id), String(author._id), String(runner._id)],
     password,
     runnerEmail: runner.email,
+    upcomingVirtualSlug: upcomingVirtual.slug,
     futurePostedSlug: futurePostedEvent.slug,
     pastPostedSlug: pastPostedEvent.slug,
     eventIds: [String(upcomingVirtual._id)]

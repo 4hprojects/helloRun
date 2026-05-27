@@ -133,6 +133,9 @@
                   <td>
                     <strong><%= event.title %></strong>
                     <div><small><%= event.referenceCode || event.slug %></small></div>
+                    <% if (event.homeFeatured) { %>
+                      <div><small>Homepage featured<%= Number.isFinite(event.homeFeaturedRank) ? ` · rank ${event.homeFeaturedRank}` : '' %></small></div>
+                    <% } %>
                   </td>
                   <td>
                     <strong><%= event.organizerName %></strong>

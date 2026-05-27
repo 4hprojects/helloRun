@@ -103,6 +103,78 @@
       </div>
     </section>
 
+    <% if (featuredEvents && featuredEvents.length) { %>
+      <section class="featured-events" aria-labelledby="featuredEventsTitle">
+        <div class="container">
+          <div class="featured-events-header">
+            <div>
+              <p class="section-kicker">Featured events</p>
+              <h2 id="featuredEventsTitle" class="section-title section-title-left">Find your next run</h2>
+              <p class="featured-events-summary">
+                Explore open and upcoming helloRun events, compare formats, and choose the challenge that fits your next goal.
+              </p>
+            </div>
+            <a href="/events" class="featured-events-view-all">
+              <span>View all events</span>
+              <i data-lucide="arrow-up-right"></i>
+            </a>
+          </div>
+
+          <div class="featured-events-carousel" data-event-carousel data-carousel-loop="<%= carouselSettings?.loopEnabled === false ? '0' : '1' %>">
+            <button type="button" class="featured-events-nav featured-events-nav-prev" data-carousel-prev aria-label="Previous featured events">
+              <i data-lucide="chevron-left" aria-hidden="true"></i>
+            </button>
+
+            <div class="featured-events-track" data-carousel-track tabindex="0" aria-label="Featured event cards">
+              <% featuredEvents.forEach((event) => { %>
+                <article class="featured-event-card">
+                  <a href="<%= event.href %>" class="featured-event-image-link" aria-label="<%= event.title %>">
+                    <img
+                      src="<%= event.imageUrl %>"
+                      alt="<%= event.title %> banner"
+                      loading="lazy"
+                      onerror="this.onerror=null;this.src='<%= event.fallbackImageUrl %>';">
+                  </a>
+
+                  <div class="featured-event-body">
+                    <div class="featured-event-tags">
+                      <span class="featured-event-tag featured-event-tag-<%= event.displayState?.tone || 'neutral' %>"><%= event.displayState?.label || 'Event Listing' %></span>
+                      <span class="featured-event-tag"><%= event.eventTypeLabel %></span>
+                    </div>
+
+                    <h3><a href="<%= event.href %>"><%= event.title %></a></h3>
+
+                    <% if (event.displayState?.helper) { %>
+                      <p class="featured-event-helper"><%= event.displayState.helper %></p>
+                    <% } %>
+
+                    <div class="featured-event-meta">
+                      <span><i data-lucide="calendar"></i><%= event.dateLabel %></span>
+                      <span><i data-lucide="map-pin"></i><%= event.locationLabel %></span>
+                      <span><i data-lucide="flag"></i><%= event.distanceLabel %></span>
+                    </div>
+
+                    <p class="featured-event-description"><%= event.description %></p>
+
+                    <a href="<%= event.href %>" class="featured-event-link">
+                      <span>View Event</span>
+                      <i data-lucide="arrow-right" aria-hidden="true"></i>
+                    </a>
+                  </div>
+                </article>
+              <% }) %>
+            </div>
+
+            <button type="button" class="featured-events-nav featured-events-nav-next" data-carousel-next aria-label="Next featured events">
+              <i data-lucide="chevron-right" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <div class="featured-events-dots" data-carousel-dots aria-label="Featured event pages"></div>
+        </div>
+      </section>
+    <% } %>
+
     <section class="why-hellorun">
       <div class="container">
         <div class="why-shell">

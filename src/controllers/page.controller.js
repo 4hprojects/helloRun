@@ -55,7 +55,8 @@ const {
 const { getEventBadgesByMongoEventId } = require('../services/event-badge.service');
 const { listProductsByMongoEventId } = require('../services/shop/product.service');
 const { recalculateOrderTotals } = require('../services/shop/order.service');
-const { buildPublicEventListPage } = require('../services/public-event-list.service');
+const { buildPublicEventListPage, listHomepagePromotedEvents } = require('../services/public-event-list.service');
+const { getHomepageCarouselSettings } = require('../services/homepage-carousel-setting.service');
 const { getPostgresClient } = require('../db/postgres');
 const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
 
@@ -67,7 +68,7 @@ exports.getHome = async (req, res) => {
     const canonicalUrl = baseUrl ? `${baseUrl}/` : '';
     const ogImage = baseUrl ? `${baseUrl}/images/helloRun-icon.webp` : '';
 
-    const [activeEventsCount, approvedFinishersCount, approvedOrganizersCount, recentPostsRaw] = await Promise.all([
+    const [activeEventsCount, approvedFinishersCount, approvedOrganizersCount, recentPostsRaw, carouselSettings] = await Promise.all([
       Event.countDocuments({
         ...getPublicEventVisibilityQuery(now),
         $or: [
@@ -86,8 +87,12 @@ exports.getHome = async (req, res) => {
         .sort({ publishedAt: -1, createdAt: -1 })
         .limit(3)
         .select('title slug excerpt category customCategory coverImageUrl readingTime publishedAt createdAt')
-        .lean()
+        .lean(),
+      getHomepageCarouselSettings()
     ]);
+    const featuredEvents = carouselSettings.enabled
+      ? await listHomepagePromotedEvents({ now, limit: carouselSettings.maxItems })
+      : [];
 
     const stats = [
       {
@@ -127,7 +132,9 @@ exports.getHome = async (req, res) => {
         ogImage
       },
       stats,
-      recentPosts
+      recentPosts,
+      featuredEvents,
+      carouselSettings
     });
   } catch (error) {
     console.error('Error loading home page:', error);

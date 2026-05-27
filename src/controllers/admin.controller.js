@@ -11,6 +11,7 @@ const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const PrivacyPolicy = require('../models/PrivacyPolicy');
 const communicationService = require('../services/communication.service');
+const homepageCarouselSettingService = require('../services/homepage-carousel-setting.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
 const { listRecentBadgeAuditLogs } = require('../services/badge-audit.service');
 const { publishEvent } = require('../services/event-approval.service');
@@ -2508,6 +2509,28 @@ exports.updateCommunicationEvent = async (req, res) => {
     return res.redirect(buildAdminRedirect('/admin/communications', 'success', 'Communication event updated.'));
   } catch (error) {
     return res.redirect(buildAdminRedirect('/admin/communications', 'error', error.message || 'Could not update communication event.'));
+  }
+};
+
+exports.renderHomepageCarouselSettings = async (req, res) => {
+  try {
+    const setting = await homepageCarouselSettingService.getHomepageCarouselSettings();
+    return res.render('admin/homepage-carousel-settings', {
+      title: 'Homepage Carousel Settings - helloRun Admin',
+      message: getAdminPageMessage(req.query),
+      setting
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading homepage carousel settings.');
+  }
+};
+
+exports.updateHomepageCarouselSettings = async (req, res) => {
+  try {
+    await homepageCarouselSettingService.updateHomepageCarouselSettings(req.body, getAdminActor(req));
+    return res.redirect(buildAdminRedirect('/admin/homepage-carousel', 'success', 'Homepage carousel settings updated.'));
+  } catch (error) {
+    return res.redirect(buildAdminRedirect('/admin/homepage-carousel', 'error', error.message || 'Could not update homepage carousel settings.'));
   }
 };
 

@@ -4,6 +4,7 @@ function initMainUi() {
   const navLinks = document.querySelector('.nav-links');
   const backToTopBtn = document.getElementById('globalBackToTopBtn');
   const eventsFilterForm = document.querySelector('.filter-bar[action="/events"]');
+  const eventCarousels = Array.from(document.querySelectorAll('[data-event-carousel]'));
 
   if (menuToggle && menuToggle.dataset.navInitialized !== '1') {
     menuToggle.dataset.navInitialized = '1';
@@ -145,6 +146,85 @@ function initMainUi() {
       });
     });
   }
+
+  eventCarousels.forEach(initEventCarousel);
+}
+
+function initEventCarousel(carousel) {
+  if (!carousel || carousel.dataset.carouselInitialized === '1') return;
+  carousel.dataset.carouselInitialized = '1';
+
+  const track = carousel.querySelector('[data-carousel-track]');
+  const prevBtn = carousel.querySelector('[data-carousel-prev]');
+  const nextBtn = carousel.querySelector('[data-carousel-next]');
+  const dotsWrap = carousel.parentElement?.querySelector('[data-carousel-dots]');
+  const cards = Array.from(track?.querySelectorAll('.featured-event-card') || []);
+  const loops = carousel.dataset.carouselLoop !== '0';
+  if (!track || !cards.length) return;
+
+  const getStep = () => {
+    const card = cards[0];
+    const styles = window.getComputedStyle(track);
+    const gap = Number.parseFloat(styles.columnGap || styles.gap || '0') || 0;
+    return card.getBoundingClientRect().width + gap;
+  };
+
+  const getVisibleCount = () => Math.max(1, Math.round(track.clientWidth / Math.max(1, getStep())));
+  const getPageCount = () => Math.max(1, Math.ceil(cards.length / getVisibleCount()));
+  const getCurrentPage = () => Math.min(getPageCount() - 1, Math.round(track.scrollLeft / Math.max(1, getStep() * getVisibleCount())));
+
+  const renderDots = () => {
+    if (!dotsWrap) return;
+    const pageCount = getPageCount();
+    dotsWrap.innerHTML = '';
+    if (pageCount <= 1) return;
+    for (let index = 0; index < pageCount; index += 1) {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'featured-events-dot';
+      dot.setAttribute('aria-label', `Show featured event page ${index + 1}`);
+      dot.addEventListener('click', () => {
+        track.scrollTo({ left: index * getStep() * getVisibleCount(), behavior: getScrollBehavior() });
+      });
+      dotsWrap.appendChild(dot);
+    }
+  };
+
+  const getScrollBehavior = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+
+  const updateState = () => {
+    const page = getCurrentPage();
+    const pageCount = getPageCount();
+    if (prevBtn) prevBtn.disabled = pageCount <= 1 || (!loops && page <= 0);
+    if (nextBtn) nextBtn.disabled = pageCount <= 1 || (!loops && page >= pageCount - 1);
+    if (dotsWrap) {
+      Array.from(dotsWrap.children).forEach((dot, index) => {
+        dot.setAttribute('aria-current', index === page ? 'true' : 'false');
+      });
+    }
+  };
+
+  const moveByPage = (direction) => {
+    const pageCount = getPageCount();
+    if (pageCount <= 1) return;
+    const currentPage = getCurrentPage();
+    const targetPage = loops
+      ? (currentPage + direction + pageCount) % pageCount
+      : Math.min(pageCount - 1, Math.max(0, currentPage + direction));
+    const pageWidth = getStep() * getVisibleCount();
+    track.scrollTo({ left: targetPage * pageWidth, behavior: getScrollBehavior() });
+  };
+
+  if (prevBtn) prevBtn.addEventListener('click', () => moveByPage(-1));
+  if (nextBtn) nextBtn.addEventListener('click', () => moveByPage(1));
+  track.addEventListener('scroll', () => window.requestAnimationFrame(updateState), { passive: true });
+  window.addEventListener('resize', () => {
+    renderDots();
+    updateState();
+  });
+
+  renderDots();
+  updateState();
 }
 
 if (document.readyState === 'loading') {
