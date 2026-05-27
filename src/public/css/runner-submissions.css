@@ -403,6 +403,28 @@
   background: #ede9fe;
 }
 
+.sub-card-cert-ready {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #c4b5fd;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #faf5ff 0%, #eef2ff 100%);
+  color: #5b21b6;
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.sub-card-cert-ready svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
 .badge-warning {
   color: #92400e;
   border: 1px solid #fcd34d;
@@ -796,6 +818,94 @@
 
 .sub-sidebar-content p {
   margin: 0;
+}
+
+.sub-cert-card {
+  border-color: #c4b5fd;
+  background: linear-gradient(180deg, #ffffff 0%, #faf5ff 100%);
+}
+
+.sub-cert-content {
+  gap: 0.85rem;
+}
+
+.sub-cert-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid #c4b5fd;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #4c1d95;
+}
+
+.sub-cert-status strong,
+.sub-cert-status span {
+  display: block;
+}
+
+.sub-cert-status strong {
+  color: #312e81;
+  font-size: 0.95rem;
+}
+
+.sub-cert-status span {
+  color: #6d28d9;
+  font-size: 0.8rem;
+}
+
+.sub-cert-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: #ede9fe;
+  color: #6d28d9;
+  flex-shrink: 0;
+}
+
+.sub-cert-icon svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.sub-cert-summary {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.sub-cert-summary div {
+  display: grid;
+  grid-template-columns: 5.25rem minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: baseline;
+}
+
+.sub-cert-summary dt {
+  color: var(--text-muted, #64748b);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sub-cert-summary dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--text-main, #1e293b);
+  font-size: 0.86rem;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.sub-cert-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
 }
 
 .sub-actions-list {

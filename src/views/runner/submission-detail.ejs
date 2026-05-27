@@ -289,14 +289,40 @@
             <div class="card-header">
               <h3 id="sectionCertTitle"><i data-lucide="award" aria-hidden="true"></i> Certificate</h3>
             </div>
-            <div class="card-content sub-sidebar-content">
-              <p>Your completion certificate is ready.</p>
-              <% if (submission.certificateIssuedAtLabel && submission.certificateIssuedAtLabel !== '-') { %>
-                <p class="text-muted">Issued <%= submission.certificateIssuedAtLabel %></p>
-              <% } %>
-              <a href="/my-submissions/<%= submission.submissionId %>/certificate" class="btn btn-primary btn-sm">
-                <i data-lucide="download" aria-hidden="true"></i> Download Certificate
-              </a>
+            <div class="card-content sub-sidebar-content sub-cert-content">
+              <div class="sub-cert-status">
+                <span class="sub-cert-icon"><i data-lucide="badge-check" aria-hidden="true"></i></span>
+                <div>
+                  <strong>Certificate ready</strong>
+                  <% if (submission.certificateIssuedAtLabel && submission.certificateIssuedAtLabel !== '-') { %>
+                    <span>Issued <%= submission.certificateIssuedAtLabel %></span>
+                  <% } %>
+                </div>
+              </div>
+              <dl class="sub-cert-summary" aria-label="Certificate summary">
+                <div>
+                  <dt>Event</dt>
+                  <dd><%= submission.eventTitle %></dd>
+                </div>
+                <div>
+                  <dt>Distance</dt>
+                  <dd><%= submission.raceDistance || (submission.distanceKm > 0 ? submission.distanceKm.toFixed(2) + ' km' : 'N/A') %></dd>
+                </div>
+                <div>
+                  <dt>Finish time</dt>
+                  <dd><%= submission.elapsedLabel %></dd>
+                </div>
+              </dl>
+              <div class="sub-cert-actions">
+                <a href="/my-submissions/<%= submission.submissionId %>/certificate" class="btn btn-primary btn-sm">
+                  <i data-lucide="download" aria-hidden="true"></i> Download Certificate
+                </a>
+                <% if (!submission.isPersonalRecord && submission.eventSlug) { %>
+                  <a href="/events/<%= submission.eventSlug %>" class="btn btn-outline btn-sm">
+                    <i data-lucide="external-link" aria-hidden="true"></i> Event Page
+                  </a>
+                <% } %>
+              </div>
             </div>
           </section>
         <% } %>

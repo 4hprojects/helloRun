@@ -270,6 +270,12 @@
               <% if (sub.status === 'rejected' && sub.rejectionReason) { %>
                 <p class="sub-card-rejection"><i data-lucide="alert-circle" aria-hidden="true"></i> <%= sub.rejectionReason %></p>
               <% } %>
+              <% if (sub.hasCertificate) { %>
+                <div class="sub-card-cert-ready">
+                  <i data-lucide="badge-check" aria-hidden="true"></i>
+                  <span>Certificate ready<% if (sub.certificateIssuedAtLabel && sub.certificateIssuedAtLabel !== '-') { %> &middot; Issued <%= sub.certificateIssuedAtLabel %><% } %></span>
+                </div>
+              <% } %>
               <p class="sub-card-date text-muted"><i data-lucide="send" aria-hidden="true"></i> Submitted <%= sub.submittedAtRelativeLabel %></p>
             </div>
 

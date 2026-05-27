@@ -449,15 +449,20 @@
               <div><strong>Total certificates:</strong> <%= submissionStats?.certificates || 0 %></div>
             </div>
             <% if (cards.certificates && cards.certificates.length) { %>
-              <ul class="item-list compact">
+              <ul class="item-list compact certificate-list">
                 <% cards.certificates.forEach((item) => { %>
-                  <li class="item-row">
+                  <li class="item-row certificate-row">
+                    <span class="certificate-row-icon"><i data-lucide="badge-check" aria-hidden="true"></i></span>
                     <div class="item-main">
                       <div><strong><%= item.eventTitle %></strong></div>
-                      <div class="item-meta">Issued: <%= item.issuedAtLabel %></div>
+                      <div class="item-meta">
+                        Issued: <%= item.issuedAtLabel %>
+                        <% if (item.raceDistance) { %> &middot; <%= item.raceDistance %><% } %>
+                        <% if (item.elapsedLabel && item.elapsedLabel !== '00:00:00') { %> &middot; <%= item.elapsedLabel %><% } %>
+                      </div>
                       <% if (item.confirmationCode) { %><div class="item-meta">Code: <code><%= item.confirmationCode %></code></div><% } %>
                     </div>
-                    <a href="/my-submissions/<%= item.submissionId %>/certificate" class="btn btn-sm btn-outline">Download</a>
+                    <a href="/my-submissions/<%= item.submissionId %>/certificate" class="btn btn-sm btn-primary"><i data-lucide="download" aria-hidden="true"></i> Download</a>
                   </li>
                 <% }) %>
               </ul>

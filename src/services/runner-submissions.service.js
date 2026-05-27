@@ -196,6 +196,7 @@ function formatSubmissionListItem(doc) {
     proofUrl: doc.proof?.url || '',
     hasCertificate,
     certificateUrl: hasCertificate ? `/my-submissions/${String(doc._id)}/certificate` : '',
+    certificateIssuedAt: doc.certificate?.issuedAt || null,
     isPersonalRecord: Boolean(doc.isPersonalRecord),
     needsAdditionalReview: Boolean(doc.suspiciousFlag),
     ocrSource: doc.ocrData?.detectedSource || '',
@@ -208,7 +209,8 @@ function formatSubmissionListItem(doc) {
     submittedAtLabel: formatDateTime(doc.submittedAt),
     submittedAtRelativeLabel: formatRelativeTime(doc.submittedAt),
     reviewedAtLabel: formatDateTime(doc.reviewedAt),
-    reviewedAtRelativeLabel: formatRelativeTime(doc.reviewedAt)
+    reviewedAtRelativeLabel: formatRelativeTime(doc.reviewedAt),
+    certificateIssuedAtLabel: formatDateTime(doc.certificate?.issuedAt)
   };
 }
 
@@ -228,7 +230,6 @@ function formatSubmissionDetail(doc) {
     elevationGain: doc.elevationGain !== null && doc.elevationGain !== undefined ? Number(doc.elevationGain) : null,
     steps: doc.steps !== null && doc.steps !== undefined ? Number(doc.steps) : null,
     submissionCount: Number(doc.submissionCount || 1),
-    certificateIssuedAtLabel: formatDateTime(doc.certificate?.issuedAt),
     ocrData: doc.ocrData
       ? {
           extractedDistanceKm: doc.ocrData.extractedDistanceKm,
