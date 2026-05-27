@@ -648,6 +648,8 @@ Both auth pages use keyframe animations for entrance effects:
 
 ## 11. Runner Dashboard
 
+Dedicated feature reference: `docs/runner_dashboard.md`
+
 **File:** `src/views/runner/dashboard.ejs`
 **CSS:** `src/public/css/runner-dashboard.css`
 
