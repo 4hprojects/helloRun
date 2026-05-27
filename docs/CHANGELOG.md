@@ -3,6 +3,38 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 27, 2026 (Session: Organizer Dashboard Action Rail + Branding Placement Refinement)
+
+### [SESSION] SESSION UPDATE:
+- Refined organizer event-card actions in `/organizer/dashboard` to use icon-first controls with hover/focus labels for:
+  - Edit Event
+  - Edit Certificate
+  - View Registrants
+- Improved right-rail behavior across breakpoints:
+  - desktop keeps action icons pinned in the upper-right
+  - desktop keeps event status (for example, `published`) directly below the action rail
+  - tablet/mobile keep action controls right-aligned without regression from shared global button rules
+- Refined event-card metadata controls for tablet/mobile space efficiency:
+  - converted `Open Banner URL` / `Open Logo URL` into compact `Banner URL` / `Logo URL` links
+  - removed horizontal-scroll dependency for action/link controls
+  - tuned compact chip styling and truncation behavior for small widths
+- Added mobile-specific branding behavior:
+  - introduced inline mobile status badge placement near logo for better vertical density
+  - resized banner/logo/status at mobile and tiny-mobile breakpoints to balance readability and compactness
+- Corrected desktop branding placement so banner and logo remain grouped visually, while the action/status rail stays independent on the right.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/organizer_application_flow.md
+3. src/views/organizer/dashboard.ejs
+4. src/public/css/organizer-dashboard.css
+
+### [VALIDATION] TEST/RUN CHECKS:
+- CSS and EJS error scan for changed organizer dashboard files -> PASS (no diagnostics).
+- Code-level responsive/cascade review completed for desktop, tablet, mobile, and tiny-mobile breakpoints in organizer dashboard styles.
+
+---
+
 ## CHANGELOG - May 27, 2026 (Session: Certificate Template Workflow)
 
 ### [SESSION] SESSION UPDATE:

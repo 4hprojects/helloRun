@@ -35,6 +35,24 @@ The typed signature must match the account full name after trimming and normaliz
 
 After acknowledgement is saved, `canCreateEvents()` allows the pending organizer to open `/organizer/create-event`. Approved organizers continue to have normal create-event access without the modal.
 
+## Organizer Dashboard Event Card UI Notes (May 27, 2026)
+
+Recent event cards on `/organizer/dashboard` now follow a breakpoint-aware action rail and branding layout:
+
+- Desktop (`>768px`):
+	- event action icons (`Edit Event`, `Edit Certificate`, `View Registrants`) stay pinned to the upper-right rail
+	- event status badge (`published`, `draft`, etc.) is positioned directly below the action icons on the same right rail
+	- event banner and event logo remain grouped on the left branding block (not pushed to the right rail)
+
+- Tablet/mobile (`<=768px`):
+	- action icons remain right-aligned in compact rows
+	- URL links (`Banner URL`, `Logo URL`) use compact labels and space-efficient chip styling
+	- layout avoids horizontal scrolling for event-card link/action controls
+
+- Mobile (`<=640px`) and tiny mobile (`<=360px`):
+	- event status can render as a compact inline badge near the logo to save vertical space
+	- banner/logo/status sizes are reduced progressively by breakpoint to preserve readability while minimizing card height
+
 ## Document Requirements
 
 - ID proof is required unless a previous ID proof is already on file.

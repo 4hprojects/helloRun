@@ -464,11 +464,14 @@
                         <% } else { %>
                           <div class="event-banner-thumb event-banner-thumb-empty">No Banner</div>
                         <% } %>
-                        <% if (event.logoUrl) { %>
-                          <a href="<%= event.logoUrl %>" target="_blank" rel="noopener noreferrer" aria-label="Open logo image for <%= event.name %>">
-                            <img src="<%= event.logoUrl %>" alt="<%= event.name %> logo" class="event-logo-thumb">
-                          </a>
-                        <% } %>
+                        <div class="event-branding-secondary">
+                          <% if (event.logoUrl) { %>
+                            <a href="<%= event.logoUrl %>" target="_blank" rel="noopener noreferrer" aria-label="Open logo image for <%= event.name %>">
+                              <img src="<%= event.logoUrl %>" alt="<%= event.name %> logo" class="event-logo-thumb">
+                            </a>
+                          <% } %>
+                          <span class="event-status event-status-<%= event.status %> event-status-mobile-inline"><%= event.status %></span>
+                        </div>
                       </div>
                       <p class="event-meta">
                         <i data-lucide="map-pin"></i> <%= event.location %>
@@ -497,7 +500,7 @@
                         </div>
                       </div>
                     </div>
-                    <span class="event-status event-status-<%= event.status %>"><%= event.status %></span>
+                    <span class="event-status event-status-<%= event.status %> event-status-rail"><%= event.status %></span>
                   </div>
                 <% }); %>
               </div>
