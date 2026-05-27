@@ -2251,6 +2251,78 @@
   flex-wrap: wrap;
   gap: 0.6rem;
   justify-content: flex-end;
+  align-items: center;
+  padding-top: 0.15rem;
+  overflow: visible;
+}
+
+.carousel-admin-actions .carousel-icon-action {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  min-width: 46px;
+  height: 46px;
+  min-height: 46px;
+  padding: 0;
+  border-radius: 12px;
+  overflow: visible;
+}
+
+.carousel-admin-actions .carousel-icon-action i,
+.carousel-admin-actions .carousel-icon-action svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+}
+
+.carousel-admin-actions .carousel-icon-action::after {
+  content: attr(data-action-label);
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.5rem);
+  z-index: 5;
+  max-width: 180px;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #ffffff;
+  padding: 0.4rem 0.55rem;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.2);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.2;
+  opacity: 0;
+  pointer-events: none;
+  text-align: center;
+  transform: translateY(0.25rem);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  white-space: nowrap;
+}
+
+.carousel-admin-actions .carousel-icon-action::before {
+  content: '';
+  position: absolute;
+  right: 17px;
+  bottom: calc(100% + 0.18rem);
+  z-index: 6;
+  width: 0;
+  height: 0;
+  border-left: 0.35rem solid transparent;
+  border-right: 0.35rem solid transparent;
+  border-top: 0.35rem solid #0f172a;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0.25rem);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+}
+
+.carousel-admin-actions .carousel-icon-action:hover::after,
+.carousel-admin-actions .carousel-icon-action:focus-visible::after,
+.carousel-admin-actions .carousel-icon-action:hover::before,
+.carousel-admin-actions .carousel-icon-action:focus-visible::before {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .admin-badge-metrics {
@@ -2976,11 +3048,11 @@
   }
 
   .carousel-admin-actions {
-    justify-content: stretch;
+    justify-content: flex-end;
   }
 
   .carousel-admin-actions .btn {
-    width: 100%;
+    width: 46px;
   }
 }
 

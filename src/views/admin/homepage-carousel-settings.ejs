@@ -14,7 +14,9 @@
           <h2>Homepage Carousel</h2>
           <p>Control the landing-page event carousel shown to public visitors.</p>
         </div>
-        <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+        <a href="/admin/dashboard" class="btn btn-secondary carousel-icon-action" aria-label="Back to Dashboard" data-action-label="Back to Dashboard">
+          <i data-lucide="arrow-left" aria-hidden="true"></i>
+        </a>
       </div>
 
       <% if (message) { %>
@@ -167,9 +169,15 @@
         </div>
 
         <div class="carousel-admin-actions">
-          <button type="submit" class="btn">Save Settings</button>
-          <a href="/" class="btn btn-secondary" target="_blank" rel="noopener">Preview Homepage</a>
-          <a href="/admin/events" class="btn btn-secondary" data-carousel-manage-events>Manage Events</a>
+          <button type="submit" class="btn carousel-icon-action" aria-label="Save Settings" data-action-label="Save Settings">
+            <i data-lucide="save" aria-hidden="true"></i>
+          </button>
+          <a href="/" class="btn btn-secondary carousel-icon-action" target="_blank" rel="noopener" aria-label="Preview Homepage" data-action-label="Preview Homepage">
+            <i data-lucide="external-link" aria-hidden="true"></i>
+          </a>
+          <a href="/admin/events" class="btn btn-secondary carousel-icon-action" data-carousel-manage-events aria-label="Manage Events" data-action-label="Manage Events">
+            <i data-lucide="calendar-days" aria-hidden="true"></i>
+          </a>
         </div>
       </form>
     </section>
