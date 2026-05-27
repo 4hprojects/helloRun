@@ -3,6 +3,33 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - May 28, 2026 (Session: Homepage Carousel Admin UX Refinement)
+
+### [SESSION] SESSION UPDATE:
+- Refined `/admin/homepage-carousel` from a plain settings form into a clearer admin workflow:
+  - status hero with visibility, event limit, desktop page count, and navigation mode
+  - homepage carousel preview mock for quick context
+  - responsive mobile/tablet/last-saved metric cards
+  - grouped visibility/navigation controls with switch-style toggles
+  - event capacity panel with a visual range indicator
+  - guidance note clarifying that event ordering is managed from event admin controls
+- Updated action behavior:
+  - `Preview Homepage` opens in a new browser tab
+  - `Manage Events` asks for confirmation before leaving the settings page
+  - `Save Settings` asks for confirmation before applying public homepage changes
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/features/hellorun_landing_event_carousel_plan.md
+3. src/views/admin/homepage-carousel-settings.ejs
+4. src/public/css/admin.css
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test tests/homepage-carousel-setting.service.test.js` -> PASS
+- EJS render smoke check for `src/views/admin/homepage-carousel-settings.ejs` with representative settings data -> PASS
+
+---
+
 ## CHANGELOG - May 27, 2026 (Session: Organizer Dashboard Action Rail + Branding Placement Refinement)
 
 ### [SESSION] SESSION UPDATE:

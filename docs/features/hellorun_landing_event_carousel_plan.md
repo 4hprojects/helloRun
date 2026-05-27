@@ -34,6 +34,22 @@ Place the carousel on `src/views/pages/home.ejs` after the "What helloRun does" 
   - secondary "View all events" link to `/events`
 - Export or centralize the existing event display-state helper so homepage cards use the same status labels as `/events`.
 
+## Admin Settings UX Refinement
+
+Completed May 28, 2026:
+
+- `/admin/homepage-carousel` now presents the carousel settings as a guided admin workflow with:
+  - a status hero summarizing visibility, event limit, desktop pages, and navigation mode
+  - a compact homepage carousel preview mock
+  - responsive context cards for mobile/tablet behavior and last saved time
+  - switch-style controls for section visibility and looping navigation
+  - an event-capacity panel with a visual range indicator
+  - a guidance note explaining that carousel ordering is managed from event admin controls
+- Action behavior was refined:
+  - `Preview Homepage` opens in a new tab
+  - `Manage Events` opens a confirmation modal before leaving the page
+  - `Save Settings` opens a confirmation modal before applying public homepage changes
+
 ## Carousel UX
 
 - Section heading:

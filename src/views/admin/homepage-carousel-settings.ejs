@@ -21,59 +21,255 @@
         <div class="admin-alert admin-alert-<%= message.type %>"><%= message.text %></div>
       <% } %>
 
-      <div class="dashboard-grid">
+      <%
+        const maxItems = Number(setting.maxItems || 8);
+        const desktopPages = Math.max(1, Math.ceil(maxItems / 3));
+        const tabletPages = Math.max(1, Math.ceil(maxItems / 2));
+        const updatedDate = setting.updatedAt ? new Date(setting.updatedAt) : null;
+        const updatedLabel = updatedDate && !Number.isNaN(updatedDate.getTime())
+          ? updatedDate.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+          : 'Not updated yet';
+      %>
+
+      <section class="carousel-admin-hero" aria-label="Current homepage carousel configuration">
+        <div class="carousel-admin-hero-main">
+          <span class="status-badge <%= setting.enabled ? 'status-badge-live' : 'status-badge-closed' %>">
+            <%= setting.enabled ? 'Visible on homepage' : 'Hidden from homepage' %>
+          </span>
+          <h3>Featured events carousel</h3>
+          <p>
+            Curated events are shown first. If fewer than <%= maxItems %> events are curated,
+            eligible public upcoming events fill the remaining slots.
+          </p>
+          <div class="carousel-admin-meta-row" aria-label="Carousel summary">
+            <span><i data-lucide="layout-grid" aria-hidden="true"></i><%= maxItems %> event limit</span>
+            <span><i data-lucide="monitor" aria-hidden="true"></i><%= desktopPages %> desktop page<%= desktopPages === 1 ? '' : 's' %></span>
+            <span><i data-lucide="repeat" aria-hidden="true"></i><%= setting.loopEnabled ? 'Looping arrows' : 'Stops at ends' %></span>
+          </div>
+        </div>
+        <div class="carousel-admin-preview" aria-label="Homepage carousel preview">
+          <div class="carousel-admin-preview-top">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="carousel-admin-preview-section">
+            <div>
+              <small>Homepage</small>
+              <strong>Featured Events</strong>
+            </div>
+            <div class="carousel-admin-preview-arrows">
+              <i data-lucide="chevron-left" aria-hidden="true"></i>
+              <i data-lucide="chevron-right" aria-hidden="true"></i>
+            </div>
+          </div>
+          <div class="carousel-admin-preview-track">
+            <% [1, 2, 3].forEach((item) => { %>
+              <span class="<%= setting.enabled ? '' : 'is-muted' %>"></span>
+            <% }) %>
+          </div>
+          <p><%= setting.enabled ? 'Public visitors can browse featured events.' : 'The section will not render on the homepage.' %></p>
+        </div>
+      </section>
+
+      <div class="dashboard-grid carousel-admin-stats">
         <article class="metric-card">
           <div class="metric-card-head">
-            <p class="metric-label">Visibility</p>
-            <i data-lucide="eye" class="metric-card-icon-sm" aria-hidden="true"></i>
+            <p class="metric-label">Mobile View</p>
+            <i data-lucide="smartphone" class="metric-card-icon-sm" aria-hidden="true"></i>
           </div>
-          <p class="metric-value metric-value-sm"><%= setting.enabled ? 'Enabled' : 'Hidden' %></p>
-          <p class="metric-helper">Controls whether the homepage section renders.</p>
+          <p class="metric-value metric-value-sm">1 card</p>
+          <p class="metric-helper">Swipe or arrow through <%= maxItems %> event<%= maxItems === 1 ? '' : 's' %>.</p>
         </article>
         <article class="metric-card">
           <div class="metric-card-head">
-            <p class="metric-label">Max Items</p>
-            <i data-lucide="layout-grid" class="metric-card-icon-sm" aria-hidden="true"></i>
+            <p class="metric-label">Tablet View</p>
+            <i data-lucide="tablet" class="metric-card-icon-sm" aria-hidden="true"></i>
           </div>
-          <p class="metric-value"><%= setting.maxItems %></p>
-          <p class="metric-helper">Curated events first, then automatic fallback.</p>
+          <p class="metric-value metric-value-sm"><%= tabletPages %> page<%= tabletPages === 1 ? '' : 's' %></p>
+          <p class="metric-helper">Two event cards per page.</p>
         </article>
         <article class="metric-card">
           <div class="metric-card-head">
-            <p class="metric-label">Navigation</p>
-            <i data-lucide="repeat" class="metric-card-icon-sm" aria-hidden="true"></i>
+            <p class="metric-label">Last Saved</p>
+            <i data-lucide="clock-3" class="metric-card-icon-sm" aria-hidden="true"></i>
           </div>
-          <p class="metric-value metric-value-sm"><%= setting.loopEnabled ? 'Looping' : 'Stops at ends' %></p>
-          <p class="metric-helper">Affects previous and next arrow behavior.</p>
+          <p class="metric-value metric-value-sm"><%= updatedLabel %></p>
+          <p class="metric-helper">Settings are applied immediately after save.</p>
         </article>
       </div>
 
-      <h3 class="dashboard-section-title">Carousel Settings</h3>
-      <form method="POST" action="/admin/homepage-carousel" class="admin-form-grid">
+      <form method="POST" action="/admin/homepage-carousel" class="carousel-admin-layout" data-carousel-settings-form>
         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
 
-        <div class="admin-form-field">
-          <span>Global controls</span>
-          <label><input type="checkbox" name="enabled" value="1" <%= setting.enabled ? 'checked' : '' %>> Show homepage event carousel</label>
-          <label><input type="checkbox" name="loopEnabled" value="1" <%= setting.loopEnabled ? 'checked' : '' %>> Loop previous/next navigation</label>
+        <section class="carousel-admin-panel">
+          <div class="carousel-admin-panel-heading">
+            <div>
+              <h3>Visibility &amp; Navigation</h3>
+              <p>Use these controls when the homepage needs a quick merchandising change.</p>
+            </div>
+            <i data-lucide="sliders-horizontal" aria-hidden="true"></i>
+          </div>
+
+          <div class="carousel-toggle-list">
+            <label class="carousel-toggle-card">
+              <input type="checkbox" name="enabled" value="1" <%= setting.enabled ? 'checked' : '' %>>
+              <span class="carousel-toggle-ui" aria-hidden="true"></span>
+              <span>
+                <strong>Show homepage event carousel</strong>
+                <small>Render the Featured Events section for public visitors.</small>
+              </span>
+            </label>
+            <label class="carousel-toggle-card">
+              <input type="checkbox" name="loopEnabled" value="1" <%= setting.loopEnabled ? 'checked' : '' %>>
+              <span class="carousel-toggle-ui" aria-hidden="true"></span>
+              <span>
+                <strong>Loop previous and next navigation</strong>
+                <small>After the final page, the next arrow returns to the first page.</small>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        <section class="carousel-admin-panel">
+          <div class="carousel-admin-panel-heading">
+            <div>
+              <h3>Event Capacity</h3>
+              <p>Set how many eligible events can be loaded into the homepage carousel.</p>
+            </div>
+            <i data-lucide="rows-3" aria-hidden="true"></i>
+          </div>
+
+          <label class="admin-form-field carousel-number-field">
+            <span>Maximum events</span>
+            <input type="number" min="1" max="12" step="1" name="maxItems" value="<%= maxItems %>" inputmode="numeric">
+            <small class="metric-helper">Allowed range: 1 to 12. The public layout shows 1 card on mobile, 2 on tablet, and 3 on desktop.</small>
+          </label>
+
+          <div class="carousel-capacity-scale" aria-hidden="true">
+            <span style="width: <%= Math.round((maxItems / 12) * 100) %>%"></span>
+          </div>
+          <div class="carousel-capacity-labels">
+            <span>Focused</span>
+            <span>Balanced</span>
+            <span>Full shelf</span>
+          </div>
+        </section>
+
+        <div class="carousel-admin-guidance">
+          <div>
+            <i data-lucide="info" aria-hidden="true"></i>
+          </div>
+          <p>
+            Event ordering is managed from each organizer event's admin-only carousel controls.
+            This page only controls whether the section appears, how navigation behaves, and how many events are allowed.
+          </p>
         </div>
 
-        <label class="admin-form-field">
-          <span>Maximum events</span>
-          <input type="number" min="1" max="12" step="1" name="maxItems" value="<%= setting.maxItems %>">
-          <small class="metric-helper">Allowed range: 1 to 12. The current homepage card layout still shows 1 on mobile, 2 on tablet, and 3 on desktop.</small>
-        </label>
-
-        <div class="admin-form-field admin-form-field-wide">
+        <div class="carousel-admin-actions">
           <button type="submit" class="btn">Save Settings</button>
-          <a href="/" class="btn btn-secondary">Preview Homepage</a>
+          <a href="/" class="btn btn-secondary" target="_blank" rel="noopener">Preview Homepage</a>
+          <a href="/admin/events" class="btn btn-secondary" data-carousel-manage-events>Manage Events</a>
         </div>
       </form>
     </section>
   </main>
 
+  <div class="admin-delete-confirm-backdrop carousel-confirm-modal" id="carouselConfirmModal" hidden aria-hidden="true">
+    <div class="admin-delete-confirm-dialog carousel-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="carouselConfirmTitle" aria-describedby="carouselConfirmDesc" tabindex="-1">
+      <div class="admin-delete-confirm-icon-wrap carousel-confirm-icon-wrap">
+        <i data-lucide="circle-help" aria-hidden="true"></i>
+      </div>
+      <h3 id="carouselConfirmTitle">Confirm action</h3>
+      <p id="carouselConfirmDesc" class="admin-delete-confirm-desc">Please confirm before continuing.</p>
+      <div class="admin-delete-confirm-actions carousel-confirm-actions">
+        <button type="button" class="btn btn-secondary" data-carousel-confirm-cancel>Cancel</button>
+        <button type="button" class="btn" data-carousel-confirm-ok>Continue</button>
+      </div>
+    </div>
+  </div>
+
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
+  <script>
+    (function initCarouselSettingsConfirmations() {
+      const form = document.querySelector('[data-carousel-settings-form]');
+      const manageEventsLink = document.querySelector('[data-carousel-manage-events]');
+      const modal = document.getElementById('carouselConfirmModal');
+      const dialog = modal ? modal.querySelector('.carousel-confirm-dialog') : null;
+      const title = document.getElementById('carouselConfirmTitle');
+      const desc = document.getElementById('carouselConfirmDesc');
+      const cancelBtn = modal ? modal.querySelector('[data-carousel-confirm-cancel]') : null;
+      const okBtn = modal ? modal.querySelector('[data-carousel-confirm-ok]') : null;
+      let pendingAction = null;
+      let lastFocused = null;
+
+      if (!modal || !dialog || !title || !desc || !cancelBtn || !okBtn) return;
+
+      function closeModal() {
+        modal.hidden = true;
+        modal.setAttribute('aria-hidden', 'true');
+        pendingAction = null;
+        if (lastFocused && typeof lastFocused.focus === 'function') {
+          lastFocused.focus();
+        }
+      }
+
+      function openModal(config) {
+        lastFocused = document.activeElement;
+        pendingAction = config.onConfirm;
+        title.textContent = config.title;
+        desc.textContent = config.description;
+        okBtn.textContent = config.confirmLabel;
+        modal.hidden = false;
+        modal.setAttribute('aria-hidden', 'false');
+        dialog.focus();
+      }
+
+      if (form) {
+        form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          openModal({
+            title: 'Save homepage carousel settings?',
+            description: 'These changes apply immediately to the public homepage carousel.',
+            confirmLabel: 'Save Settings',
+            onConfirm: () => form.submit()
+          });
+        });
+      }
+
+      if (manageEventsLink) {
+        manageEventsLink.addEventListener('click', (event) => {
+          event.preventDefault();
+          const href = manageEventsLink.getAttribute('href') || '/admin/events';
+          openModal({
+            title: 'Leave carousel settings?',
+            description: 'You are about to leave this page for event management. Unsaved carousel setting changes will be lost.',
+            confirmLabel: 'Leave Page',
+            onConfirm: () => {
+              window.location.href = href;
+            }
+          });
+        });
+      }
+
+      okBtn.addEventListener('click', () => {
+        const action = pendingAction;
+        closeModal();
+        if (typeof action === 'function') action();
+      });
+
+      cancelBtn.addEventListener('click', closeModal);
+
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) closeModal();
+      });
+
+      modal.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeModal();
+      });
+    })();
+  </script>
   <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>
