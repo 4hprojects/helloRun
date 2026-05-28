@@ -147,25 +147,27 @@ function validateContentBlocks(blocks) {
   const textLength = htmlToPlainText(renderContentBlocksToHtml(blocks)).length;
   if (textLength < 50) errors.push('Content body is too short. Add more details before saving.');
 
-  blocks.forEach((block, index) => {
+  const blockErrors = blocks.flatMap((block, index) => {
+    const innerErrors = [];
     const label = `Block ${index + 1}`;
     if (!BLOG_BLOCK_TYPES.includes(block.type)) {
-      errors.push(`${label} has an unsupported type.`);
-      return;
+      innerErrors.push(`${label} has an unsupported type.`);
+      return innerErrors;
     }
-    if (block.type === 'heading' && !block.content.text) errors.push(`${label} heading text is required.`);
+    if (block.type === 'heading' && !block.content.text) innerErrors.push(`${label} heading text is required.`);
     if (['textSection', 'paragraph', 'quote', 'closing'].includes(block.type) && !block.content.text) {
-      errors.push(`${label} text is required.`);
+      innerErrors.push(`${label} text is required.`);
     }
     if (['bulletList', 'numberedList'].includes(block.type)) {
       if (!Array.isArray(block.content.items) || block.content.items.length === 0) {
-        errors.push(`${label} needs at least one list item.`);
+        innerErrors.push(`${label} needs at least one list item.`);
       }
     }
-    if (block.type === 'image' && !block.content.url) errors.push(`${label} image URL is required.`);
+    if (block.type === 'image' && !block.content.url) innerErrors.push(`${label} image URL is required.`);
+    return innerErrors;
   });
 
-  return errors;
+  return [...errors, ...blockErrors];
 }
 
 function renderContentBlocksToHtml(blocks) {
