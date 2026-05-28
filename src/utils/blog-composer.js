@@ -5,7 +5,8 @@ const BLOG_TEMPLATE_KEYS = Object.freeze([
   'training_journal',
   'motivation_post',
   'gear_reflection',
-  'custom'
+  'custom',
+  'community_spotlight'
 ]);
 
 const BLOG_BLOCK_TYPES = Object.freeze([
@@ -24,7 +25,8 @@ const TEMPLATE_LABELS = Object.freeze({
   training_journal: 'Training Journal',
   motivation_post: 'Motivation Post',
   gear_reflection: 'Gear or Event Reflection',
-  custom: 'Custom Blocks'
+  custom: 'Custom Blocks',
+  community_spotlight: 'Community Spotlight'
 });
 
 const TEMPLATE_DESCRIPTIONS = Object.freeze({
@@ -32,7 +34,8 @@ const TEMPLATE_DESCRIPTIONS = Object.freeze({
   training_journal: 'Log a single training session with goals, wins, struggles, and a key lesson.',
   motivation_post: 'Share an idea or mindset to encourage and inspire other runners.',
   gear_reflection: 'Reflect on gear, a route, or a running experience and what to consider.',
-  custom: 'A blank slate with an intro and main section — build your own structure from scratch.'
+  custom: 'A blank slate with an intro and main section — build your own structure from scratch.',
+  community_spotlight: 'Celebrate a fellow runner, a local club, or a group achievement.'
 });
 
 const BLOCK_LABELS = Object.freeze({
@@ -106,6 +109,14 @@ function getTemplateBlocks(templateKey = 'custom') {
       heading('Key Details'),
       textSection('Add the main story, tips, or experience you want to share.'),
       closing('Close with a takeaway for other runners.')
+    ],
+    community_spotlight: [
+      heading('The Spotlight'),
+      textSection('Introduce the runner or group you are celebrating.'),
+      heading('Why They Inspire Us'),
+      textSection('Describe their recent achievement or contribution to the community.'),
+      bulletList(['Consistency', 'Supportive attitude', 'Resilience']),
+      closing('Leave a note of congratulations or a question for the community.')
     ]
   };
 
@@ -196,54 +207,43 @@ function normalizeBlock(block = {}, index = 0) {
   const content = block.content && typeof block.content === 'object' ? block.content : {};
   const metadata = block.metadata && typeof block.metadata === 'object' ? block.metadata : {};
 
-  if (type === 'heading') {
-    return {
-      type,
-      order: index,
-      content: { text: cleanText(content.text, 140) },
-      metadata: { level: normalizeHeadingLevel(metadata.level) }
-    };
-  }
-  if (type === 'textSection') {
-    return {
-      type,
-      order: index,
-      content: { text: cleanMultilineText(content.text, 10000) },
-      metadata: {}
-    };
-  }
-  if (['quote', 'closing'].includes(type)) {
-    return {
-      type,
-      order: index,
-      content: { text: cleanText(content.text, 1200) },
-      metadata: {}
-    };
-  }
-  if (['bulletList', 'numberedList'].includes(type)) {
-    const items = Array.isArray(content.items) ? content.items : String(content.items || '').split('\n');
-    return {
-      type,
-      order: index,
-      content: {
-        items: items.map((item) => cleanText(item, 400)).filter(Boolean).slice(0, 20)
-      },
-      metadata: {}
-    };
-  }
-  if (type === 'image') {
-    return {
-      type,
-      order: index,
-      content: {
-        url: cleanUrl(content.url),
-        alt: cleanText(content.alt, 180),
-        caption: cleanText(content.caption, 240)
-      },
-      metadata: {}
-    };
-  }
-  return {
+  const base = { type, order: index, metadata: {} };
+
+  switch (type) {
+    case 'heading':
+      return {
+        ...base,
+        content: { text: cleanText(content.text, 140) },
+        metadata: { level: normalizeHeadingLevel(metadata.level) }
+      };
+    case 'textSection':
+      return {
+        ...base,
+        content: { text: cleanMultilineText(content.text, 10000) }
+      };
+    case 'quote':
+    case 'closing':
+      return {
+        ...base,
+        content: { text: cleanText(content.text, 1200) }
+      };
+    case 'bulletList':
+    case 'numberedList':
+      const items = Array.isArray(content.items) ? content.items : String(content.items || '').split('\n');
+      return {
+        ...base,
+        content: { items: items.map((item) => cleanText(item, 400)).filter(Boolean).slice(0, 20) }
+      };
+    case 'image':
+      return {
+        ...base,
+        content: {
+          url: cleanUrl(content.url),
+          alt: cleanText(content.alt, 180),
+          caption: cleanText(content.caption, 240)
+        }
+      };
+    default: return {
     type: 'divider',
     order: index,
     content: {},
