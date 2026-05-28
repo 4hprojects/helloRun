@@ -678,7 +678,28 @@
                   <option value="<%= status %>" <%= post.status === status ? 'selected' : '' %>><%= status %></option>
                 <% }) %>
               </select>
+              <small class="admin-field-help">Draft: Not visible. Pending: Awaiting review. Published: Public. Scheduled: Will auto-publish at the chosen date/time.</small>
             </div>
+            <div class="admin-field" id="adminPublishDateField" style="display:none;">
+              <label for="adminPublishedAt">Publish Date & Time</label>
+              <input id="adminPublishedAt" name="publishedAt" type="datetime-local" value="<%= post.publishedAt ? (new Date(post.publishedAt).toISOString().slice(0,16)) : '' %>" min="<%= (new Date()).toISOString().slice(0,16) %>">
+              <small class="admin-field-help">Set a future date/time to schedule this post. It will be published automatically.</small>
+            </div>
+              <script>
+                // Scheduling controls: show/hide publish date picker in admin review
+                (function initAdminSchedulingFields() {
+                  var status = document.getElementById('adminStatus');
+                  var publishDateField = document.getElementById('adminPublishDateField');
+                  function sync() {
+                    if (!status || !publishDateField) return;
+                    publishDateField.style.display = status.value === 'scheduled' ? '' : 'none';
+                    var dateInput = document.getElementById('adminPublishedAt');
+                    if (dateInput) dateInput.required = status.value === 'scheduled';
+                  }
+                  if (status) status.addEventListener('change', sync);
+                  sync();
+                })();
+              </script>
             <div class="admin-field">
               <label for="adminTags">Tags (comma separated)</label>
               <input id="adminTags" name="tags" type="text" value="<%- Array.isArray(post.tags) ? post.tags.join(', ') : '' %>">

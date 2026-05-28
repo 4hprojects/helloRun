@@ -1,0 +1,75 @@
+<!-- Public Blog Index - Growth Features UI -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>HelloRun Blog</title>
+  <link rel="stylesheet" href="/css/runner-dashboard.css">
+</head>
+<body>
+  <header>
+    <h1>HelloRun Blog</h1>
+    <nav>
+      <a href="/blog">Home</a>
+      <a href="/blog/trending">Trending</a>
+      <a href="/blog/top-writers">Top Writers</a>
+      <a href="/blog/guides">Guides & Resources</a>
+      <a href="/feed.xml" target="_blank">Newsletter/Feed</a>
+    </nav>
+  </header>
+  <main>
+    <section id="trending-posts">
+      <h2>Trending Posts</h2>
+      <% if (trending && trending.length) { %>
+        <ul>
+          <% trending.forEach(function(post) { %>
+            <li>
+              <a href="/blog/<%= post.slug %>"><%= post.title %></a>
+              <span>by <%= post.authorName %></span>
+              <span>Score: <%= post.trendingScore %></span>
+            </li>
+          <% }); %>
+        </ul>
+      <% } else { %>
+        <p>No trending posts yet.</p>
+      <% } %>
+    </section>
+    <section id="top-writers">
+      <h2>Top Writers</h2>
+      <% if (topWriters && topWriters.length) { %>
+        <ol>
+          <% topWriters.forEach(function(writer) { %>
+            <li>
+              <span><%= writer.name %></span>
+              <span>Posts: <%= writer.publishedCount %></span>
+              <span>Likes: <%= writer.totalLikes %></span>
+              <span>Trending: <%= writer.totalTrendingScore %></span>
+            </li>
+          <% }); %>
+        </ol>
+      <% } else { %>
+        <p>No top writers yet.</p>
+      <% } %>
+    </section>
+    <section id="guides-resources">
+      <h2>Guides & Organizer Resources</h2>
+      <% if (guides && guides.length) { %>
+        <ul>
+          <% guides.forEach(function(guide) { %>
+            <li>
+              <a href="/blog/<%= guide.slug %>"><%= guide.title %></a>
+              <span>Type: <%= guide.type %></span>
+            </li>
+          <% }); %>
+        </ul>
+      <% } else { %>
+        <p>No guides or resources yet.</p>
+      <% } %>
+    </section>
+    <section id="newsletter">
+      <h2>Subscribe to our Newsletter</h2>
+      <p>Get the latest posts and updates via our <a href="/feed.xml" target="_blank">RSS/Atom feed</a>.</p>
+    </section>
+  </main>
+</body>
+</html>

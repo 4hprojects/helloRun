@@ -1061,6 +1061,41 @@
       </div>
 
       <section class="form-section" aria-labelledby="postBasicsHeading">
+        <div class="form-field">
+          <div class="field-label-row">
+            <label for="status">Post Status</label>
+            <span class="field-badge field-badge-required" title="Required" aria-label="Required" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required</span></span>
+          </div>
+          <select id="status" name="status" required>
+            <option value="draft" <%= (!formData?.status || formData?.status === 'draft') ? 'selected' : '' %>>Draft</option>
+            <option value="review" <%= formData?.status === 'review' ? 'selected' : '' %>>Ready for Review</option>
+            <option value="scheduled" <%= formData?.status === 'scheduled' ? 'selected' : '' %>>Scheduled</option>
+          </select>
+          <small class="field-help">Draft: Save privately. Review: Submit for admin review. Scheduled: Set a future publish date.</small>
+        </div>
+        <div class="form-field" id="publishDateField" style="display: none;">
+          <div class="field-label-row">
+            <label for="publishedAt">Publish Date & Time</label>
+            <span class="field-badge field-badge-required" title="Required when Scheduled" aria-label="Required when Scheduled" tabindex="0"><i data-lucide="calendar"></i><span class="field-badge-label">Required if Scheduled</span></span>
+          </div>
+          <input id="publishedAt" name="publishedAt" type="datetime-local" value="<%= formData?.publishedAt ? (new Date(formData.publishedAt).toISOString().slice(0,16)) : '' %>" min="<%= (new Date()).toISOString().slice(0,16) %>">
+          <small class="field-help">Choose a future date/time to schedule this post. It will be published automatically.</small>
+        </div>
+          <script>
+            // Scheduling controls: show/hide publish date picker
+            (function initSchedulingFields() {
+              var status = document.getElementById('status');
+              var publishDateField = document.getElementById('publishDateField');
+              function sync() {
+                if (!status || !publishDateField) return;
+                publishDateField.style.display = status.value === 'scheduled' ? 'grid' : 'none';
+                var dateInput = document.getElementById('publishedAt');
+                if (dateInput) dateInput.required = status.value === 'scheduled';
+              }
+              if (status) status.addEventListener('change', sync);
+              sync();
+            })();
+          </script>
         <div class="form-section-header">
           <h2 class="form-section-title" id="postBasicsHeading">Post Basics</h2>
           <p class="form-section-description">Set the title, summary, category, and discovery keywords for this post.</p>

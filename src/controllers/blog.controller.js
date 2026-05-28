@@ -1,3 +1,175 @@
+// --- PUBLIC BLOG PAGES (Phase A/E) ---
+// Render public blog index with growth features
+exports.renderPublicBlogIndex = async (req, res) => {
+  try {
+    // Fetch trending posts
+    const trendingRes = await exports.getTrendingBlogs({ query: { limit: 5 } }, { json: (d) => d });
+    const trending = trendingRes && trendingRes.success ? (trendingRes.posts || []) : [];
+
+    // Fetch top writers
+    const topWritersRes = await exports.getTopWritersLeaderboard({ query: { limit: 5 } }, { json: (d) => d });
+    const topWriters = topWritersRes && topWritersRes.success ? (topWritersRes.writers || []) : [];
+
+    // Fetch guides/resources
+    const guidesRes = await exports.getGuidesAndResources({ query: { limit: 8 } }, { json: (d) => d });
+    // guidesRes may have guides and resources arrays, flatten for display
+    let guides = [];
+    if (guidesRes && guidesRes.success) {
+      if (Array.isArray(guidesRes.guides)) guides = guides.concat(guidesRes.guides.map(g => ({ ...g, type: 'Guide' })));
+      if (Array.isArray(guidesRes.resources)) guides = guides.concat(guidesRes.resources.map(g => ({ ...g, type: 'Resource' })));
+    }
+
+    // Render EJS template
+    return res.render('public/blog/index', {
+      trending,
+      topWriters,
+      guides
+    });
+  } catch (error) {
+    console.error('renderPublicBlogIndex error:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading the blog.'
+    });
+  }
+};
+
+// Render public blog post page
+exports.renderPublicBlogPost = async (req, res) => {
+  try {
+    const slug = req.params.slug;
+    if (!slug) return res.status(404).render('error', { title: 'Not Found', status: 404, message: 'Post not found.' });
+    // Only published, not deleted, publishedAt <= now
+    const post = await Blog.findOne({
+      slug,
+      status: 'published',
+      isDeleted: { $ne: true },
+      publishedAt: { $lte: new Date() }
+    })
+      .populate('authorId', 'firstName lastName verifiedAuthor trustScore')
+      .lean();
+    if (!post) return res.status(404).render('error', { title: 'Not Found', status: 404, message: 'Post not found.' });
+
+    // Author info
+    post.authorName = post.authorId ? `${post.authorId.firstName} ${post.authorId.lastName}` : 'Unknown';
+    post.verifiedAuthor = post.authorId && post.authorId.verifiedAuthor;
+    post.trustScore = post.authorId && post.authorId.trustScore;
+
+    // Comments (Phase B+)
+    const comments = [];
+
+    // Render EJS template
+    return res.render('public/blog/post', {
+      post,
+      comments
+    });
+  } catch (error) {
+    console.error('renderPublicBlogPost error:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading the blog post.'
+    });
+  }
+};
+// Guides/resources and feed endpoints
+const { getGuidesAndResources } = require('../services/blog-guides.service');
+const { Feed } = require('feed');
+
+exports.getGuidesAndResources = async (req, res) => {
+  try {
+    const limitPerGroup = Math.max(1, Math.min(Number(req.query.limit) || 12, 50));
+    const data = await getGuidesAndResources({ limitPerGroup });
+    return res.json({ success: true, ...data });
+  } catch (error) {
+    console.error('getGuidesAndResources error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to load guides/resources.' });
+  }
+};
+
+// RSS/Atom feed for latest published posts
+exports.getBlogFeed = async (req, res) => {
+  try {
+    const posts = await Blog.find({
+      status: 'published',
+      isDeleted: { $ne: true },
+      publishedAt: { $lte: new Date() }
+    })
+      .sort({ publishedAt: -1 })
+      .limit(30)
+      .select('title slug excerpt contentHtml publishedAt authorId')
+      .populate('authorId', 'firstName lastName');
+
+    const siteUrl = req.protocol + '://' + req.get('host');
+    const feed = new Feed({
+      title: 'HelloRun Blog Feed',
+      description: 'Latest published posts from HelloRun',
+      id: siteUrl + '/blog',
+      link: siteUrl + '/blog',
+      language: 'en',
+      favicon: siteUrl + '/favicon.ico',
+      updated: posts[0]?.publishedAt || new Date(),
+      generator: 'HelloRun Blog',
+      feedLinks: {
+        rss: siteUrl + '/feed.xml',
+        atom: siteUrl + '/feed.atom'
+      }
+    });
+    posts.forEach(post => {
+      feed.addItem({
+        title: post.title,
+        id: siteUrl + '/blog/' + post.slug,
+        link: siteUrl + '/blog/' + post.slug,
+        description: post.excerpt,
+        content: post.contentHtml,
+        author: post.authorId ? [{ name: post.authorId.firstName + ' ' + post.authorId.lastName }] : [],
+        date: post.publishedAt
+      });
+    });
+    res.set('Content-Type', 'application/xml');
+    return res.send(feed.rss2());
+  } catch (error) {
+    console.error('getBlogFeed error:', error);
+    return res.status(500).send('Failed to generate feed.');
+  }
+};
+// Top writers leaderboard endpoint
+const { getTopWriters } = require('../services/blog-top-writers.service');
+
+exports.getTopWritersLeaderboard = async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 10, 50));
+    const writers = await getTopWriters({ limit });
+    return res.json({ success: true, writers });
+  } catch (error) {
+    console.error('getTopWritersLeaderboard error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to load top writers.' });
+  }
+};
+// Trending posts endpoint
+exports.getTrendingBlogs = async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(Number(req.query.limit) || 10, 50));
+    const posts = await Blog.find({
+      status: 'published',
+      isDeleted: { $ne: true },
+      publishedAt: { $lte: new Date() }
+    })
+      .sort({ trendingScore: -1, publishedAt: -1 })
+      .limit(limit)
+      .populate('authorId', 'firstName lastName verifiedAuthor trustScore')
+      .select('title slug excerpt category coverImageUrl publishedAt trendingScore views likesCount commentsCount authorId');
+
+    return res.json({
+      success: true,
+      posts
+    });
+  } catch (error) {
+    console.error('getTrendingBlogs error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to load trending posts.' });
+  }
+};
 const mongoose = require('mongoose');
 const Blog = require('../models/Blog');
 const BlogRevision = require('../models/BlogRevision');
@@ -27,6 +199,11 @@ const MIN_REJECTION_REASON_LENGTH = 15;
 const MAX_REJECTION_REASON_LENGTH = 500;
 const REVISION_MAX_FIELD_LENGTH = 12000;
 const MAX_BLOG_GALLERY_IMAGES = 3;
+const MAX_BLOG_TITLE_LENGTH = 120;
+const MAX_BLOG_EXCERPT_LENGTH = 220;
+const MAX_BLOG_CONTENT_HTML_LENGTH = 50000;
+const MAX_BLOG_TAGS = 8;
+const MAX_BLOG_TAG_LENGTH = 30;
 const ADMIN_AUTOSAVE_TRACKED_FIELDS = Object.freeze([
   'title',
   'slug',
@@ -2249,11 +2426,11 @@ function validateBlogPayload(payload, options = {}) {
   const allowedCategories = new Set(BLOG_CATEGORIES);
   const requireCover = options.requireCover === true;
 
-  if (!payload.title || payload.title.length < 5 || payload.title.length > 150) {
-    errors.push('Title must be between 5 and 150 characters.');
+  if (!payload.title || payload.title.length < 10 || payload.title.length > MAX_BLOG_TITLE_LENGTH) {
+    errors.push(`Title must be between 10 and ${MAX_BLOG_TITLE_LENGTH} characters.`);
   }
-  if (payload.excerpt.length > 320) {
-    errors.push('Excerpt must be 320 characters or less.');
+  if (payload.excerpt.length > MAX_BLOG_EXCERPT_LENGTH) {
+    errors.push(`Excerpt must be ${MAX_BLOG_EXCERPT_LENGTH} characters or less.`);
   }
   if (!allowedCategories.has(payload.category)) {
     errors.push('Category is invalid.');
@@ -2290,14 +2467,17 @@ function validateBlogPayload(payload, options = {}) {
   if (Array.isArray(payload.contentBlocks) && payload.contentBlocks.length > 0) {
     errors.push(...validateContentBlocks(payload.contentBlocks));
   }
-  if (payload.contentHtml.length > 120000) {
-    errors.push('Content exceeds maximum allowed length.');
+  if (payload.contentHtml.length > MAX_BLOG_CONTENT_HTML_LENGTH) {
+    errors.push(`Content exceeds maximum allowed length of ${MAX_BLOG_CONTENT_HTML_LENGTH} characters.`);
   }
   if (!payload.contentText || payload.contentText.length < 50) {
     errors.push('Content body is too short. Add more details before saving.');
   }
-  if (payload.tags.length > 12) {
-    errors.push('Maximum 12 tags are allowed.');
+  if (payload.tags.length > MAX_BLOG_TAGS) {
+    errors.push(`Maximum ${MAX_BLOG_TAGS} tags are allowed.`);
+  }
+  if (payload.tags.some((tag) => tag.length > MAX_BLOG_TAG_LENGTH)) {
+    errors.push(`Each tag must be ${MAX_BLOG_TAG_LENGTH} characters or less.`);
   }
   if (payload.seoTitle && payload.seoTitle.length > 160) {
     errors.push('SEO title must be 160 characters or less.');

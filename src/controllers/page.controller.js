@@ -1,3 +1,36 @@
+// Blog category page
+exports.getBlogCategoryPage = async (req, res) => {
+  const categorySlug = String(req.params.categorySlug || '').trim().toLowerCase();
+  const categoryMap = (BLOG_CATEGORIES || []).reduce((acc, cat) => {
+    acc[(cat.slug || cat.toLowerCase().replace(/\s+/g, '-'))] = cat;
+    return acc;
+  }, {});
+  const category = categoryMap[categorySlug] || null;
+  if (!category) {
+    return res.status(404).render('error', {
+      title: '404 - Category Not Found',
+      status: 404,
+      message: 'This blog category does not exist.'
+    });
+  }
+  req.query.category = category;
+  return exports.getBlogList(req, res);
+};
+
+// Blog tag page
+exports.getBlogTagPage = async (req, res) => {
+  const tagSlug = String(req.params.tagSlug || '').trim().toLowerCase();
+  if (!tagSlug) {
+    return res.status(404).render('error', {
+      title: '404 - Tag Not Found',
+      status: 404,
+      message: 'This blog tag does not exist.'
+    });
+  }
+  // Add tag filter to query
+  req.query.q = tagSlug;
+  return exports.getBlogList(req, res);
+};
 const crypto = require('crypto');
 const Event = require('../models/Event');
 const User = require('../models/User');

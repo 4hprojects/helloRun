@@ -3,7 +3,8 @@ const BLOG_STATUSES = Object.freeze([
   'pending',
   'published',
   'rejected',
-  'archived'
+  'archived',
+  'scheduled' // For scheduled publishing
 ]);
 
 const BLOG_CATEGORIES = Object.freeze([
@@ -18,6 +19,8 @@ const BLOG_CATEGORIES = Object.freeze([
   'Mental Health',
   'Community',
   'Personal Stories',
+  'Organizer Guide',
+  'Virtual Run Guide',
   'Other'
 ]);
 
@@ -36,15 +39,15 @@ function normalizeTag(input) {
     .trim()
     .toLowerCase()
     .replace(/\s+/g, ' ')
-    .slice(0, 40);
+    .slice(0, 30);
 }
 
 function normalizeTags(input) {
   if (!Array.isArray(input)) return [];
   const tags = input
     .map(normalizeTag)
-    .filter(Boolean);
-  return Array.from(new Set(tags)).slice(0, 12);
+    .filter((tag) => tag.length >= 2);
+  return Array.from(new Set(tags)).slice(0, 8);
 }
 
 module.exports = {

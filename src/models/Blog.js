@@ -14,7 +14,7 @@ const blogSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      maxlength: 150
+      maxlength: 120
     },
     slug: {
       type: String,
@@ -26,25 +26,25 @@ const blogSchema = new mongoose.Schema(
     excerpt: {
       type: String,
       trim: true,
-      maxlength: 320,
+      maxlength: 220,
       default: ''
     },
     contentHtml: {
       type: String,
       required: true,
       trim: true,
-      maxlength: 120000
+      maxlength: 50000
     },
     contentText: {
       type: String,
       trim: true,
-      maxlength: 120000,
+      maxlength: 50000,
       default: ''
     },
     contentRaw: {
       type: String,
       trim: true,
-      maxlength: 150000,
+      maxlength: 50000,
       default: ''
     },
     templateKey: {
@@ -116,14 +116,20 @@ const blogSchema = new mongoose.Schema(
         {
           type: String,
           trim: true,
-          maxlength: 40
+          maxlength: 30
         }
       ],
+      validate: {
+        validator(value) {
+          return !Array.isArray(value) || value.length <= 8;
+        },
+        message: 'Maximum 8 tags are allowed.'
+      },
       default: []
     },
     status: {
       type: String,
-      enum: BLOG_STATUSES,
+      enum: BLOG_STATUSES, // Now includes 'scheduled' for scheduled publishing
       default: 'draft',
       index: true
     },
@@ -221,6 +227,12 @@ const blogSchema = new mongoose.Schema(
       default: 0,
       min: 0
     },
+    trendingScore: {
+      type: Number,
+      default: 0,
+      min: 0,
+      index: true
+    },
     likesCount: {
       type: Number,
       default: 0,
@@ -279,11 +291,14 @@ const blogSchema = new mongoose.Schema(
 );
 
 blogSchema.index({ status: 1, publishedAt: -1 });
+blogSchema.index({ status: 1, featured: 1, publishedAt: -1 });
 blogSchema.index({ status: 1, isDeleted: 1, publishedAt: -1 });
 blogSchema.index({ activeRevisionStatus: 1, activeRevisionSubmittedAt: -1 });
 blogSchema.index({ authorId: 1, createdAt: -1 });
+blogSchema.index({ authorId: 1, status: 1, updatedAt: -1 });
 blogSchema.index({ category: 1, publishedAt: -1 });
 blogSchema.index({ tags: 1, publishedAt: -1 });
+blogSchema.index({ isDeleted: 1, status: 1 });
 blogSchema.index({ title: 'text', excerpt: 'text', contentText: 'text', tags: 'text' });
 applySmokeTestSchema(blogSchema);
 

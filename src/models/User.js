@@ -58,6 +58,18 @@ const userSchema = new mongoose.Schema({
     maxlength: 25,
     default: ''
   },
+  // Trust/Verified Author fields
+  verifiedAuthor: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  trustScore: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: 0
+  },
   country: {
     type: String,
     trim: true,

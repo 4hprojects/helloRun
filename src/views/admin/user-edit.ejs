@@ -136,6 +136,17 @@
               </select>
               <% if (errors.organizerStatus) { %><small class="field-error"><%= errors.organizerStatus %></small><% } %>
             </label>
+              <label class="admin-form-field">
+                <span>Verified Author</span>
+                <select name="verifiedAuthor">
+                  <option value="false" <%= formData.verifiedAuthor ? '' : 'selected' %>>No</option>
+                  <option value="true" <%= formData.verifiedAuthor ? 'selected' : '' %>>Yes</option>
+                </select>
+              </label>
+              <label class="admin-form-field">
+                <span>Trust Score</span>
+                <input type="number" name="trustScore" min="0" max="100" value="<%= typeof formData.trustScore === 'number' ? formData.trustScore : (formData.trustScore || 0) %>">
+              </label>
           </div>
         </article>
 

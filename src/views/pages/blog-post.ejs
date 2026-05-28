@@ -29,7 +29,13 @@
         <% } %>
         <div class="blog-post-submeta-row">
           <p class="blog-post-submeta">
-            By <strong><%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %></strong> |
+            By <strong><%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %>
+              <% if (post.authorId?.verifiedAuthor) { %>
+                <span class="verified-author-badge" title="Verified Author" style="color:#2196f3;vertical-align:middle;">
+                  <i data-lucide="badge-check" aria-hidden="true"></i> Verified
+                </span>
+              <% } %>
+            </strong>
             <%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '' %> |
             <%= post.readingTime || 1 %> min read |
             <%= Number(post.views || 0).toLocaleString('en-US') %> views
@@ -153,8 +159,20 @@
               <% } %>
             </div>
             <div class="author-details">
-              <h4><%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %></h4>
+              <h4>
+                <%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %>
+                <% if (post.authorId?.verifiedAuthor) { %>
+                  <span class="verified-author-badge" title="Verified Author" style="color:#2196f3;vertical-align:middle;">
+                    <i data-lucide="badge-check" aria-hidden="true"></i> Verified
+                  </span>
+                <% } %>
+              </h4>
               <p class="author-bio"><%= post.authorId?.bio || 'Community writer on helloRun sharing running experiences and practical tips.' %></p>
+              <% if (typeof post.authorId?.trustScore === 'number') { %>
+                <div class="author-trust-score" style="font-size:0.95em;color:#4caf50;">
+                  Trust Score: <strong><%= post.authorId.trustScore %></strong>/100
+                </div>
+              <% } %>
               <% if (post.authorId?._id) { %>
                 <a href="/blog?author=<%= post.authorId._id %>" class="author-more-posts">More posts by this author →</a>
               <% } %>

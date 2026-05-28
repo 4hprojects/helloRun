@@ -1351,6 +1351,12 @@ exports.updateUser = async (req, res) => {
     if (!user) return renderAdminUserNotFound(res);
 
     const formData = getAdminUserEditFormData(req.body);
+    // Parse verifiedAuthor and trustScore from form
+    user.verifiedAuthor = String(req.body.verifiedAuthor) === 'true';
+    let trustScore = Number(req.body.trustScore);
+    if (isNaN(trustScore) || trustScore < 0) trustScore = 0;
+    if (trustScore > 100) trustScore = 100;
+    user.trustScore = trustScore;
     if (String(user._id) === String(req.session.userId || '') && formData.role !== 'admin') {
       formData.role = 'admin';
       return renderAdminUserEdit(res, user, formData, {

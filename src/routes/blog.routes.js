@@ -5,6 +5,13 @@ const uploadService = require('../services/upload.service');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const { requireAuth } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
+// Public guides/resources and feed endpoints
+router.get('/blog/guides', blogController.getGuidesAndResources);
+router.get('/feed.xml', blogController.getBlogFeed);
+// Public top writers leaderboard endpoint
+router.get('/blog/top-writers', blogController.getTopWritersLeaderboard);
+// Public trending blogs endpoint
+router.get('/blog/trending', blogController.getTrendingBlogs);
 
 const blogWriteLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
@@ -34,5 +41,10 @@ router.post('/blogs/me/:id', requireAuth, blogWriteLimiter, uploadService.upload
 router.post('/blogs/me/:id/submit', requireAuth, blogSubmitLimiter, requireCsrfProtection, blogController.submitForReview);
 router.post('/blogs/me/:id/delete', requireAuth, blogWriteLimiter, requireCsrfProtection, blogController.deleteMyDraft);
 router.post('/blogs/me/:id/revision/discard', requireAuth, blogWriteLimiter, requireCsrfProtection, blogController.discardRevision);
+
+
+// Public blog index and post page (Phase A/E)
+router.get('/blog', blogController.renderPublicBlogIndex);
+router.get('/blog/:slug', blogController.renderPublicBlogPost);
 
 module.exports = router;

@@ -228,12 +228,13 @@ function normalizeBlock(block = {}, index = 0) {
         content: { text: cleanText(content.text, 1200) }
       };
     case 'bulletList':
-    case 'numberedList':
+    case 'numberedList': {
       const items = Array.isArray(content.items) ? content.items : String(content.items || '').split('\n');
       return {
         ...base,
         content: { items: items.map((item) => cleanText(item, 400)).filter(Boolean).slice(0, 20) }
       };
+    }
     case 'image':
       return {
         ...base,
@@ -243,12 +244,15 @@ function normalizeBlock(block = {}, index = 0) {
           caption: cleanText(content.caption, 240)
         }
       };
-    default: return {
-    type: 'divider',
-    order: index,
-    content: {},
-    metadata: {}
-  };
+    case 'divider':
+    default:
+      return {
+        type: 'divider',
+        order: index,
+        content: {},
+        metadata: {}
+      };
+  }
 }
 
 function renderBlockToHtml(block) {
