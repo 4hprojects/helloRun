@@ -1821,6 +1821,8 @@ function escapeRegex(value) {
   return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// Gallery images are optional for blog creation (MVP). Only cover image is required for submission.
+// This matches the HelloRun Blog Feature spec: see docs/hellorun_blog_feature_phased_implementation_spec.md
 function normalizeBlogPayload(body = {}) {
   const contentBlocks = normalizeContentBlocks(body.contentBlocksJson || body.contentBlocks);
   const hasStructuredBlocks = contentBlocks.length > 0;
@@ -2421,6 +2423,8 @@ async function rejectReviewTarget({ post, actorId, rejectionReason }) {
   return { revisionRejected: false, revision: null, post };
 }
 
+// Gallery images are optional for blog creation (MVP). Only cover image is required for submission.
+// This matches the HelloRun Blog Feature spec: see docs/hellorun_blog_feature_phased_implementation_spec.md
 function validateBlogPayload(payload, options = {}) {
   const errors = [];
   const allowedCategories = new Set(BLOG_CATEGORIES);
