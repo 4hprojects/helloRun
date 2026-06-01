@@ -91,6 +91,24 @@ function buildRaceCategoryId(index, label) {
   return `cat-${index + 1}${slug ? `-${slug}` : ''}`;
 }
 
+function getUniqueRaceCategoryId(preferredId, index, label, usedIds) {
+  const normalizedPreferred = String(preferredId || '').trim().slice(0, 80);
+  if (normalizedPreferred && !usedIds.has(normalizedPreferred)) {
+    usedIds.add(normalizedPreferred);
+    return normalizedPreferred;
+  }
+
+  const baseId = buildRaceCategoryId(index, label);
+  let candidate = baseId;
+  let suffix = 2;
+  while (usedIds.has(candidate)) {
+    candidate = `${baseId}-${suffix}`;
+    suffix += 1;
+  }
+  usedIds.add(candidate);
+  return candidate;
+}
+
 function buildRegistrationPackageId(index, label) {
   const slug = String(label || '')
     .toLowerCase()
@@ -127,6 +145,7 @@ function normalizeRaceCategories(body = {}, fallbackDistances = []) {
     rewardsDescriptions.length
   );
   const categories = [];
+  const usedCategoryIds = new Set();
 
   for (let index = 0; index < max; index += 1) {
     const rawName = String(names[index] || '').trim().slice(0, 100);
@@ -142,7 +161,7 @@ function normalizeRaceCategories(body = {}, fallbackDistances = []) {
     if (!hasAnyValue) continue;
 
     categories.push({
-      categoryId: String(ids[index] || '').trim().slice(0, 80) || buildRaceCategoryId(categories.length, displayLabel || rawName),
+      categoryId: getUniqueRaceCategoryId(ids[index], categories.length, displayLabel || rawName, usedCategoryIds),
       name: rawName || displayLabel,
       type,
       distanceLabel: displayLabel,
@@ -624,7 +643,7 @@ function inferTargetDistanceKm(raceDistances = [], raceCategories = []) {
     (raceDistances || []).map(parseRaceDistanceKm)
   );
   const targets = categoryTargets.length ? categoryTargets : labelTargets;
-  return targets.length === 1 ? targets[0] : null;
+  return targets.length ? Math.max(...targets) : null;
 }
 
 function addDays(date, days) {

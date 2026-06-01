@@ -126,6 +126,12 @@ test('create and edit event views expose ordered create-event sections', () => {
     assert.match(content, /Preview current (setup|changes)\?/, `${file} should confirm preview actions`);
     assert.doesNotMatch(content, /name="minimumActivityDistanceKm"/, `${file} should not expose minimum activity distance`);
     assert.doesNotMatch(content, /name="milestoneDistancesKm"/, `${file} should not expose manual milestone setup`);
+    assert.match(content, /JPG\/PNG\/WebP, max 5MB each, up to 12 images/, `${file} should document supported gallery image formats`);
+    assert.match(content, /let selectedGalleryFiles = \[\]/, `${file} should track selected gallery uploads`);
+    assert.match(content, /data-gallery-upload-preview/, `${file} should render removable new gallery upload previews`);
+    assert.match(content, /syncGalleryFileInput/, `${file} should keep the gallery file input synced after removing an upload`);
+    assert.match(content, /removeGalleryUrlEntry/, `${file} should remove individual gallery URL entries`);
+    assert.match(content, /largest numeric race distance[\s\S]*completion goal/, `${file} should explain accumulated challenge target distance inference`);
     assert.match(content, /Final Submission Deadline[\s\S]*Event End plus 14 days/, `${file} should explain the final submission deadline grace period`);
     assert.match(content, /Virtual Window Start[\s\S]*Defaults to Event Start/, `${file} should explain the virtual window start default`);
     assert.match(content, /Virtual Window End[\s\S]*Defaults to Event End/, `${file} should explain the virtual window end default`);
@@ -228,7 +234,6 @@ test('organizer preview renders actual event details page with multiple race dis
   });
   params.set('eventType', 'virtual');
   params.set('virtualCompletionMode', 'accumulated_distance');
-  params.set('targetDistanceKm', '10');
   params.delete('raceDistancePresets');
   params.append('raceDistancePresets', '10K');
   params.set('raceDistanceCustom', '25, 50 km, 100');
@@ -246,9 +251,9 @@ test('organizer preview renders actual event details page with multiple race dis
   assert.match(html, /How This Event Works/i);
   assert.match(html, /<span>Registration Options<\/span>\s*<strong>10K, 25K, 50K, 100K<\/strong>/i);
   assert.match(html, /Registration options:<\/strong>\s*10K, 25K, 50K, 100K\./i);
-  assert.match(html, /<strong>10K<\/strong>\s*<span>Completion goal<\/span>/i);
+  assert.match(html, /<strong>100 km<\/strong>\s*<span>Completion goal<\/span>/i);
   assert.match(html, /<strong>Registration Options<\/strong><span>10K, 25K, 50K, 100K<\/span>/i);
-  assert.match(html, /<strong>Completion Goal<\/strong><span>10K<\/span>/i);
+  assert.match(html, /<strong>Completion Goal<\/strong><span>100 km<\/span>/i);
   assert.doesNotMatch(html, /organizer-event-preview-page/i);
 });
 
@@ -646,7 +651,7 @@ test('create-event form normalization treats bare custom distances as kilometers
   });
 
   assert.deepEqual(formData.raceDistances, ['10K', '25K', '50K', '100K']);
-  assert.equal(formData.targetDistanceKm, null);
+  assert.equal(formData.targetDistanceKm, 100);
 });
 
 test('applyEventFormData clears physical reward item flags when physical rewards are disabled', () => {

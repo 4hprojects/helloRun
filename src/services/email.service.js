@@ -1320,6 +1320,54 @@ exports.sendPaymentApprovedEmailToRunner = async (
   }
 };
 
+exports.sendEventPublishedEmailToOrganizer = async (
+  organizerEmail,
+  organizerFirstName,
+  eventTitle,
+  eventUrl,
+  approvalNote
+) => {
+  if (!process.env.RESEND_API_KEY) {
+    return { skipped: true };
+  }
+  try {
+    const noteText = escapeHtml(approvalNote || '');
+    const eventLink = eventUrl
+      ? `<p><a href="${escapeHtml(eventUrl)}" style="color:#c2410c;">View the public event page</a></p>`
+      : '';
+    const noteBlock = noteText
+      ? `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin:16px 0;">
+            <p style="margin:0;"><strong>Admin note:</strong> ${noteText}</p>
+          </div>`
+      : '';
+
+    const { data, error } = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to: organizerEmail,
+      subject: `Event Published: ${eventTitle || 'HelloRun Event'}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+          <h2 style="margin:0 0 12px;color:#166534;">Event Published</h2>
+          <p>Hi ${escapeHtml(organizerFirstName || 'Organizer')},</p>
+          <p>Your event <strong>${escapeHtml(eventTitle || 'your event')}</strong> has been approved and published.</p>
+          ${noteBlock}
+          ${eventLink}
+          <p>You can manage registrants, badges, and event settings from your organiser dashboard.</p>
+        </div>
+      `
+    });
+
+    if (error) {
+      throw new Error('Failed to send event published email');
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Email service error:', error);
+    throw error;
+  }
+};
+
 exports.sendPaymentRejectedEmailToRunner = async (
   runnerEmail,
   runnerFirstName,

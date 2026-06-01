@@ -764,7 +764,7 @@
                     Completion Goal
                     <span class="field-help-icon" tabindex="0" aria-label="The accumulated challenge target is derived from the race distance selected in Race Categories.">?</span>
                   </label>
-                  <p id="targetDistanceHint" class="field-hint distance-auto-hint">For accumulated challenges, select exactly one race distance in Step 5. That distance becomes the completion goal.</p>
+                  <p id="targetDistanceHint" class="field-hint distance-auto-hint">For accumulated challenges, the largest numeric race distance in Step 5 becomes the completion goal.</p>
                 </div>
                 <div class="form-group">
                   <label for="finalSubmissionDeadlineAt" class="label-with-help">
@@ -1065,7 +1065,7 @@
             <h3>4) Gallery Images (Optional)</h3>
             <p>Past event photos, route preview, medal preview.</p>
             <p class="media-used-in"><strong>Used in:</strong> Event details gallery section.</p>
-            <p class="media-rules">Optional. JPG/PNG only, max 5MB each, up to 12 images.</p>
+            <p class="media-rules">Optional. JPG/PNG/WebP, max 5MB each, up to 12 images.</p>
 
             <input type="hidden" id="removeGalleryImages" name="removeGalleryImages" value="0">
 
@@ -1090,7 +1090,7 @@
               <div class="upload-placeholder">
                 <i data-lucide="images"></i>
                 <p>Drag & drop or click to upload up to 12 new images</p>
-                <small>JPG/PNG, max 5MB each</small>
+                <small>JPG/PNG/WebP, max 5MB each</small>
               </div>
             </div>
 
@@ -2302,44 +2302,108 @@
       const galleryInput = document.getElementById('galleryFiles');
       const galleryPreview = document.getElementById('galleryPreviewGrid');
       const galleryUrlsText = document.getElementById('galleryImageUrlsText');
+      const canPersistGalleryRemoval = true;
+      let selectedGalleryFiles = [];
+
+      function getGalleryUrlEntries() {
+        return (galleryUrlsText?.value || '').split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean);
+      }
+
+      function setGalleryUrlEntries(urls) {
+        if (galleryUrlsText) galleryUrlsText.value = Array.from(new Set(urls.filter(Boolean))).join('\n');
+      }
+
+      function updateGalleryRemoveAllState() {
+        const removeAllGalleryBtn = document.getElementById('removeAllGalleryBtn');
+        if (!removeAllGalleryBtn) return;
+        const hasSavedUrls = getGalleryUrlEntries().length > 0 || document.querySelectorAll('[data-gallery-url]').length > 0;
+        const hasSelectedUploads = selectedGalleryFiles.length > 0;
+        removeAllGalleryBtn.style.display = hasSavedUrls || hasSelectedUploads ? '' : 'none';
+      }
+
+      function syncGalleryFileInput() {
+        if (!galleryInput) return;
+        if (!selectedGalleryFiles.length) {
+          galleryInput.value = '';
+          return;
+        }
+        if (typeof DataTransfer === 'undefined') return;
+        const dataTransfer = new DataTransfer();
+        selectedGalleryFiles.forEach((file) => dataTransfer.items.add(file));
+        galleryInput.files = dataTransfer.files;
+      }
+
+      function renderSelectedGalleryPreviews() {
+        if (!galleryPreview) return;
+        galleryPreview.querySelectorAll('[data-gallery-upload-preview]').forEach((node) => node.remove());
+        selectedGalleryFiles.forEach((file, index) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'gallery-thumb-wrap';
+            wrap.setAttribute('data-gallery-upload-preview', String(index));
+
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'gallery-remove-btn';
+            removeButton.setAttribute('aria-label', `Remove selected gallery image ${index + 1}`);
+            removeButton.textContent = 'x';
+            removeButton.addEventListener('click', () => {
+              selectedGalleryFiles.splice(index, 1);
+              syncGalleryFileInput();
+              renderSelectedGalleryPreviews();
+              updateGalleryRemoveAllState();
+              showInlineActionToast('Selected gallery image removed.', 'success');
+            });
+
+            const img = document.createElement('img');
+            img.src = event.target.result;
+            img.alt = `New gallery preview ${index + 1}`;
+            img.className = 'gallery-preview-thumb';
+            wrap.appendChild(removeButton);
+            wrap.appendChild(img);
+            galleryPreview.appendChild(wrap);
+          };
+          reader.readAsDataURL(file);
+        });
+      }
+
+      function removeGalleryUrlEntry(url) {
+        const currentUrls = getGalleryUrlEntries();
+        const newUrls = currentUrls.filter((item) => item !== url);
+        setGalleryUrlEntries(newUrls);
+        document.querySelectorAll('.gallery-thumb-wrap[data-gallery-url]').forEach((wrap) => {
+          if (wrap.getAttribute('data-gallery-url') === url) wrap.remove();
+        });
+        const removeGalleryInput = document.getElementById('removeGalleryImages');
+        if (removeGalleryInput) removeGalleryInput.value = newUrls.length ? '0' : '1';
+        updateGalleryRemoveAllState();
+      }
 
       if (galleryInput) {
         galleryInput.addEventListener('change', () => {
           const files = Array.from(galleryInput.files);
-          if (files.length > 12) {
+          if (selectedGalleryFiles.length + getGalleryUrlEntries().length + files.length > 12) {
             showInlineActionToast('You can upload up to 12 gallery images.', 'warning');
-            galleryInput.value = '';
+            syncGalleryFileInput();
             return;
           }
           for (const file of files) {
             if (!allowedImageTypes.has(file.type)) {
               showInlineActionToast('Invalid file type. Only JPG, PNG, and WEBP images are allowed.', 'warning');
-              galleryInput.value = '';
+              syncGalleryFileInput();
               return;
             }
             if (file.size > maxBrandingSizeBytes) {
               showInlineActionToast('One or more images exceed 5MB limit.', 'warning');
-              galleryInput.value = '';
+              syncGalleryFileInput();
               return;
             }
           }
-          // Append new previews to existing grid (without removing existing ones)
-          files.forEach((file, index) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-              const wrap = document.createElement('div');
-              wrap.className = 'gallery-thumb-wrap';
-              // For new uploads we don't have a remove button that calls server; we'll just show preview.
-              // They will be submitted with the form. If user wants to remove, they must clear file input.
-              const img = document.createElement('img');
-              img.src = e.target.result;
-              img.alt = `New gallery preview ${index+1}`;
-              img.className = 'gallery-preview-thumb';
-              wrap.appendChild(img);
-              galleryPreview.appendChild(wrap);
-            };
-            reader.readAsDataURL(file);
-          });
+          selectedGalleryFiles = selectedGalleryFiles.concat(files);
+          syncGalleryFileInput();
+          renderSelectedGalleryPreviews();
+          updateGalleryRemoveAllState();
         });
       }
 
@@ -2499,11 +2563,15 @@
           if (!confirmed) return;
           removeAllGalleryBtn.disabled = true;
           try {
-            await removeEventMediaNow({ kind: 'gallery', all: '1' });
+            if (canPersistGalleryRemoval) {
+              await removeEventMediaNow({ kind: 'gallery', all: '1' });
+            }
             removeGalleryInput.value = '1';
-            document.getElementById('galleryPreviewGrid').innerHTML = '';
+            document.querySelectorAll('#galleryPreviewGrid .gallery-thumb-wrap').forEach((wrap) => wrap.remove());
+            selectedGalleryFiles = [];
+            syncGalleryFileInput();
             removeAllGalleryBtn.style.display = 'none';
-            galleryUrlsText.value = '';
+            setGalleryUrlEntries([]);
             showInlineActionToast('All gallery images removed.', 'success');
           } catch (error) {
             showInlineActionToast(error.message || 'Unable to remove gallery images.', 'danger');
@@ -2530,16 +2598,10 @@
           if (!confirmed) return;
           btn.disabled = true;
           try {
-            await removeEventMediaNow({ kind: 'gallery', url: url });
-            const wrap = btn.closest('.gallery-thumb-wrap');
-            if (wrap) wrap.remove();
-
-            // Update hidden URLs textarea
-            const currentUrls = galleryUrlsText.value.split(/\r?\n|,/).map(s => s.trim()).filter(Boolean);
-            const newUrls = currentUrls.filter(u => u !== url);
-            galleryUrlsText.value = newUrls.join('\n');
-            removeGalleryInput.value = newUrls.length ? '0' : '1';
-            if (!newUrls.length && removeAllGalleryBtn) removeAllGalleryBtn.style.display = 'none';
+            if (canPersistGalleryRemoval) {
+              await removeEventMediaNow({ kind: 'gallery', url: url });
+            }
+            removeGalleryUrlEntry(url);
             showInlineActionToast('Gallery image removed.', 'success');
           } catch (error) {
             showInlineActionToast(error.message || 'Unable to remove gallery image.', 'danger');
@@ -2548,6 +2610,7 @@
           }
         });
       });
+      updateGalleryRemoveAllState();
 
       // ---------- WAIVER PREVIEW (same as create) ----------
       // (copy the entire waiver script from create-event.ejs, adjusting initialWaiverTemplate as needed)

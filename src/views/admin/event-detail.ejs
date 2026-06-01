@@ -152,7 +152,12 @@
 
       <% if (readinessErrors.length) { %>
         <div class="admin-alert admin-alert-warning">
-          Cannot approve yet: <%= readinessErrors[0] %>
+          <strong>Cannot approve yet.</strong>
+          <ul class="admin-readiness-error-list">
+            <% readinessErrors.forEach((error) => { %>
+              <li><%= error %></li>
+            <% }) %>
+          </ul>
         </div>
       <% } %>
 
@@ -176,6 +181,57 @@
       </section>
     </section>
   </main>
+  <div class="admin-delete-confirm-backdrop" id="adminEventApproveConfirmModal" hidden aria-hidden="true">
+    <div class="admin-delete-confirm-dialog admin-event-approve-dialog" role="dialog" aria-modal="true" aria-labelledby="adminEventApproveConfirmTitle" tabindex="-1">
+      <div class="admin-delete-confirm-icon-wrap admin-event-approve-icon-wrap">
+        <i data-lucide="check-circle" aria-hidden="true"></i>
+      </div>
+      <h3 id="adminEventApproveConfirmTitle">Approve & Publish Event</h3>
+      <p class="admin-delete-confirm-desc">Confirm the public-facing settings before publishing this event.</p>
+      <div class="admin-approval-summary-grid">
+        <div>
+          <span>Status</span>
+          <strong><%= statusLabel %></strong>
+        </div>
+        <div>
+          <span>Visibility</span>
+          <strong><%= event.publicListingAvailableAt ? `From ${new Date(event.publicListingAvailableAt).toLocaleDateString('en-US')}` : 'Immediate' %></strong>
+        </div>
+        <div>
+          <span>Fee</span>
+          <strong><%= event.feeMode === 'paid' ? 'Paid' : 'Free' %></strong>
+        </div>
+        <div>
+          <span>Badges</span>
+          <strong><%= event.digitalBadgeEnabled ? 'Enabled' : 'Disabled' %></strong>
+        </div>
+      </div>
+      <ul class="admin-approval-checklist">
+        <li><i data-lucide="check" aria-hidden="true"></i><span>Publish readiness passed.</span></li>
+        <li><i data-lucide="check" aria-hidden="true"></i><span>Registration and event dates are valid.</span></li>
+        <li><i data-lucide="check" aria-hidden="true"></i><span><%= event.feeMode === 'paid' ? 'Payment account and QR are configured.' : 'No payment setup required.' %></span></li>
+        <li><i data-lucide="check" aria-hidden="true"></i><span><%= event.digitalBadgeEnabled ? 'Default event badges will be generated in the background.' : 'Digital badge generation is disabled.' %></span></li>
+      </ul>
+      <div class="admin-delete-confirm-pw-group">
+        <label for="adminEventApprovalNote">Approval note <span aria-hidden="true">(optional)</span></label>
+        <textarea
+          id="adminEventApprovalNote"
+          rows="3"
+          maxlength="500"
+          placeholder="Add a short note for audit and organiser communication..."
+          class="admin-delete-confirm-pw-input admin-event-approval-note"
+        ></textarea>
+        <p class="admin-delete-confirm-pw-error" id="adminEventApprovalNoteError" hidden></p>
+      </div>
+      <div class="admin-delete-confirm-actions">
+        <button type="button" class="btn btn-secondary" id="adminEventApproveCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-success" id="adminEventApproveOkBtn">
+          <i data-lucide="check-circle" aria-hidden="true"></i>
+          Approve & Publish
+        </button>
+      </div>
+    </div>
+  </div>
   <div class="admin-delete-confirm-backdrop" id="adminEventDeleteConfirmModal" hidden aria-hidden="true">
     <div class="admin-delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="adminEventDeleteConfirmTitle" tabindex="-1">
       <div class="admin-delete-confirm-icon-wrap">
@@ -226,6 +282,12 @@
       const csrfToken = <%- JSON.stringify(locals.csrfToken || '') %>;
       const eventId = <%- JSON.stringify(String(event._id)) %>;
       const messageBox = document.getElementById('eventActionMessage');
+      const approveModal = document.getElementById('adminEventApproveConfirmModal');
+      const approveModalDialog = approveModal ? approveModal.querySelector('.admin-delete-confirm-dialog') : null;
+      const approveNoteInput = document.getElementById('adminEventApprovalNote');
+      const approveNoteError = document.getElementById('adminEventApprovalNoteError');
+      const approveCancelBtn = document.getElementById('adminEventApproveCancelBtn');
+      const approveOkBtn = document.getElementById('adminEventApproveOkBtn');
       const deleteModal = document.getElementById('adminEventDeleteConfirmModal');
       const deleteModalDialog = deleteModal ? deleteModal.querySelector('.admin-delete-confirm-dialog') : null;
       const deleteConfirmDesc = document.getElementById('adminEventDeleteConfirmDesc');
@@ -238,11 +300,36 @@
       const deleteOkBtn = document.getElementById('adminEventDeleteOkBtn');
       let deleteModalResolve = null;
       let lastDeleteModalTrigger = null;
+      let approveModalResolve = null;
+      let lastApproveModalTrigger = null;
 
       function showMessage(type, text) {
         messageBox.className = `admin-alert admin-alert-${type}`;
         messageBox.textContent = text;
         messageBox.style.display = 'block';
+      }
+
+      function openApproveConfirmModal(triggerEl) {
+        if (!approveModal) return Promise.resolve(null);
+        lastApproveModalTrigger = triggerEl || null;
+        if (approveNoteInput) approveNoteInput.value = '';
+        if (approveNoteError) { approveNoteError.hidden = true; approveNoteError.textContent = ''; }
+        approveModal.hidden = false;
+        approveModal.setAttribute('aria-hidden', 'false');
+        if (approveModalDialog) approveModalDialog.focus();
+        return new Promise((resolve) => { approveModalResolve = resolve; });
+      }
+
+      function closeApproveConfirmModal(result) {
+        if (!approveModal) return;
+        approveModal.hidden = true;
+        approveModal.setAttribute('aria-hidden', 'true');
+        if (approveNoteInput) approveNoteInput.value = '';
+        const resolve = approveModalResolve;
+        approveModalResolve = null;
+        if (resolve) resolve(result);
+        if (lastApproveModalTrigger) lastApproveModalTrigger.focus();
+        lastApproveModalTrigger = null;
       }
 
       function openDeleteConfirmModal(description, triggerEl) {
@@ -286,6 +373,34 @@
           if (icon) icon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
           deletePwToggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
           if (window.lucide) lucide.createIcons({ nodes: [deletePwToggle] });
+        });
+      }
+
+      if (approveCancelBtn) {
+        approveCancelBtn.addEventListener('click', () => closeApproveConfirmModal(null));
+      }
+
+      if (approveOkBtn) {
+        approveOkBtn.addEventListener('click', () => {
+          const approvalNote = approveNoteInput ? approveNoteInput.value.trim() : '';
+          if (approvalNote.length > 500) {
+            if (approveNoteError) {
+              approveNoteError.textContent = 'Approval note must be 500 characters or less.';
+              approveNoteError.hidden = false;
+            }
+            if (approveNoteInput) approveNoteInput.focus();
+            return;
+          }
+          closeApproveConfirmModal({ approvalNote });
+        });
+      }
+
+      if (approveModal) {
+        approveModal.addEventListener('click', (event) => {
+          if (event.target === approveModal) closeApproveConfirmModal(null);
+        });
+        approveModal.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') closeApproveConfirmModal(null);
         });
       }
 
@@ -369,8 +484,10 @@
             const reason = prompt(`Reason for ${action === 'archive' ? 'archiving' : 'soft-deleting'} this event:`);
             if (!reason) return;
             body.reason = reason;
-          } else if (!confirm('Approve and publish this event?')) {
-            return;
+          } else if (action === 'approve') {
+            const result = await openApproveConfirmModal(button);
+            if (!result) return;
+            body = result;
           }
           button.disabled = true;
           try {

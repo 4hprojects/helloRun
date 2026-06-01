@@ -24,6 +24,7 @@ async function publishEvent(event, options = {}) {
   const approvedAt = options.approvedAt || new Date();
   const previousStatus = event.status;
   const approvalSource = options.approvalSource === 'auto' ? 'auto' : 'admin';
+  const approvalNote = normalizeApprovalNote(options.approvalNote);
 
   event.status = 'published';
   event.approvedAt = approvedAt;
@@ -37,6 +38,11 @@ async function publishEvent(event, options = {}) {
     event.approvedBy = options.actorUserId || null;
     event.autoApprovedAt = null;
     event.autoApprovalRuleVersion = '';
+    if (approvalNote) {
+      const existingNotes = String(event.adminNotes || '').trim();
+      const noteLine = `Approval note (${approvedAt.toISOString()}): ${approvalNote}`;
+      event.adminNotes = existingNotes ? `${existingNotes}\n${noteLine}`.slice(0, 1000) : noteLine.slice(0, 1000);
+    }
   }
 
   await event.save();
@@ -44,7 +50,7 @@ async function publishEvent(event, options = {}) {
   const reference = event.referenceCode || event.slug || event._id;
   const auditNotes = approvalSource === 'auto'
     ? `Event ${reference} auto-approved and published by ${event.autoApprovalRuleVersion}.`
-    : `Event ${reference} approved and published.`;
+    : `Event ${reference} approved and published.${approvalNote ? ` Note: ${approvalNote}` : ''}`;
 
   recordCriticalAuditEventInBackground({
     actorMongoUserId: approvalSource === 'auto' ? null : options.actorUserId,
@@ -56,7 +62,8 @@ async function publishEvent(event, options = {}) {
     notes: auditNotes,
     ipAddress: options.ipAddress,
     userAgent: options.userAgent,
-    occurredAt: approvedAt
+    occurredAt: approvedAt,
+    metadata: approvalNote ? { approvalNote } : undefined
   });
 
   generateDefaultEventBadgesInBackground(event, {
@@ -67,6 +74,10 @@ async function publishEvent(event, options = {}) {
   });
 
   return event;
+}
+
+function normalizeApprovalNote(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').slice(0, 500);
 }
 
 async function tryAutoApproveEvent(event, options = {}) {

@@ -78,6 +78,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 120
   },
   {
+    eventKey: 'event.published',
+    name: 'Event Published',
+    description: 'Notifies an organiser that an event was approved and published.',
+    category: 'organiser',
+    priority: 'medium',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: true,
+    locked: false,
+    recipientRoles: ['organiser'],
+    displayOrder: 130
+  },
+  {
     eventKey: 'registration.confirmed',
     name: 'Registration Confirmed',
     description: 'Confirms an event registration.',

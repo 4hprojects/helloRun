@@ -54,6 +54,22 @@ test('create-event form derives accumulated target from distance labels and igno
   assert.equal(formData.targetDistanceKm, 100);
 });
 
+test('create-event form derives accumulated target from the largest distance label', () => {
+  const formData = getCreateEventFormData(buildPublishPayload({
+    eventType: 'virtual',
+    raceDistanceCustom: '25,50,75,100,150,200',
+    virtualCompletionMode: 'accumulated_distance',
+    feeMode: 'free',
+    paymentQrImageUrl: '',
+    paymentAccountName: ''
+  }));
+  const errors = validateCreateEventForm(formData);
+
+  assert.deepEqual(formData.raceDistances, ['25K', '50K', '75K', '100K', '150K', '200K']);
+  assert.equal(formData.targetDistanceKm, 200);
+  assert.equal(errors.raceDistances, undefined);
+});
+
 test('create-event form derives accumulated target from structured category distance', () => {
   const formData = getCreateEventFormData({
     eventType: 'virtual',
@@ -227,8 +243,8 @@ test('race category presets include marathon distance and numeric custom labels 
   assert.equal(formData.raceCategories[1].distanceLabel, '10K');
 });
 
-test('race category validation rejects duplicate ids and ambiguous labels', () => {
-  const duplicateIds = validateCreateEventForm(getCreateEventFormData(buildPublishPayload({
+test('race category normalization repairs duplicate ids and validation rejects ambiguous labels', () => {
+  const duplicateIdForm = getCreateEventFormData(buildPublishPayload({
     feeMode: 'free',
     paymentQrImageUrl: '',
     paymentAccountName: '',
@@ -236,8 +252,11 @@ test('race category validation rejects duplicate ids and ambiguous labels', () =
     raceCategoryId: ['cat-5k', 'cat-5k'],
     raceCategoryName: ['5K Open', '10K Open'],
     raceCategoryDistanceLabel: ['5K', '10K']
-  })));
-  assert.equal(duplicateIds.raceCategoryName1, 'Race category IDs must be unique. Remove and re-add the duplicate category.');
+  }));
+  const duplicateIds = validateCreateEventForm(duplicateIdForm);
+  const normalizedIds = duplicateIdForm.raceCategories.map((category) => category.categoryId);
+  assert.equal(new Set(normalizedIds).size, normalizedIds.length);
+  assert.equal(duplicateIds.raceCategoryName1, undefined);
 
   const duplicateNames = validateCreateEventForm(getCreateEventFormData(buildPublishPayload({
     feeMode: 'free',
