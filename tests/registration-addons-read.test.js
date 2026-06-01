@@ -71,6 +71,43 @@ test('registration page renders only active and visible registration add-ons', a
   assert.ok(!html.includes(seed.nonRegistrationAddOnName));
 });
 
+test('virtual registration does not ask for emergency contact when runner profile has none', async () => {
+  const cookie = await login(seed.noEmergencyRunner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
+
+  const { csrfToken, html } = await getCsrfFromAuthedPage(`/events/${seed.event.slug}/register`, cookie);
+
+  assert.ok(!html.includes('Emergency Contact Name *'));
+  assert.ok(!html.includes('Emergency Contact Number *'));
+
+  const response = await fetch(`${BASE_URL}/events/${seed.event.slug}/register`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      _csrf: csrfToken,
+      participationMode: 'virtual',
+      raceDistance: '5K',
+      waiverAccepted: 'on',
+      waiverSignature: `${seed.noEmergencyRunner.firstName} ${seed.noEmergencyRunner.lastName}`
+    }),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+  assert.match(String(response.headers.get('location') || ''), /registered=1/i);
+
+  const registration = await Registration.findOne({ eventId: seed.event._id, userId: seed.noEmergencyRunner._id })
+    .select('participant participationMode')
+    .lean();
+  assert.ok(registration, 'Expected virtual registration without emergency contact');
+  assert.equal(registration.participationMode, 'virtual');
+  assert.equal(registration.participant.emergencyContactName, '');
+  assert.equal(registration.participant.emergencyContactNumber, '');
+});
+
 test('registration submit rejects tampered add-on ids and does not create registration', async () => {
   const cookie = await login(seed.runner.email, seed.password);
   await waitForSessionReady('/runner/dashboard', cookie);
@@ -566,6 +603,18 @@ async function seedRegistrationAddonFixtures() {
     emergencyContactNumber: '09170000012'
   });
 
+  const noEmergencyRunner = await User.create({
+    userId: `URNEMG${stamp}`.slice(0, 22),
+    email: `registration.noemergency.runner.${stamp}@example.com`,
+    passwordHash,
+    role: 'runner',
+    firstName: 'Virtual',
+    lastName: 'Runner',
+    emailVerified: true,
+    mobile: '09170000081',
+    country: 'PH'
+  });
+
   const customRunner = await User.create({
     userId: `URCUST${stamp}`.slice(0, 22),
     email: `registration.custom.runner.${stamp}@example.com`,
@@ -1028,6 +1077,7 @@ async function seedRegistrationAddonFixtures() {
   return {
     password,
     runner,
+    noEmergencyRunner,
     customRunner,
     packageRunner,
     distanceRunner,
@@ -1092,6 +1142,7 @@ async function cleanupRegistrationAddonFixtures(currentSeed) {
     delete from app_users
     where mongo_user_id = any(${[
       String(currentSeed.runner._id),
+      String(currentSeed.noEmergencyRunner._id),
       String(currentSeed.customRunner._id),
       String(currentSeed.packageRunner._id),
       String(currentSeed.distanceRunner._id),
@@ -1109,6 +1160,7 @@ async function cleanupRegistrationAddonFixtures(currentSeed) {
   await Event.deleteOne({ _id: currentSeed.inactivePackageEvent._id });
   await Event.deleteOne({ _id: currentSeed.categoryEvent._id });
   await Registration.deleteMany({ eventId: currentSeed.event._id, userId: currentSeed.runner._id });
+  await Registration.deleteMany({ eventId: currentSeed.event._id, userId: currentSeed.noEmergencyRunner._id });
   await Registration.deleteMany({ eventId: currentSeed.customEvent._id, userId: currentSeed.customRunner._id });
   await Registration.deleteMany({ eventId: currentSeed.packageEvent._id, userId: currentSeed.packageRunner._id });
   await Registration.deleteMany({ eventId: currentSeed.distanceEvent._id, userId: currentSeed.distanceRunner._id });
@@ -1119,6 +1171,7 @@ async function cleanupRegistrationAddonFixtures(currentSeed) {
     _id: {
       $in: [
         currentSeed.runner._id,
+        currentSeed.noEmergencyRunner._id,
         currentSeed.customRunner._id,
         currentSeed.packageRunner._id,
         currentSeed.distanceRunner._id,

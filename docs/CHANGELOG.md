@@ -6,6 +6,24 @@
 ## CHANGELOG - June 1, 2026 (Session: Local Auth Workflow Refinement)
 
 ### [SESSION] SESSION UPDATE:
+- Updated virtual event registration so runners are not asked for emergency contact name or number when signing up for virtual-only runs.
+- Kept emergency contact collection and validation available for onsite participation; hybrid registration now toggles the emergency fields when the selected participation mode changes.
+- Updated the quick profile modal so virtual registration does not reintroduce required emergency contact fields through the profile snapshot editor.
+- Added regression coverage for a runner with no emergency contact successfully completing virtual registration.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. src/controllers/page.controller.js
+3. src/views/pages/event-register.ejs
+4. src/views/partials/quick-profile-modal.ejs
+5. tests/registration-addons-read.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/registration-addons-read.test.js` -> PASS, 10/10
+
+---
+
+### [SESSION] SESSION UPDATE:
 - Reviewed the manual local signup and email/password login flow after user reports of password validation and login difficulty.
 - Aligned server-side password validation with the signup UI so common symbols are accepted when the password still has at least 8 characters, uppercase, lowercase, and a number.
 - Normalized local auth email handling across signup, login, forgot-password, and resend-verification flows by trimming and lowercasing before lookup.

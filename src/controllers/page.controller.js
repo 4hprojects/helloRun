@@ -531,7 +531,9 @@ exports.getEventRegistrationForm = async (req, res) => {
     const raceCategoryOptions = getRaceCategoryOptions(event);
     const raceDistancePricingPreview = buildRaceDistancePricingPreview(event, allowedRaceDistances);
     const profileSnapshot = getRegistrationProfileSnapshot(user);
-    const requiresEmergencyContact = !profileSnapshot.emergencyContactName || !profileSnapshot.emergencyContactNumber;
+    const defaultParticipationMode = allowedModes[0] || '';
+    const requiresEmergencyContact = shouldRequireEmergencyContactForRegistration(profileSnapshot, defaultParticipationMode);
+    const collectEmergencyContact = shouldCollectEmergencyContactForRegistration(profileSnapshot, allowedModes);
     const registrationAddOns = await loadRegistrationAddOns(event._id);
     const customizedRegistrationOptions = getCustomizedRegistrationOptions(event);
     const registrationPackageOptions = buildRegistrationPackageDisplayOptions(event, getRegistrationPackageOptions(event));
@@ -549,7 +551,7 @@ exports.getEventRegistrationForm = async (req, res) => {
       message: getPageMessage(req.query),
       formData: getRegistrationFormData({
         ...profileSnapshot,
-        participationMode: allowedModes[0] || '',
+        participationMode: defaultParticipationMode,
       raceDistance: allowedRaceDistances[0] || '',
       customizedOptionId: customizedRegistrationOptions[0]?.id || '',
       registrationPackageId: defaultRegistrationPackage?.id || '',
@@ -557,6 +559,7 @@ exports.getEventRegistrationForm = async (req, res) => {
         waiverSignature: ''
       }),
       requiresEmergencyContact,
+      collectEmergencyContact,
       waiverHtml: renderWaiverTemplate(event.waiverTemplate, {
         organizerName: event.organiserName,
         eventTitle: event.title
@@ -611,7 +614,9 @@ exports.postEventRegistration = async (req, res) => {
     const raceCategoryOptions = getRaceCategoryOptions(event);
     const raceDistancePricingPreview = buildRaceDistancePricingPreview(event, allowedRaceDistances);
     const profileSnapshot = getRegistrationProfileSnapshot(user);
-    const requiresEmergencyContact = !profileSnapshot.emergencyContactName || !profileSnapshot.emergencyContactNumber;
+    const selectedParticipationMode = String(req.body.participationMode || '').trim();
+    const requiresEmergencyContact = shouldRequireEmergencyContactForRegistration(profileSnapshot, selectedParticipationMode);
+    const collectEmergencyContact = shouldCollectEmergencyContactForRegistration(profileSnapshot, allowedModes);
     const emergencyContactName = profileSnapshot.emergencyContactName || String(req.body.emergencyContactName || '').trim();
     const emergencyContactNumber = profileSnapshot.emergencyContactNumber || String(req.body.emergencyContactNumber || '').trim();
     const registrationAddOns = await loadRegistrationAddOns(event._id);
@@ -680,6 +685,7 @@ exports.postEventRegistration = async (req, res) => {
         message: null,
         formData,
         requiresEmergencyContact,
+        collectEmergencyContact,
         waiverHtml: renderWaiverTemplate(event.waiverTemplate, {
           organizerName: event.organiserName,
           eventTitle: event.title
@@ -861,8 +867,10 @@ exports.postQuickProfileUpdate = async (req, res) => {
     if (payload.gender) {
       user.gender = payload.gender;
     }
-    user.emergencyContactName = payload.emergencyContactName;
-    user.emergencyContactNumber = payload.emergencyContactNumber;
+    if (payload.hasEmergencyContactInput) {
+      user.emergencyContactName = payload.emergencyContactName;
+      user.emergencyContactNumber = payload.emergencyContactNumber;
+    }
     if (payload.hasRunningGroupsInput) {
       user.runningGroups = payload.runningGroups;
       user.runningGroup = payload.runningGroups[0] || '';
@@ -880,8 +888,8 @@ exports.postQuickProfileUpdate = async (req, res) => {
         countryName: getCountryName(user.country) || user.country,
         dateOfBirth: formatDateForInput(user.dateOfBirth),
         gender: String(user.gender || '').trim(),
-        emergencyContactName: payload.emergencyContactName,
-        emergencyContactNumber: payload.emergencyContactNumber,
+        emergencyContactName: String(user.emergencyContactName || '').trim(),
+        emergencyContactNumber: String(user.emergencyContactNumber || '').trim(),
         runningGroups: normalizeRunnerGroups(user.runningGroups || user.runningGroup)
       }
     });
@@ -2164,6 +2172,8 @@ function normalizeRegistrationAddOnIds(value) {
 
 function getQuickProfileUpdatePayload(body = {}) {
   const hasCountryInput = Object.prototype.hasOwnProperty.call(body, 'country');
+  const hasEmergencyContactInput = Object.prototype.hasOwnProperty.call(body, 'emergencyContactName')
+    || Object.prototype.hasOwnProperty.call(body, 'emergencyContactNumber');
   const hasRunningGroupsInput = Object.prototype.hasOwnProperty.call(body, 'runningGroups')
     || Object.prototype.hasOwnProperty.call(body, 'runningGroupsText')
     || Object.prototype.hasOwnProperty.call(body, 'runningGroup');
@@ -2174,8 +2184,13 @@ function getQuickProfileUpdatePayload(body = {}) {
     gender: String(body.gender || '').trim(),
     emergencyContactName: String(body.emergencyContactName || '').trim(),
     emergencyContactNumber: String(body.emergencyContactNumber || '').trim(),
+    requiresEmergencyContact: body.requiresEmergencyContact === '1'
+      || body.requiresEmergencyContact === 'true'
+      || body.requiresEmergencyContact === true
+      || body.requiresEmergencyContact === 'on',
     runningGroups: normalizeRunnerGroups(body.runningGroups || body.runningGroupsText || body.runningGroup),
     hasCountryInput,
+    hasEmergencyContactInput,
     hasRunningGroupsInput
   };
 }
@@ -2211,15 +2226,15 @@ function validateQuickProfileUpdatePayload(payload) {
     errors.gender = 'Select a valid gender option.';
   }
 
-  if (!payload.emergencyContactName) {
+  if (payload.requiresEmergencyContact && !payload.emergencyContactName) {
     errors.emergencyContactName = 'Emergency contact name is required.';
   } else if (payload.emergencyContactName.length > 120) {
     errors.emergencyContactName = 'Emergency contact name must be 120 characters or less.';
   }
 
-  if (!payload.emergencyContactNumber) {
+  if (payload.requiresEmergencyContact && !payload.emergencyContactNumber) {
     errors.emergencyContactNumber = 'Emergency contact number is required.';
-  } else if (!/^[\d\s\-()+]{7,25}$/.test(payload.emergencyContactNumber)) {
+  } else if (payload.emergencyContactNumber && !/^[\d\s\-()+]{7,25}$/.test(payload.emergencyContactNumber)) {
     errors.emergencyContactNumber = 'Enter a valid emergency contact number.';
   }
 
@@ -2826,6 +2841,20 @@ function getRegistrationProfileSnapshot(user) {
     runningGroups,
     runningGroup: runningGroups[0] || ''
   };
+}
+
+function isMissingEmergencyContact(profileSnapshot) {
+  return !profileSnapshot.emergencyContactName || !profileSnapshot.emergencyContactNumber;
+}
+
+function shouldRequireEmergencyContactForRegistration(profileSnapshot, participationMode) {
+  return String(participationMode || '').trim().toLowerCase() !== 'virtual'
+    && isMissingEmergencyContact(profileSnapshot);
+}
+
+function shouldCollectEmergencyContactForRegistration(profileSnapshot, allowedModes = []) {
+  return isMissingEmergencyContact(profileSnapshot)
+    && allowedModes.some((mode) => String(mode || '').trim().toLowerCase() !== 'virtual');
 }
 
 function normalizeRunnerGroups(value) {

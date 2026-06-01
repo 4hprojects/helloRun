@@ -12,6 +12,7 @@
   <% const visibleCustomizedOptions = Array.isArray(customizedRegistrationOptions) ? customizedRegistrationOptions : []; %>
   <% const visibleRegistrationPackages = event.pricingMode === 'package_period' && Array.isArray(registrationPackageOptions) ? registrationPackageOptions : []; %>
   <% const raceDistancePricePreviewData = (typeof raceDistancePricingPreview === 'object' && raceDistancePricingPreview) ? raceDistancePricingPreview : {}; %>
+  <% const shouldCollectEmergencyContact = typeof collectEmergencyContact !== 'undefined' ? collectEmergencyContact : requiresEmergencyContact; %>
 
   <main class="event-register-page">
     <section class="event-register-shell">
@@ -173,8 +174,13 @@
               </div>
             <% } %>
 
-            <% if (requiresEmergencyContact) { %>
-              <div class="register-field-grid">
+            <% if (shouldCollectEmergencyContact) { %>
+              <div
+                class="register-field-grid"
+                id="emergencyContactFields"
+                data-emergency-contact-fields
+                <%= requiresEmergencyContact ? '' : 'hidden' %>
+              >
                 <div class="form-group <%= errors.emergencyContactName ? 'has-error' : '' %>">
                   <label for="emergencyContactName">Emergency Contact Name *</label>
                   <input
@@ -331,7 +337,7 @@
     </section>
   </main>
 
-  <%- include('../partials/quick-profile-modal', { formData, countries, csrfToken: _csrfToken }) %>
+  <%- include('../partials/quick-profile-modal', { formData, countries, csrfToken: _csrfToken, requiresEmergencyContact, collectEmergencyContact: shouldCollectEmergencyContact }) %>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
@@ -374,6 +380,37 @@
 
         raceDistanceSelect.addEventListener('change', updatePreview);
         updatePreview();
+      })();
+    </script>
+  <% } %>
+  <% if (shouldCollectEmergencyContact) { %>
+    <script>
+      (function initEmergencyContactModeToggle() {
+        const participationModeSelect = document.getElementById('participationMode');
+        const emergencyFields = document.querySelector('[data-emergency-contact-fields]');
+        const quickEmergencyFields = Array.from(document.querySelectorAll('[data-quick-emergency-contact-field]'));
+        const quickRequiresEmergencyContact = document.getElementById('quickRequiresEmergencyContact');
+        if (!participationModeSelect) return;
+
+        function updateEmergencyContactVisibility() {
+          const isVirtual = String(participationModeSelect.value || '').trim().toLowerCase() === 'virtual';
+          if (emergencyFields) {
+            emergencyFields.hidden = isVirtual;
+          }
+          quickEmergencyFields.forEach((field) => {
+            field.hidden = isVirtual;
+            field.querySelectorAll('input').forEach((input) => {
+              input.disabled = isVirtual;
+              input.required = !isVirtual;
+            });
+          });
+          if (quickRequiresEmergencyContact) {
+            quickRequiresEmergencyContact.value = isVirtual ? '0' : '1';
+          }
+        }
+
+        participationModeSelect.addEventListener('change', updateEmergencyContactVisibility);
+        updateEmergencyContactVisibility();
       })();
     </script>
   <% } %>
