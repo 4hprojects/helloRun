@@ -30,7 +30,7 @@ test.after(async () => {
 
 test('public static pages render successfully', async () => {
   const cases = [
-    { path: '/about', heading: /About helloRun/i },
+    { path: '/about', heading: /About HelloRun/i },
     { path: '/how-it-works', heading: /How It Works/i },
     { path: '/contact', heading: /Contact/i },
     { path: '/faq', heading: /FAQ/i },

@@ -23,7 +23,7 @@ async function getCertificateSetup(req, res, next) {
 
     const template = await getOrCreateDefaultTemplate(event._id, { event });
     return res.render('organizer/certificate-setup', {
-      title: 'Certificate Setup - helloRun',
+      title: 'Certificate Setup - HelloRun',
       event,
       template,
       errors: {},

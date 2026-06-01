@@ -314,7 +314,7 @@ exports.getProfilePage = async (req, res) => {
     ]);
 
     return res.render('runner/profile', {
-      title: 'Personal Information - helloRun',
+      title: 'Personal Information - HelloRun',
       user,
       userName: user.firstName,
       message: getRunnerProfileMessage(req.query),
@@ -565,7 +565,7 @@ exports.getCreateRunningGroupPage = async (req, res) => {
 
     const currentGroups = await getCurrentRunnerGroups(user);
     return res.render('runner/create-group', {
-      title: 'Create Running Group - helloRun',
+      title: 'Create Running Group - HelloRun',
       user,
       userName: user.firstName,
       message: getRunnerProfileMessage(req.query),
@@ -597,7 +597,7 @@ exports.getRunningGroupsPage = async (req, res) => {
     ]);
 
     return res.render('runner/groups', {
-      title: 'Running Groups - helloRun',
+      title: 'Running Groups - HelloRun',
       user,
       userName: user.firstName,
       message: getRunnerProfileMessage(req.query),
@@ -723,7 +723,7 @@ exports.getNotifications = async (req, res) => {
     });
 
     return res.render('runner/notifications', {
-      title: 'Notifications - helloRun',
+      title: 'Notifications - HelloRun',
       user,
       message: getRunnerProfileMessage(req.query),
       notifications: {
@@ -1109,7 +1109,7 @@ exports.getRunnerSubmissionsPage = async (req, res) => {
     ]);
 
     return res.render('runner/submissions', {
-      title: 'Submitted Entries - helloRun',
+      title: 'Submitted Entries - HelloRun',
       user,
       userName: user.firstName,
       message: getRunnerProfileMessage(req.query),
@@ -1152,7 +1152,7 @@ exports.getRunnerSubmissionDetailPage = async (req, res) => {
     const submission = await getRunnerSubmissionDetail(user._id, submissionId);
 
     return res.render('runner/submission-detail', {
-      title: `Entry – ${submission.eventTitle} - helloRun`,
+      title: `Entry – ${submission.eventTitle} - HelloRun`,
       user,
       userName: user.firstName,
       submission

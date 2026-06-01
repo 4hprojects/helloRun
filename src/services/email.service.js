@@ -1232,7 +1232,7 @@ exports.sendEventRegistrationConfirmationEmail = async (
               <p style="margin:0 0 6px;"><strong>Participation Mode:</strong> ${participationMode}</p>
             <p style="margin:0;"><strong>Event Start:</strong> ${eventDateText}</p>
           </div>
-          <p>You can sign in to your helloRun account anytime for updates.</p>
+          <p>You can sign in to your HelloRun account anytime for updates.</p>
           <p style="margin-top:20px;color:#64748b;font-size:13px;">This is an automated email. Please do not reply.</p>
         </div>
       `

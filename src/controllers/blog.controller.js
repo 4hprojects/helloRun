@@ -732,7 +732,7 @@ exports.renderAuthorDashboard = async (req, res) => {
       .select('title slug status category customCategory submittedAt approvedAt rejectedAt rejectionReason publishedAt updatedAt createdAt views likesCount commentsCount activeRevisionId activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
 
     return res.render('blog/author-dashboard', {
-      title: 'My Blogs - helloRun',
+      title: 'My Blogs - HelloRun',
       user,
       posts,
       selectedStatus,
@@ -754,7 +754,7 @@ exports.renderCreatePage = async (req, res) => {
     if (!user) return res.redirect('/login');
 
     return res.render('blog/author-form', {
-      title: 'Create Blog Draft - helloRun',
+      title: 'Create Blog Draft - HelloRun',
       user,
       mode: 'create',
       formAction: '/blogs/me/new',
@@ -785,7 +785,7 @@ exports.createDraftPage = async (req, res) => {
     if (!user) return res.redirect('/login');
     if (req.uploadError) {
       return res.status(400).render('blog/author-form', {
-        title: 'Create Blog Draft - helloRun',
+        title: 'Create Blog Draft - HelloRun',
         user,
         mode: 'create',
         formAction: '/blogs/me/new',
@@ -814,7 +814,7 @@ exports.createDraftPage = async (req, res) => {
     if (errors.length) {
       if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
       return res.status(400).render('blog/author-form', {
-        title: 'Create Blog Draft - helloRun',
+        title: 'Create Blog Draft - HelloRun',
         user,
         mode: 'create',
         formAction: '/blogs/me/new',
@@ -837,7 +837,7 @@ exports.createDraftPage = async (req, res) => {
       if (readyErrors.length) {
         if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
         return res.status(400).render('blog/author-form', {
-          title: 'Create Blog Draft - helloRun',
+          title: 'Create Blog Draft - HelloRun',
           user,
           mode: 'create',
           formAction: '/blogs/me/new',
@@ -940,7 +940,7 @@ exports.renderEditPage = async (req, res) => {
     }
 
     return res.render('blog/author-form', {
-      title: 'Edit Blog Draft - helloRun',
+      title: 'Edit Blog Draft - HelloRun',
       user,
       mode,
       formAction: `/blogs/me/${post._id}/edit`,
@@ -998,7 +998,7 @@ exports.updateDraftPage = async (req, res) => {
 
     if (req.uploadError) {
       return res.status(400).render('blog/author-form', {
-        title: 'Edit Blog Draft - helloRun',
+        title: 'Edit Blog Draft - HelloRun',
         user,
         mode: 'edit',
         formAction: `/blogs/me/${post._id}/edit`,
@@ -1036,7 +1036,7 @@ exports.updateDraftPage = async (req, res) => {
     if (errors.length) {
       if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
       return res.status(400).render('blog/author-form', {
-        title: 'Edit Blog Draft - helloRun',
+        title: 'Edit Blog Draft - HelloRun',
         user,
         mode: post.status === 'published' ? 'edit-published' : 'edit',
         formAction: `/blogs/me/${post._id}/edit`,
@@ -1059,7 +1059,7 @@ exports.updateDraftPage = async (req, res) => {
       if (readyErrors.length) {
         if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
         return res.status(400).render('blog/author-form', {
-          title: 'Edit Published Blog - helloRun',
+          title: 'Edit Published Blog - HelloRun',
           user,
           mode: 'edit-published',
           formAction: `/blogs/me/${post._id}/edit`,
@@ -1131,7 +1131,7 @@ exports.updateDraftPage = async (req, res) => {
       if (readyErrors.length) {
         if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
         return res.status(400).render('blog/author-form', {
-          title: 'Edit Blog Draft - helloRun',
+          title: 'Edit Blog Draft - HelloRun',
           user,
           mode: 'edit',
           formAction: `/blogs/me/${post._id}/edit`,
@@ -1585,7 +1585,7 @@ exports.renderAdminQueuePage = async (req, res) => {
       .select('title slug status category customCategory submittedAt publishedAt rejectedAt rejectionReason readingTime createdAt updatedAt activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
 
     return res.render('admin/blog-queue', {
-      title: 'Blog Moderation - helloRun Admin',
+      title: 'Blog Moderation - HelloRun Admin',
       posts,
       selectedStatus: status,
       searchQuery: q,

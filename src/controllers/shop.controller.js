@@ -36,7 +36,7 @@ exports.getEventShop = async (req, res, next) => {
 
     if (wantsHtml(req)) {
       return res.render('pages/event-shop', {
-        title: `${event.title} Shop - helloRun`,
+        title: `${event.title} Shop - HelloRun`,
         event: payload.event,
         products: payload.products,
         count: payload.count,
@@ -102,7 +102,7 @@ exports.getProductDetail = async (req, res, next) => {
 
     if (wantsHtml(req)) {
       return res.render('pages/product-detail', {
-        title: `${normalizedProduct.name} - ${payload.event.title} Shop - helloRun`,
+        title: `${normalizedProduct.name} - ${payload.event.title} Shop - HelloRun`,
         event: payload.event,
         product: payload.product,
         variants: payload.variants,
@@ -269,7 +269,7 @@ function renderOrderDetailHtml(order) {
   const itemRows = items.map((item) => `<li>${escapeHtml(item.name_snapshot)} x ${escapeHtml(String(item.quantity))}</li>`).join('');
 
   return `<!doctype html>
-<html><head><meta charset="utf-8"><title>${escapeHtml(order.order_number)} - helloRun</title></head>
+<html><head><meta charset="utf-8"><title>${escapeHtml(order.order_number)} - HelloRun</title></head>
 <body>
   <main>
     <h1>${escapeHtml(order.order_number)}</h1>

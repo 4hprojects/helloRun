@@ -1660,7 +1660,7 @@ function applyEventFormData(event, formData, user) {
   const organiserNameFromUser = `${user?.firstName || ''} ${user?.lastName || ''}`.trim();
   const isVirtualMode = formData.eventType === 'virtual' || formData.eventType === 'hybrid';
   event.title = formData.title;
-  event.organiserName = formData.organiserName || organiserNameFromUser || 'helloRun Organizer';
+  event.organiserName = formData.organiserName || organiserNameFromUser || 'HelloRun Organizer';
   event.description = formData.description;
   event.eventDetailsMarkdown = formData.eventDetailsMarkdown || '';
   event.eventType = formData.eventType || undefined;

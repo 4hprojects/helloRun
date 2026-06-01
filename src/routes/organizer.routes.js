@@ -436,7 +436,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     // Build dashboard data
     const dashboardData = {
-      title: 'Organizer Dashboard - helloRun',
+      title: 'Organizer Dashboard - HelloRun',
       user: user,
       application: application || null,
       adminEmail: process.env.ADMIN_EMAIL || 'hellorunonline@gmail.com',
@@ -597,7 +597,7 @@ router.get('/create-event', requireCanCreateEvents, async (req, res) => {
     }
 
     return res.render('organizer/create-event', {
-      title: 'Create Event - helloRun',
+      title: 'Create Event - HelloRun',
       user,
       errors: {},
       formData,
@@ -704,7 +704,7 @@ router.get('/preview-event', requireCanCreateEvents, async (req, res) => {
       publicEvent.secondaryCtas = [];
 
       return res.render('pages/event-details', {
-        title: `Preview Event - ${savedEvent.title || 'helloRun'}`,
+        title: `Preview Event - ${savedEvent.title || 'HelloRun'}`,
         seo: null,
         user,
         event: savedEvent,
@@ -747,7 +747,7 @@ router.get('/preview-event', requireCanCreateEvents, async (req, res) => {
     const previewBackHref = buildPreviewBackHref(previewSource, previewEventId);
 
     return res.render('pages/event-details', {
-      title: `Preview Event - ${previewEvent.title || 'helloRun'}`,
+      title: `Preview Event - ${previewEvent.title || 'HelloRun'}`,
       seo: null,
       user,
       event: previewEvent,
@@ -821,7 +821,7 @@ router.get('/events', requireApprovedOrganizer, async (req, res) => {
     const events = await Event.find(query).sort(sortMap[selectedSort]);
 
     return res.render('organizer/events', {
-      title: 'My Events - helloRun',
+      title: 'My Events - HelloRun',
       user,
       events,
       selectedStatus,
@@ -2076,7 +2076,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     }
 
     const organiserNameFromUser = `${user.firstName || ''} ${user.lastName || ''}`.trim();
-    const organiserName = formData.organiserName || organiserNameFromUser || 'helloRun Organizer';
+    const organiserName = formData.organiserName || organiserNameFromUser || 'HelloRun Organizer';
     const eventTypesAllowed = getEventTypesAllowed(formData.eventType);
 
     event.title = formData.title;
@@ -2375,7 +2375,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     if (req.uploadError) {
       const errorField = mapUploadFieldToFormField(req.uploadErrorField);
       return res.status(400).render('organizer/create-event', {
-        title: 'Create Event - helloRun',
+        title: 'Create Event - HelloRun',
         user,
         errors: { [errorField]: req.uploadError },
         formData,
@@ -2388,7 +2388,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     }
 
     const organiserNameFromUser = `${user.firstName || ''} ${user.lastName || ''}`.trim();
-    const organiserName = formData.organiserName || organiserNameFromUser || 'helloRun Organizer';
+    const organiserName = formData.organiserName || organiserNameFromUser || 'HelloRun Organizer';
     const status = formData.actionType === 'publish' ? 'pending_review' : 'draft';
     let slug = null;
     const eventTypesAllowed = getEventTypesAllowed(formData.eventType);
@@ -2441,7 +2441,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
 
     if ((formData.galleryImageUrls || []).length > MAX_GALLERY_IMAGES) {
       return res.status(400).render('organizer/create-event', {
-        title: 'Create Event - helloRun',
+        title: 'Create Event - HelloRun',
         user,
         errors: { galleryImageUrls: `Gallery supports up to ${MAX_GALLERY_IMAGES} images.` },
         formData,
@@ -2457,7 +2457,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
 
     if (Object.keys(validationErrors).length > 0) {
       return res.status(400).render('organizer/create-event', {
-        title: 'Create Event - helloRun',
+        title: 'Create Event - HelloRun',
         user,
         errors: validationErrors,
         formData,
@@ -2603,7 +2603,7 @@ router.get('/complete-profile', requireAuth, async (req, res) => {
     if (estimatedAt) estimatedAt.setDate(estimatedAt.getDate() + reviewDays);
 
     res.render('organizer/complete-profile', {
-      title: 'Complete Organizer Profile - helloRun',
+      title: 'Complete Organizer Profile - HelloRun',
       user: user,
       application: application || null,
       editMode,
@@ -2904,7 +2904,7 @@ router.get('/application-status', requireAuth, async (req, res) => {
     estimatedDate.setDate(estimatedDate.getDate() + reviewDays);
 
     res.render('organizer/application-status', {
-      title: 'Application Status - helloRun',
+      title: 'Application Status - HelloRun',
       user: user,
       application: application,
       daysAgo: daysAgo,

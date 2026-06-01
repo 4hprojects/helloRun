@@ -74,10 +74,10 @@ async function buildCertificatePdfBuffer(input = {}) {
     layout: data.styleOptions.orientation || 'landscape',
     margin: 0,
     info: {
-      Title: 'helloRun Certificate of Completion',
-      Author: 'helloRun',
+      Title: 'HelloRun Certificate of Completion',
+      Author: 'HelloRun',
       Subject: `${data.runnerName} - ${data.eventTitle}`,
-      Keywords: 'helloRun, certificate, running'
+      Keywords: 'HelloRun, certificate, running'
     }
   });
 
@@ -109,8 +109,8 @@ async function buildCertificateRenderData({
   const runnerName = `${String(runner.firstName || '').trim()} ${String(runner.lastName || '').trim()}`.trim()
     || buildParticipantName(registration)
     || 'Runner';
-  const eventTitle = String(event.title || 'helloRun Event').trim() || 'helloRun Event';
-  const organizerName = String(event.organiserName || '').trim() || 'helloRun';
+  const eventTitle = String(event.title || 'HelloRun Event').trim() || 'HelloRun Event';
+  const organizerName = String(event.organiserName || '').trim() || 'HelloRun';
   const distance = String(registration.raceDistance || submission.raceDistance || formatDistance(submission.distanceKm) || 'N/A').trim();
   const finishTime = formatElapsedMs(submission.elapsedMs);
   const eventDate = formatCertificateDate(event.eventStartAt || event.eventEndAt || issuedAt || new Date());
@@ -176,8 +176,8 @@ async function normalizeCertificateInput(input) {
 
   return {
     runnerName: String(input.runnerName || '').trim() || 'Runner',
-    eventTitle: String(input.eventTitle || '').trim() || 'helloRun Event',
-    organizerName: String(input.organizerName || '').trim() || 'helloRun',
+    eventTitle: String(input.eventTitle || '').trim() || 'HelloRun Event',
+    organizerName: String(input.organizerName || '').trim() || 'HelloRun',
     raceDistance: String(input.raceDistance || input.distance || '').trim() || 'N/A',
     distance: String(input.distance || input.raceDistance || '').trim() || 'N/A',
     elapsedLabel: String(input.elapsedLabel || input.finishTime || '').trim() || '00:00:00',
@@ -561,7 +561,7 @@ function drawHeader(doc, margin, data) {
     .fillColor(INK)
     .font('Helvetica-Bold')
     .fontSize(18)
-    .text('helloRun', margin + 82, margin + 30, { lineBreak: false });
+    .text('HelloRun', margin + 82, margin + 30, { lineBreak: false });
   doc
     .fillColor(MUTED)
     .font('Helvetica')
@@ -694,7 +694,7 @@ function drawFooter(doc, data, width, height, margin) {
     .fillColor(INK)
     .font('Helvetica-Bold')
     .fontSize(12)
-    .text('helloRun', width - margin - 220, footerY + 12, {
+    .text('HelloRun', width - margin - 220, footerY + 12, {
       width: 182,
       align: 'right'
     });

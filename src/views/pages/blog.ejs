@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: title || 'Blog - helloRun', seo: seo }) %>
+  <%- include('../layouts/head', { title: title || 'Blog - HelloRun', seo: seo }) %>
   <link rel="stylesheet" href="/css/blog.css">
 </head>
 <body>
@@ -95,7 +95,7 @@
                     </div>
                     <p class="blog-excerpt"><%= post.excerpt || 'No excerpt provided.' %></p>
                     <div class="blog-footer">
-                      <span class="blog-author">By <strong><%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %></strong></span>
+                      <span class="blog-author">By <strong><%= post.authorId?.firstName || 'HelloRun' %> <%= post.authorId?.lastName || '' %></strong></span>
                       <a href="/blog/<%= post.slug %>" class="read-more">Read more <i data-lucide="arrow-right"></i></a>
                     </div>
                   </div>
@@ -135,7 +135,7 @@
                   <p class="blog-excerpt"><%= post.excerpt || 'No excerpt provided.' %></p>
                   <div class="blog-footer">
                     <span class="blog-author">
-                      By <strong><%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %></strong>
+                      By <strong><%= post.authorId?.firstName || 'HelloRun' %> <%= post.authorId?.lastName || '' %></strong>
                     </span>
                     <a href="/blog/<%= post.slug %>" class="read-more">
                       Read more <i data-lucide="arrow-right"></i>
@@ -196,7 +196,7 @@
         <div class="newsletter-content">
           <h2 id="newsletter-heading">Stay in the loop</h2>
           <p>Newsletter signups are temporarily unavailable while we finish backend rollout.</p>
-          <p><a href="/contact" class="btn btn-primary">Contact helloRun</a></p>
+          <p><a href="/contact" class="btn btn-primary">Contact HelloRun</a></p>
         </div>
       </div>
     </section>
@@ -222,7 +222,7 @@
         if (image.dataset.fallbackApplied === '1') return;
         image.dataset.fallbackApplied = '1';
         image.src = fallbackCover;
-        image.alt = 'helloRun logo';
+        image.alt = 'HelloRun logo';
         image.closest('.blog-image')?.classList.add('is-fallback');
       };
       document.querySelectorAll('[data-blog-cover-image]').forEach((image) => {

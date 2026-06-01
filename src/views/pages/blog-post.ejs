@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: title || `${post?.title || 'Blog Post'} - helloRun`, seo: seo }) %>
+  <%- include('../layouts/head', { title: title || `${post?.title || 'Blog Post'} - HelloRun`, seo: seo }) %>
   <link rel="stylesheet" href="/css/blog-pages.css">
 </head>
 <body>
@@ -29,7 +29,7 @@
         <% } %>
         <div class="blog-post-submeta-row">
           <p class="blog-post-submeta">
-            By <strong><%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %>
+            By <strong><%= post.authorId?.firstName || 'HelloRun' %> <%= post.authorId?.lastName || '' %>
               <% if (post.authorId?.verifiedAuthor) { %>
                 <span class="verified-author-badge" title="Verified Author" style="color:#2196f3;vertical-align:middle;">
                   <i data-lucide="badge-check" aria-hidden="true"></i> Verified
@@ -160,14 +160,14 @@
             </div>
             <div class="author-details">
               <h4>
-                <%= post.authorId?.firstName || 'helloRun' %> <%= post.authorId?.lastName || '' %>
+                <%= post.authorId?.firstName || 'HelloRun' %> <%= post.authorId?.lastName || '' %>
                 <% if (post.authorId?.verifiedAuthor) { %>
                   <span class="verified-author-badge" title="Verified Author" style="color:#2196f3;vertical-align:middle;">
                     <i data-lucide="badge-check" aria-hidden="true"></i> Verified
                   </span>
                 <% } %>
               </h4>
-              <p class="author-bio"><%= post.authorId?.bio || 'Community writer on helloRun sharing running experiences and practical tips.' %></p>
+              <p class="author-bio"><%= post.authorId?.bio || 'Community writer on HelloRun sharing running experiences and practical tips.' %></p>
               <% if (typeof post.authorId?.trustScore === 'number') { %>
                 <div class="author-trust-score" style="font-size:0.95em;color:#4caf50;">
                   Trust Score: <strong><%= post.authorId.trustScore %></strong>/100
@@ -322,7 +322,7 @@
         item.style.borderRadius = '10px';
         item.style.padding = '.8rem';
         item.style.background = '#f8fafc';
-        const authorName = [comment.authorId?.firstName || '', comment.authorId?.lastName || ''].join(' ').trim() || 'helloRun user';
+        const authorName = [comment.authorId?.firstName || '', comment.authorId?.lastName || ''].join(' ').trim() || 'HelloRun user';
         const createdAt = comment.createdAt ? new Date(comment.createdAt).toLocaleString('en-US') : '';
         const isOwner = currentUserId && String(comment.authorId?._id || comment.authorId || '') === String(currentUserId);
         item.innerHTML = `
@@ -362,7 +362,7 @@
         if (image.dataset.fallbackApplied === '1') return;
         image.dataset.fallbackApplied = '1';
         image.src = fallbackCover;
-        image.alt = 'helloRun logo';
+        image.alt = 'HelloRun logo';
         image.classList.add('is-fallback');
         image.closest('.blog-related-card')?.classList.add('is-fallback');
       };

@@ -367,7 +367,7 @@ exports.adminListReports = async (req, res) => {
       .lean();
 
     return res.render('admin/blog-reports', {
-      title: 'Blog Reports - helloRun Admin',
+      title: 'Blog Reports - HelloRun Admin',
       reports,
       selectedStatus: safeStatus
     });

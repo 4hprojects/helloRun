@@ -98,7 +98,7 @@ function buildEvent(overrides = {}) {
     title: overrides.title || 'Test Event',
     slug: overrides.slug || 'test-event',
     description: overrides.description || 'Test event description',
-    organiserName: 'helloRun',
+    organiserName: 'HelloRun',
     status: 'published',
     isDeleted: false,
     isPersonalRecord: false,

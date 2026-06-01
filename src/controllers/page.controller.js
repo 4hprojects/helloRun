@@ -143,7 +143,7 @@ exports.getHome = async (req, res) => {
       {
         value: Number(approvedOrganizersCount || 0).toLocaleString('en-US'),
         label: 'Approved organizers',
-        detail: 'Organizers building virtual and hybrid events on helloRun',
+        detail: 'Organizers building virtual and hybrid events on HelloRun',
         icon: 'users'
       }
     ];
@@ -152,16 +152,16 @@ exports.getHome = async (req, res) => {
       ...post,
       categoryLabel: post.category === 'Other' && post.customCategory ? post.customCategory : post.category,
       publishedLabel: formatDateOnly(post.publishedAt || post.createdAt),
-      authorName: [post.authorId?.firstName, post.authorId?.lastName].filter(Boolean).join(' ').trim() || 'helloRun'
+      authorName: [post.authorId?.firstName, post.authorId?.lastName].filter(Boolean).join(' ').trim() || 'HelloRun'
     }));
 
     return res.render('pages/home', {
-      title: 'helloRun - Find virtual races, finish strong, stay connected',
+      title: 'HelloRun - Find virtual races, finish strong, stay connected',
       seo: {
-        description: 'Discover virtual running events, track finishes, and stay connected with the helloRun running community.',
+        description: 'Discover virtual running events, track finishes, and stay connected with the HelloRun running community.',
         canonicalUrl,
-        ogTitle: 'helloRun - Virtual races and running community',
-        twitterTitle: 'helloRun - Virtual races and running community',
+        ogTitle: 'HelloRun - Virtual races and running community',
+        twitterTitle: 'HelloRun - Virtual races and running community',
         ogImage
       },
       stats,
@@ -228,7 +228,7 @@ exports.getEventDetails = async (req, res) => {
     };
 
     return res.render('pages/event-details', {
-      title: `${event.title} - helloRun`,
+      title: `${event.title} - HelloRun`,
       seo: buildPublicEventSeo(event, baseUrl),
       event,
       publicEvent,
@@ -267,7 +267,7 @@ exports.getPublicBadgePage = async (req, res) => {
     const badge = await loadPublicBadgeVerification(req.params.userBadgeId);
     if (!badge) {
       return res.status(404).render('error', {
-        title: 'Badge Not Found - helloRun',
+        title: 'Badge Not Found - HelloRun',
         status: 404,
         message: 'This badge could not be verified. It may have been revoked or the link may be incorrect.'
       });
@@ -277,13 +277,13 @@ exports.getPublicBadgePage = async (req, res) => {
     const badgeUrl = `${baseUrl}/badges/${badge.userBadgeId}`;
     const badgeShareImageUrl = `${baseUrl}/badges/${badge.userBadgeId}/share-image.svg`;
     const openBadgeUrl = `${baseUrl}/badges/${badge.userBadgeId}/open-badge.json`;
-    const shareText = `${badge.runnerName} earned the ${badge.name} badge on helloRun.`;
+    const shareText = `${badge.runnerName} earned the ${badge.name} badge on HelloRun.`;
     const openBadgeMetadata = buildOpenBadgeMetadata(badge, { baseUrl, badgeUrl, badgeShareImageUrl, openBadgeUrl });
     return res.render('pages/badge-verification', {
-      title: `${badge.name} - Verified Badge - helloRun`,
+      title: `${badge.name} - Verified Badge - HelloRun`,
       additionalCSS: ['/css/badge-verification.css'],
       seo: {
-        description: `${badge.runnerName} earned the ${badge.name} badge on helloRun.`,
+        description: `${badge.runnerName} earned the ${badge.name} badge on HelloRun.`,
         canonicalUrl: badgeUrl,
         ogType: 'article',
         ogTitle: `${badge.name} - Verified HelloRun Badge`,
@@ -337,7 +337,7 @@ exports.getPublicBadgeShareImage = async (req, res) => {
       return res.status(404).type('image/svg+xml').send(buildShareImageSvg({
         title: 'Badge Not Found',
         subtitle: 'This HelloRun badge could not be verified.',
-        kicker: 'helloRun',
+        kicker: 'HelloRun',
         statLabel: 'Verification',
         statValue: 'Unavailable'
       }));
@@ -357,7 +357,7 @@ exports.getPublicBadgeShareImage = async (req, res) => {
     return res.status(500).type('image/svg+xml').send(buildShareImageSvg({
       title: 'HelloRun Badge',
       subtitle: 'Verified achievement preview is unavailable right now.',
-      kicker: 'helloRun',
+      kicker: 'HelloRun',
       statLabel: 'Status',
       statValue: 'Unavailable'
     }));
@@ -405,7 +405,7 @@ exports.getPublicRunnerBadgeCollection = async (req, res) => {
 
     if (!runner) {
       return res.status(404).render('error', {
-        title: 'Badge Collection Not Found - helloRun',
+        title: 'Badge Collection Not Found - HelloRun',
         status: 404,
         message: 'This public badge collection could not be found.'
       });
@@ -420,7 +420,7 @@ exports.getPublicRunnerBadgeCollection = async (req, res) => {
     const badgesByScope = buildBadgeCollectionScopeSummary(badges);
 
     return res.render('pages/runner-badge-collection', {
-      title: `${runnerName} - Badge Collection - helloRun`,
+      title: `${runnerName} - Badge Collection - HelloRun`,
       additionalCSS: ['/css/badge-verification.css'],
       seo: {
         description: `${runnerName}'s verified HelloRun badge collection.`,
@@ -468,7 +468,7 @@ exports.getPublicRunnerBadgeCollectionShareImage = async (req, res) => {
       return res.status(404).type('image/svg+xml').send(buildShareImageSvg({
         title: 'Collection Not Found',
         subtitle: 'This HelloRun badge collection could not be found.',
-        kicker: 'helloRun',
+        kicker: 'HelloRun',
         statLabel: 'Collection',
         statValue: 'Unavailable'
       }));
@@ -494,7 +494,7 @@ exports.getPublicRunnerBadgeCollectionShareImage = async (req, res) => {
     return res.status(500).type('image/svg+xml').send(buildShareImageSvg({
       title: 'HelloRun Collection',
       subtitle: 'Verified collection preview is unavailable right now.',
-      kicker: 'helloRun',
+      kicker: 'HelloRun',
       statLabel: 'Status',
       statValue: 'Unavailable'
     }));
@@ -945,7 +945,7 @@ exports.getMyRegistrations = async (req, res) => {
     });
 
     return res.render('pages/my-registrations', {
-      title: 'My Registrations - helloRun',
+      title: 'My Registrations - HelloRun',
       registrations: enrichedRegistrations,
       message: getPageMessage(req.query),
       countryName: getCountryName,
@@ -1023,7 +1023,7 @@ exports.getSubmissionCertificateDownload = async (req, res) => {
     if (certificateUrl.startsWith('data:application/pdf;base64,')) {
       const base64 = certificateUrl.slice('data:application/pdf;base64,'.length);
       const pdfBuffer = Buffer.from(base64, 'base64');
-      const safeEventTitle = String(certificateRecord.eventId?.title || 'helloRun')
+      const safeEventTitle = String(certificateRecord.eventId?.title || 'HelloRun')
         .replace(/[^a-z0-9-_]+/gi, '-')
         .replace(/^-+|-+$/g, '')
         .toLowerCase()
@@ -1473,7 +1473,7 @@ exports.getBlogList = async (req, res) => {
     const hasActiveFilters = Boolean(searchQuery || selectedCategory || selectedAuthor || selectedSort !== 'latest' || currentPage > 1);
 
     return res.render('pages/blog', {
-      title: 'Blog - helloRun',
+      title: 'Blog - HelloRun',
       posts,
       featuredPosts,
       categories: BLOG_CATEGORIES,
@@ -1494,7 +1494,7 @@ exports.getBlogList = async (req, res) => {
         totalPosts
       },
       seo: {
-        description: 'Explore running tips, race recaps, and training stories from the helloRun community.',
+        description: 'Explore running tips, race recaps, and training stories from the HelloRun community.',
         canonicalUrl
       }
     });
@@ -1573,7 +1573,7 @@ exports.getBlogPost = async (req, res) => {
     const canonicalUrl = baseUrl ? `${baseUrl}/blog/${post.slug}` : '';
     const metaDescription = String(post.seoDescription || post.excerpt || '')
       .trim()
-      .slice(0, 280) || 'Read this helloRun community blog post.';
+      .slice(0, 280) || 'Read this HelloRun community blog post.';
     const seoTitle = String(post.seoTitle || post.title || '').trim();
     const ogImage = String(post.ogImageUrl || post.coverImageUrl || '').trim();
     const likedByCurrentUser = currentUserId
@@ -1581,7 +1581,7 @@ exports.getBlogPost = async (req, res) => {
       : false;
 
     return res.render('pages/blog-post', {
-      title: `${post.title} - helloRun Blog`,
+      title: `${post.title} - HelloRun Blog`,
       post,
       relatedPosts,
       interactionState: {
@@ -1594,8 +1594,8 @@ exports.getBlogPost = async (req, res) => {
         ogType: 'article',
         description: metaDescription,
         canonicalUrl,
-        ogTitle: seoTitle || `${post.title} - helloRun Blog`,
-        twitterTitle: seoTitle || `${post.title} - helloRun Blog`,
+        ogTitle: seoTitle || `${post.title} - HelloRun Blog`,
+        twitterTitle: seoTitle || `${post.title} - HelloRun Blog`,
         ogImage: ogImage || ''
       }
     });
@@ -1626,7 +1626,7 @@ exports.getLeaderboard = async (req, res) => {
     const hasActiveFilters = activeFilterCount > 0;
 
     return res.render('pages/leaderboard', {
-      title: 'Leaderboard - helloRun',
+      title: 'Leaderboard - HelloRun',
       leaderboard: data,
       filterMeta: {
         activeFilterCount,
@@ -1671,7 +1671,7 @@ exports.getEventLeaderboardPage = async (req, res) => {
       : null;
 
     return res.render('pages/event-leaderboard', {
-      title: `${data.event.title} Leaderboard - helloRun`,
+      title: `${data.event.title} Leaderboard - HelloRun`,
       leaderboard: data,
       myStanding
     });
@@ -2999,7 +2999,7 @@ function buildShareImageSvg(input = {}) {
   const footer = String(input.footer || 'hellorun.ph').trim();
   const statLabel = String(input.statLabel || 'Verified').trim();
   const statValue = String(input.statValue || 'HelloRun').trim();
-  const kicker = String(input.kicker || 'helloRun').trim();
+  const kicker = String(input.kicker || 'HelloRun').trim();
   const titleY = titleLines.length === 1 ? 365 : 330;
   const subtitleY = titleY + (titleLines.length * 76) + 28;
 
@@ -3037,7 +3037,7 @@ function buildShareImageSvg(input = {}) {
   <text x="122" y="488" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800" fill="#64748b">${escapeXml(statLabel.toUpperCase())}</text>
   <text x="122" y="522" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="800" fill="#0f172a">${escapeXml(truncateText(statValue, 22))}</text>
   <text x="96" y="604" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="700" fill="#64748b">${escapeXml(footer)}</text>
-  <text x="1000" y="604" text-anchor="end" font-family="Poppins, Arial, sans-serif" font-size="28" font-weight="900" fill="#0f172a">helloRun</text>
+  <text x="1000" y="604" text-anchor="end" font-family="Poppins, Arial, sans-serif" font-size="28" font-weight="900" fill="#0f172a">HelloRun</text>
 </svg>`;
 }
 
@@ -3128,7 +3128,7 @@ function formatAgeFromDob(value) {
 
 function getUserRegistrationEligibilityError(user) {
   if (!user || typeof user.canParticipateInEvents !== 'function') {
-    return 'Only registered helloRun accounts can register for events.';
+    return 'Only registered HelloRun accounts can register for events.';
   }
   if (!user.canParticipateInEvents()) {
     return 'Your account is not eligible to register for events. Please verify your email first.';

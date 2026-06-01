@@ -532,7 +532,7 @@ async function createPersonalRecordSubmission({
   const event = await Event.create({
     slug: await generatePersonalRecordSlug(),
     title: 'Personal Record',
-    organiserName: 'helloRun',
+    organiserName: 'HelloRun',
     description: 'Hidden personal-record submission container.',
     status: 'published',
     eventType: 'virtual',

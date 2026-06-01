@@ -100,26 +100,26 @@ router.post('/blog/:slug/comments/:commentId/report', requireAuth, requireCsrfPr
 
 router.get('/about', (req, res) => {
   res.render('pages/about', {
-    title: 'About - helloRun'
+    title: 'About - HelloRun'
   });
 });
 
 router.get('/how-it-works', (req, res) => {
   res.render('pages/how-it-works', {
-    title: 'How It Works - helloRun'
+    title: 'How It Works - HelloRun'
   });
 });
 
 router.get('/contact', (req, res) => {
   res.render('pages/contact', {
-    title: 'Contact - helloRun',
+    title: 'Contact - HelloRun',
     source: req.query.source || ''
   });
 });
 
 router.get('/faq', (req, res) => {
   res.render('pages/faq', {
-    title: 'FAQ - helloRun'
+    title: 'FAQ - HelloRun'
   });
 });
 
@@ -180,7 +180,7 @@ function createPolicyPageRenderer(policyDocument) {
     }
 
     return res.render('pages/policy', {
-      title: `${policyDocument.title} - helloRun`,
+      title: `${policyDocument.title} - HelloRun`,
       policyDocument,
       policyHtml,
       policyLoadedFromFile,

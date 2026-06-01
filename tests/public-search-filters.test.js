@@ -119,7 +119,7 @@ test('events page search matches organiser name and rendered country name', asyn
     'exact organizer matches should rank ahead of description-only matches'
   );
   assert.match(organiserHtml, /active filter/i);
-  assert.match(organiserHtml, /<title>Results for &#34;Public Organizer&#34; Events - helloRun<\/title>/i);
+  assert.match(organiserHtml, /<title>Results for &#34;Public Organizer&#34; Events - HelloRun<\/title>/i);
   assert.match(organiserHtml, /<h1>Results for &#34;Public Organizer&#34; Events<\/h1>/i);
   assert.match(organiserHtml, /[0-9,]+ events match results for &#34;Public Organizer&#34;/i);
 
@@ -128,7 +128,7 @@ test('events page search matches organiser name and rendered country name', asyn
   const countryHtml = await countrySearch.text();
   assert.match(countryHtml, /Onsite Trail 10K/i);
   assert.match(countryHtml, /<strong>Search:<\/strong>\s*Philippines/i);
-  assert.match(countryHtml, /<meta name="description" content="Browse open on-site 10k results for &#34;Philippines&#34; on helloRun and find your next race or virtual challenge\.">/i);
+  assert.match(countryHtml, /<meta name="description" content="Browse open on-site 10k results for &#34;Philippines&#34; on HelloRun and find your next race or virtual challenge\.">/i);
   assert.match(countryHtml, /<h1>Open On-site 10K Results for &#34;Philippines&#34; Events<\/h1>/i);
   assert.match(countryHtml, /[0-9,]+ events? match(?:es)? open on-site 10k results for &#34;Philippines&#34;/i);
 });

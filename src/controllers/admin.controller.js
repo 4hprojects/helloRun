@@ -506,7 +506,7 @@ function renderAdminUserNotFound(res) {
 
 function renderAdminUserEdit(res, user, formData, options = {}) {
   return res.status(options.status || 200).render('admin/user-edit', {
-    title: `Edit ${formatUserDisplayName(user)} - User Management - helloRun Admin`,
+    title: `Edit ${formatUserDisplayName(user)} - User Management - HelloRun Admin`,
     managedUser: {
       id: String(user._id),
       userId: user.userId || 'N/A',
@@ -1239,7 +1239,7 @@ async function renderApplicationDetails(res, applicationId, options = {}) {
   }
 
   return res.render('admin/application-details', {
-    title: 'Application Details - helloRun Admin',
+    title: 'Application Details - HelloRun Admin',
     application,
     message: options.message || null,
     rejectionReasonDraft: options.rejectionReasonDraft || ''
@@ -1270,7 +1270,7 @@ exports.listUsers = async (req, res) => {
     const mappedUsers = users.map((user) => mapAdminUserListItem(user, counts, req.session.userId));
 
     return res.render('admin/users-list', {
-      title: 'User Management - helloRun Admin',
+      title: 'User Management - HelloRun Admin',
       users: mappedUsers,
       filters: { ...filters, page },
       message: getAdminPageMessage(req.query),
@@ -1466,7 +1466,7 @@ exports.viewUser = async (req, res) => {
     delete user.passwordHash;
 
     return res.render('admin/user-detail', {
-      title: `${formatUserDisplayName(user)} - User Management - helloRun Admin`,
+      title: `${formatUserDisplayName(user)} - User Management - HelloRun Admin`,
       managedUser: {
         ...user,
         id: String(user._id),
@@ -1535,7 +1535,7 @@ exports.listApplications = async (req, res) => {
     }
 
     return res.render('admin/applications-list', {
-      title: 'Organizer Applications - helloRun Admin',
+      title: 'Organizer Applications - HelloRun Admin',
       applications,
       filters: { status, q }
     });
@@ -1573,7 +1573,7 @@ exports.approveApplication = async (req, res) => {
 
     if (!canTransitionStatus(application.status, 'approved')) {
       return res.status(400).render('admin/application-details', {
-        title: 'Application Details - helloRun Admin',
+        title: 'Application Details - HelloRun Admin',
         application,
         rejectionReasonDraft: '',
         message: {
@@ -1654,7 +1654,7 @@ exports.rejectApplication = async (req, res) => {
 
     if (!canTransitionStatus(application.status, 'rejected')) {
       return res.status(400).render('admin/application-details', {
-        title: 'Application Details - helloRun Admin',
+        title: 'Application Details - HelloRun Admin',
         application,
         rejectionReasonDraft: '',
         message: {
@@ -1673,7 +1673,7 @@ exports.rejectApplication = async (req, res) => {
       rejectionReason.length > MAX_REJECTION_REASON_LENGTH
     ) {
       return res.status(400).render('admin/application-details', {
-        title: 'Application Details - helloRun Admin',
+        title: 'Application Details - HelloRun Admin',
         application,
         rejectionReasonDraft: rejectionReason,
         message: {
@@ -1793,7 +1793,7 @@ exports.listEvents = async (req, res) => {
     });
 
     return res.render('admin/events-list', {
-      title: 'Event Management - helloRun Admin',
+      title: 'Event Management - HelloRun Admin',
       message: getAdminPageMessage(req.query),
       filters,
       events: eventRows,
@@ -2293,7 +2293,7 @@ exports.dashboard = async (req, res) => {
     }));
 
     return res.render('admin/dashboard', {
-      title: 'Admin Dashboard - helloRun',
+      title: 'Admin Dashboard - HelloRun',
       stats: {
         totalUsers,
         totalApplications,
@@ -2350,7 +2350,7 @@ exports.listBadges = async (req, res) => {
     ]);
     if (!wantsJson) {
       return res.render('admin/badges', {
-        title: 'Badge Management - helloRun Admin',
+        title: 'Badge Management - HelloRun Admin',
         badges,
         userBadges,
         auditLogs,
@@ -2541,7 +2541,7 @@ exports.renderCommunications = async (req, res) => {
   try {
     const data = await communicationService.getAdminCommunicationPageData(req.query);
     return res.render('admin/communications', {
-      title: 'Communications - helloRun Admin',
+      title: 'Communications - HelloRun Admin',
       message: getAdminPageMessage(req.query),
       ...data,
       emailFrom: process.env.EMAIL_FROM || '',
@@ -2575,7 +2575,7 @@ exports.renderHomepageCarouselSettings = async (req, res) => {
   try {
     const setting = await homepageCarouselSettingService.getHomepageCarouselSettings();
     return res.render('admin/homepage-carousel-settings', {
-      title: 'Homepage Carousel Settings - helloRun Admin',
+      title: 'Homepage Carousel Settings - HelloRun Admin',
       message: getAdminPageMessage(req.query),
       setting
     });
@@ -2738,7 +2738,7 @@ exports.reviewQueue = async (req, res) => {
     });
 
     return res.render('admin/review-queue', {
-      title: 'Payment Receipt and Run Result Reviews - helloRun Admin',
+      title: 'Payment Receipt and Run Result Reviews - HelloRun Admin',
       filters,
       reviewItems,
       counts: {
@@ -2768,7 +2768,7 @@ exports.listPrivacyPolicies = async (req, res) => {
     ]);
 
     return res.render('admin/privacy-policy-list', {
-      title: 'Privacy Policy Management - helloRun Admin',
+      title: 'Privacy Policy Management - HelloRun Admin',
       message: getMessageFromQuery(req),
       currentPolicy: currentPolicy ? mapPolicyListItem(currentPolicy) : null,
       versions: versions.map(mapPolicyListItem)
@@ -2789,7 +2789,7 @@ exports.renderNewPrivacyPolicyDraft = async (req, res) => {
     const initialMarkdown = currentPolicy?.contentMarkdown || '';
 
     return res.render('admin/privacy-policy-form', {
-      title: 'New Privacy Policy Draft - helloRun Admin',
+      title: 'New Privacy Policy Draft - HelloRun Admin',
       mode: 'create',
       message,
       canPublish: false,
@@ -2817,7 +2817,7 @@ exports.createPrivacyPolicyDraft = async (req, res) => {
     const summaryOfChanges = typeof req.body.summaryOfChanges === 'string' ? req.body.summaryOfChanges.trim() : '';
     const content = getPolicyContentFromRequest(req.body);
     const renderCreateWithError = (text) => res.status(400).render('admin/privacy-policy-form', {
-      title: 'New Privacy Policy Draft - helloRun Admin',
+      title: 'New Privacy Policy Draft - HelloRun Admin',
       mode: 'create',
       message: { type: 'error', text },
       policy: {
@@ -2877,7 +2877,7 @@ exports.createPrivacyPolicyDraft = async (req, res) => {
   } catch (error) {
     if (error?.code === 11000) {
       return res.status(400).render('admin/privacy-policy-form', {
-        title: 'New Privacy Policy Draft - helloRun Admin',
+        title: 'New Privacy Policy Draft - HelloRun Admin',
         mode: 'create',
         message: { type: 'error', text: 'Version number already exists.' },
         policy: {
@@ -2905,7 +2905,7 @@ exports.formatNewPrivacyPolicyDraft = async (req, res) => {
     const formattedContent = autoFormatPolicyContent(getPolicyContentFromRequest(req.body));
 
     return res.render('admin/privacy-policy-form', {
-      title: 'New Privacy Policy Draft - helloRun Admin',
+      title: 'New Privacy Policy Draft - HelloRun Admin',
       mode: 'create',
       message: { type: 'info', text: 'Auto-format applied. Review before saving.' },
       canPublish: false,
@@ -2934,7 +2934,7 @@ exports.previewNewPrivacyPolicyDraft = async (req, res) => {
     const content = getPolicyContentFromRequest(req.body);
 
     return res.render('admin/privacy-policy-form', {
-      title: 'New Privacy Policy Draft - helloRun Admin',
+      title: 'New Privacy Policy Draft - HelloRun Admin',
       mode: 'create',
       message: { type: 'info', text: 'Preview mode: review before saving or publishing.' },
       canPublish: false,
@@ -2983,7 +2983,7 @@ exports.viewPrivacyPolicyVersion = async (req, res) => {
     }
 
     return res.render('admin/privacy-policy-form', {
-      title: `Privacy Policy ${policy.versionNumber} - helloRun Admin`,
+      title: `Privacy Policy ${policy.versionNumber} - HelloRun Admin`,
       mode: 'view',
       message: getMessageFromQuery(req),
       canPublish: true,
@@ -3028,7 +3028,7 @@ exports.renderEditPrivacyPolicyDraft = async (req, res) => {
     }
 
     return res.render('admin/privacy-policy-form', {
-      title: `Edit Privacy Policy ${policy.versionNumber} - helloRun Admin`,
+      title: `Edit Privacy Policy ${policy.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       message,
       canPublish: canPublishFromMessage(message),
@@ -3073,7 +3073,7 @@ exports.updatePrivacyPolicyDraft = async (req, res) => {
     const summaryOfChanges = typeof req.body.summaryOfChanges === 'string' ? req.body.summaryOfChanges.trim() : '';
     const content = getPolicyContentFromRequest(req.body);
     const renderEditWithError = (text) => res.status(400).render('admin/privacy-policy-form', {
-      title: `Edit Privacy Policy ${policy.versionNumber} - helloRun Admin`,
+      title: `Edit Privacy Policy ${policy.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       message: { type: 'error', text },
       canPublish: false,
@@ -3133,7 +3133,7 @@ exports.updatePrivacyPolicyDraft = async (req, res) => {
         if (existing) {
           const content = getPolicyContentFromRequest(req.body);
           return res.status(400).render('admin/privacy-policy-form', {
-            title: `Edit Privacy Policy ${existing.versionNumber} - helloRun Admin`,
+            title: `Edit Privacy Policy ${existing.versionNumber} - HelloRun Admin`,
             mode: 'edit',
             message: { type: 'error', text: 'Version number already exists.' },
             canPublish: false,
@@ -3178,7 +3178,7 @@ exports.formatExistingPrivacyPolicyDraft = async (req, res) => {
     const formattedContent = autoFormatPolicyContent(getPolicyContentFromRequest(req.body));
 
     return res.render('admin/privacy-policy-form', {
-      title: `Edit Privacy Policy ${existing.versionNumber} - helloRun Admin`,
+      title: `Edit Privacy Policy ${existing.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       message: { type: 'info', text: 'Auto-format applied. Review before saving.' },
       canPublish: false,
@@ -3220,7 +3220,7 @@ exports.previewExistingPrivacyPolicyDraft = async (req, res) => {
     const content = getPolicyContentFromRequest(req.body);
 
     return res.render('admin/privacy-policy-form', {
-      title: `Edit Privacy Policy ${existing.versionNumber} - helloRun Admin`,
+      title: `Edit Privacy Policy ${existing.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       message: { type: 'info', text: 'Preview mode: review before saving or publishing.' },
       canPublish: false,
@@ -3392,7 +3392,7 @@ exports.listTermsPolicies = async (req, res) => {
     return res.render('admin/privacy-policy-list', {
       policyDocumentName: 'Terms and Conditions',
       policyManagePath: TERMS_POLICY_MANAGE_PATH,
-      title: 'Terms and Conditions Management - helloRun Admin',
+      title: 'Terms and Conditions Management - HelloRun Admin',
       message: getMessageFromQuery(req),
       currentPolicy: currentPolicy ? mapPolicyListItem(currentPolicy, 'Terms and Conditions') : null,
       versions: versions.map((item) => mapPolicyListItem(item, 'Terms and Conditions'))
@@ -3415,7 +3415,7 @@ exports.renderNewTermsPolicyDraft = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Terms and Conditions',
       policyManagePath: TERMS_POLICY_MANAGE_PATH,
-      title: 'New Terms and Conditions Draft - helloRun Admin',
+      title: 'New Terms and Conditions Draft - HelloRun Admin',
       mode: 'create',
       message,
       canPublish: false,
@@ -3445,7 +3445,7 @@ exports.createTermsPolicyDraft = async (req, res) => {
     const renderCreateWithError = (text) => res.status(400).render('admin/privacy-policy-form', {
       policyDocumentName: 'Terms and Conditions',
       policyManagePath: TERMS_POLICY_MANAGE_PATH,
-      title: 'New Terms and Conditions Draft - helloRun Admin',
+      title: 'New Terms and Conditions Draft - HelloRun Admin',
       mode: 'create',
       message: { type: 'error', text },
       policy: {
@@ -3507,7 +3507,7 @@ exports.createTermsPolicyDraft = async (req, res) => {
       return res.status(400).render('admin/privacy-policy-form', {
       policyDocumentName: 'Terms and Conditions',
       policyManagePath: TERMS_POLICY_MANAGE_PATH,
-        title: 'New Terms and Conditions Draft - helloRun Admin',
+        title: 'New Terms and Conditions Draft - HelloRun Admin',
         mode: 'create',
         message: { type: 'error', text: 'Version number already exists.' },
         policy: {
@@ -3537,7 +3537,7 @@ exports.formatNewTermsPolicyDraft = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Terms and Conditions',
       policyManagePath: TERMS_POLICY_MANAGE_PATH,
-      title: 'New Terms and Conditions Draft - helloRun Admin',
+      title: 'New Terms and Conditions Draft - HelloRun Admin',
       mode: 'create',
       message: { type: 'info', text: 'Auto-format applied. Review before saving.' },
       canPublish: false,
@@ -3568,7 +3568,7 @@ exports.previewNewTermsPolicyDraft = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Terms and Conditions',
       policyManagePath: TERMS_POLICY_MANAGE_PATH,
-      title: 'New Terms and Conditions Draft - helloRun Admin',
+      title: 'New Terms and Conditions Draft - HelloRun Admin',
       mode: 'create',
       message: { type: 'info', text: 'Preview mode: review before saving or publishing.' },
       canPublish: false,
@@ -3619,7 +3619,7 @@ exports.viewTermsPolicyVersion = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Terms and Conditions',
       policyManagePath: TERMS_POLICY_MANAGE_PATH,
-      title: `Terms and Conditions ${policy.versionNumber} - helloRun Admin`,
+      title: `Terms and Conditions ${policy.versionNumber} - HelloRun Admin`,
       mode: 'view',
       message: getMessageFromQuery(req),
       canPublish: true,
@@ -3666,7 +3666,7 @@ exports.renderEditTermsPolicyDraft = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Terms and Conditions',
       policyManagePath: TERMS_POLICY_MANAGE_PATH,
-      title: `Edit Terms and Conditions ${policy.versionNumber} - helloRun Admin`,
+      title: `Edit Terms and Conditions ${policy.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       message,
       canPublish: canPublishFromMessage(message),
@@ -3713,7 +3713,7 @@ exports.updateTermsPolicyDraft = async (req, res) => {
     const renderEditWithError = (text) => res.status(400).render('admin/privacy-policy-form', {
       policyDocumentName: 'Terms and Conditions',
       policyManagePath: TERMS_POLICY_MANAGE_PATH,
-      title: `Edit Terms and Conditions ${policy.versionNumber} - helloRun Admin`,
+      title: `Edit Terms and Conditions ${policy.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       message: { type: 'error', text },
       canPublish: false,
@@ -3775,7 +3775,7 @@ exports.updateTermsPolicyDraft = async (req, res) => {
           return res.status(400).render('admin/privacy-policy-form', {
       policyDocumentName: 'Terms and Conditions',
       policyManagePath: TERMS_POLICY_MANAGE_PATH,
-            title: `Edit Terms and Conditions ${existing.versionNumber} - helloRun Admin`,
+            title: `Edit Terms and Conditions ${existing.versionNumber} - HelloRun Admin`,
             mode: 'edit',
             message: { type: 'error', text: 'Version number already exists.' },
             canPublish: false,
@@ -3822,7 +3822,7 @@ exports.formatExistingTermsPolicyDraft = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Terms and Conditions',
       policyManagePath: TERMS_POLICY_MANAGE_PATH,
-      title: `Edit Terms and Conditions ${existing.versionNumber} - helloRun Admin`,
+      title: `Edit Terms and Conditions ${existing.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       message: { type: 'info', text: 'Auto-format applied. Review before saving.' },
       canPublish: false,
@@ -3866,7 +3866,7 @@ exports.previewExistingTermsPolicyDraft = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Terms and Conditions',
       policyManagePath: TERMS_POLICY_MANAGE_PATH,
-      title: `Edit Terms and Conditions ${existing.versionNumber} - helloRun Admin`,
+      title: `Edit Terms and Conditions ${existing.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       message: { type: 'info', text: 'Preview mode: review before saving or publishing.' },
       canPublish: false,
@@ -4035,7 +4035,7 @@ exports.listCookiePolicies = async (req, res) => {
     return res.render('admin/privacy-policy-list', {
       policyDocumentName: 'Cookie Policy',
       policyManagePath: COOKIE_POLICY_MANAGE_PATH,
-      title: 'Cookie Policy Management - helloRun Admin',
+      title: 'Cookie Policy Management - HelloRun Admin',
       message: getMessageFromQuery(req),
       currentPolicy: currentPolicy ? mapPolicyListItem(currentPolicy, 'Cookie Policy') : null,
       versions: versions.map((item) => mapPolicyListItem(item, 'Cookie Policy'))
@@ -4058,7 +4058,7 @@ exports.renderNewCookiePolicyDraft = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Cookie Policy',
       policyManagePath: COOKIE_POLICY_MANAGE_PATH,
-      title: 'New Cookie Policy Draft - helloRun Admin',
+      title: 'New Cookie Policy Draft - HelloRun Admin',
       mode: 'create',
       message,
       canPublish: false,
@@ -4088,7 +4088,7 @@ exports.createCookiePolicyDraft = async (req, res) => {
     const renderCreateWithError = (text) => res.status(400).render('admin/privacy-policy-form', {
       policyDocumentName: 'Cookie Policy',
       policyManagePath: COOKIE_POLICY_MANAGE_PATH,
-      title: 'New Cookie Policy Draft - helloRun Admin',
+      title: 'New Cookie Policy Draft - HelloRun Admin',
       mode: 'create',
       message: { type: 'error', text },
       policy: {
@@ -4150,7 +4150,7 @@ exports.createCookiePolicyDraft = async (req, res) => {
       return res.status(400).render('admin/privacy-policy-form', {
       policyDocumentName: 'Cookie Policy',
       policyManagePath: COOKIE_POLICY_MANAGE_PATH,
-        title: 'New Cookie Policy Draft - helloRun Admin',
+        title: 'New Cookie Policy Draft - HelloRun Admin',
         mode: 'create',
         message: { type: 'error', text: 'Version number already exists.' },
         policy: {
@@ -4180,7 +4180,7 @@ exports.formatNewCookiePolicyDraft = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Cookie Policy',
       policyManagePath: COOKIE_POLICY_MANAGE_PATH,
-      title: 'New Cookie Policy Draft - helloRun Admin',
+      title: 'New Cookie Policy Draft - HelloRun Admin',
       mode: 'create',
       message: { type: 'info', text: 'Auto-format applied. Review before saving.' },
       canPublish: false,
@@ -4211,7 +4211,7 @@ exports.previewNewCookiePolicyDraft = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Cookie Policy',
       policyManagePath: COOKIE_POLICY_MANAGE_PATH,
-      title: 'New Cookie Policy Draft - helloRun Admin',
+      title: 'New Cookie Policy Draft - HelloRun Admin',
       mode: 'create',
       message: { type: 'info', text: 'Preview mode: review before saving or publishing.' },
       canPublish: false,
@@ -4262,7 +4262,7 @@ exports.viewCookiePolicyVersion = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Cookie Policy',
       policyManagePath: COOKIE_POLICY_MANAGE_PATH,
-      title: `Cookie Policy ${policy.versionNumber} - helloRun Admin`,
+      title: `Cookie Policy ${policy.versionNumber} - HelloRun Admin`,
       mode: 'view',
       message: getMessageFromQuery(req),
       canPublish: true,
@@ -4309,7 +4309,7 @@ exports.renderEditCookiePolicyDraft = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Cookie Policy',
       policyManagePath: COOKIE_POLICY_MANAGE_PATH,
-      title: `Edit Cookie Policy ${policy.versionNumber} - helloRun Admin`,
+      title: `Edit Cookie Policy ${policy.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       message,
       canPublish: canPublishFromMessage(message),
@@ -4356,7 +4356,7 @@ exports.updateCookiePolicyDraft = async (req, res) => {
     const renderEditWithError = (text) => res.status(400).render('admin/privacy-policy-form', {
       policyDocumentName: 'Cookie Policy',
       policyManagePath: COOKIE_POLICY_MANAGE_PATH,
-      title: `Edit Cookie Policy ${policy.versionNumber} - helloRun Admin`,
+      title: `Edit Cookie Policy ${policy.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       message: { type: 'error', text },
       canPublish: false,
@@ -4418,7 +4418,7 @@ exports.updateCookiePolicyDraft = async (req, res) => {
           return res.status(400).render('admin/privacy-policy-form', {
       policyDocumentName: 'Cookie Policy',
       policyManagePath: COOKIE_POLICY_MANAGE_PATH,
-            title: `Edit Cookie Policy ${existing.versionNumber} - helloRun Admin`,
+            title: `Edit Cookie Policy ${existing.versionNumber} - HelloRun Admin`,
             mode: 'edit',
             message: { type: 'error', text: 'Version number already exists.' },
             canPublish: false,
@@ -4465,7 +4465,7 @@ exports.formatExistingCookiePolicyDraft = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Cookie Policy',
       policyManagePath: COOKIE_POLICY_MANAGE_PATH,
-      title: `Edit Cookie Policy ${existing.versionNumber} - helloRun Admin`,
+      title: `Edit Cookie Policy ${existing.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       message: { type: 'info', text: 'Auto-format applied. Review before saving.' },
       canPublish: false,
@@ -4509,7 +4509,7 @@ exports.previewExistingCookiePolicyDraft = async (req, res) => {
     return res.render('admin/privacy-policy-form', {
       policyDocumentName: 'Cookie Policy',
       policyManagePath: COOKIE_POLICY_MANAGE_PATH,
-      title: `Edit Cookie Policy ${existing.versionNumber} - helloRun Admin`,
+      title: `Edit Cookie Policy ${existing.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       message: { type: 'info', text: 'Preview mode: review before saving or publishing.' },
       canPublish: false,
@@ -4683,7 +4683,7 @@ function renderPolicyDocumentForm(res, policyDocument, options = {}) {
   return res.render('admin/privacy-policy-form', {
     policyDocumentName: policyDocument.title,
     policyManagePath: policyDocument.adminPath,
-    title: options.title || `${policyDocument.title} - helloRun Admin`,
+    title: options.title || `${policyDocument.title} - HelloRun Admin`,
     mode,
     policy,
     previewHtml: options.previewHtml || '',
@@ -4695,7 +4695,7 @@ function renderPolicyDocumentList(res, policyDocument, currentPolicy, versions, 
   return res.render('admin/privacy-policy-list', {
     policyDocumentName: policyDocument.title,
     policyManagePath: policyDocument.adminPath,
-    title: `${policyDocument.title} Versions - helloRun Admin`,
+    title: `${policyDocument.title} Versions - HelloRun Admin`,
     currentPolicy: currentPolicy ? mapPolicyListItem(currentPolicy, policyDocument.title) : null,
     versions: versions.map((item) => mapPolicyListItem(item, policyDocument.title)),
     message
@@ -4728,7 +4728,7 @@ async function renderNewPolicyDocumentDraft(req, res) {
   try {
     const nextVersion = await getNextPolicyVersionNumberForSlug(policyDocument.slug);
     return renderPolicyDocumentForm(res, policyDocument, {
-      title: `New ${policyDocument.title} Draft - helloRun Admin`,
+      title: `New ${policyDocument.title} Draft - HelloRun Admin`,
       mode: 'create',
       policy: {
         title: policyDocument.dbTitle,
@@ -4759,7 +4759,7 @@ async function createPolicyDocumentDraft(req, res) {
     const content = getPolicyContentFromRequest(req.body);
 
     const renderCreateWithError = (text) => renderPolicyDocumentForm(res.status(400), policyDocument, {
-      title: `New ${policyDocument.title} Draft - helloRun Admin`,
+      title: `New ${policyDocument.title} Draft - HelloRun Admin`,
       mode: 'create',
       message: { type: 'error', text },
       policy: {
@@ -4810,7 +4810,7 @@ async function formatNewPolicyDocumentDraft(req, res) {
   try {
     const content = formatPolicyContentFromRequest(req.body);
     return renderPolicyDocumentForm(res, policyDocument, {
-      title: `New ${policyDocument.title} Draft - helloRun Admin`,
+      title: `New ${policyDocument.title} Draft - HelloRun Admin`,
       mode: 'create',
       policy: {
         title: String(req.body.title || policyDocument.dbTitle).trim(),
@@ -4837,7 +4837,7 @@ async function previewNewPolicyDocumentDraft(req, res) {
   try {
     const content = getPolicyContentFromRequest(req.body);
     return renderPolicyDocumentForm(res, policyDocument, {
-      title: `Preview ${policyDocument.title} Draft - helloRun Admin`,
+      title: `Preview ${policyDocument.title} Draft - HelloRun Admin`,
       mode: 'create',
       policy: {
         title: String(req.body.title || policyDocument.dbTitle).trim(),
@@ -4875,7 +4875,7 @@ async function viewPolicyDocumentVersion(req, res) {
     if (result.error) return res.redirect(result.error);
     const policy = result.policy;
     return renderPolicyDocumentForm(res, policyDocument, {
-      title: `${policyDocument.title} ${policy.versionNumber} - helloRun Admin`,
+      title: `${policyDocument.title} ${policy.versionNumber} - HelloRun Admin`,
       mode: 'view',
       policy: {
         id: String(policy._id),
@@ -4909,7 +4909,7 @@ async function renderEditPolicyDocumentDraft(req, res) {
       return res.redirect(buildAdminRedirect(`${policyDocument.adminPath}/${policy._id}`, 'error', 'Only draft versions can be edited.'));
     }
     return renderPolicyDocumentForm(res, policyDocument, {
-      title: `Edit ${policyDocument.title} ${policy.versionNumber} - helloRun Admin`,
+      title: `Edit ${policyDocument.title} ${policy.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       policy: {
         id: String(policy._id),
@@ -4950,7 +4950,7 @@ async function updatePolicyDocumentDraft(req, res) {
     const content = getPolicyContentFromRequest(req.body);
 
     const renderEditWithError = (text) => renderPolicyDocumentForm(res.status(400), policyDocument, {
-      title: `Edit ${policyDocument.title} ${policy.versionNumber} - helloRun Admin`,
+      title: `Edit ${policyDocument.title} ${policy.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       message: { type: 'error', text },
       policy: {
@@ -5005,7 +5005,7 @@ async function formatExistingPolicyDocumentDraft(req, res) {
     }
     const content = formatPolicyContentFromRequest(req.body);
     return renderPolicyDocumentForm(res, policyDocument, {
-      title: `Edit ${policyDocument.title} ${existing.versionNumber} - helloRun Admin`,
+      title: `Edit ${policyDocument.title} ${existing.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       policy: {
         id: String(existing._id),
@@ -5037,7 +5037,7 @@ async function previewExistingPolicyDocumentDraft(req, res) {
     }
     const content = getPolicyContentFromRequest(req.body);
     return renderPolicyDocumentForm(res, policyDocument, {
-      title: `Preview ${policyDocument.title} ${existing.versionNumber} - helloRun Admin`,
+      title: `Preview ${policyDocument.title} ${existing.versionNumber} - HelloRun Admin`,
       mode: 'edit',
       policy: {
         id: String(existing._id),

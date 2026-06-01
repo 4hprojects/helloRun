@@ -28,7 +28,7 @@ test('buildPublicEventView treats delivery-only paid setup as free base registra
   const publicEvent = buildPublicEventView({
     title: '2026K Challenge',
     slug: '2026k-challenge',
-    organiserName: 'helloRun',
+    organiserName: 'HelloRun',
     eventType: 'virtual',
     eventTypesAllowed: ['virtual'],
     raceDistances: ['2026K'],

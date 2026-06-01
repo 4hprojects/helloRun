@@ -410,29 +410,29 @@ function getEventsPageContent(filterValues, pagination = {}) {
     : '';
   const titlePrefix = filterLabel ? `${filterLabel} Events` : 'Running Events';
   const heroTitle = filterLabel ? `${filterLabel} Events` : 'Check Out Ongoing Events';
-  const defaultDescription = 'Discover helloRun events, browse by mode and distance, and find your next race or virtual challenge.';
+  const defaultDescription = 'Discover HelloRun events, browse by mode and distance, and find your next race or virtual challenge.';
   const filteredDescription = filterLabel
-    ? `Browse ${getEventsFilterNarrative(filterValues, { lowercaseBase: true })} on helloRun and find your next race or virtual challenge.`
+    ? `Browse ${getEventsFilterNarrative(filterValues, { lowercaseBase: true })} on HelloRun and find your next race or virtual challenge.`
     : defaultDescription;
   const heroDescription = filterLabel
     ? buildEventsHeroDescription(filterValues)
-    : 'Explore active helloRun races and pick your next challenge.';
+    : 'Explore active HelloRun races and pick your next challenge.';
 
   return {
-    title: `${titlePrefix}${pageSuffix} - helloRun`,
+    title: `${titlePrefix}${pageSuffix} - HelloRun`,
     heroTitle,
     heroDescription,
     seo: {
       description: filteredDescription,
-      ogTitle: `${titlePrefix}${pageSuffix} - helloRun`,
-      twitterTitle: `${titlePrefix}${pageSuffix} - helloRun`
+      ogTitle: `${titlePrefix}${pageSuffix} - HelloRun`,
+      twitterTitle: `${titlePrefix}${pageSuffix} - HelloRun`
     }
   };
 }
 
 function buildEventsResultsSummary(filterValues, totalEvents) {
   if (!hasAnyEventsFilters(filterValues)) {
-    return 'Browse active helloRun races by mode, distance, and registration status.';
+    return 'Browse active HelloRun races by mode, distance, and registration status.';
   }
 
   const verb = Number(totalEvents || 0) === 1 ? 'matches' : 'match';
@@ -442,7 +442,7 @@ function buildEventsResultsSummary(filterValues, totalEvents) {
 function buildEventsHeroDescription(filterValues) {
   const narrative = getEventsFilterNarrative(filterValues, { lowercaseBase: true });
   if (!narrative) {
-    return 'Explore active helloRun races and pick your next challenge.';
+    return 'Explore active HelloRun races and pick your next challenge.';
   }
 
   if (filterValues.q) {

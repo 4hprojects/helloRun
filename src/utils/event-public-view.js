@@ -78,9 +78,9 @@ function buildPublicEventView(event, options = {}) {
     : targetDistanceLabel;
 
   return {
-    title: event.title || 'helloRun Event',
+    title: event.title || 'HelloRun Event',
     slug: event.slug || '',
-    organizerName: event.organiserName || 'helloRun',
+    organizerName: event.organiserName || 'HelloRun',
     description: event.description || '',
     descriptionText: htmlToPlainText(event.description || ''),
     eventTypeLabel,
@@ -121,8 +121,8 @@ function buildPublicEventSeo(event, baseUrl = '') {
   return {
     description,
     canonicalUrl,
-    ogTitle: `${event.title || 'helloRun Event'} - helloRun`,
-    twitterTitle: `${event.title || 'helloRun Event'} - helloRun`,
+    ogTitle: `${event.title || 'HelloRun Event'} - HelloRun`,
+    twitterTitle: `${event.title || 'HelloRun Event'} - HelloRun`,
     ogType: 'article',
     ogImage
   };

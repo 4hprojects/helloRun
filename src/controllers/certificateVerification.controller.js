@@ -3,7 +3,7 @@ const { logCertificateAuditInBackground } = require('../services/certificateAudi
 
 async function getVerificationSearch(req, res) {
   return res.render('certificates/verify', {
-    title: 'Verify Certificate - helloRun',
+    title: 'Verify Certificate - HelloRun',
     certificateNumber: '',
     result: null,
     message: null
@@ -14,7 +14,7 @@ async function postVerificationSearch(req, res) {
   const certificateNumber = normalizeCertificateNumber(req.body.certificateNumber);
   if (!certificateNumber) {
     return res.status(400).render('certificates/verify', {
-      title: 'Verify Certificate - helloRun',
+      title: 'Verify Certificate - HelloRun',
       certificateNumber: '',
       result: null,
       message: 'Enter a certificate number.'
@@ -38,7 +38,7 @@ async function getVerificationResult(req, res, next) {
       userAgent: getRequestUserAgent(req)
     });
     return res.render('certificates/verification-result', {
-      title: 'Certificate Verification - helloRun',
+      title: 'Certificate Verification - HelloRun',
       certificateNumber,
       result
     });

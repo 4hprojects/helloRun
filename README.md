@@ -1,5 +1,9 @@
 ## Changelog
 
+### Version 1.1.2 (June 1, 2026) - HelloRun Brand Casing Finalization
+- Standardized user-facing product branding to HelloRun across page titles, public pages, auth screens, dashboards, certificates, badges, SEO metadata, and email copy.
+- Kept lowercase technical identifiers unchanged where required for URLs, domains, package names, asset filenames, JSON keys, and browser storage keys.
+
 ### Version 1.1.1 (May 13, 2026) - Organizer Verification + Admin Account Controls
 - Added editable organizer application flow for pending, under-review, and rejected applications.
 - Organizer dashboard is now the landing surface for organizer accounts while application status and next actions remain accessible from dashboard/status pages.
