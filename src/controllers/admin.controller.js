@@ -1971,6 +1971,7 @@ exports.approveEvent = async (req, res) => {
       await publishEvent(event, {
         approvalSource: 'admin',
         actorUserId: req.session.userId,
+        approvalNote: req.body?.approvalNote,
         ipAddress: getRequestIpAddress(req),
         userAgent: getRequestUserAgent(req)
       });
@@ -1979,6 +1980,45 @@ exports.approveEvent = async (req, res) => {
         return res.status(400).json({ success: false, message: error.readinessErrors[0], errors: error.readinessErrors });
       }
       throw error;
+    }
+    const organizer = event.organizerId;
+    if (organizer?.email) {
+      const appUrl = String(process.env.APP_URL || '').replace(/\/+$/, '');
+      const eventUrl = appUrl && event.slug ? `${appUrl}/events/${event.slug}` : '';
+      const approvalNote = String(req.body?.approvalNote || '').trim().slice(0, 500);
+      try {
+        await communicationService.notify('event.published', {
+          notification: {
+            userId: organizer._id,
+            type: 'event_published',
+            title: 'Event published',
+            message: `${event.title} has been approved and published.`,
+            href: `/organizer/events/${event._id}`,
+            metadata: {
+              eventId: String(event._id),
+              eventSlug: event.slug || '',
+              approvalNote
+            }
+          },
+          email: {
+            to: organizer.email,
+            recipientUserId: organizer._id,
+            firstName: organizer.firstName || 'Organizer',
+            eventTitle: event.title,
+            eventUrl,
+            approvalNote,
+            metadata: {
+              eventId: String(event._id),
+              eventSlug: event.slug || ''
+            }
+          }
+        });
+      } catch (notifyError) {
+        console.error('Event published communication failed:', {
+          eventId: String(event._id),
+          error: notifyError?.message || String(notifyError)
+        });
+      }
     }
     return res.json({ success: true, message: 'Event approved and published.' });
   } catch (error) {

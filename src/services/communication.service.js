@@ -429,6 +429,15 @@ async function sendEventEmail(eventKey, payload = {}) {
   if (eventKey === 'organiser.application_rejected') {
     return emailService.sendApplicationRejectedEmail(email.to, email.firstName, email.rejectionReason);
   }
+  if (eventKey === 'event.published') {
+    return emailService.sendEventPublishedEmailToOrganizer(
+      email.to,
+      email.firstName,
+      email.eventTitle,
+      email.eventUrl,
+      email.approvalNote
+    );
+  }
   if (eventKey === 'registration.confirmed') {
     return emailService.sendEventRegistrationConfirmationEmail(
       email.to,
@@ -516,6 +525,7 @@ function getSubjectForEvent(eventKey, payload = {}) {
     'organiser.application_submitted': 'Application Received - HelloRun Organizer',
     'organiser.application_approved': 'Your organiser application has been approved',
     'organiser.application_rejected': 'Update on Your Organizer Application - HelloRun',
+    'event.published': `Event Published: ${eventTitle}`,
     'registration.confirmed': `Registration Confirmed: ${eventTitle}`,
     'payment.receipt_submitted': `Payment Receipt Submitted: ${eventTitle}`,
     'payment.approved': `Payment Approved: ${eventTitle}`,

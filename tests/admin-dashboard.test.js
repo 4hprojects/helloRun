@@ -367,6 +367,7 @@ test('admin approves pending event, then archive hides it from public event deta
       'Content-Type': 'application/json',
       Accept: 'application/json'
     },
+    body: JSON.stringify({ approvalNote: 'Approved after admin checklist review.' }),
     redirect: 'manual'
   });
   assert.equal(approveResponse.status, 200);
@@ -381,6 +382,7 @@ test('admin approves pending event, then archive hides it from public event deta
   assert.equal(approved.approvalSource, 'admin');
   assert.equal(approved.autoApprovedAt, null);
   assert.equal(approved.autoApprovalRuleVersion, '');
+  assert.match(approved.adminNotes, /Approved after admin checklist review/);
   const publishAudit = await waitForAuditRecord({
     action: 'event.published',
     targetId: seed.pendingEvent.id
@@ -388,6 +390,15 @@ test('admin approves pending event, then archive hides it from public event deta
   assert.equal(publishAudit.status_from, 'pending_review');
   assert.equal(publishAudit.status_to, 'published');
   assert.equal(publishAudit.actor_mongo_user_id, seed.admin.id);
+  assert.match(publishAudit.notes, /Approved after admin checklist review/);
+
+  const communicationLog = await CommunicationLog.findOne({
+    recipientUserId: seed.organizer.id,
+    eventKey: 'event.published',
+    channel: 'email'
+  }).lean();
+  assert.ok(communicationLog);
+  assert.equal(communicationLog.status, 'skipped');
 
   const publicAfterApprove = await fetch(`${BASE_URL}/events/${seed.pendingEvent.slug}`, {
     redirect: 'manual'
