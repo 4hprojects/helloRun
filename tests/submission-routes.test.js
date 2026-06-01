@@ -11,6 +11,7 @@ const Event = require('../src/models/Event');
 const Registration = require('../src/models/Registration');
 const Submission = require('../src/models/Submission');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
+const { getPlatformDateKey } = require('../src/utils/platform-date');
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3104;
@@ -133,7 +134,7 @@ test('authenticated submit-result rejects future runDate', async () => {
   const ready = await waitForSessionReady('/my-registrations', cookie);
   assert.equal(ready, true);
 
-  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  const tomorrow = getPlatformDateKey(new Date(Date.now() + 24 * 60 * 60 * 1000));
   const form = buildResultProofForm({
     distanceKm: '5',
     elapsedTime: '00:30:00',

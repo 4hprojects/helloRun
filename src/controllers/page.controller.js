@@ -47,6 +47,7 @@ const uploadService = require('../services/upload.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
 const { BLOG_CATEGORIES } = require('../utils/blog');
 const { renderWaiverTemplate } = require('../utils/waiver');
+const { assertRunDateNotFuture, parseRunDateOnly } = require('../utils/platform-date');
 const {
   canRunnerSubmitPaymentProof,
   getInitialRegistrationPaymentStatus
@@ -1853,23 +1854,7 @@ function normalizeProofType(value) {
 function parseRunDate(value) {
   const raw = String(value || '').trim();
   if (!raw) return new Date();
-
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
-    throw new Error('Run date must be in YYYY-MM-DD format.');
-  }
-
-  const parsed = new Date(`${raw}T00:00:00.000Z`);
-  if (Number.isNaN(parsed.getTime())) {
-    throw new Error('Run date is invalid.');
-  }
-
-  const now = new Date();
-  const tomorrowUtc = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
-  if (parsed.getTime() >= tomorrowUtc) {
-    throw new Error('Run date cannot be in the future.');
-  }
-
-  return parsed;
+  return assertRunDateNotFuture(parseRunDateOnly(raw));
 }
 
 function parseRunLocation(value) {

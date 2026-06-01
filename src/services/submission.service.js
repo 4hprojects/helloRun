@@ -8,6 +8,7 @@ const communicationService = require('./communication.service');
 const { isSubmissionWindowOpen } = require('../utils/submission-window');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { detectSuspiciousActivity } = require('../utils/submission-integrity');
+const { assertRunDateNotFuture } = require('../utils/platform-date');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 
 const REVIEWABLE_STATUS = new Set(['submitted']);
@@ -1163,13 +1164,7 @@ function sanitizeRunDate(value) {
   if (!value) return new Date();
 
   if (value instanceof Date) {
-    if (Number.isNaN(value.getTime())) {
-      throw new Error('Run date is invalid.');
-    }
-    if (value.getTime() > Date.now()) {
-      throw new Error('Run date cannot be in the future.');
-    }
-    return value;
+    return assertRunDateNotFuture(value);
   }
 
   const raw = String(value).trim();
@@ -1183,11 +1178,8 @@ function sanitizeRunDate(value) {
   if (Number.isNaN(date.getTime())) {
     throw new Error('Run date is invalid.');
   }
-  if (date.getTime() > Date.now()) {
-    throw new Error('Run date cannot be in the future.');
-  }
 
-  return date;
+  return assertRunDateNotFuture(date);
 }
 
 function sanitizeRunLocation(value) {

@@ -3,6 +3,32 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - June 2, 2026 (Session: Run Proof Philippine Date Standard)
+
+### [SESSION] SESSION UPDATE:
+- Standardized run proof future-date validation on the HelloRun platform date in Philippine time (`Asia/Manila`).
+- Added a shared platform date utility for PH date keys, strict `YYYY-MM-DD` parsing, and date-only future checks.
+- Updated runner submit-result server validation and the run proof modal default/max date so runners can submit a PH-today run even when the server clock is still on the previous UTC date.
+- Preserved existing MongoDB `Date` storage for run dates at UTC midnight; no schema migration required.
+- Added regression coverage for the UTC/PH boundary where `2026-06-02` is valid when current time is `2026-06-01T16:30:00.000Z`.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/codex/submit_run_proof_process_refinement.md
+3. src/utils/platform-date.js
+4. src/controllers/page.controller.js
+5. src/services/submission.service.js
+6. src/public/js/run-proof-modal.js
+7. tests/submission.service.test.js
+8. tests/submission-routes.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test tests/submission.service.test.js` -> PASS
+- `node --test tests/submission-routes.test.js` -> PASS
+- `npm run test:runner` -> PASS, 194/194
+
+---
+
 ## CHANGELOG - June 1, 2026 (Session: Local Auth Workflow Refinement)
 
 ### [SESSION] SESSION UPDATE:

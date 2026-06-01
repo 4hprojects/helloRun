@@ -187,9 +187,22 @@
     };
 
     const getTodayIsoDate = () => {
-      const now = new Date();
-      const local = new Date(now.getTime() - now.getTimezoneOffset() * 60 * 1000);
-      return local.toISOString().slice(0, 10);
+      try {
+        const parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Manila',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).formatToParts(new Date()).reduce((acc, part) => {
+          if (part.type !== 'literal') acc[part.type] = part.value;
+          return acc;
+        }, {});
+        return parts.year + '-' + parts.month + '-' + parts.day;
+      } catch (_error) {
+        const now = new Date();
+        const local = new Date(now.getTime() - now.getTimezoneOffset() * 60 * 1000);
+        return local.toISOString().slice(0, 10);
+      }
     };
 
     const setTodayDate = () => {

@@ -466,7 +466,7 @@ Runner submission must continue to require:
 - Open submission window.
 - Valid distance between current model limits.
 - Valid elapsed time.
-- Run date not in the future.
+- Run date not after the current HelloRun platform calendar date in Philippine time (`Asia/Manila`).
 - Supported run type.
 - Duplicate screenshot blocking for screenshot path.
 - Duplicate Strava activity blocking for Strava path.

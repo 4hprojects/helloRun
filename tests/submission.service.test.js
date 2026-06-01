@@ -25,8 +25,14 @@ const {
   getRunnerEligibleSubmissionRegistrations,
   PERSONAL_RECORD_REGISTRATION_ID,
   detectSuspiciousActivity,
-  isAutoApprovableOcrSubmission
+  isAutoApprovableOcrSubmission,
+  buildSubmissionPayload
 } = require('../src/services/submission.service');
+const {
+  assertRunDateNotFuture,
+  getPlatformDateKey,
+  parseRunDateOnly
+} = require('../src/utils/platform-date');
 const {
   createAccumulatedActivitySubmission,
   reviewAccumulatedActivitySubmission,
@@ -933,6 +939,54 @@ test('detectSuspiciousActivity does not flag matched or undetected OCR names', (
   });
   assert.equal(matched.suspicious, false);
   assert.equal(notDetected.suspicious, false);
+});
+
+test('platform date validation accepts PH today at UTC boundary', () => {
+  const now = new Date('2026-06-01T16:30:00.000Z');
+  const parsed = assertRunDateNotFuture('2026-06-02', { now });
+
+  assert.equal(getPlatformDateKey(now), '2026-06-02');
+  assert.equal(parsed.toISOString(), '2026-06-02T00:00:00.000Z');
+});
+
+test('platform date validation rejects dates after PH today', () => {
+  const now = new Date('2026-06-01T16:30:00.000Z');
+
+  assert.throws(
+    () => assertRunDateNotFuture('2026-06-03', { now }),
+    /Run date cannot be in the future/i
+  );
+});
+
+test('platform date validation rejects invalid run date values', () => {
+  assert.throws(() => parseRunDateOnly('06/02/2026'), /YYYY-MM-DD/i);
+  assert.throws(() => parseRunDateOnly('2026-02-30'), /Run date is invalid/i);
+});
+
+test('buildSubmissionPayload accepts current PH platform date string', () => {
+  const registrationId = new mongoose.Types.ObjectId();
+  const eventId = new mongoose.Types.ObjectId();
+  const runnerId = new mongoose.Types.ObjectId();
+  const today = getPlatformDateKey();
+
+  const payload = buildSubmissionPayload({
+    _id: registrationId,
+    eventId,
+    userId: runnerId,
+    participationMode: 'virtual',
+    raceDistance: '5K',
+    resultProofMinimumDistanceKm: null
+  }, {
+    distanceKm: 5,
+    elapsedMs: 30 * 60 * 1000,
+    runDate: today,
+    runLocation: 'Manila',
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof.png', mimeType: 'image/png', size: 1000 },
+    ocrData: {}
+  });
+
+  assert.equal(payload.runDate.toISOString().slice(0, 10), today);
 });
 
 test('createSubmission persists runType and elevationGain', async () => {
