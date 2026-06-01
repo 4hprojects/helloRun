@@ -626,8 +626,73 @@
 
 .event-rule-list span,
 .event-side-list span,
+.event-side-value,
 .event-side-list-row span {
   color: #56657a;
+}
+
+.event-detail-card .event-side-list {
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.event-detail-card .event-side-list p,
+.event-detail-card .event-side-list-row {
+  grid-template-columns: minmax(86px, 0.42fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  padding: 9px 10px;
+  border: 1px solid #edf1f6;
+  border-radius: 8px;
+  background: #fbfcfe;
+}
+
+.event-detail-card .event-side-list p:last-child,
+.event-detail-card .event-side-list-row:last-child {
+  border-bottom: 1px solid #edf1f6;
+}
+
+.event-detail-card .event-side-list strong,
+.event-detail-card .event-side-list-row strong {
+  color: #58708f;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.event-detail-card .event-side-list span,
+.event-detail-card .event-side-value,
+.event-detail-card .event-side-list-row span {
+  color: #1f2a3a;
+  font-size: 0.92rem;
+  font-weight: 750;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.event-detail-card .event-registration-option-bullets-side {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.event-detail-card .event-registration-option-bullets-side li {
+  margin: 0;
+}
+
+.event-detail-card .event-side-value-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 1rem;
+  color: #1f2a3a;
+}
+
+.event-detail-card .event-side-value-list li {
+  margin: 0;
+  line-height: 1.35;
 }
 
 .event-side-panel {
@@ -639,6 +704,16 @@
 
 .event-side-card {
   padding: 18px;
+}
+
+.event-detail-card {
+  padding: 16px;
+}
+
+.event-detail-card h3 {
+  padding-bottom: 10px;
+  border-bottom: 1px solid #edf1f6;
+  font-size: 1.05rem;
 }
 
 .event-register-card h2 {
@@ -920,6 +995,19 @@
 
   .event-side-panel .event-register-card {
     grid-column: 1 / -1;
+  }
+
+  .event-detail-card .event-side-list p,
+  .event-detail-card .event-side-list-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 9px 10px;
+  }
+
+  .event-detail-card .event-side-list span,
+  .event-detail-card .event-side-value,
+  .event-detail-card .event-side-list-row span {
+    font-size: 0.9rem;
   }
 
   .event-side-panel .event-side-card:has(.event-poster-thumb-btn) {

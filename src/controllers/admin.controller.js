@@ -64,6 +64,7 @@ const ADMIN_USER_ORGANIZER_STATUSES = ['not_applied', 'pending', 'approved', 're
 const ADMIN_USER_AUTH_PROVIDERS = ['local', 'google'];
 const ADMIN_USER_SORTS = ['newest', 'oldest', 'updated', 'role'];
 const ADMIN_USERS_PER_PAGE = 25;
+const ADMIN_USER_PER_PAGE_OPTIONS = [25, 50, 100];
 const ADMIN_BADGE_STATUSES = ['verified', 'revoked', 'pending_review', 'all'];
 const ADMIN_BADGE_SCOPES = ['all', 'event', 'challenge', 'global', 'organiser'];
 const adminUserProfileCountries = getCountries();
@@ -303,6 +304,11 @@ function normalizeAdminUserFilters(query = {}) {
   const sort = ADMIN_USER_SORTS.includes(String(query.sort || '').trim()) ? String(query.sort).trim() : 'newest';
   const q = String(query.q || '').trim().slice(0, 120);
   const page = Math.max(1, Number.parseInt(query.page, 10) || 1);
+  const perPageRaw = String(query.perPage || '').trim().toLowerCase();
+  const perPageParsed = Number.parseInt(perPageRaw, 10);
+  const perPage = perPageRaw === 'all'
+    ? 'all'
+    : (ADMIN_USER_PER_PAGE_OPTIONS.includes(perPageParsed) ? perPageParsed : ADMIN_USERS_PER_PAGE);
 
   return {
     role,
@@ -311,7 +317,8 @@ function normalizeAdminUserFilters(query = {}) {
     authProvider,
     sort,
     q,
-    page
+    page,
+    perPage
   };
 }
 
@@ -347,6 +354,7 @@ function buildAdminUserListPath(filters, overrides = {}) {
   ['q', 'role', 'organizerStatus', 'emailVerified', 'authProvider', 'sort'].forEach((key) => {
     if (next[key]) params.set(key, next[key]);
   });
+  if (next.perPage && next.perPage !== ADMIN_USERS_PER_PAGE) params.set('perPage', String(next.perPage));
   if (next.page && Number(next.page) > 1) params.set('page', String(next.page));
   const query = params.toString();
   return query ? `/admin/users?${query}` : '/admin/users';
@@ -1242,16 +1250,21 @@ exports.listUsers = async (req, res) => {
   try {
     const filters = normalizeAdminUserFilters(req.query);
     const query = buildAdminUserQuery(filters);
+    const isAll = filters.perPage === 'all';
+    const limit = isAll ? 0 : Number(filters.perPage || ADMIN_USERS_PER_PAGE);
     const total = await User.countDocuments(query);
-    const totalPages = Math.max(1, Math.ceil(total / ADMIN_USERS_PER_PAGE));
+    const totalPages = isAll ? 1 : Math.max(1, Math.ceil(total / limit));
     const page = Math.min(filters.page, totalPages);
 
-    const users = await User.find(query)
+    const userQuery = User.find(query)
       .select('userId email firstName lastName mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified authProvider googleId createdAt updatedAt')
-      .sort(getAdminUserSort(filters.sort))
-      .skip((page - 1) * ADMIN_USERS_PER_PAGE)
-      .limit(ADMIN_USERS_PER_PAGE)
-      .lean();
+      .sort(getAdminUserSort(filters.sort));
+
+    if (!isAll) {
+      userQuery.skip((page - 1) * limit).limit(limit);
+    }
+
+    const users = await userQuery.lean();
 
     const counts = await getAdminUserActivityCounts(users.map((user) => user._id));
     const mappedUsers = users.map((user) => mapAdminUserListItem(user, counts, req.session.userId));
@@ -1265,7 +1278,7 @@ exports.listUsers = async (req, res) => {
         page,
         totalPages,
         total,
-        perPage: ADMIN_USERS_PER_PAGE,
+        perPage: filters.perPage,
         prevHref: page > 1 ? buildAdminUserListPath(filters, { page: page - 1 }) : '',
         nextHref: page < totalPages ? buildAdminUserListPath(filters, { page: page + 1 }) : ''
       },

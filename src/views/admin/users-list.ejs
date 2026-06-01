@@ -93,6 +93,16 @@
           </select>
         </div>
 
+        <div class="filter-field">
+          <label for="perPage">Show</label>
+          <select id="perPage" name="perPage">
+            <option value="25" <%= String(filters.perPage || 25) === '25' ? 'selected' : '' %>>25</option>
+            <option value="50" <%= String(filters.perPage || 25) === '50' ? 'selected' : '' %>>50</option>
+            <option value="100" <%= String(filters.perPage || 25) === '100' ? 'selected' : '' %>>100</option>
+            <option value="all" <%= String(filters.perPage || 25).toLowerCase() === 'all' ? 'selected' : '' %>>All</option>
+          </select>
+        </div>
+
         <div class="filter-actions">
           <button type="submit" class="btn">Apply Filters</button>
           <a href="<%= resetHref %>" class="btn btn-secondary">Reset</a>
@@ -100,7 +110,7 @@
       </form>
 
       <div class="results-meta">
-        <strong><%= pagination.total %></strong> user<%= pagination.total === 1 ? '' : 's' %> found
+        Showing <strong><%= users ? users.length : 0 %></strong> of <strong><%= pagination.total %></strong> user<%= pagination.total === 1 ? '' : 's' %> found
       </div>
 
       <% if (users && users.length) { %>

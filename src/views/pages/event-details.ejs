@@ -422,26 +422,39 @@
             </div>
           </section>
 
-          <section class="event-side-card">
+          <section class="event-side-card event-detail-card">
             <h3>Event Details</h3>
             <div class="event-side-list">
               <% const registrationOptionsLabel = details.isAccumulatedChallenge ? ((details.raceDistances || []).length > 1 ? 'Registration Options' : 'Registration Option') : ((details.raceDistances || []).length > 1 ? 'Distances' : 'Distance'); %>
               <% if (showRegistrationOptionBullets) { %>
                 <div class="event-side-list-row">
                   <strong><%= registrationOptionsLabel %></strong>
-                  <span>
+                  <div class="event-side-value">
                     <ul class="event-registration-option-bullets event-registration-option-bullets-side">
                       <% registrationOptionItems.forEach((option) => { %>
                         <li><%= option %></li>
                       <% }) %>
                     </ul>
-                  </span>
+                  </div>
                 </div>
               <% } else { %>
                 <p><strong><%= registrationOptionsLabel %></strong><span><%= details.distanceSummaryLabel || (details.raceDistances || []).join(', ') || details.targetDistanceLabel || 'TBA' %></span></p>
               <% } %>
               <% if ((details.raceCategories || []).length) { %>
-                <p><strong>Categories</strong><span><%= details.raceCategories.map((category) => category.name).join(', ') %></span></p>
+                <% if (details.raceCategories.length > 2) { %>
+                  <div class="event-side-list-row">
+                    <strong>Categories</strong>
+                    <div class="event-side-value">
+                      <ul class="event-side-value-list">
+                        <% details.raceCategories.forEach((category) => { %>
+                          <li><%= category.name %></li>
+                        <% }) %>
+                      </ul>
+                    </div>
+                  </div>
+                <% } else { %>
+                  <p><strong>Categories</strong><span><%= details.raceCategories.map((category) => category.name).join(', ') %></span></p>
+                <% } %>
               <% } %>
               <% if (details.isAccumulatedChallenge) { %>
                 <p><strong>Completion Goal</strong><span><%= details.targetDistanceLabel || 'TBA' %></span></p>

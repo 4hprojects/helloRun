@@ -74,6 +74,11 @@ test('admin can list and search users', async () => {
   assert.match(listHtml, /Search, filter, and inspect platform accounts/i);
   assert.match(listHtml, /admin-users-filters/i);
   assert.match(listHtml, /admin-search-control/i);
+  assert.match(listHtml, /id="perPage"/i);
+  assert.match(listHtml, /<option value="25" selected>25<\/option>/i);
+  assert.match(listHtml, /<option value="50"[^>]*>50<\/option>/i);
+  assert.match(listHtml, /<option value="100"[^>]*>100<\/option>/i);
+  assert.match(listHtml, /<option value="all"[^>]*>All<\/option>/i);
   assert.match(listHtml, /id="adminUsersColumnMenuBtn"/i);
   assert.match(listHtml, /data-column-toggle="userId"/i);
   assert.match(listHtml, /data-column="userId" class="is-column-hidden"/i);
@@ -111,6 +116,14 @@ test('admin can list and search users', async () => {
   assert.equal(filterResponse.status, 200);
   const filterHtml = await filterResponse.text();
   assert.match(filterHtml, new RegExp(escapeRegex(seed.organizer.email)));
+
+  const perPageResponse = await fetch(`${BASE_URL}/admin/users?perPage=all`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(perPageResponse.status, 200);
+  const perPageHtml = await perPageResponse.text();
+  assert.match(perPageHtml, /<option value="all" selected>All<\/option>/i);
 });
 
 test('admin can view user detail with activity and compliance summary', async () => {
