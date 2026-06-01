@@ -6,6 +6,20 @@
 ## CHANGELOG - June 1, 2026 (Session: Local Auth Workflow Refinement)
 
 ### [SESSION] SESSION UPDATE:
+- Added the HelloRun browser tab icon to the shared layout head.
+- Registered the PNG favicon and Apple touch icon from the public images directory so common pages render the project icon in browser chrome.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. src/views/layouts/head.ejs
+3. src/public/images/helloRun-icon-browser.png
+
+### [VALIDATION] TEST/RUN CHECKS:
+- Confirmed `src/public/images/helloRun-icon-browser.png` exists and is referenced from the shared head partial.
+
+---
+
+### [SESSION] SESSION UPDATE:
 - Added a mobile/tablet nav guidance callout for the submit-run shortcut so runners can identify where to submit recorded run results.
 - Styled the guidance as a lightweight anchored hint with a visible arrow pointing to the submit-run icon.
 - Auto-dismissed the guidance after 7 seconds on each page load without adding persistent client storage.
