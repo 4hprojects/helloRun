@@ -3,6 +3,48 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - June 2, 2026 (Session: Accumulated Challenge Progress Target Fix)
+
+### [SESSION] SESSION UPDATE:
+- Fixed accumulated-distance progress so each runner's goal uses the selected registration distance/category before falling back to the event-level target.
+- Corrected the 100K-in-a-multi-distance-event case so a 100K registration shows progress like `6.21 km / 100 km` instead of using the event's 200 km max target.
+- Updated accumulated completion certificate eligibility to use the selected registration target.
+- Extended `/runner/submissions` so accumulated activity submissions appear alongside standard event results and personal records.
+- Added runner detail/proof route fallback for `AccumulatedActivitySubmission` records while preserving existing URLs and ownership checks.
+- Added `Challenge Activity` labels for accumulated activity rows/cards/detail pages.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/runner_submitted_entries.md
+3. docs/runner_dashboard.md
+4. docs/codex/submit_run_proof_process_refinement.md
+5. docs/hellorun_workflow.md
+6. docs/ocr_smart_submission.md
+7. docs/ocr/hellorun_auto_approved_run_proof_criteria.md
+8. docs/submission_review_page.md
+9. docs/features/hellorun_certificate_template_workflow.md
+10. src/controllers/page.controller.js
+11. src/services/accumulated-activity.service.js
+12. src/services/accumulated-target.service.js
+13. src/services/runner-data.service.js
+14. src/services/runner-submissions.service.js
+15. src/views/runner/submission-detail.ejs
+16. src/views/runner/submissions.ejs
+17. tests/runner-dashboard-profile.test.js
+18. tests/runner-submissions-routes.test.js
+19. tests/submission.service.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --check src/services/runner-submissions.service.js` -> PASS
+- `node --check src/services/accumulated-target.service.js` -> PASS
+- `node --check src/services/accumulated-activity.service.js` -> PASS
+- `node --test --test-concurrency=1 --test-name-pattern="accumulated target resolver|accumulated progress and certificate completion" tests/submission.service.test.js` -> PASS, 2/2 selected tests
+- `node --test --test-concurrency=1 tests/runner-submissions-routes.test.js` -> PASS, 28/28
+- `node --test --test-concurrency=1 --test-name-pattern="buildRunnerEventProgressCards" tests/runner-dashboard-profile.test.js` -> PASS, 1/1 selected test
+- `node --test --test-concurrency=1 tests/submission.service.test.js tests/runner-submissions-routes.test.js tests/runner-dashboard-profile.test.js` -> printed PASS 82/82 before the shell timeout killed the process at 300s
+
+---
+
 ## CHANGELOG - June 2, 2026 (Session: Run Proof Philippine Date Standard)
 
 ### [SESSION] SESSION UPDATE:

@@ -2,12 +2,13 @@ const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const { buildAccumulatedProgress } = require('./accumulated-activity.service');
+const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
 
 async function getRunnerRegistrations(userId) {
   return Registration.find({ userId })
     .populate({
       path: 'eventId',
-      select: 'title slug status eventStartAt eventEndAt city country venueName virtualCompletionMode targetDistanceKm minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt feeMode feeAmount feeCurrency paymentAccountName paymentInstructions paymentQrImageUrl',
+      select: 'title slug status eventStartAt eventEndAt city country venueName virtualCompletionMode targetDistanceKm raceCategories minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt feeMode feeAmount feeCurrency paymentAccountName paymentInstructions paymentQrImageUrl',
       match: { isPersonalRecord: { $ne: true } }
     })
     .sort({ registeredAt: -1 })
@@ -144,7 +145,7 @@ function buildRunnerEventProgressCards(registrations = [], sources = {}) {
       }
 
       if (isAccumulated) {
-        return buildAccumulatedProgressCard(base, accumulatedByRegistration.get(registrationId) || [], event);
+        return buildAccumulatedProgressCard(base, accumulatedByRegistration.get(registrationId) || [], registration, event);
       }
 
       return buildStandardProgressCard(base, standardByRegistration.get(registrationId) || null);
@@ -209,10 +210,10 @@ function buildStandardProgressCard(base, submission) {
   };
 }
 
-function buildAccumulatedProgressCard(base, activities, event) {
+function buildAccumulatedProgressCard(base, activities, registration, event) {
   const progress = buildAccumulatedProgress({
     activities,
-    targetDistanceKm: event.targetDistanceKm
+    targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, event)
   });
   const percent = progress.targetDistanceKm > 0
     ? Math.min(100, Math.max(0, (Number(progress.approvedDistanceKm || 0) / Number(progress.targetDistanceKm || 1)) * 100))

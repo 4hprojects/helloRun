@@ -13,7 +13,7 @@ The auto-approval implementation is now complete for the planned OCR and first s
 - Standard submissions persist structured `validation` metadata for method, eligibility, review requirement, review reason, submission mode, detected distance, and minimum required distance.
 - Admin and organiser review surfaces show readable labels and descriptions for `validation.reviewReason`.
 - Accumulated activity submissions can auto-approve when clean OCR criteria pass.
-- Accumulated challenge certificates are issued only when approved accumulated progress reaches the event target distance.
+- Accumulated challenge certificates are issued only when approved accumulated progress reaches the runner's selected registration target distance.
 - Strava submissions use a separate synced-source validation path and can auto-approve when source validation and event rules pass.
 
 Verification completed:
@@ -163,7 +163,7 @@ For accumulated-distance events:
 - Pending accumulated activities still require organiser or admin review.
 - `minimumActivityDistanceKm` is enforced before save when configured.
 - If `minimumActivityDistanceKm` is not configured, any valid positive activity distance can be submitted.
-- Certificate generation for accumulated challenges happens only after approved total progress reaches the target distance.
+- Certificate generation for accumulated challenges happens only after approved total progress reaches the selected registration target distance.
 
 ## Current Auto-Approval Result
 

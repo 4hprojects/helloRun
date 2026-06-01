@@ -24,6 +24,8 @@ The current submit run proof flow is already functional and has several mature p
 - JSON Strava submission route at `/api/events/:eventId/submissions/strava`.
 - `Submission` records for single-result events and personal records.
 - `AccumulatedActivitySubmission` records for accumulated-distance events.
+- Runner submitted-entry history includes both standard submissions and accumulated activity submissions.
+- Accumulated progress/certificate completion uses the runner's selected registration category or distance before falling back to the event-level target.
 - R2-backed proof upload for screenshots.
 - Duplicate screenshot checks through proof hash.
 - Suspicious activity detection from OCR mismatch, unrealistic pace, unusually high distance/elevation, steps anomalies, and name mismatch.
@@ -31,6 +33,32 @@ The current submit run proof flow is already functional and has several mature p
 - Certificate, badge, leaderboard, audit, notification, and shadow-sync hooks after review.
 
 ## Implementation Log
+
+### 2026-06-02 Accumulated Target And Submitted Entries Fix
+
+Implemented:
+
+- Added a shared accumulated target resolver that prefers selected race category distance, then selected registration distance label, then the event-level target.
+- Updated `/my-registrations`, runner dashboard event progress, accumulated progress lookup, and completion-certificate eligibility to use the selected registration target.
+- Extended `/runner/submissions` list, counts, detail, and proof routes to include `AccumulatedActivitySubmission` records.
+- Added `Challenge Activity` labels for accumulated submissions so they are distinguishable from one-time event results and personal records.
+- Preserved existing public runner URLs and ownership checks.
+
+Verified:
+
+```bash
+node --check src/services/runner-submissions.service.js
+node --check src/services/accumulated-target.service.js
+node --check src/services/accumulated-activity.service.js
+node --test --test-concurrency=1 --test-name-pattern="accumulated target resolver|accumulated progress and certificate completion" tests/submission.service.test.js
+node --test --test-concurrency=1 tests/runner-submissions-routes.test.js
+node --test --test-concurrency=1 --test-name-pattern="buildRunnerEventProgressCards" tests/runner-dashboard-profile.test.js
+```
+
+Notes:
+
+- The combined focused command across submission service, runner submissions, and dashboard tests printed 82 passing tests before the shell timeout killed the process at 300 seconds; the changed coverage was then rerun separately with clean exit codes.
+- Background Supabase shadow-sync errors in tests are non-fatal in the current local test environment.
 
 ### 2026-05-24 Phase 1 Modal Clarity Slice
 
@@ -544,7 +572,7 @@ Do not promote OCR fields to official result data unless a new requirement expli
 - Suspicious OCR mismatches save with flags.
 - Clean OCR matched submissions can auto-approve when existing criteria are met.
 - Below-minimum one-time submissions remain submitted with a review reason.
-- Clean accumulated activity submissions can auto-approve and only issue certificates when approved total progress reaches the event target.
+- Clean accumulated activity submissions can auto-approve and only issue certificates when approved total progress reaches the runner's selected registration target.
 - Strava source-validated submissions can auto-approve without OCR name matching when source validation, event rules, and integrity checks pass.
 
 ### Modal Tests

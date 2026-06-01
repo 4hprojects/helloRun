@@ -20,6 +20,7 @@ const User = require('../src/models/User');
 const Event = require('../src/models/Event');
 const Registration = require('../src/models/Registration');
 const Submission = require('../src/models/Submission');
+const AccumulatedActivitySubmission = require('../src/models/AccumulatedActivitySubmission');
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3125;
@@ -40,6 +41,7 @@ test.before(async () => {
   seed.cookieA = await login(seed.runnerA.email, seed.password);
   seed.cookieB = await login(seed.runnerB.email, seed.password);
   seed.cookieEmpty = await login(seed.runnerEmpty.email, seed.password);
+  seed.cookieNoSubmissions = await login(seed.runnerNoSubmissions.email, seed.password);
   seed.cookieOrg = await login(seed.organiser.email, seed.password);
 });
 
@@ -159,9 +161,40 @@ test('personal record submissions appear in runner submitted entries', async () 
   assert.match(html, new RegExp(seed.eventTitlePersonal));
 });
 
-test('empty state shown when runner has no submissions', async () => {
+test('accumulated activity submissions appear in runner submitted entries', async () => {
+  const res = await fetch(`${BASE_URL}/runner/submissions`, {
+    headers: { Cookie: seed.cookieA }
+  });
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, new RegExp(seed.eventTitleAccumulated));
+  assert.match(html, /Challenge Activity/i);
+  assert.match(html, /6\.21 km/i);
+});
+
+test('activityType filter includes accumulated activity submissions', async () => {
+  const res = await fetch(`${BASE_URL}/runner/submissions?activityType=hike`, {
+    headers: { Cookie: seed.cookieA }
+  });
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, new RegExp(seed.eventTitleAccumulated));
+  assert.doesNotMatch(html, new RegExp(seed.eventTitleApproved));
+});
+
+test('runner with only accumulated activities does not see empty state', async () => {
   const res = await fetch(`${BASE_URL}/runner/submissions`, {
     headers: { Cookie: seed.cookieEmpty }
+  });
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, new RegExp(seed.eventTitleAccumulatedOnly));
+  assert.doesNotMatch(html, /No submitted entries yet/i);
+});
+
+test('empty state shown when runner has no submissions', async () => {
+  const res = await fetch(`${BASE_URL}/runner/submissions`, {
+    headers: { Cookie: seed.cookieNoSubmissions }
   });
   assert.equal(res.status, 200);
   const html = await res.text();
@@ -180,6 +213,18 @@ test('runner can view own submission detail page', async () => {
   assert.match(html, new RegExp(seed.eventTitleApproved));
   assert.match(html, /Approved/i);
   assert.match(html, new RegExp(`/runner/submissions/${seed.approvedSubmissionId}/proof`));
+});
+
+test('runner can view own accumulated activity detail page', async () => {
+  const res = await fetch(`${BASE_URL}/runner/submissions/${seed.accumulatedActivityId}`, {
+    headers: { Cookie: seed.cookieA }
+  });
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.match(html, new RegExp(seed.eventTitleAccumulated));
+  assert.match(html, /Challenge Activity/i);
+  assert.match(html, /6\.21 km/i);
+  assert.match(html, new RegExp(`/runner/submissions/${seed.accumulatedActivityId}/proof`));
 });
 
 test('runner submission detail page includes working shared nav scripts once', async () => {
@@ -234,6 +279,16 @@ test('runner A cannot access runner B submission detail (403 or 404)', async () 
   );
 });
 
+test('runner A cannot access another runner accumulated activity detail', async () => {
+  const res = await fetch(`${BASE_URL}/runner/submissions/${seed.accumulatedOnlyActivityId}`, {
+    headers: { Cookie: seed.cookieA }
+  });
+  assert.ok(
+    res.status === 403 || res.status === 404,
+    `Expected 403 or 404 for cross-runner activity access, got ${res.status}`
+  );
+});
+
 test('invalid ObjectId in detail route returns 404', async () => {
   const res = await fetch(`${BASE_URL}/runner/submissions/not-an-id`, {
     headers: { Cookie: seed.cookieA }
@@ -243,6 +298,17 @@ test('invalid ObjectId in detail route returns 404', async () => {
 
 test('runner proof route redirects to stored proof access URL', async () => {
   const res = await fetch(`${BASE_URL}/runner/submissions/${seed.approvedSubmissionId}/proof`, {
+    headers: { Cookie: seed.cookieA },
+    redirect: 'manual'
+  });
+  assert.equal(res.status, 302);
+  const location = res.headers.get('location') || '';
+  assert.ok(location, 'Expected proof redirect location');
+  assert.doesNotMatch(location, /\/runner\/submissions\//);
+});
+
+test('runner accumulated activity proof route redirects to stored proof access URL', async () => {
+  const res = await fetch(`${BASE_URL}/runner/submissions/${seed.accumulatedActivityId}/proof`, {
     headers: { Cookie: seed.cookieA },
     redirect: 'manual'
   });
@@ -313,6 +379,16 @@ async function seedFixture() {
     emailVerified: true
   });
 
+  const runnerNoSubmissions = await User.create({
+    userId: `SRSN${stamp}`.slice(0, 22),
+    email: `runner.sub.none.${stamp}@example.com`,
+    passwordHash,
+    role: 'runner',
+    firstName: 'No',
+    lastName: 'Submissions',
+    emailVerified: true
+  });
+
   const organiser = await User.create({
     userId: `SRSO${stamp}`.slice(0, 22),
     email: `organiser.sub.${stamp}@example.com`,
@@ -332,11 +408,13 @@ async function seedFixture() {
   const eventTitleB = `SubTestEventRunnerB${stamp}`;
   const eventTitlePending = `SubTestEventPending${stamp}`;
   const eventTitlePersonal = `PersonalRecord${stamp}`;
+  const eventTitleAccumulated = `SubTestEventAccumulated${stamp}`;
+  const eventTitleAccumulatedOnly = `SubTestEventAccumOnly${stamp}`;
 
   const now = new Date();
   const past = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-  const createEvent = (title) =>
+  const createEvent = (title, overrides = {}) =>
     Event.create({
       slug: `sub-test-${Math.random().toString(36).slice(2, 10)}`,
       title,
@@ -346,17 +424,28 @@ async function seedFixture() {
       eventType: 'virtual',
       raceDistances: ['5K'],
       eventStartAt: past,
-      eventEndAt: past
+      eventEndAt: past,
+      ...overrides
     });
 
-  const [evApproved, evRejected, evWalk, evCert, evB, evPending, evPersonal] = await Promise.all([
+  const [evApproved, evRejected, evWalk, evCert, evB, evPending, evPersonal, evAccumulated, evAccumulatedOnly] = await Promise.all([
     createEvent(eventTitleA),
     createEvent(eventTitleRej),
     createEvent(eventTitleWalk),
     createEvent(eventTitleCert),
     createEvent(eventTitleB),
     createEvent(eventTitlePending),
-    createEvent(eventTitlePersonal)
+    createEvent(eventTitlePersonal),
+    createEvent(eventTitleAccumulated, {
+      raceDistances: ['100K', '200K'],
+      virtualCompletionMode: 'accumulated_distance',
+      targetDistanceKm: 200
+    }),
+    createEvent(eventTitleAccumulatedOnly, {
+      raceDistances: ['100K'],
+      virtualCompletionMode: 'accumulated_distance',
+      targetDistanceKm: 100
+    })
   ]);
 
   // Registrations
@@ -382,14 +471,16 @@ async function seedFixture() {
       }
     });
 
-  const [regApproved, regRejected, regWalk, regCert, regB, regPending, regPersonal] = await Promise.all([
+  const [regApproved, regRejected, regWalk, regCert, regB, regPending, regPersonal, regAccumulated, regAccumulatedOnly] = await Promise.all([
     createReg(evApproved._id, runnerA._id),
     createReg(evRejected._id, runnerA._id),
     createReg(evWalk._id, runnerA._id),
     createReg(evCert._id, runnerA._id),
     createReg(evB._id, runnerB._id),
     createReg(evPending._id, runnerA._id),
-    createReg(evPersonal._id, runnerA._id)
+    createReg(evPersonal._id, runnerA._id),
+    createReg(evAccumulated._id, runnerA._id),
+    createReg(evAccumulatedOnly._id, runnerEmpty._id)
   ]);
 
   const rejectionReason = 'Screenshot did not match submitted distance.';
@@ -397,6 +488,11 @@ async function seedFixture() {
   const proofObj = { url: 'https://example.com/proof.jpg', key: 'key', mimeType: 'image/jpeg', size: 1024, hash: '' };
 
   // Submissions
+  await Promise.all([
+    Registration.updateOne({ _id: regAccumulated._id }, { $set: { raceDistance: '100K', 'pricingSnapshot.raceDistance': '100K' } }),
+    Registration.updateOne({ _id: regAccumulatedOnly._id }, { $set: { raceDistance: '100K', 'pricingSnapshot.raceDistance': '100K' } })
+  ]);
+
   const [subApproved, subRejected, subWalk, subCert, subB, subPending, subPersonal] = await Promise.all([
     Submission.create({
       registrationId: regApproved._id,
@@ -509,11 +605,46 @@ async function seedFixture() {
     })
   ]);
 
+  const [activityAccumulated, activityAccumulatedOnly] = await Promise.all([
+    AccumulatedActivitySubmission.create({
+      registrationId: regAccumulated._id,
+      eventId: evAccumulated._id,
+      runnerId: runnerA._id,
+      raceDistance: '100K',
+      participationMode: 'virtual',
+      distanceKm: 6.21,
+      elapsedMs: 2500000,
+      runDate: past,
+      proofType: 'photo',
+      proof: { ...proofObj, key: 'accumulated-key' },
+      status: 'approved',
+      submittedAt: past,
+      reviewedAt: now,
+      runType: 'hike'
+    }),
+    AccumulatedActivitySubmission.create({
+      registrationId: regAccumulatedOnly._id,
+      eventId: evAccumulatedOnly._id,
+      runnerId: runnerEmpty._id,
+      raceDistance: '100K',
+      participationMode: 'virtual',
+      distanceKm: 3.5,
+      elapsedMs: 1800000,
+      runDate: past,
+      proofType: 'photo',
+      proof: { ...proofObj, key: 'accumulated-only-key' },
+      status: 'submitted',
+      submittedAt: past,
+      runType: 'run'
+    })
+  ]);
+
   return {
     password,
     runnerA: { _id: runnerA._id, email: runnerA.email },
     runnerB: { _id: runnerB._id, email: runnerB.email },
     runnerEmpty: { _id: runnerEmpty._id, email: runnerEmpty.email },
+    runnerNoSubmissions: { _id: runnerNoSubmissions._id, email: runnerNoSubmissions.email },
     organiser: { _id: organiser._id, email: organiser.email },
     eventTitleA,
     eventTitleB,
@@ -523,19 +654,24 @@ async function seedFixture() {
     eventTitleCert,
     eventTitlePending,
     eventTitlePersonal,
+    eventTitleAccumulated,
+    eventTitleAccumulatedOnly,
     rejectionReason,
     approvedSubmissionId: String(subApproved._id),
     rejectedSubmissionId: String(subRejected._id),
     walkSubmissionId: String(subWalk._id),
     certSubmissionId: String(subCert._id),
     personalSubmissionId: String(subPersonal._id),
+    accumulatedActivityId: String(activityAccumulated._id),
+    accumulatedOnlyActivityId: String(activityAccumulatedOnly._id),
     runnerBSubmissionId: String(subB._id),
     pendingSubmissionId: String(subPending._id),
     // ids for cleanup
-    userIds: [runnerA._id, runnerB._id, runnerEmpty._id, organiser._id],
-    eventIds: [evApproved._id, evRejected._id, evWalk._id, evCert._id, evB._id, evPending._id, evPersonal._id],
-    registrationIds: [regApproved._id, regRejected._id, regWalk._id, regCert._id, regB._id, regPending._id, regPersonal._id],
-    submissionIds: [subApproved._id, subRejected._id, subWalk._id, subCert._id, subB._id, subPending._id, subPersonal._id]
+    userIds: [runnerA._id, runnerB._id, runnerEmpty._id, runnerNoSubmissions._id, organiser._id],
+    eventIds: [evApproved._id, evRejected._id, evWalk._id, evCert._id, evB._id, evPending._id, evPersonal._id, evAccumulated._id, evAccumulatedOnly._id],
+    registrationIds: [regApproved._id, regRejected._id, regWalk._id, regCert._id, regB._id, regPending._id, regPersonal._id, regAccumulated._id, regAccumulatedOnly._id],
+    submissionIds: [subApproved._id, subRejected._id, subWalk._id, subCert._id, subB._id, subPending._id, subPersonal._id],
+    activityIds: [activityAccumulated._id, activityAccumulatedOnly._id]
   };
 }
 
@@ -544,6 +680,7 @@ async function cleanupSeed(currentSeed) {
   await ensureConnected();
   await Promise.all([
     Submission.deleteMany({ _id: { $in: currentSeed.submissionIds || [] } }),
+    AccumulatedActivitySubmission.deleteMany({ _id: { $in: currentSeed.activityIds || [] } }),
     Registration.deleteMany({ _id: { $in: currentSeed.registrationIds || [] } }),
     Event.deleteMany({ _id: { $in: currentSeed.eventIds || [] } }),
     User.deleteMany({ _id: { $in: currentSeed.userIds || [] } })

@@ -1522,7 +1522,7 @@ Validation:
 - Suspicious submissions do not auto-approve
 - Approved submissions remain leaderboard-eligible only after review
 - Below-minimum standard one-time submissions remain submitted for organiser/admin review
-- Accumulated challenge certificates are issued only when approved total progress reaches the event target distance
+- Accumulated challenge certificates are issued only when approved total progress reaches the runner's selected registration target distance
 
 ---
 

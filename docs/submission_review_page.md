@@ -36,7 +36,7 @@ The standalone page supports both current activity-proof models:
 - Standard `Submission` records for single-run results.
 - `AccumulatedActivitySubmission` records for accumulated-distance challenge activities.
 
-For accumulated-distance activities, the page also shows current progress toward the event target and activity counts by review status.
+For accumulated-distance activities, the page also shows current progress toward the runner's selected registration target and activity counts by review status.
 
 ## Page Content
 

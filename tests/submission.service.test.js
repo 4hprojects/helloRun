@@ -38,6 +38,7 @@ const {
   reviewAccumulatedActivitySubmission,
   getRegistrationAccumulatedProgress
 } = require('../src/services/accumulated-activity.service');
+const { resolveAccumulatedTargetDistanceKm } = require('../src/services/accumulated-target.service');
 
 test.before(async () => {
   await mongoose.connect(process.env.MONGODB_URI);
@@ -463,6 +464,108 @@ test('accumulated activities allow multiple proofs and count only approvals towa
   });
   progress = await getRegistrationAccumulatedProgress(seed.registration._id);
   assert.equal(progress.approvedDistanceKm, 11);
+  assert.equal(progress.completed, true);
+  assert.ok(progress.certificateActivityId);
+  assert.ok(progress.certificateUrl);
+});
+
+test('accumulated target resolver prefers selected category and distance before event fallback', () => {
+  const event = {
+    targetDistanceKm: 200,
+    raceCategories: [
+      { categoryId: 'cat-100k', distanceKm: 100 },
+      { categoryId: 'cat-200k', distanceKm: 200 }
+    ]
+  };
+
+  assert.equal(resolveAccumulatedTargetDistanceKm({
+    raceDistance: '200K',
+    pricingSnapshot: {
+      raceCategoryId: 'cat-100k',
+      raceDistance: '100K'
+    }
+  }, event), 100);
+
+  assert.equal(resolveAccumulatedTargetDistanceKm({
+    raceDistance: '100KM',
+    pricingSnapshot: {}
+  }, event), 100);
+
+  assert.equal(resolveAccumulatedTargetDistanceKm({
+    raceDistance: 'Open Challenge',
+    pricingSnapshot: {}
+  }, event), 200);
+});
+
+test('accumulated progress and certificate completion use selected registration distance', async () => {
+  const seed = await seedSubmissionFixture('accumulated-selected-target');
+  await Event.updateOne(
+    { _id: seed.event._id },
+    {
+      $set: {
+        virtualCompletionMode: 'accumulated_distance',
+        targetDistanceKm: 200,
+        raceDistances: ['100K', '200K'],
+        raceCategories: [
+          { categoryId: 'cat-100k', name: '100K', type: 'distance', distanceLabel: '100K', distanceKm: 100 },
+          { categoryId: 'cat-200k', name: '200K', type: 'distance', distanceLabel: '200K', distanceKm: 200 }
+        ],
+        minimumActivityDistanceKm: 1,
+        acceptedRunTypes: ['run']
+      }
+    }
+  );
+  await Registration.updateOne(
+    { _id: seed.registration._id },
+    {
+      $set: {
+        raceDistance: '100K',
+        'pricingSnapshot.raceCategoryId': 'cat-100k',
+        'pricingSnapshot.raceDistance': '100K'
+      }
+    }
+  );
+
+  const first = await createAccumulatedActivitySubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 6.21,
+    elapsedMs: 40 * 60 * 1000,
+    proofType: 'gps',
+    proof: { url: 'https://example.com/proof/selected-target-1.gpx', size: 1200 },
+    runType: 'run'
+  });
+  await reviewAccumulatedActivitySubmission({
+    activityId: first._id,
+    organizerId: seed.organizer._id,
+    action: 'approve',
+    reviewNotes: 'Approved'
+  });
+
+  let progress = await getRegistrationAccumulatedProgress(seed.registration._id);
+  assert.equal(progress.targetDistanceKm, 100);
+  assert.equal(progress.progressLabel, '6.21 km / 100 km');
+  assert.equal(progress.completed, false);
+
+  const second = await createAccumulatedActivitySubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 93.79,
+    elapsedMs: 10 * 60 * 60 * 1000,
+    proofType: 'gps',
+    proof: { url: 'https://example.com/proof/selected-target-2.gpx', size: 1200 },
+    runType: 'run'
+  });
+  await reviewAccumulatedActivitySubmission({
+    activityId: second._id,
+    organizerId: seed.organizer._id,
+    action: 'approve',
+    reviewNotes: 'Completion approved'
+  });
+
+  progress = await getRegistrationAccumulatedProgress(seed.registration._id);
+  assert.equal(progress.targetDistanceKm, 100);
+  assert.equal(progress.approvedDistanceKm, 100);
   assert.equal(progress.completed, true);
   assert.ok(progress.certificateActivityId);
   assert.ok(progress.certificateUrl);

@@ -65,6 +65,7 @@ const {
   getAccumulatedActivitiesForRegistrations,
   buildAccumulatedProgress
 } = require('../services/accumulated-activity.service');
+const { resolveAccumulatedTargetDistanceKm } = require('../services/accumulated-target.service');
 const {
   evaluateRegistrationAchievementsInBackground,
   getRunnerEarnedBadges,
@@ -938,7 +939,7 @@ exports.getMyRegistrations = async (req, res) => {
         accumulatedProgress: isAccumulated
           ? buildAccumulatedProgress({
             activities,
-            targetDistanceKm: registration.eventId?.targetDistanceKm
+            targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, registration.eventId)
           })
           : null,
         submission: submissionsByRegistrationId.get(String(registration._id)) || null

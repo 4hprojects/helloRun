@@ -171,7 +171,7 @@ Important surfaces:
 3. Runner uploads screenshot evidence, enters manual details, or imports a selected Strava activity.
 4. OCR may extract distance, time, date, source app, run type, and confidence.
 5. Runner confirms final submitted values.
-6. HelloRun creates a Submission or AccumulatedActivitySubmission record.
+6. HelloRun creates a `Submission` or `AccumulatedActivitySubmission` record.
 7. Submission starts as submitted unless auto-approval criteria apply.
 8. Organiser/admin reviews the result.
 9. Approved results count toward leaderboard, certificate, badge, and progress workflows.
@@ -190,8 +190,8 @@ Primary data:
 
 | Model | Used for |
 |---|---|
-| `Submission` | Single-activity race/result submissions. |
-| `AccumulatedActivitySubmission` | Multi-activity accumulated-distance challenges. |
+| `Submission` | Single-activity race/result submissions and personal records. |
+| `AccumulatedActivitySubmission` | Multi-activity accumulated-distance challenges; progress and completion use the runner's selected registration target before falling back to the event target. |
 | `StravaConnection` | Encrypted Strava OAuth connection for runner imports. |
 
 Important surfaces:
@@ -201,8 +201,8 @@ Important surfaces:
 | Eligible submission options | `/runner/submissions/eligible` |
 | Submit result | `POST /my-registrations/:registrationId/submit-result` |
 | Resubmit result | `POST /my-registrations/:registrationId/resubmit-result` |
-| Runner submitted entries | `/runner/submissions` |
-| Submission detail | `/runner/submissions/:submissionId` |
+| Runner submitted entries | `/runner/submissions` for standard submissions, personal records, and accumulated activities |
+| Submission detail | `/runner/submissions/:submissionId` for standard or accumulated records |
 | Organiser result review | `/organizer/events/:id/submissions/:submissionId/review` |
 | Approve result | `POST /organizer/events/:id/submissions/:submissionId/approve` |
 | Reject result | `POST /organizer/events/:id/submissions/:submissionId/reject` |
@@ -439,4 +439,3 @@ Important scripts:
 | Badges and certificates | `src/services/achievement.service.js`, `src/services/certificate.service.js` |
 | Shop | `src/routes/shop.routes.js`, `src/routes/organizer-shop.routes.js`, `src/routes/admin-shop.routes.js`, `src/services/shop/*` |
 | Policies and consent | `src/services/policy-registry.service.js`, `src/models/PrivacyPolicy.js` |
-

@@ -46,7 +46,7 @@ The first implementation will follow these decisions:
 - Route: `/runner/submissions`
 - Evidence display: show a `View Run Result Evidence` action instead of displaying screenshots on every card
 - Resubmission: reuse the existing run result modal
-- Scope: runner-owned event submissions and personal-record submissions
+- Scope: runner-owned standard event submissions, accumulated challenge activity submissions, and personal-record submissions
 
 ---
 
@@ -79,6 +79,7 @@ Candidate UI changes:
 
 - Add a compact page toolbar layout that keeps search, status tabs, activity filter, and sort predictable at mobile/tablet widths.
 - Add a submission-type badge or label for personal records versus event entries.
+- Keep accumulated challenge activities visible in the same history with a clear `Challenge Activity` label.
 - Improve KPI cards with tighter labels and better mobile grid behavior.
 - Convert each entry row into a clearer two-zone card: identity/status on the left/top, primary actions on the right/bottom.
 - Add consistent icon usage for distance, elapsed time, date, proof type, certificate, and review state.
@@ -90,6 +91,7 @@ Validation target for implementation:
 - Manual browser check for `/runner/submissions` at mobile, tablet, and desktop widths.
 - Confirm hamburger opens from icon center and button padding.
 - Confirm personal-record and event-based submissions both render.
+- Confirm accumulated challenge activities render, filter, and open detail/proof routes.
 - Confirm filters, pagination, detail links, resubmit, and certificate actions still work.
 - Run `node --test tests/runner-submissions-routes.test.js`.
 
@@ -122,6 +124,7 @@ HelloRun already supports:
 - Run result submission and resubmission.
 - Organizer/admin review of submitted run results.
 - Submission statuses such as `submitted`, `approved`, and `rejected`.
+- Standard `Submission` records and accumulated `AccumulatedActivitySubmission` records.
 - Certificate issuance after approval.
 - Runner dashboard cards backed by real registration and submission data.
 - Run result modal with screenshot analysis and Strava activity wording.
@@ -136,6 +139,18 @@ It should not replace the run result modal.
 It should not replace `/my-registrations`.
 
 It should provide a clearer history and management surface for submitted entries.
+
+### Current Implementation Note - Accumulated Activities
+
+`/runner/submissions` now merges standard `Submission` records and `AccumulatedActivitySubmission` records for the runner-owned history list, status counts, status/activity filters, detail pages, and proof routes.
+
+Accumulated records should be labeled as `Challenge Activity` so runners understand that each entry is one activity contributing toward an accumulated-distance registration. The same public routes are used:
+
+- `GET /runner/submissions`
+- `GET /runner/submissions/:submissionId`
+- `GET /runner/submissions/:submissionId/proof`
+
+Ownership checks must continue to apply across both collections.
 
 ---
 
@@ -171,7 +186,7 @@ As a runner, I want to see all my submitted event entries in one page so I can t
 
 The page should include:
 
-- List of all runner-owned submissions.
+- List of all runner-owned standard submissions, accumulated activity submissions, and personal records.
 - Submission status summary.
 - Filters by status and activity type.
 - Search by event title, organiser name, or event reference code.
@@ -188,6 +203,7 @@ The page should include:
 - Mobile-responsive layout.
 - Pagination.
 - Regression tests for route access, ownership, filters, and action visibility.
+- Ownership-protected detail and proof routes for both standard and accumulated records.
 
 ## Out of Scope for Initial Version
 

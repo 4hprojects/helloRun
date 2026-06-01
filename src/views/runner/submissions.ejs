@@ -233,7 +233,7 @@
                 <div class="sub-card-identity">
                   <span class="badge sub-type-badge <%= sub.isPersonalRecord ? 'sub-type-personal' : 'sub-type-event' %>">
                     <i data-lucide="<%= sub.isPersonalRecord ? 'star' : 'flag' %>" aria-hidden="true"></i>
-                    <%= sub.isPersonalRecord ? 'Personal Record' : 'Event Entry' %>
+                    <%= sub.isPersonalRecord ? 'Personal Record' : (sub.isAccumulatedActivity ? 'Challenge Activity' : 'Event Entry') %>
                   </span>
                   <a href="/runner/submissions/<%= sub.submissionId %>" class="sub-card-title item-title"><%= sub.eventTitle %></a>
                 </div>
@@ -321,7 +321,7 @@
               <td data-label="Type">
                 <span class="badge sub-type-badge <%= sub.isPersonalRecord ? 'sub-type-personal' : 'sub-type-event' %>">
                   <i data-lucide="<%= sub.isPersonalRecord ? 'star' : 'flag' %>" aria-hidden="true"></i>
-                  <%= sub.isPersonalRecord ? 'PR' : 'Event' %>
+                  <%= sub.isPersonalRecord ? 'PR' : (sub.isAccumulatedActivity ? 'Activity' : 'Event') %>
                 </span>
               </td>
               <td data-label="Status">

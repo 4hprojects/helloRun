@@ -96,7 +96,7 @@ test('buildRunnerEventProgressCards summarizes registered event proof status', (
         title: '100K Builder',
         slug: '100k-builder',
         virtualCompletionMode: 'accumulated_distance',
-        targetDistanceKm: 100
+        targetDistanceKm: 200
       }
     },
     {
@@ -148,6 +148,7 @@ test('buildRunnerEventProgressCards summarizes registered event proof status', (
   const accumulated = cards.find((item) => item.registrationId === 'reg-accumulated');
   assert.equal(accumulated.isAccumulated, true);
   assert.equal(accumulated.state, 'in_progress');
+  assert.equal(accumulated.progress.targetDistanceKm, 100);
   assert.equal(accumulated.progress.approvedDistanceKm, 25);
   assert.equal(accumulated.progress.pendingActivityCount, 1);
   assert.equal(accumulated.progress.percent, 25);

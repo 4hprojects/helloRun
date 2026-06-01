@@ -2,6 +2,7 @@
 
 const mongoose = require('mongoose');
 const Submission = require('../models/Submission');
+const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -28,13 +29,21 @@ async function listRunnerSubmissions(userId, options = {}) {
     filter.runType = activityType;
   }
 
-  const sortObj = buildSortObj(sort);
+  const [standardDocs, accumulatedDocs] = await Promise.all([
+    Submission.find(filter)
+      .populate({ path: 'eventId', select: 'title slug referenceCode organiserName eventType eventStartAt' })
+      .populate({ path: 'registrationId', select: 'raceDistance participationMode confirmationCode' })
+      .lean(),
+    AccumulatedActivitySubmission.find(filter)
+      .populate({ path: 'eventId', select: 'title slug referenceCode organiserName eventType eventStartAt' })
+      .populate({ path: 'registrationId', select: 'raceDistance participationMode confirmationCode' })
+      .lean()
+  ]);
 
-  const rawDocs = await Submission.find(filter)
-    .sort(sortObj)
-    .populate({ path: 'eventId', select: 'title slug referenceCode organiserName eventType eventStartAt' })
-    .populate({ path: 'registrationId', select: 'raceDistance participationMode confirmationCode' })
-    .lean();
+  const rawDocs = [
+    ...standardDocs.map((doc) => ({ ...doc, submissionKind: 'standard' })),
+    ...accumulatedDocs.map((doc) => ({ ...doc, submissionKind: 'accumulated_activity' }))
+  ].sort((a, b) => compareSubmissions(a, b, sort));
 
   // JS-side search on event metadata (max ~50 docs/runner so this is acceptable)
   const searched = q ? applySearch(rawDocs, q) : rawDocs;
@@ -51,12 +60,7 @@ async function listRunnerSubmissions(userId, options = {}) {
   };
 }
 
-/**
- * Returns a single submission detail for a runner, enforcing ownership.
- * Throws an Error with code 403 if the submission belongs to another runner.
- * Throws an Error with code 404 if not found.
- */
-async function getRunnerSubmissionDetail(userId, submissionId) {
+async function findRunnerSubmissionRecord(submissionId) {
   let doc;
   try {
     doc = await Submission.findById(submissionId)
@@ -70,6 +74,57 @@ async function getRunnerSubmissionDetail(userId, submissionId) {
     throw err;
   }
 
+  if (doc) return { ...doc, submissionKind: 'standard' };
+
+  try {
+    doc = await AccumulatedActivitySubmission.findById(submissionId)
+      .populate({ path: 'eventId', select: 'title slug referenceCode organiserName eventType eventStartAt raceDistances' })
+      .populate({ path: 'registrationId', select: 'raceDistance participationMode confirmationCode' })
+      .populate({ path: 'reviewedBy', select: 'firstName lastName' })
+      .lean();
+  } catch {
+    const err = new Error('Submission not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  return doc ? { ...doc, submissionKind: 'accumulated_activity' } : null;
+}
+
+async function findRunnerSubmissionProofRecord(submissionId) {
+  let doc;
+  try {
+    doc = await Submission.findById(submissionId)
+      .select('runnerId proof')
+      .lean();
+  } catch {
+    const err = new Error('Submission not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (doc) return doc;
+
+  try {
+    doc = await AccumulatedActivitySubmission.findById(submissionId)
+      .select('runnerId proof')
+      .lean();
+  } catch {
+    const err = new Error('Submission not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  return doc;
+}
+
+/**
+ * Returns a single submission detail for a runner, enforcing ownership.
+ * Throws an Error with code 403 if the submission belongs to another runner.
+ * Throws an Error with code 404 if not found.
+ */
+async function getRunnerSubmissionDetail(userId, submissionId) {
+  const doc = await findRunnerSubmissionRecord(submissionId);
   if (!doc) {
     const err = new Error('Submission not found.');
     err.statusCode = 404;
@@ -89,17 +144,7 @@ async function getRunnerSubmissionDetail(userId, submissionId) {
  * Returns proof access metadata for a single runner-owned submission.
  */
 async function getRunnerSubmissionProof(userId, submissionId) {
-  let doc;
-  try {
-    doc = await Submission.findById(submissionId)
-      .select('runnerId proof')
-      .lean();
-  } catch {
-    const err = new Error('Submission not found.');
-    err.statusCode = 404;
-    throw err;
-  }
-
+  const doc = await findRunnerSubmissionProofRecord(submissionId);
   if (!doc) {
     const err = new Error('Submission not found.');
     err.statusCode = 404;
@@ -131,33 +176,19 @@ async function getRunnerSubmissionProof(userId, submissionId) {
  * Returns summary counts for a runner's submissions using a single $facet aggregate.
  */
 async function getRunnerSubmissionCounts(userId) {
-  const result = await Submission.aggregate([
-    {
-      $match: {
-        runnerId: new mongoose.Types.ObjectId(String(userId))
-      }
-    },
-    {
-      $facet: {
-        total: [{ $count: 'count' }],
-        submitted: [{ $match: { status: 'submitted' } }, { $count: 'count' }],
-        approved: [{ $match: { status: 'approved' } }, { $count: 'count' }],
-        rejected: [{ $match: { status: 'rejected' } }, { $count: 'count' }],
-        certificatesIssued: [
-          { $match: { status: 'approved', 'certificate.issuedAt': { $exists: true, $ne: null } } },
-          { $count: 'count' }
-        ]
-      }
-    }
+  const runnerId = new mongoose.Types.ObjectId(String(userId));
+  const [standardResult, accumulatedResult] = await Promise.all([
+    aggregateCounts(Submission, runnerId),
+    aggregateCounts(AccumulatedActivitySubmission, runnerId)
   ]);
-
-  const row = result[0] || {};
+  const standardRow = standardResult[0] || {};
+  const accumulatedRow = accumulatedResult[0] || {};
   return {
-    total: extractFacetCount(row.total),
-    submitted: extractFacetCount(row.submitted),
-    approved: extractFacetCount(row.approved),
-    rejected: extractFacetCount(row.rejected),
-    certificatesIssued: extractFacetCount(row.certificatesIssued)
+    total: extractFacetCount(standardRow.total) + extractFacetCount(accumulatedRow.total),
+    submitted: extractFacetCount(standardRow.submitted) + extractFacetCount(accumulatedRow.submitted),
+    approved: extractFacetCount(standardRow.approved) + extractFacetCount(accumulatedRow.approved),
+    rejected: extractFacetCount(standardRow.rejected) + extractFacetCount(accumulatedRow.rejected),
+    certificatesIssued: extractFacetCount(standardRow.certificatesIssued) + extractFacetCount(accumulatedRow.certificatesIssued)
   };
 }
 
@@ -167,6 +198,7 @@ function formatSubmissionListItem(doc) {
   const distanceKm = Number(doc.distanceKm || 0);
   const elapsedMs = Number(doc.elapsedMs || 0);
   const ocrConfidence = Number(doc.ocrData?.confidence || 0);
+  const isAccumulatedActivity = doc.submissionKind === 'accumulated_activity';
   const hasCertificate =
     doc.status === 'approved' &&
     Boolean(doc.certificate?.issuedAt);
@@ -198,6 +230,8 @@ function formatSubmissionListItem(doc) {
     certificateUrl: hasCertificate ? `/my-submissions/${String(doc._id)}/certificate` : '',
     certificateIssuedAt: doc.certificate?.issuedAt || null,
     isPersonalRecord: Boolean(doc.isPersonalRecord),
+    isAccumulatedActivity,
+    submissionKind: doc.submissionKind || 'standard',
     needsAdditionalReview: Boolean(doc.suspiciousFlag),
     ocrSource: doc.ocrData?.detectedSource || '',
     ocrConfidence,
@@ -261,6 +295,28 @@ function buildSubmissionActions(item) {
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
+function aggregateCounts(Model, runnerId) {
+  return Model.aggregate([
+    {
+      $match: {
+        runnerId
+      }
+    },
+    {
+      $facet: {
+        total: [{ $count: 'count' }],
+        submitted: [{ $match: { status: 'submitted' } }, { $count: 'count' }],
+        approved: [{ $match: { status: 'approved' } }, { $count: 'count' }],
+        rejected: [{ $match: { status: 'rejected' } }, { $count: 'count' }],
+        certificatesIssued: [
+          { $match: { status: 'approved', 'certificate.issuedAt': { $exists: true, $ne: null } } },
+          { $count: 'count' }
+        ]
+      }
+    }
+  ]);
+}
+
 function normalizeListOptions(options) {
   const rawStatus = String(options.status || '').trim().toLowerCase();
   const rawActivity = String(options.activityType || '').trim().toLowerCase();
@@ -276,20 +332,37 @@ function normalizeListOptions(options) {
   };
 }
 
-function buildSortObj(sort) {
+function compareSubmissions(a, b, sort) {
   switch (sort) {
     case 'oldest':
-      return { submittedAt: 1 };
-    case 'fastest':
-      return { elapsedMs: 1, submittedAt: -1 };
-    case 'distance':
-      return { distanceKm: -1, submittedAt: -1 };
+      return compareDates(a.submittedAt, b.submittedAt, 1);
+    case 'fastest': {
+      const elapsedA = Number(a.elapsedMs || Number.MAX_SAFE_INTEGER);
+      const elapsedB = Number(b.elapsedMs || Number.MAX_SAFE_INTEGER);
+      if (elapsedA !== elapsedB) return elapsedA - elapsedB;
+      return compareDates(a.submittedAt, b.submittedAt, -1);
+    }
+    case 'distance': {
+      const distanceA = Number(a.distanceKm || 0);
+      const distanceB = Number(b.distanceKm || 0);
+      if (distanceA !== distanceB) return distanceB - distanceA;
+      return compareDates(a.submittedAt, b.submittedAt, -1);
+    }
     case 'eventDate':
-      return { runDate: -1, submittedAt: -1 };
+      return compareDates(a.runDate, b.runDate, -1) || compareDates(a.submittedAt, b.submittedAt, -1);
     case 'newest':
     default:
-      return { submittedAt: -1 };
+      return compareDates(a.submittedAt, b.submittedAt, -1);
   }
+}
+
+function compareDates(first, second, direction) {
+  const firstTime = new Date(first || 0).getTime();
+  const secondTime = new Date(second || 0).getTime();
+  const safeFirst = Number.isNaN(firstTime) ? 0 : firstTime;
+  const safeSecond = Number.isNaN(secondTime) ? 0 : secondTime;
+  if (safeFirst === safeSecond) return 0;
+  return direction > 0 ? safeFirst - safeSecond : safeSecond - safeFirst;
 }
 
 function applySearch(docs, q) {

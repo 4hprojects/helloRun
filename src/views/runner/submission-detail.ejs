@@ -23,7 +23,7 @@
           <h1><%= submission.eventTitle %></h1>
           <span class="badge sub-type-badge <%= submission.isPersonalRecord ? 'sub-type-personal' : 'sub-type-event' %>">
             <i data-lucide="<%= submission.isPersonalRecord ? 'star' : 'flag' %>" aria-hidden="true"></i>
-            <%= submission.isPersonalRecord ? 'Personal Record' : 'Event Entry' %>
+            <%= submission.isPersonalRecord ? 'Personal Record' : (submission.isAccumulatedActivity ? 'Challenge Activity' : 'Event Entry') %>
           </span>
           <span class="badge badge-<%= submission.status %>">
             <% if (submission.status === 'submitted') { %>Pending Review

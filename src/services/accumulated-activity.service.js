@@ -14,6 +14,7 @@ const {
   refreshAccumulatedChallengeProgress,
   refreshGlobalDistanceMilestoneProgressInBackground
 } = require('./badge-progress.service');
+const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
 
 const REVIEWABLE_STATUS = new Set(['submitted']);
 const AUTO_APPROVAL_REVIEW_NOTE = 'Auto-approved from OCR name match.';
@@ -136,7 +137,7 @@ async function getRegistrationAccumulatedProgress(registrationId) {
   const registration = await Registration.findById(registrationId).lean();
   if (!registration) return buildEmptyProgress();
   const event = await Event.findById(registration.eventId)
-    .select('targetDistanceKm virtualCompletionMode')
+    .select('targetDistanceKm raceCategories virtualCompletionMode')
     .lean();
   if (!event || event.virtualCompletionMode !== 'accumulated_distance') {
     return buildEmptyProgress();
@@ -144,7 +145,10 @@ async function getRegistrationAccumulatedProgress(registrationId) {
   const activities = await AccumulatedActivitySubmission.find({ registrationId })
     .sort({ submittedAt: 1, createdAt: 1 })
     .lean();
-  return buildAccumulatedProgress({ activities, targetDistanceKm: event.targetDistanceKm });
+  return buildAccumulatedProgress({
+    activities,
+    targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, event)
+  });
 }
 
 async function getRunnerAccumulatedActivities(runnerId, options = {}) {
@@ -271,7 +275,7 @@ async function attachCompletionCertificateIfNeeded(activity) {
   if (event.digitalCertificateEnabled === false) return false;
   const progress = buildAccumulatedProgress({
     activities,
-    targetDistanceKm: event.targetDistanceKm
+    targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, event)
   });
   if (!progress.completed) return false;
 

@@ -107,6 +107,7 @@ Accumulated challenge states:
 Accumulated challenge display:
 
 - approved distance / target distance
+- target distance resolved from the runner's selected registration category/distance before falling back to the event-level target
 - progress bar
 - approved activity count
 - pending activity count
@@ -182,6 +183,7 @@ Controller:
 Services:
 
 - `src/services/runner-data.service.js`
+- `src/services/accumulated-target.service.js`
 - `src/services/submission.service.js`
 - `src/services/runner-submissions.service.js`
 - `src/services/running-group.service.js`
@@ -208,6 +210,14 @@ View and assets:
 ## Event Progress Data Contract
 
 `getRunnerEventProgressCards()` builds the dashboard event progress list from runner registrations plus standard and accumulated submissions.
+
+For accumulated-distance registrations, the progress target is selected per runner registration:
+
+1. Matching `event.raceCategories[].distanceKm` from `registration.pricingSnapshot.raceCategoryId`.
+2. Parsed selected distance label from `registration.pricingSnapshot.raceDistance` or `registration.raceDistance`.
+3. Fallback to `event.targetDistanceKm`.
+
+This keeps a 100K participant in a multi-distance accumulated event on a 100 km goal even when the event also has a larger event-level target such as 200 km.
 
 Each card should be normalized before reaching EJS:
 
@@ -250,7 +260,7 @@ Accumulated challenge rules:
 - Multiple activities can exist per registration.
 - Approved distance counts toward official progress.
 - Pending and rejected activity distance does not count toward official progress.
-- Completion is reached when approved distance is greater than or equal to the event target distance.
+- Completion is reached when approved distance is greater than or equal to the runner's selected registration target distance, falling back to the event target only when the selected target cannot be resolved.
 - Certificate actions use the accumulated activity that received the completion certificate.
 
 ---

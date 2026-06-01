@@ -163,7 +163,7 @@ Runner submits run proof
 
 ```text
 Runner submits accumulated activities
--> Approved distance reaches the event target
+-> Approved distance reaches the runner's selected registration target
 -> src/services/accumulated-activity.service.js calls attachCompletionCertificateIfNeeded
 -> Certificate is generated for the completion activity
 -> Runner downloads from the same existing certificate route
@@ -776,7 +776,7 @@ Certificate generation should trigger only when a qualifying approval/completion
 Existing trigger points:
 
 - `submission.status` changes to `approved`
-- accumulated-distance progress reaches the event target
+- accumulated-distance progress reaches the runner's selected registration target
 
 Before generating certificate, check:
 
