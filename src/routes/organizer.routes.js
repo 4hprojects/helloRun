@@ -3671,6 +3671,9 @@ function mapSubmissionForRegistrant(submission, options = {}) {
   return {
     ...submission,
     isAccumulatedActivity: Boolean(options.isAccumulatedActivity),
+    targetTypeLabel: options.isAccumulatedActivity ? 'Challenge Activity (Accumulated Activity)' : 'Event Result',
+    sourceLabel: getSubmissionSourceLabel(submission),
+    autoApprovalSourceLabel: getAutoApprovalSourceLabel(submission),
     elapsedLabel: formatElapsedMs(submission.elapsedMs),
     runDateLabel: formatDateOnly(submission.runDate),
     runLocation: String(submission.runLocation || '').trim(),
@@ -3684,6 +3687,20 @@ function mapSubmissionForRegistrant(submission, options = {}) {
     suspiciousFlagReason: String(submission.suspiciousFlagReason || '').trim(),
     reviewSignal: buildSubmissionReviewSignal(submission)
   };
+}
+
+function getSubmissionSourceLabel(submission = {}) {
+  const source = String(submission.source || '').trim().toLowerCase();
+  if (source === 'strava') return 'Strava Activity';
+  if (Number(submission.ocrData?.confidence || 0) > 0) return 'Activity Screenshot with OCR';
+  return 'Activity Screenshot';
+}
+
+function getAutoApprovalSourceLabel(submission = {}) {
+  const source = String(submission.source || '').trim().toLowerCase();
+  if (source === 'strava') return 'Verified synced-source validation';
+  if (Number(submission.ocrData?.confidence || 0) > 0) return 'OCR and name-match validation';
+  return 'Manual review validation';
 }
 
 function getRegistrantExportData(registrations = []) {

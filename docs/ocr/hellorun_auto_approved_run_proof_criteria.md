@@ -10,7 +10,7 @@ The auto-approval implementation is now complete for the planned OCR and first s
 
 - Standard one-time submissions now block auto-approval when the detected proof distance is below the resolved category minimum distance.
 - The runner submit-review overlay now warns when a standard event proof is below the minimum distance and confirms that the proof will go to organiser review.
-- Standard submissions persist structured `validation` metadata for method, eligibility, review requirement, review reason, submission mode, detected distance, and minimum required distance.
+- Standard and accumulated activity submissions persist structured `validation` metadata for method, eligibility, review requirement, review reason, submission mode, detected distance, and minimum required distance.
 - Admin and organiser review surfaces show readable labels and descriptions for `validation.reviewReason`.
 - Accumulated activity submissions can auto-approve when clean OCR criteria pass.
 - Accumulated challenge certificates are issued only when approved accumulated progress reaches the runner's selected registration target distance.
@@ -32,7 +32,7 @@ Verification completed:
 
 ## Current App Behavior
 
-Auto-approval currently applies only to standard `Submission` records and personal record submissions created through the standard submission service.
+Auto-approval currently applies to standard `Submission` records, personal record submissions created through the standard submission service, accumulated activity submissions, and validated Strava synced-source submissions.
 
 Implemented behavior:
 
@@ -40,11 +40,12 @@ Implemented behavior:
 - Personal record submissions can be auto-approved through the same OCR path.
 - `AccumulatedActivitySubmission` records can be auto-approved when clean OCR criteria pass.
 - Auto-approved submissions use `reviewedBy = null` to indicate system approval.
-- Auto-approved submissions use `reviewNotes = "Auto-approved from OCR name match."`
+- Auto-approved OCR submissions use `reviewNotes = "Auto-approved from OCR name match."`
+- Auto-approved Strava submissions use `reviewNotes = "Auto-approved from verified Strava activity."`
 - Normal event auto-approval issues a certificate.
 - Personal record auto-approval does not issue a certificate.
 - Standard one-time event submissions are blocked from auto-approval when the detected proof distance is below the derived category minimum distance.
-- Standard submissions persist structured `validation` metadata with method, auto-approval eligibility, review requirement, review reason, submission mode, detected distance, and minimum required distance.
+- Standard and accumulated activity submissions persist structured `validation` metadata with method, auto-approval eligibility, review requirement, review reason, submission mode, detected distance, and minimum required distance.
 - Admin and organiser review surfaces display readable labels for `validation.reviewReason`.
 - Strava submissions follow a separate synced-source validation path and can auto-approve without OCR name matching when source validation passes.
 
@@ -195,7 +196,7 @@ For accumulated-distance events:
 
 ## Current Auto-Approval Result
 
-When all current criteria pass, HelloRun updates the submission:
+When all current OCR criteria pass, HelloRun updates the submission:
 
 ```text
 status = approved
@@ -203,6 +204,12 @@ reviewedAt = current date and time
 reviewedBy = null
 reviewNotes = "Auto-approved from OCR name match."
 rejectionReason = ""
+```
+
+When all current Strava synced-source criteria pass, HelloRun uses the same status fields but stores:
+
+```text
+reviewNotes = "Auto-approved from verified Strava activity."
 ```
 
 For normal event submissions, the system also attempts to issue a certificate.
@@ -316,7 +323,7 @@ ocr_confidence_below_threshold
 ocr_auto_approval_criteria_not_met
 ```
 
-This metadata is currently stored on `Submission`. It is not yet implemented for `AccumulatedActivitySubmission`.
+This metadata is stored on `Submission` and `AccumulatedActivitySubmission`.
 
 Readable review reason labels are shown in:
 
@@ -502,7 +509,7 @@ The current mismatch checks include distance, time, elevation, steps, date, loca
 
 Current standard auto-approval compares proof distance against the resolved registered category minimum distance when available, persists structured validation metadata, and displays readable review reason labels to reviewers. Accumulated activity submissions can now auto-approve when clean OCR or valid Strava source criteria pass. Configured `minimumActivityDistanceKm` is still enforced before save, and accumulated certificates are issued only when approved total progress reaches the target distance.
 
-When all current criteria pass, HelloRun sets the submission status to `approved`, records `reviewedAt`, leaves `reviewedBy` as `null`, and stores the review note `Auto-approved from OCR name match.` Normal event submissions receive certificates after auto-approval. Personal record submissions can be auto-approved but do not receive event certificates.
+When all current criteria pass, HelloRun sets the submission status to `approved`, records `reviewedAt`, and leaves `reviewedBy` as `null`. OCR approvals store `Auto-approved from OCR name match.` and Strava approvals store `Auto-approved from verified Strava activity.` Normal event submissions receive certificates after auto-approval. Personal record submissions can be auto-approved but do not receive event certificates.
 
 Future synced providers such as Garmin or COROS should follow the Strava source-validation pattern before being allowed into auto-approval.
 

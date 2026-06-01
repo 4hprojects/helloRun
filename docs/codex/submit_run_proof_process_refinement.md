@@ -99,6 +99,30 @@ Notes:
 - Backend submission semantics were intentionally not refactored in this slice.
 - Remaining planned phases still apply: deeper frontend state normalization, richer eligibility/exclusion messaging, optional Strava multi-target contract, backend multi-write orchestration hardening, and review surface polish.
 
+### 2026-06-01 Conservative Auto-Approval Visibility Slice
+
+Implemented:
+
+- Preserved existing route contracts, statuses, auto-approval thresholds, badge/certificate hooks, and Strava single-target behavior.
+- Added source-aware auto-approval notes:
+  - OCR: `Auto-approved from OCR name match.`
+  - Strava: `Auto-approved from verified Strava activity.`
+- Added structured `validation` metadata to accumulated activity submissions, with `submissionMode = accumulated`.
+- Improved organiser/admin review visibility for proof source, target type, validation method, review reason, suspicious reason, OCR analysis, and Strava snapshot details.
+- Normalized runner modal state around proof source and target kind while keeping existing hidden fields and endpoints.
+- Updated Strava completion copy so it no longer always implies manual review.
+
+Production smoke checklist:
+
+- Screenshot standard submission auto-approves when clean.
+- Screenshot below-minimum submission remains pending and shows organiser-review copy.
+- Suspicious OCR submission remains pending with review signals.
+- Accumulated activity auto-approves and updates progress.
+- Accumulated completion issues one certificate only after target progress is reached.
+- Valid Strava activity auto-approves with the Strava-specific review note.
+- Duplicate screenshot and duplicate Strava activity are blocked.
+- Organiser/admin can approve and reject pending standard and accumulated records.
+
 Primary implementation files:
 
 - `src/views/partials/run-proof-modal.ejs`

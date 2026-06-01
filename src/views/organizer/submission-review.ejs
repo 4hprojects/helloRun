@@ -60,7 +60,11 @@
         </div>
         <div class="summary-card">
           <strong>Type</strong>
-          <span><%= submissionTypeLabel %></span>
+          <span><%= submission.targetTypeLabel || submissionTypeLabel %></span>
+        </div>
+        <div class="summary-card">
+          <strong>Source</strong>
+          <span><%= submission.sourceLabel || 'Activity Screenshot' %></span>
         </div>
         <div class="summary-card">
           <strong>Confirmation</strong>
@@ -168,7 +172,11 @@
               </div>
               <div>
                 <dt>Source</dt>
-                <dd><%= String(submission.source || 'manual_upload').replace(/_/g, ' ') %></dd>
+                <dd><%= submission.sourceLabel || String(submission.source || 'manual_upload').replace(/_/g, ' ') %></dd>
+              </div>
+              <div>
+                <dt>Validation</dt>
+                <dd><%= submission.autoApprovalSourceLabel || 'Manual review validation' %></dd>
               </div>
             </dl>
 
@@ -196,7 +204,7 @@
             <% } %>
           </section>
 
-          <% if (submission.suspiciousFlag || (submission.ocrData && submission.ocrData.confidence > 0)) { %>
+          <% if (submission.suspiciousFlag || (submission.ocrData && submission.ocrData.confidence > 0) || (submission.reviewSignal && submission.reviewSignal.code)) { %>
             <section class="submission-review-section submission-review-signals">
               <h3>
                 <i data-lucide="scan-search"></i>
@@ -240,6 +248,9 @@
                   </div>
                 </details>
               <% } %>
+              <% if (submission.reviewSignal && submission.reviewSignal.code && !submission.suspiciousFlag) { %>
+                <p class="submission-review-muted">Review reason: <%= submission.reviewSignal.label %></p>
+              <% } %>
             </section>
           <% } %>
 
@@ -251,6 +262,12 @@
               </h3>
               <p class="submission-review-strong"><%= submission.stravaActivity.name || 'Strava activity' %></p>
               <p class="submission-review-muted"><%= submission.stravaActivity.sportType || submission.stravaActivity.type || 'Activity' %></p>
+              <% if (submission.stravaActivity.distanceKm != null) { %>
+                <p class="submission-review-muted">Distance: <%= Number(submission.stravaActivity.distanceKm || 0).toFixed(2) %> km</p>
+              <% } %>
+              <% if (submission.stravaActivity.elapsedTimeSeconds || submission.stravaActivity.movingTimeSeconds) { %>
+                <p class="submission-review-muted">Duration source: verified synced activity</p>
+              <% } %>
               <% if (submission.stravaActivity.url) { %>
                 <a href="<%= submission.stravaActivity.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">
                   <i data-lucide="external-link"></i>

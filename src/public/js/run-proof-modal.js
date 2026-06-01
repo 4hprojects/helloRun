@@ -153,7 +153,9 @@
       pendingNameMismatchAction: '',
       stravaActivities: [],
       stravaSubmitting: false,
-      selectedStravaActivity: null
+      selectedStravaActivity: null,
+      source: 'screenshot',
+      targetKind: ''
     };
 
     const STEP_ONE_ANALYSE_LABEL = 'Analyse Activity Screenshot';
@@ -355,6 +357,7 @@
       }
 
       syncSelectedRegistrationFields();
+      state.targetKind = getSelectedTargetKind();
       syncFormAction();
       updateSubmitLabelForSelection();
       validateEvents();
@@ -580,6 +583,7 @@
 
     const clearSelectedStravaActivity = () => {
       state.selectedStravaActivity = null;
+      state.source = 'screenshot';
       if (stravaActivityList) {
         stravaActivityList.querySelectorAll('.run-proof-strava-activity-card').forEach((node) => {
           node.classList.remove('is-selected');
@@ -589,6 +593,7 @@
 
     const setSelectedFileFromDrop = (file) => {
       if (!file) return;
+      state.source = 'screenshot';
       clearSelectedStravaActivity();
       clearOcrState();
       clearRunDetailFields();
@@ -921,7 +926,7 @@
           if (icon) icon.setAttribute('data-lucide', 'x');
           if (window.lucide) window.lucide.createIcons({ nodes: [backBtn] });
         }
-        if (stepIndicator) stepIndicator.textContent = 'Step 1 of 2 \u2014 Choose activity source';
+        if (stepIndicator) stepIndicator.textContent = 'Step 1 of 2 \u2014 Choose proof source';
         const hasFile = Boolean(fileInput.files && fileInput.files[0]);
         const hasCachedOcr = state.ocrResult !== null;
         const step1Label = hasCachedOcr && hasFile ? STEP_ONE_CONTINUE_LABEL : STEP_ONE_ANALYSE_LABEL;
@@ -1521,6 +1526,7 @@
 
     const selectStravaActivity = (activity) => {
       state.selectedStravaActivity = activity;
+      state.source = 'strava';
       clearOcrState();
       clearFilePreview();
       if (fileInput) fileInput.value = '';
@@ -1610,7 +1616,7 @@
           await window.refreshRunnerDashboard();
         }
         if (postSubmitTitle) postSubmitTitle.textContent = 'Run result submitted!';
-        if (postSubmitDesc) postSubmitDesc.textContent = 'Your Strava activity has been received and is pending review. What would you like to do next?';
+        if (postSubmitDesc) postSubmitDesc.textContent = 'Your Strava activity has been received. Clean synced activities may auto-approve; otherwise they remain available for review.';
         if (postSubmitOverlay) {
           postSubmitOverlay.hidden = false;
           if (postSubmitView) postSubmitView.focus();
@@ -2255,6 +2261,17 @@
       return selected;
     };
 
+    const getSelectedTargetKind = () => {
+      const selected = getSelectedOptions();
+      if (!selected.length) return '';
+      if (selected.length > 1) return 'event_multi';
+      const item = selected[0];
+      if (item.isPersonalRecord) return 'personal_record';
+      if (getSubmissionMode(item) === 'accumulated') return 'accumulated';
+      if (item.canResubmit || item.existingSubmissionStatus === 'rejected') return 'resubmission';
+      return 'standard';
+    };
+
     const getDetectedReviewDistanceKm = () => {
       const ocrDistance = state.ocrResult && state.ocrResult.distance ? Number(state.ocrResult.distance.valueKm) : NaN;
       if (Number.isFinite(ocrDistance) && ocrDistance > 0) return ocrDistance;
@@ -2313,12 +2330,25 @@
       });
       const eventLabel = eventNames.length ? eventNames.join(', ') : 'Personal Record';
       submitReviewRows.appendChild(makeReviewRow('Event', eventLabel));
+      state.targetKind = getSelectedTargetKind();
+      const targetLabels = {
+        standard: 'Event Result',
+        resubmission: 'Resubmission',
+        accumulated: 'Challenge Activity',
+        personal_record: 'Personal Record',
+        event_multi: 'Multiple Event Results'
+      };
+      if (state.targetKind && targetLabels[state.targetKind]) {
+        submitReviewRows.appendChild(makeReviewRow('Target Type', targetLabels[state.targetKind]));
+      }
 
       if (state.selectedStravaActivity) {
-        submitReviewRows.appendChild(makeReviewRow('Proof Source', 'Strava'));
+        state.source = 'strava';
+        submitReviewRows.appendChild(makeReviewRow('Proof Source', 'Strava Activity'));
         submitReviewRows.appendChild(makeReviewRow('Strava Activity', state.selectedStravaActivity.name || 'Selected activity'));
       } else {
-        submitReviewRows.appendChild(makeReviewRow('Proof Source', 'Screenshot'));
+        state.source = 'screenshot';
+        submitReviewRows.appendChild(makeReviewRow('Proof Source', 'Activity Screenshot'));
       }
 
       // Activity type
