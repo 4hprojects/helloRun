@@ -140,6 +140,12 @@ async function seedNotificationsFixture() {
     role: 'runner',
     firstName: 'Route',
     lastName: 'Runner',
+    mobile: '09170000000',
+    country: 'PH',
+    dateOfBirth: new Date('1994-01-01T00:00:00.000Z'),
+    gender: 'male',
+    emergencyContactName: 'Route Emergency',
+    emergencyContactNumber: '09171111111',
     emailVerified: true
   });
 

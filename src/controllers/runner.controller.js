@@ -32,6 +32,10 @@ const {
   markAllNotificationsAsRead
 } = require('../services/notification.service');
 const {
+  getRunnerProfileCompleteness,
+  syncProfileCompletionNotification
+} = require('../services/profile-completion.service');
+const {
   getRunnerEarnedBadges,
   setFeaturedRunnerBadge
 } = require('../services/achievement.service');
@@ -251,6 +255,7 @@ exports.updateProfile = async (req, res) => {
 
     user.firstName = formData.firstName;
     user.lastName = formData.lastName;
+    user.displayName = formData.displayName;
     user.mobile = formData.mobile;
     user.country = formData.country;
     user.dateOfBirth = formData.dateOfBirth ? new Date(`${formData.dateOfBirth}T00:00:00.000Z`) : null;
@@ -261,6 +266,7 @@ exports.updateProfile = async (req, res) => {
     user.runningGroups = sanitizedGroups;
     user.runningGroup = sanitizedGroups[0] || '';
     await user.save();
+    await syncProfileCompletionNotification(user);
 
     return res.redirect('/runner/dashboard?type=success&msg=Profile%20updated%20successfully.');
   } catch (error) {
@@ -320,6 +326,7 @@ exports.getProfilePage = async (req, res) => {
       message: getRunnerProfileMessage(req.query),
       profileData,
       profileCompleteness,
+      countries,
       selectedCountryName: selectedCountry?.name || 'Not set',
       stravaConnection,
       badges,
@@ -388,6 +395,49 @@ exports.updateFeaturedBadge = async (req, res) => {
   }
 };
 
+exports.updateProfileIdentity = async (req, res) => {
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) {
+      return res.redirect('/login');
+    }
+
+    const formData = getRunnerProfileFormData({
+      ...user.toObject(),
+      ...req.body
+    });
+    const errors = validateRunnerProfileIdentityForm(formData);
+    if (errors.firstName) {
+      return res.redirect(`/runner/profile?type=error&msg=${encodeURIComponent(errors.firstName)}#identity`);
+    }
+    if (errors.lastName) {
+      return res.redirect(`/runner/profile?type=error&msg=${encodeURIComponent(errors.lastName)}#identity`);
+    }
+    if (errors.displayName) {
+      return res.redirect(`/runner/profile?type=error&msg=${encodeURIComponent(errors.displayName)}#identity`);
+    }
+    if (errors.dateOfBirth) {
+      return res.redirect(`/runner/profile?type=error&msg=${encodeURIComponent(errors.dateOfBirth)}#identity`);
+    }
+    if (errors.gender) {
+      return res.redirect(`/runner/profile?type=error&msg=${encodeURIComponent(errors.gender)}#identity`);
+    }
+
+    user.firstName = formData.firstName;
+    user.lastName = formData.lastName;
+    user.displayName = formData.displayName;
+    user.dateOfBirth = formData.dateOfBirth ? new Date(`${formData.dateOfBirth}T00:00:00.000Z`) : null;
+    user.gender = formData.gender;
+    await user.save();
+    await syncProfileCompletionNotification(user);
+
+    return res.redirect('/runner/profile?type=success&msg=Identity%20details%20updated.#identity');
+  } catch (error) {
+    console.error('Runner profile identity update error:', error);
+    return res.redirect('/runner/profile?type=error&msg=Unable%20to%20update%20identity%20details.#identity');
+  }
+};
+
 exports.updateProfileContact = async (req, res) => {
   try {
     const user = await getRunnerFromSession(req);
@@ -396,12 +446,18 @@ exports.updateProfileContact = async (req, res) => {
     }
 
     const mobile = String(req.body.mobile || '').trim();
+    const country = normalizeCountryCode(req.body.country);
     if (mobile && !/^[\d\s\-()+]{7,25}$/.test(mobile)) {
       return res.redirect('/runner/profile?type=error&msg=Enter%20a%20valid%20mobile%20number.#contact');
     }
+    if (country && !isValidCountryCode(country)) {
+      return res.redirect('/runner/profile?type=error&msg=Select%20a%20valid%20country.#contact');
+    }
 
     user.mobile = mobile;
+    user.country = country;
     await user.save();
+    await syncProfileCompletionNotification(user);
     return res.redirect('/runner/profile?type=success&msg=Contact%20details%20updated.#contact');
   } catch (error) {
     console.error('Runner profile contact update error:', error);
@@ -429,6 +485,7 @@ exports.updateProfileEmergency = async (req, res) => {
     user.emergencyContactName = emergencyContactName;
     user.emergencyContactNumber = emergencyContactNumber;
     await user.save();
+    await syncProfileCompletionNotification(user);
     return res.redirect('/runner/profile?type=success&msg=Emergency%20contact%20updated.#emergency');
   } catch (error) {
     console.error('Runner profile emergency update error:', error);
@@ -822,30 +879,7 @@ function normalizeRegistrationCard(registration) {
 }
 
 function getProfileCompleteness(profileData) {
-  const required = [
-    { key: 'firstName', label: 'First Name' },
-    { key: 'lastName', label: 'Last Name' },
-    { key: 'mobile', label: 'Mobile' },
-    { key: 'country', label: 'Country' },
-    { key: 'dateOfBirth', label: 'Date of Birth' },
-    { key: 'gender', label: 'Gender' },
-    { key: 'emergencyContactName', label: 'Emergency Contact Name' },
-    { key: 'emergencyContactNumber', label: 'Emergency Contact Number' }
-  ];
-
-  const missingFields = required
-    .filter((item) => !String(profileData[item.key] || '').trim())
-    .map((item) => item.label);
-
-  const completedCount = required.length - missingFields.length;
-  const percent = Math.round((completedCount / required.length) * 100);
-
-  return {
-    requiredCount: required.length,
-    completedCount,
-    percent,
-    missingFields
-  };
+  return getRunnerProfileCompleteness({ ...profileData, role: 'runner' });
 }
 
 function getRunnerProfileMessage(query) {
@@ -958,6 +992,7 @@ function getRunnerProfileFormData(body = {}) {
   return {
     firstName: String(body.firstName || '').trim(),
     lastName: String(body.lastName || '').trim(),
+    displayName: String(body.displayName || '').trim(),
     mobile: String(body.mobile || '').trim(),
     country: normalizeCountryCode(body.country),
     dateOfBirth: formatDateForInput(body.dateOfBirth),
@@ -978,6 +1013,10 @@ function validateRunnerProfileForm(formData) {
   }
   if (!formData.lastName || formData.lastName.length < 2 || formData.lastName.length > 60) {
     errors.lastName = 'Last name must be 2-60 characters.';
+  }
+  const displayNameError = validateDisplayName(formData.displayName);
+  if (displayNameError) {
+    errors.displayName = displayNameError;
   }
   if (formData.mobile && !/^[\d\s\-()+]{7,25}$/.test(formData.mobile)) {
     errors.mobile = 'Enter a valid mobile number.';
@@ -1014,6 +1053,50 @@ function validateRunnerProfileForm(formData) {
   }
 
   return errors;
+}
+
+function validateRunnerProfileIdentityForm(formData) {
+  const errors = {};
+  const genderValues = new Set(['', 'male', 'female', 'non_binary', 'prefer_not_to_say']);
+
+  if (!formData.firstName || formData.firstName.length < 2 || formData.firstName.length > 60) {
+    errors.firstName = 'First name must be 2-60 characters.';
+  }
+  if (!formData.lastName || formData.lastName.length < 2 || formData.lastName.length > 60) {
+    errors.lastName = 'Last name must be 2-60 characters.';
+  }
+  const displayNameError = validateDisplayName(formData.displayName);
+  if (displayNameError) {
+    errors.displayName = displayNameError;
+  }
+  if (formData.dateOfBirth) {
+    const dobDate = new Date(`${formData.dateOfBirth}T00:00:00.000Z`);
+    if (Number.isNaN(dobDate.getTime())) {
+      errors.dateOfBirth = 'Enter a valid date of birth.';
+    } else if (dobDate > new Date()) {
+      errors.dateOfBirth = 'Date of birth cannot be in the future.';
+    }
+  }
+  if (!genderValues.has(formData.gender)) {
+    errors.gender = 'Select a valid gender option.';
+  }
+
+  return errors;
+}
+
+function validateDisplayName(value) {
+  const displayName = String(value || '').trim();
+  if (!displayName) return '';
+  if (displayName.length < 2 || displayName.length > 60) {
+    return 'Display name must be 2-60 characters.';
+  }
+  if (!/^[A-Za-z0-9 ._-]+$/.test(displayName)) {
+    return 'Display name can use letters, numbers, spaces, dots, hyphens, and underscores only.';
+  }
+  if (displayName.includes('@') || /^https?:\/\//i.test(displayName) || /^\+?[\d\s\-()]{7,}$/.test(displayName)) {
+    return 'Display name cannot be an email, URL, or phone number.';
+  }
+  return '';
 }
 
 function normalizeGroupName(value) {

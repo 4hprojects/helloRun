@@ -52,6 +52,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  displayName: {
+    type: String,
+    trim: true,
+    maxlength: 60,
+    default: ''
+  },
   mobile: {
     type: String,
     trim: true,

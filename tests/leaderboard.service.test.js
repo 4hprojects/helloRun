@@ -11,6 +11,7 @@ const Submission = require('../src/models/Submission');
 const AccumulatedActivitySubmission = require('../src/models/AccumulatedActivitySubmission');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
 const {
+  getLeaderboardDiscoveryData,
   getLeaderboardData,
   getEventLeaderboard,
   getMyStanding,
@@ -59,6 +60,51 @@ test('leaderboard filters by event, distance, mode, and period', async () => {
     const submittedAt = new Date(item.submittedAt).getTime();
     return Number.isFinite(submittedAt) && (now - submittedAt) <= 8 * 24 * 60 * 60 * 1000;
   }));
+});
+
+test('leaderboard discovery returns public enabled event cards with safe summary fields', async () => {
+  const seed = await seedLeaderboardData('discovery');
+  await Event.findByIdAndUpdate(seed.eventB._id, { leaderboardRecognitionEnabled: false });
+
+  const result = await getLeaderboardDiscoveryData({
+    q: seed.eventA.title.slice(0, 20),
+    type: 'race_result',
+    distance: '5K',
+    mode: 'virtual',
+    limit: 20
+  });
+
+  assert.ok(result.cards.length >= 1);
+  const card = result.cards.find((item) => item.id === String(seed.eventA._id));
+  assert.ok(card);
+  assert.equal(card.href, `/events/${seed.eventA.slug}/leaderboard`);
+  assert.equal(card.eventHref, `/events/${seed.eventA.slug}`);
+  assert.equal(card.leaderboardType, 'race_result');
+  assert.equal(card.verifiedCount >= 1, true);
+  assert.equal(card.pendingCount, 0);
+  assert.equal(card.distanceLabel.includes('5K'), true);
+  assert.equal(card.modeLabel.includes('Virtual'), true);
+  assert.equal(Object.prototype.hasOwnProperty.call(card, 'proof'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(card, 'ocrData'), false);
+  assert.equal(result.cards.some((item) => item.id === String(seed.eventB._id)), false);
+});
+
+test('leaderboard discovery filters accumulated challenge cards and counts registrations', async () => {
+  const seed = await seedAccumulatedLeaderboardData('discovery-accumulated');
+
+  const result = await getLeaderboardDiscoveryData({
+    type: 'accumulated_challenge',
+    distance: '20K',
+    mode: 'virtual',
+    limit: 20
+  });
+
+  const card = result.cards.find((item) => item.id === String(seed.event._id));
+  assert.ok(card);
+  assert.equal(card.leaderboardType, 'accumulated_challenge');
+  assert.equal(card.verifiedCount, 2);
+  assert.equal(card.pendingCount, 1);
+  assert.match(card.rankingExplanation, /highest verified accumulated distance/i);
 });
 
 test('event leaderboard ranks approved race results and hides unsafe public fields', async () => {

@@ -33,8 +33,13 @@
         editableInputs.forEach(input => {
           if (editing) {
             input.removeAttribute('readonly');
+            input.removeAttribute('disabled');
           } else {
-            input.setAttribute('readonly', '');
+            if (input.tagName === 'SELECT') {
+              input.setAttribute('disabled', '');
+            } else {
+              input.setAttribute('readonly', '');
+            }
           }
         });
         if (actions) actions.hidden = !editing;

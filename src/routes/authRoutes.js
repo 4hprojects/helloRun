@@ -6,6 +6,7 @@ const passwordService = require('../services/password.service');
 const communicationService = require('../services/communication.service');
 const googleOAuthService = require('../services/google-oauth.service');
 const { syncPolicyConsentsForMongoUser } = require('../services/policy-consent.service');
+const { syncProfileCompletionNotification } = require('../services/profile-completion.service');
 const crypto = require('crypto');
 const { redirectIfAuth } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
@@ -78,6 +79,16 @@ function syncUserComplianceInBackground(user, source = 'live_sync') {
       console.error('Supabase user compliance sync failed:', {
         userId: String(user?._id || ''),
         source,
+        error: error.message
+      });
+    });
+}
+
+function syncProfileCompletionInBackground(user) {
+  syncProfileCompletionNotification(user)
+    .catch((error) => {
+      console.error('Profile completion notification sync failed:', {
+        userId: String(user?._id || ''),
         error: error.message
       });
     });
@@ -180,6 +191,7 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
     }
 
     startAuthenticatedSession(req, user);
+    syncProfileCompletionInBackground(user);
     if (returnTo) {
       req.session.returnTo = returnTo;
     }
@@ -550,6 +562,7 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
     }
 
     startAuthenticatedSession(req, user);
+    syncProfileCompletionInBackground(user);
 
     const googleReturnTo = resolveSafeReturnTo(req.session.googleOAuthReturnTo);
     delete req.session.googleOAuthReturnTo;

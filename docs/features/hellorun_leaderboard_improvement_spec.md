@@ -4,6 +4,33 @@
 
 Improve the HelloRun leaderboard into a user-friendly results, progress, and verification system.
 
+## Implementation Update - June 2, 2026
+
+The first leaderboard clarity pass is now implemented around event-scoped rankings.
+
+Implemented:
+
+- Global `/leaderboard` now works as a discovery page for public events with enabled leaderboards.
+- Official ranks remain event-scoped at `/events/:slug/leaderboard`.
+- Discovery cards show event title, organiser, image, event type, race distances, leaderboard type, verified count, pending count, last updated label, and ranking explanation.
+- Discovery supports `q`, `type`, `distance`, and `mode` filters.
+- The old mixed global ranking table is removed from the primary `/leaderboard` UI because it mixed events, distances, ranking modes, and leaderboard types.
+- Public-safe output is preserved. Proof URLs, OCR data, email, phone, internal notes, and suspicious-review data are not exposed.
+- Existing event leaderboard behavior remains the official ranking workflow, including My Standing, nearby runners, search, mobile cards, status legend, and privacy handling.
+- The legacy `getLeaderboardData` service remains available for compatibility and existing tests.
+
+Current test coverage:
+
+- Discovery service coverage for public enabled events, counts, safe fields, filters, and sorting.
+- Route/view coverage for discovery copy, event-card links, empty state, and removal of the old global rank table as the main output.
+- Existing leaderboard and public page route tests continue to pass.
+
+Deferred:
+
+- Category, gender, age-group, team, awards, and admin review enhancements.
+- Timing-provider imports and result correction workflows.
+- Anonymous leaderboard mode beyond the existing privacy-safe public display rules.
+
 This update should support:
 
 - Competitive race results

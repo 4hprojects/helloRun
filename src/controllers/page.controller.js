@@ -70,7 +70,7 @@ const {
   getPublicBadgeVerification: loadPublicBadgeVerification
 } = require('../services/achievement.service');
 const {
-  getLeaderboardData,
+  getLeaderboardDiscoveryData,
   getEventLeaderboard,
   getMyStanding
 } = require('../services/leaderboard.service');
@@ -1611,22 +1611,22 @@ exports.getBlogPost = async (req, res) => {
 
 exports.getLeaderboard = async (req, res) => {
   try {
-    const data = await getLeaderboardData({
-      eventId: req.query.event,
+    const data = await getLeaderboardDiscoveryData({
+      q: req.query.q,
+      type: req.query.type,
       distance: req.query.distance,
       mode: req.query.mode,
-      period: req.query.period,
       limit: req.query.limit
     });
 
-    const activeFilterCount = Number(Boolean(data.filters.eventId))
+    const activeFilterCount = Number(Boolean(data.filters.q))
+      + Number(Boolean(data.filters.type))
       + Number(Boolean(data.filters.distance))
-      + Number(Boolean(data.filters.mode))
-      + Number(data.filters.period !== 'all');
+      + Number(Boolean(data.filters.mode));
     const hasActiveFilters = activeFilterCount > 0;
 
     return res.render('pages/leaderboard', {
-      title: 'Leaderboard - HelloRun',
+      title: 'Find Event Leaderboards - HelloRun',
       leaderboard: data,
       filterMeta: {
         activeFilterCount,

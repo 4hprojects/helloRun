@@ -8,6 +8,84 @@ const { getAccumulatedLeaderboardRows } = require('./accumulated-activity.servic
 const { getPublicEventVisibilityQuery, isPublicEventVisible } = require('../utils/public-event-visibility');
 
 const DEFAULT_EVENT_LEADERBOARD_COLUMNS = ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status'];
+const DEFAULT_EVENT_IMAGE_URL = '/images/helloRun-icon.webp';
+
+async function getLeaderboardDiscoveryData(rawFilters = {}) {
+  const filters = normalizeLeaderboardDiscoveryFilters(rawFilters);
+  const now = new Date();
+  const query = {
+    ...getPublicEventVisibilityQuery(now),
+    leaderboardRecognitionEnabled: { $ne: false },
+    'leaderboardSettings.enabled': { $ne: false }
+  };
+
+  if (filters.q) {
+    const safePattern = new RegExp(escapeRegex(filters.q), 'i');
+    query.$and = query.$and || [];
+    query.$and.push({
+      $or: [
+        { title: safePattern },
+        { organiserName: safePattern },
+        { description: safePattern }
+      ]
+    });
+  }
+  if (filters.distance) {
+    query.raceDistances = filters.distance;
+  }
+  if (filters.mode) {
+    query.$or = [
+      { eventType: filters.mode },
+      { eventTypesAllowed: filters.mode }
+    ];
+  }
+
+  const events = await Event.find(query)
+    .select('title slug description organiserName eventType eventTypesAllowed raceDistances eventStartAt eventEndAt bannerImageUrl leaderboardRecognitionEnabled leaderboardSettings virtualCompletionMode targetDistanceKm createdAt updatedAt')
+    .sort({ eventStartAt: -1, updatedAt: -1, createdAt: -1 })
+    .limit(200)
+    .lean();
+
+  const filteredEvents = events
+    .map((event) => ({ event, settings: resolveEventLeaderboardSettings(event) }))
+    .filter((item) => item.settings.enabled)
+    .filter((item) => !filters.type || item.settings.type === filters.type);
+  const eventIds = filteredEvents.map((item) => item.event._id).filter(Boolean);
+  const [submissionStats, accumulatedStats] = await Promise.all([
+    getSubmissionDiscoveryStats(eventIds),
+    getAccumulatedDiscoveryStats(eventIds)
+  ]);
+
+  const cards = filteredEvents
+    .map(({ event, settings }) => formatLeaderboardDiscoveryCard({
+      event,
+      settings,
+      submissionStats: submissionStats.get(String(event._id)),
+      accumulatedStats: accumulatedStats.get(String(event._id)),
+      now
+    }))
+    .sort(compareLeaderboardDiscoveryCards)
+    .slice(0, filters.limit);
+
+  return {
+    filters,
+    cards,
+    options: {
+      types: [
+        { value: 'race_result', label: 'Race Result' },
+        { value: 'accumulated_challenge', label: 'Accumulated Challenge' }
+      ],
+      distances: getUniqueEventDistances(events),
+      modes: ['virtual', 'onsite']
+    },
+    stats: {
+      totalEvents: filteredEvents.length,
+      totalShown: cards.length,
+      totalVerifiedResults: cards.reduce((sum, card) => sum + card.verifiedCount, 0),
+      totalPendingResults: cards.reduce((sum, card) => sum + card.pendingCount, 0)
+    }
+  };
+}
 
 async function getLeaderboardData(rawFilters = {}) {
   const filters = normalizeLeaderboardFilters(rawFilters);
@@ -16,7 +94,7 @@ async function getLeaderboardData(rawFilters = {}) {
   const rows = await Submission.find(query)
     .sort({ elapsedMs: 1, submittedAt: 1, createdAt: 1 })
     .limit(filters.limit)
-    .populate({ path: 'runnerId', select: 'firstName lastName email' })
+    .populate({ path: 'runnerId', select: 'firstName lastName displayName email' })
     .populate({ path: 'eventId', select: 'title slug status isDeleted isPersonalRecord publicListingAvailableAt' })
     .select('eventId runnerId raceDistance participationMode elapsedMs submittedAt')
     .lean();
@@ -330,7 +408,7 @@ async function hydrateAccumulatedLeaderboardRows(rows = []) {
     Event.find({ _id: { $in: eventIds }, ...getPublicEventVisibilityQuery(new Date()) })
       .select('title slug status isDeleted')
       .lean(),
-    User.find({ _id: { $in: runnerIds } }).select('firstName lastName email').lean(),
+    User.find({ _id: { $in: runnerIds } }).select('firstName lastName displayName email').lean(),
     Registration.find({ _id: { $in: registrationIds } }).select('confirmationCode').lean()
   ]);
   const eventById = new Map(events.map((item) => [String(item._id), item]));
@@ -371,6 +449,17 @@ function normalizeLeaderboardFilters(rawFilters = {}) {
     limit: clampInt(rawFilters.limit, 1, 200, 100)
   };
   return normalized;
+}
+
+function normalizeLeaderboardDiscoveryFilters(rawFilters = {}) {
+  const type = String(rawFilters.type || '').trim().toLowerCase();
+  return {
+    q: String(rawFilters.q || rawFilters.search || '').trim().slice(0, 80),
+    type: ['race_result', 'accumulated_challenge'].includes(type) ? type : '',
+    distance: normalizeDistance(rawFilters.distance),
+    mode: normalizeMode(rawFilters.mode),
+    limit: clampInt(rawFilters.limit, 1, 200, 100)
+  };
 }
 
 function buildLeaderboardQuery(filters) {
@@ -422,6 +511,189 @@ async function getLeaderboardEvents() {
     .filter(Boolean);
 }
 
+async function getSubmissionDiscoveryStats(eventIds = []) {
+  if (!eventIds.length) return new Map();
+  const rows = await Submission.aggregate([
+    {
+      $match: {
+        eventId: { $in: eventIds },
+        isPersonalRecord: { $ne: true },
+        status: { $in: ['approved', 'submitted'] },
+        suspiciousFlag: { $ne: true }
+      }
+    },
+    {
+      $group: {
+        _id: '$eventId',
+        verifiedCount: {
+          $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] }
+        },
+        pendingCount: {
+          $sum: { $cond: [{ $eq: ['$status', 'submitted'] }, 1, 0] }
+        },
+        lastUpdatedAt: { $max: { $ifNull: ['$reviewedAt', '$submittedAt'] } }
+      }
+    }
+  ]);
+
+  return new Map(rows.map((row) => [String(row._id), {
+    verifiedCount: Number(row.verifiedCount || 0),
+    pendingCount: Number(row.pendingCount || 0),
+    lastUpdatedAt: row.lastUpdatedAt || null
+  }]));
+}
+
+async function getAccumulatedDiscoveryStats(eventIds = []) {
+  if (!eventIds.length) return new Map();
+  const rows = await AccumulatedActivitySubmission.aggregate([
+    {
+      $match: {
+        eventId: { $in: eventIds },
+        status: { $in: ['approved', 'submitted'] },
+        suspiciousFlag: { $ne: true }
+      }
+    },
+    {
+      $group: {
+        _id: {
+          eventId: '$eventId',
+          registrationId: '$registrationId',
+          status: '$status'
+        },
+        lastUpdatedAt: { $max: { $ifNull: ['$reviewedAt', '$submittedAt'] } }
+      }
+    },
+    {
+      $group: {
+        _id: '$_id.eventId',
+        verifiedCount: {
+          $sum: { $cond: [{ $eq: ['$_id.status', 'approved'] }, 1, 0] }
+        },
+        pendingCount: {
+          $sum: { $cond: [{ $eq: ['$_id.status', 'submitted'] }, 1, 0] }
+        },
+        lastUpdatedAt: { $max: '$lastUpdatedAt' }
+      }
+    }
+  ]);
+
+  return new Map(rows.map((row) => [String(row._id), {
+    verifiedCount: Number(row.verifiedCount || 0),
+    pendingCount: Number(row.pendingCount || 0),
+    lastUpdatedAt: row.lastUpdatedAt || null
+  }]));
+}
+
+function formatLeaderboardDiscoveryCard({ event, settings, submissionStats = {}, accumulatedStats = {}, now = new Date() }) {
+  const raceDistances = Array.isArray(event.raceDistances)
+    ? event.raceDistances.map((item) => String(item || '').trim().toUpperCase()).filter(Boolean)
+    : [];
+  const eventModes = Array.from(new Set(
+    [event.eventType].concat(Array.isArray(event.eventTypesAllowed) ? event.eventTypesAllowed : [])
+      .map((item) => String(item || '').trim().toLowerCase())
+      .filter((item) => item === 'virtual' || item === 'onsite' || item === 'hybrid')
+  ));
+  const stats = settings.type === 'accumulated_challenge' ? accumulatedStats : submissionStats;
+  const lastUpdatedAt = stats.lastUpdatedAt || event.updatedAt || null;
+
+  return {
+    id: String(event._id || ''),
+    title: event.title || 'Untitled event',
+    slug: event.slug || '',
+    href: event.slug ? `/events/${event.slug}/leaderboard` : '',
+    eventHref: event.slug ? `/events/${event.slug}` : '',
+    imageUrl: event.bannerImageUrl || DEFAULT_EVENT_IMAGE_URL,
+    organiserName: event.organiserName || '',
+    eventType: event.eventType || '',
+    eventTypeLabel: formatEventTypeLabel(event.eventType),
+    modes: eventModes,
+    modeLabel: eventModes.map(formatEventTypeLabel).join(', ') || 'Mode TBA',
+    raceDistances,
+    distanceLabel: raceDistances.join(', ') || 'Distances TBA',
+    leaderboardType: settings.type,
+    leaderboardTypeLabel: settings.type === 'accumulated_challenge' ? 'Accumulated Challenge' : 'Race Result',
+    rankingExplanation: settings.type === 'accumulated_challenge'
+      ? 'Ranked by highest verified accumulated distance.'
+      : 'Ranked by fastest verified time.',
+    verifiedCount: Number(stats.verifiedCount || 0),
+    pendingCount: Number(stats.pendingCount || 0),
+    lastUpdatedAt,
+    lastUpdatedLabel: formatDateTimeLabel(lastUpdatedAt),
+    eventStartAt: event.eventStartAt || null,
+    dateLabel: formatDateRangeLabel(event.eventStartAt, event.eventEndAt),
+    isActiveOrUpcoming: isEventActiveOrUpcoming(event, now)
+  };
+}
+
+function compareLeaderboardDiscoveryCards(a, b) {
+  const verifiedDiff = Number(b.verifiedCount || 0) - Number(a.verifiedCount || 0);
+  if (verifiedDiff !== 0) return verifiedDiff;
+  if (a.isActiveOrUpcoming !== b.isActiveOrUpcoming) return a.isActiveOrUpcoming ? -1 : 1;
+  const activityDiff = getTimeValue(b.lastUpdatedAt) - getTimeValue(a.lastUpdatedAt);
+  if (activityDiff !== 0) return activityDiff;
+  return getTimeValue(a.eventStartAt) - getTimeValue(b.eventStartAt);
+}
+
+function getUniqueEventDistances(events = []) {
+  return Array.from(new Set(
+    events.flatMap((event) => Array.isArray(event.raceDistances) ? event.raceDistances : [])
+      .map((item) => String(item || '').trim().toUpperCase())
+      .filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+}
+
+function formatEventTypeLabel(value) {
+  const safe = String(value || '').trim().toLowerCase();
+  if (safe === 'virtual') return 'Virtual';
+  if (safe === 'onsite') return 'Onsite';
+  if (safe === 'hybrid') return 'Hybrid';
+  return safe ? safe.charAt(0).toUpperCase() + safe.slice(1) : 'Event';
+}
+
+function formatDateTimeLabel(value) {
+  if (!value) return 'No verified results yet';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'No verified results yet';
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  });
+}
+
+function formatDateRangeLabel(startValue, endValue) {
+  const start = startValue ? new Date(startValue) : null;
+  const end = endValue ? new Date(endValue) : null;
+  const validStart = start && !Number.isNaN(start.getTime());
+  const validEnd = end && !Number.isNaN(end.getTime());
+  if (validStart && validEnd) {
+    return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  }
+  if (validStart) {
+    return start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+  return 'Dates TBA';
+}
+
+function isEventActiveOrUpcoming(event, now = new Date()) {
+  const end = event?.eventEndAt ? new Date(event.eventEndAt) : null;
+  if (!end || Number.isNaN(end.getTime())) return true;
+  return end >= now;
+}
+
+function getTimeValue(value) {
+  if (!value) return 0;
+  const date = new Date(value);
+  const time = date.getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function escapeRegex(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function normalizeObjectId(value) {
   const safe = String(value || '').trim();
   return mongoose.Types.ObjectId.isValid(safe) ? safe : '';
@@ -455,14 +727,13 @@ function periodToDays(value) {
 }
 
 function getRunnerDisplayName(runner) {
+  const displayName = String(runner?.displayName || '').trim();
+  if (displayName) return displayName;
   const first = String(runner?.firstName || '').trim();
   const last = String(runner?.lastName || '').trim();
-  const full = `${first} ${last}`.trim();
-  if (full) return full;
-  const email = String(runner?.email || '').trim();
-  if (!email) return 'Runner';
-  const [name] = email.split('@');
-  return name || 'Runner';
+  if (first && last) return `${first} ${last.charAt(0)}.`;
+  if (first) return first;
+  return 'Runner';
 }
 
 function formatElapsedMs(value) {
@@ -667,6 +938,7 @@ function clampInt(value, min, max, fallback) {
 }
 
 module.exports = {
+  getLeaderboardDiscoveryData,
   getLeaderboardData,
   getEventLeaderboard,
   getMyStanding,

@@ -35,6 +35,7 @@ router.get('/runner/submissions/:submissionId', requireAuth, runnerController.ge
 router.get('/runner/groups/:slug', requireAuth, runnerController.getRunningGroupDetail);
 router.get('/runner/security/password', requireAuth, runnerController.getPasswordSettings);
 router.post('/runner/profile', requireAuth, runnerController.updateProfile);
+router.post('/runner/profile/identity', requireAuth, runnerController.updateProfileIdentity);
 router.post('/runner/profile/contact', requireAuth, runnerController.updateProfileContact);
 router.post('/runner/profile/emergency', requireAuth, runnerController.updateProfileEmergency);
 router.post('/runner/profile/badges/featured', requireAuth, runnerController.updateFeaturedBadge);

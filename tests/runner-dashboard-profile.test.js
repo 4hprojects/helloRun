@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const User = require('../src/models/User');
+const Notification = require('../src/models/Notification');
 const {
   buildRunnerDashboardData,
   buildRunnerEventProgressCards
@@ -183,6 +184,7 @@ test('runner profile update validates and persists normalized data', async () =>
   const validResponse = await postForm('/runner/profile', cookie, {
     firstName: 'Profile',
     lastName: 'Updated',
+    displayName: 'Road Runner_7',
     mobile: '+1 555 100 2000',
     country: 'US',
     dateOfBirth: '1997-08-23',
@@ -200,9 +202,87 @@ test('runner profile update validates and persists normalized data', async () =>
 
   assert.equal(fresh.firstName, 'Profile');
   assert.equal(fresh.lastName, 'Updated');
+  assert.equal(fresh.displayName, 'Road Runner_7');
   assert.equal(fresh.country, 'US');
   assert.equal(fresh.runningGroup, 'Road Warriors');
   assert.equal(new Date(fresh.dateOfBirth).toISOString().slice(0, 10), '1997-08-23');
+});
+
+test('runner profile page supports identity edits and display name validation', async () => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const password = 'Pass1234';
+  const runner = await createRunner(`profile.identity.${stamp}`, password);
+  const cookie = await login(runner.email, password);
+  const ready = await waitForSessionReady('/runner/profile', cookie);
+  assert.equal(ready, true);
+
+  const page = await fetch(`${BASE_URL}/runner/profile`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.match(html, /name="displayName"/i);
+  assert.match(html, /Optional\. If set, HelloRun can show this instead of your full name/i);
+
+  const invalid = await postForm('/runner/profile/identity', cookie, {
+    firstName: 'Profile',
+    lastName: 'Runner',
+    displayName: 'bad@example.com',
+    dateOfBirth: '1995-01-01',
+    gender: 'male'
+  });
+  assert.equal(invalid.status, 302);
+  assert.match(String(invalid.headers.get('location') || ''), /Display%20name/i);
+
+  const valid = await postForm('/runner/profile/identity', cookie, {
+    firstName: 'Profile',
+    lastName: 'Identity',
+    displayName: 'Pace Maker',
+    dateOfBirth: '1995-01-01',
+    gender: 'prefer_not_to_say'
+  });
+  assert.equal(valid.status, 302);
+  assert.match(String(valid.headers.get('location') || ''), /Identity%20details%20updated/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  const fresh = await User.findById(runner._id).lean();
+  await mongoose.disconnect();
+
+  assert.equal(fresh.lastName, 'Identity');
+  assert.equal(fresh.displayName, 'Pace Maker');
+  assert.equal(fresh.gender, 'prefer_not_to_say');
+  assert.equal(new Date(fresh.dateOfBirth).toISOString().slice(0, 10), '1995-01-01');
+});
+
+test('incomplete Google runner receives one profile completion notification', async () => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const password = 'Pass1234';
+  const runner = await createRunner(`profile.notice.${stamp}`, password, {
+    authProvider: 'google',
+    googleId: `profile-notice-${stamp}`,
+    mobile: '',
+    country: '',
+    gender: '',
+    emergencyContactName: '',
+    emergencyContactNumber: ''
+  });
+  const cookie = await login(runner.email, password);
+  const ready = await waitForSessionReady('/runner/dashboard', cookie);
+  assert.equal(ready, true);
+
+  await new Promise((resolve) => setTimeout(resolve, 150));
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  const notices = await Notification.find({
+    userId: runner._id,
+    type: 'profile_incomplete',
+    readAt: null
+  }).lean();
+  await mongoose.disconnect();
+
+  assert.equal(notices.length, 1);
+  assert.equal(notices[0].href, '/runner/profile?source=notification#overview');
 });
 
 test('runner can unlink Google auth when local password exists', async () => {

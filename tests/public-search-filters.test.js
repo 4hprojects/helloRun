@@ -191,12 +191,16 @@ test('blog page applies search and category filters', async () => {
   assert.match(html, /Clear filters/i);
 });
 
-test('leaderboard shows filter summary and clear action when filtered', async () => {
-  const response = await fetch(`${BASE_URL}/leaderboard?distance=5K&period=30d`);
+test('leaderboard discovery shows filtered event cards and clear action', async () => {
+  const response = await fetch(`${BASE_URL}/leaderboard?q=Sunrise&distance=5K&mode=virtual`);
   assert.equal(response.status, 200);
   const html = await response.text();
+  assert.match(html, /Find Event Leaderboards/i);
+  assert.match(html, /Virtual Sunrise 5K/i);
+  assert.match(html, /\/events\/virtual-sunrise-[^"]+\/leaderboard/i);
   assert.match(html, /active filter/i);
   assert.match(html, /Clear filters/i);
+  assert.doesNotMatch(html, /<th>Runner<\/th>[\s\S]*<th>Submitted<\/th>/i);
 });
 
 async function seedPublicFilterFixture() {
@@ -254,6 +258,8 @@ async function seedPublicFilterFixture() {
     registrationCloseAt: new Date(now + 5 * 24 * 60 * 60 * 1000),
     eventStartAt: new Date(now + 10 * 24 * 60 * 60 * 1000),
     eventEndAt: new Date(now + 11 * 24 * 60 * 60 * 1000),
+    homeFeatured: true,
+    homeFeaturedRank: 0,
     city: 'Manila',
     country: 'PH',
     proofTypesAllowed: ['gps', 'photo', 'manual'],
