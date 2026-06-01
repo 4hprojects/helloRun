@@ -3,6 +3,25 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - June 1, 2026 (Session: Gallery Image Entry Removal)
+
+### [SESSION] SESSION UPDATE:
+- Updated create/edit event media Step 4 gallery handling so organisers can remove one selected gallery upload preview before saving the form.
+- Added local removal for individual gallery URL entries when create-event validation re-renders the form before an event has been persisted.
+- Kept edit-event gallery removal wired to the existing server-side media removal route for already-saved event gallery images.
+- Aligned edit-event gallery helper text with the accepted JPG/PNG/WebP upload formats.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. src/views/organizer/create-event.ejs
+3. src/views/organizer/edit-event.ejs
+4. tests/organizer-waiver-routes.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/organizer-waiver-routes.test.js` -> PASS
+
+---
+
 ## CHANGELOG - May 28, 2026 (Session: Homepage Carousel Admin UX Refinement)
 
 ### [SESSION] SESSION UPDATE:
