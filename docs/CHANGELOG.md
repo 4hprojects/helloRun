@@ -6,6 +6,27 @@
 ## CHANGELOG - June 1, 2026 (Session: Local Auth Workflow Refinement)
 
 ### [SESSION] SESSION UPDATE:
+- Added a mobile/tablet nav guidance callout for the submit-run shortcut so runners can identify where to submit recorded run results.
+- Styled the guidance as a lightweight anchored hint with a visible arrow pointing to the submit-run icon.
+- Auto-dismissed the guidance after 7 seconds on each page load without adding persistent client storage.
+- Preserved the existing desktop behavior where the nav submit-run shortcut remains hidden.
+- Added shared nav regression coverage for the callout markup and submit-run trigger.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. src/views/layouts/nav.ejs
+3. src/public/css/style.css
+4. src/public/js/main.js
+5. tests/runner-submissions-routes.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --check src/public/js/main.js` -> PASS
+- `node --test --test-concurrency=1 tests/runner-submissions-routes.test.js tests/runner-dashboard-modal.test.js` -> PASS, 25/25
+- `git diff --check -- src/views/layouts/nav.ejs src/public/css/style.css src/public/js/main.js tests/runner-submissions-routes.test.js` -> PASS
+
+---
+
+### [SESSION] SESSION UPDATE:
 - Updated virtual event registration so runners are not asked for emergency contact name or number when signing up for virtual-only runs.
 - Kept emergency contact collection and validation available for onsite participation; hybrid registration now toggles the emergency fields when the selected participation mode changes.
 - Updated the quick profile modal so virtual registration does not reintroduce required emergency contact fields through the profile snapshot editor.

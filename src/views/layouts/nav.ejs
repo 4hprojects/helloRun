@@ -16,14 +16,20 @@
     </a>
 
     <% if (!locals.isAuthenticated || (!locals.isAdmin && !locals.isOrganizer && !locals.isApprovedOrganizer)) { %>
-      <button
-        class="nav-run-proof-shortcut"
-        type="button"
-        data-open-run-proof-modal
-        aria-label="Log latest run"
-        title="Log latest run">
-        <i data-lucide="plus-circle"></i>
-      </button>
+      <div class="nav-run-proof-action">
+        <span class="nav-run-proof-callout" data-nav-run-proof-callout aria-hidden="true">
+          <span class="nav-run-proof-callout-kicker">Run proof</span>
+          <span class="nav-run-proof-callout-text">Submit your recorded run here</span>
+        </span>
+        <button
+          class="nav-run-proof-shortcut"
+          type="button"
+          data-open-run-proof-modal
+          aria-label="Log latest run"
+          title="Log latest run">
+          <i data-lucide="plus-circle"></i>
+        </button>
+      </div>
     <% } %>
     
     <button

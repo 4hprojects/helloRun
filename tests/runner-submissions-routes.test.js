@@ -104,6 +104,9 @@ test('runner submissions page includes working shared nav scripts once', async (
   assert.equal(countMatches(html, /id="runProofModal"/g), 1);
   assert.match(html, /class="menu-toggle"/);
   assert.match(html, /id="nav-links"/);
+  assert.match(html, /class="nav-run-proof-action"/);
+  assert.match(html, /class="nav-run-proof-shortcut"[\s\S]*data-open-run-proof-modal/);
+  assert.match(html, /Submit your recorded run here/);
 });
 
 test('runner A does not see runner B submissions on the list page', async () => {

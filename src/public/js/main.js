@@ -2,9 +2,18 @@
 function initMainUi() {
   const menuToggle = document.querySelector('.menu-toggle');
   const navLinks = document.querySelector('.nav-links');
+  const runProofCallouts = Array.from(document.querySelectorAll('[data-nav-run-proof-callout]'));
   const backToTopBtn = document.getElementById('globalBackToTopBtn');
   const eventsFilterForm = document.querySelector('.filter-bar[action="/events"]');
   const eventCarousels = Array.from(document.querySelectorAll('[data-event-carousel]'));
+
+  runProofCallouts.forEach((callout) => {
+    if (callout.dataset.navRunProofCalloutInitialized === '1') return;
+    callout.dataset.navRunProofCalloutInitialized = '1';
+    window.setTimeout(() => {
+      callout.classList.add('is-dismissed');
+    }, 7000);
+  });
 
   if (menuToggle && menuToggle.dataset.navInitialized !== '1') {
     menuToggle.dataset.navInitialized = '1';
