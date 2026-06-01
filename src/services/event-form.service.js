@@ -643,7 +643,7 @@ function inferTargetDistanceKm(raceDistances = [], raceCategories = []) {
     (raceDistances || []).map(parseRaceDistanceKm)
   );
   const targets = categoryTargets.length ? categoryTargets : labelTargets;
-  return targets.length === 1 ? targets[0] : null;
+  return targets.length ? Math.max(...targets) : null;
 }
 
 function addDays(date, days) {

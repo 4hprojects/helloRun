@@ -3,6 +3,28 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - June 1, 2026 (Session: Accumulated Challenge Multi-Distance Target)
+
+### [SESSION] SESSION UPDATE:
+- Fixed accumulated-distance event submission when organisers enter multiple numeric race distances such as `25,50,75,100,150,200`.
+- Updated target-distance inference so the largest numeric distance becomes the accumulated challenge completion goal.
+- Updated create/edit event helper copy to explain that multiple distances are allowed and the largest numeric distance sets the goal.
+- Added regression coverage for multi-distance accumulated challenge publish validation.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. src/services/event-form.service.js
+3. src/views/organizer/create-event.ejs
+4. src/views/organizer/edit-event.ejs
+5. tests/create-event-form.service.test.js
+6. tests/organizer-waiver-routes.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/create-event-form.service.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/organizer-waiver-routes.test.js` -> PASS
+
+---
+
 ## CHANGELOG - June 1, 2026 (Session: Gallery Image Entry Removal)
 
 ### [SESSION] SESSION UPDATE:

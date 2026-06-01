@@ -54,6 +54,22 @@ test('create-event form derives accumulated target from distance labels and igno
   assert.equal(formData.targetDistanceKm, 100);
 });
 
+test('create-event form derives accumulated target from the largest distance label', () => {
+  const formData = getCreateEventFormData(buildPublishPayload({
+    eventType: 'virtual',
+    raceDistanceCustom: '25,50,75,100,150,200',
+    virtualCompletionMode: 'accumulated_distance',
+    feeMode: 'free',
+    paymentQrImageUrl: '',
+    paymentAccountName: ''
+  }));
+  const errors = validateCreateEventForm(formData);
+
+  assert.deepEqual(formData.raceDistances, ['25K', '50K', '75K', '100K', '150K', '200K']);
+  assert.equal(formData.targetDistanceKm, 200);
+  assert.equal(errors.raceDistances, undefined);
+});
+
 test('create-event form derives accumulated target from structured category distance', () => {
   const formData = getCreateEventFormData({
     eventType: 'virtual',
