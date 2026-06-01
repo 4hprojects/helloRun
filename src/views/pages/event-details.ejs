@@ -23,8 +23,7 @@
       const registrationOptionItems = Array.isArray(details.raceDistances)
         ? details.raceDistances.map((item) => String(item || '').trim()).filter(Boolean)
         : [];
-      const showPreviewRegistrationOptionBullets = Boolean(
-        isPreviewMode &&
+      const showRegistrationOptionBullets = Boolean(
         details.isAccumulatedChallenge &&
         registrationOptionItems.length > 1
       );
@@ -113,7 +112,7 @@
 
       <section class="event-stats-strip" aria-label="Event highlights">
         <% (details.stats || []).forEach((stat) => { %>
-          <% const useRegistrationOptionBullets = showPreviewRegistrationOptionBullets && stat.label === 'Registration Options'; %>
+          <% const useRegistrationOptionBullets = showRegistrationOptionBullets && stat.label === 'Registration Options'; %>
           <article class="event-stat">
             <span><%= stat.label %></span>
             <% if (useRegistrationOptionBullets) { %>
@@ -174,7 +173,7 @@
                 <% if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
                   <div class="event-goal-options">
                     <strong>Registration options:</strong>
-                    <% if (showPreviewRegistrationOptionBullets) { %>
+                    <% if (showRegistrationOptionBullets) { %>
                       <ul class="event-registration-option-bullets">
                         <% registrationOptionItems.forEach((option) => { %>
                           <li><%= option %></li>
@@ -191,7 +190,7 @@
                 <strong><%= details.targetDistanceLabel %></strong>
                 <span>Completion goal</span>
                 <% if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
-                  <% if (showPreviewRegistrationOptionBullets) { %>
+                  <% if (showRegistrationOptionBullets) { %>
                     <small>Options:</small>
                     <ul class="event-registration-option-bullets event-registration-option-bullets-compact">
                       <% registrationOptionItems.forEach((option) => { %>
@@ -427,7 +426,7 @@
             <h3>Event Details</h3>
             <div class="event-side-list">
               <% const registrationOptionsLabel = details.isAccumulatedChallenge ? ((details.raceDistances || []).length > 1 ? 'Registration Options' : 'Registration Option') : ((details.raceDistances || []).length > 1 ? 'Distances' : 'Distance'); %>
-              <% if (showPreviewRegistrationOptionBullets) { %>
+              <% if (showRegistrationOptionBullets) { %>
                 <div class="event-side-list-row">
                   <strong><%= registrationOptionsLabel %></strong>
                   <span>
