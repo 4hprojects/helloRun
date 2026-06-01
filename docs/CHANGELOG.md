@@ -3,6 +3,27 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - June 1, 2026 (Session: Event Race Category ID Validation Fix)
+
+### [SESSION] SESSION UPDATE:
+- Fixed event creation blocking on the server-side validation message `Race category IDs must be unique. Remove and re-add the duplicate category.`
+- Updated race category normalization to repair duplicate hidden category IDs before validation and persistence.
+- Kept user-facing category validation intact:
+  - duplicate display names still fail validation
+  - duplicate distance labels still fail validation
+- Added regression coverage for duplicate internal race category IDs so stale browser-hidden IDs no longer prevent first event creation.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. src/services/event-form.service.js
+3. tests/create-event-form.service.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/create-event-form.service.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/event-shadow.service.test.js` -> PASS
+
+---
+
 ## CHANGELOG - May 28, 2026 (Session: Homepage Carousel Admin UX Refinement)
 
 ### [SESSION] SESSION UPDATE:
