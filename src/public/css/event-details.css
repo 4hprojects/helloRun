@@ -289,6 +289,34 @@
   margin: 5px 0;
 }
 
+.event-registration-option-bullets {
+  margin: 8px 0 0;
+  padding-left: 1.15rem;
+  color: inherit;
+}
+
+.event-registration-option-bullets li {
+  margin: 0 0 4px;
+  line-height: 1.35;
+}
+
+.event-registration-option-bullets-stat {
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.event-registration-option-bullets-compact {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.event-registration-option-bullets-side {
+  margin-top: 0;
+  color: #56657a;
+}
+
 .event-main-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 330px;
@@ -405,7 +433,8 @@
   color: #ffffff;
 }
 
-.event-goal-section > div > p:last-child {
+.event-goal-section > div > p:last-child,
+.event-goal-section .event-goal-options p {
   color: rgba(255, 255, 255, 0.76);
   line-height: 1.65;
 }
@@ -417,6 +446,10 @@
 }
 
 .event-goal-section .event-goal-options strong {
+  color: #ffffff;
+}
+
+.event-goal-section .event-goal-options ul {
   color: #ffffff;
 }
 
@@ -569,7 +602,8 @@
 }
 
 .event-rule-list p,
-.event-side-list p {
+.event-side-list p,
+.event-side-list-row {
   margin: 0;
   display: grid;
   grid-template-columns: 170px minmax(0, 1fr);
@@ -579,17 +613,20 @@
 }
 
 .event-rule-list p:last-child,
-.event-side-list p:last-child {
+.event-side-list p:last-child,
+.event-side-list-row:last-child {
   border-bottom: 0;
 }
 
 .event-rule-list strong,
-.event-side-list strong {
+.event-side-list strong,
+.event-side-list-row strong {
   color: #25344a;
 }
 
 .event-rule-list span,
-.event-side-list span {
+.event-side-list span,
+.event-side-list-row span {
   color: #56657a;
 }
 
@@ -1045,7 +1082,8 @@
   }
 
   .event-rule-list p,
-  .event-side-list p {
+  .event-side-list p,
+  .event-side-list-row {
     grid-template-columns: 1fr;
     gap: 4px;
     padding: 10px 0;

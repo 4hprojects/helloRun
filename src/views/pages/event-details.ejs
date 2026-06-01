@@ -20,6 +20,14 @@
       const previewErrorMessages = Array.isArray(previewErrorsRaw)
         ? previewErrorsRaw
         : Object.values(previewErrorsRaw || {});
+      const registrationOptionItems = Array.isArray(details.raceDistances)
+        ? details.raceDistances.map((item) => String(item || '').trim()).filter(Boolean)
+        : [];
+      const showPreviewRegistrationOptionBullets = Boolean(
+        isPreviewMode &&
+        details.isAccumulatedChallenge &&
+        registrationOptionItems.length > 1
+      );
     %>
 
     <% if (isPreviewMode) { %>
@@ -105,9 +113,18 @@
 
       <section class="event-stats-strip" aria-label="Event highlights">
         <% (details.stats || []).forEach((stat) => { %>
+          <% const useRegistrationOptionBullets = showPreviewRegistrationOptionBullets && stat.label === 'Registration Options'; %>
           <article class="event-stat">
             <span><%= stat.label %></span>
-            <strong><%= stat.value %></strong>
+            <% if (useRegistrationOptionBullets) { %>
+              <ul class="event-registration-option-bullets event-registration-option-bullets-stat">
+                <% registrationOptionItems.forEach((option) => { %>
+                  <li><%= option %></li>
+                <% }) %>
+              </ul>
+            <% } else { %>
+              <strong><%= stat.value %></strong>
+            <% } %>
             <small><%= stat.helper %></small>
           </article>
         <% }) %>
@@ -155,14 +172,35 @@
                 <h2>Complete <%= details.targetDistanceLabel %></h2>
                 <p>Only approved submissions count toward the official total. Keep submitting valid activities until your progress reaches the completion goal.</p>
                 <% if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
-                  <p class="event-goal-options"><strong>Registration options:</strong> <%= details.distanceSummaryLabel %>. These are runner-facing distance labels; completion is measured against the goal above.</p>
+                  <div class="event-goal-options">
+                    <strong>Registration options:</strong>
+                    <% if (showPreviewRegistrationOptionBullets) { %>
+                      <ul class="event-registration-option-bullets">
+                        <% registrationOptionItems.forEach((option) => { %>
+                          <li><%= option %></li>
+                        <% }) %>
+                      </ul>
+                      <p>These are runner-facing distance labels; completion is measured against the goal above.</p>
+                    <% } else { %>
+                      <p><%= details.distanceSummaryLabel %>. These are runner-facing distance labels; completion is measured against the goal above.</p>
+                    <% } %>
+                  </div>
                 <% } %>
               </div>
               <div class="event-goal-panel">
                 <strong><%= details.targetDistanceLabel %></strong>
                 <span>Completion goal</span>
                 <% if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
-                  <small>Options: <%= details.distanceSummaryLabel %></small>
+                  <% if (showPreviewRegistrationOptionBullets) { %>
+                    <small>Options:</small>
+                    <ul class="event-registration-option-bullets event-registration-option-bullets-compact">
+                      <% registrationOptionItems.forEach((option) => { %>
+                        <li><%= option %></li>
+                      <% }) %>
+                    </ul>
+                  <% } else { %>
+                    <small>Options: <%= details.distanceSummaryLabel %></small>
+                  <% } %>
                 <% } else { %>
                   <small><%= details.virtualRules?.completionMode || 'Completion goal' %></small>
                 <% } %>
@@ -388,7 +426,21 @@
           <section class="event-side-card">
             <h3>Event Details</h3>
             <div class="event-side-list">
-              <p><strong><%= details.isAccumulatedChallenge ? ((details.raceDistances || []).length > 1 ? 'Registration Options' : 'Registration Option') : ((details.raceDistances || []).length > 1 ? 'Distances' : 'Distance') %></strong><span><%= details.distanceSummaryLabel || (details.raceDistances || []).join(', ') || details.targetDistanceLabel || 'TBA' %></span></p>
+              <% const registrationOptionsLabel = details.isAccumulatedChallenge ? ((details.raceDistances || []).length > 1 ? 'Registration Options' : 'Registration Option') : ((details.raceDistances || []).length > 1 ? 'Distances' : 'Distance'); %>
+              <% if (showPreviewRegistrationOptionBullets) { %>
+                <div class="event-side-list-row">
+                  <strong><%= registrationOptionsLabel %></strong>
+                  <span>
+                    <ul class="event-registration-option-bullets event-registration-option-bullets-side">
+                      <% registrationOptionItems.forEach((option) => { %>
+                        <li><%= option %></li>
+                      <% }) %>
+                    </ul>
+                  </span>
+                </div>
+              <% } else { %>
+                <p><strong><%= registrationOptionsLabel %></strong><span><%= details.distanceSummaryLabel || (details.raceDistances || []).join(', ') || details.targetDistanceLabel || 'TBA' %></span></p>
+              <% } %>
               <% if ((details.raceCategories || []).length) { %>
                 <p><strong>Categories</strong><span><%= details.raceCategories.map((category) => category.name).join(', ') %></span></p>
               <% } %>
