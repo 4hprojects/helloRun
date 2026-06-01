@@ -124,7 +124,7 @@
                   <i data-lucide="eye" class="eye-icon"></i>
                 </button>
               </div>
-              <small class="form-hint">Min. 8 characters with uppercase, lowercase, and number</small>
+              <small class="form-hint">Min. 8 characters with uppercase, lowercase, and number. Symbols are allowed.</small>
               <small class="form-error" id="passwordError"></small>
               
               <div class="password-strength" id="passwordStrength" style="display: none;">
@@ -259,17 +259,11 @@
           const passwordInput = document.getElementById(targetId);
           const icon = this.querySelector('.eye-icon');
           
-          console.log('Toggle clicked for:', targetId);
-          console.log('Password input:', passwordInput);
-          console.log('Icon:', icon);
-          
           if (!passwordInput) {
-            console.error('Password input not found for ID:', targetId);
             return;
           }
           
           if (!icon) {
-            console.error('Eye icon not found in button');
             return;
           }
           
@@ -277,11 +271,9 @@
           if (passwordInput.type === 'password') {
             passwordInput.type = 'text';
             icon.setAttribute('data-lucide', 'eye-off');
-            console.log('Changed to visible');
           } else {
             passwordInput.type = 'password';
             icon.setAttribute('data-lucide', 'eye');
-            console.log('Changed to hidden');
           }
           
           // Re-create icons
@@ -416,7 +408,7 @@
           if (/[0-9]/.test(pwd)) strength++;
           
           if (strength < 4) {
-            showError('passwordError', 'Password must contain uppercase, lowercase, and a number');
+            showError('passwordError', 'Use at least 8 characters with uppercase, lowercase, and a number');
             passwordInput.classList.add('error');
             isValid = false;
           }

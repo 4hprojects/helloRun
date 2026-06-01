@@ -109,6 +109,10 @@ function renderResendVerificationPage(req, res, options = {}) {
   });
 }
 
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase().slice(0, 254);
+}
+
 // Login Page - redirect if already logged in
 router.get('/login', redirectIfAuth, (req, res) => {
   const queryMessage = typeof req.query.message === 'string' ? req.query.message : null;
@@ -124,7 +128,8 @@ router.get('/login', redirectIfAuth, (req, res) => {
 // Login Form Handler - redirect if already logged in
 router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const { password } = req.body;
     const returnTo = resolveSafeReturnTo(req.body.returnTo, '');
     
     const user = await User.findOne({ email });
@@ -134,6 +139,7 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
         success: null,
         showResendLink: false,
         userEmail: null,
+        email,
         returnTo
       });
     }
@@ -145,6 +151,7 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
         success: null,
         showResendLink: true,
         userEmail: user.email,
+        email,
         returnTo
       });
     }
@@ -155,6 +162,7 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
         success: null,
         showResendLink: false,
         userEmail: null,
+        email,
         returnTo
       });
     }
@@ -166,6 +174,7 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
         success: null,
         showResendLink: false,
         userEmail: null,
+        email,
         returnTo
       });
     }
@@ -183,6 +192,7 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
       success: null,
       showResendLink: false,
       userEmail: null,
+      email: normalizeEmail(req.body?.email),
       returnTo: resolveSafeReturnTo(req.body?.returnTo, '')
     });
   }
@@ -210,7 +220,8 @@ router.get('/signup', redirectIfAuth, (req, res) => renderSignupPage(req, res));
 // Registration handler function
 async function handleRegistration(req, res) {
   try {
-    const { firstName, lastName, email, password, confirmPassword, role, agreeTerms } = req.body;
+    const { firstName, lastName, password, confirmPassword, role, agreeTerms } = req.body;
+    const email = normalizeEmail(req.body.email);
 
     // Validate passwords match
     if (password !== confirmPassword) {
@@ -220,16 +231,30 @@ async function handleRegistration(req, res) {
       });
     }
 
+    if (!firstName || !String(firstName).trim() || !lastName || !String(lastName).trim() || !email) {
+      return renderSignupPage(req, res, {
+        error: 'First name, last name, and email are required.',
+        formData: req.body
+      });
+    }
+
+    if (!['runner', 'organiser'].includes(role)) {
+      return renderSignupPage(req, res, {
+        error: 'Please choose whether you are signing up as a runner or event organizer.',
+        formData: req.body
+      });
+    }
+
     // Validate password strength
     if (!passwordService.validatePassword(password)) {
       return renderSignupPage(req, res, {
-        error: 'Password must be at least 8 characters with uppercase, lowercase, and number.',
+        error: 'Password must be at least 8 characters and include uppercase, lowercase, and number.',
         formData: req.body
       });
     }
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    const existingUser = await User.findOne({ email });
     if (existingUser) {
       return renderSignupPage(req, res, {
         error: 'An account with this email already exists.',
@@ -287,7 +312,7 @@ async function handleRegistration(req, res) {
     const newUser = new User({
       firstName,
       lastName,
-      email: email.toLowerCase(),
+      email,
       passwordHash,
       role: userRole,
       emailVerified: false,
@@ -560,7 +585,7 @@ router.get('/forgot-password', (req, res) => {
 // Forgot Password Form Handler
 router.post('/forgot-password', requireCsrfProtection, forgotPasswordLimiter, async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = normalizeEmail(req.body.email);
     
     const user = await User.findOne({ email });
     
@@ -669,7 +694,7 @@ router.post('/reset-password/:token', requireCsrfProtection, async (req, res) =>
 
     if (!passwordService.validatePassword(password)) {
       return res.render('auth/reset-password', {
-        error: 'Password must be at least 8 characters with uppercase, lowercase, and number.',
+        error: 'Password must be at least 8 characters and include uppercase, lowercase, and number.',
         success: null,
         token: token
       });
@@ -872,7 +897,7 @@ router.get('/resend-verification', (req, res) => {
 // Resend Verification Form Handler
 router.post('/resend-verification', requireCsrfProtection, resendVerificationLimiter, async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = normalizeEmail(req.body.email);
 
     if (!email || typeof email !== 'string') {
       return renderResendVerificationPage(req, res, {
@@ -881,7 +906,7 @@ router.post('/resend-verification', requireCsrfProtection, resendVerificationLim
       });
     }
 
-    const trimmedEmail = email.trim().toLowerCase();
+    const trimmedEmail = email;
     const user = await User.findOne({ email: trimmedEmail });
 
     if (user && !user.emailVerified) {

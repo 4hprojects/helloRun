@@ -11,9 +11,9 @@ exports.comparePassword = async (password, hash) => {
 };
 
 exports.validatePassword = (password) => {
-  // At least one uppercase, one lowercase, one number, minimum 8 characters
-  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/;
-  return regex.test(password);
+  if (typeof password !== 'string') return false;
+  const checks = exports.getPasswordStrength(password);
+  return checks.minLength && checks.hasUppercase && checks.hasLowercase && checks.hasNumber;
 };
 
 exports.getPasswordStrength = (password) => {

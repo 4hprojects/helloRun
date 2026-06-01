@@ -4,6 +4,19 @@
 
 Status: MVP implemented.
 
+## Auth Support Update - June 1, 2026
+
+Status: local signup and email/password login support refinements implemented.
+
+Completed auth workflow improvements:
+
+- Server password validation now matches the signup UI: passwords need at least 8 characters, uppercase, lowercase, and a number; common symbols are allowed instead of being rejected after the browser marks them valid.
+- Local auth email lookup now trims and lowercases email input for signup, login, forgot-password, and resend-verification flows.
+- Login error recovery preserves the submitted email value so users do not have to retype it after a failed attempt.
+- Unverified local accounts now get a direct resend-verification link from the login error state.
+- Login client-side validation now uses inline errors and no longer disables the login button when a client-side validation error prevents submission.
+- Focused coverage exists in `tests/auth-local-workflow.test.js`; the broader `npm run test:auth` suite passed after the change.
+
 Implemented admin surfaces:
 
 - `/admin/users`

@@ -3,6 +3,34 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - June 1, 2026 (Session: Local Auth Workflow Refinement)
+
+### [SESSION] SESSION UPDATE:
+- Reviewed the manual local signup and email/password login flow after user reports of password validation and login difficulty.
+- Aligned server-side password validation with the signup UI so common symbols are accepted when the password still has at least 8 characters, uppercase, lowercase, and a number.
+- Normalized local auth email handling across signup, login, forgot-password, and resend-verification flows by trimming and lowercasing before lookup.
+- Improved login error recovery by preserving the entered email after failed login attempts and showing a direct resend-verification link for unverified accounts.
+- Replaced login validation `alert()` feedback with inline errors and prevented invalid client-side submissions from disabling the login button.
+- Added focused local-auth regression coverage for password symbols, normalized email login, and unverified-email recovery.
+- Included the minimal blog feed lazy-load startup fix needed for Node 20 server-based auth tests to boot from `main`.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/user_management_improvement_draft.md
+3. src/controllers/blog.controller.js
+4. src/public/css/login.css
+5. src/routes/authRoutes.js
+6. src/services/password.service.js
+7. src/views/auth/login.ejs
+8. src/views/auth/signup.ejs
+9. tests/auth-local-workflow.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test --test-concurrency=1 tests/auth-local-workflow.test.js` -> PASS
+- `npm run test:auth` -> PASS, 30/30
+
+---
+
 ## CHANGELOG - June 1, 2026 (Session: Accumulated Challenge Multi-Distance Target)
 
 ### [SESSION] SESSION UPDATE:

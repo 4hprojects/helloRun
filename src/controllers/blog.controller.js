@@ -75,7 +75,14 @@ exports.renderPublicBlogPost = async (req, res) => {
 };
 // Guides/resources and feed endpoints
 const { getGuidesAndResources } = require('../services/blog-guides.service');
-const { Feed } = require('feed');
+let FeedCtorPromise = null;
+
+function loadFeedCtor() {
+  if (!FeedCtorPromise) {
+    FeedCtorPromise = import('feed').then((mod) => mod.Feed);
+  }
+  return FeedCtorPromise;
+}
 
 exports.getGuidesAndResources = async (req, res) => {
   try {
@@ -91,6 +98,7 @@ exports.getGuidesAndResources = async (req, res) => {
 // RSS/Atom feed for latest published posts
 exports.getBlogFeed = async (req, res) => {
   try {
+    const Feed = await loadFeedCtor();
     const posts = await Blog.find({
       status: 'published',
       isDeleted: { $ne: true },

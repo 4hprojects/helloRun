@@ -56,7 +56,12 @@
           <% if (locals.error) { %>
             <div class="alert alert-error">
               <svg data-lucide="alert-circle" width="20" height="20"></svg>
-              <span><%= error %></span>
+              <span>
+                <%= error %>
+                <% if (locals.showResendLink && locals.userEmail) { %>
+                  <a href="/resend-verification?email=<%= encodeURIComponent(userEmail) %>">Resend verification email</a>
+                <% } %>
+              </span>
             </div>
           <% } %>
           
@@ -64,6 +69,7 @@
           <form action="/login" method="POST" class="auth-form">
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
             <input type="hidden" name="returnTo" value="<%= locals.returnTo || '' %>">
+            <div class="form-error" id="loginFormError" role="alert" aria-live="polite"></div>
             
             <!-- Email Input -->
             <div class="form-group">
@@ -74,7 +80,7 @@
                 placeholder=" " 
                 required
                 aria-label="Email address"
-                value="<%= locals.email || '' %>"
+                value="<%= locals.email || locals.userEmail || '' %>"
               >
               <label for="email">Email</label>
             </div>
@@ -149,11 +155,19 @@
     form.addEventListener('submit', function(e) {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value;
+      const formError = document.getElementById('loginFormError');
+      if (formError) {
+        formError.textContent = '';
+        formError.classList.remove('show');
+      }
       
       // Basic validation
       if (!email || !password) {
         e.preventDefault();
-        alert('Please fill in all fields');
+        if (formError) {
+          formError.textContent = 'Please enter your email and password.';
+          formError.classList.add('show');
+        }
         return false;
       }
       
@@ -161,13 +175,17 @@
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         e.preventDefault();
-        alert('Please enter a valid email address');
+        if (formError) {
+          formError.textContent = 'Please enter a valid email address.';
+          formError.classList.add('show');
+        }
         return false;
       }
     });
 
     // Add loading state to button on submit
-    form.addEventListener('submit', function() {
+    form.addEventListener('submit', function(e) {
+      if (e.defaultPrevented) return;
       const submitBtn = this.querySelector('.btn-primary');
       submitBtn.classList.add('loading');
       submitBtn.disabled = true;
