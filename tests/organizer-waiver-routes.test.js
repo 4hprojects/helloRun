@@ -126,6 +126,11 @@ test('create and edit event views expose ordered create-event sections', () => {
     assert.match(content, /Preview current (setup|changes)\?/, `${file} should confirm preview actions`);
     assert.doesNotMatch(content, /name="minimumActivityDistanceKm"/, `${file} should not expose minimum activity distance`);
     assert.doesNotMatch(content, /name="milestoneDistancesKm"/, `${file} should not expose manual milestone setup`);
+    assert.match(content, /JPG\/PNG\/WebP, max 5MB each, up to 12 images/, `${file} should document supported gallery image formats`);
+    assert.match(content, /let selectedGalleryFiles = \[\]/, `${file} should track selected gallery uploads`);
+    assert.match(content, /data-gallery-upload-preview/, `${file} should render removable new gallery upload previews`);
+    assert.match(content, /syncGalleryFileInput/, `${file} should keep the gallery file input synced after removing an upload`);
+    assert.match(content, /removeGalleryUrlEntry/, `${file} should remove individual gallery URL entries`);
     assert.match(content, /Final Submission Deadline[\s\S]*Event End plus 14 days/, `${file} should explain the final submission deadline grace period`);
     assert.match(content, /Virtual Window Start[\s\S]*Defaults to Event Start/, `${file} should explain the virtual window start default`);
     assert.match(content, /Virtual Window End[\s\S]*Defaults to Event End/, `${file} should explain the virtual window end default`);
