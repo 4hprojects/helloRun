@@ -15,6 +15,7 @@ const FINAL_STATUSES = new Set(['approved']);
 const PERSONAL_RECORD_REGISTRATION_ID = 'personal-record';
 const AUTO_APPROVAL_CONFIDENCE_THRESHOLD = 0.7;
 const AUTO_APPROVAL_REVIEW_NOTE = 'Auto-approved from OCR name match.';
+const STRAVA_AUTO_APPROVAL_REVIEW_NOTE = 'Auto-approved from verified Strava activity.';
 
 async function createSubmission({
   registrationId,
@@ -1318,11 +1319,12 @@ async function applyAutoApprovalIfEligible(submission) {
     return submission;
   }
 
+  const autoApprovalReviewNote = getAutoApprovalReviewNote(submission);
   const hadCertificate = Boolean(submission.certificate?.url);
   submission.status = 'approved';
   submission.reviewedAt = new Date();
   submission.reviewedBy = null;
-  submission.reviewNotes = AUTO_APPROVAL_REVIEW_NOTE;
+  submission.reviewNotes = autoApprovalReviewNote;
   submission.rejectionReason = '';
   await submission.save();
   recordCriticalAuditEventInBackground({
@@ -1332,7 +1334,7 @@ async function applyAutoApprovalIfEligible(submission) {
     targetId: String(submission._id),
     statusFrom: 'submitted',
     statusTo: 'approved',
-    notes: AUTO_APPROVAL_REVIEW_NOTE,
+    notes: autoApprovalReviewNote,
     occurredAt: submission.reviewedAt
   });
 
@@ -1354,6 +1356,11 @@ async function applyAutoApprovalIfEligible(submission) {
   });
 
   return submission;
+}
+
+function getAutoApprovalReviewNote(submission = {}) {
+  const source = String(submission.source || '').trim().toLowerCase();
+  return source === 'strava' ? STRAVA_AUTO_APPROVAL_REVIEW_NOTE : AUTO_APPROVAL_REVIEW_NOTE;
 }
 
 async function sendRunnerReviewNotifications({
@@ -1535,6 +1542,7 @@ module.exports = {
   detectSuspiciousActivity,
   isAutoApprovableOcrSubmission,
   isAutoApprovableSubmission,
+  getAutoApprovalReviewNote,
   buildSubmissionPayload,
   getEligibleRunnerRegistration
 };

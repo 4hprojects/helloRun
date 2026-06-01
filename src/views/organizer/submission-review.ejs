@@ -35,7 +35,11 @@
         </div>
         <div class="summary-card">
           <strong>Type</strong>
-          <span><%= submissionKind === 'accumulated' ? 'Accumulated Activity' : 'Run Result' %></span>
+          <span><%= submission.targetTypeLabel || (submissionKind === 'accumulated' ? 'Challenge Activity' : 'Event Result') %></span>
+        </div>
+        <div class="summary-card">
+          <strong>Source</strong>
+          <span><%= submission.sourceLabel || 'Activity Screenshot' %></span>
         </div>
         <div class="summary-card">
           <strong>Confirmation</strong>
@@ -80,7 +84,8 @@
               <th>Evidence</th>
               <td>
                 <small>Proof type: <%= String(submission.proofType || 'manual').toUpperCase() %></small><br>
-                <small>Source: <%= String(submission.source || 'manual_upload').replace('_', ' ') %></small><br>
+                <small>Source: <%= submission.sourceLabel || String(submission.source || 'manual_upload').replace('_', ' ') %></small><br>
+                <small>Validation: <%= submission.autoApprovalSourceLabel || 'Manual review validation' %></small><br>
                 <% if (submission.proof?.url) { %>
                   <a href="<%= submission.proof.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">View run result evidence</a>
                 <% } else { %>
@@ -90,7 +95,7 @@
               </td>
             </tr>
 
-            <% if (submission.suspiciousFlag || (submission.ocrData && submission.ocrData.confidence > 0)) { %>
+            <% if (submission.suspiciousFlag || (submission.ocrData && submission.ocrData.confidence > 0) || (submission.reviewSignal && submission.reviewSignal.code)) { %>
               <tr>
                 <th>Review Signals</th>
                 <td colspan="3">
@@ -128,6 +133,9 @@
                       </div>
                     </details>
                   <% } %>
+                  <% if (submission.reviewSignal && submission.reviewSignal.code) { %>
+                    <small>Review reason: <%= submission.reviewSignal.label %></small>
+                  <% } %>
                 </td>
               </tr>
             <% } %>
@@ -138,6 +146,12 @@
                 <td colspan="3">
                   <strong><%= submission.stravaActivity.name || 'Strava activity' %></strong><br>
                   <small><%= submission.stravaActivity.sportType || submission.stravaActivity.type || 'Activity' %></small>
+                  <% if (submission.stravaActivity.distanceKm != null) { %>
+                    <br><small>Distance: <%= Number(submission.stravaActivity.distanceKm || 0).toFixed(2) %> km</small>
+                  <% } %>
+                  <% if (submission.stravaActivity.elapsedTimeSeconds || submission.stravaActivity.movingTimeSeconds) { %>
+                    <br><small>Duration source: verified synced activity</small>
+                  <% } %>
                   <% if (submission.stravaActivity.url) { %>
                     <br><a href="<%= submission.stravaActivity.url %>" target="_blank" rel="noopener noreferrer" class="proof-link">Open Strava activity</a>
                   <% } %>

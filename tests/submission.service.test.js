@@ -594,6 +594,9 @@ test('accumulated activities auto-approve clean OCR and issue certificate only o
   assert.equal(first.status, 'approved');
   assert.equal(first.reviewedBy, null);
   assert.equal(first.reviewNotes, 'Auto-approved from OCR name match.');
+  assert.equal(first.validation.method, 'ocr');
+  assert.equal(first.validation.submissionMode, 'accumulated');
+  assert.equal(first.validation.autoApprovalEligible, true);
   assert.equal(first.certificate?.url || '', '');
 
   let progress = await getRegistrationAccumulatedProgress(seed.registration._id);
@@ -665,6 +668,10 @@ test('accumulated activities keep suspicious OCR pending', async () => {
   assert.equal(activity.status, 'submitted');
   assert.equal(activity.suspiciousFlag, true);
   assert.match(activity.suspiciousFlagReason, /name does not match/i);
+  assert.equal(activity.validation.method, 'ocr');
+  assert.equal(activity.validation.submissionMode, 'accumulated');
+  assert.equal(activity.validation.autoApprovalEligible, false);
+  assert.equal(activity.validation.reviewReason, 'suspicious_activity');
 });
 
 test('accumulated activities auto-approve validated Strava source', async () => {
@@ -715,7 +722,10 @@ test('accumulated activities auto-approve validated Strava source', async () => 
 
   assert.equal(activity.status, 'approved');
   assert.equal(activity.reviewedBy, null);
-  assert.equal(activity.reviewNotes, 'Auto-approved from OCR name match.');
+  assert.equal(activity.reviewNotes, 'Auto-approved from verified Strava activity.');
+  assert.equal(activity.validation.method, 'strava');
+  assert.equal(activity.validation.submissionMode, 'accumulated');
+  assert.equal(activity.validation.autoApprovalEligible, true);
 });
 
 async function seedSubmissionFixture(tag, options = {}) {
@@ -1168,7 +1178,7 @@ test('createSubmission auto-approves validated Strava source without OCR name ma
 
   assert.equal(result.status, 'approved');
   assert.equal(result.reviewedBy, null);
-  assert.equal(result.reviewNotes, 'Auto-approved from OCR name match.');
+  assert.equal(result.reviewNotes, 'Auto-approved from verified Strava activity.');
   assert.equal(result.validation.method, 'strava');
   assert.equal(result.validation.autoApprovalEligible, true);
   assert.equal(result.validation.reviewRequired, false);

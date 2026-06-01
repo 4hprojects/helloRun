@@ -7,7 +7,8 @@ const communicationService = require('./communication.service');
 const {
   buildSubmissionPayload,
   getEligibleRunnerRegistration,
-  isAutoApprovableSubmission
+  isAutoApprovableSubmission,
+  getAutoApprovalReviewNote
 } = require('./submission.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 const {
@@ -16,7 +17,6 @@ const {
 } = require('./badge-progress.service');
 
 const REVIEWABLE_STATUS = new Set(['submitted']);
-const AUTO_APPROVAL_REVIEW_NOTE = 'Auto-approved from OCR name match.';
 
 async function createAccumulatedActivitySubmission(input) {
   const registration = await getEligibleRunnerRegistration({
@@ -36,6 +36,10 @@ async function createAccumulatedActivitySubmission(input) {
   });
   delete payload.isPersonalRecord;
   delete payload.submissionCount;
+  payload.validation = {
+    ...(payload.validation || {}),
+    submissionMode: 'accumulated'
+  };
 
   const activity = await AccumulatedActivitySubmission.create(payload);
   return applyAccumulatedAutoApprovalIfEligible(activity, event);
@@ -320,10 +324,11 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
   }
 
   const hadCertificate = Boolean(activity.certificate?.url);
+  const autoApprovalReviewNote = getAutoApprovalReviewNote(activity);
   activity.status = 'approved';
   activity.reviewedAt = new Date();
   activity.reviewedBy = null;
-  activity.reviewNotes = AUTO_APPROVAL_REVIEW_NOTE;
+  activity.reviewNotes = autoApprovalReviewNote;
   activity.rejectionReason = '';
   await activity.save();
 
@@ -334,7 +339,7 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
     targetId: String(activity._id),
     statusFrom: 'submitted',
     statusTo: 'approved',
-    notes: AUTO_APPROVAL_REVIEW_NOTE,
+    notes: autoApprovalReviewNote,
     occurredAt: activity.reviewedAt
   });
 
