@@ -7,6 +7,26 @@
 <body>
   <%- include('../layouts/nav') %>
   <main class="admin-page admin-events-page">
+    <%
+      const adminNow = new Date();
+      const publicListingAt = event.publicListingAvailableAt ? new Date(event.publicListingAvailableAt) : null;
+      const hasValidPublicListingAt = publicListingAt && !Number.isNaN(publicListingAt.getTime());
+      const publicListingVisibleNow = !hasValidPublicListingAt || publicListingAt <= adminNow;
+      const publicListingDateTimeLabel = hasValidPublicListingAt
+        ? publicListingAt.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            timeZoneName: 'short'
+          })
+        : '';
+      const publicListingStatusLabel = hasValidPublicListingAt
+        ? (publicListingVisibleNow ? `Visible since ${publicListingDateTimeLabel}` : `Scheduled for ${publicListingDateTimeLabel}`)
+        : 'Visible immediately after approval';
+      const isPublishedButScheduledHidden = event.status === 'published' && !event.isDeleted && !publicListingVisibleNow;
+    %>
     <section class="section admin-shell">
       <div class="admin-header-row">
         <div>
@@ -24,11 +44,16 @@
               <span>Edit Event</span>
             </a>
           <% } %>
-          <% if (event.status === 'published' && !event.isDeleted) { %>
+          <% if (event.status === 'published' && !event.isDeleted && publicListingVisibleNow) { %>
             <a href="/events/<%= event.slug %>" class="btn btn-secondary admin-event-action-btn">
               <i data-lucide="globe"></i>
               <span>Public Page</span>
             </a>
+          <% } else if (isPublishedButScheduledHidden) { %>
+            <button type="button" class="btn btn-secondary admin-event-action-btn" disabled title="This event is published but hidden until the scheduled public posting time.">
+              <i data-lucide="clock"></i>
+              <span>Public Page Scheduled</span>
+            </button>
           <% } %>
           <a href="/organizer/events/<%= event._id %>/registrants" class="btn btn-secondary admin-event-action-btn">
             <i data-lucide="users"></i>
@@ -42,6 +67,13 @@
       <% } %>
 
       <div id="eventActionMessage" class="admin-alert" style="display:none;"></div>
+
+      <% if (isPublishedButScheduledHidden) { %>
+        <div class="admin-alert admin-alert-warning admin-event-visibility-alert">
+          <strong>Published but not public yet.</strong>
+          <span>This event is hidden from the public events list until <%= publicListingDateTimeLabel %>.</span>
+        </div>
+      <% } %>
 
       <div class="application-meta-grid">
         <article class="meta-card">
@@ -64,6 +96,10 @@
           <p class="meta-label">Homepage</p>
           <p class="meta-value"><%= event.homeFeatured ? 'Featured' : 'Automatic only' %></p>
         </article>
+        <article class="meta-card <%= isPublishedButScheduledHidden ? 'meta-card-warning' : '' %>">
+          <p class="meta-label">Public Listing</p>
+          <p class="meta-value"><%= publicListingStatusLabel %></p>
+        </article>
       </div>
 
       <div class="details-grid">
@@ -77,6 +113,7 @@
           <h3>Schedule</h3>
           <p><strong>Registration:</strong> <%= event.registrationOpenAt ? new Date(event.registrationOpenAt).toLocaleString('en-US') : 'N/A' %> to <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleString('en-US') : 'N/A' %></p>
           <p><strong>Event:</strong> <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'N/A' %> to <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleString('en-US') : 'N/A' %></p>
+          <p><strong>Public Listing:</strong> <%= publicListingStatusLabel %></p>
           <p><strong>Submitted:</strong> <%= event.submittedForReviewAt ? new Date(event.submittedForReviewAt).toLocaleString('en-US') : 'N/A' %></p>
           <p><strong>Approval:</strong> <%= event.approvalSource === 'auto' ? `Auto-approved (${event.autoApprovalRuleVersion || 'rule not recorded'})` : (event.approvalSource === 'admin' ? 'Admin approved' : 'Not approved') %></p>
           <p><strong>Homepage Feature:</strong> <%= event.homeFeatured ? `Yes${Number.isFinite(event.homeFeaturedRank) ? `, rank ${event.homeFeaturedRank}` : ''}` : 'No' %></p>
@@ -195,7 +232,10 @@
         </div>
         <div>
           <span>Visibility</span>
-          <strong><%= event.publicListingAvailableAt ? `From ${new Date(event.publicListingAvailableAt).toLocaleDateString('en-US')}` : 'Immediate' %></strong>
+          <strong><%= hasValidPublicListingAt ? (publicListingVisibleNow ? 'Visible now' : 'Scheduled public posting') : 'Immediate after approval' %></strong>
+          <% if (hasValidPublicListingAt) { %>
+            <small><%= publicListingDateTimeLabel %></small>
+          <% } %>
         </div>
         <div>
           <span>Fee</span>
@@ -209,6 +249,7 @@
       <ul class="admin-approval-checklist">
         <li><i data-lucide="check" aria-hidden="true"></i><span>Publish readiness passed.</span></li>
         <li><i data-lucide="check" aria-hidden="true"></i><span>Registration and event dates are valid.</span></li>
+        <li><i data-lucide="<%= hasValidPublicListingAt && !publicListingVisibleNow ? 'clock' : 'check' %>" aria-hidden="true"></i><span><%= hasValidPublicListingAt && !publicListingVisibleNow ? `Public listing is scheduled for ${publicListingDateTimeLabel}.` : 'Public listing will be visible immediately after approval.' %></span></li>
         <li><i data-lucide="check" aria-hidden="true"></i><span><%= event.feeMode === 'paid' ? 'Payment account and QR are configured.' : 'No payment setup required.' %></span></li>
         <li><i data-lucide="check" aria-hidden="true"></i><span><%= event.digitalBadgeEnabled ? 'Default event badges will be generated in the background.' : 'Digital badge generation is disabled.' %></span></li>
       </ul>
