@@ -1,7 +1,15 @@
 'use strict';
 
-const OCR_STRONG_CONFIDENCE = 0.7;
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+const {
+  OCR_STRONG_CONFIDENCE,
+  ONE_DAY_MS,
+  toFiniteNumber,
+  isDistanceMismatch,
+  isTimeMismatch,
+  isElevationMismatch,
+  isStepsMismatch,
+  isDateMismatch
+} = require('./ocr/ocr-integrity');
 
 function compareSubmissionWithOcr({
   distanceKm,
@@ -29,32 +37,32 @@ function compareSubmissionWithOcr({
   const extractedDistanceKm = toFiniteNumber(ocr.extractedDistanceKm);
   const submittedDistanceKm = toFiniteNumber(distanceKm);
   if (extractedDistanceKm !== null && submittedDistanceKm !== null && submittedDistanceKm > 0) {
-    result.distanceMismatch = Math.abs(extractedDistanceKm - submittedDistanceKm) > Math.max(submittedDistanceKm * 0.1, 0.5);
+    result.distanceMismatch = isDistanceMismatch(extractedDistanceKm, submittedDistanceKm);
   }
 
   const extractedTimeMs = toFiniteNumber(ocr.extractedTimeMs);
   const submittedElapsedMs = toFiniteNumber(elapsedMs);
   if (extractedTimeMs !== null && submittedElapsedMs !== null && submittedElapsedMs > 0) {
-    result.timeMismatch = Math.abs(extractedTimeMs - submittedElapsedMs) > 60000;
+    result.timeMismatch = isTimeMismatch(extractedTimeMs, submittedElapsedMs);
   }
 
   const extractedElevationGain = toFiniteNumber(ocr.extractedElevationGain);
   const submittedElevationGain = toFiniteNumber(elevationGain);
   if (strongOcr && extractedElevationGain !== null && submittedElevationGain !== null) {
-    result.elevationMismatch = Math.abs(extractedElevationGain - submittedElevationGain) > Math.max(extractedElevationGain * 0.5, 100);
+    result.elevationMismatch = isElevationMismatch(extractedElevationGain, submittedElevationGain);
   }
 
   const extractedSteps = toFiniteNumber(ocr.extractedSteps);
   const submittedSteps = toFiniteNumber(steps);
   if (strongOcr && extractedSteps !== null && submittedSteps !== null) {
-    result.stepsMismatch = Math.abs(extractedSteps - submittedSteps) > Math.max(extractedSteps * 0.3, 1000);
+    result.stepsMismatch = isStepsMismatch(extractedSteps, submittedSteps);
   }
 
   if (ocr.extractedRunDate && runDate) {
     const extractedDate = parseDateOnly(ocr.extractedRunDate);
     const submittedDate = parseDateOnly(runDate);
     if (extractedDate && submittedDate) {
-      result.dateMismatch = Math.abs(extractedDate.getTime() - submittedDate.getTime()) > ONE_DAY_MS;
+      result.dateMismatch = isDateMismatch(extractedDate, submittedDate);
     }
   }
 
@@ -167,12 +175,6 @@ function detectSuspiciousActivity({
     reasons,
     comparisons
   };
-}
-
-function toFiniteNumber(value) {
-  if (value === undefined || value === null || value === '') return null;
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : null;
 }
 
 function normalizeRunType(value) {

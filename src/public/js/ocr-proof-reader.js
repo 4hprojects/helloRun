@@ -20,7 +20,8 @@
     { source: 'nike',    pattern: /nike\s*run|nrc/i },
     { source: 'garmin',  pattern: /garmin/i },
     { source: 'apple',   pattern: /apple\s*health/i },
-    { source: 'google',  pattern: /google\s*fit|fit\s+activity/i }
+    { source: 'google',  pattern: /google\s*fit|fit\s+activity/i },
+    { source: 'coros',   pattern: /\bcoros\b/i }
   ];
 
   // Date patterns — YYYY-MM-DD, DD/MM/YYYY, Month DD YYYY
@@ -76,6 +77,8 @@
     /elevation\s*gain[\s\S]{0,120}?(\d{1,5}(?:[.,]\d{1,2})?)\s*(m|ft)\b/i,
     // Garmin abbreviated: "Elev Gain" fallback
     /elev\s*gain[\s\S]{0,120}?(\d{1,5}(?:[.,]\d{1,2})?)\s*(m|ft)\b/i,
+    // COROS card layout: value may appear before the "Elev Gain" label.
+    /(\d{1,5}(?:[.,]\d{1,2})?)\s*(m|ft)\s*[\r\n\s]+elev\s*gain\b/i,
     // Nike-style: "ELEVATION +287m" (no "Gain" keyword)
     /\belevation[\s:]+\+?(\d{1,5}(?:[.,]\d{1,2})?)\s*(m|ft)\b/i
   ];
@@ -120,6 +123,9 @@
 
   function detectSourceApp(text) {
     var t = normaliseOcrText(text);
+    if (window.HelloRunOcrSource && typeof window.HelloRunOcrSource.detectSourceApp === 'function') {
+      return window.HelloRunOcrSource.detectSourceApp(t);
+    }
     if (/\b(?:strava|strava\s+app|gave\s+kudos|relative\s+effort|segments?|with\s+someone\s+who\s+didn'?t\s+record)\b/i.test(t)) {
       return 'strava';
     }
@@ -202,6 +208,14 @@
   }
 
   function extractTime(text) {
+    var labelledDecimalSeconds = text.match(/(?:activity\s*time|moving\s*time|elapsed\s*time|time|duration|elapsed)[\s\S]{0,80}?(\d{1,2}):(\d{2})(?:[.,](\d{1,2}))?(?!\d|:)/i);
+    if (labelledDecimalSeconds) {
+      if (!/\b(?:km|mi|miles|kilometers|kilometres)\b/i.test(labelledDecimalSeconds[0])) {
+        var labelledDecimalResult = buildTimeResult(0, labelledDecimalSeconds[1], labelledDecimalSeconds[2]);
+        if (labelledDecimalResult) return labelledDecimalResult;
+      }
+    }
+
     var labelledCompactHour = text.match(/(?:moving\s*time|elapsed\s*time|time|duration|elapsed)[\s\S]{0,80}?(\d{1,2})\s*h\s*(\d{1,2})\s*\/?\s*m(?:\s*(\d{1,2})\s*s)?/i);
     if (labelledCompactHour) {
       var labelledHourResult = buildTimeResult(labelledCompactHour[1], labelledCompactHour[2], labelledCompactHour[3] || 0);
@@ -261,7 +275,11 @@
    */
   function stripDateLineClock(text) {
     // Remove "at H:MM AM/PM" (with optional surrounding context)
-    return text.replace(/\bat\s+\d{1,2}:\d{2}\s*(?:AM|PM)/gi, '');
+    return text
+      .replace(/\bat\s+\d{1,2}:\d{2}\s*(?:AM|PM)/gi, '')
+      .replace(/\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2},?\s+\d{4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)/gi, function (match) {
+        return match.replace(/\s+\d{1,2}:\d{2}\s*(?:AM|PM)/i, '');
+      });
   }
 
   function stripPaceTimes(text) {
@@ -417,6 +435,16 @@
         return name;
       }
     }
+
+    if (detectSourceApp(text) === 'coros') {
+      var lines = String(text || '').split(/\r?\n/).map(function (line) { return cleanNameCandidate(line); }).filter(Boolean);
+      var blocked = /\b(?:coros|distance|activity\s*time|elev\s*gain|elevation|gain|loss|max|min|average|benguet\s+run|run|walk|hike|trail|km|weather|humidity)\b/i;
+      for (var i = 0; i < lines.length; i++) {
+        var candidate = lines[i];
+        if (blocked.test(candidate)) continue;
+        if (isLikelyNameCandidate(candidate)) return candidate;
+      }
+    }
     return null;
   }
 
@@ -433,6 +461,9 @@
   }
 
   function computeConfidence(result) {
+    if (window.HelloRunOcrConfidence && typeof window.HelloRunOcrConfidence.computeConfidence === 'function') {
+      return window.HelloRunOcrConfidence.computeConfidence(result);
+    }
     var score = 0;
     if (result.distance) score += 0.4;
     if (result.time) score += 0.4;

@@ -52,7 +52,12 @@ Current code references:
 
 - `src/services/submission.service.js`
 - `src/utils/submission-integrity.js`
+- `src/utils/ocr/ocr-integrity.js`
 - `src/services/accumulated-activity.service.js`
+- `src/public/js/ocr/ocr-source-detector.js`
+- `src/public/js/ocr/ocr-parser.js`
+- `src/public/js/ocr/ocr-confidence.js`
+- `src/public/js/ocr/ocr-identity.js`
 
 ## Current Auto-Approval Criteria
 
@@ -89,6 +94,20 @@ Current OCR data is stored on `ocrData`:
 - `ocrData.nameMismatchAcknowledged`: whether the runner acknowledged a detected name mismatch in the UI.
 
 The server recomputes sensitive checks and does not blindly trust client-submitted mismatch values.
+
+Frontend OCR parsing is organized into dedicated browser modules under `src/public/js/ocr/`.
+The legacy `window.OcrProofReader` API remains stable and delegates source detection,
+confidence scoring, and identity matching to those modules when they are loaded.
+
+COROS screenshot uploads are supported as OCR proof. COROS is treated as a screenshot
+source, not a synced trusted source like Strava. COROS proofs can auto-approve only
+when the normal OCR auto-approval criteria pass.
+
+OCR identity matching currently accepts either the runner's full account name or the
+runner's current `displayName`. A display-name match is stored as
+`ocrData.nameMatchStatus = "matched"` because the current submission schema does not
+store match reasons. This is suitable for v1, but verified aliases should be considered
+before relying on nickname-only matching for stronger identity assurance.
 
 ## Current Mismatch Checks
 

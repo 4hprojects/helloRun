@@ -78,6 +78,7 @@
     const nameMismatchInput = document.getElementById('runProofNameMismatch');
     const runnerName = (modal.dataset.runnerName || '').trim().toLowerCase();
     const runnerNameDisplay = String(modal.dataset.runnerName || '').trim() || 'unknown';
+    const runnerDisplayName = String(modal.dataset.runnerDisplayName || '').trim();
     const analyseBtn = document.getElementById('runProofAnalyseBtn');
     const analyseHint = document.getElementById('runProofAnalyseHint');
     const backBtn = document.getElementById('runProofBackBtn');
@@ -742,6 +743,7 @@
       garmin: 'Garmin Connect',
       apple: 'Apple Health',
       google: 'Google Fit',
+      coros: 'COROS',
       unknown: ''
     };
 
@@ -793,15 +795,20 @@
 
     const setNameAnalysis = (result) => {
       const extractedName = String(result && result.name ? result.name : '').trim();
-      const hasAccountName = Boolean(runnerName);
-      let status = 'not_checked';
+      const identity = window.HelloRunOcrIdentity && typeof window.HelloRunOcrIdentity.evaluateNameMatch === 'function'
+        ? window.HelloRunOcrIdentity.evaluateNameMatch({
+          extractedName,
+          accountName: modal.dataset.runnerName || runnerName,
+          displayName: runnerDisplayName,
+          hadOcrSignal: Boolean(result && (result.rawText || result.ok || result.confidence > 0))
+        })
+        : {
+          status: extractedName && runnerName && namesMatch(extractedName, runnerName) ? 'matched' : (extractedName ? 'mismatched' : 'not_detected'),
+          matchedAgainst: '',
+          extractedName
+        };
+      let status = identity.status || 'not_checked';
       hideNameMismatchState();
-
-      if (extractedName) {
-        status = hasAccountName && namesMatch(extractedName, runnerName) ? 'matched' : 'mismatched';
-      } else if (result && (result.rawText || result.ok || result.confidence > 0)) {
-        status = 'not_detected';
-      }
 
       if (ocrExtractedNameInput) ocrExtractedNameInput.value = extractedName;
       if (ocrNameMatchStatusInput) ocrNameMatchStatusInput.value = status;
@@ -811,7 +818,7 @@
       if (status === 'matched') {
         nameMatchEl.textContent = '';
         const _matchLabel = document.createElement('span');
-        _matchLabel.textContent = 'Name matches \u00b7 ';
+        _matchLabel.textContent = identity.matchedAgainst === 'display_name' ? 'Display name matches \u00b7 ' : 'Name matches \u00b7 ';
         const _matchName = document.createElement('strong');
         _matchName.textContent = extractedName;
         nameMatchEl.appendChild(_matchLabel);

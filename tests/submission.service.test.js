@@ -1164,7 +1164,7 @@ test('isAutoApprovableOcrSubmission requires a clean matched OCR result', () => 
       nameMatchStatus: 'matched',
       extractedDistanceKm: 10,
       extractedTimeMs: 3600000,
-      confidence: 0.7,
+      confidence: 0.8,
       distanceMismatch: false,
       timeMismatch: false
     }
@@ -1196,6 +1196,38 @@ test('isAutoApprovableOcrSubmission requires a clean matched OCR result', () => 
       elevationMismatch: true
     }
   }), false);
+
+  assert.equal(isAutoApprovableOcrSubmission({
+    status: 'submitted',
+    suspiciousFlag: false,
+    ocrData: {
+      nameMatchStatus: 'mismatched',
+      extractedName: 'Iya',
+      extractedDistanceKm: 5.44,
+      extractedTimeMs: 2907000,
+      confidence: 0.8,
+      detectedSource: 'coros',
+      distanceMismatch: false,
+      timeMismatch: false
+    }
+  }), false);
+
+  assert.equal(isAutoApprovableOcrSubmission({
+    status: 'submitted',
+    suspiciousFlag: false,
+    ocrData: {
+      nameMatchStatus: 'matched',
+      extractedName: 'Iya',
+      extractedDistanceKm: 5.44,
+      extractedTimeMs: 2907000,
+      extractedElevationGain: 182,
+      confidence: 0.8,
+      detectedSource: 'coros',
+      distanceMismatch: false,
+      timeMismatch: false,
+      elevationMismatch: false
+    }
+  }), true);
 });
 
 test('createSubmission saves suspicious OCR elevation edits without auto-approving', async () => {
