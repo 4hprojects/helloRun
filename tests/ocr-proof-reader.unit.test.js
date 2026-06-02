@@ -24,7 +24,8 @@ const vm      = require('node:vm');
 function loadOcrModule () {
   const supportFiles = [
     '../src/public/js/ocr/ocr-source-detector.js',
-    '../src/public/js/ocr/ocr-confidence.js'
+    '../src/public/js/ocr/ocr-confidence.js',
+    '../src/public/js/ocr/ocr-location-resolver.js'
   ];
   const src = fs.readFileSync(
     path.join(__dirname, '../src/public/js/ocr-proof-reader.js'),
@@ -398,6 +399,11 @@ test('parseOcrText - COROS screenshot parses labelled activity values', () => {
     'COROS',
     'Benguet Run',
     'Jun 2, 2026 6:07 PM',
+    'PACDAL',
+    'GIBRALTAR',
+    'MINES VIEW PARK',
+    'OUTLOOK DRIVE',
+    'Baguio Country Club',
     '5.44 km',
     'Distance',
     'Iya',
@@ -417,8 +423,49 @@ test('parseOcrText - COROS screenshot parses labelled activity values', () => {
   assert.equal(r.time.seconds, 27);
   assert.equal(r.date, '2026-06-02');
   assert.equal(r.elevationGain.value, 182);
+  assert.equal(r.location, 'Baguio City, Benguet');
+  assert.equal(r.locationSource, 'coros_map_labels');
+  assert.ok(r.locationConfidence >= 0.8);
+  assert.ok(r.locationCandidates.includes('Mines View Park'));
+  assert.ok(r.locationCandidates.includes('Outlook Drive'));
   assert.equal(r.name, 'Iya');
   assert.notEqual(r.time.totalMs, 367000);
+});
+
+test('parseOcrText - COROS activity title alone does not become location', () => {
+  const text = [
+    'COROS',
+    'Benguet Run',
+    'Jun 2, 2026 6:07 PM',
+    '5.44 km',
+    'Distance',
+    '48:27.02',
+    'Activity Time'
+  ].join('\n');
+
+  const r = parse(text, 80);
+  assert.equal(r.detectedSource, 'coros');
+  assert.equal(r.location, null);
+  assert.equal(r.locationSource, '');
+  assert.equal(r.locationConfidence, 0);
+});
+
+test('parseOcrText - COROS vague province label does not autofill location', () => {
+  const text = [
+    'COROS',
+    'Benguet',
+    '5.44 km',
+    'Distance',
+    '48:27.02',
+    'Activity Time'
+  ].join('\n');
+
+  const r = parse(text, 80);
+  assert.equal(r.detectedSource, 'coros');
+  assert.equal(r.location, null);
+  assert.ok(r.locationCandidates.includes('Benguet'));
+  assert.equal(r.locationSource, '');
+  assert.ok(r.locationConfidence < 0.8);
 });
 
 // ---------------------------------------------------------------------------

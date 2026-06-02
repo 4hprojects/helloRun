@@ -439,6 +439,14 @@
     if (detectSourceApp(text) === 'coros') {
       var lines = String(text || '').split(/\r?\n/).map(function (line) { return cleanNameCandidate(line); }).filter(Boolean);
       var blocked = /\b(?:coros|distance|activity\s*time|elev\s*gain|elevation|gain|loss|max|min|average|benguet\s+run|run|walk|hike|trail|km|weather|humidity)\b/i;
+      for (var d = 0; d < lines.length; d++) {
+        if (!/^distance$/i.test(lines[d])) continue;
+        for (var n = d + 1; n < Math.min(lines.length, d + 5); n++) {
+          if (/^(?:activity\s*time|elev\s*gain|elevation)$/i.test(lines[n])) break;
+          if (blocked.test(lines[n])) continue;
+          if (isLikelyNameCandidate(lines[n])) return lines[n];
+        }
+      }
       for (var i = 0; i < lines.length; i++) {
         var candidate = lines[i];
         if (blocked.test(candidate)) continue;
@@ -446,6 +454,26 @@
       }
     }
     return null;
+  }
+
+  function resolveOcrLocation(detectedSource, rawText) {
+    if (
+      detectedSource === 'coros' &&
+      window.HelloRunOcrLocation &&
+      typeof window.HelloRunOcrLocation.resolveLocation === 'function'
+    ) {
+      return window.HelloRunOcrLocation.resolveLocation({
+        detectedSource: detectedSource,
+        rawText: rawText
+      });
+    }
+    return {
+      location: extractLocation(rawText) || '',
+      confidence: 0,
+      source: '',
+      candidates: [],
+      matchedAliases: []
+    };
   }
 
   function extractRunType(text) {
@@ -484,7 +512,8 @@
     var date = extractDate(t);
     var detectedSource = detectSourceApp(t);
     var elevationGain = extractElevationGain(rawText); // use rawText for multiline matching
-    var location = extractLocation(rawText);
+    var locationResolution = resolveOcrLocation(detectedSource, rawText);
+    var location = locationResolution.location || '';
     var steps = extractSteps(rawText);
     var name = extractName(rawText);
     var runType = extractRunType(rawText);
@@ -525,7 +554,10 @@
       pace: pace,
       date: date,
       elevationGain: elevationGain,
-      location: location,
+      location: location || null,
+      locationCandidates: locationResolution.candidates || [],
+      locationConfidence: locationResolution.confidence || 0,
+      locationSource: locationResolution.source || '',
       steps: steps,
       name: name,
       runType: runType,

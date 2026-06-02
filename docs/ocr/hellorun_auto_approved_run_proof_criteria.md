@@ -58,6 +58,7 @@ Current code references:
 - `src/public/js/ocr/ocr-parser.js`
 - `src/public/js/ocr/ocr-confidence.js`
 - `src/public/js/ocr/ocr-identity.js`
+- `src/public/js/ocr/ocr-location-resolver.js`
 
 ## Current Auto-Approval Criteria
 
@@ -102,6 +103,14 @@ confidence scoring, and identity matching to those modules when they are loaded.
 COROS screenshot uploads are supported as OCR proof. COROS is treated as a screenshot
 source, not a synced trusted source like Strava. COROS proofs can auto-approve only
 when the normal OCR auto-approval criteria pass.
+
+COROS map-label location resolution is deterministic and local. The browser OCR flow
+extracts possible map labels, resolves them against a curated Philippines place
+dictionary, and can normalize high-confidence matches such as `Mines View Park`,
+`Outlook Drive`, `Pacdal`, or `Baguio Country Club` to `Baguio City, Benguet`.
+The OCR flow must not use live internet search or a geocoding API in this v1 path.
+Low-confidence or vague map labels are kept out of autofill and do not block
+auto-approval by themselves.
 
 OCR identity matching currently accepts either the runner's full account name or the
 runner's current `displayName`. A display-name match is stored as
