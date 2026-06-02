@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Submission = require('../models/Submission');
+const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const Registration = require('../models/Registration');
 const Event = require('../models/Event');
 const User = require('../models/User');
@@ -279,42 +280,29 @@ async function getEventSubmissionQueue(eventId, options = {}) {
 
 async function getRunnerSubmissionSummary(runnerId, options = {}) {
   const certificateLimit = clampInt(options.certificateLimit, 1, 20, 5);
-  const [total, submitted, approved, rejected, certificates, recentCertificatesRaw] = await Promise.all([
-    Submission.countDocuments({ runnerId }),
-    Submission.countDocuments({ runnerId, status: 'submitted' }),
-    Submission.countDocuments({ runnerId, status: 'approved' }),
-    Submission.countDocuments({ runnerId, status: 'rejected' }),
-    Submission.countDocuments({
-      runnerId,
-      status: 'approved',
-      'certificate.url': { $exists: true, $ne: '' }
-    }),
-    Submission.find({
-      runnerId,
-      status: 'approved',
-      'certificate.url': { $exists: true, $ne: '' }
-    })
-      .sort({ 'certificate.issuedAt': -1, reviewedAt: -1, submittedAt: -1 })
-      .limit(certificateLimit)
-      .populate({ path: 'eventId', select: 'title slug' })
-      .populate({ path: 'registrationId', select: 'confirmationCode raceDistance' })
-      .select('eventId registrationId certificate reviewedAt submittedAt distanceKm elapsedMs raceDistance')
-      .lean()
+  const [
+    standardCounts,
+    accumulatedCounts,
+    standardCertificatesRaw,
+    accumulatedCertificatesRaw
+  ] = await Promise.all([
+    getSubmissionCountsForModel(Submission, runnerId),
+    getSubmissionCountsForModel(AccumulatedActivitySubmission, runnerId),
+    getRecentCertificatesForModel(Submission, runnerId, certificateLimit),
+    getRecentCertificatesForModel(AccumulatedActivitySubmission, runnerId, certificateLimit)
   ]);
+  const counts = combineSubmissionCounts(standardCounts, accumulatedCounts);
+  const recentCertificatesRaw = standardCertificatesRaw
+    .concat(accumulatedCertificatesRaw)
+    .sort((a, b) => compareDateDesc(
+      a.certificate?.issuedAt || a.reviewedAt || a.submittedAt,
+      b.certificate?.issuedAt || b.reviewedAt || b.submittedAt
+    ))
+    .slice(0, certificateLimit);
 
   return {
-    counts: { total, submitted, approved, rejected, certificates },
-    recentCertificates: recentCertificatesRaw.map((item) => ({
-      submissionId: String(item._id),
-      eventTitle: item.eventId?.title || 'Event unavailable',
-      eventSlug: item.eventId?.slug || '',
-      confirmationCode: item.registrationId?.confirmationCode || '',
-      raceDistance: item.registrationId?.raceDistance || item.raceDistance || '',
-      distanceKm: Number(item.distanceKm || 0),
-      elapsedLabel: formatElapsedMs(item.elapsedMs),
-      certificateUrl: item.certificate?.url || '',
-      issuedAt: item.certificate?.issuedAt || item.reviewedAt || item.submittedAt || null
-    }))
+    counts,
+    recentCertificates: recentCertificatesRaw.map(formatRecentCertificate)
   };
 }
 
@@ -326,7 +314,7 @@ async function getRunnerPerformanceSnapshot(runnerId, options = {}) {
     recentFilter.status = resultStatus;
   }
 
-  const [summary, recentSubmissionsRaw, approvedAggregate, personalBestRaw, activitySource] = await Promise.all([
+  const [summary, standardRecentRaw, accumulatedRecentRaw, approvedStandardAggregate, approvedAccumulatedAggregate, personalBestRaw, standardActivitySource, accumulatedActivitySource] = await Promise.all([
     getRunnerSubmissionSummary(runnerId, { certificateLimit: 5 }),
     Submission.find(recentFilter)
       .sort({ submittedAt: -1 })
@@ -335,7 +323,24 @@ async function getRunnerPerformanceSnapshot(runnerId, options = {}) {
       .populate({ path: 'registrationId', select: 'confirmationCode' })
       .select('status distanceKm elapsedMs runDate runLocation proofType submittedAt reviewedAt reviewNotes rejectionReason certificate eventId registrationId')
       .lean(),
+    AccumulatedActivitySubmission.find(recentFilter)
+      .sort({ submittedAt: -1 })
+      .limit(recentLimit)
+      .populate({ path: 'eventId', select: 'title slug' })
+      .populate({ path: 'registrationId', select: 'confirmationCode' })
+      .select('status distanceKm elapsedMs runDate runLocation proofType submittedAt reviewedAt reviewNotes rejectionReason certificate eventId registrationId')
+      .lean(),
     Submission.aggregate([
+      { $match: { runnerId: new mongoose.Types.ObjectId(String(runnerId)), status: 'approved' } },
+      {
+        $group: {
+          _id: null,
+          totalDistanceKm: { $sum: '$distanceKm' },
+          completedEventIds: { $addToSet: '$eventId' }
+        }
+      }
+    ]),
+    AccumulatedActivitySubmission.aggregate([
       { $match: { runnerId: new mongoose.Types.ObjectId(String(runnerId)), status: 'approved' } },
       {
         $group: {
@@ -356,12 +361,31 @@ async function getRunnerPerformanceSnapshot(runnerId, options = {}) {
       .limit(12)
       .populate({ path: 'eventId', select: 'title slug' })
       .select('status submittedAt reviewedAt certificate eventId')
+      .lean(),
+    AccumulatedActivitySubmission.find({ runnerId })
+      .sort({ submittedAt: -1 })
+      .limit(12)
+      .populate({ path: 'eventId', select: 'title slug' })
+      .select('status submittedAt reviewedAt certificate eventId')
       .lean()
   ]);
 
-  const aggregateRow = approvedAggregate[0] || {};
-  const totalDistanceKm = Number(aggregateRow.totalDistanceKm || 0);
-  const completedEvents = Array.isArray(aggregateRow.completedEventIds) ? aggregateRow.completedEventIds.length : 0;
+  const standardAggregateRow = approvedStandardAggregate[0] || {};
+  const accumulatedAggregateRow = approvedAccumulatedAggregate[0] || {};
+  const totalDistanceKm = Number(standardAggregateRow.totalDistanceKm || 0) + Number(accumulatedAggregateRow.totalDistanceKm || 0);
+  const completedEventIds = new Set([
+    ...(Array.isArray(standardAggregateRow.completedEventIds) ? standardAggregateRow.completedEventIds : []),
+    ...(Array.isArray(accumulatedAggregateRow.completedEventIds) ? accumulatedAggregateRow.completedEventIds : [])
+  ].map((item) => String(item || '')).filter(Boolean));
+  const completedEvents = completedEventIds.size;
+  const recentSubmissionsRaw = standardRecentRaw
+    .map((item) => ({ ...item, submissionKind: 'standard' }))
+    .concat(accumulatedRecentRaw.map((item) => ({ ...item, submissionKind: 'accumulated_activity' })))
+    .sort((a, b) => compareDateDesc(a.submittedAt, b.submittedAt))
+    .slice(0, recentLimit);
+  const activitySource = standardActivitySource
+    .map((item) => ({ ...item, submissionKind: 'standard' }))
+    .concat(accumulatedActivitySource.map((item) => ({ ...item, submissionKind: 'accumulated_activity' })));
 
   return {
     counts: summary.counts,
@@ -396,7 +420,9 @@ async function getRunnerPerformanceSnapshot(runnerId, options = {}) {
       submittedAt: item.submittedAt || null,
       reviewedAt: item.reviewedAt || null,
       rejectionReason: item.rejectionReason || '',
-      certificateUrl: item.certificate?.url || ''
+      certificateUrl: item.certificate?.url || '',
+      isAccumulatedActivity: item.submissionKind === 'accumulated_activity',
+      submissionKind: item.submissionKind || 'standard'
     })),
     recentActivity: buildRunnerSubmissionActivity(activitySource)
   };
@@ -1199,6 +1225,73 @@ function normalizeResultStatus(value) {
     return safe;
   }
   return '';
+}
+
+async function getSubmissionCountsForModel(Model, runnerId) {
+  const [total, submitted, approved, rejected, certificates] = await Promise.all([
+    Model.countDocuments({ runnerId }),
+    Model.countDocuments({ runnerId, status: 'submitted' }),
+    Model.countDocuments({ runnerId, status: 'approved' }),
+    Model.countDocuments({ runnerId, status: 'rejected' }),
+    Model.countDocuments({
+      runnerId,
+      status: 'approved',
+      'certificate.url': { $exists: true, $ne: '' }
+    })
+  ]);
+  return { total, submitted, approved, rejected, certificates };
+}
+
+function combineSubmissionCounts(...rows) {
+  return rows.reduce((totals, row) => ({
+    total: totals.total + Number(row?.total || 0),
+    submitted: totals.submitted + Number(row?.submitted || 0),
+    approved: totals.approved + Number(row?.approved || 0),
+    rejected: totals.rejected + Number(row?.rejected || 0),
+    certificates: totals.certificates + Number(row?.certificates || 0)
+  }), {
+    total: 0,
+    submitted: 0,
+    approved: 0,
+    rejected: 0,
+    certificates: 0
+  });
+}
+
+function getRecentCertificatesForModel(Model, runnerId, limit) {
+  return Model.find({
+    runnerId,
+    status: 'approved',
+    'certificate.url': { $exists: true, $ne: '' }
+  })
+    .sort({ 'certificate.issuedAt': -1, reviewedAt: -1, submittedAt: -1 })
+    .limit(limit)
+    .populate({ path: 'eventId', select: 'title slug' })
+    .populate({ path: 'registrationId', select: 'confirmationCode raceDistance' })
+    .select('eventId registrationId certificate reviewedAt submittedAt distanceKm elapsedMs raceDistance')
+    .lean();
+}
+
+function formatRecentCertificate(item) {
+  return {
+    submissionId: String(item._id),
+    eventTitle: item.eventId?.title || 'Event unavailable',
+    eventSlug: item.eventId?.slug || '',
+    confirmationCode: item.registrationId?.confirmationCode || '',
+    raceDistance: item.registrationId?.raceDistance || item.raceDistance || '',
+    distanceKm: Number(item.distanceKm || 0),
+    elapsedLabel: formatElapsedMs(item.elapsedMs),
+    certificateUrl: item.certificate?.url || '',
+    issuedAt: item.certificate?.issuedAt || item.reviewedAt || item.submittedAt || null
+  };
+}
+
+function compareDateDesc(first, second) {
+  const firstTime = new Date(first || 0).getTime();
+  const secondTime = new Date(second || 0).getTime();
+  const safeFirst = Number.isNaN(firstTime) ? 0 : firstTime;
+  const safeSecond = Number.isNaN(secondTime) ? 0 : secondTime;
+  return safeSecond - safeFirst;
 }
 
 function formatElapsedMs(value) {

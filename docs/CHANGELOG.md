@@ -3,6 +3,25 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - June 2, 2026 (Session: Runner Dashboard Snapshot Accuracy)
+
+### [SESSION] SESSION UPDATE:
+- Fixed `/runner/dashboard` At a Glance and performance snapshot data so accumulated challenge activity submissions are counted alongside standard result submissions.
+- Updated pending result, approved result, certificate, total approved distance, completed event, recent submission, and activity timeline calculations to include `AccumulatedActivitySubmission` records where applicable.
+- Added regression coverage for a mixed runner snapshot with one approved standard result, one approved accumulated activity with certificate metadata, and one pending accumulated activity.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/runner_dashboard.md
+3. src/services/submission.service.js
+4. tests/submission.service.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test tests/submission.service.test.js` -> PASS, 43/43; existing background shadow-sync warnings still print during the passing run.
+- `node --test tests/runner-dashboard-profile.test.js tests/runner-dashboard-modal.test.js` -> PASS, 15/15
+
+---
+
 ## CHANGELOG - June 2, 2026 (Session: OCR Analysis Refactor And COROS Resolver)
 
 ### [SESSION] SESSION UPDATE:

@@ -69,6 +69,13 @@ Shows KPI rows/cards for:
 - certificates
 - total approved distance
 
+Submission-backed KPIs come from `getRunnerPerformanceSnapshot()` and must include both standard `Submission` records and accumulated challenge `AccumulatedActivitySubmission` records:
+
+- pending results counts standard pending submissions plus pending accumulated activities
+- certificates counts approved standard submissions and accumulated completion activities with issued certificate metadata
+- total approved distance sums approved standard result distance and approved accumulated activity distance
+- completed events deduplicate approved standard and accumulated records by event id
+
 ### Upcoming Events
 
 Shows recent upcoming registrations with:
@@ -163,6 +170,8 @@ Shows merged dashboard activity:
 ### Certificates Earned
 
 Shows recent certificates and performance summary.
+
+Recent certificate data should include standard result certificates and accumulated challenge completion certificates, sorted by certificate issue/review/submission time.
 
 ### Progress Statistics
 

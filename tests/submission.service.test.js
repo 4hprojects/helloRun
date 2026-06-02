@@ -335,17 +335,73 @@ test('getRunnerPerformanceSnapshot returns metrics, personal best, and timeline 
     reviewNotes: 'Approved for snapshot test'
   });
 
+  const accumulatedEvent = await createEvent(seed.organizer, 'snapshot-accumulated');
+  await Event.updateOne(
+    { _id: accumulatedEvent._id },
+    {
+      $set: {
+        virtualCompletionMode: 'accumulated_distance',
+        targetDistanceKm: 10
+      }
+    }
+  );
+  const accumulatedRegistration = await createRegistration({
+    event: accumulatedEvent,
+    runner: seed.runner,
+    tag: 'snapshot-accumulated',
+    paymentStatus: 'paid',
+    status: 'confirmed'
+  });
+  const reviewedAt = new Date();
+  const approvedAccumulated = await AccumulatedActivitySubmission.create({
+    registrationId: accumulatedRegistration._id,
+    eventId: accumulatedEvent._id,
+    runnerId: seed.runner._id,
+    participationMode: 'virtual',
+    raceDistance: accumulatedRegistration.raceDistance,
+    distanceKm: 7,
+    elapsedMs: 45 * 60 * 1000,
+    proofType: 'gps',
+    proof: { url: 'https://example.com/proof/snapshot-activity.gpx', mimeType: 'application/gpx+xml', size: 900 },
+    status: 'approved',
+    submittedAt: new Date(reviewedAt.getTime() - 60 * 1000),
+    reviewedAt,
+    certificate: {
+      url: 'https://example.com/certificates/snapshot-activity.pdf',
+      key: 'certificates/snapshot-activity.pdf',
+      issuedAt: reviewedAt,
+      status: 'generated'
+    }
+  });
+  await AccumulatedActivitySubmission.create({
+    registrationId: accumulatedRegistration._id,
+    eventId: accumulatedEvent._id,
+    runnerId: seed.runner._id,
+    participationMode: 'virtual',
+    raceDistance: accumulatedRegistration.raceDistance,
+    distanceKm: 3,
+    elapsedMs: 20 * 60 * 1000,
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof/snapshot-activity-pending.jpg', mimeType: 'image/jpeg', size: 900 },
+    status: 'submitted',
+    submittedAt: new Date(reviewedAt.getTime() - 30 * 1000)
+  });
+
   const snapshot = await getRunnerPerformanceSnapshot(seed.runner._id, {
     recentLimit: 5,
     resultStatus: 'approved'
   });
 
-  assert.equal(snapshot.counts.approved >= 1, true);
-  assert.equal(snapshot.metrics.completedEvents >= 1, true);
-  assert.equal(snapshot.metrics.totalDistanceKm > 0, true);
+  assert.equal(snapshot.counts.total, 3);
+  assert.equal(snapshot.counts.submitted, 1);
+  assert.equal(snapshot.counts.approved, 2);
+  assert.equal(snapshot.counts.certificates, 2);
+  assert.equal(snapshot.metrics.completedEvents, 2);
+  assert.equal(snapshot.metrics.totalDistanceKm, 12);
   assert.equal(snapshot.personalBest !== null, true);
   assert.equal(Array.isArray(snapshot.recentSubmissions), true);
-  assert.equal(snapshot.recentSubmissions.length >= 1, true);
+  assert.equal(snapshot.recentSubmissions.length, 2);
+  assert.ok(snapshot.recentSubmissions.some((item) => item.submissionId === String(approvedAccumulated._id) && item.isAccumulatedActivity));
   assert.equal(Array.isArray(snapshot.recentActivity), true);
   assert.equal(snapshot.recentActivity.length >= 1, true);
 });
