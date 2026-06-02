@@ -17,6 +17,7 @@
   data-authenticated="<%= isRunnerAuthenticated ? '1' : '0' %>"
   data-login-url="/login"
   data-runner-name="<%= locals.user ? ((locals.user.firstName || '') + ' ' + (locals.user.lastName || '')).trim() : '' %>"
+  data-runner-display-name="<%= locals.user ? (locals.user.displayName || '') : '' %>"
   data-default-mode="<%= defaultMode %>"
   data-default-title="<%= modalTitle %>"
   data-default-description="<%= modalDescription %>"

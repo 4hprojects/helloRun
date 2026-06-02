@@ -22,6 +22,10 @@ const vm      = require('node:vm');
 // ---------------------------------------------------------------------------
 
 function loadOcrModule () {
+  const supportFiles = [
+    '../src/public/js/ocr/ocr-source-detector.js',
+    '../src/public/js/ocr/ocr-confidence.js'
+  ];
   const src = fs.readFileSync(
     path.join(__dirname, '../src/public/js/ocr-proof-reader.js'),
     'utf8'
@@ -31,6 +35,9 @@ function loadOcrModule () {
     console: { debug: () => {} } // silence verbose logs during tests
   };
   vm.createContext(ctx);
+  for (const supportFile of supportFiles) {
+    vm.runInContext(fs.readFileSync(path.join(__dirname, supportFile), 'utf8'), ctx);
+  }
   vm.runInContext(src, ctx);
   return ctx.window.OcrProofReader;
 }
@@ -131,6 +138,10 @@ test('detectSourceApp — identifies Apple Health', () => {
 
 test('detectSourceApp — identifies Google Fit', () => {
   assert.equal(ocr.detectSourceApp('Google Fit running activity'), 'google');
+});
+
+test('detectSourceApp - identifies COROS', () => {
+  assert.equal(ocr.detectSourceApp('COROS\n5.44 km'), 'coros');
 });
 
 test('detectSourceApp — returns unknown for unrecognised text', () => {
@@ -380,6 +391,34 @@ test('parseOcrText — poor OCR output with garbled text returns nulls', () => {
   assert.equal(r.distance, null);
   assert.equal(r.time, null);
   assert.equal(r.confidence, 0);
+});
+
+test('parseOcrText - COROS screenshot parses labelled activity values', () => {
+  const text = [
+    'COROS',
+    'Benguet Run',
+    'Jun 2, 2026 6:07 PM',
+    '5.44 km',
+    'Distance',
+    'Iya',
+    '48:27.02',
+    'Activity Time',
+    '182 m',
+    'Elev Gain',
+    'Elevation (m)',
+    'Gain 182 Loss 188'
+  ].join('\n');
+
+  const r = parse(text, 80);
+  assert.equal(r.detectedSource, 'coros');
+  assert.equal(r.distance.value, 5.44);
+  assert.equal(r.time.hours, 0);
+  assert.equal(r.time.minutes, 48);
+  assert.equal(r.time.seconds, 27);
+  assert.equal(r.date, '2026-06-02');
+  assert.equal(r.elevationGain.value, 182);
+  assert.equal(r.name, 'Iya');
+  assert.notEqual(r.time.totalMs, 367000);
 });
 
 // ---------------------------------------------------------------------------

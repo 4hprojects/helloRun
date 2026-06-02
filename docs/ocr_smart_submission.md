@@ -16,8 +16,10 @@ Implemented:
 - OCR can auto-fill distance, duration, run date, location, elevation gain, steps, and activity type when those values are detected.
 - Runners can edit OCR-filled values before submission.
 - OCR metadata is submitted and stored with the final confirmed values.
+- Frontend OCR analysis is split into dedicated modules under `src/public/js/ocr/` for source detection, parsing, confidence scoring, and identity matching.
 - The frontend comparison helper lives in `src/public/js/run-proof-integrity.js`.
 - The backend suspicious-entry helper lives in `src/utils/submission-integrity.js`.
+- Backend OCR comparison constants and predicates live in `src/utils/ocr/ocr-integrity.js`.
 - Suspicious conditions are flag-only: submissions are saved, but flagged submissions are held for organizer/admin review and are not auto-approved.
 - Organizer/admin review surfaces show detailed suspicious reasons and OCR-vs-submitted values.
 - Runner-facing pages use neutral wording for suspicious or duplicate proof states.
@@ -29,6 +31,8 @@ Recent OCR parser recovery:
 - Strava location extraction ignores `Strava App` and looks for nearby real place text.
 - Strava layout signals can override Garmin device labels, so a Strava activity that mentions a Garmin watch is still treated as Strava.
 - Replacing, dropping, removing, or resubmitting a different screenshot clears stale editable fields such as `steps` before the new OCR result is applied.
+- COROS screenshots are detected as `coros`, including COROS activity time, distance, elevation gain, date, and visible profile/display-name text.
+- OCR name matching can use either the runner's full account name or the profile `displayName`; display-name matches are still stored as `matched` in the existing OCR payload.
 
 Current validation commands recorded:
 

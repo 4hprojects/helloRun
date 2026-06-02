@@ -215,8 +215,9 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(source, /if \(stepsInput\) stepsInput\.value = ''/);
   assert.match(source, /fileInput\.addEventListener\('change'[\s\S]*clearRunDetailFields\(\);/);
   assert.match(source, /hideNameMismatchState/);
+  assert.match(source, /runnerDisplayName/);
+  assert.match(source, /HelloRunOcrIdentity\.evaluateNameMatch/);
   assert.match(source, /const confirmOverlay = document\.getElementById\('runProofNameMismatchConfirm'\)/);
-  assert.match(source, /hideNameMismatchState\(\);\s*if \(extractedName\)/);
   assert.match(source, /mismatchWarningWasVisible/);
   assert.match(source, /confirmOverlay && mismatchWarningWasVisible/);
   assert.match(source, /selectedRegistrationIds/);
@@ -238,6 +239,7 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(partial, /id="runProofOcrSummary"/);
   assert.match(partial, /name="ocrExtractedName"/);
   assert.match(partial, /name="ocrNameMatchStatus"/);
+  assert.match(partial, /data-runner-display-name/);
   assert.match(partial, /id="runProofStravaSyncBtn"/);
   assert.match(partial, /Sync Strava Data/);
   assert.match(partial, /Activity Screenshot/);
@@ -248,4 +250,29 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(source, /\/api\/events\/' \+ encodeURIComponent\(eventId\) \+ '\/submissions\/strava/);
   assert.match(source, /selected\?\.isPersonalRecord\s*\?\s*'personal-record'/);
   assert.match(partial, /id="runProofSubmitInlineBtn"/);
+});
+
+test('OCR identity helper matches display name and rejects non-matching names', () => {
+  const scriptPath = path.resolve(__dirname, '../src/public/js/ocr/ocr-identity.js');
+  const source = fs.readFileSync(scriptPath, 'utf8');
+  const context = vm.createContext({ window: {} });
+  vm.runInContext(source, context, { filename: 'ocr-identity.js' });
+
+  const helper = context.window.HelloRunOcrIdentity;
+  const displayMatch = helper.evaluateNameMatch({
+    extractedName: 'Iya',
+    accountName: 'Maria Santos',
+    displayName: 'Iya',
+    hadOcrSignal: true
+  });
+  assert.equal(displayMatch.status, 'matched');
+  assert.equal(displayMatch.matchedAgainst, 'display_name');
+
+  const mismatch = helper.evaluateNameMatch({
+    extractedName: 'Iya',
+    accountName: 'Maria Santos',
+    displayName: 'Runner M',
+    hadOcrSignal: true
+  });
+  assert.equal(mismatch.status, 'mismatched');
 });
