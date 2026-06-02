@@ -17,6 +17,7 @@ Implemented:
 - Runners can edit OCR-filled values before submission.
 - OCR metadata is submitted and stored with the final confirmed values.
 - Frontend OCR analysis is split into dedicated modules under `src/public/js/ocr/` for source detection, parsing, confidence scoring, and identity matching.
+- COROS map-label location resolution uses a local curated Philippines place dictionary, not live internet search.
 - The frontend comparison helper lives in `src/public/js/run-proof-integrity.js`.
 - The backend suspicious-entry helper lives in `src/utils/submission-integrity.js`.
 - Backend OCR comparison constants and predicates live in `src/utils/ocr/ocr-integrity.js`.
@@ -32,6 +33,8 @@ Recent OCR parser recovery:
 - Strava layout signals can override Garmin device labels, so a Strava activity that mentions a Garmin watch is still treated as Strava.
 - Replacing, dropping, removing, or resubmitting a different screenshot clears stale editable fields such as `steps` before the new OCR result is applied.
 - COROS screenshots are detected as `coros`, including COROS activity time, distance, elevation gain, date, and visible profile/display-name text.
+- COROS map labels such as `Mines View Park`, `Outlook Drive`, `Pacdal`, `Gibraltar`, and `Baguio Country Club` can resolve to `Baguio City, Benguet` when confidence is high.
+- Vague COROS labels such as only `Benguet` are retained as candidates but do not autofill location.
 - OCR name matching can use either the runner's full account name or the profile `displayName`; display-name matches are still stored as `matched` in the existing OCR payload.
 
 Current validation commands recorded:

@@ -226,6 +226,8 @@ test('run proof modal process opens dashboard flow before eligible events finish
   const source = fs.readFileSync(scriptPath, 'utf8');
   const partialPath = path.resolve(__dirname, '../src/views/partials/run-proof-modal.ejs');
   const partial = fs.readFileSync(partialPath, 'utf8');
+  const footerPath = path.resolve(__dirname, '../src/views/layouts/footer.ejs');
+  const footer = fs.readFileSync(footerPath, 'utf8');
 
   assert.match(source, /showModalShell\(\);\s*renderEventOptionsLoading\(\);/);
   assert.match(source, /data-run-proof-registration-id/);
@@ -280,6 +282,7 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(source, /\/api\/events\/' \+ encodeURIComponent\(eventId\) \+ '\/submissions\/strava/);
   assert.match(source, /selected\?\.isPersonalRecord\s*\?\s*'personal-record'/);
   assert.match(partial, /id="runProofSubmitInlineBtn"/);
+  assert.match(footer, /\/js\/ocr\/ocr-location-resolver\.js/);
 });
 
 test('OCR identity helper matches display name and rejects non-matching names', () => {
