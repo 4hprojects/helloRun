@@ -40,17 +40,19 @@ For accumulated-distance activities, the page also shows current progress toward
 
 ## Page Content
 
-The review page shows:
+The review page now uses a card-based review layout rather than the old wide registrants table. It shows:
 
-- Event title and review status.
-- Participant name, email, mobile, country, and gender.
-- Registration confirmation code, race distance, participation mode, registration status, and payment status.
+- Header actions back to registrants and either the admin queue or organizer dashboard.
+- Query-string success/error/warning messages at the top of the review page.
+- Compact summary cards for review status, submission type, confirmation code, and submitted date.
+- Participant and registration details in scan-friendly metadata blocks.
 - Activity metrics: distance, elapsed time, run date, run location, run type, elevation, and steps.
-- Evidence details: proof type, source, uploaded proof link, and proof notes.
+- Evidence details: proof type, source, uploaded proof link, proof notes, and image preview when the proof is image-like.
 - OCR review signals when available, including confidence, extracted values, mismatches, location/date checks, and name-match status.
-- Suspicious activity flags and reasons.
+- Suspicious activity flags and reasons in a dedicated review signals panel.
 - Strava snapshot and external Strava activity link when available.
-- Review history after approval or rejection, including reviewed-at, reviewer, notes, and rejection reason.
+- Accumulated progress panel for accumulated-distance activities.
+- Decision sidebar for pending submissions, or review history after approval or rejection.
 
 ## Workflow
 
@@ -62,6 +64,8 @@ Pending submissions render action forms on the standalone page:
 Reviewed submissions render a read-only review summary and do not show approve/reject forms.
 
 After approval or rejection, the reviewer is redirected back to the same standalone review page with a success or error message.
+
+The current UI keeps the route and review service behavior unchanged. Only the presentation was redesigned into a responsive two-column card layout that collapses to one column on mobile.
 
 ## Navigation
 
@@ -91,6 +95,7 @@ Primary implementation files:
 
 - `src/routes/organizer.routes.js`
 - `src/views/organizer/submission-review.ejs`
+- `src/public/css/organizer-events.css`
 - `src/views/organizer/event-registrants.ejs`
 - `src/controllers/admin.controller.js`
 
@@ -111,6 +116,9 @@ Verified scenarios:
 - Admins can view standard submission review pages.
 - Owner organizers and admins can view accumulated activity review pages.
 - Reviewed submissions render read-only state.
+- Pending review pages render the card layout and decision sidebar.
+- Reviewed pages render the card layout and review history sidebar.
+- Image-like proof files render an inline preview plus the external evidence link.
 - Pending registrants table rows link to the standalone review page.
 - Admin review queue result rows link directly to the standalone review page.
 - Approve/reject actions redirect back to the standalone page.
@@ -122,10 +130,12 @@ Latest focused verification:
 
 ```bash
 node --check src/routes/organizer.routes.js
-node --check src/controllers/admin.controller.js
 node --check tests/submission-review-route-guards.test.js
-node --check tests/organizer-dashboard-analytics.test.js
 node --test --test-concurrency=1 tests/submission-review-route-guards.test.js
-node --test --test-concurrency=1 tests/admin-dashboard.test.js
-node --test --test-concurrency=1 tests/organizer-dashboard-analytics.test.js
 ```
+
+Additional June 2026 render check:
+
+- Authenticated pending review page returned 200, rendered `submission-review-page`, showed decision actions, and no longer rendered `registrants-table-wrap`.
+- Authenticated reviewed success page returned 200, rendered the query message, showed `Review History`, omitted approve/reject actions, and rendered image proof preview when applicable.
+- Browser screenshot verification was not available in the Codex session because the in-app browser connector returned no browser targets.

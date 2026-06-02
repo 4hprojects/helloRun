@@ -3,6 +3,32 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - June 2, 2026 (Session: Submission Review UI Card Redesign)
+
+### [SESSION] SESSION UPDATE:
+- Redesigned the organizer/admin submission review page from a wide table into a responsive card-based review screen.
+- Added compact summary cards for status, submission type, confirmation code, and submitted date.
+- Split review details into participant/registration, activity metrics, evidence, review signals, Strava, and accumulated progress sections.
+- Added a decision sidebar for pending submissions and a read-only review history sidebar for reviewed submissions.
+- Added image proof previews for image-like proof uploads while preserving external proof links.
+- Preserved all existing review routes, approval/rejection POST actions, authorization, audit, notification, and certificate behavior.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/submission_review_page.md
+3. src/views/organizer/submission-review.ejs
+4. src/public/css/organizer-events.css
+5. tests/submission-review-route-guards.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --check src/routes/organizer.routes.js` -> PASS
+- `node --check tests/submission-review-route-guards.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/submission-review-route-guards.test.js` -> PASS, 14/14
+- Authenticated served-page checks for pending and reviewed/success-message states -> PASS
+- Browser screenshot check was not available because the in-app browser connector returned no browser targets in this session.
+
+---
+
 ## CHANGELOG - June 2, 2026 (Session: Accumulated Challenge Progress Target Fix)
 
 ### [SESSION] SESSION UPDATE:

@@ -84,6 +84,9 @@ test('owner organizer can view standard submission review page', async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Submission Review/i);
+  assert.match(html, /submission-review-page/i);
+  assert.match(html, /Activity Metrics/i);
+  assert.match(html, /Decision/i);
   assert.match(html, /View run result evidence/i);
   assert.match(html, /Approve Run Result/i);
   assert.match(html, /Reject Run Result/i);
@@ -117,6 +120,7 @@ test('admin can view standard submission review page', async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Submission Review/i);
+  assert.match(html, /submission-review-page/i);
   assert.match(html, /Admin Queue/i);
 });
 
@@ -143,6 +147,7 @@ test('reviewed standard submission page is read-only', async () => {
   });
   assert.equal(response.status, 200);
   const html = await response.text();
+  assert.match(html, /Review History/i);
   assert.match(html, /Reviewed:/i);
   assert.doesNotMatch(html, /action="[^"]+\/approve"/i);
   assert.doesNotMatch(html, /action="[^"]+\/reject"/i);
@@ -161,6 +166,7 @@ test('owner and admin can view accumulated activity review page', async () => {
   const ownerHtml = await ownerResponse.text();
   assert.match(ownerHtml, /Accumulated Activity/i);
   assert.match(ownerHtml, /Accumulated Progress/i);
+  assert.match(ownerHtml, /submission-proof-image-link/i);
   assert.match(ownerHtml, /Approve Run Result/i);
 
   const adminCookie = await login(seed.admin.email, seed.password);
