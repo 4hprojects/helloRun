@@ -45,6 +45,7 @@ test('event leaderboard page and data endpoint render public-safe results', asyn
   const html = await pageResponse.text();
   assert.match(html, /Race Result Leaderboard/);
   assert.match(html, /Verified/);
+  assert.match(html, /5K Rankings/);
 
   const dataResponse = await fetch(`${BASE_URL}/events/${seed.event.slug}/leaderboard/data?search=${encodeURIComponent(seed.registration.confirmationCode)}`);
   assert.equal(dataResponse.status, 200);

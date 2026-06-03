@@ -175,18 +175,21 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
     : [];
 
   const searched = applyEventLeaderboardFilters([...officialEntries, ...pendingEntries], options);
-  const paged = searched.slice((options.page - 1) * options.limit, options.page * options.limit);
+  const groups = buildEventLeaderboardGroups(searched, event);
+  const groupedEntries = flattenEventLeaderboardGroups(groups);
+  const paged = groupedEntries.slice((options.page - 1) * options.limit, options.page * options.limit);
 
   return {
     event: formatLeaderboardEvent(event),
     settings,
     filters: options,
     entries: paged,
+    groups,
     pagination: {
       page: options.page,
       limit: options.limit,
-      total: searched.length,
-      totalPages: Math.max(1, Math.ceil(searched.length / options.limit))
+      total: groupedEntries.length,
+      totalPages: Math.max(1, Math.ceil(groupedEntries.length / options.limit))
     },
     stats: {
       totalEntries: officialEntries.length + pendingEntries.length,
@@ -209,7 +212,8 @@ async function getMyStanding(eventSlug, userId, rawOptions = {}) {
     limit: 500
   });
   if (!data) return null;
-  const entry = data.entries.find((item) => String(item.userId || '') === safeUserId) || null;
+  const allEntries = flattenEventLeaderboardGroups(data.groups || []);
+  const entry = allEntries.find((item) => String(item.userId || '') === safeUserId) || null;
   if (entry) {
     return {
       event: data.event,
@@ -237,13 +241,117 @@ async function getNearbyRunners(eventSlug, userId, rawOptions = {}) {
     limit: 500
   });
   if (!data) return [];
-  const official = data.entries.filter((item) => Number.isInteger(item.rank));
+  const allEntries = flattenEventLeaderboardGroups(data.groups || []);
+  const current = allEntries.find((item) => String(item.userId || '') === safeUserId);
+  if (!current) return [];
+  const currentCategory = normalizeDistance(current.category) || '';
+  const official = allEntries
+    .filter((item) => Number.isInteger(item.rank))
+    .filter((item) => (normalizeDistance(item.category) || '') === currentCategory);
   const currentIndex = official.findIndex((item) => String(item.userId || '') === safeUserId);
   if (currentIndex < 0) return [];
   return official.slice(Math.max(0, currentIndex - 2), currentIndex + 3).map((item) => ({
     ...item,
     isCurrentUser: String(item.userId || '') === safeUserId
   }));
+}
+
+function buildEventLeaderboardGroups(entries = [], event = {}) {
+  const buckets = new Map();
+
+  entries.forEach((entry) => {
+    const key = getEventLeaderboardGroupKey(entry.category);
+    if (!buckets.has(key)) {
+      buckets.set(key, {
+        key,
+        label: resolveEventLeaderboardGroupLabel(key, event, entry.category),
+        entries: []
+      });
+    }
+    buckets.get(key).entries.push({ ...entry, groupKey: key });
+  });
+
+  const orderedKeys = orderEventLeaderboardGroupKeys({
+    event,
+    availableKeys: Array.from(buckets.keys())
+  });
+
+  return orderedKeys.map((key) => {
+    const bucket = buckets.get(key) || {
+      key,
+      label: resolveEventLeaderboardGroupLabel(key, event, ''),
+      entries: []
+    };
+    let officialRank = 0;
+    const rankedEntries = bucket.entries.map((entry) => {
+      if (entry.status === 'verified') {
+        officialRank += 1;
+        return { ...entry, rank: officialRank };
+      }
+      return { ...entry, rank: null };
+    });
+    const verifiedCount = rankedEntries.filter((entry) => entry.status === 'verified').length;
+    const pendingCount = rankedEntries.filter((entry) => entry.status === 'pending_review').length;
+
+    return {
+      key,
+      label: bucket.label,
+      entries: rankedEntries,
+      stats: {
+        totalEntries: rankedEntries.length,
+        verifiedEntries: verifiedCount,
+        pendingEntries: pendingCount
+      }
+    };
+  });
+}
+
+function flattenEventLeaderboardGroups(groups = []) {
+  return groups.flatMap((group) => group.entries || []);
+}
+
+function getEventLeaderboardGroupKey(category) {
+  const normalized = normalizeDistance(category);
+  if (normalized) return normalized;
+  return 'uncategorized';
+}
+
+function resolveEventLeaderboardGroupLabel(key, event = {}, fallbackCategory = '') {
+  if (key === 'uncategorized') return 'Uncategorized';
+  const configuredDistances = Array.isArray(event.raceDistances)
+    ? event.raceDistances.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+  const matchingConfigured = configuredDistances.find((item) => normalizeDistance(item) === key);
+  if (matchingConfigured) return matchingConfigured;
+  const fallback = String(fallbackCategory || '').trim();
+  return fallback || key;
+}
+
+function orderEventLeaderboardGroupKeys({ event = {}, availableKeys = [] }) {
+  const configuredDistances = Array.isArray(event.raceDistances)
+    ? event.raceDistances.map((item) => String(item || '').trim()).filter(Boolean)
+    : [];
+  const configuredKeys = configuredDistances
+    .map((item) => normalizeDistance(item))
+    .filter(Boolean);
+
+  const order = [];
+  configuredKeys.forEach((key) => {
+    if (availableKeys.includes(key) && !order.includes(key)) {
+      order.push(key);
+    }
+  });
+
+  availableKeys
+    .filter((key) => !order.includes(key) && key !== 'uncategorized')
+    .sort((a, b) => a.localeCompare(b))
+    .forEach((key) => order.push(key));
+
+  if (availableKeys.includes('uncategorized')) {
+    order.push('uncategorized');
+  }
+
+  return order;
 }
 
 async function getLeaderboardEventBySlug(eventSlug) {

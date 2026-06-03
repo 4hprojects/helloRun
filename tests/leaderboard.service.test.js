@@ -10,6 +10,7 @@ const Registration = require('../src/models/Registration');
 const Submission = require('../src/models/Submission');
 const AccumulatedActivitySubmission = require('../src/models/AccumulatedActivitySubmission');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
+const { reviewSubmission } = require('../src/services/submission.service');
 const {
   getLeaderboardDiscoveryData,
   getLeaderboardData,
@@ -144,6 +145,57 @@ test('event leaderboard ranks approved race results and hides unsafe public fiel
   assert.ok(result.entries.every((item) => !Object.prototype.hasOwnProperty.call(item, 'proof')));
   assert.ok(result.entries.every((item) => !Object.prototype.hasOwnProperty.call(item, 'ocrData')));
   assert.equal(result.entries.some((item) => item.userId === String(seed.runnerE._id)), false);
+  assert.ok(Array.isArray(result.groups));
+  const fiveKGroup = result.groups.find((group) => group.key === '5K');
+  const tenKGroup = result.groups.find((group) => group.key === '10K');
+  assert.ok(fiveKGroup);
+  assert.ok(tenKGroup);
+  assert.equal(fiveKGroup.entries[0].rank, 1);
+  assert.equal(tenKGroup.entries[0].rank, 1);
+});
+
+test('event leaderboard includes formerly flagged entry after organizer approval clears suspicious metadata', async () => {
+  const seed = await seedLeaderboardData('event-approve-unflag');
+  await Event.findByIdAndUpdate(seed.eventA._id, {
+    leaderboardSettings: {
+      enabled: true,
+      type: 'race_result',
+      rankingBasis: 'fastest_time',
+      nameDisplayMode: 'first_name_last_initial',
+      visibleColumns: ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status'],
+      showPending: false,
+      hideFlagged: true
+    }
+  });
+
+  const flagged = await Submission.create({
+    registrationId: seed.regE._id,
+    eventId: seed.eventA._id,
+    runnerId: seed.runnerE._id,
+    participationMode: 'virtual',
+    raceDistance: '5K',
+    distanceKm: 5,
+    elapsedMs: 1250000,
+    proofType: 'gps',
+    proof: { url: 'https://example.com/private-review.gpx', key: 'private-review', mimeType: 'application/gpx+xml', size: 1200 },
+    status: 'submitted',
+    suspiciousFlag: true,
+    suspiciousFlagReason: 'High-confidence OCR mismatch detected.',
+    submittedAt: new Date()
+  });
+
+  const before = await getEventLeaderboard(seed.eventA.slug, { limit: 20 });
+  assert.equal(before.entries.some((item) => item.userId === String(seed.runnerE._id)), false);
+
+  await reviewSubmission({
+    submissionId: flagged._id,
+    organizerId: seed.eventA.organizerId,
+    action: 'approve',
+    reviewNotes: 'Manual review confirms this activity is valid.'
+  });
+
+  const after = await getEventLeaderboard(seed.eventA.slug, { limit: 20 });
+  assert.equal(after.entries.some((item) => item.userId === String(seed.runnerE._id)), true);
 });
 
 test('event leaderboard search matches runner name and confirmation code with privacy formatting', async () => {
@@ -175,7 +227,9 @@ test('my standing and nearby runners use event-scoped official ranks', async () 
 
   assert.equal(standing.standing.userId, String(seed.runnerB._id));
   assert.equal(standing.standing.status, 'verified');
-  assert.ok(Number.isInteger(standing.standing.rank));
+  assert.equal(standing.standing.rank, 1);
+  assert.equal(standing.standing.category, '10K');
+  assert.ok(nearby.every((item) => item.category === '10K'));
   assert.ok(nearby.some((item) => item.isCurrentUser));
 });
 
@@ -188,6 +242,12 @@ test('accumulated event leaderboard sums approved activities by registration', a
   assert.equal(result.entries[0].totalDistanceKm, 15);
   assert.equal(result.entries[0].activityCount, 2);
   assert.equal(result.entries[1].totalDistanceKm, 12);
+  const twentyKGroup = result.groups.find((group) => group.key === '20K');
+  const thirtyKGroup = result.groups.find((group) => group.key === '30K');
+  assert.ok(twentyKGroup);
+  assert.ok(thirtyKGroup);
+  assert.equal(twentyKGroup.entries[0].rank, 1);
+  assert.equal(thirtyKGroup.entries[0].rank, 1);
 });
 
 async function seedLeaderboardData(tag) {
@@ -365,7 +425,7 @@ async function seedAccumulatedLeaderboardData(tag) {
     }
   });
   const regA = await createRegistration(event, runnerA, 'virtual', '20K');
-  const regB = await createRegistration(event, runnerB, 'virtual', '20K');
+  const regB = await createRegistration(event, runnerB, 'virtual', '30K');
   await AccumulatedActivitySubmission.create([
     buildAccumulatedActivity(event, regA, runnerA, 9, now - 300000),
     buildAccumulatedActivity(event, regA, runnerA, 6, now - 200000),

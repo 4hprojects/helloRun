@@ -10,6 +10,19 @@
   <% const event = leaderboard.event || {}; %>
   <% const settings = leaderboard.settings || {}; %>
   <% const filters = leaderboard.filters || {}; %>
+  <% const groups = Array.isArray(leaderboard.groups) && leaderboard.groups.length
+    ? leaderboard.groups
+    : [{
+      key: 'all',
+      label: 'All Results',
+      entries: leaderboard.entries || [],
+      stats: {
+        totalEntries: (leaderboard.entries || []).length,
+        verifiedEntries: (leaderboard.entries || []).filter((item) => item.status === 'verified').length,
+        pendingEntries: (leaderboard.entries || []).filter((item) => item.status === 'pending_review').length
+      }
+    }]; %>
+  <% const nonEmptyGroups = groups.filter((group) => Array.isArray(group.entries) && group.entries.length); %>
   <% const standing = myStanding && myStanding.standing ? myStanding.standing : null; %>
   <% const nearby = myStanding && myStanding.nearby ? myStanding.nearby : []; %>
 
@@ -31,7 +44,7 @@
         <section class="leaderboard-standing-card" aria-labelledby="my-standing-heading">
           <div>
             <p class="leaderboard-card-kicker">My Standing</p>
-            <h2 id="my-standing-heading"><%= standing.rank ? `#${standing.rank} Overall` : standing.statusLabel %></h2>
+            <h2 id="my-standing-heading"><%= standing.rank ? `#${standing.rank} ${standing.category || 'Category'} Rank` : standing.statusLabel %></h2>
             <p><%= standing.category || 'Registered category' %></p>
           </div>
           <dl>
@@ -99,58 +112,82 @@
       </form>
 
       <p class="leaderboard-results-meta">
-        Showing <strong><%= leaderboard.entries.length %></strong> result<%= leaderboard.entries.length === 1 ? '' : 's' %>.
+        Showing <strong><%= nonEmptyGroups.reduce((sum, group) => sum + (group.stats?.totalEntries || 0), 0) %></strong> result<%= nonEmptyGroups.reduce((sum, group) => sum + (group.stats?.totalEntries || 0), 0) === 1 ? '' : 's' %> across
+        <strong><%= nonEmptyGroups.length %></strong> distance group<%= nonEmptyGroups.length === 1 ? '' : 's' %>.
         <strong><%= leaderboard.stats.verifiedEntries %></strong> verified result<%= leaderboard.stats.verifiedEntries === 1 ? '' : 's' %> count toward official ranking.
       </p>
 
-      <% if (leaderboard.entries && leaderboard.entries.length) { %>
+      <% if (nonEmptyGroups.length) { %>
         <div class="leaderboard-card-list" aria-label="Leaderboard result cards">
-          <% leaderboard.entries.forEach((entry) => { %>
-            <article class="leaderboard-mobile-card">
-              <div class="leaderboard-mobile-card-head">
-                <div>
-                  <p>#<%= entry.rank || '-' %> Overall</p>
-                  <h2><%= entry.runnerName %></h2>
-                  <span><%= entry.category || 'Category' %></span>
-                </div>
-                <span class="leaderboard-status-badge leaderboard-status-<%= entry.status %>"><%= entry.statusLabel %></span>
-              </div>
-              <dl>
-                <div><dt>Distance</dt><dd><%= entry.distanceLabel || 'N/A' %></dd></div>
-                <div><dt>Time</dt><dd><%= entry.timeLabel || '-' %></dd></div>
-                <div><dt>Pace</dt><dd><%= entry.paceLabel || '-' %></dd></div>
-              </dl>
-            </article>
+          <% nonEmptyGroups.forEach((group) => { %>
+            <section class="leaderboard-distance-group" aria-label="<%= group.label %> rankings">
+              <header class="leaderboard-distance-group-header">
+                <h2><%= group.label %> Rankings</h2>
+                <p>
+                  <strong><%= group.stats?.verifiedEntries || 0 %></strong> verified,
+                  <strong><%= group.stats?.pendingEntries || 0 %></strong> pending
+                </p>
+              </header>
+
+              <% group.entries.forEach((entry) => { %>
+                <article class="leaderboard-mobile-card">
+                  <div class="leaderboard-mobile-card-head">
+                    <div>
+                      <p>#<%= entry.rank || '-' %> <%= group.label %></p>
+                      <h2><%= entry.runnerName %></h2>
+                      <span><%= entry.category || group.label %></span>
+                    </div>
+                    <span class="leaderboard-status-badge leaderboard-status-<%= entry.status %>"><%= entry.statusLabel %></span>
+                  </div>
+                  <dl>
+                    <div><dt>Distance</dt><dd><%= entry.distanceLabel || 'N/A' %></dd></div>
+                    <div><dt>Time</dt><dd><%= entry.timeLabel || '-' %></dd></div>
+                    <div><dt>Pace</dt><dd><%= entry.paceLabel || '-' %></dd></div>
+                  </dl>
+                </article>
+              <% }) %>
+            </section>
           <% }) %>
         </div>
 
         <div class="leaderboard-table-wrap leaderboard-desktop-table">
-          <table class="leaderboard-table">
-            <thead>
-              <tr>
-                <% if (settings.visibleColumns.includes('rank')) { %><th>Rank</th><% } %>
-                <% if (settings.visibleColumns.includes('runner')) { %><th>Runner</th><% } %>
-                <% if (settings.visibleColumns.includes('category')) { %><th>Category</th><% } %>
-                <% if (settings.visibleColumns.includes('distance')) { %><th>Distance</th><% } %>
-                <% if (settings.visibleColumns.includes('time')) { %><th>Time</th><% } %>
-                <% if (settings.visibleColumns.includes('pace')) { %><th>Pace</th><% } %>
-                <% if (settings.visibleColumns.includes('status')) { %><th>Status</th><% } %>
-              </tr>
-            </thead>
-            <tbody>
-              <% leaderboard.entries.forEach((entry) => { %>
-                <tr>
-                  <% if (settings.visibleColumns.includes('rank')) { %><td data-label="Rank"><span class="leaderboard-rank-badge"><%= entry.rank ? `#${entry.rank}` : '-' %></span></td><% } %>
-                  <% if (settings.visibleColumns.includes('runner')) { %><td data-label="Runner"><%= entry.runnerName %></td><% } %>
-                  <% if (settings.visibleColumns.includes('category')) { %><td data-label="Category"><%= entry.category || 'N/A' %></td><% } %>
-                  <% if (settings.visibleColumns.includes('distance')) { %><td data-label="Distance"><%= entry.distanceLabel || 'N/A' %></td><% } %>
-                  <% if (settings.visibleColumns.includes('time')) { %><td data-label="Time"><strong><%= entry.timeLabel || '-' %></strong></td><% } %>
-                  <% if (settings.visibleColumns.includes('pace')) { %><td data-label="Pace"><%= entry.paceLabel || '-' %></td><% } %>
-                  <% if (settings.visibleColumns.includes('status')) { %><td data-label="Status"><span class="leaderboard-status-badge leaderboard-status-<%= entry.status %>"><span class="sr-only">Submission status: </span><%= entry.statusLabel %></span></td><% } %>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
+          <% nonEmptyGroups.forEach((group) => { %>
+            <section class="leaderboard-distance-group leaderboard-distance-group-table" aria-label="<%= group.label %> rankings table">
+              <header class="leaderboard-distance-group-header">
+                <h2><%= group.label %> Rankings</h2>
+                <p>
+                  <strong><%= group.stats?.verifiedEntries || 0 %></strong> verified,
+                  <strong><%= group.stats?.pendingEntries || 0 %></strong> pending
+                </p>
+              </header>
+              <table class="leaderboard-table">
+                <thead>
+                  <tr>
+                    <% if (settings.visibleColumns.includes('rank')) { %><th>Rank</th><% } %>
+                    <% if (settings.visibleColumns.includes('runner')) { %><th>Runner</th><% } %>
+                    <% if (settings.visibleColumns.includes('category')) { %><th>Category</th><% } %>
+                    <% if (settings.visibleColumns.includes('distance')) { %><th>Distance</th><% } %>
+                    <% if (settings.visibleColumns.includes('time')) { %><th>Time</th><% } %>
+                    <% if (settings.visibleColumns.includes('pace')) { %><th>Pace</th><% } %>
+                    <% if (settings.visibleColumns.includes('status')) { %><th>Status</th><% } %>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% group.entries.forEach((entry) => { %>
+                    <tr>
+                      <% if (settings.visibleColumns.includes('rank')) { %><td data-label="Rank"><span class="leaderboard-rank-badge"><%= entry.rank ? `#${entry.rank}` : '-' %></span></td><% } %>
+                      <% if (settings.visibleColumns.includes('runner')) { %><td data-label="Runner"><%= entry.runnerName %></td><% } %>
+                      <% if (settings.visibleColumns.includes('category')) { %><td data-label="Category"><%= entry.category || 'N/A' %></td><% } %>
+                      <% if (settings.visibleColumns.includes('distance')) { %><td data-label="Distance"><%= entry.distanceLabel || 'N/A' %></td><% } %>
+                      <% if (settings.visibleColumns.includes('time')) { %><td data-label="Time"><strong><%= entry.timeLabel || '-' %></strong></td><% } %>
+                      <% if (settings.visibleColumns.includes('pace')) { %><td data-label="Pace"><%= entry.paceLabel || '-' %></td><% } %>
+                      <% if (settings.visibleColumns.includes('status')) { %><td data-label="Status"><span class="leaderboard-status-badge leaderboard-status-<%= entry.status %>"><span class="sr-only">Submission status: </span><%= entry.statusLabel %></span></td><% } %>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </section>
+          <% }) %>
         </div>
       <% } else { %>
         <div class="empty-state">
