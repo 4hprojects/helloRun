@@ -3,6 +3,25 @@
 - Update cadence: When priorities change or a milestone is completed.
 - Changelog reference: See CHANGELOG.md for repository-level change history.
 
+## STATUS UPDATE (June 3, 2026 - Auth Abuse Protection)
+
+### Current reality after latest implementation
+- Local signup is protected by layered anti-bot controls: Cloudflare Turnstile, IP and email + IP rate limits, a hidden honeypot, a minimum form-age check, a session-bound form token, disposable email blocking, and email verification.
+- Email/password login retains its existing rate limit and now requires adaptive Turnstile after 3 invalid credential attempts for the same email + IP within 15 minutes.
+- Login failure tracking uses Redis when available and an in-memory fallback otherwise, so rotating browser sessions does not remove the challenge threshold.
+- Turnstile is optional for local environments and becomes active when both `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are configured.
+
+### COMPLETED in this cycle
+- Added the shared auth-abuse service for signup signals, Turnstile Siteverify calls, and login failure counters.
+- Added Turnstile widgets to signup and challenged login states.
+- Updated Content Security Policy allowances for Cloudflare Turnstile.
+- Added focused signup, Turnstile, login challenge, and cookie-rotation bypass regression coverage.
+
+### Validation signals recorded
+- `npm run test:auth` -> PASS, 44/44.
+
+---
+
 ## STATUS UPDATE (May 23, 2026 - Policy Pack Organization)
 
 ### Current reality after latest implementation

@@ -9,6 +9,8 @@ Use this as the release gate for Phase 9 closeout. Every item must be marked `PA
 - `PASS/BLOCKED` `APP_URL` matches the deployed public base URL.
 - `PASS/BLOCKED` email settings are configured: `RESEND_API_KEY`, `EMAIL_FROM`, `ADMIN_EMAIL`.
 - `PASS/BLOCKED` Google OAuth settings are configured for the deployed domain.
+- `PASS/BLOCKED` Cloudflare Turnstile settings are configured: `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`.
+- `PASS/BLOCKED` the Turnstile widget allows the production and staging hostnames.
 - `PASS/BLOCKED` storage settings are configured for uploads/assets.
 - `PASS/BLOCKED` CSRF enforcement is enabled in runtime config. `CSRF_PROTECTION=0` must not be set in staging/production.
 
@@ -19,6 +21,9 @@ Use this as the release gate for Phase 9 closeout. Every item must be marked `PA
 - `PASS/BLOCKED` session cookie settings are correct for production: `httpOnly`, `sameSite=lax`, `secure=true`.
 - `PASS/BLOCKED` security headers are present on public responses.
 - `PASS/BLOCKED` CSRF-protected forms reject missing/invalid tokens in staging verification.
+- `PASS/BLOCKED` signup rejects missing or invalid Turnstile tokens before creating a user.
+- `PASS/BLOCKED` signup honeypot, form-age/session token, disposable email, and rate-limit controls are active.
+- `PASS/BLOCKED` login requires Turnstile after 3 invalid credentials for the same email + IP and still enforces its 10-attempt rate limit.
 
 ## 3. Automated Verification
 - `PASS/BLOCKED` full regression suite passes: `npm test`.
@@ -28,7 +33,9 @@ Use this as the release gate for Phase 9 closeout. Every item must be marked `PA
 ## 4. Manual Smoke Coverage
 - `PASS/BLOCKED` auth flows:
   - signup
+  - signup Turnstile success/failure
   - login/logout
+  - adaptive login Turnstile after repeated invalid credentials
   - forgot-password/reset-password
   - resend-verification
   - Google OAuth entry/callback basics

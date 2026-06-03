@@ -22,7 +22,10 @@ test.before(async () => {
     env: {
       ...process.env,
       PORT: String(TEST_PORT),
-      CSRF_PROTECTION: '1'
+      CSRF_PROTECTION: '1',
+      SIGNUP_MIN_FORM_AGE_MS: '0',
+      TURNSTILE_SITE_KEY: '',
+      TURNSTILE_SECRET_KEY: ''
     },
     stdio: ['ignore', 'ignore', 'ignore']
   });
@@ -42,7 +45,7 @@ test('signup records accepted privacy policy version and organizer status', asyn
   const { dataUsagePolicyId, dataUsageVersionNumber } = await ensureCurrentDataUsagePolicy();
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const email = `phase6.privacy.signup.${stamp}@example.com`;
-  const { csrfToken, cookie } = await getCsrfSession('/signup');
+  const { csrfToken, cookie, signupStartedAt, signupFormToken } = await getCsrfSession('/signup');
 
   const response = await fetch(`${BASE_URL}/signup`, {
     method: 'POST',
@@ -52,6 +55,8 @@ test('signup records accepted privacy policy version and organizer status', asyn
     },
     body: new URLSearchParams({
       _csrf: csrfToken,
+      signupStartedAt,
+      signupFormToken,
       firstName: 'Phase',
       lastName: 'Six',
       email,
@@ -95,7 +100,7 @@ test('signup records accepted privacy policy version and organizer status', asyn
 test('signup requires terms/privacy/cookie/data usage checkbox consent', async () => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const email = `phase6.privacy.no-consent.${stamp}@example.com`;
-  const { csrfToken, cookie } = await getCsrfSession('/signup');
+  const { csrfToken, cookie, signupStartedAt, signupFormToken } = await getCsrfSession('/signup');
 
   const response = await fetch(`${BASE_URL}/signup`, {
     method: 'POST',
@@ -105,6 +110,8 @@ test('signup requires terms/privacy/cookie/data usage checkbox consent', async (
     },
     body: new URLSearchParams({
       _csrf: csrfToken,
+      signupStartedAt,
+      signupFormToken,
       firstName: 'Phase',
       lastName: 'NoConsent',
       email,
@@ -371,7 +378,11 @@ async function getCsrfSession(pathname) {
   });
   const html = await response.text();
   const tokenMatch = html.match(/name="_csrf"\s+value="([^"]+)"/i);
+  const signupStartedAtMatch = html.match(/name="signupStartedAt"\s+value="([^"]+)"/i);
+  const signupFormTokenMatch = html.match(/name="signupFormToken"\s+value="([^"]+)"/i);
   assert.ok(tokenMatch, `Expected CSRF token on ${pathname}`);
+  assert.ok(signupStartedAtMatch, `Expected signup timestamp on ${pathname}`);
+  assert.ok(signupFormTokenMatch, `Expected signup form token on ${pathname}`);
 
   const setCookie = String(response.headers.get('set-cookie') || '');
   const cookie = setCookie.split(';')[0];
@@ -379,6 +390,8 @@ async function getCsrfSession(pathname) {
 
   return {
     csrfToken: tokenMatch[1],
+    signupStartedAt: signupStartedAtMatch[1],
+    signupFormToken: signupFormTokenMatch[1],
     cookie
   };
 }

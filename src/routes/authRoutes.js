@@ -5,12 +5,24 @@ const PrivacyPolicy = require('../models/PrivacyPolicy');
 const passwordService = require('../services/password.service');
 const communicationService = require('../services/communication.service');
 const googleOAuthService = require('../services/google-oauth.service');
+const {
+  clearLoginFailures: clearStoredLoginFailures,
+  createSignupFormToken,
+  getLoginFailureCount: getStoredLoginFailureCount,
+  getTurnstileSiteKey,
+  isTurnstileConfigured,
+  recordLoginFailure: recordStoredLoginFailure,
+  validateSignupBotSignals,
+  verifyTurnstileToken
+} = require('../services/auth-abuse.service');
 const { syncPolicyConsentsForMongoUser } = require('../services/policy-consent.service');
 const { syncProfileCompletionNotification } = require('../services/profile-completion.service');
 const crypto = require('crypto');
 const { redirectIfAuth } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
+
+const LOGIN_TURNSTILE_FAILURE_THRESHOLD = 3;
 
 // 10 login attempts per 15 minutes per account+IP (prevents per-account brute force)
 const loginLimiter = createRateLimiter({
@@ -45,6 +57,29 @@ const resendVerificationLimiter = createRateLimiter({
     const email = String(req.body.email || '').toLowerCase().trim().slice(0, 254);
     const ip = String(req.ip || 'unknown-ip');
     return `resend-verification|${email}|${ip}`;
+  }
+});
+
+// 5 signup attempts per hour per IP.
+const signupIpLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  message: 'Too many signup attempts. Please wait an hour and try again.',
+  keyFn: (req) => {
+    const ip = String(req.ip || 'unknown-ip');
+    return `signup-ip|${ip}`;
+  }
+});
+
+// 3 signup attempts per hour per email+IP pair.
+const signupEmailLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 3,
+  message: 'Too many signup attempts for this email. Please wait an hour and try again.',
+  keyFn: (req) => {
+    const email = normalizeEmail(req.body.email);
+    const ip = String(req.ip || 'unknown-ip');
+    return `signup-email|${email}|${ip}`;
   }
 });
 
@@ -124,12 +159,45 @@ function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase().slice(0, 254);
 }
 
+function getSessionLoginFailureCount(req) {
+  return Math.max(0, Number(req.session?.loginFailureCount || 0));
+}
+
+function shouldRequireSessionLoginTurnstile(req) {
+  return isTurnstileConfigured() && getSessionLoginFailureCount(req) >= LOGIN_TURNSTILE_FAILURE_THRESHOLD;
+}
+
+function recordSessionLoginFailure(req) {
+  if (!req.session) return;
+  req.session.loginFailureCount = getSessionLoginFailureCount(req) + 1;
+}
+
+function clearSessionLoginFailures(req) {
+  if (!req.session) return;
+  delete req.session.loginFailureCount;
+}
+
+function renderLoginPage(req, res, options = {}) {
+  return res.render('auth/login', {
+    error: options.error || null,
+    success: options.success || null,
+    showResendLink: Boolean(options.showResendLink),
+    userEmail: options.userEmail || null,
+    email: options.email || '',
+    returnTo: options.returnTo || '',
+    turnstile: {
+      enabled: options.requireTurnstile || shouldRequireSessionLoginTurnstile(req),
+      siteKey: getTurnstileSiteKey()
+    }
+  });
+}
+
 // Login Page - redirect if already logged in
 router.get('/login', redirectIfAuth, (req, res) => {
   const queryMessage = typeof req.query.message === 'string' ? req.query.message : null;
   const queryType = typeof req.query.type === 'string' ? req.query.type : '';
   const returnTo = resolveSafeReturnTo(req.query.redirect, resolveSafeReturnTo(req.query.returnTo, ''));
-  res.render('auth/login', {
+  renderLoginPage(req, res, {
     error: queryType === 'error' ? queryMessage : null,
     success: null,
     returnTo
@@ -142,24 +210,48 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
     const email = normalizeEmail(req.body.email);
     const { password } = req.body;
     const returnTo = resolveSafeReturnTo(req.body.returnTo, '');
+    const remoteIp = getRequestIpAddress(req);
+    const storedLoginFailureCount = await getStoredLoginFailureCount({ email, remoteIp });
+    const requireTurnstile = isTurnstileConfigured()
+      && (shouldRequireSessionLoginTurnstile(req) || storedLoginFailureCount >= LOGIN_TURNSTILE_FAILURE_THRESHOLD);
+
+    if (requireTurnstile) {
+      const turnstileResult = await verifyTurnstileToken({
+        token: req.body['cf-turnstile-response'],
+        remoteIp
+      });
+      if (!turnstileResult.ok) {
+        console.warn('Turnstile rejected login request:', {
+          reason: turnstileResult.reason,
+          errorCodes: turnstileResult.errorCodes || [],
+          ip: remoteIp,
+          email
+        });
+        return renderLoginPage(req, res, {
+          error: turnstileResult.message,
+          email,
+          returnTo,
+          requireTurnstile: true
+        });
+      }
+    }
     
     const user = await User.findOne({ email });
     if (!user) {
-      return res.render('auth/login', {
+      recordSessionLoginFailure(req);
+      const failureCount = await recordStoredLoginFailure({ email, remoteIp });
+      return renderLoginPage(req, res, {
         error: 'Invalid email or password',
-        success: null,
-        showResendLink: false,
-        userEmail: null,
         email,
-        returnTo
+        returnTo,
+        requireTurnstile: failureCount >= LOGIN_TURNSTILE_FAILURE_THRESHOLD
       });
     }
 
     // Check if email is verified
     if (!user.emailVerified) {
-      return res.render('auth/login', {
+      return renderLoginPage(req, res, {
         error: 'Please verify your email before logging in.',
-        success: null,
         showResendLink: true,
         userEmail: user.email,
         email,
@@ -168,11 +260,8 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
     }
 
     if (user.authProvider === 'google' && !user.passwordHash) {
-      return res.render('auth/login', {
+      return renderLoginPage(req, res, {
         error: 'This account uses Google sign-in. Use Continue with Google.',
-        success: null,
-        showResendLink: false,
-        userEmail: null,
         email,
         returnTo
       });
@@ -180,16 +269,18 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
 
     const isMatch = await passwordService.comparePassword(password, user.passwordHash || '');
     if (!isMatch) {
-      return res.render('auth/login', {
+      recordSessionLoginFailure(req);
+      const failureCount = await recordStoredLoginFailure({ email, remoteIp });
+      return renderLoginPage(req, res, {
         error: 'Invalid email or password',
-        success: null,
-        showResendLink: false,
-        userEmail: null,
         email,
-        returnTo
+        returnTo,
+        requireTurnstile: failureCount >= LOGIN_TURNSTILE_FAILURE_THRESHOLD
       });
     }
 
+    clearSessionLoginFailures(req);
+    await clearStoredLoginFailures({ email, remoteIp });
     startAuthenticatedSession(req, user);
     syncProfileCompletionInBackground(user);
     if (returnTo) {
@@ -199,11 +290,8 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
     
   } catch (error) {
     console.error('Login error:', error);
-    res.render('auth/login', {
+    renderLoginPage(req, res, {
       error: 'An error occurred. Please try again.',
-      success: null,
-      showResendLink: false,
-      userEmail: null,
       email: normalizeEmail(req.body?.email),
       returnTo: resolveSafeReturnTo(req.body?.returnTo, '')
     });
@@ -221,7 +309,12 @@ function renderSignupPage(req, res, options = {}) {
   return res.render('auth/signup', {
     error,
     success,
-    formData: options.formData || null
+    formData: options.formData || null,
+    signupForm: createSignupFormToken(req),
+    turnstile: {
+      enabled: isTurnstileConfigured(),
+      siteKey: getTurnstileSiteKey()
+    }
   });
 }
 
@@ -234,6 +327,18 @@ async function handleRegistration(req, res) {
   try {
     const { firstName, lastName, password, confirmPassword, role, agreeTerms } = req.body;
     const email = normalizeEmail(req.body.email);
+    const botSignalResult = validateSignupBotSignals(req);
+    if (!botSignalResult.ok) {
+      console.warn('Signup bot protection rejected request:', {
+        reason: botSignalResult.reason,
+        ip: getRequestIpAddress(req),
+        email
+      });
+      return renderSignupPage(req, res, {
+        error: botSignalResult.message,
+        formData: req.body
+      });
+    }
 
     // Validate passwords match
     if (password !== confirmPassword) {
@@ -277,6 +382,23 @@ async function handleRegistration(req, res) {
     if (agreeTerms !== 'on') {
       return renderSignupPage(req, res, {
         error: 'You must agree to the Terms and Conditions, Privacy Policy, Cookie Policy, and Data Usage Policy.',
+        formData: req.body
+      });
+    }
+
+    const turnstileResult = await verifyTurnstileToken({
+      token: req.body['cf-turnstile-response'],
+      remoteIp: getRequestIpAddress(req)
+    });
+    if (!turnstileResult.ok) {
+      console.warn('Turnstile rejected signup request:', {
+        reason: turnstileResult.reason,
+        errorCodes: turnstileResult.errorCodes || [],
+        ip: getRequestIpAddress(req),
+        email
+      });
+      return renderSignupPage(req, res, {
+        error: turnstileResult.message,
         formData: req.body
       });
     }
@@ -379,8 +501,8 @@ async function handleRegistration(req, res) {
 }
 
 // Shared registration handler - redirect if already logged in
-router.post('/register', redirectIfAuth, requireCsrfProtection, handleRegistration);
-router.post('/signup', redirectIfAuth, requireCsrfProtection, handleRegistration);
+router.post('/register', redirectIfAuth, requireCsrfProtection, signupIpLimiter, signupEmailLimiter, handleRegistration);
+router.post('/signup', redirectIfAuth, requireCsrfProtection, signupIpLimiter, signupEmailLimiter, handleRegistration);
 
 router.get('/auth/google', redirectIfAuth, (req, res) => {
   if (!googleOAuthService.isConfigured()) {

@@ -953,6 +953,12 @@
   }
 }
 
+.turnstile-group {
+  display: flex;
+  justify-content: center;
+  min-height: 65px;
+}
+
 /* ============================================
    ACCESSIBILITY
    ============================================ */

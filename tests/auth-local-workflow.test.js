@@ -22,7 +22,9 @@ test.before(async () => {
     env: {
       ...process.env,
       PORT: String(TEST_PORT),
-      CSRF_PROTECTION: '0'
+      CSRF_PROTECTION: '0',
+      TURNSTILE_SITE_KEY: 'test-site-key',
+      TURNSTILE_SECRET_KEY: 'test-secret-key'
     },
     stdio: ['ignore', 'ignore', 'ignore']
   });
@@ -86,6 +88,54 @@ test('unverified local login preserves email and offers verification resend', as
   assert.match(html, new RegExp(`value="${escapeRegex(email)}"`));
 });
 
+test('login requires Turnstile after repeated invalid credential attempts', async () => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const email = `auth.local.challenge.${stamp}@example.com`;
+  const cookie = await getSessionCookie('/login');
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    const response = await fetch(`${BASE_URL}/login`, {
+      method: 'POST',
+      headers: {
+        Cookie: cookie,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        email,
+        password: 'WrongPass123'
+      })
+    });
+
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.match(html, /Invalid email or password/i);
+    if (attempt < 3) {
+      assert.doesNotMatch(html, /cf-turnstile/i);
+    } else {
+      assert.match(html, /cf-turnstile/i);
+      assert.match(html, /data-action="login"/i);
+    }
+  }
+
+  const freshCookie = await getSessionCookie('/login');
+  const challengedResponse = await fetch(`${BASE_URL}/login`, {
+    method: 'POST',
+    headers: {
+      Cookie: freshCookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      email,
+      password: 'WrongPass123'
+    })
+  });
+
+  assert.equal(challengedResponse.status, 200);
+  const challengedHtml = await challengedResponse.text();
+  assert.match(challengedHtml, /complete the human verification/i);
+  assert.match(challengedHtml, /cf-turnstile/i);
+});
+
 async function createUser({ email, password, emailVerified }) {
   await ensureConnected();
   const passwordHash = await bcrypt.hash(password, 10);
@@ -98,6 +148,14 @@ async function createUser({ email, password, emailVerified }) {
     lastName: 'Runner',
     emailVerified
   });
+}
+
+async function getSessionCookie(pathname) {
+  const response = await fetch(`${BASE_URL}${pathname}`, { redirect: 'manual' });
+  const setCookie = String(response.headers.get('set-cookie') || '');
+  const cookie = setCookie.split(';')[0];
+  assert.ok(cookie, `Expected session cookie on ${pathname}`);
+  return cookie;
 }
 
 async function cleanupSeededUsers() {

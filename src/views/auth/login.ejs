@@ -114,6 +114,16 @@
             <div class="form-footer">
               <a href="/forgot-password" class="forgot-link">Forgot password?</a>
             </div>
+
+            <% if (locals.turnstile && locals.turnstile.enabled) { %>
+              <div class="turnstile-group">
+                <div
+                  class="cf-turnstile"
+                  data-sitekey="<%= locals.turnstile.siteKey %>"
+                  data-action="login"
+                  data-theme="auto"></div>
+              </div>
+            <% } %>
             
             <!-- Login Button -->
             <button type="submit" class="btn btn-primary auth-action-btn">
@@ -143,6 +153,9 @@
   <%- include('../layouts/footer') %>
   
   <!-- Scripts -->
+  <% if (locals.turnstile && locals.turnstile.enabled) { %>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <% } %>
   <script src="/js/main.js"></script>
   <script src="/js/auth.js"></script>
   <script>

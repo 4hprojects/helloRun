@@ -17,6 +17,20 @@ Completed auth workflow improvements:
 - Login client-side validation now uses inline errors and no longer disables the login button when a client-side validation error prevents submission.
 - Focused coverage exists in `tests/auth-local-workflow.test.js`; the broader `npm run test:auth` suite passed after the change.
 
+## Auth Abuse Protection Update - June 3, 2026
+
+Status: signup protection and adaptive login challenge implemented.
+
+Completed protections:
+
+- Local signup now requires Cloudflare Turnstile when `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are configured.
+- Turnstile tokens are validated server-side through Cloudflare Siteverify before user creation.
+- Signup now includes IP and email + IP rate limits, a hidden honeypot, a minimum form-age check, a session-bound form token, disposable email blocking, and the existing email verification requirement.
+- Login keeps its existing email + IP rate limit and adds adaptive Turnstile after 3 invalid credential attempts for the same email + IP within 15 minutes.
+- Login failure tracking uses Redis when available and an in-memory fallback otherwise, so discarding browser cookies does not bypass the adaptive challenge.
+- Successful local login clears the associated failed-login counter.
+- Focused coverage exists in `tests/auth-abuse.service.test.js` and `tests/auth-local-workflow.test.js`; `npm run test:auth` passed with 44 tests.
+
 Implemented admin surfaces:
 
 - `/admin/users`

@@ -67,6 +67,18 @@
           
           <form action="/signup" method="POST" class="compact-auth-form" id="signupForm" novalidate>
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <input type="hidden" name="signupStartedAt" value="<%= locals.signupForm && locals.signupForm.signupStartedAt || '' %>">
+            <input type="hidden" name="signupFormToken" value="<%= locals.signupForm && locals.signupForm.signupFormToken || '' %>">
+            <div class="signup-hp-field" aria-hidden="true">
+              <label for="signupWebsite">Website</label>
+              <input
+                type="text"
+                id="signupWebsite"
+                name="website"
+                value=""
+                tabindex="-1"
+                autocomplete="off">
+            </div>
             <div class="compact-form-row">
               <div class="input-group compact-input-group">
                 <input 
@@ -175,6 +187,16 @@
               </label>
             </div>
             <small class="checkbox-error" id="termsError"></small>
+
+            <% if (locals.turnstile && locals.turnstile.enabled) { %>
+              <div class="turnstile-group">
+                <div
+                  class="cf-turnstile"
+                  data-sitekey="<%= locals.turnstile.siteKey %>"
+                  data-action="signup"
+                  data-theme="auto"></div>
+              </div>
+            <% } %>
             
             <button type="submit" class="btn btn-primary btn-full auth-action-btn" id="submitBtn">
               <span class="btn-text"><i data-lucide="user-plus"></i> Create Account</span>
@@ -200,6 +222,9 @@
   
   <%- include('../layouts/footer') %>
   
+  <% if (locals.turnstile && locals.turnstile.enabled) { %>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <% } %>
   <script src="/js/main.js"></script>
 
   <script>

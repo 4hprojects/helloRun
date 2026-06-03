@@ -3,6 +3,39 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - June 3, 2026 (Session: Signup And Login Bot Protection)
+
+### [SESSION] SESSION UPDATE:
+- Added layered local-signup abuse protection with Cloudflare Turnstile, IP and email + IP rate limits, a hidden honeypot, a minimum form-age check, a session-bound form token, disposable email blocking, and the existing email verification gate.
+- Added server-side Cloudflare Turnstile Siteverify validation before local account creation.
+- Added adaptive Turnstile to email/password login after 3 invalid credential attempts for the same email + IP within 15 minutes while retaining the existing 10-attempt login rate limit.
+- Added Redis-backed login failure tracking with an in-memory fallback so rotating browser sessions does not bypass the adaptive challenge.
+- Updated Content Security Policy allowances for the Cloudflare Turnstile script and iframe.
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/PRD.md
+3. docs/production_readiness_checklist.md
+4. docs/security_route_matrix.md
+5. docs/user_management_improvement_draft.md
+6. src/public/css/login.css
+7. src/public/css/signup.css
+8. src/routes/authRoutes.js
+9. src/server.js
+10. src/services/auth-abuse.service.js
+11. src/views/auth/login.ejs
+12. src/views/auth/signup.ejs
+13. tests/auth-abuse.service.test.js
+14. tests/auth-local-workflow.test.js
+15. tests/privacy-signup-consent.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --test tests/auth-abuse.service.test.js` -> PASS, 13/13
+- `node src/scripts/run-test-group.js tests/auth-local-workflow.test.js` -> PASS, 4/4
+- `npm run test:auth` -> PASS, 44/44
+
+---
+
 ## CHANGELOG - June 2, 2026 (Session: Submission Review UI Card Redesign)
 
 ### [SESSION] SESSION UPDATE:
