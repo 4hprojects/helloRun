@@ -1,0 +1,6 @@
+<div class="card-content progress-panel" id="progressPanel" hidden data-dashboard-fragment="progressStats">
+  <ul class="stats-list">
+    <li><span>Total registrations</span> <strong><%= stats.total %></strong></li><li><span>Upcoming</span> <strong><%= stats.upcoming %></strong></li><li><span>Past</span> <strong><%= stats.past %></strong></li><li><span>Unpaid</span> <strong><%= stats.unpaid %></strong></li><li><span>Paid</span> <strong><%= stats.paid %></strong></li><li><span>Total results</span> <strong><%= submissionStats?.total || 0 %></strong></li><li><span>Pending review</span> <strong><%= submissionStats?.submitted || 0 %></strong></li><li><span>Approved</span> <strong><%= submissionStats?.approved || 0 %></strong></li><li><span>Rejected</span> <strong><%= submissionStats?.rejected || 0 %></strong></li><li><span>Certificates</span> <strong><%= submissionStats?.certificates || 0 %></strong></li>
+  </ul>
+  <div class="progress-panel-actions"><a href="/my-registrations" class="btn btn-primary btn-sm progress-panel-action">View all registrations</a></div>
+</div>

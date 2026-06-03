@@ -1,0 +1,7 @@
+<div data-dashboard-fragment="resultSubmissions">
+  <%- include('result-submissions-card', {
+    selectedResultStatus: dashboardFilters?.resultStatus || '',
+    preservedGroupQuery: '',
+    resultCards: cards.results
+  }) %>
+</div>

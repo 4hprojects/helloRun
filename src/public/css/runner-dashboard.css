@@ -1272,20 +1272,13 @@ code {
   gap: 1rem;
 }
 
-.password-settings-header {
-  position: relative;
-}
-
-.password-settings-header-action {
-  display: none;
-}
-
 .password-settings-form .form-field {
   display: grid;
   gap: 0.45rem;
 }
 
-.password-settings-form .form-field span {
+.password-settings-form .form-field span,
+.password-settings-form .form-field label {
   font-size: 0.92rem;
   font-weight: 700;
   color: var(--text-strong);
@@ -1408,25 +1401,6 @@ code {
 .password-strength[data-strength="strong"] .password-strength-text,
 .confirm-password-status.is-match {
   color: #166534;
-}
-
-.password-success-dialog {
-  text-align: center;
-}
-
-.password-success-countdown {
-  margin: 0 0 1.2rem;
-  color: var(--text-strong);
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.password-success-countdown strong {
-  color: var(--primary-dark);
-}
-
-.password-success-dialog .modal-actions {
-  justify-content: center;
 }
 
 .password-settings-actions {
@@ -1640,18 +1614,6 @@ code {
 }
 
 .profile-card-header .btn-icon-only[data-tooltip]::before {
-  left: auto;
-  right: 0.65rem;
-  transform: none;
-}
-
-.password-settings-header-action.btn-icon-only[data-tooltip]::after {
-  left: auto;
-  right: 0;
-  transform: none;
-}
-
-.password-settings-header-action.btn-icon-only[data-tooltip]::before {
   left: auto;
   right: 0.65rem;
   transform: none;
@@ -2079,25 +2041,6 @@ code {
   .progress-panel-action {
     width: auto;
     max-width: 100%;
-  }
-
-  .password-settings-header {
-    padding-right: 3.5rem;
-  }
-
-  .password-settings-header-action {
-    position: absolute;
-    top: 0;
-    right: 0;
-    display: inline-flex;
-    width: 2.5rem;
-    height: 2.5rem;
-    min-width: 2.5rem;
-    min-height: 2.5rem;
-  }
-
-  .password-settings-back {
-    display: none;
   }
 
   .password-settings-actions .btn {

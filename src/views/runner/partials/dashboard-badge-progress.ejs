@@ -1,0 +1,8 @@
+<section class="card runner-badge-progress-card" data-dashboard-fragment="badgeProgress">
+  <div class="card-header runner-badges-header"><h2><i data-lucide="trending-up"></i> Challenge Progress</h2><a href="/runner/profile#badges" class="btn btn-sm btn-outline runner-badges-action">View details</a></div>
+  <div class="card-content runner-badge-progress-content">
+    <% const badgeProgress = cards.badgeProgress || []; %>
+    <% if (badgeProgress.length) { %><ul class="dashboard-badge-progress-list" aria-label="Challenge badge progress"><% badgeProgress.forEach((item) => { const percent = Math.max(0, Math.min(100, Number(item.progressPercent || 0))); %><li class="dashboard-badge-progress-row"><div class="dashboard-badge-progress-header"><strong><%= item.name %></strong><span><%= percent.toFixed(percent % 1 === 0 ? 0 : 1) %>%</span></div><div class="dashboard-badge-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= Math.round(percent) %>"><span style="width: <%= percent %>%"></span></div><small><%= Number(item.currentValue || 0).toFixed(2) %> km / <%= Number(item.targetValue || 0).toFixed(2) %> km</small></li><% }) %></ul>
+    <% } else { %><div class="empty-state runner-badges-empty"><p class="empty-message">No active challenge progress yet.</p><a href="/events" class="btn btn-primary btn-sm">Browse challenges</a></div><% } %>
+  </div>
+</section>

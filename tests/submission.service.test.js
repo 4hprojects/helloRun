@@ -350,6 +350,61 @@ test('getRunnerPerformanceSnapshot returns metrics, personal best, and timeline 
   assert.equal(snapshot.recentActivity.length >= 1, true);
 });
 
+test('runner performance snapshot includes accumulated activities and completes challenge only at target', async () => {
+  const seed = await seedSubmissionFixture('snapshot-accumulated');
+  await Event.updateOne(
+    { _id: seed.event._id },
+    { $set: { virtualCompletionMode: 'accumulated_distance', targetDistanceKm: 10 } }
+  );
+  await Registration.updateOne({ _id: seed.registration._id }, { $set: { raceDistance: '10K' } });
+
+  const first = await createAccumulatedActivitySubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 4,
+    elapsedMs: 1200000,
+    proofType: 'gps',
+    proof: { url: 'https://example.com/proof/accumulated-first.gpx', mimeType: 'application/gpx+xml', size: 800 }
+  });
+  await reviewAccumulatedActivitySubmission({
+    activityId: first._id,
+    organizerId: seed.organizer._id,
+    action: 'approve',
+    reviewNotes: 'Approved first activity'
+  });
+
+  const partial = await getRunnerPerformanceSnapshot(seed.runner._id, { recentLimit: 5 });
+  assert.equal(partial.counts.approved >= 1, true);
+  assert.equal(partial.metrics.totalDistanceKm >= 4, true);
+  assert.equal(partial.metrics.completedEvents, 0);
+  assert.equal(partial.recentSubmissions.some((item) => item.isAccumulatedActivity), true);
+  assert.equal(partial.personalBest, null);
+
+  const second = await createAccumulatedActivitySubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 6,
+    elapsedMs: 1800000,
+    proofType: 'gps',
+    proof: { url: 'https://example.com/proof/accumulated-second.gpx', mimeType: 'application/gpx+xml', size: 900 }
+  });
+  await reviewAccumulatedActivitySubmission({
+    activityId: second._id,
+    organizerId: seed.organizer._id,
+    action: 'approve',
+    reviewNotes: 'Approved completion activity'
+  });
+
+  const completed = await getRunnerPerformanceSnapshot(seed.runner._id, {
+    recentLimit: 5,
+    resultStatus: 'approved'
+  });
+  assert.equal(completed.metrics.completedEvents, 1);
+  assert.equal(completed.metrics.totalDistanceKm >= 10, true);
+  assert.equal(completed.counts.certificates >= 1, true);
+  assert.equal(completed.recentCertificates.some((item) => item.isAccumulatedActivity), true);
+});
+
 test('getRunnerEligibleSubmissionRegistrations returns only paid confirmed active entries', async () => {
   const seed = await seedSubmissionFixture('eligible-list');
 

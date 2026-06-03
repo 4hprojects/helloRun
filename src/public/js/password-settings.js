@@ -9,8 +9,7 @@ function initializePasswordSettings() {
   if (!form) return;
 
   setupPasswordStrength(form);
-  setupPasswordChangeConfirmation(form);
-  setupPasswordSuccessRedirect();
+  setupPasswordSettingsModal(form);
 }
 
 function setupPasswordStrength(form) {
@@ -83,35 +82,59 @@ function setupPasswordStrength(form) {
 
   passwordInput.addEventListener('input', updateStrength);
   confirmInput.addEventListener('input', updateConfirmState);
+  form.addEventListener('reset', () => {
+    window.setTimeout(updateStrength, 0);
+  });
 
   updateStrength();
 }
 
-function setupPasswordChangeConfirmation(form) {
-  const modal = document.getElementById('passwordConfirmModal');
-  const cancelBtn = modal?.querySelector('[data-cancel-password-change]');
-  const confirmBtn = modal?.querySelector('[data-confirm-password-change]');
+function setupPasswordSettingsModal(form) {
+  const modal = document.getElementById('passwordSettingsModal');
+  const confirmModal = document.getElementById('passwordActionConfirmModal');
+  const openButtons = document.querySelectorAll('[data-open-password-modal]');
+  const closeButtons = modal?.querySelectorAll('[data-close-password-modal]');
   const submitBtn = form.querySelector('.password-settings-submit');
-  if (!modal || !cancelBtn || !confirmBtn || !submitBtn) return;
+  const confirmTitle = confirmModal?.querySelector('#passwordActionConfirmTitle');
+  const confirmDesc = confirmModal?.querySelector('#passwordActionConfirmDesc');
+  const dismissActionBtn = confirmModal?.querySelector('[data-dismiss-password-action]');
+  const confirmActionBtn = confirmModal?.querySelector('[data-confirm-password-action]');
+  if (
+    !modal ||
+    !confirmModal ||
+    !closeButtons?.length ||
+    !submitBtn ||
+    !confirmTitle ||
+    !confirmDesc ||
+    !dismissActionBtn ||
+    !confirmActionBtn
+  ) return;
 
-  let isConfirmed = false;
   let lastTrigger = null;
+  let actionTrigger = null;
+  let pendingAction = null;
+  let isConfirmedSubmit = false;
 
-  const getFocusable = () => {
-    const dialog = modal.querySelector('.modal-dialog');
+  const getFocusable = (root) => {
+    const dialog = root.querySelector('.modal-dialog');
     if (!dialog) return [];
     return Array.from(dialog.querySelectorAll(
       'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
     ));
   };
 
-  const openModal = () => {
-    lastTrigger = submitBtn;
+  const openModal = (trigger = null) => {
+    lastTrigger = trigger;
     modal.removeAttribute('hidden');
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
-    const focusables = getFocusable();
-    if (focusables.length) focusables[0].focus();
+    const focusables = getFocusable(modal);
+    const firstPasswordInput = form.querySelector('input[type="password"]');
+    if (firstPasswordInput) {
+      firstPasswordInput.focus();
+    } else if (focusables.length) {
+      focusables[0].focus();
+    }
   };
 
   const closeModal = () => {
@@ -121,37 +144,75 @@ function setupPasswordChangeConfirmation(form) {
     if (lastTrigger && typeof lastTrigger.focus === 'function') {
       lastTrigger.focus();
     }
+    lastTrigger = null;
   };
 
-  form.addEventListener('submit', (event) => {
-    if (isConfirmed) return;
-    event.preventDefault();
-    openModal();
+  const closeConfirmModal = () => {
+    confirmModal.setAttribute('hidden', '');
+    confirmModal.setAttribute('aria-hidden', 'true');
+    modal.setAttribute('aria-hidden', 'false');
+    if (actionTrigger && typeof actionTrigger.focus === 'function') {
+      actionTrigger.focus();
+    }
+    actionTrigger = null;
+    pendingAction = null;
+  };
+
+  const openConfirmModal = (action, trigger = null) => {
+    pendingAction = action;
+    actionTrigger = trigger;
+    const isSave = action === 'save';
+    confirmTitle.textContent = isSave ? 'Save password change?' : 'Cancel password change?';
+    confirmDesc.textContent = isSave
+      ? 'Your account password will be updated.'
+      : 'Any password information you entered will be discarded.';
+    confirmActionBtn.textContent = isSave ? 'Yes, save' : 'Yes, cancel';
+    confirmActionBtn.classList.toggle('btn-primary', isSave);
+    confirmActionBtn.classList.toggle('btn-danger', !isSave);
+    modal.setAttribute('aria-hidden', 'true');
+    confirmModal.removeAttribute('hidden');
+    confirmModal.setAttribute('aria-hidden', 'false');
+    confirmActionBtn.focus();
+  };
+
+  const requestCancel = (trigger = null) => {
+    if (confirmModal.hasAttribute('hidden')) {
+      openConfirmModal('cancel', trigger);
+    }
+  };
+
+  openButtons.forEach((button) => {
+    button.addEventListener('click', () => openModal(button));
   });
 
-  cancelBtn.addEventListener('click', closeModal);
-  confirmBtn.addEventListener('click', () => {
-    isConfirmed = true;
+  closeButtons.forEach((button) => {
+    button.addEventListener('click', () => requestCancel(button));
+  });
+
+  form.addEventListener('submit', (event) => {
+    if (!isConfirmedSubmit) {
+      event.preventDefault();
+      openConfirmModal('save', submitBtn);
+      return;
+    }
     submitBtn.classList.add('btn-loading');
     submitBtn.disabled = true;
     submitBtn.setAttribute('aria-busy', 'true');
-    closeModal();
-    form.requestSubmit();
   });
 
   modal.addEventListener('click', (event) => {
-    if (event.target === modal) closeModal();
+    if (event.target === modal) requestCancel();
   });
 
   modal.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       event.preventDefault();
-      closeModal();
+      requestCancel();
       return;
     }
 
     if (event.key !== 'Tab') return;
-    const focusables = getFocusable();
+    const focusables = getFocusable(modal);
     if (!focusables.length) return;
     const first = focusables[0];
     const last = focusables[focusables.length - 1];
@@ -167,51 +228,52 @@ function setupPasswordChangeConfirmation(form) {
       first.focus();
     }
   });
-}
 
-function setupPasswordSuccessRedirect() {
-  const page = document.querySelector('.dashboard-container[data-password-update-success]');
-  const modal = document.getElementById('passwordSuccessModal');
-  const countdownNode = modal?.querySelector('[data-password-success-countdown]');
-  const redirectLink = modal?.querySelector('[data-password-success-redirect]');
-  if (!page || !modal || !countdownNode || !redirectLink) return;
-  if (page.dataset.passwordUpdateSuccess !== 'true') return;
-
-  const redirectUrl = page.dataset.passwordUpdateRedirect || redirectLink.getAttribute('href') || '/runner/dashboard';
-  let remainingSeconds = Number(countdownNode.textContent) || 5;
-  let redirectTimer = null;
-  let countdownTimer = null;
-
-  const openModal = () => {
-    modal.removeAttribute('hidden');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.style.overflow = 'hidden';
-    const dialog = modal.querySelector('.modal-dialog');
-    if (dialog) dialog.focus();
-  };
-
-  const redirectNow = () => {
-    if (countdownTimer) window.clearInterval(countdownTimer);
-    if (redirectTimer) window.clearTimeout(redirectTimer);
-    window.location.assign(redirectUrl);
-  };
-
-  openModal();
-
-  redirectLink.addEventListener('click', (event) => {
-    event.preventDefault();
-    redirectNow();
-  });
-
-  countdownTimer = window.setInterval(() => {
-    remainingSeconds -= 1;
-    if (remainingSeconds > 0) {
-      countdownNode.textContent = String(remainingSeconds);
+  dismissActionBtn.addEventListener('click', closeConfirmModal);
+  confirmActionBtn.addEventListener('click', () => {
+    const action = pendingAction;
+    closeConfirmModal();
+    if (action === 'cancel') {
+      form.reset();
+      closeModal();
       return;
     }
-    countdownNode.textContent = '0';
-    window.clearInterval(countdownTimer);
-  }, 1000);
+    if (action === 'save') {
+      isConfirmedSubmit = true;
+      form.requestSubmit();
+    }
+  });
 
-  redirectTimer = window.setTimeout(redirectNow, remainingSeconds * 1000);
+  confirmModal.addEventListener('click', (event) => {
+    if (event.target === confirmModal) closeConfirmModal();
+  });
+
+  confirmModal.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeConfirmModal();
+      return;
+    }
+
+    if (event.key !== 'Tab') return;
+    const focusables = getFocusable(confirmModal);
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+      return;
+    }
+
+    if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  });
+
+  if (modal.dataset.autoOpen === 'true') {
+    openModal();
+  }
 }

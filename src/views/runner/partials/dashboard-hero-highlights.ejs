@@ -1,0 +1,5 @@
+<div class="hero-highlights" aria-label="Quick dashboard highlights" data-dashboard-fragment="heroHighlights">
+  <div class="hero-highlight" title="Completed Events"><i data-lucide="award" class="highlight-icon"></i><span class="highlight-label">Completed Events</span><strong><%= performanceStats?.completedEvents || 0 %></strong></div>
+  <div class="hero-highlight" title="Pending Review"><i data-lucide="clock" class="highlight-icon"></i><span class="highlight-label">Pending Review</span><strong><%= submissionStats?.submitted || 0 %></strong></div>
+  <div class="hero-highlight" title="Running Groups"><i data-lucide="users" class="highlight-icon"></i><span class="highlight-label">Running Groups</span><strong><%= (runningGroupFeature?.currentGroups || []).length %></strong></div>
+</div>

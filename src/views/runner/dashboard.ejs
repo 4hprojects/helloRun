@@ -10,8 +10,6 @@
   <main class="runner-dashboard-page">
     <div class="dashboard-container">
       <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
-      <% const selectedResultStatus = dashboardFilters?.resultStatus || ''; %>
-      <% const preservedGroupQuery = String(runningGroupFeature?.query || '').trim(); %>
       <% const currentGroups = runningGroupFeature?.currentGroups || []; %>
 
       <section class="dashboard-hero">
@@ -46,23 +44,7 @@
                 <i data-lucide="clipboard-list" class="btn-icon"></i><span class="btn-label">My Registrations</span>
               </a>
             </div>
-            <div class="hero-highlights" aria-label="Quick dashboard highlights">
-              <div class="hero-highlight" title="Completed Events">
-                <i data-lucide="award" class="highlight-icon"></i>
-                <span class="highlight-label">Completed Events</span>
-                <strong><%= performanceStats?.completedEvents || 0 %></strong>
-              </div>
-              <div class="hero-highlight" title="Pending Review">
-                <i data-lucide="clock" class="highlight-icon"></i>
-                <span class="highlight-label">Pending Review</span>
-                <strong><%= submissionStats?.submitted || 0 %></strong>
-              </div>
-              <div class="hero-highlight" title="Running Groups">
-                <i data-lucide="users" class="highlight-icon"></i>
-                <span class="highlight-label">Running Groups</span>
-                <strong><%= currentGroups.length %></strong>
-              </div>
-            </div>
+            <%- include('partials/dashboard-hero-highlights') %>
           </div>
         </div>
       </section>
@@ -80,82 +62,10 @@
         </div>
       <% } %>
 
-      <section class="kpi-section" aria-label="Runner dashboard summary">
-        <div class="section-heading">
-          <div>
-            <span class="section-kicker">At a glance</span>
-            <h2>Current running snapshot</h2>
-          </div>
-        </div>
-        <div class="kpi-grid">
-          <div class="kpi-card kpi-card-upcoming">
-            <div class="kpi-icon"><i data-lucide="calendar"></i></div>
-            <div class="kpi-content">
-              <span class="kpi-label">Upcoming Events</span>
-              <span class="kpi-value"><%= stats?.upcoming || 0 %></span>
-            </div>
-          </div>
-          <div class="kpi-card kpi-card-results">
-            <div class="kpi-icon"><i data-lucide="clock"></i></div>
-            <div class="kpi-content">
-              <span class="kpi-label">Pending Results</span>
-              <span class="kpi-value"><%= submissionStats?.submitted || 0 %></span>
-            </div>
-          </div>
-          <div class="kpi-card kpi-card-certificates">
-            <div class="kpi-icon"><i data-lucide="award"></i></div>
-            <div class="kpi-content">
-              <span class="kpi-label">Certificates</span>
-              <span class="kpi-value"><%= submissionStats?.certificates || 0 %></span>
-            </div>
-          </div>
-          <div class="kpi-card kpi-card-distance">
-            <div class="kpi-icon"><i data-lucide="map-pin"></i></div>
-            <div class="kpi-content">
-              <span class="kpi-label">Total Distance</span>
-              <span class="kpi-value"><%= Number(performanceStats?.totalDistanceKm || 0).toFixed(2) %> km</span>
-            </div>
-          </div>
-        </div>
-      </section>
+      <%- include('partials/dashboard-summary') %>
 
       <div class="dashboard-grid">
-        <section class="card card-featured">
-          <div class="card-header">
-            <h2><i data-lucide="calendar"></i> Upcoming Events</h2>
-          </div>
-          <div class="card-content">
-            <% if (cards.upcoming && cards.upcoming.length) { %>
-              <ul class="item-list">
-                <% cards.upcoming.forEach((item) => { %>
-                  <li class="item-row">
-                    <div class="item-main">
-                      <div class="item-title">
-                        <% if (item.slug) { %>
-                          <a href="/events/<%= item.slug %>"><%= item.title %></a>
-                        <% } else { %>
-                          <%= item.title %>
-                        <% } %>
-                      </div>
-                      <div class="item-meta">
-                        <span><%= item.startAtLabel %></span> &middot; <span><%= item.distance %></span> &middot; <span class="badge badge-<%= item.mode %>"><%= item.mode %></span>
-                      </div>
-                      <div class="item-meta">Confirmation: <code><%= item.confirmationCode %></code></div>
-                    </div>
-                    <% if (item.isUnpaid) { %>
-                      <a href="/my-registrations" class="btn btn-sm btn-warning">Pay</a>
-                    <% } %>
-                  </li>
-                <% }) %>
-              </ul>
-            <% } else { %>
-              <div class="empty-state">
-                <p class="empty-message">No upcoming events.</p>
-                <a href="/events" class="btn btn-primary btn-sm">Browse events</a>
-              </div>
-            <% } %>
-          </div>
-        </section>
+        <%- include('partials/dashboard-upcoming') %>
 
         <section class="card profile-card">
           <div class="card-header profile-card-header">
@@ -205,7 +115,7 @@
           </div>
         </section>
 
-        <section class="card runner-badges-card">
+        <section class="card runner-badges-card" data-dashboard-fragment="badges">
           <div class="card-header runner-badges-header">
             <h2><i data-lucide="award"></i> Recent Badges</h2>
             <a href="/runner/profile#badges" class="btn btn-sm btn-outline runner-badges-action">View all</a>
@@ -244,7 +154,7 @@
           </div>
         </section>
 
-        <section class="card runner-badge-progress-card">
+        <section class="card runner-badge-progress-card" data-dashboard-fragment="badgeProgress">
           <div class="card-header runner-badges-header">
             <h2><i data-lucide="trending-up"></i> Challenge Progress</h2>
             <a href="/runner/profile#badges" class="btn btn-sm btn-outline runner-badges-action">View details</a>
@@ -276,7 +186,7 @@
           </div>
         </section>
 
-        <section class="card runner-event-progress-card">
+        <section class="card runner-event-progress-card" data-dashboard-fragment="eventProgress">
           <div class="card-header runner-event-progress-header">
             <h2><i data-lucide="flag"></i> Event Progress</h2>
             <a href="/my-registrations" class="btn btn-sm btn-outline runner-event-progress-action">View registrations</a>
@@ -347,13 +257,9 @@
           </div>
         </section>
 
-        <%- include('partials/result-submissions-card', {
-          selectedResultStatus,
-          preservedGroupQuery,
-          resultCards: cards.results
-        }) %>
+        <%- include('partials/dashboard-result-submissions') %>
 
-        <section class="card">
+        <section class="card" data-dashboard-fragment="past">
           <div class="card-header">
             <h2><i data-lucide="history"></i> Past Events</h2>
           </div>
@@ -398,7 +304,7 @@
               Show
             </button>
           </div>
-          <div class="card-content" id="activityPanel" hidden>
+          <div class="card-content" id="activityPanel" hidden data-dashboard-fragment="activity">
             <% if (cards.activity && cards.activity.length) { %>
               <ul class="item-list">
                 <% cards.activity.forEach((item) => { %>
@@ -439,7 +345,7 @@
               Show
             </button>
           </div>
-          <div class="card-content" id="certificatesPanel" hidden>
+          <div class="card-content" id="certificatesPanel" hidden data-dashboard-fragment="certificates">
             <div class="stats-mini">
               <div><strong>Total distance:</strong> <%= Number(performanceStats?.totalDistanceKm || 0).toFixed(2) %> km</div>
               <div><strong>Completed events:</strong> <%= performanceStats?.completedEvents || 0 %></div>
@@ -487,7 +393,7 @@
               <i data-lucide="chevron-down" class="toggle-chevron" aria-hidden="true"></i>
             </button>
           </div>
-          <div class="card-content progress-panel" id="progressPanel" hidden>
+          <div class="card-content progress-panel" id="progressPanel" hidden data-dashboard-fragment="progressStats">
             <ul class="stats-list">
               <li><span>Total registrations</span> <strong><%= stats.total %></strong></li>
               <li><span>Upcoming</span> <strong><%= stats.upcoming %></strong></li>
@@ -506,7 +412,7 @@
           </div>
         </section>
 
-        <section class="card running-groups-card">
+        <section class="card running-groups-card" data-dashboard-fragment="runningGroups">
           <div class="card-header running-groups-header">
             <h2><i data-lucide="users"></i> Running Groups</h2>
             <a href="/runner/groups" class="btn btn-sm btn-outline running-groups-action">Manage Groups</a>

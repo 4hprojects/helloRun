@@ -56,6 +56,9 @@
                 <% if (item.isPersonalRecord) { %>
                   <span class="badge badge-pr">Personal Record</span>
                 <% } %>
+                <% if (item.isAccumulatedActivity) { %>
+                  <span class="badge badge-group">Challenge Activity</span>
+                <% } %>
               </div>
               <div class="item-meta">
                 <span><%= item.elapsedLabel %></span> &middot; <span><%= Number(item.distanceKm || 0).toFixed(2) %> km</span> &middot; <span class="badge badge-<%= item.proofType || 'manual' %>"><%= PROOF_TYPE_LABELS[item.proofType] || String(item.proofType || 'manual') %></span> &middot; <span><%= RUN_TYPE_LABELS[item.runType] || item.runType %></span>
@@ -72,7 +75,14 @@
               <% } %>
             </div>
             <div class="item-actions">
-              <% if (item.status === 'rejected' && item.registrationId) { %>
+              <% if (item.status === 'rejected' && item.registrationId && item.isAccumulatedActivity) { %>
+                <button
+                  class="btn btn-sm btn-outline"
+                  data-open-run-proof-modal
+                  data-run-proof-mode="submit"
+                  data-run-proof-registration-id="<%= item.registrationId %>"
+                >Add Activity</button>
+              <% } else if (item.status === 'rejected' && item.registrationId) { %>
                 <button
                   class="btn btn-sm btn-outline"
                   data-open-run-proof-modal

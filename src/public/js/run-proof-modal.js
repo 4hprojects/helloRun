@@ -6,7 +6,6 @@
     const dialog = modal.querySelector('.run-proof-modal-dialog');
     const form = document.getElementById('runProofForm');
     const closeButtons = modal.querySelectorAll('[data-run-proof-close]');
-    const openTriggers = document.querySelectorAll('[data-open-run-proof-modal]');
 
     const titleEl = document.getElementById('runProofModalTitle');
     const descEl = document.getElementById('runProofModalDesc');
@@ -1394,8 +1393,8 @@
         if (resultMessage.type === 'success' || isDuplicate) {
           // Dashboard-specific: refresh the result card on success
           if (resultMessage.type === 'success' && state.currentSurface === 'runner-dashboard') {
-            if (typeof window.refreshRunnerDashboardResultSubmissions === 'function') {
-              await window.refreshRunnerDashboardResultSubmissions();
+            if (typeof window.refreshRunnerDashboard === 'function') {
+              await window.refreshRunnerDashboard();
             }
           }
 
@@ -1600,8 +1599,8 @@
           throw new Error(payload.message || 'Unable to submit Strava activity.');
         }
 
-        if (state.currentSurface === 'runner-dashboard' && typeof window.refreshRunnerDashboardResultSubmissions === 'function') {
-          await window.refreshRunnerDashboardResultSubmissions();
+        if (state.currentSurface === 'runner-dashboard' && typeof window.refreshRunnerDashboard === 'function') {
+          await window.refreshRunnerDashboard();
         }
         if (postSubmitTitle) postSubmitTitle.textContent = 'Run result submitted!';
         if (postSubmitDesc) postSubmitDesc.textContent = 'Your Strava activity has been received and is pending review. What would you like to do next?';
@@ -2522,13 +2521,11 @@
       showSubmitReview();
     });
 
-    openTriggers.forEach((button) => {
-      if (button.dataset.runProofBound === 'true') return;
-      button.addEventListener('click', (event) => {
-        event.preventDefault();
-        openModal(button, null);
-      });
-      button.dataset.runProofBound = 'true';
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest?.('[data-open-run-proof-modal]');
+      if (!button) return;
+      event.preventDefault();
+      openModal(button, null);
     });
 
     window.openRunProofModal = (overrides) => openModal(null, overrides || null);

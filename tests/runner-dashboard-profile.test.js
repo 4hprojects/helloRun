@@ -225,6 +225,11 @@ test('runner profile page supports identity edits and display name validation', 
   const html = await page.text();
   assert.match(html, /name="displayName"/i);
   assert.match(html, /Optional\. If set, HelloRun can show this instead of your full name/i);
+  assert.match(html, /data-open-password-modal/i);
+  assert.match(html, /id="passwordSettingsModal"/i);
+  assert.match(html, /id="passwordActionConfirmModal"/i);
+  assert.match(html, /data-confirm-password-action/i);
+  assert.match(html, /action="\/runner\/security\/password"/i);
 
   const invalid = await postForm('/runner/profile/identity', cookie, {
     firstName: 'Profile',
@@ -355,14 +360,28 @@ test('google-only runner can set local password from authenticated security page
     headers: { Cookie: cookie },
     redirect: 'manual'
   });
-  assert.equal(page.status, 200);
+  assert.equal(page.status, 302);
+  assert.equal(page.headers.get('location'), '/runner/profile?modal=password#account');
+
+  const profilePage = await fetch(`${BASE_URL}/runner/profile?modal=password`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(profilePage.status, 200);
+  const profileHtml = await profilePage.text();
+  assert.match(profileHtml, /Set Password/i);
+  assert.match(profileHtml, /data-auto-open="true"/i);
+  assert.doesNotMatch(profileHtml, /name="currentPassword"/i);
 
   const update = await postForm('/runner/security/password', cookie, {
     newPassword: 'NewPass123',
     confirmPassword: 'NewPass123'
   });
   assert.equal(update.status, 302);
-  assert.match(String(update.headers.get('location') || ''), /type=success/i);
+  assert.equal(
+    update.headers.get('location'),
+    '/runner/profile?type=success&msg=Password%20updated%20successfully.#account'
+  );
 
   await mongoose.connect(process.env.MONGODB_URI);
   const fresh = await User.findById(runner._id).lean();
@@ -388,6 +407,33 @@ test('runner result submissions partial renders for async dashboard filtering', 
   assert.match(html, /data-result-submissions-root/i);
   assert.match(html, /Approved/i);
   assert.match(html, /aria-current=.*page/i);
+});
+
+test('runner dashboard refresh endpoint requires authentication and returns fragments', async () => {
+  const unauthenticated = await fetch(`${BASE_URL}/runner/dashboard/refresh`, { redirect: 'manual' });
+  assert.equal(unauthenticated.status, 302);
+  assert.equal(unauthenticated.headers.get('location'), '/login');
+
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const password = 'Pass1234';
+  const runner = await createRunner(`dashboard.refresh.${stamp}`, password);
+  const cookie = await login(runner.email, password);
+  const ready = await waitForSessionReady('/runner/dashboard', cookie);
+  assert.equal(ready, true);
+
+  const response = await fetch(`${BASE_URL}/runner/dashboard/refresh?resultStatus=approved`, {
+    headers: { Cookie: cookie, Accept: 'application/json' },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.success, true);
+  assert.ok(payload.refreshedAt);
+  for (const key of ['summary', 'upcoming', 'badges', 'badgeProgress', 'eventProgress', 'resultSubmissions', 'past', 'activity', 'certificates', 'progressStats', 'runningGroups']) {
+    assert.equal(typeof payload.fragments[key], 'string');
+  }
+  assert.match(payload.fragments.resultSubmissions, /aria-current=(?:&#34;|")page/i);
+  assert.match(payload.fragments.resultSubmissions, /Approved/i);
 });
 
 test('runner dashboard submit trigger includes dashboard-specific modal configuration', async () => {
@@ -427,6 +473,9 @@ test('runner change password requires valid current password', async () => {
   assert.equal(bad.status, 400);
   const badHtml = await bad.text();
   assert.match(badHtml, /Current password is incorrect/i);
+  assert.match(badHtml, /id="passwordSettingsModal"/i);
+  assert.match(badHtml, /data-auto-open="true"/i);
+  assert.doesNotMatch(badHtml, /value="WrongPass123"/i);
 
   const good = await postForm('/runner/security/password', cookie, {
     currentPassword: oldPassword,
@@ -434,7 +483,39 @@ test('runner change password requires valid current password', async () => {
     confirmPassword: 'NextPass123'
   });
   assert.equal(good.status, 302);
-  assert.match(String(good.headers.get('location') || ''), /type=success/i);
+  assert.equal(
+    good.headers.get('location'),
+    '/runner/profile?type=success&msg=Password%20updated%20successfully.#account'
+  );
+});
+
+test('runner password update throttle renders the profile modal', async () => {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const password = 'Pass1234';
+  const runner = await createRunner(`password.throttle.${stamp}`, password);
+  const cookie = await login(runner.email, password);
+  const ready = await waitForSessionReady('/runner/dashboard', cookie);
+  assert.equal(ready, true);
+
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const response = await postForm('/runner/security/password', cookie, {
+      currentPassword: 'WrongPass123',
+      newPassword: 'NextPass123',
+      confirmPassword: 'NextPass123'
+    });
+    assert.equal(response.status, 400);
+    await new Promise((resolve) => setTimeout(resolve, 75));
+  }
+
+  const blocked = await postForm('/runner/security/password', cookie, {
+    currentPassword: password,
+    newPassword: 'NextPass123',
+    confirmPassword: 'NextPass123'
+  });
+  assert.equal(blocked.status, 429);
+  const html = await blocked.text();
+  assert.match(html, /Too many password update attempts/i);
+  assert.match(html, /data-auto-open="true"/i);
 });
 
 async function createRunner(emailLocal, password, overrides = {}) {

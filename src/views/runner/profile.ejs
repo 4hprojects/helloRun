@@ -301,7 +301,7 @@
             <div class="profile-readonly-item"><dt>Local Password</dt><dd><%= user.passwordHash ? 'Set' : 'Not set' %></dd></div>
           </dl>
           <div class="runner-profile-actions">
-            <a href="/runner/security/password" class="btn btn-primary"><%= user.passwordHash ? 'Change Password' : 'Set Password' %></a>
+            <button type="button" class="btn btn-primary" data-open-password-modal><%= user.passwordHash ? 'Change Password' : 'Set Password' %></button>
             <% if (user.googleId) { %>
               <form method="POST" action="/runner/auth/google/unlink" class="inline-form">
                 <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
@@ -324,6 +324,119 @@
     </div>
   </main>
 
+  <div
+    class="modal-backdrop"
+    id="passwordSettingsModal"
+    data-auto-open="<%= openPasswordModal ? 'true' : 'false' %>"
+    hidden
+  >
+    <div
+      class="modal-dialog password-settings-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="passwordSettingsModalTitle"
+      aria-describedby="passwordSettingsModalDesc"
+      tabindex="-1"
+    >
+      <div class="password-settings-dialog-header">
+        <div>
+          <h3 id="passwordSettingsModalTitle"><%= user.passwordHash ? 'Change Password' : 'Set Password' %></h3>
+          <p id="passwordSettingsModalDesc">Manage your local sign-in password.</p>
+        </div>
+        <button type="button" class="password-settings-close" data-close-password-modal aria-label="Close password settings">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <% if (passwordMessage) { %>
+        <div
+          class="page-message page-message-<%= passwordMessage.type %>"
+          role="<%= passwordMessage.type === 'error' ? 'alert' : 'status' %>"
+          aria-live="<%= passwordMessage.type === 'error' ? 'assertive' : 'polite' %>"
+        ><%= passwordMessage.text %></div>
+      <% } %>
+
+      <% if (passwordErrors && Object.keys(passwordErrors).length) { %>
+        <div class="page-message page-message-error" role="alert" aria-live="assertive">
+          <%= Object.values(passwordErrors).join(' ') %>
+        </div>
+      <% } %>
+
+      <form method="POST" action="/runner/security/password" class="password-settings-form">
+        <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+        <% if (user.passwordHash) { %>
+          <div class="form-field">
+            <label for="currentPassword">Current Password</label>
+            <input type="password" name="currentPassword" id="currentPassword" autocomplete="current-password" required>
+          </div>
+        <% } %>
+
+        <div class="form-field">
+          <label for="newPassword">New Password</label>
+          <input
+            type="password"
+            name="newPassword"
+            id="newPassword"
+            autocomplete="new-password"
+            aria-describedby="passwordHint passwordStrengthText passwordRequirementList"
+            required
+          >
+          <div class="password-strength" data-password-strength>
+            <div class="password-strength-bars" aria-hidden="true">
+              <span class="password-strength-bar"></span>
+              <span class="password-strength-bar"></span>
+              <span class="password-strength-bar"></span>
+            </div>
+            <p class="password-strength-text" id="passwordStrengthText" aria-live="polite">Enter a new password.</p>
+            <ul class="password-requirement-list" id="passwordRequirementList">
+              <li data-password-rule="length">At least 8 characters</li>
+              <li data-password-rule="uppercase">One uppercase letter</li>
+              <li data-password-rule="lowercase">One lowercase letter</li>
+              <li data-password-rule="number">One number</li>
+            </ul>
+          </div>
+          <small id="passwordHint">At least 8 characters with uppercase, lowercase, and number.</small>
+        </div>
+
+        <div class="form-field">
+          <label for="confirmPassword">Confirm New Password</label>
+          <input
+            type="password"
+            name="confirmPassword"
+            id="confirmPassword"
+            autocomplete="new-password"
+            aria-describedby="confirmPasswordStatus"
+            required
+          >
+          <p class="confirm-password-status" id="confirmPasswordStatus" aria-live="polite"></p>
+        </div>
+
+        <div class="password-settings-actions">
+          <button type="button" class="btn btn-outline password-settings-back" data-close-password-modal>Cancel</button>
+          <button type="submit" class="btn btn-primary password-settings-submit">Save Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="passwordActionConfirmModal" hidden>
+    <div
+      class="modal-dialog password-action-confirm-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="passwordActionConfirmTitle"
+      aria-describedby="passwordActionConfirmDesc"
+      tabindex="-1"
+    >
+      <h3 id="passwordActionConfirmTitle">Confirm action</h3>
+      <p id="passwordActionConfirmDesc">Are you sure you want to continue?</p>
+      <div class="modal-actions password-action-confirm-actions">
+        <button type="button" class="btn btn-outline" data-dismiss-password-action>Go Back</button>
+        <button type="button" class="btn btn-primary" data-confirm-password-action>Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <% if (user.googleId) { %>
     <div class="modal-backdrop" id="unlinkGoogleModal" hidden>
       <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="unlinkGoogleModalTitle" aria-describedby="unlinkGoogleModalDesc" tabindex="-1">
@@ -342,6 +455,7 @@
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
   <script src="/js/runner-profile.js"></script>
+  <script src="/js/password-settings.js"></script>
   <script>
     if (window.lucide) lucide.createIcons();
   </script>

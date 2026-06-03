@@ -1,0 +1,9 @@
+<section class="card running-groups-card" data-dashboard-fragment="runningGroups">
+  <% const currentGroups = runningGroupFeature?.currentGroups || []; %>
+  <div class="card-header running-groups-header"><h2><i data-lucide="users"></i> Running Groups</h2><a href="/runner/groups" class="btn btn-sm btn-outline running-groups-action">Manage Groups</a></div>
+  <div class="card-content running-groups-content">
+    <% if (currentGroups.length) { %><ul class="item-list compact running-groups-list"><% currentGroups.slice(0, 3).forEach((group) => { %><li class="item-row running-group-row"><div class="item-main running-group-main"><div class="item-title running-group-title"><a href="/runner/groups/<%= group.slug %>"><%= group.name %></a></div><div class="item-meta running-group-meta"><%= group.memberCount || 0 %> members</div></div></li><% }) %></ul><p class="text-muted running-groups-summary">You are currently a member of <strong><%= currentGroups.length %></strong> running group<%= currentGroups.length > 1 ? 's' : '' %>.</p>
+    <% } else { %><div class="empty-state running-groups-empty"><p class="empty-message">You are not currently in a running group.</p></div><% } %>
+    <p class="text-muted running-groups-help">Use the Manage Groups page to search groups, join a community, or create your own.</p>
+  </div>
+</section>

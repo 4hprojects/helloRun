@@ -391,6 +391,164 @@
   font-style: italic;
 }
 
+.password-settings-dialog {
+  width: min(680px, 100%);
+  padding: 1.1rem 1.25rem;
+}
+
+.password-settings-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.password-settings-dialog-header h3,
+.password-settings-dialog-header p {
+  margin-bottom: 0;
+}
+
+.password-settings-dialog-header p {
+  font-size: 0.88rem;
+}
+
+.password-settings-close {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+}
+
+.password-settings-close:hover,
+.password-settings-close:focus-visible {
+  border-color: var(--text-secondary, #94a3b8);
+  color: var(--text-primary, #1e293b);
+  outline: none;
+}
+
+.password-settings-close svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.password-settings-dialog .page-message {
+  margin-bottom: 0.75rem;
+  padding: 0.65rem 0.8rem;
+  font-size: 0.84rem;
+}
+
+.password-settings-dialog .password-settings-form {
+  gap: 0.7rem;
+}
+
+.password-settings-dialog .password-settings-form .form-field {
+  grid-template-columns: 150px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.45rem 0.8rem;
+}
+
+.password-settings-dialog .password-settings-form .form-field label {
+  margin: 0;
+}
+
+.password-settings-dialog .password-settings-form .form-field input {
+  min-height: 40px;
+  padding: 0.58rem 0.75rem;
+}
+
+.password-settings-dialog .password-strength,
+.password-settings-dialog .password-settings-form .form-field small,
+.password-settings-dialog .confirm-password-status {
+  grid-column: 2;
+}
+
+.password-settings-dialog .password-strength {
+  gap: 0.4rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: 10px;
+}
+
+.password-settings-dialog .password-strength-bars {
+  gap: 0.3rem;
+}
+
+.password-settings-dialog .password-strength-bar {
+  height: 0.3rem;
+}
+
+.password-settings-dialog .password-requirement-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.25rem 0.65rem;
+}
+
+.password-settings-dialog .password-requirement-list li {
+  padding-left: 0.9rem;
+  font-size: 0.76rem;
+}
+
+.password-settings-dialog .password-requirement-list li::before {
+  top: 0.32rem;
+  width: 0.4rem;
+  height: 0.4rem;
+}
+
+.password-settings-dialog .password-settings-form .form-field small {
+  display: none;
+}
+
+.password-settings-dialog .confirm-password-status:empty {
+  display: none;
+}
+
+.password-settings-dialog .password-settings-actions {
+  margin-top: 0.1rem;
+  padding-top: 0.7rem;
+}
+
+.password-settings-dialog .password-settings-actions .btn {
+  min-width: 0;
+  min-height: 36px;
+  padding: 0.38rem 0.85rem;
+  font-size: 0.84rem;
+}
+
+.password-action-confirm-dialog {
+  width: min(380px, 100%);
+  padding: 1rem 1.1rem;
+  border-radius: 18px;
+}
+
+.password-action-confirm-dialog h3 {
+  font-size: 1.1rem;
+}
+
+.password-action-confirm-dialog p {
+  margin-bottom: 0.9rem;
+  font-size: 0.86rem;
+}
+
+.password-action-confirm-actions {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.password-action-confirm-actions .btn {
+  width: auto;
+  min-width: 0;
+  min-height: 34px;
+  padding: 0.32rem 0.75rem;
+  font-size: 0.8rem;
+}
+
 .profile-featured-badge {
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr);
@@ -623,6 +781,25 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   }
+
+  #passwordSettingsModal {
+    padding: 0.75rem;
+  }
+
+  #passwordActionConfirmModal {
+    padding: 0.75rem;
+  }
+
+  .password-settings-dialog {
+    width: min(600px, 100%);
+    padding: 1rem;
+    border-radius: 18px;
+  }
+
+  .password-settings-dialog .password-settings-form .form-field {
+    grid-template-columns: 135px minmax(0, 1fr);
+    gap: 0.4rem 0.65rem;
+  }
 }
 
 @media (max-width: 640px) {
@@ -667,5 +844,98 @@
 
   .runner-profile-form-actions .btn {
     flex: 0 0 auto;
+  }
+
+  .password-settings-dialog {
+    padding: 0.8rem;
+    border-radius: 16px;
+  }
+
+  .password-settings-dialog-header {
+    gap: 0.65rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .password-settings-dialog-header h3 {
+    font-size: 1.1rem;
+  }
+
+  .password-settings-dialog-header p {
+    font-size: 0.78rem;
+  }
+
+  .password-settings-close {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .password-settings-dialog .password-settings-form .form-field {
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 0.35rem 0.5rem;
+  }
+
+  .password-settings-dialog .password-settings-form .form-field label {
+    font-size: 0.78rem;
+    line-height: 1.2;
+  }
+
+  .password-settings-dialog .password-settings-form .form-field input {
+    min-height: 36px;
+    padding: 0.45rem 0.6rem;
+    font-size: 0.86rem;
+  }
+
+  .password-settings-dialog .password-strength {
+    padding: 0.5rem 0.55rem;
+  }
+
+  .password-settings-dialog .password-requirement-list {
+    gap: 0.18rem 0.35rem;
+  }
+
+  .password-settings-dialog .password-requirement-list li {
+    padding-left: 0.78rem;
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+
+  .password-settings-dialog .password-settings-actions {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
+  }
+
+  .password-settings-dialog .password-settings-back {
+    margin-right: 0;
+  }
+
+  .password-settings-dialog .password-settings-actions .btn {
+    width: auto;
+    flex: 0 0 auto;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0.32rem 0.7rem;
+    font-size: 0.78rem;
+  }
+
+  .password-action-confirm-dialog {
+    padding: 0.85rem;
+    border-radius: 16px;
+  }
+
+  .password-action-confirm-actions {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .password-action-confirm-actions .btn {
+    width: auto;
+    flex: 0 0 auto;
+    min-width: 0;
+    min-height: 32px;
+    padding: 0.28rem 0.65rem;
+    font-size: 0.75rem;
   }
 }

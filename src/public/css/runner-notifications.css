@@ -54,6 +54,7 @@
 .notification-item {
   border: 1px solid #e2e8f0;
   border-radius: 10px;
+  background: #ffffff;
   padding: 0.8rem;
   display: flex;
   justify-content: space-between;
@@ -61,9 +62,17 @@
   gap: 0.8rem;
 }
 
+.notification-item:nth-child(even) {
+  background: #f8fafc;
+}
+
 .notification-item.is-unread {
   border-color: #7dd3fc;
   background: #f0f9ff;
+}
+
+.notification-item.is-unread:nth-child(even) {
+  background: #f7fcff;
 }
 
 .notification-item.is-read {

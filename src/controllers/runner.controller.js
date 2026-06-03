@@ -50,81 +50,13 @@ exports.getDashboard = async (req, res) => {
     if (!user) {
       return res.redirect('/login');
     }
-    const locale = getRequestLocale(req);
-
-    const groupQuery = String(req.query.groupQ || '').trim().slice(0, 80);
-    const dashboardFilters = getDashboardFilters(req.query);
-    const [registrations, topGroups, searchedGroups, currentRunningGroups, recentGroupActivity, performanceSnapshot, recentBadges, badgeProgress] = await Promise.all([
-      getRunnerRegistrations(user._id),
-      getTopRunningGroups(8),
-      groupQuery ? searchRunningGroups(groupQuery, { limit: 10 }) : Promise.resolve([]),
-      getCurrentRunnerGroups(user),
-      getRecentRunnerGroupActivity(user, 4),
-      getRunnerPerformanceSnapshot(user._id, {
-        recentLimit: 8,
-        resultStatus: dashboardFilters.resultStatus
-      }),
-      getRunnerEarnedBadges(user._id, { limit: 4 }).catch(() => []),
-      getRunnerBadgeProgress(user._id, { limit: 4 }).catch(() => [])
-    ]);
-    const dashboardData = buildRunnerDashboardData(registrations);
-    const eventProgressCards = await getRunnerEventProgressCards(registrations);
-    const mergedActivity = mergeRunnerActivity(
-      dashboardData.activity,
-      recentGroupActivity,
-      performanceSnapshot.recentActivity
-    );
-    const upcomingCards = dashboardData.upcoming
-      .slice(0, 5)
-      .map(normalizeRegistrationCard);
-    const pastCards = dashboardData.past
-      .slice(0, 5)
-      .map(normalizeRegistrationCard);
-    const profileCompleteness = getProfileCompleteness(getRunnerProfileFormData(user));
-    const resultSubmissions = formatRunnerResultSubmissions(performanceSnapshot, locale);
-
+    const dashboardViewData = await buildRunnerDashboardViewData(user, req);
     return res.render('runner/dashboard', {
       user,
       userName: user.firstName,
-      countries,
       errors: {},
       message: getRunnerProfileMessage(req.query),
-      profileData: getRunnerProfileFormData(user),
-      runningGroupFeature: {
-        query: groupQuery,
-        searchResults: searchedGroups,
-        topGroups,
-        currentGroup: currentRunningGroups[0] || null,
-        currentGroups: currentRunningGroups
-      },
-      profileCompleteness,
-      dashboardFilters,
-      cards: {
-        upcoming: upcomingCards,
-        past: pastCards,
-        activity: mergedActivity.slice(0, 8).map((item) => ({
-          ...item,
-          atLabel: formatDateTime(item.at, locale),
-          atRelativeLabel: formatRelativeTime(item.at)
-        })),
-        certificates: (performanceSnapshot.recentCertificates || []).map((item) => ({
-          ...item,
-          issuedAtLabel: formatDateTime(item.issuedAt, locale)
-        })),
-        results: resultSubmissions,
-        eventProgress: formatRunnerEventProgressCards(eventProgressCards, locale).slice(0, 6),
-        badges: recentBadges,
-        badgeProgress
-      },
-      stats: dashboardData.stats,
-      submissionStats: performanceSnapshot.counts || { total: 0, submitted: 0, approved: 0, rejected: 0, certificates: 0 },
-      performanceStats: performanceSnapshot.metrics || {
-        totalDistanceKm: 0,
-        completedEvents: 0,
-        fastestElapsedMs: 0,
-        fastestElapsedLabel: ''
-      },
-      personalBest: performanceSnapshot.personalBest || null
+      ...dashboardViewData
     });
   } catch (error) {
     console.error('Runner dashboard load error:', error);
@@ -168,88 +100,17 @@ exports.updateProfile = async (req, res) => {
     if (!user) {
       return res.redirect('/login');
     }
-    const locale = getRequestLocale(req);
-
     const formData = getRunnerProfileFormData(req.body);
     const errors = validateRunnerProfileForm(formData);
-    const dashboardFilters = getDashboardFilters(req.query);
 
     if (Object.keys(errors).length > 0) {
-      const [registrations, topGroups, currentRunningGroups, recentGroupActivity, performanceSnapshot, recentBadges, badgeProgress] = await Promise.all([
-        getRunnerRegistrations(user._id),
-        getTopRunningGroups(8),
-        getCurrentRunnerGroups(user),
-        getRecentRunnerGroupActivity(user, 4),
-        getRunnerPerformanceSnapshot(user._id, {
-          recentLimit: 8,
-          resultStatus: dashboardFilters.resultStatus
-        }),
-        getRunnerEarnedBadges(user._id, { limit: 4 }).catch(() => []),
-        getRunnerBadgeProgress(user._id, { limit: 4 }).catch(() => [])
-      ]);
-      const dashboardData = buildRunnerDashboardData(registrations);
-      const eventProgressCards = await getRunnerEventProgressCards(registrations);
-      const mergedActivity = mergeRunnerActivity(
-        dashboardData.activity,
-        recentGroupActivity,
-        performanceSnapshot.recentActivity
-      );
-      const upcomingCards = dashboardData.upcoming
-        .slice(0, 5)
-        .map(normalizeRegistrationCard);
-      const pastCards = dashboardData.past
-        .slice(0, 5)
-        .map(normalizeRegistrationCard);
-      const profileCompleteness = getProfileCompleteness(formData);
-
+      const dashboardViewData = await buildRunnerDashboardViewData(user, req);
       return res.status(400).render('runner/dashboard', {
         user,
         userName: user.firstName,
-        countries,
         errors,
         message: null,
-        profileData: formData,
-        runningGroupFeature: {
-          query: '',
-          searchResults: [],
-          topGroups,
-          currentGroup: currentRunningGroups[0] || null,
-          currentGroups: currentRunningGroups
-        },
-        profileCompleteness,
-        dashboardFilters,
-        cards: {
-          upcoming: upcomingCards,
-          past: pastCards,
-          activity: mergedActivity.slice(0, 8).map((item) => ({
-            ...item,
-            atLabel: formatDateTime(item.at, locale),
-            atRelativeLabel: formatRelativeTime(item.at)
-          })),
-          certificates: (performanceSnapshot.recentCertificates || []).map((item) => ({
-            ...item,
-            issuedAtLabel: formatDateTime(item.issuedAt, locale)
-          })),
-          results: (performanceSnapshot.recentSubmissions || []).map((item) => ({
-            ...item,
-            submittedAtLabel: formatDateTime(item.submittedAt, locale),
-            reviewedAtLabel: formatDateTime(item.reviewedAt, locale),
-            submittedAtRelativeLabel: formatRelativeTime(item.submittedAt),
-            reviewedAtRelativeLabel: formatRelativeTime(item.reviewedAt)
-          })),
-          eventProgress: formatRunnerEventProgressCards(eventProgressCards, locale).slice(0, 6),
-          badges: recentBadges,
-          badgeProgress
-        },
-        stats: dashboardData.stats,
-        submissionStats: performanceSnapshot.counts || { total: 0, submitted: 0, approved: 0, rejected: 0, certificates: 0 },
-        performanceStats: performanceSnapshot.metrics || {
-          totalDistanceKm: 0,
-          completedEvents: 0,
-          fastestElapsedMs: 0,
-          fastestElapsedLabel: ''
-        },
-        personalBest: performanceSnapshot.personalBest || null
+        ...dashboardViewData
       });
     }
 
@@ -280,26 +141,44 @@ exports.updateProfile = async (req, res) => {
 };
 
 exports.getPasswordSettings = async (req, res) => {
+  return res.redirect('/runner/profile?modal=password#account');
+};
+
+exports.getDashboardRefresh = async (req, res) => {
   try {
     const user = await getRunnerFromSession(req);
     if (!user) {
-      return res.redirect('/login');
+      return res.status(401).json({ success: false, message: 'Authentication required.' });
     }
 
-    return res.render('runner/password-settings', {
-      user,
-      userName: user.firstName,
-      message: getRunnerProfileMessage(req.query),
-      errors: {},
-      hasLocalPassword: Boolean(user.passwordHash)
+    const viewData = await buildRunnerDashboardViewData(user, req);
+    const fragmentNames = [
+      'summary',
+      'hero-highlights',
+      'upcoming',
+      'badges',
+      'badge-progress',
+      'event-progress',
+      'result-submissions',
+      'past',
+      'activity',
+      'certificates',
+      'progress-stats',
+      'running-groups'
+    ];
+    const rendered = await Promise.all(fragmentNames.map(async (name) => [
+      name.replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase()),
+      await renderViewFragment(res, `runner/partials/dashboard-${name}`, viewData)
+    ]));
+
+    return res.json({
+      success: true,
+      refreshedAt: new Date().toISOString(),
+      fragments: Object.fromEntries(rendered)
     });
   } catch (error) {
-    console.error('Runner password settings load error:', error);
-    return res.status(500).render('error', {
-      title: 'Server Error',
-      status: 500,
-      message: 'An error occurred while loading password settings.'
-    });
+    console.error('Runner dashboard refresh error:', error);
+    return res.status(500).json({ success: false, message: 'Unable to refresh dashboard right now.' });
   }
 };
 
@@ -310,29 +189,7 @@ exports.getProfilePage = async (req, res) => {
       return res.redirect('/login');
     }
 
-    const profileData = getRunnerProfileFormData(user);
-    const profileCompleteness = getProfileCompleteness(profileData);
-    const selectedCountry = (countries || []).find((item) => item.code === profileData.country);
-    const [stravaConnection, badges, badgeProgress] = await Promise.all([
-      stravaService.getConnectionSummary(user._id).catch(() => ({ connected: false })),
-      getRunnerEarnedBadges(user._id, { limit: 30 }).catch(() => []),
-      getRunnerBadgeProgress(user._id, { limit: 30 }).catch(() => [])
-    ]);
-
-    return res.render('runner/profile', {
-      title: 'Personal Information - HelloRun',
-      user,
-      userName: user.firstName,
-      message: getRunnerProfileMessage(req.query),
-      profileData,
-      profileCompleteness,
-      countries,
-      selectedCountryName: selectedCountry?.name || 'Not set',
-      stravaConnection,
-      badges,
-      badgeProgress,
-      publicBadgeCollectionPath: user.userId ? `/runners/${encodeURIComponent(user.userId)}/badges` : ''
-    });
+    return res.render('runner/profile', await buildRunnerProfileViewData(user, req));
   } catch (error) {
     console.error('Runner profile page load error:', error);
     return res.status(500).render('error', {
@@ -502,16 +359,15 @@ exports.updatePasswordSettings = async (req, res) => {
 
     const throttle = checkPasswordUpdateThrottle(req.session);
     if (!throttle.allowed) {
-      return res.status(429).render('runner/password-settings', {
-        user,
-        userName: user.firstName,
-        message: {
+      return res.status(429).render('runner/profile', await buildRunnerProfileViewData(user, req, {
+        message: null,
+        passwordMessage: {
           type: 'error',
           text: `Too many password update attempts. Try again in ${throttle.retryMinutes} minute(s).`
         },
-        errors: {},
-        hasLocalPassword: Boolean(user.passwordHash)
-      });
+        passwordErrors: {},
+        openPasswordModal: true
+      }));
     }
 
     const hasLocalPassword = Boolean(user.passwordHash);
@@ -543,20 +399,18 @@ exports.updatePasswordSettings = async (req, res) => {
 
     if (Object.keys(errors).length) {
       registerPasswordUpdateAttempt(req.session, false);
-      return res.status(400).render('runner/password-settings', {
-        user,
-        userName: user.firstName,
+      return res.status(400).render('runner/profile', await buildRunnerProfileViewData(user, req, {
         message: null,
-        errors,
-        hasLocalPassword
-      });
+        passwordErrors: errors,
+        openPasswordModal: true
+      }));
     }
 
     user.passwordHash = await passwordService.hashPassword(newPassword);
     await user.save();
     registerPasswordUpdateAttempt(req.session, true);
 
-    return res.redirect('/runner/security/password?type=success&msg=Password%20updated%20successfully.');
+    return res.redirect('/runner/profile?type=success&msg=Password%20updated%20successfully.#account');
   } catch (error) {
     console.error('Runner password update error:', error);
     return res.status(500).render('error', {
@@ -878,8 +732,107 @@ function normalizeRegistrationCard(registration) {
   };
 }
 
+async function buildRunnerDashboardViewData(user, req) {
+  const locale = getRequestLocale(req);
+  const dashboardFilters = getDashboardFilters(req.query);
+  const [registrations, currentRunningGroups, recentGroupActivity, performanceSnapshot, recentBadges, badgeProgress] = await Promise.all([
+    getRunnerRegistrations(user._id),
+    getCurrentRunnerGroups(user),
+    getRecentRunnerGroupActivity(user, 4),
+    getRunnerPerformanceSnapshot(user._id, {
+      recentLimit: 8,
+      resultStatus: dashboardFilters.resultStatus
+    }),
+    getRunnerEarnedBadges(user._id, { limit: 4 }).catch(() => []),
+    getRunnerBadgeProgress(user._id, { limit: 4 }).catch(() => [])
+  ]);
+  const dashboardData = buildRunnerDashboardData(registrations);
+  const eventProgressCards = await getRunnerEventProgressCards(registrations);
+  const mergedActivity = mergeRunnerActivity(
+    dashboardData.activity,
+    recentGroupActivity,
+    performanceSnapshot.recentActivity
+  );
+
+  return {
+    dashboardFilters,
+    runningGroupFeature: {
+      currentGroup: currentRunningGroups[0] || null,
+      currentGroups: currentRunningGroups
+    },
+    cards: {
+      upcoming: dashboardData.upcoming.slice(0, 5).map(normalizeRegistrationCard),
+      past: dashboardData.past.slice(0, 5).map(normalizeRegistrationCard),
+      activity: mergedActivity.slice(0, 8).map((item) => ({
+        ...item,
+        atLabel: formatDateTime(item.at, locale),
+        atRelativeLabel: formatRelativeTime(item.at)
+      })),
+      certificates: (performanceSnapshot.recentCertificates || []).map((item) => ({
+        ...item,
+        issuedAtLabel: formatDateTime(item.issuedAt, locale)
+      })),
+      results: formatRunnerResultSubmissions(performanceSnapshot, locale),
+      eventProgress: formatRunnerEventProgressCards(eventProgressCards, locale).slice(0, 6),
+      badges: recentBadges,
+      badgeProgress
+    },
+    stats: dashboardData.stats,
+    submissionStats: performanceSnapshot.counts || { total: 0, submitted: 0, approved: 0, rejected: 0, certificates: 0 },
+    performanceStats: performanceSnapshot.metrics || {
+      totalDistanceKm: 0,
+      completedEvents: 0,
+      fastestElapsedMs: 0,
+      fastestElapsedLabel: ''
+    },
+    personalBest: performanceSnapshot.personalBest || null
+  };
+}
+
+function renderViewFragment(res, view, locals) {
+  return new Promise((resolve, reject) => {
+    res.render(view, locals, (error, html) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(html);
+    });
+  });
+}
+
 function getProfileCompleteness(profileData) {
   return getRunnerProfileCompleteness({ ...profileData, role: 'runner' });
+}
+
+async function buildRunnerProfileViewData(user, req, overrides = {}) {
+  const profileData = getRunnerProfileFormData(user);
+  const profileCompleteness = getProfileCompleteness(profileData);
+  const selectedCountry = (countries || []).find((item) => item.code === profileData.country);
+  const [stravaConnection, badges, badgeProgress] = await Promise.all([
+    stravaService.getConnectionSummary(user._id).catch(() => ({ connected: false })),
+    getRunnerEarnedBadges(user._id, { limit: 30 }).catch(() => []),
+    getRunnerBadgeProgress(user._id, { limit: 30 }).catch(() => [])
+  ]);
+
+  return {
+    title: 'Personal Information - HelloRun',
+    user,
+    userName: user.firstName,
+    message: getRunnerProfileMessage(req.query),
+    profileData,
+    profileCompleteness,
+    countries,
+    selectedCountryName: selectedCountry?.name || 'Not set',
+    stravaConnection,
+    badges,
+    badgeProgress,
+    publicBadgeCollectionPath: user.userId ? `/runners/${encodeURIComponent(user.userId)}/badges` : '',
+    passwordErrors: {},
+    passwordMessage: null,
+    openPasswordModal: req.query.modal === 'password',
+    ...overrides
+  };
 }
 
 function getRunnerProfileMessage(query) {

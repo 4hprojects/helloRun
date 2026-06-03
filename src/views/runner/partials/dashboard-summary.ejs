@@ -1,0 +1,9 @@
+  <section class="kpi-section" aria-label="Runner dashboard summary" data-dashboard-fragment="summary">
+    <div class="section-heading"><div><span class="section-kicker">At a glance</span><h2>Current running snapshot</h2></div></div>
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-card-upcoming"><div class="kpi-icon"><i data-lucide="calendar"></i></div><div class="kpi-content"><span class="kpi-label">Upcoming Events</span><span class="kpi-value"><%= stats?.upcoming || 0 %></span></div></div>
+      <div class="kpi-card kpi-card-results"><div class="kpi-icon"><i data-lucide="clock"></i></div><div class="kpi-content"><span class="kpi-label">Pending Results</span><span class="kpi-value"><%= submissionStats?.submitted || 0 %></span></div></div>
+      <div class="kpi-card kpi-card-certificates"><div class="kpi-icon"><i data-lucide="award"></i></div><div class="kpi-content"><span class="kpi-label">Certificates</span><span class="kpi-value"><%= submissionStats?.certificates || 0 %></span></div></div>
+      <div class="kpi-card kpi-card-distance"><div class="kpi-icon"><i data-lucide="map-pin"></i></div><div class="kpi-content"><span class="kpi-label">Total Distance</span><span class="kpi-value"><%= Number(performanceStats?.totalDistanceKm || 0).toFixed(2) %> km</span></div></div>
+    </div>
+  </section>

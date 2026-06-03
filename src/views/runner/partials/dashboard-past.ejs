@@ -1,0 +1,7 @@
+<section class="card" data-dashboard-fragment="past">
+  <div class="card-header"><h2><i data-lucide="history"></i> Past Events</h2></div>
+  <div class="card-content">
+    <% if (cards.past && cards.past.length) { %><ul class="item-list"><% cards.past.forEach((item) => { %><li class="item-row"><div class="item-main"><div class="item-title"><% if (item.slug) { %><a href="/events/<%= item.slug %>"><%= item.title %></a><% } else { %><%= item.title %><% } %></div><div class="item-meta"><span><%= item.startAtLabel %></span> &middot; <span><%= item.distance %></span> &middot; <span class="badge badge-<%= item.mode %>"><%= item.mode %></span></div><div class="item-meta">Status: <span class="badge badge-<%= item.status %>"><%= item.status %></span></div></div></li><% }) %></ul>
+    <% } else { %><div class="empty-state"><p class="empty-message">No past events yet.</p></div><% } %>
+  </div>
+</section>

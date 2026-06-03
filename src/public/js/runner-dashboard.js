@@ -7,9 +7,8 @@ if (document.readyState === 'loading') {
 function initializeDashboard() {
   setupLogoutHandler();
   setupCollapsiblePanels();
-  setupAsyncResultSubmissions();
+  setupDashboardRefresh();
   setupDashboardFlashBridge();
-  setupUnlinkConfirmation();
   setupLoadingStates();
   setupAutoDismissMessages();
 }
@@ -127,118 +126,147 @@ function setupCollapsiblePanels() {
   });
 }
 
-function setupAsyncResultSubmissions() {
+function setupDashboardRefresh() {
   const page = document.querySelector('.runner-dashboard-page');
   if (!page) return;
 
-  let requestToken = 0;
+  let activeRequest = null;
+  let pollTimer = null;
+  const POLL_INTERVAL_MS = 30000;
 
-  const getRoot = () => document.querySelector('[data-result-submissions-root]');
-
-  const buildEndpointUrl = (sourceHref, root) => {
+  const buildEndpointUrl = (sourceHref) => {
     const sourceUrl = new URL(sourceHref, window.location.origin);
-    const endpoint = root?.getAttribute('data-result-submissions-endpoint');
-    if (!endpoint) return null;
-
-    const endpointUrl = new URL(endpoint, window.location.origin);
+    const endpointUrl = new URL('/runner/dashboard/refresh', window.location.origin);
     const resultStatus = sourceUrl.searchParams.get('resultStatus');
-    const groupQ = sourceUrl.searchParams.get('groupQ');
-
     if (resultStatus) endpointUrl.searchParams.set('resultStatus', resultStatus);
-    if (groupQ) endpointUrl.searchParams.set('groupQ', groupQ);
     return endpointUrl;
   };
 
-  const bindTabs = (root) => {
-    const tabs = root?.querySelectorAll('.result-status-tab');
-    if (!tabs?.length) return;
-
-    tabs.forEach((tab) => {
-      tab.addEventListener('click', (event) => {
-        const href = tab.getAttribute('href');
-        if (!href) return;
-        if (tab.classList.contains('is-active')) {
-          event.preventDefault();
-          return;
-        }
-
-        event.preventDefault();
-        void loadCard(href, { pushHistory: true });
-      });
-    });
-  };
-
-  const replaceRoot = (html) => {
+  const parseFragment = (html, name) => {
     const template = document.createElement('template');
     template.innerHTML = html.trim();
-    const nextRoot = template.content.querySelector('[data-result-submissions-root]');
-    const currentRoot = getRoot();
-    if (!nextRoot || !currentRoot) return false;
+    return template.content.querySelector(`[data-dashboard-fragment="${name}"]`);
+  };
 
-    currentRoot.replaceWith(nextRoot);
+  const replaceFragments = (fragments) => {
+    Object.entries(fragments || {}).forEach(([name, html]) => {
+      const currentRoot = document.querySelector(`[data-dashboard-fragment="${name}"]`);
+      const nextRoot = parseFragment(html, name);
+      if (!currentRoot || !nextRoot) return;
+
+      if (currentRoot.id) {
+        currentRoot.innerHTML = nextRoot.innerHTML;
+        return;
+      }
+      currentRoot.replaceWith(nextRoot);
+    });
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
       window.lucide.createIcons();
     }
-    bindTabs(nextRoot);
-    return true;
+    setupCollapsiblePanels();
+    setupLoadingStates();
   };
 
-  const loadCard = async (href, { pushHistory }) => {
-    const currentRoot = getRoot();
-    if (!currentRoot) return;
-
-    const endpointUrl = buildEndpointUrl(href, currentRoot);
-    if (!endpointUrl) {
-      window.location.assign(href);
-      return;
+  const refresh = async (href, options = {}) => {
+    if (activeRequest) {
+      if (options.fallbackToNavigation && href) {
+        window.location.assign(href);
+        return null;
+      }
+      return activeRequest;
     }
+    const endpointUrl = buildEndpointUrl(href || window.location.pathname + window.location.search);
+    page.setAttribute('aria-busy', 'true');
 
-    const currentRequest = ++requestToken;
-    currentRoot.classList.add('is-loading');
-    currentRoot.setAttribute('aria-busy', 'true');
-
-    try {
+    activeRequest = (async () => {
       const response = await fetch(endpointUrl.toString(), {
-        headers: { 'X-Requested-With': 'fetch' }
+        headers: { Accept: 'application/json', 'X-Requested-With': 'fetch' }
       });
-
       if (!response.ok) {
         throw new Error(`Request failed with ${response.status}`);
       }
-
-      const html = await response.text();
-      if (currentRequest !== requestToken) return;
-
-      const replaced = replaceRoot(html);
-      if (!replaced) {
-        throw new Error('Partial markup missing result submissions root');
+      const payload = await response.json();
+      if (!payload || payload.success !== true || !payload.fragments) {
+        throw new Error('Dashboard refresh response is invalid');
       }
-
-      if (pushHistory) {
+      replaceFragments(payload.fragments);
+      if (options.pushHistory) {
         history.pushState({ resultSubmissions: true }, '', href);
       }
+      return payload;
+    })();
+
+    try {
+      return await activeRequest;
     } catch (error) {
-      window.location.assign(href);
+      if (options.fallbackToNavigation && href) {
+        window.location.assign(href);
+        return null;
+      }
+      if (options.showFailureMessage && typeof window.showRunnerDashboardFlashMessage === 'function') {
+        window.showRunnerDashboardFlashMessage({
+          type: 'error',
+          text: 'Your action was saved, but the dashboard could not refresh. Reload the page to see the latest data.'
+        });
+        return null;
+      }
+      throw error;
     } finally {
-      const latestRoot = getRoot();
-      latestRoot?.classList.remove('is-loading');
-      latestRoot?.removeAttribute('aria-busy');
+      activeRequest = null;
+      page.removeAttribute('aria-busy');
     }
   };
 
-  window.refreshRunnerDashboardResultSubmissions = () => {
+  window.refreshRunnerDashboard = (options = {}) => {
     if (window.location.pathname !== '/runner/dashboard') {
       return Promise.resolve();
     }
-    return loadCard(window.location.pathname + window.location.search, { pushHistory: false });
+    return refresh(window.location.pathname + window.location.search, {
+      showFailureMessage: options.showFailureMessage !== false
+    });
   };
+  window.refreshRunnerDashboardResultSubmissions = window.refreshRunnerDashboard;
+
+  page.addEventListener('click', (event) => {
+    const tab = event.target.closest?.('.result-status-tab');
+    if (!tab) return;
+    const href = tab.getAttribute('href');
+    if (!href) return;
+    event.preventDefault();
+    if (tab.classList.contains('is-active')) return;
+    void refresh(href, { pushHistory: true, fallbackToNavigation: true });
+  });
 
   window.addEventListener('popstate', () => {
     if (window.location.pathname !== '/runner/dashboard') return;
-    void loadCard(window.location.pathname + window.location.search, { pushHistory: false });
+    void refresh(window.location.pathname + window.location.search, { fallbackToNavigation: true });
   });
 
-  bindTabs(getRoot());
+  const isVisible = () => typeof document.visibilityState === 'undefined' || document.visibilityState === 'visible';
+  const startPolling = () => {
+    if (pollTimer || typeof setInterval !== 'function') return;
+    pollTimer = setInterval(() => {
+      if (!isVisible()) return;
+      void window.refreshRunnerDashboard({ showFailureMessage: false }).catch(() => {});
+    }, POLL_INTERVAL_MS);
+  };
+  const stopPolling = () => {
+    if (!pollTimer || typeof clearInterval !== 'function') return;
+    clearInterval(pollTimer);
+    pollTimer = null;
+  };
+
+  if (typeof document.addEventListener === 'function') {
+    document.addEventListener('visibilitychange', () => {
+      if (isVisible()) {
+        startPolling();
+        void window.refreshRunnerDashboard({ showFailureMessage: false }).catch(() => {});
+      } else {
+        stopPolling();
+      }
+    });
+  }
+  if (isVisible()) startPolling();
 }
 
 function setupDashboardFlashBridge() {
@@ -281,76 +309,6 @@ function setupDashboardFlashBridge() {
       alert.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
   };
-}
-
-/**
- * Unlink Google confirmation modal
- */
-function setupUnlinkConfirmation() {
-  const modal = document.getElementById('unlinkGoogleModal');
-  const openButtons = document.querySelectorAll('[data-open-unlink-modal]');
-  if (!modal || !openButtons.length) return;
-
-  const cancelBtn = modal.querySelector('[data-cancel-unlink]');
-  const confirmBtn = modal.querySelector('[data-confirm-unlink]');
-  let activeForm = null;
-  let lastTrigger = null;
-
-  const closeModal = () => {
-    modal.setAttribute('hidden', '');
-    modal.setAttribute('aria-hidden', 'true');
-    document.body.style.overflow = '';
-    activeForm = null;
-    if (lastTrigger && typeof lastTrigger.focus === 'function') {
-      lastTrigger.focus();
-    }
-    lastTrigger = null;
-  };
-
-  openButtons.forEach((button) => {
-    if (button.disabled) return;
-    button.addEventListener('click', () => {
-      activeForm = button.closest('form');
-      lastTrigger = button;
-      modal.removeAttribute('hidden');
-      modal.setAttribute('aria-hidden', 'false');
-      document.body.style.overflow = 'hidden';
-      const focusables = getFocusableInDialog(modal);
-      if (focusables.length) focusables[0].focus();
-    });
-  });
-
-  cancelBtn?.addEventListener('click', closeModal);
-  confirmBtn?.addEventListener('click', () => {
-    if (activeForm) activeForm.submit();
-    closeModal();
-  });
-
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
-  });
-  modal.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab') {
-      const focusables = getFocusableInDialog(modal);
-      if (!focusables.length) return;
-      const first = focusables[0];
-      const last = focusables[focusables.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-        return;
-      }
-      if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-        return;
-      }
-    }
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      closeModal();
-    }
-  });
 }
 
 /**

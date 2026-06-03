@@ -19,6 +19,7 @@ router.use((req, res, next) => {
 });
 
 router.get('/runner/dashboard', requireAuth, runnerController.getDashboard);
+router.get('/runner/dashboard/refresh', requireAuth, runnerController.getDashboardRefresh);
 router.get('/runner/dashboard/result-submissions', requireAuth, runnerController.getDashboardResultSubmissions);
 router.get('/runner/dashboard/badges', requireAuth, runnerController.getRunnerBadges);
 router.get('/runner/dashboard/badge-progress', requireAuth, runnerController.getRunnerBadgeProgress);

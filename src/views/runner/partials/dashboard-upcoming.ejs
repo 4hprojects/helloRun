@@ -1,0 +1,8 @@
+<section class="card card-featured" data-dashboard-fragment="upcoming">
+  <div class="card-header"><h2><i data-lucide="calendar"></i> Upcoming Events</h2></div>
+  <div class="card-content">
+    <% if (cards.upcoming && cards.upcoming.length) { %>
+      <ul class="item-list"><% cards.upcoming.forEach((item) => { %><li class="item-row"><div class="item-main"><div class="item-title"><% if (item.slug) { %><a href="/events/<%= item.slug %>"><%= item.title %></a><% } else { %><%= item.title %><% } %></div><div class="item-meta"><span><%= item.startAtLabel %></span> &middot; <span><%= item.distance %></span> &middot; <span class="badge badge-<%= item.mode %>"><%= item.mode %></span></div><div class="item-meta">Confirmation: <code><%= item.confirmationCode %></code></div></div><% if (item.isUnpaid) { %><a href="/my-registrations" class="btn btn-sm btn-warning">Pay</a><% } %></li><% }) %></ul>
+    <% } else { %><div class="empty-state"><p class="empty-message">No upcoming events.</p><a href="/events" class="btn btn-primary btn-sm">Browse events</a></div><% } %>
+  </div>
+</section>

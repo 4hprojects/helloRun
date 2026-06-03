@@ -61,10 +61,11 @@ class FakeElement {
   focus() { this.doc.activeElement = this; }
 }
 
-test('runner dashboard unlink modal traps focus and restores trigger focus', async () => {
+test('runner dashboard exposes a full refresh hook', async () => {
   const doc = {
     readyState: 'complete',
     body: { style: {} },
+    visibilityState: 'hidden',
     activeElement: null,
     listeners: new Map(),
     addEventListener(type, handler) {
@@ -73,75 +74,44 @@ test('runner dashboard unlink modal traps focus and restores trigger focus', asy
     },
     querySelector(selector) {
       if (selector === '.logout-form') return null;
-      if (selector === '[data-dashboard-action="browse-events"]') return null;
+      if (selector === '.runner-dashboard-page') return page;
       return null;
     },
     querySelectorAll(selector) {
       if (selector === '[data-toggle-target]') return [];
-      if (selector === '[data-open-unlink-modal]') return [openButton];
+      if (selector === 'form') return [];
       return [];
     },
-    getElementById(id) {
-      if (id === 'unlinkGoogleModal') return modal;
-      return null;
-    }
+    getElementById() { return null; }
   };
 
-  const modal = new FakeElement(doc, 'unlinkGoogleModal');
-  modal.setAttribute('hidden', '');
-  modal.setAttribute('aria-hidden', 'true');
-  const dialog = new FakeElement(doc, 'dialog');
-  const cancel = new FakeElement(doc, 'cancel');
-  const confirm = new FakeElement(doc, 'confirm');
-  const openButton = new FakeElement(doc, 'open');
-  const form = new FakeElement(doc, 'form');
-  let submitCount = 0;
-  form.submit = () => { submitCount += 1; };
-  openButton.parentForm = form;
-
-  modal.children['.modal-dialog'] = dialog;
-  modal.children['[data-cancel-unlink]'] = cancel;
-  modal.children['[data-confirm-unlink]'] = confirm;
-  dialog.children['[data-cancel-unlink]'] = cancel;
-  dialog.children['[data-confirm-unlink]'] = confirm;
+  const page = new FakeElement(doc, 'page');
+  page.querySelector = () => null;
+  let fetchCount = 0;
 
   const scriptPath = path.resolve(__dirname, '../src/public/js/runner-dashboard.js');
   const source = fs.readFileSync(scriptPath, 'utf8');
 
   const context = vm.createContext({
     document: doc,
-    window: { localStorage: { getItem: () => null, setItem: () => {} } },
-    confirm: () => true
+    window: {
+      location: { pathname: '/runner/dashboard', search: '', origin: 'http://localhost' },
+      addEventListener: () => {},
+      localStorage: { getItem: () => null, setItem: () => {} }
+    },
+    history: { pushState: () => {} },
+    fetch: async () => {
+      fetchCount += 1;
+      return { ok: true, json: async () => ({ success: true, fragments: {} }) };
+    },
+    URL
   });
 
   vm.runInContext(source, context, { filename: 'runner-dashboard.js' });
-
-  openButton.dispatch('click');
-  assert.equal(modal.hasAttribute('hidden'), false);
-  assert.equal(doc.body.style.overflow, 'hidden');
-  assert.equal(doc.activeElement, cancel);
-
-  doc.activeElement = confirm;
-  let prevented = false;
-  modal.dispatch('keydown', {
-    key: 'Tab',
-    shiftKey: false,
-    preventDefault() { prevented = true; }
-  });
-  assert.equal(prevented, true);
-  assert.equal(doc.activeElement, cancel);
-
-  confirm.dispatch('click');
-  assert.equal(submitCount, 1);
-
-  openButton.dispatch('click');
-  modal.dispatch('keydown', {
-    key: 'Escape',
-    preventDefault() {}
-  });
-  assert.equal(modal.hasAttribute('hidden'), true);
-  assert.equal(doc.body.style.overflow, '');
-  assert.equal(doc.activeElement, openButton);
+  assert.equal(typeof context.window.refreshRunnerDashboard, 'function');
+  assert.equal(context.window.refreshRunnerDashboardResultSubmissions, context.window.refreshRunnerDashboard);
+  await context.window.refreshRunnerDashboard();
+  assert.equal(fetchCount, 1);
 });
 
 test('runner dashboard flash bridge renders a runtime alert with optional link', async () => {
