@@ -88,9 +88,9 @@ test('organizer dashboard renders range analytics and queue links', async () => 
   assert.match(html, new RegExp(escapeRegex(seed.eventTitle)));
 
   const paymentLink = `/organizer/events/${seed.eventId}/payment-proofs/review`;
-  const resultLink = `/organizer/events/${seed.eventId}/registrants?result=submitted`;
+  const resultLink = `/organizer/events/${seed.eventId}/run-proofs/review`;
   const nextResultLink = `/organizer/events/${seed.eventId}/submissions/${seed.submittedSubmissionId}/review`;
-  const approvedLink = `/organizer/events/${seed.eventId}/registrants?result=approved`;
+  const approvedLink = `/organizer/events/${seed.eventId}/run-proofs/review?status=approved`;
   const editEventLink = `/organizer/events/${seed.eventId}/edit`;
   assert.match(html, new RegExp(escapeRegex(paymentLink)));
   assert.match(html, new RegExp(escapeRegex(resultLink)));
@@ -98,7 +98,11 @@ test('organizer dashboard renders range analytics and queue links', async () => 
   assert.match(html, new RegExp(escapeRegex(approvedLink)));
   assert.match(
     html,
-    new RegExp(`${escapeRegex(editEventLink)}" class="btn btn-secondary edit-event-btn" target="_blank" rel="noopener noreferrer">Edit Event`)
+    new RegExp(`${escapeRegex(editEventLink)}" class="btn btn-secondary event-link-btn event-action-icon-btn edit-event-btn" target="_blank" rel="noopener noreferrer" aria-label="Edit Event"`)
+  );
+  assert.match(
+    html,
+    new RegExp(`${escapeRegex(resultLink)}" class="btn btn-secondary event-link-btn event-action-icon-btn submitted-run-proofs-btn" target="_blank" rel="noopener noreferrer" aria-label="Submitted Run Proofs"`)
   );
   assert.match(
     html,

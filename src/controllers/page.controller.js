@@ -206,6 +206,27 @@ exports.getEvents = async (req, res) => {
   }
 };
 
+exports.getAbout = async (req, res) => {
+  try {
+    const currentEvents = await listHomepagePromotedEvents({ limit: 3 });
+
+    return res.render('pages/about', {
+      title: 'About HelloRun | Running Event Platform for Virtual, On-Site, and Hybrid Events',
+      seo: {
+        description: 'Learn how HelloRun helps runners join events, submit results, track approvals, and keep achievements in one place while helping organisers manage registrations, proof review, leaderboards, and certificates.'
+      },
+      currentEvents
+    });
+  } catch (error) {
+    console.error('Error loading about page:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading the about page.'
+    });
+  }
+};
+
 exports.getEventDetails = async (req, res) => {
   try {
     const event = await getPublishedEventBySlug(req.params.slug);

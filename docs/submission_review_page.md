@@ -18,6 +18,10 @@ Primary route:
 
 - `GET /organizer/events/:eventId/submissions/:submissionId/review`
 
+Per-event review queue:
+
+- `GET /organizer/events/:eventId/run-proofs/review`
+
 Review action routes:
 
 - `POST /organizer/events/:eventId/submissions/:submissionId/approve`
@@ -54,6 +58,18 @@ The review page now uses a card-based review layout rather than the old wide reg
 - Accumulated progress panel for accumulated-distance activities.
 - Decision sidebar for pending submissions, or review history after approval or rejection.
 
+## Per-Event Run Proof Review Queue
+
+The per-event queue gives organizers and admins a single place to scan submitted run proofs before opening an individual review:
+
+- Combines standard `Submission` records and `AccumulatedActivitySubmission` records.
+- Defaults to pending proofs ordered oldest first.
+- Supports pending, approved, rejected, and all-status views.
+- Supports participant name, email, and confirmation-code search.
+- Supports oldest/newest sorting and combined pagination at 50 proofs per page.
+- Shows proof type, participant details, distance, elapsed time, run date, evidence link or image preview, review signals, and review history where available.
+- Preserves queue status, search, sort, and page context when opening a proof and after approve/reject actions.
+
 ## Workflow
 
 Pending submissions render action forms on the standalone page:
@@ -73,8 +89,13 @@ Current entry points:
 
 - Admin review queue result rows link directly to the standalone review page.
 - Organizer dashboard "Open Next Pending Result" links to the next pending review detail when available.
+- Organizer dashboard queue summaries, My Events, and event details link to the per-event run proof review queue.
+- Organizer pending-result counts combine standard run results and accumulated activity proofs.
+- Event registrants provides an `Open Run Proof Review` action and keeps row-level `Open Review` links for pending results.
 - Event registrants table shows a single `Open Review` action for pending run results instead of inline approve/reject forms.
 - Reviewed rows in the registrants table continue to show read-only review status, reviewer, notes, and rejection reason.
+
+The registrants table remains a participant-management view. It now uses auto-submitting filters, compact icon actions, and a locally persisted visible-column menu. For accumulated challenges, the run result column summarizes progress and counts of approved, pending, and rejected activities instead of presenting one activity as the runner's only result.
 
 The existing admin cross-event queue remains:
 
@@ -95,6 +116,7 @@ Primary implementation files:
 
 - `src/routes/organizer.routes.js`
 - `src/views/organizer/submission-review.ejs`
+- `src/views/organizer/run-proof-review.ejs`
 - `src/public/css/organizer-events.css`
 - `src/views/organizer/event-registrants.ejs`
 - `src/controllers/admin.controller.js`
@@ -120,6 +142,9 @@ Verified scenarios:
 - Reviewed pages render the card layout and review history sidebar.
 - Image-like proof files render an inline preview plus the external evidence link.
 - Pending registrants table rows link to the standalone review page.
+- Per-event run proof queue enforces authentication, organizer ownership, and admin access.
+- Per-event run proof queue combines standard and accumulated proofs.
+- Per-event run proof queue filters reviewed history, searches participants, paginates combined results, and preserves queue context.
 - Admin review queue result rows link directly to the standalone review page.
 - Approve/reject actions redirect back to the standalone page.
 - Rejection still requires a valid rejection reason through existing route behavior.

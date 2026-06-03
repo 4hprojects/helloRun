@@ -30,7 +30,7 @@ test.after(async () => {
 
 test('public static pages render successfully', async () => {
   const cases = [
-    { path: '/about', heading: /About HelloRun/i },
+    { path: '/about', heading: /A running event platform for flexible participation and verified progress/i },
     { path: '/how-it-works', heading: /How It Works/i },
     { path: '/contact', heading: /Contact/i },
     { path: '/faq', heading: /FAQ/i },
@@ -50,6 +50,20 @@ test('public static pages render successfully', async () => {
     const html = await response.text();
     assert.match(html, item.heading, `${item.path} should include page heading`);
   }
+});
+
+test('about page includes required trust, privacy, and event-management guidance', async () => {
+  const response = await fetch(`${BASE_URL}/about`);
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /How virtual runs work/i);
+  assert.match(html, /Why submissions and leaderboards are reviewed/i);
+  assert.match(html, /Data privacy and proof handling/i);
+  assert.match(html, /href="\/privacy"/i);
+  assert.match(html, /Official HelloRun Event/i);
+  assert.match(html, /Organiser-Managed Event/i);
+  assert.match(html, /Current events/i);
 });
 
 test('contact page renders organizer dashboard guidance when sourced from organizer dashboard', async () => {

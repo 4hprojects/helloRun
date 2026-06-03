@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="events-page organizer-registrants-page run-proof-review-page">
+    <section class="events-shell">
+      <header class="events-header">
+        <div>
+          <h1>Run Proof Review</h1>
+          <p><%= event.title %></p>
+        </div>
+        <div class="header-actions">
+          <a href="<%= links.registrants %>" class="nav-login-btn registrant-header-btn">Registrants</a>
+          <% if (isAdminViewer) { %>
+            <a href="/admin/dashboard" class="nav-login-btn registrant-header-btn">Admin Dashboard</a>
+          <% } else { %>
+            <a href="/organizer/events/<%= event._id %>" class="nav-login-btn registrant-header-btn">Back to Event</a>
+            <a href="/organizer/events" class="nav-login-btn registrant-header-btn">My Events</a>
+          <% } %>
+        </div>
+      </header>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <section class="registrant-summary">
+        <a href="<%= links.pending %>" class="summary-card payment-proof-summary-link">
+          <strong>Pending Review</strong>
+          <span><%= counts.pending %></span>
+        </a>
+        <a href="<%= links.all %>" class="summary-card payment-proof-summary-link">
+          <strong>Reviewed</strong>
+          <span><%= counts.reviewed %></span>
+        </a>
+        <a href="<%= links.approved %>" class="summary-card payment-proof-summary-link">
+          <strong>Approved</strong>
+          <span><%= counts.approved %></span>
+        </a>
+        <a href="<%= links.rejected %>" class="summary-card payment-proof-summary-link">
+          <strong>Rejected</strong>
+          <span><%= counts.rejected %></span>
+        </a>
+      </section>
+
+      <form method="GET" action="/organizer/events/<%= event._id %>/run-proofs/review" class="filter-bar run-proof-filter-bar">
+        <label for="status">Queue</label>
+        <select id="status" name="status">
+          <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Pending</option>
+          <option value="approved" <%= filters.status === 'approved' ? 'selected' : '' %>>Approved</option>
+          <option value="rejected" <%= filters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+          <option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All</option>
+        </select>
+
+        <label for="sort">Sort</label>
+        <select id="sort" name="sort">
+          <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
+          <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest first</option>
+        </select>
+
+        <label for="q">Search</label>
+        <input id="q" name="q" type="search" placeholder="Code, name, or email" value="<%= filters.q || '' %>">
+
+        <button type="submit" class="nav-signup-btn">Apply</button>
+        <a href="<%= links.reset %>" class="nav-login-btn">Reset</a>
+      </form>
+
+      <% if (filters.status === 'pending') { %>
+        <div class="page-message page-message-warning">
+          Review the full activity evidence and validation signals before approving or rejecting a run proof.
+        </div>
+      <% } %>
+
+      <% if (reviewItems && reviewItems.length) { %>
+        <div class="results-meta run-proof-results-meta">
+          Showing <strong><%= reviewItems.length %></strong> of <strong><%= pagination.totalItems %></strong> proof<%= pagination.totalItems === 1 ? '' : 's' %>
+        </div>
+
+        <section class="run-proof-review-list">
+          <% reviewItems.forEach((item) => { %>
+            <article class="run-proof-review-card">
+              <div class="run-proof-card-main">
+                <div class="run-proof-card-header">
+                  <div>
+                    <h2><%= item.participantName %></h2>
+                    <p><%= item.participantEmail %></p>
+                  </div>
+                  <span class="status-badge status-badge-<%= item.status %>"><%= item.statusLabel %></span>
+                </div>
+
+                <div class="run-proof-card-labels">
+                  <span class="mode-badge"><%= item.submissionTypeLabel %></span>
+                  <% if (item.suspiciousFlag || item.reviewSignal?.label) { %>
+                    <span class="mode-badge mode-warning" title="<%= item.reviewSignal?.description || item.suspiciousFlagReason %>"><%= item.reviewSignal?.label || 'Suspicious' %></span>
+                  <% } %>
+                  <% if (item.hasOcrMismatch) { %>
+                    <span class="mode-badge mode-warning">OCR mismatch</span>
+                  <% } %>
+                </div>
+
+                <dl class="run-proof-meta-grid">
+                  <div>
+                    <dt>Confirmation</dt>
+                    <dd><code><%= item.confirmationCode %></code></dd>
+                  </div>
+                  <div>
+                    <dt>Distance / Mode</dt>
+                    <dd><%= item.raceDistance %> / <%= item.participationMode %></dd>
+                  </div>
+                  <div>
+                    <dt>Activity Distance</dt>
+                    <dd><%= item.distanceLabel %></dd>
+                  </div>
+                  <div>
+                    <dt>Elapsed</dt>
+                    <dd><%= item.elapsedLabel %></dd>
+                  </div>
+                  <div>
+                    <dt>Run Date</dt>
+                    <dd><%= item.runDateLabel || 'N/A' %></dd>
+                  </div>
+                  <div>
+                    <dt>Submitted</dt>
+                    <dd><%= item.submittedAtLabel || 'N/A' %></dd>
+                  </div>
+                  <div>
+                    <dt>Proof Type</dt>
+                    <dd><%= item.proofTypeLabel %></dd>
+                  </div>
+                  <div>
+                    <dt>Source</dt>
+                    <dd><%= item.sourceLabel %></dd>
+                  </div>
+                </dl>
+
+                <% if (item.proofUrl) { %>
+                  <div class="run-proof-preview">
+                    <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="proof-link">Open run proof</a>
+                    <% if (item.isImageProof) { %>
+                      <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="run-proof-image-link">
+                        <img src="<%= item.proofUrl %>" alt="Run proof for <%= item.confirmationCode %>">
+                      </a>
+                    <% } %>
+                  </div>
+                <% } else { %>
+                  <p class="rejection">No run proof file is available for this submission.</p>
+                <% } %>
+              </div>
+
+              <aside class="run-proof-card-actions">
+                <a href="<%= item.actionHref %>" class="nav-signup-btn table-action-btn registrant-row-btn registrant-row-btn-review">Open Review</a>
+                <% if (item.status !== 'submitted') { %>
+                  <div class="run-proof-history">
+                    <strong>Review History</strong>
+                    <p>Reviewed: <%= item.reviewedAtLabel || 'N/A' %></p>
+                    <% if (item.reviewerName) { %>
+                      <p>By: <%= item.reviewerName %></p>
+                    <% } %>
+                    <% if (item.reviewerEmail) { %>
+                      <p><%= item.reviewerEmail %></p>
+                    <% } %>
+                    <% if (item.rejectionReason) { %>
+                      <p><strong>Reason:</strong> <%= item.rejectionReason %></p>
+                    <% } %>
+                    <% if (item.reviewNotes) { %>
+                      <p><strong>Notes:</strong> <%= item.reviewNotes %></p>
+                    <% } %>
+                  </div>
+                <% } %>
+              </aside>
+            </article>
+          <% }) %>
+        </section>
+
+        <% if (pagination.totalPages > 1) { %>
+          <nav class="run-proof-pagination" aria-label="Run proof review pagination">
+            <% if (pagination.prevHref) { %>
+              <a href="<%= pagination.prevHref %>" class="nav-login-btn">Previous</a>
+            <% } else { %>
+              <span class="nav-login-btn disabled" aria-disabled="true">Previous</span>
+            <% } %>
+            <span>Page <%= pagination.page %> of <%= pagination.totalPages %></span>
+            <% if (pagination.nextHref) { %>
+              <a href="<%= pagination.nextHref %>" class="nav-login-btn">Next</a>
+            <% } else { %>
+              <span class="nav-login-btn disabled" aria-disabled="true">Next</span>
+            <% } %>
+          </nav>
+        <% } %>
+      <% } else { %>
+        <div class="empty-state">
+          <i data-lucide="file-check-2"></i>
+          <% if (filters.status === 'pending' && !filters.q) { %>
+            <h3>No pending run proofs</h3>
+            <p>There are no submitted run proofs waiting for review for this event.</p>
+          <% } else { %>
+            <h3>No run proofs found</h3>
+            <p>No run proof records match the current queue and search filters.</p>
+          <% } %>
+          <a href="<%= links.reset %>" class="nav-login-btn">View Pending Queue</a>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

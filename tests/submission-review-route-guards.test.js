@@ -60,6 +60,153 @@ test('unauthenticated submission review page redirects to login', async () => {
   assert.equal(response.headers.get('location'), '/login');
 });
 
+test('run proof review queue enforces auth and event ownership', async () => {
+  const seed = await seedReviewData('run-proof-queue-access');
+
+  const unauthenticated = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/run-proofs/review`, {
+    redirect: 'manual'
+  });
+  assert.equal(unauthenticated.status, 302);
+  assert.equal(unauthenticated.headers.get('location'), '/login');
+
+  const runnerCookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', runnerCookie);
+  const runnerResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/run-proofs/review`, {
+    headers: { Cookie: runnerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(runnerResponse.status, 403);
+
+  const otherOrganizerCookie = await login(seed.otherOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', otherOrganizerCookie);
+  const otherOrganizerResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/run-proofs/review`, {
+    headers: { Cookie: otherOrganizerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(otherOrganizerResponse.status, 404);
+});
+
+test('run proof review queue combines standard and accumulated activity proofs', async () => {
+  const seed = await seedAccumulatedReviewData('run-proof-queue-combined');
+  const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', ownerCookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/run-proofs/review`, {
+    headers: { Cookie: ownerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Run Proof Review/i);
+  assert.match(html, /Pending Review/i);
+  assert.match(html, /Run Result/i);
+  assert.match(html, /Accumulated Activity/i);
+  assert.match(html, /activity-proof\.png/i);
+  assert.match(html, /run-proof-image-link/i);
+  assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/review\\?queueStatus=pending&amp;queueSort=oldest`, 'i'));
+  assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/submissions/${seed.activity._id}/review\\?queueStatus=pending&amp;queueSort=oldest`, 'i'));
+  assert.doesNotMatch(html, /Approve Run Result/i);
+  assert.doesNotMatch(html, /Reject Run Result/i);
+
+  const adminCookie = await login(seed.admin.email, seed.password);
+  await waitForSessionReady('/admin/dashboard', adminCookie);
+  const adminResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/run-proofs/review`, {
+    headers: { Cookie: adminCookie },
+    redirect: 'manual'
+  });
+  assert.equal(adminResponse.status, 200);
+});
+
+test('run proof review queue filters reviewed history and search', async () => {
+  const seed = await seedAccumulatedReviewData('run-proof-queue-history');
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    await Submission.updateOne(
+      { _id: seed.submission._id },
+      {
+        $set: {
+          status: 'approved',
+          reviewedAt: new Date(),
+          reviewedBy: seed.ownerOrganizer._id,
+          reviewNotes: 'Verified standard result'
+        }
+      }
+    );
+    await AccumulatedActivitySubmission.updateOne(
+      { _id: seed.activity._id },
+      {
+        $set: {
+          status: 'rejected',
+          reviewedAt: new Date(),
+          reviewedBy: seed.ownerOrganizer._id,
+          rejectionReason: 'Activity proof is unclear'
+        }
+      }
+    );
+  } finally {
+    await mongoose.disconnect();
+  }
+
+  const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', ownerCookie);
+
+  const approvedResponse = await fetch(
+    `${BASE_URL}/organizer/events/${seed.event._id}/run-proofs/review?status=approved&q=${encodeURIComponent(seed.runner.email)}`,
+    { headers: { Cookie: ownerCookie }, redirect: 'manual' }
+  );
+  assert.equal(approvedResponse.status, 200);
+  const approvedHtml = await approvedResponse.text();
+  assert.match(approvedHtml, /Verified standard result/i);
+  assert.doesNotMatch(approvedHtml, /Activity proof is unclear/i);
+
+  const rejectedResponse = await fetch(
+    `${BASE_URL}/organizer/events/${seed.event._id}/run-proofs/review?status=rejected`,
+    { headers: { Cookie: ownerCookie }, redirect: 'manual' }
+  );
+  assert.equal(rejectedResponse.status, 200);
+  const rejectedHtml = await rejectedResponse.text();
+  assert.match(rejectedHtml, /Activity proof is unclear/i);
+  assert.match(rejectedHtml, /Review History/i);
+});
+
+test('run proof review queue paginates combined proofs and preserves filters', async () => {
+  const seed = await seedAccumulatedReviewData('run-proof-queue-pagination');
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    const baseTime = Date.now() - 60 * 60 * 1000;
+    const extraActivities = Array.from({ length: 50 }, (_, index) => ({
+      registrationId: seed.registration._id,
+      eventId: seed.event._id,
+      runnerId: seed.runner._id,
+      participationMode: 'virtual',
+      raceDistance: seed.registration.raceDistance,
+      distanceKm: 1 + (index / 100),
+      elapsedMs: 600000 + index,
+      runDate: new Date(baseTime + index * 1000),
+      runLocation: 'Pagination City',
+      runType: 'run',
+      proofType: 'manual',
+      status: 'submitted',
+      submittedAt: new Date(baseTime + index * 1000)
+    }));
+    await AccumulatedActivitySubmission.insertMany(extraActivities);
+  } finally {
+    await mongoose.disconnect();
+  }
+
+  const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', ownerCookie);
+  const response = await fetch(
+    `${BASE_URL}/organizer/events/${seed.event._id}/run-proofs/review?sort=newest&q=${encodeURIComponent(seed.runner.email)}`,
+    { headers: { Cookie: ownerCookie }, redirect: 'manual' }
+  );
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Showing <strong>50<\/strong> of <strong>52<\/strong> proofs/i);
+  assert.match(html, /Page 1 of 2/i);
+  assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/run-proofs/review\\?sort=newest&amp;q=[^"]+&amp;page=2`, 'i'));
+});
+
 test('runner cannot access submission review page', async () => {
   const seed = await seedReviewData('runner-denied');
   const runnerCookie = await login(seed.runner.email, seed.password);
@@ -90,12 +237,24 @@ test('owner organizer can view standard submission review page', async () => {
   assert.match(html, /View run result evidence/i);
   assert.match(html, /Approve Run Result/i);
   assert.match(html, /Reject Run Result/i);
+  assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/run-proofs/review[^>]*>\\s*<i[^>]*><\\/i>\\s*Back to Run Proof Queue`, 'i'));
 });
 
-test('registrants table links pending results to standalone review page', async () => {
+test('My Events and registrants table link pending results to review workflow', async () => {
   const seed = await seedReviewData('registrants-review-link');
   const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
   await waitForSessionReady('/organizer/dashboard', ownerCookie);
+
+  const eventsResponse = await fetch(`${BASE_URL}/organizer/events`, {
+    headers: { Cookie: ownerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(eventsResponse.status, 200);
+  const eventsHtml = await eventsResponse.text();
+  assert.match(
+    eventsHtml,
+    new RegExp(`/organizer/events/${seed.event._id}/run-proofs/review[^>]*>Submitted Run Proofs<`, 'i')
+  );
 
   const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/registrants?result=submitted`, {
     headers: { Cookie: ownerCookie },
@@ -103,6 +262,21 @@ test('registrants table links pending results to standalone review page', async 
   });
   assert.equal(response.status, 200);
   const html = await response.text();
+  assert.match(html, /data-registrant-filter-form/i);
+  assert.match(html, /<button[^>]*type="submit"[^>]*>\s*Search\s*<\/button>/i);
+  assert.equal((html.match(/<select[^>]*data-auto-submit-filter/g) || []).length, 4);
+  assert.doesNotMatch(html, /<button[^>]*>\s*Apply\s*<\/button>/i);
+  assert.match(html, /aria-label="Export CSV"[^>]*data-tooltip="Export CSV"/i);
+  assert.match(html, /aria-label="Export XLSX"[^>]*data-tooltip="Export XLSX"/i);
+  assert.match(html, /aria-label="Back to Event"[^>]*data-tooltip="Back to Event"/i);
+  assert.match(html, /aria-label="My Events"[^>]*data-tooltip="My Events"/i);
+  assert.match(html, /id="registrantColumnsMenuBtn"[^>]*aria-expanded="false"/i);
+  assert.equal((html.match(/data-registrant-column-toggle="[^"]+" checked/g) || []).length, 11);
+  assert.match(html, /<th data-registrant-column="name">Name<\/th>/i);
+  assert.match(html, /<th data-registrant-column="registeredAt">Registered At<\/th>/i);
+  assert.match(html, /<th data-registrant-column="confirmation" class="is-column-hidden">Confirmation<\/th>/i);
+  assert.match(html, /organizerRegistrantsVisibleColumns/i);
+  assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/run-proofs/review[^>]*>Open Run Proof Review<`, 'i'));
   assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/review`, 'i'));
   assert.doesNotMatch(html, new RegExp(`action="/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/approve"`, 'i'));
   assert.doesNotMatch(html, new RegExp(`action="/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/reject"`, 'i'));
@@ -169,6 +343,19 @@ test('owner and admin can view accumulated activity review page', async () => {
   assert.match(ownerHtml, /submission-proof-image-link/i);
   assert.match(ownerHtml, /Approve Run Result/i);
 
+  const registrantsResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/registrants`, {
+    headers: { Cookie: ownerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(registrantsResponse.status, 200);
+  const registrantsHtml = await registrantsResponse.text();
+  const runResultCell = registrantsHtml.match(/<td data-registrant-column="runResult">([\s\S]*?)<\/td>/i)?.[1] || '';
+  assert.match(runResultCell, /<strong>Progress:<\/strong>\s*0 km \/ 20 km/i);
+  assert.match(runResultCell, /<strong>Activity counts:<\/strong>\s*0 approved, 1 pending, 0 rejected/i);
+  assert.doesNotMatch(runResultCell, /<strong>Distance:<\/strong>/i);
+  assert.doesNotMatch(runResultCell, /<strong>Elapsed:<\/strong>/i);
+  assert.doesNotMatch(runResultCell, /activity submitted/i);
+
   const adminCookie = await login(seed.admin.email, seed.password);
   await waitForSessionReady('/admin/dashboard', adminCookie);
   const adminResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/submissions/${seed.activity._id}/review`, {
@@ -219,13 +406,22 @@ test('admin can approve organizer submission through shared review route', async
   const response = await postForm(
     `/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/approve`,
     adminCookie,
-    { reviewNotes: 'admin approval check' }
+    {
+      reviewNotes: 'admin approval check',
+      queueStatus: 'all',
+      queueSort: 'newest',
+      queueQ: seed.runner.email,
+      queuePage: '2'
+    }
   );
 
   assert.equal(response.status, 302);
   const location = response.headers.get('location') || '';
   assert.match(location, /type=success/i);
   assert.match(location, /\/submissions\/[a-f0-9]{24}\/review/i);
+  assert.match(location, /queueStatus=all/i);
+  assert.match(location, /queueSort=newest/i);
+  assert.match(location, /queuePage=2/i);
 
   await mongoose.connect(process.env.MONGODB_URI);
   try {
@@ -574,7 +770,12 @@ async function cleanupSeededFixtures() {
 
     await Promise.all([
       Notification.deleteMany({ userId: { $in: userIds } }),
-      AccumulatedActivitySubmission.deleteMany({ _id: { $in: activityIds } }),
+      AccumulatedActivitySubmission.deleteMany({
+        $or: [
+          { _id: { $in: activityIds } },
+          { eventId: { $in: eventIds } }
+        ]
+      }),
       Submission.deleteMany({ _id: { $in: submissionIds } }),
       Registration.deleteMany({ _id: { $in: registrationIds } }),
       Event.deleteMany({ _id: { $in: eventIds } }),

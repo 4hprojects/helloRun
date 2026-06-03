@@ -3,6 +3,50 @@
 - Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
 - Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
 
+## CHANGELOG - June 3, 2026 (Session: About Page And Run Proof Review Workflow)
+
+### [SESSION] SESSION UPDATE:
+- Rebuilt `/about` as a full platform overview covering runners, organisers, virtual-run workflow, proof review, privacy, certificates, event management, and current published events.
+- Added About page SEO metadata and dynamic promoted event listings.
+- Added a dedicated per-event run proof review queue that combines standard run results and accumulated activity proofs, with status filters, search, sorting, pagination, review history, and links into the existing standalone review detail page.
+- Updated organizer dashboard, event pages, and registrants navigation to use the run proof review workflow.
+- Refined the registrants table with auto-submitting filters, icon actions, configurable visible columns, and clearer accumulated challenge progress/activity counts.
+- Included accumulated activity submissions in organizer pending-result totals and queue links.
+
+### [ADDED] ADDED FILES:
+1. docs/features/hellorun_about_page_implementation.md
+2. src/views/organizer/run-proof-review.ejs
+
+### [UPDATED] UPDATED FILES:
+1. docs/CHANGELOG.md
+2. docs/submission_review_page.md
+3. src/controllers/page.controller.js
+4. src/public/css/about.css
+5. src/public/css/organizer-events.css
+6. src/routes/organizer.routes.js
+7. src/routes/pageRoutes.js
+8. src/views/organizer/dashboard.ejs
+9. src/views/organizer/event-details.ejs
+10. src/views/organizer/event-registrants.ejs
+11. src/views/organizer/events.ejs
+12. src/views/organizer/submission-review.ejs
+13. src/views/pages/about.ejs
+14. tests/organizer-dashboard-analytics.test.js
+15. tests/static-pages.test.js
+16. tests/submission-review-route-guards.test.js
+
+### [VALIDATION] TEST/RUN CHECKS:
+- `node --check src/routes/organizer.routes.js` -> PASS
+- `node --check src/controllers/page.controller.js` -> PASS
+- `node --check tests/submission-review-route-guards.test.js` -> PASS
+- `node --check tests/static-pages.test.js` -> PASS
+- `node --check tests/organizer-dashboard-analytics.test.js` -> PASS
+- `node --test --test-concurrency=1 tests/static-pages.test.js` -> PASS, 3/3
+- `node --test --test-concurrency=1 tests/submission-review-route-guards.test.js` -> PASS, 18/18
+- `node --test --test-concurrency=1 tests/organizer-dashboard-analytics.test.js` -> PASS, 2/2
+
+---
+
 ## CHANGELOG - June 3, 2026 (Session: Signup And Login Bot Protection)
 
 ### [SESSION] SESSION UPDATE:

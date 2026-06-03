@@ -33,7 +33,7 @@
         <div class="header-actions">
           <a href="<%= backHref %>" class="nav-login-btn registrant-header-btn">
             <i data-lucide="arrow-left"></i>
-            Back to Registrants
+            Back to Run Proof Queue
           </a>
           <% if (isAdminViewer) { %>
             <a href="/admin/reviews?type=results" class="nav-login-btn registrant-header-btn">
@@ -286,6 +286,9 @@
 
             <form method="POST" action="<%= reviewActionBase %>/approve" class="payment-action-form submission-review-action-form">
               <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <% Object.entries(queueContext || {}).forEach(([key, value]) => { %>
+                <input type="hidden" name="<%= key %>" value="<%= value %>">
+              <% }) %>
               <label for="approve-notes-<%= submission._id %>">Approval Notes</label>
               <textarea id="approve-notes-<%= submission._id %>" name="reviewNotes" rows="4" maxlength="1200" placeholder="Optional review notes"></textarea>
               <button type="submit" class="btn-success table-action-btn">
@@ -296,6 +299,9 @@
 
             <form method="POST" action="<%= reviewActionBase %>/reject" class="payment-action-form submission-review-action-form">
               <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <% Object.entries(queueContext || {}).forEach(([key, value]) => { %>
+                <input type="hidden" name="<%= key %>" value="<%= value %>">
+              <% }) %>
               <label for="reject-reason-<%= submission._id %>">Rejection Reason</label>
               <textarea id="reject-reason-<%= submission._id %>" name="rejectionReason" rows="4" maxlength="500" required placeholder="Required rejection reason (min 5 chars)"></textarea>
               <label for="reject-notes-<%= submission._id %>">Review Notes</label>

@@ -52,6 +52,7 @@ const RACE_DISTANCE_PRESETS = new Set(['3K', '5K', '10K', '21K']);
 const MAX_GALLERY_IMAGES = 12;
 const PREVIEW_SESSION_TTL_MS = 30 * 60 * 1000;
 const MAX_PREVIEW_SESSION_ENTRIES = 5;
+const RUN_PROOF_REVIEW_PAGE_SIZE = 50;
 const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_distance']);
 const ACCEPTED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
 const RECOGNITION_MODES = new Set(['completion_only', 'completion_with_optional_ranking']);
@@ -193,8 +194,10 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       recentRegistrationCounts,
       pendingPaymentReviews,
       pendingResultReviews,
+      pendingAccumulatedResultReviews,
       nextPaymentReview,
       nextResultReview,
+      nextAccumulatedResultReview,
       registrationsInRange,
       submissionsInRange,
       approvalsInRange,
@@ -203,6 +206,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       approvalsInPreviousRange,
       paymentQueueCounts,
       resultQueueCounts,
+      accumulatedResultQueueCounts,
       topRegistrationsRaw,
       topApprovalsRaw
     ] = await Promise.all([
@@ -222,6 +226,9 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         ? Submission.countDocuments({ eventId: { $in: organizerEventIds }, status: 'submitted' })
         : 0,
       organizerEventIds.length
+        ? AccumulatedActivitySubmission.countDocuments({ eventId: { $in: organizerEventIds }, status: 'submitted' })
+        : 0,
+      organizerEventIds.length
         ? Registration.findOne({ eventId: { $in: organizerEventIds }, paymentStatus: 'proof_submitted' })
           .sort({ 'paymentProof.uploadedAt': -1, updatedAt: -1, createdAt: -1 })
           .select('eventId')
@@ -230,7 +237,13 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       organizerEventIds.length
         ? Submission.findOne({ eventId: { $in: organizerEventIds }, status: 'submitted' })
           .sort({ submittedAt: -1, updatedAt: -1, createdAt: -1 })
-          .select('eventId')
+          .select('eventId submittedAt')
+          .lean()
+        : null,
+      organizerEventIds.length
+        ? AccumulatedActivitySubmission.findOne({ eventId: { $in: organizerEventIds }, status: 'submitted' })
+          .sort({ submittedAt: -1, updatedAt: -1, createdAt: -1 })
+          .select('eventId submittedAt')
           .lean()
         : null,
       registrationRangeFilter
@@ -260,6 +273,13 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         : [],
       organizerEventIds.length
         ? Submission.aggregate([
+            { $match: { eventId: { $in: organizerEventIds }, status: 'submitted' } },
+            { $group: { _id: '$eventId', resultPending: { $sum: 1 } } },
+            { $sort: { resultPending: -1 } }
+          ])
+        : [],
+      organizerEventIds.length
+        ? AccumulatedActivitySubmission.aggregate([
             { $match: { eventId: { $in: organizerEventIds }, status: 'submitted' } },
             { $group: { _id: '$eventId', resultPending: { $sum: 1 } } },
             { $sort: { resultPending: -1 } }
@@ -318,6 +338,18 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       existing.resultPending = Number(item.resultPending || 0);
       queueByEventId.set(key, existing);
     }
+    for (const item of accumulatedResultQueueCounts) {
+      const key = String(item._id);
+      const existing = queueByEventId.get(key) || { eventId: key, paymentPending: 0, resultPending: 0 };
+      existing.resultPending += Number(item.resultPending || 0);
+      queueByEventId.set(key, existing);
+    }
+
+    const totalPendingResultReviews = Number(pendingResultReviews || 0) + Number(pendingAccumulatedResultReviews || 0);
+    const nextResultCandidates = [nextResultReview, nextAccumulatedResultReview].filter(Boolean);
+    const nextPendingResultReview = nextResultCandidates.sort((a, b) => (
+      new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime()
+    ))[0] || null;
 
     const topRegistrationEventIds = topRegistrationsRaw.map((item) => String(item._id));
     const topApprovalEventIds = topApprovalsRaw.map((item) => String(item._id));
@@ -339,7 +371,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         eventTitle: queueTitlesByEventId.get(item.eventId) || 'Event unavailable',
         totalPending: Number(item.paymentPending || 0) + Number(item.resultPending || 0),
         paymentHref: `/organizer/events/${item.eventId}/payment-proofs/review`,
-        resultHref: `/organizer/events/${item.eventId}/registrants?result=submitted`
+        resultHref: `/organizer/events/${item.eventId}/run-proofs/review`
       }))
       .sort((a, b) => b.totalPending - a.totalPending || a.eventTitle.localeCompare(b.eventTitle))
       .slice(0, 8);
@@ -354,7 +386,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       eventId: String(item._id),
       eventTitle: queueTitlesByEventId.get(String(item._id)) || 'Event unavailable',
       count: Number(item.count || 0),
-      href: `/organizer/events/${String(item._id)}/registrants?result=approved`
+      href: `/organizer/events/${String(item._id)}/run-proofs/review?status=approved`
     }));
     const topPendingQueue = queueBreakdown.slice(0, 3).map((item) => ({
       eventId: item.eventId,
@@ -446,7 +478,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         totalRegistrations,
         upcomingEvents,
         pendingPaymentReviews,
-        pendingResultReviews
+        pendingResultReviews: totalPendingResultReviews
       },
       analytics: {
         range: dashboardRange,
@@ -474,12 +506,12 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       },
       reviewQueue: {
         pendingPaymentReviews,
-        pendingResultReviews,
+        pendingResultReviews: totalPendingResultReviews,
         paymentReviewHref: nextPaymentReview?.eventId
           ? `/organizer/events/${String(nextPaymentReview.eventId)}/payment-proofs/review`
           : '/organizer/events',
-        resultReviewHref: nextResultReview?._id && nextResultReview?.eventId
-          ? `/organizer/events/${String(nextResultReview.eventId)}/submissions/${String(nextResultReview._id)}/review`
+        resultReviewHref: nextPendingResultReview?._id && nextPendingResultReview?.eventId
+          ? `/organizer/events/${String(nextPendingResultReview.eventId)}/submissions/${String(nextPendingResultReview._id)}/review`
           : '/organizer/events',
         byEvent: queueBreakdown,
         topEvents: {
@@ -1238,6 +1270,133 @@ router.get('/events/:eventId/payment-proofs/review', requireAuth, async (req, re
   }
 });
 
+router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+    if (!user) {
+      return res.status(404).render('error', {
+        title: '404 - User Not Found',
+        status: 404,
+        message: 'User account not found.'
+      });
+    }
+
+    if (!canAccessRegistrantReview(user)) {
+      return res.status(403).render('error', {
+        title: '403 - Access Denied',
+        status: 403,
+        message: 'Only approved organizers or admins can review run proofs.'
+      });
+    }
+
+    const event = await getRegistrantAccessibleEventOrNull(req.params.eventId, user);
+    if (!event) {
+      return res.status(404).render('error', {
+        title: '404 - Event Not Found',
+        status: 404,
+        message: 'Event not found or you do not have access.'
+      });
+    }
+
+    const filters = normalizeRunProofReviewFilters(req.query);
+    const statusQuery = getRunProofReviewStatusQuery(filters.status);
+    const submissionQuery = { eventId: event._id, status: statusQuery };
+    const populate = [
+      { path: 'reviewedBy', select: 'firstName lastName email' },
+      { path: 'registrationId', select: 'participant confirmationCode raceDistance participationMode' }
+    ];
+
+    const [
+      standardDocs,
+      accumulatedDocs,
+      standardPending,
+      standardApproved,
+      standardRejected,
+      accumulatedPending,
+      accumulatedApproved,
+      accumulatedRejected
+    ] = await Promise.all([
+      Submission.find(submissionQuery).populate(populate).lean(),
+      AccumulatedActivitySubmission.find(submissionQuery).populate(populate).lean(),
+      Submission.countDocuments({ eventId: event._id, status: 'submitted' }),
+      Submission.countDocuments({ eventId: event._id, status: 'approved' }),
+      Submission.countDocuments({ eventId: event._id, status: 'rejected' }),
+      AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'submitted' }),
+      AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'approved' }),
+      AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'rejected' })
+    ]);
+
+    let reviewItems = standardDocs
+      .map((submission) => buildRunProofReviewRow(submission, event, filters, 'standard'))
+      .concat(accumulatedDocs.map((submission) => buildRunProofReviewRow(submission, event, filters, 'accumulated')));
+
+    if (filters.q) {
+      const searchPattern = new RegExp(escapeRegex(filters.q), 'i');
+      reviewItems = reviewItems.filter((item) => (
+        searchPattern.test(item.participantName) ||
+        searchPattern.test(item.participantEmail) ||
+        searchPattern.test(item.confirmationCode)
+      ));
+    }
+
+    reviewItems.sort((a, b) => {
+      const aTime = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+      const bTime = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+      return filters.sort === 'newest' ? bTime - aTime : aTime - bTime;
+    });
+
+    const totalItems = reviewItems.length;
+    const totalPages = Math.max(1, Math.ceil(totalItems / RUN_PROOF_REVIEW_PAGE_SIZE));
+    const page = Math.min(filters.page, totalPages);
+    const pageStart = (page - 1) * RUN_PROOF_REVIEW_PAGE_SIZE;
+    reviewItems = reviewItems.slice(pageStart, pageStart + RUN_PROOF_REVIEW_PAGE_SIZE);
+    filters.page = page;
+
+    const pendingCount = standardPending + accumulatedPending;
+    const approvedCount = standardApproved + accumulatedApproved;
+    const rejectedCount = standardRejected + accumulatedRejected;
+
+    return res.render('organizer/run-proof-review', {
+      title: `Run Proof Review - ${event.title}`,
+      user,
+      isAdminViewer: user.role === 'admin',
+      event,
+      filters,
+      reviewItems,
+      message: getPageMessage(req.query),
+      counts: {
+        pending: pendingCount,
+        reviewed: approvedCount + rejectedCount,
+        approved: approvedCount,
+        rejected: rejectedCount
+      },
+      pagination: {
+        page,
+        totalPages,
+        totalItems,
+        pageSize: RUN_PROOF_REVIEW_PAGE_SIZE,
+        prevHref: page > 1 ? buildRunProofReviewPath(event._id, filters, { page: page - 1 }) : '',
+        nextHref: page < totalPages ? buildRunProofReviewPath(event._id, filters, { page: page + 1 }) : ''
+      },
+      links: {
+        pending: buildRunProofReviewPath(event._id, filters, { status: 'pending', sort: 'oldest', page: 1 }),
+        approved: buildRunProofReviewPath(event._id, filters, { status: 'approved', sort: 'newest', page: 1 }),
+        rejected: buildRunProofReviewPath(event._id, filters, { status: 'rejected', sort: 'newest', page: 1 }),
+        all: buildRunProofReviewPath(event._id, filters, { status: 'all', sort: 'newest', page: 1 }),
+        reset: `/organizer/events/${event._id}/run-proofs/review`,
+        registrants: `/organizer/events/${event._id}/registrants`
+      }
+    });
+  } catch (error) {
+    console.error('Error loading run proof review:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading run proof review.'
+    });
+  }
+});
+
 router.get('/events/:id/submissions/:submissionId/review', requireAuth, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
@@ -1266,7 +1425,7 @@ router.get('/events/:id/submissions/:submissionId/review', requireAuth, async (r
       });
     }
 
-    const context = await getSubmissionReviewContext(event, req.params.submissionId);
+    const context = await getSubmissionReviewContext(event, req.params.submissionId, req.query);
     if (!context) {
       return res.status(404).render('error', {
         title: '404 - Submission Not Found',
@@ -1585,11 +1744,10 @@ router.post(
           .select('_id')
           .lean();
         if (!activityRecord) {
-          const q = new URLSearchParams({
-            type: 'error',
-            msg: 'Submission record not found for this event.'
-          });
-          return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+          const queueContext = normalizeRunProofQueueContext(req.body);
+          const queuePath = buildRunProofReviewPath(event._id, queueContext);
+          const separator = queuePath.includes('?') ? '&' : '?';
+          return res.redirect(`${queuePath}${separator}type=error&msg=${encodeURIComponent('Submission record not found for this event.')}`);
         }
 
         const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
@@ -1601,8 +1759,10 @@ router.post(
           reviewNotes
         });
 
-        const q = new URLSearchParams({ type: 'success', msg: 'Activity submission approved.' });
-        return res.redirect(`/organizer/events/${event._id}/submissions/${activityRecord._id}/review?${q.toString()}`);
+        return res.redirect(buildSubmissionReviewPath(event._id, activityRecord._id, req.body, {
+          type: 'success',
+          msg: 'Activity submission approved.'
+        }));
       }
 
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
@@ -1614,14 +1774,15 @@ router.post(
         reviewNotes
       });
 
-      const q = new URLSearchParams({ type: 'success', msg: 'Run result approved.' });
-      return res.redirect(`/organizer/events/${event._id}/submissions/${submissionRecord._id}/review?${q.toString()}`);
+      return res.redirect(buildSubmissionReviewPath(event._id, submissionRecord._id, req.body, {
+        type: 'success',
+        msg: 'Run result approved.'
+      }));
     } catch (error) {
-      const q = new URLSearchParams({
+      return res.redirect(buildSubmissionReviewPath(req.params.id, req.params.submissionId, req.body, {
         type: 'error',
         msg: String(error?.message || 'Unable to approve submission.')
-      });
-      return res.redirect(`/organizer/events/${req.params.id}/submissions/${req.params.submissionId}/review?${q.toString()}`);
+      }));
     }
   }
 );
@@ -1672,20 +1833,18 @@ router.post(
           .select('_id')
           .lean();
         if (!activityRecord) {
-          const q = new URLSearchParams({
-            type: 'error',
-            msg: 'Submission record not found for this event.'
-          });
-          return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+          const queueContext = normalizeRunProofQueueContext(req.body);
+          const queuePath = buildRunProofReviewPath(event._id, queueContext);
+          const separator = queuePath.includes('?') ? '&' : '?';
+          return res.redirect(`${queuePath}${separator}type=error&msg=${encodeURIComponent('Submission record not found for this event.')}`);
         }
 
         const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
         if (!rejectionReason || rejectionReason.length < 5) {
-          const q = new URLSearchParams({
+          return res.redirect(buildSubmissionReviewPath(event._id, activityRecord._id, req.body, {
             type: 'error',
             msg: 'Rejection reason must be at least 5 characters.'
-          });
-          return res.redirect(`/organizer/events/${event._id}/submissions/${activityRecord._id}/review?${q.toString()}`);
+          }));
         }
         const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
         await reviewAccumulatedActivitySubmission({
@@ -1697,17 +1856,18 @@ router.post(
           reviewNotes
         });
 
-        const q = new URLSearchParams({ type: 'success', msg: 'Activity submission rejected.' });
-        return res.redirect(`/organizer/events/${event._id}/submissions/${activityRecord._id}/review?${q.toString()}`);
+        return res.redirect(buildSubmissionReviewPath(event._id, activityRecord._id, req.body, {
+          type: 'success',
+          msg: 'Activity submission rejected.'
+        }));
       }
 
       const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
       if (!rejectionReason || rejectionReason.length < 5) {
-        const q = new URLSearchParams({
+        return res.redirect(buildSubmissionReviewPath(event._id, submissionRecord._id, req.body, {
           type: 'error',
           msg: 'Rejection reason must be at least 5 characters.'
-        });
-        return res.redirect(`/organizer/events/${event._id}/submissions/${submissionRecord._id}/review?${q.toString()}`);
+        }));
       }
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
       await reviewSubmission({
@@ -1719,14 +1879,15 @@ router.post(
         reviewNotes
       });
 
-      const q = new URLSearchParams({ type: 'success', msg: 'Run result rejected.' });
-      return res.redirect(`/organizer/events/${event._id}/submissions/${submissionRecord._id}/review?${q.toString()}`);
+      return res.redirect(buildSubmissionReviewPath(event._id, submissionRecord._id, req.body, {
+        type: 'success',
+        msg: 'Run result rejected.'
+      }));
     } catch (error) {
-      const q = new URLSearchParams({
+      return res.redirect(buildSubmissionReviewPath(req.params.id, req.params.submissionId, req.body, {
         type: 'error',
         msg: String(error?.message || 'Unable to reject submission.')
-      });
-      return res.redirect(`/organizer/events/${req.params.id}/submissions/${req.params.submissionId}/review?${q.toString()}`);
+      }));
     }
   }
 );
@@ -3204,6 +3365,126 @@ function formatPaymentProofStatusLabel(value) {
   return String(value || 'N/A').replace(/_/g, ' ');
 }
 
+function normalizeRunProofReviewFilters(queryParams = {}) {
+  const status = ['pending', 'approved', 'rejected', 'all'].includes(String(queryParams.status || '').trim())
+    ? String(queryParams.status).trim()
+    : 'pending';
+  const hasSort = ['oldest', 'newest'].includes(String(queryParams.sort || '').trim());
+  const sort = hasSort
+    ? String(queryParams.sort).trim()
+    : status === 'pending' ? 'oldest' : 'newest';
+  const q = typeof queryParams.q === 'string' ? queryParams.q.trim().slice(0, 120) : '';
+  const requestedPage = Number.parseInt(String(queryParams.page || '1'), 10);
+  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  return { status, sort, q, page };
+}
+
+function getRunProofReviewStatusQuery(status) {
+  if (status === 'approved') return 'approved';
+  if (status === 'rejected') return 'rejected';
+  if (status === 'all') return { $in: ['submitted', 'approved', 'rejected'] };
+  return 'submitted';
+}
+
+function buildRunProofReviewPath(eventId, filters = {}, overrides = {}) {
+  const next = { ...filters, ...overrides };
+  const params = new URLSearchParams();
+  if (next.status && next.status !== 'pending') params.set('status', next.status);
+  if (next.sort && next.sort !== (next.status === 'pending' || !next.status ? 'oldest' : 'newest')) {
+    params.set('sort', next.sort);
+  }
+  if (next.q) params.set('q', next.q);
+  if (Number(next.page || 1) > 1) params.set('page', String(next.page));
+  const query = params.toString();
+  return `/organizer/events/${String(eventId)}/run-proofs/review${query ? `?${query}` : ''}`;
+}
+
+function buildRunProofQueueContextParams(filters = {}) {
+  const params = new URLSearchParams();
+  params.set('queueStatus', filters.status || 'pending');
+  params.set('queueSort', filters.sort || ((filters.status || 'pending') === 'pending' ? 'oldest' : 'newest'));
+  if (filters.q) params.set('queueQ', filters.q);
+  if (Number(filters.page || 1) > 1) params.set('queuePage', String(filters.page));
+  return params;
+}
+
+function buildSubmissionReviewPath(eventId, submissionId, queryParams = {}, message = {}) {
+  const queueContext = normalizeRunProofQueueContext(queryParams);
+  const params = buildRunProofQueueContextParams(queueContext);
+  if (message.type) params.set('type', message.type);
+  if (message.msg) params.set('msg', message.msg);
+  const query = params.toString();
+  return `/organizer/events/${String(eventId)}/submissions/${String(submissionId)}/review${query ? `?${query}` : ''}`;
+}
+
+function normalizeRunProofQueueContext(queryParams = {}) {
+  return normalizeRunProofReviewFilters({
+    status: queryParams.queueStatus,
+    sort: queryParams.queueSort,
+    q: queryParams.queueQ,
+    page: queryParams.queuePage
+  });
+}
+
+function buildRunProofReviewRow(submission, event, filters, submissionKind) {
+  const registration = submission.registrationId || {};
+  const participant = registration.participant || {};
+  const reviewer = submission.reviewedBy || null;
+  const reviewerName = reviewer
+    ? [reviewer.firstName, reviewer.lastName].filter(Boolean).join(' ').trim() || reviewer.email || ''
+    : '';
+  const mappedSubmission = mapSubmissionForRegistrant(submission, {
+    isAccumulatedActivity: submissionKind === 'accumulated'
+  });
+  const proofUrl = submission.proof?.url || '';
+  const proofMimeType = String(submission.proof?.mimeType || '');
+  const proofPath = String(proofUrl).split('?')[0];
+  const isImageProof = Boolean(proofUrl && (proofMimeType.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(proofPath)));
+  const hasOcrMismatch = Boolean(
+    submission.ocrData?.distanceMismatch ||
+    submission.ocrData?.timeMismatch ||
+    submission.ocrData?.elevationMismatch ||
+    submission.ocrData?.stepsMismatch ||
+    submission.ocrData?.dateMismatch ||
+    submission.ocrData?.locationMismatch ||
+    submission.ocrData?.runTypeMismatch ||
+    submission.ocrData?.nameMatchStatus === 'mismatched'
+  );
+  const queueContext = buildRunProofQueueContextParams(filters).toString();
+
+  return {
+    id: String(submission._id),
+    submissionKind,
+    submissionTypeLabel: submissionKind === 'accumulated' ? 'Accumulated Activity' : 'Run Result',
+    participantName: [participant.firstName, participant.lastName].filter(Boolean).join(' ').trim() || 'N/A',
+    participantEmail: participant.email || 'N/A',
+    confirmationCode: registration.confirmationCode || 'N/A',
+    raceDistance: registration.raceDistance || submission.raceDistance || 'N/A',
+    participationMode: registration.participationMode || submission.participationMode || 'N/A',
+    status: submission.status || 'submitted',
+    statusLabel: submission.status === 'submitted' ? 'Pending Review' : String(submission.status || 'N/A'),
+    submittedAt: submission.submittedAt || submission.createdAt || null,
+    submittedAtLabel: mappedSubmission.submittedAtLabel,
+    runDateLabel: mappedSubmission.runDateLabel,
+    distanceLabel: `${Number(submission.distanceKm || 0).toFixed(2)} km`,
+    elapsedLabel: mappedSubmission.elapsedLabel || 'N/A',
+    proofTypeLabel: String(submission.proofType || 'manual').toUpperCase(),
+    sourceLabel: submission.source === 'strava' ? 'Strava' : 'Manual upload',
+    proofUrl,
+    isImageProof,
+    suspiciousFlag: mappedSubmission.suspiciousFlag,
+    suspiciousFlagReason: mappedSubmission.suspiciousFlagReason,
+    reviewSignal: mappedSubmission.reviewSignal,
+    hasOcrMismatch,
+    reviewedAtLabel: mappedSubmission.reviewedAtLabel,
+    reviewerName,
+    reviewerEmail: reviewer?.email || '',
+    rejectionReason: submission.rejectionReason || '',
+    reviewNotes: submission.reviewNotes || '',
+    actionHref: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review${queueContext ? `?${queueContext}` : ''}`
+  };
+}
+
 function formatExpectedPaymentLabel(registration, event) {
   const currency = registration.paymentCurrency || event.feeCurrency || registration.addOnsCurrency || 'PHP';
   const savedPaymentAmount = Number(registration.paymentAmountDue);
@@ -3234,7 +3515,7 @@ function buildRegistrantExportQuery(filterContext) {
   return params.toString();
 }
 
-async function getSubmissionReviewContext(event, submissionId) {
+async function getSubmissionReviewContext(event, submissionId, queryParams = {}) {
   if (!event || !mongoose.Types.ObjectId.isValid(submissionId)) return null;
   const eventId = event._id;
   const basePopulate = [
@@ -3268,6 +3549,9 @@ async function getSubmissionReviewContext(event, submissionId) {
       .sort({ submittedAt: -1, createdAt: -1 })
       .lean()
     : [];
+
+  const queueContext = normalizeRunProofQueueContext(queryParams);
+  const queueContextParams = buildRunProofQueueContextParams(queueContext);
 
   return {
     submission: mappedSubmission,
@@ -3304,7 +3588,8 @@ async function getSubmissionReviewContext(event, submissionId) {
         targetDistanceKm: event.targetDistanceKm
       })
       : null,
-    backHref: `/organizer/events/${String(event._id)}/registrants?result=${submission.status || 'submitted'}`,
+    backHref: buildRunProofReviewPath(event._id, queueContext),
+    queueContext: Object.fromEntries(queueContextParams.entries()),
     reviewActionBase: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}`
   };
 }

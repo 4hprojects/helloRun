@@ -98,11 +98,7 @@ router.post('/blog/:slug/like', requireAuth, likeLimiter, requireCsrfProtection,
 router.post('/blog/:slug/report', requireAuth, requireCsrfProtection, blogInteractionController.reportPost);
 router.post('/blog/:slug/comments/:commentId/report', requireAuth, requireCsrfProtection, blogInteractionController.reportComment);
 
-router.get('/about', (req, res) => {
-  res.render('pages/about', {
-    title: 'About - HelloRun'
-  });
-});
+router.get('/about', pageController.getAbout);
 
 router.get('/how-it-works', (req, res) => {
   res.render('pages/how-it-works', {
