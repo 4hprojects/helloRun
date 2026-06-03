@@ -1672,12 +1672,14 @@ exports.getLeaderboard = async (req, res) => {
 exports.getEventLeaderboardPage = async (req, res) => {
   try {
     const data = await getEventLeaderboard(req.params.slug, {
+      distance: req.query.distance,
       category: req.query.category,
       mode: req.query.mode,
       status: req.query.status,
       search: req.query.search,
       page: req.query.page,
-      limit: req.query.limit
+      limit: req.query.limit,
+      currentUserId: req.session?.userId
     });
 
     if (!data) {
@@ -1690,6 +1692,7 @@ exports.getEventLeaderboardPage = async (req, res) => {
 
     const myStanding = req.session?.userId
       ? await getMyStanding(req.params.slug, req.session.userId, {
+          distance: data.activeDistance?.key,
           category: req.query.category,
           mode: req.query.mode,
           status: req.query.status
@@ -1714,12 +1717,14 @@ exports.getEventLeaderboardPage = async (req, res) => {
 exports.getEventLeaderboardData = async (req, res) => {
   try {
     const data = await getEventLeaderboard(req.params.slug, {
+      distance: req.query.distance,
       category: req.query.category,
       mode: req.query.mode,
       status: req.query.status,
       search: req.query.search,
       page: req.query.page,
-      limit: req.query.limit
+      limit: req.query.limit,
+      currentUserId: req.session?.userId
     });
     if (!data) {
       return res.status(404).json({ success: false, message: 'Leaderboard is not available for this event.' });
@@ -1737,6 +1742,7 @@ exports.getEventLeaderboardMyStanding = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Log in to view your standing.' });
     }
     const data = await getMyStanding(req.params.slug, req.session.userId, {
+      distance: req.query.distance,
       category: req.query.category,
       mode: req.query.mode,
       status: req.query.status

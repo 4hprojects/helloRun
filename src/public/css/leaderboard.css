@@ -218,6 +218,103 @@
   display: none;
 }
 
+.leaderboard-distance-carousel {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 1rem;
+}
+
+.leaderboard-distance-tabs {
+  display: flex;
+  gap: 0.55rem;
+  padding: 0.2rem 0.1rem 0.45rem;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+}
+
+.leaderboard-distance-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.leaderboard-distance-tabs::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #cbd5e1;
+}
+
+.leaderboard-distance-carousel-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border: 1px solid #fdba74;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #c2410c;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+  cursor: pointer;
+}
+
+.leaderboard-distance-carousel.has-overflow .leaderboard-distance-carousel-btn {
+  display: inline-flex;
+}
+
+.leaderboard-distance-carousel-btn:hover,
+.leaderboard-distance-carousel-btn:focus-visible {
+  border-color: #ea580c;
+  background: #fff7ed;
+}
+
+.leaderboard-distance-carousel-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.leaderboard-distance-carousel-btn svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.leaderboard-distance-tab {
+  display: grid;
+  gap: 0.1rem;
+  min-width: max-content;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #334155;
+  text-decoration: none;
+  scroll-snap-align: start;
+}
+
+.leaderboard-distance-tab:hover,
+.leaderboard-distance-tab:focus-visible {
+  border-color: #fb923c;
+  color: #9a3412;
+}
+
+.leaderboard-distance-tab.is-active {
+  border-color: #ea580c;
+  background: #fff7ed;
+  color: #9a3412;
+  box-shadow: 0 1px 3px rgba(154, 52, 18, 0.12);
+}
+
+.leaderboard-distance-tab span {
+  font-weight: 700;
+}
+
+.leaderboard-distance-tab small {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
 .leaderboard-distance-group {
   display: grid;
   gap: 0.75rem;
@@ -662,6 +759,20 @@
 
   .leaderboard-standing-card dl {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .leaderboard-distance-carousel {
+    margin-top: 0.75rem;
+    gap: 0.3rem;
+  }
+
+  .leaderboard-distance-carousel-btn {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  .leaderboard-distance-tab {
+    padding: 0.55rem 0.65rem;
   }
 
   .leaderboard-card-list {

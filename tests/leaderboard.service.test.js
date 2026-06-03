@@ -138,8 +138,8 @@ test('event leaderboard ranks approved race results and hides unsafe public fiel
 
   const result = await getEventLeaderboard(seed.eventA.slug, { limit: 20 });
 
-  assert.ok(result.entries.length >= 2);
-  assert.equal(result.entries[0].timeMs <= result.entries[1].timeMs, true);
+  assert.ok(result.entries.length >= 1);
+  assert.ok(result.entries.every((item) => item.category === '5K'));
   assert.ok(result.entries.every((item) => item.status === 'verified'));
   assert.ok(result.entries.every((item) => !item.runnerName.includes('Runner')));
   assert.ok(result.entries.every((item) => !Object.prototype.hasOwnProperty.call(item, 'proof')));
@@ -152,6 +152,39 @@ test('event leaderboard ranks approved race results and hides unsafe public fiel
   assert.ok(tenKGroup);
   assert.equal(fiveKGroup.entries[0].rank, 1);
   assert.equal(tenKGroup.entries[0].rank, 1);
+  assert.equal(result.activeDistance.key, '5K');
+  assert.equal(result.pagination.total, fiveKGroup.entries.length);
+  assert.deepEqual(result.distanceOptions.map((item) => item.label), ['5K', '10K']);
+});
+
+test('event leaderboard selects one distance while retaining empty configured distance options', async () => {
+  const seed = await seedLeaderboardData('event-distance-tabs');
+  await Event.findByIdAndUpdate(seed.eventA._id, {
+    raceDistances: ['5K', '10K', '21K']
+  });
+
+  const tenK = await getEventLeaderboard(seed.eventA.slug, { distance: '10K', limit: 20 });
+  assert.equal(tenK.activeDistance.key, '10K');
+  assert.ok(tenK.entries.length >= 1);
+  assert.ok(tenK.entries.every((item) => item.category === '10K'));
+  assert.equal(tenK.entries[0].rank, 1);
+  assert.deepEqual(tenK.distanceOptions.map((item) => item.label), ['5K', '10K', '21K']);
+  assert.equal(tenK.distanceOptions.find((item) => item.key === '21K').totalEntries, 0);
+
+  const legacyCategory = await getEventLeaderboard(seed.eventA.slug, { category: '10K', limit: 20 });
+  assert.equal(legacyCategory.activeDistance.key, '10K');
+  assert.ok(legacyCategory.entries.every((item) => item.category === '10K'));
+});
+
+test('event leaderboard defaults logged-in runners to their registered distance', async () => {
+  const seed = await seedLeaderboardData('event-runner-distance');
+  const result = await getEventLeaderboard(seed.eventA.slug, {
+    currentUserId: seed.runnerB._id,
+    limit: 20
+  });
+
+  assert.equal(result.activeDistance.key, '10K');
+  assert.ok(result.entries.every((item) => item.category === '10K'));
 });
 
 test('event leaderboard includes formerly flagged entry after organizer approval clears suspicious metadata', async () => {
@@ -233,6 +266,15 @@ test('my standing and nearby runners use event-scoped official ranks', async () 
   assert.ok(nearby.some((item) => item.isCurrentUser));
 });
 
+test('my standing and nearby runners are empty when viewing another distance', async () => {
+  const seed = await seedLeaderboardData('event-standing-other-distance');
+  const standing = await getMyStanding(seed.eventA.slug, seed.runnerB._id, { distance: '5K' });
+  const nearby = await getNearbyRunners(seed.eventA.slug, seed.runnerB._id, { distance: '5K' });
+
+  assert.equal(standing.standing, null);
+  assert.deepEqual(nearby, []);
+});
+
 test('accumulated event leaderboard sums approved activities by registration', async () => {
   const seed = await seedAccumulatedLeaderboardData('accumulated-v1');
   const result = await getEventLeaderboard(seed.event.slug, { limit: 20 });
@@ -241,13 +283,14 @@ test('accumulated event leaderboard sums approved activities by registration', a
   assert.equal(result.entries[0].userId, String(seed.runnerA._id));
   assert.equal(result.entries[0].totalDistanceKm, 15);
   assert.equal(result.entries[0].activityCount, 2);
-  assert.equal(result.entries[1].totalDistanceKm, 12);
   const twentyKGroup = result.groups.find((group) => group.key === '20K');
   const thirtyKGroup = result.groups.find((group) => group.key === '30K');
   assert.ok(twentyKGroup);
   assert.ok(thirtyKGroup);
   assert.equal(twentyKGroup.entries[0].rank, 1);
   assert.equal(thirtyKGroup.entries[0].rank, 1);
+  assert.equal(result.activeDistance.key, '20K');
+  assert.ok(result.entries.every((item) => item.category === '20K'));
 });
 
 async function seedLeaderboardData(tag) {

@@ -174,28 +174,54 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
     ? await getPendingEventEntries(event, settings)
     : [];
 
-  const searched = applyEventLeaderboardFilters([...officialEntries, ...pendingEntries], options);
-  const groups = buildEventLeaderboardGroups(searched, event);
-  const groupedEntries = flattenEventLeaderboardGroups(groups);
-  const paged = groupedEntries.slice((options.page - 1) * options.limit, options.page * options.limit);
+  const filteredEntries = applyEventLeaderboardFilters([...officialEntries, ...pendingEntries], {
+    ...options,
+    distance: ''
+  });
+  const groups = buildEventLeaderboardGroups(filteredEntries, event, { includeConfiguredDistances: true });
+  const runnerDistance = options.distance
+    ? ''
+    : await getRunnerRegisteredDistance(event._id, rawOptions.currentUserId);
+  const activeDistance = resolveActiveDistance({
+    groups,
+    requestedDistance: options.distance,
+    runnerDistance
+  });
+  const activeGroup = groups.find((group) => group.key === activeDistance.key) || createEmptyLeaderboardGroup(activeDistance);
+  const activeEntries = activeGroup.entries || [];
+  const paged = activeEntries.slice((options.page - 1) * options.limit, options.page * options.limit);
+  const distanceOptions = groups.map((group) => ({
+    key: group.key,
+    label: group.label,
+    totalEntries: group.stats.totalEntries,
+    verifiedEntries: group.stats.verifiedEntries,
+    pendingEntries: group.stats.pendingEntries
+  }));
+  const filters = {
+    ...options,
+    distance: activeDistance.key,
+    category: activeDistance.key
+  };
 
   return {
     event: formatLeaderboardEvent(event),
     settings,
-    filters: options,
+    filters,
     entries: paged,
     groups,
+    distanceOptions,
+    activeDistance,
     pagination: {
       page: options.page,
       limit: options.limit,
-      total: groupedEntries.length,
-      totalPages: Math.max(1, Math.ceil(groupedEntries.length / options.limit))
+      total: activeEntries.length,
+      totalPages: Math.max(1, Math.ceil(activeEntries.length / options.limit))
     },
     stats: {
-      totalEntries: officialEntries.length + pendingEntries.length,
-      verifiedEntries: officialEntries.length,
-      pendingEntries: pendingEntries.length,
-      lastUpdatedAt: getLastUpdatedAt([...officialEntries, ...pendingEntries])
+      totalEntries: activeGroup.stats.totalEntries,
+      verifiedEntries: activeGroup.stats.verifiedEntries,
+      pendingEntries: activeGroup.stats.pendingEntries,
+      lastUpdatedAt: getLastUpdatedAt(activeEntries)
     },
     rankingExplanation: settings.type === 'accumulated_challenge'
       ? 'Ranked by highest verified accumulated distance. Official rankings include approved submissions only.'
@@ -208,12 +234,12 @@ async function getMyStanding(eventSlug, userId, rawOptions = {}) {
   if (!safeUserId) return null;
   const data = await getEventLeaderboard(eventSlug, {
     ...rawOptions,
+    currentUserId: safeUserId,
     page: 1,
     limit: 500
   });
   if (!data) return null;
-  const allEntries = flattenEventLeaderboardGroups(data.groups || []);
-  const entry = allEntries.find((item) => String(item.userId || '') === safeUserId) || null;
+  const entry = data.entries.find((item) => String(item.userId || '') === safeUserId) || null;
   if (entry) {
     return {
       event: data.event,
@@ -223,7 +249,7 @@ async function getMyStanding(eventSlug, userId, rawOptions = {}) {
     };
   }
 
-  const pending = await getRunnerPendingStanding(data.event.id, safeUserId, data.settings);
+  const pending = await getRunnerPendingStanding(data.event.id, safeUserId, data.settings, data.activeDistance?.label);
   return {
     event: data.event,
     settings: data.settings,
@@ -237,17 +263,14 @@ async function getNearbyRunners(eventSlug, userId, rawOptions = {}) {
   if (!safeUserId) return [];
   const data = await getEventLeaderboard(eventSlug, {
     ...rawOptions,
+    currentUserId: safeUserId,
     page: 1,
     limit: 500
   });
   if (!data) return [];
-  const allEntries = flattenEventLeaderboardGroups(data.groups || []);
-  const current = allEntries.find((item) => String(item.userId || '') === safeUserId);
+  const current = data.entries.find((item) => String(item.userId || '') === safeUserId);
   if (!current) return [];
-  const currentCategory = normalizeDistance(current.category) || '';
-  const official = allEntries
-    .filter((item) => Number.isInteger(item.rank))
-    .filter((item) => (normalizeDistance(item.category) || '') === currentCategory);
+  const official = data.entries.filter((item) => Number.isInteger(item.rank));
   const currentIndex = official.findIndex((item) => String(item.userId || '') === safeUserId);
   if (currentIndex < 0) return [];
   return official.slice(Math.max(0, currentIndex - 2), currentIndex + 3).map((item) => ({
@@ -256,7 +279,7 @@ async function getNearbyRunners(eventSlug, userId, rawOptions = {}) {
   }));
 }
 
-function buildEventLeaderboardGroups(entries = [], event = {}) {
+function buildEventLeaderboardGroups(entries = [], event = {}, options = {}) {
   const buckets = new Map();
 
   entries.forEach((entry) => {
@@ -270,6 +293,14 @@ function buildEventLeaderboardGroups(entries = [], event = {}) {
     }
     buckets.get(key).entries.push({ ...entry, groupKey: key });
   });
+
+  if (options.includeConfiguredDistances) {
+    getConfiguredDistanceOptions(event).forEach((distance) => {
+      if (!buckets.has(distance.key)) {
+        buckets.set(distance.key, createEmptyLeaderboardGroup(distance));
+      }
+    });
+  }
 
   const orderedKeys = orderEventLeaderboardGroupKeys({
     event,
@@ -308,6 +339,58 @@ function buildEventLeaderboardGroups(entries = [], event = {}) {
 
 function flattenEventLeaderboardGroups(groups = []) {
   return groups.flatMap((group) => group.entries || []);
+}
+
+function createEmptyLeaderboardGroup(distance = {}) {
+  return {
+    key: distance.key || 'uncategorized',
+    label: distance.label || 'Uncategorized',
+    entries: [],
+    stats: {
+      totalEntries: 0,
+      verifiedEntries: 0,
+      pendingEntries: 0
+    }
+  };
+}
+
+function getConfiguredDistanceOptions(event = {}) {
+  const seen = new Set();
+  return (Array.isArray(event.raceDistances) ? event.raceDistances : [])
+    .map((item) => {
+      const label = String(item || '').trim();
+      const key = normalizeDistance(label);
+      return { key, label };
+    })
+    .filter((item) => item.key && item.label && !seen.has(item.key) && seen.add(item.key));
+}
+
+function resolveActiveDistance({ groups = [], requestedDistance = '', runnerDistance = '' }) {
+  const requestedKey = normalizeDistance(requestedDistance);
+  const runnerKey = normalizeDistance(runnerDistance);
+  const availableKeys = new Set(groups.map((group) => group.key));
+  const selectedKey = [requestedKey, runnerKey].find((key) => key && availableKeys.has(key))
+    || groups.find((group) => group.stats?.totalEntries > 0)?.key
+    || groups[0]?.key
+    || 'uncategorized';
+  const selectedGroup = groups.find((group) => group.key === selectedKey);
+  return {
+    key: selectedKey,
+    label: selectedGroup?.label || (selectedKey === 'uncategorized' ? 'Uncategorized' : selectedKey)
+  };
+}
+
+async function getRunnerRegisteredDistance(eventId, userId) {
+  const safeUserId = normalizeObjectId(userId);
+  if (!safeUserId) return '';
+  const registration = await Registration.findOne({
+    eventId,
+    userId: safeUserId,
+    status: { $in: ['confirmed', 'paid'] }
+  })
+    .select('raceDistance')
+    .lean();
+  return registration?.raceDistance || '';
 }
 
 function getEventLeaderboardGroupKey(category) {
@@ -876,7 +959,8 @@ function formatLeaderboardEvent(event = {}) {
 function normalizeEventLeaderboardOptions(rawOptions = {}) {
   return {
     view: String(rawOptions.view || 'overall').trim().toLowerCase(),
-    category: normalizeDistance(rawOptions.category || rawOptions.categoryId || rawOptions.distance),
+    distance: normalizeDistance(rawOptions.distance || rawOptions.category || rawOptions.categoryId),
+    category: normalizeDistance(rawOptions.distance || rawOptions.category || rawOptions.categoryId),
     mode: normalizeMode(rawOptions.mode || rawOptions.participationMode),
     status: normalizePublicStatus(rawOptions.status),
     search: String(rawOptions.search || '').trim().toLowerCase().slice(0, 80),
@@ -953,7 +1037,7 @@ function formatAccumulatedEntry({ row, event, settings, runner, registration, ra
 
 function applyEventLeaderboardFilters(entries, options) {
   return entries
-    .filter((entry) => !options.category || normalizeDistance(entry.category) === options.category)
+    .filter((entry) => !options.distance || normalizeDistance(entry.category) === options.distance)
     .filter((entry) => !options.mode || entry.participationMode === options.mode)
     .filter((entry) => !options.status || entry.status === options.status)
     .filter((entry) => !options.search || entry.searchableText.includes(options.search))
@@ -1022,12 +1106,13 @@ function getLastUpdatedAt(entries = []) {
   return new Date(Math.max(...timestamps));
 }
 
-async function getRunnerPendingStanding(eventId, userId, settings) {
+async function getRunnerPendingStanding(eventId, userId, settings, distance = '') {
   const Model = settings.type === 'accumulated_challenge' ? AccumulatedActivitySubmission : Submission;
   const row = await Model.findOne({
     eventId,
     runnerId: userId,
     status: { $in: ['submitted', 'rejected'] },
+    ...(distance ? { raceDistance: new RegExp(`^${escapeRegex(distance)}$`, 'i') } : {}),
     ...(settings.hideFlagged ? { suspiciousFlag: { $ne: true } } : {})
   })
     .sort({ submittedAt: -1 })

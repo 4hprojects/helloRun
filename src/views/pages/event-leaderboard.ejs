@@ -10,19 +10,23 @@
   <% const event = leaderboard.event || {}; %>
   <% const settings = leaderboard.settings || {}; %>
   <% const filters = leaderboard.filters || {}; %>
-  <% const groups = Array.isArray(leaderboard.groups) && leaderboard.groups.length
-    ? leaderboard.groups
-    : [{
-      key: 'all',
-      label: 'All Results',
-      entries: leaderboard.entries || [],
-      stats: {
-        totalEntries: (leaderboard.entries || []).length,
-        verifiedEntries: (leaderboard.entries || []).filter((item) => item.status === 'verified').length,
-        pendingEntries: (leaderboard.entries || []).filter((item) => item.status === 'pending_review').length
-      }
-    }]; %>
-  <% const nonEmptyGroups = groups.filter((group) => Array.isArray(group.entries) && group.entries.length); %>
+  <% const distanceOptions = Array.isArray(leaderboard.distanceOptions) ? leaderboard.distanceOptions : []; %>
+  <% const activeDistance = leaderboard.activeDistance || {}; %>
+  <% const activeGroupData = (leaderboard.groups || []).find((group) => group.key === activeDistance.key) || {
+    key: activeDistance.key || 'all',
+    label: activeDistance.label || 'All Results',
+    stats: leaderboard.stats || {}
+  }; %>
+  <% const activeGroup = { ...activeGroupData, entries: leaderboard.entries || [] }; %>
+  <% const buildDistanceUrl = (distanceLabel, preserveFilters = true) => {
+    const params = new URLSearchParams();
+    params.set('distance', distanceLabel);
+    if (preserveFilters && filters.search) params.set('search', filters.search);
+    if (preserveFilters && filters.mode) params.set('mode', filters.mode);
+    if (preserveFilters && filters.status) params.set('status', filters.status);
+    if (preserveFilters && leaderboard.pagination?.limit && leaderboard.pagination.limit !== 25) params.set('limit', leaderboard.pagination.limit);
+    return `/events/${event.slug}/leaderboard?${params.toString()}`;
+  }; %>
   <% const standing = myStanding && myStanding.standing ? myStanding.standing : null; %>
   <% const nearby = myStanding && myStanding.nearby ? myStanding.nearby : []; %>
 
@@ -77,17 +81,37 @@
         </section>
       <% } %>
 
+      <% if (distanceOptions.length) { %>
+        <div class="leaderboard-distance-carousel" data-distance-carousel>
+          <button class="leaderboard-distance-carousel-btn is-prev" type="button" aria-label="Show previous distances" data-distance-carousel-prev>
+            <i data-lucide="chevron-left" aria-hidden="true"></i>
+          </button>
+          <nav class="leaderboard-distance-tabs" aria-label="Distance leaderboards" data-distance-carousel-track>
+            <% distanceOptions.forEach((distance) => { %>
+              <a
+                href="<%= buildDistanceUrl(distance.label) %>"
+                class="leaderboard-distance-tab <%= distance.key === activeDistance.key ? 'is-active' : '' %>"
+                <%= distance.key === activeDistance.key ? 'aria-current="page"' : '' %>
+              >
+                <span><%= distance.label %></span>
+                <small><%= distance.verifiedEntries %> verified</small>
+              </a>
+            <% }) %>
+          </nav>
+          <button class="leaderboard-distance-carousel-btn is-next" type="button" aria-label="Show next distances" data-distance-carousel-next>
+            <i data-lucide="chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      <% } %>
+
       <form method="GET" action="/events/<%= event.slug %>/leaderboard" class="leaderboard-filters leaderboard-event-filters">
+        <input type="hidden" name="distance" value="<%= activeDistance.label || '' %>">
         <div class="leaderboard-filter-field leaderboard-search-field">
           <label for="search">
             <i data-lucide="search" aria-hidden="true"></i>
             <span>Search runner or bib</span>
           </label>
           <input id="search" name="search" type="search" value="<%= filters.search || '' %>" placeholder="Name or HR code">
-        </div>
-        <div class="leaderboard-filter-field">
-          <label for="category">Category</label>
-          <input id="category" name="category" type="text" value="<%= filters.category || '' %>" placeholder="All">
         </div>
         <div class="leaderboard-filter-field">
           <label for="mode">Mode</label>
@@ -107,92 +131,87 @@
         </div>
         <div class="leaderboard-filter-actions">
           <button type="submit" class="btn btn-primary leaderboard-action-btn">Apply</button>
-          <a href="/events/<%= event.slug %>/leaderboard" class="btn btn-secondary leaderboard-action-btn">Clear</a>
+          <a href="<%= buildDistanceUrl(activeDistance.label || '', false) %>" class="btn btn-secondary leaderboard-action-btn">Clear</a>
         </div>
       </form>
 
       <p class="leaderboard-results-meta">
-        Showing <strong><%= nonEmptyGroups.reduce((sum, group) => sum + (group.stats?.totalEntries || 0), 0) %></strong> result<%= nonEmptyGroups.reduce((sum, group) => sum + (group.stats?.totalEntries || 0), 0) === 1 ? '' : 's' %> across
-        <strong><%= nonEmptyGroups.length %></strong> distance group<%= nonEmptyGroups.length === 1 ? '' : 's' %>.
+        Showing <strong><%= leaderboard.stats.totalEntries %></strong> <%= activeDistance.label || 'distance' %> result<%= leaderboard.stats.totalEntries === 1 ? '' : 's' %>.
         <strong><%= leaderboard.stats.verifiedEntries %></strong> verified result<%= leaderboard.stats.verifiedEntries === 1 ? '' : 's' %> count toward official ranking.
       </p>
 
-      <% if (nonEmptyGroups.length) { %>
+      <% if (activeGroup.entries && activeGroup.entries.length) { %>
         <div class="leaderboard-card-list" aria-label="Leaderboard result cards">
-          <% nonEmptyGroups.forEach((group) => { %>
-            <section class="leaderboard-distance-group" aria-label="<%= group.label %> rankings">
-              <header class="leaderboard-distance-group-header">
-                <h2><%= group.label %> Rankings</h2>
-                <p>
-                  <strong><%= group.stats?.verifiedEntries || 0 %></strong> verified,
-                  <strong><%= group.stats?.pendingEntries || 0 %></strong> pending
-                </p>
-              </header>
+          <section class="leaderboard-distance-group" aria-label="<%= activeGroup.label %> rankings">
+            <header class="leaderboard-distance-group-header">
+              <h2><%= activeGroup.label %> Rankings</h2>
+              <p>
+                <strong><%= activeGroup.stats?.verifiedEntries || 0 %></strong> verified,
+                <strong><%= activeGroup.stats?.pendingEntries || 0 %></strong> pending
+              </p>
+            </header>
 
-              <% group.entries.forEach((entry) => { %>
-                <article class="leaderboard-mobile-card">
-                  <div class="leaderboard-mobile-card-head">
-                    <div>
-                      <p>#<%= entry.rank || '-' %> <%= group.label %></p>
-                      <h2><%= entry.runnerName %></h2>
-                      <span><%= entry.category || group.label %></span>
-                    </div>
-                    <span class="leaderboard-status-badge leaderboard-status-<%= entry.status %>"><%= entry.statusLabel %></span>
+            <% activeGroup.entries.forEach((entry) => { %>
+              <article class="leaderboard-mobile-card">
+                <div class="leaderboard-mobile-card-head">
+                  <div>
+                    <p>#<%= entry.rank || '-' %> <%= activeGroup.label %></p>
+                    <h2><%= entry.runnerName %></h2>
+                    <span><%= entry.category || activeGroup.label %></span>
                   </div>
-                  <dl>
-                    <div><dt>Distance</dt><dd><%= entry.distanceLabel || 'N/A' %></dd></div>
-                    <div><dt>Time</dt><dd><%= entry.timeLabel || '-' %></dd></div>
-                    <div><dt>Pace</dt><dd><%= entry.paceLabel || '-' %></dd></div>
-                  </dl>
-                </article>
-              <% }) %>
-            </section>
-          <% }) %>
+                  <span class="leaderboard-status-badge leaderboard-status-<%= entry.status %>"><%= entry.statusLabel %></span>
+                </div>
+                <dl>
+                  <div><dt>Distance</dt><dd><%= entry.distanceLabel || 'N/A' %></dd></div>
+                  <div><dt>Time</dt><dd><%= entry.timeLabel || '-' %></dd></div>
+                  <div><dt>Pace</dt><dd><%= entry.paceLabel || '-' %></dd></div>
+                </dl>
+              </article>
+            <% }) %>
+          </section>
         </div>
 
         <div class="leaderboard-table-wrap leaderboard-desktop-table">
-          <% nonEmptyGroups.forEach((group) => { %>
-            <section class="leaderboard-distance-group leaderboard-distance-group-table" aria-label="<%= group.label %> rankings table">
-              <header class="leaderboard-distance-group-header">
-                <h2><%= group.label %> Rankings</h2>
-                <p>
-                  <strong><%= group.stats?.verifiedEntries || 0 %></strong> verified,
-                  <strong><%= group.stats?.pendingEntries || 0 %></strong> pending
-                </p>
-              </header>
-              <table class="leaderboard-table">
-                <thead>
+          <section class="leaderboard-distance-group leaderboard-distance-group-table" aria-label="<%= activeGroup.label %> rankings table">
+            <header class="leaderboard-distance-group-header">
+              <h2><%= activeGroup.label %> Rankings</h2>
+              <p>
+                <strong><%= activeGroup.stats?.verifiedEntries || 0 %></strong> verified,
+                <strong><%= activeGroup.stats?.pendingEntries || 0 %></strong> pending
+              </p>
+            </header>
+            <table class="leaderboard-table">
+              <thead>
+                <tr>
+                  <% if (settings.visibleColumns.includes('rank')) { %><th>Rank</th><% } %>
+                  <% if (settings.visibleColumns.includes('runner')) { %><th>Runner</th><% } %>
+                  <% if (settings.visibleColumns.includes('category')) { %><th>Category</th><% } %>
+                  <% if (settings.visibleColumns.includes('distance')) { %><th>Distance</th><% } %>
+                  <% if (settings.visibleColumns.includes('time')) { %><th>Time</th><% } %>
+                  <% if (settings.visibleColumns.includes('pace')) { %><th>Pace</th><% } %>
+                  <% if (settings.visibleColumns.includes('status')) { %><th>Status</th><% } %>
+                </tr>
+              </thead>
+              <tbody>
+                <% activeGroup.entries.forEach((entry) => { %>
                   <tr>
-                    <% if (settings.visibleColumns.includes('rank')) { %><th>Rank</th><% } %>
-                    <% if (settings.visibleColumns.includes('runner')) { %><th>Runner</th><% } %>
-                    <% if (settings.visibleColumns.includes('category')) { %><th>Category</th><% } %>
-                    <% if (settings.visibleColumns.includes('distance')) { %><th>Distance</th><% } %>
-                    <% if (settings.visibleColumns.includes('time')) { %><th>Time</th><% } %>
-                    <% if (settings.visibleColumns.includes('pace')) { %><th>Pace</th><% } %>
-                    <% if (settings.visibleColumns.includes('status')) { %><th>Status</th><% } %>
+                    <% if (settings.visibleColumns.includes('rank')) { %><td data-label="Rank"><span class="leaderboard-rank-badge"><%= entry.rank ? `#${entry.rank}` : '-' %></span></td><% } %>
+                    <% if (settings.visibleColumns.includes('runner')) { %><td data-label="Runner"><%= entry.runnerName %></td><% } %>
+                    <% if (settings.visibleColumns.includes('category')) { %><td data-label="Category"><%= entry.category || 'N/A' %></td><% } %>
+                    <% if (settings.visibleColumns.includes('distance')) { %><td data-label="Distance"><%= entry.distanceLabel || 'N/A' %></td><% } %>
+                    <% if (settings.visibleColumns.includes('time')) { %><td data-label="Time"><strong><%= entry.timeLabel || '-' %></strong></td><% } %>
+                    <% if (settings.visibleColumns.includes('pace')) { %><td data-label="Pace"><%= entry.paceLabel || '-' %></td><% } %>
+                    <% if (settings.visibleColumns.includes('status')) { %><td data-label="Status"><span class="leaderboard-status-badge leaderboard-status-<%= entry.status %>"><span class="sr-only">Submission status: </span><%= entry.statusLabel %></span></td><% } %>
                   </tr>
-                </thead>
-                <tbody>
-                  <% group.entries.forEach((entry) => { %>
-                    <tr>
-                      <% if (settings.visibleColumns.includes('rank')) { %><td data-label="Rank"><span class="leaderboard-rank-badge"><%= entry.rank ? `#${entry.rank}` : '-' %></span></td><% } %>
-                      <% if (settings.visibleColumns.includes('runner')) { %><td data-label="Runner"><%= entry.runnerName %></td><% } %>
-                      <% if (settings.visibleColumns.includes('category')) { %><td data-label="Category"><%= entry.category || 'N/A' %></td><% } %>
-                      <% if (settings.visibleColumns.includes('distance')) { %><td data-label="Distance"><%= entry.distanceLabel || 'N/A' %></td><% } %>
-                      <% if (settings.visibleColumns.includes('time')) { %><td data-label="Time"><strong><%= entry.timeLabel || '-' %></strong></td><% } %>
-                      <% if (settings.visibleColumns.includes('pace')) { %><td data-label="Pace"><%= entry.paceLabel || '-' %></td><% } %>
-                      <% if (settings.visibleColumns.includes('status')) { %><td data-label="Status"><span class="leaderboard-status-badge leaderboard-status-<%= entry.status %>"><span class="sr-only">Submission status: </span><%= entry.statusLabel %></span></td><% } %>
-                    </tr>
-                  <% }) %>
-                </tbody>
-              </table>
-            </section>
-          <% }) %>
+                <% }) %>
+              </tbody>
+            </table>
+          </section>
         </div>
       <% } else { %>
         <div class="empty-state">
-          <h2>No leaderboard results yet.</h2>
-          <p>No verified results match the selected filters. Results will appear here once submissions are approved.</p>
+          <h2>No <%= activeDistance.label || 'distance' %> leaderboard results yet.</h2>
+          <p>No verified results match the selected filters for this distance. Results will appear here once submissions are approved.</p>
         </div>
       <% } %>
 
@@ -208,6 +227,39 @@
   <script src="/js/main.js"></script>
   <script>
     if (window.lucide) lucide.createIcons();
+
+    document.querySelectorAll('[data-distance-carousel]').forEach((carousel) => {
+      const track = carousel.querySelector('[data-distance-carousel-track]');
+      const prev = carousel.querySelector('[data-distance-carousel-prev]');
+      const next = carousel.querySelector('[data-distance-carousel-next]');
+      const active = track && track.querySelector('.leaderboard-distance-tab.is-active');
+      if (!track || !prev || !next) return;
+
+      const updateControls = () => {
+        const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+        const hasOverflow = maxScroll > 2;
+        carousel.classList.toggle('has-overflow', hasOverflow);
+        prev.disabled = !hasOverflow || track.scrollLeft <= 2;
+        next.disabled = !hasOverflow || track.scrollLeft >= maxScroll - 2;
+      };
+
+      const scrollByPage = (direction) => {
+        track.scrollBy({
+          left: direction * Math.max(220, track.clientWidth * 0.75),
+          behavior: 'smooth'
+        });
+      };
+
+      prev.addEventListener('click', () => scrollByPage(-1));
+      next.addEventListener('click', () => scrollByPage(1));
+      track.addEventListener('scroll', updateControls, { passive: true });
+      window.addEventListener('resize', updateControls);
+
+      if (active) {
+        active.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+      }
+      updateControls();
+    });
   </script>
 </body>
 </html>

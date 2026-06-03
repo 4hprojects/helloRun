@@ -46,6 +46,8 @@ test('event leaderboard page and data endpoint render public-safe results', asyn
   assert.match(html, /Race Result Leaderboard/);
   assert.match(html, /Verified/);
   assert.match(html, /5K Rankings/);
+  assert.match(html, /10K/);
+  assert.match(html, /0 verified/);
 
   const dataResponse = await fetch(`${BASE_URL}/events/${seed.event.slug}/leaderboard/data?search=${encodeURIComponent(seed.registration.confirmationCode)}`);
   assert.equal(dataResponse.status, 200);
@@ -55,6 +57,14 @@ test('event leaderboard page and data endpoint render public-safe results', asyn
   assert.equal(json.leaderboard.entries[0].registrationId, String(seed.registration._id));
   assert.equal(Object.prototype.hasOwnProperty.call(json.leaderboard.entries[0], 'proof'), false);
   assert.equal(Object.prototype.hasOwnProperty.call(json.leaderboard.entries[0], 'ocrData'), false);
+  assert.equal(json.leaderboard.activeDistance.key, '5K');
+  assert.deepEqual(json.leaderboard.distanceOptions.map((item) => item.label), ['5K', '10K']);
+
+  const emptyDistanceResponse = await fetch(`${BASE_URL}/events/${seed.event.slug}/leaderboard/data?distance=10K`);
+  assert.equal(emptyDistanceResponse.status, 200);
+  const emptyDistanceJson = await emptyDistanceResponse.json();
+  assert.equal(emptyDistanceJson.leaderboard.activeDistance.key, '10K');
+  assert.deepEqual(emptyDistanceJson.leaderboard.entries, []);
 });
 
 test('global leaderboard page renders event discovery cards', async () => {
@@ -132,7 +142,7 @@ async function seedRouteLeaderboardData() {
     status: 'published',
     eventType: 'virtual',
     eventTypesAllowed: ['virtual'],
-    raceDistances: ['5K'],
+    raceDistances: ['5K', '10K'],
     registrationOpenAt: new Date(now - 24 * 60 * 60 * 1000),
     registrationCloseAt: new Date(now + 24 * 60 * 60 * 1000),
     eventStartAt: new Date(now - 2 * 60 * 60 * 1000),
