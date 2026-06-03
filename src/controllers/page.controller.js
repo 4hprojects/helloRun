@@ -113,7 +113,10 @@ exports.getHome = async (req, res) => {
         ]
       }),
       Submission.countDocuments({ status: 'approved', isPersonalRecord: { $ne: true } }),
-      OrganiserApplication.countDocuments({ status: 'approved' }),
+      User.countDocuments({
+        role: 'organiser',
+        organizerStatus: 'approved'
+      }),
       Blog.find({
         status: 'published',
         isDeleted: { $ne: true }
@@ -145,7 +148,7 @@ exports.getHome = async (req, res) => {
       {
         value: Number(approvedOrganizersCount || 0).toLocaleString('en-US'),
         label: 'Approved organizers',
-        detail: 'Organizers building virtual and hybrid events on HelloRun',
+        detail: 'Approved organizer accounts currently active on HelloRun',
         icon: 'users'
       }
     ];

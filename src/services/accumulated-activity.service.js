@@ -83,6 +83,9 @@ async function reviewAccumulatedActivitySubmission({
 
   if (safeAction === 'approve') {
     activity.status = 'approved';
+    // Manual approval is the trusted reviewer decision, so clear automated suspicion metadata.
+    activity.suspiciousFlag = false;
+    activity.suspiciousFlagReason = '';
   } else {
     const reason = String(rejectionReason || '').trim().slice(0, 500);
     if (!reason) {

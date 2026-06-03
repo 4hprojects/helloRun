@@ -399,6 +399,21 @@ test('organizer cannot approve already-approved submission', async () => {
 
 test('admin can approve organizer submission through shared review route', async () => {
   const seed = await seedReviewData('admin-approve');
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    await Submission.updateOne(
+      { _id: seed.submission._id },
+      {
+        $set: {
+          suspiciousFlag: true,
+          suspiciousFlagReason: 'High-confidence OCR mismatch detected.'
+        }
+      }
+    );
+  } finally {
+    await mongoose.disconnect();
+  }
+
   const adminCookie = await login(seed.admin.email, seed.password);
   const ready = await waitForSessionReady('/admin/dashboard', adminCookie);
   assert.equal(ready, true);
@@ -428,6 +443,8 @@ test('admin can approve organizer submission through shared review route', async
     const updated = await Submission.findById(seed.submission._id).lean();
     assert.equal(updated.status, 'approved');
     assert.equal(String(updated.reviewedBy), String(seed.admin._id));
+    assert.equal(updated.suspiciousFlag, false);
+    assert.equal(updated.suspiciousFlagReason || '', '');
   } finally {
     await mongoose.disconnect();
   }
@@ -447,6 +464,49 @@ test('admin can approve organizer submission through shared review route', async
   });
   assert.equal(certificateAudit.status_to, 'issued');
   assert.equal(certificateAudit.actor_mongo_user_id, String(seed.admin._id));
+});
+
+test('admin approval clears suspicious metadata for accumulated activity submissions', async () => {
+  const seed = await seedAccumulatedReviewData('admin-approve-accumulated');
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    await AccumulatedActivitySubmission.updateOne(
+      { _id: seed.activity._id },
+      {
+        $set: {
+          suspiciousFlag: true,
+          suspiciousFlagReason: 'High-confidence OCR mismatch detected.'
+        }
+      }
+    );
+  } finally {
+    await mongoose.disconnect();
+  }
+
+  const adminCookie = await login(seed.admin.email, seed.password);
+  const ready = await waitForSessionReady('/admin/dashboard', adminCookie);
+  assert.equal(ready, true);
+
+  const response = await postForm(
+    `/organizer/events/${seed.event._id}/submissions/${seed.activity._id}/approve`,
+    adminCookie,
+    { reviewNotes: 'admin approval accumulated check' }
+  );
+
+  assert.equal(response.status, 302);
+  const location = response.headers.get('location') || '';
+  assert.match(location, /type=success/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    const updated = await AccumulatedActivitySubmission.findById(seed.activity._id).lean();
+    assert.equal(updated.status, 'approved');
+    assert.equal(updated.suspiciousFlag, false);
+    assert.equal(updated.suspiciousFlagReason || '', '');
+    assert.equal(String(updated.reviewedBy), String(seed.admin._id));
+  } finally {
+    await mongoose.disconnect();
+  }
 });
 
 async function seedReviewData(tag, options = {}) {

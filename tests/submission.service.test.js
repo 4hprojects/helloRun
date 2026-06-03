@@ -179,6 +179,16 @@ test('reviewSubmission enforces organizer ownership and action guards', async ()
     /rejection reason is required/i
   );
 
+  await Submission.updateOne(
+    { _id: created._id },
+    {
+      $set: {
+        suspiciousFlag: true,
+        suspiciousFlagReason: 'High-confidence OCR mismatch detected.'
+      }
+    }
+  );
+
   const approved = await reviewSubmission({
     submissionId: created._id,
     organizerId: seed.organizer._id,
@@ -186,8 +196,56 @@ test('reviewSubmission enforces organizer ownership and action guards', async ()
     reviewNotes: 'Validated from screenshot and app log'
   });
   assert.equal(approved.status, 'approved');
+  assert.equal(approved.suspiciousFlag, false);
+  assert.equal(approved.suspiciousFlagReason, '');
   assert.ok(String(approved.certificate?.url || '').length > 0);
   assert.ok(approved.certificate?.issuedAt);
+});
+
+test('reviewAccumulatedActivitySubmission clears suspicious metadata on approval', async () => {
+  const seed = await seedSubmissionFixture('review-accumulated-clear-flag');
+  await Event.updateOne(
+    { _id: seed.event._id },
+    {
+      $set: {
+        virtualCompletionMode: 'accumulated_distance',
+        targetDistanceKm: 10,
+        minimumActivityDistanceKm: 1,
+        acceptedRunTypes: ['run', 'walk']
+      }
+    }
+  );
+
+  const activity = await createAccumulatedActivitySubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 4,
+    elapsedMs: 20 * 60 * 1000,
+    proofType: 'photo',
+    proof: { url: 'https://example.com/proof/accumulated-flagged.png', size: 1200 },
+    runType: 'run'
+  });
+
+  await AccumulatedActivitySubmission.updateOne(
+    { _id: activity._id },
+    {
+      $set: {
+        suspiciousFlag: true,
+        suspiciousFlagReason: 'High-confidence OCR mismatch detected.'
+      }
+    }
+  );
+
+  const approved = await reviewAccumulatedActivitySubmission({
+    activityId: activity._id,
+    organizerId: seed.organizer._id,
+    action: 'approve',
+    reviewNotes: 'Manual review confirms this activity is valid.'
+  });
+
+  assert.equal(approved.status, 'approved');
+  assert.equal(approved.suspiciousFlag, false);
+  assert.equal(approved.suspiciousFlagReason, '');
 });
 
 test('reviewSubmission uses in-app defaults for approvals and emails rejected results', async () => {

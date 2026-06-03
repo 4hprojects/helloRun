@@ -211,6 +211,9 @@ async function reviewSubmission({
 
   if (safeAction === 'approve') {
     submission.status = 'approved';
+    // Manual approval is the trusted reviewer decision, so clear automated suspicion metadata.
+    submission.suspiciousFlag = false;
+    submission.suspiciousFlagReason = '';
   } else {
     const reason = String(rejectionReason || '').trim().slice(0, 500);
     if (!reason) {

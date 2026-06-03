@@ -282,6 +282,9 @@
               <span class="status-badge status-badge-submitted">Pending Review</span>
               <h2>Decision</h2>
               <p>Approve verified activity evidence or reject with a reason runners can act on.</p>
+              <% if (submission.suspiciousFlag) { %>
+                <p class="submission-review-muted">Approving this flagged submission will clear its suspicious flag and restore leaderboard eligibility when event settings allow it.</p>
+              <% } %>
             </div>
 
             <form method="POST" action="<%= reviewActionBase %>/approve" class="payment-action-form submission-review-action-form">
