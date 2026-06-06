@@ -240,6 +240,11 @@
                     <i data-lucide="external-link"></i>
                     <span>Share</span>
                   </a>
+                  <% if (['finisher','distance_finisher','mode_finisher'].includes(badge.badgeType) && badge.mongoSubmissionId && certifiedSubmissionIds && certifiedSubmissionIds.has(badge.mongoSubmissionId)) { %>
+                    <a href="/my-submissions/<%= badge.mongoSubmissionId %>/certificate" class="btn btn-outline btn-sm profile-badge-certificate-link">
+                      <i data-lucide="file-check"></i> View Certificate
+                    </a>
+                  <% } %>
                   <% if (!badge.isFeatured) { %>
                     <form method="POST" action="/runner/profile/badges/featured" class="inline-form profile-badge-action">
                       <input type="hidden" name="_csrf" value="<%= _csrfToken %>">

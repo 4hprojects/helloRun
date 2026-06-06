@@ -1,0 +1,788 @@
+﻿# DOCUMENT ROLE (REPOSITORY TRACKER)
+- Purpose: File-level repository tracking and chronological implementation changelog.
+- Scope: Added/updated/removed files, behavior changes, and session smoke checklist.
+- Planning source: See PRD.md for roadmap, backlog, and detailed tasks.
+
+## CHANGELOG - February 27, 2026 (Session: Blog Admin Edit + Autosave + Revision History)
+
+### [SESSION] SESSION UPDATE:
+- Implemented admin inline editing on blog review page with debounced autosave and revision tracking.
+
+### [NEW] NEW FILES:
+1. src/models/BlogRevision.js
+
+### [UPDATED] UPDATED FILES (major):
+1. src/routes/admin.routes.js
+     - Added admin autosave endpoint:
+       - PATCH /admin/blog/posts/:id/autosave
+     - Added dedicated autosave rate limiter guard
+
+2. src/controllers/blog.controller.js
+     - Added autosaveBlogPostAdmin handler
+     - Added partial-payload normalization for admin autosave
+     - Added status transition consistency handling during autosave
+     - Added revision logging (before/after + changedFields)
+     - Added renderAdminReviewPage revision loading for history panel
+
+3. src/views/admin/blog-review.ejs
+     - Added full admin editable panel for post fields
+     - Added debounced autosave client flow + save state badges
+     - Added unsaved-change guard on page unload
+     - Added moderation action panel UX refinements
+     - Added dynamic moderation action visibility by selected status
+     - Added Change History panel with expandable before/after details
+
+### Key Behavior Changes
+  - Admin can edit blog content/metadata directly from review page.
+  - Edits autosave to backend without manual submit.
+  - Each meaningful autosave now creates a BlogRevision record.
+  - Review page now shows recent revision history (editor, time, changed fields, before/after).
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [ ] Admin review page autosaves after typing pause (~900ms)
+- [ ] Autosave status transitions: Unsaved -> Saving -> Saved
+- [ ] Validation errors show autosave failure state
+- [ ] Status change via autosave updates moderation action visibility correctly
+- [ ] BlogRevision records are created only when fields actually change
+- [ ] Change History panel renders recent revision entries correctly
+
+## CHANGELOG - February 27, 2026 (Session: Blog Phase A Build - Tasks 1 to 10)
+
+### [SESSION] SESSION UPDATE:
+- Implemented Blog Phase A foundation end-to-end:
+  data model, author flow, admin moderation flow, public read pages, cover upload,
+  SEO metadata support, security guardrails, and view-count policy.
+
+### [NEW] NEW FILES:
+1. src/models/Blog.js
+2. src/models/BlogView.js
+3. src/routes/blog.routes.js
+4. src/controllers/blog.controller.js
+5. src/services/blog-view.service.js
+6. src/utils/blog.js
+7. src/utils/sanitize.js
+8. src/middleware/rate-limit.middleware.js
+9. src/public/css/blog-pages.css
+10. src/views/blog/author-dashboard.ejs
+11. src/views/blog/author-form.ejs
+12. src/views/admin/blog-queue.ejs
+13. src/views/admin/blog-review.ejs
+14. src/views/pages/blog-post.ejs
+
+### [UPDATED] UPDATED FILES (major):
+1. src/routes/pageRoutes.js
+     - /blog now uses dynamic controller listing
+     - added /blog/:slug detail route
+
+2. src/controllers/page.controller.js
+     - added published blog list/detail handlers
+     - added filter/sort/pagination support
+     - added SEO payload generation (canonical/meta/OG/Twitter)
+     - added 24-hour view tracking hook (user/IP based)
+     - excludes admin and author self-views from count
+
+3. src/views/pages/blog.ejs
+     - replaced static "coming soon" page with real listing UI
+
+4. src/views/layouts/head.ejs
+     - now supports optional SEO fields:
+       description, canonical, Open Graph, Twitter card tags
+
+5. src/routes/admin.routes.js
+     - added admin blog moderation page routes
+     - added admin moderation API routes
+     - added moderation rate limiter guard
+
+6. src/routes/blog.routes.js
+     - added author dashboard/form routes
+     - kept JSON endpoints for API use
+     - added write/submit rate limiter guards
+     - wired cover upload middleware
+
+7. src/services/upload.service.js
+     - added blog cover upload middleware and R2 upload helper
+
+### Key Behavior Changes
+  - Authors can create/edit draft posts, submit for review, and delete draft/rejected posts.
+  - Admin can review queue, approve/reject with reason, and archive published posts.
+  - Public users can browse published posts via /blog and read /blog/:slug pages.
+  - Blog views now follow 24-hour dedupe policy:
+    - logged-in user: max 1 counted view per post per 24h
+    - anonymous: max 1 counted view per IP per post per 24h
+  - Public blog pages now emit canonical + social metadata for SEO sharing.
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [ ] Author create/edit/submit/delete flows work via UI pages
+- [ ] Admin queue/review approve-reject-archive flows work via UI pages
+- [ ] /blog listing filters/sort/pagination work with real data
+- [ ] /blog/:slug increments views once per 24h policy
+- [ ] Admin and author self-view do not increment public view counter
+- [ ] Cover upload (JPG/PNG <= 5MB) works and old cover cleanup executes
+- [ ] SEO tags render correctly in page source for blog list/detail
+
+## CHANGELOG - February 27, 2026 (Session: Organizer UX + Event Reference Code Persistence)
+
+### [SESSION] SESSION UPDATE:
+- Improved organizer-facing language and records UX; introduced persistent event reference codes.
+
+### [UPDATED] UPDATED FILES (major):
+1. src/routes/organizer.routes.js
+     - Create-event success now redirects to /organizer/events (My Events)
+     - Added referenceCode generation during event creation
+
+2. src/models/Event.js
+     - Added referenceCode field (unique, sparse, immutable)
+
+3. src/views/organizer/events.ejs
+     - Replaced technical label wording:
+       - "slug" -> "Event URL" (search placeholder + card label)
+
+4. src/views/organizer/event-details.ejs
+     - Replaced "Audit" section with user-friendly "Event Record"
+     - Added:
+       - Reference Code display
+       - Organizer name and public event path display
+       - Copy Reference Code / Copy Event Link actions
+       - Collapsible "Technical details" for raw Event ID/Organizer ID
+     - Now uses stored event.referenceCode (fallback kept for legacy records)
+
+5. src/public/css/event-manage.css
+     - Added styles for Event Record actions and technical details block
+
+6. package.json
+     - Added script:
+       - backfill:event-reference-codes
+
+### [NEW] NEW FILES:
+1. src/utils/referenceCode.js
+     - Shared reference-code builder:
+       - format: AAA-YYDDMM
+       - collision-safe suffixing: -02, -03, ...
+
+2. src/scripts/backfill-event-reference-codes.js
+     - One-time backfill tool for existing events missing referenceCode
+
+### Key Behavior Changes
+  - New events now persist a unique user-facing referenceCode
+  - Organizer create-event flow lands on My Events after successful save/publish
+  - Organizer event details hide raw IDs behind technical toggle
+  - UI language is less technical ("Event URL" instead of "slug")
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [ ] Create event redirects to /organizer/events with success message
+- [ ] New events store referenceCode in MongoDB
+- [ ] Existing events backfilled via npm run backfill:event-reference-codes
+- [ ] Event details show Reference Code and copy buttons work
+- [ ] Technical details toggle reveals raw Event ID/Organizer ID correctly
+- [ ] Organizer events page shows "Event URL" wording consistently
+
+## CHANGELOG - February 26, 2026 (Session: Organizer Branding & Media Functional Upgrade)
+
+### [SESSION] SESSION UPDATE:
+- Organizer Branding & Media was refactored into per-item sections and made fully functional
+  for Event Logo, Event Banner, Promotional Poster, and Gallery Images.
+
+### [UPDATED] UPDATED FILES (major):
+1. src/views/organizer/create-event.ejs
+     - Reorganized Branding & Media to per-item flow:
+       info/rules -> upload controls (for each media type)
+     - Added functional poster + gallery inputs
+     - Added live poster preview and gallery preview
+     - Relaxed banner ratio from required to recommended
+
+2. src/views/organizer/edit-event.ejs
+     - Applied same per-item media layout as create-event
+     - Added contextual image removal controls:
+       - X remove overlay for logo/banner/poster (visible only if media exists)
+       - Gallery per-image remove + remove-all controls
+     - Added immediate remove behavior via API call (no full form submit needed)
+
+3. src/routes/organizer.routes.js
+     - Extended create/edit event persistence for:
+       - posterImageUrl
+       - galleryImageUrls
+     - Added immediate media-remove endpoint:
+       - POST /organizer/events/:id/media/remove
+       - updates MongoDB immediately
+       - deletes Cloudflare objects immediately when possible
+     - Improved upload error mapping by source field
+
+4. src/services/upload.service.js
+     - Extended branding upload fields:
+       - posterImageFile
+       - galleryImageFiles[]
+     - Extended R2 upload flow for poster/gallery
+     - Added upload error field tracking for precise UI errors
+
+5. src/models/Event.js
+     - Added:
+       - posterImageUrl (String)
+       - galleryImageUrls (String[])
+
+6. src/views/organizer/event-details.ejs
+     - Added organizer-side rendering for poster and gallery
+
+7. src/views/pages/event-details.ejs
+     - Added public rendering for poster and gallery
+
+8. src/views/organizer/event-preview.ejs
+     - Added poster URL and gallery count to preview snapshot
+
+9. src/public/css/create-event.css
+     - Added per-item media block styling
+     - Added overlay remove button styles
+     - Added gallery thumbnail/remove styles
+
+10. src/public/css/event-manage.css
+     - Added organizer detail styles for poster/gallery
+
+11. src/public/css/events.css
+     - Added public event-detail styles for poster/gallery
+
+### Key Behavior Changes
+  - Poster and gallery are now first-class event media (URL or upload)
+  - Media removal can now persist immediately on X-confirm (edit page)
+  - Banner ratio is guidance only (not hard-blocked)
+  - 400 upload errors now map to the correct field in UI
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [ ] Create event: logo/banner/poster/gallery inputs save correctly
+- [ ] Edit event: X remove on logo/banner/poster updates immediately
+- [ ] Edit event: gallery single-remove and remove-all update immediately
+- [ ] MongoDB media fields match latest UI actions
+- [ ] Cloudflare objects are deleted for removed/replaced assets
+- [ ] Public event details show poster/gallery when available
+
+## REPOSITORY STRUCTURE SNAPSHOT (High-Level)
+
+helloRun/
+  src/
+    config/
+      db.js
+      session.js
+    controllers/
+      admin.controller.js
+      auth.controller.js
+      page.controller.js
+      runner.controller.js
+    middleware/
+      auth.middleware.js
+      role.middleware.js
+    models/
+      Counter.js
+      Event.js
+      OrganiserApplication.js
+      Registration.js
+      Submission.js
+      User.js
+    routes/
+      admin.routes.js
+      authRoutes.js
+      event.routes.js
+      organizer.routes.js
+      pageRoutes.js
+      runner.routes.js
+    services/
+      counter.service.js
+      email.service.js
+      password.service.js
+      runner-data.service.js
+      token.service.js
+      upload.service.js
+    scripts/
+      backfill-event-reference-codes.js
+    utils/
+      country.js
+      referenceCode.js
+      waiver.js
+    views/
+      admin/
+        applications-list.ejs
+        application-details.ejs
+        dashboard.ejs
+      auth/
+        login.ejs
+        signup.ejs
+        forgot-password.ejs
+        reset-password.ejs
+        reset-password-expired.ejs
+        reset-email-sent.ejs
+        reset-success.ejs
+        resend-verification.ejs
+        verify-email-sent.ejs
+        verify-email-success.ejs
+        verify-email-expired.ejs
+        verify-email-result.ejs
+      layouts/
+        head.ejs
+        nav.ejs
+        footer.ejs
+        main.ejs
+      organizer/
+        dashboard.ejs
+        create-event.ejs
+        edit-event.ejs
+        event-details.ejs
+        event-registrants.ejs
+        events.ejs
+        event-preview.ejs
+        complete-profile.ejs
+        application-status.ejs
+      pages/
+        home.ejs
+        events.ejs
+        event-details.ejs
+        event-register.ejs
+        my-registrations.ejs
+        blog.ejs
+        about.ejs
+        leaderboard.ejs
+        index.ejs
+      runner/
+        dashboard.ejs
+      error.ejs
+    public/
+      css/
+      images/
+      js/
+      uploads/
+      robots.txt
+      sitemap.xml
+    server.js
+  .env
+  .env.example
+  .gitignore
+  package.json
+  package-lock.json
+  README.md
+  dir.txt
+  PRD.txt
+## CHANGELOG - February 26, 2026 (Session: Runner Dashboard Data Cards + Route Refactor)
+
+### [SESSION] SESSION UPDATE:
+- Runner dashboard was upgraded from placeholders to real data cards, and runner route logic
+  was refactored out of authRoutes.js for maintainability.
+
+### [UPDATED] UPDATED FILES (major):
+1. src/views/runner/dashboard.ejs
+     - Replaced placeholder cards with real cards for upcoming, past, activity, and stats
+     - Added profile completeness progress + missing-fields UI
+     - Added "Continue Payment" CTA (placeholder flow) for unpaid registrations only
+     - Added running-group placeholder section (no backend yet)
+
+2. src/public/css/runner-dashboard.css
+     - Added styling for data-list cards, profile completeness bar, compact stat rows,
+       and warning CTA button
+
+3. src/public/js/runner-dashboard.js
+     - Removed obsolete placeholder fetch stubs
+     - Kept practical UI behavior (logout confirm, profile submit guard)
+
+4. src/controllers/page.controller.js
+     - Switched /my-registrations to use shared runner registration data service
+
+5. src/server.js
+     - Registered new runner routes module
+
+### [NEW] NEW FILES (3):
+1. src/routes/runner.routes.js
+     - Dedicated runner route ownership for dashboard + profile update
+
+2. src/controllers/runner.controller.js
+     - Runner dashboard data shaping
+     - Profile update handling
+     - Profile completeness computation
+
+3. src/services/runner-data.service.js
+     - Shared runner registration data source for dashboard and my-registrations
+     - Upcoming/past/activity/stats derivation helpers
+
+### Key Behavior Changes
+  - Runner dashboard now displays real registration-driven content
+  - Upcoming/past classification uses eventStartAt
+  - Continue Payment button appears only when paymentStatus is unpaid
+  - Profile completeness is visible and actionable
+  - Runner logic is now decoupled from authRoutes.js
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [ ] /runner/dashboard renders for users with no registrations
+- [ ] Upcoming vs past split is correct by eventStartAt
+- [ ] Continue Payment appears only for unpaid records
+- [ ] Profile completeness percentage and missing fields are correct
+- [ ] /my-registrations and dashboard registration counts are consistent
+- [ ] /runner/profile update succeeds through new runner routes/controller
+
+## CHANGELOG - February 25, 2026 (Session: Waiver + Profile Snapshot + Organizer Export Upgrade)
+
+### [SESSION] SESSION UPDATE:
+- Organizer and runner registration flows were refined with mandatory waivers,
+  richer runner profile snapshot data, and export tooling improvements.
+
+### [UPDATED] UPDATED FILES (major):
+1. src/models/User.js
+     - Added runner profile fields:
+       mobile, country, dateOfBirth, gender,
+       emergencyContactName, emergencyContactNumber, runningGroup
+
+2. src/models/Event.js
+     - Added mandatory waiver fields:
+       waiverTemplate (required), waiverVersion
+
+3. src/models/Registration.js
+     - Extended participant snapshot:
+       dateOfBirth, gender, emergencyContactName, emergencyContactNumber, runningGroup
+     - Added waiver snapshot object:
+       accepted, version, signature, acceptedAt, templateSnapshot, renderedSnapshot
+
+4. src/utils/waiver.js (NEW)
+     - Added default waiver template
+     - Added placeholder rendering helpers:
+       {{ORGANIZER_NAME}}, {{EVENT_TITLE}}
+
+5. src/routes/authRoutes.js + src/views/runner/dashboard.ejs + src/public/js/runner-dashboard.js + src/public/css/runner-dashboard.css
+     - Added runner profile management UI + validation + save route
+     - Added running group suggestion support
+
+6. src/controllers/page.controller.js + src/views/pages/event-register.ejs + src/public/css/events.css
+     - Registration now uses runner profile snapshot data
+     - Added mandatory waiver checkbox/signature validation
+     - Enforced signature must match account full name
+     - Added waiver rendering and persistence at registration time
+
+7. src/routes/organizer.routes.js + src/views/organizer/*
+     - Added closed-event edit guard (cannot edit closed events)
+     - Added mandatory waiver template handling in create/edit
+     - Added waiver version bump on template change
+     - Added live waiver preview context support and default template injection
+     - Added registrants CSV export and XLSX export (with filters)
+     - Added waiver/profile columns in registrants table + search expansion
+
+8. package.json / package-lock.json
+     - Added xlsx dependency for Excel export
+
+### Key Behavior Changes
+  - Event waiver is now always required
+  - Organizer can edit published events, but not closed events
+  - Existing registrations remain valid after waiver updates
+  - New registrants accept current waiver version only
+  - Organizer can export registrants as CSV and XLSX
+
+### MANUAL SMOKE CHECKLIST (Latest):
+- [ ] Create event shows waiver editor + live preview
+- [ ] Reset waiver button prompts confirmation and restores default
+- [ ] Edit published event works; edit closed event blocked
+- [ ] Runner registration enforces waiver checkbox + strict signature match
+- [ ] Registrants table shows waiver/profile snapshot fields
+- [ ] CSV export downloads valid filtered data
+- [ ] XLSX export downloads valid filtered data
+
+
+## CHANGELOG - February 24, 2026 (Session: Phase 4 Kickoff - Account Registration Flow)
+
+### [SESSION] SESSION UPDATE: Published events are now viewable publicly, and account-required event registration is implemented (initial pass).
+
+### Phase Status Snapshot
+  - Phase 3 (Event Creation & Management): In progress, major working baseline complete (create/edit/list/details/status + public published view)
+  - Phase 4 (Registration System): In progress (account-required registration flow now implemented)
+
+### Implemented In This Pass
+1. Public published event viewing
+     - /events now lists only published events
+     - /events/:slug shows public event details
+     - draft/closed events are blocked from public details
+
+2. Account-required event registration
+     - GET /events/:slug/register (requires login)
+     - POST /events/:slug/register (requires login)
+     - If not logged in: redirect to login, then return to intended register page
+
+3. Registration guards and rules
+     - Event must be published
+     - Registration window must be open
+     - Participation mode must be allowed by event type/modes
+     - One registration per user per event (duplicate blocked)
+     - Registration email is enforced from logged-in helloRun account
+
+4. Data + email integration
+     - Registration model implemented with unique indexes and confirmation code
+     - Confirmation email added (graceful failure: DB success does not roll back on email send failure)
+
+5. User registration visibility
+     - Added /my-registrations (auth required)
+     - Added "My Registrations" navigation and page entry links
+
+### MANUAL SMOKE CHECKLIST (Published Events + Registration):
+- [ ] /events shows published events only
+- [ ] /events/:slug returns 404 for draft/closed/unavailable events
+- [ ] Logged-out user opening /events/:slug/register is redirected to /login
+- [ ] After login, user returns to intended /events/:slug/register page
+- [ ] Eligible account can register once successfully
+- [ ] Duplicate registration attempt is blocked with clear message
+- [ ] Invalid participation mode is blocked
+- [ ] Closed registration window is blocked
+- [ ] Confirmation code appears after successful registration
+- [ ] Confirmation email send is attempted (without breaking successful registration on failure)
+- [ ] /my-registrations displays newly created registration record
+## CHANGELOG - February 24, 2026 (Session: Organizer Phase 3 Polish)
+
+### [SESSION] SESSION UPDATE: Organizer event management polish (search/sort, timeline metadata, preview hardening)
+
+### [UPDATED] UPDATED FILES (8):
+1. src/routes/organizer.routes.js
+     - Added GET /organizer/preview-event for create-form preview rendering
+     - Added organizer events list query support:
+       - status: draft | published | closed
+       - q: free-text search (title, organiserName, slug, venue, city, country)
+       - sort: newest | oldest | start_asc | start_desc
+     - Added safe regex escaping for text search
+     - Normalized proofTypesAllowed input to allowed values only (gps, photo, manual)
+     - Hardened persistence by event type:
+       - onsite: clears virtual proof rules
+       - virtual/hybrid: keeps virtual fields
+
+2. src/views/organizer/create-event.ejs
+     - Kept event type as dropdown (virtual, onsite, hybrid)
+     - Fixed branding preview JS to avoid null-image runtime errors
+     - Preview button now lands on working /organizer/preview-event route
+
+3. src/views/organizer/event-preview.ejs (NEW)
+     - Added full event preview page for unsaved form data
+     - Shows validation summary and schema-aligned field snapshot
+
+4. src/views/organizer/edit-event.ejs
+     - Refactored to sectioned layout aligned with create form
+     - Added event type conditional sections (location and virtual rules)
+
+5. src/views/organizer/events.ejs
+     - Added search input and sort dropdown in filter bar
+     - Added no-match empty state for filtered searches
+
+6. src/public/css/organizer-events.css
+     - Added search input sizing rules in filter bar
+
+7. src/views/organizer/event-details.ejs
+     - Added timeline metadata card (created, updated, registration checkpoints)
+     - Added audit card (eventId, organizerId)
+
+8. src/public/css/event-manage.css
+     - Added safer code wrapping for long IDs
+
+### MANUAL SMOKE CHECKLIST (Organizer Events):
+- [ ] Approved organizer can open /organizer/create-event
+- [ ] Event Type dropdown values are exactly: virtual, onsite, hybrid
+- [ ] Preview button opens /organizer/preview-event and shows validation state
+- [ ] Save Draft creates event with status=draft
+- [ ] Publish creates event with status=published
+- [ ] /organizer/events supports:
+      - status filter
+      - text query q
+      - sort option changes ordering
+- [ ] /organizer/events empty filtered results show "No matching events"
+- [ ] /organizer/events/:id shows Timeline + Audit sections
+- [ ] Draft -> Published transition works when event data is valid
+- [ ] Published -> Closed transition works
+- [ ] Invalid transition attempts are blocked with clear message
+## CHANGELOG - February 24, 2026
+### [SESSION] SESSION UPDATE: PHASE 2C ADMIN REVIEW HARDENING COMPLETE
+### [UPDATED] UPDATED FILES (6):
+1. src/controllers/admin.controller.js - Full review logic, status transition guards, reject validation, admin-safe 404/500 rendering, query filter support
+2. src/routes/admin.routes.js - Cleaned route comments, confirmed requireAdmin coverage
+3. src/views/admin/applications-list.ejs - Added status filter, free-text search, improved table + empty state
+4. src/views/admin/application-details.ejs - Added review action panel, rejection reason constraints, reviewed metadata, safer document links
+5. src/views/admin/dashboard.ejs - Added actionable metrics cards + filtered CTAs
+6. src/public/css/admin.css (NEW) - Dedicated admin styling for dashboard/list/detail views
+### [DONE] PHASE 2C DELIVERABLES COMPLETED:
+  - Admin list filters: status + search query
+  - Approve/reject flow hardened with valid status transitions
+  - Rejection reason server-side validation (min/max)
+  - User status/role consistency updates on decision
+  - Real email notifications via email.service with graceful failure handling
+  - Improved admin UX and feedback messaging
+
+
+## CHANGELOG - February 19, 2026 (Session 3 - LATEST)
+
+### [NAV] NAV UPDATE: BLOG + LEADERBOARD LINKS
+
+### [UPDATED] UPDATED FILES (2):
+1. src/views/layouts/nav.ejs
+     - Added Blog link (/blog) in public nav links
+     - Added Leaderboard link (/leaderboard) in public nav links
+     - Both visible to all users (logged in and logged out)
+
+2. src/routes/pageRoutes.js
+     - Added GET /leaderboard route (placeholder page)
+
+### [NEW] NEW FILES (1):
+1. src/views/pages/leaderboard.ejs
+     - Placeholder page with "Coming soon" message
+     - Will be populated with real data in Phase 5 (Submissions & Results)
+
+## CHANGELOG - February 19, 2026 (Session 2)
+
+### [TOOLS] AUTH MIDDLEWARE REWRITE & NAV FIX
+
+### [UPDATED] UPDATED FILES (4):
+1. src/middleware/auth.middleware.js (FULL REWRITE)
+     - Removed old duplicate exports.setUserContext / exports.requireAuth pattern
+     - Single `const User = require(...)` at top of file (fixed User is not defined)
+     - Consolidated into clean named functions:
+       - populateAuthLocals - Sets res.locals for nav (isAuthenticated, isAdmin, isOrganizer, etc.)
+       - redirectIfAuth - Redirects logged-in users away from login/signup to their dashboard
+       - requireAuth - Protects routes requiring login
+       - requireAdmin - Protects admin-only routes
+       - requireOrganizer - Protects organiser-only routes
+       - requireApprovedOrganizer - Protects approved-organiser-only routes
+     - Single module.exports at bottom (no more exports.xxx conflicts)
+
+2. src/routes/authRoutes.js
+     - Added `redirectIfAuth` middleware to GET/POST login, signup, register routes
+     - Logged-in users redirected to role-based dashboard instead of seeing login page
+     - Added `handleRegistration` function definition before router.post references
+
+3. src/views/layouts/nav.ejs
+     - Role-based dashboard links (Admin -> /admin/dashboard, Organizer -> /organizer/dashboard, Runner -> /runner/dashboard)
+     - Pending organizer -> /organizer/application-status
+     - Auth-aware: shows Login/Sign Up when logged out, Hi [Name] + Logout when logged in
+     - Added aria labels for accessibility
+     - Logout icon with lucide icons
+
+4. src/public/css/style.css
+     - .nav-user styles (border-left separator, username, logout button)
+     - .nav-auth-buttons styles (Login/Sign Up button group)
+     - .nav-login-btn / .nav-signup-btn styles
+     - .nav-logout-btn with orange outline, hover fill
+     - Mobile responsive nav-user and nav-auth-buttons (768px breakpoint)
+     - .logout-form inline display
+
+### [FIXED] BUGS FIXED:
+  [DONE] User is not defined in populateAuthLocals (missing require at top of file)
+  [DONE] requireAuth is not defined (old exports pattern conflicting with module.exports)
+  [DONE] Nav always showing Login/Sign Up even when logged in (populateAuthLocals crashing)
+  [DONE] Logged-in users could access /login and /signup pages (added redirectIfAuth)
+  [DONE] handleRegistration is not defined (function defined after reference)
+
+### [REMOVED] REMOVED:
+  - src/routes/index.routes.js (dead file)
+  - src/routes/index.js (dead file)
+  - Old exports.setUserContext pattern from auth.middleware.js
+  - Old exports.requireAuth pattern from auth.middleware.js
+
+## CHANGELOG - February 19, 2026 (Session 1)
+
+### [DESIGN] HOME PAGE & UI IMPROVEMENTS
+
+### [UPDATED] UPDATED FILES (2):
+1. src/views/pages/home.ejs
+     - Replaced Font Awesome icon placeholder with helloRun-icon.webp logo
+     - Full landing page: hero, features, how-it-works, testimonial, CTA sections
+     - Proper <head> include with GA tracking
+     - Font Awesome CDN for section icons
+
+2. src/public/css/helloRun.css
+     - Improved button contrast (WCAG AA compliant)
+     - .btn-primary: darker orange (#e8873a) for white text readability
+     - .btn-outline: dark slate (#1e293b) border/text for hero visibility
+     - .cta-section .btn-primary: dark slate (#1e293b) for CTA contrast
+     - .hero-logo styles for responsive image sizing
+     - .hero-buttons z-index fix for clickability
+     - Comprehensive mobile responsive styles (768px & 480px breakpoints)
+     - Stacked buttons on mobile, scaled hero visual, single-column features
+
+### [FIXED] BUGS FIXED:
+  [DONE] Hero buttons not clickable (z-index / pointer-events fix)
+  [DONE] Poor button contrast on light backgrounds
+  [DONE] Hero visual using placeholder icon instead of actual logo
+
+## CHANGELOG - February 17, 2026 (Session 2)
+
+### [TOOLS] BUG FIXES & UI IMPROVEMENTS
+
+### [UPDATED] UPDATED FILES (4):
+1. src/views/auth/resend-verification.ejs
+     - Fixed: readOnly instead of disabled on email input during submit
+     - Added: Disable input & button after successful email send
+     - Added: "[DONE] Verification link sent" button text on success
+     - Added: "Try again" link for retry after success
+     - Prevents spam submissions
+
+2. src/views/auth/verify-email-success.ejs
+     - Compact layout to avoid scrolling
+     - Reduced padding and icon sizes
+     - Tighter spacing throughout
+
+3. src/views/auth/forgot-password.ejs
+     - Added "Resend Verification Email" link in auth-links section
+
+4. src/routes/page.routes.js
+     - Added routes: GET /, /events, /blog, /about
+     - Fixed 404 errors for nav links
+
+### [NEW] NEW FILES (3):
+1. src/views/pages/home.ejs - Landing page placeholder
+2. src/views/pages/blog.ejs - Blog placeholder
+3. src/views/pages/about.ejs - About placeholder
+
+### [FIXED] BUGS FIXED:
+  [DONE] req.body empty on POST /resend-verification (disabled input fix)
+  [DONE] 404 on /, /events, /blog, /about (missing page routes)
+
+## CHANGELOG - February 17, 2026 (Session 1)
+
+### [DESIGN] UI/UX IMPROVEMENT: VERIFY EMAIL SENT PAGE
+
+### [NEW] NEW FILES (1):
+1. src/public/css/verify-email-sent.css (NEW - extracted & optimized)
+     - Compact design with reduced padding & spacing
+     - Two-panel layout (40% illustration + 60% content)
+     - Smooth animations (slideUp, scaleIn, float, pulse)
+     - Mobile-responsive (768px & 480px breakpoints)
+     - Custom scrollbar styling
+     - 450+ lines of optimized CSS
+     - Unique class prefixes (verify-*) to prevent conflicts
+
+### [UPDATED] UPDATED FILES (1):
+1. src/views/auth/verify-email-sent.ejs
+     - Removed inline styles (moved to separate CSS file)
+     - Linked new verify-email-sent.css stylesheet
+     - HTML structure unchanged for full compatibility
+
+### [CLEANUP] CLEANUP: AUTHENTICATION ROUTES CONSOLIDATION
+
+### [DONE] REMOVED FILES (1):
+1. src/routes/auth.routes.js (incomplete, causing duplication)
+
+### [DONE] CONSOLIDATED FILES (1):
+1. src/routes/authRoutes.js - Single source of truth for all auth routes
+
+## CHANGELOG - February 14-17, 2026
+
+### [MODULE] PHASE 2B: ORGANIZER APPLICATION SYSTEM - FORMS & STATUS [DONE] COMPLETE (Feb 14)
+
+### [NEW] NEW FILES (6):
+1. src/views/organizer/complete-profile.ejs (3-step form wizard, 400+ lines)
+2. src/public/css/complete-profile.css (professional styling, 600+ lines)
+3. src/public/js/complete-profile.js (form logic & validation, 500+ lines)
+4. src/views/organizer/application-status.ejs (status timeline, 350+ lines)
+5. src/public/css/application-status.css (status styling, 800+ lines)
+6. src/public/js/application-status.js (auto-refresh & copy, 150+ lines)
+
+### [UPDATED] UPDATED FILES (1):
+1. src/routes/organizer.routes.js
+
+## CHANGELOG - February 5, 2026
+
+### [NEW] SESSION UPDATE: LOGIN FLOW & NAVIGATION ENHANCEMENT
+
+### [DONE] UPDATED FILES (11):
+1. src/controllers/auth.controller.js - Role-based login redirects
+2. src/controllers/page.controller.js - Flash message handling
+3. src/middleware/auth.middleware.js - setUserContext middleware
+4. src/routes/authRoutes.js - Login & logout handlers
+5. src/views/layouts/nav.ejs - User menu with role-based nav
+6. src/views/pages/events.ejs - Auth-based hero content
+7. src/public/css/style.css - User menu styles
+8. src/public/css/events.css (NEW) - Events page styling
+9. src/server.js - Route prefix cleanup
+10. .gitignore - Updated with upload directories
+11. package.json - Dependencies verified

@@ -594,6 +594,53 @@ function calculateProgressPercent(currentValue, targetValue) {
   return Math.min(100, Number(((current / target) * 100).toFixed(2)));
 }
 
+async function getRunnerNextMilestones(mongoUserId, options = {}) {
+  if (!process.env.DATABASE_URL) return { nextGlobalMilestone: null, challengesInProgress: [] };
+
+  const sql = options.sql || getPostgresClient();
+  const [currentKm, progressRows] = await Promise.all([
+    sumApprovedLifetimeDistanceKm(mongoUserId).catch(() => 0),
+    sql`
+      SELECT
+        bp.id AS badge_progress_id,
+        bp.current_value,
+        bp.target_value,
+        bp.progress_percent,
+        bp.last_calculated_at,
+        bd.name,
+        bd.badge_type
+      FROM badge_progress bp
+      JOIN badge_definitions bd ON bd.id = bp.badge_definition_id
+      WHERE bp.mongo_user_id = ${String(mongoUserId)}
+        AND bp.progress_percent < 100
+        AND bd.badge_scope = 'challenge'
+      ORDER BY bp.progress_percent DESC
+      LIMIT 10
+    `.catch(() => [])
+  ]);
+
+  const nextMilestoneKm = GLOBAL_DISTANCE_MILESTONES_KM.find((km) => currentKm < km) || null;
+  const nextGlobalMilestone = nextMilestoneKm
+    ? {
+        distanceKm: nextMilestoneKm,
+        currentKm: Number(currentKm),
+        progressPercent: Math.min(99, Math.round((currentKm / nextMilestoneKm) * 100))
+      }
+    : null;
+
+  const challengesInProgress = progressRows.map((row) => ({
+    badgeProgressId: String(row.badge_progress_id || ''),
+    name: row.name || '',
+    badgeType: row.badge_type || '',
+    currentValue: Number(row.current_value || 0),
+    targetValue: Number(row.target_value || 0),
+    progressPercent: Number(row.progress_percent || 0),
+    lastCalculatedAt: row.last_calculated_at || null
+  }));
+
+  return { nextGlobalMilestone, challengesInProgress };
+}
+
 function clampInt(value, min, max, fallback) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed)) return fallback;
@@ -608,6 +655,7 @@ module.exports = {
   sumApprovedLifetimeDistanceKm,
   GLOBAL_DISTANCE_MILESTONES_KM,
   getRunnerBadgeProgress,
+  getRunnerNextMilestones,
   calculateProgressPercent,
   isEligibleChallengeEvent
 };

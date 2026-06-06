@@ -51,6 +51,12 @@
               <strong>Global HelloRun achievement</strong>
             </div>
           <% } %>
+          <% if (badge.points > 0) { %>
+            <div>
+              <span>Points</span>
+              <strong><%= badge.points %></strong>
+            </div>
+          <% } %>
           <div>
             <span>Evidence</span>
             <strong><%= badge.evidenceLabel %></strong>

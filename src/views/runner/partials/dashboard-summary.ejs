@@ -5,5 +5,6 @@
       <div class="kpi-card kpi-card-results"><div class="kpi-icon"><i data-lucide="clock"></i></div><div class="kpi-content"><span class="kpi-label">Pending Results</span><span class="kpi-value"><%= submissionStats?.submitted || 0 %></span></div></div>
       <div class="kpi-card kpi-card-certificates"><div class="kpi-icon"><i data-lucide="award"></i></div><div class="kpi-content"><span class="kpi-label">Certificates</span><span class="kpi-value"><%= submissionStats?.certificates || 0 %></span></div></div>
       <div class="kpi-card kpi-card-distance"><div class="kpi-icon"><i data-lucide="map-pin"></i></div><div class="kpi-content"><span class="kpi-label">Total Distance</span><span class="kpi-value"><%= Number(performanceStats?.totalDistanceKm || 0).toFixed(2) %> km</span></div></div>
+      <div class="kpi-card kpi-card-points"><div class="kpi-icon"><i data-lucide="star"></i></div><div class="kpi-content"><span class="kpi-label">Achievement Points</span><span class="kpi-value"><%= badgePointsSummary?.totalPoints || 0 %></span></div></div>
     </div>
   </section>

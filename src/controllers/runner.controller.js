@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Submission = require('../models/Submission');
 const passwordService = require('../services/password.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode } = require('../utils/country');
 const {
@@ -37,9 +38,10 @@ const {
 } = require('../services/profile-completion.service');
 const {
   getRunnerEarnedBadges,
+  getRunnerPointsSummary,
   setFeaturedRunnerBadge
 } = require('../services/achievement.service');
-const { getRunnerBadgeProgress } = require('../services/badge-progress.service');
+const { getRunnerBadgeProgress, getRunnerNextMilestones } = require('../services/badge-progress.service');
 const stravaService = require('../services/strava.service');
 
 const countries = getCountries();
@@ -735,7 +737,7 @@ function normalizeRegistrationCard(registration) {
 async function buildRunnerDashboardViewData(user, req) {
   const locale = getRequestLocale(req);
   const dashboardFilters = getDashboardFilters(req.query);
-  const [registrations, currentRunningGroups, recentGroupActivity, performanceSnapshot, recentBadges, badgeProgress] = await Promise.all([
+  const [registrations, currentRunningGroups, recentGroupActivity, performanceSnapshot, recentBadges, badgeProgress, badgePointsSummary, nextMilestones] = await Promise.all([
     getRunnerRegistrations(user._id),
     getCurrentRunnerGroups(user),
     getRecentRunnerGroupActivity(user, 4),
@@ -744,7 +746,9 @@ async function buildRunnerDashboardViewData(user, req) {
       resultStatus: dashboardFilters.resultStatus
     }),
     getRunnerEarnedBadges(user._id, { limit: 4 }).catch(() => []),
-    getRunnerBadgeProgress(user._id, { limit: 4 }).catch(() => [])
+    getRunnerBadgeProgress(user._id, { limit: 4 }).catch(() => []),
+    getRunnerPointsSummary(user._id).catch(() => ({ totalPoints: 0, badgeCount: 0 })),
+    getRunnerNextMilestones(user._id).catch(() => ({ nextGlobalMilestone: null, challengesInProgress: [] }))
   ]);
   const dashboardData = buildRunnerDashboardData(registrations);
   const eventProgressCards = await getRunnerEventProgressCards(registrations);
@@ -777,6 +781,8 @@ async function buildRunnerDashboardViewData(user, req) {
       badges: recentBadges,
       badgeProgress
     },
+    badgePointsSummary,
+    nextMilestones,
     stats: dashboardData.stats,
     submissionStats: performanceSnapshot.counts || { total: 0, submitted: 0, approved: 0, rejected: 0, certificates: 0 },
     performanceStats: performanceSnapshot.metrics || {
@@ -809,11 +815,25 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
   const profileData = getRunnerProfileFormData(user);
   const profileCompleteness = getProfileCompleteness(profileData);
   const selectedCountry = (countries || []).find((item) => item.code === profileData.country);
-  const [stravaConnection, badges, badgeProgress] = await Promise.all([
+  const [stravaConnection, badges, badgeProgress, badgePointsSummary] = await Promise.all([
     stravaService.getConnectionSummary(user._id).catch(() => ({ connected: false })),
     getRunnerEarnedBadges(user._id, { limit: 30 }).catch(() => []),
-    getRunnerBadgeProgress(user._id, { limit: 30 }).catch(() => [])
+    getRunnerBadgeProgress(user._id, { limit: 30 }).catch(() => []),
+    getRunnerPointsSummary(user._id).catch(() => ({ totalPoints: 0, badgeCount: 0 }))
   ]);
+
+  const finisherBadgeTypes = new Set(['finisher', 'distance_finisher', 'mode_finisher']);
+  const submissionIds = badges
+    .filter((b) => finisherBadgeTypes.has(b.badgeType) && b.mongoSubmissionId)
+    .map((b) => b.mongoSubmissionId);
+  const certifiedSubmissionIds = await (async () => {
+    if (!submissionIds.length) return new Set();
+    const docs = await Submission.find(
+      { _id: { $in: submissionIds }, 'certificate.url': { $exists: true, $ne: '' } },
+      { _id: 1 }
+    ).lean().catch(() => []);
+    return new Set(docs.map((d) => String(d._id)));
+  })();
 
   return {
     title: 'Personal Information - HelloRun',
@@ -827,6 +847,8 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
     stravaConnection,
     badges,
     badgeProgress,
+    badgePointsSummary,
+    certifiedSubmissionIds,
     publicBadgeCollectionPath: user.userId ? `/runners/${encodeURIComponent(user.userId)}/badges` : '',
     passwordErrors: {},
     passwordMessage: null,

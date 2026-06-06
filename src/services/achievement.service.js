@@ -225,6 +225,7 @@ async function getRunnerEarnedBadges(mongoUserId, options = {}) {
       ub.verification_status,
       ub.event_core_id,
       ub.mongo_event_id,
+      ub.mongo_submission_id,
       bd.id AS badge_definition_id,
       bd.badge_code,
       bd.name,
@@ -232,6 +233,7 @@ async function getRunnerEarnedBadges(mongoUserId, options = {}) {
       bd.badge_scope,
       bd.badge_type,
       bd.requirement_type,
+      bd.points,
       ec.title AS event_title,
       ec.slug AS event_slug,
       eb.badge_name_override,
@@ -265,8 +267,30 @@ async function getRunnerEarnedBadges(mongoUserId, options = {}) {
     eventTitle: row.event_title || '',
     eventSlug: row.event_slug || '',
     earnedAt: row.earned_at || null,
-    isFeatured: Boolean(row.is_featured)
+    isFeatured: Boolean(row.is_featured),
+    points: Number(row.points || 0),
+    mongoSubmissionId: row.mongo_submission_id || ''
   }));
+}
+
+async function getRunnerPointsSummary(mongoUserId, options = {}) {
+  if (!process.env.DATABASE_URL) return { totalPoints: 0, badgeCount: 0 };
+
+  const sql = options.sql || getPostgresClient();
+  const rows = await sql`
+    SELECT
+      COALESCE(SUM(bd.points), 0) AS total_points,
+      COUNT(*) AS badge_count
+    FROM user_badges ub
+    JOIN badge_definitions bd ON bd.id = ub.badge_definition_id
+    WHERE ub.mongo_user_id = ${String(mongoUserId)}
+      AND ub.verification_status = 'verified'
+  `;
+  const row = rows[0] || {};
+  return {
+    totalPoints: Number(row.total_points || 0),
+    badgeCount: Number(row.badge_count || 0)
+  };
 }
 
 async function getPublicBadgeVerification(userBadgeId, options = {}) {
@@ -1484,6 +1508,7 @@ module.exports = {
   evaluateSubmissionAchievementsInBackground,
   evaluateOrganiserAchievementsInBackground,
   getRunnerEarnedBadges,
+  getRunnerPointsSummary,
   getPublicBadgeVerification,
   setFeaturedRunnerBadge,
   listBadgeDefinitions,

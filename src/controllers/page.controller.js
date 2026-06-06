@@ -438,6 +438,7 @@ exports.getPublicRunnerBadgeCollection = async (req, res) => {
     }
 
     const badges = await getRunnerEarnedBadges(runner._id, { limit: 100 });
+    const totalPoints = badges.reduce((sum, b) => sum + (b.points || 0), 0);
     const baseUrl = getSitemapBaseUrl(req);
     const collectionUrl = `${baseUrl}/runners/${encodeURIComponent(runner.userId)}/badges`;
     const collectionShareImageUrl = `${baseUrl}/runners/${encodeURIComponent(runner.userId)}/badges/share-image.svg`;
@@ -462,6 +463,7 @@ exports.getPublicRunnerBadgeCollection = async (req, res) => {
         joinedAt: runner.createdAt || null
       },
       badges,
+      totalPoints,
       featuredBadge,
       badgesByScope,
       collectionUrl,

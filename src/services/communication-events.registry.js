@@ -188,7 +188,7 @@ const COMMUNICATION_EVENTS = Object.freeze([
     category: 'achievement',
     priority: 'low',
     required: false,
-    emailEnabled: false,
+    emailEnabled: true,
     inAppEnabled: true,
     locked: false,
     recipientRoles: ['runner'],

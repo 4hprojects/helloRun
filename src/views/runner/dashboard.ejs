@@ -139,6 +139,9 @@
                         <span class="dashboard-badge-meta"><%= badge.description %></span>
                       <% } %>
                     </span>
+                    <% if (badge.points > 0) { %>
+                      <span class="dashboard-badge-points"><%= badge.points %> pts</span>
+                    <% } %>
                     <% if (badge.isFeatured) { %>
                       <span class="dashboard-badge-state">Featured</span>
                     <% } %>
@@ -185,6 +188,42 @@
             <% } %>
           </div>
         </section>
+
+        <% if (nextMilestones && (nextMilestones.nextGlobalMilestone || nextMilestones.challengesInProgress.length)) { %>
+        <section class="card runner-badge-next-card">
+          <div class="card-header runner-badges-header">
+            <h2><i data-lucide="target"></i> What's Next</h2>
+          </div>
+          <div class="card-content runner-badge-next-content">
+            <% if (nextMilestones.nextGlobalMilestone) { %>
+              <% const gm = nextMilestones.nextGlobalMilestone; %>
+              <div class="dashboard-badge-progress-row">
+                <div class="dashboard-badge-progress-header">
+                  <strong>Global Distance — <%= gm.distanceKm %> km milestone</strong>
+                  <span><%= gm.progressPercent %>%</span>
+                </div>
+                <div class="dashboard-badge-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= gm.progressPercent %>">
+                  <span style="width: <%= gm.progressPercent %>%"></span>
+                </div>
+                <small><%= Number(gm.currentKm).toFixed(2) %> km / <%= gm.distanceKm %> km</small>
+              </div>
+            <% } %>
+            <% nextMilestones.challengesInProgress.forEach(function(item) { %>
+              <% const pct = Math.max(0, Math.min(100, Number(item.progressPercent || 0))); %>
+              <div class="dashboard-badge-progress-row">
+                <div class="dashboard-badge-progress-header">
+                  <strong><%= item.name %></strong>
+                  <span><%= pct.toFixed(pct % 1 === 0 ? 0 : 1) %>%</span>
+                </div>
+                <div class="dashboard-badge-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= Math.round(pct) %>">
+                  <span style="width: <%= pct %>%"></span>
+                </div>
+                <small><%= Number(item.currentValue).toFixed(2) %> km / <%= Number(item.targetValue).toFixed(2) %> km</small>
+              </div>
+            <% }) %>
+          </div>
+        </section>
+        <% } %>
 
         <section class="card runner-event-progress-card" data-dashboard-fragment="eventProgress">
           <div class="card-header runner-event-progress-header">

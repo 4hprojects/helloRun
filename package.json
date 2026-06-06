@@ -40,13 +40,15 @@
     "test": "node src/scripts/run-test-group.js",
     "test:parallel": "node -e \"const { spawnSync } = require('node:child_process'); const env = { ...process.env, CSRF_PROTECTION: '0' }; const result = spawnSync(process.execPath, ['--test', 'tests/*.test.js'], { stdio: 'inherit', env }); process.exit(result.status ?? 1);\"",
     "test:audit": "npm audit --omit=dev",
-    "test:auth": "node src/scripts/run-test-group.js tests/*auth*.test.js tests/*csrf*.test.js tests/*security*.test.js tests/privacy-signup-consent.test.js tests/google-oauth-routes.test.js tests/rate-limiter-enforcement.test.js",
-    "test:shop": "node src/scripts/run-test-group.js tests/*shop*.test.js tests/registration-addons-read.test.js",
-    "test:runner": "node src/scripts/run-test-group.js tests/runner*.test.js tests/running-group*.test.js tests/submission*.test.js tests/run-proof-integrity.test.js tests/ocr*.test.js tests/strava-integration.test.js",
+    "test:unit": "node src/scripts/run-test-group.js tests/*.unit.test.js",
+    "test:integration": "node src/scripts/run-test-group.js tests/*.integration.test.js",
+    "test:auth": "node src/scripts/run-test-group.js tests/*auth*.test.js tests/*csrf*.test.js tests/*security*.test.js tests/privacy-signup-consent.integration.test.js tests/google-oauth-routes.integration.test.js tests/rate-limiter-enforcement.integration.test.js",
+    "test:shop": "node src/scripts/run-test-group.js tests/*shop*.test.js tests/registration-addons-read.integration.test.js",
+    "test:runner": "node src/scripts/run-test-group.js tests/runner*.test.js tests/running-group*.test.js tests/submission*.test.js tests/run-proof-integrity.unit.test.js tests/ocr*.test.js tests/strava-integration.integration.test.js",
     "test:organizer": "node src/scripts/run-test-group.js tests/organizer*.test.js tests/organiser*.test.js tests/onsite*.test.js tests/phase7*.test.js tests/payment*.test.js",
-    "test:admin": "node src/scripts/run-test-group.js tests/admin*.test.js tests/blog-admin-workflow.test.js tests/organiser-application-review.test.js",
-    "test:services": "node src/scripts/run-test-group.js tests/*.service.test.js tests/*shadow*.test.js tests/*bridge*.test.js",
-    "test:smoke": "npm run test:audit && node src/scripts/run-test-group.js tests/static-pages.test.js tests/sitemap-readiness.test.js tests/event-public-view.test.js tests/public-search-filters.test.js tests/organizer-onsite-qr-security.test.js tests/shop-readonly-routes.test.js"
+    "test:admin": "node src/scripts/run-test-group.js tests/admin*.test.js tests/blog-admin-workflow.integration.test.js tests/organiser-application-review.integration.test.js",
+    "test:services": "node src/scripts/run-test-group.js tests/*.service.unit.test.js tests/*.service.integration.test.js tests/*shadow*.test.js tests/*bridge*.test.js",
+    "test:smoke": "npm run test:audit && node src/scripts/run-test-group.js tests/*.smoke.test.js"
   },
   "keywords": [
     "running",

@@ -17,6 +17,7 @@
           <div class="badge-collection-meta">
             <span><i data-lucide="hash"></i> <%= runner.userId %></span>
             <span><i data-lucide="award"></i> <%= badges.length %> verified badge<%= badges.length === 1 ? '' : 's' %></span>
+            <% if (totalPoints > 0) { %><span><i data-lucide="star"></i> <%= totalPoints %> pts</span><% } %>
             <span><i data-lucide="calendar"></i> Joined <%= formatDateOnly(runner.joinedAt) %></span>
           </div>
         </div>
@@ -87,9 +88,16 @@
           <div class="badge-collection-section-head">
             <h2 id="collection-badges-heading">Verified Badges</h2>
           </div>
+          <div class="badge-filter-row" role="toolbar" aria-label="Filter badges by scope">
+            <button type="button" class="badge-filter-btn active" data-scope="all">All</button>
+            <button type="button" class="badge-filter-btn" data-scope="event">Event</button>
+            <button type="button" class="badge-filter-btn" data-scope="challenge">Challenge</button>
+            <button type="button" class="badge-filter-btn" data-scope="global">Global</button>
+            <button type="button" class="badge-filter-btn" data-scope="organiser">Organiser</button>
+          </div>
           <div class="badge-collection-grid">
             <% badges.forEach((badge) => { %>
-              <article class="badge-collection-card">
+              <article class="badge-collection-card" data-badge-scope="<%= badge.badgeScope || 'event' %>">
                 <div class="badge-collection-card-top">
                   <span class="badge-collection-icon" aria-hidden="true">
                     <% if (badge.imageUrl) { %>
@@ -109,6 +117,7 @@
                 <% } %>
                 <div class="badge-collection-card-foot">
                   <span>Earned <%= formatDateOnly(badge.earnedAt) %></span>
+                  <% if (badge.points > 0) { %><span class="badge-collection-points"><%= badge.points %> pts</span><% } %>
                   <a href="/badges/<%= badge.userBadgeId %>">Verify</a>
                 </div>
               </article>
@@ -122,5 +131,21 @@
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
   <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    (function () {
+      var btns = document.querySelectorAll('.badge-filter-btn');
+      var cards = document.querySelectorAll('.badge-collection-card');
+      btns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var scope = btn.dataset.scope;
+          btns.forEach(function (b) { b.classList.remove('active'); });
+          btn.classList.add('active');
+          cards.forEach(function (card) {
+            card.style.display = (scope === 'all' || card.dataset.badgeScope === scope) ? '' : 'none';
+          });
+        });
+      });
+    })();
+  </script>
 </body>
 </html>
