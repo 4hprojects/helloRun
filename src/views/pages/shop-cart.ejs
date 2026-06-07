@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="shop-page">
+    <section class="shop-header shop-product-header">
+      <div>
+        <% if (eventSlug) { %>
+          <a href="/events/<%= eventSlug %>/shop" class="shop-back-link"><i data-lucide="arrow-left"></i><span>Continue Shopping</span></a>
+        <% } else if (lines.length) { %>
+          <a href="/shop" class="shop-back-link"><i data-lucide="arrow-left"></i><span>Continue Shopping</span></a>
+        <% } %>
+        <p class="shop-eyebrow">Your Cart</p>
+        <h1>Cart</h1>
+      </div>
+      <div class="shop-price-panel">
+        <span>Subtotal</span>
+        <strong><%= summary.subtotalLabel %></strong>
+      </div>
+    </section>
+
+    <section class="shop-detail-layout">
+      <div class="shop-detail-main">
+        <% if (message) { %>
+          <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+        <% } %>
+
+        <input type="hidden" name="_csrf" id="shopCartCsrfToken" value="<%= locals.csrfToken || '' %>">
+
+        <% if (lines.length) { %>
+          <section class="shop-detail-section">
+            <h2>Items</h2>
+            <div class="shop-variant-list">
+              <% lines.forEach((line) => { %>
+                <article class="shop-cart-line" data-item-id="<%= line.itemId %>">
+                  <div>
+                    <h3><%= line.productName %></h3>
+                    <p>
+                      <% if (line.variantName) { %><%= line.variantName %> &middot; <% } %>
+                      <%= line.unitPriceLabel %> each
+                    </p>
+                  </div>
+                  <div class="shop-cart-line-controls">
+                    <input type="number" class="shop-cart-qty-input" data-cart-quantity-input min="1" max="99" value="<%= line.quantity %>">
+                    <button type="button" class="shop-cart-remove-btn" data-cart-remove>Remove</button>
+                    <span><%= line.lineTotalLabel %></span>
+                  </div>
+                </article>
+              <% }) %>
+            </div>
+          </section>
+
+          <section class="shop-detail-section">
+            <h2>Order Summary</h2>
+            <div class="shop-detail-list">
+              <p><strong>Items</strong><span><%= summary.itemCount %></span></p>
+              <p><strong>Subtotal</strong><span><%= summary.subtotalLabel %></span></p>
+            </div>
+            <div class="shop-form-footer">
+              <a href="/shop/checkout" class="nav-signup-btn detail-status-btn">Proceed to Checkout</a>
+            </div>
+          </section>
+        <% } else { %>
+          <section class="shop-empty-state">
+            <i data-lucide="shopping-cart"></i>
+            <h2>Your cart is empty</h2>
+            <p>Browse an event shop and add items to your cart to get started.</p>
+          </section>
+        <% } %>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    (function () {
+      const csrfToken = String((document.getElementById('shopCartCsrfToken') || {}).value || '');
+
+      function redirectWithMessage(type, msg) {
+        window.location.href = `${window.location.pathname}?type=${encodeURIComponent(type)}&msg=${encodeURIComponent(msg)}`;
+      }
+
+      document.querySelectorAll('[data-cart-quantity-input]').forEach((input) => {
+        input.addEventListener('change', async () => {
+          const line = input.closest('[data-item-id]');
+          const itemId = line.dataset.itemId;
+          const quantity = Number(input.value);
+
+          try {
+            const response = await fetch(`/shop/cart/items/${itemId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+              body: JSON.stringify({ quantity })
+            });
+            const data = await response.json().catch(() => ({}));
+
+            if (response.ok && data.success) {
+              redirectWithMessage('success', 'Cart updated.');
+              return;
+            }
+            redirectWithMessage('error', (data && data.message) || 'Unable to update cart.');
+          } catch (error) {
+            redirectWithMessage('error', 'Unable to update cart. Please try again.');
+          }
+        });
+      });
+
+      document.querySelectorAll('[data-cart-remove]').forEach((button) => {
+        button.addEventListener('click', async () => {
+          const line = button.closest('[data-item-id]');
+          const itemId = line.dataset.itemId;
+
+          try {
+            const response = await fetch(`/shop/cart/items/${itemId}`, {
+              method: 'DELETE',
+              headers: { 'x-csrf-token': csrfToken }
+            });
+            const data = await response.json().catch(() => ({}));
+
+            if (response.ok && data.success) {
+              redirectWithMessage('success', 'Item removed from cart.');
+              return;
+            }
+            redirectWithMessage('error', (data && data.message) || 'Unable to remove item.');
+          } catch (error) {
+            redirectWithMessage('error', 'Unable to remove item. Please try again.');
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

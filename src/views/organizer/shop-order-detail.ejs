@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/event-manage.css">
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="manage-page organizer-shop-order-detail-page">
+    <section class="manage-shell">
+      <header class="manage-header">
+        <div class="manage-header-copy">
+          <p class="manage-eyebrow">Shop Manager</p>
+          <h1><%= order.order_number %></h1>
+          <p>Review the order summary, items, and update fulfilment status for this purchase.</p>
+        </div>
+        <div class="header-actions">
+          <a href="/organizer/events/<%= event._id %>/shop" class="nav-login-btn detail-nav-btn">Back to Shop Manager</a>
+          <a href="/organizer/events/<%= event._id %>/shop/orders" class="nav-login-btn detail-nav-btn">All Orders</a>
+        </div>
+      </header>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <section class="detail-card detail-card-full">
+        <div class="shop-manage-section-head">
+          <h3>Order Summary</h3>
+          <span class="shop-badge shop-badge-<%= statusTone(order.payment_status) %>"><%= order.payment_status %></span>
+          <span class="shop-badge shop-badge-<%= statusTone(order.fulfilment_status) %>"><%= order.fulfilment_status %></span>
+        </div>
+        <div class="shop-order-summary">
+          <div>
+            <strong>Buyer</strong>
+            <span><%= order.buyer_display_name || order.buyer_email || 'Unknown runner' %></span>
+          </div>
+          <div>
+            <strong>Delivery Method</strong>
+            <span><%= order.delivery_method || 'Not specified' %></span>
+          </div>
+          <div>
+            <strong>Subtotal</strong>
+            <span><%= formatCurrency(order.subtotal, order.currency) %></span>
+          </div>
+          <div>
+            <strong>Delivery Fee</strong>
+            <span><%= formatCurrency(order.delivery_fee, order.currency) %></span>
+          </div>
+          <div>
+            <strong>Total</strong>
+            <span><%= formatCurrency(order.total_amount, order.currency) %></span>
+          </div>
+          <div>
+            <strong>Placed</strong>
+            <span><%= order.created_at ? new Date(order.created_at).toLocaleString() : 'Unknown' %></span>
+          </div>
+        </div>
+        <% if (order.customer_note) { %>
+          <p class="shop-order-note"><strong>Customer note:</strong> <%= order.customer_note %></p>
+        <% } %>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <h3>Items</h3>
+        <% const items = Array.isArray(order.items) ? order.items : []; %>
+        <% if (items.length) { %>
+          <ul class="shop-order-items">
+            <% items.forEach((item) => { %>
+              <li>
+                <div class="shop-manage-list-primary">
+                  <strong><%= item.name_snapshot %></strong>
+                  <span class="shop-muted">x<%= item.quantity %></span>
+                </div>
+                <div class="shop-manage-list-meta">
+                  <span><%= formatCurrency(item.unit_price, order.currency) %> each</span>
+                  <span><%= formatCurrency(item.line_total, order.currency) %> total</span>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="shop-muted">No line items recorded for this order.</p>
+        <% } %>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <h3>Update Fulfilment</h3>
+        <form id="shopFulfilmentForm" method="POST" data-order-id="<%= order.id %>" class="shop-form-grid">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <label>
+            <span>Fulfilment Status</span>
+            <select name="fulfilmentStatus">
+              <% ['not_started', 'preparing', 'ready_for_pickup', 'shipped', 'claimed', 'completed', 'cancelled'].forEach((statusOption) => { %>
+                <option value="<%= statusOption %>" <%= order.fulfilment_status === statusOption ? 'selected' : '' %>><%= statusOption %></option>
+              <% }) %>
+            </select>
+          </label>
+          <label>
+            <span>Note (optional)</span>
+            <input type="text" name="note" maxlength="1000" placeholder="e.g. Tracking number or pickup instructions">
+          </label>
+          <div class="shop-form-footer">
+            <button type="submit" class="nav-signup-btn detail-status-btn">Update Status</button>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    (function () {
+      const form = document.getElementById('shopFulfilmentForm');
+      if (!form) return;
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const orderId = form.dataset.orderId;
+        const formData = new FormData(form);
+        const csrfToken = String(formData.get('_csrf') || '');
+        const payload = {
+          fulfilmentStatus: String(formData.get('fulfilmentStatus') || ''),
+          note: String(formData.get('note') || '')
+        };
+
+        try {
+          const response = await fetch(`${window.location.pathname}/fulfilment`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+            body: JSON.stringify(payload)
+          });
+          const data = await response.json().catch(() => ({}));
+
+          if (response.ok && data.success) {
+            window.location.href = `${window.location.pathname}?type=success&msg=${encodeURIComponent('Fulfilment status updated.')}`;
+            return;
+          }
+
+          const message = (data && data.message) || 'Unable to update fulfilment status.';
+          window.location.href = `${window.location.pathname}?type=error&msg=${encodeURIComponent(message)}`;
+        } catch (error) {
+          window.location.href = `${window.location.pathname}?type=error&msg=${encodeURIComponent('Unable to update fulfilment status. Please try again.')}`;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

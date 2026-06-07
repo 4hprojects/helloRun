@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="shop-page">
+    <section class="shop-header shop-product-header">
+      <div>
+        <a href="/orders" class="shop-back-link"><i data-lucide="arrow-left"></i><span>My Orders</span></a>
+        <% if (order.event_title) { %><p class="shop-eyebrow"><%= order.event_title %></p><% } %>
+        <h1><%= order.order_number %></h1>
+      </div>
+      <div class="shop-price-panel">
+        <span>Total</span>
+        <strong><%= formatCurrency(order.total_amount, order.currency) %></strong>
+      </div>
+    </section>
+
+    <section class="shop-detail-layout">
+      <div class="shop-detail-main">
+        <% if (message) { %>
+          <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+        <% } %>
+
+        <section class="shop-detail-section">
+          <h2>Order Status</h2>
+          <div class="shop-detail-list">
+            <p><strong>Payment</strong><span class="shop-badge shop-badge-<%= statusTone(order.payment_status) %>"><%= order.payment_status %></span></p>
+            <p><strong>Fulfilment</strong><span class="shop-badge shop-badge-<%= statusTone(order.fulfilment_status) %>"><%= order.fulfilment_status %></span></p>
+            <p><strong>Delivery Method</strong><span><%= order.delivery_method || 'Not specified' %></span></p>
+            <% if (order.delivery_address_snapshot) { %>
+              <p><strong>Delivery Address</strong><span><%= order.delivery_address_snapshot %></span></p>
+            <% } %>
+            <p><strong>Placed</strong><span><%= order.created_at ? new Date(order.created_at).toLocaleString() : 'Unknown' %></span></p>
+          </div>
+        </section>
+
+        <section class="shop-detail-section">
+          <h2>Items</h2>
+          <% const items = Array.isArray(order.items) ? order.items : []; %>
+          <% if (items.length) { %>
+            <div class="shop-variant-list">
+              <% items.forEach((item) => { %>
+                <article>
+                  <div>
+                    <h3><%= item.name_snapshot %></h3>
+                    <p><%= formatCurrency(item.unit_price, order.currency) %> x <%= item.quantity %></p>
+                  </div>
+                  <span><%= formatCurrency(item.line_total, order.currency) %></span>
+                </article>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <p class="shop-muted">No line items recorded for this order.</p>
+          <% } %>
+        </section>
+
+        <section class="shop-detail-section">
+          <h2>Order Summary</h2>
+          <div class="shop-detail-list">
+            <p><strong>Subtotal</strong><span><%= formatCurrency(order.subtotal, order.currency) %></span></p>
+            <p><strong>Delivery Fee</strong><span><%= formatCurrency(order.delivery_fee, order.currency) %></span></p>
+            <p><strong>Total</strong><span><%= formatCurrency(order.total_amount, order.currency) %></span></p>
+          </div>
+          <% if (order.customer_note) { %>
+            <p class="shop-order-note"><strong>Note:</strong> <%= order.customer_note %></p>
+          <% } %>
+        </section>
+
+        <% if (canSubmitPaymentProof || canCancelOrder) { %>
+          <section class="shop-detail-section">
+            <h2>Order Actions</h2>
+            <div class="shop-form-footer">
+              <% if (canSubmitPaymentProof) { %>
+                <a href="/orders/<%= order.order_number %>/payment" class="nav-signup-btn detail-status-btn">Upload Payment Proof</a>
+              <% } %>
+              <% if (canCancelOrder) { %>
+                <button type="button" id="shopOrderCancelBtn" class="nav-login-btn detail-status-btn" data-csrf="<%= locals.csrfToken || '' %>">Cancel Order</button>
+              <% } %>
+            </div>
+          </section>
+        <% } %>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    (function () {
+      const cancelBtn = document.getElementById('shopOrderCancelBtn');
+      if (!cancelBtn) return;
+
+      cancelBtn.addEventListener('click', async () => {
+        if (!window.confirm('Are you sure you want to cancel this order? This cannot be undone.')) return;
+
+        const csrfToken = cancelBtn.dataset.csrf || '';
+        try {
+          const response = await fetch(`${window.location.pathname}/cancel`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+            body: JSON.stringify({})
+          });
+          const data = await response.json().catch(() => ({}));
+
+          if (response.ok && data.success) {
+            window.location.href = `${window.location.pathname}?type=success&msg=${encodeURIComponent('Order cancelled.')}`;
+            return;
+          }
+
+          const message = (data && data.message) || 'Unable to cancel order.';
+          window.location.href = `${window.location.pathname}?type=error&msg=${encodeURIComponent(message)}`;
+        } catch (error) {
+          window.location.href = `${window.location.pathname}?type=error&msg=${encodeURIComponent('Unable to cancel order. Please try again.')}`;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

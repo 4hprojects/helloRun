@@ -115,9 +115,12 @@ function validateCartPayload(body) {
 function validateCheckoutPayload(body) {
   const errors = [];
   const deliveryMethod = String(body.deliveryMethod || body.delivery_method || '').trim();
+  const deliveryAddress = String(body.deliveryAddress || body.delivery_address || '').trim();
   const note = String(body.customerNote || body.customer_note || '').trim();
 
-  if (deliveryMethod && !['pickup', 'delivery'].includes(deliveryMethod)) errors.push('Delivery method is invalid.');
+  if (!['pickup', 'delivery'].includes(deliveryMethod)) errors.push('Please select a valid delivery method.');
+  if (deliveryMethod === 'delivery' && !deliveryAddress) errors.push('A delivery address is required for delivery orders.');
+  if (deliveryAddress.length > 500) errors.push('Delivery address must be 500 characters or fewer.');
   if (note.length > 1000) errors.push('Customer note must be 1000 characters or fewer.');
 
   return errors;

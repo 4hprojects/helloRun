@@ -19,30 +19,44 @@ function notLive(res, message) {
 
 exports.getShopDashboard = async (req, res, next) => {
   try {
-    const [products, orders, paymentReviews] = await Promise.all([
+    const [event, products, orders, paymentReviews] = await Promise.all([
+      Event.findById(req.params.eventId).select('_id slug title status').lean(),
       productService.listProductsByMongoEventId(req.params.eventId, { limit: 100 }),
       orderService.listOrdersByMongoEventId(req.params.eventId, { limit: 100 }),
       paymentReviewService.listPendingPaymentReviewsByMongoEventId(req.params.eventId, { limit: 100 })
     ]);
 
-    const payload = {
+    if (!event) {
+      return res.status(404).render('error', { title: 'Event Not Found', status: 404, message: 'Event not found.' });
+    }
+
+    const summary = {
+      productCount: products.length,
+      orderCount: orders.length,
+      pendingPaymentReviewCount: paymentReviews.length
+    };
+
+    if (wantsHtml(req)) {
+      return res.render('organizer/event-shop-dashboard', {
+        title: `Shop Manager - ${event.title}`,
+        event,
+        summary,
+        products: products.slice(0, 10),
+        orders: orders.slice(0, 10),
+        paymentReviews: paymentReviews.slice(0, 10),
+        formatCurrency,
+        statusTone
+      });
+    }
+
+    return res.json({
       success: true,
-      summary: {
-        productCount: products.length,
-        orderCount: orders.length,
-        pendingPaymentReviewCount: paymentReviews.length
-      },
+      summary,
       csrfToken: res.locals.csrfToken || '',
       products,
       orders,
       paymentReviews
-    };
-
-    if (wantsHtml(req)) {
-      return res.status(200).send(renderManagementHtml('Organizer Shop', payload));
-    }
-
-    return res.json(payload);
+    });
   } catch (error) {
     return next(error);
   }
@@ -59,7 +73,20 @@ exports.getProducts = async (req, res, next) => {
   }
 };
 
-exports.getNewProduct = async (req, res) => res.status(200).send(renderProductFormHtml('New Product', req.params.eventId));
+exports.getNewProduct = async (req, res, next) => {
+  try {
+    const event = await Event.findById(req.params.eventId).select('_id slug title').lean();
+    if (!event) return res.status(404).render('error', { title: 'Event Not Found', status: 404, message: 'Event not found.' });
+    return res.render('organizer/shop-product-form', {
+      title: `New Product - ${event.title}`,
+      event,
+      product: null,
+      message: getPageMessage(req.query)
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
 
 exports.postProduct = async (req, res, next) => {
   try {
@@ -68,7 +95,16 @@ exports.postProduct = async (req, res, next) => {
       req.body,
       req.shopActorAppUserId
     );
-    if (!product) return res.status(404).json({ success: false, message: 'Event shop record not found.' });
+    if (!product) {
+      if (wantsHtml(req)) {
+        return res.redirect(`/organizer/events/${req.params.eventId}/shop/products/new?type=error&msg=${encodeURIComponent('Event shop record not found.')}`);
+      }
+      return res.status(404).json({ success: false, message: 'Event shop record not found.' });
+    }
+
+    if (wantsHtml(req)) {
+      return res.redirect(`/organizer/events/${req.params.eventId}/shop/products/${product.id}/edit?type=success&msg=${encodeURIComponent('Product created.')}`);
+    }
     return res.status(201).json({ success: true, product });
   } catch (error) {
     return next(error);
@@ -77,9 +113,18 @@ exports.postProduct = async (req, res, next) => {
 
 exports.getEditProduct = async (req, res, next) => {
   try {
-    const product = await productService.getProductById(req.params.productId);
+    const [event, product] = await Promise.all([
+      Event.findById(req.params.eventId).select('_id slug title').lean(),
+      productService.getProductById(req.params.productId)
+    ]);
+    if (!event) return res.status(404).render('error', { title: 'Event Not Found', status: 404, message: 'Event not found.' });
     if (!product) return res.status(404).render('error', { title: 'Product Not Found', status: 404, message: 'Product not found.' });
-    return res.status(200).send(renderProductFormHtml('Edit Product', req.params.eventId, product));
+    return res.render('organizer/shop-product-form', {
+      title: `Edit Product - ${event.title}`,
+      event,
+      product,
+      message: getPageMessage(req.query)
+    });
   } catch (error) {
     return next(error);
   }
@@ -88,7 +133,16 @@ exports.getEditProduct = async (req, res, next) => {
 exports.patchProduct = async (req, res, next) => {
   try {
     const product = await productService.updateProduct(req.params.productId, req.body, req.shopActorAppUserId);
-    if (!product) return res.status(404).json({ success: false, message: 'Product not found.' });
+    if (!product) {
+      if (wantsHtml(req)) {
+        return res.redirect(`/organizer/events/${req.params.eventId}/shop/products/${req.params.productId}/edit?type=error&msg=${encodeURIComponent('Product not found.')}`);
+      }
+      return res.status(404).json({ success: false, message: 'Product not found.' });
+    }
+
+    if (wantsHtml(req)) {
+      return res.redirect(`/organizer/events/${req.params.eventId}/shop/products/${product.id}/edit?type=success&msg=${encodeURIComponent('Product updated.')}`);
+    }
     return res.json({ success: true, product });
   } catch (error) {
     return next(error);
@@ -172,7 +226,21 @@ exports.getOrderDetail = async (req, res, next) => {
   try {
     const order = await orderService.getOrderByIdForMongoEvent(req.params.orderId, req.params.eventId);
     if (!order) return res.status(404).json({ success: false, message: 'Order not found.' });
-    if (wantsHtml(req)) return res.status(200).send(renderOrderHtml(order));
+
+    if (wantsHtml(req)) {
+      const event = await Event.findById(req.params.eventId).select('_id slug title').lean();
+      if (!event) return res.status(404).render('error', { title: 'Event Not Found', status: 404, message: 'Event not found.' });
+
+      return res.render('organizer/shop-order-detail', {
+        title: `${order.order_number} · Shop Order`,
+        event,
+        order,
+        formatCurrency,
+        statusTone,
+        message: getPageMessage(req.query)
+      });
+    }
+
     return res.json({ success: true, order });
   } catch (error) {
     return next(error);
@@ -366,52 +434,33 @@ function wantsHtml(req) {
   return accept.includes('text/html') && !accept.includes('application/json');
 }
 
-function renderManagementHtml(title, payload) {
-  return `<!doctype html>
-<html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
-<body>
-  <main>
-    <h1>${escapeHtml(title)}</h1>
-    <input type="hidden" name="_csrf" value="${escapeHtml(String(payload.csrfToken || ''))}">
-    <p>Products: ${payload.summary.productCount}</p>
-    <p>Orders: ${payload.summary.orderCount}</p>
-    <p>Pending payment reviews: ${payload.summary.pendingPaymentReviewCount}</p>
-  </main>
-</body></html>`;
+function formatCurrency(value, currency = 'PHP') {
+  const amount = Math.max(0, Number(value || 0));
+  return `${String(currency || 'PHP').trim().toUpperCase()} ${amount.toLocaleString('en-US', {
+    minimumFractionDigits: amount % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2
+  })}`;
 }
 
-function renderProductFormHtml(title, eventId, product = {}) {
-  return `<!doctype html>
-<html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
-<body>
-  <main>
-    <h1>${escapeHtml(title)}</h1>
-    <form method="post" action="/organizer/events/${escapeHtml(String(eventId))}/shop/products">
-      <input type="hidden" name="_csrf" value="">
-      <input name="name" value="${escapeHtml(product.name || '')}">
-      <input name="slug" value="${escapeHtml(product.slug || '')}">
-      <input name="basePrice" value="${escapeHtml(String(product.base_price || '0'))}">
-    </form>
-  </main>
-</body></html>`;
+const STATUS_TONES = {
+  positive: ['active', 'published', 'paid', 'completed', 'approved', 'claimed', 'shipped'],
+  warning: ['draft', 'pending', 'pending_review', 'preparing', 'correction_required', 'awaiting_payment'],
+  negative: ['archived', 'rejected', 'cancelled', 'refunded', 'unpaid', 'proof_rejected', 'closed']
+};
+
+function statusTone(status) {
+  const value = String(status || '').trim().toLowerCase();
+  if (STATUS_TONES.positive.includes(value)) return 'positive';
+  if (STATUS_TONES.warning.includes(value)) return 'warning';
+  if (STATUS_TONES.negative.includes(value)) return 'negative';
+  return 'neutral';
 }
 
-function renderOrderHtml(order) {
-  return `<!doctype html>
-<html><head><meta charset="utf-8"><title>${escapeHtml(order.order_number)}</title></head>
-<body><main>
-  <h1>${escapeHtml(order.order_number)}</h1>
-  <p>Payment: ${escapeHtml(order.payment_status)}</p>
-  <p>Fulfilment: ${escapeHtml(order.fulfilment_status)}</p>
-</main></body></html>`;
-}
-
-function escapeHtml(value) {
-  return String(value || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function getPageMessage(query) {
+  const msg = typeof query.msg === 'string' ? query.msg.trim() : '';
+  if (!msg) return null;
+  const type = query.type === 'error' ? 'error' : 'success';
+  return { type, text: msg.slice(0, 200) };
 }
 
 function extractRegistrationIdFromOrderNote(orderNote) {

@@ -52,6 +52,58 @@ async function listProductsByMongoEventId(mongoEventId, options = {}) {
   return rows;
 }
 
+async function listPublicProductsAcrossEvents(options = {}) {
+  const sql = getPostgresClient();
+  const mongoEventIds = Array.isArray(options.mongoEventIds)
+    ? options.mongoEventIds.map((value) => String(value || '').trim()).filter(Boolean)
+    : [];
+
+  const search = String(options.search || '').trim();
+  const eventSlug = String(options.eventSlug || '').trim();
+  const limit = normalizeLimit(options.limit, 20);
+  const page = Number.isInteger(options.page) && options.page > 0 ? options.page : 1;
+  const offset = (page - 1) * limit;
+  const searchPattern = search ? `%${search.replace(/[%_]/g, (match) => `\\${match}`)}%` : null;
+
+  // Visible event-scoped products are joined via the resolved Mongo event ids; platform
+  // ("hellorun") products have no event at all, so they're surfaced via a separate clause
+  // and the events_core join must be a LEFT JOIN to avoid hiding them.
+  const ownershipClause = mongoEventIds.length
+    ? sql`(ec.mongo_event_id in ${sql(mongoEventIds)} or (p.event_id is null and p.owner_type = 'hellorun'))`
+    : sql`(p.event_id is null and p.owner_type = 'hellorun')`;
+
+  const whereClause = sql`
+    ${ownershipClause}
+    and p.status = 'active'
+    and p.is_visible = true
+    and p.show_in_event_shop = true
+    and (${eventSlug} = '' or ec.slug = ${eventSlug})
+    and (${searchPattern}::text is null or p.name ilike ${searchPattern} or p.category ilike ${searchPattern})
+  `;
+
+  const [rows, countRows] = await Promise.all([
+    sql`
+      select p.id, p.event_id, p.organiser_id, p.name, p.slug, p.category, p.product_type,
+             p.base_price, p.currency, p.status, p.is_visible, p.show_in_event_shop, p.created_at,
+             ec.mongo_event_id, ec.slug as event_slug, ec.title as event_title
+      from products_core p
+      left join events_core ec on ec.id = p.event_id
+      where ${whereClause}
+      order by p.created_at desc
+      limit ${limit}
+      offset ${offset}
+    `,
+    sql`
+      select count(*)::int as total
+      from products_core p
+      left join events_core ec on ec.id = p.event_id
+      where ${whereClause}
+    `
+  ]);
+
+  return { rows, totalCount: countRows[0]?.total || 0 };
+}
+
 async function getPublicProductByEventSlugAndProductSlug(eventSlug, productSlug) {
   const sql = getPostgresClient();
   const safeEventSlug = String(eventSlug || '').trim();
@@ -85,6 +137,21 @@ async function getProductById(productId) {
   const rows = await sql`
     select * from products_core
     where id::text = ${id}
+    limit 1
+  `;
+  return rows[0] || null;
+}
+
+async function getProductWithEventById(productId) {
+  const sql = getPostgresClient();
+  const id = String(productId || '').trim();
+  if (!id) return null;
+
+  const rows = await sql`
+    select p.*, ec.mongo_event_id, ec.slug as event_slug, ec.title as event_title
+    from products_core p
+    left join events_core ec on ec.id = p.event_id
+    where p.id::text = ${id}
     limit 1
   `;
   return rows[0] || null;
@@ -132,6 +199,65 @@ async function createProductForMongoEvent(mongoEventId, payload = {}, actorAppUs
       true, ${allowPickup}, ${allowDelivery}, ${deliveryFee}, ${actorId}, ${actorId}
     )
     returning *
+  `;
+
+  return rows[0] || null;
+}
+
+async function createPlatformProduct(payload = {}, actorAppUserId = null) {
+  const sql = getPostgresClient();
+
+  const name = String(payload.name || '').trim();
+  const slug = await createUniqueSlug(payload.slug || name);
+  const basePrice = asMoney(payload.basePrice ?? payload.base_price ?? 0);
+  const currency = normalizeCurrency(payload.currency);
+  const status = normalizeProductStatus(payload.status);
+  const isVisible = toBoolean(payload.isVisible ?? payload.is_visible, status === 'active');
+  const showDuringRegistration = toBoolean(payload.showDuringRegistration ?? payload.show_during_registration, false);
+  const showInEventShop = toBoolean(payload.showInEventShop ?? payload.show_in_event_shop, isVisible);
+  const allowPickup = toBoolean(payload.allowPickup ?? payload.allow_pickup, true);
+  const allowDelivery = toBoolean(payload.allowDelivery ?? payload.allow_delivery, false);
+  const deliveryFee = asMoney(payload.deliveryFee ?? payload.delivery_fee ?? 0);
+  const productType = normalizeProductType(payload.productType ?? payload.product_type);
+  const category = nullableText(payload.category);
+  const actorId = actorAppUserId ? String(actorAppUserId) : null;
+
+  const rows = await sql`
+    insert into products_core (
+      event_id, organiser_id, name, slug, category, base_price, currency, status,
+      owner_type, product_type, is_visible, show_during_registration, show_in_event_shop,
+      requires_admin_approval, allow_pickup, allow_delivery, delivery_fee,
+      created_by, updated_by
+    )
+    values (
+      null, null, ${name}, ${slug}, ${category}, ${basePrice}, ${currency}, ${status},
+      'hellorun', ${productType}, ${isVisible}, ${showDuringRegistration}, ${showInEventShop},
+      false, ${allowPickup}, ${allowDelivery}, ${deliveryFee}, ${actorId}, ${actorId}
+    )
+    returning *
+  `;
+
+  return rows[0] || null;
+}
+
+async function getPublicPlatformProductBySlug(productSlug) {
+  const sql = getPostgresClient();
+  const safeProductSlug = String(productSlug || '').trim();
+  if (!safeProductSlug) return null;
+
+  const rows = await sql`
+    select p.id, p.event_id, p.organiser_id, p.name, p.slug, p.category, p.product_type,
+           p.base_price, p.currency, p.status, p.is_visible, p.show_during_registration,
+           p.show_in_event_shop, p.allow_pickup, p.allow_delivery, p.delivery_fee,
+           p.available_from, p.available_until, p.created_at, p.updated_at
+    from products_core p
+    where p.slug = ${safeProductSlug}
+      and p.owner_type = 'hellorun'
+      and p.event_id is null
+      and p.status = 'active'
+      and p.is_visible = true
+      and p.show_in_event_shop = true
+    limit 1
   `;
 
   return rows[0] || null;
@@ -340,9 +466,13 @@ function normalizeLimit(value, fallback) {
 module.exports = {
   listProducts,
   listProductsByMongoEventId,
+  listPublicProductsAcrossEvents,
   getPublicProductByEventSlugAndProductSlug,
+  getPublicPlatformProductBySlug,
   getProductById,
+  getProductWithEventById,
   createProductForMongoEvent,
+  createPlatformProduct,
   updateProduct,
   hideProduct,
   archiveProduct,

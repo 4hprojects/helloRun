@@ -166,6 +166,30 @@ async function canManageShopProduct(req, res, next) {
   }
 }
 
+async function canManagePlatformProduct(req, res, next) {
+  try {
+    const productId = String(req.params.productId || req.body.productId || '').trim();
+    if (!isUuid(productId)) return renderBadRequest(res, 'Invalid product reference.');
+
+    const rows = await getPostgresClient()`
+      select id, event_id, owner_type, status
+      from products_core
+      where id::text = ${productId}
+        and owner_type = 'hellorun'
+      limit 1
+    `;
+
+    if (!rows.length) {
+      return renderAccessDenied(res, 'You can only manage HelloRun platform products here.');
+    }
+
+    req.shopProduct = rows[0];
+    return next();
+  } catch (error) {
+    return next(error);
+  }
+}
+
 async function getSessionUser(req) {
   if (!req.session || !req.session.userId) return null;
   return User.findById(req.session.userId).select('role organizerStatus').lean();
@@ -225,5 +249,6 @@ module.exports = {
   canReviewShopPayment,
   canUpdateFulfilment,
   canViewShopOrder,
-  canManageShopProduct
+  canManageShopProduct,
+  canManagePlatformProduct
 };

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell admin-shop-dashboard-shell">
+      <div class="admin-header-row admin-dashboard-header">
+        <div>
+          <p class="dashboard-kicker">Platform commerce</p>
+          <h2>HelloRun Platform Orders</h2>
+          <p>Orders for HelloRun-branded merchandise sold without an owning event.</p>
+        </div>
+        <div class="header-actions">
+          <a href="/admin/shop" class="dash-section-link">
+            Back to Admin Shop <i data-lucide="arrow-right" aria-hidden="true"></i>
+          </a>
+        </div>
+      </div>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <section class="detail-card detail-card-full">
+        <div class="shop-manage-section-head">
+          <h3>Orders</h3>
+        </div>
+        <% if (orders.length) { %>
+          <ul class="shop-manage-list">
+            <% orders.forEach((order) => { %>
+              <li>
+                <a href="/admin/shop/platform-orders/<%= order.id %>" class="shop-manage-list-primary">
+                  <strong><%= order.order_number %></strong>
+                  <span class="shop-badge shop-badge-<%= statusTone(order.payment_status) %>"><%= order.payment_status %></span>
+                  <span class="shop-badge shop-badge-<%= statusTone(order.fulfilment_status) %>"><%= order.fulfilment_status %></span>
+                </a>
+                <div class="shop-manage-list-meta">
+                  <span><%= formatCurrency(order.total_amount, order.currency) %></span>
+                  <span class="shop-muted"><%= order.buyer_display_name || order.buyer_email || 'Unknown runner' %></span>
+                  <span class="shop-muted"><%= order.created_at ? new Date(order.created_at).toLocaleDateString() : '' %></span>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="shop-muted">No platform orders have been placed yet.</p>
+        <% } %>
+      </section>
+    </section>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

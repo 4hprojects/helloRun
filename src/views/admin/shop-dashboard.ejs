@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell admin-shop-dashboard-shell">
+      <div class="admin-header-row admin-dashboard-header">
+        <div>
+          <p class="dashboard-kicker">Platform commerce</p>
+          <h2>Admin Shop</h2>
+          <p>Monitor product approvals, orders, and payments across every event shop.</p>
+        </div>
+        <div class="header-actions">
+          <a href="/admin/shop/products/new" class="nav-signup-btn detail-status-btn">+ New HelloRun Product</a>
+          <a href="/admin/shop/platform-orders" class="dash-section-link">Platform Orders</a>
+          <a href="/admin/shop/platform-payment-reviews" class="dash-section-link">Platform Payment Reviews</a>
+          <a href="/admin/dashboard" class="dash-section-link">
+            Back to Admin Dashboard <i data-lucide="arrow-right" aria-hidden="true"></i>
+          </a>
+        </div>
+      </div>
+
+      <section class="shop-manage-summary">
+        <div class="shop-manage-summary-card">
+          <strong>Products</strong>
+          <span><%= summary.productCount %></span>
+        </div>
+        <div class="shop-manage-summary-card">
+          <strong>Pending Approvals</strong>
+          <span><%= summary.pendingProductApprovalCount %></span>
+        </div>
+        <div class="shop-manage-summary-card">
+          <strong>Orders</strong>
+          <span><%= summary.orderCount %></span>
+        </div>
+        <div class="shop-manage-summary-card">
+          <strong>Payments</strong>
+          <span><%= summary.paymentCount %></span>
+        </div>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <div class="shop-manage-section-head">
+          <h3>Pending Product Approvals</h3>
+          <a class="shop-manage-link" href="/admin/shop/product-approvals">View all approvals</a>
+        </div>
+        <% if (approvals.length) { %>
+          <ul class="shop-manage-list">
+            <% approvals.forEach((product) => { %>
+              <li>
+                <div class="shop-manage-list-primary">
+                  <strong><%= product.name %></strong>
+                  <span class="shop-badge shop-badge-<%= statusTone(product.status) %>"><%= product.status %></span>
+                </div>
+                <div class="shop-manage-list-meta">
+                  <span><%= formatCurrency(product.base_price, product.currency) %></span>
+                  <span class="shop-muted"><%= product.event_title %></span>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="shop-muted">No products are waiting for admin approval.</p>
+        <% } %>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <div class="shop-manage-section-head">
+          <h3>Recent Orders</h3>
+          <a class="shop-manage-link" href="/admin/shop/orders">View all orders</a>
+        </div>
+        <% if (orders.length) { %>
+          <ul class="shop-manage-list">
+            <% orders.forEach((order) => { %>
+              <li>
+                <div class="shop-manage-list-primary">
+                  <strong><%= order.order_number %></strong>
+                  <span class="shop-badge shop-badge-<%= statusTone(order.payment_status) %>"><%= order.payment_status %></span>
+                  <span class="shop-badge shop-badge-<%= statusTone(order.fulfilment_status) %>"><%= order.fulfilment_status %></span>
+                </div>
+                <div class="shop-manage-list-meta">
+                  <span><%= formatCurrency(order.total_amount, order.currency) %></span>
+                  <span class="shop-muted"><%= order.event_title %></span>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="shop-muted">No shop orders have been placed yet.</p>
+        <% } %>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <div class="shop-manage-section-head">
+          <h3>Recent Payments</h3>
+          <a class="shop-manage-link" href="/admin/shop/payments">View all payments</a>
+        </div>
+        <% if (payments.length) { %>
+          <ul class="shop-manage-list">
+            <% payments.forEach((payment) => { %>
+              <li>
+                <div class="shop-manage-list-primary">
+                  <strong><%= payment.order_number %></strong>
+                  <span class="shop-badge shop-badge-<%= statusTone(payment.status) %>"><%= payment.status %></span>
+                </div>
+                <div class="shop-manage-list-meta">
+                  <span><%= formatCurrency(payment.amount_paid, payment.currency) %></span>
+                  <span class="shop-muted"><%= payment.payment_method %></span>
+                  <span class="shop-muted"><%= payment.event_title %></span>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="shop-muted">No payment proofs have been submitted yet.</p>
+        <% } %>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <h3>Reports &amp; Settings</h3>
+        <p class="shop-muted">Platform-wide shop reports and settings are coming soon.</p>
+      </section>
+    </section>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

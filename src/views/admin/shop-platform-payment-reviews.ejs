@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell admin-shop-dashboard-shell">
+      <div class="admin-header-row admin-dashboard-header">
+        <div>
+          <p class="dashboard-kicker">Platform commerce</p>
+          <h2>Platform Payment Reviews</h2>
+          <p>Approve or reject payment proofs submitted for HelloRun-branded merchandise orders.</p>
+        </div>
+        <div class="header-actions">
+          <a href="/admin/shop" class="dash-section-link">
+            Back to Admin Shop <i data-lucide="arrow-right" aria-hidden="true"></i>
+          </a>
+        </div>
+      </div>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <section class="detail-card detail-card-full">
+        <div class="shop-manage-section-head">
+          <h3>Pending Reviews</h3>
+        </div>
+        <% if (items.length) { %>
+          <ul class="shop-manage-list">
+            <% items.forEach((item) => { %>
+              <li>
+                <div class="shop-manage-list-primary">
+                  <strong><%= item.order_number %></strong>
+                  <span class="shop-badge shop-badge-<%= statusTone(item.status) %>"><%= item.status %></span>
+                </div>
+                <div class="shop-manage-list-meta">
+                  <span><%= formatCurrency(item.amount_paid, item.currency) %></span>
+                  <span class="shop-muted"><%= item.payment_method %></span>
+                  <% if (item.payment_reference) { %>
+                    <span class="shop-muted">Ref: <%= item.payment_reference %></span>
+                  <% } %>
+                  <% if (item.proof_image_url) { %>
+                    <a href="<%= item.proof_image_url %>" target="_blank" rel="noopener noreferrer">View proof</a>
+                  <% } %>
+                </div>
+
+                <form class="shop-payment-review-form shop-form-grid" data-payment-id="<%= item.id %>">
+                  <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                  <label>
+                    <span>Decision</span>
+                    <select name="status">
+                      <option value="paid">Approve (paid)</option>
+                      <option value="correction_required">Needs correction</option>
+                      <option value="rejected">Reject</option>
+                      <option value="cancelled">Cancel</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Rejection Reason (required if rejecting or requesting correction)</span>
+                    <input type="text" name="rejectionReason" maxlength="1000" placeholder="Explain why the proof was rejected">
+                  </label>
+                  <label>
+                    <span>Review Note (optional)</span>
+                    <input type="text" name="reviewNote" maxlength="1000" placeholder="Internal note about this review">
+                  </label>
+                  <div class="shop-form-footer">
+                    <button type="submit" class="nav-signup-btn detail-status-btn">Submit Decision</button>
+                  </div>
+                </form>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="shop-muted">No platform payment proofs are waiting for review.</p>
+        <% } %>
+      </section>
+    </section>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    (function () {
+      document.querySelectorAll('.shop-payment-review-form').forEach((form) => {
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const paymentId = form.dataset.paymentId;
+          const formData = new FormData(form);
+          const csrfToken = String(formData.get('_csrf') || '');
+          const payload = {
+            status: String(formData.get('status') || ''),
+            rejectionReason: String(formData.get('rejectionReason') || ''),
+            reviewNote: String(formData.get('reviewNote') || '')
+          };
+
+          try {
+            const response = await fetch(`/admin/shop/platform-payment-reviews/${paymentId}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+              body: JSON.stringify(payload)
+            });
+            const data = await response.json().catch(() => ({}));
+
+            if (response.ok && data.success) {
+              window.location.href = `${window.location.pathname}?type=success&msg=${encodeURIComponent('Payment review decision recorded.')}`;
+              return;
+            }
+
+            const message = (data && data.message) || 'Unable to record payment review decision.';
+            window.location.href = `${window.location.pathname}?type=error&msg=${encodeURIComponent(message)}`;
+          } catch (error) {
+            window.location.href = `${window.location.pathname}?type=error&msg=${encodeURIComponent('Unable to record payment review decision. Please try again.')}`;
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
