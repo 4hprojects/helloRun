@@ -102,7 +102,7 @@ test('organizer dashboard renders range analytics and queue links', async () => 
   );
   assert.match(
     html,
-    new RegExp(`${escapeRegex(resultLink)}" class="btn btn-secondary event-link-btn event-action-icon-btn submitted-run-proofs-btn" target="_blank" rel="noopener noreferrer" aria-label="Submitted Run Proofs"`)
+    new RegExp(`${escapeRegex(resultLink)}" class="btn btn-secondary event-link-btn event-action-icon-btn submitted-run-proofs-btn" target="_blank" rel="noopener noreferrer" aria-label="Submitted Run Proofs, 1 pending" data-action-label="Submitted Run Proofs">\\s*<i[^>]*><\\/i>\\s*<span class="pending-run-proof-count" aria-hidden="true">1<\\/span>`)
   );
   assert.match(
     html,
