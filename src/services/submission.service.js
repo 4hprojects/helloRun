@@ -1309,6 +1309,8 @@ function getRecentCertificatesForModel(Model, runnerId, limit) {
 function formatRecentCertificate(item) {
   return {
     submissionId: String(item._id),
+    submissionKind: item.submissionKind || 'standard',
+    isAccumulatedActivity: item.submissionKind === 'accumulated_activity',
     eventTitle: item.eventId?.title || 'Event unavailable',
     eventSlug: item.eventId?.slug || '',
     confirmationCode: item.registrationId?.confirmationCode || '',

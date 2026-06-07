@@ -199,16 +199,21 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       nextResultReview,
       nextAccumulatedResultReview,
       registrationsInRange,
-      submissionsInRange,
-      approvalsInRange,
+      standardSubmissionsInRange,
+      accumulatedSubmissionsInRange,
+      standardApprovalsInRange,
+      accumulatedApprovalsInRange,
       registrationsInPreviousRange,
-      submissionsInPreviousRange,
-      approvalsInPreviousRange,
+      standardSubmissionsInPreviousRange,
+      accumulatedSubmissionsInPreviousRange,
+      standardApprovalsInPreviousRange,
+      accumulatedApprovalsInPreviousRange,
       paymentQueueCounts,
       resultQueueCounts,
       accumulatedResultQueueCounts,
       topRegistrationsRaw,
-      topApprovalsRaw
+      standardTopApprovalsRaw,
+      accumulatedTopApprovalsRaw
     ] = await Promise.all([
       organizerEventIds.length
         ? Registration.countDocuments({ eventId: { $in: organizerEventIds } })
@@ -253,7 +258,13 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         ? Submission.countDocuments(submissionRangeFilter)
         : 0,
       submissionRangeFilter
+        ? AccumulatedActivitySubmission.countDocuments(submissionRangeFilter)
+        : 0,
+      submissionRangeFilter
         ? Submission.countDocuments({ ...submissionRangeFilter, status: 'approved' })
+        : 0,
+      submissionRangeFilter
+        ? AccumulatedActivitySubmission.countDocuments({ ...submissionRangeFilter, status: 'approved' })
         : 0,
       previousRegistrationRangeFilter
         ? Registration.countDocuments(previousRegistrationRangeFilter)
@@ -262,7 +273,13 @@ router.get('/dashboard', requireAuth, async (req, res) => {
         ? Submission.countDocuments(previousSubmissionRangeFilter)
         : 0,
       previousSubmissionRangeFilter
+        ? AccumulatedActivitySubmission.countDocuments(previousSubmissionRangeFilter)
+        : 0,
+      previousSubmissionRangeFilter
         ? Submission.countDocuments({ ...previousSubmissionRangeFilter, status: 'approved' })
+        : 0,
+      previousSubmissionRangeFilter
+        ? AccumulatedActivitySubmission.countDocuments({ ...previousSubmissionRangeFilter, status: 'approved' })
         : 0,
       organizerEventIds.length
         ? Registration.aggregate([
@@ -300,8 +317,21 @@ router.get('/dashboard', requireAuth, async (req, res) => {
             { $sort: { count: -1 } },
             { $limit: 3 }
           ])
+        : [],
+      submissionRangeFilter
+        ? AccumulatedActivitySubmission.aggregate([
+            { $match: { ...submissionRangeFilter, status: 'approved' } },
+            { $group: { _id: '$eventId', count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 3 }
+          ])
         : []
     ]);
+
+    const submissionsInRange = Number(standardSubmissionsInRange || 0) + Number(accumulatedSubmissionsInRange || 0);
+    const approvalsInRange = Number(standardApprovalsInRange || 0) + Number(accumulatedApprovalsInRange || 0);
+    const submissionsInPreviousRange = Number(standardSubmissionsInPreviousRange || 0) + Number(accumulatedSubmissionsInPreviousRange || 0);
+    const approvalsInPreviousRange = Number(standardApprovalsInPreviousRange || 0) + Number(accumulatedApprovalsInPreviousRange || 0);
 
     const recentRegistrationsByEventId = new Map(
       recentRegistrationCounts.map((item) => [String(item._id), item.count])
@@ -362,6 +392,16 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const nextPendingResultReview = nextResultCandidates.sort((a, b) => (
       new Date(b.submittedAt || 0).getTime() - new Date(a.submittedAt || 0).getTime()
     ))[0] || null;
+
+    const topApprovalsByEventId = new Map();
+    for (const item of standardTopApprovalsRaw.concat(accumulatedTopApprovalsRaw)) {
+      const key = String(item._id);
+      topApprovalsByEventId.set(key, Number(topApprovalsByEventId.get(key) || 0) + Number(item.count || 0));
+    }
+    const topApprovalsRaw = Array.from(topApprovalsByEventId.entries())
+      .map(([eventId, count]) => ({ _id: eventId, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
 
     const topRegistrationEventIds = topRegistrationsRaw.map((item) => String(item._id));
     const topApprovalEventIds = topApprovalsRaw.map((item) => String(item._id));
