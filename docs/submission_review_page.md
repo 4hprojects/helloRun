@@ -72,6 +72,7 @@ The per-event queue gives organizers and admins a single place to scan submitted
 - Distinguishes auto-approved submissions, defined as approved records without a manual reviewer, in both counts and card labels.
 - Provides readable header navigation buttons for Registrants, Back to Event, and My Events instead of inheriting the registrants page icon-only toolbar sizing.
 - Preserves queue status, search, sort, and page context when opening a proof and after approve/reject actions.
+- Organizer registrants result-status filters use filtered activities only to decide which registration rows are visible; accumulated progress totals always use all activities for that registration so approved distance/counts remain correct while viewing pending rows.
 
 ## Workflow
 
@@ -161,6 +162,7 @@ Verified scenarios:
 - Per-event run proof queue includes auto-approved records and exposes an auto-approved filter.
 - Per-event rejected queue renders a validation modal and can approve rejected submissions.
 - Run proof queue header navigation renders readable icon-plus-label buttons for Registrants, Back to Event, and My Events.
+- Registrants result-status filtering preserves accumulated approved progress totals and approved/pending/rejected activity counts.
 - Admin review queue result rows link directly to the standalone review page.
 - Approve/reject actions redirect back to the standalone page.
 - Rejection still requires a valid rejection reason through existing route behavior.

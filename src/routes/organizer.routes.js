@@ -1083,15 +1083,34 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
     const submissionsByRegistrationId = new Map(
       submissions.map((item) => [String(item.registrationId), item])
     );
-    const accumulatedActivities = registrationIds.length
-      ? await getAccumulatedActivitiesForRegistrations(registrationIds, selectedResultStatus ? { status: selectedResultStatus } : {})
-      : [];
+    const [
+      accumulatedActivities,
+      accumulatedProgressActivities
+    ] = registrationIds.length
+      ? await Promise.all([
+        getAccumulatedActivitiesForRegistrations(registrationIds, selectedResultStatus ? { status: selectedResultStatus } : {}),
+        selectedResultStatus
+          ? getAccumulatedActivitiesForRegistrations(registrationIds)
+          : Promise.resolve([])
+      ])
+      : [[], []];
     const accumulatedActivitiesByRegistrationId = new Map();
     for (const activity of accumulatedActivities) {
       const key = String(activity.registrationId);
       const current = accumulatedActivitiesByRegistrationId.get(key) || [];
       current.push(activity);
       accumulatedActivitiesByRegistrationId.set(key, current);
+    }
+    const accumulatedProgressActivitiesByRegistrationId = selectedResultStatus
+      ? new Map()
+      : accumulatedActivitiesByRegistrationId;
+    if (selectedResultStatus) {
+      for (const activity of accumulatedProgressActivities) {
+        const key = String(activity.registrationId);
+        const current = accumulatedProgressActivitiesByRegistrationId.get(key) || [];
+        current.push(activity);
+        accumulatedProgressActivitiesByRegistrationId.set(key, current);
+      }
     }
 
     const registrations = registrationsRaw
@@ -1116,7 +1135,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       pricingPeriodLabel: item.pricingSnapshot?.pricingPeriodLabel || '',
       accumulatedProgress: event.virtualCompletionMode === 'accumulated_distance'
         ? buildAccumulatedProgress({
-          activities: accumulatedActivitiesByRegistrationId.get(String(item._id)) || [],
+          activities: accumulatedProgressActivitiesByRegistrationId.get(String(item._id)) || [],
           targetDistanceKm: event.targetDistanceKm
         })
         : null,

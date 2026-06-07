@@ -407,6 +407,51 @@ test('owner and admin can view accumulated activity review page', async () => {
   assert.equal(adminResponse.status, 200);
 });
 
+test('registrants result filter keeps accumulated approved progress totals', async () => {
+  const seed = await seedAccumulatedReviewData('accumulated-filter-progress');
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    await AccumulatedActivitySubmission.create({
+      registrationId: seed.registration._id,
+      eventId: seed.event._id,
+      runnerId: seed.runner._id,
+      participationMode: 'virtual',
+      raceDistance: seed.registration.raceDistance,
+      distanceKm: 4,
+      elapsedMs: 1500000,
+      runDate: new Date(),
+      runLocation: 'Approved City',
+      runType: 'run',
+      proofType: 'photo',
+      proof: {
+        url: 'https://example.com/approved-activity-proof.png',
+        key: 'approved-activity-proof-key',
+        mimeType: 'image/png',
+        size: 1600
+      },
+      status: 'approved',
+      reviewedAt: new Date(),
+      reviewedBy: seed.ownerOrganizer._id,
+      submittedAt: new Date()
+    });
+  } finally {
+    await mongoose.disconnect();
+  }
+
+  const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', ownerCookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/registrants?result=submitted`, {
+    headers: { Cookie: ownerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  const runResultCell = html.match(/<td data-registrant-column="runResult">([\s\S]*?)<\/td>/i)?.[1] || '';
+  assert.match(runResultCell, /<strong>Progress:<\/strong>\s*4 km \/ 20 km/i);
+  assert.match(runResultCell, /<strong>Activity counts:<\/strong>\s*1 approved, 1 pending, 0 rejected/i);
+});
+
 test('non-owner organizer cannot approve another organizer submission', async () => {
   const seed = await seedReviewData('ownership');
   const otherOrganizerCookie = await login(seed.otherOrganizer.email, seed.password);
