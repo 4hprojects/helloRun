@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/event-manage.css">
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="manage-page organizer-shop-dashboard-page">
+    <section class="manage-shell">
+      <header class="manage-header">
+        <div class="manage-header-copy">
+          <p class="manage-eyebrow">Shop Manager</p>
+          <h1><%= event.title %></h1>
+          <p>Manage products, variants, orders, fulfilment, and payment reviews for this event's shop.</p>
+        </div>
+        <div class="header-actions">
+          <a href="/organizer/events/<%= event._id %>" class="nav-login-btn detail-nav-btn">Back to Event</a>
+          <a href="/events/<%= event.slug %>/shop" class="nav-login-btn detail-nav-btn" target="_blank" rel="noopener noreferrer">Public Shop</a>
+          <a href="/organizer/events/<%= event._id %>/shop/products/new" class="nav-signup-btn detail-nav-btn">New Product</a>
+        </div>
+      </header>
+
+      <section class="shop-manage-summary">
+        <div class="shop-manage-summary-card">
+          <strong>Products</strong>
+          <span><%= summary.productCount %></span>
+        </div>
+        <div class="shop-manage-summary-card">
+          <strong>Orders</strong>
+          <span><%= summary.orderCount %></span>
+        </div>
+        <div class="shop-manage-summary-card">
+          <strong>Pending Payment Reviews</strong>
+          <span><%= summary.pendingPaymentReviewCount %></span>
+        </div>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <div class="shop-manage-section-head">
+          <h3>Products</h3>
+          <a class="shop-manage-link" href="/organizer/events/<%= event._id %>/shop/products">View all products</a>
+        </div>
+        <% if (products.length) { %>
+          <ul class="shop-manage-list">
+            <% products.forEach((product) => { %>
+              <li>
+                <div class="shop-manage-list-primary">
+                  <strong><%= product.name %></strong>
+                  <span class="shop-badge shop-badge-<%= statusTone(product.status) %>"><%= product.status %></span>
+                </div>
+                <div class="shop-manage-list-meta">
+                  <span><%= formatCurrency(product.base_price, product.currency) %></span>
+                  <a href="/organizer/events/<%= event._id %>/shop/products/<%= product.id %>/edit">Edit</a>
+                  <a href="/organizer/events/<%= event._id %>/shop/products/<%= product.id %>/variants">Variants</a>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="shop-muted">No products yet. <a href="/organizer/events/<%= event._id %>/shop/products/new">Create your first product</a>.</p>
+        <% } %>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <div class="shop-manage-section-head">
+          <h3>Recent Orders</h3>
+          <a class="shop-manage-link" href="/organizer/events/<%= event._id %>/shop/orders">View all orders</a>
+        </div>
+        <% if (orders.length) { %>
+          <ul class="shop-manage-list">
+            <% orders.forEach((order) => { %>
+              <li>
+                <div class="shop-manage-list-primary">
+                  <strong><%= order.order_number %></strong>
+                  <span class="shop-badge shop-badge-<%= statusTone(order.payment_status) %>"><%= order.payment_status %></span>
+                  <span class="shop-badge shop-badge-<%= statusTone(order.fulfilment_status) %>"><%= order.fulfilment_status %></span>
+                </div>
+                <div class="shop-manage-list-meta">
+                  <span><%= formatCurrency(order.total_amount, order.currency) %></span>
+                  <a href="/organizer/events/<%= event._id %>/shop/orders/<%= order.id %>">View Order</a>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="shop-muted">No shop orders yet for this event.</p>
+        <% } %>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <div class="shop-manage-section-head">
+          <h3>Pending Payment Reviews</h3>
+          <a class="shop-manage-link" href="/organizer/events/<%= event._id %>/shop/payment-reviews">Review payments</a>
+        </div>
+        <% if (paymentReviews.length) { %>
+          <ul class="shop-manage-list">
+            <% paymentReviews.forEach((review) => { %>
+              <li>
+                <div class="shop-manage-list-primary">
+                  <strong><%= review.order_number %></strong>
+                  <span class="shop-badge shop-badge-<%= statusTone(review.status) %>"><%= review.status %></span>
+                </div>
+                <div class="shop-manage-list-meta">
+                  <span><%= formatCurrency(review.amount_paid, review.currency) %></span>
+                  <span class="shop-muted"><%= review.payment_method %></span>
+                </div>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="shop-muted">No payment proofs are waiting for review.</p>
+        <% } %>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <h3>Reports</h3>
+        <p class="shop-muted">Revenue and order reports are coming soon.</p>
+      </section>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

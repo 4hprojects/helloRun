@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="shop-page">
+    <section class="shop-header shop-product-header">
+      <div>
+        <a href="/orders/<%= order.order_number %>" class="shop-back-link"><i data-lucide="arrow-left"></i><span><%= order.order_number %></span></a>
+        <p class="shop-eyebrow">Payment</p>
+        <h1><%= order.order_number %></h1>
+      </div>
+      <div class="shop-price-panel">
+        <span>Total Due</span>
+        <strong><%= formatCurrency(order.total_amount, order.currency) %></strong>
+      </div>
+    </section>
+
+    <section class="shop-detail-layout">
+      <div class="shop-detail-main">
+        <% if (message) { %>
+          <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+        <% } %>
+
+        <input type="hidden" name="_csrf" id="shopPaymentCsrfToken" value="<%= locals.csrfToken || '' %>">
+
+        <section class="shop-detail-section">
+          <h2>Payment Status</h2>
+          <div class="shop-detail-list">
+            <p><strong>Payment</strong><span class="shop-badge shop-badge-<%= statusTone(order.payment_status) %>"><%= order.payment_status %></span></p>
+            <p><strong>Total</strong><span><%= formatCurrency(order.total_amount, order.currency) %></span></p>
+          </div>
+        </section>
+
+        <% if (canSubmitPaymentProof) { %>
+          <section class="shop-detail-section">
+            <h2>Payment Instructions</h2>
+            <p class="shop-muted">Pay the total amount using your preferred method, then upload your receipt or proof of payment below for the organiser to verify.</p>
+          </section>
+
+          <section class="shop-detail-section">
+            <h2>Upload Payment Proof</h2>
+            <form id="shopPaymentProofForm" method="POST" enctype="multipart/form-data" class="shop-form-grid">
+              <label>
+                <span>Payment Method</span>
+                <input type="text" name="paymentMethod" maxlength="80" placeholder="e.g. Bank transfer, GCash">
+              </label>
+              <label>
+                <span>Reference Number (optional)</span>
+                <input type="text" name="paymentReference" maxlength="120" placeholder="e.g. Transaction reference">
+              </label>
+              <label>
+                <span>Receipt or Proof of Payment</span>
+                <input type="file" name="paymentProofFile" accept="image/*,.pdf" required>
+              </label>
+              <div class="shop-form-footer">
+                <button type="submit" class="nav-signup-btn detail-status-btn">Submit Payment Proof</button>
+              </div>
+            </form>
+          </section>
+        <% } else if (['pending_review', 'proof_submitted'].includes(order.payment_status)) { %>
+          <section class="shop-readonly-note">
+            <i data-lucide="clock"></i>
+            <p>Your payment proof has been submitted and is awaiting organiser review. You'll be notified once it's verified.</p>
+          </section>
+        <% } else if (order.payment_status === 'paid') { %>
+          <section class="shop-readonly-note">
+            <i data-lucide="check-circle"></i>
+            <p>This order is already marked as paid. No further action is needed.</p>
+          </section>
+        <% } else { %>
+          <section class="shop-readonly-note">
+            <i data-lucide="info"></i>
+            <p>Payment proof upload is not available for this order's current status.</p>
+          </section>
+        <% } %>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    (function () {
+      const form = document.getElementById('shopPaymentProofForm');
+      if (!form) return;
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const csrfToken = String((document.getElementById('shopPaymentCsrfToken') || {}).value || '');
+
+        try {
+          const response = await fetch(window.location.pathname.replace(/\/payment$/, '') + '/payment-proof', {
+            method: 'POST',
+            headers: { 'x-csrf-token': csrfToken },
+            body: formData
+          });
+          const data = await response.json().catch(() => ({}));
+
+          if (response.ok && data.success) {
+            window.location.href = `${window.location.pathname}?type=success&msg=${encodeURIComponent(data.message || 'Payment proof submitted for review.')}`;
+            return;
+          }
+
+          const message = (data && data.message) || 'Unable to submit payment proof.';
+          window.location.href = `${window.location.pathname}?type=error&msg=${encodeURIComponent(message)}`;
+        } catch (error) {
+          window.location.href = `${window.location.pathname}?type=error&msg=${encodeURIComponent('Unable to submit payment proof. Please try again.')}`;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

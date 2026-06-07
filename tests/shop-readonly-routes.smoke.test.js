@@ -87,6 +87,22 @@ test('runner can read own shop order detail JSON', async () => {
   assert.ok(body.order.items.some((item) => item.name_snapshot === seed.productName));
 });
 
+test('runner can view shop order detail HTML page', async () => {
+  const cookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
+
+  const response = await fetch(`${BASE_URL}/orders/${seed.orderNumber}`, {
+    headers: { Cookie: cookie, Accept: 'text/html' },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, new RegExp(seed.orderNumber));
+  assert.match(html, new RegExp(seed.productName));
+  assert.match(html, /Order Status/i);
+});
+
 test('public event shop route returns read-only product list JSON', async () => {
   const response = await fetch(`${BASE_URL}/events/${seed.event.slug}/shop`, {
     redirect: 'manual'
@@ -115,7 +131,7 @@ test('public event shop route renders product listing HTML for browser requests'
   assert.doesNotMatch(html, /Checkout Now/i);
 });
 
-test('public product detail renders read-only HTML for browser requests', async () => {
+test('public product detail renders for browser requests with a sign-in prompt to add to cart', async () => {
   const response = await fetch(`${BASE_URL}/events/${seed.event.slug}/shop/${seed.productSlug}`, {
     headers: { Accept: 'text/html' },
     redirect: 'manual'
@@ -125,8 +141,8 @@ test('public product detail renders read-only HTML for browser requests', async 
   const html = await response.text();
   assert.match(html, new RegExp(seed.productName));
   assert.match(html, /Medium \/ Blue/i);
-  assert.match(html, /currently read-only/i);
-  assert.doesNotMatch(html, /Add to Cart/i);
+  assert.match(html, /Log in.*as a runner to add this product to your cart/is);
+  assert.doesNotMatch(html, /id="shopAddToCartForm"/);
 });
 
 test('public product detail returns JSON for API-style requests', async () => {
@@ -153,6 +169,77 @@ test('public event shop renders empty state when no visible products exist', asy
   const html = await response.text();
   assert.match(html, /No shop items yet/i);
   assert.doesNotMatch(html, /Add to Cart/i);
+});
+
+test('global shop catalog renders product listing HTML with event badges for browser requests', async () => {
+  const response = await fetch(`${BASE_URL}/shop`, {
+    headers: { Accept: 'text/html' },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /HelloRun Shop/i);
+  assert.match(html, new RegExp(seed.productName));
+  assert.match(html, new RegExp(`/events/${seed.event.slug}/shop/${seed.productSlug}`));
+  assert.match(html, new RegExp(`shop-event-badge[\\s\\S]*?${seed.event.title}`));
+  assert.doesNotMatch(html, /Add to Cart/i);
+});
+
+test('global shop catalog returns read-only product list JSON across events', async () => {
+  const response = await fetch(`${BASE_URL}/shop`, {
+    headers: { Accept: 'application/json' },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.success, true);
+  assert.ok(Array.isArray(body.products));
+  assert.ok(body.products.some((item) => item.name === seed.productName && item.eventSlug === seed.event.slug));
+  assert.ok(body.pagination);
+  assert.equal(body.pagination.currentPage, 1);
+});
+
+test('global shop catalog search filters products by name', async () => {
+  const matching = await fetch(`${BASE_URL}/shop?q=${encodeURIComponent(seed.productName)}`, {
+    headers: { Accept: 'text/html' },
+    redirect: 'manual'
+  });
+  assert.equal(matching.status, 200);
+  const matchingHtml = await matching.text();
+  assert.match(matchingHtml, new RegExp(seed.productName));
+  assert.match(matchingHtml, /products? found/i);
+
+  const nonMatching = await fetch(`${BASE_URL}/shop?q=${encodeURIComponent(`no-such-product-${Date.now()}`)}`, {
+    headers: { Accept: 'text/html' },
+    redirect: 'manual'
+  });
+  assert.equal(nonMatching.status, 200);
+  const nonMatchingHtml = await nonMatching.text();
+  assert.match(nonMatchingHtml, /No matching products/i);
+  assert.match(nonMatchingHtml, /Clear filters/i);
+});
+
+test('global shop catalog event filter narrows results to a single event', async () => {
+  const response = await fetch(`${BASE_URL}/shop?event=${encodeURIComponent(seed.event.slug)}`, {
+    headers: { Accept: 'text/html' },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, new RegExp(seed.productName));
+  assert.match(html, new RegExp(`Browsing: ${seed.event.title}`));
+
+  const emptyEventResponse = await fetch(`${BASE_URL}/shop?event=${encodeURIComponent(seed.emptyEvent.slug)}`, {
+    headers: { Accept: 'text/html' },
+    redirect: 'manual'
+  });
+  assert.equal(emptyEventResponse.status, 200);
+  const emptyEventHtml = await emptyEventResponse.text();
+  assert.match(emptyEventHtml, /No matching products/i);
+  assert.match(emptyEventHtml, new RegExp(`Browsing: ${seed.emptyEvent.title}`));
 });
 
 test('public event detail links to shop only when visible products exist', async () => {
@@ -314,6 +401,49 @@ test('owner organizer can update order fulfilment', async () => {
   assert.equal(logs[0].new_status, 'preparing');
 });
 
+test('owner organizer can view shop manager HTML pages', async () => {
+  const cookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', cookie);
+
+  const dashboardResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/shop`, {
+    headers: { Cookie: cookie, Accept: 'text/html' },
+    redirect: 'manual'
+  });
+  assert.equal(dashboardResponse.status, 200);
+  const dashboardHtml = await dashboardResponse.text();
+  assert.match(dashboardHtml, /Shop Manager/i);
+  assert.match(dashboardHtml, new RegExp(seed.productName));
+  assert.match(dashboardHtml, new RegExp(seed.orderNumber));
+
+  const newProductResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/shop/products/new`, {
+    headers: { Cookie: cookie, Accept: 'text/html' },
+    redirect: 'manual'
+  });
+  assert.equal(newProductResponse.status, 200);
+  const newProductHtml = await newProductResponse.text();
+  assert.match(newProductHtml, /New Product/i);
+  assert.match(newProductHtml, /id="shopProductForm"/);
+
+  const editProductResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/shop/products/${seed.productId}/edit`, {
+    headers: { Cookie: cookie, Accept: 'text/html' },
+    redirect: 'manual'
+  });
+  assert.equal(editProductResponse.status, 200);
+  const editProductHtml = await editProductResponse.text();
+  assert.match(editProductHtml, /Edit Product/i);
+  assert.match(editProductHtml, new RegExp(seed.productName));
+
+  const orderDetailResponse = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/shop/orders/${seed.orderId}`, {
+    headers: { Cookie: cookie, Accept: 'text/html' },
+    redirect: 'manual'
+  });
+  assert.equal(orderDetailResponse.status, 200);
+  const orderDetailHtml = await orderDetailResponse.text();
+  assert.match(orderDetailHtml, new RegExp(seed.orderNumber));
+  assert.match(orderDetailHtml, new RegExp(seed.productName));
+  assert.match(orderDetailHtml, /id="shopFulfilmentForm"/);
+});
+
 test('admin can list and approve shop products', async () => {
   const cookie = await login(seed.admin.email, seed.password);
   await waitForSessionReady('/admin/dashboard', cookie);
@@ -343,6 +473,23 @@ test('admin can list and approve shop products', async () => {
   assert.equal(approveBody.success, true);
   assert.equal(approveBody.product.requires_admin_approval, false);
   assert.equal(approveBody.product.status, 'active');
+});
+
+test('admin can view shop dashboard HTML page', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForSessionReady('/admin/dashboard', cookie);
+
+  const response = await fetch(`${BASE_URL}/admin/shop`, {
+    headers: { Cookie: cookie, Accept: 'text/html' },
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Admin Shop/i);
+  assert.match(html, /Pending Product Approvals/i);
+  assert.match(html, /Recent Orders/i);
+  assert.match(html, /Recent Payments/i);
 });
 
 test('non-owner organizer cannot read product variants for another organizer event', async () => {

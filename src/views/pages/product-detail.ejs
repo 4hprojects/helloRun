@@ -8,10 +8,16 @@
   <%- include('../layouts/nav') %>
 
   <main class="shop-page">
+    <% const detailUrl = event ? `/events/${event.slug}/shop/${product.slug}` : `/shop/${product.slug}`; %>
     <section class="shop-header shop-product-header">
       <div>
-        <a href="/events/<%= event.slug %>/shop" class="shop-back-link"><i data-lucide="arrow-left"></i><span>Event Shop</span></a>
-        <p class="shop-eyebrow"><%= event.title %></p>
+        <% if (event) { %>
+          <a href="/events/<%= event.slug %>/shop" class="shop-back-link"><i data-lucide="arrow-left"></i><span>Event Shop</span></a>
+          <p class="shop-eyebrow"><%= event.title %></p>
+        <% } else { %>
+          <a href="/shop" class="shop-back-link"><i data-lucide="arrow-left"></i><span>HelloRun Shop</span></a>
+          <p class="shop-eyebrow">HelloRun Shop</p>
+        <% } %>
         <h1><%= product.name %></h1>
       </div>
       <div class="shop-price-panel">
@@ -26,6 +32,12 @@
       </div>
 
       <div class="shop-detail-main">
+        <% if (message) { %>
+          <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+        <% } %>
+
+        <input type="hidden" name="_csrf" id="shopProductCsrfToken" value="<%= locals.csrfToken || '' %>">
+
         <section class="shop-detail-section">
           <h2>Product Details</h2>
           <div class="shop-detail-list">
@@ -55,9 +67,47 @@
           <% } %>
         </section>
 
-        <section class="shop-readonly-note">
-          <i data-lucide="info"></i>
-          <p>Checkout is not enabled yet. This page is currently read-only while event shop operations are being completed.</p>
+        <% const inStockVariants = variants.filter((variant) => variant.availableQuantity > 0); %>
+        <% const canPurchase = !variants.length || inStockVariants.length > 0; %>
+
+        <section class="shop-detail-section">
+          <h2>Add to Cart</h2>
+          <% if (!canAddToCart) { %>
+            <div class="shop-readonly-note">
+              <i data-lucide="log-in"></i>
+              <p>
+                <a href="/login?returnTo=<%= encodeURIComponent(detailUrl) %>">Log in</a>
+                as a runner to add this product to your cart.
+              </p>
+            </div>
+          <% } else if (!canPurchase) { %>
+            <div class="shop-readonly-note">
+              <i data-lucide="package-x"></i>
+              <p>This product is currently out of stock.</p>
+            </div>
+          <% } else { %>
+            <form id="shopAddToCartForm" class="shop-form-grid">
+              <% if (variants.length) { %>
+                <label>
+                  <span>Variant</span>
+                  <select name="variantId" required>
+                    <% variants.forEach((variant) => { %>
+                      <option value="<%= variant.id %>" <%= variant.availableQuantity <= 0 ? 'disabled' : '' %>>
+                        <%= variant.name %><% if (variant.sku) { %> (<%= variant.sku %>)<% } %> &mdash; <%= variant.availableQuantity > 0 ? `${variant.availableQuantity} available` : 'Out of stock' %>
+                      </option>
+                    <% }) %>
+                  </select>
+                </label>
+              <% } %>
+              <label>
+                <span>Quantity</span>
+                <input type="number" name="quantity" min="1" max="99" value="1" required>
+              </label>
+              <div class="shop-form-footer">
+                <button type="submit" class="nav-signup-btn detail-status-btn">Add to Cart</button>
+              </div>
+            </form>
+          <% } %>
         </section>
       </div>
     </section>
@@ -65,6 +115,43 @@
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    (function () {
+      const form = document.getElementById('shopAddToCartForm');
+      if (!form) return;
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const csrfToken = String((document.getElementById('shopProductCsrfToken') || {}).value || '');
+        const payload = {
+          productId: '<%= product.id %>',
+          variantId: String(formData.get('variantId') || ''),
+          quantity: Number(formData.get('quantity') || 1)
+        };
+
+        try {
+          const response = await fetch('/shop/cart/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+            body: JSON.stringify(payload)
+          });
+          const data = await response.json().catch(() => ({}));
+
+          if (response.ok && data.success) {
+            window.location.href = `/shop/cart?type=success&msg=${encodeURIComponent(data.message || 'Added to cart.')}`;
+            return;
+          }
+
+          const message = (data && data.message) || 'Unable to add this item to your cart.';
+          window.location.href = `${window.location.pathname}?type=error&msg=${encodeURIComponent(message)}`;
+        } catch (error) {
+          window.location.href = `${window.location.pathname}?type=error&msg=${encodeURIComponent('Unable to add this item to your cart. Please try again.')}`;
+        }
+      });
+    })();
+  </script>
 </body>
 </html>

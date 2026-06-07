@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="shop-page">
+    <section class="shop-header shop-product-header">
+      <div>
+        <a href="/shop/cart" class="shop-back-link"><i data-lucide="arrow-left"></i><span>Back to Cart</span></a>
+        <p class="shop-eyebrow">Checkout</p>
+        <h1>Review &amp; Place Order</h1>
+      </div>
+      <div class="shop-price-panel">
+        <span>Total</span>
+        <strong id="shopCheckoutTotal"><%= summary.subtotalLabel %></strong>
+      </div>
+    </section>
+
+    <section class="shop-detail-layout">
+      <div class="shop-detail-main">
+        <% if (message) { %>
+          <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+        <% } %>
+
+        <section class="shop-detail-section">
+          <h2>Items</h2>
+          <div class="shop-variant-list">
+            <% lines.forEach((line) => { %>
+              <article>
+                <div>
+                  <h3><%= line.productName %></h3>
+                  <p>
+                    <% if (line.variantName) { %><%= line.variantName %> &middot; <% } %>
+                    <%= line.unitPriceLabel %> x <%= line.quantity %>
+                  </p>
+                </div>
+                <span><%= line.lineTotalLabel %></span>
+              </article>
+            <% }) %>
+          </div>
+        </section>
+
+        <section class="shop-detail-section">
+          <h2>Customer Details</h2>
+          <div class="shop-detail-list">
+            <p><strong>Name</strong><span><%= (buyer && buyer.displayName) || 'Not set' %></span></p>
+            <p><strong>Email</strong><span><%= (buyer && buyer.email) || 'Not set' %></span></p>
+          </div>
+        </section>
+
+        <form id="shopCheckoutForm" class="detail-card detail-card-full shop-product-form">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+
+          <section class="shop-detail-section">
+            <h2>Delivery</h2>
+            <div class="shop-form-toggles">
+              <% if (summary.allowPickup) { %>
+                <label class="shop-form-toggle">
+                  <input type="radio" name="deliveryMethod" value="pickup" checked>
+                  <span>Pickup</span>
+                </label>
+              <% } %>
+              <% if (summary.allowDelivery) { %>
+                <label class="shop-form-toggle">
+                  <input type="radio" name="deliveryMethod" value="delivery" <%= summary.allowPickup ? '' : 'checked' %>>
+                  <span>Delivery (<%= summary.deliveryFeeLabel %> fee)</span>
+                </label>
+              <% } %>
+            </div>
+            <% if (!summary.allowPickup && !summary.allowDelivery) { %>
+              <p class="shop-muted">No delivery options are configured for the items in your cart. Please contact support before placing this order.</p>
+            <% } %>
+
+            <div class="shop-form-grid" id="shopCheckoutAddressField" style="<%= summary.allowDelivery ? '' : 'display:none' %>">
+              <label style="grid-column: 1 / -1;">
+                <span>Delivery Address</span>
+                <textarea name="deliveryAddress" rows="3" maxlength="500" placeholder="Street, barangay, city, province, postal code"></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="shop-detail-section">
+            <h2>Order Notes</h2>
+            <div class="shop-form-grid">
+              <label style="grid-column: 1 / -1;">
+                <span>Note for HelloRun (optional)</span>
+                <textarea name="customerNote" rows="3" maxlength="1000" placeholder="Anything we should know about your order?"></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="shop-detail-section">
+            <h2>Order Summary</h2>
+            <div class="shop-detail-list">
+              <p><strong>Subtotal</strong><span><%= summary.subtotalLabel %></span></p>
+              <p><strong>Delivery Fee</strong><span id="shopCheckoutDeliveryFee"><%= summary.allowDelivery ? summary.deliveryFeeLabel : formatCurrency(0, summary.currency) %></span></p>
+            </div>
+            <p class="shop-muted">Payment instructions (manual receipt upload) will appear on your order page after you place this order.</p>
+          </section>
+
+          <div class="shop-form-footer">
+            <button type="submit" class="nav-signup-btn detail-status-btn" <%= (!summary.allowPickup && !summary.allowDelivery) ? 'disabled' : '' %>>Place Order</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    (function () {
+      const form = document.getElementById('shopCheckoutForm');
+      if (!form) return;
+
+      const subtotal = <%- JSON.stringify(summary.subtotal) %>;
+      const deliveryFee = <%- JSON.stringify(summary.deliveryFee) %>;
+      const currency = <%- JSON.stringify(summary.currency) %>;
+      const addressField = document.getElementById('shopCheckoutAddressField');
+      const deliveryFeeLabel = document.getElementById('shopCheckoutDeliveryFee');
+      const totalLabel = document.getElementById('shopCheckoutTotal');
+
+      function formatAmount(amount) {
+        const safeAmount = Math.max(0, Number(amount) || 0);
+        return `${currency} ${safeAmount.toLocaleString('en-US', { minimumFractionDigits: safeAmount % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
+      }
+
+      function syncDeliveryUI() {
+        const selected = form.querySelector('input[name="deliveryMethod"]:checked');
+        const isDelivery = Boolean(selected && selected.value === 'delivery');
+        if (addressField) addressField.style.display = isDelivery ? '' : 'none';
+        const fee = isDelivery ? deliveryFee : 0;
+        if (deliveryFeeLabel) deliveryFeeLabel.textContent = formatAmount(fee);
+        if (totalLabel) totalLabel.textContent = formatAmount(subtotal + fee);
+      }
+
+      form.querySelectorAll('input[name="deliveryMethod"]').forEach((input) => {
+        input.addEventListener('change', syncDeliveryUI);
+      });
+      syncDeliveryUI();
+
+      function redirectWithMessage(type, msg) {
+        window.location.href = `/shop/checkout?type=${encodeURIComponent(type)}&msg=${encodeURIComponent(msg)}`;
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const csrfToken = String(formData.get('_csrf') || '');
+        const payload = {
+          deliveryMethod: String(formData.get('deliveryMethod') || ''),
+          deliveryAddress: String(formData.get('deliveryAddress') || ''),
+          customerNote: String(formData.get('customerNote') || '')
+        };
+
+        const submitBtn = form.querySelector('button[type="submit"]');
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+          const response = await fetch('/shop/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+            body: JSON.stringify(payload)
+          });
+          const data = await response.json().catch(() => ({}));
+
+          if (response.ok && data.success) {
+            window.location.href = data.redirectTo || '/orders';
+            return;
+          }
+
+          if (submitBtn) submitBtn.disabled = false;
+          redirectWithMessage('error', (data && data.message) || 'Unable to place your order.');
+        } catch (error) {
+          if (submitBtn) submitBtn.disabled = false;
+          redirectWithMessage('error', 'Unable to place your order. Please try again.');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

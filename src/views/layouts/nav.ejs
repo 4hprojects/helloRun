@@ -51,6 +51,10 @@
         <i data-lucide="calendar-days"></i>
         <span class="nav-tooltip">Events</span>
       </a>
+      <a href="/shop" class="<%= navClass('/shop') %>" aria-label="Shop" title="Shop" <% if (ariaCurrent('/shop')) { %>aria-current="page"<% } %>>
+        <i data-lucide="shopping-bag"></i>
+        <span class="nav-tooltip">Shop</span>
+      </a>
       <a href="/blog" class="<%= navClass('/blog') %>" aria-label="Blog" title="Blog" <% if (ariaCurrent('/blog')) { %>aria-current="page"<% } %>>
         <i data-lucide="newspaper"></i>
         <span class="nav-tooltip">Blog</span>
