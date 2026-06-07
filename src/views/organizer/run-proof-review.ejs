@@ -12,15 +12,27 @@
       <header class="events-header">
         <div>
           <h1>Run Proof Review</h1>
-          <p><%= event.title %></p>
+          <p><%= event.title %> - Review pending proofs, inspect approved results, and audit automatic approvals.</p>
         </div>
-        <div class="header-actions">
-          <a href="<%= links.registrants %>" class="nav-login-btn registrant-header-btn">Registrants</a>
+        <div class="header-actions run-proof-header-actions" aria-label="Run proof review navigation">
+          <a href="<%= links.registrants %>" class="nav-login-btn registrant-header-btn run-proof-header-btn">
+            <i data-lucide="users" aria-hidden="true"></i>
+            <span>Registrants</span>
+          </a>
           <% if (isAdminViewer) { %>
-            <a href="/admin/dashboard" class="nav-login-btn registrant-header-btn">Admin Dashboard</a>
+            <a href="/admin/dashboard" class="nav-login-btn registrant-header-btn run-proof-header-btn">
+              <i data-lucide="shield-check" aria-hidden="true"></i>
+              <span>Admin Dashboard</span>
+            </a>
           <% } else { %>
-            <a href="/organizer/events/<%= event._id %>" class="nav-login-btn registrant-header-btn">Back to Event</a>
-            <a href="/organizer/events" class="nav-login-btn registrant-header-btn">My Events</a>
+            <a href="/organizer/events/<%= event._id %>" class="nav-login-btn registrant-header-btn run-proof-header-btn">
+              <i data-lucide="arrow-left" aria-hidden="true"></i>
+              <span>Back to Event</span>
+            </a>
+            <a href="/organizer/events" class="nav-login-btn registrant-header-btn run-proof-header-btn">
+              <i data-lucide="calendar-days" aria-hidden="true"></i>
+              <span>My Events</span>
+            </a>
           <% } %>
         </div>
       </header>
@@ -30,44 +42,60 @@
       <% } %>
 
       <section class="registrant-summary">
-        <a href="<%= links.pending %>" class="summary-card payment-proof-summary-link">
+        <a href="<%= links.pending %>" class="summary-card payment-proof-summary-link <%= filters.status === 'pending' ? 'is-active' : '' %>">
           <strong>Pending Review</strong>
           <span><%= counts.pending %></span>
         </a>
-        <a href="<%= links.all %>" class="summary-card payment-proof-summary-link">
-          <strong>Reviewed</strong>
-          <span><%= counts.reviewed %></span>
+        <a href="<%= links.all %>" class="summary-card payment-proof-summary-link <%= filters.status === 'all' ? 'is-active' : '' %>">
+          <strong>All Proofs</strong>
+          <span><%= counts.all %></span>
         </a>
-        <a href="<%= links.approved %>" class="summary-card payment-proof-summary-link">
+        <a href="<%= links.approved %>" class="summary-card payment-proof-summary-link <%= filters.status === 'approved' ? 'is-active' : '' %>">
           <strong>Approved</strong>
           <span><%= counts.approved %></span>
         </a>
-        <a href="<%= links.rejected %>" class="summary-card payment-proof-summary-link">
+        <a href="<%= links.autoApproved %>" class="summary-card payment-proof-summary-link <%= filters.status === 'auto-approved' ? 'is-active' : '' %>">
+          <strong>Auto-approved</strong>
+          <span><%= counts.autoApproved %></span>
+        </a>
+        <a href="<%= links.rejected %>" class="summary-card payment-proof-summary-link <%= filters.status === 'rejected' ? 'is-active' : '' %>">
           <strong>Rejected</strong>
           <span><%= counts.rejected %></span>
         </a>
       </section>
 
       <form method="GET" action="/organizer/events/<%= event._id %>/run-proofs/review" class="filter-bar run-proof-filter-bar">
-        <label for="status">Queue</label>
-        <select id="status" name="status">
-          <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Pending</option>
-          <option value="approved" <%= filters.status === 'approved' ? 'selected' : '' %>>Approved</option>
-          <option value="rejected" <%= filters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
-          <option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All</option>
-        </select>
+        <div class="run-proof-filter-field">
+          <label for="status">Queue</label>
+          <select id="status" name="status">
+            <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Pending</option>
+            <option value="approved" <%= filters.status === 'approved' ? 'selected' : '' %>>Approved</option>
+            <option value="auto-approved" <%= filters.status === 'auto-approved' ? 'selected' : '' %>>Auto-approved</option>
+            <option value="rejected" <%= filters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+            <option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All</option>
+          </select>
+        </div>
 
-        <label for="sort">Sort</label>
-        <select id="sort" name="sort">
-          <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
-          <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest first</option>
-        </select>
+        <div class="run-proof-filter-field">
+          <label for="sort">Sort</label>
+          <select id="sort" name="sort">
+            <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
+            <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest first</option>
+          </select>
+        </div>
 
-        <label for="q">Search</label>
-        <input id="q" name="q" type="search" placeholder="Code, name, or email" value="<%= filters.q || '' %>">
+        <div class="run-proof-filter-field run-proof-search-field">
+          <label for="q">Search</label>
+          <div class="run-proof-search-control">
+            <i data-lucide="search" aria-hidden="true"></i>
+            <input id="q" name="q" type="search" placeholder="Search name, email, or code" value="<%= filters.q || '' %>">
+          </div>
+        </div>
 
-        <button type="submit" class="nav-signup-btn">Apply</button>
-        <a href="<%= links.reset %>" class="nav-login-btn">Reset</a>
+        <div class="run-proof-filter-actions">
+          <button type="submit" class="nav-signup-btn">Apply</button>
+          <a href="<%= links.reset %>" class="nav-login-btn">Reset</a>
+        </div>
       </form>
 
       <% if (filters.status === 'pending') { %>
@@ -78,7 +106,10 @@
 
       <% if (reviewItems && reviewItems.length) { %>
         <div class="results-meta run-proof-results-meta">
-          Showing <strong><%= reviewItems.length %></strong> of <strong><%= pagination.totalItems %></strong> proof<%= pagination.totalItems === 1 ? '' : 's' %>
+          <span>Showing <strong><%= reviewItems.length %></strong> of <strong><%= pagination.totalItems %></strong> proof<%= pagination.totalItems === 1 ? '' : 's' %></span>
+          <% if (filters.status === 'auto-approved') { %>
+            <span class="run-proof-results-note">Auto-approved entries passed validation without manual reviewer assignment.</span>
+          <% } %>
         </div>
 
         <section class="run-proof-review-list">
@@ -90,11 +121,14 @@
                     <h2><%= item.participantName %></h2>
                     <p><%= item.participantEmail %></p>
                   </div>
-                  <span class="status-badge status-badge-<%= item.status %>"><%= item.statusLabel %></span>
+                  <span class="status-badge status-badge-<%= item.statusClass %>"><%= item.statusLabel %></span>
                 </div>
 
                 <div class="run-proof-card-labels">
                   <span class="mode-badge"><%= item.submissionTypeLabel %></span>
+                  <% if (item.isAutoApproved) { %>
+                    <span class="mode-badge mode-auto-approved">Auto validation</span>
+                  <% } %>
                   <% if (item.suspiciousFlag || item.reviewSignal?.label) { %>
                     <span class="mode-badge mode-warning" title="<%= item.reviewSignal?.description || item.suspiciousFlagReason %>"><%= item.reviewSignal?.label || 'Suspicious' %></span>
                   <% } %>
@@ -105,15 +139,11 @@
 
                 <dl class="run-proof-meta-grid">
                   <div>
-                    <dt>Confirmation</dt>
-                    <dd><code><%= item.confirmationCode %></code></dd>
-                  </div>
-                  <div>
                     <dt>Distance / Mode</dt>
                     <dd><%= item.raceDistance %> / <%= item.participationMode %></dd>
                   </div>
                   <div>
-                    <dt>Activity Distance</dt>
+                    <dt>Distance</dt>
                     <dd><%= item.distanceLabel %></dd>
                   </div>
                   <div>
@@ -136,11 +166,18 @@
                     <dt>Source</dt>
                     <dd><%= item.sourceLabel %></dd>
                   </div>
+                  <div>
+                    <dt>Review</dt>
+                    <dd><%= item.reviewSourceLabel %></dd>
+                  </div>
                 </dl>
 
                 <% if (item.proofUrl) { %>
                   <div class="run-proof-preview">
-                    <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="proof-link">Open run proof</a>
+                    <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="proof-link">
+                      <i data-lucide="external-link" aria-hidden="true"></i>
+                      Open run proof
+                    </a>
                     <% if (item.isImageProof) { %>
                       <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="run-proof-image-link">
                         <img src="<%= item.proofUrl %>" alt="Run proof for <%= item.confirmationCode %>">
@@ -153,13 +190,33 @@
               </div>
 
               <aside class="run-proof-card-actions">
-                <a href="<%= item.actionHref %>" class="nav-signup-btn table-action-btn registrant-row-btn registrant-row-btn-review">Open Review</a>
+                <a href="<%= item.actionHref %>" class="nav-signup-btn table-action-btn registrant-row-btn registrant-row-btn-review">
+                  <i data-lucide="eye" aria-hidden="true"></i>
+                  <%= item.status === 'submitted' ? 'Open Review' : 'View Details' %>
+                </a>
+                <% if (item.status === 'rejected') { %>
+                  <button
+                    type="button"
+                    class="btn-success table-action-btn run-proof-approve-btn"
+                    data-run-proof-approve
+                    data-action="<%= item.approveActionHref %>"
+                    data-participant="<%= item.participantName %>"
+                    data-email="<%= item.participantEmail %>"
+                    data-distance="<%= item.distanceLabel %>"
+                    data-elapsed="<%= item.elapsedLabel %>"
+                    data-run-date="<%= item.runDateLabel || 'N/A' %>">
+                    <i data-lucide="check-circle" aria-hidden="true"></i>
+                    Approve
+                  </button>
+                <% } %>
                 <% if (item.status !== 'submitted') { %>
                   <div class="run-proof-history">
-                    <strong>Review History</strong>
-                    <p>Reviewed: <%= item.reviewedAtLabel || 'N/A' %></p>
+                    <strong><%= item.isAutoApproved ? 'Approval History' : 'Review History' %></strong>
+                    <p><%= item.isAutoApproved ? 'Approved' : 'Reviewed' %>: <%= item.reviewedAtLabel || 'N/A' %></p>
                     <% if (item.reviewerName) { %>
                       <p>By: <%= item.reviewerName %></p>
+                    <% } else if (item.isAutoApproved) { %>
+                      <p>By: Auto-validation rules</p>
                     <% } %>
                     <% if (item.reviewerEmail) { %>
                       <p><%= item.reviewerEmail %></p>
@@ -206,10 +263,97 @@
         </div>
       <% } %>
     </section>
+
+    <div class="run-proof-approval-modal" id="runProofApprovalModal" hidden>
+      <div class="run-proof-approval-dialog" role="dialog" aria-modal="true" aria-labelledby="runProofApprovalTitle" aria-describedby="runProofApprovalDesc" tabindex="-1">
+        <div class="run-proof-approval-header">
+          <span class="run-proof-approval-icon"><i data-lucide="check-circle" aria-hidden="true"></i></span>
+          <div>
+            <h2 id="runProofApprovalTitle">Approve rejected proof?</h2>
+            <p id="runProofApprovalDesc">Validate the activity details before restoring this result to approved status.</p>
+          </div>
+        </div>
+        <dl class="run-proof-approval-summary">
+          <div>
+            <dt>Runner</dt>
+            <dd id="runProofApprovalRunner">N/A</dd>
+          </div>
+          <div>
+            <dt>Distance</dt>
+            <dd id="runProofApprovalDistance">N/A</dd>
+          </div>
+          <div>
+            <dt>Elapsed</dt>
+            <dd id="runProofApprovalElapsed">N/A</dd>
+          </div>
+          <div>
+            <dt>Run Date</dt>
+            <dd id="runProofApprovalDate">N/A</dd>
+          </div>
+        </dl>
+        <form method="POST" action="" id="runProofApprovalForm" class="run-proof-approval-form">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <input type="hidden" name="queueStatus" value="<%= filters.status || 'pending' %>">
+          <input type="hidden" name="queueSort" value="<%= filters.sort || 'newest' %>">
+          <% if (filters.q) { %>
+            <input type="hidden" name="queueQ" value="<%= filters.q %>">
+          <% } %>
+          <% if (Number(filters.page || 1) > 1) { %>
+            <input type="hidden" name="queuePage" value="<%= filters.page %>">
+          <% } %>
+          <label for="runProofApprovalNotes">Approval notes</label>
+          <textarea id="runProofApprovalNotes" name="reviewNotes" rows="4" maxlength="1200" placeholder="Add a short validation note for this reversal"></textarea>
+          <div class="run-proof-approval-actions">
+            <button type="button" class="nav-login-btn" id="runProofApprovalCancel">Cancel</button>
+            <button type="submit" class="btn-success">Approve Result</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </main>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+    (function () {
+      const modal = document.getElementById('runProofApprovalModal');
+      const dialog = modal ? modal.querySelector('.run-proof-approval-dialog') : null;
+      const form = document.getElementById('runProofApprovalForm');
+      const notes = document.getElementById('runProofApprovalNotes');
+      const cancel = document.getElementById('runProofApprovalCancel');
+      if (!modal || !dialog || !form) return;
+
+      const setText = (id, value) => {
+        const node = document.getElementById(id);
+        if (node) node.textContent = value || 'N/A';
+      };
+      const closeModal = () => {
+        modal.hidden = true;
+        form.action = '';
+      };
+
+      document.querySelectorAll('[data-run-proof-approve]').forEach((button) => {
+        button.addEventListener('click', () => {
+          form.action = button.dataset.action || '';
+          const runner = [button.dataset.participant, button.dataset.email].filter(Boolean).join(' - ');
+          setText('runProofApprovalRunner', runner);
+          setText('runProofApprovalDistance', button.dataset.distance);
+          setText('runProofApprovalElapsed', button.dataset.elapsed);
+          setText('runProofApprovalDate', button.dataset.runDate);
+          modal.hidden = false;
+          if (notes) notes.value = '';
+          dialog.focus();
+        });
+      });
+      if (cancel) cancel.addEventListener('click', closeModal);
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) closeModal();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !modal.hidden) closeModal();
+      });
+    })();
+  </script>
 </body>
 </html>

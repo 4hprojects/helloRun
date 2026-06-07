@@ -16,7 +16,8 @@ const {
 } = require('./badge-progress.service');
 const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
 
-const REVIEWABLE_STATUS = new Set(['submitted']);
+const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
+const REJECTABLE_STATUS = new Set(['submitted']);
 const AUTO_APPROVAL_REVIEW_NOTE = 'Auto-approved from OCR name match.';
 
 async function createAccumulatedActivitySubmission(input) {
@@ -59,8 +60,11 @@ async function reviewAccumulatedActivitySubmission({
   if (!activity) {
     throw new Error('Activity submission not found.');
   }
-  if (!REVIEWABLE_STATUS.has(activity.status)) {
-    throw new Error('Only submitted activities can be reviewed.');
+  if (safeAction === 'approve' && !APPROVABLE_STATUS.has(activity.status)) {
+    throw new Error('Only submitted or rejected activities can be approved.');
+  }
+  if (safeAction === 'reject' && !REJECTABLE_STATUS.has(activity.status)) {
+    throw new Error('Only submitted activities can be rejected.');
   }
 
   const normalizedReviewerRole = String(reviewerRole || '').trim().toLowerCase();

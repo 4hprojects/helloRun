@@ -306,6 +306,17 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const recentRegistrationsByEventId = new Map(
       recentRegistrationCounts.map((item) => [String(item._id), item.count])
     );
+    const pendingResultsByEventId = new Map();
+    for (const item of resultQueueCounts) {
+      pendingResultsByEventId.set(String(item._id), Number(item.resultPending || 0));
+    }
+    for (const item of accumulatedResultQueueCounts) {
+      const key = String(item._id);
+      pendingResultsByEventId.set(
+        key,
+        Number(pendingResultsByEventId.get(key) || 0) + Number(item.resultPending || 0)
+      );
+    }
 
     const recentEvents = recentEventDocs.map((event) => ({
       id: event._id,
@@ -314,6 +325,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       location: [event.venueName, event.city, event.country].filter(Boolean).join(', ') || 'TBA',
       status: event.status,
       registrations: recentRegistrationsByEventId.get(String(event._id)) || 0,
+      pendingRunProofSubmissions: pendingResultsByEventId.get(String(event._id)) || 0,
       bannerImageUrl: event.bannerImageUrl || '',
       logoUrl: event.logoUrl || ''
     }));
@@ -1299,8 +1311,7 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
     }
 
     const filters = normalizeRunProofReviewFilters(req.query);
-    const statusQuery = getRunProofReviewStatusQuery(filters.status);
-    const submissionQuery = { eventId: event._id, status: statusQuery };
+    const submissionQuery = { eventId: event._id, ...getRunProofReviewStatusQuery(filters.status) };
     const populate = [
       { path: 'reviewedBy', select: 'firstName lastName email' },
       { path: 'registrationId', select: 'participant confirmationCode raceDistance participationMode' }
@@ -1314,6 +1325,8 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
       standardRejected,
       accumulatedPending,
       accumulatedApproved,
+      standardAutoApproved,
+      accumulatedAutoApproved,
       accumulatedRejected
     ] = await Promise.all([
       Submission.find(submissionQuery).populate(populate).lean(),
@@ -1323,6 +1336,8 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
       Submission.countDocuments({ eventId: event._id, status: 'rejected' }),
       AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'submitted' }),
       AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'approved' }),
+      Submission.countDocuments({ eventId: event._id, status: 'approved', $or: [{ reviewedBy: null }, { reviewedBy: { $exists: false } }] }),
+      AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'approved', $or: [{ reviewedBy: null }, { reviewedBy: { $exists: false } }] }),
       AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'rejected' })
     ]);
 
@@ -1354,6 +1369,7 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
 
     const pendingCount = standardPending + accumulatedPending;
     const approvedCount = standardApproved + accumulatedApproved;
+    const autoApprovedCount = standardAutoApproved + accumulatedAutoApproved;
     const rejectedCount = standardRejected + accumulatedRejected;
 
     return res.render('organizer/run-proof-review', {
@@ -1366,8 +1382,10 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
       message: getPageMessage(req.query),
       counts: {
         pending: pendingCount,
+        all: pendingCount + approvedCount + rejectedCount,
         reviewed: approvedCount + rejectedCount,
         approved: approvedCount,
+        autoApproved: autoApprovedCount,
         rejected: rejectedCount
       },
       pagination: {
@@ -1381,6 +1399,7 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
       links: {
         pending: buildRunProofReviewPath(event._id, filters, { status: 'pending', sort: 'oldest', page: 1 }),
         approved: buildRunProofReviewPath(event._id, filters, { status: 'approved', sort: 'newest', page: 1 }),
+        autoApproved: buildRunProofReviewPath(event._id, filters, { status: 'auto-approved', sort: 'newest', page: 1 }),
         rejected: buildRunProofReviewPath(event._id, filters, { status: 'rejected', sort: 'newest', page: 1 }),
         all: buildRunProofReviewPath(event._id, filters, { status: 'all', sort: 'newest', page: 1 }),
         reset: `/organizer/events/${event._id}/run-proofs/review`,
@@ -3366,7 +3385,7 @@ function formatPaymentProofStatusLabel(value) {
 }
 
 function normalizeRunProofReviewFilters(queryParams = {}) {
-  const status = ['pending', 'approved', 'rejected', 'all'].includes(String(queryParams.status || '').trim())
+  const status = ['pending', 'approved', 'auto-approved', 'rejected', 'all'].includes(String(queryParams.status || '').trim())
     ? String(queryParams.status).trim()
     : 'pending';
   const hasSort = ['oldest', 'newest'].includes(String(queryParams.sort || '').trim());
@@ -3380,10 +3399,16 @@ function normalizeRunProofReviewFilters(queryParams = {}) {
 }
 
 function getRunProofReviewStatusQuery(status) {
-  if (status === 'approved') return 'approved';
-  if (status === 'rejected') return 'rejected';
-  if (status === 'all') return { $in: ['submitted', 'approved', 'rejected'] };
-  return 'submitted';
+  if (status === 'approved') return { status: 'approved' };
+  if (status === 'auto-approved') {
+    return {
+      status: 'approved',
+      $or: [{ reviewedBy: null }, { reviewedBy: { $exists: false } }]
+    };
+  }
+  if (status === 'rejected') return { status: 'rejected' };
+  if (status === 'all') return { status: { $in: ['submitted', 'approved', 'rejected'] } };
+  return { status: 'submitted' };
 }
 
 function buildRunProofReviewPath(eventId, filters = {}, overrides = {}) {
@@ -3451,6 +3476,12 @@ function buildRunProofReviewRow(submission, event, filters, submissionKind) {
     submission.ocrData?.nameMatchStatus === 'mismatched'
   );
   const queueContext = buildRunProofQueueContextParams(filters).toString();
+  const isAutoApproved = submission.status === 'approved' && !submission.reviewedBy;
+  const statusLabel = submission.status === 'submitted'
+    ? 'Pending Review'
+    : isAutoApproved
+      ? 'Auto-approved'
+      : String(submission.status || 'N/A');
 
   return {
     id: String(submission._id),
@@ -3462,7 +3493,9 @@ function buildRunProofReviewRow(submission, event, filters, submissionKind) {
     raceDistance: registration.raceDistance || submission.raceDistance || 'N/A',
     participationMode: registration.participationMode || submission.participationMode || 'N/A',
     status: submission.status || 'submitted',
-    statusLabel: submission.status === 'submitted' ? 'Pending Review' : String(submission.status || 'N/A'),
+    statusLabel,
+    statusClass: isAutoApproved ? 'auto-approved' : (submission.status || 'submitted'),
+    isAutoApproved,
     submittedAt: submission.submittedAt || submission.createdAt || null,
     submittedAtLabel: mappedSubmission.submittedAtLabel,
     runDateLabel: mappedSubmission.runDateLabel,
@@ -3470,6 +3503,7 @@ function buildRunProofReviewRow(submission, event, filters, submissionKind) {
     elapsedLabel: mappedSubmission.elapsedLabel || 'N/A',
     proofTypeLabel: String(submission.proofType || 'manual').toUpperCase(),
     sourceLabel: submission.source === 'strava' ? 'Strava' : 'Manual upload',
+    reviewSourceLabel: isAutoApproved ? 'Auto-approved by validation' : (submission.status === 'submitted' ? 'Awaiting organizer review' : 'Organizer reviewed'),
     proofUrl,
     isImageProof,
     suspiciousFlag: mappedSubmission.suspiciousFlag,
@@ -3481,7 +3515,8 @@ function buildRunProofReviewRow(submission, event, filters, submissionKind) {
     reviewerEmail: reviewer?.email || '',
     rejectionReason: submission.rejectionReason || '',
     reviewNotes: submission.reviewNotes || '',
-    actionHref: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review${queueContext ? `?${queueContext}` : ''}`
+    actionHref: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review${queueContext ? `?${queueContext}` : ''}`,
+    approveActionHref: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/approve`
   };
 }
 

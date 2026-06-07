@@ -64,10 +64,13 @@ The per-event queue gives organizers and admins a single place to scan submitted
 
 - Combines standard `Submission` records and `AccumulatedActivitySubmission` records.
 - Defaults to pending proofs ordered oldest first.
-- Supports pending, approved, rejected, and all-status views.
+- Supports pending, approved, auto-approved, rejected, and all-status views.
 - Supports participant name, email, and confirmation-code search.
 - Supports oldest/newest sorting and combined pagination at 50 proofs per page.
 - Shows proof type, participant details, distance, elapsed time, run date, evidence link or image preview, review signals, and review history where available.
+- Uses compact proof cards that omit the confirmation code from the visible card metadata while preserving confirmation-code search.
+- Distinguishes auto-approved submissions, defined as approved records without a manual reviewer, in both counts and card labels.
+- Provides readable header navigation buttons for Registrants, Back to Event, and My Events instead of inheriting the registrants page icon-only toolbar sizing.
 - Preserves queue status, search, sort, and page context when opening a proof and after approve/reject actions.
 
 ## Workflow
@@ -77,7 +80,9 @@ Pending submissions render action forms on the standalone page:
 - Approve with optional review notes.
 - Reject with a required rejection reason and optional review notes.
 
-Reviewed submissions render a read-only review summary and do not show approve/reject forms.
+Reviewed submissions render a read-only review summary and do not show approve/reject forms on the standalone detail page.
+
+Rejected submissions can be re-approved from the per-event run proof queue. The rejected queue shows an Approve button that opens a validation modal with runner, distance, elapsed time, run date, and optional approval notes before posting to the existing approve route. Re-approval clears the previous rejection reason and suspicious metadata through the shared review services.
 
 After approval or rejection, the reviewer is redirected back to the same standalone review page with a success or error message.
 
@@ -112,6 +117,12 @@ The feature reuses existing review services:
 
 Those services remain responsible for review status transitions, validation, notifications, certificate issuance, critical audit logging, badge progress, and accumulated challenge progress.
 
+Current transition behavior:
+
+- Submitted records can be approved or rejected.
+- Rejected records can be approved again from the queue after modal validation.
+- Approved records remain final for organizer approval actions.
+
 Primary implementation files:
 
 - `src/routes/organizer.routes.js`
@@ -120,6 +131,8 @@ Primary implementation files:
 - `src/public/css/organizer-events.css`
 - `src/views/organizer/event-registrants.ejs`
 - `src/controllers/admin.controller.js`
+- `src/services/submission.service.js`
+- `src/services/accumulated-activity.service.js`
 
 ## Test Coverage
 
@@ -145,6 +158,9 @@ Verified scenarios:
 - Per-event run proof queue enforces authentication, organizer ownership, and admin access.
 - Per-event run proof queue combines standard and accumulated proofs.
 - Per-event run proof queue filters reviewed history, searches participants, paginates combined results, and preserves queue context.
+- Per-event run proof queue includes auto-approved records and exposes an auto-approved filter.
+- Per-event rejected queue renders a validation modal and can approve rejected submissions.
+- Run proof queue header navigation renders readable icon-plus-label buttons for Registrants, Back to Event, and My Events.
 - Admin review queue result rows link directly to the standalone review page.
 - Approve/reject actions redirect back to the standalone page.
 - Rejection still requires a valid rejection reason through existing route behavior.
@@ -155,8 +171,10 @@ Latest focused verification:
 
 ```bash
 node --check src/routes/organizer.routes.js
-node --check tests/submission-review-route-guards.test.js
-node --test --test-concurrency=1 tests/submission-review-route-guards.test.js
+node --check src/services/submission.service.js
+node --check src/services/accumulated-activity.service.js
+node --check tests/submission-review-route-guards.integration.test.js
+node --test tests/submission-review-route-guards.integration.test.js
 ```
 
 Additional June 2026 render check:

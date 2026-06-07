@@ -13,7 +13,8 @@ const { detectSuspiciousActivity } = require('../utils/submission-integrity');
 const { assertRunDateNotFuture } = require('../utils/platform-date');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 
-const REVIEWABLE_STATUS = new Set(['submitted']);
+const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
+const REJECTABLE_STATUS = new Set(['submitted']);
 const FINAL_STATUSES = new Set(['approved']);
 const PERSONAL_RECORD_REGISTRATION_ID = 'personal-record';
 const AUTO_APPROVAL_CONFIDENCE_THRESHOLD = 0.7;
@@ -189,8 +190,11 @@ async function reviewSubmission({
   if (!submission) {
     throw new Error('Submission not found.');
   }
-  if (!REVIEWABLE_STATUS.has(submission.status)) {
-    throw new Error('Only submitted results can be reviewed.');
+  if (safeAction === 'approve' && !APPROVABLE_STATUS.has(submission.status)) {
+    throw new Error('Only submitted or rejected results can be approved.');
+  }
+  if (safeAction === 'reject' && !REJECTABLE_STATUS.has(submission.status)) {
+    throw new Error('Only submitted results can be rejected.');
   }
 
   const normalizedReviewerRole = String(reviewerRole || '').trim().toLowerCase();
