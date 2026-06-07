@@ -79,6 +79,7 @@ test('admin dashboard renders platform stats and pending application queue', asy
   assert.match(html, /\/admin\/community-guidelines/i);
   assert.match(html, /\/admin\/acceptable-use-policy/i);
   assert.match(html, /\/admin\/users/i);
+  assert.match(html, /\/admin\/ads/i);
   assert.match(html, /\/admin\/applications/i);
   assert.match(html, /\/admin\/blog\/reports/i);
   assert.match(html, /\/admin\/blog\/comments/i);

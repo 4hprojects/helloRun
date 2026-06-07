@@ -76,6 +76,8 @@
         <img src="<%= post.coverImageUrl %>" alt="<%= post.coverImageAlt || `${post.title} cover` %>" loading="lazy" class="blog-cover-image" data-blog-cover-image>
       <% } %>
 
+      <%- include('../partials/ad-unit', { group: 'blogPost', placement: 'after_intro' }) %>
+
       <div class="blog-post-layout">
         <!-- Mobile Toggle for TOC -->
         <details class="blog-post-toc-mobile">
@@ -93,7 +95,11 @@
 
         <div class="blog-post-body">
           <section class="blog-content" id="blogPostContent">
-            <%- post.contentHtml %>
+            <%- (blogContentParts && blogContentParts.beforeAd) || post.contentHtml %>
+            <% if (blogContentParts && blogContentParts.afterAd) { %>
+              <%- include('../partials/ad-unit', { group: 'blogPost', placement: 'in_article' }) %>
+              <%- blogContentParts.afterAd %>
+            <% } %>
           </section>
 
           <% if (post.tags && post.tags.length) { %>
@@ -203,6 +209,8 @@
     </article>
 
     <% if (relatedPosts && relatedPosts.length) { %>
+      <%- include('../partials/ad-unit', { group: 'blogPost', placement: 'before_related' }) %>
+
       <section class="blog-related">
         <h3>Related Posts</h3>
         <div class="blog-related-grid">

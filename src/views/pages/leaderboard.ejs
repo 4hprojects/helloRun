@@ -88,8 +88,13 @@
       </p>
 
       <% if (leaderboard.cards && leaderboard.cards.length) { %>
+        <%- include('../partials/ad-unit', { group: 'leaderboard', placement: 'after_results_meta' }) %>
+      <% } %>
+
+      <% if (leaderboard.cards && leaderboard.cards.length) { %>
         <section class="leaderboard-discovery-grid" aria-label="Event leaderboards">
-          <% leaderboard.cards.forEach((card) => { %>
+          <% let leaderboardFeedAdCount = 0; %>
+          <% leaderboard.cards.forEach((card, cardIndex) => { %>
             <article class="leaderboard-discovery-card">
               <a class="leaderboard-discovery-image-link" href="<%= card.href %>" aria-label="View rankings for <%= card.title %>">
                 <img src="<%= card.imageUrl %>" alt="" loading="lazy">
@@ -115,6 +120,9 @@
                 </div>
               </div>
             </article>
+            <% if ((cardIndex + 1) % 6 === 0 && leaderboardFeedAdCount < 2) { leaderboardFeedAdCount += 1; %>
+              <%- include('../partials/ad-unit', { group: 'leaderboard', placement: 'in_feed', className: 'ad-unit-feed' }) %>
+            <% } %>
           <% }) %>
         </section>
       <% } else { %>

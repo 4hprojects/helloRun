@@ -18,6 +18,8 @@
 
     <section class="shop-content" aria-label="Event shop products">
       <% if (products.length) { %>
+        <%- include('../partials/ad-unit', { group: 'shopDiscovery', placement: 'after_results_meta' }) %>
+
         <div class="shop-product-grid">
           <% products.forEach((product) => { %>
             <article class="shop-product-card">

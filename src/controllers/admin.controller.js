@@ -12,6 +12,7 @@ const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubm
 const PrivacyPolicy = require('../models/PrivacyPolicy');
 const communicationService = require('../services/communication.service');
 const homepageCarouselSettingService = require('../services/homepage-carousel-setting.service');
+const adSettingService = require('../services/ad-setting.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
 const { listRecentBadgeAuditLogs } = require('../services/badge-audit.service');
 const { publishEvent } = require('../services/event-approval.service');
@@ -2590,6 +2591,29 @@ exports.updateHomepageCarouselSettings = async (req, res) => {
     return res.redirect(buildAdminRedirect('/admin/homepage-carousel', 'success', 'Homepage carousel settings updated.'));
   } catch (error) {
     return res.redirect(buildAdminRedirect('/admin/homepage-carousel', 'error', error.message || 'Could not update homepage carousel settings.'));
+  }
+};
+
+exports.renderAdSettings = async (req, res) => {
+  try {
+    const setting = await adSettingService.getAdSettings();
+    return res.render('admin/ad-settings', {
+      title: 'Ad Settings - HelloRun Admin',
+      message: getAdminPageMessage(req.query),
+      setting,
+      adPageGroups: adSettingService.AD_PAGE_GROUPS
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading ad settings.');
+  }
+};
+
+exports.updateAdSettings = async (req, res) => {
+  try {
+    await adSettingService.updateAdSettings(req.body, getAdminActor(req));
+    return res.redirect(buildAdminRedirect('/admin/ads', 'success', 'Ad settings updated.'));
+  } catch (error) {
+    return res.redirect(buildAdminRedirect('/admin/ads', 'error', error.message || 'Could not update ad settings.'));
   }
 };
 

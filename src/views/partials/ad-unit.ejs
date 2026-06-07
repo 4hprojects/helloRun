@@ -1,0 +1,24 @@
+<%
+  const adGroup = typeof group !== 'undefined' ? group : '';
+  const adPlacement = typeof placement !== 'undefined' ? placement : '';
+  const adClassName = typeof className !== 'undefined' ? className : '';
+  const adFormat = typeof format !== 'undefined' ? format : 'auto';
+  const fullWidthResponsive = typeof responsive !== 'undefined' ? responsive : true;
+  const canRenderAd = locals.ads && locals.ads.canRender(adGroup, adPlacement);
+  const adSlot = canRenderAd ? locals.ads.getSlot(adGroup, adPlacement) : '';
+%>
+<% if (canRenderAd && adSlot) { %>
+  <aside class="ad-unit <%= adClassName %>" aria-label="Advertisement" data-ad-group="<%= adGroup %>" data-ad-placement="<%= adPlacement %>">
+    <span class="ad-unit-label">Advertisement</span>
+    <ins
+      class="adsbygoogle"
+      style="display:block"
+      data-ad-client="<%= locals.ads.publisherId %>"
+      data-ad-slot="<%= adSlot %>"
+      data-ad-format="<%= adFormat %>"
+      data-full-width-responsive="<%= fullWidthResponsive ? 'true' : 'false' %>"></ins>
+  </aside>
+  <script>
+    (adsbygoogle = window.adsbygoogle || []).push({});
+  </script>
+<% } %>

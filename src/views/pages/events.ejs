@@ -142,6 +142,10 @@
           <p class="results-summary"><%= filterMeta.summary %></p>
         <% } %>
 
+        <% if (events && events.length) { %>
+          <%- include('../partials/ad-unit', { group: 'events', placement: 'after_results_meta' }) %>
+        <% } %>
+
         <% if (filterMeta?.activeFilters?.length) { %>
           <div class="active-filters" aria-label="Active filters">
             <% filterMeta.activeFilters.forEach((activeFilter) => { %>
@@ -157,7 +161,8 @@
         <!-- Event Cards -->
         <% if (events && events.length) { %>
           <div class="card-grid">
-            <% events.forEach((event) => { %>
+            <% let eventsFeedAdCount = 0; %>
+            <% events.forEach((event, eventIndex) => { %>
               <article class="card">
                 <% const eventBannerImageUrl = event.bannerImageUrl || defaultEventImageUrl; %>
                 <a href="/events/<%= event.slug %>" class="card-image-link">
@@ -208,6 +213,9 @@
                   </div>
                 </div>
               </article>
+              <% if ((eventIndex + 1) % 6 === 0 && eventsFeedAdCount < 2) { eventsFeedAdCount += 1; %>
+                <%- include('../partials/ad-unit', { group: 'events', placement: 'in_feed', className: 'ad-unit-feed' }) %>
+              <% } %>
             <% }); %>
           </div>
 

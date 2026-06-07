@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/design-system.css">
+  <link rel="stylesheet" href="/css/ads.css">
   <% if (locals.additionalCSS) { %>
     <% additionalCSS.forEach(css => { %>
       <link rel="stylesheet" href="<%= css %>">
@@ -16,6 +17,9 @@
   <% } %>
   <link rel="stylesheet" href="/css/project-buttons.css">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <% if (locals.ads && locals.ads.renderScript && locals.ads.publisherId) { %>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<%= locals.ads.publisherId %>" crossorigin="anonymous"></script>
+  <% } %>
   
   <!-- Google Analytics -->
   <% if (process.env.GA_MEASUREMENT_ID) { %>

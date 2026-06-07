@@ -78,6 +78,74 @@
   border-radius: 10px;
 }
 
+.ad-admin-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.ad-admin-publisher-field {
+  margin-top: 1rem;
+}
+
+.ad-admin-group-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.ad-admin-group-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 1rem;
+}
+
+.ad-admin-group-toggle {
+  margin-bottom: 1rem;
+}
+
+.ad-admin-placement-grid {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.ad-admin-placement-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(220px, 1fr);
+  gap: 0.85rem;
+  align-items: end;
+  padding-top: 0.85rem;
+  border-top: 1px solid #eef2f7;
+}
+
+.ad-admin-placement-enabled {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  min-height: 42px;
+  color: #334155;
+  font-weight: 700;
+}
+
+.ad-admin-slot-field input,
+.ad-admin-publisher-field input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+}
+
+.ad-admin-preview-track .is-ad-preview {
+  background: #f59e0b;
+  opacity: 0.65;
+}
+
+@media (max-width: 760px) {
+  .ad-admin-placement-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .event-admin-filters .filter-field {
   min-width: 120px;
   min-width: 0;

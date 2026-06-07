@@ -72,6 +72,8 @@ router.post('/communications/events/:eventKey', requireAdmin, adminController.up
 router.post('/communications/test-email', requireAdmin, adminController.sendCommunicationTestEmail);
 router.get('/homepage-carousel', requireAdmin, adminController.renderHomepageCarouselSettings);
 router.post('/homepage-carousel', requireAdmin, adminController.updateHomepageCarouselSettings);
+router.get('/ads', requireAdmin, adminController.renderAdSettings);
+router.post('/ads', requireAdmin, adminController.updateAdSettings);
 router.get('/reviews', requireAdmin, adminController.reviewQueue);
 router.get('/privacy-policy', requireAdmin, adminController.listPrivacyPolicies);
 router.get('/privacy-policy/new', requireAdmin, adminController.renderNewPrivacyPolicyDraft);

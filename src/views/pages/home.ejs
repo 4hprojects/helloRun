@@ -103,6 +103,8 @@
       </div>
     </section>
 
+    <%- include('../partials/ad-unit', { group: 'home', placement: 'after_features' }) %>
+
     <% if (featuredEvents && featuredEvents.length) { %>
       <section class="featured-events" aria-labelledby="featuredEventsTitle">
         <div class="container">
@@ -323,6 +325,8 @@
         </div>
       </div>
     </section>
+
+    <%- include('../partials/ad-unit', { group: 'home', placement: 'before_cta' }) %>
 
     <section class="cta-section">
       <div class="container">

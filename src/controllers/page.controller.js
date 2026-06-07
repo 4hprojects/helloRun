@@ -1611,6 +1611,7 @@ exports.getBlogPost = async (req, res) => {
     return res.render('pages/blog-post', {
       title: `${post.title} - HelloRun Blog`,
       post,
+      blogContentParts: splitBlogContentForAd(post.contentHtml || ''),
       relatedPosts,
       interactionState: {
         likedByCurrentUser,
@@ -1636,6 +1637,26 @@ exports.getBlogPost = async (req, res) => {
     });
   }
 };
+
+function splitBlogContentForAd(contentHtml = '') {
+  const html = String(contentHtml || '');
+  if (html.length < 900) {
+    return { beforeAd: html, afterAd: '' };
+  }
+
+  const paragraphMatches = Array.from(html.matchAll(/<\/p>/gi));
+  if (paragraphMatches.length < 3) {
+    return { beforeAd: html, afterAd: '' };
+  }
+
+  const targetOffset = Math.floor(html.length / 3);
+  const targetMatch = paragraphMatches.find((match) => match.index >= targetOffset) || paragraphMatches[Math.floor(paragraphMatches.length / 3)];
+  const splitIndex = targetMatch.index + targetMatch[0].length;
+  return {
+    beforeAd: html.slice(0, splitIndex),
+    afterAd: html.slice(splitIndex)
+  };
+}
 
 exports.getLeaderboard = async (req, res) => {
   try {

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Ad Settings - HelloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>Ad Settings</h2>
+          <p>Control where manual AdSense units are allowed on public HelloRun pages.</p>
+        </div>
+        <a href="/admin/dashboard" class="btn btn-secondary carousel-icon-action" aria-label="Back to Dashboard" data-action-label="Back to Dashboard">
+          <i data-lucide="arrow-left" aria-hidden="true"></i>
+        </a>
+      </div>
+
+      <% if (message) { %>
+        <div class="admin-alert admin-alert-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <%
+        const updatedDate = setting.updatedAt ? new Date(setting.updatedAt) : null;
+        const updatedLabel = updatedDate && !Number.isNaN(updatedDate.getTime())
+          ? updatedDate.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+          : 'Not updated yet';
+        const enabledGroups = Object.keys(adPageGroups).filter((groupKey) => setting.pageGroups?.[groupKey]?.enabled).length;
+        const configuredSlots = Object.keys(adPageGroups).reduce((count, groupKey) => {
+          return count + Object.keys(adPageGroups[groupKey].placements).filter((placementKey) => {
+            return setting.pageGroups?.[groupKey]?.placements?.[placementKey]?.slotId;
+          }).length;
+        }, 0);
+      %>
+
+      <section class="carousel-admin-hero" aria-label="Current ad configuration">
+        <div class="carousel-admin-hero-main">
+          <span class="status-badge <%= setting.enabled ? 'status-badge-live' : 'status-badge-closed' %>">
+            <%= setting.enabled ? 'Ads enabled' : 'Ads disabled' %>
+          </span>
+          <h3>Manual AdSense placements</h3>
+          <p>Ads render only on eligible public content and discovery pages. Private account, admin, organizer, checkout, and auth workflows remain ad-free.</p>
+          <div class="carousel-admin-meta-row" aria-label="Ad summary">
+            <span><i data-lucide="badge-dollar-sign" aria-hidden="true"></i><%= setting.publisherId %></span>
+            <span><i data-lucide="layout-grid" aria-hidden="true"></i><%= enabledGroups %> page group<%= enabledGroups === 1 ? '' : 's' %></span>
+            <span><i data-lucide="panel-top" aria-hidden="true"></i><%= configuredSlots %> slot<%= configuredSlots === 1 ? '' : 's' %> configured</span>
+          </div>
+        </div>
+        <div class="carousel-admin-preview" aria-label="Ad placement preview">
+          <div class="carousel-admin-preview-top">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="carousel-admin-preview-section">
+            <div>
+              <small>Public pages</small>
+              <strong>Content first</strong>
+            </div>
+            <i data-lucide="rectangle-horizontal" aria-hidden="true"></i>
+          </div>
+          <div class="carousel-admin-preview-track ad-admin-preview-track">
+            <span class="<%= setting.enabled ? '' : 'is-muted' %>"></span>
+            <span class="is-ad-preview <%= setting.enabled ? '' : 'is-muted' %>"></span>
+            <span class="<%= setting.enabled ? '' : 'is-muted' %>"></span>
+          </div>
+          <p>Last saved: <%= updatedLabel %></p>
+        </div>
+      </section>
+
+      <form method="POST" action="/admin/ads" class="ad-admin-form" data-ad-settings-form>
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+
+        <section class="carousel-admin-panel">
+          <div class="carousel-admin-panel-heading">
+            <div>
+              <h3>Global Controls</h3>
+              <p>Use the global toggle to pause all placements without losing slot IDs.</p>
+            </div>
+            <i data-lucide="sliders-horizontal" aria-hidden="true"></i>
+          </div>
+
+          <div class="carousel-toggle-list">
+            <label class="carousel-toggle-card">
+              <input type="checkbox" name="enabled" value="1" <%= setting.enabled ? 'checked' : '' %>>
+              <span class="carousel-toggle-ui" aria-hidden="true"></span>
+              <span>
+                <strong>Enable ads globally</strong>
+                <small>Allow eligible public pages to render configured ad units.</small>
+              </span>
+            </label>
+            <label class="carousel-toggle-card">
+              <input type="checkbox" name="scriptEnabled" value="1" <%= setting.scriptEnabled ? 'checked' : '' %>>
+              <span class="carousel-toggle-ui" aria-hidden="true"></span>
+              <span>
+                <strong>Load AdSense script</strong>
+                <small>Load the Google AdSense script once on eligible pages.</small>
+              </span>
+            </label>
+          </div>
+
+          <label class="admin-form-field ad-admin-publisher-field">
+            <span>Publisher ID</span>
+            <input type="text" name="publisherId" value="<%= setting.publisherId %>" placeholder="ca-pub-4537208011192461">
+            <small class="metric-helper">Invalid values are ignored and replaced with the approved HelloRun publisher ID.</small>
+          </label>
+        </section>
+
+        <section class="carousel-admin-panel">
+          <div class="carousel-admin-panel-heading">
+            <div>
+              <h3>Page Groups &amp; Slots</h3>
+              <p>Paste slot IDs from AdSense. Blank slot IDs keep that placement hidden.</p>
+            </div>
+            <i data-lucide="panels-top-left" aria-hidden="true"></i>
+          </div>
+
+          <div class="ad-admin-group-list">
+            <% Object.keys(adPageGroups).forEach((groupKey) => { %>
+              <% const group = adPageGroups[groupKey]; const groupSetting = setting.pageGroups?.[groupKey] || {}; %>
+              <article class="ad-admin-group-card">
+                <label class="carousel-toggle-card ad-admin-group-toggle">
+                  <input type="checkbox" name="group_<%= groupKey %>_enabled" value="1" <%= groupSetting.enabled ? 'checked' : '' %>>
+                  <span class="carousel-toggle-ui" aria-hidden="true"></span>
+                  <span>
+                    <strong><%= group.label %></strong>
+                    <small><%= Object.keys(group.placements).length %> placement<%= Object.keys(group.placements).length === 1 ? '' : 's' %></small>
+                  </span>
+                </label>
+
+                <div class="ad-admin-placement-grid">
+                  <% Object.keys(group.placements).forEach((placementKey) => { %>
+                    <% const placement = groupSetting.placements?.[placementKey] || {}; %>
+                    <div class="ad-admin-placement-row">
+                      <label class="ad-admin-placement-enabled">
+                        <input type="checkbox" name="placement_<%= groupKey %>_<%= placementKey %>_enabled" value="1" <%= placement.enabled ? 'checked' : '' %>>
+                        <span><%= group.placements[placementKey] %></span>
+                      </label>
+                      <label class="admin-form-field ad-admin-slot-field">
+                        <span>Slot ID</span>
+                        <input
+                          type="text"
+                          name="slot_<%= groupKey %>_<%= placementKey %>"
+                          value="<%= placement.slotId || '' %>"
+                          inputmode="numeric"
+                          placeholder="1234567890">
+                      </label>
+                    </div>
+                  <% }) %>
+                </div>
+              </article>
+            <% }) %>
+          </div>
+        </section>
+
+        <div class="carousel-admin-guidance">
+          <div>
+            <i data-lucide="info" aria-hidden="true"></i>
+          </div>
+          <p>Use neutral ad labeling only. Do not place ads inside registration, checkout, account, admin, organizer, comment, report, or payment-proof workflows.</p>
+        </div>
+
+        <div class="carousel-admin-actions">
+          <button type="submit" class="btn carousel-icon-action" aria-label="Save Settings" data-action-label="Save Settings">
+            <i data-lucide="save" aria-hidden="true"></i>
+          </button>
+          <a href="/" class="btn btn-secondary carousel-icon-action" target="_blank" rel="noopener" aria-label="Preview Homepage" data-action-label="Preview Homepage">
+            <i data-lucide="external-link" aria-hidden="true"></i>
+          </a>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

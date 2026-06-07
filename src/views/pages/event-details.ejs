@@ -164,6 +164,10 @@
             </div>
           </section>
 
+          <% if (!isPreviewMode) { %>
+            <%- include('../partials/ad-unit', { group: 'eventDetails', placement: 'after_how_it_works' }) %>
+          <% } %>
+
           <% if (details.isAccumulatedChallenge || details.virtualRules?.targetDistanceKm) { %>
             <section class="event-section event-goal-section">
               <div>
@@ -488,6 +492,10 @@
               <p class="event-side-card-copy"><%= eventShop.count %> item<%= eventShop.count === 1 ? '' : 's' %> available for this event.</p>
               <a href="<%= eventShop.href %>" class="btn btn-outline btn-block"><i data-lucide="shopping-bag"></i><span>Browse Shop</span></a>
             </section>
+          <% } %>
+
+          <% if (!isPreviewMode) { %>
+            <%- include('../partials/ad-unit', { group: 'eventDetails', placement: 'sidebar', className: 'ad-unit-sidebar' }) %>
           <% } %>
         </aside>
       </div>

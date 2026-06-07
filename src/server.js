@@ -33,12 +33,12 @@ app.use((req, res, next) => {
     'Content-Security-Policy',
     [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com https://challenges.cloudflare.com blob:",
+      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://unpkg.com https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://challenges.cloudflare.com blob:",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https: blob:",
-      "connect-src 'self' data: https://www.google-analytics.com https://analytics.google.com https://unpkg.com",
-      "frame-src https://challenges.cloudflare.com",
+      "connect-src 'self' data: https://www.google-analytics.com https://analytics.google.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://unpkg.com",
+      "frame-src https://challenges.cloudflare.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
       "worker-src 'self' blob:",
       "object-src 'none'",
       "base-uri 'self'",
@@ -142,6 +142,7 @@ app.use(attachCsrfToken);
 // ===== ROUTES =====
 logger.info('Loading routes...');
 const { populateAuthLocals } = require('./middleware/auth.middleware');
+const { populateAdLocals } = require('./middleware/ad.middleware');
 const authRoutes = require('./routes/authRoutes');
 const pageRoutes = require('./routes/pageRoutes');
 const runnerRoutes = require('./routes/runner.routes');
@@ -159,6 +160,7 @@ const timingSystemWebhooks = require('./routes/webhooks/timing-system');
 
 // Auth locals for all views (BEFORE routes)
 app.use(populateAuthLocals);
+app.use(populateAdLocals);
 
 app.use('/', authRoutes);
 app.use('/', shopRoutes);

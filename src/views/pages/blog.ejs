@@ -72,6 +72,10 @@
           <% } %>
         </p>
 
+        <% if ((featuredPosts && featuredPosts.length) || (posts && posts.length)) { %>
+          <%- include('../partials/ad-unit', { group: 'blogListing', placement: 'after_results_meta' }) %>
+        <% } %>
+
         <% if (featuredPosts && featuredPosts.length) { %>
           <section class="blog-featured">
             <h2 class="blog-featured-heading">Featured Posts</h2>
@@ -108,7 +112,8 @@
         <!-- Posts Grid -->
         <% if (posts && posts.length) { %>
           <div class="blog-grid">
-            <% posts.forEach((post) => { %>
+            <% let blogFeedAdCount = 0; %>
+            <% posts.forEach((post, postIndex) => { %>
               <article class="blog-card">
                 <% if (post.coverImageUrl) { %>
                   <a href="/blog/<%= post.slug %>" class="blog-image" aria-label="<%= post.title %>">
@@ -143,6 +148,9 @@
                   </div>
                 </div>
               </article>
+              <% if ((postIndex + 1) % 4 === 0 && blogFeedAdCount < 2) { blogFeedAdCount += 1; %>
+                <%- include('../partials/ad-unit', { group: 'blogListing', placement: 'in_feed', className: 'ad-unit-feed' }) %>
+              <% } %>
             <% }) %>
           </div>
 

@@ -35,7 +35,11 @@
 <link rel="stylesheet" href="/css/design-system.css">
 <link rel="stylesheet" href="/css/run-proof-modal.css">
 <link rel="stylesheet" href="/css/project-buttons.css">
+<link rel="stylesheet" href="/css/ads.css">
 <script src="https://unpkg.com/lucide@latest"></script>
+<% if (locals.ads && locals.ads.renderScript && locals.ads.publisherId) { %>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<%= locals.ads.publisherId %>" crossorigin="anonymous"></script>
+<% } %>
 
 <!-- Google Analytics -->
 <% if (process.env.GA_MEASUREMENT_ID) { %>
