@@ -99,6 +99,10 @@ test('run proof review queue combines standard and accumulated activity proofs',
   const html = await response.text();
   assert.match(html, /Run Proof Review/i);
   assert.match(html, /Pending Review/i);
+  assert.match(html, /run-proof-header-actions/i);
+  assert.match(html, /data-lucide="users"[^>]*><\/i>\s*<span>Registrants<\/span>/i);
+  assert.match(html, /data-lucide="arrow-left"[^>]*><\/i>\s*<span>Back to Event<\/span>/i);
+  assert.match(html, /data-lucide="calendar-days"[^>]*><\/i>\s*<span>My Events<\/span>/i);
   assert.match(html, /Run Result/i);
   assert.match(html, /Accumulated Activity/i);
   assert.match(html, /activity-proof\.png/i);
@@ -143,6 +147,29 @@ test('run proof review queue filters reviewed history and search', async () => {
         }
       }
     );
+    seed.autoApprovedActivity = await AccumulatedActivitySubmission.create({
+      registrationId: seed.registration._id,
+      eventId: seed.event._id,
+      runnerId: seed.runner._id,
+      participationMode: 'virtual',
+      raceDistance: seed.registration.raceDistance,
+      distanceKm: 4.25,
+      elapsedMs: 1600000,
+      runDate: new Date(),
+      runLocation: 'Auto City',
+      runType: 'run',
+      proofType: 'photo',
+      proof: {
+        url: 'https://example.com/auto-approved-proof.png',
+        key: 'auto-approved-proof-key',
+        mimeType: 'image/png',
+        size: 1800
+      },
+      status: 'approved',
+      reviewedAt: new Date(),
+      reviewedBy: null,
+      submittedAt: new Date()
+    });
   } finally {
     await mongoose.disconnect();
   }
@@ -157,7 +184,19 @@ test('run proof review queue filters reviewed history and search', async () => {
   assert.equal(approvedResponse.status, 200);
   const approvedHtml = await approvedResponse.text();
   assert.match(approvedHtml, /Verified standard result/i);
+  assert.match(approvedHtml, /Auto-approved/i);
   assert.doesNotMatch(approvedHtml, /Activity proof is unclear/i);
+
+  const autoApprovedResponse = await fetch(
+    `${BASE_URL}/organizer/events/${seed.event._id}/run-proofs/review?status=auto-approved`,
+    { headers: { Cookie: ownerCookie }, redirect: 'manual' }
+  );
+  assert.equal(autoApprovedResponse.status, 200);
+  const autoApprovedHtml = await autoApprovedResponse.text();
+  assert.match(autoApprovedHtml, /Auto-approved/i);
+  assert.match(autoApprovedHtml, /Auto-validation rules/i);
+  assert.match(autoApprovedHtml, /auto-approved-proof\.png/i);
+  assert.doesNotMatch(autoApprovedHtml, /Verified standard result/i);
 
   const rejectedResponse = await fetch(
     `${BASE_URL}/organizer/events/${seed.event._id}/run-proofs/review?status=rejected`,
@@ -167,6 +206,9 @@ test('run proof review queue filters reviewed history and search', async () => {
   const rejectedHtml = await rejectedResponse.text();
   assert.match(rejectedHtml, /Activity proof is unclear/i);
   assert.match(rejectedHtml, /Review History/i);
+  assert.match(rejectedHtml, /run-proof-approval-modal/i);
+  assert.match(rejectedHtml, /data-run-proof-approve/i);
+  assert.doesNotMatch(rejectedHtml, /<dt>Confirmation<\/dt>/i);
 });
 
 test('run proof review queue paginates combined proofs and preserves filters', async () => {
@@ -394,7 +436,57 @@ test('organizer cannot approve already-approved submission', async () => {
   assert.equal(response.status, 302);
   const location = response.headers.get('location') || '';
   assert.match(location, /type=error/i);
-  assert.match(location, /(Only\+submitted\+results\+can\+be\+reviewed|Submission\+not\+found)/i);
+  assert.match(location, /(Only\+submitted\+or\+rejected\+results\+can\+be\+approved|Submission\+not\+found)/i);
+});
+
+test('organizer can approve rejected submission from run proof queue', async () => {
+  const seed = await seedReviewData('approve-rejected-from-queue', { submissionStatus: 'rejected' });
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    await Submission.updateOne(
+      { _id: seed.submission._id },
+      {
+        $set: {
+          reviewedAt: new Date(),
+          reviewedBy: seed.ownerOrganizer._id,
+          rejectionReason: 'Initial proof was unreadable',
+          suspiciousFlag: true,
+          suspiciousFlagReason: 'Previous review flagged this proof.'
+        }
+      }
+    );
+  } finally {
+    await mongoose.disconnect();
+  }
+
+  const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  const ready = await waitForSessionReady('/organizer/dashboard', ownerCookie);
+  assert.equal(ready, true);
+
+  const response = await postForm(
+    `/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/approve`,
+    ownerCookie,
+    {
+      queueStatus: 'rejected',
+      queueSort: 'newest',
+      reviewNotes: 'Validated corrected proof from rejected queue'
+    }
+  );
+
+  assert.equal(response.status, 302);
+  const location = response.headers.get('location') || '';
+  assert.match(location, /type=success/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    const updated = await Submission.findById(seed.submission._id).lean();
+    assert.equal(updated.status, 'approved');
+    assert.equal(updated.rejectionReason, '');
+    assert.equal(updated.suspiciousFlag, false);
+    assert.equal(updated.reviewNotes, 'Validated corrected proof from rejected queue');
+  } finally {
+    await mongoose.disconnect();
+  }
 });
 
 test('admin can approve organizer submission through shared review route', async () => {
