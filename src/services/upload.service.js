@@ -251,8 +251,7 @@ exports.uploadOrganizerDocsToR2 = async ({ userId, idProofFile, businessProofFil
         userId,
         file: idProofFile,
         category: 'organizer-docs/id-proof',
-        label: 'id-proof',
-        convertImagesToWebp: true
+        label: 'id-proof'
       })
     : null;
   const businessProof = businessProofFile
@@ -260,8 +259,7 @@ exports.uploadOrganizerDocsToR2 = async ({ userId, idProofFile, businessProofFil
         userId,
         file: businessProofFile,
         category: 'organizer-docs/business-proof',
-        label: 'business-proof',
-        convertImagesToWebp: true
+        label: 'business-proof'
       })
     : null;
 
@@ -616,7 +614,7 @@ function handleMulterError(err, req, res, next) {
   next();
 }
 
-async function uploadFileToR2({ userId, file, category, label, convertImagesToWebp = false }) {
+async function uploadFileToR2({ userId, file, category, label, convertImagesToWebp = true }) {
   if (!file || !file.buffer || !file.originalname) {
     throw new Error('Invalid file payload.');
   }
@@ -650,7 +648,7 @@ async function uploadFileToR2({ userId, file, category, label, convertImagesToWe
 }
 
 async function normalizeFileForUpload(file, options = {}) {
-  const shouldConvertImage = Boolean(options.convertImagesToWebp)
+  const shouldConvertImage = options.convertImagesToWebp !== false
     && String(file.mimetype || '').startsWith('image/')
     && file.mimetype !== 'image/webp';
 

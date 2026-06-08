@@ -128,7 +128,7 @@ test('organizer docs GIF is rejected with 400 invalid file type', async () => {
   assert.match(body.message, /Invalid file type/i);
 });
 
-test('organizer document image normalization converts PNG to WebP', async () => {
+test('upload normalization converts PNG to WebP by default', async () => {
   const pngBuffer = await sharp({
     create: {
       width: 1,
@@ -139,15 +139,93 @@ test('organizer document image normalization converts PNG to WebP', async () => 
   }).png().toBuffer();
 
   const result = await uploadService._normalizeFileForUpload({
-    originalname: 'business-proof.png',
+    originalname: 'event-banner.png',
     mimetype: 'image/png',
     buffer: pngBuffer
-  }, { convertImagesToWebp: true });
+  });
 
   assert.equal(result.contentType, 'image/webp');
   assert.equal(result.extension, '.webp');
   const metadata = await sharp(result.buffer).metadata();
   assert.equal(metadata.format, 'webp');
+});
+
+test('upload normalization converts JPEG proof images to WebP by default', async () => {
+  const jpegBuffer = await sharp({
+    create: {
+      width: 2,
+      height: 2,
+      channels: 3,
+      background: { r: 32, g: 96, b: 160 }
+    }
+  }).jpeg().toBuffer();
+
+  const result = await uploadService._normalizeFileForUpload({
+    originalname: 'payment-proof.jpg',
+    mimetype: 'image/jpeg',
+    buffer: jpegBuffer
+  });
+
+  assert.equal(result.contentType, 'image/webp');
+  assert.equal(result.extension, '.webp');
+  const metadata = await sharp(result.buffer).metadata();
+  assert.equal(metadata.format, 'webp');
+});
+
+test('upload normalization keeps PDFs unchanged', async () => {
+  const pdfBuffer = Buffer.from('%PDF-1.4\n%upload-test\n', 'utf8');
+
+  const result = await uploadService._normalizeFileForUpload({
+    originalname: 'business-proof.pdf',
+    mimetype: 'application/pdf',
+    buffer: pdfBuffer
+  });
+
+  assert.equal(result.contentType, 'application/pdf');
+  assert.equal(result.extension, '.pdf');
+  assert.strictEqual(result.buffer, pdfBuffer);
+});
+
+test('upload normalization keeps existing WebP images unchanged', async () => {
+  const webpBuffer = await sharp({
+    create: {
+      width: 1,
+      height: 1,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1 }
+    }
+  }).webp().toBuffer();
+
+  const result = await uploadService._normalizeFileForUpload({
+    originalname: 'logo.webp',
+    mimetype: 'image/webp',
+    buffer: webpBuffer
+  });
+
+  assert.equal(result.contentType, 'image/webp');
+  assert.equal(result.extension, '.webp');
+  assert.strictEqual(result.buffer, webpBuffer);
+});
+
+test('upload normalization can explicitly preserve original image format', async () => {
+  const pngBuffer = await sharp({
+    create: {
+      width: 1,
+      height: 1,
+      channels: 4,
+      background: { r: 255, g: 255, b: 255, alpha: 1 }
+    }
+  }).png().toBuffer();
+
+  const result = await uploadService._normalizeFileForUpload({
+    originalname: 'original.png',
+    mimetype: 'image/png',
+    buffer: pngBuffer
+  }, { convertImagesToWebp: false });
+
+  assert.equal(result.contentType, 'image/png');
+  assert.equal(result.extension, '.png');
+  assert.strictEqual(result.buffer, pngBuffer);
 });
 
 test('pending organizer application can be updated without re-uploading existing ID proof', async () => {
