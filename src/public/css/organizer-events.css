@@ -559,6 +559,57 @@
   transform: translate(0, 0);
 }
 
+/* Run Proof Review Page - Icon-only header buttons with tooltips */
+.run-proof-review-page .run-proof-header-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 0.45rem);
+  left: 50%;
+  width: max-content;
+  max-width: 12rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -0.2rem);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.run-proof-review-page .run-proof-header-btn[data-tooltip]:hover::after,
+.run-proof-review-page .run-proof-header-btn[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.run-proof-review-page .run-proof-header-btn:first-child[data-tooltip]::after {
+  left: 0;
+  transform: translate(0, -0.2rem);
+}
+
+.run-proof-review-page .run-proof-header-btn:first-child[data-tooltip]:hover::after,
+.run-proof-review-page .run-proof-header-btn:first-child[data-tooltip]:focus-visible::after {
+  transform: translate(0, 0);
+}
+
+.run-proof-review-page .run-proof-header-btn:last-child[data-tooltip]::after {
+  right: 0;
+  left: auto;
+  transform: translate(0, -0.2rem);
+}
+
+.run-proof-review-page .run-proof-header-btn:last-child[data-tooltip]:hover::after,
+.run-proof-review-page .run-proof-header-btn:last-child[data-tooltip]:focus-visible::after {
+  transform: translate(0, 0);
+}
+
 .organizer-registrants-page .registrant-filter-bar {
   display: grid;
   gap: 0.75rem;
