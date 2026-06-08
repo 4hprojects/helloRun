@@ -16,9 +16,6 @@
           <p><%= event.title %> - Review pending proofs, inspect approved results, and audit automatic approvals.</p>
         </div>
         <div class="header-actions run-proof-header-actions" aria-label="Run proof review navigation">
-          <a href="<%= links.registrants %>" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="Registrants" aria-label="Registrants">
-            <i data-lucide="users" aria-hidden="true"></i>
-          </a>
           <% if (isAdminViewer) { %>
             <a href="/admin/dashboard" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="Admin Dashboard" aria-label="Admin Dashboard">
               <i data-lucide="shield-check" aria-hidden="true"></i>
@@ -27,6 +24,11 @@
             <a href="/organizer/events/<%= event._id %>" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="Back to Event" aria-label="Back to Event">
               <i data-lucide="arrow-left" aria-hidden="true"></i>
             </a>
+          <% } %>
+          <a href="<%= links.registrants %>" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="Registrants" aria-label="Registrants">
+            <i data-lucide="users" aria-hidden="true"></i>
+          </a>
+          <% if (!isAdminViewer) { %>
             <a href="/organizer/events" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="My Events" aria-label="My Events">
               <i data-lucide="calendar-days" aria-hidden="true"></i>
             </a>
