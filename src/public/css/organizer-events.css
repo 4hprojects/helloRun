@@ -1729,8 +1729,8 @@
 
 .run-proof-review-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(170px, 210px);
-  gap: 0.7rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
   padding: 0.65rem;
   border: 1px solid #dbe4ee;
   border-radius: 12px;
@@ -1740,6 +1740,14 @@
 
 .run-proof-card-main {
   min-width: 0;
+  flex: 1;
+}
+
+.run-proof-card-side {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 200px;
 }
 
 .run-proof-card-header {
@@ -1843,20 +1851,25 @@
 }
 
 .run-proof-preview {
-  margin-top: 0.45rem;
+  margin: 0;
+  order: 1;
 }
 
 .run-proof-preview .proof-link {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
+  color: #0088d9;
+  text-decoration: none;
+}
+
+.run-proof-preview .proof-link:hover {
+  text-decoration: underline;
 }
 
 .run-proof-preview .proof-link i,
-.run-proof-preview .proof-link svg,
-.run-proof-card-actions .nav-signup-btn i,
-.run-proof-card-actions .nav-signup-btn svg {
+.run-proof-preview .proof-link svg {
   width: 14px;
   height: 14px;
   flex: 0 0 auto;
@@ -1865,7 +1878,7 @@
 .run-proof-image-link {
   display: block;
   max-width: 200px;
-  margin-top: 0.45rem;
+  margin-top: 0.4rem;
 }
 
 .run-proof-image-link img {
@@ -1879,8 +1892,10 @@
 }
 
 .run-proof-card-actions {
-  border-left: 1px solid #e2e8f0;
-  padding-left: 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  order: 2;
 }
 
 .run-proof-card-actions .nav-signup-btn {
@@ -1888,19 +1903,28 @@
   align-items: center;
   justify-content: center;
   gap: 0.25rem;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.run-proof-card-actions .nav-signup-btn i,
+.run-proof-card-actions .nav-signup-btn svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
 }
 
 .run-proof-approve-btn {
   width: 100%;
-  margin-top: 0.4rem;
 }
 
 .run-proof-approve-btn i,
 .run-proof-approve-btn svg {
   width: 14px;
   height: 14px;
-}
+}}
 
 .run-proof-history {
   margin-top: 0.55rem;
@@ -2153,6 +2177,45 @@
   .run-proof-meta-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .run-proof-review-card {
+    grid-template-columns: 1fr;
+    gap: 0.6rem;
+  }
+
+  .run-proof-card-side {
+    min-width: auto;
+    flex-direction: row;
+    gap: 0.4rem;
+  }
+
+  .run-proof-card-actions {
+    flex-direction: row;
+    gap: 0.35rem;
+    flex: 1;
+  }
+
+  .run-proof-card-actions .nav-signup-btn {
+    flex: 1;
+    padding: 0.45rem 0.5rem;
+    font-size: 0.76rem;
+  }
+
+  .run-proof-preview {
+    flex: 1;
+  }
+
+  .run-proof-image-link {
+    max-width: 180px;
+  }
+
+  .run-proof-image-link img {
+    max-height: 140px;
+  }
+
+  .run-proof-history {
+    display: none;
+  }
 }
 
 @media (max-width: 680px) {
@@ -2254,6 +2317,46 @@
 
   .run-proof-search-control input {
     padding: 0.3rem 0.4rem;
+  }
+
+  .run-proof-review-card {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .run-proof-card-side {
+    min-width: auto;
+    flex-direction: row;
+    gap: 0.4rem;
+    align-items: flex-start;
+  }
+
+  .run-proof-card-actions {
+    flex-direction: row;
+    gap: 0.35rem;
+    flex: 1;
+  }
+
+  .run-proof-card-actions .nav-signup-btn {
+    flex: 1;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .run-proof-preview {
+    flex: 1;
+  }
+
+  .run-proof-image-link {
+    max-width: 150px;
+  }
+
+  .run-proof-image-link img {
+    max-height: 120px;
+  }
+
+  .run-proof-history {
+    display: none;
   }
 }
 

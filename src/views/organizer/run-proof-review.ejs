@@ -178,7 +178,9 @@
                     </div>
                   </dl>
                 </details>
+              </div>
 
+              <div class="run-proof-card-side">
                 <% if (item.proofUrl) { %>
                   <div class="run-proof-preview">
                     <a href="<%= item.proofUrl %>" target="_blank" rel="noopener noreferrer" class="proof-link">
@@ -194,49 +196,49 @@
                 <% } else { %>
                   <p class="rejection">No run proof file is available for this submission.</p>
                 <% } %>
-              </div>
 
-              <aside class="run-proof-card-actions">
-                <a href="<%= item.actionHref %>" class="nav-signup-btn table-action-btn registrant-row-btn registrant-row-btn-review">
-                  <i data-lucide="eye" aria-hidden="true"></i>
-                  <%= item.status === 'submitted' ? 'Open Review' : 'View Details' %>
-                </a>
-                <% if (item.status === 'rejected') { %>
-                  <button
-                    type="button"
-                    class="btn-success table-action-btn run-proof-approve-btn"
-                    data-run-proof-approve
-                    data-action="<%= item.approveActionHref %>"
-                    data-participant="<%= item.participantName %>"
-                    data-email="<%= item.participantEmail %>"
-                    data-distance="<%= item.distanceLabel %>"
-                    data-elapsed="<%= item.elapsedLabel %>"
-                    data-run-date="<%= item.runDateLabel || 'N/A' %>">
-                    <i data-lucide="check-circle" aria-hidden="true"></i>
-                    Approve
-                  </button>
-                <% } %>
-                <% if (item.status !== 'submitted') { %>
-                  <div class="run-proof-history">
-                    <strong><%= item.isAutoApproved ? 'Approval History' : 'Review History' %></strong>
-                    <p><%= item.isAutoApproved ? 'Approved' : 'Reviewed' %>: <%= item.reviewedAtLabel || 'N/A' %></p>
-                    <% if (item.reviewerName) { %>
-                      <p>By: <%= item.reviewerName %></p>
-                    <% } else if (item.isAutoApproved) { %>
-                      <p>By: Auto-validation rules</p>
-                    <% } %>
-                    <% if (item.reviewerEmail) { %>
-                      <p><%= item.reviewerEmail %></p>
-                    <% } %>
-                    <% if (item.rejectionReason) { %>
-                      <p><strong>Reason:</strong> <%= item.rejectionReason %></p>
-                    <% } %>
-                    <% if (item.reviewNotes) { %>
-                      <p><strong>Notes:</strong> <%= item.reviewNotes %></p>
-                    <% } %>
-                  </div>
-                <% } %>
-              </aside>
+                <div class="run-proof-card-actions">
+                  <a href="<%= item.actionHref %>" class="nav-signup-btn table-action-btn registrant-row-btn registrant-row-btn-review">
+                    <i data-lucide="eye" aria-hidden="true"></i>
+                    <%= item.status === 'submitted' ? 'Open Review' : 'View Details' %>
+                  </a>
+                  <% if (item.status === 'rejected') { %>
+                    <button
+                      type="button"
+                      class="btn-success table-action-btn run-proof-approve-btn"
+                      data-run-proof-approve
+                      data-action="<%= item.approveActionHref %>"
+                      data-participant="<%= item.participantName %>"
+                      data-email="<%= item.participantEmail %>"
+                      data-distance="<%= item.distanceLabel %>"
+                      data-elapsed="<%= item.elapsedLabel %>"
+                      data-run-date="<%= item.runDateLabel || 'N/A' %>">
+                      <i data-lucide="check-circle" aria-hidden="true"></i>
+                      Approve
+                    </button>
+                  <% } %>
+                  <% if (item.status !== 'submitted') { %>
+                    <div class="run-proof-history">
+                      <strong><%= item.isAutoApproved ? 'Approval History' : 'Review History' %></strong>
+                      <p><%= item.isAutoApproved ? 'Approved' : 'Reviewed' %>: <%= item.reviewedAtLabel || 'N/A' %></p>
+                      <% if (item.reviewerName) { %>
+                        <p>By: <%= item.reviewerName %></p>
+                      <% } else if (item.isAutoApproved) { %>
+                        <p>By: Auto-validation rules</p>
+                      <% } %>
+                      <% if (item.reviewerEmail) { %>
+                        <p><%= item.reviewerEmail %></p>
+                      <% } %>
+                      <% if (item.rejectionReason) { %>
+                        <p><strong>Reason:</strong> <%= item.rejectionReason %></p>
+                      <% } %>
+                      <% if (item.reviewNotes) { %>
+                        <p><strong>Notes:</strong> <%= item.reviewNotes %></p>
+                      <% } %>
+                    </div>
+                  <% } %>
+                </div>
+              </div>
             </article>
           <% }) %>
         </section>
