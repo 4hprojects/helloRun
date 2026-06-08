@@ -1585,13 +1585,25 @@
   font-weight: 800;
 }
 
-.run-proof-filter-field select,
-.run-proof-search-control input {
+.run-proof-filter-field select {
   width: 100%;
   min-width: 0;
   height: 2.55rem;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.run-proof-search-control input {
+  width: 100%;
+  min-width: 0;
+  height: 2.55rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px 0 0 8px;
   background: #fff;
   color: #0f172a;
   padding: 0.6rem 0.8rem;
@@ -1620,7 +1632,7 @@
   margin: 0;
   border: 1px solid #cbd5e1;
   background: #fff;
-  border-radius: 0;
+  border-radius: 0 8px 8px 0;
   cursor: pointer;
   display: flex;
   align-items: center;
