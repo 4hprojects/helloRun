@@ -64,7 +64,7 @@
       <form method="GET" action="/organizer/events/<%= event._id %>/run-proofs/review" class="filter-bar run-proof-filter-bar">
         <div class="run-proof-filter-field">
           <label for="status">Queue</label>
-          <select id="status" name="status" title="Filter by status">
+          <select id="status" name="status" title="Filter by status" onchange="this.form.submit()">
             <option value="" disabled>Filter by status</option>
             <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Pending</option>
             <option value="approved" <%= filters.status === 'approved' ? 'selected' : '' %>>Approved</option>
@@ -76,7 +76,7 @@
 
         <div class="run-proof-filter-field">
           <label for="sort">Sort</label>
-          <select id="sort" name="sort" title="Sort by date">
+          <select id="sort" name="sort" title="Sort by date" onchange="this.form.submit()">
             <option value="" disabled>Sort by...</option>
             <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
             <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest first</option>
@@ -89,11 +89,6 @@
             <i data-lucide="search" aria-hidden="true"></i>
             <input id="q" name="q" type="search" placeholder="Name, email, or code" value="<%= filters.q || '' %>" title="Search by participant name, email, or confirmation code">
           </div>
-        </div>
-
-        <div class="run-proof-filter-actions">
-          <button type="submit" class="nav-signup-btn">Apply</button>
-          <a href="<%= links.reset %>" class="nav-login-btn">Reset</a>
         </div>
       </form>
 
