@@ -2030,6 +2030,8 @@
   .run-proof-search-field {
     flex: 1 1 auto;
     min-width: 200px;
+    order: -1;
+    width: 100%;
   }
 
   .run-proof-search-control {
@@ -2042,6 +2044,17 @@
 
   .run-proof-filter-actions {
     gap: 0.4rem;
+    margin-top: 0.4rem;
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .run-proof-filter-actions .nav-signup-btn,
+  .run-proof-filter-actions .nav-login-btn {
+    flex: 0 1 auto;
+    min-width: auto;
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
   }
 }
 
@@ -2113,8 +2126,10 @@
   }
 
   .run-proof-search-field {
-    flex: 1 1 auto;
+    flex: 1 1 100%;
     min-width: 150px;
+    order: -1;
+    width: 100%;
   }
 
   .run-proof-search-control {
@@ -2123,21 +2138,22 @@
 
   .run-proof-search-control input {
     padding-left: 1.6rem;
+    font-size: 0.75rem;
   }
 
   .run-proof-filter-actions {
-    gap: 0.35rem;
-
-  .run-proof-filter-actions {
-    gap: 0.35rem;
     width: 100%;
-    display: flex;
-    flex-direction: row;
-    flex-wrap: nowrap;
-    gap: 0.4rem;
+    margin-top: 0.35rem;
     justify-content: flex-end;
-    border-radius: 14px;
-    overflow: hidden;
+    gap: 0.35rem;
+  }
+
+  .run-proof-filter-actions .nav-signup-btn,
+  .run-proof-filter-actions .nav-login-btn {
+    flex: 0 1 auto;
+    min-width: auto;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.7rem;
   }
 
   .run-proof-review-page .run-proof-header-btn {
