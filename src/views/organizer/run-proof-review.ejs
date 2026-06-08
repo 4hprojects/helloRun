@@ -217,27 +217,28 @@
                       Approve
                     </button>
                   <% } %>
-                  <% if (item.status !== 'submitted') { %>
-                    <div class="run-proof-history">
-                      <strong><%= item.isAutoApproved ? 'Approval History' : 'Review History' %></strong>
-                      <p><%= item.isAutoApproved ? 'Approved' : 'Reviewed' %>: <%= item.reviewedAtLabel || 'N/A' %></p>
-                      <% if (item.reviewerName) { %>
-                        <p>By: <%= item.reviewerName %></p>
-                      <% } else if (item.isAutoApproved) { %>
-                        <p>By: Auto-validation rules</p>
-                      <% } %>
-                      <% if (item.reviewerEmail) { %>
-                        <p><%= item.reviewerEmail %></p>
-                      <% } %>
-                      <% if (item.rejectionReason) { %>
-                        <p><strong>Reason:</strong> <%= item.rejectionReason %></p>
-                      <% } %>
-                      <% if (item.reviewNotes) { %>
-                        <p><strong>Notes:</strong> <%= item.reviewNotes %></p>
-                      <% } %>
-                    </div>
-                  <% } %>
                 </div>
+
+                <% if (item.status !== 'submitted') { %>
+                  <div class="run-proof-history">
+                    <strong><%= item.isAutoApproved ? 'Approval History' : 'Review History' %></strong>
+                    <p><%= item.isAutoApproved ? 'Approved' : 'Reviewed' %>: <%= item.reviewedAtLabel || 'N/A' %></p>
+                    <% if (item.reviewerName) { %>
+                      <p>By: <%= item.reviewerName %></p>
+                    <% } else if (item.isAutoApproved) { %>
+                      <p>By: Auto-validation rules</p>
+                    <% } %>
+                    <% if (item.reviewerEmail) { %>
+                      <p><%= item.reviewerEmail %></p>
+                    <% } %>
+                    <% if (item.rejectionReason) { %>
+                      <p><strong>Reason:</strong> <%= item.rejectionReason %></p>
+                    <% } %>
+                    <% if (item.reviewNotes) { %>
+                      <p><strong>Notes:</strong> <%= item.reviewNotes %></p>
+                    <% } %>
+                  </div>
+                <% } %>
               </div>
             </article>
           <% }) %>
