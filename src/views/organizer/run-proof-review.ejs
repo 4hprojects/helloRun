@@ -85,11 +85,13 @@
 
         <div class="run-proof-filter-field run-proof-search-field">
           <label for="q">Search</label>
-          <div class="run-proof-search-control">
+          <div class="run-proof-search-wrapper">
+            <div class="run-proof-search-control">
+              <input id="q" name="q" type="search" placeholder="Name, email, or code" value="<%= filters.q || '' %>" title="Search by participant name, email, or confirmation code">
+            </div>
             <button type="button" class="run-proof-search-btn" onclick="this.closest('form').submit()" aria-label="Search">
               <i data-lucide="search"></i>
             </button>
-            <input id="q" name="q" type="search" placeholder="Name, email, or code" value="<%= filters.q || '' %>" title="Search by participant name, email, or confirmation code">
           </div>
         </div>
       </form>

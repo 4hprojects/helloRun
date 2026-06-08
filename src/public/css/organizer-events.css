@@ -1603,47 +1603,51 @@
   width: 100%;
 }
 
+.run-proof-search-wrapper {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  width: 100%;
+}
+
+.run-proof-search-control {
+  flex: 1 1 auto;
+  width: 100%;
+}
+
 .run-proof-search-btn {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  width: 17px;
-  height: 17px;
+  flex: 0 0 auto;
+  width: 2.55rem;
+  height: 2.55rem;
   padding: 0;
   margin: 0;
-  border: none;
-  background: transparent;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transform: translateY(-50%);
   color: #64748b;
-  transition: color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .run-proof-search-btn:hover,
 .run-proof-search-btn:focus {
   outline: none;
-  color: #334155;
+  color: #0f172a;
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.run-proof-search-btn:active {
+  background: #f1f5f9;
 }
 
 .run-proof-search-btn i,
 .run-proof-search-btn svg {
-  width: 17px;
-  height: 17px;
-}
-
-.run-proof-search-control i,
-.run-proof-search-control svg {
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  width: 17px;
-  height: 17px;
-  color: #64748b;
-  transform: translateY(-50%);
-  pointer-events: none;
+  width: 18px;
+  height: 18px;
 }
 
 .run-proof-search-control input {
@@ -1655,7 +1659,6 @@
   background: #fff;
   color: #0f172a;
   padding: 0.6rem 0.8rem;
-  padding-left: 2.25rem;
   font-size: 0.9rem;
 }
 
@@ -2065,8 +2068,18 @@
     width: 100%;
   }
 
+  .run-proof-search-wrapper {
+    gap: 0.4rem;
+  }
+
+  .run-proof-search-btn {
+    width: 2.2rem;
+    height: 2.2rem;
+    font-size: 0.75rem;
+  }
+
   .run-proof-search-control input {
-    padding-left: 1.8rem;
+    padding: 0.35rem 0.5rem;
   }
 }
 
@@ -2148,9 +2161,18 @@
     width: 100%;
   }
 
+  .run-proof-search-wrapper {
+    gap: 0.35rem;
+  }
+
+  .run-proof-search-btn {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.7rem;
+  }
+
   .run-proof-search-control input {
-    padding-left: 1.6rem;
-    font-size: 0.75rem;
+    padding: 0.3rem 0.4rem;
   }
 }
   .run-proof-review-page .run-proof-header-btn {
