@@ -1616,7 +1616,8 @@
   display: flex;
   gap: 0;
   align-items: stretch;
-  width: 100%;
+  width: auto;
+  margin-left: auto;
 }
 
 .run-proof-search-control {
