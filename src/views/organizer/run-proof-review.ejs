@@ -137,11 +137,8 @@
                   <% } %>
                 </div>
 
+                <!-- Essential metadata - always visible -->
                 <dl class="run-proof-meta-grid">
-                  <div>
-                    <dt>Distance / Mode</dt>
-                    <dd><%= item.raceDistance %> / <%= item.participationMode %></dd>
-                  </div>
                   <div>
                     <dt>Distance</dt>
                     <dd><%= item.distanceLabel %></dd>
@@ -154,23 +151,33 @@
                     <dt>Run Date</dt>
                     <dd><%= item.runDateLabel || 'N/A' %></dd>
                   </div>
-                  <div>
-                    <dt>Submitted</dt>
-                    <dd><%= item.submittedAtLabel || 'N/A' %></dd>
-                  </div>
-                  <div>
-                    <dt>Proof Type</dt>
-                    <dd><%= item.proofTypeLabel %></dd>
-                  </div>
-                  <div>
-                    <dt>Source</dt>
-                    <dd><%= item.sourceLabel %></dd>
-                  </div>
-                  <div>
-                    <dt>Review</dt>
-                    <dd><%= item.reviewSourceLabel %></dd>
-                  </div>
                 </dl>
+
+                <!-- Collapsible details section -->
+                <details class="run-proof-details">
+                  <summary class="run-proof-details-toggle">
+                    <i data-lucide="chevron-down" aria-hidden="true"></i>
+                    More details
+                  </summary>
+                  <dl class="run-proof-meta-grid run-proof-meta-secondary">
+                    <div>
+                      <dt>Submitted</dt>
+                      <dd><%= item.submittedAtLabel || 'N/A' %></dd>
+                    </div>
+                    <div>
+                      <dt>Proof Type</dt>
+                      <dd><%= item.proofTypeLabel %></dd>
+                    </div>
+                    <div>
+                      <dt>Source</dt>
+                      <dd><%= item.sourceLabel %></dd>
+                    </div>
+                    <div>
+                      <dt>Review</dt>
+                      <dd><%= item.reviewSourceLabel %></dd>
+                    </div>
+                  </dl>
+                </details>
 
                 <% if (item.proofUrl) { %>
                   <div class="run-proof-preview">
