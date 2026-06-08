@@ -1605,20 +1605,23 @@
 
 .run-proof-search-wrapper {
   display: flex;
-  gap: 0.5rem;
-  align-items: center;
+  gap: 0.4rem;
+  align-items: stretch;
   width: 100%;
 }
 
 .run-proof-search-control {
   flex: 1 1 auto;
-  width: 100%;
+  display: flex;
+  align-items: center;
 }
 
 .run-proof-search-btn {
   flex: 0 0 auto;
   width: 2.55rem;
   height: 2.55rem;
+  min-width: 2.55rem;
+  min-height: 2.55rem;
   padding: 0;
   margin: 0;
   border: 1px solid #cbd5e1;
