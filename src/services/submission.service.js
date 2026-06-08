@@ -894,17 +894,20 @@ function sanitizeOcrData(value) {
       locationMismatch: false,
       runTypeMismatch: false,
       detectedSource: '',
+      parserVersion: '',
+      ocrPass: '',
+      qualityFlags: [],
       extractedName: '',
       nameMatchStatus: 'not_checked',
       nameMismatchAcknowledged: false
     };
   }
 
-  const distKm = Number(value.extractedDistanceKm);
-  const timeMs = Number(value.extractedTimeMs);
-  const elevationGain = Number(value.extractedElevationGain);
-  const steps = Number(value.extractedSteps);
-  const ALLOWED_SOURCES = new Set(['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', '']);
+  const distKm = sanitizeOptionalNumber(value.extractedDistanceKm, 0.000001, 1000);
+  const timeMs = sanitizeOptionalNumber(value.extractedTimeMs, 0.000001, 7 * 24 * 60 * 60 * 1000);
+  const elevationGain = sanitizeOptionalNumber(value.extractedElevationGain, 0, 20000);
+  const steps = sanitizeOptionalNumber(value.extractedSteps, 0, 200000);
+  const ALLOWED_SOURCES = new Set(['strava', 'nike', 'garmin', 'apple', 'google', 'coros', 'unknown', '']);
   const ALLOWED_NAME_STATUSES = new Set(['matched', 'mismatched', 'not_detected', 'not_checked']);
   const ALLOWED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run', '']);
   const rawSource = String(value.detectedSource || '').trim().toLowerCase();
@@ -912,10 +915,10 @@ function sanitizeOcrData(value) {
   const rawRunType = String(value.extractedRunType || '').trim().toLowerCase();
 
   return {
-    extractedDistanceKm: Number.isFinite(distKm) && distKm > 0 && distKm <= 1000 ? distKm : null,
-    extractedTimeMs: Number.isFinite(timeMs) && timeMs > 0 && timeMs <= 7 * 24 * 60 * 60 * 1000 ? timeMs : null,
-    extractedElevationGain: Number.isFinite(elevationGain) && elevationGain >= 0 && elevationGain <= 20000 ? Math.round(elevationGain) : null,
-    extractedSteps: Number.isFinite(steps) && steps >= 0 && steps <= 200000 ? Math.round(steps) : null,
+    extractedDistanceKm: distKm,
+    extractedTimeMs: timeMs,
+    extractedElevationGain: elevationGain !== null ? Math.round(elevationGain) : null,
+    extractedSteps: steps !== null ? Math.round(steps) : null,
     extractedRunDate: sanitizeOcrDate(value.extractedRunDate),
     extractedRunLocation: String(value.extractedRunLocation || '').trim().slice(0, 200),
     extractedRunType: ALLOWED_RUN_TYPES.has(rawRunType) ? rawRunType : '',
@@ -932,6 +935,14 @@ function sanitizeOcrData(value) {
     locationMismatch: Boolean(value.locationMismatch),
     runTypeMismatch: Boolean(value.runTypeMismatch),
     detectedSource: ALLOWED_SOURCES.has(rawSource) ? rawSource : '',
+    parserVersion: String(value.parserVersion || '').trim().slice(0, 40),
+    ocrPass: String(value.ocrPass || '').trim().slice(0, 40),
+    qualityFlags: Array.isArray(value.qualityFlags)
+      ? value.qualityFlags
+        .map((item) => String(item || '').trim().toLowerCase().replace(/[^a-z0-9_-]/g, ''))
+        .filter(Boolean)
+        .slice(0, 10)
+      : [],
     extractedName: cleanOcrNameCandidate(value.extractedName).slice(0, 120),
     nameMatchStatus: ALLOWED_NAME_STATUSES.has(rawNameStatus) ? rawNameStatus : 'not_checked',
     nameMismatchAcknowledged: Boolean(value.nameMismatchAcknowledged)

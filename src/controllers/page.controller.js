@@ -1951,24 +1951,31 @@ async function deleteProofObjectIfUnused(proofKey) {
 }
 
 function parseOcrData(body, formDistanceKm, formElapsedMs, user = null) {
-  const rawDistance = Number(body.ocrDistance);
-  const rawTime = Number(body.ocrTime);
-  const rawElevation = Number(body.ocrElevation);
-  const rawSteps = Number(body.ocrSteps);
-  const rawConfidence = Number(body.ocrConfidence);
+  const rawDistance = parseOptionalNumber(body.ocrDistance);
+  const rawTime = parseOptionalNumber(body.ocrTime);
+  const rawElevation = parseOptionalNumber(body.ocrElevation);
+  const rawSteps = parseOptionalNumber(body.ocrSteps);
+  const rawConfidence = parseOptionalNumber(body.ocrConfidence);
 
-  const extractedDistanceKm = Number.isFinite(rawDistance) && rawDistance > 0 && rawDistance <= 1000 ? rawDistance : null;
-  const extractedTimeMs = Number.isFinite(rawTime) && rawTime > 0 && rawTime <= 7 * 24 * 60 * 60 * 1000 ? rawTime : null;
-  const extractedElevationGain = Number.isFinite(rawElevation) && rawElevation >= 0 && rawElevation <= 20000 ? Math.round(rawElevation) : null;
-  const extractedSteps = Number.isFinite(rawSteps) && rawSteps >= 0 && rawSteps <= 200000 ? Math.round(rawSteps) : null;
+  const extractedDistanceKm = rawDistance !== null && rawDistance > 0 && rawDistance <= 1000 ? rawDistance : null;
+  const extractedTimeMs = rawTime !== null && rawTime > 0 && rawTime <= 7 * 24 * 60 * 60 * 1000 ? rawTime : null;
+  const extractedElevationGain = rawElevation !== null && rawElevation >= 0 && rawElevation <= 20000 ? Math.round(rawElevation) : null;
+  const extractedSteps = rawSteps !== null && rawSteps >= 0 && rawSteps <= 200000 ? Math.round(rawSteps) : null;
   const extractedRunDate = parseOcrDate(body.ocrDate);
   const extractedRunLocation = String(body.ocrLocation || '').trim().slice(0, 200);
   const extractedRunType = parseRunTypeOrBlank(body.ocrRunType);
-  const confidence = Number.isFinite(rawConfidence) && rawConfidence >= 0 && rawConfidence <= 1 ? Math.round(rawConfidence * 100) / 100 : 0;
+  const confidence = rawConfidence !== null && rawConfidence >= 0 && rawConfidence <= 1 ? Math.round(rawConfidence * 100) / 100 : 0;
   const rawText = String(body.ocrRawText || '').slice(0, 2000);
-  const allowedSources = new Set(['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', '']);
+  const allowedSources = new Set(['strava', 'nike', 'garmin', 'apple', 'google', 'coros', 'unknown', '']);
   const rawSource = String(body.ocrDetectedSource || '').trim().toLowerCase();
   const detectedSource = allowedSources.has(rawSource) ? rawSource : '';
+  const parserVersion = String(body.ocrParserVersion || '').trim().slice(0, 40);
+  const ocrPass = String(body.ocrPass || '').trim().slice(0, 40);
+  const qualityFlags = String(body.ocrQualityFlags || '')
+    .split(',')
+    .map((item) => item.trim().toLowerCase().replace(/[^a-z0-9_-]/g, ''))
+    .filter(Boolean)
+    .slice(0, 10);
   const extractedName = cleanOcrNameCandidate(body.ocrExtractedName).slice(0, 120);
   const allowedNameStatuses = new Set(['matched', 'mismatched', 'not_detected', 'not_checked']);
   const rawNameStatus = String(body.ocrNameMatchStatus || '').trim().toLowerCase();
@@ -2020,10 +2027,20 @@ function parseOcrData(body, formDistanceKm, formElapsedMs, user = null) {
     locationMismatch,
     runTypeMismatch,
     detectedSource,
+    parserVersion,
+    ocrPass,
+    qualityFlags,
     extractedName,
     nameMatchStatus,
     nameMismatchAcknowledged
   };
+}
+
+function parseOptionalNumber(value) {
+  const safe = String(value ?? '').trim();
+  if (!safe) return null;
+  const numeric = Number(safe);
+  return Number.isFinite(numeric) ? numeric : null;
 }
 
 function parseOcrDate(value) {

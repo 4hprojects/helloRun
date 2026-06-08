@@ -4,6 +4,7 @@ const { spawn } = require('node:child_process');
 const path = require('node:path');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const sharp = require('sharp');
 require('dotenv').config();
 
 const User = require('../src/models/User');
@@ -16,15 +17,27 @@ const { getPlatformDateKey } = require('../src/utils/platform-date');
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3104;
 const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
-const PNG_1PX_BUFFER = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8Xw8AAoMBgQeRlmQAAAAASUVORK5CYII=',
-  'base64'
-);
 const PDF_FAKE_BUFFER = Buffer.from('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF', 'utf8');
 
 let serverProc = null;
+let pngProofBuffers = [];
+let nextProofBufferIndex = 0;
 
 test.before(async () => {
+  pngProofBuffers = await Promise.all(Array.from({ length: 32 }, (_, index) => sharp({
+    create: {
+      width: 2,
+      height: 2,
+      channels: 4,
+      background: {
+        r: (index * 37) % 255,
+        g: (index * 73) % 255,
+        b: (index * 109) % 255,
+        alpha: 1
+      }
+    }
+  }).png().toBuffer()));
+
   serverProc = spawn(process.execPath, ['src/server.js'], {
     cwd: ROOT,
     env: {
@@ -219,6 +232,55 @@ test('authenticated submit-result allows personal-record submission without a re
   assert.ok(created);
   assert.equal(created.status, 'submitted');
   assert.equal(created.ocrData.nameMatchStatus, 'not_checked');
+});
+
+test('authenticated submit-result stores OCR parser metadata without coercing blank optionals to zero', async () => {
+  const seed = await seedData('ocr-parser-metadata');
+  const cookie = await login(seed.runner.email, seed.password);
+  const ready = await waitForSessionReady('/runner/dashboard', cookie);
+  assert.equal(ready, true);
+  const csrfToken = await fetchCsrfToken('/runner/dashboard', cookie);
+
+  const form = buildResultProofForm({
+    distanceKm: '5.01',
+    elapsedTime: '00:31:54',
+    proofType: 'photo',
+    runLocation: 'Baguio'
+  });
+  form.append('_csrf', csrfToken);
+  form.append('ocrDistance', '5.01');
+  form.append('ocrTime', '1914000');
+  form.append('ocrElevation', '');
+  form.append('ocrSteps', '');
+  form.append('ocrRawText', 'COoOROS\\nDistance\\n5.01 km\\nMoving Time\\n31:54');
+  form.append('ocrConfidence', '0.85');
+  form.append('ocrDetectedSource', 'coros');
+  form.append('ocrParserVersion', '2026-06-user-proof-v2');
+  form.append('ocrPass', 'metric-crop');
+  form.append('ocrQualityFlags', 'tall_metric_crop,dark_enhanced');
+
+  const response = await fetch(`${BASE_URL}/my-registrations/personal-record/submit-result`, {
+    method: 'POST',
+    headers: { Cookie: cookie },
+    body: form,
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 302);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  const created = await Submission.findOne({ runnerId: seed.runner._id, isPersonalRecord: true }).sort({ createdAt: -1 }).lean();
+  await mongoose.disconnect();
+
+  assert.ok(created);
+  assert.equal(created.ocrData.detectedSource, 'coros');
+  assert.equal(created.ocrData.parserVersion, '2026-06-user-proof-v2');
+  assert.equal(created.ocrData.ocrPass, 'metric-crop');
+  assert.deepEqual(created.ocrData.qualityFlags, ['tall_metric_crop', 'dark_enhanced']);
+  assert.equal(created.ocrData.extractedDistanceKm, 5.01);
+  assert.equal(created.ocrData.extractedTimeMs, 1914000);
+  assert.equal(created.ocrData.extractedElevationGain, null);
+  assert.equal(created.ocrData.extractedSteps, null);
 });
 
 async function seedData(tag) {
@@ -468,7 +530,7 @@ test('authenticated submit-result blocks duplicate proof screenshot', async () =
   await waitForSessionReady('/runner/dashboard', cookie);
 
   // First personal-record submission with the 1px PNG
-  const form1 = buildResultProofForm({ distanceKm: '5', elapsedTime: '00:30:00', proofType: 'photo', runLocation: 'Makati' });
+  const form1 = buildResultProofForm({ distanceKm: '5', elapsedTime: '00:30:00', proofType: 'photo', runLocation: 'Makati', proofVariant: 0 });
   const resp1 = await fetch(`${BASE_URL}/my-registrations/personal-record/submit-result`, {
     method: 'POST',
     headers: { Cookie: cookie },
@@ -480,7 +542,7 @@ test('authenticated submit-result blocks duplicate proof screenshot', async () =
   assert.match(loc1, /type=success/i);
 
   // Second personal-record attempt with the identical PNG — same hash, different record
-  const form2 = buildResultProofForm({ distanceKm: '5', elapsedTime: '00:30:00', proofType: 'photo', runLocation: 'Makati' });
+  const form2 = buildResultProofForm({ distanceKm: '5', elapsedTime: '00:30:00', proofType: 'photo', runLocation: 'Makati', proofVariant: 0 });
   const resp2 = await fetch(`${BASE_URL}/my-registrations/personal-record/submit-result`, {
     method: 'POST',
     headers: { Cookie: cookie },
@@ -507,9 +569,12 @@ async function waitForServerReady() {
   throw new Error(`Server did not become ready at ${BASE_URL}`);
 }
 
-function buildResultProofForm({ distanceKm, elapsedTime, proofType, runDate, runLocation }) {
+function buildResultProofForm({ distanceKm, elapsedTime, proofType, runDate, runLocation, proofVariant }) {
   const form = new FormData();
-  form.append('resultProofFile', new Blob([PNG_1PX_BUFFER], { type: 'image/png' }), 'proof.png');
+  const bufferIndex = Number.isInteger(proofVariant)
+    ? Math.max(0, Math.min(proofVariant, pngProofBuffers.length - 1))
+    : nextProofBufferIndex++ % pngProofBuffers.length;
+  form.append('resultProofFile', new Blob([pngProofBuffers[bufferIndex]], { type: 'image/png' }), 'proof.png');
   form.append('distanceKm', String(distanceKm || '5'));
   form.append('elapsedTime', String(elapsedTime || '00:30:00'));
   form.append('proofType', String(proofType || 'gps'));

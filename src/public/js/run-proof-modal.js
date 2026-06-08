@@ -64,6 +64,9 @@
     const ocrLocationMismatchInput = document.getElementById('runProofOcrLocationMismatch');
     const ocrRunTypeMismatchInput = document.getElementById('runProofOcrRunTypeMismatch');
     const ocrDetectedSourceInput = document.getElementById('runProofOcrDetectedSource');
+    const ocrParserVersionInput = document.getElementById('runProofOcrParserVersion');
+    const ocrPassInput = document.getElementById('runProofOcrPass');
+    const ocrQualityFlagsInput = document.getElementById('runProofOcrQualityFlags');
     const ocrExtractedNameInput = document.getElementById('runProofOcrExtractedName');
     const ocrNameMatchStatusInput = document.getElementById('runProofOcrNameMatchStatus');
     const imageHashInput = document.getElementById('runProofImageHash');
@@ -648,6 +651,9 @@
       if (ocrLocationMismatchInput) ocrLocationMismatchInput.value = '';
       if (ocrRunTypeMismatchInput) ocrRunTypeMismatchInput.value = '';
       if (ocrDetectedSourceInput) ocrDetectedSourceInput.value = '';
+      if (ocrParserVersionInput) ocrParserVersionInput.value = '';
+      if (ocrPassInput) ocrPassInput.value = '';
+      if (ocrQualityFlagsInput) ocrQualityFlagsInput.value = '';
       if (ocrExtractedNameInput) ocrExtractedNameInput.value = '';
       if (ocrNameMatchStatusInput) ocrNameMatchStatusInput.value = 'not_checked';
       if (imageHashInput) imageHashInput.value = '';
@@ -1028,6 +1034,9 @@
         if (ocrRawTextInput) ocrRawTextInput.value = result.rawText || '';
         if (ocrConfidenceInput) ocrConfidenceInput.value = String(result.confidence || 0);
         if (ocrDetectedSourceInput) ocrDetectedSourceInput.value = result.detectedSource || '';
+        if (ocrParserVersionInput) ocrParserVersionInput.value = result.parserVersion || '';
+        if (ocrPassInput) ocrPassInput.value = result.ocrPass || result.pass || '';
+        if (ocrQualityFlagsInput) ocrQualityFlagsInput.value = Array.isArray(result.qualityFlags) ? result.qualityFlags.join(',') : '';
         setNameAnalysis(result);
 
         if (result.confidence > 0 && (result.distance || result.time)) {

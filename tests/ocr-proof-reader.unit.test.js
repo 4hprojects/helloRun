@@ -653,3 +653,91 @@ test('parseOcrText - treats Garmin device label inside Strava layout as Strava',
   assert.equal(r.steps, 3334);
 });
 
+test('parseOcrText - parses compact Strava distance from metric grid without reading achievements', () => {
+  const text = [
+    '$24 2nd fastest 10K Lifetime',
+    'Today at 4:59 AM - La Trinidad, Benguet',
+    'Long?3-sablan',
+    'Your 2nd fastest 10K!',
+    'Distance Avg Pace',
+    '1214 km 8:08 /km',
+    'Moving Time Elevation Gain',
+    '1:38:49 124m',
+    'Avg Cadence Max Elevation',
+    '153 spm 1,475 m'
+  ].join('\n');
+
+  const r = parse(text, 82);
+  assert.equal(r.detectedSource, 'strava');
+  assert.equal(r.distance.value, 12.14);
+  assert.equal(r.time.hours, 1);
+  assert.equal(r.time.minutes, 38);
+  assert.equal(r.time.seconds, 49);
+  assert.equal(r.elevationGain.value, 124);
+  assert.equal(r.location, 'La Trinidad, Benguet');
+});
+
+test('parseOcrText - strips 24-hour wall clock from Strava date line', () => {
+  const text = [
+    'Anthony Soto',
+    'Today at 18:57 - Chiang Mai Province',
+    'Evening Run',
+    'Distance Avg Pace',
+    '5.01 km 6:22 /km',
+    'Moving Time Elevation Gain',
+    '31:54 1m',
+    'Calories Avg Heart Rate',
+    '334 Cal 157 bpm'
+  ].join('\n');
+
+  const r = parse(text, 82);
+  assert.equal(r.detectedSource, 'strava');
+  assert.equal(r.distance.value, 5.01);
+  assert.equal(r.time.hours, 0);
+  assert.equal(r.time.minutes, 31);
+  assert.equal(r.time.seconds, 54);
+  assert.notEqual(r.time.totalMs, (18 * 60 + 57) * 1000);
+});
+
+test('parseOcrText - detects noisy COROS source and metric-grid elevation', () => {
+  const text = [
+    'COoOROS',
+    '10.22 km',
+    'Distance lya',
+    '1:31:33 351. 102 +',
+    'Activity Time Elev Gain Efficiency'
+  ].join('\n');
+
+  const r = parse(text, 82);
+  assert.equal(r.detectedSource, 'coros');
+  assert.equal(r.distance.value, 10.22);
+  assert.equal(r.time.hours, 1);
+  assert.equal(r.time.minutes, 31);
+  assert.equal(r.time.seconds, 33);
+  assert.equal(r.elevationGain.value, 351);
+});
+
+test('parseOcrText - leaves missing elevation and steps as null', () => {
+  const r = parse('Pace Time\n8:17 /km 1h 50m\nDistance\n13.29 km', 82);
+  assert.equal(r.distance.value, 13.29);
+  assert.equal(r.time.hours, 1);
+  assert.equal(r.time.minutes, 50);
+  assert.equal(r.elevationGain, null);
+  assert.equal(r.steps, null);
+});
+
+test('parseOcrText - non-proof screenshot has no autofillable activity data', () => {
+  const text = [
+    'Submit Run',
+    'A different answer appears on this screenshot',
+    'MSSQL Server manages concurrent transactions',
+    'SQL Server uses locks to control access to data'
+  ].join('\n');
+
+  const r = parse(text, 62);
+  assert.equal(r.ok, false);
+  assert.equal(r.distance, null);
+  assert.equal(r.time, null);
+  assert.equal(r.confidence, 0);
+});
+

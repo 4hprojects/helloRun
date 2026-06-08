@@ -13,6 +13,7 @@
   var MILES_TO_KM = 1.60934;
   var MAX_PREPROCESS_DIMENSION = 1600;
   var OCR_TIMEOUT_ERROR = 'OCR_RECOGNITION_FAILED';
+  var OCR_PARSER_VERSION = '2026-06-user-proof-v2';
 
   // Source app detection patterns
   var SOURCE_PATTERNS = [
@@ -21,7 +22,7 @@
     { source: 'garmin',  pattern: /garmin/i },
     { source: 'apple',   pattern: /apple\s*health/i },
     { source: 'google',  pattern: /google\s*fit|fit\s+activity/i },
-    { source: 'coros',   pattern: /\bcoros\b/i }
+    { source: 'coros',   pattern: /\bc[o0]{1,4}ros\b/i }
   ];
 
   // Date patterns — YYYY-MM-DD, DD/MM/YYYY, Month DD YYYY
@@ -48,9 +49,9 @@
     // "Distance 5.02" (often followed by a unit on a different line)
     /distance[:\s]+(\d{1,3}(?:[.,]\d{1,3})?)\s*(k\s*m|km|mi|miles|k|)?\b/i,
     // "5.02 km", "10,5 km", "3.1 mi", "21.1 kilometers"
-    /(\d{1,3}(?:[.,]\d{1,3})?)\s*(k\s*m|km|mi|miles|kilometers|kilometres)\b/i,
+    /(?:^|[^\d.,])(\d{1,3}(?:[.,]\d{1,3})?)\s*(k\s*m|km|mi|miles|kilometers|kilometres)\b/i,
     // "5.02km" (no space)
-    /(\d{1,3}(?:[.,]\d{1,3})?)(km|mi)\b/i
+    /(?:^|[^\d.,])(\d{1,3}(?:[.,]\d{1,3})?)(km|mi)\b/i
   ];
 
   // Time patterns — ordered by specificity
@@ -124,9 +125,10 @@
   function detectSourceApp(text) {
     var t = normaliseOcrText(text);
     if (window.HelloRunOcrSource && typeof window.HelloRunOcrSource.detectSourceApp === 'function') {
-      return window.HelloRunOcrSource.detectSourceApp(t);
+      var delegatedSource = window.HelloRunOcrSource.detectSourceApp(t);
+      if (delegatedSource && delegatedSource !== 'unknown') return delegatedSource;
     }
-    if (/\b(?:strava|strava\s+app|gave\s+kudos|relative\s+effort|segments?|with\s+someone\s+who\s+didn'?t\s+record)\b/i.test(t)) {
+    if (/\b(?:strava|strava\s+app|gave\s+kudos|relative\s+effort|segments?|with\s+someone\s+who\s+didn'?t\s+record|avg\s+pace|moving\s+time|your\s+\d+(?:st|nd|rd|th)\s+fastest)\b/i.test(t)) {
       return 'strava';
     }
     for (var i = 0; i < SOURCE_PATTERNS.length; i++) {
@@ -172,6 +174,9 @@
   }
 
   function extractDistance(text) {
+    var gridDistance = extractMetricGridDistance(text);
+    if (gridDistance) return gridDistance;
+
     for (var i = 0; i < DISTANCE_PATTERNS.length; i++) {
       var match = text.match(DISTANCE_PATTERNS[i]);
       if (!match) continue;
@@ -193,6 +198,34 @@
     return null;
   }
 
+  function extractMetricGridDistance(text) {
+    var patterns = [
+      /\bdistance\s+avg\s+pace[\s\S]{0,120}?(\d{3,4}|\d{1,3}(?:[.,]\d{1,3})?)\s*(k\s*m|km|mi|miles)\b/i,
+      /\bdistance\s+(?:moving\s+time|elevation\s+gain|steps|time|pace)[\s\S]{0,120}?(\d{3,4}|\d{1,3}(?:[.,]\d{1,3})?)\s*(k\s*m|km|mi|miles)\b/i,
+      /\bdistance[\s\r\n]+(\d{3,4}|\d{1,3}(?:[.,]\d{1,3})?)\s*(k\s*m|km|mi|miles)\b/i
+    ];
+    for (var i = 0; i < patterns.length; i++) {
+      var match = text.match(patterns[i]);
+      if (!match) continue;
+      var rawValue = String(match[1] || '').trim();
+      var value = normaliseCompactDistance(rawValue);
+      if (!Number.isFinite(value) || value <= 0 || value > 1000) continue;
+      var rawUnit = String(match[2] || '').trim().toLowerCase();
+      var unit = rawUnit === 'mi' || rawUnit === 'miles' ? 'mi' : 'km';
+      var valueKm = unit === 'mi' ? Math.round(value * MILES_TO_KM * 100) / 100 : value;
+      return { value: value, unit: unit, valueKm: valueKm };
+    }
+    return null;
+  }
+
+  function normaliseCompactDistance(rawValue) {
+    var safe = String(rawValue || '').trim();
+    if (/^\d{3,4}$/.test(safe)) {
+      return Math.round((parseInt(safe, 10) / 100) * 100) / 100;
+    }
+    return normaliseDecimal(safe);
+  }
+
   function buildTimeResult(hours, minutes, seconds) {
     hours = parseInt(hours || 0, 10);
     minutes = parseInt(minutes || 0, 10);
@@ -208,6 +241,12 @@
   }
 
   function extractTime(text) {
+    var labelledHms = text.match(/(?:activity\s*time|moving\s*time|elapsed\s*time|time|duration|elapsed)[\s\S]{0,80}?(\d{1,2}):(\d{2}):(\d{2})(?!\d)/i);
+    if (labelledHms) {
+      var labelledHmsResult = buildTimeResult(labelledHms[1], labelledHms[2], labelledHms[3]);
+      if (labelledHmsResult) return labelledHmsResult;
+    }
+
     var labelledDecimalSeconds = text.match(/(?:activity\s*time|moving\s*time|elapsed\s*time|time|duration|elapsed)[\s\S]{0,80}?(\d{1,2}):(\d{2})(?:[.,](\d{1,2}))?(?!\d|:)/i);
     if (labelledDecimalSeconds) {
       if (!/\b(?:km|mi|miles|kilometers|kilometres)\b/i.test(labelledDecimalSeconds[0])) {
@@ -277,6 +316,7 @@
     // Remove "at H:MM AM/PM" (with optional surrounding context)
     return text
       .replace(/\bat\s+\d{1,2}:\d{2}\s*(?:AM|PM)/gi, '')
+      .replace(/\bat\s+\d{1,2}:\d{2}(?!\s*(?:\/\s*(?:km|mi)|min\s*\/\s*(?:km|mi)|\/(?:km|mi)))/gi, '')
       .replace(/\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2},?\s+\d{4}\s+\d{1,2}:\d{2}\s*(?:AM|PM)/gi, function (match) {
         return match.replace(/\s+\d{1,2}:\d{2}\s*(?:AM|PM)/i, '');
       });
@@ -302,6 +342,9 @@
   }
 
   function extractElevationGain(text) {
+    var gridElevation = extractMetricGridElevation(text);
+    if (gridElevation) return gridElevation;
+
     for (var i = 0; i < ELEVATION_PATTERNS.length; i++) {
       // Find all matches for this pattern and pick the best candidate.
       // We want the SMALLEST plausible value because map contour labels
@@ -329,6 +372,23 @@
         valueM = Math.round(bestValue * 0.3048);
       }
       return { value: Math.round(valueM), unit: 'm' };
+    }
+    return null;
+  }
+
+  function extractMetricGridElevation(text) {
+    var patterns = [
+      /\b\d{1,2}:\d{2}(?::\d{2})?\s+(\d{1,5})(?:[.,]\s*)?\d{0,4}[\s\S]{0,80}?\bactivity\s*time\s+elev\s*gain\b/i,
+      /\bactivity\s*time\s+elev\s*gain[\s\S]{0,120}?\d{1,2}:\d{2}(?::\d{2})?\s+(\d{1,5})(?:[.,]\s*)?(?=\s+\d|\s*$)/i,
+      /\bmoving\s*time\s+elevation\s*gain[\s\S]{0,120}?\d{1,2}:\d{2}(?::\d{2})?\s+(\d{1,5})(?:[.,]\s*)?(?:m|ft)?\b/i,
+      /\bdistance\s+elevation\s*gain[\s\S]{0,120}?\d{1,3}(?:[.,]\d{1,3})?\s*(?:km|mi)\s+(\d{1,5})(?:[.,]\s*)?(?:m|ft)?\b/i
+    ];
+    for (var i = 0; i < patterns.length; i++) {
+      var match = text.match(patterns[i]);
+      if (!match) continue;
+      var value = normaliseDecimal(match[1]);
+      if (!Number.isFinite(value) || value < 0 || value > 20000) continue;
+      return { value: Math.round(value), unit: 'm' };
     }
     return null;
   }
@@ -400,6 +460,8 @@
     name = name
       .replace(/^[^A-Za-z]+/, '')
       .replace(/^\d+\s*[%.)\]-]*\s*/, '')
+      .replace(/^[A-Za-z]?\s*[\\|/{}[\]<>~=+^`'":;.,!-]+\s*/g, '')
+      .replace(/^[a-z]\s+(?=[A-Z])/g, '')
       .replace(/\s+[A-Za-z]?[%=_~^`|]+$/g, '')
       .replace(/[|\\\/,;:!?.\s]+$/g, '')
       .replace(/^[^A-Za-z]+/, '')
@@ -549,6 +611,9 @@
 
     var result = {
       rawText: rawText.slice(0, 2000),
+      parserVersion: OCR_PARSER_VERSION,
+      ocrPass: '',
+      qualityFlags: [],
       distance: distance,
       time: time,
       pace: pace,
@@ -725,6 +790,107 @@
     });
   }
 
+  function preprocessTallMetricCrop(file) {
+    return loadImageFromFile(file).then(function (image) {
+      var sourceWidth = image.naturalWidth || image.width;
+      var sourceHeight = image.naturalHeight || image.height;
+      if (!sourceWidth || !sourceHeight || sourceHeight / sourceWidth < 1.45) {
+        throw Object.assign(new Error('Tall screenshot crop is not applicable.'), {
+          code: 'OCR_PREPROCESS_SKIPPED'
+        });
+      }
+
+      var cropY = Math.round(sourceHeight * 0.42);
+      var cropHeight = sourceHeight - cropY;
+      var scale = Math.min(2, MAX_PREPROCESS_DIMENSION / Math.max(sourceWidth, cropHeight));
+      var targetWidth = Math.max(1, Math.round(sourceWidth * scale));
+      var targetHeight = Math.max(1, Math.round(cropHeight * scale));
+      var canvas = document.createElement('canvas');
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      var ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) {
+        throw Object.assign(new Error('Unable to prepare image crop for reading.'), {
+          code: 'OCR_PREPROCESS_UNAVAILABLE'
+        });
+      }
+
+      ctx.drawImage(image, 0, cropY, sourceWidth, cropHeight, 0, 0, targetWidth, targetHeight);
+      enhanceCanvasContrast(ctx, targetWidth, targetHeight, { contrast: 1.6 });
+      return canvasToBlob(canvas, 'image/png');
+    });
+  }
+
+  function preprocessDarkImage(file) {
+    return loadImageFromFile(file).then(function (image) {
+      var sourceWidth = image.naturalWidth || image.width;
+      var sourceHeight = image.naturalHeight || image.height;
+      if (!sourceWidth || !sourceHeight) {
+        throw Object.assign(new Error('Uploaded image dimensions are invalid.'), {
+          code: 'OCR_IMAGE_DECODE_FAILED'
+        });
+      }
+
+      var scale = Math.min(1, MAX_PREPROCESS_DIMENSION / Math.max(sourceWidth, sourceHeight));
+      var targetWidth = Math.max(1, Math.round(sourceWidth * scale));
+      var targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+      var canvas = document.createElement('canvas');
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      var ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) {
+        throw Object.assign(new Error('Unable to prepare dark image for reading.'), {
+          code: 'OCR_PREPROCESS_UNAVAILABLE'
+        });
+      }
+
+      ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+      var averageLuma = enhanceCanvasContrast(ctx, targetWidth, targetHeight, { contrast: 1.75, invertDark: true });
+      if (averageLuma >= 96) {
+        throw Object.assign(new Error('Dark image enhancement is not applicable.'), {
+          code: 'OCR_PREPROCESS_SKIPPED'
+        });
+      }
+      return canvasToBlob(canvas, 'image/png');
+    });
+  }
+
+  function enhanceCanvasContrast(ctx, width, height, options) {
+    var opts = options || {};
+    var imageData = ctx.getImageData(0, 0, width, height);
+    var data = imageData.data;
+    var totalLuma = 0;
+    var pixelCount = Math.max(1, width * height);
+    for (var i = 0; i < data.length; i += 4) {
+      totalLuma += data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+    }
+    var averageLuma = totalLuma / pixelCount;
+    for (var j = 0; j < data.length; j += 4) {
+      var grey = Math.round(data[j] * 0.299 + data[j + 1] * 0.587 + data[j + 2] * 0.114);
+      if (opts.invertDark && averageLuma < 96) grey = 255 - grey;
+      var contrasted = Math.max(0, Math.min(255, (grey - 128) * (opts.contrast || 1.45) + 128));
+      data[j] = contrasted;
+      data[j + 1] = contrasted;
+      data[j + 2] = contrasted;
+    }
+    ctx.putImageData(imageData, 0, 0);
+    return averageLuma;
+  }
+
+  function canvasToBlob(canvas, mimeType) {
+    return new Promise(function (resolve, reject) {
+      canvas.toBlob(function (blob) {
+        if (!blob) {
+          reject(Object.assign(new Error('Unable to create readable image copy.'), {
+            code: 'OCR_PREPROCESS_UNAVAILABLE'
+          }));
+          return;
+        }
+        resolve(blob);
+      }, mimeType || 'image/png');
+    });
+  }
+
   function recognizeWithWorker(workerInstance, image, passLabel, onProgress) {
     if (onProgress) onProgress(passLabel === 'processed' ? 'preprocessed image ready' : 'retrying original image', 0);
     return workerInstance.recognize(image).then(function (result) {
@@ -734,8 +900,57 @@
       console.debug('[OCR] Raw text extracted (' + passLabel + '):\n' + text);
       var parsed = parseOcrText(text, confidence);
       parsed.pass = passLabel;
+      parsed.ocrPass = passLabel;
       return parsed;
     });
+  }
+
+  function scoreParsedResult(result) {
+    if (!result) return 0;
+    var score = Number(result.confidence || 0);
+    if (result.distance) score += 0.35;
+    if (result.time) score += 0.35;
+    if (result.elevationGain) score += 0.08;
+    if (result.steps !== null && result.steps !== undefined) score += 0.08;
+    if (result.name) score += 0.05;
+    if (result.detectedSource && result.detectedSource !== 'unknown') score += 0.05;
+    if (result.location) score += 0.04;
+    return score;
+  }
+
+  function mergeParsedResults(base, candidate) {
+    if (!base) return candidate;
+    if (!candidate) return base;
+
+    var merged = scoreParsedResult(candidate) > scoreParsedResult(base)
+      ? Object.assign({}, candidate)
+      : Object.assign({}, base);
+    var other = merged === candidate ? base : candidate;
+
+    if (!merged.distance && other.distance) merged.distance = other.distance;
+    if (!merged.time && other.time) merged.time = other.time;
+    if (!merged.pace && other.pace) merged.pace = other.pace;
+    if (!merged.date && other.date) merged.date = other.date;
+    if (!merged.elevationGain && other.elevationGain) merged.elevationGain = other.elevationGain;
+    if ((merged.steps === null || merged.steps === undefined) && other.steps !== null && other.steps !== undefined) merged.steps = other.steps;
+    if (!merged.name && other.name) merged.name = other.name;
+    if (!merged.runType && other.runType) merged.runType = other.runType;
+    if (!merged.location && other.location) {
+      merged.location = other.location;
+      merged.locationCandidates = other.locationCandidates || [];
+      merged.locationConfidence = other.locationConfidence || 0;
+      merged.locationSource = other.locationSource || '';
+    }
+    if ((!merged.detectedSource || merged.detectedSource === 'unknown') && other.detectedSource && other.detectedSource !== 'unknown') {
+      merged.detectedSource = other.detectedSource;
+    }
+
+    merged.rawText = [base.rawText, candidate.rawText].filter(Boolean).join('\n--- OCR PASS ---\n').slice(0, 2000);
+    merged.confidence = Math.max(Number(base.confidence || 0), Number(candidate.confidence || 0));
+    merged.ok = Boolean(merged.distance || merged.time);
+    merged.qualityFlags = Array.from(new Set([].concat(base.qualityFlags || [], candidate.qualityFlags || [])));
+    merged.ocrPass = merged.ocrPass || merged.pass || candidate.ocrPass || candidate.pass || base.ocrPass || base.pass || '';
+    return merged;
   }
 
   /**
@@ -750,6 +965,7 @@
     }
 
     var activeWorker = null;
+    var recognitionPasses = [];
     return ensureWorker(onProgress).then(function (w) {
       activeWorker = w;
       if (onProgress) onProgress('preprocessing image', 0);
@@ -758,32 +974,41 @@
         return imageFile;
       });
     }).then(function (processedImage) {
-      return recognizeWithWorker(activeWorker, processedImage, 'processed', onProgress);
-    }).then(function (processedResult) {
-      if (processedResult.ok) {
-        console.debug('[OCR] Parse result:', processedResult);
-        // If the preprocessed pass found distance/time but NOT a name, run the
-        // original image to get a cleaner name reading. Preprocessing (greyscale +
-        // contrast boost) can distort athlete name text even when metrics are clear.
-        if (!processedResult.name) {
-          if (onProgress) onProgress('retrying original image', 0);
-          return recognizeWithWorker(activeWorker, imageFile, 'original-name', onProgress).then(function (originalResult) {
-            if (originalResult.name) {
-              processedResult.name = originalResult.name;
-              console.debug('[OCR] Name taken from original pass:', originalResult.name);
-            }
-            return processedResult;
+      recognitionPasses.push({ label: 'processed', image: processedImage, qualityFlags: [] });
+      return preprocessTallMetricCrop(imageFile).then(function (cropImage) {
+        recognitionPasses.push({ label: 'metric-crop', image: cropImage, qualityFlags: ['tall_metric_crop'] });
+      }).catch(function (error) {
+        console.debug('[OCR] Metric crop skipped:', error);
+      });
+    }).then(function () {
+      return preprocessDarkImage(imageFile).then(function (darkImage) {
+        recognitionPasses.push({ label: 'dark-enhanced', image: darkImage, qualityFlags: ['dark_enhanced'] });
+      }).catch(function (error) {
+        console.debug('[OCR] Dark enhancement skipped:', error);
+      });
+    }).then(function () {
+      recognitionPasses.push({ label: 'original', image: imageFile, qualityFlags: ['original_retry'] });
+      var mergedResult = null;
+      var chain = Promise.resolve();
+      recognitionPasses.forEach(function (pass) {
+        chain = chain.then(function () {
+          if (onProgress && pass.label !== 'processed') onProgress('retrying original image', 0);
+          return recognizeWithWorker(activeWorker, pass.image, pass.label, onProgress).then(function (passResult) {
+            passResult.qualityFlags = Array.from(new Set([].concat(passResult.qualityFlags || [], pass.qualityFlags || [])));
+            mergedResult = mergeParsedResults(mergedResult, passResult);
           });
+        });
+      });
+      return chain.then(function () {
+        if (mergedResult && mergedResult.ok) {
+          console.debug('[OCR] Merged parse result:', mergedResult);
+          return mergedResult;
         }
-        return processedResult;
-      }
-      if (onProgress) onProgress('retrying original image', 0);
-      return recognizeWithWorker(activeWorker, imageFile, 'original', onProgress).then(function (originalResult) {
-        console.debug('[OCR] Retry parse result:', originalResult);
-        if (originalResult.ok) return originalResult;
-        originalResult.errorCode = 'OCR_NO_RUN_DATA';
-        originalResult.errorMessage = 'We could not read distance or time from this screenshot.';
-        return originalResult;
+        mergedResult = mergedResult || parseOcrText('', 0);
+        mergedResult.ok = false;
+        mergedResult.errorCode = 'OCR_NO_RUN_DATA';
+        mergedResult.errorMessage = 'We could not read distance or time from this screenshot.';
+        return mergedResult;
       });
     }).catch(function (err) {
       console.debug('[OCR] Tesseract error:', err);

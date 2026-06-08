@@ -47,9 +47,12 @@ const commonActivityFields = {
     runTypeMismatch: { type: Boolean, default: false },
     detectedSource: {
       type: String,
-      enum: ['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', ''],
+      enum: ['strava', 'nike', 'garmin', 'apple', 'google', 'coros', 'unknown', ''],
       default: ''
     },
+    parserVersion: { type: String, trim: true, default: '', maxlength: 40 },
+    ocrPass: { type: String, trim: true, default: '', maxlength: 40 },
+    qualityFlags: [{ type: String, trim: true, maxlength: 80 }],
     extractedName: { type: String, trim: true, default: '', maxlength: 120 },
     nameMatchStatus: {
       type: String,
@@ -292,9 +295,12 @@ const submissionSchema = new mongoose.Schema(
       runTypeMismatch: { type: Boolean, default: false },
       detectedSource: {
         type: String,
-        enum: ['strava', 'nike', 'garmin', 'apple', 'google', 'unknown', ''],
+        enum: ['strava', 'nike', 'garmin', 'apple', 'google', 'coros', 'unknown', ''],
         default: ''
       },
+      parserVersion: { type: String, trim: true, default: '', maxlength: 40 },
+      ocrPass: { type: String, trim: true, default: '', maxlength: 40 },
+      qualityFlags: [{ type: String, trim: true, maxlength: 80 }],
       extractedName: { type: String, trim: true, default: '', maxlength: 120 },
       nameMatchStatus: {
         type: String,
