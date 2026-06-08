@@ -234,6 +234,26 @@ function initEventCarousel(carousel) {
 
   renderDots();
   updateState();
+
+  // Suppress browser native tooltips for badges to use custom CSS tooltips
+  const badgesWithTooltip = document.querySelectorAll('.mode-badge[title]');
+  badgesWithTooltip.forEach((badge) => {
+    badge.addEventListener('mouseenter', function() {
+      this.setAttribute('data-native-title', this.title);
+      this.removeAttribute('title');
+    });
+    badge.addEventListener('mouseleave', function() {
+      const nativeTitle = this.getAttribute('data-native-title');
+      if (nativeTitle) {
+        this.setAttribute('title', nativeTitle);
+      }
+    });
+    // Restore title for keyboard/accessibility
+    badge.addEventListener('focus', function() {
+      this.setAttribute('data-native-title', this.title || '');
+      this.removeAttribute('title');
+    });
+  });
 }
 
 if (document.readyState === 'loading') {

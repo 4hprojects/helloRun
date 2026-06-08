@@ -15,10 +15,16 @@
           <h1>My Events</h1>
           <p>Manage drafts, published runs, and event operations in one place.</p>
         </div>
-        <a href="/organizer/create-event" class="nav-signup-btn events-create-btn">
-          <i data-lucide="plus"></i>
-          Create New Event
-        </a>
+        <div class="filter-actions">
+          <a href="/organizer/submissions" class="nav-login-btn events-create-btn">
+            <i data-lucide="clipboard-list"></i>
+            All Run Submissions
+          </a>
+          <a href="/organizer/create-event" class="nav-signup-btn events-create-btn">
+            <i data-lucide="plus"></i>
+            Create New Event
+          </a>
+        </div>
       </header>
 
       <% if (message) { %>

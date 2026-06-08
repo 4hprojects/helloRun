@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Run Submissions - HelloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/submission-hub.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>Run Submissions</h2>
+          <p>Browse submitted, approved, and rejected run results across all events.</p>
+        </div>
+        <div class="filter-actions">
+          <a href="<%= links.reviews %>" class="btn btn-secondary">Pending Review Queue</a>
+          <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
+      </div>
+
+      <section class="dashboard-grid" aria-label="Run submission summary">
+        <article class="metric-card">
+          <p class="metric-label">Total in View</p>
+          <p class="metric-value"><%= counts.total %></p>
+          <a href="<%= links.all %>" class="metric-link">All statuses</a>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Pending</p>
+          <p class="metric-value"><%= counts.submitted %></p>
+          <a href="<%= links.submitted %>" class="metric-link">View pending</a>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Approved</p>
+          <p class="metric-value"><%= counts.approved %></p>
+          <a href="<%= links.approved %>" class="metric-link">View approved</a>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Rejected</p>
+          <p class="metric-value"><%= counts.rejected %></p>
+          <a href="<%= links.rejected %>" class="metric-link">View rejected</a>
+        </article>
+      </section>
+
+      <form class="admin-filters review-queue-filters" method="GET" action="/admin/submissions">
+        <div class="filter-field">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All statuses</option>
+            <option value="submitted" <%= filters.status === 'submitted' ? 'selected' : '' %>>Pending</option>
+            <option value="approved" <%= filters.status === 'approved' ? 'selected' : '' %>>Approved</option>
+            <option value="rejected" <%= filters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label for="type">Type</label>
+          <select id="type" name="type">
+            <option value="all" <%= filters.type === 'all' ? 'selected' : '' %>>All types</option>
+            <option value="standard" <%= filters.type === 'standard' ? 'selected' : '' %>>Standard</option>
+            <option value="accumulated" <%= filters.type === 'accumulated' ? 'selected' : '' %>>Accumulated</option>
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label for="eventId">Event</label>
+          <select id="eventId" name="eventId">
+            <option value="" <%= !filters.eventId ? 'selected' : '' %>>All events</option>
+            <% events.forEach((event) => { %>
+              <option value="<%= event.id %>" <%= filters.eventId === event.id ? 'selected' : '' %>><%= event.title %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="filter-field">
+          <label for="sort">Sort</label>
+          <select id="sort" name="sort">
+            <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest first</option>
+            <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
+          </select>
+        </div>
+
+        <div class="filter-field filter-grow">
+          <label for="q">Search</label>
+          <input id="q" type="text" name="q" value="<%= filters.q %>" placeholder="Event, participant, email, confirmation code">
+        </div>
+
+        <div class="filter-actions">
+          <button type="submit" class="btn">Apply Filters</button>
+          <a href="<%= links.reset %>" class="btn btn-secondary">Reset</a>
+        </div>
+      </form>
+
+      <div class="results-meta">
+        Showing <strong><%= submissions.length %></strong> of <strong><%= pagination.totalItems %></strong> run submission<%= pagination.totalItems === 1 ? '' : 's' %>
+        <span class="text-muted">(<%= counts.standard %> standard, <%= counts.accumulated %> accumulated)</span>
+      </div>
+
+      <% if (submissions && submissions.length) { %>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Event</th>
+              <th>Participant</th>
+              <th>Type</th>
+              <th>Result</th>
+              <th>Proof</th>
+              <th>Submitted / Reviewed</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% submissions.forEach((item) => { %>
+              <tr>
+                <td>
+                  <strong><%= item.eventTitle %></strong>
+                  <div><small class="mono"><%= item.confirmationCode %></small></div>
+                </td>
+                <td>
+                  <strong><%= item.participantName %></strong>
+                  <div><small><%= item.participantEmail %></small></div>
+                </td>
+                <td>
+                  <span class="status-badge status-badge-<%= item.submissionKind %>"><%= item.submissionTypeLabel %></span>
+                  <div><small><%= item.raceDistance %> / <%= item.participationMode %></small></div>
+                </td>
+                <td>
+                  <%= item.distanceLabel %>
+                  <div><small><%= item.elapsedLabel %></small></div>
+                </td>
+                <td>
+                  <%= item.proofTypeLabel %>
+                  <div><small><%= item.sourceLabel %></small></div>
+                </td>
+                <td>
+                  <%= item.submittedAtLabel %>
+                  <div><small>Reviewed: <%= item.reviewedAtLabel %></small></div>
+                </td>
+                <td>
+                  <span class="status-badge status-badge-<%= item.statusClass %>"><%= item.statusLabel %></span>
+                  <% if (item.suspiciousFlag || item.reviewSignal?.label) { %>
+                    <div><small class="status-badge status-badge-proof_rejected" title="<%= item.reviewSignal?.description || item.suspiciousFlagReason %>"><%= item.reviewSignal?.label || 'Suspicious' %></small></div>
+                  <% } %>
+                </td>
+                <td class="submission-hub-table-actions">
+                  <div class="submission-hub-action-column">
+                    <a href="<%= item.actionHref %>" class="btn btn-sm submission-hub-action-btn" data-submission-modal-link data-modal-title="Review Submission">Open Review</a>
+                    <a href="<%= item.eventProofsHref %>" class="btn btn-sm btn-secondary submission-hub-action-btn" data-submission-modal-link data-modal-title="Event Proofs">Event Proofs</a>
+                  </div>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+
+        <div class="filter-actions pagination-actions">
+          <% if (links.prev) { %><a href="<%= links.prev %>" class="btn btn-secondary">Previous</a><% } %>
+          <span class="results-meta">Page <%= pagination.page %> of <%= pagination.totalPages %></span>
+          <% if (links.next) { %><a href="<%= links.next %>" class="btn btn-secondary">Next</a><% } %>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <h3>No run submissions found</h3>
+          <p>Try changing the status, event, or search filters.</p>
+          <a href="<%= links.reset %>" class="btn btn-secondary">View All Run Submissions</a>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <%- include('../partials/submission-link-modal') %>
+  <script src="/js/main.js"></script>
+  <script src="/js/submission-link-modal.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

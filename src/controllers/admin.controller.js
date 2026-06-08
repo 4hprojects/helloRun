@@ -26,6 +26,11 @@ const {
   updateBadgeDefinitionEmailLevel,
   recalculateBadgeAwards
 } = require('../services/achievement.service');
+const {
+  buildSubmissionHubPath,
+  listSubmissionHub,
+  listSubmissionHubEvents
+} = require('../services/submission-hub.service');
 const uploadService = require('../services/upload.service');
 const { markdownToHtml } = require('../utils/markdown');
 const { sanitizeHtml } = require('../utils/sanitize');
@@ -2781,6 +2786,37 @@ exports.reviewQueue = async (req, res) => {
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading the admin review queue.');
+  }
+};
+
+exports.listSubmissions = async (req, res) => {
+  try {
+    const [hub, events] = await Promise.all([
+      listSubmissionHub({ filters: req.query }),
+      listSubmissionHubEvents()
+    ]);
+    const basePath = '/admin/submissions';
+
+    return res.render('admin/submissions', {
+      title: 'Run Submissions - HelloRun Admin',
+      filters: hub.filters,
+      submissions: hub.items,
+      counts: hub.counts,
+      pagination: hub.pagination,
+      events,
+      links: {
+        all: buildSubmissionHubPath(basePath, hub.filters, { status: 'all', page: 1 }),
+        submitted: buildSubmissionHubPath(basePath, hub.filters, { status: 'submitted', page: 1 }),
+        approved: buildSubmissionHubPath(basePath, hub.filters, { status: 'approved', page: 1 }),
+        rejected: buildSubmissionHubPath(basePath, hub.filters, { status: 'rejected', page: 1 }),
+        prev: hub.pagination.page > 1 ? buildSubmissionHubPath(basePath, hub.filters, { page: hub.pagination.page - 1 }) : '',
+        next: hub.pagination.page < hub.pagination.totalPages ? buildSubmissionHubPath(basePath, hub.filters, { page: hub.pagination.page + 1 }) : '',
+        reset: basePath,
+        reviews: '/admin/reviews?type=results'
+      }
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading run submissions.');
   }
 };
 

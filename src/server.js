@@ -24,9 +24,16 @@ if (isProduction) {
   app.set('trust proxy', 1);
 }
 
+function canEmbedSameOriginReviewPage(pathname) {
+  return (
+    /^\/organizer\/events\/[^/]+\/submissions\/[^/]+\/review\/?$/.test(pathname) ||
+    /^\/organizer\/events\/[^/]+\/run-proofs\/review\/?$/.test(pathname)
+  );
+}
+
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Frame-Options', canEmbedSameOriginReviewPage(req.path) ? 'SAMEORIGIN' : 'DENY');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   res.setHeader(
@@ -38,7 +45,7 @@ app.use((req, res, next) => {
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https: blob:",
       "connect-src 'self' data: https://www.google-analytics.com https://analytics.google.com https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://unpkg.com",
-      "frame-src https://challenges.cloudflare.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
+      "frame-src 'self' https://challenges.cloudflare.com https://googleads.g.doubleclick.net https://tpc.googlesyndication.com",
       "worker-src 'self' blob:",
       "object-src 'none'",
       "base-uri 'self'",

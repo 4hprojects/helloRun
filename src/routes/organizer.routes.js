@@ -44,6 +44,11 @@ const {
   getEventAccumulatedActivityCounts,
   buildAccumulatedProgress
 } = require('../services/accumulated-activity.service');
+const {
+  buildSubmissionHubPath,
+  listSubmissionHub,
+  listSubmissionHubEvents
+} = require('../services/submission-hub.service');
 const onsiteOperationsRoutes = require('./organiser/onsite-operations');
 const qrAndDashboardRoutes = require('./organiser/qr-and-dashboard');
 
@@ -477,6 +482,12 @@ router.get('/dashboard', requireAuth, async (req, res) => {
             label: 'My Events',
             href: '/organizer/events',
             description: 'Manage your events'
+          },
+          {
+            icon: 'clipboard-list',
+            label: 'All Run Submissions',
+            href: '/organizer/submissions',
+            description: 'Browse run proofs across events'
           },
           {
             icon: 'users',
@@ -919,6 +930,66 @@ router.get('/events', requireApprovedOrganizer, async (req, res) => {
       title: 'Server Error',
       status: 500,
       message: 'An error occurred while loading your events.'
+    });
+  }
+});
+
+router.get('/submissions', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+    if (!user) {
+      return res.status(404).render('error', {
+        title: '404 - User Not Found',
+        status: 404,
+        message: 'User account not found.'
+      });
+    }
+
+    if (!canAccessRegistrantReview(user)) {
+      return res.status(403).render('error', {
+        title: '403 - Access Denied',
+        status: 403,
+        message: 'Only approved organizers or admins can view run submissions.'
+      });
+    }
+
+    const accessibleEvents = user.role === 'admin'
+      ? await Event.find({ isDeleted: { $ne: true } }).select('_id').lean()
+      : await Event.find({ organizerId: user._id, isDeleted: { $ne: true } }).select('_id').lean();
+    const eventIds = accessibleEvents.map((event) => String(event._id));
+    const [hub, events] = await Promise.all([
+      listSubmissionHub({ filters: req.query, eventIds }),
+      listSubmissionHubEvents({ eventIds })
+    ]);
+    const basePath = '/organizer/submissions';
+
+    return res.render('organizer/submissions', {
+      title: 'Run Submissions - HelloRun Organizer',
+      user,
+      isAdminViewer: user.role === 'admin',
+      filters: hub.filters,
+      submissions: hub.items,
+      counts: hub.counts,
+      pagination: hub.pagination,
+      events,
+      links: {
+        all: buildSubmissionHubPath(basePath, hub.filters, { status: 'all', page: 1 }),
+        submitted: buildSubmissionHubPath(basePath, hub.filters, { status: 'submitted', page: 1 }),
+        approved: buildSubmissionHubPath(basePath, hub.filters, { status: 'approved', page: 1 }),
+        rejected: buildSubmissionHubPath(basePath, hub.filters, { status: 'rejected', page: 1 }),
+        prev: hub.pagination.page > 1 ? buildSubmissionHubPath(basePath, hub.filters, { page: hub.pagination.page - 1 }) : '',
+        next: hub.pagination.page < hub.pagination.totalPages ? buildSubmissionHubPath(basePath, hub.filters, { page: hub.pagination.page + 1 }) : '',
+        reset: basePath,
+        events: '/organizer/events',
+        dashboard: user.role === 'admin' ? '/admin/dashboard' : '/organizer/dashboard'
+      }
+    });
+  } catch (error) {
+    console.error('Error loading organizer submissions:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading run submissions.'
     });
   }
 });

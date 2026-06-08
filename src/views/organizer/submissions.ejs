@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Run Submissions - HelloRun Organizer' }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/submission-hub.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="events-page organizer-registrants-page run-proof-review-page">
+    <section class="events-shell">
+      <header class="events-header">
+        <div>
+          <h1>Run Submissions</h1>
+          <p>Browse pending, approved, and rejected run proofs across your events.</p>
+        </div>
+        <div class="header-actions run-proof-header-actions" aria-label="Submission navigation">
+          <a href="<%= links.dashboard %>" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="<%= isAdminViewer ? 'Admin Dashboard' : 'Dashboard' %>" aria-label="<%= isAdminViewer ? 'Admin Dashboard' : 'Dashboard' %>">
+            <i data-lucide="layout-dashboard" aria-hidden="true"></i>
+          </a>
+          <% if (!isAdminViewer) { %>
+            <a href="<%= links.events %>" class="nav-login-btn registrant-header-btn run-proof-header-btn" data-tooltip="My Events" aria-label="My Events">
+              <i data-lucide="calendar-days" aria-hidden="true"></i>
+            </a>
+          <% } %>
+        </div>
+      </header>
+
+      <section class="registrant-summary">
+        <a href="<%= links.all %>" class="summary-card payment-proof-summary-link <%= filters.status === 'all' ? 'is-active' : '' %>">
+          <strong>All Submissions</strong>
+          <span><%= counts.total %></span>
+        </a>
+        <a href="<%= links.submitted %>" class="summary-card payment-proof-summary-link <%= filters.status === 'submitted' ? 'is-active' : '' %>">
+          <strong>Pending Review</strong>
+          <span><%= counts.submitted %></span>
+        </a>
+        <a href="<%= links.approved %>" class="summary-card payment-proof-summary-link <%= filters.status === 'approved' ? 'is-active' : '' %>">
+          <strong>Approved</strong>
+          <span><%= counts.approved %></span>
+        </a>
+        <a href="<%= links.rejected %>" class="summary-card payment-proof-summary-link <%= filters.status === 'rejected' ? 'is-active' : '' %>">
+          <strong>Rejected</strong>
+          <span><%= counts.rejected %></span>
+        </a>
+      </section>
+
+      <form method="GET" action="/organizer/submissions" class="filter-bar run-proof-filter-bar">
+        <div class="run-proof-filter-field">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All statuses</option>
+            <option value="submitted" <%= filters.status === 'submitted' ? 'selected' : '' %>>Pending</option>
+            <option value="approved" <%= filters.status === 'approved' ? 'selected' : '' %>>Approved</option>
+            <option value="rejected" <%= filters.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+          </select>
+        </div>
+
+        <div class="run-proof-filter-field">
+          <label for="type">Type</label>
+          <select id="type" name="type">
+            <option value="all" <%= filters.type === 'all' ? 'selected' : '' %>>All types</option>
+            <option value="standard" <%= filters.type === 'standard' ? 'selected' : '' %>>Standard</option>
+            <option value="accumulated" <%= filters.type === 'accumulated' ? 'selected' : '' %>>Accumulated</option>
+          </select>
+        </div>
+
+        <div class="run-proof-filter-field">
+          <label for="eventId">Event</label>
+          <select id="eventId" name="eventId">
+            <option value="" <%= !filters.eventId ? 'selected' : '' %>>All events</option>
+            <% events.forEach((event) => { %>
+              <option value="<%= event.id %>" <%= filters.eventId === event.id ? 'selected' : '' %>><%= event.title %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="run-proof-filter-field">
+          <label for="sort">Sort</label>
+          <select id="sort" name="sort">
+            <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest first</option>
+            <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
+          </select>
+        </div>
+
+        <div class="run-proof-filter-field run-proof-search-field">
+          <label for="q">Search</label>
+          <div class="run-proof-search-wrapper">
+            <div class="run-proof-search-control">
+              <input id="q" name="q" type="search" placeholder="Event, name, email, or code" value="<%= filters.q || '' %>">
+            </div>
+            <button type="submit" class="run-proof-search-btn" aria-label="Search">
+              <i data-lucide="search" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="filter-actions">
+          <button type="submit" class="nav-signup-btn">Apply Filters</button>
+          <a href="<%= links.reset %>" class="nav-login-btn">Reset</a>
+        </div>
+      </form>
+
+      <div class="results-meta run-proof-results-meta">
+        <span>Showing <strong><%= submissions.length %></strong> of <strong><%= pagination.totalItems %></strong> submission<%= pagination.totalItems === 1 ? '' : 's' %></span>
+        <span class="run-proof-results-note"><%= counts.standard %> standard, <%= counts.accumulated %> accumulated</span>
+      </div>
+
+      <% if (submissions && submissions.length) { %>
+        <section class="run-proof-review-list">
+          <% submissions.forEach((item) => { %>
+            <article class="run-proof-review-card submission-hub-card">
+              <div class="run-proof-card-main">
+                <div class="run-proof-card-header">
+                  <div>
+                    <h2><%= item.participantName %></h2>
+                    <p><%= item.participantEmail %></p>
+                  </div>
+                  <span class="status-badge status-badge-<%= item.statusClass %>"><%= item.statusLabel %></span>
+                </div>
+
+                <div class="run-proof-card-labels">
+                  <span class="mode-badge"><%= item.submissionTypeLabel %></span>
+                  <span class="mode-badge"><%= item.eventTitle %></span>
+                  <% if (item.isAutoApproved) { %>
+                    <span class="mode-badge mode-auto-approved">Auto validation</span>
+                  <% } %>
+                  <% if (item.suspiciousFlag || item.reviewSignal?.label) { %>
+                    <span class="mode-badge mode-warning" title="<%= item.reviewSignal?.description || item.suspiciousFlagReason %>"><%= item.reviewSignal?.label || 'Suspicious' %></span>
+                  <% } %>
+                </div>
+
+                <dl class="run-proof-meta-grid">
+                  <div>
+                    <dt>Confirmation</dt>
+                    <dd><%= item.confirmationCode %></dd>
+                  </div>
+                  <div>
+                    <dt>Distance</dt>
+                    <dd><%= item.distanceLabel %></dd>
+                  </div>
+                  <div>
+                    <dt>Elapsed</dt>
+                    <dd><%= item.elapsedLabel %></dd>
+                  </div>
+                  <div>
+                    <dt>Submitted</dt>
+                    <dd><%= item.submittedAtLabel %></dd>
+                  </div>
+                  <div>
+                    <dt>Reviewed</dt>
+                    <dd><%= item.reviewedAtLabel %></dd>
+                  </div>
+                  <div>
+                    <dt>Proof</dt>
+                    <dd><%= item.proofTypeLabel %> / <%= item.sourceLabel %></dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div class="run-proof-card-actions submission-hub-card-actions">
+                <a href="<%= item.actionHref %>" class="nav-signup-btn submission-hub-action-btn" data-submission-modal-link data-modal-title="Review Submission">Open Review</a>
+                <a href="<%= item.eventProofsHref %>" class="nav-login-btn submission-hub-action-btn" data-submission-modal-link data-modal-title="Event Proofs">Event Proofs</a>
+              </div>
+            </article>
+          <% }) %>
+        </section>
+
+        <div class="filter-actions pagination-actions">
+          <% if (links.prev) { %><a href="<%= links.prev %>" class="nav-login-btn">Previous</a><% } %>
+          <span class="results-meta">Page <%= pagination.page %> of <%= pagination.totalPages %></span>
+          <% if (links.next) { %><a href="<%= links.next %>" class="nav-login-btn">Next</a><% } %>
+        </div>
+      <% } else { %>
+        <div class="empty-state">
+          <i data-lucide="clipboard-list"></i>
+          <h3>No run submissions found</h3>
+          <p>Try changing the status, event, or search filters.</p>
+          <a href="<%= links.reset %>" class="nav-login-btn">View All Run Submissions</a>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <%- include('../partials/submission-link-modal') %>
+  <script src="/js/main.js"></script>
+  <script src="/js/submission-link-modal.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

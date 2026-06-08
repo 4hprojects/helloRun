@@ -75,6 +75,7 @@ router.post('/homepage-carousel', requireAdmin, adminController.updateHomepageCa
 router.get('/ads', requireAdmin, adminController.renderAdSettings);
 router.post('/ads', requireAdmin, adminController.updateAdSettings);
 router.get('/reviews', requireAdmin, adminController.reviewQueue);
+router.get('/submissions', requireAdmin, adminController.listSubmissions);
 router.get('/privacy-policy', requireAdmin, adminController.listPrivacyPolicies);
 router.get('/privacy-policy/new', requireAdmin, adminController.renderNewPrivacyPolicyDraft);
 router.post('/privacy-policy', requireAdmin, adminController.createPrivacyPolicyDraft);
