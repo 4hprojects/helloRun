@@ -3,6 +3,7 @@
 <head>
   <%- include('../layouts/head', { title: title }) %>
   <link rel="stylesheet" href="/css/organizer-events.css">
+  <link rel="stylesheet" href="/css/run-proof-review-tooltips.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
@@ -63,7 +64,8 @@
       <form method="GET" action="/organizer/events/<%= event._id %>/run-proofs/review" class="filter-bar run-proof-filter-bar">
         <div class="run-proof-filter-field">
           <label for="status">Queue</label>
-          <select id="status" name="status">
+          <select id="status" name="status" title="Filter by status">
+            <option value="" disabled>Filter by status</option>
             <option value="pending" <%= filters.status === 'pending' ? 'selected' : '' %>>Pending</option>
             <option value="approved" <%= filters.status === 'approved' ? 'selected' : '' %>>Approved</option>
             <option value="auto-approved" <%= filters.status === 'auto-approved' ? 'selected' : '' %>>Auto-approved</option>
@@ -74,7 +76,8 @@
 
         <div class="run-proof-filter-field">
           <label for="sort">Sort</label>
-          <select id="sort" name="sort">
+          <select id="sort" name="sort" title="Sort by date">
+            <option value="" disabled>Sort by...</option>
             <option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest first</option>
             <option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest first</option>
           </select>
@@ -84,7 +87,7 @@
           <label for="q">Search</label>
           <div class="run-proof-search-control">
             <i data-lucide="search" aria-hidden="true"></i>
-            <input id="q" name="q" type="search" placeholder="Search name, email, or code" value="<%= filters.q || '' %>">
+            <input id="q" name="q" type="search" placeholder="Name, email, or code" value="<%= filters.q || '' %>" title="Search by participant name, email, or confirmation code">
           </div>
         </div>
 

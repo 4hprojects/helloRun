@@ -1,0 +1,103 @@
+/* ============================================
+   Run Proof Review - Icon Button Tooltips
+   Dedicated stylesheet for proper tooltip display
+   ============================================ */
+
+/* Ensure header doesn't clip tooltips */
+.run-proof-review-page .events-header {
+  position: relative;
+  overflow: visible;
+  z-index: 1;
+}
+
+/* Header actions container */
+.run-proof-review-page .header-actions {
+  position: relative;
+  z-index: 10;
+}
+
+/* Button tooltip positioning context */
+.run-proof-review-page .run-proof-header-btn {
+  position: relative;
+  z-index: 1;
+}
+
+/* Base tooltip styling */
+.run-proof-review-page .run-proof-header-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: fixed;
+  z-index: 9999;
+  bottom: auto;
+  top: auto;
+  left: 50%;
+  transform: translate(-50%, calc(-100% - 0.6rem));
+  
+  width: max-content;
+  max-width: 12rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Tooltip visibility on hover/focus */
+.run-proof-review-page .run-proof-header-btn[data-tooltip]:hover::after,
+.run-proof-review-page .run-proof-header-btn[data-tooltip]:focus-visible::after {
+  opacity: 1;
+  transform: translate(-50%, calc(-100% - 0.3rem));
+}
+
+/* First button - align to left edge */
+.run-proof-review-page .header-actions .run-proof-header-btn:first-child[data-tooltip]::after {
+  left: auto;
+  right: 50%;
+  transform: translate(50%, calc(-100% - 0.6rem));
+}
+
+.run-proof-review-page .header-actions .run-proof-header-btn:first-child[data-tooltip]:hover::after,
+.run-proof-review-page .header-actions .run-proof-header-btn:first-child[data-tooltip]:focus-visible::after {
+  transform: translate(50%, calc(-100% - 0.3rem));
+}
+
+/* Last button - align to right edge */
+.run-proof-review-page .header-actions .run-proof-header-btn:last-child[data-tooltip]::after {
+  left: auto;
+  right: 50%;
+  transform: translate(50%, calc(-100% - 0.6rem));
+}
+
+.run-proof-review-page .header-actions .run-proof-header-btn:last-child[data-tooltip]:hover::after,
+.run-proof-review-page .header-actions .run-proof-header-btn:last-child[data-tooltip]:focus-visible::after {
+  transform: translate(50%, calc(-100% - 0.3rem));
+}
+
+/* ============================================
+   Mobile & Tablet Responsive Tooltip Styles
+   ============================================ */
+
+@media (max-width: 768px) {
+  /* Reduce tooltip max-width on smaller screens */
+  .run-proof-review-page .run-proof-header-btn[data-tooltip]::after {
+    max-width: 10rem;
+    padding: 0.4rem 0.55rem;
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  /* Further optimize for mobile */
+  .run-proof-review-page .run-proof-header-btn[data-tooltip]::after {
+    max-width: 8rem;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.65rem;
+  }
+}
