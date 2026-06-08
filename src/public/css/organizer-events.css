@@ -1603,6 +1603,37 @@
   width: 100%;
 }
 
+.run-proof-search-btn {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  width: 17px;
+  height: 17px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(-50%);
+  color: #64748b;
+  transition: color 0.2s ease;
+}
+
+.run-proof-search-btn:hover,
+.run-proof-search-btn:focus {
+  outline: none;
+  color: #334155;
+}
+
+.run-proof-search-btn i,
+.run-proof-search-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
 .run-proof-search-control i,
 .run-proof-search-control svg {
   position: absolute;
