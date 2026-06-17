@@ -42,13 +42,15 @@
 <button type="button" class="global-back-to-top" id="globalBackToTopBtn" aria-label="Back to top">
   <i data-lucide="arrow-up"></i>
 </button>
-<%- include('../partials/run-proof-modal') %>
-<script src="/js/vendor/tesseract/tesseract.min.js"></script>
-<script src="/js/ocr/ocr-source-detector.js"></script>
-<script src="/js/ocr/ocr-confidence.js"></script>
-<script src="/js/ocr/ocr-identity.js"></script>
-<script src="/js/ocr/ocr-location-resolver.js"></script>
-<script src="/js/ocr-proof-reader.js"></script>
-<script src="/js/ocr/ocr-parser.js"></script>
-<script src="/js/run-proof-integrity.js"></script>
-<script src="/js/run-proof-modal.js"></script>
+<% if (locals.renderRunProofModal) { %>
+  <%- include('../partials/run-proof-modal') %>
+  <script src="/js/vendor/tesseract/tesseract.min.js"></script>
+  <script src="/js/ocr/ocr-source-detector.js"></script>
+  <script src="/js/ocr/ocr-confidence.js"></script>
+  <script src="/js/ocr/ocr-identity.js"></script>
+  <script src="/js/ocr/ocr-location-resolver.js"></script>
+  <script src="/js/ocr-proof-reader.js"></script>
+  <script src="/js/ocr/ocr-parser.js"></script>
+  <script src="/js/run-proof-integrity.js"></script>
+  <script src="/js/run-proof-modal.js"></script>
+<% } %>

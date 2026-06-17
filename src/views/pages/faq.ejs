@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: title }) %>
+  <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
   <link rel="stylesheet" href="/css/static-pages.css">
 </head>
 <body>
@@ -10,29 +10,110 @@
     <div class="static-wrap">
       <header class="static-hero">
         <h1>FAQ</h1>
-        <p>Answers to common questions from runners and organizers.</p>
+        <p>Answers to common questions from runners, walkers, event organizers, and community groups using HelloRun.</p>
       </header>
 
       <section class="faq-list">
+        <h2>Runner Questions</h2>
         <article class="faq-item">
-          <h3>Do I need an account to register for an event?</h3>
-          <p>Yes. You must be logged in to register, upload proof, submit results, and access your history.</p>
+          <h3>What is HelloRun?</h3>
+          <p>HelloRun is a running event platform for virtual, on-site, and hybrid events. Runners can register, submit proof, track review status, and access event recognition when enabled.</p>
         </article>
         <article class="faq-item">
-          <h3>How do payment receipts work?</h3>
-          <p>If a paid event requires manual verification, upload a payment receipt from My Registrations. Organizers then approve or reject it before run result submission unlocks.</p>
+          <h3>What is a virtual run?</h3>
+          <p>A virtual run is an event where you complete your activity from your own safe location within the event period, then submit activity proof for review.</p>
         </article>
         <article class="faq-item">
-          <h3>When can I submit run results?</h3>
-          <p>After your registration is paid/confirmed and the event is active for submissions based on the organizer's configured windows.</p>
+          <h3>Do I need a GPS watch?</h3>
+          <p>No. Use the tracking method accepted by the event. Many events accept screenshots from running apps, GPS watches, treadmill records, or manual entries when the rules allow them.</p>
         </article>
         <article class="faq-item">
-          <h3>How do I get a certificate?</h3>
-          <p>Certificates become available once your submission is approved by the organizer.</p>
+          <h3>Can I use Strava, Garmin, Nike Run Club, Huawei Health, Samsung Health, or other apps?</h3>
+          <p>Usually yes if the event accepts app screenshots and your proof clearly shows the required details. Always check the event page before submitting.</p>
         </article>
         <article class="faq-item">
-          <h3>Where can organizers review queues?</h3>
-          <p>Organizers can use their dashboard and event registrants page to process payment and result reviews.</p>
+          <h3>Can I walk instead of run?</h3>
+          <p>Some events accept walking, hiking, or mixed activities. The event page lists accepted activity types and completion rules.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Can I join from anywhere?</h3>
+          <p>Virtual events are generally open from anywhere unless the organizer lists location, delivery, eligibility, or country restrictions.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Can one activity count for multiple eligible events?</h3>
+          <p>HelloRun may allow one activity to be submitted to multiple eligible registrations when the activity falls within each event window and matches the rules. Organizers still review each submission separately.</p>
+        </article>
+
+        <h2>Proof Submission Questions</h2>
+        <article class="faq-item">
+          <h3>What proof is accepted?</h3>
+          <p>Accepted proof depends on the event. Common proof includes app screenshots, GPS activity records, treadmill screenshots, or manual entries with clear supporting details.</p>
+        </article>
+        <article class="faq-item">
+          <h3>What should my screenshot show?</h3>
+          <p>Your screenshot should show the activity date, distance, duration, and source app or device. If possible, include the activity type and name shown by the app.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Why does my result need review?</h3>
+          <p>Review helps protect event credibility. Organizers may check dates, distance, names, duplicate submissions, proof clarity, and eligibility before approving results.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Why was my result rejected?</h3>
+          <p>Common reasons include missing details, wrong event date, distance below the requirement, blurry proof, duplicate submission, or proof that does not match the account or event rules.</p>
+        </article>
+        <article class="faq-item">
+          <h3>What if my app shows miles instead of kilometers?</h3>
+          <p>Submit the clearest proof available and explain the unit if the event allows it. Organizers may convert the distance or ask for clearer evidence.</p>
+        </article>
+
+        <h2>Leaderboard and Certificate Questions</h2>
+        <article class="faq-item">
+          <h3>When will my result appear?</h3>
+          <p>Approved results may appear after organizer review, depending on leaderboard settings. Pending or rejected results may not be shown publicly.</p>
+        </article>
+        <article class="faq-item">
+          <h3>How are rankings calculated?</h3>
+          <p>Rankings depend on the event setup. Some leaderboards rank fastest finishers, while accumulated challenges may rank verified total distance.</p>
+        </article>
+        <article class="faq-item">
+          <h3>How do certificates work?</h3>
+          <p>Certificates become available only when the event enables certificates and your registration or result meets the event requirements.</p>
+        </article>
+        <article class="faq-item">
+          <h3>What if my certificate has the wrong name?</h3>
+          <p>Check your profile name and contact support or the organizer with the event name, confirmation code, and the correction needed.</p>
+        </article>
+
+        <h2>Organizer Questions</h2>
+        <article class="faq-item">
+          <h3>Can I create an event?</h3>
+          <p>Organizer access depends on account status and platform review. Approved organizers can create and manage events through their dashboard.</p>
+        </article>
+        <article class="faq-item">
+          <h3>What event types are supported?</h3>
+          <p>HelloRun supports virtual runs, on-site races, hybrid events, single-distance events, and accumulated distance challenges.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Can schools or communities use HelloRun?</h3>
+          <p>Yes. Schools, clubs, local groups, and community organizations can use HelloRun for wellness events, fundraising runs, and participation challenges when their setup fits the platform workflow.</p>
+        </article>
+        <article class="faq-item">
+          <h3>Can events be free or paid?</h3>
+          <p>Events may be free or paid depending on the organizer configuration. Paid events can require payment receipt review before result submission unlocks.</p>
+        </article>
+
+        <h2>Account and Privacy Questions</h2>
+        <article class="faq-item">
+          <h3>Is HelloRun free?</h3>
+          <p>Creating an account may be free, but individual event fees depend on the organizer and event setup.</p>
+        </article>
+        <article class="faq-item">
+          <h3>How is my data handled?</h3>
+          <p>HelloRun uses account, registration, payment, and activity proof data to operate event workflows. Read the <a href="/privacy">Privacy Policy</a> and <a href="/data-usage-policy">Data Usage Policy</a> for details.</p>
+        </article>
+        <article class="faq-item">
+          <h3>How do I contact support?</h3>
+          <p>Use the <a href="/contact">Contact</a> page and include your event name, confirmation code, account email, and a clear description of the concern.</p>
         </article>
       </section>
     </div>

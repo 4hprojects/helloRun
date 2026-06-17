@@ -48,6 +48,7 @@ const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName }
 const { BLOG_CATEGORIES } = require('../utils/blog');
 const { renderWaiverTemplate } = require('../utils/waiver');
 const { assertRunDateNotFuture, parseRunDateOnly } = require('../utils/platform-date');
+const { isRunDateAlignedWithEvent } = require('../utils/submission-window');
 const {
   canRunnerSubmitPaymentProof,
   getInitialRegistrationPaymentStatus
@@ -1278,10 +1279,15 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         _id: { $in: selectedEventRegistrationIds },
         userId: user._id
       })
-        .populate('eventId', 'virtualCompletionMode title targetDistanceKm')
+        .populate('eventId', 'virtualCompletionMode title targetDistanceKm eventStartAt eventEndAt')
         .select('_id eventId')
         .lean()
       : [];
+    const eventByRegistrationId = new Map(
+      selectedRegistrations
+        .filter((item) => item.eventId)
+        .map((item) => [String(item._id), item.eventId])
+    );
     const accumulatedTargetIds = new Set(
       selectedRegistrations
         .filter((item) => item.eventId?.virtualCompletionMode === 'accumulated_distance')
@@ -1317,8 +1323,14 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       return redirectWithPageMessage(res, 'error', 'Only rejected submissions can be resubmitted.');
     }
 
+    const runDate = parseRunDate(req.body.runDate);
+
     for (const targetId of targetRegistrationIds) {
       if (targetId === PERSONAL_RECORD_REGISTRATION_ID) continue;
+      const targetEvent = eventByRegistrationId.get(String(targetId));
+      if (targetEvent && !isRunDateAlignedWithEvent({ event: targetEvent, runDate })) {
+        return redirectWithPageMessage(res, 'error', `${targetEvent.title || 'This event'}: run date is outside the event window.`);
+      }
       if (accumulatedTargetIds.has(String(targetId))) continue;
       const existingForTarget = existingSubmissionByRegistrationId.get(targetId);
       if (existingForTarget && existingForTarget.status !== 'rejected') {
@@ -1328,7 +1340,6 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
 
     const distanceKm = parseDistanceKm(req.body.distanceKm);
     const elapsedMs = parseElapsedToMs(req.body.elapsedTime);
-    const runDate = parseRunDate(req.body.runDate);
     const runLocation = parseRunLocation(req.body.runLocation);
     const proofType = normalizeProofType(req.body.proofType);
     const proofNotes = String(req.body.proofNotes || '').trim().slice(0, 1200);
@@ -1464,13 +1475,20 @@ exports.getBlogList = async (req, res) => {
       popular: { views: -1, publishedAt: -1 }
     };
     const shouldShowFeatured = page === 1;
-    const featuredPosts = shouldShowFeatured
-      ? await Blog.find({ ...query, featured: true })
+    const [featuredPostsRaw, availableCategoriesRaw] = await Promise.all([
+      shouldShowFeatured
+        ? Blog.find({ ...query, featured: true })
         .populate('authorId', 'firstName lastName')
         .sort({ views: -1, likesCount: -1, commentsCount: -1, publishedAt: -1 })
         .limit(3)
         .select('title slug excerpt category customCategory tags coverImageUrl readingTime views likesCount commentsCount featured publishedAt createdAt')
-      : [];
+        : Promise.resolve([]),
+      Blog.distinct('category', {
+        status: 'published',
+        isDeleted: { $ne: true }
+      })
+    ]);
+    const featuredPosts = featuredPostsRaw;
     const featuredIds = featuredPosts.map((post) => post._id);
     const postsQuery = featuredIds.length ? { ...query, _id: { $nin: featuredIds } } : query;
     const totalPosts = await Blog.countDocuments(postsQuery);
@@ -1504,7 +1522,7 @@ exports.getBlogList = async (req, res) => {
       title: 'Blog - HelloRun',
       posts,
       featuredPosts,
-      categories: BLOG_CATEGORIES,
+      categories: BLOG_CATEGORIES.filter((category) => availableCategoriesRaw.includes(category)),
       filters: {
         q: searchQuery,
         category: selectedCategory,
@@ -1607,10 +1625,18 @@ exports.getBlogPost = async (req, res) => {
     const likedByCurrentUser = currentUserId
       ? Boolean(await BlogLike.exists({ blogId: post._id, userId: currentUserId }))
       : false;
+    const authorName = [post.authorId?.firstName, post.authorId?.lastName].filter(Boolean).join(' ').trim() || 'HelloRun';
+    const authorBio = authorName.toLowerCase().includes('henz')
+      ? 'Henz writes HelloRun guides for runners and event organizers, focusing on virtual race setup, proof submission, beginner-friendly running, and community fitness events in the Philippines.'
+      : 'HelloRun publishes practical guides for runners and event organizers, with a focus on virtual runs, proof submission, leaderboards, and community fitness events.';
 
     return res.render('pages/blog-post', {
       title: `${post.title} - HelloRun Blog`,
       post,
+      authorDisplay: {
+        name: authorName,
+        bio: authorBio
+      },
       blogContentParts: splitBlogContentForAd(post.contentHtml || ''),
       relatedPosts,
       interactionState: {
@@ -1791,8 +1817,7 @@ exports.getSitemapXml = async (req, res) => {
       '/how-it-works',
       '/contact',
       '/faq',
-      ...listPolicyDocuments().map((policy) => policy.publicPath),
-      '/leaderboard'
+      ...listPolicyDocuments().map((policy) => policy.publicPath)
     ];
 
     const [events, blogPosts] = await Promise.all([

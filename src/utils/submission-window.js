@@ -53,6 +53,40 @@ function parseDateSafe(value) {
   return date;
 }
 
+const { getPlatformDateKey } = require('./platform-date');
+
+// Activity period a run must fall within to count toward the event.
+// Uses the event run window (eventStartAt..eventEndAt) for both single-activity
+// and accumulated_distance events. Either boundary may be missing (open-ended).
+function getEventActivityWindow(event) {
+  return {
+    startAt: parseDateSafe(event?.eventStartAt),
+    endAt: parseDateSafe(event?.eventEndAt)
+  };
+}
+
+// Day-level (Asia/Manila) check that runDate sits inside the event activity
+// window. A run on the boundary day is aligned. Missing boundaries are treated
+// as open on that side. Returns true when no runDate is supplied (nothing to gate yet).
+function isRunDateAlignedWithEvent({ event, runDate }) {
+  if (!runDate) return true;
+  const { startAt, endAt } = getEventActivityWindow(event);
+  if (!startAt && !endAt) return true;
+
+  let runKey;
+  try {
+    runKey = getPlatformDateKey(runDate);
+  } catch (error) {
+    return false;
+  }
+
+  if (startAt && runKey < getPlatformDateKey(startAt)) return false;
+  if (endAt && runKey > getPlatformDateKey(endAt)) return false;
+  return true;
+}
+
 module.exports = {
-  isSubmissionWindowOpen
+  isSubmissionWindowOpen,
+  getEventActivityWindow,
+  isRunDateAlignedWithEvent
 };

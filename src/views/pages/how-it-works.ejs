@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: title }) %>
+  <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
   <link rel="stylesheet" href="/css/static-pages.css">
 </head>
 <body>
@@ -11,33 +11,75 @@
     <div class="static-wrap">
       <header class="static-hero">
         <h1>How It Works</h1>
-        <p>From registration to certificate, HelloRun keeps every step clear for runners and organizers.</p>
+        <p>From event discovery to reviewed results, HelloRun keeps virtual, on-site, and hybrid running events clear for runners and organizers.</p>
       </header>
 
       <section class="static-grid">
         <article class="static-card">
-          <h2>For Runners</h2>
-          <ul>
-            <li>Find and register for events.</li>
-            <li>Submit a payment receipt when required.</li>
-            <li>Upload run result evidence and track review status.</li>
-            <li>Download certificates for approved results.</li>
-          </ul>
+          <h2>What HelloRun Is</h2>
+          <p>HelloRun is a running event platform for runners, walkers, communities, and organizers. It helps people find events, register online, submit activity proof, track review status, and receive recognition when an event enables certificates, badges, or leaderboards.</p>
+          <p>The platform supports virtual runs, accumulated distance challenges, on-site events, and hybrid events. Each event may have its own rules, deadlines, pricing, proof requirements, and recognition settings.</p>
         </article>
         <article class="static-card">
-          <h2>For Organizers</h2>
-          <ul>
-            <li>Create and publish events.</li>
-            <li>Review payment receipts and run result submissions.</li>
-            <li>Monitor queues and analytics in dashboard views.</li>
-            <li>Manage registrants and approvals per event.</li>
-          </ul>
+          <h2>How Virtual Runs Work</h2>
+          <p>A virtual run lets participants complete an event distance from a safe location they choose, within the official event window. Depending on the rules, a participant may run outdoors, walk, use a treadmill, or submit another accepted activity type.</p>
+          <p>Instead of checking in at one physical venue, participants submit clear activity proof. Organizers then review the submission before it counts toward completion, leaderboard records, or certificates.</p>
         </article>
       </section>
 
       <section class="static-card">
-        <h2>Core Workflow</h2>
-        <p>Create account, join an event, submit required proof, wait for organizer review, and appear in leaderboard/certificate records once approved.</p>
+        <h2>Runner Workflow</h2>
+        <ol>
+          <li>Create a HelloRun account with your correct name and email address.</li>
+          <li>Choose an event from the <a href="/events">Events</a> page and read the event rules before registering.</li>
+          <li>Register for your distance, category, or participation mode. For paid events, follow the payment instructions and upload a receipt if required.</li>
+          <li>Complete your activity within the event window. For accumulated challenges, you may need several approved activities to reach the target distance.</li>
+          <li>Prepare proof that clearly shows the date, distance, duration, and activity source. Screenshots from Strava, Garmin, Nike Run Club, Huawei Health, Samsung Health, Apple Fitness, or similar apps may be accepted when the event rules allow them.</li>
+          <li>Submit your result from your registration or runner dashboard. Blurry screenshots, wrong dates, missing distance, or mismatched names can delay review.</li>
+          <li>Wait for organizer review. Approved submissions may appear on the leaderboard or unlock a certificate when those features are enabled for the event.</li>
+        </ol>
+      </section>
+
+      <section class="static-grid">
+        <article class="static-card">
+          <h2>Accumulated Distance Challenges</h2>
+          <p>In an accumulated challenge, your final result is built from multiple valid activities. For example, a 25K challenge may be completed as five 5K walks, several short runs, or a mix of accepted activities within the event period.</p>
+          <p>Only approved submissions count toward the official total. Check the event page for minimum distance per activity, deadline, accepted proof, and whether pending submissions appear publicly.</p>
+        </article>
+        <article class="static-card">
+          <h2>Single-Distance Events</h2>
+          <p>In a single-distance event, the goal is usually to finish one selected distance such as 3K, 5K, 10K, or another organizer-defined category. The submitted proof should match the selected event category and follow the event deadline.</p>
+          <p>If your distance, pace, duration, or screenshot details do not match the event rules, the organizer may reject the result or ask you to resubmit clearer proof.</p>
+        </article>
+      </section>
+
+      <section class="static-card">
+        <h2>For Organizers</h2>
+        <p>Organizers can use HelloRun to create event pages, configure event windows, set distances and categories, manage registrations, review payment receipts, approve or reject submitted proof, and publish recognition records.</p>
+        <p>A strong event page should clearly explain who can join, how the activity works, accepted proof types, registration deadlines, final submission deadlines, fees, rewards, and the review process. Clear rules help runners submit correctly and help organizers avoid disputes.</p>
+      </section>
+
+      <section class="static-grid">
+        <article class="static-card">
+          <h2>Common Proof Mistakes</h2>
+          <ul>
+            <li>Uploading a screenshot that does not show date, distance, or duration.</li>
+            <li>Submitting an activity outside the event window.</li>
+            <li>Using miles when the event requires kilometers without explaining the conversion.</li>
+            <li>Submitting proof under a different name without context.</li>
+            <li>Uploading payment proof in place of activity proof.</li>
+          </ul>
+        </article>
+        <article class="static-card">
+          <h2>Safety and Honesty</h2>
+          <p>Run or walk in safe areas, follow local traffic rules, and avoid unsafe routes or weather conditions. HelloRun does not replace personal judgment, coaching, medical advice, or official race timing.</p>
+          <p>Submit honest activity records. Verified results help protect the credibility of every event and make leaderboards and certificates more meaningful.</p>
+        </article>
+      </section>
+
+      <section class="static-card">
+        <h2>Next Steps</h2>
+        <p>Browse <a href="/events">current events</a>, read the <a href="/faq">FAQ</a>, or <a href="/contact">contact HelloRun</a> if you need help with a registration, organizer inquiry, or proof submission question.</p>
       </section>
     </div>
   </main>

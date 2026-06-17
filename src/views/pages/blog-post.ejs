@@ -29,7 +29,7 @@
         <% } %>
         <div class="blog-post-submeta-row">
           <p class="blog-post-submeta">
-            By <strong><%= post.authorId?.firstName || 'HelloRun' %> <%= post.authorId?.lastName || '' %>
+            By <strong><%= authorDisplay?.name || `${post.authorId?.firstName || 'HelloRun'} ${post.authorId?.lastName || ''}` %>
               <% if (post.authorId?.verifiedAuthor) { %>
                 <span class="verified-author-badge" title="Verified Author" style="color:#2196f3;vertical-align:middle;">
                   <i data-lucide="badge-check" aria-hidden="true"></i> Verified
@@ -166,14 +166,14 @@
             </div>
             <div class="author-details">
               <h4>
-                <%= post.authorId?.firstName || 'HelloRun' %> <%= post.authorId?.lastName || '' %>
+                <%= authorDisplay?.name || `${post.authorId?.firstName || 'HelloRun'} ${post.authorId?.lastName || ''}` %>
                 <% if (post.authorId?.verifiedAuthor) { %>
                   <span class="verified-author-badge" title="Verified Author" style="color:#2196f3;vertical-align:middle;">
                     <i data-lucide="badge-check" aria-hidden="true"></i> Verified
                   </span>
                 <% } %>
               </h4>
-              <p class="author-bio"><%= post.authorId?.bio || 'Community writer on HelloRun sharing running experiences and practical tips.' %></p>
+              <p class="author-bio"><%= authorDisplay?.bio || 'HelloRun publishes practical guides for runners and event organizers.' %></p>
               <% if (typeof post.authorId?.trustScore === 'number') { %>
                 <div class="author-trust-score" style="font-size:0.95em;color:#4caf50;">
                   Trust Score: <strong><%= post.authorId.trustScore %></strong>/100

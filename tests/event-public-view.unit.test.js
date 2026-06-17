@@ -116,6 +116,40 @@ test('buildPublicEventView shows accumulated registration options without duplic
   assert.equal(publicEvent.stats.some((stat) => stat.label === 'Target'), false);
 });
 
+test('buildPublicEventView uses Anywhere for virtual events without a venue', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Virtual Anywhere Run',
+    slug: 'virtual-anywhere-run',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    feeMode: 'free'
+  });
+
+  assert.equal(publicEvent.showLocation, false);
+  assert.equal(publicEvent.location.publicLabel, 'Anywhere');
+});
+
+test('buildPublicEventView adds recap for ended public events', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Past Community Run',
+    slug: 'past-community-run',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    eventStartAt: '2026-01-01T00:00:00.000Z',
+    eventEndAt: '2026-01-05T00:00:00.000Z',
+    proofTypesAllowed: ['gps', 'photo'],
+    feeMode: 'free'
+  }, {
+    now: new Date('2026-02-01T00:00:00.000Z')
+  });
+
+  assert.equal(publicEvent.isEnded, true);
+  assert.match(publicEvent.recap.body, /Past Community Run/);
+  assert.ok(publicEvent.recap.details.some((item) => item.includes('GPS activity')));
+});
+
 test('buildPublicEventView surfaces customized signup pricing options', () => {
   const publicEvent = buildPublicEventView({
     title: 'Custom Pricing Race',

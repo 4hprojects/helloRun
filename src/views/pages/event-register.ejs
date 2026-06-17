@@ -320,9 +320,9 @@
             <h3>Event Snapshot</h3>
             <ul class="event-side-list">
               <li><strong>Event</strong><span><%= event.title %></span></li>
-              <li><strong>Registration Window</strong><span><%= event.registrationOpenAt ? new Date(event.registrationOpenAt).toLocaleDateString('en-US') : 'TBA' %> - <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleDateString('en-US') : 'TBA' %></span></li>
-              <li><strong>Event Date</strong><span><%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US') : 'TBA' %> - <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleDateString('en-US') : 'TBA' %></span></li>
-              <li><strong>Location</strong><span><%= [event.venueName, event.city, event.country].filter(Boolean).join(', ') || 'TBA' %></span></li>
+              <li><strong>Registration Window</strong><span><%= event.registrationOpenAt ? new Date(event.registrationOpenAt).toLocaleDateString('en-US') : 'Date not listed' %> - <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleDateString('en-US') : 'Date not listed' %></span></li>
+              <li><strong>Event Date</strong><span><%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US') : 'Date not listed' %> - <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleDateString('en-US') : 'Date not listed' %></span></li>
+              <li><strong>Location</strong><span><%= [event.venueName, event.city, event.country].filter(Boolean).join(', ') || 'Location not listed' %></span></li>
             </ul>
           </section>
 

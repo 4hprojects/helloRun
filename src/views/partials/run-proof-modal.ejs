@@ -37,7 +37,7 @@
         <div>
           <h2 id="runProofModalTitle"><%= modalTitle %></h2>
           <p class="run-proof-modal-desc" id="runProofModalDesc"><%= modalDescription %></p>
-          <p class="run-proof-step-indicator" id="runProofStepIndicator">Step 1 of 2 &mdash; Choose proof source</p>
+          <p class="run-proof-step-indicator" id="runProofStepIndicator">Step 1 of 3 &mdash; Choose run date</p>
         </div>
         <div class="run-proof-header-actions">
           <button type="button" class="btn btn-outline run-proof-back-btn" id="runProofBackBtn" aria-label="Close" data-tooltip="Close">
@@ -88,7 +88,30 @@
         <input type="hidden" id="runProofOcrNameMatchStatus" name="ocrNameMatchStatus" value="not_checked">
         <input type="hidden" id="runProofImageHash" name="proofImageHash" value="">
 
-        <div id="runProofStep1">
+        <div id="runProofStepDate">
+          <section class="run-proof-section" aria-labelledby="runProofSectionDate">
+            <div class="run-proof-section-heading">
+              <h3 id="runProofSectionDate">Run Date</h3>
+              <span class="run-proof-required-tag">Required</span>
+            </div>
+            <p class="run-proof-helper">Choose the date you completed this run. We match it to the events you joined so this proof only counts toward events whose schedule includes that date.</p>
+
+            <div class="run-proof-field run-proof-field-row" data-field-wrapper="runDate">
+              <label for="runProofDate">Date</label>
+              <div class="run-proof-field-row-input">
+                <input id="runProofDate" name="runDate" type="date" required>
+                <p class="run-proof-field-error" id="runProofDateError" aria-live="polite"></p>
+              </div>
+            </div>
+
+            <div class="run-proof-date-preview" id="runProofDatePreview" aria-live="polite"></div>
+          </section>
+          <div class="run-proof-submit-row">
+            <button type="button" class="btn btn-primary run-proof-submit-inline-btn" id="runProofDateContinueBtn">Continue</button>
+          </div>
+        </div>
+
+        <div id="runProofStep1" hidden>
           <section class="run-proof-section" aria-labelledby="runProofSectionMedia">
             <div class="run-proof-section-heading">
               <h3 id="runProofSectionMedia">Activity Screenshot</h3>
@@ -203,14 +226,6 @@
           <section class="run-proof-section" aria-labelledby="runProofSectionDetails">
             <div class="run-proof-section-heading">
               <h3 id="runProofSectionDetails">Run Details</h3>
-            </div>
-
-            <div class="run-proof-field run-proof-field-row" data-field-wrapper="runDate">
-              <label for="runProofDate">Date</label>
-              <div class="run-proof-field-row-input">
-                <input id="runProofDate" name="runDate" type="date" required>
-                <p class="run-proof-field-error" id="runProofDateError" aria-live="polite"></p>
-              </div>
             </div>
 
             <div class="run-proof-field run-proof-field-row" data-field-wrapper="distanceKm">

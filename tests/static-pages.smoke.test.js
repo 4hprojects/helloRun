@@ -63,6 +63,8 @@ test('about page includes required trust, privacy, and event-management guidance
   assert.match(html, /href="\/privacy"/i);
   assert.match(html, /Official HelloRun Event/i);
   assert.match(html, /Organiser-Managed Event/i);
+  assert.match(html, /Henson M\. Sagorsor/i);
+  assert.match(html, /Benguet, Philippines/i);
   assert.match(html, /Current events/i);
 });
 
@@ -74,6 +76,36 @@ test('contact page renders organizer dashboard guidance when sourced from organi
   assert.match(html, /Organizer Support/i);
   assert.match(html, /include your application ID, event name, or event reference code/i);
   assert.match(html, /mailto:hellorunonline@gmail\.com/i);
+  assert.match(html, /Benguet, Philippines/i);
+  assert.match(html, /Data and Privacy Requests/i);
+});
+
+test('how it works and faq are substantial public resources', async () => {
+  const how = await fetch(`${BASE_URL}/how-it-works`);
+  assert.equal(how.status, 200);
+  const howHtml = await how.text();
+  assert.match(howHtml, /Runner Workflow/i);
+  assert.match(howHtml, /Accumulated Distance Challenges/i);
+  assert.match(howHtml, /Common Proof Mistakes/i);
+  assert.doesNotMatch(howHtml, /run-proof-modal-dialog/i);
+
+  const faq = await fetch(`${BASE_URL}/faq`);
+  assert.equal(faq.status, 200);
+  const faqHtml = await faq.text();
+  assert.match(faqHtml, /Runner Questions/i);
+  assert.match(faqHtml, /Proof Submission Questions/i);
+  assert.match(faqHtml, /Leaderboard and Certificate Questions/i);
+  assert.match(faqHtml, /Organizer Questions/i);
+});
+
+test('public static pages do not render run proof modal content', async () => {
+  for (const pathname of ['/about', '/contact', '/how-it-works', '/faq']) {
+    const response = await fetch(`${BASE_URL}${pathname}`);
+    assert.equal(response.status, 200);
+    const html = await response.text();
+    assert.doesNotMatch(html, /run-proof-modal-dialog/i, `${pathname} should not include run proof modal`);
+    assert.doesNotMatch(html, /Submit your recorded run here/i, `${pathname} should not include run proof nav callout`);
+  }
 });
 
 async function waitForServerReady() {

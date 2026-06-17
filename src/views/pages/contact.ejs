@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: title }) %>
+  <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
   <link rel="stylesheet" href="/css/static-pages.css">
 </head>
 <body>
@@ -10,8 +10,8 @@
   <main class="static-page">
     <div class="static-wrap">
       <header class="static-hero">
-        <h1>Contact</h1>
-        <p>Reach the HelloRun team for account, event, or organizer support.</p>
+        <h1>Contact HelloRun</h1>
+        <p>Reach the HelloRun team for runner support, organizer inquiries, payment concerns, data requests, and community event questions.</p>
       </header>
 
       <% if (source === 'organizer-dashboard') { %>
@@ -25,17 +25,46 @@
         <article class="static-card">
           <h2>General Support</h2>
           <p>Email: <a href="mailto:hellorunonline@gmail.com">hellorunonline@gmail.com</a></p>
-          <p>Typical response time: 24-48 hours.</p>
+          <p>HelloRun is operated from Benguet, Philippines, with support handled online for runners and organizers joining from different locations.</p>
+          <p>Typical response time: 24-48 hours. Complex registration, payment, or proof review concerns may take longer if they require organizer confirmation.</p>
         </article>
         <article class="static-card">
-          <h2>Organizer Concerns</h2>
-          <p>Include your application ID or event reference code so we can resolve issues faster.</p>
+          <h2>Runner Support</h2>
+          <p>Contact us if you cannot access your account, need help finding an event, have questions about registration status, or need guidance on submitting run proof.</p>
+          <p>When writing about a registration, include your event name, confirmation code, and the email address used on your HelloRun account.</p>
+        </article>
+      </section>
+
+      <section class="static-grid">
+        <article class="static-card">
+          <h2>Organizer Inquiries</h2>
+          <p>Organizers can contact HelloRun about event setup, application status, participant management, proof review, payment receipt review, leaderboards, and certificates.</p>
+          <p>Include your application ID, event name, or event reference code when available so the support team can find the correct record.</p>
+        </article>
+        <article class="static-card">
+          <h2>Payment or Registration Concerns</h2>
+          <p>For paid events, payment receipts are reviewed based on the event configuration and organizer workflow. Send only the information needed to identify the registration and explain the concern.</p>
+          <p>HelloRun support can help route platform issues, while event-specific refund, package, or approval decisions may still depend on the event organizer's published rules.</p>
+        </article>
+      </section>
+
+      <section class="static-grid">
+        <article class="static-card">
+          <h2>Data and Privacy Requests</h2>
+          <p>Use the support email for privacy questions, correction requests, account data concerns, or questions about uploaded proof handling.</p>
+          <p>Before sending screenshots or personal records by email, describe the issue first so the team can confirm what information is actually needed.</p>
+        </article>
+        <article class="static-card">
+          <h2>Event Partnerships</h2>
+          <p>Schools, running groups, local communities, and event organizers can contact HelloRun about using the platform for virtual, on-site, or hybrid running events.</p>
+          <p>Helpful details include your organization name, event type, expected dates, distances, payment setup, and whether you need proof review, leaderboard, or certificate support.</p>
         </article>
       </section>
 
       <section class="static-card">
         <h2>Before You Contact Us</h2>
-        <p>Check the <a href="/faq">FAQ</a> first for common account, registration, payment receipt, and run result review questions.</p>
+        <p>Check the <a href="/faq">FAQ</a> and <a href="/how-it-works">How It Works</a> pages first for common account, registration, payment receipt, and run result review questions.</p>
+        <p>Important policy links: <a href="/privacy">Privacy Policy</a>, <a href="/terms">Terms and Conditions</a>, <a href="/data-usage-policy">Data Usage Policy</a>, and <a href="/refund-and-cancellation-policy">Refund and Cancellation Policy</a>.</p>
       </section>
     </div>
   </main>

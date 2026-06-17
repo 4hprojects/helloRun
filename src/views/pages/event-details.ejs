@@ -84,7 +84,7 @@
 
         <aside class="event-hero-panel">
           <p class="event-panel-label"><%= details.pricing?.label || 'Pricing' %></p>
-          <strong><%= details.pricing?.amountLabel || 'TBA' %></strong>
+          <strong><%= details.pricing?.amountLabel || 'Pricing not listed' %></strong>
           <span><%= details.pricing?.helper || details.registrationState?.helper || '' %></span>
           <% if (details.registrationState?.helper) { %>
             <div class="event-panel-divider"></div>
@@ -275,14 +275,6 @@
                   </article>
                 <% }) %>
               </div>
-            <% } else if (event.digitalBadgeEnabled) { %>
-              <div class="event-badge-empty">
-                <i data-lucide="award"></i>
-                <div>
-                  <strong>Badges pending</strong>
-                  <p>Achievement badges are enabled for this event but have not been generated yet.</p>
-                </div>
-              </div>
             <% } else { %>
               <div class="event-badge-empty">
                 <i data-lucide="award"></i>
@@ -293,6 +285,24 @@
               </div>
             <% } %>
           </section>
+
+          <% if (details.recap) { %>
+            <section class="event-section event-recap-section">
+              <div class="event-section-heading">
+                <span class="event-section-icon"><i data-lucide="notebook-text"></i></span>
+                <div>
+                  <h2>Event Recap</h2>
+                  <p>This past event remains available as a useful public record for runners and visitors.</p>
+                </div>
+              </div>
+              <p class="event-supporting-copy"><%= details.recap.body %></p>
+              <ul class="event-recap-list">
+                <% details.recap.details.forEach((item) => { %>
+                  <li><%= item %></li>
+                <% }) %>
+              </ul>
+            </section>
+          <% } %>
 
           <% if ((details.pricingOptions || []).length || (details.packageOptions || []).length || details.pricing?.hasOptionalCosts) { %>
             <section class="event-section">
@@ -305,7 +315,7 @@
               </div>
 
               <div class="event-pricing-summary">
-                <strong><%= details.pricing?.amountLabel || 'TBA' %></strong>
+                <strong><%= details.pricing?.amountLabel || 'Pricing not listed' %></strong>
                 <span><%= details.pricing?.label || 'Pricing' %></span>
               </div>
 
@@ -355,10 +365,10 @@
             </div>
 
             <div class="event-rule-list">
-              <p><strong>Event window</strong><span><%= details.virtualRules?.virtualWindowLabel || 'TBA' %></span></p>
+              <p><strong>Event window</strong><span><%= details.virtualRules?.virtualWindowLabel || 'Event window not listed' %></span></p>
               <p><strong>Accepted activities</strong><span><%= details.virtualRules?.acceptedActivities?.join(', ') || 'See event details' %></span></p>
               <p><strong>Proof types</strong><span><%= details.virtualRules?.proofTypes?.join(', ') || 'See event details' %></span></p>
-              <p><strong>Final deadline</strong><span><%= details.virtualRules?.finalSubmissionDeadline || 'TBA' %></span></p>
+              <p><strong>Final deadline</strong><span><%= details.virtualRules?.finalSubmissionDeadline || 'Deadline not listed' %></span></p>
               <p><strong>Leaderboard</strong><span><%= details.virtualRules?.leaderboardMode || 'N/A' %></span></p>
             </div>
           </section>
@@ -405,7 +415,7 @@
         <aside class="event-side-panel">
           <section class="event-side-card event-register-card">
             <p class="event-side-eyebrow"><%= details.registrationState?.label || 'Registration' %></p>
-            <h2><%= details.pricing?.amountLabel || 'TBA' %></h2>
+            <h2><%= details.pricing?.amountLabel || 'Pricing not listed' %></h2>
             <p><%= details.registrationState?.helper || details.pricing?.helper || '' %></p>
             <% if (details.primaryCta && !details.primaryCta.disabled) { %>
               <a href="<%= details.primaryCta.href %>" class="btn btn-primary btn-block">Register Now</a>
@@ -442,7 +452,7 @@
                   </div>
                 </div>
               <% } else { %>
-                <p><strong><%= registrationOptionsLabel %></strong><span><%= details.distanceSummaryLabel || (details.raceDistances || []).join(', ') || details.targetDistanceLabel || 'TBA' %></span></p>
+                <p><strong><%= registrationOptionsLabel %></strong><span><%= details.distanceSummaryLabel || (details.raceDistances || []).join(', ') || details.targetDistanceLabel || 'Distances not listed' %></span></p>
               <% } %>
               <% if ((details.raceCategories || []).length) { %>
                 <% if (details.raceCategories.length > 2) { %>
@@ -461,13 +471,13 @@
                 <% } %>
               <% } %>
               <% if (details.isAccumulatedChallenge) { %>
-                <p><strong>Completion Goal</strong><span><%= details.targetDistanceLabel || 'TBA' %></span></p>
+                <p><strong>Completion Goal</strong><span><%= details.targetDistanceLabel || 'Goal not listed' %></span></p>
               <% } %>
-              <p><strong>Mode</strong><span><%= (details.allowedModes || []).join(' / ') || details.eventTypeLabel || 'TBA' %></span></p>
+              <p><strong>Mode</strong><span><%= (details.allowedModes || []).join(' / ') || details.eventTypeLabel || 'Event mode not listed' %></span></p>
               <% if (details.showLocation) { %>
-                <p><strong>Location</strong><span><%= details.location.summary %></span></p>
+                <p><strong>Location</strong><span><%= details.location.publicLabel || details.location.summary %></span></p>
               <% } else { %>
-                <p><strong>Location</strong><span>Anywhere</span></p>
+                <p><strong>Location</strong><span><%= details.location?.publicLabel || 'Location details not listed' %></span></p>
               <% } %>
             </div>
           </section>
