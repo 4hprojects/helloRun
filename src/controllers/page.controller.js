@@ -48,6 +48,7 @@ const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName }
 const { BLOG_CATEGORIES } = require('../utils/blog');
 const { renderWaiverTemplate } = require('../utils/waiver');
 const { assertRunDateNotFuture, parseRunDateOnly } = require('../utils/platform-date');
+const { isRunDateAlignedWithEvent } = require('../utils/submission-window');
 const {
   canRunnerSubmitPaymentProof,
   getInitialRegistrationPaymentStatus
@@ -1278,10 +1279,15 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         _id: { $in: selectedEventRegistrationIds },
         userId: user._id
       })
-        .populate('eventId', 'virtualCompletionMode title targetDistanceKm')
+        .populate('eventId', 'virtualCompletionMode title targetDistanceKm eventStartAt eventEndAt')
         .select('_id eventId')
         .lean()
       : [];
+    const eventByRegistrationId = new Map(
+      selectedRegistrations
+        .filter((item) => item.eventId)
+        .map((item) => [String(item._id), item.eventId])
+    );
     const accumulatedTargetIds = new Set(
       selectedRegistrations
         .filter((item) => item.eventId?.virtualCompletionMode === 'accumulated_distance')
@@ -1317,8 +1323,14 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       return redirectWithPageMessage(res, 'error', 'Only rejected submissions can be resubmitted.');
     }
 
+    const runDate = parseRunDate(req.body.runDate);
+
     for (const targetId of targetRegistrationIds) {
       if (targetId === PERSONAL_RECORD_REGISTRATION_ID) continue;
+      const targetEvent = eventByRegistrationId.get(String(targetId));
+      if (targetEvent && !isRunDateAlignedWithEvent({ event: targetEvent, runDate })) {
+        return redirectWithPageMessage(res, 'error', `${targetEvent.title || 'This event'}: run date is outside the event window.`);
+      }
       if (accumulatedTargetIds.has(String(targetId))) continue;
       const existingForTarget = existingSubmissionByRegistrationId.get(targetId);
       if (existingForTarget && existingForTarget.status !== 'rejected') {
@@ -1328,7 +1340,6 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
 
     const distanceKm = parseDistanceKm(req.body.distanceKm);
     const elapsedMs = parseElapsedToMs(req.body.elapsedTime);
-    const runDate = parseRunDate(req.body.runDate);
     const runLocation = parseRunLocation(req.body.runLocation);
     const proofType = normalizeProofType(req.body.proofType);
     const proofNotes = String(req.body.proofNotes || '').trim().slice(0, 1200);

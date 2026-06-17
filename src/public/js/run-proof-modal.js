@@ -86,6 +86,9 @@
     const backBtn = document.getElementById('runProofBackBtn');
     const step1Panel = document.getElementById('runProofStep1');
     const step2Panel = document.getElementById('runProofStep2');
+    const dateStepPanel = document.getElementById('runProofStepDate');
+    const dateContinueBtn = document.getElementById('runProofDateContinueBtn');
+    const datePreviewEl = document.getElementById('runProofDatePreview');
     const stepIndicator = document.getElementById('runProofStepIndicator');
     const stravaSyncBtn = document.getElementById('runProofStravaSyncBtn');
     const stravaPanel = document.getElementById('runProofStravaPanel');
@@ -138,6 +141,8 @@
       primaryRegistrationId: '',
       lastTrigger: null,
       currentStep: 1,
+      onDateStep: false,
+      lastPreferredId: '',
       isFetchingOptions: false,
       isSubmitting: false,
       previewUrl: '',
@@ -280,6 +285,85 @@
       return date.toLocaleDateString();
     };
 
+    // Mirror of the server's Asia/Manila day-level comparison (platform-date.js +
+    // submission-window.js) so client auto-selection matches what the server accepts.
+    const MANILA_DATE_KEY_FMT = (() => {
+      try {
+        return new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit'
+        });
+      } catch (_error) {
+        return null;
+      }
+    })();
+
+    const toManilaDateKey = (value) => {
+      if (!value) return '';
+      const date = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(date.getTime())) return '';
+      if (MANILA_DATE_KEY_FMT) return MANILA_DATE_KEY_FMT.format(date); // en-CA => YYYY-MM-DD
+      return date.toISOString().slice(0, 10);
+    };
+
+    const getSelectedRunDateKey = () => String(runDateInput && runDateInput.value ? runDateInput.value : '').trim();
+
+    // A run is "aligned" with an event when its date falls inside the event's
+    // activity window [eventStartAt, eventEndAt]. Personal Record has no window.
+    const isOptionAligned = (item) => {
+      if (!item) return false;
+      if (item.isPersonalRecord) return true;
+      const runKey = getSelectedRunDateKey();
+      if (!runKey) return true;
+      const startKey = toManilaDateKey(item.eventStartAt || item.challengeStart);
+      const endKey = toManilaDateKey(item.eventEndAt || item.challengeEnd);
+      if (!startKey && !endKey) return true;
+      if (startKey && runKey < startKey) return false;
+      if (endKey && runKey > endKey) return false;
+      return true;
+    };
+
+    const updateDatePreview = () => {
+      if (!datePreviewEl) return;
+      datePreviewEl.innerHTML = '';
+      const runKey = getSelectedRunDateKey();
+      if (!runKey) {
+        datePreviewEl.textContent = 'Pick a date to see which of your events this run can count toward.';
+        return;
+      }
+      const eventOptions = (state.options || []).filter((item) => item && !item.isPersonalRecord);
+      const aligned = eventOptions.filter((item) => isOptionAligned(item));
+      if (!eventOptions.length) {
+        datePreviewEl.textContent = 'This run will be saved as a Personal Record.';
+        return;
+      }
+      if (!aligned.length) {
+        datePreviewEl.textContent = 'None of the events you joined include this date. Pick a date inside an event’s schedule to submit to it.';
+        return;
+      }
+      const intro = document.createElement('p');
+      intro.className = 'run-proof-date-preview-intro';
+      intro.textContent = 'This run counts toward ' + aligned.length + (aligned.length === 1 ? ' event:' : ' events:');
+      datePreviewEl.appendChild(intro);
+      const chips = document.createElement('div');
+      chips.className = 'run-proof-date-preview-chips';
+      aligned.forEach((item) => {
+        const chip = document.createElement('span');
+        chip.className = 'run-proof-date-preview-chip';
+        chip.textContent = String(item.eventTitle || 'Event');
+        chips.appendChild(chip);
+      });
+      datePreviewEl.appendChild(chips);
+    };
+
+    // Re-run event selection against the current run date (event list + preview).
+    const recomputeAlignment = () => {
+      if (Array.isArray(state.options) && state.options.length) {
+        renderEventOptions(state.options, state.lastPreferredId || '');
+      } else {
+        updateDatePreview();
+      }
+    };
+
     const renderEventOptions = (items, preferredRegistrationId) => {
       const dynamicCards = eventsList.querySelectorAll('[data-run-proof-event-card="1"]');
       dynamicCards.forEach((node) => node.remove());
@@ -292,6 +376,7 @@
         primaryRegistrationInput.value = '';
         form.removeAttribute('action');
         setEventsHelperText('No eligible event is currently accepting run result submissions.');
+        updateDatePreview();
         return;
       }
 
@@ -307,20 +392,22 @@
         }
         setEventsHelperText('No eligible event is accepting submissions right now. You can still save this activity as a Personal Record.');
         validateEvents();
+        updateDatePreview();
         return;
       }
 
       const preferredId = String(preferredRegistrationId || '').trim();
-      const selectedDefaults = new Set(state.defaultSelectedEventIds);
+      state.lastPreferredId = preferredId;
+      const runKey = getSelectedRunDateKey();
 
-      state.options.forEach((item, index) => {
+      state.options.forEach((item) => {
         const registrationId = String(item.registrationId || '').trim();
         if (!registrationId) return;
 
-        const checked =
-          (preferredId && preferredId === registrationId) ||
-          selectedDefaults.has(registrationId) ||
-          (!preferredId && !selectedDefaults.size && index === 0);
+        // Auto-select every event whose activity window contains the run date.
+        // Misaligned events are shown disabled with a reason and never selected.
+        const aligned = isOptionAligned(item);
+        const checked = aligned && (preferredId ? preferredId === registrationId : true);
 
         if (checked) state.selectedRegistrationIds.add(registrationId);
 
@@ -335,18 +422,23 @@
 
         const targetLabel = getSubmissionTargetLabel(item);
         const targetMeta = getSubmissionTargetMeta(item, dateRange);
+        const misalignedNote = (!aligned && runKey)
+          ? '<small class="run-proof-event-misaligned">Run date ' + escapeHtml(runKey) + ' is outside ' + escapeHtml(dateRange) + '</small>'
+          : '';
 
         label.innerHTML =
           '<span class="run-proof-event-main">' +
-            '<input type="checkbox" id="runProofEventOption-' + registrationId + '" data-registration-id="' + registrationId + '" ' + (checked ? 'checked' : '') + '>' +
+            '<input type="checkbox" id="runProofEventOption-' + registrationId + '" data-registration-id="' + registrationId + '" ' + (checked ? 'checked' : '') + (aligned ? '' : ' disabled aria-disabled="true"') + '>' +
             '<span>' +
               '<strong>' + escapeHtml(String(item.eventTitle || 'Event')) + '</strong>' +
               '<small>' + escapeHtml(targetMeta) + '</small>' +
+              misalignedNote +
             '</span>' +
           '</span>' +
           '<span class="run-proof-event-pill">' + escapeHtml(targetLabel) + '</span>';
 
         if (checked) label.classList.add('is-selected');
+        if (!aligned) label.classList.add('is-locked');
         eventsList.appendChild(label);
       });
 
@@ -359,11 +451,14 @@
         setEventsHelperText('For screenshot uploads, select each eligible event this activity should count toward. Strava submissions target one event or Personal Record.');
       }
 
+      if (state.selectedStravaActivity) enforceSingleStravaTarget();
+
       syncSelectedRegistrationFields();
       state.targetKind = getSelectedTargetKind();
       syncFormAction();
       updateSubmitLabelForSelection();
       validateEvents();
+      updateDatePreview();
     };
 
     const renderEventOptionsLoading = () => {
@@ -630,6 +725,7 @@
       state.ocrRunId += 1;
       state.ocrRunning = false;
       state.ocrResult = null;
+      state.ocrDateAdjusted = null;
       setOcrStatus(OCR_WAITING_STATUS);
       if (analyseHint) analyseHint.hidden = true;
       if (ocrResultsEl) ocrResultsEl.hidden = true;
@@ -861,6 +957,7 @@
 
     const applyOcrAutoFill = (result) => {
       let filled = false;
+      state.ocrDateAdjusted = null;
       if (result.distance && result.distance.valueKm > 0) {
         distanceInput.value = String(result.distance.valueKm);
         distanceInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -874,8 +971,16 @@
         filled = true;
       }
       if (result.date) {
+        const previousDate = getSelectedRunDateKey();
         runDateInput.value = result.date;
         filled = true;
+        // The screenshot date is authoritative — re-evaluate which events this run
+        // can count toward, and flag the change so the runner notices on review.
+        if (previousDate && previousDate !== result.date) {
+          state.ocrDateAdjusted = { from: previousDate, to: result.date };
+        }
+        validateDate();
+        recomputeAlignment();
       }
       if (result.elevationGain && result.elevationGain.value >= 0 && elevationInput) {
         elevationInput.value = String(result.elevationGain.value);
@@ -905,6 +1010,9 @@
         }
       }
       if (filled && autoFillBannerEl) {
+        autoFillBannerEl.textContent = state.ocrDateAdjusted
+          ? 'Run date updated to ' + state.ocrDateAdjusted.to + ' from your screenshot (you entered ' + state.ocrDateAdjusted.from + '). Eligible events were updated to match — review them below.'
+          : 'Auto-filled from your screenshot. Review and adjust if needed.';
         autoFillBannerEl.hidden = false;
       }
     };
@@ -918,21 +1026,48 @@
       });
     };
 
+    const setBackButtonMode = (mode) => {
+      if (!backBtn) return;
+      const isClose = mode === 'close';
+      const s = backBtn.querySelector('.run-proof-btn-text');
+      if (s) s.textContent = isClose ? 'Close' : 'Back';
+      backBtn.setAttribute('aria-label', isClose ? 'Close' : 'Back');
+      backBtn.dataset.tooltip = isClose ? 'Close' : 'Back';
+      const icon = backBtn.querySelector('[data-lucide]');
+      if (icon) icon.setAttribute('data-lucide', isClose ? 'x' : 'arrow-left');
+      if (window.lucide) window.lucide.createIcons({ nodes: [backBtn] });
+    };
+
+    // Page 1 of 3 \u2014 pick the run date; this drives which joined events the proof
+    // can be submitted to before the user uploads anything.
+    const showDateStep = () => {
+      if (dateStepPanel) dateStepPanel.hidden = false;
+      if (step1Panel) step1Panel.hidden = true;
+      if (step2Panel) step2Panel.hidden = true;
+      state.onDateStep = true;
+      state.currentStep = 1;
+      setBackButtonMode('close');
+      if (stepIndicator) stepIndicator.textContent = 'Step 1 of 3 \u2014 Choose run date';
+      submitBtn.hidden = true;
+      validateDate();
+      updateDatePreview();
+      if (runDateInput && typeof runDateInput.focus === 'function') {
+        window.requestAnimationFrame(() => {
+          try { runDateInput.focus({ preventScroll: true }); } catch (_error) { /* noop */ }
+        });
+      }
+    };
+
     const goToStep = (step) => {
+      if (dateStepPanel) dateStepPanel.hidden = true;
+      state.onDateStep = false;
       if (step === 1) {
         if (step1Panel) step1Panel.hidden = false;
         if (step2Panel) step2Panel.hidden = true;
         state.currentStep = 1;
-        if (backBtn) {
-          const s = backBtn.querySelector('.run-proof-btn-text');
-          if (s) s.textContent = 'Close';
-          backBtn.setAttribute('aria-label', 'Close');
-          backBtn.dataset.tooltip = 'Close';
-          const icon = backBtn.querySelector('[data-lucide]');
-          if (icon) icon.setAttribute('data-lucide', 'x');
-          if (window.lucide) window.lucide.createIcons({ nodes: [backBtn] });
-        }
-        if (stepIndicator) stepIndicator.textContent = 'Step 1 of 2 \u2014 Choose proof source';
+        // The date step now precedes upload, so back returns there.
+        setBackButtonMode('back');
+        if (stepIndicator) stepIndicator.textContent = 'Step 2 of 3 \u2014 Choose proof source';
         const hasFile = Boolean(fileInput.files && fileInput.files[0]);
         const hasCachedOcr = state.ocrResult !== null;
         const step1Label = hasCachedOcr && hasFile ? STEP_ONE_CONTINUE_LABEL : STEP_ONE_ANALYSE_LABEL;
@@ -948,17 +1083,9 @@
         if (step1Panel) step1Panel.hidden = true;
         if (step2Panel) step2Panel.hidden = false;
         state.currentStep = 2;
-        if (backBtn) {
-          const s = backBtn.querySelector('.run-proof-btn-text');
-          if (s) s.textContent = 'Back';
-          backBtn.setAttribute('aria-label', 'Back');
-          backBtn.dataset.tooltip = 'Back';
-          const icon = backBtn.querySelector('[data-lucide]');
-          if (icon) icon.setAttribute('data-lucide', 'arrow-left');
-          if (window.lucide) window.lucide.createIcons({ nodes: [backBtn] });
-        }
+        setBackButtonMode('back');
         submitBtn.hidden = false;
-        if (stepIndicator) stepIndicator.textContent = 'Step 2 of 2 \u2014 Review and submit';
+        if (stepIndicator) stepIndicator.textContent = 'Step 3 of 3 \u2014 Review and submit';
         toggleSubmitState();
         focusEventSelectionPanel();
       }
@@ -1308,7 +1435,7 @@
       state.currentSurface = '';
       state.emptyState = null;
       toggleSubmitState();
-      goToStep(1);
+      showDateStep();
     };
 
     const showModalShell = () => {
@@ -1550,6 +1677,8 @@
       secondsInput.value = String(seconds).padStart(2, '0');
       elapsedInput.value = [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':');
       runDateInput.value = toDateInputValue(activity.startDateLocal || activity.startDate);
+      validateDate();
+      recomputeAlignment();
       locationInput.value = 'Strava activity';
       if (elevationInput && activity.elevationGain !== null && activity.elevationGain !== undefined) {
         elevationInput.value = String(Math.round(Number(activity.elevationGain || 0)));
@@ -1939,12 +2068,12 @@
 
     [runDateInput, distanceInput, locationInput].forEach((input) => {
       input.addEventListener('input', () => {
-        if (input === runDateInput) { validateDate(); updateOcrComparison(); }
+        if (input === runDateInput) { validateDate(); recomputeAlignment(); updateOcrComparison(); }
         if (input === distanceInput) { validateDistance(); updateOcrComparison(); }
         if (input === locationInput) { validateLocation(); updateOcrComparison(); }
       });
       input.addEventListener('blur', () => {
-        if (input === runDateInput) { validateDate(); updateOcrComparison(); }
+        if (input === runDateInput) { validateDate(); recomputeAlignment(); updateOcrComparison(); }
         if (input === distanceInput) { validateDistance(); updateOcrComparison(); }
         if (input === locationInput) { validateLocation(); updateOcrComparison(); }
       });
@@ -2125,11 +2254,24 @@
 
     if (backBtn) {
       backBtn.addEventListener('click', () => {
-        if (state.currentStep === 1) {
+        if (state.onDateStep) {
           requestCloseModal({ forceConfirm: true });
+        } else if (state.currentStep === 1) {
+          showDateStep();
         } else {
           goToStep(1);
         }
+      });
+    }
+
+    if (dateContinueBtn) {
+      dateContinueBtn.addEventListener('click', () => {
+        if (!validateDate()) {
+          if (runDateInput && typeof runDateInput.focus === 'function') runDateInput.focus();
+          return;
+        }
+        recomputeAlignment();
+        goToStep(1);
       });
     }
 
@@ -2339,6 +2481,16 @@
       });
       const eventLabel = eventNames.length ? eventNames.join(', ') : 'Personal Record';
       submitReviewRows.appendChild(makeReviewRow('Event', eventLabel));
+      if (eventNames.length > 1) {
+        submitReviewRows.appendChild(makeReviewRow('Submitting to', eventNames.length + ' events'));
+      }
+      if (state.ocrDateAdjusted) {
+        submitReviewRows.appendChild(makeReviewRow(
+          'Run date',
+          'Updated to ' + state.ocrDateAdjusted.to + ' from your screenshot',
+          'warn'
+        ));
+      }
       state.targetKind = getSelectedTargetKind();
       const targetLabels = {
         standard: 'Event Result',
@@ -2530,6 +2682,16 @@
     // ── Form submit event ────────────────────────────────────────────────────
 
     form.addEventListener('submit', (event) => {
+      if (state.onDateStep) {
+        event.preventDefault();
+        if (!validateDate()) {
+          if (runDateInput && typeof runDateInput.focus === 'function') runDateInput.focus();
+          return;
+        }
+        recomputeAlignment();
+        goToStep(1);
+        return;
+      }
       if (state.currentStep === 1) {
         event.preventDefault();
         triggerAnalyse();
