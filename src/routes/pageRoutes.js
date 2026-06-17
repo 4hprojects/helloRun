@@ -102,20 +102,29 @@ router.get('/about', pageController.getAbout);
 
 router.get('/how-it-works', (req, res) => {
   res.render('pages/how-it-works', {
-    title: 'How It Works - HelloRun'
+    title: 'How Virtual Runs and Event Submissions Work - HelloRun',
+    seo: {
+      description: 'Learn how HelloRun virtual runs work, from account setup and event registration to proof submission, organizer review, leaderboards, and certificates.'
+    }
   });
 });
 
 router.get('/contact', (req, res) => {
   res.render('pages/contact', {
-    title: 'Contact - HelloRun',
+    title: 'Contact HelloRun Support - HelloRun',
+    seo: {
+      description: 'Contact HelloRun for runner support, organizer inquiries, payment or registration concerns, data requests, and event partnership questions.'
+    },
     source: req.query.source || ''
   });
 });
 
 router.get('/faq', (req, res) => {
   res.render('pages/faq', {
-    title: 'FAQ - HelloRun'
+    title: 'Runner and Organizer FAQ - HelloRun',
+    seo: {
+      description: 'Answers to common HelloRun questions about virtual runs, proof submission, leaderboards, certificates, organizer tools, accounts, and privacy.'
+    }
   });
 });
 

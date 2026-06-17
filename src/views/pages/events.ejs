@@ -190,17 +190,17 @@
 
                   <div class="card-meta">
                     <i data-lucide="calendar"></i>
-                    <span><%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'Start date TBA' %></span>
+                    <span><%= event.startDateLabel || (event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US') : 'Start date not listed') %></span>
                   </div>
 
                   <div class="card-meta">
                     <i data-lucide="map-pin"></i>
-                    <span><%= [event.venueName, event.city, event.countryLabel].filter(Boolean).join(', ') || 'Location TBA' %></span>
+                    <span><%= event.locationLabel || 'Location details not listed' %></span>
                   </div>
 
                   <div class="card-meta">
                     <i data-lucide="flag"></i>
-                    <span><%= (event.raceDistances || []).join(', ') || 'Distances TBA' %></span>
+                    <span><%= event.distanceLabel || (event.raceDistances || []).join(', ') || 'Distances not listed' %></span>
                   </div>
 
                   <p class="card-description"><%= event.description || 'No event description available.' %></p>

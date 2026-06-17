@@ -69,17 +69,39 @@ exports.getGlobalShop = async (req, res, next) => {
     const eventSlug = String(req.query.event || '').trim();
     const { page, limit } = req.shopPagination || { page: 1, limit: 20 };
 
-    const { rows, totalCount } = await productService.listPublicProductsAcrossEvents({ mongoEventIds, search, eventSlug, page, limit });
+    let rows = [];
+    let totalCount = 0;
+    let catalogUnavailable = false;
+    try {
+      const catalog = await productService.listPublicProductsAcrossEvents({ mongoEventIds, search, eventSlug, page, limit });
+      rows = catalog.rows;
+      totalCount = catalog.totalCount;
+    } catch (error) {
+      if (!wantsHtml(req) || !isCatalogReadUnavailable(error)) {
+        throw error;
+      }
+      catalogUnavailable = true;
+    }
 
     const totalPages = Math.max(1, Math.ceil(totalCount / limit));
     const currentPage = Math.min(page, totalPages);
     const products = rows.map(normalizeGlobalProductForView);
     const filters = { q: search, event: eventSlug };
     const filteredEvent = eventSlug ? events.find((event) => event.slug === eventSlug) || null : null;
+    const isEmptyCatalog = totalCount === 0;
 
     if (wantsHtml(req)) {
+      if (isEmptyCatalog) {
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+      }
       return res.render('pages/shop', {
         title: 'Shop - HelloRun',
+        seo: isEmptyCatalog ? {
+          robots: 'noindex, nofollow',
+          description: 'HelloRun shop catalog.'
+        } : {
+          description: 'Browse public HelloRun and event shop items available for runners.'
+        },
         products,
         count: products.length,
         totalCount,
@@ -91,7 +113,9 @@ exports.getGlobalShop = async (req, res, next) => {
           getPageUrl: (pageNumber) => buildGlobalShopPageUrl(filters, pageNumber)
         },
         formatCurrency,
-        message: getPageMessage(req.query)
+        message: catalogUnavailable
+          ? { type: 'info', text: 'Shop catalog is temporarily unavailable.' }
+          : getPageMessage(req.query)
       });
     }
 
@@ -706,6 +730,15 @@ function getPageMessage(query) {
   if (!msg) return null;
   const type = query.type === 'error' ? 'error' : 'success';
   return { type, text: msg.slice(0, 200) };
+}
+
+function isCatalogReadUnavailable(error) {
+  const code = String(error?.code || '').trim();
+  if (['ENOTFOUND', 'ECONNREFUSED', 'ETIMEDOUT', 'ENETUNREACH', 'EAI_AGAIN'].includes(code)) {
+    return true;
+  }
+  const message = String(error?.message || '');
+  return /\b(ENOTFOUND|ECONNREFUSED|ETIMEDOUT|ENETUNREACH|EAI_AGAIN)\b/i.test(message);
 }
 
 const CART_QUANTITY_MIN = 1;

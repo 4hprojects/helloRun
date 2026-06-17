@@ -79,8 +79,34 @@ test('dynamic sitemap includes live public content and excludes auth and placeho
   assert.match(xml, new RegExp(`<loc>${escapeForRegex(`${BASE_URL}/blog/${encodeURIComponent(seed.blog.slug)}`)}</loc>`));
 
   assert.doesNotMatch(xml, /<loc>.*\/login<\/loc>/i);
+  assert.doesNotMatch(xml, /<loc>.*\/leaderboard<\/loc>/i);
+  assert.doesNotMatch(xml, /<loc>.*\/shop<\/loc>/i);
   assert.doesNotMatch(xml, /blog\/category\//i);
   assert.doesNotMatch(xml, /what-is-virtual-run-philippines/i);
+});
+
+test('robots.txt blocks utility routes and points to sitemap', async () => {
+  const response = await fetch(`${BASE_URL}/robots.txt`);
+  assert.equal(response.status, 200);
+  const body = await response.text();
+
+  assert.match(body, /User-agent:\s*\*/i);
+  assert.match(body, /Disallow:\s*\/login/i);
+  assert.match(body, /Disallow:\s*\/signup/i);
+  assert.match(body, /Disallow:\s*\/admin/i);
+  assert.match(body, /Disallow:\s*\/organizer/i);
+  assert.match(body, /Disallow:\s*\/runner/i);
+  assert.match(body, /Disallow:\s*\/shop\/checkout/i);
+  assert.match(body, /Sitemap:\s*https:\/\/hellorun\.online\/sitemap\.xml/i);
+});
+
+test('utility pages send noindex metadata and header', async () => {
+  const response = await fetch(`${BASE_URL}/login`);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('x-robots-tag'), 'noindex, nofollow');
+
+  const html = await response.text();
+  assert.match(html, /<meta name="robots" content="noindex, nofollow">/i);
 });
 
 async function seedFixtures() {

@@ -9,6 +9,7 @@
     "setup": "node src/scripts/setup-uploads.js",
     "backfill:event-reference-codes": "node src/scripts/backfill-event-reference-codes.js",
     "seed:policies": "node src/scripts/seed-policies.js",
+    "seed:adsense-blog": "node src/scripts/seed-adsense-blog-posts.js",
     "seed:privacy-policy": "node src/scripts/seed-privacy-policy.js",
     "seed:terms-policy": "node src/scripts/seed-terms-policy.js",
     "seed:cookie-policy": "node src/scripts/seed-cookie-policy.js",

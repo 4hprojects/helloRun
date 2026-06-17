@@ -1475,13 +1475,20 @@ exports.getBlogList = async (req, res) => {
       popular: { views: -1, publishedAt: -1 }
     };
     const shouldShowFeatured = page === 1;
-    const featuredPosts = shouldShowFeatured
-      ? await Blog.find({ ...query, featured: true })
+    const [featuredPostsRaw, availableCategoriesRaw] = await Promise.all([
+      shouldShowFeatured
+        ? Blog.find({ ...query, featured: true })
         .populate('authorId', 'firstName lastName')
         .sort({ views: -1, likesCount: -1, commentsCount: -1, publishedAt: -1 })
         .limit(3)
         .select('title slug excerpt category customCategory tags coverImageUrl readingTime views likesCount commentsCount featured publishedAt createdAt')
-      : [];
+        : Promise.resolve([]),
+      Blog.distinct('category', {
+        status: 'published',
+        isDeleted: { $ne: true }
+      })
+    ]);
+    const featuredPosts = featuredPostsRaw;
     const featuredIds = featuredPosts.map((post) => post._id);
     const postsQuery = featuredIds.length ? { ...query, _id: { $nin: featuredIds } } : query;
     const totalPosts = await Blog.countDocuments(postsQuery);
@@ -1515,7 +1522,7 @@ exports.getBlogList = async (req, res) => {
       title: 'Blog - HelloRun',
       posts,
       featuredPosts,
-      categories: BLOG_CATEGORIES,
+      categories: BLOG_CATEGORIES.filter((category) => availableCategoriesRaw.includes(category)),
       filters: {
         q: searchQuery,
         category: selectedCategory,
@@ -1618,10 +1625,18 @@ exports.getBlogPost = async (req, res) => {
     const likedByCurrentUser = currentUserId
       ? Boolean(await BlogLike.exists({ blogId: post._id, userId: currentUserId }))
       : false;
+    const authorName = [post.authorId?.firstName, post.authorId?.lastName].filter(Boolean).join(' ').trim() || 'HelloRun';
+    const authorBio = authorName.toLowerCase().includes('henz')
+      ? 'Henz writes HelloRun guides for runners and event organizers, focusing on virtual race setup, proof submission, beginner-friendly running, and community fitness events in the Philippines.'
+      : 'HelloRun publishes practical guides for runners and event organizers, with a focus on virtual runs, proof submission, leaderboards, and community fitness events.';
 
     return res.render('pages/blog-post', {
       title: `${post.title} - HelloRun Blog`,
       post,
+      authorDisplay: {
+        name: authorName,
+        bio: authorBio
+      },
       blogContentParts: splitBlogContentForAd(post.contentHtml || ''),
       relatedPosts,
       interactionState: {
@@ -1802,8 +1817,7 @@ exports.getSitemapXml = async (req, res) => {
       '/how-it-works',
       '/contact',
       '/faq',
-      ...listPolicyDocuments().map((policy) => policy.publicPath),
-      '/leaderboard'
+      ...listPolicyDocuments().map((policy) => policy.publicPath)
     ];
 
     const [events, blogPosts] = await Promise.all([

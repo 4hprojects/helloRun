@@ -105,6 +105,13 @@ async function buildPublicEventListPage(queryParams = {}) {
       return {
         ...event,
         raceDistances,
+        startDateLabel: event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        }) : 'Start date not listed',
+        locationLabel: buildPublicLocationLabel(event, getCountryName(event.country)),
+        distanceLabel: raceDistances.join(', ') || 'Distances not listed',
         countryLabel: getCountryName(event.country),
         displayState: getEventCardDisplayState(event, now)
       };
@@ -217,18 +224,26 @@ function normalizeHomepageEventCard(event, now = new Date()) {
     eventType: event.eventType || 'event',
     eventTypeLabel: formatEventTypeLabel(event.eventType || 'event'),
     raceDistances,
-    distanceLabel: raceDistances.join(', ') || 'Distances TBA',
+    distanceLabel: raceDistances.join(', ') || 'Distances not listed',
     imageUrl: event.bannerImageUrl || DEFAULT_EVENT_IMAGE_URL,
     fallbackImageUrl: DEFAULT_EVENT_IMAGE_URL,
     dateLabel: event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
-    }) : 'Start date TBA',
-    locationLabel: [event.venueName, event.city, countryLabel].filter(Boolean).join(', ') || 'Location TBA',
+    }) : 'Start date not listed',
+    locationLabel: buildPublicLocationLabel(event, countryLabel),
     displayState: getEventCardDisplayState(event, now),
     isFeatured: Boolean(event.homeFeatured)
   };
+}
+
+function buildPublicLocationLabel(event, countryLabel = '') {
+  const location = [event.venueName, event.city, countryLabel].filter(Boolean).join(', ');
+  if (location) return location;
+  const isVirtual = String(event.eventType || '').trim() === 'virtual'
+    || (Array.isArray(event.eventTypesAllowed) && event.eventTypesAllowed.includes('virtual'));
+  return isVirtual ? 'Anywhere' : 'Location details not listed';
 }
 
 function getEventsFilterValues(query = {}) {

@@ -94,11 +94,11 @@
                 </div>
                 <div class="detail-item">
                   <i data-lucide="clock"></i>
-                  <span><strong>Event start:</strong> <%= registration.eventId?.eventStartAt ? new Date(registration.eventId.eventStartAt).toLocaleDateString('en-US') : 'TBA' %></span>
+                  <span><strong>Event start:</strong> <%= registration.eventId?.eventStartAt ? new Date(registration.eventId.eventStartAt).toLocaleDateString('en-US') : 'Date not listed' %></span>
                 </div>
                 <div class="detail-item">
                   <i data-lucide="map-pin"></i>
-                  <span><strong>Location:</strong> <%= [registration.eventId?.venueName, registration.eventId?.city, countryName(registration.eventId?.country)].filter(Boolean).join(', ') || 'TBA' %></span>
+                  <span><strong>Location:</strong> <%= [registration.eventId?.venueName, registration.eventId?.city, countryName(registration.eventId?.country)].filter(Boolean).join(', ') || 'Location not listed' %></span>
                 </div>
               </div>
 

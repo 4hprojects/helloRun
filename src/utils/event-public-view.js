@@ -76,6 +76,8 @@ function buildPublicEventView(event, options = {}) {
   const distanceSummaryLabel = raceDistances.length
     ? raceDistances.join(', ')
     : targetDistanceLabel;
+  const eventEndAt = parseDate(event.eventEndAt);
+  const isEnded = Boolean(eventEndAt && eventEndAt < now);
 
   return {
     title: event.title || 'HelloRun Event',
@@ -99,6 +101,14 @@ function buildPublicEventView(event, options = {}) {
     virtualRules,
     location,
     showLocation: Boolean(location.summary),
+    isEnded,
+    recap: buildEventRecap(event, {
+      distanceSummaryLabel,
+      targetDistanceLabel,
+      eventTypeLabel,
+      isAccumulatedChallenge,
+      isEnded
+    }),
     heroImageUrl,
     posterImageUrl,
     galleryImageUrls,
@@ -271,8 +281,8 @@ function buildPricingSummary(event, packageOptions, pricingOptions = []) {
   }
 
   return {
-    label: 'Pricing pending',
-    amountLabel: 'TBA',
+    label: 'Pricing not listed',
+    amountLabel: 'Pricing not listed',
     helper: 'The organizer has not published final pricing details yet.',
     currency,
     registrationAmount: null,
@@ -473,7 +483,7 @@ function buildPackageOptions(event) {
       return {
         name,
         notes: String(packageOption.notes || '').trim(),
-        amountLabel: lowestAmount !== null ? `From ${formatMoney(lowestAmount, event.feeCurrency || 'PHP')}` : 'Price TBA',
+        amountLabel: lowestAmount !== null ? `From ${formatMoney(lowestAmount, event.feeCurrency || 'PHP')}` : 'Price not listed',
         includedItems: formatIncludedItems(packageOption.includedItems)
       };
     })
@@ -515,11 +525,33 @@ function buildVirtualRules(event) {
 function buildLocation(event) {
   const cityCountry = [event.city, getCountryName(event.country)].filter(Boolean).join(', ');
   const summary = [event.venueName, cityCountry].filter(Boolean).join(' - ');
+  const isVirtual = String(event.eventType || '').trim() === 'virtual'
+    || normalizeList(event.eventTypesAllowed).includes('virtual');
   return {
     venueName: event.venueName || '',
     address: event.venueAddress || '',
     cityCountry,
-    summary
+    summary,
+    publicLabel: summary || (isVirtual ? 'Anywhere' : 'Location details not listed')
+  };
+}
+
+function buildEventRecap(event, options = {}) {
+  if (!options.isEnded) return null;
+
+  const distanceLabel = options.distanceSummaryLabel || options.targetDistanceLabel || 'the listed event distance';
+  const completionLabel = options.isAccumulatedChallenge
+    ? 'build verified distance across eligible activities'
+    : 'complete the selected distance during the official event window';
+  const proofTypes = normalizeList(event.proofTypesAllowed).map(formatProofTypeLabel);
+
+  return {
+    body: `The ${event.title || 'HelloRun event'} encouraged runners, walkers, and active community members to ${completionLabel}. Participants could join ${distanceLabel} and submit clear activity proof for organizer review.`,
+    details: [
+      `Event mode: ${options.eventTypeLabel || 'Event'}.`,
+      proofTypes.length ? `Accepted proof included ${proofTypes.join(', ')}.` : 'Submitted activities were reviewed based on the event rules.',
+      event.leaderboardRecognitionEnabled !== false ? 'Approved submissions counted toward event recognition and leaderboard records.' : 'Approved submissions counted toward event completion records.'
+    ]
   };
 }
 
@@ -662,13 +694,13 @@ function formatRecognitionMode(value) {
 function formatDateRange(startValue, endValue) {
   const start = formatDate(startValue);
   const end = formatDate(endValue);
-  if (start === 'TBA' && end === 'TBA') return 'TBA';
+  if (start === 'Date not listed' && end === 'Date not listed') return 'Event window not listed';
   return `${start} - ${end}`;
 }
 
 function formatDate(value) {
   const date = parseDate(value);
-  if (!date) return 'TBA';
+  if (!date) return 'Date not listed';
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -678,7 +710,7 @@ function formatDate(value) {
 
 function formatMoney(amount, currency = 'PHP') {
   const value = Number(amount);
-  if (!Number.isFinite(value)) return 'TBA';
+  if (!Number.isFinite(value)) return 'Amount not listed';
   return `${currency || 'PHP'} ${value.toLocaleString('en-US', {
     minimumFractionDigits: value % 1 === 0 ? 0 : 2,
     maximumFractionDigits: 2

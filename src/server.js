@@ -168,6 +168,7 @@ const timingSystemWebhooks = require('./routes/webhooks/timing-system');
 // Auth locals for all views (BEFORE routes)
 app.use(populateAuthLocals);
 app.use(populateAdLocals);
+app.use(populatePublicPageLocals);
 
 app.use('/', authRoutes);
 app.use('/', shopRoutes);
@@ -183,6 +184,52 @@ app.use('/organizer', organizerShopRoutes);
 app.use('/admin', adminRoutes);
 app.use('/admin', adminShopRoutes);
 app.use('/webhooks/timing-system', timingSystemWebhooks);
+
+function populatePublicPageLocals(req, res, next) {
+  const pathname = req.path || '/';
+  res.locals.renderRunProofModal = shouldRenderRunProofModal(pathname);
+
+  if (shouldNoindexPath(pathname)) {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    res.locals.seo = {
+      ...(res.locals.seo || {}),
+      robots: 'noindex, nofollow'
+    };
+  }
+
+  next();
+}
+
+function shouldRenderRunProofModal(pathname) {
+  return (
+    pathname === '/my-registrations' ||
+    pathname.startsWith('/runner/')
+  );
+}
+
+function shouldNoindexPath(pathname) {
+  return [
+    /^\/login\/?$/,
+    /^\/register\/?$/,
+    /^\/signup\/?$/,
+    /^\/forgot-password\/?$/,
+    /^\/reset-password(?:\/.*)?$/,
+    /^\/resend-verification\/?$/,
+    /^\/verify-email(?:\/.*)?$/,
+    /^\/verify-email-(?:sent|success|result|expired|already-verified)\/?$/,
+    /^\/auth(?:\/.*)?$/,
+    /^\/admin(?:\/.*)?$/,
+    /^\/organizer(?:\/.*)?$/,
+    /^\/runner(?:\/.*)?$/,
+    /^\/my-(?:registrations|submissions)(?:\/.*)?$/,
+    /^\/profile(?:\/.*)?$/,
+    /^\/account(?:\/.*)?$/,
+    /^\/shop\/(?:cart|checkout)(?:\/.*)?$/,
+    /^\/orders(?:\/.*)?$/,
+    /^\/api(?:\/.*)?$/,
+    /^\/webhooks(?:\/.*)?$/
+  ].some((pattern) => pattern.test(pathname));
+}
 
 // Chrome DevTools occasionally probes this path; return empty success to avoid noisy 404 logs.
 app.get('/.well-known/appspecific/com.chrome.devtools.json', (req, res) => {
