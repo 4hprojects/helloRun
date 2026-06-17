@@ -74,7 +74,7 @@ test('public event badge route returns only active visible event badges', async 
   assert.equal(eventPage.status, 200);
   const eventHtml = await eventPage.text();
   assert.match(eventHtml, /event-badge-grid/);
-  assert.match(eventHtml, /Available achievement badges/);
+  assert.match(eventHtml, /Event badges/);
 
   const response = await fetch(`${BASE_URL}/events/${seed.event.slug}/badges`);
   assert.equal(response.status, 200);

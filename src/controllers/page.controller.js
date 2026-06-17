@@ -95,6 +95,7 @@ const { buildPublicEventListPage, listHomepagePromotedEvents } = require('../ser
 const { getHomepageCarouselSettings } = require('../services/homepage-carousel-setting.service');
 const { getPostgresClient } = require('../db/postgres');
 const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
+const { getCanonicalBlogSlug, getPublicBlogQuery } = require('../utils/blog-canonical');
 
 const countries = getCountries();
 exports.getHome = async (req, res) => {
@@ -118,10 +119,10 @@ exports.getHome = async (req, res) => {
         role: 'organiser',
         organizerStatus: 'approved'
       }),
-      Blog.find({
+      Blog.find(getPublicBlogQuery({
         status: 'published',
         isDeleted: { $ne: true }
-      })
+      }))
         .populate('authorId', 'firstName lastName')
         .sort({ publishedAt: -1, createdAt: -1 })
         .limit(3)
@@ -1440,10 +1441,10 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
 
 exports.getBlogList = async (req, res) => {
   try {
-    const query = {
+    const query = getPublicBlogQuery({
       status: 'published',
       isDeleted: { $ne: true }
-    };
+    });
     const searchQuery = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 80) : '';
     const selectedCategory = normalizeBlogCategory(req.query.category);
     const selectedAuthor = normalizeObjectIdString(req.query.author);
@@ -1485,7 +1486,8 @@ exports.getBlogList = async (req, res) => {
         : Promise.resolve([]),
       Blog.distinct('category', {
         status: 'published',
-        isDeleted: { $ne: true }
+        isDeleted: { $ne: true },
+        ...getPublicBlogQuery()
       })
     ]);
     const featuredPosts = featuredPostsRaw;
@@ -1565,6 +1567,11 @@ exports.getBlogPost = async (req, res) => {
       });
     }
 
+    const canonicalSlug = getCanonicalBlogSlug(slug);
+    if (canonicalSlug) {
+      return res.redirect(301, `/blog/${canonicalSlug}`);
+    }
+
     const post = await Blog.findOne({
       slug,
       status: 'published',
@@ -1606,6 +1613,7 @@ exports.getBlogPost = async (req, res) => {
       _id: { $ne: post._id },
       status: 'published',
       isDeleted: { $ne: true },
+      ...getPublicBlogQuery(),
       $or: [
         { category: post.category },
         { tags: { $in: post.tags || [] } }
@@ -1825,10 +1833,10 @@ exports.getSitemapXml = async (req, res) => {
         .select('slug updatedAt createdAt')
         .sort({ updatedAt: -1 })
         .lean(),
-      Blog.find({
+      Blog.find(getPublicBlogQuery({
         status: 'published',
         isDeleted: { $ne: true }
-      })
+      }))
         .select('slug publishedAt updatedAt createdAt')
         .sort({ publishedAt: -1, updatedAt: -1 })
         .lean()

@@ -263,7 +263,7 @@
 
             <% const eventBadges = badges || []; %>
             <% if (eventBadges.length) { %>
-              <div class="event-badge-grid" aria-label="Available achievement badges">
+              <div class="event-badge-grid" aria-label="Event badges">
                 <% eventBadges.forEach((badge) => { %>
                   <article class="event-badge-card">
                     <span class="event-badge-icon"><i data-lucide="award"></i></span>
@@ -279,8 +279,8 @@
               <div class="event-badge-empty">
                 <i data-lucide="award"></i>
                 <div>
-                  <strong>Badges not enabled</strong>
-                  <p>This event is not currently issuing digital achievement badges.</p>
+                  <strong>No event badges listed</strong>
+                  <p>This event is not currently listing digital badges.</p>
                 </div>
               </div>
             <% } %>

@@ -6,6 +6,10 @@ const {
   buildPublicEventView,
   renderEventDetailsContent
 } = require('../src/utils/event-public-view');
+const {
+  getPublicEventVisibilityQuery,
+  isPublicEventVisible
+} = require('../src/utils/public-event-visibility');
 
 test('renderEventDetailsContent preserves safe Quill HTML', () => {
   const html = renderEventDetailsContent('<h1>Challenge Details</h1><p>Earn a <strong>badge</strong>.</p><script>alert(1)</script>');
@@ -14,6 +18,40 @@ test('renderEventDetailsContent preserves safe Quill HTML', () => {
   assert.match(html, /<strong>badge<\/strong>/);
   assert.doesNotMatch(html, /script/);
   assert.doesNotMatch(html, /&lt;h1&gt;/);
+});
+
+test('public event visibility excludes smoke and legacy test events', () => {
+  const now = new Date('2026-06-18T00:00:00.000Z');
+  const query = getPublicEventVisibilityQuery(now);
+
+  assert.deepEqual(query.isSmokeTest, { $ne: true });
+  assert.equal(isPublicEventVisible({
+    title: 'Public Community 5K',
+    slug: 'public-community-5k',
+    description: 'A public event.',
+    status: 'published',
+    isDeleted: false,
+    isPersonalRecord: false,
+    isSmokeTest: false
+  }, now), true);
+  assert.equal(isPublicEventVisible({
+    title: 'Smoke Test Run',
+    slug: 'smoke-test-run',
+    description: 'Internal smoke event.',
+    status: 'published',
+    isDeleted: false,
+    isPersonalRecord: false,
+    isSmokeTest: true
+  }, now), false);
+  assert.equal(isPublicEventVisible({
+    title: 'Submission service test event',
+    slug: 'submission-service-test-event',
+    description: 'Legacy public test event.',
+    status: 'published',
+    isDeleted: false,
+    isPersonalRecord: false,
+    isSmokeTest: false
+  }, now), false);
 });
 
 test('renderEventDetailsContent still supports markdown input', () => {

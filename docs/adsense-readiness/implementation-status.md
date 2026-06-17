@@ -56,6 +56,24 @@ The work focused on public content depth, crawl hygiene, event page quality, tru
 - Local noindex checks for `/login` and empty/unavailable `/shop` HTML responses.
 - Public template/content scan for unfinished placeholder terms.
 
+## June 18, 2026 Follow-Up Cleanup
+
+- Added shared public event filtering for `isSmokeTest: true` and legacy test/smoke/dummy/QA/staging event text, including `Submission service test event`.
+- Added canonical blog redirects for duplicate AdSense posts and excluded duplicate slugs from public blog discovery, feeds, services, related posts, and sitemap output.
+- Archived the three duplicate blog records in the configured MongoDB database and moved featured status to `best-apps-to-track-your-virtual-run`.
+- Removed unfinished newsletter copy from public blog templates.
+- Replaced inflated runner-count/social-proof copy on public auth/home surfaces.
+- Cleaned public event badge wording from "Available achievement badges" and "Badges not enabled" to neutral event-badge language.
+- Expanded sitemap and public route smoke coverage for test event exclusion, duplicate blog redirects, newsletter cleanup, and badge wording.
+
+### Follow-Up Verification
+
+- `node --test tests/event-public-view.unit.test.js` - PASS
+- `node --test tests/public-search-filters.smoke.test.js` - PASS
+- `node --test tests/sitemap-readiness.smoke.test.js` - PASS
+
+The two smoke suites still print existing Supabase shadow-sync `ENOTFOUND` warnings in this local environment, but the targeted checks pass.
+
 ## Known Environment Limitations
 
 - The in-app Browser visual QA could not run because the Browser plugin failed during runtime setup with `failed to write kernel assets`.

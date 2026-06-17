@@ -3,6 +3,7 @@
 
 const Blog = require('../models/Blog');
 const User = require('../models/User');
+const { DUPLICATE_BLOG_SLUGS } = require('../utils/blog-canonical');
 
 /**
  * Returns top writers ranked by published blog count, likes, and trending score.
@@ -17,6 +18,7 @@ async function getTopWriters({ limit = 10 } = {}) {
       $match: {
         status: 'published',
         isDeleted: { $ne: true },
+        slug: { $nin: DUPLICATE_BLOG_SLUGS },
         publishedAt: { $lte: new Date() }
       }
     },

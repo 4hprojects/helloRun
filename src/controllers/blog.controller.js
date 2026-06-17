@@ -40,6 +40,10 @@ exports.renderPublicBlogPost = async (req, res) => {
   try {
     const slug = req.params.slug;
     if (!slug) return res.status(404).render('error', { title: 'Not Found', status: 404, message: 'Post not found.' });
+    const canonicalSlug = getCanonicalBlogSlug(slug);
+    if (canonicalSlug) {
+      return res.redirect(301, `/blog/${canonicalSlug}`);
+    }
     // Only published, not deleted, publishedAt <= now
     const post = await Blog.findOne({
       slug,
@@ -99,11 +103,11 @@ exports.getGuidesAndResources = async (req, res) => {
 exports.getBlogFeed = async (req, res) => {
   try {
     const Feed = await loadFeedCtor();
-    const posts = await Blog.find({
+    const posts = await Blog.find(getPublicBlogQuery({
       status: 'published',
       isDeleted: { $ne: true },
       publishedAt: { $lte: new Date() }
-    })
+    }))
       .sort({ publishedAt: -1 })
       .limit(30)
       .select('title slug excerpt contentHtml publishedAt authorId')
@@ -159,11 +163,11 @@ exports.getTopWritersLeaderboard = async (req, res) => {
 exports.getTrendingBlogs = async (req, res) => {
   try {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 10, 50));
-    const posts = await Blog.find({
+    const posts = await Blog.find(getPublicBlogQuery({
       status: 'published',
       isDeleted: { $ne: true },
       publishedAt: { $lte: new Date() }
-    })
+    }))
       .sort({ trendingScore: -1, publishedAt: -1 })
       .limit(limit)
       .populate('authorId', 'firstName lastName verifiedAuthor trustScore')
@@ -185,6 +189,7 @@ const User = require('../models/User');
 const uploadService = require('../services/upload.service');
 const { BLOG_CATEGORIES, BLOG_STATUSES, slugifyBlogTitle, normalizeTags } = require('../utils/blog');
 const { sanitizeHtml, htmlToPlainText } = require('../utils/sanitize');
+const { getCanonicalBlogSlug, getPublicBlogQuery } = require('../utils/blog-canonical');
 const BlogReport = require('../models/BlogReport');
 const { analyzePostSpamSignals, detectSimilarityFlags } = require('../utils/blog-safety');
 const {

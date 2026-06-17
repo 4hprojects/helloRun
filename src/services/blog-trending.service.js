@@ -1,4 +1,5 @@
 const Blog = require('../models/Blog');
+const { getPublicBlogQuery } = require('../utils/blog-canonical');
 
 /**
  * Calculate trending score for a blog post.
@@ -33,11 +34,11 @@ function calculateTrendingScore({ views = 0, likes = 0, comments = 0, publishedA
  * Should be run periodically (e.g., every 10-30 minutes).
  */
 async function recalculateAllTrendingScores() {
-  const posts = await Blog.find({
+  const posts = await Blog.find(getPublicBlogQuery({
     status: 'published',
     isDeleted: { $ne: true },
     publishedAt: { $lte: new Date() }
-  }).select('views likesCount commentsCount publishedAt featured').lean();
+  })).select('views likesCount commentsCount publishedAt featured').lean();
 
   const bulkOps = posts.map(post => {
     const trendingScore = calculateTrendingScore({
