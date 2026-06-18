@@ -254,7 +254,7 @@ function buildDefaultEventBadges(event) {
     });
   }
 
-  if (isAccumulatedChallenge(event)) {
+  if (isAccumulatedChallenge(event) && !hasMultipleAccumulatedDistances(event)) {
     for (const milestone of buildChallengeMilestones(event.targetDistanceKm)) {
       badges.push({
         badgeCode: `${slug}-challenge-${milestone.percent}`,
@@ -459,6 +459,17 @@ function getRaceDistances(event) {
 function isAccumulatedChallenge(event) {
   return event?.virtualCompletionMode === 'accumulated_distance' &&
     Number(event.targetDistanceKm || 0) > 0;
+}
+
+function hasMultipleAccumulatedDistances(event) {
+  if (event?.virtualCompletionMode !== 'accumulated_distance') return false;
+  const categoryDistances = Array.from(new Set(
+    (Array.isArray(event.raceCategories) ? event.raceCategories : [])
+      .map((category) => Number(category?.distanceKm || 0))
+      .filter((distance) => Number.isFinite(distance) && distance > 0)
+  ));
+  if (categoryDistances.length > 1) return true;
+  return getRaceDistances(event).length > 1;
 }
 
 function buildChallengeMilestones(targetDistanceKm) {

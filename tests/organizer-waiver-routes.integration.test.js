@@ -131,7 +131,7 @@ test('create and edit event views expose ordered create-event sections', () => {
     assert.match(content, /data-gallery-upload-preview/, `${file} should render removable new gallery upload previews`);
     assert.match(content, /syncGalleryFileInput/, `${file} should keep the gallery file input synced after removing an upload`);
     assert.match(content, /removeGalleryUrlEntry/, `${file} should remove individual gallery URL entries`);
-    assert.match(content, /largest numeric race distance[\s\S]*completion goal/, `${file} should explain accumulated challenge target distance inference`);
+    assert.match(content, /runners complete the distance tied to the category they choose|each category can be used as its own completion goal/, `${file} should explain accumulated challenge category goals`);
     assert.match(content, /Final Submission Deadline[\s\S]*Event End plus 14 days/, `${file} should explain the final submission deadline grace period`);
     assert.match(content, /Virtual Window Start[\s\S]*Defaults to Event Start/, `${file} should explain the virtual window start default`);
     assert.match(content, /Virtual Window End[\s\S]*Defaults to Event End/, `${file} should explain the virtual window end default`);

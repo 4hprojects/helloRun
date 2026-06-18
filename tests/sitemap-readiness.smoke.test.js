@@ -77,6 +77,7 @@ test('dynamic sitemap includes live public content and excludes auth and placeho
   }
   assert.match(xml, new RegExp(`<loc>${escapeForRegex(`${BASE_URL}/events/${encodeURIComponent(seed.event.slug)}`)}</loc>`));
   assert.match(xml, new RegExp(`<loc>${escapeForRegex(`${BASE_URL}/blog/${encodeURIComponent(seed.blog.slug)}`)}</loc>`));
+  assert.doesNotMatch(xml, new RegExp(`/events/${escapeForRegex(seed.placeholderEvent.slug)}`));
 
   assert.doesNotMatch(xml, /<loc>.*\/login<\/loc>/i);
   assert.doesNotMatch(xml, /<loc>.*\/leaderboard<\/loc>/i);
@@ -187,6 +188,26 @@ async function seedFixtures() {
     waiverVersion: 1
   });
 
+  const placeholderEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `shop-empty-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `SX-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Shop Empty Event ${stamp}`,
+    organiserName: 'Sitemap Organizer',
+    description: 'Placeholder event should not be indexed.',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    registrationOpenAt: new Date(now - 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 2 * 24 * 60 * 60 * 1000),
+    proofTypesAllowed: ['gps'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
   const blog = await Blog.create({
     authorId: author._id,
     title: `Sitemap Blog ${stamp}`,
@@ -201,14 +222,14 @@ async function seedFixtures() {
     approvedAt: new Date()
   });
 
-  return { author, organizer, event, blog };
+  return { author, organizer, event, placeholderEvent, blog };
 }
 
 async function cleanupFixtures(currentSeed) {
   if (!currentSeed) return;
   await Promise.all([
     Blog.deleteMany({ _id: currentSeed.blog._id }),
-    Event.deleteMany({ _id: currentSeed.event._id }),
+    Event.deleteMany({ _id: { $in: [currentSeed.event._id, currentSeed.placeholderEvent._id] } }),
     User.deleteMany({
       _id: { $in: [currentSeed.author._id, currentSeed.organizer._id] }
     })

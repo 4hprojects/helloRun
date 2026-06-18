@@ -44,7 +44,7 @@ const POLICY_DOCUMENTS = Object.freeze([
     adminPath: '/admin/data-usage-policy',
     sourceFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/data-usage-policy.md'),
     fallbackFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/data-usage-policy.md'),
-    summaryOfChanges: 'Initial Data Usage Policy'
+    summaryOfChanges: 'Updated Data Usage Policy'
   },
   {
     key: 'refund',

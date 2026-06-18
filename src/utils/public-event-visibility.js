@@ -23,7 +23,7 @@ function getPublicEventVisibilityQuery(now = new Date()) {
   };
 }
 
-const LEGACY_TEST_EVENT_PATTERN = /\b(?:submission service test event|smoke|smoke[-_ ]?test|test|test[-_ ]?event|test[-_ ]?run|dummy|qa|staging)\b/i;
+const LEGACY_TEST_EVENT_PATTERN = /\b(?:submission service test event|shop[-_ ]?empty[-_ ]?event|empty[-_ ]?event|placeholder|smoke|smoke[-_ ]?test|test|test[-_ ]?event|test[-_ ]?run|dummy|qa|staging)\b/i;
 
 function isPublicEventVisible(event, now = new Date()) {
   if (!event) return false;

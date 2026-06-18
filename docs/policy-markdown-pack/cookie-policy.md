@@ -26,6 +26,7 @@ HelloRun may use the following categories of cookies and similar technologies:
 | Essential cookies | Login, account security, session management, CSRF protection, platform operation | Yes |
 | Functional cookies | Remember preferences and selected settings | Optional where applicable |
 | Analytics cookies | Understand traffic, feature usage, and platform performance | Optional where applicable |
+| Advertising cookies | Support Google AdSense or other ad serving, ad measurement, frequency limits, and fraud prevention | Optional where applicable or required by law |
 | Third-party cookies | Support payment tools, analytics tools, embedded services, or external integrations | Depends on feature |
 
 Essential cookies are required for the platform to work.
@@ -95,10 +96,28 @@ These may include:
 - embedded services
 - cloud or security tools
 - third-party login or activity import tools, where available
+- advertising partners, including Google AdSense, where ads are shown
 
 Third-party services may have their own cookie and privacy policies.
 
-## 8. Similar Technologies
+## 8. Advertising Cookies and Google AdSense
+
+HelloRun may use Google AdSense or other advertising partners to display ads.
+
+Advertising partners may use cookies, web beacons, pixel tags, IP addresses, browser or device identifiers, ad request data, and similar technologies to:
+
+- serve ads
+- measure ad performance
+- personalize or limit ads where allowed
+- prevent invalid traffic and fraud
+- understand aggregate ad interactions
+- comply with advertising policies
+
+Third parties, including Google, may place or read cookies on a user's browser or use web beacons, IP addresses, or other identifiers as a result of ad serving on HelloRun.
+
+Users can learn how Google uses data from partner sites at https://policies.google.com/technologies/partner-sites and manage Google advertising preferences at https://adssettings.google.com where available.
+
+## 9. Similar Technologies
 
 HelloRun may also use technologies similar to cookies, including:
 
@@ -109,9 +128,9 @@ HelloRun may also use technologies similar to cookies, including:
 - device or browser identifiers
 - server logs
 
-These technologies may support authentication, fraud prevention, performance monitoring, and user experience improvements.
+These technologies may support authentication, fraud prevention, performance monitoring, advertising, and user experience improvements.
 
-## 9. Cookie Consent Records
+## 10. Cookie Consent Records
 
 Where required, HelloRun may store records of cookie consent choices, including:
 
@@ -123,7 +142,7 @@ Where required, HelloRun may store records of cookie consent choices, including:
 
 This helps HelloRun honour user preferences and maintain compliance records.
 
-## 10. Managing Cookies
+## 11. Managing Cookies
 
 Users may manage cookies through:
 
@@ -134,13 +153,13 @@ Users may manage cookies through:
 
 Blocking or deleting cookies may affect some platform features.
 
-## 11. Updates to This Cookie Policy
+## 12. Updates to This Cookie Policy
 
 HelloRun may update this Cookie Policy from time to time.
 
 Material updates may be announced through the platform, email, dashboard notice, or other reasonable means.
 
-## 12. Contact
+## 13. Contact
 
 For questions about this Cookie Policy, contact:
 

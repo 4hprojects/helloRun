@@ -85,6 +85,21 @@ test('smoke and legacy test events are hidden from public event surfaces', async
 
   const detailResponse = await fetch(`${BASE_URL}/events/${seed.smokeTestSlug}`, { redirect: 'manual' });
   assert.equal(detailResponse.status, 404);
+
+  const placeholderSearch = await fetch(`${BASE_URL}/events?q=Shop%20Empty%20Event`);
+  assert.equal(placeholderSearch.status, 200);
+  const placeholderHtml = await placeholderSearch.text();
+  assert.doesNotMatch(placeholderHtml, new RegExp(`/events/${seed.placeholderEventSlug}`));
+
+  const placeholderDetail = await fetch(`${BASE_URL}/events/${seed.placeholderEventSlug}`, { redirect: 'manual' });
+  assert.equal(placeholderDetail.status, 404);
+});
+
+test('about page does not surface placeholder events', async () => {
+  const response = await fetch(`${BASE_URL}/about`);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.doesNotMatch(html, /Shop Empty Event/i);
 });
 
 test('future public posting date hides registration page', async () => {
@@ -109,6 +124,19 @@ test('homepage renders featured event carousel cards for eligible public events'
   assert.match(html, /\/images\/helloRun-icon\.webp/i);
   assert.doesNotMatch(html, /Scheduled Posting Hidden Run/i);
   assert.doesNotMatch(html, /Submission service test event/i);
+});
+
+test('event detail page explains accumulated multi-distance goals by category', async () => {
+  const response = await fetch(`${BASE_URL}/events/${seed.accumulatedMultiSlug}`);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+
+  assert.match(html, /Complete your selected category distance/i);
+  assert.match(html, /25K Quest[\s\S]*25 km/i);
+  assert.match(html, /200K Quest[\s\S]*200 km/i);
+  assert.match(html, /Completion is measured against the distance for the category selected during registration/i);
+  assert.doesNotMatch(html, /completion is measured against the goal above/i);
+  assert.doesNotMatch(html, /<h2>Complete 200 km<\/h2>/i);
 });
 
 test('future public posting date excludes event from sitemap', async () => {
@@ -469,6 +497,59 @@ async function seedPublicFilterFixture() {
     waiverVersion: 1
   });
 
+  const placeholderEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `shop-empty-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `SE-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Shop Empty Event ${stamp}`,
+    organiserName: 'Public Organizer',
+    description: 'Placeholder event should not be publicly discoverable.',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    registrationOpenAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 10 * 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 11 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 12 * 24 * 60 * 60 * 1000),
+    homeFeatured: true,
+    homeFeaturedRank: 1,
+    city: 'Manila',
+    country: 'PH',
+    proofTypesAllowed: ['gps', 'photo'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
+  const accumulatedMultiEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `category-quest-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `CQ-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: 'Category Quest Virtual Run',
+    organiserName: 'Public Organizer',
+    description: 'Accumulated multi-distance challenge.',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['25K', '200K'],
+    raceCategories: [
+      { categoryId: 'quest-25', name: '25K Quest', type: 'distance', distanceLabel: '25K', distanceKm: 25 },
+      { categoryId: 'quest-200', name: '200K Quest', type: 'distance', distanceLabel: '200K', distanceKm: 200 }
+    ],
+    virtualCompletionMode: 'accumulated_distance',
+    targetDistanceKm: 200,
+    registrationOpenAt: new Date(now - 2 * 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 10 * 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 11 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 12 * 24 * 60 * 60 * 1000),
+    city: 'Manila',
+    country: 'PH',
+    proofTypesAllowed: ['gps', 'photo'],
+    acceptedRunTypes: ['run', 'walk'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
   const nutritionBlog = await Blog.create({
     authorId: author._id,
     title: 'Nutrition for New Runners',
@@ -515,9 +596,11 @@ async function seedPublicFilterFixture() {
     futurePostedSlug: futurePostedEvent.slug,
     pastPostedSlug: pastPostedEvent.slug,
     smokeTestSlug: smokeTestEvent.slug,
+    placeholderEventSlug: placeholderEvent.slug,
+    accumulatedMultiSlug: accumulatedMultiEvent.slug,
     eventIds: [String(upcomingVirtual._id)]
       .concat(extraUpcomingVirtualEvents.map((item) => String(item._id)))
-      .concat([String(upcomingOnsite._id), String(descriptionOnlyEvent._id), String(oldEvent._id), String(recentClosedEvent._id), String(futurePostedEvent._id), String(pastPostedEvent._id), String(smokeTestEvent._id)]),
+      .concat([String(upcomingOnsite._id), String(descriptionOnlyEvent._id), String(oldEvent._id), String(recentClosedEvent._id), String(futurePostedEvent._id), String(pastPostedEvent._id), String(smokeTestEvent._id), String(placeholderEvent._id), String(accumulatedMultiEvent._id)]),
     blogIds: [String(nutritionBlog._id), String(trainingBlog._id), String(draftBlog._id)]
   };
 }
@@ -561,7 +644,7 @@ async function cleanupPublicFilterArtifacts() {
   await Promise.all([
     Event.deleteMany({
       slug: {
-        $regex: /^(virtual-sunrise|onsite-trail|old-city-run|recent-closed-run|description-only-public-organizer|scheduled-posting-hidden|scheduled-posting-visible|submission-service-test-event)-/
+        $regex: /^(virtual-sunrise|onsite-trail|old-city-run|recent-closed-run|description-only-public-organizer|scheduled-posting-hidden|scheduled-posting-visible|submission-service-test-event|shop-empty-event|category-quest)-/
       }
     }),
     Blog.deleteMany({

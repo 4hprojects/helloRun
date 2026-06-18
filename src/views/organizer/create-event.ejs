@@ -323,7 +323,7 @@
                     Completion Goal
                     <span class="field-help-icon" tabindex="0" aria-label="The accumulated challenge target is derived from the race distance selected in Race Categories.">?</span>
                   </label>
-                  <p id="targetDistanceHint" class="field-hint distance-auto-hint">For accumulated challenges, the largest numeric race distance in Step 5 becomes the completion goal.</p>
+                  <p id="targetDistanceHint" class="field-hint distance-auto-hint">For accumulated challenges, runners complete the distance tied to the category they choose.</p>
                 </div>
                 <div class="form-group">
                   <label for="finalSubmissionDeadlineAt" class="label-with-help">
@@ -517,7 +517,7 @@
               <div id="legacyRaceDistanceFields" hidden></div>
               <input id="raceDistanceCustom" name="raceDistanceCustom" type="text" value="<%= formData.raceDistanceCustom || '' %>" hidden>
               <small class="field-hint">Numbers are treated as kilometers, so 10, 10k, and 10 km become 10K.</small>
-              <small class="field-hint">For accumulated challenges with multiple distances, the largest numeric distance becomes the completion goal runners must reach.</small>
+              <small class="field-hint">For accumulated challenges with multiple distances, each category can be used as its own completion goal.</small>
               <% if (errors.raceDistances) { %><small class="error-text"><%= errors.raceDistances %></small><% } %>
             </div>
           </div>

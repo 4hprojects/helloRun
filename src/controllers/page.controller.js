@@ -47,7 +47,7 @@ const uploadService = require('../services/upload.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../utils/country');
 const { BLOG_CATEGORIES } = require('../utils/blog');
 const { renderWaiverTemplate } = require('../utils/waiver');
-const { assertRunDateNotFuture, parseRunDateOnly } = require('../utils/platform-date');
+const { assertRunDateNotFuture, formatPlatformDate, parseRunDateOnly } = require('../utils/platform-date');
 const { isRunDateAlignedWithEvent } = require('../utils/submission-window');
 const {
   canRunnerSubmitPaymentProof,
@@ -248,7 +248,7 @@ exports.getEventDetails = async (req, res) => {
       listProductsByMongoEventId(String(event._id), { limit: 4, publicOnly: true }).catch(() => [])
     ]);
     const baseUrl = getSitemapBaseUrl(req);
-    const publicEvent = buildPublicEventView(event, { registrationCount });
+    const publicEvent = buildPublicEventView(event, { registrationCount, eventBadges: badges });
     const eventShop = {
       href: `/events/${event.slug}/shop`,
       products: eventShopProducts,
@@ -2975,14 +2975,7 @@ function formatGenderLabel(value) {
 }
 
 function formatDateOnly(value) {
-  if (!value) return 'N/A';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'N/A';
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
+  return formatPlatformDate(value, 'N/A');
 }
 
 function buildBadgeCollectionScopeSummary(badges = []) {

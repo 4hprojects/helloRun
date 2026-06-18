@@ -82,6 +82,26 @@ test('buildDefaultEventBadges adds challenge milestones for accumulated badge-en
   assert.equal(challengeBadges[0].emailNotificationLevel, 'none');
 });
 
+test('buildDefaultEventBadges avoids global challenge milestones for accumulated category goals', () => {
+  const badges = buildDefaultEventBadges({
+    _id: 'event-multi-accumulated',
+    slug: 'june-category-quest',
+    title: 'June Category Quest',
+    raceDistances: ['25K', '200K'],
+    raceCategories: [
+      { categoryId: '25', distanceLabel: '25K', distanceKm: 25 },
+      { categoryId: '200', distanceLabel: '200K', distanceKm: 200 }
+    ],
+    eventTypesAllowed: ['virtual'],
+    virtualCompletionMode: 'accumulated_distance',
+    targetDistanceKm: 200
+  });
+
+  assert.equal(badges.some((badge) => badge.requirementType === 'challenge_progress'), false);
+  assert.ok(badges.some((badge) => badge.badgeType === 'distance_finisher' && badge.requirementValue.raceDistance === '25K'));
+  assert.ok(badges.some((badge) => badge.badgeType === 'distance_finisher' && badge.requirementValue.raceDistance === '200K'));
+});
+
 test('buildDefaultEventBadges adds leaderboard rank badges when recognition is enabled', () => {
   const badges = buildDefaultEventBadges({
     _id: 'event-rank',

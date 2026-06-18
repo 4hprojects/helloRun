@@ -1,6 +1,7 @@
 const { markdownToHtml } = require('./markdown');
 const { sanitizeHtml, htmlToPlainText } = require('./sanitize');
 const { getCountryName } = require('./country');
+const { formatPlatformDate } = require('./platform-date');
 
 const EVENT_DETAILS_SANITIZE_OPTIONS = Object.freeze({
   allowedTags: [
@@ -59,7 +60,10 @@ function buildPublicEventView(event, options = {}) {
     .map((category) => category.distanceLabel)
     .filter(Boolean);
   const raceDistances = uniqueList(normalizeList(event.raceDistances).map((item) => item.toUpperCase()).concat(categoryDistanceLabels));
-  const rewardItems = buildRewardItems(event);
+  const hasPublicBadges = Array.isArray(options.eventBadges)
+    ? options.eventBadges.length > 0
+    : options.hasPublicBadges;
+  const rewardItems = buildRewardItems(event, { hasPublicBadges });
   const packageOptions = buildPackageOptions(event);
   const pricingOptions = buildPricingOptions(event, raceCategories, now);
   const pricing = buildPricingSummary(event, packageOptions, pricingOptions);
@@ -73,6 +77,8 @@ function buildPublicEventView(event, options = {}) {
     ? `${formatNumber(event.targetDistanceKm)} km`
     : (raceDistances[0] || 'Open distance');
   const isAccumulatedChallenge = event.virtualCompletionMode === 'accumulated_distance';
+  const categoryGoalOptions = buildCategoryGoalOptions(raceCategories);
+  const hasCategorySpecificGoals = isAccumulatedChallenge && categoryGoalOptions.length > 1;
   const distanceSummaryLabel = raceDistances.length
     ? raceDistances.join(', ')
     : targetDistanceLabel;
@@ -90,8 +96,11 @@ function buildPublicEventView(event, options = {}) {
     raceDistances,
     raceCategories,
     targetDistanceLabel,
+    completionGoalLabel: hasCategorySpecificGoals ? 'Selected category distance' : targetDistanceLabel,
     distanceSummaryLabel,
     isAccumulatedChallenge,
+    hasCategorySpecificGoals,
+    categoryGoalOptions,
     registrationState,
     pricing,
     pricingOptions,
@@ -386,10 +395,13 @@ function buildPricingOptions(event, raceCategories = [], now = new Date()) {
   return [];
 }
 
-function buildRewardItems(event) {
+function buildRewardItems(event, options = {}) {
   const items = [];
   if (event.digitalCertificateEnabled !== false) items.push({ label: 'Digital certificate', type: 'digital' });
-  if (event.digitalBadgeEnabled) items.push({ label: 'Digital badge', type: 'digital' });
+  const shouldListDigitalBadge = options.hasPublicBadges === undefined
+    ? event.digitalBadgeEnabled
+    : Boolean(event.digitalBadgeEnabled && options.hasPublicBadges);
+  if (shouldListDigitalBadge) items.push({ label: 'Digital badge', type: 'digital' });
   if (event.leaderboardRecognitionEnabled !== false) items.push({ label: 'Leaderboard recognition', type: 'digital' });
 
   if (event.physicalRewardsEnabled) {
@@ -404,6 +416,28 @@ function buildRewardItems(event) {
   }
 
   return items;
+}
+
+function buildCategoryGoalOptions(raceCategories = []) {
+  const seen = new Set();
+  return raceCategories
+    .map((category) => {
+      const distanceKm = firstFiniteNumber(category?.distanceKm);
+      if (distanceKm === null || distanceKm <= 0) return null;
+      const distanceLabel = String(category.distanceLabel || `${formatNumber(distanceKm)}K`).trim().toUpperCase();
+      const name = String(category.name || distanceLabel).trim();
+      const key = `${name.toLowerCase()}|${distanceKm}`;
+      if (seen.has(key)) return null;
+      seen.add(key);
+      return {
+        id: category.id,
+        name,
+        distanceLabel,
+        distanceKm,
+        distanceKmLabel: `${formatNumber(distanceKm)} km`
+      };
+    })
+    .filter(Boolean);
 }
 
 function buildRaceCategorySummaries(event) {
@@ -699,13 +733,7 @@ function formatDateRange(startValue, endValue) {
 }
 
 function formatDate(value) {
-  const date = parseDate(value);
-  if (!date) return 'Date not listed';
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
+  return formatPlatformDate(value, 'Date not listed');
 }
 
 function formatMoney(amount, currency = 'PHP') {
