@@ -234,7 +234,8 @@ async function seedFixtures() {
 
   const eventCoreRows = await sql`
     insert into events_core (
-      mongo_event_id, slug, title, status, organiser_id, start_date, end_date
+      mongo_event_id, slug, title, status, organiser_id,
+      event_start_at, event_end_at
     )
     values (
       ${String(event._id)},
@@ -245,6 +246,8 @@ async function seedFixtures() {
       ${new Date(now - 10 * 24 * 60 * 60 * 1000)},
       ${new Date(now + 30 * 24 * 60 * 60 * 1000)}
     )
+    on conflict (mongo_event_id) do update
+      set title = excluded.title, status = excluded.status
     returning id
   `;
   const eventCoreId = eventCoreRows[0].id;
