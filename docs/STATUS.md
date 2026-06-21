@@ -1,6 +1,6 @@
 # HelloRun — Current Status
 
-_Last updated: June 21, 2026_
+_Last updated: June 22, 2026_
 
 ---
 
@@ -26,6 +26,7 @@ _Last updated: June 21, 2026_
 | Run proof review workflow | June 3, 2026 | — |
 | Shop backend + cart/checkout/platform-merch | June 7, 2026 | 69/69 |
 | Phase 11 — Shop reports, exports & admin settings | June 21, 2026 | 69/69 + 8 new |
+| DB Priority 1 — Postgres pool (25), sync failure logging, `/healthz/sync` | June 22, 2026 | — |
 
 ---
 

@@ -2,6 +2,8 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const { getPostgresClient } = require('../db/postgres');
 const { syncAppUserFromMongoUser } = require('./user-bridge.service');
+const logger = require('../utils/logger');
+const { recordSyncFailureInBackground } = require('./sync-failure.service');
 
 function buildAuditIdempotencyKey(input = {}) {
   const stable = {
@@ -85,11 +87,15 @@ async function recordCriticalAuditEvent(input = {}, options = {}) {
 function recordCriticalAuditEventInBackground(input = {}) {
   recordCriticalAuditEvent(input)
     .catch((error) => {
-      console.error('Supabase critical audit write failed:', {
+      logger.error('Supabase critical audit write failed:', {
         action: input.action,
         targetType: input.targetType,
         targetId: input.targetId,
         error: error.message
+      });
+      recordSyncFailureInBackground('critical_audit', String(input.targetId || ''), error, {
+        action: input.action,
+        targetType: input.targetType
       });
     });
 }

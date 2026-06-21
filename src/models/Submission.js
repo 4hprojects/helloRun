@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const { syncSubmissionShadow } = require('../services/submission-shadow.service');
 const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
+const logger = require('../utils/logger');
+const { recordSyncFailureInBackground } = require('../services/sync-failure.service');
 
 /**
  * Shared schema fragments for activity metrics and metadata
@@ -377,8 +379,12 @@ function syncSubmissionShadowInBackground(doc) {
   }
   
   // Fire and forget: don't await, catch errors independently
-  syncSubmissionShadow(doc, { operation: 'live_sync' }).catch(error => {
-    console.error(`[Submission Shadow Sync] Failed to sync submission ${doc._id}: ${error.message}`);
+  syncSubmissionShadow(doc, { operation: 'live_sync' }).catch((error) => {
+    logger.error('[Submission Shadow Sync] Failed to sync submission:', {
+      submissionId: String(doc._id),
+      error: error?.message || String(error)
+    });
+    recordSyncFailureInBackground('submission', String(doc._id), error, { operation: 'live_sync' });
   });
 }
 

@@ -1,6 +1,7 @@
 # HelloRun — Hybrid Database Architecture Assessment & Roadmap
 
 **Written:** June 22, 2026
+**Priority 1 implemented:** June 22, 2026 — pool size (25), sync failure logging (`sync_failure_log`), `/healthz/sync` endpoint
 **Author context:** Internal reference for current and future developers
 **Related docs:** `database/hellorun_hybrid_database_schema_architecture.md`, `security_route_matrix.md`
 

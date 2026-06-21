@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const { syncRegistrationPaymentShadow } = require('../services/registration-payment-shadow.service');
 const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
+const logger = require('../utils/logger');
+const { recordSyncFailureInBackground } = require('../services/sync-failure.service');
 
 const registrationSchema = new mongoose.Schema(
   {
@@ -192,10 +194,11 @@ function syncRegistrationPaymentShadowInBackground(doc) {
   }
 
   syncRegistrationPaymentShadow(doc, { operation: 'live_sync' }).catch((error) => {
-    console.error('Supabase registration/payment shadow sync failed:', {
+    logger.error('Supabase registration/payment shadow sync failed:', {
       registrationId: String(doc._id),
       error: error?.message || String(error)
     });
+    recordSyncFailureInBackground('registration', String(doc._id), error, { operation: 'live_sync' });
   });
 }
 

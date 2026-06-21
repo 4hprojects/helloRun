@@ -20,6 +20,8 @@ const { syncProfileCompletionNotification } = require('../services/profile-compl
 const crypto = require('crypto');
 const { redirectIfAuth } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
+const logger = require('../utils/logger');
+const { recordSyncFailureInBackground } = require('../services/sync-failure.service');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 
 const LOGIN_TURNSTILE_FAILURE_THRESHOLD = 3;
@@ -111,11 +113,12 @@ function startAuthenticatedSession(req, user) {
 function syncUserComplianceInBackground(user, source = 'live_sync') {
   syncPolicyConsentsForMongoUser(user, { source })
     .catch((error) => {
-      console.error('Supabase user compliance sync failed:', {
+      logger.error('Supabase user compliance sync failed:', {
         userId: String(user?._id || ''),
         source,
         error: error.message
       });
+      recordSyncFailureInBackground('user_compliance', String(user?._id || ''), error, { source });
     });
 }
 

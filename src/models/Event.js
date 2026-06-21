@@ -2,6 +2,8 @@ const mongoose = require('mongoose');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { syncEventShadow } = require('../services/event-shadow.service');
 const { applySmokeTestSchema } = require('../utils/smoke-test-schema');
+const logger = require('../utils/logger');
+const { recordSyncFailureInBackground } = require('../services/sync-failure.service');
 
 const eventSchema = new mongoose.Schema(
   {
@@ -658,10 +660,11 @@ function syncEventShadowInBackground(doc) {
   }
 
   syncEventShadow(doc, { operation: 'live_sync' }).catch((error) => {
-    console.error('Supabase event shadow sync failed:', {
+    logger.error('Supabase event shadow sync failed:', {
       eventId: String(doc._id),
       error: error?.message || String(error)
     });
+    recordSyncFailureInBackground('event', String(doc._id), error, { operation: 'live_sync' });
   });
 }
 

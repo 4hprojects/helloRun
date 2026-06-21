@@ -1,5 +1,7 @@
 const { getPostgresClient } = require('../db/postgres');
 const { syncAppUserFromMongoUser } = require('./user-bridge.service');
+const logger = require('../utils/logger');
+const { recordSyncFailureInBackground } = require('./sync-failure.service');
 
 const POLICY_TYPES = Object.freeze({
   privacy: 'privacy_policy',
@@ -111,10 +113,13 @@ async function syncPolicyConsentsForMongoUser(user, options = {}) {
 function syncPolicyConsentsInBackground(user, options = {}) {
   syncPolicyConsentsForMongoUser(user, options)
     .catch((error) => {
-      console.error('Supabase policy consent sync failed:', {
+      logger.error('Supabase policy consent sync failed:', {
         userId: String(user?._id || ''),
         source: options.source || 'live_sync',
         error: error.message
+      });
+      recordSyncFailureInBackground('policy_consent', String(user?._id || ''), error, {
+        source: options.source || 'live_sync'
       });
     });
 }

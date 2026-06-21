@@ -85,6 +85,28 @@ app.get('/readyz', (req, res) => {
   });
 });
 
+app.get('/healthz/sync', async (req, res) => {
+  if (req.session?.role !== 'admin') {
+    return res.status(403).json({ ok: false, error: 'Admin access required.' });
+  }
+  try {
+    const { getRecentFailures, countUnresolvedFailures } = require('./services/sync-failure.service');
+    const [byType, recent] = await Promise.all([
+      countUnresolvedFailures(1440),
+      getRecentFailures({ limit: 10, sinceMins: 1440 })
+    ]);
+    const total = byType.reduce((sum, row) => sum + row.count, 0);
+    return res.status(200).json({
+      ok: total === 0,
+      checkedAt: new Date().toISOString(),
+      unresolvedLast24h: { total, byType },
+      recentFailures: recent
+    });
+  } catch (error) {
+    return res.status(503).json({ ok: false, error: 'Postgres unavailable.', detail: error.message });
+  }
+});
+
 // Avoid noisy 404s for favicon requests in development
 app.get('/favicon.ico', (_req, res) => {
   res.status(204).end();
