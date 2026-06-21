@@ -95,6 +95,8 @@ const { buildPublicEventListPage, listHomepagePromotedEvents } = require('../ser
 const { getHomepageCarouselSettings } = require('../services/homepage-carousel-setting.service');
 const { getPostgresClient } = require('../db/postgres');
 const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
+const logger = require('../utils/logger');
+const { recordSyncFailureInBackground } = require('../services/sync-failure.service');
 
 const countries = getCountries();
 exports.getHome = async (req, res) => {
@@ -1156,10 +1158,11 @@ exports.postUploadPaymentProof = async (req, res) => {
     const updatedRegistration = await Registration.findById(registration._id);
     if (updatedRegistration) {
       syncRegistrationPaymentShadow(updatedRegistration, { operation: 'live_sync' }).catch((error) => {
-        console.error('Supabase registration/payment shadow sync failed:', {
+        logger.error('Supabase registration/payment shadow sync failed:', {
           registrationId: String(registration._id),
           error: error?.message || String(error)
         });
+        recordSyncFailureInBackground('registration', String(registration._id), error, { operation: 'live_sync' });
       });
 
       await upsertShopPaymentForRegistrationProof({

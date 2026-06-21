@@ -5,6 +5,7 @@ const Registration = require('../models/Registration');
 const Event = require('../models/Event');
 const User = require('../models/User');
 const { issueSubmissionCertificate } = require('./certificate.service');
+const { buildVerificationUrl } = require('./certificateNumber.service');
 const communicationService = require('./communication.service');
 const { isSubmissionWindowOpen } = require('../utils/submission-window');
 const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
@@ -1318,6 +1319,7 @@ function getRecentCertificatesForModel(Model, runnerId, limit) {
 }
 
 function formatRecentCertificate(item) {
+  const certNumber = String(item.certificate?.certificateNumber || '').trim();
   return {
     submissionId: String(item._id),
     submissionKind: item.submissionKind || 'standard',
@@ -1329,6 +1331,8 @@ function formatRecentCertificate(item) {
     distanceKm: Number(item.distanceKm || 0),
     elapsedLabel: formatElapsedMs(item.elapsedMs),
     certificateUrl: item.certificate?.url || '',
+    certificateNumber: certNumber,
+    verifyUrl: certNumber ? buildVerificationUrl(certNumber) : '',
     issuedAt: item.certificate?.issuedAt || item.reviewedAt || item.submittedAt || null
   };
 }

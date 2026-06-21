@@ -1,10 +1,59 @@
-<div class="card-content" id="certificatesPanel" hidden data-dashboard-fragment="certificates">
+<div class="card-content" id="certificatesPanel" data-dashboard-fragment="certificates">
   <div class="stats-mini">
     <div><strong>Total distance:</strong> <%= Number(performanceStats?.totalDistanceKm || 0).toFixed(2) %> km</div>
     <div><strong>Completed events:</strong> <%= performanceStats?.completedEvents || 0 %></div>
     <% if (personalBest) { %><div><strong>Personal best:</strong> <%= personalBest.elapsedLabel %> (<%= personalBest.raceDistance %>) <span class="text-muted"><%= personalBest.eventTitle %></span></div><% } %>
     <div><strong>Total certificates:</strong> <%= submissionStats?.certificates || 0 %></div>
   </div>
-  <% if (cards.certificates && cards.certificates.length) { %><ul class="item-list compact certificate-list"><% cards.certificates.forEach((item) => { %><li class="item-row certificate-row"><span class="certificate-row-icon"><i data-lucide="badge-check" aria-hidden="true"></i></span><div class="item-main"><div><strong><%= item.eventTitle %></strong></div><div class="item-meta">Issued: <%= item.issuedAtLabel %><% if (item.raceDistance) { %> &middot; <%= item.raceDistance %><% } %><% if (item.elapsedLabel && item.elapsedLabel !== '00:00:00') { %> &middot; <%= item.elapsedLabel %><% } %></div><% if (item.confirmationCode) { %><div class="item-meta">Code: <code><%= item.confirmationCode %></code></div><% } %></div><a href="/my-submissions/<%= item.submissionId %>/certificate" class="btn btn-sm btn-primary"><i data-lucide="download" aria-hidden="true"></i> Download</a></li><% }) %></ul>
+  <% if (cards.certificates && cards.certificates.length) { %>
+  <ul class="item-list compact certificate-list">
+    <% cards.certificates.forEach((item) => { %>
+      <li class="item-row certificate-row">
+        <span class="certificate-row-icon"><i data-lucide="badge-check" aria-hidden="true"></i></span>
+        <div class="item-main">
+          <div><strong><%= item.eventTitle %></strong></div>
+          <div class="item-meta">
+            Issued: <%= item.issuedAtLabel %>
+            <% if (item.raceDistance) { %> &middot; <%= item.raceDistance %><% } %>
+            <% if (item.elapsedLabel && item.elapsedLabel !== '00:00:00') { %> &middot; <%= item.elapsedLabel %><% } %>
+          </div>
+          <% if (item.confirmationCode) { %><div class="item-meta">Code: <code><%= item.confirmationCode %></code></div><% } %>
+        </div>
+        <div class="item-actions">
+          <a href="/my-submissions/<%= item.submissionId %>/certificate" class="btn btn-sm btn-primary" title="Download certificate">
+            <i data-lucide="download" aria-hidden="true"></i> Download
+          </a>
+          <% if (item.verifyUrl) { %>
+            <a href="<%= item.verifyUrl %>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline" title="Open public verification page">
+              <i data-lucide="external-link" aria-hidden="true"></i> Verify
+            </a>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline"
+              data-copy-cert-url="<%= item.verifyUrl %>"
+              title="Copy verification link to clipboard"
+            >
+              <i data-lucide="link" aria-hidden="true"></i> <span class="copy-label">Copy Link</span>
+            </button>
+          <% } %>
+        </div>
+      </li>
+    <% }) %>
+  </ul>
+  <script>
+    document.querySelectorAll('[data-copy-cert-url]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var url = btn.getAttribute('data-copy-cert-url');
+        var label = btn.querySelector('.copy-label');
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(function() {
+            if (label) { label.textContent = 'Copied!'; setTimeout(function() { label.textContent = 'Copy Link'; }, 2000); }
+          }).catch(function() { prompt('Copy this verification link:', url); });
+        } else {
+          prompt('Copy this verification link:', url);
+        }
+      });
+    });
+  </script>
   <% } else { %><div class="empty-state"><p class="empty-message">No certificates yet.</p></div><% } %>
 </div>

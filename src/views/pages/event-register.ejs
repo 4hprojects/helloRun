@@ -47,7 +47,9 @@
             <p><strong>Status</strong><span><%= existingRegistration.status || 'N/A' %></span></p>
             <p><strong>Payment Status</strong><span><%= existingRegistration.paymentStatus || 'N/A' %></span></p>
             <% if (Number(existingRegistration.paymentAmountDue || 0) > 0) { %>
-              <p><strong>Expected Payment</strong><span><%= existingRegistration.paymentCurrency || event.feeCurrency || 'PHP' %> <%= Number(existingRegistration.paymentAmountDue || 0).toFixed(2) %></span></p>
+              <p><strong>Registration Fee</strong><span><%= existingRegistration.paymentCurrency || event.feeCurrency || 'PHP' %> <%= Number(existingRegistration.paymentAmountDue || 0).toFixed(2) %></span></p>
+            <% } else { %>
+              <p><strong>Registration Fee</strong><span>Free — no payment required</span></p>
             <% } %>
             <% if (existingRegistration.pricingSnapshot?.optionDescription) { %>
               <p><strong>Signup Option</strong><span><%= existingRegistration.pricingSnapshot.optionDescription %></span></p>
@@ -411,6 +413,32 @@
 
         participationModeSelect.addEventListener('change', updateEmergencyContactVisibility);
         updateEmergencyContactVisibility();
+      })();
+    </script>
+  <% } %>
+  <% if (showRaceDistancePricePreview && Object.keys(raceDistancePricePreviewData).length) { %>
+    <script>
+      (function() {
+        var priceData = <%- JSON.stringify(raceDistancePricePreviewData) %>;
+        var distanceSelect = document.getElementById('raceDistance');
+        var priceValue = document.getElementById('raceDistancePriceValue');
+        var pricePeriod = document.getElementById('raceDistancePricePeriod');
+        if (!distanceSelect || !priceValue) return;
+
+        function updatePrice() {
+          var distance = distanceSelect.value;
+          var entry = priceData[distance];
+          if (entry && entry.amountLabel) {
+            priceValue.textContent = entry.amountLabel;
+            if (pricePeriod) pricePeriod.textContent = entry.periodLabel || '';
+          } else {
+            priceValue.textContent = 'Price varies — see event details';
+            if (pricePeriod) pricePeriod.textContent = '';
+          }
+        }
+
+        distanceSelect.addEventListener('change', updatePrice);
+        updatePrice();
       })();
     </script>
   <% } %>

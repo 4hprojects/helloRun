@@ -120,12 +120,17 @@
                 <section class="card-section payment-verification-section">
                   <h4><i data-lucide="receipt"></i> Payment Verification</h4>
                   <% if (isPaidEvent) { %>
-                    <p>Submit a payment receipt that shows your payment confirmation or reference. Activity screenshots belong in Run Result, not here.</p>
-                    <% if (Number(registration.paymentAmountDue || 0) > 0) { %>
-                      <p><strong>Registration fee:</strong> <%= registration.paymentCurrency || registration.eventId?.feeCurrency || 'PHP' %> <%= Number(registration.paymentAmountDue || 0).toFixed(2) %></p>
-                    <% } else if (registration.eventId?.feeAmount) { %>
-                      <p><strong>Event fee:</strong> <%= registration.eventId.feeCurrency || 'PHP' %> <%= Number(registration.eventId.feeAmount || 0).toFixed(2) %></p>
+                    <% const amountDue = Number(registration.paymentAmountDue || registration.eventId?.feeAmount || 0); %>
+                    <% const currency = registration.paymentCurrency || registration.eventId?.feeCurrency || 'PHP'; %>
+                    <% if (registration.paymentStatus === 'unpaid') { %>
+                      <div class="payment-amount-callout">
+                        <strong>Amount Due: <%= currency %> <%= amountDue.toFixed(2) %></strong>
+                        <span>Upload your payment receipt below to complete your registration.</span>
+                      </div>
+                    <% } else if (amountDue > 0) { %>
+                      <p><strong>Registration fee:</strong> <%= currency %> <%= amountDue.toFixed(2) %></p>
                     <% } %>
+                    <p>Submit a payment receipt that shows your payment confirmation or reference. Activity screenshots belong in Run Result, not here.</p>
                     <% if (registration.pricingSnapshot?.optionDescription) { %>
                       <p><strong>Signup option:</strong> <%= registration.pricingSnapshot.optionDescription %></p>
                     <% } %>

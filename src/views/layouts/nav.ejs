@@ -130,3 +130,23 @@
     </div>
   </div>
 </nav>
+<% if (locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer) { %>
+<nav class="mobile-bottom-nav" aria-label="Mobile navigation">
+  <a href="/runner/dashboard" class="mobile-nav-tab<%= isCurrent('/runner/dashboard') ? ' is-active' : '' %>" aria-label="Dashboard" <%= isCurrent('/runner/dashboard') ? 'aria-current="page"' : '' %>>
+    <i data-lucide="layout-dashboard" aria-hidden="true"></i>
+    <span>Dashboard</span>
+  </a>
+  <a href="/events" class="mobile-nav-tab<%= isCurrent('/events') ? ' is-active' : '' %>" aria-label="Events" <%= isCurrent('/events') ? 'aria-current="page"' : '' %>>
+    <i data-lucide="calendar-days" aria-hidden="true"></i>
+    <span>Events</span>
+  </a>
+  <a href="/my-registrations" class="mobile-nav-tab<%= isCurrent('/my-registrations') ? ' is-active' : '' %>" aria-label="My Registrations" <%= isCurrent('/my-registrations') ? 'aria-current="page"' : '' %>>
+    <i data-lucide="clipboard-list" aria-hidden="true"></i>
+    <span>Registrations</span>
+  </a>
+  <a href="/runner/submissions" class="mobile-nav-tab<%= isCurrent('/runner/submissions') ? ' is-active' : '' %>" aria-label="Submitted Entries" <%= isCurrent('/runner/submissions') ? 'aria-current="page"' : '' %>>
+    <i data-lucide="file-check" aria-hidden="true"></i>
+    <span>Submissions</span>
+  </a>
+</nav>
+<% } %>
