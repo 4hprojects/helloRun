@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell admin-shop-settings-shell">
+      <div class="admin-header-row admin-dashboard-header">
+        <div>
+          <p class="dashboard-kicker">Platform commerce</p>
+          <h2>Shop Settings</h2>
+          <p>Configure platform-wide shop behaviour, accepted payment methods, and fulfilment defaults.</p>
+        </div>
+        <div class="header-actions">
+          <a href="/admin/shop/reports" class="dash-section-link">Reports</a>
+          <a href="/admin/shop" class="dash-section-link">Back to Shop</a>
+        </div>
+      </div>
+
+      <% if (pageMessage) { %>
+        <div class="page-message page-message-<%= pageMessage.type %>" id="js-page-message">
+          <%= pageMessage.text %>
+        </div>
+      <% } %>
+      <div class="page-message" id="js-inline-message" style="display:none"></div>
+
+      <section class="detail-card detail-card-full">
+        <form id="js-shop-settings-form" class="admin-shop-settings-form">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+
+          <div class="form-field">
+            <label class="form-label">
+              <strong>Shop status</strong>
+            </label>
+            <label class="carousel-toggle-card">
+              <input type="checkbox" id="shop_enabled" name="shop_enabled" value="1" <%= config.shop_enabled ? 'checked' : '' %>>
+              <span class="carousel-toggle-ui" aria-hidden="true"></span>
+              <span>
+                <strong>Shop enabled</strong>
+                <small>When disabled, no new orders can be placed across any event or platform shop.</small>
+              </span>
+            </label>
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="payment_methods">
+              <strong>Accepted payment methods</strong>
+              <small>Comma-separated list (e.g. gcash, bank_transfer, cash_on_delivery)</small>
+            </label>
+            <input
+              type="text"
+              id="payment_methods"
+              name="payment_methods"
+              class="form-input"
+              value="<%= (config.payment_methods || []).join(', ') %>"
+              placeholder="gcash, bank_transfer"
+              required
+            >
+          </div>
+
+          <div class="form-field">
+            <label class="form-label" for="fulfilment_defaults">
+              <strong>Fulfilment defaults</strong>
+              <small>Optional JSON object for default fulfilment settings (e.g. <code>{"processing_days": 3}</code>). Leave blank for no defaults.</small>
+            </label>
+            <textarea
+              id="fulfilment_defaults"
+              name="fulfilment_defaults"
+              class="form-input form-textarea"
+              rows="4"
+              placeholder='{"processing_days": 3}'
+            ><%= Object.keys(config.fulfilment_defaults || {}).length ? JSON.stringify(config.fulfilment_defaults, null, 2) : '' %></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="nav-signup-btn" id="js-save-btn">Save Settings</button>
+          </div>
+        </form>
+      </section>
+    </section>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    (function () {
+      const form = document.getElementById('js-shop-settings-form');
+      const msgEl = document.getElementById('js-inline-message');
+      const saveBtn = document.getElementById('js-save-btn');
+
+      function showMsg(text, type) {
+        msgEl.textContent = text;
+        msgEl.className = 'page-message page-message-' + type;
+        msgEl.style.display = '';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const csrfToken = String(form.querySelector('[name="_csrf"]').value || '');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving…';
+
+        const body = {
+          shop_enabled: document.getElementById('shop_enabled').checked ? '1' : '0',
+          payment_methods: document.getElementById('payment_methods').value,
+          fulfilment_defaults: document.getElementById('fulfilment_defaults').value
+        };
+
+        try {
+          const res = await fetch('/admin/shop/settings', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+            body: JSON.stringify(body)
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            showMsg(data.message || 'Settings saved.', 'success');
+          } else {
+            showMsg(data.message || 'Failed to save settings.', 'error');
+          }
+        } catch {
+          showMsg('Network error — please try again.', 'error');
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save Settings';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -337,9 +337,121 @@ exports.patchPlatformPaymentReview = async (req, res, next) => {
     return next(error);
   }
 };
-exports.getReports = async (_req, res) => notLive(res, 'Admin reports are scaffolded but not yet live.');
-exports.getSettings = async (_req, res) => notLive(res, 'Admin shop settings are scaffolded but not yet live.');
-exports.patchSettings = async (_req, res) => res.status(501).json({ success: false, message: 'Admin shop settings update is not live yet.' });
+exports.getReports = async (_req, res, next) => {
+  try {
+    const orders = await orderService.listOrdersForAdmin({ limit: 1000 });
+
+    const byPaymentStatus = {};
+    const byFulfilmentStatus = {};
+    const byEvent = {};
+    let totalRevenue = 0;
+    let paidCount = 0;
+
+    for (const order of orders) {
+      const ps = String(order.payment_status || 'unknown');
+      const fs = String(order.fulfilment_status || 'unknown');
+      byPaymentStatus[ps] = (byPaymentStatus[ps] || 0) + 1;
+      byFulfilmentStatus[fs] = (byFulfilmentStatus[fs] || 0) + 1;
+
+      const eventLabel = order.event_title || 'Platform (HelloRun)';
+      if (!byEvent[eventLabel]) byEvent[eventLabel] = { count: 0, revenue: 0 };
+      byEvent[eventLabel].count++;
+
+      if (ps === 'paid') {
+        totalRevenue += Number(order.total_amount || 0);
+        paidCount++;
+        byEvent[eventLabel].revenue += Number(order.total_amount || 0);
+      }
+    }
+
+    const topEvents = Object.entries(byEvent)
+      .sort((a, b) => b[1].count - a[1].count)
+      .slice(0, 20)
+      .map(([name, data]) => ({ name, ...data }));
+
+    const stats = {
+      totalOrders: orders.length,
+      paidOrders: paidCount,
+      totalRevenue,
+      currency: orders[0]?.currency || 'PHP',
+      byPaymentStatus,
+      byFulfilmentStatus
+    };
+
+    return res.render('admin/shop-reports', {
+      title: 'Admin Shop Reports',
+      stats,
+      topEvents,
+      formatCurrency,
+      statusTone
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.getSettings = async (req, res, next) => {
+  try {
+    const rows = await getPostgresClient()`
+      select payment_methods, fulfilment_defaults, shop_enabled, updated_at
+      from shop_platform_config
+      where id = 'platform'
+      limit 1
+    `;
+    const config = rows[0] || {
+      payment_methods: ['gcash', 'bank_transfer'],
+      fulfilment_defaults: {},
+      shop_enabled: true
+    };
+
+    return res.render('admin/shop-settings', {
+      title: 'Admin Shop Settings',
+      config,
+      pageMessage: getPageMessage(req.query)
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.patchSettings = async (req, res, next) => {
+  try {
+    const shopEnabled = req.body.shop_enabled === '1' || req.body.shop_enabled === true;
+
+    const rawMethods = String(req.body.payment_methods || '').trim();
+    const paymentMethods = rawMethods
+      .split(',')
+      .map((m) => m.trim().toLowerCase())
+      .filter((m) => m.length > 0);
+
+    if (paymentMethods.length === 0) {
+      return res.status(400).json({ success: false, message: 'At least one payment method is required.' });
+    }
+
+    let fulfilmentDefaults = {};
+    const rawDefaults = String(req.body.fulfilment_defaults || '').trim();
+    if (rawDefaults) {
+      try {
+        fulfilmentDefaults = JSON.parse(rawDefaults);
+      } catch {
+        return res.status(400).json({ success: false, message: 'Fulfilment defaults must be valid JSON.' });
+      }
+    }
+
+    await getPostgresClient()`
+      update shop_platform_config
+      set payment_methods      = ${paymentMethods},
+          fulfilment_defaults  = ${JSON.stringify(fulfilmentDefaults)},
+          shop_enabled         = ${shopEnabled},
+          updated_at           = now()
+      where id = 'platform'
+    `;
+
+    return res.json({ success: true, message: 'Settings saved.' });
+  } catch (error) {
+    return next(error);
+  }
+};
 
 function notLive(res, message) {
   return res.status(501).render('error', {

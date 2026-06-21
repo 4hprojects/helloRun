@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell admin-shop-reports-shell">
+      <div class="admin-header-row admin-dashboard-header">
+        <div>
+          <p class="dashboard-kicker">Platform commerce</p>
+          <h2>Shop Reports</h2>
+          <p>Revenue and order breakdown across all event shops and platform merchandise.</p>
+        </div>
+        <div class="header-actions">
+          <a href="/admin/shop" class="dash-section-link">Back to Shop</a>
+          <a href="/admin/shop/settings" class="dash-section-link">Settings</a>
+        </div>
+      </div>
+
+      <section class="shop-manage-summary">
+        <div class="shop-manage-summary-card">
+          <strong>Total Orders</strong>
+          <span><%= stats.totalOrders %></span>
+        </div>
+        <div class="shop-manage-summary-card">
+          <strong>Paid Orders</strong>
+          <span><%= stats.paidOrders %></span>
+        </div>
+        <div class="shop-manage-summary-card">
+          <strong>Revenue (paid)</strong>
+          <span><%= formatCurrency(stats.totalRevenue, stats.currency) %></span>
+        </div>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <h3>Payment Status Breakdown</h3>
+        <% const paymentEntries = Object.entries(stats.byPaymentStatus); %>
+        <% if (paymentEntries.length) { %>
+          <table class="shop-report-table">
+            <thead>
+              <tr><th>Status</th><th>Orders</th></tr>
+            </thead>
+            <tbody>
+              <% paymentEntries.sort((a, b) => b[1] - a[1]).forEach(([status, count]) => { %>
+                <tr>
+                  <td><span class="shop-badge shop-badge-<%= statusTone(status) %>"><%= status %></span></td>
+                  <td><%= count %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <p class="shop-muted">No orders on the platform yet.</p>
+        <% } %>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <h3>Fulfilment Status Breakdown</h3>
+        <% const fulfilmentEntries = Object.entries(stats.byFulfilmentStatus); %>
+        <% if (fulfilmentEntries.length) { %>
+          <table class="shop-report-table">
+            <thead>
+              <tr><th>Status</th><th>Orders</th></tr>
+            </thead>
+            <tbody>
+              <% fulfilmentEntries.sort((a, b) => b[1] - a[1]).forEach(([status, count]) => { %>
+                <tr>
+                  <td><span class="shop-badge shop-badge-<%= statusTone(status) %>"><%= status %></span></td>
+                  <td><%= count %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <p class="shop-muted">No orders on the platform yet.</p>
+        <% } %>
+      </section>
+
+      <% if (topEvents.length) { %>
+        <section class="detail-card detail-card-full">
+          <h3>Orders by Event</h3>
+          <table class="shop-report-table">
+            <thead>
+              <tr><th>Event</th><th>Orders</th><th>Revenue (paid)</th></tr>
+            </thead>
+            <tbody>
+              <% topEvents.forEach((ev) => { %>
+                <tr>
+                  <td><%= ev.name %></td>
+                  <td><%= ev.count %></td>
+                  <td><%= formatCurrency(ev.revenue, stats.currency) %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </section>
+      <% } %>
+    </section>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

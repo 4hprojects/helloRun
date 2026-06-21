@@ -1,3 +1,4 @@
+const ExcelJS = require('exceljs');
 const productService = require('../services/shop/product.service');
 const variantService = require('../services/shop/variant.service');
 const orderService = require('../services/shop/order.service');
@@ -425,9 +426,82 @@ exports.patchPaymentReview = async (req, res, next) => {
   }
 };
 
-exports.getReports = async (_req, res) => notLive(res, 'Organizer shop reports are scaffolded but not yet live.');
-exports.exportReportCsv = async (_req, res) => res.status(501).json({ success: false, message: 'CSV export is not live yet.' });
-exports.exportReportXlsx = async (_req, res) => res.status(501).json({ success: false, message: 'XLSX export is not live yet.' });
+exports.getReports = async (req, res, next) => {
+  try {
+    const event = await Event.findById(req.params.eventId).select('_id slug title status').lean();
+    if (!event) {
+      return res.status(404).render('error', { title: 'Event Not Found', status: 404, message: 'Event not found.' });
+    }
+
+    const orders = await orderService.listOrdersByMongoEventId(req.params.eventId, { limit: 1000 });
+    const stats = computeOrderStats(orders);
+
+    return res.render('organizer/shop-reports', {
+      title: `Shop Reports — ${event.title}`,
+      event,
+      stats,
+      formatCurrency,
+      statusTone
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.exportReportCsv = async (req, res, next) => {
+  try {
+    const event = await Event.findById(req.params.eventId).select('_id slug title').lean();
+    if (!event) return res.status(404).json({ success: false, message: 'Event not found.' });
+
+    const orders = await orderService.listOrdersByMongoEventId(req.params.eventId, { limit: 1000 });
+    const { headers, rows } = getOrderExportData(orders);
+
+    const csvContent = [headers, ...rows].map((row) => row.map(csvEscape).join(',')).join('\n');
+    const safeSlug = String(event.slug || 'event').replace(/[^a-zA-Z0-9-_]/g, '');
+    const timestamp = new Date().toISOString().slice(0, 10);
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeSlug}-shop-orders-${timestamp}.csv"`);
+    return res.status(200).send(csvContent);
+  } catch (error) {
+    return next(error);
+  }
+};
+
+exports.exportReportXlsx = async (req, res, next) => {
+  try {
+    const event = await Event.findById(req.params.eventId).select('_id slug title').lean();
+    if (!event) return res.status(404).json({ success: false, message: 'Event not found.' });
+
+    const orders = await orderService.listOrdersByMongoEventId(req.params.eventId, { limit: 1000 });
+    const { headers, rows } = getOrderExportData(orders);
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'HelloRun';
+    workbook.created = new Date();
+    const worksheet = workbook.addWorksheet('Shop Orders');
+    worksheet.addRow(headers);
+    rows.forEach((row) => worksheet.addRow(row));
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.columns.forEach((column) => {
+      let maxLength = 12;
+      column.eachCell({ includeEmpty: true }, (cell) => {
+        maxLength = Math.max(maxLength, String(cell.value || '').length);
+      });
+      column.width = Math.min(maxLength + 2, 48);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const safeSlug = String(event.slug || 'event').replace(/[^a-zA-Z0-9-_]/g, '');
+    const timestamp = new Date().toISOString().slice(0, 10);
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeSlug}-shop-orders-${timestamp}.xlsx"`);
+    return res.status(200).send(buffer);
+  } catch (error) {
+    return next(error);
+  }
+};
 
 function wantsHtml(req) {
   const accept = String(req.get('accept') || '').toLowerCase();
@@ -477,4 +551,53 @@ function getRequestIpAddress(req) {
 
 function getRequestUserAgent(req) {
   return String(req.get('user-agent') || '').trim().slice(0, 500);
+}
+
+function computeOrderStats(orders) {
+  const byPaymentStatus = {};
+  const byFulfilmentStatus = {};
+  let totalRevenue = 0;
+  let paidCount = 0;
+
+  for (const order of orders) {
+    const ps = String(order.payment_status || 'unknown');
+    const fs = String(order.fulfilment_status || 'unknown');
+    byPaymentStatus[ps] = (byPaymentStatus[ps] || 0) + 1;
+    byFulfilmentStatus[fs] = (byFulfilmentStatus[fs] || 0) + 1;
+    if (ps === 'paid') {
+      totalRevenue += Number(order.total_amount || 0);
+      paidCount++;
+    }
+  }
+
+  return {
+    totalOrders: orders.length,
+    paidOrders: paidCount,
+    totalRevenue,
+    currency: orders[0]?.currency || 'PHP',
+    byPaymentStatus,
+    byFulfilmentStatus
+  };
+}
+
+function getOrderExportData(orders) {
+  const headers = ['Order #', 'Buyer Name', 'Buyer Email', 'Total', 'Currency', 'Payment Status', 'Fulfilment Status', 'Delivery Method', 'Date'];
+  const rows = orders.map((o) => [
+    o.order_number,
+    o.buyer_display_name || '',
+    o.buyer_email || '',
+    Number(o.total_amount || 0).toFixed(2),
+    o.currency || 'PHP',
+    o.payment_status || '',
+    o.fulfilment_status || '',
+    o.delivery_method || '',
+    o.created_at ? new Date(o.created_at).toISOString().slice(0, 10) : ''
+  ]);
+  return { headers, rows };
+}
+
+function csvEscape(value) {
+  const raw = String(value ?? '');
+  const escaped = raw.replace(/"/g, '""');
+  return `"${escaped}"`;
 }

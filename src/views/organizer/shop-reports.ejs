@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/event-manage.css">
+  <link rel="stylesheet" href="/css/shop.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="manage-page organizer-shop-reports-page">
+    <section class="manage-shell">
+      <header class="manage-header">
+        <div class="manage-header-copy">
+          <p class="manage-eyebrow">Shop Manager</p>
+          <h1>Reports — <%= event.title %></h1>
+          <p>Order totals and fulfilment breakdown for this event's shop.</p>
+        </div>
+        <div class="header-actions">
+          <a href="/organizer/events/<%= event._id %>/shop" class="nav-login-btn detail-nav-btn">Back to Shop</a>
+          <a href="/organizer/events/<%= event._id %>/shop/reports/export.csv" class="nav-login-btn detail-nav-btn">Download CSV</a>
+          <a href="/organizer/events/<%= event._id %>/shop/reports/export.xlsx" class="nav-signup-btn detail-nav-btn">Download XLSX</a>
+        </div>
+      </header>
+
+      <section class="shop-manage-summary">
+        <div class="shop-manage-summary-card">
+          <strong>Total Orders</strong>
+          <span><%= stats.totalOrders %></span>
+        </div>
+        <div class="shop-manage-summary-card">
+          <strong>Paid Orders</strong>
+          <span><%= stats.paidOrders %></span>
+        </div>
+        <div class="shop-manage-summary-card">
+          <strong>Revenue (paid)</strong>
+          <span><%= formatCurrency(stats.totalRevenue, stats.currency) %></span>
+        </div>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <h3>Payment Status Breakdown</h3>
+        <% const paymentEntries = Object.entries(stats.byPaymentStatus); %>
+        <% if (paymentEntries.length) { %>
+          <table class="shop-report-table">
+            <thead>
+              <tr><th>Status</th><th>Orders</th></tr>
+            </thead>
+            <tbody>
+              <% paymentEntries.sort((a, b) => b[1] - a[1]).forEach(([status, count]) => { %>
+                <tr>
+                  <td><span class="shop-badge shop-badge-<%= statusTone(status) %>"><%= status %></span></td>
+                  <td><%= count %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <p class="shop-muted">No orders yet for this event.</p>
+        <% } %>
+      </section>
+
+      <section class="detail-card detail-card-full">
+        <h3>Fulfilment Status Breakdown</h3>
+        <% const fulfilmentEntries = Object.entries(stats.byFulfilmentStatus); %>
+        <% if (fulfilmentEntries.length) { %>
+          <table class="shop-report-table">
+            <thead>
+              <tr><th>Status</th><th>Orders</th></tr>
+            </thead>
+            <tbody>
+              <% fulfilmentEntries.sort((a, b) => b[1] - a[1]).forEach(([status, count]) => { %>
+                <tr>
+                  <td><span class="shop-badge shop-badge-<%= statusTone(status) %>"><%= status %></span></td>
+                  <td><%= count %></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <p class="shop-muted">No orders yet for this event.</p>
+        <% } %>
+      </section>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

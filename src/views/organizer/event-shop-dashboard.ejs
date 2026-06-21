@@ -116,8 +116,15 @@
       </section>
 
       <section class="detail-card detail-card-full">
-        <h3>Reports</h3>
-        <p class="shop-muted">Revenue and order reports are coming soon.</p>
+        <div class="shop-manage-section-head">
+          <h3>Reports</h3>
+          <a class="shop-manage-link" href="/organizer/events/<%= event._id %>/shop/reports">View reports</a>
+        </div>
+        <p class="shop-muted">Order totals, payment status breakdown, and CSV/XLSX export.</p>
+        <div class="header-actions" style="margin-top:0.75rem">
+          <a href="/organizer/events/<%= event._id %>/shop/reports/export.csv" class="nav-login-btn detail-nav-btn">Download CSV</a>
+          <a href="/organizer/events/<%= event._id %>/shop/reports/export.xlsx" class="nav-login-btn detail-nav-btn">Download XLSX</a>
+        </div>
       </section>
     </section>
   </main>
