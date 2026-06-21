@@ -105,6 +105,26 @@
           </div>
         </div>
 
+        <!-- PHASE BAR -->
+        <nav class="wizard-phase-bar" id="wizardPhaseBar" aria-label="Event builder phases">
+          <div class="wizard-phase is-active" data-phase="1">
+            <span class="phase-num">1</span>
+            <span class="phase-label">Basic Info</span>
+          </div>
+          <div class="wizard-phase" data-phase="2">
+            <span class="phase-num">2</span>
+            <span class="phase-label">Schedule &amp; Format</span>
+          </div>
+          <div class="wizard-phase" data-phase="3">
+            <span class="phase-num">3</span>
+            <span class="phase-label">Pricing &amp; Rewards</span>
+          </div>
+          <div class="wizard-phase" data-phase="4">
+            <span class="phase-num">4</span>
+            <span class="phase-label">Presentation &amp; Publish</span>
+          </div>
+        </nav>
+
         <!-- EVENT TYPE SECTION -->
         <div id="event-type-step" class="form-section form-section-event-type" tabindex="-1" data-wizard-step="event-type-step">
           <div class="section-kicker">Step 1 of 12</div>
@@ -1129,6 +1149,17 @@
           <div class="section-kicker">Step 12 of 12</div>
           <div class="section-title">Preview and Submit</div>
           <p class="section-helper">Save an incomplete draft at any time, preview the event page, or submit complete setup for admin review.</p>
+          <% const initialWarnings = typeof consistencyWarnings !== 'undefined' ? Object.values(consistencyWarnings) : []; %>
+          <% if (initialWarnings.length) { %>
+            <div class="wizard-consistency-warnings" id="wizardConsistencyWarnings" aria-live="polite">
+              <strong>Configuration warnings:</strong>
+              <ul>
+                <% initialWarnings.forEach(function(w) { %><li><%= w %></li><% }) %>
+              </ul>
+            </div>
+          <% } else { %>
+            <div class="wizard-consistency-warnings" id="wizardConsistencyWarnings" aria-live="polite" style="display:none"></div>
+          <% } %>
           <div id="submitReadinessChecklist" class="submit-readiness-checklist" aria-live="polite">
             <% const initialReadiness = typeof readinessChecklist !== 'undefined' ? readinessChecklist : { ready: false, missingCount: 0, items: [] }; %>
             <p class="<%= initialReadiness.ready ? 'readiness-all-clear' : 'readiness-incomplete' %>">
@@ -1267,19 +1298,20 @@
       let finalSubmissionDeadlineWasAutoFilled = !finalSubmissionDeadlineInput?.value;
 
       const WIZARD_STEP_DATA = {
-        'event-type-step':       { num: 1,  label: 'Event Type' },
-        'core-details-step':     { num: 2,  label: 'Core Details' },
-        'schedule-step':         { num: 3,  label: 'Schedule' },
-        'location-virtual-step': { num: 4,  label: 'Location / Virtual' },
-        'race-categories-step':  { num: 5,  label: 'Race Categories' },
-        'rewards-step':          { num: 6,  label: 'Rewards & Inclusions' },
-        'pricing-step':          { num: 7,  label: 'Pricing' },
-        'payment-setup-step':    { num: 8,  label: 'Payment Setup' },
-        'event-details-step':    { num: 9,  label: 'Event Details' },
-        'media-step':            { num: 10, label: 'Branding & Media' },
-        'waiver-step':           { num: 11, label: 'Waiver' },
-        'review-step':           { num: 12, label: 'Preview & Submit' },
+        'event-type-step':       { num: 1,  label: 'Event Type',          phase: 1 },
+        'core-details-step':     { num: 2,  label: 'Core Details',         phase: 1 },
+        'schedule-step':         { num: 3,  label: 'Schedule',             phase: 2 },
+        'location-virtual-step': { num: 4,  label: 'Location / Virtual',   phase: 2 },
+        'race-categories-step':  { num: 5,  label: 'Race Categories',      phase: 2 },
+        'rewards-step':          { num: 6,  label: 'Rewards & Inclusions', phase: 3 },
+        'pricing-step':          { num: 7,  label: 'Pricing',              phase: 3 },
+        'payment-setup-step':    { num: 8,  label: 'Payment Setup',        phase: 3 },
+        'event-details-step':    { num: 9,  label: 'Event Details',        phase: 4 },
+        'media-step':            { num: 10, label: 'Branding & Media',     phase: 4 },
+        'waiver-step':           { num: 11, label: 'Waiver',               phase: 4 },
+        'review-step':           { num: 12, label: 'Preview & Submit',     phase: 4 },
       };
+      const phaseBarSegments = Array.from(document.querySelectorAll('[data-phase]'));
       const WIZARD_TOTAL_STEPS = 12;
       const pillLinks = Array.from(document.querySelectorAll('[data-pill-step]'));
       const overlayLinks = Array.from(document.querySelectorAll('[data-overlay-step]'));
@@ -1305,6 +1337,11 @@
           if (wizardMiniStepEl) wizardMiniStepEl.textContent = 'Step ' + stepData.num + ' of ' + WIZARD_TOTAL_STEPS;
           if (wizardMiniTitleEl) wizardMiniTitleEl.textContent = stepData.label;
           if (wizardMiniProgressFillEl) wizardMiniProgressFillEl.style.width = ((stepData.num / WIZARD_TOTAL_STEPS) * 100).toFixed(2) + '%';
+          phaseBarSegments.forEach(function(seg) {
+            const segPhase = Number(seg.dataset.phase);
+            seg.classList.toggle('is-active', segPhase === stepData.phase);
+            seg.classList.toggle('is-done', segPhase < stepData.phase);
+          });
         }
       }
 
@@ -1907,6 +1944,18 @@
           if (!response.ok || !result.ok) throw new Error(result.message || 'Readiness refresh failed.');
           renderReadinessChecklist(result.readinessChecklist);
           renderReviewSummary(result.reviewSummary);
+          if (result.consistencyWarnings) {
+            var warningValues = Object.values(result.consistencyWarnings);
+            var warningsEl = document.getElementById('wizardConsistencyWarnings');
+            if (warningsEl) {
+              if (warningValues.length) {
+                warningsEl.innerHTML = '<strong>Configuration warnings:</strong><ul>' + warningValues.map(function(w) { return '<li>' + w + '</li>'; }).join('') + '</ul>';
+                warningsEl.style.display = '';
+              } else {
+                warningsEl.style.display = 'none';
+              }
+            }
+          }
         } catch (_) {
           buildLocalReadinessChecklist();
         }

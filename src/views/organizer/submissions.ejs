@@ -146,7 +146,14 @@
                   </div>
                   <div>
                     <dt>Submitted</dt>
-                    <dd><%= item.submittedAtLabel %></dd>
+                    <dd>
+                      <%= item.submittedAtLabel %>
+                      <% if (item.status === 'submitted' && item.submittedAt) {
+                        const daysWaiting = Math.floor((Date.now() - new Date(item.submittedAt).getTime()) / 86400000);
+                      %>
+                        <span class="waiting-label"><%= daysWaiting === 0 ? 'Today' : daysWaiting === 1 ? 'Waiting 1 day' : `Waiting ${daysWaiting} days` %></span>
+                      <% } %>
+                    </dd>
                   </div>
                   <div>
                     <dt>Reviewed</dt>

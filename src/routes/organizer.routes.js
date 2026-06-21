@@ -698,6 +698,7 @@ router.get('/create-event', requireCanCreateEvents, async (req, res) => {
       formData,
       readinessChecklist: getEventReadinessChecklist(formData),
       reviewSummary: getEventReviewSummary(formData),
+      consistencyWarnings: getConsistencyWarnings(formData),
       countries,
       defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
       message: getPageMessage(req.query)
@@ -752,7 +753,8 @@ router.post('/event-readiness', requireCanCreateEvents, requireCsrfProtection, a
     return res.json({
       ok: true,
       readinessChecklist: getEventReadinessChecklist(formData),
-      reviewSummary: getEventReviewSummary(formData)
+      reviewSummary: getEventReviewSummary(formData),
+      consistencyWarnings: getConsistencyWarnings(formData)
     });
   } catch (error) {
     console.error('Error refreshing event readiness:', error);
@@ -3494,6 +3496,7 @@ function buildPaymentProofReviewRow(registration, event) {
     paymentStatusLabel: formatPaymentProofStatusLabel(paymentStatus),
     isPending: paymentStatus === 'proof_submitted',
     proofUrl: registration.paymentProof?.url || '',
+    proofUploadedAt: registration.paymentProof?.uploadedAt || null,
     proofUploadedAtLabel: formatDateTime(registration.paymentProof?.uploadedAt),
     proofMimeType: registration.paymentProof?.mimeType || '',
     expectedPaymentLabel: formatExpectedPaymentLabel(registration, event),
@@ -4583,6 +4586,10 @@ function getEventReadinessChecklist(formData) {
 
 function getEventReviewSummary(formData) {
   return eventFormService.getEventReviewSummary(formData);
+}
+
+function getConsistencyWarnings(formData) {
+  return eventFormService.validateRewardPricingConsistency(formData).warnings;
 }
 
 module.exports = router;

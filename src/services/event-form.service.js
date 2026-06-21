@@ -1412,7 +1412,42 @@ function validateCreateEventForm(formData) {
   if (!waiverText || waiverText.length < 200) errors.waiverTemplate = 'Waiver template must be at least 200 characters.';
   else if ((formData.waiverTemplate || '').length > 20000) errors.waiverTemplate = 'Waiver template must be 20,000 characters or less.';
 
+  const consistency = validateRewardPricingConsistency(formData);
+  Object.assign(errors, consistency.errors);
+
   return errors;
+}
+
+function validateRewardPricingConsistency(formData) {
+  const errors = {};
+  const warnings = {};
+
+  const categories = Array.isArray(formData.raceCategories) ? formData.raceCategories : [];
+  const categoryIds = categories.map((c) => String(c.categoryId || '').trim()).filter(Boolean);
+  const uniqueIds = new Set(categoryIds);
+
+  if (uniqueIds.size < categoryIds.length) {
+    errors.raceCategories = 'Race categories contain duplicate IDs. Remove and re-add the duplicated category.';
+  }
+
+  const validIdSet = new Set(uniqueIds);
+  for (const entry of formData.distancePricing || []) {
+    const ref = String(entry.categoryId || '').trim();
+    if (ref && !validIdSet.has(ref)) {
+      errors.distancePricing = 'A pricing entry references a race category that no longer exists. Review your distance pricing.';
+      break;
+    }
+  }
+
+  if (formData.deliveryFeeEnabled && !formData.physicalRewardsEnabled) {
+    warnings.deliveryFee = 'Delivery fee is enabled but physical rewards are off — runners will be charged a delivery fee with nothing to receive.';
+  }
+
+  if (formData.feeMode !== 'paid' && formData.deliveryFeeEnabled) {
+    warnings.deliveryFeeFreeEvent = 'This is a free event but a delivery fee is configured. The delivery fee will not be collected unless the event is switched to paid.';
+  }
+
+  return { errors, warnings };
 }
 
 function getEventReadinessChecklist(formData = {}) {
@@ -1802,5 +1837,6 @@ module.exports = {
   getPublishReadinessErrors,
   parseDateSafe,
   validateCreateEventForm,
+  validateRewardPricingConsistency,
   sanitizeWaiverTemplate
 };

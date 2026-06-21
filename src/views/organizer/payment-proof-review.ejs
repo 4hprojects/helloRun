@@ -98,7 +98,14 @@
                   </div>
                   <div>
                     <dt>Uploaded</dt>
-                    <dd><%= item.proofUploadedAtLabel || 'N/A' %></dd>
+                    <dd>
+                      <%= item.proofUploadedAtLabel || 'N/A' %>
+                      <% if (item.isPending && item.proofUploadedAt) {
+                        const daysWaiting = Math.floor((Date.now() - new Date(item.proofUploadedAt).getTime()) / 86400000);
+                      %>
+                        <span class="waiting-label"><%= daysWaiting === 0 ? 'Today' : daysWaiting === 1 ? 'Waiting 1 day' : `Waiting ${daysWaiting} days` %></span>
+                      <% } %>
+                    </dd>
                   </div>
                   <% if (item.payeeName) { %>
                     <div>
