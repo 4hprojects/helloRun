@@ -1,0 +1,69 @@
+# HelloRun — Current Status
+
+_Last updated: June 21, 2026_
+
+---
+
+## ✅ Completed & Deployed
+
+| Feature | Completed | Tests |
+|---------|-----------|-------|
+| Event creation wizard (12-step) | Feb–Mar 2026 | — |
+| Runner registration & submission flow | Mar 2026 | — |
+| Leaderboard (distance-specific, private/public) | Apr 2026 | — |
+| Certificate generation & email delivery | Apr 2026 | — |
+| Organiser application & approval | Apr 2026 | — |
+| Running groups | Apr 2026 | — |
+| OCR run-proof reader (COROS support) | Apr 2026 | — |
+| Strava OAuth integration | Apr 2026 | — |
+| Phase 7 Extended — onsite operations (bulk bibs, QR check-in, webhooks) | May 17, 2026 | 16/16 |
+| Payment & result split | May 14, 2026 | — |
+| Achievement badges system (event/global/organiser) | May 19, 2026 | 101/101 |
+| Policy pack (Privacy, Terms, Cookie, Refund, 9 canonical docs) | May 23, 2026 | — |
+| Admin user management (search, filter, edit, guarded delete) | May–Jun 2026 | — |
+| About page rebuild | June 3, 2026 | — |
+| Auth abuse protection (Turnstile, rate limits, honeypot, form-age) | June 3, 2026 | 44/44 |
+| Run proof review workflow | June 3, 2026 | — |
+| Shop backend + cart/checkout/platform-merch | June 7, 2026 | 69/69 |
+| Phase 11 — Shop reports, exports & admin settings | June 21, 2026 | 69/69 + 8 new |
+
+---
+
+## 🟡 In Progress (Live but Incomplete)
+
+### Runner Experience UX Gaps
+**Spec:** `to-implement/runner-experience.md`
+
+**Remaining:**
+- [ ] Payment amount snapshot on registration confirmation
+- [ ] Price resolution UI (show which price tier applies)
+- [ ] Certificate share / download CTAs
+- [ ] Mobile bottom navigation bar
+
+---
+
+### Organiser Experience UX Gaps
+**Spec:** `to-implement/organiser-experience.md`
+
+**Remaining:**
+- [ ] Reward/pricing validation in event wizard
+- [ ] Event preview parity with live event page
+- [ ] Wizard phase grouping / step consolidation
+
+---
+
+## 🔲 Backlog (Not Started)
+
+| Item | Priority | Spec |
+|------|----------|------|
+| Admin Governance (audit trail, suspension, notes, verification override) | 4 | `to-implement/admin-governance.md` |
+| AdSense Readiness (8-phase roadmap: indexing → content → audit) | — | `adsense-readiness/` |
+| Blog Feature (phased: submission, moderation, SEO, recommendations) | — | `blog/` |
+| Advanced analytics & reporting | — | PRD.md |
+| Mobile app integration | — | PRD.md |
+
+---
+
+## Resolved / Historical
+
+- `to-implement/organiser-vs-platform-shop-products.md` — fully implemented June 7, 2026 (kept as design record)
