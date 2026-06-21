@@ -22,13 +22,23 @@
           </div>
         </div>
 
+        <%
+          const BADGE_ICONS_COL = {
+            participant: 'user-check', finisher: 'trophy',
+            distance_finisher: 'medal', mode_finisher: 'zap',
+            challenge_progress: 'trending-up', challenge_finisher: 'award',
+            category_winner: 'crown', top_rank: 'star',
+            distance_winner: 'flag', mode_winner: 'shield-check'
+          };
+          const getBadgeIconCol = (type) => BADGE_ICONS_COL[type] || 'award';
+        %>
         <% if (featuredBadge) { %>
           <aside class="badge-collection-featured" aria-label="Featured badge">
-            <div class="badge-verify-mark" aria-hidden="true">
+            <div class="badge-verify-mark badge-placeholder" data-badge-type="<%= featuredBadge.badgeType %>" aria-hidden="true">
               <% if (featuredBadge.imageUrl) { %>
                 <img src="<%= featuredBadge.imageUrl %>" alt="">
               <% } else { %>
-                <i data-lucide="award"></i>
+                <i data-lucide="<%= getBadgeIconCol(featuredBadge.badgeType) %>"></i>
               <% } %>
             </div>
             <div>
@@ -99,11 +109,11 @@
             <% badges.forEach((badge) => { %>
               <article class="badge-collection-card" data-badge-scope="<%= badge.badgeScope || 'event' %>">
                 <div class="badge-collection-card-top">
-                  <span class="badge-collection-icon" aria-hidden="true">
+                  <span class="badge-collection-icon badge-placeholder" data-badge-type="<%= badge.badgeType %>" aria-hidden="true">
                     <% if (badge.imageUrl) { %>
                       <img src="<%= badge.imageUrl %>" alt="">
                     <% } else { %>
-                      <i data-lucide="award"></i>
+                      <i data-lucide="<%= getBadgeIconCol(badge.badgeType) %>"></i>
                     <% } %>
                   </span>
                   <span class="badge-collection-scope badge-collection-scope-<%= badge.badgeScope || 'event' %>"><%= badge.badgeScope || 'event' %></span>

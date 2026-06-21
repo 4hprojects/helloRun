@@ -203,6 +203,17 @@ exports.uploadBlogAssets = (req, res, next) => {
   });
 };
 
+exports.uploadBadgeImage = (req, res, next) => {
+  const badgeUpload = brandingUpload.single('badgeImageFile');
+  badgeUpload(req, res, (err) => {
+    if (!err) { req.uploadError = null; next(); return; }
+    req.uploadError = err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE'
+      ? `Badge image exceeds ${(MAX_UPLOAD_BYTES / 1024 / 1024).toFixed(0)}MB limit.`
+      : (err.message || 'Badge image upload failed.');
+    next();
+  });
+};
+
 exports.uploadPaymentProof = (req, res, next) => {
   const uploadSingle = upload.single('paymentProofFile');
 

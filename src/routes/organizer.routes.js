@@ -1073,11 +1073,32 @@ router.get('/events/:id/badges/manage', requireApprovedOrganizer, async (req, re
       includeInactive: true
     });
 
+    let earnedCountByBadgeId = {};
+    if (process.env.DATABASE_URL && badges.length) {
+      try {
+        const sql = getPostgresClient();
+        const eventCoreRows = await sql`
+          select id from events_core where mongo_event_id = ${String(event._id)} limit 1
+        `;
+        if (eventCoreRows[0]) {
+          const counts = await sql`
+            select badge_definition_id, count(*)::int as earned_count
+            from user_badges
+            where event_core_id = ${eventCoreRows[0].id}
+              and verification_status = 'verified'
+            group by badge_definition_id
+          `;
+          earnedCountByBadgeId = Object.fromEntries(counts.map((r) => [r.badge_definition_id, r.earned_count]));
+        }
+      } catch (_) {}
+    }
+
     return res.render('organizer/event-badges', {
       title: `Badge Manager - ${event.title}`,
       user,
       event,
       badges,
+      earnedCountByBadgeId,
       message: getPageMessage(req.query)
     });
   } catch (error) {
@@ -1131,6 +1152,37 @@ router.post('/events/:id/badges/:badgeId', requireApprovedOrganizer, requireCsrf
       return res.redirect(`/organizer/events/${req.params.id}/badges/manage?type=error&msg=Unable%20to%20update%20event%20badge.`);
     }
     return res.status(500).json({ success: false, message: 'Unable to update event badge.' });
+  }
+});
+
+router.post('/events/:id/badges/:badgeId/image', requireApprovedOrganizer, uploadService.uploadBadgeImage, requireCsrfProtection, async (req, res) => {
+  try {
+    if (req.uploadError) return res.status(400).json({ success: false, message: req.uploadError });
+    if (!req.file) return res.status(400).json({ success: false, message: 'No image file provided.' });
+
+    const user = await User.findById(req.session.userId);
+    const event = await getOwnedEventOrNull(req.params.id, user?._id);
+    if (!event) return res.status(404).json({ success: false, message: 'Event not found or inaccessible.' });
+
+    const uploaded = await uploadService.uploadBufferToR2({
+      userId: String(user._id),
+      buffer: req.file.buffer,
+      contentType: req.file.mimetype,
+      category: 'badge-images',
+      fileName: req.file.originalname || 'badge.jpg'
+    });
+
+    const updated = await updateEventBadgeDisplay({
+      mongoEventId: event._id,
+      eventBadgeId: req.params.badgeId,
+      updates: { imageUrl: uploaded.url }
+    });
+
+    if (!updated) return res.status(404).json({ success: false, message: 'Badge not found.' });
+    return res.json({ success: true, imageUrl: uploaded.url });
+  } catch (error) {
+    console.error('Badge image upload error:', error);
+    return res.status(500).json({ success: false, message: 'Badge image upload failed.' });
   }
 });
 

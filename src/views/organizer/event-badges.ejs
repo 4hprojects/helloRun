@@ -37,6 +37,16 @@
         </div>
       </section>
 
+      <%
+        const BADGE_ICONS_ORG = {
+          participant: 'user-check', finisher: 'trophy',
+          distance_finisher: 'medal', mode_finisher: 'zap',
+          challenge_progress: 'trending-up', challenge_finisher: 'award',
+          category_winner: 'crown', top_rank: 'star',
+          distance_winner: 'flag', mode_winner: 'shield-check'
+        };
+        const getBadgeIconOrg = (type) => BADGE_ICONS_ORG[type] || 'award';
+      %>
       <% if (badges.length) { %>
         <div class="organizer-badge-grid" data-organizer-badge-manager>
           <% badges.forEach((badge) => { %>
@@ -46,7 +56,7 @@
                   <% if (badge.imageUrl) { %>
                     <img src="<%= badge.imageUrl %>" alt="" loading="lazy">
                   <% } else { %>
-                    <i data-lucide="award"></i>
+                    <i data-lucide="<%= getBadgeIconOrg(badge.badgeType) %>"></i>
                   <% } %>
                 </span>
                 <div class="organizer-badge-preview-copy">
@@ -70,7 +80,13 @@
                   </label>
                   <label>
                     <span>Image URL</span>
-                    <input type="url" name="imageUrl" value="<%= badge.imageUrl || '' %>" placeholder="https://...">
+                    <div class="badge-image-url-row">
+                      <input type="url" name="imageUrl" id="badgeImageUrl-<%= badge.eventBadgeId %>" value="<%= badge.imageUrl || '' %>" placeholder="https://...">
+                      <label class="badge-upload-btn" title="Upload image to HelloRun CDN">
+                        <input type="file" accept="image/jpeg,image/png,image/webp" class="badge-image-file-input" data-badge-id="<%= badge.eventBadgeId %>" data-event-id="<%= event._id %>" style="display:none">
+                        <i data-lucide="upload"></i>
+                      </label>
+                    </div>
                   </label>
                   <label class="badge-form-description">
                     <span>Description</span>
@@ -92,7 +108,15 @@
                 </div>
 
                 <div class="badge-form-footer">
-                  <code><%= badge.badgeCode %></code>
+                  <div>
+                    <code><%= badge.badgeCode %></code>
+                    <% const earnedCount = (typeof earnedCountByBadgeId !== 'undefined' && earnedCountByBadgeId[badge.badgeDefinitionId]) || 0; %>
+                    <% if (earnedCount > 0) { %>
+                      <span class="badge-earned-count"><%= earnedCount %> runner<%= earnedCount === 1 ? '' : 's' %> earned</span>
+                    <% } else { %>
+                      <span class="badge-earned-count badge-earned-count-zero">Not yet earned</span>
+                    <% } %>
+                  </div>
                   <button type="submit" class="nav-signup-btn detail-status-btn">Save Badge</button>
                 </div>
               </form>
@@ -113,6 +137,38 @@
   <script src="/js/main.js"></script>
   <script>
     if (window.lucide) lucide.createIcons();
+
+    // Badge image upload handlers
+    document.querySelectorAll('.badge-image-file-input').forEach(function(input) {
+      input.addEventListener('change', async function() {
+        const file = input.files[0];
+        if (!file) return;
+        const badgeId = input.dataset.badgeId;
+        const eventId = input.dataset.eventId;
+        const urlInput = document.getElementById('badgeImageUrl-' + badgeId);
+        const csrfToken = document.querySelector('[name="_csrf"]')?.value || '';
+
+        const formData = new FormData();
+        formData.append('badgeImageFile', file);
+        formData.append('_csrf', csrfToken);
+
+        try {
+          const res = await fetch('/organizer/events/' + eventId + '/badges/' + badgeId + '/image', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            if (urlInput) urlInput.value = data.imageUrl;
+          } else {
+            alert(data.message || 'Image upload failed.');
+          }
+        } catch {
+          alert('Network error — image upload failed.');
+        }
+        input.value = '';
+      });
+    });
   </script>
 </body>
 </html>

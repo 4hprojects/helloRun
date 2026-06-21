@@ -238,7 +238,8 @@ async function getRunnerEarnedBadges(mongoUserId, options = {}) {
       ec.slug AS event_slug,
       eb.badge_name_override,
       eb.badge_description_override,
-      eb.badge_image_url
+      eb.badge_image_url,
+      bd.image_url AS definition_image_url
     FROM user_badges ub
     JOIN badge_definitions bd ON bd.id = ub.badge_definition_id
     LEFT JOIN event_badges eb
@@ -258,7 +259,7 @@ async function getRunnerEarnedBadges(mongoUserId, options = {}) {
     badgeCode: row.badge_code || '',
     name: row.badge_name_override || row.name || '',
     description: row.badge_description_override || row.description || '',
-    imageUrl: row.badge_image_url || '',
+    imageUrl: row.badge_image_url || row.definition_image_url || '',
     badgeScope: row.badge_scope || '',
     badgeType: row.badge_type || '',
     requirementType: row.requirement_type || '',
@@ -325,7 +326,8 @@ async function getPublicBadgeVerification(userBadgeId, options = {}) {
       ec.virtual_completion_mode,
       eb.badge_name_override,
       eb.badge_description_override,
-      eb.badge_image_url
+      eb.badge_image_url,
+      bd.image_url AS definition_image_url
     FROM user_badges ub
     JOIN badge_definitions bd ON bd.id = ub.badge_definition_id
     JOIN app_users au ON au.id = ub.runner_user_id
@@ -346,7 +348,7 @@ async function getPublicBadgeVerification(userBadgeId, options = {}) {
     badgeCode: row.badge_code || '',
     name: row.badge_name_override || row.name || '',
     description: row.badge_description_override || row.description || '',
-    imageUrl: row.badge_image_url || '',
+    imageUrl: row.badge_image_url || row.definition_image_url || '',
     badgeScope: row.badge_scope || '',
     badgeType: row.badge_type || '',
     requirementType: row.requirement_type || '',

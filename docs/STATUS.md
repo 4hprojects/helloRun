@@ -29,6 +29,7 @@ _Last updated: June 22, 2026_
 | DB Priority 1 — Postgres pool (25), sync failure logging, `/healthz/sync` | June 22, 2026 | — |
 | Runner Experience UX — payment snapshot, price resolver, certificate CTAs, mobile nav, unpaid CTA | June 22, 2026 | — |
 | Organiser Experience UX — reward/pricing validation, wizard phase bar, time-pending indicators, warnings | June 22, 2026 | 6/6 unit |
+| Badge system — profile imageUrl bug fix, type-specific placeholders, definition-level image, upload, earned count | June 22, 2026 | 44/44 auth |
 
 ---
 

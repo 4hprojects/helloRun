@@ -14,14 +14,24 @@
   <%- include('../layouts/nav') %>
 
   <main class="badge-verification-page">
+    <%
+      const BADGE_ICONS_VER = {
+        participant: 'user-check', finisher: 'trophy',
+        distance_finisher: 'medal', mode_finisher: 'zap',
+        challenge_progress: 'trending-up', challenge_finisher: 'award',
+        category_winner: 'crown', top_rank: 'star',
+        distance_winner: 'flag', mode_winner: 'shield-check'
+      };
+      const getBadgeIconVer = (type) => BADGE_ICONS_VER[type] || 'award';
+    %>
     <section class="badge-verify-hero" aria-labelledby="badge-title">
       <div class="badge-verify-wrap">
         <div class="badge-verify-card">
-          <div class="badge-verify-mark" aria-hidden="true">
+          <div class="badge-verify-mark badge-placeholder" data-badge-type="<%= badge.badgeType %>" aria-hidden="true">
             <% if (badge.imageUrl) { %>
               <img src="<%= badge.imageUrl %>" alt="">
             <% } else { %>
-              <i data-lucide="award"></i>
+              <i data-lucide="<%= getBadgeIconVer(badge.badgeType) %>"></i>
             <% } %>
           </div>
           <div class="badge-verify-copy">

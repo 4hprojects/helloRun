@@ -212,11 +212,27 @@
               <p class="profile-badge-progress-empty">No active challenge progress yet.</p>
             <% } %>
           </section>
+          <%
+            const BADGE_TYPE_ICONS = {
+              participant: 'user-check', finisher: 'trophy',
+              distance_finisher: 'medal', mode_finisher: 'zap',
+              challenge_progress: 'trending-up', challenge_finisher: 'award',
+              category_winner: 'crown', top_rank: 'star',
+              distance_winner: 'flag', mode_winner: 'shield-check'
+            };
+            const getBadgeIcon = (type) => BADGE_TYPE_ICONS[type] || 'award';
+          %>
           <% if (earnedBadges.length) { %>
             <% const featuredBadge = earnedBadges.find((badge) => badge.isFeatured); %>
             <% if (featuredBadge) { %>
               <div class="profile-featured-badge">
-                <span class="profile-badge-icon"><i data-lucide="award"></i></span>
+                <span class="profile-badge-icon badge-placeholder" data-badge-type="<%= featuredBadge.badgeType %>">
+                  <% if (featuredBadge.imageUrl) { %>
+                    <img src="<%= featuredBadge.imageUrl %>" alt="" loading="lazy">
+                  <% } else { %>
+                    <i data-lucide="<%= getBadgeIcon(featuredBadge.badgeType) %>"></i>
+                  <% } %>
+                </span>
                 <div>
                   <p>Featured Badge</p>
                   <strong><%= featuredBadge.name %></strong>
@@ -228,7 +244,13 @@
               <% earnedBadges.slice(0, 12).forEach((badge) => { %>
                 <article class="profile-badge-card<%= badge.isFeatured ? ' is-featured' : '' %>">
                   <div class="profile-badge-card-top">
-                    <span class="profile-badge-icon"><i data-lucide="award"></i></span>
+                    <span class="profile-badge-icon badge-placeholder" data-badge-type="<%= badge.badgeType %>">
+                      <% if (badge.imageUrl) { %>
+                        <img src="<%= badge.imageUrl %>" alt="" loading="lazy">
+                      <% } else { %>
+                        <i data-lucide="<%= getBadgeIcon(badge.badgeType) %>"></i>
+                      <% } %>
+                    </span>
                     <% if (badge.isFeatured) { %>
                       <span class="profile-badge-state">Featured</span>
                     <% } %>

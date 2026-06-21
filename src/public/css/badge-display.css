@@ -1,0 +1,63 @@
+/* ===== BADGE PLACEHOLDER SYSTEM =====
+   Applied when no custom imageUrl is set.
+   Each badge type gets a distinct color so runners can identify badge types at a glance.
+   The .badge-placeholder class wraps the fallback icon; when an <img> is present instead,
+   these styles are ignored for that element.
+*/
+
+.badge-placeholder {
+  --badge-color: #6b7280;
+  --badge-bg: color-mix(in srgb, var(--badge-color) 12%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--badge-bg);
+  color: var(--badge-color);
+  position: relative;
+}
+
+/* Type-specific colors */
+.badge-placeholder[data-badge-type="finisher"]          { --badge-color: #d97706; } /* amber  — most prestigious */
+.badge-placeholder[data-badge-type="participant"]        { --badge-color: #2563eb; } /* blue   — entry level */
+.badge-placeholder[data-badge-type="distance_finisher"]  { --badge-color: #059669; } /* green  — distance achievement */
+.badge-placeholder[data-badge-type="mode_finisher"]      { --badge-color: #7c3aed; } /* purple — mode achievement */
+.badge-placeholder[data-badge-type="challenge_finisher"] { --badge-color: #dc2626; } /* red    — challenge complete */
+.badge-placeholder[data-badge-type="challenge_progress"] { --badge-color: #ea580c; } /* orange — progress milestone */
+.badge-placeholder[data-badge-type="category_winner"]    { --badge-color: #be185d; } /* pink   — competitive winner */
+.badge-placeholder[data-badge-type="top_rank"]           { --badge-color: #ca8a04; } /* yellow — leaderboard rank */
+.badge-placeholder[data-badge-type="distance_winner"]    { --badge-color: #0891b2; } /* cyan   — distance rank */
+.badge-placeholder[data-badge-type="mode_winner"]        { --badge-color: #4f46e5; } /* indigo — mode rank */
+
+/* When the element has an img child, let the image render naturally */
+.badge-placeholder:has(img) {
+  background: transparent;
+  border-radius: 0;
+}
+
+/* Dashboard badge icon sizing */
+.dashboard-badge-icon.badge-placeholder {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+}
+
+/* Profile badge icon sizing */
+.profile-badge-icon.badge-placeholder {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Badge verification page */
+.badge-verify-mark.badge-placeholder {
+  width: 5rem;
+  height: 5rem;
+  font-size: 2rem;
+}
+
+/* Badge collection page */
+.badge-collection-icon.badge-placeholder {
+  width: 3.5rem;
+  height: 3.5rem;
+  font-size: 1.5rem;
+}

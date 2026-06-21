@@ -118,6 +118,7 @@ async function getEventBadgesByMongoEventId(mongoEventId, options = {}) {
         bd.badge_type,
         bd.requirement_type,
         bd.requirement_value,
+        bd.image_url AS definition_image_url,
         bd.is_active AS badge_definition_is_active
       FROM event_badges eb
       JOIN badge_definitions bd ON bd.id = eb.badge_definition_id
@@ -420,7 +421,7 @@ function formatEventBadgeRow(row) {
     badgeCode: row.badge_code || '',
     name: row.badge_name_override || row.name || '',
     description: row.badge_description_override || row.description || '',
-    imageUrl: row.badge_image_url || '',
+    imageUrl: row.badge_image_url || row.definition_image_url || '',
     badgeType: row.badge_type || '',
     requirementType: row.requirement_type || '',
     requirementValue: row.requirement_value || null,
