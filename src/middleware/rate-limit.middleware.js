@@ -1,4 +1,5 @@
 const { getRedisClient } = require('../config/redis');
+const logger = require('../utils/logger');
 
 // In-memory fallback store (used when Redis is not configured or unavailable)
 const buckets = new Map();
@@ -48,7 +49,7 @@ function createRateLimiter({ windowMs, maxRequests, message, keyFn }) {
         ({ allowed } = await redisCheck(redis, redisKey, safeWindowMs, safeMaxRequests));
       } catch (err) {
         // Redis unavailable — fall back to in-memory silently
-        console.error('Rate limiter Redis error (falling back to in-memory):', err.message);
+        logger.error('Rate limiter Redis error (falling back to in-memory):', err.message);
         ({ allowed } = inMemoryCheck(rawKey, safeWindowMs, safeMaxRequests));
       }
     } else {

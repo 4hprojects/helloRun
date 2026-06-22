@@ -43,6 +43,23 @@
       <section class="runner-profile-content">
         <article class="runner-profile-card" id="overview">
           <h3>Overview</h3>
+
+          <div class="profile-avatar-section">
+            <div class="profile-avatar-wrap" id="js-avatar-wrap">
+              <% if (locals.user && locals.user.avatarUrl) { %>
+                <img src="<%= locals.user.avatarUrl %>" alt="Profile photo" class="profile-avatar-img" id="js-avatar-img">
+              <% } else { %>
+                <span class="profile-avatar-placeholder" id="js-avatar-placeholder"><i data-lucide="user-circle" aria-hidden="true"></i></span>
+              <% } %>
+              <label class="profile-avatar-upload-btn" title="Change profile photo">
+                <input type="file" id="js-avatar-input" accept="image/jpeg,image/png,image/webp" style="display:none">
+                <i data-lucide="camera" aria-hidden="true"></i>
+              </label>
+            </div>
+            <span class="profile-avatar-hint">JPG, PNG or WebP · max 5 MB</span>
+            <span class="profile-avatar-status" id="js-avatar-status" style="display:none"></span>
+          </div>
+
           <div class="profile-completeness">
             <div class="profile-completeness-header">
               <strong>Profile Completeness</strong>
@@ -485,6 +502,49 @@
   <script src="/js/password-settings.js"></script>
   <script>
     if (window.lucide) lucide.createIcons();
+  </script>
+  <script>
+    (function () {
+      var input = document.getElementById('js-avatar-input');
+      var statusEl = document.getElementById('js-avatar-status');
+      var imgEl = document.getElementById('js-avatar-img');
+      var placeholderEl = document.getElementById('js-avatar-placeholder');
+      var csrfToken = document.querySelector('[name="_csrf"]')?.value || '';
+
+      if (!input) return;
+      input.addEventListener('change', async function () {
+        var file = input.files[0];
+        if (!file) return;
+        var formData = new FormData();
+        formData.append('avatarImageFile', file);
+        formData.append('_csrf', csrfToken);
+        statusEl.textContent = 'Uploading…';
+        statusEl.style.display = '';
+        try {
+          var res = await fetch('/runner/profile/avatar', { method: 'POST', body: formData });
+          var data = await res.json();
+          if (res.ok && data.success) {
+            statusEl.textContent = 'Photo updated!';
+            if (imgEl) {
+              imgEl.src = data.avatarUrl;
+            } else {
+              var newImg = document.createElement('img');
+              newImg.src = data.avatarUrl;
+              newImg.alt = 'Profile photo';
+              newImg.className = 'profile-avatar-img';
+              newImg.id = 'js-avatar-img';
+              if (placeholderEl) placeholderEl.replaceWith(newImg);
+            }
+            setTimeout(function () { statusEl.style.display = 'none'; }, 3000);
+          } else {
+            statusEl.textContent = data.message || 'Upload failed.';
+          }
+        } catch (_) {
+          statusEl.textContent = 'Network error — try again.';
+        }
+        input.value = '';
+      });
+    })();
   </script>
 </body>
 </html>

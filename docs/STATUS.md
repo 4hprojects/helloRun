@@ -31,6 +31,7 @@ _Last updated: June 22, 2026_
 | Organiser Experience UX — reward/pricing validation, wizard phase bar, time-pending indicators, warnings | June 22, 2026 | 6/6 unit |
 | Badge system — profile imageUrl bug fix, type-specific placeholders, definition-level image, upload, earned count | June 22, 2026 | 44/44 auth |
 | Admin Governance — audit trail, admin notes, resend/override verification, account suspension | June 22, 2026 | 10/10 + 44/44 |
+| Quick Wins — console.error→logger, rate limiting (profile/groups), OG tags (cert verify), profile picture upload + nav avatar | June 22, 2026 | 44/44 |
 
 ---
 

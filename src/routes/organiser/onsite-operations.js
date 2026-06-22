@@ -3,6 +3,7 @@
 
 const express = require('express');
 const router = express.Router();
+const logger = require('../../utils/logger');
 const { requireAuth } = require('../../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../../middleware/csrf.middleware');
 const { requireOrganizerEventAccess } = require('../../middleware/organizer-event-access.middleware');
@@ -38,7 +39,7 @@ router.post('/events/:eventId/bibs/assign', protectEventMutation, async (req, re
       bib: bibRecord
     });
   } catch (error) {
-    console.error('Error assigning bib:', error);
+    logger.error('Error assigning bib:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -65,7 +66,7 @@ router.post('/events/:eventId/check-ins', protectEventMutation, async (req, res)
       checkIn: checkInRecord
     });
   } catch (error) {
-    console.error('Error recording check-in:', error);
+    logger.error('Error recording check-in:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -95,7 +96,7 @@ router.post('/events/:eventId/race-kits', protectEventMutation, async (req, res)
       raceKit: kitRecord
     });
   } catch (error) {
-    console.error('Error creating race kit:', error);
+    logger.error('Error creating race kit:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -122,7 +123,7 @@ router.post('/events/:eventId/result-imports', protectEventMutation, async (req,
       import: importRecord
     });
   } catch (error) {
-    console.error('Error logging result import:', error);
+    logger.error('Error logging result import:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -156,7 +157,7 @@ router.post('/events/:eventId/onsite-results', protectEventMutation, async (req,
       result: resultRecord
     });
   } catch (error) {
-    console.error('Error recording onsite result:', error);
+    logger.error('Error recording onsite result:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -177,7 +178,7 @@ router.post('/events/:eventId/onsite-results/:resultId/approve', protectEventMut
       awardsCreated: approved.awards.length
     });
   } catch (error) {
-    console.error('Error approving onsite result:', error);
+    logger.error('Error approving onsite result:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -194,7 +195,7 @@ router.get('/events/:eventId/check-in-summary', protectEventRead, async (req, re
       summary: summary || { message: 'No check-in data for this event' }
     });
   } catch (error) {
-    console.error('Error getting check-in summary:', error);
+    logger.error('Error getting check-in summary:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -211,7 +212,7 @@ router.get('/events/:eventId/bib-assignment-status', protectEventRead, async (re
       status: status || { message: 'No bib data for this event' }
     });
   } catch (error) {
-    console.error('Error getting bib assignment status:', error);
+    logger.error('Error getting bib assignment status:', error);
     res.status(500).json({ error: error.message });
   }
 });

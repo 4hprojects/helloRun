@@ -1445,6 +1445,15 @@ label .required {
   white-space: nowrap;
 }
 
+.nav-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid #e0e0e0;
+}
+
 .nav-logout-btn {
   background: transparent;
   color: var(--orange);

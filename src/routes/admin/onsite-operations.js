@@ -3,6 +3,7 @@
 
 const express = require('express');
 const router = express.Router();
+const logger = require('../../utils/logger');
 const { requireAuth } = require('../../middleware/auth.middleware');
 const { requireRole } = require('../../middleware/role.middleware');
 const {
@@ -49,7 +50,7 @@ router.post('/events/:eventId/bibs/bulk-assign', requireAuth, requireRole('admin
       results
     });
   } catch (error) {
-    console.error('Error in bulk bib assignment:', error);
+    logger.error('Error in bulk bib assignment:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -81,7 +82,7 @@ router.post('/events/:eventId/check-ins/bulk', requireAuth, requireRole('admin')
       results
     });
   } catch (error) {
-    console.error('Error in bulk check-in:', error);
+    logger.error('Error in bulk check-in:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -108,7 +109,7 @@ router.post('/events/:eventId/result-imports/:importId/process', requireAuth, re
       import: result.import
     });
   } catch (error) {
-    console.error('Error processing import batch:', error);
+    logger.error('Error processing import batch:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -132,7 +133,7 @@ router.post('/events/:eventId/result-imports/:importId/retry-failures', requireA
       import: result.import
     });
   } catch (error) {
-    console.error('Error retrying failed imports:', error);
+    logger.error('Error retrying failed imports:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -149,7 +150,7 @@ router.get('/events/:eventId/result-imports/:importId/errors/export', requireAut
     res.set('Content-Disposition', `attachment; filename="import-errors-${importId}.csv"`);
     res.send(csv);
   } catch (error) {
-    console.error('Error exporting import errors:', error);
+    logger.error('Error exporting import errors:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -174,7 +175,7 @@ router.get('/events/:eventId/check-ins', requireAuth, requireRole('admin'), veri
       checkIns
     });
   } catch (error) {
-    console.error('Error listing check-ins:', error);
+    logger.error('Error listing check-ins:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -194,7 +195,7 @@ router.get('/events/:eventId/result-imports', requireAuth, requireRole('admin'),
       imports
     });
   } catch (error) {
-    console.error('Error listing result imports:', error);
+    logger.error('Error listing result imports:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -219,7 +220,7 @@ router.patch('/events/:eventId/check-ins/:checkInId', requireAuth, requireRole('
       checkIn: updated
     });
   } catch (error) {
-    console.error('Error updating check-in:', error);
+    logger.error('Error updating check-in:', error);
     res.status(500).json({ error: error.message });
   }
 });

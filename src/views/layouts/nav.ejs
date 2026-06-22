@@ -105,6 +105,9 @@
 
         <!-- User menu -->
         <div class="nav-user" aria-label="User menu">
+          <% if (locals.user && locals.user.avatarUrl) { %>
+            <img src="<%= locals.user.avatarUrl %>" alt="" class="nav-avatar" aria-hidden="true">
+          <% } %>
           <span class="nav-username">Hi, <%= locals.user ? locals.user.firstName : 'User' %></span>
           <form action="/logout" method="POST" class="logout-form">
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">

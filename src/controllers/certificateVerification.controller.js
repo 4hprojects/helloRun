@@ -37,8 +37,20 @@ async function getVerificationResult(req, res, next) {
       ipAddress: getRequestIpAddress(req),
       userAgent: getRequestUserAgent(req)
     });
+    const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
+    const canonicalUrl = `${appUrl}/certificates/verify/${encodeURIComponent(certificateNumber)}`;
+    const seo = result.found
+      ? {
+          ogTitle: `${result.eventTitle} — Verified HelloRun Certificate`,
+          description: `Certificate verified for ${result.runnerName}. Issued by HelloRun.`,
+          canonicalUrl,
+          ogType: 'profile'
+        }
+      : null;
+
     return res.render('certificates/verification-result', {
       title: 'Certificate Verification - HelloRun',
+      seo,
       certificateNumber,
       result
     });
