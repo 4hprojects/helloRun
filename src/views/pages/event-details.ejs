@@ -572,6 +572,38 @@
     </section>
   </main>
 
+  <% if (!isPreviewMode && relatedEvents && relatedEvents.length) { %>
+    <section class="event-related-section" aria-labelledby="relatedEventsTitle">
+      <div class="event-related-wrap">
+        <h2 id="relatedEventsTitle">Similar Events</h2>
+        <div class="event-related-grid">
+          <% relatedEvents.forEach((relEvent) => { %>
+            <article class="event-related-card">
+              <a href="/events/<%= relEvent.slug %>" class="event-related-img-link" tabindex="-1" aria-hidden="true">
+                <% if (relEvent.bannerImageUrl) { %>
+                  <img src="<%= relEvent.bannerImageUrl %>" alt="" loading="lazy" class="event-related-img">
+                <% } else { %>
+                  <div class="event-related-img-placeholder"></div>
+                <% } %>
+              </a>
+              <div class="event-related-body">
+                <div class="event-related-tags">
+                  <span class="tag tag-status tag-status-<%= relEvent.displayState?.tone || 'neutral' %>"><%= relEvent.displayState?.label || 'Event' %></span>
+                  <% if (relEvent.raceDistances && relEvent.raceDistances.length) { %>
+                    <span class="tag"><%= relEvent.raceDistances.slice(0, 2).join(' · ') %></span>
+                  <% } %>
+                </div>
+                <h3 class="event-related-title"><a href="/events/<%= relEvent.slug %>"><%= relEvent.title %></a></h3>
+                <p class="event-related-organiser"><%= relEvent.organiserName %></p>
+              </div>
+            </article>
+          <% }) %>
+        </div>
+        <a href="/events" class="event-related-browse">Browse all events →</a>
+      </div>
+    </section>
+  <% } %>
+
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
   <% if (locals.isAuthenticated) { %><script src="/js/event-save.js"></script><% } %>

@@ -92,7 +92,7 @@ const {
 const { getEventBadgesByMongoEventId } = require('../services/event-badge.service');
 const { listProductsByMongoEventId } = require('../services/shop/product.service');
 const { recalculateOrderTotals } = require('../services/shop/order.service');
-const { buildPublicEventListPage, listHomepagePromotedEvents } = require('../services/public-event-list.service');
+const { buildPublicEventListPage, listHomepagePromotedEvents, getEventCardDisplayState } = require('../services/public-event-list.service');
 const { getHomepageCarouselSettings } = require('../services/homepage-carousel-setting.service');
 const { getPostgresClient } = require('../db/postgres');
 const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
@@ -250,13 +250,15 @@ exports.getEventDetails = async (req, res) => {
       return renderEventNotFound(res);
     }
 
-    const [registrationCount, badges, eventShopProducts] = await Promise.all([
+    const now = new Date();
+    const [registrationCount, badges, eventShopProducts, relatedEvents] = await Promise.all([
       Registration.countDocuments({
         eventId: event._id,
         status: { $ne: 'cancelled' }
       }),
       getEventBadgesByMongoEventId(event._id).catch(() => []),
-      listProductsByMongoEventId(String(event._id), { limit: 4, publicOnly: true }).catch(() => [])
+      listProductsByMongoEventId(String(event._id), { limit: 4, publicOnly: true }).catch(() => []),
+      getRelatedEvents(event, getPublicEventVisibilityQuery(now), now).catch(() => [])
     ]);
     const baseUrl = getSitemapBaseUrl(req);
     const publicEvent = buildPublicEventView(event, { registrationCount });
@@ -282,6 +284,7 @@ exports.getEventDetails = async (req, res) => {
       badges,
       eventShop,
       isSaved,
+      relatedEvents,
       eventDetailsHtml: renderEventDetailsContent(event.eventDetailsMarkdown),
       countryName: getCountryName
     });
@@ -3304,4 +3307,43 @@ function renderEventNotFound(res) {
     status: 404,
     message: 'This event is not available.'
   });
+}
+
+async function getRelatedEvents(event, visibilityQuery, now) {
+  const baseSelect = 'title slug bannerImageUrl eventStartAt registrationOpenAt registrationCloseAt eventType raceDistances organiserName';
+  const seen = new Set([String(event._id)]);
+  const related = [];
+
+  // 1. Same organiser
+  if (event.organizerId && related.length < 3) {
+    const docs = await Event.find({ ...visibilityQuery, organizerId: event.organizerId, _id: { $ne: event._id } })
+      .select(baseSelect).sort({ createdAt: -1 }).limit(3).lean();
+    for (const d of docs) {
+      if (related.length < 3 && !seen.has(String(d._id))) { seen.add(String(d._id)); related.push(d); }
+    }
+  }
+
+  // 2. Same race distances
+  if (event.raceDistances && event.raceDistances.length && related.length < 3) {
+    const docs = await Event.find({ ...visibilityQuery, raceDistances: { $in: event.raceDistances }, _id: { $nin: [...seen] } })
+      .select(baseSelect).sort({ createdAt: -1 }).limit(3 - related.length).lean();
+    for (const d of docs) {
+      if (related.length < 3) { seen.add(String(d._id)); related.push(d); }
+    }
+  }
+
+  // 3. Fallback: any event with open registration
+  if (related.length < 3) {
+    const docs = await Event.find({
+      ...visibilityQuery,
+      registrationOpenAt: { $lte: now },
+      registrationCloseAt: { $gte: now },
+      _id: { $nin: [...seen] }
+    }).select(baseSelect).sort({ createdAt: -1 }).limit(3 - related.length).lean();
+    for (const d of docs) {
+      if (related.length < 3) { seen.add(String(d._id)); related.push(d); }
+    }
+  }
+
+  return related.map((ev) => ({ ...ev, displayState: getEventCardDisplayState(ev, now) }));
 }
