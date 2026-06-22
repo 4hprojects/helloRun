@@ -12,11 +12,64 @@
       <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
       <% const currentGroups = runningGroupFeature?.currentGroups || []; %>
 
+      <% if (isFirstLogin) { %>
+        <section class="onboarding-welcome-banner" id="js-welcome-banner">
+          <button type="button" class="onboarding-dismiss" id="js-welcome-dismiss" aria-label="Dismiss welcome banner">×</button>
+          <h2>Welcome to HelloRun, <%= userName %>!</h2>
+          <p>Here's how to get the most out of the platform:</p>
+          <ol class="onboarding-steps">
+            <li>
+              <span class="onboarding-step-num">1</span>
+              <div>
+                <a href="/runner/profile"><strong>Complete your profile</strong></a>
+                <span>Add your details for registrations and certificates</span>
+              </div>
+            </li>
+            <li>
+              <span class="onboarding-step-num">2</span>
+              <div>
+                <a href="/events"><strong>Browse events</strong></a>
+                <span>Find a virtual or in-person run to join</span>
+              </div>
+            </li>
+            <li>
+              <span class="onboarding-step-num">3</span>
+              <div>
+                <strong>Register, run, and earn</strong>
+                <span>Submit your result to receive a certificate and badges</span>
+              </div>
+            </li>
+          </ol>
+        </section>
+        <script>
+          (function(){
+            var banner = document.getElementById('js-welcome-banner');
+            var btn = document.getElementById('js-welcome-dismiss');
+            if (localStorage.getItem('hr_welcome_dismissed')) { if(banner) banner.style.display='none'; }
+            if (btn) btn.addEventListener('click', function() {
+              if(banner) banner.style.display='none';
+              localStorage.setItem('hr_welcome_dismissed','1');
+            });
+          })();
+        </script>
+      <% } %>
+
+      <% if (profileCompleteness && profileCompleteness.percent < 60) { %>
+        <div class="dashboard-profile-nudge">
+          <div class="nudge-progress">
+            <strong>Profile <%= profileCompleteness.percent %>% complete</strong>
+            <div class="nudge-progress-track"><div class="nudge-progress-fill" style="width:<%= profileCompleteness.percent %>%"></div></div>
+          </div>
+          <p class="nudge-missing">Missing: <%= (profileCompleteness.missingFields || []).join(', ') %></p>
+          <a href="/runner/profile" class="btn btn-sm btn-primary">Complete Profile →</a>
+        </div>
+      <% } %>
+
       <section class="dashboard-hero">
         <div class="dashboard-header">
           <div class="header-content">
             <span class="dashboard-eyebrow">Runner Dashboard</span>
-            <h1>Welcome back, <%= userName %>!</h1>
+            <h1><%= isFirstLogin ? 'Get started,' : 'Welcome back,' %> <%= userName %>!</h1>
             <p class="header-subtitle">Track upcoming races, results, certificates, and community progress in one place.</p>
           </div>
           <div class="header-actions">
@@ -150,8 +203,8 @@
               </ul>
             <% } else { %>
               <div class="empty-state runner-badges-empty">
-                <p class="empty-message">No badges yet.</p>
-                <a href="/events" class="btn btn-primary btn-sm">Browse events</a>
+                <p class="empty-message">No badges yet — badges are awarded when you register and complete events.</p>
+                <a href="/events" class="btn btn-primary btn-sm">Browse Events →</a>
               </div>
             <% } %>
           </div>
@@ -289,8 +342,8 @@
               </ul>
             <% } else { %>
               <div class="empty-state">
-                <p class="empty-message">No registered event progress yet.</p>
-                <a href="/events" class="btn btn-primary btn-sm">Browse events</a>
+                <p class="empty-message">No event progress yet. Register for an event to track your results here.</p>
+                <a href="/events" class="btn btn-primary btn-sm">Browse Events →</a>
               </div>
             <% } %>
           </div>

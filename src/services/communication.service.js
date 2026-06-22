@@ -411,6 +411,9 @@ function normalizeInt(value, min, max, fallback) {
 
 async function sendEventEmail(eventKey, payload = {}) {
   const email = payload.email || {};
+  if (eventKey === 'account.welcome') {
+    return emailService.sendWelcomeEmail(email.to, email.firstName);
+  }
   if (eventKey === 'account.email_verification') {
     return emailService.sendVerificationEmail(email.to, email.verificationToken, email.firstName, email.role);
   }

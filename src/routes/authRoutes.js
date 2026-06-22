@@ -666,6 +666,7 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
           ? new Date(oauthSignupConsent.agreedAt)
           : new Date();
 
+        req.session.firstLogin = true;
         user = await User.create({
           firstName: firstName || 'Runner',
           lastName,
@@ -695,7 +696,14 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
       }
     }
 
+    const wasNewUser = req.session.firstLogin === true;
     startAuthenticatedSession(req, user);
+    if (wasNewUser) {
+      req.session.firstLogin = true;
+      communicationService.notify('account.welcome', {
+        email: { to: user.email, firstName: user.firstName || '', recipientUserId: user._id, metadata: { userId: String(user._id) } }
+      }).catch(() => {});
+    }
     syncProfileCompletionInBackground(user);
 
     const googleReturnTo = resolveSafeReturnTo(req.session.googleOAuthReturnTo);
@@ -993,15 +1001,17 @@ router.get('/verify-email/:token', async (req, res) => {
 
     // Set session
     req.session.userId = user._id;
+    req.session.firstLogin = true;
 
-    // SCENARIO 7: Render success page
-    res.render('auth/verify-email-success', {
-      email: user.email,
-      firstName: user.firstName,
-      role: user.role,
-      organizerStatus: user.organizerStatus || 'not_applied',
-      isOrganizer: user.role === 'organiser'
-    });
+    // Send welcome email (non-blocking)
+    syncUserComplianceInBackground(user, 'email_verification');
+    communicationService.notify('account.welcome', {
+      email: { to: user.email, firstName: user.firstName || '', recipientUserId: user._id, metadata: { userId: String(user._id) } }
+    }).catch(() => {});
+
+    // Redirect to the correct dashboard with welcome signal
+    const dashboardPath = user.role === 'organiser' ? '/organizer/dashboard' : '/runner/dashboard';
+    return res.redirect(`${dashboardPath}?welcome=1`);
 
   } catch (error) {
     console.error('[Email Verification] Unexpected error:', error);

@@ -2174,3 +2174,137 @@ code {
     width: 100%;
   }
 }
+
+/* ===== ONBOARDING WELCOME BANNER ===== */
+.onboarding-welcome-banner {
+  position: relative;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+  border: 1px solid #fed7aa;
+  border-left: 4px solid var(--orange, #f97316);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.onboarding-welcome-banner h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.1rem;
+  color: #c2410c;
+}
+
+.onboarding-welcome-banner > p {
+  margin: 0 0 0.9rem;
+  color: #78350f;
+  font-size: 0.875rem;
+}
+
+.onboarding-steps {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.onboarding-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.onboarding-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--orange, #f97316);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.onboarding-steps li div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.onboarding-steps li strong a,
+.onboarding-steps li a strong {
+  color: #c2410c;
+  text-decoration: underline;
+}
+
+.onboarding-steps li span {
+  font-size: 0.8rem;
+  color: #92400e;
+}
+
+.onboarding-dismiss {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #92400e;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  opacity: 0.6;
+}
+.onboarding-dismiss:hover { opacity: 1; }
+
+/* ===== PROFILE COMPLETENESS NUDGE ===== */
+.dashboard-profile-nudge {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-left: 4px solid #16a34a;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.nudge-progress {
+  flex: 1;
+  min-width: 160px;
+}
+
+.nudge-progress strong {
+  font-size: 0.875rem;
+  color: #15803d;
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.nudge-progress-track {
+  height: 6px;
+  background: #dcfce7;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.nudge-progress-fill {
+  height: 100%;
+  background: #16a34a;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.nudge-missing {
+  font-size: 0.78rem;
+  color: #166534;
+  margin: 0;
+  flex: 1;
+  min-width: 160px;
+}

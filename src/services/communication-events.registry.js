@@ -39,6 +39,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 30
   },
   {
+    eventKey: 'account.welcome',
+    name: 'Welcome Email',
+    description: 'Sent once when a new user completes email verification or signs up via Google.',
+    category: 'account',
+    priority: 'normal',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: false,
+    locked: false,
+    recipientRoles: ['runner'],
+    displayOrder: 35
+  },
+  {
     eventKey: 'organiser.application_submitted',
     name: 'Organiser Application Submitted',
     description: 'Confirms that an organiser application was received.',

@@ -1589,6 +1589,76 @@ function formatBadgeEmailLabel(value) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+exports.sendWelcomeEmail = async (email, firstName) => {
+  if (!process.env.RESEND_API_KEY) return { skipped: true };
+  const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
+  const name = escapeHtml(firstName || 'Runner');
+  const { data, error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM,
+    to: email,
+    subject: `Welcome to HelloRun, ${firstName || 'Runner'}!`,
+    html: `
+      <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+      <style>
+        body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.6;color:#1e293b;background:#f8fafc;margin:0;padding:0}
+        .email-container{max-width:600px;margin:0 auto;background:#fff}
+        .header{background:linear-gradient(135deg,#f97316 0%,#ea580c 100%);padding:40px 20px;text-align:center}
+        .header h1{color:#fff;margin:0;font-size:26px;font-weight:700}
+        .header p{color:rgba(255,255,255,0.9);margin:8px 0 0;font-size:15px}
+        .content{padding:32px 40px}
+        .step{display:flex;align-items:flex-start;margin-bottom:24px;gap:16px}
+        .step-num{width:36px;height:36px;border-radius:50%;background:#f97316;color:#fff;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:36px;text-align:center}
+        .step-copy strong{display:block;color:#0f172a;margin-bottom:2px}
+        .step-copy a{color:#f97316;text-decoration:none}
+        .cta-wrap{text-align:center;margin:32px 0 24px}
+        .cta-btn{background:#f97316;color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:600;font-size:15px;display:inline-block}
+        .footer{background:#f1f5f9;padding:24px 40px;text-align:center;color:#64748b;font-size:13px}
+        .footer a{color:#f97316;text-decoration:none}
+      </style></head><body>
+      <div class="email-container">
+        <div class="header">
+          <h1>Welcome to HelloRun, ${name}!</h1>
+          <p>You're all set. Here's how to get started.</p>
+        </div>
+        <div class="content">
+          <p style="margin:0 0 24px;color:#475569">Hi ${name}, great to have you on HelloRun. Follow these three steps to make the most of the platform:</p>
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-copy">
+              <strong><a href="${appUrl}/runner/profile">Complete your profile</a></strong>
+              <span style="color:#64748b;font-size:14px">Add your name, emergency contact, and country so your registrations and certificates are accurate.</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-copy">
+              <strong><a href="${appUrl}/events">Browse events</a></strong>
+              <span style="color:#64748b;font-size:14px">Find a virtual or in-person run that fits your schedule and distance goal.</span>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-copy">
+              <strong>Register and run</strong>
+              <span style="color:#64748b;font-size:14px">Register for an event, complete your run, submit your result, and earn your certificate and badges.</span>
+            </div>
+          </div>
+          <div class="cta-wrap">
+            <a href="${appUrl}/runner/dashboard" class="cta-btn">Go to your dashboard →</a>
+          </div>
+        </div>
+        <div class="footer">
+          <p>Need help? <a href="${appUrl}/contact">Contact support</a> &nbsp;•&nbsp; <a href="${appUrl}">HelloRun</a></p>
+          <p style="margin:8px 0 0;color:#94a3b8">You received this email because you created an account on HelloRun.</p>
+        </div>
+      </div>
+      </body></html>
+    `
+  });
+  if (error) throw new Error(`Welcome email failed: ${error.message || 'unknown error'}`);
+  return { data };
+};
+
 exports.sendBasicTestEmail = async (to, subject, message) => {
   if (!process.env.RESEND_API_KEY) {
     return { skipped: true };

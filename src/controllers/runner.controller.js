@@ -52,12 +52,19 @@ exports.getDashboard = async (req, res) => {
     if (!user) {
       return res.redirect('/login');
     }
+
+    const isFirstLogin = req.session.firstLogin === true || req.query.welcome === '1';
+    if (req.session.firstLogin) delete req.session.firstLogin;
+
+    const profileCompleteness = getRunnerProfileCompleteness(user);
     const dashboardViewData = await buildRunnerDashboardViewData(user, req);
     return res.render('runner/dashboard', {
       user,
       userName: user.firstName,
       errors: {},
       message: getRunnerProfileMessage(req.query),
+      isFirstLogin,
+      profileCompleteness,
       ...dashboardViewData
     });
   } catch (error) {

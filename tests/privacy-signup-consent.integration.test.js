@@ -160,10 +160,9 @@ test('verified organizer without application is sent to dashboard', async () => 
   const response = await fetch(`${BASE_URL}/verify-email/${encodeURIComponent(rawToken)}`, {
     redirect: 'manual'
   });
-  assert.equal(response.status, 200);
-  const html = await response.text();
-  assert.match(html, /Go to Dashboard/i);
-  assert.match(html, /href="\/organizer\/dashboard"/i);
+  assert.equal(response.status, 302);
+  const location = response.headers.get('location') || '';
+  assert.ok(location.includes('/organizer/dashboard'), `Expected redirect to organizer dashboard, got: ${location}`);
 
   await mongoose.connect(process.env.MONGODB_URI);
   try {
