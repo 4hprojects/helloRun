@@ -1589,6 +1589,40 @@ function formatBadgeEmailLabel(value) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+exports.sendOrganizerPaymentReminderEmail = async (email, firstName, eventTitle, eventUrl, confirmationCode) => {
+  if (!process.env.RESEND_API_KEY) return { skipped: true };
+  const name = escapeHtml(firstName || 'Runner');
+  const title = escapeHtml(eventTitle || 'your event');
+  const code = escapeHtml(confirmationCode || '');
+  const { data, error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM,
+    to: email,
+    subject: `Payment reminder — ${eventTitle || 'HelloRun event'}`,
+    html: `
+      <div style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:600px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+        <div style="background:linear-gradient(135deg,#f97316 0%,#ea580c 100%);padding:28px 32px">
+          <h1 style="color:#fff;margin:0;font-size:22px;font-weight:700">Payment Reminder</h1>
+          <p style="color:rgba(255,255,255,0.9);margin:6px 0 0;font-size:14px">${title}</p>
+        </div>
+        <div style="padding:28px 32px;color:#1e293b">
+          <p style="margin:0 0 16px">Hi ${name},</p>
+          <p style="margin:0 0 16px">Your registration for <strong>${title}</strong> is confirmed${code ? ` (code: <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px">${code}</code>)` : ''}, but your payment hasn't been received yet.</p>
+          <p style="margin:0 0 24px">Please upload your payment receipt to complete your registration:</p>
+          <div style="text-align:center;margin-bottom:24px">
+            <a href="${process.env.APP_URL || ''}/my-registrations" style="background:#f97316;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px;display:inline-block">Upload Payment Receipt →</a>
+          </div>
+          <p style="margin:0;color:#64748b;font-size:13px">If you've already submitted your receipt, it may still be under review. You can check the status in <a href="${process.env.APP_URL || ''}/my-registrations" style="color:#f97316">My Registrations</a>.</p>
+        </div>
+        <div style="background:#f8fafc;padding:16px 32px;text-align:center;color:#94a3b8;font-size:12px;border-top:1px solid #e5e7eb">
+          This reminder was sent by the event organiser via HelloRun.
+        </div>
+      </div>
+    `
+  });
+  if (error) throw new Error(`Payment reminder email failed: ${error.message || 'unknown error'}`);
+  return { data };
+};
+
 exports.sendWelcomeEmail = async (email, firstName) => {
   if (!process.env.RESEND_API_KEY) return { skipped: true };
   const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');

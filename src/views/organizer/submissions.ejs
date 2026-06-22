@@ -107,6 +107,20 @@
         <span class="run-proof-results-note"><%= counts.standard %> standard, <%= counts.accumulated %> accumulated</span>
       </div>
 
+      <% const pendingSubmissions = (submissions || []).filter(s => s.status === 'submitted'); %>
+      <% if (!isAdminViewer && pendingSubmissions.length) { %>
+        <form method="POST" action="/organizer/submissions/bulk-approve" id="js-bulk-submission-form" class="bulk-action-bar">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <input type="hidden" name="submissionIds" id="js-bulk-submission-ids" value="">
+          <label class="bulk-select-all-label">
+            <input type="checkbox" id="js-select-all-submissions" class="bulk-select-all"> Select all pending (<%= pendingSubmissions.length %>)
+          </label>
+          <span class="bulk-selected-count" id="js-submission-selected-count" style="display:none">0 selected</span>
+          <textarea name="reviewNotes" placeholder="Optional approval notes (shared across all selected)" rows="1" class="form-input bulk-notes-input" maxlength="1200"></textarea>
+          <button type="submit" class="nav-signup-btn bulk-approve-btn" id="js-bulk-submission-approve" disabled>Approve Selected</button>
+        </form>
+      <% } %>
+
       <% if (submissions && submissions.length) { %>
         <section class="run-proof-review-list">
           <% submissions.forEach((item) => { %>
@@ -167,6 +181,11 @@
               </div>
 
               <div class="run-proof-card-actions submission-hub-card-actions">
+                <% if (!isAdminViewer && item.status === 'submitted') { %>
+                  <label class="bulk-card-checkbox-label" title="Select for bulk approve">
+                    <input type="checkbox" class="js-submission-checkbox bulk-card-checkbox" value="<%= item.id %>" aria-label="Select submission">
+                  </label>
+                <% } %>
                 <a href="<%= item.actionHref %>" class="nav-signup-btn submission-hub-action-btn" data-submission-modal-link data-modal-title="Review Submission">Open Review</a>
                 <a href="<%= item.eventProofsHref %>" class="nav-login-btn submission-hub-action-btn" data-submission-modal-link data-modal-title="Event Proofs">Event Proofs</a>
               </div>
@@ -195,5 +214,34 @@
   <script src="/js/main.js"></script>
   <script src="/js/submission-link-modal.js"></script>
   <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    (function () {
+      var selectAll = document.getElementById('js-select-all-submissions');
+      var idsInput = document.getElementById('js-bulk-submission-ids');
+      var approveBtn = document.getElementById('js-bulk-submission-approve');
+      var countEl = document.getElementById('js-submission-selected-count');
+      var checkboxes = Array.from(document.querySelectorAll('.js-submission-checkbox'));
+      if (!selectAll || !checkboxes.length) return;
+
+      function updateState() {
+        var selected = checkboxes.filter(function (c) { return c.checked; });
+        if (idsInput) idsInput.value = selected.map(function (c) { return c.value; }).join(',');
+        if (approveBtn) approveBtn.disabled = selected.length === 0;
+        if (countEl) {
+          countEl.style.display = selected.length > 0 ? '' : 'none';
+          countEl.textContent = selected.length + ' selected' + (selected.length > 50 ? ' (first 50 will be processed)' : '');
+        }
+        selectAll.indeterminate = selected.length > 0 && selected.length < checkboxes.length;
+        selectAll.checked = selected.length === checkboxes.length && checkboxes.length > 0;
+      }
+
+      selectAll.addEventListener('change', function () {
+        checkboxes.forEach(function (c) { c.checked = selectAll.checked; });
+        updateState();
+      });
+      checkboxes.forEach(function (c) { c.addEventListener('change', updateState); });
+      updateState();
+    })();
+  </script>
 </body>
 </html>

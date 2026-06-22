@@ -21,6 +21,12 @@
               <a href="/organizer/events/<%= event._id %>/registrants/export-xlsx<%= exportQuery ? `?${exportQuery}` : '' %>" class="nav-login-btn registrant-header-btn registrant-toolbar-btn registrant-toolbar-btn-secondary" aria-label="Export XLSX" data-tooltip="Export XLSX" title="Export XLSX">
                 <i data-lucide="sheet" aria-hidden="true"></i>
               </a>
+              <% if (!isAdminViewer && (summary.unpaidCount || (summary.proofRejectedCount))) { %>
+                <% const unpaidTotal = (summary.unpaidCount || 0) + (summary.proofRejectedCount || 0); %>
+                <button type="button" class="nav-login-btn registrant-header-btn registrant-toolbar-btn registrant-toolbar-btn-secondary" id="js-email-unpaid-btn" data-unpaid-count="<%= unpaidTotal %>" data-event-title="<%= event.title %>" aria-label="Email Unpaid Runners" data-tooltip="Email Unpaid" title="Email <%= unpaidTotal %> unpaid runner<%= unpaidTotal !== 1 ? 's' : ''%>">
+                  <i data-lucide="mail" aria-hidden="true"></i>
+                </button>
+              <% } %>
               <% if (isAdminViewer) { %>
                 <a href="/admin/dashboard" class="nav-login-btn registrant-header-btn registrant-toolbar-btn registrant-toolbar-btn-primary" aria-label="Admin Dashboard" data-tooltip="Admin Dashboard" title="Admin Dashboard">
                   <i data-lucide="layout-dashboard" aria-hidden="true"></i>
@@ -622,5 +628,49 @@
     })();
   </script>
   <script>if (window.lucide) lucide.createIcons();</script>
+
+  <!-- Email Unpaid Modal -->
+  <div id="js-email-unpaid-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:500;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:10px;padding:2rem;max-width:440px;width:90%;position:relative">
+      <button type="button" id="js-close-email-modal" style="position:absolute;top:0.75rem;right:0.75rem;background:none;border:none;font-size:1.3rem;cursor:pointer;color:#64748b">×</button>
+      <h2 style="margin:0 0 0.5rem;font-size:1.1rem">Send Payment Reminder</h2>
+      <p id="js-email-modal-desc" style="margin:0 0 1rem;color:#475569;font-size:0.875rem"></p>
+      <p style="margin:0 0 1.25rem;font-size:0.875rem;color:#1e293b;background:#f8fafc;border:1px solid #e5e7eb;border-radius:6px;padding:0.75rem">
+        <strong>Message preview:</strong><br>
+        "Your payment for <em id="js-email-modal-event"></em> is pending. Please upload your payment receipt to complete your registration."
+      </p>
+      <form method="POST" action="/organizer/events/<%= event._id %>/registrants/email-unpaid">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+        <div style="display:flex;gap:0.5rem;justify-content:flex-end">
+          <button type="button" id="js-cancel-email-modal" class="nav-login-btn">Cancel</button>
+          <button type="submit" class="nav-signup-btn" id="js-confirm-email-btn">Send Reminder</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var openBtn = document.getElementById('js-email-unpaid-btn');
+      var modal = document.getElementById('js-email-unpaid-modal');
+      var closeBtn = document.getElementById('js-close-email-modal');
+      var cancelBtn = document.getElementById('js-cancel-email-modal');
+      var desc = document.getElementById('js-email-modal-desc');
+      var eventEl = document.getElementById('js-email-modal-event');
+      if (!openBtn || !modal) return;
+
+      openBtn.addEventListener('click', function () {
+        var count = openBtn.dataset.unpaidCount || '0';
+        var title = openBtn.dataset.eventTitle || 'this event';
+        if (desc) desc.textContent = 'This will send a payment reminder email to ' + count + ' runner' + (count !== '1' ? 's' : '') + ' who have not yet paid.';
+        if (eventEl) eventEl.textContent = title;
+        modal.style.display = 'flex';
+      });
+
+      function closeModal() { modal.style.display = 'none'; }
+      if (closeBtn) closeBtn.addEventListener('click', closeModal);
+      if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+      modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+    })();
+  </script>
 </body>
 </html>

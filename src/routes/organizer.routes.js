@@ -997,6 +997,191 @@ router.get('/submissions', requireAuth, async (req, res) => {
 });
 
 /* ==========================================
+   POST: Bulk Approve Submissions
+   ========================================== */
+
+router.post('/submissions/bulk-approve', requireAuth, requireCsrfProtection, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+    if (!user || !canAccessRegistrantReview(user)) {
+      return res.status(403).json({ success: false, message: 'Access denied.' });
+    }
+
+    const rawIds = Array.isArray(req.body.submissionIds)
+      ? req.body.submissionIds
+      : String(req.body.submissionIds || '').split(',').filter(Boolean);
+    const submissionIds = rawIds.map((id) => String(id).trim()).filter(Boolean).slice(0, 50);
+    if (!submissionIds.length) {
+      return res.redirect('/organizer/submissions?' + new URLSearchParams({ type: 'error', msg: 'No submissions selected.' }).toString());
+    }
+
+    const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
+    const results = await Promise.allSettled(
+      submissionIds.map((id) =>
+        reviewSubmission({
+          submissionId: id,
+          organizerId: user._id,
+          reviewerRole: user.role === 'admin' ? 'admin' : 'organiser',
+          action: 'approve',
+          reviewNotes
+        })
+      )
+    );
+
+    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.length - succeeded;
+    const msg = failed > 0
+      ? `${succeeded} submission${succeeded !== 1 ? 's' : ''} approved. ${failed} skipped (already reviewed or inaccessible).`
+      : `${succeeded} submission${succeeded !== 1 ? 's' : ''} approved.`;
+
+    return res.redirect('/organizer/submissions?' + new URLSearchParams({ type: 'success', msg }).toString());
+  } catch (error) {
+    console.error('Bulk submission approve error:', error);
+    return res.redirect('/organizer/submissions?' + new URLSearchParams({ type: 'error', msg: 'An error occurred during bulk approval.' }).toString());
+  }
+});
+
+/* ==========================================
+   POST: Bulk Approve Payment Proofs
+   ========================================== */
+
+router.post('/events/:id/payment-reviews/bulk-approve', requireAuth, requireCsrfProtection, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+    if (!user || !canAccessRegistrantReview(user)) {
+      return res.status(403).render('error', { title: '403 - Access Denied', status: 403, message: 'Access denied.' });
+    }
+
+    const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
+    if (!event) {
+      return res.status(404).render('error', { title: '404 - Not Found', status: 404, message: 'Event not found.' });
+    }
+
+    const rawIds = Array.isArray(req.body.registrationIds)
+      ? req.body.registrationIds
+      : String(req.body.registrationIds || '').split(',').filter(Boolean);
+    const registrationIds = rawIds.map((id) => String(id).trim()).filter(Boolean).slice(0, 50);
+    if (!registrationIds.length) {
+      const q = new URLSearchParams({ type: 'error', msg: 'No payment proofs selected.' });
+      return res.redirect(`/organizer/events/${event._id}/payment-proof-review?${q}`);
+    }
+
+    const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1000);
+
+    const results = await Promise.allSettled(
+      registrationIds.map(async (regId) => {
+        const registration = await Registration.findOne({ _id: regId, eventId: event._id });
+        if (!registration || !canOrganizerReviewPaymentProof(registration)) throw new Error('Skipped');
+        const previousStatus = registration.paymentStatus;
+        registration.paymentStatus = 'paid';
+        registration.paymentReviewedAt = new Date();
+        registration.paymentReviewedBy = user._id;
+        registration.paymentReviewNotes = reviewNotes;
+        registration.paymentRejectionReason = '';
+        await registration.save();
+        evaluateRegistrationAchievementsInBackground(registration, { performedBy: user._id });
+        recordCriticalAuditEventInBackground({
+          actorMongoUserId: user._id,
+          action: 'payment.approved',
+          targetType: 'registration',
+          targetId: String(registration._id),
+          statusFrom: previousStatus,
+          statusTo: 'paid',
+          notes: reviewNotes || `Bulk payment approval for ${registration.confirmationCode || registration._id}.`,
+          ipAddress: getRequestIpAddress(req),
+          userAgent: getRequestUserAgent(req),
+          occurredAt: registration.paymentReviewedAt
+        });
+        const runner = await User.findById(registration.userId).select('email firstName');
+        communicationService.notify('payment.approved', {
+          notification: { userId: registration.userId, type: 'payment_approved', title: 'Payment Approved', message: `Your payment for ${event.title || 'the event'} has been approved.`, href: '/my-registrations', metadata: { registrationId: String(registration._id), eventId: String(event._id), eventTitle: event.title || '' } },
+          email: runner?.email ? { to: runner.email, firstName: runner.firstName || 'Runner', eventTitle: event.title || 'Event', confirmationCode: registration.confirmationCode || '', recipientUserId: registration.userId, metadata: { registrationId: String(registration._id), eventId: String(event._id) } } : null
+        }).catch(() => {});
+      })
+    );
+
+    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.length - succeeded;
+    const msg = failed > 0
+      ? `${succeeded} payment${succeeded !== 1 ? 's' : ''} approved. ${failed} skipped.`
+      : `${succeeded} payment${succeeded !== 1 ? 's' : ''} approved.`;
+
+    const q = new URLSearchParams({ type: 'success', msg });
+    return res.redirect(`/organizer/events/${event._id}/payment-proof-review?${q}`);
+  } catch (error) {
+    console.error('Bulk payment approve error:', error);
+    const q = new URLSearchParams({ type: 'error', msg: 'An error occurred during bulk approval.' });
+    return res.redirect(`/organizer/events/${req.params.id}/payment-proof-review?${q}`);
+  }
+});
+
+/* ==========================================
+   POST: Email All Unpaid Registrants
+   ========================================== */
+
+router.post('/events/:id/registrants/email-unpaid', requireAuth, requireCsrfProtection, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+    if (!user || !canAccessRegistrantReview(user)) {
+      return res.status(403).render('error', { title: '403 - Access Denied', status: 403, message: 'Access denied.' });
+    }
+
+    const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
+    if (!event) {
+      return res.status(404).render('error', { title: '404 - Not Found', status: 404, message: 'Event not found.' });
+    }
+
+    const unpaidRegistrations = await Registration.find({
+      eventId: event._id,
+      status: 'confirmed',
+      paymentStatus: { $in: ['unpaid', 'proof_rejected'] }
+    }).limit(100).lean();
+
+    if (!unpaidRegistrations.length) {
+      const q = new URLSearchParams({ type: 'error', msg: 'No unpaid registrants to email.' });
+      return res.redirect(`/organizer/events/${event._id}/registrants?${q}`);
+    }
+
+    const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
+    await Promise.allSettled(
+      unpaidRegistrations.map(async (reg) => {
+        const runner = await User.findById(reg.userId).select('email firstName').lean();
+        if (!runner?.email) return;
+        communicationService.notify('organiser.payment_reminder', {
+          email: {
+            to: runner.email,
+            firstName: runner.firstName || 'Runner',
+            eventTitle: event.title || 'Event',
+            eventUrl: `${appUrl}/events/${event.slug}`,
+            confirmationCode: reg.confirmationCode || '',
+            recipientUserId: reg.userId,
+            metadata: { registrationId: String(reg._id), eventId: String(event._id) }
+          }
+        }).catch(() => {});
+      })
+    );
+
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: user._id,
+      action: 'organiser.payment_reminder_sent',
+      targetType: 'event',
+      targetId: String(event._id),
+      notes: `Payment reminder sent to ${unpaidRegistrations.length} unpaid registrant(s).`,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: new Date()
+    });
+
+    const q = new URLSearchParams({ type: 'success', msg: `Payment reminder sent to ${unpaidRegistrations.length} runner${unpaidRegistrations.length !== 1 ? 's' : ''}.` });
+    return res.redirect(`/organizer/events/${event._id}/registrants?${q}`);
+  } catch (error) {
+    console.error('Bulk email unpaid error:', error);
+    const q = new URLSearchParams({ type: 'error', msg: 'An error occurred while sending emails.' });
+    return res.redirect(`/organizer/events/${req.params.id}/registrants?${q}`);
+  }
+});
+
+/* ==========================================
    GET: Event Details (Owner Only)
    ========================================== */
 
@@ -1324,6 +1509,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       proofSubmittedCount,
       paidCount,
       proofRejectedCount,
+      unpaidCount,
       submissionSubmittedCount,
       submissionApprovedCount,
       submissionRejectedCount
@@ -1334,6 +1520,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       Registration.countDocuments({ eventId: event._id, paymentStatus: 'proof_submitted' }),
       Registration.countDocuments({ eventId: event._id, paymentStatus: 'paid' }),
       Registration.countDocuments({ eventId: event._id, paymentStatus: 'proof_rejected' }),
+      Registration.countDocuments({ eventId: event._id, status: 'confirmed', paymentStatus: 'unpaid' }),
       Submission.countDocuments({ eventId: event._id, status: 'submitted' }),
       Submission.countDocuments({ eventId: event._id, status: 'approved' }),
       Submission.countDocuments({ eventId: event._id, status: 'rejected' })
@@ -1359,6 +1546,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
         proofSubmittedCount,
         paidCount,
         proofRejectedCount,
+        unpaidCount,
         submissionSubmittedCount: submissionSubmittedCount + accumulatedCounts.submitted,
         submissionApprovedCount: submissionApprovedCount + accumulatedCounts.approved,
         submissionRejectedCount: submissionRejectedCount + accumulatedCounts.rejected

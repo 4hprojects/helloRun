@@ -70,6 +70,20 @@
         </div>
       <% } %>
 
+      <% const pendingProofs = (reviewItems || []).filter(i => i.isPending); %>
+      <% if (!isAdminViewer && pendingProofs.length) { %>
+        <form method="POST" action="/organizer/events/<%= event._id %>/payment-reviews/bulk-approve" id="js-bulk-payment-form" class="bulk-action-bar">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <input type="hidden" name="registrationIds" id="js-bulk-payment-ids" value="">
+          <label class="bulk-select-all-label">
+            <input type="checkbox" id="js-select-all-payments" class="bulk-select-all"> Select all pending (<%= pendingProofs.length %>)
+          </label>
+          <span class="bulk-selected-count" id="js-payment-selected-count" style="display:none">0 selected</span>
+          <textarea name="reviewNotes" placeholder="Optional approval notes (shared)" rows="1" class="form-input bulk-notes-input" maxlength="1000"></textarea>
+          <button type="submit" class="nav-signup-btn bulk-approve-btn" id="js-bulk-payment-approve" disabled>Approve Selected</button>
+        </form>
+      <% } %>
+
       <% if (reviewItems && reviewItems.length) { %>
         <section class="payment-proof-review-list">
           <% reviewItems.forEach((item) => { %>
@@ -143,6 +157,11 @@
               </div>
 
               <aside class="payment-proof-card-actions">
+                <% if (item.isPending && !isAdminViewer) { %>
+                  <label class="bulk-card-checkbox-label" title="Select for bulk approve">
+                    <input type="checkbox" class="js-payment-checkbox bulk-card-checkbox" value="<%= item.id %>" aria-label="Select for bulk approval">
+                  </label>
+                <% } %>
                 <% if (item.isPending) { %>
                   <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= item.id %>/payment/approve" class="payment-action-form">
                     <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
@@ -200,5 +219,34 @@
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
   <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    (function () {
+      var selectAll = document.getElementById('js-select-all-payments');
+      var idsInput = document.getElementById('js-bulk-payment-ids');
+      var approveBtn = document.getElementById('js-bulk-payment-approve');
+      var countEl = document.getElementById('js-payment-selected-count');
+      var checkboxes = Array.from(document.querySelectorAll('.js-payment-checkbox'));
+      if (!selectAll || !checkboxes.length) return;
+
+      function updateState() {
+        var selected = checkboxes.filter(function (c) { return c.checked; });
+        if (idsInput) idsInput.value = selected.map(function (c) { return c.value; }).join(',');
+        if (approveBtn) approveBtn.disabled = selected.length === 0;
+        if (countEl) {
+          countEl.style.display = selected.length > 0 ? '' : 'none';
+          countEl.textContent = selected.length + ' selected' + (selected.length > 50 ? ' (first 50 will be processed)' : '');
+        }
+        selectAll.indeterminate = selected.length > 0 && selected.length < checkboxes.length;
+        selectAll.checked = selected.length === checkboxes.length && checkboxes.length > 0;
+      }
+
+      selectAll.addEventListener('change', function () {
+        checkboxes.forEach(function (c) { c.checked = selectAll.checked; });
+        updateState();
+      });
+      checkboxes.forEach(function (c) { c.addEventListener('change', updateState); });
+      updateState();
+    })();
+  </script>
 </body>
 </html>

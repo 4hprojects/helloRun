@@ -2608,3 +2608,68 @@
     width: 100%;
   }
 }
+
+/* ===== BULK ACTION BAR ===== */
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.bulk-select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #78350f;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bulk-selected-count {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #92400e;
+  white-space: nowrap;
+}
+
+.bulk-notes-input {
+  flex: 1;
+  min-width: 160px;
+  max-width: 320px;
+  font-size: 0.8rem;
+  resize: none;
+  padding: 0.3rem 0.6rem;
+}
+
+.bulk-approve-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bulk-approve-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Checkbox on individual cards */
+.bulk-card-checkbox-label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.bulk-card-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #f97316;
+}

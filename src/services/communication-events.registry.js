@@ -39,6 +39,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 30
   },
   {
+    eventKey: 'organiser.payment_reminder',
+    name: 'Organiser Payment Reminder',
+    description: 'Sent by organisers to remind unpaid registrants to upload their payment receipt.',
+    category: 'organiser',
+    priority: 'normal',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: false,
+    locked: false,
+    recipientRoles: ['runner'],
+    displayOrder: 55
+  },
+  {
     eventKey: 'account.welcome',
     name: 'Welcome Email',
     description: 'Sent once when a new user completes email verification or signs up via Google.',
