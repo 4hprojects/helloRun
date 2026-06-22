@@ -245,7 +245,12 @@
                       <span class="label-short"><%= item.emailVerified ? 'OK' : 'No' %></span>
                     </span>
                   </td>
+                  <% if (item.accountStatus && item.accountStatus !== 'active') { %>
+                  <td data-column="auth" style="white-space:nowrap">
+                    <span class="status-badge status-badge-<%= item.accountStatus %> admin-user-compact-badge" title="Account <%= item.accountStatus %>"><%= item.accountStatus %></span>
+                  <% } else { %>
                   <td data-column="auth">
+                  <% } %>
                     <span class="admin-user-icon-label" title="<%= item.authProvider === 'google' ? 'Google' : 'Local' %>">
                       <i data-lucide="<%= item.authProvider === 'google' ? 'chrome' : 'key-round' %>" aria-hidden="true"></i>
                       <span class="label-full"><%= item.authProvider === 'google' ? 'Google' : 'Local' %></span>

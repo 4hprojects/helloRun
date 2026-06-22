@@ -30,6 +30,7 @@ _Last updated: June 22, 2026_
 | Runner Experience UX — payment snapshot, price resolver, certificate CTAs, mobile nav, unpaid CTA | June 22, 2026 | — |
 | Organiser Experience UX — reward/pricing validation, wizard phase bar, time-pending indicators, warnings | June 22, 2026 | 6/6 unit |
 | Badge system — profile imageUrl bug fix, type-specific placeholders, definition-level image, upload, earned count | June 22, 2026 | 44/44 auth |
+| Admin Governance — audit trail, admin notes, resend/override verification, account suspension | June 22, 2026 | 10/10 + 44/44 |
 
 ---
 

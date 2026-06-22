@@ -2,7 +2,7 @@ const User = require('../models/User');
 const { countUnreadNotifications } = require('../services/notification.service');
 const logger = require('../utils/logger');
 
-const AUTH_LOCAL_USER_FIELDS = 'userId email firstName lastName displayName role organizerStatus emailVerified authProvider profileImageUrl avatarUrl';
+const AUTH_LOCAL_USER_FIELDS = 'userId email firstName lastName displayName role organizerStatus emailVerified authProvider profileImageUrl avatarUrl accountStatus';
 const RUNNER_UNREAD_CACHE_MS = 30 * 1000;
 
 /**
@@ -81,6 +81,10 @@ async function populateAuthLocals(req, res, next) {
         .lean();
 
       if (user) {
+        if (user.accountStatus === 'suspended' || user.accountStatus === 'closed') {
+          req.session.destroy(() => {});
+          return res.redirect('/login?suspended=1');
+        }
         res.locals.user = user;
         res.locals.isAuthenticated = true;
         res.locals.isOrganizer = user.role === 'organiser';

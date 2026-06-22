@@ -242,6 +242,32 @@ const userSchema = new mongoose.Schema({
     }
   },
 
+  accountStatus: {
+    type: String,
+    enum: ['active', 'restricted', 'suspended', 'closed'],
+    default: 'active'
+  },
+  accountStatusReason: {
+    type: String,
+    maxlength: 500,
+    default: ''
+  },
+  accountStatusUpdatedAt: {
+    type: Date,
+    default: null
+  },
+  accountStatusUpdatedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+
+  adminNotes: [{
+    note: { type: String, required: true, maxlength: 1000 },
+    addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    addedAt: { type: Date, default: Date.now }
+  }],
+
   createdAt: {
     type: Date,
     default: Date.now

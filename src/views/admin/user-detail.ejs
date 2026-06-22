@@ -91,9 +91,29 @@
             <li><strong>Auth Provider:</strong> <%= managedUser.authProvider === 'google' ? 'Google' : 'Local' %></li>
             <li><strong>Google Link:</strong> <%= managedUser.hasGoogleLink ? 'Linked' : 'Not linked' %></li>
             <li><strong>Local Password:</strong> <%= managedUser.hasLocalPassword ? 'Set' : 'Not set' %></li>
+            <li><strong>Email Verified:</strong> <%= managedUser.emailVerified ? 'Yes' : 'No' %></li>
+            <li><strong>Account Status:</strong> <span class="status-badge status-badge-<%= managedUser.accountStatus || 'active' %>"><%= managedUser.accountStatus || 'active' %></span></li>
             <li><strong>Created:</strong> <%= managedUser.createdAt ? new Date(managedUser.createdAt).toLocaleString('en-US') : 'N/A' %></li>
             <li><strong>Updated:</strong> <%= managedUser.updatedAt ? new Date(managedUser.updatedAt).toLocaleString('en-US') : 'N/A' %></li>
           </ul>
+          <% if (!managedUser.emailVerified && managedUser.authProvider === 'local') { %>
+            <div class="admin-verification-actions" style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+              <button type="button" class="btn btn-sm btn-outline" id="js-resend-verify-btn" data-user-id="<%= managedUser.id %>">Resend Verification Email</button>
+              <button type="button" class="btn btn-sm btn-outline" id="js-open-verify-override">Override Verification</button>
+            </div>
+            <div id="js-verify-override-form" style="display:none;margin-top:0.75rem">
+              <form method="POST" action="/admin/users/<%= managedUser.id %>/verify-email">
+                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                <label style="display:block;margin-bottom:0.4rem;font-size:0.85rem"><strong>Reason (min 20 chars)</strong></label>
+                <textarea name="reason" rows="3" class="form-input" placeholder="Explain why manual verification is needed..." style="width:100%;margin-bottom:0.4rem"></textarea>
+                <label style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.5rem;font-size:0.85rem">
+                  <input type="checkbox" name="confirm" value="1"> I confirm this override is necessary
+                </label>
+                <button type="submit" class="btn btn-sm btn-primary">Confirm Override</button>
+                <button type="button" class="btn btn-sm btn-outline" id="js-cancel-verify-override">Cancel</button>
+              </form>
+            </div>
+          <% } %>
         </article>
 
         <article class="detail-card">
@@ -225,11 +245,115 @@
       <% } else { %>
         <div class="empty-state"><p>No owned events found for this user.</p></div>
       <% } %>
+
+      <!-- Account Status -->
+      <% const isSelf = String(managedUser.id) === String(locals.user?._id || ''); %>
+      <h3 class="dashboard-section-title">Account Status</h3>
+      <article class="detail-card detail-card-full">
+        <p><strong>Current Status:</strong> <span class="status-badge status-badge-<%= managedUser.accountStatus || 'active' %>"><%= managedUser.accountStatus || 'active' %></span>
+        <% if (managedUser.accountStatusReason) { %> &mdash; <%= managedUser.accountStatusReason %><% } %>
+        <% if (managedUser.accountStatusUpdatedAt) { %><br><small>Updated: <%= new Date(managedUser.accountStatusUpdatedAt).toLocaleString('en-US') %></small><% } %></p>
+        <% if (!isSelf) { %>
+          <form method="POST" action="/admin/users/<%= managedUser.id %>/account-status" style="margin-top:0.75rem">
+            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-start">
+              <select name="accountStatus" class="form-select" style="min-width:140px">
+                <% ['active','restricted','suspended','closed'].forEach(s => { %>
+                  <option value="<%= s %>" <%= (managedUser.accountStatus || 'active') === s ? 'selected' : '' %>><%= s %></option>
+                <% }) %>
+              </select>
+              <input type="text" name="accountStatusReason" class="form-input" placeholder="Reason (required for non-active)" style="flex:1;min-width:200px" value="<%= managedUser.accountStatusReason || '' %>">
+              <button type="submit" class="btn btn-sm btn-primary">Update Status</button>
+            </div>
+          </form>
+        <% } else { %>
+          <p class="shop-muted">You cannot change your own account status.</p>
+        <% } %>
+      </article>
+
+      <!-- Admin Notes -->
+      <h3 class="dashboard-section-title" id="admin-notes">Admin Notes</h3>
+      <article class="detail-card detail-card-full">
+        <% const adminNotes = managedUser.adminNotes || []; %>
+        <% if (adminNotes.length) { %>
+          <ul style="list-style:none;padding:0;margin:0 0 1rem">
+            <% adminNotes.slice().reverse().forEach(n => { %>
+              <li style="border-bottom:1px solid var(--color-border,#e5e7eb);padding:0.6rem 0">
+                <p style="margin:0 0 0.25rem"><%= n.note %></p>
+                <small class="shop-muted">Added <%= n.addedAt ? new Date(n.addedAt).toLocaleString('en-US') : '' %></small>
+              </li>
+            <% }) %>
+          </ul>
+        <% } else { %>
+          <p class="shop-muted" style="margin-bottom:0.75rem">No admin notes yet.</p>
+        <% } %>
+        <form method="POST" action="/admin/users/<%= managedUser.id %>/notes">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <textarea name="note" rows="3" class="form-input" placeholder="Add a note... (max 1000 characters)" style="width:100%;margin-bottom:0.5rem"></textarea>
+          <button type="submit" class="btn btn-sm btn-primary">Add Note</button>
+        </form>
+      </article>
+
+      <!-- Audit Trail -->
+      <h3 class="dashboard-section-title">Audit Trail</h3>
+      <% if (auditLog && auditLog.length) { %>
+        <table class="admin-table">
+          <thead>
+            <tr><th>Action</th><th>From</th><th>To</th><th>Notes</th><th>Actor</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            <% auditLog.forEach(entry => { %>
+              <tr>
+                <td><code style="font-size:0.75rem"><%= entry.action %></code></td>
+                <td><%= entry.status_from || '—' %></td>
+                <td><%= entry.status_to || '—' %></td>
+                <td style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<%= entry.notes || '' %>"><%= entry.notes || '—' %></td>
+                <td><%= entry.actor_display_name || entry.actor_mongo_user_id || 'System' %></td>
+                <td><small><%= entry.created_at ? new Date(entry.created_at).toLocaleString('en-US') : '—' %></small></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <div class="empty-state"><p>No audit log entries for this user.</p></div>
+      <% } %>
     </section>
   </main>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
   <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    (function() {
+      var resendBtn = document.getElementById('js-resend-verify-btn');
+      var overrideBtn = document.getElementById('js-open-verify-override');
+      var cancelBtn = document.getElementById('js-cancel-verify-override');
+      var overrideForm = document.getElementById('js-verify-override-form');
+
+      if (resendBtn) {
+        resendBtn.addEventListener('click', async function() {
+          resendBtn.disabled = true;
+          resendBtn.textContent = 'Sending…';
+          var csrfToken = document.querySelector('[name="_csrf"]')?.value || '';
+          try {
+            var res = await fetch('/admin/users/<%= managedUser.id %>/resend-verification', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken }
+            });
+            var data = await res.json();
+            resendBtn.textContent = data.success ? 'Sent!' : (data.message || 'Failed');
+          } catch {
+            resendBtn.textContent = 'Error';
+          }
+        });
+      }
+      if (overrideBtn && overrideForm) {
+        overrideBtn.addEventListener('click', function() { overrideForm.style.display = ''; });
+      }
+      if (cancelBtn && overrideForm) {
+        cancelBtn.addEventListener('click', function() { overrideForm.style.display = 'none'; });
+      }
+    })();
+  </script>
 </body>
 </html>

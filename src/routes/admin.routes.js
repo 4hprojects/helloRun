@@ -14,6 +14,12 @@ const adminModerationLimiter = createRateLimiter({
   maxRequests: 60,
   message: 'Too many moderation actions. Please wait and try again.'
 });
+const adminAccountActionLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 30,
+  message: 'Too many account actions. Please wait an hour and try again.',
+  keyFn: (req) => `admin-account|${String(req.session?.userId || 'anon')}`
+});
 const adminBlogAutosaveLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 600,
@@ -34,6 +40,12 @@ router.get('/users/:id/edit', requireAdmin, adminController.renderEditUser);
 router.post('/users/:id/edit', requireAdmin, adminController.updateUser);
 router.get('/users/:id', requireAdmin, adminController.viewUser);
 router.post('/users/:id/delete', requireAdmin, adminController.deleteUsers);
+
+// Admin governance
+router.post('/users/:id/notes', requireAdmin, adminAccountActionLimiter, adminController.addAdminNote);
+router.post('/users/:id/resend-verification', requireAdmin, adminAccountActionLimiter, adminController.resendVerificationEmail);
+router.post('/users/:id/verify-email', requireAdmin, adminAccountActionLimiter, adminController.overrideEmailVerification);
+router.post('/users/:id/account-status', requireAdmin, adminAccountActionLimiter, adminController.updateAccountStatus);
 
 // Event management
 router.get('/events', requireAdmin, adminController.listEvents);

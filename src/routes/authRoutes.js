@@ -200,8 +200,9 @@ router.get('/login', redirectIfAuth, (req, res) => {
   const queryMessage = typeof req.query.message === 'string' ? req.query.message : null;
   const queryType = typeof req.query.type === 'string' ? req.query.type : '';
   const returnTo = resolveSafeReturnTo(req.query.redirect, resolveSafeReturnTo(req.query.returnTo, ''));
+  const suspendedError = req.query.suspended === '1' ? 'Your account has been suspended. Please contact support for assistance.' : null;
   renderLoginPage(req, res, {
-    error: queryType === 'error' ? queryMessage : null,
+    error: suspendedError || (queryType === 'error' ? queryMessage : null),
     success: null,
     returnTo
   });
@@ -249,6 +250,14 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
         returnTo,
         requireTurnstile: failureCount >= LOGIN_TURNSTILE_FAILURE_THRESHOLD
       });
+    }
+
+    // Check account status before email verification
+    if (user.accountStatus === 'suspended') {
+      return renderLoginPage(req, res, { error: 'Your account has been suspended. Please contact support for assistance.', email, returnTo });
+    }
+    if (user.accountStatus === 'closed') {
+      return renderLoginPage(req, res, { error: 'This account has been closed.', email, returnTo });
     }
 
     // Check if email is verified

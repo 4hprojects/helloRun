@@ -14,6 +14,8 @@ const communicationService = require('../services/communication.service');
 const homepageCarouselSettingService = require('../services/homepage-carousel-setting.service');
 const adSettingService = require('../services/ad-setting.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
+const { getPostgresClient } = require('../db/postgres');
+const crypto = require('crypto');
 const { listRecentBadgeAuditLogs } = require('../services/badge-audit.service');
 const { publishEvent } = require('../services/event-approval.service');
 const { getPolicyByAdminPath } = require('../services/policy-registry.service');
@@ -1340,12 +1342,17 @@ exports.deleteUsers = async (req, res) => {
       ));
     }
 
+    const deletableUsers = users.filter((u) => deletableIds.includes(String(u._id)));
     const result = await User.deleteMany({ _id: { $in: deletableIds } });
     const deletedCount = Number(result.deletedCount || 0);
     const blockedCount = foundIds.length - deletedCount;
     const message = blockedCount > 0
       ? `${deletedCount} user(s) deleted. ${blockedCount} user(s) skipped because you cannot delete your own admin account.`
       : `${deletedCount} user(s) deleted.`;
+
+    for (const u of deletableUsers) {
+      recordCriticalAuditEventInBackground({ action: 'admin.user.deleted', targetType: 'user', targetId: String(u._id), notes: `Deleted user ${u.email}`, actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+    }
 
     return res.redirect(buildAdminUsersRedirect('success', message));
   } catch (error) {
@@ -1394,6 +1401,9 @@ exports.updateUser = async (req, res) => {
       });
     }
 
+    const prevRole = user.role;
+    const prevOrgStatus = user.organizerStatus;
+
     user.firstName = formData.firstName;
     user.lastName = formData.lastName;
     user.mobile = formData.mobile;
@@ -1408,6 +1418,13 @@ exports.updateUser = async (req, res) => {
     user.organizerStatus = formData.organizerStatus;
 
     await user.save();
+
+    if (prevRole !== formData.role) {
+      recordCriticalAuditEventInBackground({ action: 'admin.user.role_changed', targetType: 'user', targetId: String(user._id), statusFrom: prevRole, statusTo: formData.role, actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+    }
+    if (prevOrgStatus !== formData.organizerStatus) {
+      recordCriticalAuditEventInBackground({ action: 'admin.user.organiser_status_changed', targetType: 'user', targetId: String(user._id), statusFrom: prevOrgStatus, statusTo: formData.organizerStatus, actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+    }
 
     return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'success', 'User information updated.'));
   } catch (error) {
@@ -1471,6 +1488,23 @@ exports.viewUser = async (req, res) => {
     const hasLocalPassword = Boolean(user.passwordHash);
     delete user.passwordHash;
 
+    let auditLog = [];
+    if (process.env.DATABASE_URL) {
+      try {
+        const sql = getPostgresClient();
+        auditLog = await sql`
+          select ac.action, ac.status_from, ac.status_to, ac.notes, ac.ip_address, ac.created_at,
+                 au.display_name as actor_display_name, au.mongo_user_id as actor_mongo_user_id
+          from audit_critical ac
+          left join app_users au on au.id = ac.actor_user_id
+          where ac.target_id = ${String(user._id)}
+            and ac.target_type = 'user'
+          order by ac.created_at desc
+          limit 20
+        `;
+      } catch (_) {}
+    }
+
     return res.render('admin/user-detail', {
       title: `${formatUserDisplayName(user)} - User Management - HelloRun Admin`,
       managedUser: {
@@ -1494,6 +1528,7 @@ exports.viewUser = async (req, res) => {
       recentRegistrations,
       recentSubmissions,
       ownedEvents,
+      auditLog,
       message: getAdminPageMessage(req.query)
     });
   } catch (error) {
@@ -5272,3 +5307,127 @@ exports.previewExistingCookiePolicyDraft = previewExistingPolicyDocumentDraft;
 exports.cloneCookiePolicyVersion = clonePolicyDocumentVersion;
 exports.publishCookiePolicyDraft = publishPolicyDocumentDraft;
 exports.archiveCookiePolicyVersion = archivePolicyDocumentVersion;
+
+// ── Admin Governance ──────────────────────────────────────────────────────────
+
+exports.addAdminNote = async (req, res) => {
+  try {
+    const user = await findAdminManagedUser(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const note = String(req.body.note || '').trim();
+    if (!note) return res.status(400).json({ success: false, message: 'Note text is required.' });
+    if (note.length > 1000) return res.status(400).json({ success: false, message: 'Note must be 1000 characters or fewer.' });
+
+    user.adminNotes.push({ note, addedBy: req.session.userId, addedAt: new Date() });
+    await user.save();
+
+    recordCriticalAuditEventInBackground({ action: 'admin.user.note_added', targetType: 'user', targetId: String(user._id), actorMongoUserId: req.session.userId, notes: 'Admin note added.', ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+
+    return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'success', 'Note added.') + '#admin-notes');
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while adding the admin note.');
+  }
+};
+
+exports.resendVerificationEmail = async (req, res) => {
+  try {
+    const user = await findAdminManagedUser(req.params.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    if (user.emailVerified) {
+      return res.status(400).json({ success: false, message: 'Email is already verified.' });
+    }
+    if (user.authProvider !== 'local') {
+      return res.status(400).json({ success: false, message: 'Verification email only applies to local accounts.' });
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = await passwordService.hashToken(rawToken);
+    user.emailVerificationToken = hashedToken;
+    user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await user.save();
+
+    await communicationService.notify('account.email_verification', {
+      email: {
+        to: user.email,
+        verificationToken: rawToken,
+        firstName: user.firstName || '',
+        role: user.role,
+        recipientUserId: user._id,
+        metadata: { userId: String(user._id) }
+      }
+    });
+
+    recordCriticalAuditEventInBackground({ action: 'admin.user.verification_resent', targetType: 'user', targetId: String(user._id), actorMongoUserId: req.session.userId, notes: 'Admin resent verification email.', ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+
+    return res.json({ success: true, message: 'Verification email sent.' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to resend verification email.' });
+  }
+};
+
+exports.overrideEmailVerification = async (req, res) => {
+  try {
+    const user = await findAdminManagedUser(req.params.id);
+    if (!user) return renderAdminUserNotFound(res);
+
+    if (user.emailVerified) {
+      return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'error', 'Email is already verified.'));
+    }
+
+    const reason = String(req.body.reason || '').trim();
+    if (reason.length < 20) {
+      return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'error', 'A reason of at least 20 characters is required for email verification override.'));
+    }
+    if (String(req.body.confirm) !== '1') {
+      return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'error', 'Please confirm the verification override.'));
+    }
+
+    user.emailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    recordCriticalAuditEventInBackground({ action: 'admin.user.email_verified_override', targetType: 'user', targetId: String(user._id), statusFrom: 'unverified', statusTo: 'verified', notes: reason, actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+
+    return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'success', 'Email verification overridden successfully.'));
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while overriding email verification.');
+  }
+};
+
+exports.updateAccountStatus = async (req, res) => {
+  try {
+    const user = await findAdminManagedUser(req.params.id);
+    if (!user) return renderAdminUserNotFound(res);
+
+    if (String(user._id) === String(req.session.userId || '')) {
+      return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'error', 'You cannot change your own account status.'));
+    }
+
+    const validStatuses = ['active', 'restricted', 'suspended', 'closed'];
+    const newStatus = String(req.body.accountStatus || '').trim();
+    if (!validStatuses.includes(newStatus)) {
+      return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'error', 'Invalid account status.'));
+    }
+
+    const reason = String(req.body.accountStatusReason || '').trim();
+    if (newStatus !== 'active' && reason.length < 10) {
+      return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'error', 'A reason of at least 10 characters is required when restricting, suspending, or closing an account.'));
+    }
+
+    const prevStatus = user.accountStatus || 'active';
+    user.accountStatus = newStatus;
+    user.accountStatusReason = reason;
+    user.accountStatusUpdatedAt = new Date();
+    user.accountStatusUpdatedBy = req.session.userId;
+    await user.save();
+
+    recordCriticalAuditEventInBackground({ action: 'admin.user.account_status_changed', targetType: 'user', targetId: String(user._id), statusFrom: prevStatus, statusTo: newStatus, notes: reason || 'Status changed by admin.', actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+
+    return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'success', `Account status updated to "${newStatus}".`));
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while updating account status.');
+  }
+};
