@@ -70,6 +70,13 @@ async function buildPublicEventListPage(queryParams = {}) {
     events = rankEventsForSearch(rankedEvents, filterValues.q)
       .sort((a, b) => compareEventsForSearch(a, b, filterValues.status))
       .slice(skip, skip + limit);
+  } else if (!filterValues.status || filterValues.status === 'all') {
+    // Default view: active (registration open) events first sorted by newest,
+    // then upcoming events, then past/closed — all sorted by most recently added.
+    const allEvents = await Event.find(query).select(eventSelect).lean();
+    events = allEvents
+      .sort((a, b) => compareEventsDefaultSort(a, b, now))
+      .slice(skip, skip + limit);
   } else {
     events = await Event.find(query)
       .sort(getEventsSort(filterValues.status))
@@ -273,6 +280,29 @@ function getEventsSort(status) {
     return { eventEndAt: -1, registrationCloseAt: -1, createdAt: -1 };
   }
   return { eventStartAt: 1, createdAt: -1 };
+}
+
+function getEventRegistrationPriority(event, now) {
+  const regOpen = event.registrationOpenAt ? new Date(event.registrationOpenAt) : null;
+  const regClose = event.registrationCloseAt ? new Date(event.registrationCloseAt) : null;
+  const eventEnd = event.eventEndAt ? new Date(event.eventEndAt) : null;
+
+  const isActive = regOpen && regClose && regOpen <= now && regClose >= now;
+  if (isActive) return 0; // registration currently open → highest priority
+
+  const isPast = (eventEnd && eventEnd < now) || (regClose && regClose < now);
+  if (isPast) return 2; // ended/closed → lowest priority
+
+  return 1; // upcoming (registration not yet open)
+}
+
+function compareEventsDefaultSort(a, b, now) {
+  const priorityDiff = getEventRegistrationPriority(a, now) - getEventRegistrationPriority(b, now);
+  if (priorityDiff !== 0) return priorityDiff;
+  // Within same group: most recently created first
+  const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+  const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+  return bTime - aTime;
 }
 
 function rankEventsForSearch(events, searchQuery) {
