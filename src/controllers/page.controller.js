@@ -198,10 +198,19 @@ exports.getEvents = async (req, res) => {
 
     const eventListPage = await buildPublicEventListPage(req.query);
 
+    let savedEventIds = new Set();
+    if (req.session.userId) {
+      try {
+        const u = await User.findById(req.session.userId).select('savedEvents').lean();
+        if (u && u.savedEvents) savedEventIds = new Set(u.savedEvents.map(String));
+      } catch (_) {}
+    }
+
     return res.render('pages/events', {
       ...eventListPage,
       loginSuccess,
-      userName
+      userName,
+      savedEventIds
     });
   } catch (error) {
     console.error('Error loading public events:', error);
@@ -257,6 +266,14 @@ exports.getEventDetails = async (req, res) => {
       count: eventShopProducts.length
     };
 
+    let isSaved = false;
+    if (req.session.userId) {
+      try {
+        const u = await User.findById(req.session.userId).select('savedEvents').lean();
+        if (u && u.savedEvents) isSaved = u.savedEvents.some((id) => String(id) === String(event._id));
+      } catch (_) {}
+    }
+
     return res.render('pages/event-details', {
       title: `${event.title} - HelloRun`,
       seo: buildPublicEventSeo(event, baseUrl),
@@ -264,6 +281,7 @@ exports.getEventDetails = async (req, res) => {
       publicEvent,
       badges,
       eventShop,
+      isSaved,
       eventDetailsHtml: renderEventDetailsContent(event.eventDetailsMarkdown),
       countryName: getCountryName
     });

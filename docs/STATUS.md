@@ -37,6 +37,7 @@ _Last updated: June 22, 2026_
 | P6 Proof Rejection Guidance — contextual fix tips, metadata edit form (no new proof), Strava guard, button rename | June 22, 2026 | 44/44 |
 | P3 DB Architecture Priority 2 — sync retry worker (migration 020), Postgres query timeout (8s), worker wired into server startup | June 22, 2026 | passing |
 | Submission Review Workflow — AJAX panel (no iframe), inline approve/reject, quick-approve, auto-advance, OCR collapsed, lightbox, keyboard shortcuts | June 22, 2026 | passing |
+| P10 Event Wishlist — save/unsave toggle, heart button on cards + detail page, saved events dashboard section | June 22, 2026 | 17/17 auth |
 
 ---
 

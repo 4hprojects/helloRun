@@ -163,7 +163,7 @@
           <div class="card-grid">
             <% let eventsFeedAdCount = 0; %>
             <% events.forEach((event, eventIndex) => { %>
-              <article class="card">
+              <article class="card" data-event-slug="<%= event.slug %>">
                 <% const eventBannerImageUrl = event.bannerImageUrl || defaultEventImageUrl; %>
                 <a href="/events/<%= event.slug %>" class="card-image-link">
                   <img
@@ -210,6 +210,17 @@
                       View Event
                       <i data-lucide="arrow-right" aria-hidden="true"></i>
                     </a>
+                    <% if (locals.isAuthenticated) { %>
+                      <% const _isSaved = savedEventIds && savedEventIds.has(String(event._id)); %>
+                      <button type="button"
+                        class="btn btn-icon-only btn-outline btn-save-event js-save-event<%= _isSaved ? ' is-saved' : '' %>"
+                        data-event-slug="<%= event.slug %>"
+                        data-saved="<%= _isSaved ? '1' : '0' %>"
+                        aria-label="<%= _isSaved ? 'Remove from saved' : 'Save event' %>"
+                        title="<%= _isSaved ? 'Remove from saved' : 'Save event' %>">
+                        <i data-lucide="heart" aria-hidden="true"></i>
+                      </button>
+                    <% } %>
                   </div>
                 </div>
               </article>
@@ -275,6 +286,7 @@
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
+  <% if (locals.isAuthenticated) { %><script src="/js/event-save.js"></script><% } %>
   <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

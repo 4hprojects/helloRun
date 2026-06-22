@@ -6,6 +6,7 @@ const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const uploadService = require('../services/upload.service');
 const User = require('../models/User');
+const Event = require('../models/Event');
 
 const profileUpdateLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
@@ -81,6 +82,29 @@ router.post('/runner/profile/avatar', requireAuth, uploadService.uploadAvatarIma
     return res.json({ success: true, avatarUrl: uploaded.url });
   } catch (error) {
     return res.status(500).json({ success: false, message: 'Avatar upload failed.' });
+  }
+});
+
+router.post('/runner/events/:eventSlug/save-toggle', requireAuth, groupActionLimiter, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('savedEvents');
+    if (!user) return res.status(401).json({ success: false, message: 'Not authenticated.' });
+
+    const slug = String(req.params.eventSlug || '').trim();
+    const event = await Event.findOne({ slug, status: 'published' }).select('_id');
+    if (!event) return res.status(404).json({ success: false, message: 'Event not found.' });
+
+    const alreadySaved = user.savedEvents.some((id) => id.equals(event._id));
+
+    if (alreadySaved) {
+      await User.updateOne({ _id: user._id }, { $pull: { savedEvents: event._id } });
+      return res.json({ success: true, saved: false });
+    } else {
+      await User.updateOne({ _id: user._id }, { $addToSet: { savedEvents: event._id } });
+      return res.json({ success: true, saved: true });
+    }
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Failed to update saved events.' });
   }
 });
 

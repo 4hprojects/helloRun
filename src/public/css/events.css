@@ -977,3 +977,34 @@
     width: 100%;
   }
 }
+
+/* ===== SAVE EVENT BUTTON ===== */
+.btn-save-event {
+  flex-shrink: 0;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.btn-save-event i,
+.btn-save-event svg {
+  transition: fill 0.15s, color 0.15s;
+  fill: transparent;
+}
+
+.btn-save-event.is-saved,
+.btn-save-event[data-saved="1"] {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.btn-save-event.is-saved i,
+.btn-save-event.is-saved svg,
+.btn-save-event[data-saved="1"] i,
+.btn-save-event[data-saved="1"] svg {
+  fill: #ef4444;
+  color: #ef4444;
+}
+
+.btn-save-event:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+}

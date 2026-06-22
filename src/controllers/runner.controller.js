@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Submission = require('../models/Submission');
+const Event = require('../models/Event');
 const passwordService = require('../services/password.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode } = require('../utils/country');
 const {
@@ -765,12 +766,39 @@ async function buildRunnerDashboardViewData(user, req) {
     performanceSnapshot.recentActivity
   );
 
+  const now = new Date();
+  let savedEvents = [];
+  if (user.savedEvents && user.savedEvents.length) {
+    try {
+      const savedDocs = await Event.find({ _id: { $in: user.savedEvents }, status: 'published' })
+        .select('title slug bannerImageUrl eventStartAt registrationOpenAt registrationCloseAt status')
+        .lean();
+      savedEvents = savedDocs.map((ev) => {
+        const regOpen = ev.registrationOpenAt ? new Date(ev.registrationOpenAt) : null;
+        const regClose = ev.registrationCloseAt ? new Date(ev.registrationCloseAt) : null;
+        const isOpen = regOpen && regClose && regOpen <= now && regClose >= now;
+        const startLabel = ev.eventStartAt ? new Date(ev.eventStartAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        return {
+          _id: ev._id,
+          slug: ev.slug,
+          title: ev.title,
+          bannerImageUrl: ev.bannerImageUrl || '',
+          startDateLabel: startLabel,
+          registrationOpen: isOpen,
+          statusLabel: isOpen ? 'Open' : (regClose && regClose < now ? 'Closed' : 'Upcoming'),
+          statusTone: isOpen ? 'positive' : (regClose && regClose < now ? 'negative' : 'neutral')
+        };
+      });
+    } catch (_) {}
+  }
+
   return {
     dashboardFilters,
     runningGroupFeature: {
       currentGroup: currentRunningGroups[0] || null,
       currentGroups: currentRunningGroups
     },
+    savedEvents,
     cards: {
       upcoming: dashboardData.upcoming.slice(0, 5).map(normalizeRegistrationCard),
       past: dashboardData.past.slice(0, 5).map(normalizeRegistrationCard),

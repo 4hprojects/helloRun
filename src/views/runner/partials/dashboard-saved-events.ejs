@@ -1,0 +1,31 @@
+<% if (savedEvents && savedEvents.length) { %>
+<section class="card runner-saved-events-card" data-dashboard-fragment="savedEvents">
+  <div class="card-header runner-saved-events-header">
+    <h2><i data-lucide="heart" aria-hidden="true"></i> Saved Events</h2>
+    <a href="/events" class="btn btn-sm btn-outline">Browse more</a>
+  </div>
+  <div class="card-content">
+    <ul class="item-list">
+      <% savedEvents.forEach((event) => { %>
+        <li class="item-row">
+          <div class="item-main">
+            <div class="item-title"><a href="/events/<%= event.slug %>"><%= event.title %></a></div>
+            <div class="item-meta">
+              <span class="badge badge-<%= event.statusTone %>"><%= event.statusLabel %></span>
+              <% if (event.startDateLabel) { %><span><%= event.startDateLabel %></span><% } %>
+            </div>
+          </div>
+          <button type="button"
+            class="btn btn-sm btn-outline js-save-event"
+            data-event-slug="<%= event.slug %>"
+            data-saved="1"
+            title="Remove from saved"
+            aria-label="Remove <%= event.title %> from saved">
+            <i data-lucide="heart-off" aria-hidden="true"></i>
+          </button>
+        </li>
+      <% }) %>
+    </ul>
+  </div>
+</section>
+<% } %>

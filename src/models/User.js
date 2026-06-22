@@ -268,6 +268,8 @@ const userSchema = new mongoose.Schema({
     addedAt: { type: Date, default: Date.now }
   }],
 
+  savedEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event' }],
+
   createdAt: {
     type: Date,
     default: Date.now

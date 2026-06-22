@@ -78,6 +78,17 @@
               <a href="<%= previewReturnHref %>" class="btn btn-outline btn-hero-secondary"><i data-lucide="arrow-left"></i><span>Back to Editor</span></a>
             <% } else { %>
               <a href="/events" class="btn btn-outline btn-hero-secondary"><i data-lucide="search"></i><span>Browse Events</span></a>
+              <% if (locals.isAuthenticated) { %>
+                <button type="button"
+                  class="btn btn-outline btn-hero-secondary btn-save-event js-save-event<%= isSaved ? ' is-saved' : '' %>"
+                  data-event-slug="<%= event.slug %>"
+                  data-saved="<%= isSaved ? '1' : '0' %>"
+                  aria-label="<%= isSaved ? 'Remove from saved' : 'Save event' %>"
+                  title="<%= isSaved ? 'Saved' : 'Save event' %>">
+                  <i data-lucide="heart" aria-hidden="true"></i>
+                  <span class="save-label"><%= isSaved ? 'Saved' : 'Save' %></span>
+                </button>
+              <% } %>
             <% } %>
           </div>
         </div>
@@ -563,6 +574,7 @@
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
+  <% if (locals.isAuthenticated) { %><script src="/js/event-save.js"></script><% } %>
   <script>
     if (window.lucide) lucide.createIcons();
 
