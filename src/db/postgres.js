@@ -15,7 +15,8 @@ function getPostgresClient() {
     prepare: false,
     max: Number(process.env.POSTGRES_MAX_CONNECTIONS || 5),
     idle_timeout: Number(process.env.POSTGRES_IDLE_TIMEOUT || 20),
-    connect_timeout: Number(process.env.POSTGRES_CONNECT_TIMEOUT || 10)
+    connect_timeout: Number(process.env.POSTGRES_CONNECT_TIMEOUT || 10),
+    statement_timeout: Number(process.env.POSTGRES_STATEMENT_TIMEOUT || 8000)
   });
 
   return client;
