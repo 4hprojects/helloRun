@@ -1,37 +1,311 @@
 (function () {
-  const modal = document.querySelector('[data-submission-hub-modal]');
+  var modal = document.querySelector('[data-submission-hub-modal]');
   if (!modal) return;
 
-  const dialog = modal.querySelector('.submission-hub-modal-dialog');
-  const title = modal.querySelector('[data-submission-hub-modal-title]');
-  const frame = modal.querySelector('[data-submission-hub-modal-frame]');
-  const openNew = modal.querySelector('[data-submission-hub-modal-open-new]');
-  const closeButtons = modal.querySelectorAll('[data-submission-hub-modal-close]');
-  let activeLink = null;
+  var dialog = modal.querySelector('.submission-hub-modal-dialog');
+  var titleEl = modal.querySelector('[data-submission-hub-modal-title]');
+  var openNewLink = modal.querySelector('[data-submission-hub-modal-open-new]');
+  var closeButtons = modal.querySelectorAll('[data-submission-hub-modal-close]');
+  var body = document.getElementById('js-sub-modal-body');
+  var loadingEl = document.getElementById('js-sub-panel-loading');
+
+  var activeLink = null;
+  var currentSubmissionId = null;
+  var csrfToken = (document.querySelector('[name="_csrf"]') || {}).value || '';
+
+  // ── Open / Close ────────────────────────────────────────────────────────────
 
   function openModal(link) {
     activeLink = link;
-    const href = link.getAttribute('href');
-    if (!href) return;
-
-    title.textContent = link.dataset.modalTitle || link.textContent.trim() || 'Submission';
-    openNew.href = href;
-    frame.src = href;
+    var submissionId = link.dataset.submissionId || '';
+    currentSubmissionId = submissionId;
+    titleEl.textContent = 'Loading…';
+    if (openNewLink) openNewLink.style.display = 'none';
+    showLoading();
     modal.hidden = false;
     document.body.classList.add('submission-hub-modal-open');
     dialog.focus();
+    if (submissionId) loadPanel(submissionId);
   }
 
   function closeModal() {
     modal.hidden = true;
-    frame.src = 'about:blank';
     document.body.classList.remove('submission-hub-modal-open');
     if (activeLink) activeLink.focus();
     activeLink = null;
+    currentSubmissionId = null;
   }
 
+  function showLoading() {
+    body.innerHTML = '';
+    if (loadingEl) {
+      var clone = loadingEl.cloneNode(true);
+      clone.style.display = '';
+      body.appendChild(clone);
+    } else {
+      body.innerHTML = '<div class="sub-panel-loading"><span>Loading…</span></div>';
+    }
+  }
+
+  // ── AJAX Panel Load ─────────────────────────────────────────────────────────
+
+  function loadPanel(submissionId) {
+    fetch('/organizer/submissions/' + submissionId + '/review-panel', {
+      headers: { Accept: 'application/json' }
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.success) throw new Error(data.message || 'Failed to load');
+        renderPanel(data.submission);
+      })
+      .catch(function (err) {
+        body.innerHTML = '<div class="sub-panel-error"><p>Could not load submission: ' + (err.message || 'Unknown error') + '</p><a href="#" class="btn btn-outline" data-submission-hub-modal-close>Close</a></div>';
+      });
+  }
+
+  // ── Panel Renderer ───────────────────────────────────────────────────────────
+
+  function renderPanel(s) {
+    titleEl.textContent = s.participantName || 'Submission';
+    if (openNewLink) {
+      openNewLink.href = s.fullPageUrl || '#';
+      openNewLink.style.display = '';
+    }
+
+    var isPending = s.status === 'submitted';
+    var isApproved = s.status === 'approved';
+    var isRejected = s.status === 'rejected';
+
+    // OCR warnings
+    var ocrWarnings = [];
+    if (s.ocrData) {
+      if (s.ocrData.distanceMismatch) ocrWarnings.push('Distance mismatch (extracted: ' + s.ocrData.extractedDistanceKm + ' km)');
+      if (s.ocrData.timeMismatch) ocrWarnings.push('Time mismatch (extracted: ' + (s.ocrData.ocrTimeLabel || '?') + ')');
+      if (s.ocrData.dateMismatch) ocrWarnings.push('Date mismatch (extracted: ' + (s.ocrData.extractedRunDate || '?') + ')');
+      if (s.ocrData.nameMatchStatus === 'mismatched') ocrWarnings.push('Name mismatch (extracted: ' + (s.ocrData.extractedName || '?') + ')');
+    }
+    var hasWarnings = s.suspiciousFlag || s.reviewSignal || ocrWarnings.length > 0;
+
+    var html = '<div class="sub-review-panel">';
+
+    // Header row
+    html += '<div class="sub-panel-meta">';
+    html += '<div><strong>' + esc(s.participantName) + '</strong><br><small>' + esc(s.participantEmail) + '</small></div>';
+    html += '<span class="status-badge status-badge-' + esc(s.status) + '">' + esc(s.status === 'submitted' ? 'Pending Review' : s.status) + '</span>';
+    html += '</div>';
+    html += '<div class="sub-panel-tags"><span class="mode-badge">' + esc(s.eventTitle) + '</span> <span class="mode-badge">' + esc(s.confirmationCode) + '</span> <span class="mode-badge">' + esc(s.proofTypeLabel) + '</span></div>';
+
+    // Two-column body
+    html += '<div class="sub-panel-body">';
+
+    // Left: proof
+    html += '<div class="sub-panel-proof">';
+    if (s.proofUrl && s.isProofImage) {
+      html += '<img src="' + esc(s.proofUrl) + '" alt="Proof" class="sub-panel-proof-img js-lightbox-trigger" data-lightbox-src="' + esc(s.proofUrl) + '">';
+    } else if (s.proofUrl) {
+      html += '<a href="' + esc(s.proofUrl) + '" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">Open Proof ↗</a>';
+    } else {
+      html += '<div class="sub-panel-no-proof">No proof file</div>';
+    }
+    html += '</div>';
+
+    // Right: metrics
+    html += '<dl class="sub-panel-metrics">';
+    html += '<div><dt>Distance</dt><dd>' + esc(s.distanceKm) + ' km</dd></div>';
+    html += '<div><dt>Time</dt><dd>' + esc(s.elapsedLabel) + '</dd></div>';
+    html += '<div><dt>Date</dt><dd>' + esc(s.runDateLabel) + '</dd></div>';
+    html += '<div><dt>Type</dt><dd>' + esc(s.runType) + '</dd></div>';
+    if (s.raceDistance) html += '<div><dt>Category</dt><dd>' + esc(s.raceDistance) + '</dd></div>';
+    if (s.runLocation) html += '<div><dt>Location</dt><dd>' + esc(s.runLocation) + '</dd></div>';
+    html += '</dl>';
+    html += '</div>'; // sub-panel-body
+
+    // Warnings
+    if (hasWarnings) {
+      html += '<div class="sub-panel-warnings">';
+      if (s.suspiciousFlag) html += '<p class="sub-panel-warning-item">⚠ ' + esc(s.suspiciousFlagReason || 'Suspicious activity flagged') + '</p>';
+      if (s.reviewSignal && s.reviewSignal.label) html += '<p class="sub-panel-warning-item">⚠ ' + esc(s.reviewSignal.label) + '</p>';
+      ocrWarnings.forEach(function (w) { html += '<p class="sub-panel-warning-item">⚠ ' + esc(w) + '</p>'; });
+      html += '</div>';
+    }
+
+    // OCR confidence (compact)
+    if (s.ocrData && s.ocrData.confidence > 0) {
+      html += '<div class="sub-panel-ocr-confidence">OCR confidence: ' + s.ocrData.confidence + '%</div>';
+    }
+
+    // Action area
+    html += '<div class="sub-panel-actions">';
+    if (isPending) {
+      html += '<form class="sub-panel-approve-form js-panel-approve-form" data-approve-url="' + esc(s.approveUrl) + '">';
+      html += '<textarea name="reviewNotes" placeholder="Approval notes (optional)" rows="2" maxlength="1200" class="form-input sub-panel-textarea"></textarea>';
+      html += '<button type="submit" class="btn btn-success btn-sm sub-panel-approve-btn">✓ Approve</button>';
+      html += '</form>';
+      html += '<form class="sub-panel-reject-form js-panel-reject-form" data-reject-url="' + esc(s.rejectUrl) + '">';
+      html += '<textarea name="rejectionReason" placeholder="Rejection reason (required, min 5 chars)" rows="2" maxlength="500" required class="form-input sub-panel-textarea"></textarea>';
+      html += '<button type="submit" class="btn btn-danger btn-sm sub-panel-reject-btn">✗ Reject</button>';
+      html += '</form>';
+    } else {
+      html += '<div class="sub-panel-reviewed">';
+      if (isApproved) html += '<p class="sub-panel-approved-state">✓ Approved</p>';
+      if (isRejected) {
+        html += '<p class="sub-panel-rejected-state">✗ Rejected</p>';
+        if (s.rejectionReason) html += '<p class="sub-panel-rejection-reason"><strong>Reason:</strong> ' + esc(s.rejectionReason) + '</p>';
+      }
+      if (s.reviewedByName) html += '<p class="sub-panel-reviewer">By ' + esc(s.reviewedByName) + ' · ' + esc(s.reviewedAtLabel) + '</p>';
+      html += '</div>';
+    }
+    html += '</div>'; // sub-panel-actions
+
+    // Footer
+    html += '<div class="sub-panel-footer">';
+    if (isPending) {
+      html += '<button type="button" class="btn btn-sm btn-outline js-panel-next-btn" style="display:none">Next Pending →</button>';
+    }
+    html += '<a href="' + esc(s.fullPageUrl) + '" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline">Open Full Page ↗</a>';
+    html += '</div>';
+
+    html += '</div>'; // sub-review-panel
+    body.innerHTML = html;
+
+    // Attach form handlers
+    var approveForm = body.querySelector('.js-panel-approve-form');
+    var rejectForm = body.querySelector('.js-panel-reject-form');
+    if (approveForm) approveForm.addEventListener('submit', handleApprove);
+    if (rejectForm) rejectForm.addEventListener('submit', handleReject);
+
+    // Proof image lightbox
+    var lightboxImg = body.querySelector('.js-lightbox-trigger');
+    if (lightboxImg) {
+      lightboxImg.addEventListener('click', function () {
+        openLightbox(lightboxImg.dataset.lightboxSrc);
+      });
+    }
+
+    // Lucide icons (if available)
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  // ── Inline Approve/Reject ────────────────────────────────────────────────────
+
+  function handleApprove(e) {
+    e.preventDefault();
+    var form = e.target;
+    var url = form.dataset.approveUrl;
+    var notes = (form.querySelector('[name="reviewNotes"]') || {}).value || '';
+    submitDecision(url, { reviewNotes: notes }, 'approved');
+  }
+
+  function handleReject(e) {
+    e.preventDefault();
+    var form = e.target;
+    var url = form.dataset.rejectUrl;
+    var reason = (form.querySelector('[name="rejectionReason"]') || {}).value || '';
+    if (reason.trim().length < 5) {
+      var err = form.querySelector('.sub-panel-form-error') || document.createElement('p');
+      err.className = 'sub-panel-form-error';
+      err.textContent = 'Rejection reason must be at least 5 characters.';
+      form.appendChild(err);
+      return;
+    }
+    submitDecision(url, { rejectionReason: reason }, 'rejected');
+  }
+
+  function submitDecision(url, bodyParams, decision) {
+    bodyParams._csrf = csrfToken;
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token': csrfToken },
+      body: new URLSearchParams(bodyParams),
+      redirect: 'manual'
+    })
+      .then(function (res) {
+        if (res.ok || res.status === 302 || res.type === 'opaqueredirect') {
+          showDecisionSuccess(decision);
+        } else {
+          throw new Error('Server error ' + res.status);
+        }
+      })
+      .catch(function (err) {
+        var panel = body.querySelector('.sub-panel-actions');
+        if (panel) {
+          var errEl = document.createElement('p');
+          errEl.className = 'sub-panel-form-error';
+          errEl.textContent = 'Action failed: ' + (err.message || 'Unknown error');
+          panel.appendChild(errEl);
+        }
+      });
+  }
+
+  function showDecisionSuccess(decision) {
+    var isApproved = decision === 'approved';
+    var actionPanel = body.querySelector('.sub-panel-actions');
+    if (actionPanel) {
+      actionPanel.innerHTML = '<div class="sub-panel-success-state">' +
+        (isApproved ? '<span class="sub-panel-approved-state">✓ Approved!</span>' : '<span class="sub-panel-rejected-state">✗ Rejected</span>') +
+        '</div>';
+    }
+
+    // Update card in list
+    updateListCard(currentSubmissionId, decision);
+
+    // Show next button + auto-advance
+    var footer = body.querySelector('.sub-panel-footer');
+    if (footer) {
+      var nextBtn = footer.querySelector('.js-panel-next-btn');
+      if (nextBtn) {
+        nextBtn.style.display = '';
+        nextBtn.addEventListener('click', advanceToNextPending);
+      }
+    }
+
+    setTimeout(advanceToNextPending, 1500);
+  }
+
+  function updateListCard(submissionId, decision) {
+    var card = document.querySelector('[data-submission-id="' + submissionId + '"]');
+    if (!card) return;
+    var badge = card.querySelector('.status-badge');
+    if (badge) {
+      badge.className = 'status-badge status-badge-' + decision;
+      badge.textContent = decision === 'approved' ? 'Approved' : 'Rejected';
+    }
+    card.dataset.status = decision;
+    var quickBtn = card.querySelector('.js-quick-approve');
+    if (quickBtn) quickBtn.remove();
+  }
+
+  function advanceToNextPending() {
+    var pending = Array.from(document.querySelectorAll('[data-submission-id][data-status="submitted"]'));
+    if (!pending.length) {
+      body.innerHTML = '<div class="sub-panel-all-done"><p>✓ All pending submissions reviewed.</p><button class="btn btn-outline btn-sm" data-submission-hub-modal-close>Close</button></div>';
+      return;
+    }
+    var nextCard = pending[0];
+    var nextLink = nextCard.querySelector('[data-submission-modal-link]');
+    if (nextLink) openModal(nextLink);
+  }
+
+  // ── Lightbox ─────────────────────────────────────────────────────────────────
+
+  function openLightbox(src) {
+    var lb = document.getElementById('js-sub-lightbox');
+    if (!lb) {
+      lb = document.createElement('div');
+      lb.id = 'js-sub-lightbox';
+      lb.className = 'sub-lightbox-overlay';
+      lb.innerHTML = '<img class="sub-lightbox-img" alt="Proof full size">';
+      lb.addEventListener('click', function () { lb.hidden = true; });
+      document.body.appendChild(lb);
+    }
+    lb.querySelector('img').src = src;
+    lb.hidden = false;
+  }
+
+  // ── Event Listeners ──────────────────────────────────────────────────────────
+
   document.addEventListener('click', function (event) {
-    const link = event.target.closest('[data-submission-modal-link]');
+    var link = event.target.closest('[data-submission-modal-link]');
     if (!link) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     event.preventDefault();
@@ -49,4 +323,40 @@
   document.addEventListener('keydown', function (event) {
     if (!modal.hidden && event.key === 'Escape') closeModal();
   });
+
+  // Quick-approve handler
+  document.addEventListener('click', function (event) {
+    var btn = event.target.closest('.js-quick-approve');
+    if (!btn) return;
+    event.preventDefault();
+    var url = btn.dataset.approveUrl;
+    var submissionId = btn.dataset.submissionId;
+    if (!url) return;
+    btn.disabled = true;
+    btn.textContent = 'Approving…';
+    var params = new URLSearchParams({ _csrf: csrfToken });
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token': csrfToken },
+      body: params,
+      redirect: 'manual'
+    })
+      .then(function (res) {
+        if (res.ok || res.status === 302 || res.type === 'opaqueredirect') {
+          updateListCard(submissionId, 'approved');
+          btn.closest('.run-proof-card-actions') && (btn.remove());
+        } else {
+          btn.disabled = false;
+          btn.textContent = '✓ Approve';
+        }
+      })
+      .catch(function () {
+        btn.disabled = false;
+        btn.textContent = '✓ Approve';
+      });
+  });
+
+  function esc(str) {
+    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
 })();

@@ -997,6 +997,128 @@ router.get('/submissions', requireAuth, async (req, res) => {
 });
 
 /* ==========================================
+   GET: Submission Review Panel (AJAX, JSON)
+   ========================================== */
+
+router.get('/submissions/:submissionId/review-panel', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+    if (!user || !canAccessRegistrantReview(user)) {
+      return res.status(403).json({ success: false, message: 'Access denied.' });
+    }
+
+    const submissionId = String(req.params.submissionId || '').trim();
+    if (!mongoose.Types.ObjectId.isValid(submissionId)) {
+      return res.status(404).json({ success: false, message: 'Submission not found.' });
+    }
+
+    // Find submission and resolve event for access check
+    let submission = await Submission.findById(submissionId)
+      .populate([
+        { path: 'reviewedBy', select: 'firstName lastName email' },
+        { path: 'runnerId', select: 'firstName lastName email mobile country gender' },
+        { path: 'registrationId', select: 'participant confirmationCode raceDistance participationMode status paymentStatus' }
+      ])
+      .lean();
+    let submissionKind = 'standard';
+
+    if (!submission) {
+      submission = await AccumulatedActivitySubmission.findById(submissionId)
+        .populate([
+          { path: 'reviewedBy', select: 'firstName lastName email' },
+          { path: 'runnerId', select: 'firstName lastName email mobile country gender' },
+          { path: 'registrationId', select: 'participant confirmationCode raceDistance participationMode status paymentStatus' }
+        ])
+        .lean();
+      submissionKind = submission ? 'accumulated' : '';
+    }
+    if (!submission) return res.status(404).json({ success: false, message: 'Submission not found.' });
+
+    const event = await getRegistrantAccessibleEventOrNull(submission.eventId, user);
+    if (!event) return res.status(403).json({ success: false, message: 'Access denied to this event.' });
+
+    const registration = submission.registrationId || null;
+    const participant = registration?.participant || {};
+    const runner = submission.runnerId || {};
+    const reviewed = submission.reviewedBy || {};
+    const ocrData = submission.ocrData || {};
+
+    const elapsedMs = Number(submission.elapsedMs || 0);
+    const totalSec = Math.floor(elapsedMs / 1000);
+    const elapsedLabel = [
+      String(Math.floor(totalSec / 3600)).padStart(2, '0'),
+      String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0'),
+      String(totalSec % 60).padStart(2, '0')
+    ].join(':');
+
+    const runDate = submission.runDate ? new Date(submission.runDate) : null;
+    const runDateLabel = runDate ? runDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
+
+    const ocrTimeMs = Number(ocrData.extractedTimeMs);
+    let ocrTimeLabel = '';
+    if (Number.isFinite(ocrTimeMs) && ocrTimeMs > 0) {
+      const s = Math.floor(ocrTimeMs / 1000);
+      ocrTimeLabel = `${String(Math.floor(s / 3600)).padStart(2, '0')}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+    }
+
+    const proofPath = String(submission.proof?.url || '');
+    const proofMime = String(submission.proof?.mimeType || '');
+    const isImage = proofMime.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(proofPath);
+
+    return res.json({
+      success: true,
+      submission: {
+        id: String(submission._id),
+        status: submission.status || 'submitted',
+        submissionKind,
+        participantName: [participant.firstName, participant.lastName].filter(Boolean).join(' ').trim() || [runner.firstName, runner.lastName].filter(Boolean).join(' ').trim() || 'N/A',
+        participantEmail: participant.email || runner.email || 'N/A',
+        eventTitle: event.title || 'Event',
+        confirmationCode: registration?.confirmationCode || 'N/A',
+        raceDistance: registration?.raceDistance || submission.raceDistance || 'N/A',
+        participationMode: registration?.participationMode || submission.participationMode || 'N/A',
+        distanceKm: Number(submission.distanceKm || 0).toFixed(2),
+        elapsedLabel,
+        runDateLabel,
+        runType: String(submission.runType || 'run'),
+        runLocation: String(submission.runLocation || '').trim(),
+        proofUrl: proofPath,
+        proofMimeType: proofMime,
+        isProofImage: isImage,
+        proofTypeLabel: String(submission.proofType || 'manual').toUpperCase(),
+        sourceLabel: getSubmissionSourceLabel(submission),
+        suspiciousFlag: Boolean(submission.suspiciousFlag),
+        suspiciousFlagReason: String(submission.suspiciousFlagReason || '').trim(),
+        reviewSignal: buildSubmissionReviewSignal(submission),
+        ocrData: {
+          confidence: Math.round(Number(ocrData.confidence || 0) * 100),
+          extractedDistanceKm: ocrData.extractedDistanceKm != null ? Number(ocrData.extractedDistanceKm).toFixed(2) : null,
+          distanceMismatch: Boolean(ocrData.distanceMismatch),
+          ocrTimeLabel,
+          timeMismatch: Boolean(ocrData.timeMismatch),
+          extractedRunDate: ocrData.extractedRunDate ? new Date(ocrData.extractedRunDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : null,
+          dateMismatch: Boolean(ocrData.dateMismatch),
+          extractedRunLocation: ocrData.extractedRunLocation || null,
+          locationMismatch: Boolean(ocrData.locationMismatch),
+          nameMatchStatus: ocrData.nameMatchStatus || null,
+          extractedName: ocrData.extractedName || null
+        },
+        reviewedByName: [reviewed.firstName, reviewed.lastName].filter(Boolean).join(' ').trim() || '',
+        rejectionReason: String(submission.rejectionReason || '').trim(),
+        reviewNotes: String(submission.reviewNotes || '').trim(),
+        reviewedAtLabel: submission.reviewedAt ? new Date(submission.reviewedAt).toLocaleString('en-US') : '',
+        approveUrl: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/approve`,
+        rejectUrl: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/reject`,
+        fullPageUrl: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review`
+      }
+    });
+  } catch (error) {
+    console.error('Submission review panel error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to load submission details.' });
+  }
+});
+
+/* ==========================================
    POST: Bulk Approve Submissions
    ========================================== */
 

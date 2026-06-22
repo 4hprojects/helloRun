@@ -124,7 +124,7 @@
       <% if (submissions && submissions.length) { %>
         <section class="run-proof-review-list">
           <% submissions.forEach((item) => { %>
-            <article class="run-proof-review-card submission-hub-card">
+            <article class="run-proof-review-card submission-hub-card" data-submission-id="<%= item.id %>" data-status="<%= item.status %>">
               <div class="run-proof-card-main">
                 <div class="run-proof-card-header">
                   <div>
@@ -186,7 +186,10 @@
                     <input type="checkbox" class="js-submission-checkbox bulk-card-checkbox" value="<%= item.id %>" aria-label="Select submission">
                   </label>
                 <% } %>
-                <a href="<%= item.actionHref %>" class="nav-signup-btn submission-hub-action-btn" data-submission-modal-link data-modal-title="Review Submission">Open Review</a>
+                <a href="<%= item.actionHref %>" class="nav-signup-btn submission-hub-action-btn" data-submission-modal-link data-modal-title="Review Submission" data-submission-id="<%= item.id %>">Open Review</a>
+                <% if (!isAdminViewer && item.status === 'submitted' && !item.suspiciousFlag && !item.reviewSignal?.label) { %>
+                  <button type="button" class="btn btn-sm btn-success js-quick-approve" data-submission-id="<%= item.id %>" data-approve-url="<%= item.approveUrl %>" title="Quick approve">✓ Approve</button>
+                <% } %>
                 <a href="<%= item.eventProofsHref %>" class="nav-login-btn submission-hub-action-btn" data-submission-modal-link data-modal-title="Event Proofs">Event Proofs</a>
               </div>
             </article>

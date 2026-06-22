@@ -188,6 +188,10 @@ function normalizeSubmissionRow(submission, submissionKind) {
     suspiciousFlag: Boolean(submission.suspiciousFlag),
     suspiciousFlagReason: String(submission.suspiciousFlagReason || '').trim(),
     reviewSignal: buildSubmissionReviewSignal(submission),
+    proofUrl: String(submission.proof?.url || '').trim(),
+    proofMimeType: String(submission.proof?.mimeType || '').trim(),
+    approveUrl: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/approve`,
+    rejectUrl: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/reject`,
     actionHref: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review`,
     eventProofsHref: `/organizer/events/${String(event._id)}/run-proofs/review${buildStatusQuery(submission.status)}`
   };

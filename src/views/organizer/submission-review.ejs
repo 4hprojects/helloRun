@@ -187,9 +187,9 @@
                   View run result evidence
                 </a>
                 <% if (isImageProof) { %>
-                  <a href="<%= proofUrl %>" target="_blank" rel="noopener noreferrer" class="submission-proof-image-link">
+                  <div class="submission-proof-image-link js-lightbox-trigger" data-lightbox-src="<%= proofUrl %>" title="Click to enlarge" style="cursor:zoom-in">
                     <img src="<%= proofUrl %>" alt="Run result evidence for <%= registration.confirmationCode %>">
-                  </a>
+                  </div>
                 <% } %>
               </div>
             <% } else { %>
@@ -227,7 +227,7 @@
                 </div>
               <% } %>
               <% if (submission.ocrData && submission.ocrData.confidence > 0) { %>
-                <details class="ocr-analysis-details" open>
+                <details class="ocr-analysis-details">
                   <summary><strong>OCR Analysis</strong> (confidence: <%= Math.round((submission.ocrData.confidence || 0) * 100) %>%)</summary>
                   <div class="ocr-analysis-body">
                     <% if (submission.ocrData.extractedDistanceKm != null) { %>
@@ -355,5 +355,54 @@
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
   <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    // Proof image lightbox
+    (function () {
+      document.querySelectorAll('.js-lightbox-trigger').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var src = el.dataset.lightboxSrc || (el.querySelector('img') || {}).src;
+          if (!src) return;
+          var lb = document.getElementById('js-review-lightbox');
+          if (!lb) {
+            lb = document.createElement('div');
+            lb.id = 'js-review-lightbox';
+            lb.className = 'sub-lightbox-overlay';
+            lb.innerHTML = '<img class="sub-lightbox-img" alt="Proof full size">';
+            lb.addEventListener('click', function () { lb.hidden = true; });
+            document.body.appendChild(lb);
+          }
+          lb.querySelector('img').src = src;
+          lb.hidden = false;
+        });
+      });
+    })();
+
+    // Keyboard shortcuts
+    (function () {
+      var approveNotes = document.getElementById('approve-notes-<%= submission._id || submission.id %>');
+      var rejectReason = document.getElementById('reject-reason-<%= submission._id || submission.id %>');
+      var backLink = document.querySelector('[href="<%= backHref %>"]');
+      if (!approveNotes && !rejectReason) return;
+      document.addEventListener('keydown', function (e) {
+        if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+        if (e.key === 'a' || e.key === 'A') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            var approveForm = approveNotes && approveNotes.closest('form');
+            if (approveForm) approveForm.submit();
+          } else {
+            if (approveNotes) { approveNotes.focus(); approveNotes.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+          }
+        }
+        if (e.key === 'r' || e.key === 'R') {
+          e.preventDefault();
+          if (rejectReason) { rejectReason.focus(); rejectReason.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+        }
+        if (e.key === 'Escape' && backLink) {
+          backLink.click();
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
