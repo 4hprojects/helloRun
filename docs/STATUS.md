@@ -39,6 +39,7 @@ _Last updated: June 22, 2026_
 | Submission Review Workflow — AJAX panel (no iframe), inline approve/reject, quick-approve, auto-advance, OCR collapsed, lightbox, keyboard shortcuts | June 22, 2026 | passing |
 | P10 Event Wishlist — save/unsave toggle, heart button on cards + detail page, saved events dashboard section | June 22, 2026 | 17/17 auth |
 | P14 Related Events — Similar Events section on event detail page, 3-tier priority (organiser → distance → open), 3-column grid | June 23, 2026 | 17/17 auth |
+| P12 Blog Scheduled Publishing — publishScheduledBlogs() worker, 5-min interval, startBlogSchedulerWorker() wired into server | June 23, 2026 | 17/17 auth |
 
 ---
 

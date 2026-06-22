@@ -281,11 +281,12 @@ app.use((err, req, res, next) => {
 // ===== STEP 8: START SERVER =====
 const PORT = process.env.PORT || 3000;
 
-const { startSyncRetryWorker } = require('./workers/pg-sync-worker');
+const { startSyncRetryWorker, startBlogSchedulerWorker } = require('./workers/pg-sync-worker');
 
 async function startServer() {
   await connectToDatabase();
   startSyncRetryWorker();
+  startBlogSchedulerWorker();
 
   app.listen(PORT, () => {
     logger.info(`Server running on http://localhost:${PORT}`);

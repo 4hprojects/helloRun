@@ -14,6 +14,7 @@ const Event = require('../models/Event');
 const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const User = require('../models/User');
+const Blog = require('../models/Blog');
 const { syncEventShadow } = require('../services/event-shadow.service');
 const { syncRegistrationPaymentShadow } = require('../services/registration-payment-shadow.service');
 const { syncSubmissionShadow } = require('../services/submission-shadow.service');
@@ -156,4 +157,61 @@ function startSyncRetryWorker() {
   logger.info(`[pg-sync-worker] Started — polling every ${interval}ms, max retries: ${MAX_RETRIES}`);
 }
 
-module.exports = { startSyncRetryWorker };
+// ── Blog Scheduler ────────────────────────────────────────────────────────────
+
+async function publishScheduledBlogs() {
+  const now = new Date();
+  const due = await Blog.find({
+    status: 'scheduled',
+    publishedAt: { $lte: now },
+    isDeleted: { $ne: true }
+  }).limit(20);
+
+  if (!due.length) return;
+
+  logger.info(`[blog-scheduler] Publishing ${due.length} scheduled post(s)`);
+  for (const post of due) {
+    try {
+      post.status = 'published';
+      if (!post.approvedAt) post.approvedAt = now;
+      await post.save();
+      logger.info(`[blog-scheduler] Published: "${post.title}" (${post._id})`);
+    } catch (err) {
+      logger.error(`[blog-scheduler] Failed to publish ${post._id}: ${err?.message || String(err)}`);
+    }
+  }
+}
+
+let blogSchedulerTimer = null;
+
+function startBlogSchedulerWorker() {
+  if (process.env.NODE_ENV === 'test') return;
+
+  const interval = Number(process.env.BLOG_SCHEDULER_INTERVAL_MS || 300000);
+
+  // Run once 10s after startup to catch any overdue posts
+  setTimeout(() => {
+    publishScheduledBlogs().catch((err) =>
+      logger.error('[blog-scheduler] Startup run error:', err?.message || String(err))
+    );
+  }, 10000);
+
+  blogSchedulerTimer = setInterval(() => {
+    publishScheduledBlogs().catch((err) =>
+      logger.error('[blog-scheduler] Interval error:', err?.message || String(err))
+    );
+  }, interval);
+
+  const cleanup = () => {
+    if (blogSchedulerTimer) {
+      clearInterval(blogSchedulerTimer);
+      blogSchedulerTimer = null;
+    }
+  };
+  process.once('SIGTERM', cleanup);
+  process.once('SIGINT', cleanup);
+
+  logger.info(`[blog-scheduler] Started — interval: ${interval}ms`);
+}
+
+module.exports = { startSyncRetryWorker, startBlogSchedulerWorker };
