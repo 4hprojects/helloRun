@@ -1403,3 +1403,115 @@
     flex: 1 1 6rem;
   }
 }
+
+/* ===== REJECTION GUIDANCE ===== */
+.sub-rejection-guidance {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  margin-top: 1rem;
+}
+
+.sub-rejection-guidance summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  list-style: none;
+}
+.sub-rejection-guidance summary::-webkit-details-marker { display: none; }
+.sub-rejection-guidance summary i,
+.sub-rejection-guidance summary svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+.sub-rejection-guidance p {
+  margin: 0.6rem 0 0;
+  color: #78350f;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.guidance-action-hint {
+  color: #92400e;
+  font-weight: 500;
+  margin-top: 0.4rem !important;
+}
+
+/* ===== METADATA EDIT FORM ===== */
+.sub-metadata-edit-form {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem 1.1rem;
+  margin-top: 1rem;
+}
+
+.sub-metadata-edit-title {
+  margin: 0 0 0.3rem;
+  font-size: 0.95rem;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.sub-metadata-edit-title i,
+.sub-metadata-edit-title svg { width: 15px; height: 15px; }
+
+.sub-metadata-edit-note {
+  margin: 0 0 0.85rem;
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.sub-metadata-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+
+.sub-metadata-edit-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.sub-metadata-edit-wide {
+  grid-column: 1 / -1;
+}
+
+/* ===== STRAVA LOCKED NOTE ===== */
+.sub-strava-locked-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: #475569;
+}
+.sub-strava-locked-note i,
+.sub-strava-locked-note svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; color: #94a3b8; }
+.sub-strava-locked-note p { margin: 0; }
+
+/* ===== RESUBMIT WRAP ===== */
+.sub-resubmit-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+
+.sub-resubmit-hint {
+  color: #64748b;
+  font-size: 0.75rem;
+}

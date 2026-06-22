@@ -62,6 +62,13 @@ router.post(
   requireCsrfProtection,
   pageController.postResubmitResult
 );
+router.post(
+  '/runner/submissions/:submissionId/edit-metadata',
+  requireAuth,
+  resultSubmissionLimiter,
+  requireCsrfProtection,
+  pageController.postEditSubmissionMetadata
+);
 router.get('/my-submissions/:submissionId/certificate', requireAuth, pageController.getSubmissionCertificateDownload);
 router.get('/runners/:userId/badges/share-image.svg', pageController.getPublicRunnerBadgeCollectionShareImage);
 router.get('/runners/:userId/badges', pageController.getPublicRunnerBadgeCollection);

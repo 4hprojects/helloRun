@@ -86,6 +86,41 @@ async function createSubmission({
   return applyAutoApprovalIfEligible(submission);
 }
 
+async function editRejectedSubmissionMetadata({ submissionId, runnerId, distanceKm, elapsedMs, runDate, runLocation, runType }) {
+  const submission = await Submission.findOne({ _id: submissionId, runnerId });
+  if (!submission) throw new Error('Submission not found or you do not have access.');
+  if (submission.status !== 'rejected') throw new Error('Only rejected submissions can have their details updated.');
+  if (String(submission.source || '') === 'strava') throw new Error('Strava submission metadata cannot be edited manually.');
+
+  const parsedDistance = Number(distanceKm);
+  if (!Number.isFinite(parsedDistance) || parsedDistance < 0.1 || parsedDistance > 500) {
+    throw new Error('Distance must be between 0.1 and 500 km.');
+  }
+  if (elapsedMs !== undefined) {
+    const parsedElapsed = Number(elapsedMs);
+    if (!Number.isFinite(parsedElapsed) || parsedElapsed < 1000) {
+      throw new Error('Elapsed time must be at least 1 second.');
+    }
+    submission.elapsedMs = parsedElapsed;
+  }
+
+  submission.distanceKm = parsedDistance;
+  if (runDate) submission.runDate = new Date(runDate);
+  if (runLocation) submission.runLocation = String(runLocation).trim().slice(0, 200);
+  if (runType && ['run', 'walk', 'hike', 'trail_run'].includes(runType)) submission.runType = runType;
+
+  submission.status = 'submitted';
+  submission.rejectionReason = '';
+  submission.reviewNotes = '';
+  submission.reviewedAt = null;
+  submission.reviewedBy = null;
+  submission.submittedAt = new Date();
+  submission.submissionCount = (submission.submissionCount || 1) + 1;
+
+  await submission.save();
+  return submission;
+}
+
 async function resubmitSubmission({
   registrationId,
   runnerId,
@@ -1666,6 +1701,7 @@ function refreshGlobalDistanceMilestonesSafe(mongoUserId, options = {}) {
 
 module.exports = {
   createSubmission,
+  editRejectedSubmissionMetadata,
   resubmitSubmission,
   reviewSubmission,
   getRunnerSubmissions,

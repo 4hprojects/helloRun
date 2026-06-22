@@ -55,6 +55,7 @@ const {
 } = require('../utils/payment-workflow');
 const {
   createSubmission,
+  editRejectedSubmissionMetadata,
   resubmitSubmission,
   getRunnerSubmissions,
   PERSONAL_RECORD_REGISTRATION_ID
@@ -1008,6 +1009,47 @@ exports.postResubmitResult = async (req, res) => {
     mode: 'resubmit',
     successMessage: 'Run result resubmitted successfully. Await organizer review.'
   });
+};
+
+exports.postEditSubmissionMetadata = async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('_id');
+    if (!user) return res.redirect('/login');
+
+    const submissionId = String(req.params.submissionId || '').trim();
+    if (!submissionId) return redirectWithPageMessage(res, 'error', 'Invalid submission.');
+
+    const rawDistance = req.body.distanceKm;
+    const distanceKm = Number(rawDistance);
+
+    const rawTime = String(req.body.elapsedTime || '').trim();
+    const timeParts = rawTime.split(':').map(Number);
+    let elapsedMs;
+    if (timeParts.length === 3 && timeParts.every((p) => Number.isFinite(p))) {
+      const [h, m, s] = timeParts;
+      elapsedMs = ((h * 3600) + (m * 60) + s) * 1000;
+    }
+
+    const runDate = String(req.body.runDate || '').trim();
+    const runType = String(req.body.runType || '').trim();
+    const runLocation = String(req.body.runLocation || '').trim();
+
+    await editRejectedSubmissionMetadata({
+      submissionId,
+      runnerId: user._id,
+      distanceKm,
+      elapsedMs,
+      runDate: runDate || undefined,
+      runType: runType || undefined,
+      runLocation: runLocation || undefined
+    });
+
+    return res.redirect(`/runner/submissions/${submissionId}?type=success&msg=Details+updated.+Awaiting+organiser+review.`);
+  } catch (error) {
+    const submissionId = String(req.params.submissionId || '').trim();
+    const msg = encodeURIComponent(error.message || 'An error occurred while updating your submission.');
+    return res.redirect(`/runner/submissions/${submissionId}?type=error&msg=${msg}`);
+  }
 };
 
 exports.getSubmissionCertificateDownload = async (req, res) => {

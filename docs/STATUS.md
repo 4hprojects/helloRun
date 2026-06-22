@@ -34,6 +34,7 @@ _Last updated: June 22, 2026_
 | Quick Wins — console.error→logger, rate limiting (profile/groups), OG tags (cert verify), profile picture upload + nav avatar | June 22, 2026 | 44/44 |
 | P2 Onboarding — firstLogin detection, welcome banner, profile nudge, welcome email, improved empty states | June 22, 2026 | 44/44 |
 | P7 Bulk Organiser Actions — bulk submission approve, bulk payment approve, email unpaid registrants | June 22, 2026 | 44/44 |
+| P6 Proof Rejection Guidance — contextual fix tips, metadata edit form (no new proof), Strava guard, button rename | June 22, 2026 | 44/44 |
 
 ---
 

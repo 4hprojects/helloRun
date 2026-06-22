@@ -195,6 +195,80 @@
                   <p class="text-muted sub-review-reviewer">Reviewed by <%= submission.reviewedByName %></p>
                 <% } %>
               </div>
+
+              <%
+                const rejReason = String(submission.rejectionReason || submission.suspiciousFlagReason || '').toLowerCase();
+                const GUIDANCE_RULES = [
+                  { keywords: ['distance','pace','km','kilometer','mismatch','speed'], tip: 'The distance you entered may not match what\'s on your proof. Check the exact figure on your activity screenshot and update it using the form below.', action: 'edit' },
+                  { keywords: ['time','duration','elapsed','minute','hour','second'], tip: 'The elapsed time may be incorrect. Check the duration shown on your activity and update it using the form below.', action: 'edit' },
+                  { keywords: ['date','day','month','year'], tip: 'The run date may not match your proof. Update the date below to match exactly what\'s shown on your screenshot.', action: 'edit' },
+                  { keywords: ['screenshot','unclear','blurry','visible','image','photo','see','show','clear'], tip: 'Your proof image was unclear. Take a new, clear screenshot showing distance, time, and date — then upload a new proof below.', action: 'resubmit' },
+                  { keywords: ['name','account','identity','match'], tip: 'The name on your activity doesn\'t match your HelloRun account name. Make sure you\'re submitting your own activity.', action: 'resubmit' },
+                  { keywords: ['receipt','payment','wrong','document','not an activity','incorrect file'], tip: 'The uploaded file doesn\'t appear to be a run activity screenshot. Upload a screenshot from your running app showing your activity details.', action: 'resubmit' }
+                ];
+                const matchedRule = GUIDANCE_RULES.find(r => r.keywords.some(k => rejReason.includes(k)));
+                const guidanceTip = matchedRule ? matchedRule.tip : 'Review the reason above and either correct your activity details below or upload a new proof.';
+                const guidanceAction = matchedRule ? matchedRule.action : 'both';
+              %>
+              <details class="sub-rejection-guidance" open>
+                <summary><i data-lucide="lightbulb" aria-hidden="true"></i> How to fix this</summary>
+                <p><%= guidanceTip %></p>
+                <% if (guidanceAction === 'edit' || guidanceAction === 'both') { %>
+                  <p class="guidance-action-hint">↓ Correct your details using the form below.</p>
+                <% } %>
+                <% if (guidanceAction === 'resubmit' || guidanceAction === 'both') { %>
+                  <p class="guidance-action-hint">↓ Upload a new proof using "Upload New Proof" in the Actions panel.</p>
+                <% } %>
+              </details>
+
+              <% if (submission.source !== 'strava' && submission.actions && submission.actions.canResubmit) { %>
+                <%
+                  const ms = submission.elapsedMs || 0;
+                  const totalSec = Math.floor(ms / 1000);
+                  const hh = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+                  const mm = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+                  const ss = String(totalSec % 60).padStart(2, '0');
+                  const elapsedPrefill = `${hh}:${mm}:${ss}`;
+                  const datePrefill = submission.runDate ? new Date(submission.runDate).toISOString().slice(0, 10) : '';
+                %>
+                <form method="POST" action="/runner/submissions/<%= submission.submissionId %>/edit-metadata" class="sub-metadata-edit-form">
+                  <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                  <h4 class="sub-metadata-edit-title"><i data-lucide="pencil" aria-hidden="true"></i> Correct activity details</h4>
+                  <p class="sub-metadata-edit-note">Your existing proof stays on file. Only the details below will be updated.</p>
+                  <div class="sub-metadata-edit-grid">
+                    <label>
+                      <span>Distance (km)</span>
+                      <input type="number" name="distanceKm" step="0.01" min="0.1" max="500" value="<%= submission.distanceKm || '' %>" required class="form-input">
+                    </label>
+                    <label>
+                      <span>Elapsed time (hh:mm:ss)</span>
+                      <input type="text" name="elapsedTime" pattern="^\d{1,2}:\d{2}:\d{2}$" placeholder="00:00:00" value="<%= elapsedPrefill %>" required class="form-input">
+                    </label>
+                    <label>
+                      <span>Run date</span>
+                      <input type="date" name="runDate" value="<%= datePrefill %>" required class="form-input">
+                    </label>
+                    <label>
+                      <span>Activity type</span>
+                      <select name="runType" class="form-input">
+                        <% ['run','walk','hike','trail_run'].forEach(t => { %>
+                          <option value="<%= t %>" <%= submission.runType === t ? 'selected' : '' %>><%= t.replace('_', ' ') %></option>
+                        <% }) %>
+                      </select>
+                    </label>
+                    <label class="sub-metadata-edit-wide">
+                      <span>Location</span>
+                      <input type="text" name="runLocation" maxlength="200" value="<%= submission.runLocation || '' %>" placeholder="City, Country" class="form-input">
+                    </label>
+                  </div>
+                  <button type="submit" class="btn btn-primary">Update &amp; Resubmit</button>
+                </form>
+              <% } else if (submission.source === 'strava') { %>
+                <div class="sub-strava-locked-note">
+                  <i data-lucide="lock" aria-hidden="true"></i>
+                  <p>This submission came from Strava — activity details are locked to your Strava data. To change them, sync a corrected Strava activity and resubmit.</p>
+                </div>
+              <% } %>
             <% } %>
           </div>
         </section>
@@ -333,13 +407,16 @@
           </div>
           <div class="card-content sub-actions-list">
             <% if (submission.actions && submission.actions.canResubmit) { %>
-              <button
-                type="button"
-                class="btn btn-warning"
-                data-open-run-proof-modal
-                data-registration-id="<%= submission.registrationObjectId %>"
-                aria-label="Resubmit proof for <%= submission.eventTitle %>"
-              ><i data-lucide="refresh-cw" aria-hidden="true"></i> Resubmit Proof</button>
+              <div class="sub-resubmit-wrap">
+                <button
+                  type="button"
+                  class="btn btn-warning"
+                  data-open-run-proof-modal
+                  data-registration-id="<%= submission.registrationObjectId %>"
+                  aria-label="Upload new proof for <%= submission.eventTitle %>"
+                ><i data-lucide="upload" aria-hidden="true"></i> Upload New Proof</button>
+                <small class="sub-resubmit-hint">Use this if your proof image was wrong or unclear.</small>
+              </div>
             <% } %>
             <% if (submission.actions && submission.actions.canViewLeaderboard) { %>
               <a href="/events/<%= submission.eventSlug %>#leaderboard" class="btn btn-outline">
