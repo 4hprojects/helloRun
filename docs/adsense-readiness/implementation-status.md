@@ -15,7 +15,7 @@ The work focused on public content depth, crawl hygiene, event page quality, tru
 | Phase 3 - Trust Page Expansion | Complete | Expanded About and Contact with operator, support, location, privacy, and policy context. |
 | Phase 4 - How It Works and FAQ Expansion | Complete | Expanded both pages into substantial public resources. |
 | Phase 5 - Blog Content System | Complete | Kept existing category enums, filtered public categories to published content, and improved author fallback display. |
-| Phase 6 - Initial Blog Content Batch | Complete | Added an idempotent seed script for 10 published guide posts. |
+| Phase 6 - Initial Blog Content Batch | Complete | Added an idempotent seed script for 15 published guide posts. |
 | Phase 7 - UX, Mobile, and Link QA | Mostly complete | HTTP smoke checks and content scans passed. In-app Browser visual QA was blocked by a local plugin runtime error. |
 | Phase 8 - Final AdSense Readiness Audit | Complete for local code | Local pass/fail audit completed. Production crawl checks remain after deployment. |
 
@@ -64,7 +64,7 @@ The work focused on public content depth, crawl hygiene, event page quality, tru
 ## Production Follow-Up
 
 1. Deploy `main`.
-2. Run `npm run seed:adsense-blog` in the production environment if the guide posts are not already published.
+2. Run `npm run seed:adsense-blog` in the production environment if the 15 guide posts are not already published.
 3. Verify the production sitemap and robots files.
 4. Confirm important public pages are reachable without login.
 5. Submit or refresh the sitemap in Google Search Console.

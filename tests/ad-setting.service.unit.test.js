@@ -46,7 +46,7 @@ test('ad settings reject invalid publisher ids and unchecked placement controls'
   assert.equal(settings.pageGroups.home.enabled, true);
   assert.equal(settings.pageGroups.home.placements.after_features.enabled, false);
   assert.equal(canRenderAdPlacement(settings, 'home', 'after_features'), false);
-  assert.equal(shouldLoadAdScript(settings, 'home'), true);
+  assert.equal(shouldLoadAdScript(settings, 'home'), false);
 });
 
 test('ad placement rendering requires global enablement, group enablement, placement enablement, and slot id', () => {
@@ -61,6 +61,7 @@ test('ad placement rendering requires global enablement, group enablement, place
   assert.equal(canRenderAdPlacement(settings, 'blogPost', 'in_article'), true);
   assert.equal(canRenderAdPlacement({ ...settings, enabled: false }, 'blogPost', 'in_article'), false);
   assert.equal(canRenderAdPlacement(settings, 'blogPost', 'before_related'), false);
+  assert.equal(shouldLoadAdScript(settings, 'blogPost'), true);
   assert.equal(shouldLoadAdScript({ ...settings, scriptEnabled: false }, 'blogPost'), false);
 });
 

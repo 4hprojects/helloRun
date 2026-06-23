@@ -16,7 +16,7 @@
         <div class="hero-text">
           <h1 class="hero-title">Run anywhere. <span class="highlight">Show up with purpose.</span></h1>
           <p class="hero-subtitle">
-            Discover events that match your pace, submit completed runs, and stay connected to a running community that keeps moving.
+            Discover virtual, on-site, and hybrid running events that match your pace, submit completed runs for review, and keep your progress visible in one organized running profile.
           </p>
 
           <div class="hero-stats">
@@ -64,7 +64,7 @@
           <div class="features-intro">
             <h2 class="section-title section-title-left">What <span class="highlight">HelloRun</span> does</h2>
             <p class="features-summary">
-              HelloRun helps runners join virtual events, submit results online, and keep finishes in one place without forcing a specific watch, app, or GPS setup.
+              HelloRun helps runners join virtual events, submit results online, and keep finishes in one place without forcing a specific watch, app, or GPS setup. It also gives organizers a clearer way to publish event rules, review payment receipts, verify run proof, and communicate what happens after a participant finishes.
             </p>
           </div>
 
@@ -104,6 +104,37 @@
     </section>
 
     <%- include('../partials/ad-unit', { group: 'home', placement: 'after_features' }) %>
+
+    <section class="why-hellorun">
+      <div class="container">
+        <div class="why-shell">
+          <div class="why-intro">
+            <h2 class="section-title section-title-left">A clearer way to join and finish running events</h2>
+            <p class="why-summary">
+              Many community races now happen beyond a single starting line. Some runners join from home, some submit activities over several days, and some organizers combine virtual submissions with on-site check-ins. HelloRun keeps those moving parts understandable before anyone creates an account.
+            </p>
+            <p class="why-summary">
+              Public event pages explain distances, registration windows, proof rules, rewards, and deadlines. Runners can compare options on the <a href="/events">Events</a> page, learn the submission process in <a href="/how-it-works">How It Works</a>, and check common questions in the <a href="/faq">FAQ</a>. The goal is simple: every participant should know what to run, what to submit, and how review decisions are made.
+            </p>
+          </div>
+
+          <div class="why-points" aria-label="HelloRun public value">
+            <article class="why-point">
+              <h3>For first-time virtual runners</h3>
+              <p>Learn how to choose a distance, prepare proof from a running app or screenshot, avoid common submission mistakes, and understand why organizers review results before certificates or leaderboard entries are finalized.</p>
+            </article>
+            <article class="why-point">
+              <h3>For returning participants</h3>
+              <p>Use your dashboard to revisit registrations, payment status, submitted results, badges, certificates, and saved events. Public guides remain available when you need a quick reminder before race week.</p>
+            </article>
+            <article class="why-point">
+              <h3>For organizers</h3>
+              <p>Create event pages that explain rules clearly, collect registrations, review proof, manage payment receipts where enabled, and publish recognition in a way runners can understand and trust.</p>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <% if (featuredEvents && featuredEvents.length) { %>
       <section class="featured-events" aria-labelledby="featuredEventsTitle">
@@ -183,7 +214,7 @@
           <div class="why-intro">
             <h2 class="section-title section-title-left">Why <span class="highlight">HelloRun</span></h2>
             <p class="why-summary">
-              HelloRun is built for runners who want flexibility without losing the feeling of being part of something shared.
+              HelloRun is built for runners who want flexibility without losing the feeling of being part of something shared. It works best when event pages are specific, proof rules are transparent, and participants can see the next action after registration, payment, submission, approval, or rejection.
             </p>
           </div>
 
@@ -199,6 +230,10 @@
             <article class="why-point">
               <h3>Focus on movement, not tool management</h3>
               <p>The platform stays lightweight so the experience centers on showing up, finishing, and keeping momentum.</p>
+            </article>
+            <article class="why-point">
+              <h3>Know what happens after upload</h3>
+              <p>Submitted proof is reviewed against the event rules. If something is unclear, runners can check status and follow guidance instead of guessing whether their activity counted.</p>
             </article>
           </div>
         </div>
@@ -222,9 +257,12 @@
           <div class="step">
             <div class="step-number">3</div>
             <h4>See your rank</h4>
-            <p>Your time appears on the leaderboard instantly. Celebrate your finish and aim higher.</p>
+            <p>Approved results can appear on event leaderboards when the event enables rankings. Celebrate your finish, download certificates when available, and use your result history to choose the next challenge.</p>
           </div>
         </div>
+        <p class="why-summary">
+          For a deeper walkthrough, visit <a href="/how-it-works">How It Works</a>. It explains registration, manual payment receipt review, proof submission, rejected proof guidance, leaderboards, certificates, privacy basics, and organizer review responsibilities.
+        </p>
       </div>
     </section>
 

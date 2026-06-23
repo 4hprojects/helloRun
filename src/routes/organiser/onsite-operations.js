@@ -3,10 +3,11 @@
 
 const express = require('express');
 const router = express.Router();
-const logger = require('../../utils/logger');
-const { requireAuth } = require('../../middleware/auth.middleware');
-const { requireCsrfProtection } = require('../../middleware/csrf.middleware');
-const { requireOrganizerEventAccess } = require('../../middleware/organizer-event-access.middleware');
+const { sendJsonServerError } = require('../../utils/json-error-response');
+const {
+  protectEventMutation,
+  protectEventRead
+} = require('./event-route-protection');
 const {
   assignBib,
   recordCheckIn,
@@ -17,9 +18,6 @@ const {
   getEventCheckInSummary,
   getEventBibAssignmentStatus
 } = require('../../services/onsite-operations.service');
-
-const protectEventRead = [requireAuth, requireOrganizerEventAccess];
-const protectEventMutation = [requireAuth, requireCsrfProtection, requireOrganizerEventAccess];
 
 // Assign a bib number to a registration
 router.post('/events/:eventId/bibs/assign', protectEventMutation, async (req, res) => {
@@ -39,8 +37,7 @@ router.post('/events/:eventId/bibs/assign', protectEventMutation, async (req, re
       bib: bibRecord
     });
   } catch (error) {
-    logger.error('Error assigning bib:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error assigning bib:', error);
   }
 });
 
@@ -66,8 +63,7 @@ router.post('/events/:eventId/check-ins', protectEventMutation, async (req, res)
       checkIn: checkInRecord
     });
   } catch (error) {
-    logger.error('Error recording check-in:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error recording check-in:', error);
   }
 });
 
@@ -96,8 +92,7 @@ router.post('/events/:eventId/race-kits', protectEventMutation, async (req, res)
       raceKit: kitRecord
     });
   } catch (error) {
-    logger.error('Error creating race kit:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error creating race kit:', error);
   }
 });
 
@@ -123,8 +118,7 @@ router.post('/events/:eventId/result-imports', protectEventMutation, async (req,
       import: importRecord
     });
   } catch (error) {
-    logger.error('Error logging result import:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error logging result import:', error);
   }
 });
 
@@ -157,8 +151,7 @@ router.post('/events/:eventId/onsite-results', protectEventMutation, async (req,
       result: resultRecord
     });
   } catch (error) {
-    logger.error('Error recording onsite result:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error recording onsite result:', error);
   }
 });
 
@@ -178,8 +171,7 @@ router.post('/events/:eventId/onsite-results/:resultId/approve', protectEventMut
       awardsCreated: approved.awards.length
     });
   } catch (error) {
-    logger.error('Error approving onsite result:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error approving onsite result:', error);
   }
 });
 
@@ -195,8 +187,7 @@ router.get('/events/:eventId/check-in-summary', protectEventRead, async (req, re
       summary: summary || { message: 'No check-in data for this event' }
     });
   } catch (error) {
-    logger.error('Error getting check-in summary:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error getting check-in summary:', error);
   }
 });
 
@@ -212,8 +203,7 @@ router.get('/events/:eventId/bib-assignment-status', protectEventRead, async (re
       status: status || { message: 'No bib data for this event' }
     });
   } catch (error) {
-    logger.error('Error getting bib assignment status:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error getting bib assignment status:', error);
   }
 });
 

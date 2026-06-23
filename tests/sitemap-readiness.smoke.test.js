@@ -100,6 +100,14 @@ test('robots.txt blocks utility routes and points to sitemap', async () => {
   assert.match(body, /Sitemap:\s*https:\/\/hellorun\.online\/sitemap\.xml/i);
 });
 
+test('ads.txt exposes the configured AdSense publisher declaration', async () => {
+  const response = await fetch(`${BASE_URL}/ads.txt`);
+  assert.equal(response.status, 200);
+  const body = (await response.text()).trim();
+
+  assert.equal(body, 'google.com, pub-4537208011192461, DIRECT, f08c47fec0942fa0');
+});
+
 test('utility pages send noindex metadata and header', async () => {
   const response = await fetch(`${BASE_URL}/login`);
   assert.equal(response.status, 200);

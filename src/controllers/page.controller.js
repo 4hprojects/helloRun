@@ -14,6 +14,7 @@ exports.getBlogCategoryPage = async (req, res) => {
     });
   }
   req.query.category = category;
+  req.blogListingKind = 'category';
   return exports.getBlogList(req, res);
 };
 
@@ -29,6 +30,7 @@ exports.getBlogTagPage = async (req, res) => {
   }
   // Add tag filter to query
   req.query.q = tagSlug;
+  req.blogListingKind = 'tag';
   return exports.getBlogList(req, res);
 };
 const crypto = require('crypto');
@@ -1587,6 +1589,11 @@ exports.getBlogList = async (req, res) => {
       ? await User.findById(selectedAuthor).select('firstName lastName').lean()
       : null;
     const hasActiveFilters = Boolean(searchQuery || selectedCategory || selectedAuthor || selectedSort !== 'latest' || currentPage > 1);
+    const isThinFilteredListing = Boolean(req.blogListingKind && totalPosts < 3);
+    if (isThinFilteredListing) {
+      res.setHeader('X-Robots-Tag', 'noindex, follow');
+      disableAdLocals(res);
+    }
 
     return res.render('pages/blog', {
       title: 'Blog - HelloRun',
@@ -1602,6 +1609,7 @@ exports.getBlogList = async (req, res) => {
       filterMeta: {
         hasActiveFilters,
         totalPosts,
+        adSafe: !isThinFilteredListing,
         authorName: selectedAuthorUser ? `${selectedAuthorUser.firstName || ''} ${selectedAuthorUser.lastName || ''}`.trim() : ''
       },
       pagination: {
@@ -1611,7 +1619,8 @@ exports.getBlogList = async (req, res) => {
       },
       seo: {
         description: 'Explore running tips, race recaps, and training stories from the HelloRun community.',
-        canonicalUrl
+        canonicalUrl,
+        robots: isThinFilteredListing ? 'noindex, follow' : ''
       }
     });
   } catch (error) {
@@ -1623,6 +1632,15 @@ exports.getBlogList = async (req, res) => {
     });
   }
 };
+
+function disableAdLocals(res) {
+  const ads = res.locals.ads || {};
+  res.locals.ads = {
+    ...ads,
+    renderScript: false,
+    canRender: () => false
+  };
+}
 
 exports.getBlogPost = async (req, res) => {
   try {

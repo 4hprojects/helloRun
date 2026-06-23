@@ -4,6 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const { sendJsonServerError } = require('../../utils/json-error-response');
 const { recordOnsiteResult, logResultImport } = require('../../services/onsite-operations.service');
 const { getPostgresClient } = require('../../db/postgres');
 
@@ -161,8 +162,7 @@ router.post('/results', verifyWebhookSignature, async (req, res) => {
       errors: errors.slice(0, 10)
     });
   } catch (error) {
-    console.error('Error processing timing system webhook:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error processing timing system webhook:', error);
   }
 });
 
@@ -220,8 +220,7 @@ router.post('/check-ins', verifyWebhookSignature, async (req, res) => {
       checkIn: checkInResult[0]
     });
   } catch (error) {
-    console.error('Error processing check-in webhook:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error processing check-in webhook:', error);
   }
 });
 

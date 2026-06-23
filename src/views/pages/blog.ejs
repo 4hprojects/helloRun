@@ -13,6 +13,9 @@
         <div class="header-top-row">
           <div class="header-titles">
             <h1>Running stories, tips, and race recaps from the community.</h1>
+            <p>
+              Use the HelloRun blog to learn how virtual runs work, how to prepare proof correctly, how leaderboards and certificates are reviewed, and how organizers can run clearer online events. Articles are written for beginner runners, casual walkers, community organizers, and participants who want practical answers before registering.
+            </p>
           </div>
           <div class="header-actions">
             <% if (locals.isAuthenticated) { %>
@@ -71,8 +74,11 @@
             <a href="/blog" class="blog-clear-link">Clear filters</a>
           <% } %>
         </p>
+        <p class="blog-results-meta">
+          Start with guides about proof submission, choosing a distance, virtual race safety, certificates, and organizer review workflows. For platform-specific steps, pair these articles with <a href="/how-it-works">How It Works</a>, the <a href="/faq">FAQ</a>, and current <a href="/events">events</a>.
+        </p>
 
-        <% if ((featuredPosts && featuredPosts.length) || (posts && posts.length)) { %>
+        <% if (filterMeta?.adSafe !== false && ((featuredPosts && featuredPosts.length) || (posts && posts.length))) { %>
           <%- include('../partials/ad-unit', { group: 'blogListing', placement: 'after_results_meta' }) %>
         <% } %>
 
@@ -148,7 +154,7 @@
                   </div>
                 </div>
               </article>
-              <% if ((postIndex + 1) % 4 === 0 && blogFeedAdCount < 2) { blogFeedAdCount += 1; %>
+              <% if (filterMeta?.adSafe !== false && (postIndex + 1) % 4 === 0 && blogFeedAdCount < 2) { blogFeedAdCount += 1; %>
                 <%- include('../partials/ad-unit', { group: 'blogListing', placement: 'in_feed', className: 'ad-unit-feed' }) %>
               <% } %>
             <% }) %>
@@ -187,11 +193,11 @@
         <% } else { %>
           <div class="blog-empty">
             <i data-lucide="file-text" class="empty-icon"></i>
-            <p><%= filterMeta?.hasActiveFilters ? 'No blog posts matched your filters.' : 'No published blog posts yet.' %></p>
+            <p><%= filterMeta?.hasActiveFilters ? 'No blog posts matched your filters. Clear the search or category filter to browse all running guides.' : 'No published blog posts yet. HelloRun guides will appear here once they are published, including articles about virtual runs, proof submission, leaderboards, certificates, and organizer workflows.' %></p>
             <% if (locals.isAuthenticated) { %>
               <a href="/blogs/me/new" class="btn btn-primary">Write the first post</a>
             <% } else { %>
-              <a href="/login?redirect=/blog" class="btn btn-primary">Sign in to write</a>
+              <a href="/how-it-works" class="btn btn-primary">Learn how HelloRun works</a>
             <% } %>
           </div>
         <% } %>

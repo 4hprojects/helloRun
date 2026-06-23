@@ -5,6 +5,7 @@ const MongoStore = require('connect-mongo');
 const path = require('path');
 const mongoose = require('mongoose');
 const logger = require('./utils/logger');
+const { sendJsonServerError } = require('./utils/json-error-response');
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -103,7 +104,11 @@ app.get('/healthz/sync', async (req, res) => {
       recentFailures: recent
     });
   } catch (error) {
-    return res.status(503).json({ ok: false, error: 'Postgres unavailable.', detail: error.message });
+    return sendJsonServerError(res, 'Sync health check failed:', error, {
+      status: 503,
+      clientMessage: 'Postgres unavailable.',
+      body: { ok: false }
+    });
   }
 });
 

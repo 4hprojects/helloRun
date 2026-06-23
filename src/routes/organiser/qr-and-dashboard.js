@@ -3,9 +3,11 @@
 
 const express = require('express');
 const router = express.Router();
-const { requireAuth } = require('../../middleware/auth.middleware');
-const { requireCsrfProtection } = require('../../middleware/csrf.middleware');
-const { requireOrganizerEventAccess } = require('../../middleware/organizer-event-access.middleware');
+const { sendJsonServerError } = require('../../utils/json-error-response');
+const {
+  protectEventMutation,
+  protectEventRead
+} = require('./event-route-protection');
 const { 
   generateBibQRCode, 
   generateBatchQRCodes,
@@ -18,9 +20,6 @@ const {
   getCheckInVelocity,
   estimateCheckInCompletion
 } = require('../../services/realtime-checkin.service');
-
-const protectEventRead = [requireAuth, requireOrganizerEventAccess];
-const protectEventMutation = [requireAuth, requireCsrfProtection, requireOrganizerEventAccess];
 
 // Generate QR code for single bib
 // GET /organizer/events/:eventId/bibs/:bibNumber/qr
@@ -44,8 +43,7 @@ router.get('/events/:eventId/bibs/:bibNumber/qr', protectEventRead, async (req, 
       format: 'PNG data URL'
     });
   } catch (error) {
-    console.error('Error generating QR code:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error generating QR code:', error);
   }
 });
 
@@ -74,8 +72,7 @@ router.post('/events/:eventId/bibs/qr/batch', protectEventMutation, async (req, 
       results: result.results.slice(0, 50) // Return first 50
     });
   } catch (error) {
-    console.error('Error generating batch QR codes:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error generating batch QR codes:', error);
   }
 });
 
@@ -109,8 +106,7 @@ router.post('/events/:eventId/bibs/qr/decode', protectEventMutation, async (req,
       timestamp: decoded.timestamp
     });
   } catch (error) {
-    console.error('Error decoding QR:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error decoding QR:', error);
   }
 });
 
@@ -132,8 +128,7 @@ router.get('/events/:eventId/check-in-dashboard/summary', protectEventRead, asyn
       estimate
     });
   } catch (error) {
-    console.error('Error getting dashboard summary:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error getting dashboard summary:', error);
   }
 });
 
@@ -152,8 +147,7 @@ router.get('/events/:eventId/check-in-dashboard/activity', protectEventRead, asy
       activity
     });
   } catch (error) {
-    console.error('Error getting activity feed:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error getting activity feed:', error);
   }
 });
 
@@ -171,8 +165,7 @@ router.get('/events/:eventId/check-in-dashboard/by-mode', protectEventRead, asyn
       byMode: byMode.byMode
     });
   } catch (error) {
-    console.error('Error getting check-ins by mode:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error getting check-ins by mode:', error);
   }
 });
 
@@ -200,8 +193,7 @@ router.get('/events/:eventId/check-in-dashboard/poll', protectEventRead, async (
       sequence: Math.floor(Date.now() / 5000)
     });
   } catch (error) {
-    console.error('Error polling dashboard:', error);
-    res.status(500).json({ error: error.message });
+    return sendJsonServerError(res, 'Error polling dashboard:', error);
   }
 });
 

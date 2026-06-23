@@ -1,10 +1,10 @@
 # HelloRun — Current Status
 
-_Last updated: June 22, 2026_
+_Last updated: June 24, 2026_
 
 ---
 
-## ✅ Completed & Deployed
+## ✅ Completed / Ready to Deploy
 
 | Feature | Completed | Tests |
 |---------|-----------|-------|
@@ -40,29 +40,15 @@ _Last updated: June 22, 2026_
 | P10 Event Wishlist — save/unsave toggle, heart button on cards + detail page, saved events dashboard section | June 22, 2026 | 17/17 auth |
 | P14 Related Events — Similar Events section on event detail page, 3-tier priority (organiser → distance → open), 3-column grid | June 23, 2026 | 17/17 auth |
 | P12 Blog Scheduled Publishing — publishScheduledBlogs() worker, 5-min interval, startBlogSchedulerWorker() wired into server | June 23, 2026 | 17/17 auth |
+| Full Refinement Pass — audit fix, safe JSON errors, ads.txt, public content expansion, 15-post AdSense seed inventory, safer ad loading, docs reconciliation | June 24, 2026 | focused unit/smoke assertions |
 
 ---
 
-## 🟡 In Progress (Live but Incomplete)
+## 🟡 In Progress / Follow-Up
 
-### Runner Experience UX Gaps
-**Spec:** `to-implement/runner-experience.md`
-
-**Remaining:**
-- [ ] Payment amount snapshot on registration confirmation
-- [ ] Price resolution UI (show which price tier applies)
-- [ ] Certificate share / download CTAs
-- [ ] Mobile bottom navigation bar
-
----
-
-### Organiser Experience UX Gaps
-**Spec:** `to-implement/organiser-experience.md`
-
-**Remaining:**
-- [ ] Reward/pricing validation in event wizard
-- [ ] Event preview parity with live event page
-- [ ] Wizard phase grouping / step consolidation
+- Production AdSense follow-up: deploy current main, run `npm run seed:adsense-blog` if needed, verify live `/robots.txt`, `/sitemap.xml`, `/ads.txt`, submit/refresh sitemap in Search Console, then request review after crawl stability.
+- Test runtime follow-up: several server-spawning smoke/integration tests pass assertions locally but do not exit cleanly during teardown in this environment; investigate open handles separately.
+- Documentation follow-up: keep `docs/to-implement/*` files as historical design records unless a new gap reopens.
 
 ---
 
@@ -70,9 +56,6 @@ _Last updated: June 22, 2026_
 
 | Item | Priority | Spec |
 |------|----------|------|
-| Admin Governance (audit trail, suspension, notes, verification override) | 4 | `to-implement/admin-governance.md` |
-| AdSense Readiness (8-phase roadmap: indexing → content → audit) | — | `adsense-readiness/` |
-| Blog Feature (phased: submission, moderation, SEO, recommendations) | — | `blog/` |
 | Advanced analytics & reporting | — | PRD.md |
 | Mobile app integration | — | PRD.md |
 
@@ -81,3 +64,8 @@ _Last updated: June 22, 2026_
 ## Resolved / Historical
 
 - `to-implement/organiser-vs-platform-shop-products.md` — fully implemented June 7, 2026 (kept as design record)
+- `to-implement/admin-governance.md` — implemented June 22, 2026 (kept as design record)
+- `to-implement/runner-experience.md` — core listed UX items implemented June 22, 2026 (kept as design record)
+- `to-implement/organiser-experience.md` — core listed UX items implemented June 22, 2026 (kept as design record)
+- `adsense-readiness/` — local code readiness implemented; production crawl/review remains operational
+- `blog/` — core blog workflow implemented; AdSense seed inventory expanded June 24, 2026

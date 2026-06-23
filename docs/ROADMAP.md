@@ -3,6 +3,22 @@
 **Written:** June 22, 2026
 **Based on:** Full codebase audit, user journey review, docs review, and security analysis
 
+**Latest reconciliation:** June 24, 2026
+
+---
+
+## Session Completed (June 24, 2026)
+
+| Feature | Completed | Tests |
+|---------|-----------|-------|
+| Production audit hardening — `tmp` transitive dependency patched through lockfile | Jun 24 | `npm audit --omit=dev`, `npm ls tmp --all` |
+| Safe operational JSON errors — generic 500 responses with internal logger details | Jun 24 | `tests/json-error-response.unit.test.js` |
+| AdSense crawl files — public `/ads.txt` declaration added | Jun 24 | sitemap smoke assertions |
+| Public content quality pass — home, events, How It Works, Contact, blog listing | Jun 24 | static page smoke assertions |
+| AdSense blog seed inventory — 15 guide posts, practical takeaway/checklist structure | Jun 24 | `tests/adsense-blog-seed.unit.test.js`, seed dry-run |
+| Safer ad loading — script loads only when a configured slot can render; thin category/tag pages noindex/ad-free | Jun 24 | `tests/ad-setting.service.unit.test.js`, admin ad assertions |
+| Organiser route protection extraction | Jun 24 | `node --check` route validation |
+
 ---
 
 ## Session Completed (June 21–22, 2026)
@@ -39,23 +55,23 @@
 ### Technical Debt
 | Item | Severity | Effort |
 |------|----------|--------|
-| `console.error` in `rate-limit.middleware.js` and `onsite-operations.js` — should use `logger.error` | Low | 30 min |
 | Dead `notLive()` functions in shop controllers (never called after Phase 11) | Low | 10 min |
-| Rate limiting missing on profile update and group creation/join endpoints | Low | 1–2 hrs |
-| Some controllers return `error.message` directly in JSON — minor info leak risk | Low | 2–3 hrs |
-| DB Priority 2 items (retry worker, query timeouts) not yet done | Medium | 3 days |
+| Full-suite/server-spawning test teardown leaves open handles in local runs | Low | 1–2 hrs |
+| Broader runtime `console.*` cleanup outside touched hardening paths | Low | 1 day |
+| Large controller/route files remain expensive to maintain | Medium | phased refactor |
 
 ### Architecture Health
 - **Sessions:** `connect-mongo` confirmed — multi-process deployment is safe
 - **Postgres pool:** Raised to 25 connections — handles ~300–500 concurrent users
 - **Sync failures:** Now logged to `sync_failure_log` — observable via `/healthz/sync`
-- **Remaining risk:** No sync retry worker — failed syncs don't auto-recover
+- **Sync retry:** Priority 2 retry worker and query timeout work recorded as completed June 22
+- **AdSense readiness:** Local code readiness improved June 24; production crawl and review remain operational steps
 
 ---
 
 ## User Journey Gaps Found in Audit
 
-### Runner Experience
+### Runner Experience *(mostly resolved by June 22 implementation pass; retained for audit history)*
 | Gap | Impact | Notes |
 |-----|--------|-------|
 | No onboarding flow after signup | High | Users land on homepage with no "what to do next" |
@@ -69,7 +85,7 @@
 | Notifications not prominent | Low | Bell icon buried, no urgent surfacing |
 | No email notification settings UI | Medium | Can't control which emails are received |
 
-### Organiser Experience
+### Organiser Experience *(partially resolved by June 22 implementation pass; retained for audit history)*
 | Gap | Impact | Notes |
 |-----|--------|-------|
 | No registrant messaging (bulk email) | High | Can't send "payment due tomorrow" reminders |
@@ -80,7 +96,7 @@
 | Organiser application has no progress tracker | Low | Unclear what's needed, what timeline to expect |
 | No export for submissions/results | Medium | Can't download run results to CSV |
 
-### Admin Experience
+### Admin Experience *(core governance/user-management items resolved by June 22 implementation pass; retained for audit history)*
 | Gap | Impact | Notes |
 |-----|--------|-------|
 | No user management UI | High | Can't search, view, or act on runner accounts |
@@ -93,6 +109,8 @@
 ---
 
 ## Priority Roadmap
+
+This section is retained as the June 22 audit roadmap. Several items below were implemented after the audit; use `docs/STATUS.md` and the June 24 session table above as the current source of truth before starting new work.
 
 ### P1 — Admin Governance
 **Spec:** `docs/to-implement/admin-governance.md`

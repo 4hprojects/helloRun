@@ -1,39 +1,18 @@
 # HelloRun Project Refinement Analysis
 
-Reference date: May 22, 2026
+Reference date: June 24, 2026
 
-## Snapshot
+## Current Snapshot
 
-HelloRun is now a broad Express/EJS platform, not a small MVP. Current implemented areas include authentication, runner dashboards, organizer/admin workflows, event management, registrations, payment proof review, submissions, Strava integration, achievement badges, blog moderation, communications, hybrid Mongo/Postgres shadow tables, and a partially scaffolded shop.
+HelloRun is now a mature Express/EJS running-event platform with runner, organiser, and admin workflows. Current implemented areas include authentication and abuse protection, event creation, registration, payment proof review, run-proof submission and review, certificates, achievement badges, blog moderation and scheduled publishing, policies and consent, Strava integration, running groups, onsite QR/check-in operations, event wishlist, related events, and event-scoped plus platform shop flows.
 
-The main refinement need is no longer only feature expansion. The project needs tighter security consistency, clearer production readiness, smaller modules, faster tests, and a focused path for finishing partially live features.
+The May 2026 priorities in this file are now mostly historical: onsite/QR protection, shop read/write operations, shop authorization, grouped test scripts, policy pack work, and first-pass design-system cleanup have all moved forward. The June 24 full refinement pass resolved the immediate production audit issue, added safer operational JSON error handling, strengthened public AdSense-readiness content, expanded the AdSense blog seed inventory, tightened ad loading, and reconciled status docs.
 
-## Highest Priority Refinements
+The remaining refinement need is continued module decomposition, broader runtime logging cleanup outside the touched hardening paths, open-handle cleanup for server-spawning tests, and production AdSense follow-through after deployment.
 
-### 1. Secure Organizer Onsite and QR Routes
+## Highest Priority Work
 
-Files:
-
-- `src/routes/organizer.routes.js`
-- `src/routes/organiser/onsite-operations.js`
-- `src/routes/organiser/qr-and-dashboard.js`
-
-Findings:
-
-- Onsite and QR route modules are mounted early under the organizer router.
-- Some QR POST routes are not protected by the same auth and CSRF pattern used elsewhere.
-- `onsite-operations.js` references `req.user`, but the main auth middleware is session-based.
-- Event ownership checks are currently simplified and should be made real before production use.
-
-Recommended actions:
-
-- Add `requireAuth` and role checks directly to all onsite/QR endpoints.
-- Add CSRF protection to all mutating POST/PATCH/DELETE onsite/QR routes.
-- Replace `req.user` usage with session-backed user loading or update auth middleware to consistently attach `req.user`.
-- Verify event ownership through `Event.organizerId` for organizer actions.
-- Add tests covering forbidden access, wrong organizer access, missing CSRF, and valid admin access.
-
-### 2. Resolve Production Dependency Security Issues
+### 1. Production Audit Finding
 
 Command run:
 
@@ -41,221 +20,413 @@ Command run:
 npm audit --omit=dev
 ```
 
-Audit result:
+Current result after the June 24 implementation pass:
 
-- 15 production vulnerabilities total.
-- 10 high severity.
-- 4 moderate severity.
-- 1 low severity.
+- 0 vulnerabilities.
+- `exceljs@3.10.0` now resolves `tmp@0.2.7`.
+- `npm ls tmp --all` shows `tmp` is only present through `exceljs`.
 
-Direct dependencies needing attention:
+Original finding:
 
-- `express`
-- `mongoose`
-- `git`
-- `xlsx`
+- 1 high severity vulnerability.
+- Source: `exceljs@3.10.0 -> tmp@0.2.5`.
+- Advisory: `tmp` path traversal via unsanitized prefix/postfix.
+
+Completed actions:
+
+- Ran `npm audit fix`.
+- Verified `npm audit --omit=dev` passes.
+- Verified `npm ls tmp --all` resolves `tmp@0.2.7`.
+- Keep `npm audit --omit=dev` as a release gate.
+
+### 2. Safe JSON Error Handling
+
+Original findings:
+
+- Several onsite/admin JSON endpoints return `res.status(500).json({ error: error.message })`.
+- Affected areas include organiser onsite operations, QR/dashboard endpoints, and admin onsite operations.
+- Some user-facing route handlers also expose raw `error.message` in JSON or view copy.
+
+Completed actions in the touched operational scope:
+
+- Added `src/utils/json-error-response.js`.
+- Replaced raw `error.message` 500 responses in organiser onsite, organiser QR/dashboard, admin onsite, timing webhook, and sync health endpoints.
+- Converted touched runtime `console.error` paths to logger-backed handling.
+- Keep 4xx validation messages specific where they are user-correctable.
+- Added helper unit coverage.
+
+### 3. Continue Module Decomposition
+
+Largest hotspots observed on June 23, 2026:
+
+- `src/controllers/admin.controller.js`: 5,441 lines.
+- `src/routes/organizer.routes.js`: 4,957 lines.
+- `src/controllers/page.controller.js`: 3,356 lines.
+- `src/controllers/blog.controller.js`: 2,582 lines.
+- `src/public/js/run-proof-modal.js`: 2,762 lines.
 
 Recommended actions:
 
-- Remove the `git` npm package if unused. It is old and has no available automated fix.
-- Upgrade `express` within the supported v4 line first, then evaluate Express 5 separately.
-- Upgrade `mongoose` to a patched version.
-- Review `xlsx` usage. If replacement is not practical, isolate import handling and enforce strict upload validation.
-- Re-run `npm audit --omit=dev` after upgrades.
+- Split admin controller by domain: users/governance, events, policies, badges, communications, and review queues.
+- Split organiser routes by workflow: dashboard, event create/edit, registrants, submissions, payments, badges, profile/application.
+- Continue moving public page business logic into services, especially registration/payment and leaderboard/detail helpers.
+- Split `run-proof-modal.js` into upload, OCR, validation, submission, and UI-state modules once tests or smoke coverage are ready.
 
-### 3. Finish or Hide Scaffolded Shop Features
-
-Files:
-
-- `src/controllers/shop.controller.js`
-- `src/controllers/organizer-shop.controller.js`
-- `src/controllers/admin-shop.controller.js`
-- `docs/shop_feature.md`
+### 4. Finish Runtime Logging Cleanup
 
 Findings:
 
-- Shop database, services, middleware, and some read JSON endpoints exist.
-- Many browser-facing and write endpoints still return `501`.
-- Current user-facing risk is that the app may imply shop capability that is not actually live.
+- `src/utils/logger.js` exists and is already used in some newer paths.
+- Many controllers, services, routes, and config modules still use `console.error`, `console.warn`, or `console.log`.
+- Script output can remain console-based, but runtime request handling should use the logger consistently.
 
 Recommended actions:
 
-- First ship event-scoped shop listing HTML.
-- Then ship event-scoped product detail.
-- Then ship runner order history/detail for registration-linked orders.
-- Keep standalone cart/checkout hidden until product browse and order detail are stable.
-- Remove or hide nav links to unfinished shop surfaces until they are live.
+- Prioritize controllers/routes/services before one-off scripts.
+- Convert logging in `page.controller.js`, `organizer.routes.js`, `admin.controller.js`, blog controllers, onsite routes, and email/submission services.
+- Avoid changing intentional browser-side `console.error` unless it affects user-facing quality.
+- Keep structured details for internal logs while returning safe client messages.
 
-### 4. Replace Placeholder Shop Authorization
-
-Files:
-
-- `src/middleware/shop-access.middleware.js`
-- `src/middleware/shop-validation.middleware.js`
+### 5. Reduce Test Runtime and Keep Release Gates Practical
 
 Findings:
 
-- Several shop permission hooks currently pass through with `next()`.
-- Mutation payload validation is currently a placeholder.
+- Grouped npm scripts exist and are useful.
+- The full suite has historically exceeded practical local timeouts because route groups repeatedly boot servers and seed Mongo/Postgres data.
+- Runner and organiser groups remain the heaviest areas.
 
 Recommended actions:
 
-- Implement `canReviewShopPayment`.
-- Implement `canUpdateFulfilment`.
-- Implement `canViewShopOrder`.
-- Implement `canManageShopProduct`.
-- Implement real validation for product, variant, cart, checkout, payment proof, and fulfilment payloads.
-- Add negative authorization tests before enabling shop write flows.
+- Split `test:runner` into runner UI, submissions, OCR, Strava, and groups.
+- Split `test:organizer` into events, payments, onsite, submissions, and shop.
+- Suppress or stub background Supabase/Postgres shadow-sync attempts in tests that do not explicitly cover sync.
+- Keep `test:smoke`, `test:audit`, and targeted group scripts as release gates until the full suite is faster.
 
-### 5. Split Oversized Modules
+## Product and UX Priorities
 
-Largest hotspots observed:
+1. Payment and checkout friction remains the highest funnel risk while manual payment proof is the primary payment path.
+2. Event creation and edit surfaces are feature-rich but large; keep improving preview parity, validation clarity, and recovery from incomplete drafts.
+3. Runner retention should continue through visible next actions: saved events, certificate/badge sharing, notification controls, and clearer submission/payment status.
+4. Admin analytics and operational observability should follow the governance work so platform health is visible without database access.
+5. Global `/shop` should stay secondary to event-scoped commerce unless platform-merch demand justifies a broader storefront push.
 
-- `src/controllers/admin.controller.js`: about 4,074 lines.
-- `src/routes/organizer.routes.js`: about 3,563 lines.
-- `src/controllers/page.controller.js`: about 2,999 lines.
-- `src/controllers/blog.controller.js`: about 2,219 lines.
-- `src/public/js/run-proof-modal.js`: about 2,124 lines.
+## Documentation Priorities
 
-Recommended split:
+Current docs are valuable but drifted:
 
-- Admin users.
-- Admin events.
-- Admin policies.
-- Admin communications.
-- Admin applications.
-- Admin reviews.
-- Organizer event create/edit.
-- Organizer registrations.
-- Organizer submissions.
-- Organizer media.
-- Public pages.
-- Registration/payment flows.
-
-Goal:
-
-- Keep route files focused on routing.
-- Move business logic into services.
-- Keep controllers thin enough to test and review safely.
-
-## Efficiency Improvements
-
-### Test Runtime
-
-Finding:
-
-- `npm test` did not complete within 5 minutes in the inspected environment.
+- `docs/STATUS.md` marks several items as completed while still listing related "In Progress" and backlog entries.
+- `docs/ROADMAP.md` includes roadmap entries that are now partially or fully completed.
+- `docs/README.md` still points to some active backlog files that newer status docs describe as resolved.
+- This file previously described shop and onsite work as incomplete even though later phase notes record completion.
 
 Recommended actions:
 
-- Add grouped scripts:
-
-```json
-{
-  "test:auth": "node --test tests/*auth*.test.js tests/*csrf*.test.js",
-  "test:shop": "node --test tests/*shop*.test.js tests/registration-addons-read.test.js",
-  "test:runner": "node --test tests/runner*.test.js tests/submission*.test.js",
-  "test:admin": "node --test tests/admin*.test.js tests/organiser-application-review.test.js"
-}
-```
-
-- Investigate open handles, long database setup, slow network calls, and serial test bottlenecks.
-- Keep `test:parallel` for local speed once isolation is reliable.
-
-### Auth Locals Query Cost
-
-File:
-
-- `src/middleware/auth.middleware.js`
-
-Finding:
-
-- `populateAuthLocals` loads the user and runner unread notification count for many requests.
-
-Recommended actions:
-
-- Skip unread notification count for static/public/admin/organizer pages unless needed.
-- Cache unread count briefly or load it only on runner views.
-- Select only fields needed for navigation instead of loading the full user document.
-
-### CSS and Frontend Maintenance
-
-Finding:
-
-- Several CSS files are large and likely duplicate tokens, cards, buttons, tables, forms, and layout patterns.
-
-Recommended actions:
-
-- Create shared design tokens for spacing, color, type, borders, and shadows.
-- Extract shared form, table, status badge, alert, button, and dashboard layout styles.
-- Keep page-specific CSS for page-specific layout only.
-
-### Generated and Local Artifacts
-
-Findings:
-
-- `.gitignore` ignores `docs/image_test/`, but image files in that folder are already tracked.
-- Upload folders are correctly mostly ignored.
-- Tesseract assets are generated and ignored, but `postinstall` downloads/copies them every install.
-
-Recommended actions:
-
-- Remove tracked `docs/image_test` screenshots from git if they are not required source assets.
-- Move visual QA evidence outside the repo or into a compressed release artifact.
-- Make OCR asset setup cache-aware or move it from `postinstall` to an explicit setup command for CI/deploy control.
-
-## Product To-Do List
-
-1. Complete event-scoped shop listing page.
-2. Complete event-scoped product detail page.
-3. Complete runner order history and order detail pages.
-4. Add organizer shop dashboard read UI.
-5. Add organizer product and variant write flows only after authorization and validation are complete.
-6. Add fulfilment dashboard and actions.
-7. Add admin shop dashboard and product approval queue.
-8. Add global `/shop` only after event-scoped commerce is stable.
-9. Harden onsite QR/check-in flows and connect them to real organizer permissions.
-10. Improve event creation/editing UX and reduce the size of the implementation.
-11. Finalize legal placeholders and production-readiness checklist items.
-12. Defer payment gateway integration until manual payment proof flows are stable and observable.
-
-## Engineering To-Do List
-
-1. Fix auth, CSRF, and ownership checks for onsite and QR routes.
-2. Remove or replace vulnerable dependencies.
-3. Replace raw runtime `console.log` calls with a small logger.
-4. Split oversized controllers and route modules.
-5. Add grouped test scripts.
-6. Investigate why the full test suite exceeds 5 minutes.
-7. Implement real shop validation middleware.
-8. Implement real shop permission middleware.
-9. Review Mongo indexes for dashboards, event lists, registrations, submissions, notifications, and review queues.
-10. Clean tracked generated artifacts.
-11. Document production env requirements in one deployment runbook.
-12. Add release gates around `npm audit`, `npm test`, and critical smoke flows.
+- Reconcile `docs/STATUS.md`, `docs/ROADMAP.md`, and `docs/README.md` after each implementation sprint.
+- Move completed `docs/to-implement/*` items into implementation records or mark them explicitly as historical design records.
+- Keep this analysis file as the current priority list plus historical phase log.
 
 ## Recommended Next Sprint
 
 ### Sprint Goal
 
-Stabilize production-critical surfaces and ship one focused visible improvement.
+Finish deployment follow-through and reduce maintenance/test friction after the June 24 hardening pass.
 
 ### Suggested Scope
 
-1. Harden onsite and QR routes.
-2. Remove or upgrade vulnerable dependencies.
-3. Add grouped test scripts and identify the slowest tests.
-4. Build the event-scoped shop listing page with HTML rendering while preserving JSON behavior.
-5. Add tests for the new shop listing HTML and existing JSON behavior.
+1. Deploy the June 24 refinement pass to production.
+2. Run `npm run seed:adsense-blog` in production if the 15 guide posts are not already published.
+3. Verify live `/ads.txt`, `/robots.txt`, `/sitemap.xml`, and key public pages after deployment.
+4. Investigate server-spawning smoke/integration test open handles so they exit cleanly without timeout wrappers.
+5. Continue one focused module decomposition slice from `src/routes/organizer.routes.js` or `src/controllers/page.controller.js`.
+6. Continue broader runtime logging cleanup outside the touched operational routes.
 
 ### Definition of Done
 
-- Unauthorized onsite/QR mutations fail.
-- Missing CSRF on protected mutations fails.
-- Wrong organizer cannot mutate another organizer's event data.
-- `npm audit --omit=dev` has no unresolved high-severity issue without a documented exception.
-- Targeted test groups pass.
-- Event shop listing is visible from an event page and handles empty product states.
+- Production serves the updated public crawl files and strengthened public content.
+- Production has the intended AdSense blog inventory.
+- Search Console can inspect key public URLs without login.
+- Server-spawning tests exit cleanly or have a documented open-handle fix plan.
+- One additional oversized module slice is extracted with no behavior change.
+- `npm audit --omit=dev` remains clean.
+
+## Validation Commands
+
+Recommended commands for the next implementation pass:
+
+```bash
+npm audit --omit=dev
+npm ls tmp --all
+wc -l src/controllers/admin.controller.js src/routes/organizer.routes.js src/controllers/page.controller.js src/controllers/blog.controller.js src/public/js/run-proof-modal.js
+rg -n "res\\.status\\(500\\)\\.json\\(\\{ error: error\\.message \\}\\)|console\\.(log|error|warn)" src --glob '!src/public/js/vendor/**'
+npm run test:smoke
+```
+
+## June 2026 Full Refinement Implementation Pass
+
+Tracking rule:
+
+- Update this section when a phase starts, changes scope, or completes.
+- Completed phases must include a completion timestamp in `YYYY-MM-DD HH:mm:ss UTC+08:00` format.
+- Completion notes should include the main files changed and validation commands run.
+
+Current phase status as of 2026-06-24 00:31:59 UTC+08:00:
+
+- Phase 1: Complete
+- Phase 2: Complete
+- Phase 3: Complete
+- Phase 4: Complete
+- Phase 5: Complete
+- Phase 6: Complete
+- Phase 7: Complete
+- Phase 8: Complete
+
+### June 2026 Phase 1: Production Audit Hardening
+
+Status: Complete
+
+Completed: 2026-06-24 00:16:30 UTC+08:00
+
+Scope:
+
+- Remediate the production `tmp` audit finding introduced through `exceljs`.
+- Verify the production audit gate and dependency tree after remediation.
+
+Changed files:
+
+- `package-lock.json`
+
+Validation:
+
+- `npm audit fix` -> PASS, updated vulnerable transitive dependencies.
+- `npm audit --omit=dev` -> PASS, 0 vulnerabilities.
+- `npm ls tmp --all` -> PASS, `exceljs@3.10.0` now resolves `tmp@0.2.7`.
+
+Notes:
+
+- `package.json` did not require a direct dependency version change.
+
+### June 2026 Phase 2: Safe JSON Errors and Runtime Logging
+
+Status: Complete
+
+Completed: 2026-06-24 00:18:39 UTC+08:00
+
+Scope:
+
+- Add a shared JSON server-error responder for operational endpoints.
+- Replace raw internal 500 error-message responses in onsite, QR/dashboard, admin onsite, timing webhook, and sync health endpoints.
+- Convert touched runtime `console.error` calls to logger-backed handling.
+
+Changed files:
+
+- `src/utils/json-error-response.js`
+- `src/routes/organiser/onsite-operations.js`
+- `src/routes/organiser/qr-and-dashboard.js`
+- `src/routes/admin/onsite-operations.js`
+- `src/routes/webhooks/timing-system.js`
+- `src/server.js`
+- `tests/json-error-response.unit.test.js`
+
+Validation:
+
+- `rg -n "res\\.status\\(500\\)\\.json\\(\\{ error: error\\.message \\}\\)|res\\.status\\(500\\).*error\\.message|detail: error\\.message|console\\.error" src/routes/organiser/onsite-operations.js src/routes/organiser/qr-and-dashboard.js src/routes/admin/onsite-operations.js src/routes/webhooks/timing-system.js src/server.js` -> PASS, no matches.
+- `node --check src/utils/json-error-response.js && node --check src/routes/organiser/onsite-operations.js && node --check src/routes/organiser/qr-and-dashboard.js && node --check src/routes/admin/onsite-operations.js && node --check src/routes/webhooks/timing-system.js && node --check src/server.js && node --test tests/json-error-response.unit.test.js` -> PASS.
+
+Notes:
+
+- User-correctable 4xx validation responses remain specific.
+- `/healthz/sync` keeps the safe `{ ok: false, error: 'Postgres unavailable.' }` response shape without exposing internal details.
+
+### June 2026 Phase 3: AdSense Crawl and Indexing Cleanup
+
+Status: Complete
+
+Completed: 2026-06-24 00:21:11 UTC+08:00
+
+Scope:
+
+- Add the public AdSense publisher declaration.
+- Extend crawl/index smoke coverage to verify the declaration beside existing sitemap, robots, and noindex checks.
+
+Changed files:
+
+- `src/public/ads.txt`
+- `tests/sitemap-readiness.smoke.test.js`
+
+Validation:
+
+- `node --test tests/sitemap-readiness.smoke.test.js` -> assertions for health, sitemap, robots, `ads.txt`, and utility noindex passed; the command was manually interrupted after assertions because teardown did not exit within the local wait window.
+
+Notes:
+
+- Added `google.com, pub-4537208011192461, DIRECT, f08c47fec0942fa0`.
+- Final validation should re-run the sitemap smoke test or full smoke gate to confirm teardown behavior.
+
+### June 2026 Phase 4: Public Content Quality Pass
+
+Status: Complete
+
+Completed: 2026-06-24 00:24:32 UTC+08:00
+
+Scope:
+
+- Strengthen public page copy on the homepage, events listing, How It Works, Contact, and blog listing pages.
+- Improve public visitor context, internal links, runner/organizer guidance, proof review explanations, privacy/support context, and empty-state next steps.
+
+Changed files:
+
+- `src/views/pages/home.ejs`
+- `src/views/pages/events.ejs`
+- `src/views/pages/how-it-works.ejs`
+- `src/views/pages/contact.ejs`
+- `src/views/pages/blog.ejs`
+
+Validation:
+
+- Public template word-count scan -> `home.ejs` 853 words, `events.ejs` 301 words, `how-it-works.ejs` 919 words, `contact.ejs` 466 words, `blog.ejs` 290 words.
+- `node --test tests/static-pages.smoke.test.js` -> assertions for public static pages, About trust content, Contact organizer guidance, How It Works/FAQ substance, and absence of run-proof modal content passed; the command was manually interrupted after assertions because teardown did not exit within the local wait window.
+
+Notes:
+
+- Homepage and How It Works now meet the AdSense todo target ranges.
+- Events, Contact, and Blog listing received stronger public context and empty states without changing route behavior.
+
+### June 2026 Phase 5: Blog Approval Content Inventory
+
+Status: Complete
+
+Completed: 2026-06-24 00:26:44 UTC+08:00
+
+Scope:
+
+- Expand the AdSense blog seed inventory from 10 to 15 guide posts.
+- Improve seeded article structure with a practical takeaway, checklist, and internal links.
+- Add a unit guard so the seed inventory does not fall below the review target.
+
+Changed files:
+
+- `src/scripts/seed-adsense-blog-posts.js`
+- `tests/adsense-blog-seed.unit.test.js`
+
+Validation:
+
+- `node --check src/scripts/seed-adsense-blog-posts.js && node --test tests/adsense-blog-seed.unit.test.js` -> PASS.
+- `node src/scripts/seed-adsense-blog-posts.js --dry-run` -> PASS, 15 posts; 10 existing updates and 5 new creates in the current database state.
+
+Notes:
+
+- The seed script now exports its post inventory and helpers for test inspection without connecting to MongoDB.
+- Production still needs `npm run seed:adsense-blog` if the 5 new posts are not already published there.
+
+### June 2026 Phase 6: Ad Placement Safety
+
+Status: Complete
+
+Completed: 2026-06-24 00:29:15 UTC+08:00
+
+Scope:
+
+- Tighten AdSense script loading so it requires a globally enabled setting, enabled page group, enabled placement, and configured slot ID.
+- Suppress ads and mark thin blog category/tag pages as `noindex, follow` when they have fewer than 3 posts.
+
+Changed files:
+
+- `src/services/ad-setting.service.js`
+- `src/controllers/page.controller.js`
+- `src/views/pages/blog.ejs`
+- `tests/ad-setting.service.unit.test.js`
+
+Validation:
+
+- `node --check src/services/ad-setting.service.js && node --check src/controllers/page.controller.js && node --test tests/ad-setting.service.unit.test.js` -> PASS.
+- `node --test tests/admin-ads.integration.test.js` -> admin ad settings assertions passed; the command was manually interrupted after assertions because teardown did not exit within the local wait window.
+
+Notes:
+
+- Blank slot IDs now prevent both ad unit rendering and AdSense script loading for that page group.
+- Thin blog category/tag pages disable ad locals during render in addition to setting `X-Robots-Tag: noindex, follow`.
+
+### June 2026 Phase 7: Low-Risk Maintainability Extraction
+
+Status: Complete
+
+Completed: 2026-06-24 00:30:05 UTC+08:00
+
+Scope:
+
+- Extract duplicated organiser event read/mutation route protection arrays from touched operational route files.
+- Keep authorization, CSRF, and event ownership behavior unchanged.
+
+Changed files:
+
+- `src/routes/organiser/event-route-protection.js`
+- `src/routes/organiser/onsite-operations.js`
+- `src/routes/organiser/qr-and-dashboard.js`
+
+Validation:
+
+- `node --check src/routes/organiser/event-route-protection.js && node --check src/routes/organiser/onsite-operations.js && node --check src/routes/organiser/qr-and-dashboard.js` -> PASS.
+
+Notes:
+
+- This extraction intentionally avoids broader organiser route decomposition until the hardening and ad/content changes are fully validated.
+
+### June 2026 Phase 8: Documentation Reconciliation
+
+Status: Complete
+
+Completed: 2026-06-24 00:31:59 UTC+08:00
+
+Scope:
+
+- Reconcile status, roadmap, and AdSense implementation notes with completed runner, organiser, admin, AdSense, and refinement work.
+- Keep older roadmap/gap sections as historical audit context instead of presenting them as current open work.
+
+Changed files:
+
+- `docs/STATUS.md`
+- `docs/ROADMAP.md`
+- `docs/adsense-readiness/implementation-status.md`
+- `docs/todo refinement/hellorun_project_refinement_analysis.md`
+
+Validation:
+
+- Documentation review against the implementation changes in this pass.
+
+Notes:
+
+- Production AdSense crawl/review remains an operational follow-up after deployment.
+- The recurring local smoke-test teardown issue is now documented as follow-up rather than hidden.
+
+### June 2026 Final Validation Summary
+
+Recorded: 2026-06-24 00:36:45 UTC+08:00
+
+Passed:
+
+- `npm audit --omit=dev`
+- `npm ls tmp --all`
+- `node --check` on touched server, route, utility, service, controller, and script files
+- `node --test tests/json-error-response.unit.test.js tests/adsense-blog-seed.unit.test.js tests/ad-setting.service.unit.test.js`
+- `node src/scripts/seed-adsense-blog-posts.js --dry-run`
+- `git diff --check`
+- Targeted raw error leak scan for touched operational JSON routes
+
+Passed assertions but timed out during teardown/open-handle wait:
+
+- `timeout 45s node --test tests/sitemap-readiness.smoke.test.js`
+- `timeout 45s node --test tests/static-pages.smoke.test.js`
+- `timeout 45s node --test tests/admin-ads.integration.test.js`
+- `timeout 75s node --test tests/organizer-onsite-qr-security.smoke.test.js`
+- `timeout 90s npm run test:smoke` reached 17 passing smoke assertions before timeout with no failures shown in captured output
+
+Deferred:
+
+- Investigate lingering open handles in server-spawning smoke/integration tests so they can exit cleanly without external timeout wrappers.
+
+## Historical Phase Log
+
+The following phase log is retained for traceability. It records completed work from the earlier May 2026 refinement pass and should not be read as the current priority list.
 
 ## Phased Work Plan
 

@@ -69,7 +69,15 @@
             <p class="events-toolbar-kicker">Browse races</p>
             <h2>Find your next starting line</h2>
           </div>
-          <p>Filter by mode, distance, and registration status to compare events quickly.</p>
+          <p>Filter by mode, distance, and registration status to compare events quickly. Virtual events let you run from a safe route or treadmill, on-site events happen at a physical venue, and hybrid events may support both formats depending on the organizer's rules.</p>
+        </div>
+
+        <div class="events-toolbar">
+          <div>
+            <p class="events-toolbar-kicker">Choosing a distance</p>
+            <h2>Match the event to your current training</h2>
+          </div>
+          <p>A 5K is friendly for beginners and walkers, a 10K gives returning runners a stronger weekly goal, and 21K or accumulated-distance challenges require more planning. Before registering, open the event page and check the activity window, accepted proof, payment instructions, rewards, and whether leaderboard ranking is enabled. New to HelloRun? Read <a href="/how-it-works">How It Works</a> or scan the <a href="/faq">FAQ</a> before joining.</p>
         </div>
 
         <!-- Filter Bar -->
@@ -271,12 +279,16 @@
         <% } else { %>
           <div class="empty-state">
             <i data-lucide="calendar-x"></i>
-            <h3>No published events yet</h3>
+            <h3><%= filterMeta?.hasActiveFilters ? 'No events match these filters' : 'No published events yet' %></h3>
             <% if (filterMeta?.hasActiveFilters) { %>
-              <p>No events matched your current filters.</p>
+              <p>No events matched your current filters. Try removing a distance, mode, or status filter, then compare the available event pages again.</p>
               <a href="/events" class="btn btn-outline">Clear filters</a>
             <% } else { %>
-              <p>Check back soon for newly published races.</p>
+              <p>Check back soon for newly published races. While waiting, learn how virtual submissions work, what proof usually needs to show, and how organizers review results.</p>
+              <div class="card-actions">
+                <a href="/how-it-works" class="btn btn-outline">How It Works</a>
+                <a href="/blog" class="btn btn-secondary">Read running guides</a>
+              </div>
             <% } %>
           </div>
         <% } %>
