@@ -217,6 +217,89 @@ test('admin detail page renders audit trail section', async () => {
   assert.ok(html.includes('Account Status'), 'User detail page should show Account Status section');
 });
 
+// ── Restricted Account Enforcement ───────────────────────────────────────────
+
+test('restricted user sees restriction banner on dashboard', async () => {
+  await User.findByIdAndUpdate(seed.runner.id, { accountStatus: 'restricted' });
+  const cookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
+
+  const res = await fetch(`${BASE_URL}/runner/dashboard`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+
+  assert.equal(res.status, 200);
+  const html = await res.text();
+  assert.ok(html.includes('currently restricted'), 'Dashboard should show restriction banner');
+
+  await User.findByIdAndUpdate(seed.runner.id, { accountStatus: 'active' });
+});
+
+test('restricted user cannot submit a run proof', async () => {
+  await User.findByIdAndUpdate(seed.runner.id, { accountStatus: 'restricted' });
+  const cookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
+
+  const form = new FormData();
+  form.append('_csrf', '');
+  const res = await fetch(`${BASE_URL}/my-registrations/000000000000000000000001/submit-result`, {
+    method: 'POST',
+    headers: { Cookie: cookie },
+    body: form,
+    redirect: 'manual'
+  });
+
+  assert.ok(res.status === 302 || res.status === 400 || res.status === 403, `Expected redirect or error, got ${res.status}`);
+  if (res.status === 302) {
+    const loc = res.headers.get('location') || '';
+    assert.ok(loc.includes('error') || loc.includes('restricted') || loc.includes('message'), 'Redirect should carry an error');
+  }
+
+  await User.findByIdAndUpdate(seed.runner.id, { accountStatus: 'active' });
+});
+
+test('restricted user cannot check out from shop', async () => {
+  await User.findByIdAndUpdate(seed.runner.id, { accountStatus: 'restricted' });
+  const cookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
+
+  const res = await fetch(`${BASE_URL}/shop/checkout`, {
+    method: 'POST',
+    headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ deliveryMethod: 'pickup' }),
+    redirect: 'manual'
+  });
+
+  assert.equal(res.status, 403);
+  const body = await res.json();
+  assert.ok(body.message.includes('restricted'), 'Error message should mention restriction');
+
+  await User.findByIdAndUpdate(seed.runner.id, { accountStatus: 'active' });
+});
+
+// ── Resend Verification Rate Limit ────────────────────────────────────────────
+
+test('admin resend verification is blocked after 3 sends in 24h', async () => {
+  const recentDates = [new Date(), new Date(), new Date()];
+  await User.findByIdAndUpdate(seed.unverified2.id, { adminVerificationResentAt: recentDates });
+
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForSessionReady('/admin/dashboard', cookie);
+
+  const res = await fetch(`${BASE_URL}/admin/users/${seed.unverified2.id}/resend-verification`, {
+    method: 'POST',
+    headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+    redirect: 'manual'
+  });
+
+  assert.equal(res.status, 429);
+  const body = await res.json();
+  assert.ok(body.message.includes('3 times'), 'Error message should indicate limit');
+
+  await User.findByIdAndUpdate(seed.unverified2.id, { adminVerificationResentAt: [] });
+});
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function seedFixtures() {

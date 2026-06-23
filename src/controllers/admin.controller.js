@@ -5342,10 +5342,18 @@ exports.resendVerificationEmail = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Verification email only applies to local accounts.' });
     }
 
+    const now = Date.now();
+    const windowMs = 24 * 60 * 60 * 1000;
+    const recentResends = (user.adminVerificationResentAt || []).filter((d) => now - d.getTime() < windowMs);
+    if (recentResends.length >= 3) {
+      return res.status(429).json({ success: false, message: 'Verification email has already been sent 3 times in the last 24 hours.' });
+    }
+
     const rawToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = await passwordService.hashToken(rawToken);
     user.emailVerificationToken = hashedToken;
     user.emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    user.adminVerificationResentAt = [...recentResends, new Date()];
     await user.save();
 
     await communicationService.notify('account.email_verification', {

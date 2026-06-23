@@ -12,6 +12,12 @@
       <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
       <% const currentGroups = runningGroupFeature?.currentGroups || []; %>
 
+      <% if (user && user.accountStatus === 'restricted') { %>
+        <div class="alert alert-warning" role="alert">
+          Your account is currently restricted. You can browse the platform but cannot register for events, submit run results, or place orders. Contact support for assistance.
+        </div>
+      <% } %>
+
       <% if (isFirstLogin) { %>
         <section class="onboarding-welcome-banner" id="js-welcome-banner">
           <button type="button" class="onboarding-dismiss" id="js-welcome-dismiss" aria-label="Dismiss welcome banner">×</button>

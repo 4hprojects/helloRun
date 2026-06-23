@@ -268,6 +268,8 @@ const userSchema = new mongoose.Schema({
     addedAt: { type: Date, default: Date.now }
   }],
 
+  adminVerificationResentAt: { type: [Date], default: [] },
+
   savedEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event' }],
 
   createdAt: {
@@ -336,6 +338,7 @@ userSchema.methods.isApprovedOrganizer = function() {
 };
 
 userSchema.methods.canParticipateInEvents = function() {
+  if (this.accountStatus === 'restricted') return false;
   return this.emailVerified && (this.role === 'runner' || this.role === 'organiser' || this.role === 'admin');
 };
 

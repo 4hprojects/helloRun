@@ -5,6 +5,7 @@ const variantService = require('../services/shop/variant.service');
 const paymentReviewService = require('../services/shop/payment-review.service');
 const uploadService = require('../services/upload.service');
 const Event = require('../models/Event');
+const User = require('../models/User');
 const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
 
 exports.getEventShop = async (req, res, next) => {
@@ -404,6 +405,11 @@ exports.getCheckout = async (req, res, next) => {
 
 exports.postCheckout = async (req, res, next) => {
   try {
+    const shopper = await User.findById(req.session.userId).select('accountStatus').lean();
+    if (shopper && shopper.accountStatus === 'restricted') {
+      return res.status(403).json({ success: false, message: 'Your account is currently restricted and cannot place orders.' });
+    }
+
     const cart = getCartFromSession(req);
     const lines = await loadCartLines(cart);
     req.session.shopCart = cart;

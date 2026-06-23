@@ -1317,9 +1317,13 @@ exports.__testCreateRegistrationCheckoutOrderIfNeeded = createRegistrationChecko
 async function handleRunnerSubmissionWrite(req, res, options = {}) {
   let uploadedProofKey = '';
   try {
-    const user = await User.findById(req.session.userId).select('email role firstName lastName');
+    const user = await User.findById(req.session.userId).select('email role firstName lastName accountStatus');
     if (!user) {
       return res.redirect('/login');
+    }
+
+    if (user.accountStatus === 'restricted') {
+      return redirectWithPageMessage(res, 'error', 'Your account is currently restricted and cannot submit run results.');
     }
 
     if (req.uploadError) {
@@ -3276,6 +3280,9 @@ function formatAgeFromDob(value) {
 function getUserRegistrationEligibilityError(user) {
   if (!user || typeof user.canParticipateInEvents !== 'function') {
     return 'Only registered HelloRun accounts can register for events.';
+  }
+  if (user.accountStatus === 'restricted') {
+    return 'Your account is currently restricted. Please contact support.';
   }
   if (!user.canParticipateInEvents()) {
     return 'Your account is not eligible to register for events. Please verify your email first.';
