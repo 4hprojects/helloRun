@@ -252,8 +252,8 @@ New `/admin/analytics` page with Postgres aggregate queries:
 
 | # | Feature | Effort | Impact | Type |
 |---|---------|--------|--------|------|
-| P1 | Admin Governance (audit, notes, suspension, verify) | 2–3 weeks | 🔴 Critical | Safety |
-| P2 | Onboarding flow | 1 week | 🔴 Critical | Retention |
+| P1 | Admin Governance (audit, notes, suspension, verify) | 2–3 weeks | 🔴 Critical | Safety | ✅ Done |
+| P2 | Onboarding flow | 1 week | 🔴 Critical | Retention | ✅ Done (was already built) |
 | P3 | DB Architecture Priority 2 (retry worker, timeouts) | 3 days | 🟠 High | Stability |
 | P4 | Personal leaderboard ranking | 2 hrs | 🟠 High | UX |
 | P5 | Certificate & badge social sharing | 3 days | 🟠 High | Growth |

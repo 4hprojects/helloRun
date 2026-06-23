@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const logger = require('../utils/logger');
 const Submission = require('../models/Submission');
 const Event = require('../models/Event');
 const passwordService = require('../services/password.service');
@@ -69,7 +70,7 @@ exports.getDashboard = async (req, res) => {
       ...dashboardViewData
     });
   } catch (error) {
-    console.error('Runner dashboard load error:', error);
+    logger.error('Runner dashboard load error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -99,7 +100,7 @@ exports.getDashboardResultSubmissions = async (req, res) => {
       resultCards: formatRunnerResultSubmissions(performanceSnapshot, locale)
     });
   } catch (error) {
-    console.error('Runner result submissions partial load error:', error);
+    logger.error('Runner result submissions partial load error:', error);
     return res.status(500).send('<div class="empty-state"><p class="empty-message">Unable to load result submissions right now.</p></div>');
   }
 };
@@ -141,7 +142,7 @@ exports.updateProfile = async (req, res) => {
 
     return res.redirect('/runner/dashboard?type=success&msg=Profile%20updated%20successfully.');
   } catch (error) {
-    console.error('Runner profile update error:', error);
+    logger.error('Runner profile update error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -187,7 +188,7 @@ exports.getDashboardRefresh = async (req, res) => {
       fragments: Object.fromEntries(rendered)
     });
   } catch (error) {
-    console.error('Runner dashboard refresh error:', error);
+    logger.error('Runner dashboard refresh error:', error);
     return res.status(500).json({ success: false, message: 'Unable to refresh dashboard right now.' });
   }
 };
@@ -201,7 +202,7 @@ exports.getProfilePage = async (req, res) => {
 
     return res.render('runner/profile', await buildRunnerProfileViewData(user, req));
   } catch (error) {
-    console.error('Runner profile page load error:', error);
+    logger.error('Runner profile page load error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -223,7 +224,7 @@ exports.getRunnerBadges = async (req, res) => {
 
     return res.json({ success: true, badges });
   } catch (error) {
-    console.error('Runner badges load error:', error);
+    logger.error('Runner badges load error:', error);
     return res.status(500).json({ success: false, message: 'Unable to load badges.' });
   }
 };
@@ -241,7 +242,7 @@ exports.getRunnerBadgeProgress = async (req, res) => {
 
     return res.json({ success: true, progress });
   } catch (error) {
-    console.error('Runner badge progress load error:', error);
+    logger.error('Runner badge progress load error:', error);
     return res.status(500).json({ success: false, message: 'Unable to load badge progress.' });
   }
 };
@@ -257,7 +258,7 @@ exports.updateFeaturedBadge = async (req, res) => {
     await setFeaturedRunnerBadge(user._id, userBadgeId);
     return res.redirect('/runner/profile?type=success&msg=Featured%20badge%20updated.#badges');
   } catch (error) {
-    console.error('Featured badge update error:', error);
+    logger.error('Featured badge update error:', error);
     return res.redirect('/runner/profile?type=error&msg=Unable%20to%20update%20featured%20badge.#badges');
   }
 };
@@ -300,7 +301,7 @@ exports.updateProfileIdentity = async (req, res) => {
 
     return res.redirect('/runner/profile?type=success&msg=Identity%20details%20updated.#identity');
   } catch (error) {
-    console.error('Runner profile identity update error:', error);
+    logger.error('Runner profile identity update error:', error);
     return res.redirect('/runner/profile?type=error&msg=Unable%20to%20update%20identity%20details.#identity');
   }
 };
@@ -327,7 +328,7 @@ exports.updateProfileContact = async (req, res) => {
     await syncProfileCompletionNotification(user);
     return res.redirect('/runner/profile?type=success&msg=Contact%20details%20updated.#contact');
   } catch (error) {
-    console.error('Runner profile contact update error:', error);
+    logger.error('Runner profile contact update error:', error);
     return res.redirect('/runner/profile?type=error&msg=Unable%20to%20update%20contact%20details.#contact');
   }
 };
@@ -355,7 +356,7 @@ exports.updateProfileEmergency = async (req, res) => {
     await syncProfileCompletionNotification(user);
     return res.redirect('/runner/profile?type=success&msg=Emergency%20contact%20updated.#emergency');
   } catch (error) {
-    console.error('Runner profile emergency update error:', error);
+    logger.error('Runner profile emergency update error:', error);
     return res.redirect('/runner/profile?type=error&msg=Unable%20to%20update%20emergency%20contact.#emergency');
   }
 };
@@ -422,7 +423,7 @@ exports.updatePasswordSettings = async (req, res) => {
 
     return res.redirect('/runner/profile?type=success&msg=Password%20updated%20successfully.#account');
   } catch (error) {
-    console.error('Runner password update error:', error);
+    logger.error('Runner password update error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -453,7 +454,7 @@ exports.unlinkGoogleAuth = async (req, res) => {
 
     return res.redirect(`${returnTo}?type=success&msg=${encodeURIComponent('Google sign-in unlinked successfully.')}`);
   } catch (error) {
-    console.error('Unlink Google auth error:', error);
+    logger.error('Unlink Google auth error:', error);
     const returnTo = getSafeRunnerReturnTo(req.body.returnTo || '/runner/dashboard');
     return res.redirect(`${returnTo}?type=error&msg=${encodeURIComponent('Unable to unlink Google sign-in right now.')}`);
   }
@@ -494,7 +495,7 @@ exports.getCreateRunningGroupPage = async (req, res) => {
       currentGroups
     });
   } catch (error) {
-    console.error('Create running group page load error:', error);
+    logger.error('Create running group page load error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -531,7 +532,7 @@ exports.getRunningGroupsPage = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Running groups page load error:', error);
+    logger.error('Running groups page load error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -618,7 +619,7 @@ exports.getRunningGroupDetail = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Running group detail load error:', error);
+    logger.error('Running group detail load error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -659,7 +660,7 @@ exports.getNotifications = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Runner notifications load error:', error);
+    logger.error('Runner notifications load error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -687,7 +688,7 @@ exports.getEligibleResultSubmissionOptions = async (req, res) => {
       items
     });
   } catch (error) {
-    console.error('Runner eligible submission options load error:', error);
+    logger.error('Runner eligible submission options load error:', error);
     return res.status(500).json({
       success: false,
       message: 'Unable to load submission options right now.'
@@ -1216,7 +1217,7 @@ exports.getRunnerSubmissionsPage = async (req, res) => {
       filters
     });
   } catch (error) {
-    console.error('Runner submissions page load error:', error);
+    logger.error('Runner submissions page load error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1265,7 +1266,7 @@ exports.getRunnerSubmissionDetailPage = async (req, res) => {
         message: 'Submission not found.'
       });
     }
-    console.error('Runner submission detail load error:', error);
+    logger.error('Runner submission detail load error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1302,7 +1303,7 @@ exports.getRunnerSubmissionProof = async (req, res) => {
           expiresIn: 300
         });
       } catch (error) {
-        console.error('Runner proof signed URL error:', error.message);
+        logger.error('Runner proof signed URL error:', error.message);
       }
     }
 
@@ -1330,7 +1331,7 @@ exports.getRunnerSubmissionProof = async (req, res) => {
         message: 'Proof not found.'
       });
     }
-    console.error('Runner proof access error:', error);
+    logger.error('Runner proof access error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
