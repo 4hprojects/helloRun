@@ -69,6 +69,10 @@ const {
   getAccumulatedActivitiesForRegistrations,
   buildAccumulatedProgress
 } = require('../services/accumulated-activity.service');
+const {
+  acquireSubmissionIdempotencyLock,
+  buildProofSubmissionIdempotencyKey
+} = require('../services/submission-idempotency.service');
 const { resolveAccumulatedTargetDistanceKm } = require('../services/accumulated-target.service');
 const {
   evaluateRegistrationAchievementsInBackground,
@@ -1422,6 +1426,7 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     const ocrData = parseOcrData(req.body, distanceKm, elapsedMs, user);
 
     const proofHash = crypto.createHash('sha256').update(resultProofFile.buffer).digest('hex');
+    let idempotencyLock = null;
 
     const targetExistingSubmissionIds = existingSubmissions.map((item) => item._id).filter(Boolean);
     const duplicateQuery = {
@@ -1442,68 +1447,86 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       return redirectWithPageMessage(res, 'error', 'This screenshot has already been submitted.');
     }
 
-    const uploadedProof = await uploadService.uploadResultProofToR2({
-      userId: user._id,
-      resultProofFile
-    });
-    uploadedProofKey = uploadedProof.key;
-
-    const previousProofKeysList = await Promise.all(
-      targetRegistrationIds.map(async (targetId) => {
-        const existingForTarget = targetId === PERSONAL_RECORD_REGISTRATION_ID
-          ? null
-          : existingSubmissionByRegistrationId.get(targetId) || null;
-        const payload = {
-          registrationId: targetId,
+    try {
+      idempotencyLock = await acquireSubmissionIdempotencyLock(
+        buildProofSubmissionIdempotencyKey({ runnerId: user._id, proofHash }),
+        {
+          scope: 'proof_submission',
           runnerId: user._id,
-          distanceKm,
-          elapsedMs,
-          runDate,
-          runLocation,
-          proofType,
-          proof: {
-            url: uploadedProof.url,
-            key: uploadedProof.key,
-            mimeType: resultProofFile.mimetype || '',
-            size: Number(resultProofFile.size || 0),
-            hash: proofHash
-          },
-          proofNotes,
-          runType,
-          elevationGain,
-          steps,
-          ocrData
-        };
-
-        if (existingForTarget && existingForTarget.status === 'rejected') {
-          await resubmitSubmission(payload);
-          const previousKey = String(existingForTarget.proof?.key || '').trim();
-          return previousKey && previousKey !== uploadedProof.key ? previousKey : null;
-        } else if (accumulatedTargetIds.has(String(targetId))) {
-          await createAccumulatedActivitySubmission(payload);
-        } else {
-          await createSubmission(payload);
+          message: 'This screenshot submission is already being processed. Please wait a moment.'
         }
-        return null;
-      })
-    );
-    const previousProofKeys = new Set(previousProofKeysList.filter(Boolean));
-    const savedCount = targetRegistrationIds.length;
+      );
 
-    uploadedProofKey = '';
-    for (const previousProofKey of previousProofKeys) {
-      await deleteProofObjectIfUnused(previousProofKey);
+      const uploadedProof = await uploadService.uploadResultProofToR2({
+        userId: user._id,
+        resultProofFile
+      });
+      uploadedProofKey = uploadedProof.key;
+
+      const previousProofKeysList = await Promise.all(
+        targetRegistrationIds.map(async (targetId) => {
+          const existingForTarget = targetId === PERSONAL_RECORD_REGISTRATION_ID
+            ? null
+            : existingSubmissionByRegistrationId.get(targetId) || null;
+          const payload = {
+            registrationId: targetId,
+            runnerId: user._id,
+            distanceKm,
+            elapsedMs,
+            runDate,
+            runLocation,
+            proofType,
+            proof: {
+              url: uploadedProof.url,
+              key: uploadedProof.key,
+              mimeType: resultProofFile.mimetype || '',
+              size: Number(resultProofFile.size || 0),
+              hash: proofHash
+            },
+            proofNotes,
+            runType,
+            elevationGain,
+            steps,
+            ocrData
+          };
+
+          if (existingForTarget && existingForTarget.status === 'rejected') {
+            await resubmitSubmission(payload);
+            const previousKey = String(existingForTarget.proof?.key || '').trim();
+            return previousKey && previousKey !== uploadedProof.key ? previousKey : null;
+          } else if (accumulatedTargetIds.has(String(targetId))) {
+            await createAccumulatedActivitySubmission(payload);
+          } else {
+            await createSubmission(payload);
+          }
+          return null;
+        })
+      );
+      const previousProofKeys = new Set(previousProofKeysList.filter(Boolean));
+      const savedCount = targetRegistrationIds.length;
+
+      uploadedProofKey = '';
+      for (const previousProofKey of previousProofKeys) {
+        await deleteProofObjectIfUnused(previousProofKey);
+      }
+
+      const successMessage = savedCount > 1
+        ? `Run result saved for ${savedCount} entries.`
+        : (options.successMessage || 'Run result saved.');
+      return redirectWithPageMessage(res, 'success', successMessage);
+    } catch (error) {
+      if (idempotencyLock && error?.code !== 'SUBMISSION_IDEMPOTENCY_CONFLICT') {
+        await idempotencyLock.release().catch(() => {});
+      }
+      throw error;
     }
-
-    const successMessage = savedCount > 1
-      ? `Run result saved for ${savedCount} entries.`
-      : (options.successMessage || 'Run result saved.');
-    return redirectWithPageMessage(res, 'success', successMessage);
   } catch (error) {
     if (uploadedProofKey) {
       await uploadService.deleteObjects([uploadedProofKey]);
     }
-    console.error('Error submitting runner result:', error);
+    if (error?.code !== 'SUBMISSION_IDEMPOTENCY_CONFLICT') {
+      console.error('Error submitting runner result:', error);
+    }
     return redirectWithPageMessage(
       res,
       'error',

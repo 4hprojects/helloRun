@@ -9,6 +9,10 @@ const {
 } = require('./submission.service');
 const { createAccumulatedActivitySubmission } = require('./accumulated-activity.service');
 const stravaService = require('./strava.service');
+const {
+  acquireSubmissionIdempotencyLock,
+  buildStravaSubmissionIdempotencyKey
+} = require('./submission-idempotency.service');
 
 const STRAVA_TYPE_TO_RUN_TYPE = {
   Run: 'run',
@@ -41,17 +45,35 @@ async function submitStravaActivity({ runnerId, eventId, stravaActivityId }) {
       throw new Error('This Strava activity has already been submitted as a personal record.');
     }
 
-    const submission = await createSubmission(buildSubmissionInput({
-      registration: {
-        _id: PERSONAL_RECORD_REGISTRATION_ID,
-        userId: runnerId,
-        eventId: null,
-        raceDistance: '',
-        participationMode: 'virtual'
-      },
-      activity,
-      connection
-    }));
+    const lock = await acquireSubmissionIdempotencyLock(
+      buildStravaSubmissionIdempotencyKey({
+        runnerId,
+        eventId: PERSONAL_RECORD_REGISTRATION_ID,
+        stravaActivityId: safeActivityId
+      }),
+      {
+        scope: 'strava_submission',
+        runnerId,
+        message: 'This Strava activity submission is already being processed. Please wait a moment.'
+      }
+    );
+    let submission;
+    try {
+      submission = await createSubmission(buildSubmissionInput({
+        registration: {
+          _id: PERSONAL_RECORD_REGISTRATION_ID,
+          userId: runnerId,
+          eventId: null,
+          raceDistance: '',
+          participationMode: 'virtual'
+        },
+        activity,
+        connection
+      }));
+    } catch (error) {
+      await lock.release().catch(() => {});
+      throw error;
+    }
     return { submission, type: 'personal_record' };
   }
 
@@ -79,12 +101,6 @@ async function submitStravaActivity({ runnerId, eventId, stravaActivityId }) {
     throw new Error('This Strava activity has already been submitted for this event.');
   }
 
-  const payload = buildSubmissionInput({ registration, activity, connection });
-  if (event.virtualCompletionMode === 'accumulated_distance') {
-    const submission = await createAccumulatedActivitySubmission(payload);
-    return { submission, type: 'accumulated_activity' };
-  }
-
   const existing = await Submission.findOne({
     registrationId: registration._id,
     runnerId
@@ -93,10 +109,33 @@ async function submitStravaActivity({ runnerId, eventId, stravaActivityId }) {
     throw new Error('Submission already exists for this registration.');
   }
 
-  const submission = existing && existing.status === 'rejected'
-    ? await resubmitSubmission(payload)
-    : await createSubmission(payload);
-  return { submission, type: 'submission' };
+  const lock = await acquireSubmissionIdempotencyLock(
+    buildStravaSubmissionIdempotencyKey({
+      runnerId,
+      eventId: registration.eventId,
+      stravaActivityId: safeActivityId
+    }),
+    {
+      scope: 'strava_submission',
+      runnerId,
+      message: 'This Strava activity submission is already being processed. Please wait a moment.'
+    }
+  );
+  try {
+    const payload = buildSubmissionInput({ registration, activity, connection });
+    if (event.virtualCompletionMode === 'accumulated_distance') {
+      const submission = await createAccumulatedActivitySubmission(payload);
+      return { submission, type: 'accumulated_activity' };
+    }
+
+    const submission = existing && existing.status === 'rejected'
+      ? await resubmitSubmission(payload)
+      : await createSubmission(payload);
+    return { submission, type: 'submission' };
+  } catch (error) {
+    await lock.release().catch(() => {});
+    throw error;
+  }
 }
 
 async function findDuplicateStravaSubmission({ runnerId, eventId, stravaActivityId, personalRecord = false }) {

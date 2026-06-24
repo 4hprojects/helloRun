@@ -39,6 +39,7 @@
 | Runtime Stabilization Phase 6A — accumulated activity service now lazily loads submission helpers to remove circular dependency warnings/failures | Jun 24 | `tests/submission.service.integration.test.js --test-name-pattern accumulated` |
 | Runtime Stabilization Phase 6B — submission service tests can run cert/notification background work inline for deterministic certificate/email assertions | Jun 24 | `tests/submission.service.integration.test.js` |
 | Runtime Stabilization Phase 6C — submission service tests can suppress shadow/ranking sync side effects for quiet deterministic output | Jun 24 | `tests/submission.service.integration.test.js` |
+| Runtime Stabilization Phase 6D — runner screenshot and Strava result submissions now use short-lived Mongo idempotency locks to block concurrent duplicate retries | Jun 24 | `tests/submission-idempotency.service.integration.test.js`, `tests/submission-idempotency-source.unit.test.js`, `tests/submission-routes.integration.test.js` |
 
 ---
 
