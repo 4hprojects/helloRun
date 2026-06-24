@@ -21,6 +21,7 @@
 | Run completion workflow hardening — SQL injection fix, DB indexes (proof.hash/certificate.url/Strava PR), approval latency (cert+notify background), parallel notifications, accumulated cert atomic lock, Redis leaderboard cache, parallel multi-reg submissions, auto Supabase ranking sync | Jun 24 | `ranking.service.unit.test.js` |
 | P4 Personal Leaderboard Rank — "Ranked #N of M verified runners" in My Standing card | Jun 24 | — |
 | Organizer Workflow Phase 1A — CSRF protection added to payment review, run-proof review, event status, and media removal mutations; security matrix expanded | Jun 24 | `tests/csrf-route-guards.integration.test.js` |
+| Organizer Workflow Phase 1B — atomic payment review transitions with stale-action protection and shadow-sync preservation | Jun 24 | `tests/payment-route-guards.integration.test.js` |
 
 ---
 

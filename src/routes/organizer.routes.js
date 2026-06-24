@@ -27,6 +27,8 @@ const {
 } = require('../utils/event-public-view');
 const { reviewSubmission } = require('../services/submission.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
+const { syncRegistrationPaymentShadow } = require('../services/registration-payment-shadow.service');
+const { recordSyncFailureInBackground } = require('../services/sync-failure.service');
 const {
   evaluateRegistrationAchievementsInBackground,
   getRunnerEarnedBadges
@@ -81,6 +83,21 @@ const paymentReviewActionLimiter = createRateLimiter({
   maxRequests: 60,
   message: 'Too many payment review actions. Please wait before trying again.'
 });
+
+function syncRegistrationPaymentShadowInBackground(registration, context = {}) {
+  if (!registration || !registration._id || !process.env.DATABASE_URL) return;
+  syncRegistrationPaymentShadow(registration, { operation: 'live_sync' }).catch((error) => {
+    console.error('Supabase registration/payment shadow sync failed:', {
+      registrationId: String(registration._id),
+      error: error?.message || String(error),
+      ...context
+    });
+    recordSyncFailureInBackground('registration', String(registration._id), error, {
+      operation: 'live_sync',
+      ...context
+    });
+  });
+}
 
 /* ==========================================
    Phase 7: Onsite Operations Routes
@@ -1998,15 +2015,35 @@ router.post(
         });
       }
 
-      const registration = await Registration.findOne({
-        _id: req.params.registrationId,
-        eventId: event._id
-      });
+      const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1000);
+      const reviewedAt = new Date();
+      const registration = await Registration.findOneAndUpdate(
+        {
+          _id: req.params.registrationId,
+          eventId: event._id,
+          paymentStatus: 'proof_submitted',
+          'paymentProof.url': { $nin: ['', null] }
+        },
+        {
+          $set: {
+            paymentStatus: 'paid',
+            paymentReviewedAt: reviewedAt,
+            paymentReviewedBy: user._id,
+            paymentReviewNotes: reviewNotes,
+            paymentRejectionReason: ''
+          }
+        },
+        { new: true, runValidators: true }
+      );
       if (!registration) {
-        const q = new URLSearchParams({ type: 'error', msg: 'Registration record not found.' });
-        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
-      }
-      if (!canOrganizerReviewPaymentProof(registration)) {
+        const existingRegistration = await Registration.findOne({
+          _id: req.params.registrationId,
+          eventId: event._id
+        }).lean();
+        if (!existingRegistration) {
+          const q = new URLSearchParams({ type: 'error', msg: 'Registration record not found.' });
+          return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+        }
         const q = new URLSearchParams({
           type: 'error',
           msg: 'Only registrations with submitted payment receipts can be approved.'
@@ -2014,14 +2051,9 @@ router.post(
         return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
       }
 
-      const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1000);
-      const previousPaymentStatus = registration.paymentStatus;
-      registration.paymentStatus = 'paid';
-      registration.paymentReviewedAt = new Date();
-      registration.paymentReviewedBy = user._id;
-      registration.paymentReviewNotes = reviewNotes;
-      registration.paymentRejectionReason = '';
-      await registration.save();
+      syncRegistrationPaymentShadowInBackground(registration, {
+        route: 'organizer.payment.approve'
+      });
       evaluateRegistrationAchievementsInBackground(registration, {
         performedBy: user._id
       });
@@ -2030,12 +2062,12 @@ router.post(
         action: 'payment.approved',
         targetType: 'registration',
         targetId: String(registration._id),
-        statusFrom: previousPaymentStatus,
+        statusFrom: 'proof_submitted',
         statusTo: 'paid',
         notes: reviewNotes || `Payment approved for registration ${registration.confirmationCode || registration._id}.`,
         ipAddress: getRequestIpAddress(req),
         userAgent: getRequestUserAgent(req),
-        occurredAt: registration.paymentReviewedAt
+        occurredAt: reviewedAt
       });
 
       try {
@@ -2118,22 +2150,6 @@ router.post(
         });
       }
 
-      const registration = await Registration.findOne({
-        _id: req.params.registrationId,
-        eventId: event._id
-      });
-      if (!registration) {
-        const q = new URLSearchParams({ type: 'error', msg: 'Registration record not found.' });
-        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
-      }
-      if (!canOrganizerReviewPaymentProof(registration)) {
-        const q = new URLSearchParams({
-          type: 'error',
-          msg: 'Only registrations with submitted payment receipts can be rejected.'
-        });
-        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
-      }
-
       const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1000);
       if (!rejectionReason || rejectionReason.length < 5) {
@@ -2144,24 +2160,55 @@ router.post(
         return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
       }
 
-      const previousPaymentStatus = registration.paymentStatus;
-      registration.paymentStatus = 'proof_rejected';
-      registration.paymentReviewedAt = new Date();
-      registration.paymentReviewedBy = user._id;
-      registration.paymentReviewNotes = reviewNotes;
-      registration.paymentRejectionReason = rejectionReason;
-      await registration.save();
+      const reviewedAt = new Date();
+      const registration = await Registration.findOneAndUpdate(
+        {
+          _id: req.params.registrationId,
+          eventId: event._id,
+          paymentStatus: 'proof_submitted',
+          'paymentProof.url': { $nin: ['', null] }
+        },
+        {
+          $set: {
+            paymentStatus: 'proof_rejected',
+            paymentReviewedAt: reviewedAt,
+            paymentReviewedBy: user._id,
+            paymentReviewNotes: reviewNotes,
+            paymentRejectionReason: rejectionReason
+          }
+        },
+        { new: true, runValidators: true }
+      );
+      if (!registration) {
+        const existingRegistration = await Registration.findOne({
+          _id: req.params.registrationId,
+          eventId: event._id
+        }).lean();
+        if (!existingRegistration) {
+          const q = new URLSearchParams({ type: 'error', msg: 'Registration record not found.' });
+          return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+        }
+        const q = new URLSearchParams({
+          type: 'error',
+          msg: 'Only registrations with submitted payment receipts can be rejected.'
+        });
+        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
+      }
+
+      syncRegistrationPaymentShadowInBackground(registration, {
+        route: 'organizer.payment.reject'
+      });
       recordCriticalAuditEventInBackground({
         actorMongoUserId: user._id,
         action: 'payment.rejected',
         targetType: 'registration',
         targetId: String(registration._id),
-        statusFrom: previousPaymentStatus,
+        statusFrom: 'proof_submitted',
         statusTo: 'proof_rejected',
         notes: rejectionReason,
         ipAddress: getRequestIpAddress(req),
         userAgent: getRequestUserAgent(req),
-        occurredAt: registration.paymentReviewedAt
+        occurredAt: reviewedAt
       });
 
       try {

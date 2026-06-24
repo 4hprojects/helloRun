@@ -97,6 +97,61 @@ test('organizer cannot approve payment proof when registration is not proof_subm
   assert.match(location, /submitted\+payment\+receipts\+can\+be\+approved/);
 });
 
+test('organizer payment approval is stale-safe after first transition', async () => {
+  const seed = await seedRouteGuardData('approve-stale-safe', {
+    paymentStatusA: 'proof_submitted',
+    paymentProofUrlA: 'https://example.com/proofs/approve-stale-safe.png'
+  });
+  const organizerSession = await login(seed.ownerOrganizer.email, seed.password);
+  await assertOrganizerSessionReady(organizerSession);
+  const path = `/organizer/events/${seed.event._id}/registrants/${seed.registrationA._id}/payment/approve`;
+
+  const first = await postForm(path, organizerSession, { reviewNotes: 'First approval wins.' });
+  assert.equal(first.status, 302);
+  assert.match(first.headers.get('location') || '', /type=success/);
+
+  const second = await postForm(path, organizerSession, { reviewNotes: 'Second approval should fail.' });
+  assert.equal(second.status, 302);
+  const secondLocation = second.headers.get('location') || '';
+  assert.match(secondLocation, /type=error/);
+  assert.match(secondLocation, /submitted\+payment\+receipts\+can\+be\+approved/);
+
+  const updated = await Registration.findById(seed.registrationA._id).lean();
+  assert.equal(updated.paymentStatus, 'paid');
+  assert.equal(String(updated.paymentReviewedBy), String(seed.ownerOrganizer._id));
+});
+
+test('organizer payment rejection is stale-safe after first transition', async () => {
+  const seed = await seedRouteGuardData('reject-stale-safe', {
+    paymentStatusA: 'proof_submitted',
+    paymentProofUrlA: 'https://example.com/proofs/reject-stale-safe.png'
+  });
+  const organizerSession = await login(seed.ownerOrganizer.email, seed.password);
+  await assertOrganizerSessionReady(organizerSession);
+  const path = `/organizer/events/${seed.event._id}/registrants/${seed.registrationA._id}/payment/reject`;
+
+  const first = await postForm(path, organizerSession, {
+    rejectionReason: 'Receipt is unreadable',
+    reviewNotes: 'First rejection wins.'
+  });
+  assert.equal(first.status, 302);
+  assert.match(first.headers.get('location') || '', /type=success/);
+
+  const second = await postForm(path, organizerSession, {
+    rejectionReason: 'Duplicate rejection attempt',
+    reviewNotes: 'Second rejection should fail.'
+  });
+  assert.equal(second.status, 302);
+  const secondLocation = second.headers.get('location') || '';
+  assert.match(secondLocation, /type=error/);
+  assert.match(secondLocation, /submitted\+payment\+receipts\+can\+be\+rejected/);
+
+  const updated = await Registration.findById(seed.registrationA._id).lean();
+  assert.equal(updated.paymentStatus, 'proof_rejected');
+  assert.equal(updated.paymentRejectionReason, 'Receipt is unreadable');
+  assert.equal(String(updated.paymentReviewedBy), String(seed.ownerOrganizer._id));
+});
+
 test('non-owner organizer cannot review payment proof for another organizer event', async () => {
   const seed = await seedRouteGuardData('organizer-ownership');
   const otherOrganizerSession = await login(seed.otherOrganizer.email, seed.password);

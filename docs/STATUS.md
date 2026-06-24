@@ -44,6 +44,7 @@ _Last updated: June 24, 2026_
 | Run completion workflow hardening — SQL injection fix (ranking.service), missing DB indexes (proof.hash, certificate.url, Strava PR), approval latency decoupled (cert+notify fire-and-forget), parallel notifications, atomic cert race-condition lock, Redis leaderboard cache (60s TTL), parallel multi-reg submissions, auto-sync Supabase rankings after approval | June 24, 2026 | `ranking.service.unit.test.js` passes |
 | P4 Personal Leaderboard Rank — "Ranked #N of M verified runners" shown in My Standing card on event leaderboard page | June 24, 2026 | — |
 | Organizer Workflow Phase 1A — CSRF protection added to organizer payment/run-proof review actions plus event status/media removal mutations; security route matrix updated | June 24, 2026 | `tests/csrf-route-guards.integration.test.js` |
+| Organizer Workflow Phase 1B — payment approve/reject now use atomic status transitions and preserve registration shadow sync after non-save updates | June 24, 2026 | `tests/payment-route-guards.integration.test.js` |
 
 ---
 
