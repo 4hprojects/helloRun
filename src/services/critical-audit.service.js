@@ -5,6 +5,8 @@ const { syncAppUserFromMongoUser } = require('./user-bridge.service');
 const logger = require('../utils/logger');
 const { recordSyncFailureInBackground } = require('./sync-failure.service');
 
+let disableCriticalAuditBackgroundWrites = false;
+
 function buildAuditIdempotencyKey(input = {}) {
   const stable = {
     action: String(input.action || '').trim(),
@@ -85,6 +87,10 @@ async function recordCriticalAuditEvent(input = {}, options = {}) {
 }
 
 function recordCriticalAuditEventInBackground(input = {}) {
+  if (disableCriticalAuditBackgroundWrites) {
+    return;
+  }
+
   recordCriticalAuditEvent(input)
     .catch((error) => {
       logger.error('Supabase critical audit write failed:', {
@@ -105,7 +111,12 @@ function stringOrNull(value) {
   return safe || null;
 }
 
+function __setDisableCriticalAuditBackgroundWrites(value) {
+  disableCriticalAuditBackgroundWrites = Boolean(value);
+}
+
 module.exports = {
+  __setDisableCriticalAuditBackgroundWrites,
   buildAuditIdempotencyKey,
   recordCriticalAuditEvent,
   recordCriticalAuditEventInBackground

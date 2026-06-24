@@ -105,6 +105,7 @@ const { getPostgresClient } = require('../db/postgres');
 const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
 const logger = require('../utils/logger');
 const { recordSyncFailureInBackground } = require('../services/sync-failure.service');
+const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
 
 const countries = getCountries();
 exports.getHome = async (req, res) => {
@@ -1271,6 +1272,19 @@ exports.postUploadPaymentProof = async (req, res) => {
       if (cleanupKeys.length) {
         await uploadService.deleteObjects(cleanupKeys);
       }
+
+      recordCriticalAuditEventInBackground({
+        actorMongoUserId: user._id,
+        action: 'payment.receipt_submitted',
+        targetType: 'registration',
+        targetId: String(registration._id),
+        statusFrom: String(registration.paymentStatus || ''),
+        statusTo: 'proof_submitted',
+        notes: `Payment receipt submitted for ${registration.confirmationCode || registration._id}.`,
+        ipAddress: String(req.ip || ''),
+        userAgent: String(req.get?.('user-agent') || ''),
+        occurredAt: nextPaymentProof.uploadedAt
+      });
 
       try {
         const organizer = await User.findById(registration.eventId.organizerId).select('firstName email');

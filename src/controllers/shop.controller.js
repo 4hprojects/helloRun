@@ -12,6 +12,7 @@ const {
   acquireSubmissionIdempotencyLock,
   buildPaymentProofIdempotencyKey
 } = require('../services/submission-idempotency.service');
+const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
 
 exports.getEventShop = async (req, res, next) => {
   try {
@@ -597,6 +598,19 @@ exports.postOrderPaymentProof = async (req, res, next) => {
         paymentReference,
         proofUrl: uploadedProof.url,
         amountPaid: order.total_amount
+      });
+
+      recordCriticalAuditEventInBackground({
+        actorMongoUserId: req.session.userId,
+        action: 'shop.payment_receipt_submitted',
+        targetType: 'shop_order',
+        targetId: String(order.id || order.order_number || ''),
+        statusFrom: String(order.payment_status || ''),
+        statusTo: 'proof_submitted',
+        notes: `Shop payment receipt submitted for order ${order.order_number || order.id}.`,
+        ipAddress: String(req.ip || ''),
+        userAgent: String(req.get?.('user-agent') || ''),
+        occurredAt: new Date()
       });
 
       uploadedProofKey = '';

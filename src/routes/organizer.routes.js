@@ -2419,6 +2419,17 @@ router.get('/events/:id/registrants/export', requireAuth, registrantExportLimite
     const timestamp = new Date().toISOString().slice(0, 10);
     const filename = `${safeSlug}-registrants-${timestamp}.csv`;
 
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: user._id,
+      action: 'organiser.registrants_exported',
+      targetType: 'event',
+      targetId: String(event._id),
+      notes: `CSV registrant export generated with ${rows.length} row(s).`,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: new Date()
+    });
+
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=\"${filename}\"`);
     return res.status(200).send(csvContent);
@@ -2483,6 +2494,17 @@ router.get('/events/:id/registrants/export-xlsx', requireAuth, registrantExportL
     const safeSlug = String(event.slug || 'event').replace(/[^a-zA-Z0-9-_]/g, '');
     const timestamp = new Date().toISOString().slice(0, 10);
     const filename = `${safeSlug}-registrants-${timestamp}.xlsx`;
+
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: user._id,
+      action: 'organiser.registrants_exported',
+      targetType: 'event',
+      targetId: String(event._id),
+      notes: `XLSX registrant export generated with ${rows.length} row(s).`,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: new Date()
+    });
 
     res.setHeader(
       'Content-Type',

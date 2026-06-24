@@ -460,6 +460,17 @@ exports.exportReportCsv = async (req, res, next) => {
     const safeSlug = String(event.slug || 'event').replace(/[^a-zA-Z0-9-_]/g, '');
     const timestamp = new Date().toISOString().slice(0, 10);
 
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: req.session.userId,
+      action: 'organiser.shop_orders_exported',
+      targetType: 'event',
+      targetId: String(event._id),
+      notes: `CSV shop order export generated with ${rows.length} row(s).`,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: new Date()
+    });
+
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${safeSlug}-shop-orders-${timestamp}.csv"`);
     return res.status(200).send(csvContent);
@@ -494,6 +505,17 @@ exports.exportReportXlsx = async (req, res, next) => {
     const buffer = await workbook.xlsx.writeBuffer();
     const safeSlug = String(event.slug || 'event').replace(/[^a-zA-Z0-9-_]/g, '');
     const timestamp = new Date().toISOString().slice(0, 10);
+
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: req.session.userId,
+      action: 'organiser.shop_orders_exported',
+      targetType: 'event',
+      targetId: String(event._id),
+      notes: `XLSX shop order export generated with ${rows.length} row(s).`,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: new Date()
+    });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${safeSlug}-shop-orders-${timestamp}.xlsx"`);
