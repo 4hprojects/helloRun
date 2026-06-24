@@ -151,6 +151,7 @@
       initialEvents: [],
       currentSurface: '',
       emptyState: null,
+      eligibilityContext: null,
       ocrRunning: false,
       ocrResult: null,
       ocrRunId: 0,
@@ -390,7 +391,10 @@
           syncFormAction();
           updateSubmitLabelForSelection();
         }
-        setEventsHelperText('No eligible event is accepting submissions right now. You can still save this activity as a Personal Record.');
+        setEventsHelperText(
+          String(state.eligibilityContext?.fallbackMessage || '').trim() ||
+          'No eligible event is accepting submissions right now. You can still save this activity as a Personal Record.'
+        );
         validateEvents();
         updateDatePreview();
         return;
@@ -1436,6 +1440,7 @@
       state.isSubmitting = false;
       state.currentSurface = '';
       state.emptyState = null;
+      state.eligibilityContext = null;
       toggleSubmitState();
       showDateStep();
     };
@@ -1487,6 +1492,9 @@
         throw new Error(payload?.message || 'Unable to load eligible events.');
       }
 
+      state.eligibilityContext = payload.context && typeof payload.context === 'object'
+        ? payload.context
+        : null;
       return Array.isArray(payload.items) ? payload.items : [];
     };
 

@@ -23,6 +23,7 @@ const {
   getRunnerSubmissionSummary,
   getRunnerPerformanceSnapshot,
   getRunnerEligibleSubmissionRegistrations,
+  getRunnerEligibleSubmissionRegistrationState,
   PERSONAL_RECORD_REGISTRATION_ID,
   detectSuspiciousActivity,
   isAutoApprovableOcrSubmission,
@@ -573,6 +574,40 @@ test('getRunnerEligibleSubmissionRegistrations falls back to personal record whe
   assert.equal(options[0].registrationId, PERSONAL_RECORD_REGISTRATION_ID);
   assert.equal(options[0].isPersonalRecord, true);
   assert.equal(options[0].eventTitle, 'Personal Record');
+});
+
+test('eligible submission state explains expired event upload windows', async () => {
+  const runner = await createRunnerUser('eligible-expired-context');
+  const organizer = await createOrganizerUser('eligible-expired-context');
+  const event = await createEvent(organizer, 'eligible-expired-context');
+  const now = new Date();
+  await Event.updateOne(
+    { _id: event._id },
+    {
+      $set: {
+        eventStartAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
+        eventEndAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+        virtualWindow: {
+          startAt: new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
+          endAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        }
+      }
+    }
+  );
+  await createRegistration({
+    event,
+    runner,
+    tag: 'eligible-expired-context',
+    paymentStatus: 'paid',
+    status: 'confirmed'
+  });
+
+  const result = await getRunnerEligibleSubmissionRegistrationState(runner._id, { now });
+
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0].registrationId, PERSONAL_RECORD_REGISTRATION_ID);
+  assert.equal(result.context.closedSubmissionWindowCount, 1);
+  assert.match(result.context.fallbackMessage, /no longer accepting run result uploads/i);
 });
 
 test('accumulated activities allow multiple proofs and count only approvals toward completion', async () => {

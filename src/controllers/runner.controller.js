@@ -9,7 +9,10 @@ const {
   getRunnerEventProgressCards,
   buildRunnerDashboardData
 } = require('../services/runner-data.service');
-const { getRunnerPerformanceSnapshot, getRunnerEligibleSubmissionRegistrations } = require('../services/submission.service');
+const {
+  getRunnerPerformanceSnapshot,
+  getRunnerEligibleSubmissionRegistrationState
+} = require('../services/submission.service');
 const {
   listRunnerSubmissions,
   getRunnerSubmissionDetail,
@@ -679,13 +682,14 @@ exports.getEligibleResultSubmissionOptions = async (req, res) => {
       });
     }
 
-    const items = await getRunnerEligibleSubmissionRegistrations(user._id, {
+    const result = await getRunnerEligibleSubmissionRegistrationState(user._id, {
       limit: normalizePositiveInt(req.query.limit, 50)
     });
 
     return res.json({
       success: true,
-      items
+      items: result.items,
+      context: result.context
     });
   } catch (error) {
     logger.error('Runner eligible submission options load error:', error);

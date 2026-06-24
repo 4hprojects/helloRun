@@ -205,6 +205,8 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(source, /Analyse Activity Screenshot/);
   assert.match(source, /submissionDeadlineAt/);
   assert.match(source, /Upload deadline/);
+  assert.match(source, /eligibilityContext/);
+  assert.match(source, /fallbackMessage/);
   assert.match(source, /ocrDetectedSourceInput\.value = result\.detectedSource/);
   assert.match(source, /ocrSummaryEl\.textContent = 'Detected from image:/);
   assert.doesNotMatch(source, /ocrResultsEl\.innerHTML = detailsHtml/);

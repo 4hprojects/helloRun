@@ -529,6 +529,11 @@ function getCompletedAccumulatedEventIds(approvedActivities = []) {
 }
 
 async function getRunnerEligibleSubmissionRegistrations(runnerId, options = {}) {
+  const state = await getRunnerEligibleSubmissionRegistrationState(runnerId, options);
+  return state.items;
+}
+
+async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = {}) {
   const limit = clampInt(options.limit, 1, 100, 30);
   const now = options.now instanceof Date ? options.now : new Date();
 
@@ -590,12 +595,19 @@ async function getRunnerEligibleSubmissionRegistrations(runnerId, options = {}) 
         canResubmit: submission?.status === 'rejected'
       };
     });
+  const context = buildSubmissionEligibilityContext(registrations, eligibleRegistrations, now);
 
   if (eligibleRegistrations.length > 0) {
-    return eligibleRegistrations;
+    return {
+      items: eligibleRegistrations,
+      context
+    };
   }
 
-  return [buildPersonalRecordEligibleOption()];
+  return {
+    items: [buildPersonalRecordEligibleOption()],
+    context
+  };
 }
 
 async function getEligibleRunnerRegistration({ registrationId, runnerId }) {
@@ -756,6 +768,62 @@ function buildPersonalRecordEligibleOption() {
     canResubmit: false,
     isPersonalRecord: true
   };
+}
+
+function buildSubmissionEligibilityContext(registrations, eligibleRegistrations, now) {
+  const context = {
+    eligibleEventCount: eligibleRegistrations.length,
+    paidConfirmedRegistrationCount: 0,
+    closedSubmissionWindowCount: 0,
+    upcomingSubmissionWindowCount: 0,
+    latestClosedSubmissionDeadlineAt: null,
+    nextSubmissionWindowOpensAt: null,
+    fallbackMessage: ''
+  };
+
+  for (const registration of registrations) {
+    const event = registration?.eventId;
+    if (!event) continue;
+    context.paidConfirmedRegistrationCount += 1;
+    if (eligibleRegistrations.some((item) => item.registrationId === String(registration._id))) {
+      continue;
+    }
+
+    const deadlineAt = parseDateSafe(getSubmissionDeadlineAtForOption(registration, event));
+    if (deadlineAt && now.getTime() > deadlineAt.getTime()) {
+      context.closedSubmissionWindowCount += 1;
+      if (!context.latestClosedSubmissionDeadlineAt || deadlineAt.getTime() > new Date(context.latestClosedSubmissionDeadlineAt).getTime()) {
+        context.latestClosedSubmissionDeadlineAt = deadlineAt.toISOString();
+      }
+      continue;
+    }
+
+    const opensAt = parseDateSafe(getSubmissionWindowStartAtForOption(registration, event));
+    if (opensAt && now.getTime() < opensAt.getTime()) {
+      context.upcomingSubmissionWindowCount += 1;
+      if (!context.nextSubmissionWindowOpensAt || opensAt.getTime() < new Date(context.nextSubmissionWindowOpensAt).getTime()) {
+        context.nextSubmissionWindowOpensAt = opensAt.toISOString();
+      }
+    }
+  }
+
+  if (context.eligibleEventCount > 0) {
+    return context;
+  }
+
+  if (context.closedSubmissionWindowCount > 0) {
+    context.fallbackMessage = context.closedSubmissionWindowCount === 1
+      ? 'Your paid event registration is no longer accepting run result uploads. You can still save this activity as a Personal Record.'
+      : 'Your paid event registrations are no longer accepting run result uploads. You can still save this activity as a Personal Record.';
+  } else if (context.upcomingSubmissionWindowCount > 0) {
+    context.fallbackMessage = context.upcomingSubmissionWindowCount === 1
+      ? 'Your paid event registration is not accepting run result uploads yet. You can save this activity as a Personal Record for now.'
+      : 'Your paid event registrations are not accepting run result uploads yet. You can save this activity as a Personal Record for now.';
+  } else {
+    context.fallbackMessage = 'No eligible event is accepting submissions right now. You can still save this activity as a Personal Record.';
+  }
+
+  return context;
 }
 
 function buildSubmissionPayload(registration, input) {
@@ -1836,6 +1904,29 @@ function getSubmissionDeadlineAtForOption(registration, event) {
   return event.eventEndAt || null;
 }
 
+function getSubmissionWindowStartAtForOption(registration, event) {
+  if (!event) return null;
+  const participationMode = String(registration?.participationMode || '').trim().toLowerCase();
+  if (participationMode === 'virtual' && event.virtualWindow?.startAt) {
+    return event.virtualWindow.startAt;
+  }
+  if (participationMode === 'onsite') {
+    const windows = Array.isArray(event.onsiteCheckinWindows) ? event.onsiteCheckinWindows : [];
+    const starts = windows
+      .map((windowItem) => parseDateSafe(windowItem?.startAt))
+      .filter(Boolean)
+      .sort((a, b) => a.getTime() - b.getTime());
+    if (starts.length) return starts[0];
+  }
+  return event.eventStartAt || null;
+}
+
+function parseDateSafe(value) {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
 module.exports = {
   createSubmission,
   editRejectedSubmissionMetadata,
@@ -1846,6 +1937,7 @@ module.exports = {
   getRunnerSubmissionSummary,
   getRunnerPerformanceSnapshot,
   getRunnerEligibleSubmissionRegistrations,
+  getRunnerEligibleSubmissionRegistrationState,
   PERSONAL_RECORD_REGISTRATION_ID,
   detectSuspiciousActivity,
   isAutoApprovableOcrSubmission,
