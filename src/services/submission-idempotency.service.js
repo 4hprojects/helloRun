@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const SubmissionIdempotencyKey = require('../models/SubmissionIdempotencyKey');
 
 const DEFAULT_TTL_MS = 10 * 60 * 1000;
+let disableSubmissionIdempotencyLocks = false;
 
 function buildProofSubmissionIdempotencyKey({ runnerId, proofHash }) {
   return buildKey('proof', runnerId, proofHash);
@@ -11,7 +12,13 @@ function buildStravaSubmissionIdempotencyKey({ runnerId, eventId, stravaActivity
   return buildKey('strava', runnerId, eventId, stravaActivityId);
 }
 
+function buildPaymentProofIdempotencyKey({ runnerId, registrationId, proofHash }) {
+  return buildKey('payment-proof', runnerId, registrationId, proofHash);
+}
+
 async function acquireSubmissionIdempotencyLock(key, options = {}) {
+  if (disableSubmissionIdempotencyLocks) return buildNoopLock();
+
   const safeKey = String(key || '').trim();
   if (!safeKey) return buildNoopLock();
 
@@ -60,8 +67,14 @@ function buildKey(...parts) {
   return crypto.createHash('sha256').update(raw).digest('hex');
 }
 
+function __setDisableSubmissionIdempotencyLocks(value) {
+  disableSubmissionIdempotencyLocks = Boolean(value);
+}
+
 module.exports = {
   acquireSubmissionIdempotencyLock,
+  buildPaymentProofIdempotencyKey,
   buildProofSubmissionIdempotencyKey,
-  buildStravaSubmissionIdempotencyKey
+  buildStravaSubmissionIdempotencyKey,
+  __setDisableSubmissionIdempotencyLocks
 };

@@ -71,6 +71,7 @@ const {
 } = require('../services/accumulated-activity.service');
 const {
   acquireSubmissionIdempotencyLock,
+  buildPaymentProofIdempotencyKey,
   buildProofSubmissionIdempotencyKey
 } = require('../services/submission-idempotency.service');
 const { resolveAccumulatedTargetDistanceKm } = require('../services/accumulated-target.service');
@@ -1191,119 +1192,143 @@ exports.postUploadPaymentProof = async (req, res) => {
       return res.redirect(`/my-registrations?${query.toString()}`);
     }
 
-    const previousProofKey = String(registration.paymentProof?.key || '').trim();
-    const previousProofUrl = String(registration.paymentProof?.url || '').trim();
-    const uploadedProof = await uploadService.uploadPaymentProofToR2({
-      userId: user._id,
-      paymentProofFile: proofFile
-    });
-    uploadedProofKey = uploadedProof.key;
+    const paymentProofHash = crypto.createHash('sha256').update(proofFile.buffer).digest('hex');
+    let idempotencyLock = null;
+    try {
+      idempotencyLock = await acquireSubmissionIdempotencyLock(
+        buildPaymentProofIdempotencyKey({
+          runnerId: user._id,
+          registrationId: registration._id,
+          proofHash: paymentProofHash
+        }),
+        {
+          scope: 'payment_proof_submission',
+          runnerId: user._id,
+          message: 'This payment receipt is already being processed. Please wait a moment.'
+        }
+      );
 
-    const nextPaymentProof = {
-      url: uploadedProof.url,
-      key: uploadedProof.key,
-      mimeType: proofFile.mimetype || '',
-      size: Number(proofFile.size || 0),
-      uploadedAt: new Date(),
-      submittedBy: user._id
-    };
-    await Registration.updateOne(
-      { _id: registration._id, userId: user._id },
-      {
-        $set: {
-          paymentProof: nextPaymentProof,
-          paymentStatus: 'proof_submitted',
-          paymentReviewedAt: null,
-          paymentReviewedBy: null,
-          paymentReviewNotes: '',
-          paymentRejectionReason: ''
-        },
-        $inc: {
-          paymentSubmissionCount: 1
+      const previousProofKey = String(registration.paymentProof?.key || '').trim();
+      const previousProofUrl = String(registration.paymentProof?.url || '').trim();
+      const uploadedProof = await uploadService.uploadPaymentProofToR2({
+        userId: user._id,
+        paymentProofFile: proofFile
+      });
+      uploadedProofKey = uploadedProof.key;
+
+      const nextPaymentProof = {
+        url: uploadedProof.url,
+        key: uploadedProof.key,
+        mimeType: proofFile.mimetype || '',
+        size: Number(proofFile.size || 0),
+        uploadedAt: new Date(),
+        submittedBy: user._id
+      };
+      await Registration.updateOne(
+        { _id: registration._id, userId: user._id },
+        {
+          $set: {
+            paymentProof: nextPaymentProof,
+            paymentStatus: 'proof_submitted',
+            paymentReviewedAt: null,
+            paymentReviewedBy: null,
+            paymentReviewNotes: '',
+            paymentRejectionReason: ''
+          },
+          $inc: {
+            paymentSubmissionCount: 1
+          }
+        }
+      );
+
+      const updatedRegistration = await Registration.findById(registration._id);
+      if (updatedRegistration) {
+        syncRegistrationPaymentShadow(updatedRegistration, { operation: 'live_sync' }).catch((error) => {
+          logger.error('Supabase registration/payment shadow sync failed:', {
+            registrationId: String(registration._id),
+            error: error?.message || String(error)
+          });
+          recordSyncFailureInBackground('registration', String(registration._id), error, { operation: 'live_sync' });
+        });
+
+        await upsertShopPaymentForRegistrationProof({
+          registration: updatedRegistration,
+          proof: nextPaymentProof
+        });
+      }
+
+      uploadedProofKey = '';
+
+      const cleanupKeys = [];
+      if (previousProofKey && previousProofKey !== uploadedProof.key) {
+        cleanupKeys.push(previousProofKey);
+      } else if (previousProofUrl && previousProofUrl !== uploadedProof.url) {
+        const derivedKey = uploadService.extractObjectKeyFromPublicUrl(previousProofUrl);
+        if (derivedKey && derivedKey !== uploadedProof.key) {
+          cleanupKeys.push(derivedKey);
         }
       }
-    );
-
-    const updatedRegistration = await Registration.findById(registration._id);
-    if (updatedRegistration) {
-      syncRegistrationPaymentShadow(updatedRegistration, { operation: 'live_sync' }).catch((error) => {
-        logger.error('Supabase registration/payment shadow sync failed:', {
-          registrationId: String(registration._id),
-          error: error?.message || String(error)
-        });
-        recordSyncFailureInBackground('registration', String(registration._id), error, { operation: 'live_sync' });
-      });
-
-      await upsertShopPaymentForRegistrationProof({
-        registration: updatedRegistration,
-        proof: nextPaymentProof
-      });
-    }
-
-    uploadedProofKey = '';
-
-    const cleanupKeys = [];
-    if (previousProofKey && previousProofKey !== uploadedProof.key) {
-      cleanupKeys.push(previousProofKey);
-    } else if (previousProofUrl && previousProofUrl !== uploadedProof.url) {
-      const derivedKey = uploadService.extractObjectKeyFromPublicUrl(previousProofUrl);
-      if (derivedKey && derivedKey !== uploadedProof.key) {
-        cleanupKeys.push(derivedKey);
+      if (cleanupKeys.length) {
+        await uploadService.deleteObjects(cleanupKeys);
       }
-    }
-    if (cleanupKeys.length) {
-      await uploadService.deleteObjects(cleanupKeys);
-    }
 
-    try {
-      const organizer = await User.findById(registration.eventId.organizerId).select('firstName email');
-      await communicationService.notify('payment.receipt_submitted', {
-        notification: {
-          userId: user._id,
-          type: 'payment_proof_submitted',
-          title: 'Payment Receipt Submitted',
-          message: `Payment receipt submitted for ${registration.eventId.title || 'your event registration'}.`,
-          href: '/my-registrations',
-          metadata: {
-            registrationId: String(registration._id),
-            eventId: String(registration.eventId._id || ''),
-            eventTitle: registration.eventId.title || ''
-          }
-        },
-        email: organizer?.email ? {
-          to: organizer.email,
-          organizerFirstName: organizer.firstName || 'Organizer',
-          runnerName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
-          eventTitle: registration.eventId.title || 'Event',
-          confirmationCode: registration.confirmationCode || '',
-          recipientUserId: organizer._id,
-          metadata: {
-            registrationId: String(registration._id),
-            eventId: String(registration.eventId._id || ''),
-            runnerId: String(user._id)
-          }
-        } : null
-      });
-    } catch (communicationError) {
-      console.error('Payment receipt submission communication failed:', {
-        error: communicationError.message,
-        registrationId: String(registration._id)
-      });
-    }
+      try {
+        const organizer = await User.findById(registration.eventId.organizerId).select('firstName email');
+        await communicationService.notify('payment.receipt_submitted', {
+          notification: {
+            userId: user._id,
+            type: 'payment_proof_submitted',
+            title: 'Payment Receipt Submitted',
+            message: `Payment receipt submitted for ${registration.eventId.title || 'your event registration'}.`,
+            href: '/my-registrations',
+            metadata: {
+              registrationId: String(registration._id),
+              eventId: String(registration.eventId._id || ''),
+              eventTitle: registration.eventId.title || ''
+            }
+          },
+          email: organizer?.email ? {
+            to: organizer.email,
+            organizerFirstName: organizer.firstName || 'Organizer',
+            runnerName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email,
+            eventTitle: registration.eventId.title || 'Event',
+            confirmationCode: registration.confirmationCode || '',
+            recipientUserId: organizer._id,
+            metadata: {
+              registrationId: String(registration._id),
+              eventId: String(registration.eventId._id || ''),
+              runnerId: String(user._id)
+            }
+          } : null
+        });
+      } catch (communicationError) {
+        console.error('Payment receipt submission communication failed:', {
+          error: communicationError.message,
+          registrationId: String(registration._id)
+        });
+      }
 
-    const query = new URLSearchParams({
-      type: 'success',
-      msg: 'Payment receipt submitted successfully. Await organizer verification.'
-    });
-    return res.redirect(`/my-registrations?${query.toString()}`);
+      const query = new URLSearchParams({
+        type: 'success',
+        msg: 'Payment receipt submitted successfully. Await organizer verification.'
+      });
+      return res.redirect(`/my-registrations?${query.toString()}`);
+    } catch (error) {
+      if (idempotencyLock && error?.code !== 'SUBMISSION_IDEMPOTENCY_CONFLICT') {
+        await idempotencyLock.release().catch(() => {});
+      }
+      throw error;
+    }
   } catch (error) {
     if (uploadedProofKey) {
       await uploadService.deleteObjects([uploadedProofKey]);
     }
-    console.error('Error uploading payment receipt:', error);
+    if (error?.code !== 'SUBMISSION_IDEMPOTENCY_CONFLICT') {
+      console.error('Error uploading payment receipt:', error);
+    }
     const query = new URLSearchParams({
       type: 'error',
-      msg: 'An error occurred while uploading payment receipt. Please try again.'
+      msg: String(error?.message || 'An error occurred while uploading payment receipt. Please try again.')
     });
     return res.redirect(`/my-registrations?${query.toString()}`);
   }

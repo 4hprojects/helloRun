@@ -6,6 +6,7 @@ require('dotenv').config();
 const SubmissionIdempotencyKey = require('../src/models/SubmissionIdempotencyKey');
 const {
   acquireSubmissionIdempotencyLock,
+  buildPaymentProofIdempotencyKey,
   buildProofSubmissionIdempotencyKey,
   buildStravaSubmissionIdempotencyKey
 } = require('../src/services/submission-idempotency.service');
@@ -62,6 +63,25 @@ test('submission idempotency keys include Strava event scope', () => {
     runnerId,
     eventId: secondEvent,
     stravaActivityId: 123
+  });
+
+  assert.notEqual(first, second);
+});
+
+test('payment proof idempotency keys include registration scope', () => {
+  const runnerId = new mongoose.Types.ObjectId();
+  const firstRegistration = new mongoose.Types.ObjectId();
+  const secondRegistration = new mongoose.Types.ObjectId();
+
+  const first = buildPaymentProofIdempotencyKey({
+    runnerId,
+    registrationId: firstRegistration,
+    proofHash: 'same-receipt'
+  });
+  const second = buildPaymentProofIdempotencyKey({
+    runnerId,
+    registrationId: secondRegistration,
+    proofHash: 'same-receipt'
   });
 
   assert.notEqual(first, second);

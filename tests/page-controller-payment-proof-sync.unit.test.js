@@ -6,6 +6,7 @@ const User = require('../src/models/User');
 const Registration = require('../src/models/Registration');
 const uploadService = require('../src/services/upload.service');
 const communicationService = require('../src/services/communication.service');
+const { __setDisableSubmissionIdempotencyLocks } = require('../src/services/submission-idempotency.service');
 
 const fakeUser = {
   _id: 'user-001',
@@ -70,6 +71,7 @@ function restoreStubs() {
 
 test('postUploadPaymentProof triggers shadow sync after successful upload', async () => {
   resetStubs();
+  __setDisableSubmissionIdempotencyLocks(true);
   syncShadowCalled = false;
 
   User.findById = (id) => {
@@ -131,6 +133,7 @@ test('postUploadPaymentProof triggers shadow sync after successful upload', asyn
     assert.ok(syncShadowCalled, 'syncRegistrationPaymentShadow should have been called');
     assert.ok(redirected && redirected.includes('/my-registrations?type=success'));
   } finally {
+    __setDisableSubmissionIdempotencyLocks(false);
     restoreStubs();
   }
 });
