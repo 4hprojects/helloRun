@@ -56,6 +56,7 @@ const {
   AUDIT_TARGET_TYPE_OPTIONS,
   buildCriticalAuditPath,
   listCriticalAuditEvents,
+  listCriticalAuditSignals,
   normalizeCriticalAuditFilters
 } = require('../services/critical-audit-query.service');
 const onsiteOperationsRoutes = require('./organiser/onsite-operations');
@@ -1303,17 +1304,24 @@ router.get('/events/:id/audit', requireAuth, async (req, res) => {
 
     const filters = normalizeCriticalAuditFilters(req.query);
     const targetIds = await getEventAuditTargetIds(event._id);
-    const result = await listCriticalAuditEvents({
-      filters,
+    const auditScope = {
       targetIds,
       targetTypes: ['event', 'registration', 'submission', 'accumulated_activity_submission']
-    });
+    };
+    const [result, signals] = await Promise.all([
+      listCriticalAuditEvents({
+        filters,
+        ...auditScope
+      }),
+      listCriticalAuditSignals(auditScope)
+    ]);
 
     return res.render('organizer/event-audit', {
       title: `Audit Trail - ${event.title}`,
       event,
       filters: result.filters,
       entries: result.entries,
+      signals,
       unavailable: result.unavailable,
       groupOptions: AUDIT_GROUP_OPTIONS,
       targetTypeOptions: AUDIT_TARGET_TYPE_OPTIONS.filter((option) => ['', 'event', 'registration', 'submission', 'accumulated_activity_submission'].includes(option.value)),

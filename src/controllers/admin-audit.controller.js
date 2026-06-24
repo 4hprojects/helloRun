@@ -3,6 +3,7 @@ const {
   AUDIT_TARGET_TYPE_OPTIONS,
   buildCriticalAuditPath,
   listCriticalAuditEvents,
+  listCriticalAuditSignals,
   normalizeCriticalAuditFilters
 } = require('../services/critical-audit-query.service');
 
@@ -10,12 +11,16 @@ exports.listCriticalAudit = async (req, res) => {
   const filters = normalizeCriticalAuditFilters(req.query);
 
   try {
-    const result = await listCriticalAuditEvents({ filters });
+    const [result, signals] = await Promise.all([
+      listCriticalAuditEvents({ filters }),
+      listCriticalAuditSignals()
+    ]);
 
     return res.render('admin/audit-trail', {
       title: 'Critical Audit Trail - HelloRun Admin',
       filters: result.filters,
       entries: result.entries,
+      signals,
       unavailable: result.unavailable,
       groupOptions: AUDIT_GROUP_OPTIONS,
       targetTypeOptions: AUDIT_TARGET_TYPE_OPTIONS,

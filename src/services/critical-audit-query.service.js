@@ -2,6 +2,9 @@ const { getPostgresClient } = require('../db/postgres');
 
 const AUDIT_PAGE_SIZE = 50;
 const MAX_AUDIT_PAGE_SIZE = 100;
+const EXPORT_VOLUME_THRESHOLD_24H = 5;
+const REJECTION_VOLUME_THRESHOLD_24H = 8;
+const RAPID_ACTION_THRESHOLD_15M = 15;
 
 const AUDIT_ACTION_GROUPS = Object.freeze({
   payments: [
@@ -189,6 +192,118 @@ async function listCriticalAuditEvents(options = {}) {
   };
 }
 
+async function listCriticalAuditSignals(options = {}) {
+  if (!process.env.DATABASE_URL) {
+    return [];
+  }
+
+  const sql = options.sql || getPostgresClient();
+  const scopedTargetIds = normalizeStringArray(options.targetIds);
+  const scopedTargetTypes = normalizeStringArray(options.targetTypes);
+  const hasScopedTargetIds = scopedTargetIds.length > 0;
+  const hasScopedTargetTypes = scopedTargetTypes.length > 0;
+  const scopeTargetIds = hasScopedTargetIds ? scopedTargetIds : ['__none__'];
+  const scopeTargetTypes = hasScopedTargetTypes ? scopedTargetTypes : ['__none__'];
+  const exportActions = AUDIT_ACTION_GROUPS.exports;
+  const rejectionActions = ['payment.rejected', 'submission.rejected', 'reject'];
+  const rapidActions = [
+    ...AUDIT_ACTION_GROUPS.exports,
+    'payment.approved',
+    'payment.rejected',
+    'submission.approved',
+    'submission.rejected',
+    'approve',
+    'reject'
+  ];
+
+  const [exportRows, rejectionRows, rapidRows] = await Promise.all([
+    sql`
+      select coalesce(nullif(ac.actor_mongo_user_id, ''), 'system') as actor_key,
+             coalesce(au.display_name, au.email, nullif(ac.actor_mongo_user_id, ''), 'System') as actor_label,
+             count(*)::int as count,
+             max(ac.created_at) as latest_at
+      from audit_critical ac
+      left join app_users au on au.id = ac.actor_user_id
+      where ac.action = any(${exportActions})
+        and ac.created_at >= now() - interval '24 hours'
+        and (${hasScopedTargetTypes} = false or ac.target_type = any(${scopeTargetTypes}))
+        and (${hasScopedTargetIds} = false or ac.target_id = any(${scopeTargetIds}))
+      group by 1, 2
+      having count(*) >= ${EXPORT_VOLUME_THRESHOLD_24H}
+      order by count desc, latest_at desc
+      limit 5
+    `,
+    sql`
+      select coalesce(nullif(ac.actor_mongo_user_id, ''), 'system') as actor_key,
+             coalesce(au.display_name, au.email, nullif(ac.actor_mongo_user_id, ''), 'System') as actor_label,
+             count(*)::int as count,
+             max(ac.created_at) as latest_at
+      from audit_critical ac
+      left join app_users au on au.id = ac.actor_user_id
+      where ac.action = any(${rejectionActions})
+        and ac.created_at >= now() - interval '24 hours'
+        and (${hasScopedTargetTypes} = false or ac.target_type = any(${scopeTargetTypes}))
+        and (${hasScopedTargetIds} = false or ac.target_id = any(${scopeTargetIds}))
+      group by 1, 2
+      having count(*) >= ${REJECTION_VOLUME_THRESHOLD_24H}
+      order by count desc, latest_at desc
+      limit 5
+    `,
+    sql`
+      select coalesce(nullif(ac.actor_mongo_user_id, ''), 'system') as actor_key,
+             coalesce(au.display_name, au.email, nullif(ac.actor_mongo_user_id, ''), 'System') as actor_label,
+             count(*)::int as count,
+             max(ac.created_at) as latest_at
+      from audit_critical ac
+      left join app_users au on au.id = ac.actor_user_id
+      where ac.action = any(${rapidActions})
+        and ac.created_at >= now() - interval '15 minutes'
+        and (${hasScopedTargetTypes} = false or ac.target_type = any(${scopeTargetTypes}))
+        and (${hasScopedTargetIds} = false or ac.target_id = any(${scopeTargetIds}))
+      group by 1, 2
+      having count(*) >= ${RAPID_ACTION_THRESHOLD_15M}
+      order by count desc, latest_at desc
+      limit 5
+    `
+  ]);
+
+  return [
+    ...exportRows.map((row) => buildAuditSignal({
+      type: 'high_export_volume',
+      severity: 'warning',
+      title: 'High export volume',
+      actorLabel: row.actor_label,
+      actorKey: row.actor_key,
+      count: row.count,
+      latestAt: row.latest_at,
+      details: `${row.count} export action(s) in the last 24 hours.`
+    })),
+    ...rejectionRows.map((row) => buildAuditSignal({
+      type: 'many_rejections',
+      severity: 'warning',
+      title: 'Many rejected actions',
+      actorLabel: row.actor_label,
+      actorKey: row.actor_key,
+      count: row.count,
+      latestAt: row.latest_at,
+      details: `${row.count} rejection action(s) in the last 24 hours.`
+    })),
+    ...rapidRows.map((row) => buildAuditSignal({
+      type: 'rapid_activity',
+      severity: 'critical',
+      title: 'Rapid review/export activity',
+      actorLabel: row.actor_label,
+      actorKey: row.actor_key,
+      count: row.count,
+      latestAt: row.latest_at,
+      details: `${row.count} review/export action(s) in the last 15 minutes.`
+    }))
+  ].sort((a, b) => {
+    if (a.severity !== b.severity) return a.severity === 'critical' ? -1 : 1;
+    return b.count - a.count;
+  });
+}
+
 function buildCriticalAuditPath(basePath, filters = {}, overrides = {}) {
   const next = { ...filters, ...overrides };
   const params = new URLSearchParams();
@@ -222,6 +337,19 @@ function getActionValues(filters) {
   return AUDIT_ACTION_GROUPS[filters.group] || [];
 }
 
+function buildAuditSignal(input) {
+  return {
+    type: input.type,
+    severity: input.severity,
+    title: input.title,
+    actorLabel: input.actorLabel,
+    actorKey: input.actorKey,
+    count: Number(input.count || 0),
+    latestAt: input.latestAt || null,
+    details: input.details
+  };
+}
+
 function normalizeDateInput(value) {
   const raw = String(value || '').trim();
   return /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : '';
@@ -245,5 +373,6 @@ module.exports = {
   AUDIT_PAGE_SIZE,
   buildCriticalAuditPath,
   listCriticalAuditEvents,
+  listCriticalAuditSignals,
   normalizeCriticalAuditFilters
 };

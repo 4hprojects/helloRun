@@ -21,6 +21,27 @@
         <div class="admin-alert admin-alert-error">Postgres audit storage is not configured in this environment.</div>
       <% } %>
 
+      <% if (signals && signals.length) { %>
+        <section class="admin-audit-signals" aria-labelledby="audit-signals-title">
+          <div class="admin-section-head">
+            <h3 id="audit-signals-title">Audit Signals</h3>
+            <p>Recent activity worth a closer look.</p>
+          </div>
+          <div class="quick-link-grid">
+            <% signals.forEach((signal) => { %>
+              <article class="quick-link-card admin-audit-signal admin-audit-signal-<%= signal.severity %>">
+                <span class="quick-link-title"><%= signal.title %></span>
+                <span class="quick-link-meta"><%= signal.details %></span>
+                <span class="quick-link-meta">Actor: <%= signal.actorLabel || signal.actorKey || 'System' %></span>
+                <% if (signal.latestAt) { %>
+                  <span class="quick-link-meta">Latest: <%= new Date(signal.latestAt).toLocaleString('en-US') %></span>
+                <% } %>
+              </article>
+            <% }) %>
+          </div>
+        </section>
+      <% } %>
+
       <form method="GET" action="/admin/audit" class="admin-filters">
         <div class="filter-field filter-grow">
           <label for="q">Search</label>

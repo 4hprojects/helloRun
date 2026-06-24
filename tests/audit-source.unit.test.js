@@ -41,3 +41,20 @@ test('admin and organizer audit consoles expose filtered critical audit views', 
   assert.match(organizerAuditView, /Event Audit/);
   assert.match(organizerEventDetailView, /\/organizer\/events\/<%= event\._id %>\/audit/);
 });
+
+test('critical audit consoles surface anomaly signals', () => {
+  const auditService = readSource('src/services/critical-audit-query.service.js');
+  const adminAuditController = readSource('src/controllers/admin-audit.controller.js');
+  const organizerRoutes = readSource('src/routes/organizer.routes.js');
+  const adminAuditView = readSource('src/views/admin/audit-trail.ejs');
+  const organizerAuditView = readSource('src/views/organizer/event-audit.ejs');
+
+  assert.match(auditService, /listCriticalAuditSignals/);
+  assert.match(auditService, /high_export_volume/);
+  assert.match(auditService, /many_rejections/);
+  assert.match(auditService, /rapid_activity/);
+  assert.match(adminAuditController, /listCriticalAuditSignals/);
+  assert.match(organizerRoutes, /listCriticalAuditSignals\(auditScope\)/);
+  assert.match(adminAuditView, /Audit Signals/);
+  assert.match(organizerAuditView, /Audit Signals/);
+});

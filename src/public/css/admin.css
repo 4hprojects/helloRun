@@ -3359,3 +3359,15 @@
   font-size: 0.72rem;
   color: #64748b;
 }
+
+.admin-audit-signals {
+  margin-bottom: 1rem;
+}
+
+.admin-audit-signal {
+  border-left: 4px solid #f59e0b;
+}
+
+.admin-audit-signal-critical {
+  border-left-color: #dc2626;
+}
