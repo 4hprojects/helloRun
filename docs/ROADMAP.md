@@ -51,6 +51,7 @@
 | P4 Personal leaderboard rank — "Ranked #N of M verified runners" in My Standing card | Jun 24 | — |
 | P11 Admin user management gaps — accountStatus filter; lastLoginAt tracking + display; earned badge list on user detail | Jun 24 | `tests/admin-governance.integration.test.js` |
 | P15 Platform Analytics — /admin/analytics with totals, funnel (approval rate + avg review time), 12-month growth table, top events, top organisers, shop revenue | Jun 24 | — |
+| Sitemap customization — isTestData/excludeFromSitemap on Event model; migration script marks 198 test events; test fixtures updated (51 insertions); admin per-event sitemap toggle; sitemap cleaned 232 → 33 URLs on production | Jun 24 | — |
 
 ---
 

@@ -74,6 +74,7 @@ _Last updated: June 24, 2026_
 | P4 Personal leaderboard rank — "Ranked #N of M verified runners" in My Standing card on event leaderboard page | June 24, 2026 | — |
 | P11 Admin user management gaps — accountStatus filter on user list; lastLoginAt field tracked on login and shown in list + detail; earned badge list section on user detail page | June 24, 2026 | `tests/admin-governance.integration.test.js`, `tests/admin-users.integration.test.js` |
 | P15 Platform Analytics — /admin/analytics page with 6 sections: platform totals, run lifecycle funnel (approval rate + avg review time), monthly growth table, top 10 events, top 10 organisers, conditional shop revenue | June 24, 2026 | — |
+| Sitemap customization — isTestData + excludeFromSitemap fields on Event model; getPublicEventVisibilityQuery excludes test data everywhere; sitemap query also excludes excludeFromSitemap; migration script (npm run mark-test-events) marks existing 198 test events; isTestData: true added to 51 Event.create() calls across 28 test files; admin per-event sitemap toggle on event detail page; sitemap cleaned from 232 → 33 URLs on production | June 24, 2026 | — |
 
 ---
 
