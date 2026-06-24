@@ -4,6 +4,7 @@ const router = express.Router();
 const organizerShopController = require('../controllers/organizer-shop.controller');
 const { requireAuth, requireApprovedOrganizer } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
+const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const {
   canManageEventShop,
   canReviewShopPayment,
@@ -17,6 +18,12 @@ const {
   validateShopPagination,
   validateShopMutationPayload
 } = require('../middleware/shop-validation.middleware');
+
+const shopReportExportLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many shop report exports. Please wait a few minutes and try again.'
+});
 
 router.use(requireAuth, requireApprovedOrganizer);
 
@@ -43,7 +50,7 @@ router.get('/events/:eventId/shop/payment-reviews', validateObjectIdParam('event
 router.patch('/events/:eventId/shop/payment-reviews/:paymentId', validateObjectIdParam('eventId'), validateUuidParam('paymentId'), requireCsrfProtection, canManageEventShop, canReviewShopPayment, validateShopMutationPayload('paymentReview'), organizerShopController.patchPaymentReview);
 
 router.get('/events/:eventId/shop/reports', validateObjectIdParam('eventId'), canManageEventShop, organizerShopController.getReports);
-router.get('/events/:eventId/shop/reports/export.csv', validateObjectIdParam('eventId'), canManageEventShop, organizerShopController.exportReportCsv);
-router.get('/events/:eventId/shop/reports/export.xlsx', validateObjectIdParam('eventId'), canManageEventShop, organizerShopController.exportReportXlsx);
+router.get('/events/:eventId/shop/reports/export.csv', validateObjectIdParam('eventId'), canManageEventShop, shopReportExportLimiter, organizerShopController.exportReportCsv);
+router.get('/events/:eventId/shop/reports/export.xlsx', validateObjectIdParam('eventId'), canManageEventShop, shopReportExportLimiter, organizerShopController.exportReportXlsx);
 
 module.exports = router;

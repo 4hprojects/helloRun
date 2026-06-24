@@ -34,6 +34,7 @@
 | Organizer Workflow Phase 5A — runner submission eligibility lookup now uses the shared rate limiter to reduce modal refresh storms | Jun 24 | `tests/runner-dashboard-modal.integration.test.js` |
 | Organizer Workflow Phase 5B — Strava activity refresh and Strava result submission endpoints now use shared rate limits | Jun 24 | `tests/strava-integration.integration.test.js` |
 | Organizer Workflow Phase 5C — organizer registrant CSV/XLSX export routes now use a shared export rate limiter | Jun 24 | `tests/organizer-route-source.unit.test.js` |
+| Organizer Workflow Phase 5D — organizer shop report CSV/XLSX export routes now use a shared export rate limiter | Jun 24 | `tests/organizer-route-source.unit.test.js` |
 
 ---
 
