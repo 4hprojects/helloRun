@@ -34,6 +34,9 @@ router.use((req, res, next) => {
   return next();
 });
 
+// Analytics
+router.get('/analytics', requireAdmin, adminController.analyticsPage);
+
 // User management
 router.get('/users', requireAdmin, adminController.listUsers);
 router.post('/users/delete', requireAdmin, adminController.deleteUsers);

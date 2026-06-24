@@ -2255,6 +2255,20 @@ exports.removeEventMedia = async (req, res) => {
   }
 };
 
+exports.analyticsPage = async (req, res) => {
+  try {
+    const { getPlatformAnalytics } = require('../services/platform-analytics.service');
+    const analytics = await getPlatformAnalytics();
+    return res.render('admin/analytics', {
+      title: 'Platform Analytics - HelloRun Admin',
+      analytics,
+      message: getAdminPageMessage(req.query)
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'Unable to load platform analytics.');
+  }
+};
+
 exports.dashboard = async (req, res) => {
   try {
     const [

@@ -73,6 +73,7 @@ _Last updated: June 24, 2026_
 | P8 Email notification settings — runner profile Notifications section with 5 opt-outable event types; user-level emailOptOut stored on User model; communication.service respects opt-out (email suppressed, in-app still fires) | June 24, 2026 | — |
 | P4 Personal leaderboard rank — "Ranked #N of M verified runners" in My Standing card on event leaderboard page | June 24, 2026 | — |
 | P11 Admin user management gaps — accountStatus filter on user list; lastLoginAt field tracked on login and shown in list + detail; earned badge list section on user detail page | June 24, 2026 | `tests/admin-governance.integration.test.js`, `tests/admin-users.integration.test.js` |
+| P15 Platform Analytics — /admin/analytics page with 6 sections: platform totals, run lifecycle funnel (approval rate + avg review time), monthly growth table, top 10 events, top 10 organisers, conditional shop revenue | June 24, 2026 | — |
 
 ---
 

@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: 'Platform Analytics - HelloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="admin-page">
+    <section class="section admin-shell">
+
+      <header class="admin-page-header">
+        <div>
+          <p class="admin-page-eyebrow">Admin</p>
+          <h1>Platform Analytics</h1>
+          <p class="admin-page-subtitle">Aggregate platform metrics from Supabase.</p>
+        </div>
+        <a href="/admin" class="btn btn-outline btn-sm">← Dashboard</a>
+      </header>
+
+      <% if (message) { %>
+        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <% if (!analytics) { %>
+        <section class="dashboard-band">
+          <article class="metric-card" style="grid-column:1/-1">
+            <div class="metric-card-head">
+              <p class="metric-label">Analytics unavailable</p>
+              <i data-lucide="database-off" class="metric-card-icon-sm" aria-hidden="true"></i>
+            </div>
+            <p class="metric-value" style="font-size:1rem;font-weight:400;color:#64748b">
+              Platform analytics require the Supabase database to be configured.<br>Set <code>DATABASE_URL</code> to enable.
+            </p>
+          </article>
+        </section>
+      <% } else { %>
+
+        <%
+          const { totals, funnel, growth, topEvents, topOrganisers, revenue } = analytics;
+          function fmtNum(n) { return Number(n || 0).toLocaleString('en-US'); }
+          function fmtPct(n) { return Number(n || 0).toFixed(1) + '%'; }
+          function fmtHrs(n) {
+            if (n === null || n === undefined) return 'N/A';
+            const h = Number(n);
+            if (h < 1) return Math.round(h * 60) + ' min';
+            return h.toFixed(1) + ' hrs';
+          }
+          function fmtMonth(d) {
+            if (!d) return '';
+            return new Date(d).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+          }
+          function fmtCurrency(n) {
+            return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          }
+        %>
+
+        <!-- Section 1: Platform Totals -->
+        <section class="dashboard-band" aria-labelledby="analytics-totals-title">
+          <h2 id="analytics-totals-title" class="dashboard-section-title">Platform Totals</h2>
+          <div class="dashboard-grid">
+            <article class="metric-card">
+              <div class="metric-card-head">
+                <p class="metric-label">Runners</p>
+                <i data-lucide="user-check" class="metric-card-icon-sm" aria-hidden="true"></i>
+              </div>
+              <p class="metric-value"><%= fmtNum(totals.runners) %></p>
+              <a href="/admin/users?role=runner" class="metric-link">View runners</a>
+            </article>
+
+            <article class="metric-card">
+              <div class="metric-card-head">
+                <p class="metric-label">Approved Organisers</p>
+                <i data-lucide="building-2" class="metric-card-icon-sm" aria-hidden="true"></i>
+              </div>
+              <p class="metric-value"><%= fmtNum(totals.organisers) %></p>
+              <a href="/admin/users?role=organiser" class="metric-link">View organisers</a>
+            </article>
+
+            <article class="metric-card">
+              <div class="metric-card-head">
+                <p class="metric-label">Published Events</p>
+                <i data-lucide="calendar-check" class="metric-card-icon-sm" aria-hidden="true"></i>
+              </div>
+              <p class="metric-value"><%= fmtNum(totals.publishedEvents) %></p>
+              <p class="metric-helper"><%= fmtNum(totals.closedEvents) %> closed · <%= fmtNum(totals.draftEvents) %> draft</p>
+            </article>
+
+            <article class="metric-card">
+              <div class="metric-card-head">
+                <p class="metric-label">Certificates Issued</p>
+                <i data-lucide="award" class="metric-card-icon-sm" aria-hidden="true"></i>
+              </div>
+              <p class="metric-value"><%= fmtNum(totals.certificatesIssued) %></p>
+              <p class="metric-helper">Approved submissions with cert</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 2: Run Lifecycle Funnel -->
+        <section class="dashboard-band" aria-labelledby="analytics-funnel-title">
+          <h2 id="analytics-funnel-title" class="dashboard-section-title">Run Lifecycle Funnel</h2>
+          <div class="dashboard-grid">
+            <article class="metric-card">
+              <div class="metric-card-head">
+                <p class="metric-label">Total Registrations</p>
+                <i data-lucide="users" class="metric-card-icon-sm" aria-hidden="true"></i>
+              </div>
+              <p class="metric-value"><%= fmtNum(funnel.totalRegistrations) %></p>
+              <p class="metric-helper"><%= fmtNum(funnel.paidRegistrations) %> paid</p>
+            </article>
+
+            <article class="metric-card">
+              <div class="metric-card-head">
+                <p class="metric-label">Total Submissions</p>
+                <i data-lucide="clipboard-list" class="metric-card-icon-sm" aria-hidden="true"></i>
+              </div>
+              <p class="metric-value"><%= fmtNum(funnel.totalSubmissions) %></p>
+              <p class="metric-helper"><%= fmtNum(funnel.pendingSubmissions) %> pending review</p>
+            </article>
+
+            <article class="metric-card">
+              <div class="metric-card-head">
+                <p class="metric-label">Approved Submissions</p>
+                <i data-lucide="check-circle" class="metric-card-icon-sm" aria-hidden="true"></i>
+              </div>
+              <p class="metric-value"><%= fmtNum(funnel.approvedSubmissions) %></p>
+              <p class="metric-helper"><%= fmtNum(funnel.rejectedSubmissions) %> rejected</p>
+            </article>
+
+            <article class="metric-card">
+              <div class="metric-card-head">
+                <p class="metric-label">Approval Rate</p>
+                <i data-lucide="percent" class="metric-card-icon-sm" aria-hidden="true"></i>
+              </div>
+              <p class="metric-value"><%= fmtPct(funnel.approvalRate) %></p>
+              <p class="metric-helper">Of all submitted results</p>
+            </article>
+
+            <article class="metric-card">
+              <div class="metric-card-head">
+                <p class="metric-label">Avg Review Time</p>
+                <i data-lucide="clock" class="metric-card-icon-sm" aria-hidden="true"></i>
+              </div>
+              <p class="metric-value"><%= fmtHrs(funnel.avgHoursToReview) %></p>
+              <p class="metric-helper">Submission to decision</p>
+            </article>
+
+            <article class="metric-card">
+              <div class="metric-card-head">
+                <p class="metric-label">Payment Proof Pending</p>
+                <i data-lucide="file-clock" class="metric-card-icon-sm" aria-hidden="true"></i>
+              </div>
+              <p class="metric-value"><%= fmtNum(funnel.proofPending) %></p>
+              <p class="metric-helper"><%= fmtNum(funnel.proofRejected) %> rejected</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- Section 3: Growth -->
+        <% if (growth && growth.length) { %>
+          <section class="dashboard-band" aria-labelledby="analytics-growth-title">
+            <h2 id="analytics-growth-title" class="dashboard-section-title">Growth — Last 12 Months</h2>
+            <div class="admin-analytics-table-wrap">
+              <table class="admin-analytics-table">
+                <thead>
+                  <tr>
+                    <th>Month</th>
+                    <th class="num">New Users</th>
+                    <th class="num">Runners</th>
+                    <th class="num">Organisers</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% growth.forEach(function(row) { %>
+                    <tr>
+                      <td><%= fmtMonth(row.month) %></td>
+                      <td class="num"><%= fmtNum(row.total) %></td>
+                      <td class="num"><%= fmtNum(row.runners) %></td>
+                      <td class="num"><%= fmtNum(row.organisers) %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        <% } %>
+
+        <!-- Section 4: Top Events -->
+        <% if (topEvents && topEvents.length) { %>
+          <section class="dashboard-band" aria-labelledby="analytics-events-title">
+            <h2 id="analytics-events-title" class="dashboard-section-title">Top 10 Events by Registrations</h2>
+            <div class="admin-analytics-table-wrap">
+              <table class="admin-analytics-table">
+                <thead>
+                  <tr>
+                    <th class="rank-col">#</th>
+                    <th>Event</th>
+                    <th class="num">Total</th>
+                    <th class="num">Paid</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% topEvents.forEach(function(ev, i) { %>
+                    <tr>
+                      <td class="rank-col muted"><%= i + 1 %></td>
+                      <td>
+                        <a href="/events/<%= ev.slug %>" target="_blank" rel="noopener noreferrer"><%= ev.title %></a>
+                        <% if (ev.status !== 'published') { %><span class="status-badge status-badge-<%= ev.status %> analytics-status-chip"><%= ev.status %></span><% } %>
+                      </td>
+                      <td class="num"><%= fmtNum(ev.totalRegs) %></td>
+                      <td class="num"><%= fmtNum(ev.paidRegs) %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        <% } %>
+
+        <!-- Section 5: Top Organisers -->
+        <% if (topOrganisers && topOrganisers.length) { %>
+          <section class="dashboard-band" aria-labelledby="analytics-orgs-title">
+            <h2 id="analytics-orgs-title" class="dashboard-section-title">Top 10 Organisers by Events</h2>
+            <div class="admin-analytics-table-wrap">
+              <table class="admin-analytics-table">
+                <thead>
+                  <tr>
+                    <th class="rank-col">#</th>
+                    <th>Organiser</th>
+                    <th class="num">Events</th>
+                    <th class="num">Registrations</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% topOrganisers.forEach(function(org, i) { %>
+                    <tr>
+                      <td class="rank-col muted"><%= i + 1 %></td>
+                      <td>
+                        <% if (org.mongoUserId) { %>
+                          <a href="/admin/users/<%= org.mongoUserId %>"><%= org.displayName %></a>
+                        <% } else { %>
+                          <%= org.displayName %>
+                        <% } %>
+                      </td>
+                      <td class="num"><%= fmtNum(org.eventCount) %></td>
+                      <td class="num"><%= fmtNum(org.totalRegistrations) %></td>
+                    </tr>
+                  <% }); %>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        <% } %>
+
+        <!-- Section 6: Revenue -->
+        <% if (revenue) { %>
+          <section class="dashboard-band" aria-labelledby="analytics-revenue-title">
+            <h2 id="analytics-revenue-title" class="dashboard-section-title">Shop Revenue</h2>
+            <div class="dashboard-grid" style="margin-bottom:1.5rem">
+              <article class="metric-card">
+                <div class="metric-card-head">
+                  <p class="metric-label">Completed Orders</p>
+                  <i data-lucide="shopping-bag" class="metric-card-icon-sm" aria-hidden="true"></i>
+                </div>
+                <p class="metric-value"><%= fmtNum(revenue.orderCount) %></p>
+              </article>
+              <article class="metric-card">
+                <div class="metric-card-head">
+                  <p class="metric-label">Total Revenue</p>
+                  <i data-lucide="dollar-sign" class="metric-card-icon-sm" aria-hidden="true"></i>
+                </div>
+                <p class="metric-value"><%= fmtCurrency(revenue.totalRevenue) %></p>
+              </article>
+            </div>
+            <% if (revenue.monthly && revenue.monthly.length) { %>
+              <div class="admin-analytics-table-wrap">
+                <table class="admin-analytics-table">
+                  <thead>
+                    <tr>
+                      <th>Month</th>
+                      <th class="num">Orders</th>
+                      <th class="num">Revenue</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% revenue.monthly.forEach(function(row) { %>
+                      <tr>
+                        <td><%= fmtMonth(row.month) %></td>
+                        <td class="num"><%= fmtNum(row.orderCount) %></td>
+                        <td class="num"><%= fmtCurrency(row.revenue) %></td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            <% } %>
+          </section>
+        <% } %>
+
+      <% } %>
+
+    </section>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

@@ -3371,3 +3371,86 @@
 .admin-audit-signal-critical {
   border-left-color: #dc2626;
 }
+
+/* ── Platform analytics page ── */
+.admin-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-page-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  margin: 0 0 0.25rem;
+}
+
+.admin-page-subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0.25rem 0 0;
+}
+
+.admin-analytics-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.admin-analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.admin-analytics-table th {
+  background: #f8fafc;
+  padding: 0.65rem 1rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #e2e8f0;
+  white-space: nowrap;
+}
+
+.admin-analytics-table td {
+  padding: 0.65rem 1rem;
+  color: #0f172a;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.admin-analytics-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-analytics-table tbody tr:hover td {
+  background: #f8fafc;
+}
+
+.admin-analytics-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-analytics-table .rank-col {
+  width: 2.5rem;
+  text-align: center;
+}
+
+.admin-analytics-table .muted {
+  color: #94a3b8;
+}
+
+.analytics-status-chip {
+  margin-left: 0.4rem;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.35rem;
+}

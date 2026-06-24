@@ -50,6 +50,7 @@
 | P8 Email notification settings — Notifications section on runner profile; 5 opt-outable types; emailOptOut on User model; service respects opt-out | Jun 24 | — |
 | P4 Personal leaderboard rank — "Ranked #N of M verified runners" in My Standing card | Jun 24 | — |
 | P11 Admin user management gaps — accountStatus filter; lastLoginAt tracking + display; earned badge list on user detail | Jun 24 | `tests/admin-governance.integration.test.js` |
+| P15 Platform Analytics — /admin/analytics with totals, funnel (approval rate + avg review time), 12-month growth table, top events, top organisers, shop revenue | Jun 24 | — |
 
 ---
 
