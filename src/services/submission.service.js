@@ -16,6 +16,8 @@ const { recordCriticalAuditEventInBackground } = require('./critical-audit.servi
 const { invalidateLeaderboardCache } = require('./leaderboard.service');
 const { normalizeSingleActivityRanking, syncRankingEntry } = require('./ranking.service');
 const { evaluatePublishedRankingAchievements } = require('./achievement.service');
+const { syncSubmissionShadow } = require('./submission-shadow.service');
+const { recordSyncFailureInBackground } = require('./sync-failure.service');
 
 const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
 const REJECTABLE_STATUS = new Set(['submitted']);
@@ -248,26 +250,43 @@ async function reviewSubmission({
   }
 
   const previousStatus = submission.status;
-  submission.reviewedAt = new Date();
-  submission.reviewedBy = organizerId;
-  submission.reviewNotes = String(reviewNotes || '').trim().slice(0, 1200);
-  submission.rejectionReason = '';
+  const reviewedAt = new Date();
+  const safeReviewNotes = String(reviewNotes || '').trim().slice(0, 1200);
+  const update = {
+    reviewedAt,
+    reviewedBy: organizerId,
+    reviewNotes: safeReviewNotes,
+    rejectionReason: ''
+  };
 
   if (safeAction === 'approve') {
-    submission.status = 'approved';
+    update.status = 'approved';
     // Manual approval is the trusted reviewer decision, so clear automated suspicion metadata.
-    submission.suspiciousFlag = false;
-    submission.suspiciousFlagReason = '';
+    update.suspiciousFlag = false;
+    update.suspiciousFlagReason = '';
   } else {
     const reason = String(rejectionReason || '').trim().slice(0, 500);
     if (!reason) {
       throw new Error('Rejection reason is required.');
     }
-    submission.status = 'rejected';
-    submission.rejectionReason = reason;
+    update.status = 'rejected';
+    update.rejectionReason = reason;
   }
 
-  await submission.save();
+  const reviewedSubmission = await Submission.findOneAndUpdate(
+    { _id: submission._id, status: previousStatus },
+    { $set: update },
+    { new: true, runValidators: true }
+  );
+  if (!reviewedSubmission) {
+    throw new Error(
+      safeAction === 'approve'
+        ? 'Only submitted or rejected results can be approved.'
+        : 'Only submitted results can be rejected.'
+    );
+  }
+
+  syncSubmissionShadowInBackground(reviewedSubmission);
   if (safeAction === 'approve') {
     invalidateLeaderboardCache(event.slug);
   }
@@ -275,27 +294,38 @@ async function reviewSubmission({
     actorMongoUserId: organizerId,
     action: safeAction === 'approve' ? 'submission.approved' : 'submission.rejected',
     targetType: 'submission',
-    targetId: String(submission._id),
+    targetId: String(reviewedSubmission._id),
     statusFrom: previousStatus,
-    statusTo: submission.status,
+    statusTo: reviewedSubmission.status,
     notes: safeAction === 'approve'
-      ? submission.reviewNotes
-      : (submission.rejectionReason || submission.reviewNotes),
-    occurredAt: submission.reviewedAt
+      ? reviewedSubmission.reviewNotes
+      : (reviewedSubmission.rejectionReason || reviewedSubmission.reviewNotes),
+    occurredAt: reviewedSubmission.reviewedAt
   });
-  attachCertAndNotifyInBackground(submission, safeAction, event.title || 'Event');
+  attachCertAndNotifyInBackground(reviewedSubmission, safeAction, event.title || 'Event');
   if (safeAction === 'approve') {
-    evaluateSubmissionAchievementsSafe(submission, {
+    evaluateSubmissionAchievementsSafe(reviewedSubmission, {
       performedBy: organizerId
     });
-    if (!submission.isPersonalRecord) {
-      refreshGlobalDistanceMilestonesSafe(submission.runnerId, {
+    if (!reviewedSubmission.isPersonalRecord) {
+      refreshGlobalDistanceMilestonesSafe(reviewedSubmission.runnerId, {
         performedBy: organizerId
       });
-      syncEventRankingsInBackground(submission, event.slug);
+      syncEventRankingsInBackground(reviewedSubmission, event.slug);
     }
   }
-  return submission;
+  return reviewedSubmission;
+}
+
+function syncSubmissionShadowInBackground(submission) {
+  if (!submission || !submission._id || !process.env.DATABASE_URL) return;
+  syncSubmissionShadow(submission, { operation: 'live_sync' }).catch((error) => {
+    console.error('[Submission Shadow Sync] Failed to sync submission:', {
+      submissionId: String(submission._id),
+      error: error?.message || String(error)
+    });
+    recordSyncFailureInBackground('submission', String(submission._id), error, { operation: 'live_sync' });
+  });
 }
 
 async function getRunnerSubmissions(runnerId, options = {}) {

@@ -100,9 +100,9 @@ test('run proof review queue combines standard and accumulated activity proofs',
   assert.match(html, /Run Proof Review/i);
   assert.match(html, /Pending Review/i);
   assert.match(html, /run-proof-header-actions/i);
-  assert.match(html, /data-lucide="users"[^>]*><\/i>\s*<span>Registrants<\/span>/i);
-  assert.match(html, /data-lucide="arrow-left"[^>]*><\/i>\s*<span>Back to Event<\/span>/i);
-  assert.match(html, /data-lucide="calendar-days"[^>]*><\/i>\s*<span>My Events<\/span>/i);
+  assert.match(html, /aria-label="Registrants"[\s\S]*data-lucide="users"/i);
+  assert.match(html, /aria-label="Back to Event"[\s\S]*data-lucide="arrow-left"/i);
+  assert.match(html, /aria-label="My Events"[\s\S]*data-lucide="calendar-days"/i);
   assert.match(html, /Run Result/i);
   assert.match(html, /Accumulated Activity/i);
   assert.match(html, /activity-proof\.png/i);
@@ -484,6 +484,34 @@ test('organizer cannot approve already-approved submission', async () => {
   assert.match(location, /(Only\+submitted\+or\+rejected\+results\+can\+be\+approved|Submission\+not\+found)/i);
 });
 
+test('organizer submission approval is stale-safe after first transition', async () => {
+  const seed = await seedReviewData('approve-stale-safe');
+  const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  const ready = await waitForSessionReady('/organizer/dashboard', ownerCookie);
+  assert.equal(ready, true);
+  const path = `/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/approve`;
+
+  const first = await postForm(path, ownerCookie, { reviewNotes: 'First approval wins.' });
+  assert.equal(first.status, 302);
+  assert.match(first.headers.get('location') || '', /type=success/i);
+
+  const second = await postForm(path, ownerCookie, { reviewNotes: 'Second approval should fail.' });
+  assert.equal(second.status, 302);
+  const secondLocation = second.headers.get('location') || '';
+  assert.match(secondLocation, /type=error/i);
+  assert.match(secondLocation, /Only\+submitted\+or\+rejected\+results\+can\+be\+approved/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    const updated = await Submission.findById(seed.submission._id).lean();
+    assert.equal(updated.status, 'approved');
+    assert.equal(updated.reviewNotes, 'First approval wins.');
+    assert.equal(String(updated.reviewedBy), String(seed.ownerOrganizer._id));
+  } finally {
+    await mongoose.disconnect();
+  }
+});
+
 test('organizer can approve rejected submission from run proof queue', async () => {
   const seed = await seedReviewData('approve-rejected-from-queue', { submissionStatus: 'rejected' });
   await mongoose.connect(process.env.MONGODB_URI);
@@ -641,6 +669,40 @@ test('admin approval clears suspicious metadata for accumulated activity submiss
     assert.equal(updated.suspiciousFlag, false);
     assert.equal(updated.suspiciousFlagReason || '', '');
     assert.equal(String(updated.reviewedBy), String(seed.admin._id));
+  } finally {
+    await mongoose.disconnect();
+  }
+});
+
+test('accumulated activity rejection is stale-safe after first transition', async () => {
+  const seed = await seedAccumulatedReviewData('reject-accumulated-stale-safe');
+  const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  const ready = await waitForSessionReady('/organizer/dashboard', ownerCookie);
+  assert.equal(ready, true);
+  const path = `/organizer/events/${seed.event._id}/submissions/${seed.activity._id}/reject`;
+
+  const first = await postForm(path, ownerCookie, {
+    rejectionReason: 'Activity proof is unreadable',
+    reviewNotes: 'First rejection wins.'
+  });
+  assert.equal(first.status, 302);
+  assert.match(first.headers.get('location') || '', /type=success/i);
+
+  const second = await postForm(path, ownerCookie, {
+    rejectionReason: 'Duplicate rejection attempt',
+    reviewNotes: 'Second rejection should fail.'
+  });
+  assert.equal(second.status, 302);
+  const secondLocation = second.headers.get('location') || '';
+  assert.match(secondLocation, /type=error/i);
+  assert.match(secondLocation, /Only\+submitted\+activities\+can\+be\+rejected/i);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    const updated = await AccumulatedActivitySubmission.findById(seed.activity._id).lean();
+    assert.equal(updated.status, 'rejected');
+    assert.equal(updated.rejectionReason, 'Activity proof is unreadable');
+    assert.equal(String(updated.reviewedBy), String(seed.ownerOrganizer._id));
   } finally {
     await mongoose.disconnect();
   }

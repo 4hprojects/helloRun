@@ -22,6 +22,7 @@
 | P4 Personal Leaderboard Rank — "Ranked #N of M verified runners" in My Standing card | Jun 24 | — |
 | Organizer Workflow Phase 1A — CSRF protection added to payment review, run-proof review, event status, and media removal mutations; security matrix expanded | Jun 24 | `tests/csrf-route-guards.integration.test.js` |
 | Organizer Workflow Phase 1B — atomic payment review transitions with stale-action protection and shadow-sync preservation | Jun 24 | `tests/payment-route-guards.integration.test.js` |
+| Organizer Workflow Phase 1C — run-proof review transitions guarded by exact-status updates for standard and accumulated submissions | Jun 24 | `tests/submission-review-route-guards.integration.test.js` |
 
 ---
 

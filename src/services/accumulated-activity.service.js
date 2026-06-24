@@ -84,64 +84,80 @@ async function reviewAccumulatedActivitySubmission({
   }
 
   const previousStatus = activity.status;
-  activity.reviewedAt = new Date();
-  activity.reviewedBy = organizerId;
-  activity.reviewNotes = String(reviewNotes || '').trim().slice(0, 1200);
-  activity.rejectionReason = '';
+  const reviewedAt = new Date();
+  const safeReviewNotes = String(reviewNotes || '').trim().slice(0, 1200);
+  const update = {
+    reviewedAt,
+    reviewedBy: organizerId,
+    reviewNotes: safeReviewNotes,
+    rejectionReason: ''
+  };
 
   if (safeAction === 'approve') {
-    activity.status = 'approved';
+    update.status = 'approved';
     // Manual approval is the trusted reviewer decision, so clear automated suspicion metadata.
-    activity.suspiciousFlag = false;
-    activity.suspiciousFlagReason = '';
+    update.suspiciousFlag = false;
+    update.suspiciousFlagReason = '';
   } else {
     const reason = String(rejectionReason || '').trim().slice(0, 500);
     if (!reason) {
       throw new Error('Rejection reason is required.');
     }
-    activity.status = 'rejected';
-    activity.rejectionReason = reason;
+    update.status = 'rejected';
+    update.rejectionReason = reason;
   }
 
-  await activity.save();
+  const reviewedActivity = await AccumulatedActivitySubmission.findOneAndUpdate(
+    { _id: activity._id, status: previousStatus },
+    { $set: update },
+    { new: true, runValidators: true }
+  );
+  if (!reviewedActivity) {
+    throw new Error(
+      safeAction === 'approve'
+        ? 'Only submitted or rejected activities can be approved.'
+        : 'Only submitted activities can be rejected.'
+    );
+  }
+
   recordCriticalAuditEventInBackground({
     actorMongoUserId: organizerId,
     action: safeAction === 'approve' ? 'submission.approved' : 'submission.rejected',
     targetType: 'accumulated_activity_submission',
-    targetId: String(activity._id),
+    targetId: String(reviewedActivity._id),
     statusFrom: previousStatus,
-    statusTo: activity.status,
+    statusTo: reviewedActivity.status,
     notes: safeAction === 'approve'
-      ? activity.reviewNotes
-      : (activity.rejectionReason || activity.reviewNotes),
-    occurredAt: activity.reviewedAt
+      ? reviewedActivity.reviewNotes
+      : (reviewedActivity.rejectionReason || reviewedActivity.reviewNotes),
+    occurredAt: reviewedActivity.reviewedAt
   });
 
   let certificateWasIssued = false;
   if (safeAction === 'approve') {
-    certificateWasIssued = await attachCompletionCertificateIfNeeded(activity);
-    refreshAccumulatedChallengeProgress(activity.registrationId, {
+    certificateWasIssued = await attachCompletionCertificateIfNeeded(reviewedActivity);
+    refreshAccumulatedChallengeProgress(reviewedActivity.registrationId, {
       performedBy: organizerId
     }).catch((error) => {
       console.error('Accumulated challenge badge progress refresh failed:', {
-        activityId: String(activity._id || ''),
-        registrationId: String(activity.registrationId || ''),
+        activityId: String(reviewedActivity._id || ''),
+        registrationId: String(reviewedActivity.registrationId || ''),
         error: error.message
       });
     });
-    refreshGlobalDistanceMilestoneProgressInBackground(activity.runnerId, {
+    refreshGlobalDistanceMilestoneProgressInBackground(reviewedActivity.runnerId, {
       performedBy: organizerId
     });
   }
 
   await sendActivityReviewNotifications({
-    activity,
+    activity: reviewedActivity,
     eventTitle: event.title || 'Event',
     action: safeAction,
     certificateWasIssued
   });
 
-  return activity;
+  return reviewedActivity;
 }
 
 async function getRegistrationAccumulatedProgress(registrationId) {
