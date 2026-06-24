@@ -203,6 +203,8 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(source, /data-run-proof-registration-id/);
   assert.match(source, /Image analysis is unavailable\. Continue by entering your run details manually\./);
   assert.match(source, /Analyse Activity Screenshot/);
+  assert.match(source, /submissionDeadlineAt/);
+  assert.match(source, /Upload deadline/);
   assert.match(source, /ocrDetectedSourceInput\.value = result\.detectedSource/);
   assert.match(source, /ocrSummaryEl\.textContent = 'Detected from image:/);
   assert.doesNotMatch(source, /ocrResultsEl\.innerHTML = detailsHtml/);

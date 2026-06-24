@@ -507,6 +507,8 @@
 
     const getSubmissionTargetMeta = (item, dateRange) => {
       const parts = [dateRange || 'Schedule TBA'];
+      const submissionDeadline = formatEventDate(item?.submissionDeadlineAt);
+      if (submissionDeadline) parts.push('Upload deadline ' + submissionDeadline);
       const mode = getSubmissionMode(item);
       if (mode === 'accumulated') {
         parts.push('Adds distance after organizer approval');

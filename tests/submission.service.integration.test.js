@@ -1642,6 +1642,7 @@ test('eligible submission options expose one-time minimum required distance', as
   assert.ok(option);
   assert.equal(option.submissionMode, 'standard');
   assert.equal(option.minimumRequiredDistanceKm, 10);
+  assert.equal(new Date(option.submissionDeadlineAt).toISOString(), new Date(seed.event.eventEndAt).toISOString());
 });
 
 test('createSubmission auto-approves clean matched OCR personal record without certificate', async () => {

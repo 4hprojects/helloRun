@@ -540,7 +540,7 @@ async function getRunnerEligibleSubmissionRegistrations(runnerId, options = {}) 
     .sort({ registeredAt: -1 })
     .populate({
       path: 'eventId',
-      select: 'title slug status eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode raceCategories targetDistanceKm minimumActivityDistanceKm'
+      select: 'title slug status eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode raceCategories targetDistanceKm minimumActivityDistanceKm finalSubmissionDeadlineAt'
     })
     .lean();
 
@@ -576,6 +576,7 @@ async function getRunnerEligibleSubmissionRegistrations(runnerId, options = {}) 
         raceDistance: registration.raceDistance || '',
         eventStartAt: registration.eventId?.eventStartAt || null,
         eventEndAt: registration.eventId?.eventEndAt || null,
+        submissionDeadlineAt: getSubmissionDeadlineAtForOption(registration, registration.eventId),
         virtualCompletionMode: registration.eventId?.virtualCompletionMode || '',
         submissionMode: registration.eventId?.virtualCompletionMode === 'accumulated_distance'
           ? 'accumulated'
@@ -1820,6 +1821,19 @@ function syncEventRankingsInBackground(submission, eventSlug) {
       });
     }
   })();
+}
+
+function getSubmissionDeadlineAtForOption(registration, event) {
+  if (!event) return null;
+  const participationMode = String(registration?.participationMode || '').trim().toLowerCase();
+  const completionMode = String(event.virtualCompletionMode || '').trim().toLowerCase();
+  if (participationMode === 'virtual' && completionMode === 'accumulated_distance' && event.finalSubmissionDeadlineAt) {
+    return event.finalSubmissionDeadlineAt;
+  }
+  if (participationMode === 'virtual' && event.virtualWindow?.endAt) {
+    return event.virtualWindow.endAt;
+  }
+  return event.eventEndAt || null;
 }
 
 module.exports = {
