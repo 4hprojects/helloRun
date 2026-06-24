@@ -200,64 +200,17 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const organizerEventIds = organizerEventIdDocs.map((eventDoc) => eventDoc._id);
     const recentEventIds = recentEventDocs.map((eventDoc) => eventDoc._id);
 
-    const baseEventFilter = organizerEventIds.length ? { eventId: { $in: organizerEventIds } } : null;
-    const registrationRangeFilter = baseEventFilter
-      ? buildDateBoundFilter(baseEventFilter, 'registeredAt', rangeWindow.currentStartAt, rangeWindow.currentEndAt)
-      : null;
-    const submissionRangeFilter = baseEventFilter
-      ? buildDateBoundFilter(baseEventFilter, 'submittedAt', rangeWindow.currentStartAt, rangeWindow.currentEndAt)
-      : null;
-    const previousRegistrationRangeFilter = baseEventFilter && rangeWindow.previousStartAt && rangeWindow.previousEndAt
-      ? buildDateBoundFilter(baseEventFilter, 'registeredAt', rangeWindow.previousStartAt, rangeWindow.previousEndAt)
-      : null;
-    const previousSubmissionRangeFilter = baseEventFilter && rangeWindow.previousStartAt && rangeWindow.previousEndAt
-      ? buildDateBoundFilter(baseEventFilter, 'submittedAt', rangeWindow.previousStartAt, rangeWindow.previousEndAt)
-      : null;
-
     const [
-      totalRegistrations,
-      recentRegistrationCounts,
-      pendingPaymentReviews,
-      pendingResultReviews,
-      pendingAccumulatedResultReviews,
+      registrationMetrics,
+      standardSubmissionMetrics,
+      accumulatedSubmissionMetrics,
       nextPaymentReview,
       nextResultReview,
-      nextAccumulatedResultReview,
-      registrationsInRange,
-      standardSubmissionsInRange,
-      accumulatedSubmissionsInRange,
-      standardApprovalsInRange,
-      accumulatedApprovalsInRange,
-      registrationsInPreviousRange,
-      standardSubmissionsInPreviousRange,
-      accumulatedSubmissionsInPreviousRange,
-      standardApprovalsInPreviousRange,
-      accumulatedApprovalsInPreviousRange,
-      paymentQueueCounts,
-      resultQueueCounts,
-      accumulatedResultQueueCounts,
-      topRegistrationsRaw,
-      standardTopApprovalsRaw,
-      accumulatedTopApprovalsRaw
+      nextAccumulatedResultReview
     ] = await Promise.all([
-      organizerEventIds.length
-        ? Registration.countDocuments({ eventId: { $in: organizerEventIds } })
-        : 0,
-      recentEventIds.length
-        ? Registration.aggregate([
-            { $match: { eventId: { $in: recentEventIds } } },
-            { $group: { _id: '$eventId', count: { $sum: 1 } } }
-          ])
-        : [],
-      organizerEventIds.length
-        ? Registration.countDocuments({ eventId: { $in: organizerEventIds }, paymentStatus: 'proof_submitted' })
-        : 0,
-      organizerEventIds.length
-        ? Submission.countDocuments({ eventId: { $in: organizerEventIds }, status: 'submitted' })
-        : 0,
-      organizerEventIds.length
-        ? AccumulatedActivitySubmission.countDocuments({ eventId: { $in: organizerEventIds }, status: 'submitted' })
-        : 0,
+      getOrganizerDashboardRegistrationMetrics(organizerEventIds, recentEventIds, rangeWindow),
+      getOrganizerDashboardSubmissionMetrics(Submission, organizerEventIds, rangeWindow),
+      getOrganizerDashboardSubmissionMetrics(AccumulatedActivitySubmission, organizerEventIds, rangeWindow),
       organizerEventIds.length
         ? Registration.findOne({ eventId: { $in: organizerEventIds }, paymentStatus: 'proof_submitted' })
           .sort({ 'paymentProof.uploadedAt': -1, updatedAt: -1, createdAt: -1 })
@@ -275,97 +228,28 @@ router.get('/dashboard', requireAuth, async (req, res) => {
           .sort({ submittedAt: -1, updatedAt: -1, createdAt: -1 })
           .select('eventId submittedAt')
           .lean()
-        : null,
-      registrationRangeFilter
-        ? Registration.countDocuments(registrationRangeFilter)
-        : 0,
-      submissionRangeFilter
-        ? Submission.countDocuments(submissionRangeFilter)
-        : 0,
-      submissionRangeFilter
-        ? AccumulatedActivitySubmission.countDocuments(submissionRangeFilter)
-        : 0,
-      submissionRangeFilter
-        ? Submission.countDocuments({ ...submissionRangeFilter, status: 'approved' })
-        : 0,
-      submissionRangeFilter
-        ? AccumulatedActivitySubmission.countDocuments({ ...submissionRangeFilter, status: 'approved' })
-        : 0,
-      previousRegistrationRangeFilter
-        ? Registration.countDocuments(previousRegistrationRangeFilter)
-        : 0,
-      previousSubmissionRangeFilter
-        ? Submission.countDocuments(previousSubmissionRangeFilter)
-        : 0,
-      previousSubmissionRangeFilter
-        ? AccumulatedActivitySubmission.countDocuments(previousSubmissionRangeFilter)
-        : 0,
-      previousSubmissionRangeFilter
-        ? Submission.countDocuments({ ...previousSubmissionRangeFilter, status: 'approved' })
-        : 0,
-      previousSubmissionRangeFilter
-        ? AccumulatedActivitySubmission.countDocuments({ ...previousSubmissionRangeFilter, status: 'approved' })
-        : 0,
-      organizerEventIds.length
-        ? Registration.aggregate([
-            { $match: { eventId: { $in: organizerEventIds }, paymentStatus: 'proof_submitted' } },
-            { $group: { _id: '$eventId', paymentPending: { $sum: 1 } } },
-            { $sort: { paymentPending: -1 } }
-          ])
-        : [],
-      organizerEventIds.length
-        ? Submission.aggregate([
-            { $match: { eventId: { $in: organizerEventIds }, status: 'submitted' } },
-            { $group: { _id: '$eventId', resultPending: { $sum: 1 } } },
-            { $sort: { resultPending: -1 } }
-          ])
-        : [],
-      organizerEventIds.length
-        ? AccumulatedActivitySubmission.aggregate([
-            { $match: { eventId: { $in: organizerEventIds }, status: 'submitted' } },
-            { $group: { _id: '$eventId', resultPending: { $sum: 1 } } },
-            { $sort: { resultPending: -1 } }
-          ])
-        : [],
-      registrationRangeFilter
-        ? Registration.aggregate([
-            { $match: registrationRangeFilter },
-            { $group: { _id: '$eventId', count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
-            { $limit: 3 }
-          ])
-        : [],
-      submissionRangeFilter
-        ? Submission.aggregate([
-            { $match: { ...submissionRangeFilter, status: 'approved' } },
-            { $group: { _id: '$eventId', count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
-            { $limit: 3 }
-          ])
-        : [],
-      submissionRangeFilter
-        ? AccumulatedActivitySubmission.aggregate([
-            { $match: { ...submissionRangeFilter, status: 'approved' } },
-            { $group: { _id: '$eventId', count: { $sum: 1 } } },
-            { $sort: { count: -1 } },
-            { $limit: 3 }
-          ])
-        : []
+        : null
     ]);
 
-    const submissionsInRange = Number(standardSubmissionsInRange || 0) + Number(accumulatedSubmissionsInRange || 0);
-    const approvalsInRange = Number(standardApprovalsInRange || 0) + Number(accumulatedApprovalsInRange || 0);
-    const submissionsInPreviousRange = Number(standardSubmissionsInPreviousRange || 0) + Number(accumulatedSubmissionsInPreviousRange || 0);
-    const approvalsInPreviousRange = Number(standardApprovalsInPreviousRange || 0) + Number(accumulatedApprovalsInPreviousRange || 0);
+    const totalRegistrations = registrationMetrics.totalRegistrations;
+    const pendingPaymentReviews = registrationMetrics.pendingPaymentReviews;
+    const pendingResultReviews = standardSubmissionMetrics.pendingResultReviews;
+    const pendingAccumulatedResultReviews = accumulatedSubmissionMetrics.pendingResultReviews;
+    const registrationsInRange = registrationMetrics.registrationsInRange;
+    const registrationsInPreviousRange = registrationMetrics.registrationsInPreviousRange;
+    const submissionsInRange = standardSubmissionMetrics.submissionsInRange + accumulatedSubmissionMetrics.submissionsInRange;
+    const approvalsInRange = standardSubmissionMetrics.approvalsInRange + accumulatedSubmissionMetrics.approvalsInRange;
+    const submissionsInPreviousRange = standardSubmissionMetrics.submissionsInPreviousRange + accumulatedSubmissionMetrics.submissionsInPreviousRange;
+    const approvalsInPreviousRange = standardSubmissionMetrics.approvalsInPreviousRange + accumulatedSubmissionMetrics.approvalsInPreviousRange;
 
     const recentRegistrationsByEventId = new Map(
-      recentRegistrationCounts.map((item) => [String(item._id), item.count])
+      registrationMetrics.recentRegistrationCounts.map((item) => [String(item._id), item.count])
     );
     const pendingResultsByEventId = new Map();
-    for (const item of resultQueueCounts) {
+    for (const item of standardSubmissionMetrics.resultQueueCounts) {
       pendingResultsByEventId.set(String(item._id), Number(item.resultPending || 0));
     }
-    for (const item of accumulatedResultQueueCounts) {
+    for (const item of accumulatedSubmissionMetrics.resultQueueCounts) {
       const key = String(item._id);
       pendingResultsByEventId.set(
         key,
@@ -392,20 +276,20 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     }));
 
     const queueByEventId = new Map();
-    for (const item of paymentQueueCounts) {
+    for (const item of registrationMetrics.paymentQueueCounts) {
       queueByEventId.set(String(item._id), {
         eventId: String(item._id),
         paymentPending: Number(item.paymentPending || 0),
         resultPending: 0
       });
     }
-    for (const item of resultQueueCounts) {
+    for (const item of standardSubmissionMetrics.resultQueueCounts) {
       const key = String(item._id);
       const existing = queueByEventId.get(key) || { eventId: key, paymentPending: 0, resultPending: 0 };
       existing.resultPending = Number(item.resultPending || 0);
       queueByEventId.set(key, existing);
     }
-    for (const item of accumulatedResultQueueCounts) {
+    for (const item of accumulatedSubmissionMetrics.resultQueueCounts) {
       const key = String(item._id);
       const existing = queueByEventId.get(key) || { eventId: key, paymentPending: 0, resultPending: 0 };
       existing.resultPending += Number(item.resultPending || 0);
@@ -419,7 +303,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     ))[0] || null;
 
     const topApprovalsByEventId = new Map();
-    for (const item of standardTopApprovalsRaw.concat(accumulatedTopApprovalsRaw)) {
+    for (const item of standardSubmissionMetrics.topApprovalsRaw.concat(accumulatedSubmissionMetrics.topApprovalsRaw)) {
       const key = String(item._id);
       topApprovalsByEventId.set(key, Number(topApprovalsByEventId.get(key) || 0) + Number(item.count || 0));
     }
@@ -428,6 +312,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 3);
 
+    const topRegistrationsRaw = registrationMetrics.topRegistrationsRaw;
     const topRegistrationEventIds = topRegistrationsRaw.map((item) => String(item._id));
     const topApprovalEventIds = topApprovalsRaw.map((item) => String(item._id));
     const queueEventIds = Array.from(new Set(
@@ -4806,6 +4691,157 @@ function buildDateBoundFilter(baseFilter, field, startAt, endAt) {
   }
 
   return filter;
+}
+
+async function getOrganizerDashboardRegistrationMetrics(eventIds = [], recentEventIds = [], rangeWindow = {}) {
+  if (!eventIds.length) {
+    return {
+      totalRegistrations: 0,
+      pendingPaymentReviews: 0,
+      registrationsInRange: 0,
+      registrationsInPreviousRange: 0,
+      recentRegistrationCounts: [],
+      paymentQueueCounts: [],
+      topRegistrationsRaw: []
+    };
+  }
+
+  const currentRangeExpr = buildAggregationDateRangeExpression('registeredAt', rangeWindow.currentStartAt, rangeWindow.currentEndAt, true);
+  const previousRangeExpr = buildAggregationDateRangeExpression('registeredAt', rangeWindow.previousStartAt, rangeWindow.previousEndAt, false);
+  const topRegistrationsMatch = {
+    eventId: { $in: eventIds },
+    ...buildAggregationDateRangeMatch('registeredAt', rangeWindow.currentStartAt, rangeWindow.currentEndAt)
+  };
+
+  const [metrics = {}] = await Registration.aggregate([
+    { $match: { eventId: { $in: eventIds } } },
+    {
+      $facet: {
+        summary: [
+          {
+            $group: {
+              _id: null,
+              totalRegistrations: { $sum: 1 },
+              pendingPaymentReviews: {
+                $sum: { $cond: [{ $eq: ['$paymentStatus', 'proof_submitted'] }, 1, 0] }
+              },
+              registrationsInRange: { $sum: { $cond: [currentRangeExpr, 1, 0] } },
+              registrationsInPreviousRange: { $sum: { $cond: [previousRangeExpr, 1, 0] } }
+            }
+          }
+        ],
+        recentRegistrationCounts: [
+          { $match: recentEventIds.length ? { eventId: { $in: recentEventIds } } : { _id: { $exists: false } } },
+          { $group: { _id: '$eventId', count: { $sum: 1 } } }
+        ],
+        paymentQueueCounts: [
+          { $match: { paymentStatus: 'proof_submitted' } },
+          { $group: { _id: '$eventId', paymentPending: { $sum: 1 } } },
+          { $sort: { paymentPending: -1 } }
+        ],
+        topRegistrationsRaw: [
+          { $match: topRegistrationsMatch },
+          { $group: { _id: '$eventId', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 3 }
+        ]
+      }
+    }
+  ]);
+  const summary = metrics.summary?.[0] || {};
+
+  return {
+    totalRegistrations: Number(summary.totalRegistrations || 0),
+    pendingPaymentReviews: Number(summary.pendingPaymentReviews || 0),
+    registrationsInRange: Number(summary.registrationsInRange || 0),
+    registrationsInPreviousRange: Number(summary.registrationsInPreviousRange || 0),
+    recentRegistrationCounts: metrics.recentRegistrationCounts || [],
+    paymentQueueCounts: metrics.paymentQueueCounts || [],
+    topRegistrationsRaw: metrics.topRegistrationsRaw || []
+  };
+}
+
+async function getOrganizerDashboardSubmissionMetrics(Model, eventIds = [], rangeWindow = {}) {
+  if (!eventIds.length) {
+    return {
+      pendingResultReviews: 0,
+      submissionsInRange: 0,
+      approvalsInRange: 0,
+      submissionsInPreviousRange: 0,
+      approvalsInPreviousRange: 0,
+      resultQueueCounts: [],
+      topApprovalsRaw: []
+    };
+  }
+
+  const currentRangeExpr = buildAggregationDateRangeExpression('submittedAt', rangeWindow.currentStartAt, rangeWindow.currentEndAt, true);
+  const previousRangeExpr = buildAggregationDateRangeExpression('submittedAt', rangeWindow.previousStartAt, rangeWindow.previousEndAt, false);
+  const approvedCurrentExpr = { $and: [{ $eq: ['$status', 'approved'] }, currentRangeExpr] };
+  const approvedPreviousExpr = { $and: [{ $eq: ['$status', 'approved'] }, previousRangeExpr] };
+  const topApprovalsMatch = {
+    eventId: { $in: eventIds },
+    status: 'approved',
+    ...buildAggregationDateRangeMatch('submittedAt', rangeWindow.currentStartAt, rangeWindow.currentEndAt)
+  };
+
+  const [metrics = {}] = await Model.aggregate([
+    { $match: { eventId: { $in: eventIds } } },
+    {
+      $facet: {
+        summary: [
+          {
+            $group: {
+              _id: null,
+              pendingResultReviews: {
+                $sum: { $cond: [{ $eq: ['$status', 'submitted'] }, 1, 0] }
+              },
+              submissionsInRange: { $sum: { $cond: [currentRangeExpr, 1, 0] } },
+              approvalsInRange: { $sum: { $cond: [approvedCurrentExpr, 1, 0] } },
+              submissionsInPreviousRange: { $sum: { $cond: [previousRangeExpr, 1, 0] } },
+              approvalsInPreviousRange: { $sum: { $cond: [approvedPreviousExpr, 1, 0] } }
+            }
+          }
+        ],
+        resultQueueCounts: [
+          { $match: { status: 'submitted' } },
+          { $group: { _id: '$eventId', resultPending: { $sum: 1 } } },
+          { $sort: { resultPending: -1 } }
+        ],
+        topApprovalsRaw: [
+          { $match: topApprovalsMatch },
+          { $group: { _id: '$eventId', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+          { $limit: 3 }
+        ]
+      }
+    }
+  ]);
+  const summary = metrics.summary?.[0] || {};
+
+  return {
+    pendingResultReviews: Number(summary.pendingResultReviews || 0),
+    submissionsInRange: Number(summary.submissionsInRange || 0),
+    approvalsInRange: Number(summary.approvalsInRange || 0),
+    submissionsInPreviousRange: Number(summary.submissionsInPreviousRange || 0),
+    approvalsInPreviousRange: Number(summary.approvalsInPreviousRange || 0),
+    resultQueueCounts: metrics.resultQueueCounts || [],
+    topApprovalsRaw: metrics.topApprovalsRaw || []
+  };
+}
+
+function buildAggregationDateRangeExpression(field, startAt, endAt, defaultValue) {
+  const checks = [];
+  if (startAt) checks.push({ $gte: [`$${field}`, startAt] });
+  if (endAt) checks.push({ $lt: [`$${field}`, endAt] });
+  if (!checks.length) return Boolean(defaultValue);
+  return checks.length === 1 ? checks[0] : { $and: checks };
+}
+
+function buildAggregationDateRangeMatch(field, startAt, endAt) {
+  const bounds = {};
+  if (startAt) bounds.$gte = startAt;
+  if (endAt) bounds.$lt = endAt;
+  return Object.keys(bounds).length ? { [field]: bounds } : {};
 }
 
 function buildOrganizerTrendMetric(currentValue, previousValue, previousLabel) {
