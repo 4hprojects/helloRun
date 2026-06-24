@@ -28,6 +28,7 @@
 | Organizer Workflow Phase 2C — registrants page paginated with DB-side result-status narrowing across standard and accumulated submissions | Jun 24 | `tests/submission-review-route-guards.integration.test.js` |
 | Organizer Workflow Phase 3A — organizer dashboard registration/submission metrics collapsed into aggregate facets to reduce count-query fan-out | Jun 24 | `tests/organizer-dashboard-analytics.integration.test.js` |
 | Organizer Workflow Phase 3B — registrants summary cards collapsed into grouped aggregation counts for registration and result statuses | Jun 24 | `tests/submission-review-route-guards.integration.test.js` |
+| Organizer Workflow Phase 3C — unpaid-payment reminder action batches runner lookup instead of querying once per registrant | Jun 24 | `tests/csrf-route-guards.integration.test.js` |
 
 ---
 

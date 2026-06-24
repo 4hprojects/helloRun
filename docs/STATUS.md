@@ -51,6 +51,7 @@ _Last updated: June 24, 2026_
 | Organizer Workflow Phase 2C — registrants page now paginates filtered rows and narrows result-status filters before fetching registration details | June 24, 2026 | `tests/submission-review-route-guards.integration.test.js` |
 | Organizer Workflow Phase 3A — organizer dashboard queue, range, and top-event metrics now use aggregate facets instead of many independent count queries | June 24, 2026 | `tests/organizer-dashboard-analytics.integration.test.js` |
 | Organizer Workflow Phase 3B — registrants summary cards now use grouped aggregation counts instead of separate count queries per card | June 24, 2026 | `tests/submission-review-route-guards.integration.test.js` |
+| Organizer Workflow Phase 3C — unpaid-payment reminder action now batches runner lookup before dispatching emails | June 24, 2026 | `tests/csrf-route-guards.integration.test.js` |
 
 ---
 

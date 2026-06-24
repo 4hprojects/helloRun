@@ -1161,17 +1161,26 @@ router.post('/events/:id/registrants/email-unpaid', requireAuth, requireCsrfProt
       eventId: event._id,
       status: 'confirmed',
       paymentStatus: { $in: ['unpaid', 'proof_rejected'] }
-    }).limit(100).lean();
+    }).limit(100).select('_id userId confirmationCode').lean();
 
     if (!unpaidRegistrations.length) {
       const q = new URLSearchParams({ type: 'error', msg: 'No unpaid registrants to email.' });
       return res.redirect(`/organizer/events/${event._id}/registrants?${q}`);
     }
 
+    const runnerIds = Array.from(new Set(
+      unpaidRegistrations
+        .map((reg) => String(reg.userId || '').trim())
+        .filter((id) => mongoose.Types.ObjectId.isValid(id))
+    ));
+    const runnerRows = runnerIds.length
+      ? await User.find({ _id: { $in: runnerIds } }).select('email firstName').lean()
+      : [];
+    const runnersById = new Map(runnerRows.map((runner) => [String(runner._id), runner]));
     const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
     await Promise.allSettled(
       unpaidRegistrations.map(async (reg) => {
-        const runner = await User.findById(reg.userId).select('email firstName').lean();
+        const runner = runnersById.get(String(reg.userId || ''));
         if (!runner?.email) return;
         communicationService.notify('organiser.payment_reminder', {
           email: {
