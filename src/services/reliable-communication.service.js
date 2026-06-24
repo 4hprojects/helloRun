@@ -12,6 +12,7 @@ const SENT_RETRY_RETENTION_MS = Number(process.env.COMMUNICATION_RETRY_SENT_RETE
 const DEAD_RETRY_RETENTION_MS = Number(process.env.COMMUNICATION_RETRY_DEAD_RETENTION_MS || 30 * 24 * 60 * 60 * 1000);
 const DEAD_RETRY_ALERT_WINDOW_MS = Number(process.env.COMMUNICATION_RETRY_DEAD_ALERT_WINDOW_MS || 24 * 60 * 60 * 1000);
 const DUE_RETRY_BACKLOG_MS = Number(process.env.COMMUNICATION_RETRY_DUE_BACKLOG_MS || 15 * 60 * 1000);
+const RETRY_AUDIT_RETENTION_MS = Number(process.env.COMMUNICATION_RETRY_AUDIT_RETENTION_MS || 90 * 24 * 60 * 60 * 1000);
 
 async function notifyWithRetry(eventKey, payload = {}, options = {}) {
   const retryPayload = withEmailFailureThrow(payload);
@@ -92,11 +93,13 @@ async function runCommunicationRetryHygiene(options = {}) {
   const staleMs = Number(options.staleMs || STALE_RETRY_DEAD_LETTER_MS);
   const sentRetentionMs = Number(options.sentRetentionMs || SENT_RETRY_RETENTION_MS);
   const deadRetentionMs = Number(options.deadRetentionMs || DEAD_RETRY_RETENTION_MS);
+  const auditRetentionMs = Number(options.auditRetentionMs || RETRY_AUDIT_RETENTION_MS);
   const staleCutoff = new Date(now.getTime() - staleMs);
   const sentCutoff = new Date(now.getTime() - sentRetentionMs);
   const deadCutoff = new Date(now.getTime() - deadRetentionMs);
+  const auditCutoff = new Date(now.getTime() - auditRetentionMs);
 
-  const [staleDeadLettered, sentDeleted, deadDeleted] = await Promise.all([
+  const [staleDeadLettered, sentDeleted, deadDeleted, auditDeleted] = await Promise.all([
     CommunicationRetry.updateMany(
       {
         status: { $in: ['queued', 'retrying'] },
@@ -120,18 +123,23 @@ async function runCommunicationRetryHygiene(options = {}) {
     CommunicationRetry.deleteMany({
       status: 'dead',
       updatedAt: { $lte: deadCutoff }
+    }),
+    CommunicationRetryAudit.deleteMany({
+      createdAt: { $lte: auditCutoff }
     })
   ]);
 
   const result = {
     staleDeadLettered: staleDeadLettered.modifiedCount || 0,
     sentDeleted: sentDeleted.deletedCount || 0,
-    deadDeleted: deadDeleted.deletedCount || 0
+    deadDeleted: deadDeleted.deletedCount || 0,
+    auditDeleted: auditDeleted.deletedCount || 0
   };
   await recordCommunicationRetryHygieneAudit(result, {
     staleCutoff,
     sentCutoff,
-    deadCutoff
+    deadCutoff,
+    auditCutoff
   });
   return result;
 }
@@ -238,11 +246,29 @@ async function listCommunicationRetries(filters = {}) {
 }
 
 async function listCommunicationRetryAudit(options = {}) {
+  const filters = normalizeRetryAuditFilters(options);
+  const query = {};
+  if (filters.action) query.action = filters.action;
+  if (filters.eventKey) query.eventKey = filters.eventKey;
+  if (filters.actor === 'admin' || filters.actor === 'system') {
+    query.actorType = filters.actor;
+  } else if (filters.actor && mongoose.Types.ObjectId.isValid(filters.actor)) {
+    query.actorUserId = filters.actor;
+  }
   const limit = Math.max(5, Math.min(50, Number(options.limit || 20)));
-  return CommunicationRetryAudit.find({})
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .lean();
+  const [items, totalItems] = await Promise.all([
+    CommunicationRetryAudit.find(query)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean(),
+    CommunicationRetryAudit.countDocuments(query)
+  ]);
+  return {
+    items,
+    filters,
+    totalItems,
+    actions: ['manual_retry', 'auto_dead_letter', 'hygiene_dead_letter', 'hygiene_cleanup']
+  };
 }
 
 async function retryCommunicationNow(retryId, options = {}) {
@@ -336,7 +362,7 @@ async function retryCommunicationJob(job) {
 
 async function recordCommunicationRetryHygieneAudit(result = {}, metadata = {}) {
   const staleCount = Number(result.staleDeadLettered || 0);
-  const cleanupCount = Number(result.sentDeleted || 0) + Number(result.deadDeleted || 0);
+  const cleanupCount = Number(result.sentDeleted || 0) + Number(result.deadDeleted || 0) + Number(result.auditDeleted || 0);
   const writes = [];
   if (staleCount > 0) {
     writes.push(recordCommunicationRetryAudit({
@@ -350,7 +376,8 @@ async function recordCommunicationRetryHygieneAudit(result = {}, metadata = {}) 
       action: 'hygiene_cleanup',
       counts: {
         sentDeleted: Number(result.sentDeleted || 0),
-        deadDeleted: Number(result.deadDeleted || 0)
+        deadDeleted: Number(result.deadDeleted || 0),
+        auditDeleted: Number(result.auditDeleted || 0)
       },
       metadata
     }));
@@ -432,6 +459,17 @@ function normalizeRetryFilters(filters = {}) {
     q: String(filters.q || '').trim().slice(0, 120),
     page: Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1,
     limit: 40
+  };
+}
+
+function normalizeRetryAuditFilters(filters = {}) {
+  const action = ['manual_retry', 'auto_dead_letter', 'hygiene_dead_letter', 'hygiene_cleanup'].includes(String(filters.auditAction || '').trim())
+    ? String(filters.auditAction).trim()
+    : '';
+  return {
+    action,
+    eventKey: String(filters.auditEventKey || '').trim().slice(0, 160),
+    actor: String(filters.auditActor || '').trim().slice(0, 120)
   };
 }
 

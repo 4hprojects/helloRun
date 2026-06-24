@@ -34,6 +34,36 @@
       </div>
 
       <h3 class="dashboard-section-title">Retry Action Trail</h3>
+      <form class="admin-filters communication-log-filters" method="GET" action="/admin/communications/retries">
+        <div class="filter-field">
+          <label for="auditAction">Action</label>
+          <select id="auditAction" name="auditAction">
+            <option value="">All actions</option>
+            <% retryAuditActions.forEach((action) => { %>
+              <option value="<%= action %>" <%= retryAuditFilters.action === action ? 'selected' : '' %>><%= action %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="auditEventKey">Event</label>
+          <select id="auditEventKey" name="auditEventKey">
+            <option value="">All events</option>
+            <% events.forEach((event) => { %>
+              <option value="<%= event.eventKey %>" <%= retryAuditFilters.eventKey === event.eventKey ? 'selected' : '' %>><%= event.name %></option>
+            <% }) %>
+            <option value="admin.test_email" <%= retryAuditFilters.eventKey === 'admin.test_email' ? 'selected' : '' %>>Admin Test Email</option>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="auditActor">Actor</label>
+          <input id="auditActor" type="search" name="auditActor" value="<%= retryAuditFilters.actor || '' %>" placeholder="admin, system, or user id">
+        </div>
+        <div class="filter-actions">
+          <button type="submit" class="btn">Filter Trail</button>
+          <a href="/admin/communications/retries" class="btn btn-secondary">Reset</a>
+          <span class="metric-helper"><%= retryAuditTotalItems || 0 %> action<%= Number(retryAuditTotalItems || 0) === 1 ? '' : 's' %></span>
+        </div>
+      </form>
       <div class="admin-users-table-wrap">
         <table class="admin-table communication-retry-audit-table">
           <thead>

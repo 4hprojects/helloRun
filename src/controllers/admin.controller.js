@@ -1305,18 +1305,21 @@ exports.listUsers = async (req, res) => {
   try {
     const filters = normalizeAdminUserFilters(req.query);
     const query = buildAdminUserQuery(filters);
+    const ADMIN_USERS_ALL_CAP = 5000;
     const isAll = filters.perPage === 'all';
-    const limit = isAll ? 0 : Number(filters.perPage || ADMIN_USERS_PER_PAGE);
+    const limit = isAll ? ADMIN_USERS_ALL_CAP : Number(filters.perPage || ADMIN_USERS_PER_PAGE);
     const total = await User.countDocuments(query);
     const totalPages = isAll ? 1 : Math.max(1, Math.ceil(total / limit));
     const page = Math.min(filters.page, totalPages);
+    const cappedForAll = isAll && total > ADMIN_USERS_ALL_CAP;
 
     const userQuery = User.find(query)
       .select('userId email firstName lastName mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified authProvider googleId accountStatus lastLoginAt createdAt updatedAt')
-      .sort(getAdminUserSort(filters.sort));
+      .sort(getAdminUserSort(filters.sort))
+      .limit(limit);
 
     if (!isAll) {
-      userQuery.skip((page - 1) * limit).limit(limit);
+      userQuery.skip((page - 1) * limit);
     }
 
     const users = await userQuery.lean();
@@ -1328,7 +1331,9 @@ exports.listUsers = async (req, res) => {
       title: 'User Management - HelloRun Admin',
       users: mappedUsers,
       filters: { ...filters, page },
-      message: getAdminPageMessage(req.query),
+      message: cappedForAll
+        ? { type: 'warning', text: `Showing first ${ADMIN_USERS_ALL_CAP.toLocaleString()} of ${total.toLocaleString()} users. Use filters to narrow results.` }
+        : getAdminPageMessage(req.query),
       pagination: {
         page,
         totalPages,
@@ -2681,16 +2686,19 @@ exports.renderCommunications = async (req, res) => {
 
 exports.renderCommunicationRetries = async (req, res) => {
   try {
-    const [retryData, communicationData, retryAudit] = await Promise.all([
+    const [retryData, communicationData, retryAuditData] = await Promise.all([
       listCommunicationRetries(req.query),
       communicationService.getAdminCommunicationPageData({}),
-      listCommunicationRetryAudit({ limit: 20 })
+      listCommunicationRetryAudit({ ...req.query, limit: 20 })
     ]);
     return res.render('admin/communication-retries', {
       title: 'Notification Retry Queue - HelloRun Admin',
       message: getAdminPageMessage(req.query),
       events: communicationData.events,
-      retryAudit,
+      retryAudit: retryAuditData.items,
+      retryAuditFilters: retryAuditData.filters,
+      retryAuditActions: retryAuditData.actions,
+      retryAuditTotalItems: retryAuditData.totalItems,
       ...retryData,
       formatDateTime: formatAdminDateTime,
       buildRetryPageHref: (page) => buildCommunicationRetryHref(retryData.filters, page),

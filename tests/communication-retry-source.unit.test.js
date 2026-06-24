@@ -73,9 +73,14 @@ test('admin communications exposes retry queue inspection and manual retry', () 
   assert.match(retryAuditModel, /manual_retry/);
   assert.match(retryAuditModel, /hygiene_cleanup/);
   assert.match(retryService, /listCommunicationRetries/);
+  assert.match(retryService, /RETRY_AUDIT_RETENTION_MS/);
+  assert.match(retryService, /CommunicationRetryAudit\.deleteMany/);
   assert.match(retryService, /recordCommunicationRetryAudit/);
   assert.match(retryService, /recordCommunicationRetryHygieneAudit/);
   assert.match(retryService, /listCommunicationRetryAudit/);
+  assert.match(retryService, /normalizeRetryAuditFilters/);
+  assert.match(retryService, /auditAction/);
+  assert.match(retryService, /auditActor/);
   assert.match(retryService, /auto_dead_letter/);
   assert.match(retryService, /retryCommunicationNow/);
   assert.match(retryService, /STALE_RETRY_DEAD_LETTER_MS/);
@@ -107,6 +112,9 @@ test('admin communications exposes retry queue inspection and manual retry', () 
   assert.match(retriesView, /Notification Retry Queue/);
   assert.match(retriesView, /Retry Action Trail/);
   assert.match(retriesView, /communication-retry-audit-table/);
+  assert.match(retriesView, /auditAction/);
+  assert.match(retriesView, /auditEventKey/);
+  assert.match(retriesView, /auditActor/);
   assert.match(retriesView, /Inspect payload/);
   assert.match(retriesView, /Retry now/);
 });

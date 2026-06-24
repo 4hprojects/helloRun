@@ -52,6 +52,7 @@
 | Runtime Stabilization Phase 8E — admin Communications now ranks failing notification event types across 24h/7d using delivery logs and retry queue records | Jun 24 | `tests/communication-retry-source.unit.test.js` |
 | Runtime Stabilization Phase 8F — notification delivery digest now links to an event failure detail view with recent errors, recipients, sources, and retry status | Jun 24 | `tests/communication-retry-source.unit.test.js` |
 | Runtime Stabilization Phase 8G — retry queue operations now keep an admin-visible action trail for manual retries, auto dead letters, and hygiene cleanup | Jun 24 | `tests/communication-retry-source.unit.test.js` |
+| Runtime Stabilization Phase 8H — retry action trail now has retention cleanup plus action/event/actor filters for focused operator audits | Jun 24 | `tests/communication-retry-source.unit.test.js` |
 | Badge system refinement — early generation at event save, wizard Badges step (13 steps), event logo fallback, badge previews on event detail page | Jun 24 | — |
 | P5 Social sharing — certificate verify share buttons + og:image; submission detail share strip; badge detail already complete | Jun 24 | — |
 | P8 Email notification settings — Notifications section on runner profile; 5 opt-outable types; emailOptOut on User model; service respects opt-out | Jun 24 | — |

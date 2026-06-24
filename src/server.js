@@ -1,4 +1,29 @@
 require('dotenv').config();
+
+// ===== SENTRY (initialise before anything else) =====
+let Sentry;
+if (process.env.SENTRY_DSN) {
+  Sentry = require('@sentry/node');
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || 'development',
+    tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 0
+  });
+}
+
+// ===== PROCESS-LEVEL ERROR GUARDS =====
+process.on('unhandledRejection', (reason) => {
+  const msg = reason instanceof Error ? reason.message : String(reason);
+  try { require('./utils/logger').error('[UnhandledRejection]', { reason: msg }); } catch (_) { console.error('[UnhandledRejection]', msg); }
+  if (Sentry) Sentry.captureException(reason instanceof Error ? reason : new Error(msg));
+});
+
+process.on('uncaughtException', (error) => {
+  try { require('./utils/logger').error('[UncaughtException]', { error: error.message, stack: error.stack }); } catch (_) { console.error('[UncaughtException]', error); }
+  if (Sentry) Sentry.captureException(error);
+  process.exit(1);
+});
+
 const express = require('express');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
@@ -19,6 +44,20 @@ if (!process.env.SESSION_SECRET) {
 
 // ===== STEP 1: MIDDLEWARE (MUST BE FIRST) =====
 logger.info('Loading middleware...');
+
+// Sentry request tracing (must be first Express middleware when enabled)
+if (Sentry) {
+  app.use(Sentry.Handlers.requestHandler());
+}
+
+// Request timeout — kill hung requests before they exhaust the connection pool
+app.use((req, res, next) => {
+  res.setTimeout(30000, () => {
+    logger.warn('Request timeout', { method: req.method, url: req.url });
+    if (!res.headersSent) res.status(503).json({ error: 'Request timed out.' });
+  });
+  next();
+});
 
 app.disable('x-powered-by');
 if (isProduction) {
@@ -145,7 +184,9 @@ async function connectToDatabase() {
   try {
     await mongoose.connect(process.env.MONGODB_URI, {
       serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 45000
+      socketTimeoutMS: 45000,
+      maxPoolSize: 20,
+      minPoolSize: 5
     });
     logger.info('MongoDB connected');
   } catch (err) {
@@ -274,6 +315,11 @@ app.use((req, res) => {
 });
 
 // ===== STEP 7: ERROR HANDLER =====
+// Sentry error capture (must be before the generic handler)
+if (Sentry) {
+  app.use(Sentry.Handlers.errorHandler());
+}
+
 app.use((err, req, res, next) => {
   logger.error('Error:', err.message);
   res.status(500).render('error', {
