@@ -46,6 +46,7 @@ _Last updated: June 24, 2026_
 | Organizer Workflow Phase 1A — CSRF protection added to organizer payment/run-proof review actions plus event status/media removal mutations; security route matrix updated | June 24, 2026 | `tests/csrf-route-guards.integration.test.js` |
 | Organizer Workflow Phase 1B — payment approve/reject now use atomic status transitions and preserve registration shadow sync after non-save updates | June 24, 2026 | `tests/payment-route-guards.integration.test.js` |
 | Organizer Workflow Phase 1C — standard and accumulated run-proof approve/reject writes now use exact-status stale-action guards | June 24, 2026 | `tests/submission-review-route-guards.integration.test.js` |
+| Organizer Workflow Phase 2A — run-proof review queue now resolves search/counts in MongoDB and fetches bounded sorted windows before merging standard + accumulated proofs | June 24, 2026 | `tests/submission-review-route-guards.integration.test.js` |
 
 ---
 

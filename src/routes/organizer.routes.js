@@ -1822,15 +1822,16 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
     }
 
     const filters = normalizeRunProofReviewFilters(req.query);
-    const submissionQuery = { eventId: event._id, ...getRunProofReviewStatusQuery(filters.status) };
+    const submissionQuery = await buildRunProofReviewQuery(event._id, filters);
+    const sortSpec = getRunProofReviewSortSpec(filters.sort);
     const populate = [
       { path: 'reviewedBy', select: 'firstName lastName email' },
       { path: 'registrationId', select: 'participant confirmationCode raceDistance participationMode' }
     ];
 
     const [
-      standardDocs,
-      accumulatedDocs,
+      standardTotal,
+      accumulatedTotal,
       standardPending,
       standardApproved,
       standardRejected,
@@ -1840,8 +1841,8 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
       accumulatedAutoApproved,
       accumulatedRejected
     ] = await Promise.all([
-      Submission.find(submissionQuery).populate(populate).lean(),
-      AccumulatedActivitySubmission.find(submissionQuery).populate(populate).lean(),
+      Submission.countDocuments(submissionQuery),
+      AccumulatedActivitySubmission.countDocuments(submissionQuery),
       Submission.countDocuments({ eventId: event._id, status: 'submitted' }),
       Submission.countDocuments({ eventId: event._id, status: 'approved' }),
       Submission.countDocuments({ eventId: event._id, status: 'rejected' }),
@@ -1852,31 +1853,24 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
       AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'rejected' })
     ]);
 
-    let reviewItems = standardDocs
-      .map((submission) => buildRunProofReviewRow(submission, event, filters, 'standard'))
-      .concat(accumulatedDocs.map((submission) => buildRunProofReviewRow(submission, event, filters, 'accumulated')));
-
-    if (filters.q) {
-      const searchPattern = new RegExp(escapeRegex(filters.q), 'i');
-      reviewItems = reviewItems.filter((item) => (
-        searchPattern.test(item.participantName) ||
-        searchPattern.test(item.participantEmail) ||
-        searchPattern.test(item.confirmationCode)
-      ));
-    }
-
-    reviewItems.sort((a, b) => {
-      const aTime = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
-      const bTime = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
-      return filters.sort === 'newest' ? bTime - aTime : aTime - bTime;
-    });
-
-    const totalItems = reviewItems.length;
+    const totalItems = standardTotal + accumulatedTotal;
     const totalPages = Math.max(1, Math.ceil(totalItems / RUN_PROOF_REVIEW_PAGE_SIZE));
     const page = Math.min(filters.page, totalPages);
     const pageStart = (page - 1) * RUN_PROOF_REVIEW_PAGE_SIZE;
-    reviewItems = reviewItems.slice(pageStart, pageStart + RUN_PROOF_REVIEW_PAGE_SIZE);
+    const pageEnd = pageStart + RUN_PROOF_REVIEW_PAGE_SIZE;
+    const queryLimit = Math.max(pageEnd, RUN_PROOF_REVIEW_PAGE_SIZE);
     filters.page = page;
+
+    const [standardDocs, accumulatedDocs] = totalItems > 0
+      ? await Promise.all([
+        Submission.find(submissionQuery).sort(sortSpec).limit(queryLimit).populate(populate).lean(),
+        AccumulatedActivitySubmission.find(submissionQuery).sort(sortSpec).limit(queryLimit).populate(populate).lean()
+      ])
+      : [[], []];
+
+    const reviewItems = mergeRunProofReviewDocs(standardDocs, accumulatedDocs, filters.sort)
+      .slice(pageStart, pageEnd)
+      .map((item) => buildRunProofReviewRow(item.submission, event, filters, item.submissionKind));
 
     const pendingCount = standardPending + accumulatedPending;
     const approvedCount = standardApproved + accumulatedApproved;
@@ -3955,6 +3949,68 @@ function getRunProofReviewStatusQuery(status) {
   if (status === 'rejected') return { status: 'rejected' };
   if (status === 'all') return { status: { $in: ['submitted', 'approved', 'rejected'] } };
   return { status: 'submitted' };
+}
+
+async function buildRunProofReviewQuery(eventId, filters = {}) {
+  const query = { eventId, ...getRunProofReviewStatusQuery(filters.status) };
+  if (!filters.q) return query;
+
+  const searchPattern = new RegExp(escapeRegex(filters.q), 'i');
+  const matchingRegistrations = await Registration.find({
+    eventId,
+    $or: [
+      { confirmationCode: searchPattern },
+      { 'participant.firstName': searchPattern },
+      { 'participant.lastName': searchPattern },
+      { 'participant.email': searchPattern }
+    ]
+  })
+    .select('_id')
+    .lean();
+
+  return {
+    ...query,
+    registrationId: { $in: matchingRegistrations.map((item) => item._id) }
+  };
+}
+
+function getRunProofReviewSortSpec(sort) {
+  const direction = sort === 'newest' ? -1 : 1;
+  return { submittedAt: direction, _id: direction };
+}
+
+function mergeRunProofReviewDocs(standardDocs = [], accumulatedDocs = [], sort = 'oldest') {
+  const merged = [];
+  let standardIndex = 0;
+  let accumulatedIndex = 0;
+
+  while (standardIndex < standardDocs.length || accumulatedIndex < accumulatedDocs.length) {
+    const standard = standardDocs[standardIndex];
+    const accumulated = accumulatedDocs[accumulatedIndex];
+    if (!accumulated || (standard && compareRunProofReviewDocs(standard, accumulated, sort) <= 0)) {
+      merged.push({ submission: standard, submissionKind: 'standard' });
+      standardIndex += 1;
+    } else {
+      merged.push({ submission: accumulated, submissionKind: 'accumulated' });
+      accumulatedIndex += 1;
+    }
+  }
+
+  return merged;
+}
+
+function compareRunProofReviewDocs(a, b, sort = 'oldest') {
+  const direction = sort === 'newest' ? -1 : 1;
+  const aTime = getRunProofReviewSortTime(a);
+  const bTime = getRunProofReviewSortTime(b);
+  if (aTime !== bTime) return (aTime - bTime) * direction;
+  return String(a?._id || '').localeCompare(String(b?._id || '')) * direction;
+}
+
+function getRunProofReviewSortTime(submission) {
+  const value = submission?.submittedAt || submission?.createdAt || 0;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : 0;
 }
 
 function buildRunProofReviewPath(eventId, filters = {}, overrides = {}) {

@@ -23,6 +23,7 @@
 | Organizer Workflow Phase 1A — CSRF protection added to payment review, run-proof review, event status, and media removal mutations; security matrix expanded | Jun 24 | `tests/csrf-route-guards.integration.test.js` |
 | Organizer Workflow Phase 1B — atomic payment review transitions with stale-action protection and shadow-sync preservation | Jun 24 | `tests/payment-route-guards.integration.test.js` |
 | Organizer Workflow Phase 1C — run-proof review transitions guarded by exact-status updates for standard and accumulated submissions | Jun 24 | `tests/submission-review-route-guards.integration.test.js` |
+| Organizer Workflow Phase 2A — run-proof review queue uses DB counts/search and bounded sorted fetches before merging standard + accumulated proofs | Jun 24 | `tests/submission-review-route-guards.integration.test.js` |
 
 ---
 
