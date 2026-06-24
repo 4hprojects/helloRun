@@ -6,6 +6,9 @@ const User = require('../models/User');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const { getAccumulatedLeaderboardRows } = require('./accumulated-activity.service');
 const { getPublicEventVisibilityQuery, isPublicEventVisible } = require('../utils/public-event-visibility');
+const { getRedisClient } = require('../config/redis');
+
+const LEADERBOARD_CACHE_TTL_SECONDS = 60;
 
 const DEFAULT_EVENT_LEADERBOARD_COLUMNS = ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status'];
 const DEFAULT_EVENT_IMAGE_URL = '/images/helloRun-icon.webp';
@@ -167,18 +170,40 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
   if (!settings.enabled) return null;
 
   const options = normalizeEventLeaderboardOptions(rawOptions);
-  const officialEntries = settings.type === 'accumulated_challenge'
-    ? await getAccumulatedEventEntries(event, settings)
-    : await getRaceResultEventEntries(event, settings);
-  const pendingEntries = settings.showPending
-    ? await getPendingEventEntries(event, settings)
-    : [];
 
-  const filteredEntries = applyEventLeaderboardFilters([...officialEntries, ...pendingEntries], {
-    ...options,
-    distance: ''
-  });
-  const groups = buildEventLeaderboardGroups(filteredEntries, event, { includeConfiguredDistances: true });
+  // Use cached groups/entries when available; fall through on any Redis error.
+  const cacheKey = `leaderboard:${eventSlug}`;
+  const redis = getRedisClient();
+  let cachedGroups = null;
+  if (redis) {
+    try {
+      const raw = await redis.get(cacheKey);
+      if (raw) cachedGroups = JSON.parse(raw);
+    } catch (_) { /* ignore cache errors */ }
+  }
+
+  let groups;
+  if (cachedGroups) {
+    groups = cachedGroups;
+  } else {
+    const officialEntries = settings.type === 'accumulated_challenge'
+      ? await getAccumulatedEventEntries(event, settings)
+      : await getRaceResultEventEntries(event, settings);
+    const pendingEntries = settings.showPending
+      ? await getPendingEventEntries(event, settings)
+      : [];
+
+    const filteredEntries = applyEventLeaderboardFilters([...officialEntries, ...pendingEntries], {
+      ...options,
+      distance: ''
+    });
+    groups = buildEventLeaderboardGroups(filteredEntries, event, { includeConfiguredDistances: true });
+
+    if (redis) {
+      redis.set(cacheKey, JSON.stringify(groups), 'EX', LEADERBOARD_CACHE_TTL_SECONDS).catch(() => {});
+    }
+  }
+
   const runnerDistance = options.distance
     ? ''
     : await getRunnerRegisteredDistance(event._id, rawOptions.currentUserId);
@@ -227,6 +252,12 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
       ? 'Ranked by highest verified accumulated distance. Official rankings include approved submissions only.'
       : 'Ranked by fastest verified time. Official rankings include approved submissions only.'
   };
+}
+
+function invalidateLeaderboardCache(eventSlug) {
+  const redis = getRedisClient();
+  if (!redis || !eventSlug) return;
+  redis.del(`leaderboard:${eventSlug}`).catch(() => {});
 }
 
 async function getMyStanding(eventSlug, userId, rawOptions = {}) {
@@ -1136,5 +1167,6 @@ module.exports = {
   getEventLeaderboard,
   getMyStanding,
   getNearbyRunners,
-  resolveEventLeaderboardSettings
+  resolveEventLeaderboardSettings,
+  invalidateLeaderboardCache
 };

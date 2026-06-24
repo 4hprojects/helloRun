@@ -13,6 +13,9 @@ const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { detectSuspiciousActivity } = require('../utils/submission-integrity');
 const { assertRunDateNotFuture } = require('../utils/platform-date');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
+const { invalidateLeaderboardCache } = require('./leaderboard.service');
+const { normalizeSingleActivityRanking, syncRankingEntry } = require('./ranking.service');
+const { evaluatePublishedRankingAchievements } = require('./achievement.service');
 
 const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
 const REJECTABLE_STATUS = new Set(['submitted']);
@@ -236,7 +239,7 @@ async function reviewSubmission({
 
   const normalizedReviewerRole = String(reviewerRole || '').trim().toLowerCase();
   const isAdminReviewer = normalizedReviewerRole === 'admin';
-  const event = await Event.findById(submission.eventId).select('organizerId title').lean();
+  const event = await Event.findById(submission.eventId).select('organizerId title slug').lean();
   if (!event) {
     throw new Error('Submission not found or inaccessible.');
   }
@@ -264,8 +267,10 @@ async function reviewSubmission({
     submission.rejectionReason = reason;
   }
 
-  const hadCertificate = Boolean(submission.certificate?.url);
   await submission.save();
+  if (safeAction === 'approve') {
+    invalidateLeaderboardCache(event.slug);
+  }
   recordCriticalAuditEventInBackground({
     actorMongoUserId: organizerId,
     action: safeAction === 'approve' ? 'submission.approved' : 'submission.rejected',
@@ -278,8 +283,8 @@ async function reviewSubmission({
       : (submission.rejectionReason || submission.reviewNotes),
     occurredAt: submission.reviewedAt
   });
+  attachCertAndNotifyInBackground(submission, safeAction, event.title || 'Event');
   if (safeAction === 'approve') {
-    await attachCertificateIfNeeded(submission);
     evaluateSubmissionAchievementsSafe(submission, {
       performedBy: organizerId
     });
@@ -287,14 +292,9 @@ async function reviewSubmission({
       refreshGlobalDistanceMilestonesSafe(submission.runnerId, {
         performedBy: organizerId
       });
+      syncEventRankingsInBackground(submission, event.slug);
     }
   }
-  await sendRunnerReviewNotifications({
-    submission,
-    eventTitle: event.title || 'Event',
-    action: safeAction,
-    certificateWasIssued: !hadCertificate && Boolean(submission.certificate?.url)
-  });
   return submission;
 }
 
@@ -1484,19 +1484,49 @@ async function attachCertificateIfNeeded(submission) {
   }
 }
 
+function attachCertAndNotifyInBackground(submission, action, knownEventTitle) {
+  (async () => {
+    try {
+      const hadCertificate = Boolean(submission.certificate?.url);
+      if (action === 'approve') {
+        await attachCertificateIfNeeded(submission);
+      }
+      const certificateWasIssued = !hadCertificate && Boolean(submission.certificate?.url);
+      let eventTitle = knownEventTitle;
+      if (!eventTitle) {
+        const event = await Event.findById(submission.eventId).select('title').lean();
+        eventTitle = event?.title || (submission.isPersonalRecord ? 'Personal Record' : 'Event');
+      }
+      await sendRunnerReviewNotifications({
+        submission,
+        eventTitle,
+        action,
+        certificateWasIssued
+      });
+    } catch (error) {
+      console.error('cert/notify background error:', {
+        error: error.message,
+        submissionId: String(submission?._id || '')
+      });
+    }
+  })();
+}
+
 async function applyAutoApprovalIfEligible(submission) {
   if (!isAutoApprovableSubmission(submission)) {
     return submission;
   }
 
   const autoApprovalReviewNote = getAutoApprovalReviewNote(submission);
-  const hadCertificate = Boolean(submission.certificate?.url);
   submission.status = 'approved';
   submission.reviewedAt = new Date();
   submission.reviewedBy = null;
   submission.reviewNotes = autoApprovalReviewNote;
   submission.rejectionReason = '';
   await submission.save();
+  Event.findById(submission.eventId).select('slug').lean()
+    .then((ev) => { if (ev?.slug) invalidateLeaderboardCache(ev.slug); })
+    .catch(() => {});
   recordCriticalAuditEventInBackground({
     actorMongoUserId: '',
     action: 'submission.auto_approved',
@@ -1508,7 +1538,7 @@ async function applyAutoApprovalIfEligible(submission) {
     occurredAt: submission.reviewedAt
   });
 
-  await attachCertificateIfNeeded(submission);
+  attachCertAndNotifyInBackground(submission, 'approve');
   evaluateSubmissionAchievementsSafe(submission, {
     performedBy: ''
   });
@@ -1516,14 +1546,10 @@ async function applyAutoApprovalIfEligible(submission) {
     refreshGlobalDistanceMilestonesSafe(submission.runnerId, {
       performedBy: ''
     });
+    Event.findById(submission.eventId).select('slug').lean()
+      .then((ev) => { if (ev?.slug) syncEventRankingsInBackground(submission, ev.slug); })
+      .catch(() => {});
   }
-  const event = await Event.findById(submission.eventId).select('title').lean();
-  await sendRunnerReviewNotifications({
-    submission,
-    eventTitle: event?.title || (submission.isPersonalRecord ? 'Personal Record' : 'Event'),
-    action: 'approve',
-    certificateWasIssued: !hadCertificate && Boolean(submission.certificate?.url)
-  });
 
   return submission;
 }
@@ -1550,41 +1576,13 @@ async function sendRunnerReviewNotifications({
     const confirmationCode = registration?.confirmationCode || '';
 
     if (action === 'approve') {
-      await communicationService.notify('result.approved', {
-        notification: {
-          userId: submission.runnerId,
-          type: 'result_approved',
-          title: 'Result Approved',
-          message: `Your result for ${eventTitle} has been approved.`,
-          href: `/runner/submissions/${String(submission._id)}`,
-          metadata: {
-            submissionId: String(submission._id),
-            registrationId: String(submission.registrationId || ''),
-            eventTitle
-          }
-        },
-        email: runner.email ? {
-          to: runner.email,
-          runnerFirstName,
-          firstName: runnerFirstName,
-          eventTitle,
-          confirmationCode,
-          elapsedLabel: formatElapsedMs(submission.elapsedMs),
-          recipientUserId: submission.runnerId,
-          metadata: {
-            submissionId: String(submission._id),
-            registrationId: String(submission.registrationId || '')
-          }
-        } : null
-      });
-
-      if (certificateWasIssued && submission.certificate?.url) {
-        await communicationService.notify('certificate.issued', {
+      const notifyTasks = [
+        communicationService.notify('result.approved', {
           notification: {
             userId: submission.runnerId,
-            type: 'certificate_issued',
-            title: 'Certificate Ready',
-            message: `Your certificate for ${eventTitle} is now available.`,
+            type: 'result_approved',
+            title: 'Result Approved',
+            message: `Your result for ${eventTitle} has been approved.`,
             href: `/runner/submissions/${String(submission._id)}`,
             metadata: {
               submissionId: String(submission._id),
@@ -1594,18 +1592,51 @@ async function sendRunnerReviewNotifications({
           },
           email: runner.email ? {
             to: runner.email,
+            runnerFirstName,
             firstName: runnerFirstName,
             eventTitle,
             confirmationCode,
-            certificateUrl: submission.certificate.url,
+            elapsedLabel: formatElapsedMs(submission.elapsedMs),
             recipientUserId: submission.runnerId,
             metadata: {
               submissionId: String(submission._id),
               registrationId: String(submission.registrationId || '')
             }
           } : null
-        });
+        })
+      ];
+
+      if (certificateWasIssued && submission.certificate?.url) {
+        notifyTasks.push(
+          communicationService.notify('certificate.issued', {
+            notification: {
+              userId: submission.runnerId,
+              type: 'certificate_issued',
+              title: 'Certificate Ready',
+              message: `Your certificate for ${eventTitle} is now available.`,
+              href: `/runner/submissions/${String(submission._id)}`,
+              metadata: {
+                submissionId: String(submission._id),
+                registrationId: String(submission.registrationId || ''),
+                eventTitle
+              }
+            },
+            email: runner.email ? {
+              to: runner.email,
+              firstName: runnerFirstName,
+              eventTitle,
+              confirmationCode,
+              certificateUrl: submission.certificate.url,
+              recipientUserId: submission.runnerId,
+              metadata: {
+                submissionId: String(submission._id),
+                registrationId: String(submission.registrationId || '')
+              }
+            } : null
+          })
+        );
       }
+      await Promise.all(notifyTasks);
       return;
     }
 
@@ -1697,6 +1728,68 @@ function refreshGlobalDistanceMilestonesSafe(mongoUserId, options = {}) {
       error: error.message
     });
   }
+}
+
+function syncEventRankingsInBackground(submission, eventSlug) {
+  if (!process.env.DATABASE_URL || !eventSlug || submission.isPersonalRecord) return;
+  (async () => {
+    try {
+      const allApproved = await Submission.find({
+        eventId: submission.eventId,
+        status: 'approved',
+        isPersonalRecord: { $ne: true }
+      })
+        .select('_id raceDistance participationMode elapsedMs submittedAt')
+        .lean();
+
+      const groups = new Map();
+      for (const sub of allApproved) {
+        const key = `${sub.raceDistance}|${sub.participationMode}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(sub);
+      }
+
+      for (const group of groups.values()) {
+        group.sort((a, b) => (a.elapsedMs || 0) - (b.elapsedMs || 0));
+        for (let i = 0; i < group.length; i++) {
+          const sub = group[i];
+          const entry = {
+            submissionId: String(sub._id),
+            leaderboardType: 'single_activity',
+            rank: i + 1,
+            raceDistance: sub.raceDistance || '',
+            participationMode: sub.participationMode || 'virtual',
+            elapsedMs: sub.elapsedMs || 0,
+            submittedAt: sub.submittedAt
+          };
+          let lastErr;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            try {
+              await syncRankingEntry(entry, { eventSlug }, { runnerId: sub.runnerId || submission.runnerId });
+              lastErr = null;
+              break;
+            } catch (err) {
+              lastErr = err;
+              await new Promise((resolve) => setTimeout(resolve, 500));
+            }
+          }
+          if (lastErr) {
+            console.error('Ranking sync failed after retries:', {
+              submissionId: String(sub._id),
+              error: lastErr.message
+            });
+          }
+        }
+      }
+
+      await evaluatePublishedRankingAchievements({ eventSlug });
+    } catch (error) {
+      console.error('syncEventRankingsInBackground failed:', {
+        eventId: String(submission.eventId || ''),
+        error: error.message
+      });
+    }
+  })();
 }
 
 module.exports = {

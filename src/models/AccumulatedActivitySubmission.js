@@ -281,6 +281,8 @@ accumulatedActivitySubmissionSchema.index(
   { runnerId: 1, eventId: 1, 'stravaActivity.id': 1 },
   { sparse: true }
 );
+accumulatedActivitySubmissionSchema.index({ runnerId: 1, 'proof.hash': 1 }, { sparse: true });
+accumulatedActivitySubmissionSchema.index({ registrationId: 1, 'certificate.url': 1 });
 applySmokeTestSchema(accumulatedActivitySubmissionSchema);
 
 module.exports = mongoose.models.AccumulatedActivitySubmission ||

@@ -370,6 +370,11 @@ submissionSchema.index(
   { runnerId: 1, eventId: 1, 'stravaActivity.id': 1 },
   { sparse: true }
 );
+submissionSchema.index({ runnerId: 1, 'proof.hash': 1 }, { sparse: true });
+submissionSchema.index(
+  { runnerId: 1, isPersonalRecord: 1, 'stravaActivity.id': 1 },
+  { sparse: true }
+);
 applySmokeTestSchema(submissionSchema);
 
 // Background Supabase submission shadow sync on save (non-blocking)

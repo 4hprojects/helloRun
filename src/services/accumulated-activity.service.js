@@ -270,56 +270,81 @@ function buildEmptyProgress() {
 }
 
 async function attachCompletionCertificateIfNeeded(activity) {
-  const existingCertificate = await AccumulatedActivitySubmission.exists({
-    registrationId: activity.registrationId,
-    'certificate.url': { $ne: '' }
-  });
-  if (existingCertificate) return false;
+  // Atomically claim the certificate slot to prevent duplicate issuance under concurrent approvals.
+  const claimed = await AccumulatedActivitySubmission.findOneAndUpdate(
+    {
+      registrationId: activity.registrationId,
+      'certificate.url': '',
+      'certificate.status': { $nin: ['pending', 'generated', 'regenerated'] }
+    },
+    { $set: { 'certificate.status': 'pending' } },
+    { new: false }
+  ).lean();
+  if (!claimed) return false;
 
-  const [registration, event, runner, activities] = await Promise.all([
-    Registration.findById(activity.registrationId).lean(),
-    Event.findById(activity.eventId).lean(),
-    User.findById(activity.runnerId).select('firstName lastName email').lean(),
-    AccumulatedActivitySubmission.find({ registrationId: activity.registrationId }).lean()
-  ]);
-  if (!registration || !event || !runner) return false;
-  if (event.digitalCertificateEnabled === false) return false;
-  const progress = buildAccumulatedProgress({
-    activities,
-    targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, event)
-  });
-  if (!progress.completed) return false;
+  const releaseLock = () => AccumulatedActivitySubmission.updateOne(
+    { registrationId: activity.registrationId, 'certificate.status': 'pending' },
+    { $set: { 'certificate.status': '' } }
+  ).catch(() => {});
 
-  const certificate = await issueSubmissionCertificate({
-    submission: activity,
-    registration,
-    event,
-    runner
-  });
-  activity.certificate = {
-    url: certificate.url || '',
-    key: certificate.key || '',
-    issuedAt: certificate.issuedAt || new Date(),
-    certificateNumber: certificate.certificateNumber || '',
-    verificationUrl: certificate.verificationUrl || '',
-    templateId: certificate.templateId || null,
-    status: certificate.status || 'generated',
-    revokedAt: null,
-    regeneratedAt: null,
-    generationError: ''
-  };
-  await activity.save();
-  recordCriticalAuditEventInBackground({
-    actorMongoUserId: activity.reviewedBy ? String(activity.reviewedBy) : '',
-    action: 'certificate.issued',
-    targetType: 'accumulated_activity_certificate',
-    targetId: String(activity._id),
-    statusFrom: '',
-    statusTo: 'issued',
-    notes: `Certificate issued for accumulated activity ${String(activity._id)}`,
-    occurredAt: activity.certificate?.issuedAt || new Date()
-  });
-  return Boolean(certificate?.url);
+  try {
+    const [registration, event, runner, activities] = await Promise.all([
+      Registration.findById(activity.registrationId).lean(),
+      Event.findById(activity.eventId).lean(),
+      User.findById(activity.runnerId).select('firstName lastName email').lean(),
+      AccumulatedActivitySubmission.find({ registrationId: activity.registrationId }).lean()
+    ]);
+    if (!registration || !event || !runner) {
+      await releaseLock();
+      return false;
+    }
+    if (event.digitalCertificateEnabled === false) {
+      await releaseLock();
+      return false;
+    }
+    const progress = buildAccumulatedProgress({
+      activities,
+      targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, event)
+    });
+    if (!progress.completed) {
+      await releaseLock();
+      return false;
+    }
+
+    const certificate = await issueSubmissionCertificate({
+      submission: activity,
+      registration,
+      event,
+      runner
+    });
+    activity.certificate = {
+      url: certificate.url || '',
+      key: certificate.key || '',
+      issuedAt: certificate.issuedAt || new Date(),
+      certificateNumber: certificate.certificateNumber || '',
+      verificationUrl: certificate.verificationUrl || '',
+      templateId: certificate.templateId || null,
+      status: certificate.status || 'generated',
+      revokedAt: null,
+      regeneratedAt: null,
+      generationError: ''
+    };
+    await activity.save();
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: activity.reviewedBy ? String(activity.reviewedBy) : '',
+      action: 'certificate.issued',
+      targetType: 'accumulated_activity_certificate',
+      targetId: String(activity._id),
+      statusFrom: '',
+      statusTo: 'issued',
+      notes: `Certificate issued for accumulated activity ${String(activity._id)}`,
+      occurredAt: activity.certificate?.issuedAt || new Date()
+    });
+    return Boolean(certificate?.url);
+  } catch (error) {
+    await releaseLock();
+    throw error;
+  }
 }
 
 async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {

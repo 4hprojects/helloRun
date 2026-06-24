@@ -1448,45 +1448,47 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     });
     uploadedProofKey = uploadedProof.key;
 
-    const previousProofKeys = new Set();
-    let savedCount = 0;
-    for (const targetId of targetRegistrationIds) {
-      const existingForTarget = targetId === PERSONAL_RECORD_REGISTRATION_ID
-        ? null
-        : existingSubmissionByRegistrationId.get(targetId) || null;
-      const payload = {
-        registrationId: targetId,
-        runnerId: user._id,
-        distanceKm,
-        elapsedMs,
-        runDate,
-        runLocation,
-        proofType,
-        proof: {
-          url: uploadedProof.url,
-          key: uploadedProof.key,
-          mimeType: resultProofFile.mimetype || '',
-          size: Number(resultProofFile.size || 0),
-          hash: proofHash
-        },
-        proofNotes,
-        runType,
-        elevationGain,
-        steps,
-        ocrData
-      };
+    const previousProofKeysList = await Promise.all(
+      targetRegistrationIds.map(async (targetId) => {
+        const existingForTarget = targetId === PERSONAL_RECORD_REGISTRATION_ID
+          ? null
+          : existingSubmissionByRegistrationId.get(targetId) || null;
+        const payload = {
+          registrationId: targetId,
+          runnerId: user._id,
+          distanceKm,
+          elapsedMs,
+          runDate,
+          runLocation,
+          proofType,
+          proof: {
+            url: uploadedProof.url,
+            key: uploadedProof.key,
+            mimeType: resultProofFile.mimetype || '',
+            size: Number(resultProofFile.size || 0),
+            hash: proofHash
+          },
+          proofNotes,
+          runType,
+          elevationGain,
+          steps,
+          ocrData
+        };
 
-      if (existingForTarget && existingForTarget.status === 'rejected') {
-        await resubmitSubmission(payload);
-        const previousKey = String(existingForTarget.proof?.key || '').trim();
-        if (previousKey && previousKey !== uploadedProof.key) previousProofKeys.add(previousKey);
-      } else if (accumulatedTargetIds.has(String(targetId))) {
-        await createAccumulatedActivitySubmission(payload);
-      } else {
-        await createSubmission(payload);
-      }
-      savedCount += 1;
-    }
+        if (existingForTarget && existingForTarget.status === 'rejected') {
+          await resubmitSubmission(payload);
+          const previousKey = String(existingForTarget.proof?.key || '').trim();
+          return previousKey && previousKey !== uploadedProof.key ? previousKey : null;
+        } else if (accumulatedTargetIds.has(String(targetId))) {
+          await createAccumulatedActivitySubmission(payload);
+        } else {
+          await createSubmission(payload);
+        }
+        return null;
+      })
+    );
+    const previousProofKeys = new Set(previousProofKeysList.filter(Boolean));
+    const savedCount = targetRegistrationIds.length;
 
     uploadedProofKey = '';
     for (const previousProofKey of previousProofKeys) {

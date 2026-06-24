@@ -249,32 +249,26 @@ async function getRankingForSubmission(mongoSubmissionId, options = {}) {
  */
 async function getEventLeaderboard(eventSlug, filter = {}, options = {}) {
   const sql = options.sql || getPostgresClient();
-  const limit = options.limit || 100;
+  const limit = Math.min(Number.isFinite(Number(options.limit)) ? Number(options.limit) : 100, 500);
 
   try {
-    let query = `
-      SELECT r.*, e.title as event_title
+    const safeSlug = String(eventSlug || '');
+    const leaderboardType = filter.leaderboardType ? String(filter.leaderboardType) : null;
+    const raceDistance = filter.raceDistance ? String(filter.raceDistance) : null;
+    const participationMode = filter.participationMode ? String(filter.participationMode) : null;
+
+    const result = await sql`
+      SELECT r.*, e.title AS event_title
       FROM rankings r
       JOIN events_core e ON r.event_core_id = e.id
-      WHERE e.slug = '${eventSlug}'
-      AND r.published_at IS NOT NULL
+      WHERE e.slug = ${safeSlug}
+        AND r.published_at IS NOT NULL
+        AND (${leaderboardType} IS NULL OR r.leaderboard_type = ${leaderboardType})
+        AND (${raceDistance} IS NULL OR r.race_distance = ${raceDistance})
+        AND (${participationMode} IS NULL OR r.participation_mode = ${participationMode})
+      ORDER BY r.rank_position ASC
+      LIMIT ${limit}
     `;
-
-    if (filter.leaderboardType) {
-      query += ` AND r.leaderboard_type = '${filter.leaderboardType}'`;
-    }
-
-    if (filter.raceDistance) {
-      query += ` AND r.race_distance = '${filter.raceDistance}'`;
-    }
-
-    if (filter.participationMode) {
-      query += ` AND r.participation_mode = '${filter.participationMode}'`;
-    }
-
-    query += ` ORDER BY r.rank_position ASC LIMIT ${limit}`;
-
-    const result = await sql.unsafe(query);
     return result;
   } catch (error) {
     console.error('Get event leaderboard error:', error.message);
