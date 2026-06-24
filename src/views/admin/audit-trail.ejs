@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Critical Audit Trail - HelloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>Critical Audit Trail</h2>
+          <p>Filter high-impact payment, export, review, event, certificate, and admin actions.</p>
+        </div>
+        <a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+      </div>
+
+      <% if (unavailable) { %>
+        <div class="admin-alert admin-alert-error">Postgres audit storage is not configured in this environment.</div>
+      <% } %>
+
+      <form method="GET" action="/admin/audit" class="admin-filters">
+        <div class="filter-field filter-grow">
+          <label for="q">Search</label>
+          <input id="q" name="q" type="search" value="<%= filters.q %>" placeholder="Action, target ID, notes, actor">
+        </div>
+        <div class="filter-field">
+          <label for="group">Group</label>
+          <select id="group" name="group">
+            <% groupOptions.forEach((option) => { %>
+              <option value="<%= option.value %>" <%= filters.group === option.value ? 'selected' : '' %>><%= option.label %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="action">Exact Action</label>
+          <input id="action" name="action" type="text" value="<%= filters.action %>" placeholder="payment.approved">
+        </div>
+        <div class="filter-field">
+          <label for="targetType">Target</label>
+          <select id="targetType" name="targetType">
+            <% targetTypeOptions.forEach((option) => { %>
+              <option value="<%= option.value %>" <%= filters.targetType === option.value ? 'selected' : '' %>><%= option.label %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="targetId">Target ID</label>
+          <input id="targetId" name="targetId" type="text" value="<%= filters.targetId %>" placeholder="Mongo or order ID">
+        </div>
+        <div class="filter-field">
+          <label for="actorMongoUserId">Actor ID</label>
+          <input id="actorMongoUserId" name="actorMongoUserId" type="text" value="<%= filters.actorMongoUserId %>" placeholder="Mongo user ID">
+        </div>
+        <div class="filter-field">
+          <label for="dateFrom">From</label>
+          <input id="dateFrom" name="dateFrom" type="date" value="<%= filters.dateFrom %>">
+        </div>
+        <div class="filter-field">
+          <label for="dateTo">To</label>
+          <input id="dateTo" name="dateTo" type="date" value="<%= filters.dateTo %>">
+        </div>
+        <div class="filter-field">
+          <label for="perPage">Show</label>
+          <select id="perPage" name="perPage">
+            <% [25, 50, 100].forEach((size) => { %>
+              <option value="<%= size %>" <%= filters.pageSize === size ? 'selected' : '' %>><%= size %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button type="submit" class="btn btn-primary">Apply</button>
+          <a href="/admin/audit" class="btn btn-secondary">Reset</a>
+        </div>
+      </form>
+
+      <div class="registrants-table-toolbar">
+        <span><%= pagination.totalItems %> audit entr<%= pagination.totalItems === 1 ? 'y' : 'ies' %></span>
+        <% if (pagination.totalPages > 1) { %>
+          <span>Page <%= pagination.page %> of <%= pagination.totalPages %></span>
+        <% } %>
+      </div>
+
+      <% if (entries && entries.length) { %>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Target</th>
+              <th>Status</th>
+              <th>Notes</th>
+              <th>Actor</th>
+              <th>IP</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% entries.forEach((entry) => { %>
+              <tr>
+                <td><code style="font-size:0.75rem"><%= entry.action %></code></td>
+                <td>
+                  <strong><%= entry.target_type %></strong><br>
+                  <small class="mono"><%= entry.target_id %></small>
+                </td>
+                <td><%= entry.status_from || '—' %> → <%= entry.status_to || '—' %></td>
+                <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<%= entry.notes || '' %>"><%= entry.notes || '—' %></td>
+                <td>
+                  <%= entry.actor_display_name || entry.actor_email || entry.actor_mongo_user_id || 'System' %>
+                  <% if (entry.actor_mongo_user_id) { %><br><small class="mono"><%= entry.actor_mongo_user_id %></small><% } %>
+                </td>
+                <td><small><%= entry.ip_address || '—' %></small></td>
+                <td><small><%= entry.created_at ? new Date(entry.created_at).toLocaleString('en-US') : '—' %></small></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      <% } else { %>
+        <div class="empty-state"><p>No audit entries match these filters.</p></div>
+      <% } %>
+
+      <% if (pagination.prevHref || pagination.nextHref) { %>
+        <div class="pagination-controls">
+          <% if (pagination.prevHref) { %><a href="<%= pagination.prevHref %>" class="btn btn-secondary">Previous</a><% } %>
+          <% if (pagination.nextHref) { %><a href="<%= pagination.nextHref %>" class="btn btn-secondary">Next</a><% } %>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

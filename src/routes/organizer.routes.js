@@ -51,6 +51,13 @@ const {
   listSubmissionHub,
   listSubmissionHubEvents
 } = require('../services/submission-hub.service');
+const {
+  AUDIT_GROUP_OPTIONS,
+  AUDIT_TARGET_TYPE_OPTIONS,
+  buildCriticalAuditPath,
+  listCriticalAuditEvents,
+  normalizeCriticalAuditFilters
+} = require('../services/critical-audit-query.service');
 const onsiteOperationsRoutes = require('./organiser/onsite-operations');
 const qrAndDashboardRoutes = require('./organiser/qr-and-dashboard');
 
@@ -1262,6 +1269,70 @@ router.get('/events/:id', requireApprovedOrganizer, async (req, res) => {
       title: 'Server Error',
       status: 500,
       message: 'An error occurred while loading event details.'
+    });
+  }
+});
+
+router.get('/events/:id/audit', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+    if (!user) {
+      return res.status(404).render('error', {
+        title: '404 - User Not Found',
+        status: 404,
+        message: 'User account not found.'
+      });
+    }
+
+    if (!canAccessRegistrantReview(user)) {
+      return res.status(403).render('error', {
+        title: '403 - Access Denied',
+        status: 403,
+        message: 'Only approved organizers or admins can view event audit logs.'
+      });
+    }
+
+    const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
+    if (!event) {
+      return res.status(404).render('error', {
+        title: '404 - Event Not Found',
+        status: 404,
+        message: 'Event not found or you do not have access.'
+      });
+    }
+
+    const filters = normalizeCriticalAuditFilters(req.query);
+    const targetIds = await getEventAuditTargetIds(event._id);
+    const result = await listCriticalAuditEvents({
+      filters,
+      targetIds,
+      targetTypes: ['event', 'registration', 'submission', 'accumulated_activity_submission']
+    });
+
+    return res.render('organizer/event-audit', {
+      title: `Audit Trail - ${event.title}`,
+      event,
+      filters: result.filters,
+      entries: result.entries,
+      unavailable: result.unavailable,
+      groupOptions: AUDIT_GROUP_OPTIONS,
+      targetTypeOptions: AUDIT_TARGET_TYPE_OPTIONS.filter((option) => ['', 'event', 'registration', 'submission', 'accumulated_activity_submission'].includes(option.value)),
+      scopedTargetCount: targetIds.length,
+      pagination: {
+        page: result.page,
+        totalPages: result.totalPages,
+        totalItems: result.totalItems,
+        pageSize: result.pageSize,
+        prevHref: result.page > 1 ? buildCriticalAuditPath(`/organizer/events/${event._id}/audit`, result.filters, { page: result.page - 1 }) : '',
+        nextHref: result.page < result.totalPages ? buildCriticalAuditPath(`/organizer/events/${event._id}/audit`, result.filters, { page: result.page + 1 }) : ''
+      }
+    });
+  } catch (error) {
+    console.error('Error loading organizer event audit trail:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'An error occurred while loading the event audit trail.'
     });
   }
 });
@@ -3940,6 +4011,22 @@ function getPaymentProofReviewStatusQuery(status) {
   if (status === 'rejected') return 'proof_rejected';
   if (status === 'all') return { $in: ['proof_submitted', 'paid', 'proof_rejected'] };
   return 'proof_submitted';
+}
+
+async function getEventAuditTargetIds(eventId) {
+  const eventIdString = String(eventId || '');
+  const [registrations, submissions, accumulatedActivities] = await Promise.all([
+    Registration.find({ eventId }).select('_id').limit(5000).lean(),
+    Submission.find({ eventId }).select('_id').limit(5000).lean(),
+    AccumulatedActivitySubmission.find({ eventId }).select('_id').limit(5000).lean()
+  ]);
+
+  return Array.from(new Set([
+    eventIdString,
+    ...registrations.map((item) => String(item._id)),
+    ...submissions.map((item) => String(item._id)),
+    ...accumulatedActivities.map((item) => String(item._id))
+  ].filter(Boolean)));
 }
 
 function buildPaymentProofReviewPath(eventId, filters = {}, overrides = {}) {

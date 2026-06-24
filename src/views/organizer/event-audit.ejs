@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/event-manage.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="manage-page organizer-event-audit-page">
+    <section class="manage-shell">
+      <header class="manage-header">
+        <div class="manage-header-copy">
+          <p class="manage-eyebrow">Event Audit</p>
+          <h1><%= event.title %></h1>
+          <p>Review payment, export, reminder, and run-proof decisions for this event.</p>
+        </div>
+        <div class="header-actions">
+          <a href="/organizer/events/<%= event._id %>" class="nav-login-btn detail-nav-btn">Back to Event</a>
+          <a href="/organizer/events/<%= event._id %>/registrants" class="nav-login-btn detail-nav-btn">Registrants</a>
+          <a href="/organizer/events/<%= event._id %>/run-proofs/review" class="nav-login-btn detail-nav-btn">Run Proof Review</a>
+        </div>
+      </header>
+
+      <% if (unavailable) { %>
+        <div class="page-message page-message-error">Postgres audit storage is not configured in this environment.</div>
+      <% } %>
+
+      <section class="detail-card detail-card-full">
+        <form method="GET" action="/organizer/events/<%= event._id %>/audit" class="filter-bar registrant-filter-bar">
+          <div class="filter-field filter-grow">
+            <label for="q">Search</label>
+            <input id="q" name="q" type="search" value="<%= filters.q %>" placeholder="Action, target ID, notes, actor">
+          </div>
+          <div class="filter-field">
+            <label for="group">Group</label>
+            <select id="group" name="group">
+              <% groupOptions.forEach((option) => { %>
+                <option value="<%= option.value %>" <%= filters.group === option.value ? 'selected' : '' %>><%= option.label %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label for="action">Exact Action</label>
+            <input id="action" name="action" type="text" value="<%= filters.action %>" placeholder="payment.approved">
+          </div>
+          <div class="filter-field">
+            <label for="targetType">Target</label>
+            <select id="targetType" name="targetType">
+              <% targetTypeOptions.forEach((option) => { %>
+                <option value="<%= option.value %>" <%= filters.targetType === option.value ? 'selected' : '' %>><%= option.label %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="filter-field">
+            <label for="dateFrom">From</label>
+            <input id="dateFrom" name="dateFrom" type="date" value="<%= filters.dateFrom %>">
+          </div>
+          <div class="filter-field">
+            <label for="dateTo">To</label>
+            <input id="dateTo" name="dateTo" type="date" value="<%= filters.dateTo %>">
+          </div>
+          <div class="filter-actions">
+            <button type="submit" class="nav-signup-btn detail-nav-btn">Apply</button>
+            <a href="/organizer/events/<%= event._id %>/audit" class="nav-login-btn detail-nav-btn">Reset</a>
+          </div>
+        </form>
+        <p class="shop-muted" style="margin:0.75rem 0 0">
+          Scope includes this event plus <%= Math.max(0, scopedTargetCount - 1) %> related registration/submission target<%= Math.max(0, scopedTargetCount - 1) === 1 ? '' : 's' %>.
+        </p>
+      </section>
+
+      <div class="registrants-table-toolbar">
+        <span><%= pagination.totalItems %> audit entr<%= pagination.totalItems === 1 ? 'y' : 'ies' %></span>
+        <% if (pagination.totalPages > 1) { %>
+          <span>Page <%= pagination.page %> of <%= pagination.totalPages %></span>
+        <% } %>
+      </div>
+
+      <% if (entries && entries.length) { %>
+        <div class="registrants-table-wrap">
+          <table class="registrants-table">
+            <thead>
+              <tr>
+                <th>Action</th>
+                <th>Target</th>
+                <th>Status</th>
+                <th>Notes</th>
+                <th>Actor</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% entries.forEach((entry) => { %>
+                <tr>
+                  <td><code style="font-size:0.75rem"><%= entry.action %></code></td>
+                  <td>
+                    <strong><%= entry.target_type %></strong><br>
+                    <small class="mono"><%= entry.target_id %></small>
+                  </td>
+                  <td><%= entry.status_from || '—' %> → <%= entry.status_to || '—' %></td>
+                  <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="<%= entry.notes || '' %>"><%= entry.notes || '—' %></td>
+                  <td>
+                    <%= entry.actor_display_name || entry.actor_email || entry.actor_mongo_user_id || 'System' %>
+                    <% if (entry.actor_mongo_user_id) { %><br><small class="mono"><%= entry.actor_mongo_user_id %></small><% } %>
+                  </td>
+                  <td><small><%= entry.created_at ? new Date(entry.created_at).toLocaleString('en-US') : '—' %></small></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <div class="empty-state"><p>No audit entries match these filters.</p></div>
+      <% } %>
+
+      <% if (pagination.prevHref || pagination.nextHref) { %>
+        <div class="pagination-controls">
+          <% if (pagination.prevHref) { %><a href="<%= pagination.prevHref %>" class="nav-login-btn detail-nav-btn">Previous</a><% } %>
+          <% if (pagination.nextHref) { %><a href="<%= pagination.nextHref %>" class="nav-login-btn detail-nav-btn">Next</a><% } %>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

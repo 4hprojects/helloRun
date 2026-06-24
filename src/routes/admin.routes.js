@@ -4,6 +4,7 @@ const { requireAdmin } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const adminController = require('../controllers/admin.controller');
+const adminAuditController = require('../controllers/admin-audit.controller');
 const blogController = require('../controllers/blog.controller');
 const blogInteractionController = require('../controllers/blog-interaction.controller');
 const uploadService = require('../services/upload.service');
@@ -77,6 +78,7 @@ router.post('/applications/:id/reject', requireAdmin, adminController.rejectAppl
 
 // Admin dashboard
 router.get('/dashboard', requireAdmin, adminController.dashboard);
+router.get('/audit', requireAdmin, adminAuditController.listCriticalAudit);
 router.get('/communications', requireAdmin, adminController.renderCommunications);
 router.get('/communications/logs', requireAdmin, adminController.renderCommunications);
 router.post('/communications/settings', requireAdmin, adminController.updateCommunicationSettings);

@@ -19,3 +19,25 @@ test('high-impact runner and organizer workflows emit critical audit events', ()
   assert.match(organizerRoutes, /organiser\.payment_reminder_sent/);
   assert.match(organizerShopController, /organiser\.shop_orders_exported/);
 });
+
+test('admin and organizer audit consoles expose filtered critical audit views', () => {
+  const adminRoutes = readSource('src/routes/admin.routes.js');
+  const organizerRoutes = readSource('src/routes/organizer.routes.js');
+  const auditService = readSource('src/services/critical-audit-query.service.js');
+  const adminAuditView = readSource('src/views/admin/audit-trail.ejs');
+  const organizerAuditView = readSource('src/views/organizer/event-audit.ejs');
+  const organizerEventDetailView = readSource('src/views/organizer/event-details.ejs');
+
+  assert.match(adminRoutes, /\/audit'[\s\S]*adminAuditController\.listCriticalAudit/);
+  assert.match(organizerRoutes, /\/events\/:id\/audit'[\s\S]*listCriticalAuditEvents/);
+  assert.match(organizerRoutes, /getEventAuditTargetIds/);
+  assert.match(organizerRoutes, /accumulated_activity_submission/);
+  assert.match(auditService, /AUDIT_ACTION_GROUPS/);
+  assert.match(auditService, /payment\.receipt_submitted/);
+  assert.match(auditService, /organiser\.registrants_exported/);
+  assert.match(auditService, /submission\.approved/);
+  assert.match(adminAuditView, /Critical Audit Trail/);
+  assert.match(adminAuditView, /Exact Action/);
+  assert.match(organizerAuditView, /Event Audit/);
+  assert.match(organizerEventDetailView, /\/organizer\/events\/<%= event\._id %>\/audit/);
+});
