@@ -85,6 +85,11 @@ const paymentReviewActionLimiter = createRateLimiter({
   maxRequests: 60,
   message: 'Too many payment review actions. Please wait before trying again.'
 });
+const registrantExportLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many registrant exports. Please wait a few minutes and try again.'
+});
 
 function syncRegistrationPaymentShadowInBackground(registration, context = {}) {
   if (!registration || !registration._id || !process.env.DATABASE_URL) return;
@@ -2369,7 +2374,7 @@ router.post(
   }
 );
 
-router.get('/events/:id/registrants/export', requireAuth, async (req, res) => {
+router.get('/events/:id/registrants/export', requireAuth, registrantExportLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -2422,7 +2427,7 @@ router.get('/events/:id/registrants/export', requireAuth, async (req, res) => {
   }
 });
 
-router.get('/events/:id/registrants/export-xlsx', requireAuth, async (req, res) => {
+router.get('/events/:id/registrants/export-xlsx', requireAuth, registrantExportLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
