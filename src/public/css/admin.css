@@ -3372,6 +3372,19 @@
   border-left-color: #dc2626;
 }
 
+.admin-json-preview {
+  max-width: 420px;
+  max-height: 220px;
+  overflow: auto;
+  padding: 0.65rem;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 /* ── Platform analytics page ── */
 .admin-page-header {
   display: flex;

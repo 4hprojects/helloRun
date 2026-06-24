@@ -85,6 +85,8 @@ router.get('/dashboard', requireAdmin, adminController.dashboard);
 router.get('/audit', requireAdmin, adminAuditController.listCriticalAudit);
 router.get('/communications', requireAdmin, adminController.renderCommunications);
 router.get('/communications/logs', requireAdmin, adminController.renderCommunications);
+router.get('/communications/retries', requireAdmin, adminController.renderCommunicationRetries);
+router.post('/communications/retries/:retryId/retry', requireAdmin, adminModerationLimiter, adminController.retryCommunicationDelivery);
 router.post('/communications/settings', requireAdmin, adminController.updateCommunicationSettings);
 router.post('/communications/events/:eventKey', requireAdmin, adminController.updateCommunicationEvent);
 router.post('/communications/test-email', requireAdmin, adminController.sendCommunicationTestEmail);

@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 const CommunicationRetry = require('../models/CommunicationRetry');
 const communicationService = require('./communication.service');
 const logger = require('../utils/logger');
@@ -80,6 +81,79 @@ async function processCommunicationRetryBatch(options = {}) {
   return { processed: jobs.length };
 }
 
+async function listCommunicationRetries(filters = {}) {
+  const normalized = normalizeRetryFilters(filters);
+  const query = {};
+  if (normalized.status) query.status = normalized.status;
+  if (normalized.eventKey) query.eventKey = normalized.eventKey;
+  if (normalized.q) {
+    const pattern = new RegExp(escapeRegex(normalized.q), 'i');
+    query.$or = [
+      { eventKey: pattern },
+      { source: pattern },
+      { lastError: pattern },
+      { 'metadata.registrationId': pattern },
+      { 'metadata.submissionId': pattern },
+      { 'metadata.activityId': pattern },
+      { 'metadata.eventId': pattern },
+      { 'payload.email.to': pattern }
+    ];
+  }
+
+  const [totalItems, counts] = await Promise.all([
+    CommunicationRetry.countDocuments(query),
+    CommunicationRetry.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ])
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(totalItems / normalized.limit));
+  const page = Math.min(normalized.page, totalPages);
+  const items = await CommunicationRetry.find(query)
+    .sort({ nextAttemptAt: 1, createdAt: -1 })
+    .skip((page - 1) * normalized.limit)
+    .limit(normalized.limit)
+    .lean();
+
+  return {
+    items,
+    filters: normalized,
+    counts: counts.reduce((memo, row) => {
+      memo[row._id || 'unknown'] = row.count;
+      return memo;
+    }, {}),
+    pagination: {
+      page,
+      totalItems,
+      totalPages,
+      limit: normalized.limit
+    }
+  };
+}
+
+async function retryCommunicationNow(retryId) {
+  const safeId = String(retryId || '').trim();
+  if (!mongoose.Types.ObjectId.isValid(safeId)) {
+    throw new Error('Invalid retry job.');
+  }
+
+  const job = await CommunicationRetry.findById(safeId);
+  if (!job) {
+    throw new Error('Retry job not found.');
+  }
+  if (job.status === 'sent') {
+    return { alreadySent: true, job };
+  }
+
+  job.status = 'queued';
+  job.attempts = 0;
+  job.nextAttemptAt = new Date();
+  job.lastError = '';
+  await job.save();
+  const result = await retryCommunicationJob(job);
+  return { ...result, job };
+}
+
 async function retryCommunicationJob(job) {
   const attemptNumber = Number(job.attempts || 0) + 1;
   job.status = 'retrying';
@@ -143,6 +217,24 @@ function normalizeMetadata(metadata = {}) {
   return metadata && typeof metadata === 'object' ? JSON.parse(JSON.stringify(metadata)) : {};
 }
 
+function normalizeRetryFilters(filters = {}) {
+  const status = ['queued', 'retrying', 'sent', 'dead'].includes(String(filters.status || '').trim())
+    ? String(filters.status).trim()
+    : '';
+  const requestedPage = Number.parseInt(String(filters.page || '1'), 10);
+  return {
+    status,
+    eventKey: String(filters.eventKey || '').trim().slice(0, 120),
+    q: String(filters.q || '').trim().slice(0, 120),
+    page: Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1,
+    limit: 40
+  };
+}
+
+function escapeRegex(value) {
+  return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function getRetryDelayMs(attemptNumber) {
   return RETRY_DELAYS_MS[Math.min(Math.max(attemptNumber - 1, 0), RETRY_DELAYS_MS.length - 1)];
 }
@@ -150,7 +242,9 @@ function getRetryDelayMs(attemptNumber) {
 module.exports = {
   buildCommunicationRetryKey,
   enqueueCommunicationRetry,
+  listCommunicationRetries,
   notifyWithRetry,
   notifyWithRetryInBackground,
-  processCommunicationRetryBatch
+  processCommunicationRetryBatch,
+  retryCommunicationNow
 };

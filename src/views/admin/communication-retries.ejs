@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Notification Retry Queue - HelloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>Notification Retry Queue</h2>
+          <p>Inspect queued and dead-lettered high-impact communication retries.</p>
+        </div>
+        <div class="admin-user-header-actions">
+          <a href="/admin/communications" class="btn btn-secondary">Back to Communications</a>
+          <a href="/admin/dashboard" class="btn btn-secondary">Admin Dashboard</a>
+        </div>
+      </div>
+
+      <% if (message) { %>
+        <div class="admin-alert admin-alert-<%= message.type %>"><%= message.text %></div>
+      <% } %>
+
+      <div class="dashboard-grid">
+        <% ['queued', 'retrying', 'dead', 'sent'].forEach((status) => { %>
+          <article class="metric-card">
+            <p class="metric-label"><%= status %></p>
+            <p class="metric-value"><%= counts[status] || 0 %></p>
+          </article>
+        <% }) %>
+      </div>
+
+      <form class="admin-filters communication-log-filters" method="GET" action="/admin/communications/retries">
+        <div class="filter-field">
+          <label for="eventKey">Event</label>
+          <select id="eventKey" name="eventKey">
+            <option value="">All events</option>
+            <% events.forEach((event) => { %>
+              <option value="<%= event.eventKey %>" <%= filters.eventKey === event.eventKey ? 'selected' : '' %>><%= event.name %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="filter-field">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="">All</option>
+            <% ['queued', 'retrying', 'sent', 'dead'].forEach((status) => { %>
+              <option value="<%= status %>" <%= filters.status === status ? 'selected' : '' %>><%= status %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="filter-field filter-grow">
+          <label for="q">Search</label>
+          <input id="q" type="search" name="q" value="<%= filters.q || '' %>" placeholder="Recipient, source, target ID, error">
+        </div>
+        <div class="filter-actions">
+          <button type="submit" class="btn">Filter</button>
+          <a href="/admin/communications/retries" class="btn btn-secondary">Reset</a>
+        </div>
+      </form>
+
+      <div class="admin-users-table-wrap">
+        <table class="admin-table communication-retries-table">
+          <thead>
+            <tr>
+              <th>Next Attempt</th>
+              <th>Event</th>
+              <th>Recipient</th>
+              <th>Status</th>
+              <th>Error / Payload</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (items.length) { %>
+              <% items.forEach((item) => { %>
+                <tr>
+                  <td>
+                    <%= item.nextAttemptAt ? formatDateTime(item.nextAttemptAt) : 'N/A' %>
+                    <div><small><%= item.attempts || 0 %> attempt<%= Number(item.attempts || 0) === 1 ? '' : 's' %></small></div>
+                  </td>
+                  <td>
+                    <span class="mono"><%= item.eventKey %></span>
+                    <% if (item.source) { %><div><small><%= item.source %></small></div><% } %>
+                  </td>
+                  <td>
+                    <%= item.payload?.email?.to || 'N/A' %>
+                    <% if (item.payload?.email?.recipientUserId || item.payload?.notification?.userId) { %>
+                      <div><small class="mono"><%= item.payload?.email?.recipientUserId || item.payload?.notification?.userId %></small></div>
+                    <% } %>
+                  </td>
+                  <td><span class="status-badge status-badge-<%= item.status %>"><%= item.status %></span></td>
+                  <td>
+                    <% if (item.lastError) { %>
+                      <div><small><%= item.lastError %></small></div>
+                    <% } %>
+                    <details>
+                      <summary>Inspect payload</summary>
+                      <pre class="admin-json-preview"><%= JSON.stringify({ metadata: item.metadata || {}, payload: item.payload || {} }, null, 2).slice(0, 4000) %></pre>
+                    </details>
+                  </td>
+                  <td>
+                    <% if (item.status !== 'sent') { %>
+                      <form method="POST" action="<%= buildRetryActionHref(item._id) %>" class="inline-form">
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                        <button type="submit" class="btn btn-sm">Retry now</button>
+                      </form>
+                    <% } else { %>
+                      <span class="shop-muted">Sent</span>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } else { %>
+              <tr>
+                <td colspan="6">No retry jobs match this filter.</td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+
+      <% if (pagination.totalPages > 1) { %>
+        <div class="pagination">
+          <% if (pagination.page > 1) { %>
+            <a class="btn btn-secondary" href="<%= buildRetryPageHref(pagination.page - 1) %>">Previous</a>
+          <% } %>
+          <span>Page <%= pagination.page %> of <%= pagination.totalPages %></span>
+          <% if (pagination.page < pagination.totalPages) { %>
+            <a class="btn btn-secondary" href="<%= buildRetryPageHref(pagination.page + 1) %>">Next</a>
+          <% } %>
+        </div>
+      <% } %>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

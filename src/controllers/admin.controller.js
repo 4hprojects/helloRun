@@ -11,6 +11,10 @@ const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const PrivacyPolicy = require('../models/PrivacyPolicy');
 const communicationService = require('../services/communication.service');
+const {
+  listCommunicationRetries,
+  retryCommunicationNow
+} = require('../services/reliable-communication.service');
 const homepageCarouselSettingService = require('../services/homepage-carousel-setting.service');
 const adSettingService = require('../services/ad-setting.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
@@ -218,6 +222,12 @@ function buildAdminRedirect(pathname, type, message) {
   return `${pathname}?${params.toString()}`;
 }
 
+function appendAdminPageMessage(pathname, type, message) {
+  const separator = String(pathname || '').includes('?') ? '&' : '?';
+  const params = new URLSearchParams({ type, msg: message });
+  return `${pathname}${separator}${params.toString()}`;
+}
+
 function buildCommunicationLogHref(filters = {}, page = 1) {
   const params = new URLSearchParams();
   ['eventKey', 'channel', 'status', 'recipient'].forEach((key) => {
@@ -226,6 +236,25 @@ function buildCommunicationLogHref(filters = {}, page = 1) {
   if (Number(page) > 1) params.set('page', String(page));
   const query = params.toString();
   return query ? `/admin/communications?${query}` : '/admin/communications';
+}
+
+function buildCommunicationRetryHref(filters = {}, page = 1) {
+  const params = new URLSearchParams();
+  ['eventKey', 'status', 'q'].forEach((key) => {
+    if (filters[key]) params.set(key, filters[key]);
+  });
+  if (Number(page) > 1) params.set('page', String(page));
+  const query = params.toString();
+  return query ? `/admin/communications/retries?${query}` : '/admin/communications/retries';
+}
+
+function buildCommunicationRetryActionHref(retryId, filters = {}) {
+  const params = new URLSearchParams();
+  ['eventKey', 'status', 'q'].forEach((key) => {
+    if (filters[key]) params.set(key, filters[key]);
+  });
+  const query = params.toString();
+  return `/admin/communications/retries/${retryId}/retry${query ? `?${query}` : ''}`;
 }
 
 function getAdminPageMessage(query = {}) {
@@ -2636,6 +2665,42 @@ exports.renderCommunications = async (req, res) => {
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading communication settings.');
+  }
+};
+
+exports.renderCommunicationRetries = async (req, res) => {
+  try {
+    const [retryData, communicationData] = await Promise.all([
+      listCommunicationRetries(req.query),
+      communicationService.getAdminCommunicationPageData({})
+    ]);
+    return res.render('admin/communication-retries', {
+      title: 'Notification Retry Queue - HelloRun Admin',
+      message: getAdminPageMessage(req.query),
+      events: communicationData.events,
+      ...retryData,
+      formatDateTime: formatAdminDateTime,
+      buildRetryPageHref: (page) => buildCommunicationRetryHref(retryData.filters, page),
+      buildRetryActionHref: (retryId) => buildCommunicationRetryActionHref(retryId, retryData.filters)
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading notification retries.');
+  }
+};
+
+exports.retryCommunicationDelivery = async (req, res) => {
+  const returnTo = buildCommunicationRetryHref(req.query || {});
+  try {
+    const result = await retryCommunicationNow(req.params.retryId);
+    if (result.alreadySent) {
+      return res.redirect(appendAdminPageMessage(returnTo, 'info', 'This retry job was already sent.'));
+    }
+    if (result.sent) {
+      return res.redirect(appendAdminPageMessage(returnTo, 'success', 'Notification retry sent successfully.'));
+    }
+    return res.redirect(appendAdminPageMessage(returnTo, 'warning', 'Notification retry was attempted and remains queued.'));
+  } catch (error) {
+    return res.redirect(appendAdminPageMessage(returnTo, 'error', error.message || 'Could not retry notification.'));
   }
 };
 

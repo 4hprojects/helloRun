@@ -43,3 +43,22 @@ test('high-impact organizer workflow notifications use retry-backed delivery', (
   assert.match(submissionService, /await notifyWithRetry\('result\.rejected'/);
   assert.match(accumulatedActivityService, /await notifyWithRetry\(approved \? 'result\.approved' : 'result\.rejected'/);
 });
+
+test('admin communications exposes retry queue inspection and manual retry', () => {
+  const adminRoutes = readSource('src/routes/admin.routes.js');
+  const adminController = readSource('src/controllers/admin.controller.js');
+  const retryService = readSource('src/services/reliable-communication.service.js');
+  const communicationsView = readSource('src/views/admin/communications.ejs');
+  const retriesView = readSource('src/views/admin/communication-retries.ejs');
+
+  assert.match(adminRoutes, /\/communications\/retries'[\s\S]*renderCommunicationRetries/);
+  assert.match(adminRoutes, /\/communications\/retries\/:retryId\/retry'[\s\S]*retryCommunicationDelivery/);
+  assert.match(adminController, /renderCommunicationRetries/);
+  assert.match(adminController, /retryCommunicationDelivery/);
+  assert.match(retryService, /listCommunicationRetries/);
+  assert.match(retryService, /retryCommunicationNow/);
+  assert.match(communicationsView, /\/admin\/communications\/retries/);
+  assert.match(retriesView, /Notification Retry Queue/);
+  assert.match(retriesView, /Inspect payload/);
+  assert.match(retriesView, /Retry now/);
+});
