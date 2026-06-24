@@ -324,6 +324,80 @@ test('My Events and registrants table link pending results to review workflow', 
   assert.doesNotMatch(html, new RegExp(`action="/organizer/events/${seed.event._id}/submissions/${seed.submission._id}/reject"`, 'i'));
 });
 
+test('registrants result filter paginates submitted registrations', async () => {
+  const seed = await seedReviewData('registrants-result-pagination');
+  await mongoose.connect(process.env.MONGODB_URI);
+  try {
+    const now = Date.now();
+    const extraRegistrations = Array.from({ length: 100 }, (_, index) => {
+      const runnerId = new mongoose.Types.ObjectId();
+      return {
+        eventId: seed.event._id,
+        userId: runnerId,
+        participant: {
+          firstName: 'Review',
+          lastName: `Page ${index}`,
+          email: `phase5.review.registrants-page-${index}.${now}@example.com`,
+          mobile: '09171234567',
+          country: 'PH',
+          gender: 'male',
+          emergencyContactName: 'Review Emergency',
+          emergencyContactNumber: '09170000001',
+          runningGroup: ''
+        },
+        participationMode: 'virtual',
+        raceDistance: '5K',
+        status: 'confirmed',
+        paymentStatus: 'paid',
+        waiver: {
+          accepted: true,
+          version: 1,
+          signature: `Review Page ${index}`,
+          acceptedAt: new Date(),
+          templateSnapshot: DEFAULT_WAIVER_TEMPLATE,
+          renderedSnapshot: DEFAULT_WAIVER_TEMPLATE
+        },
+        confirmationCode: `HR-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+        registeredAt: new Date(now + index)
+      };
+    });
+    const insertedRegistrations = await Registration.insertMany(extraRegistrations);
+    await Submission.insertMany(insertedRegistrations.map((registration, index) => ({
+      registrationId: registration._id,
+      eventId: seed.event._id,
+      runnerId: registration.userId,
+      participationMode: 'virtual',
+      raceDistance: registration.raceDistance,
+      distanceKm: 5,
+      elapsedMs: 1800000 + index,
+      proofType: 'gps',
+      proof: {
+        url: `https://example.com/result-proof-page-${index}.gpx`,
+        key: `result-proof-page-${index}`,
+        mimeType: 'application/gpx+xml',
+        size: 2048
+      },
+      status: 'submitted',
+      submissionCount: 1,
+      submittedAt: new Date(now + index)
+    })));
+  } finally {
+    await mongoose.disconnect();
+  }
+
+  const ownerCookie = await login(seed.ownerOrganizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', ownerCookie);
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/registrants?result=submitted`, {
+    headers: { Cookie: ownerCookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Showing <strong>100<\/strong> of <strong>101<\/strong> registrants/i);
+  assert.match(html, /Page 1 of 2/i);
+  assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/registrants\\?result=submitted&amp;page=2`, 'i'));
+});
+
 test('admin can view standard submission review page', async () => {
   const seed = await seedReviewData('admin-review-page');
   const adminCookie = await login(seed.admin.email, seed.password);

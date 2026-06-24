@@ -61,6 +61,7 @@ const PREVIEW_SESSION_TTL_MS = 30 * 60 * 1000;
 const MAX_PREVIEW_SESSION_ENTRIES = 5;
 const RUN_PROOF_REVIEW_PAGE_SIZE = 50;
 const PAYMENT_PROOF_REVIEW_PAGE_SIZE = 50;
+const REGISTRANTS_PAGE_SIZE = 100;
 const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_distance']);
 const ACCEPTED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
 const RECOGNITION_MODES = new Set(['completion_only', 'completion_with_optional_ranking']);
@@ -1549,12 +1550,29 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       selectedDistance,
       eventRaceDistances,
       searchQuery,
-      selectedResultStatus
+      selectedResultStatus,
+      requestedPage
     } = filterContext;
 
-    const registrationsRaw = await Registration.find(query)
-      .sort({ registeredAt: -1 })
-      .lean();
+    const registrantQuery = { ...query };
+    if (selectedResultStatus) {
+      registrantQuery._id = {
+        $in: await getRegistrationIdsWithSubmissionStatus(event._id, selectedResultStatus)
+      };
+    }
+
+    const filteredRegistrantsCount = await Registration.countDocuments(registrantQuery);
+    const totalPages = Math.max(1, Math.ceil(filteredRegistrantsCount / REGISTRANTS_PAGE_SIZE));
+    const page = Math.min(requestedPage, totalPages);
+    const pageStart = (page - 1) * REGISTRANTS_PAGE_SIZE;
+
+    const registrationsRaw = filteredRegistrantsCount > 0
+      ? await Registration.find(registrantQuery)
+        .sort({ registeredAt: -1 })
+        .skip(pageStart)
+        .limit(REGISTRANTS_PAGE_SIZE)
+        .lean()
+      : [];
 
     const registrationIds = registrationsRaw.map((item) => item._id);
     const submissionFilter = {
@@ -1603,13 +1621,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       }
     }
 
-    const registrations = registrationsRaw
-      .filter((item) => {
-        if (!selectedResultStatus) return true;
-        return submissionsByRegistrationId.has(String(item._id)) ||
-          accumulatedActivitiesByRegistrationId.has(String(item._id));
-      })
-      .map((item) => ({
+    const registrations = registrationsRaw.map((item) => ({
       ...item,
       participant: {
         ...item.participant,
@@ -1691,7 +1703,15 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
         submissionApprovedCount: submissionApprovedCount + accumulatedCounts.approved,
         submissionRejectedCount: submissionRejectedCount + accumulatedCounts.rejected
       },
-      message: getPageMessage(req.query)
+      message: getPageMessage(req.query),
+      pagination: {
+        page,
+        totalPages,
+        totalItems: filteredRegistrantsCount,
+        pageSize: REGISTRANTS_PAGE_SIZE,
+        prevHref: page > 1 ? buildRegistrantListPath(event._id, filterContext, { page: page - 1 }) : '',
+        nextHref: page < totalPages ? buildRegistrantListPath(event._id, filterContext, { page: page + 1 }) : ''
+      }
     });
   } catch (error) {
     console.error('Error loading event registrants:', error);
@@ -3843,6 +3863,8 @@ function getRegistrantFilterContext(event, queryParams = {}) {
   const selectedResultStatus = ['submitted', 'approved', 'rejected'].includes(queryParams.result)
     ? queryParams.result
     : '';
+  const requestedPageValue = Number.parseInt(String(queryParams.page || '1'), 10);
+  const requestedPage = Number.isFinite(requestedPageValue) && requestedPageValue > 0 ? requestedPageValue : 1;
 
   const query = { eventId: event._id };
   if (selectedMode) {
@@ -3875,8 +3897,45 @@ function getRegistrantFilterContext(event, queryParams = {}) {
     selectedPaymentStatus,
     selectedResultStatus,
     eventRaceDistances,
-    searchQuery
+    searchQuery,
+    requestedPage
   };
+}
+
+async function getRegistrationIdsWithSubmissionStatus(eventId, status) {
+  const [standardRows, accumulatedRows] = await Promise.all([
+    Submission.find({ eventId, status }).select('registrationId').lean(),
+    AccumulatedActivitySubmission.find({ eventId, status }).select('registrationId').lean()
+  ]);
+  const ids = new Set();
+  standardRows.forEach((item) => {
+    if (item.registrationId) ids.add(String(item.registrationId));
+  });
+  accumulatedRows.forEach((item) => {
+    if (item.registrationId) ids.add(String(item.registrationId));
+  });
+  return Array.from(ids);
+}
+
+function buildRegistrantListPath(eventId, filterContext = {}, overrides = {}) {
+  const next = {
+    mode: filterContext.selectedMode,
+    distance: filterContext.selectedDistance,
+    payment: filterContext.selectedPaymentStatus,
+    result: filterContext.selectedResultStatus,
+    q: filterContext.searchQuery,
+    page: filterContext.requestedPage,
+    ...overrides
+  };
+  const params = new URLSearchParams();
+  if (next.mode) params.set('mode', next.mode);
+  if (next.distance) params.set('distance', next.distance);
+  if (next.payment) params.set('payment', next.payment);
+  if (next.result) params.set('result', next.result);
+  if (next.q) params.set('q', next.q);
+  if (Number(next.page || 1) > 1) params.set('page', String(next.page));
+  const query = params.toString();
+  return `/organizer/events/${String(eventId)}/registrants${query ? `?${query}` : ''}`;
 }
 
 function normalizePaymentProofReviewFilters(queryParams = {}) {

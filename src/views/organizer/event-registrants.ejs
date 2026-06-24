@@ -159,6 +159,7 @@
 
       <% if (registrations && registrations.length) { %>
         <div class="registrants-table-toolbar">
+          <span>Showing <strong><%= registrations.length %></strong> of <strong><%= pagination.totalItems %></strong> registrant<%= pagination.totalItems === 1 ? '' : 's' %></span>
           <div class="registrant-column-menu" data-registrant-column-menu>
             <button type="button" class="nav-login-btn registrant-columns-btn" id="registrantColumnsMenuBtn" aria-expanded="false" aria-controls="registrantColumnsMenu">
               <i data-lucide="columns-3" aria-hidden="true"></i>
@@ -507,6 +508,21 @@
             </tbody>
           </table>
         </div>
+        <% if (pagination.totalPages > 1) { %>
+          <nav class="run-proof-pagination" aria-label="Registrants pagination">
+            <% if (pagination.prevHref) { %>
+              <a href="<%= pagination.prevHref %>" class="nav-login-btn">Previous</a>
+            <% } else { %>
+              <span class="nav-login-btn disabled">Previous</span>
+            <% } %>
+            <span>Page <%= pagination.page %> of <%= pagination.totalPages %></span>
+            <% if (pagination.nextHref) { %>
+              <a href="<%= pagination.nextHref %>" class="nav-login-btn">Next</a>
+            <% } else { %>
+              <span class="nav-login-btn disabled">Next</span>
+            <% } %>
+          </nav>
+        <% } %>
       <% } else { %>
         <div class="empty-state">
           <i data-lucide="users"></i>

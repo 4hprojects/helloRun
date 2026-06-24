@@ -25,6 +25,7 @@
 | Organizer Workflow Phase 1C — run-proof review transitions guarded by exact-status updates for standard and accumulated submissions | Jun 24 | `tests/submission-review-route-guards.integration.test.js` |
 | Organizer Workflow Phase 2A — run-proof review queue uses DB counts/search and bounded sorted fetches before merging standard + accumulated proofs | Jun 24 | `tests/submission-review-route-guards.integration.test.js` |
 | Organizer Workflow Phase 2B — payment-proof review queue paginated with exact filtered counts and bounded registration fetches | Jun 24 | `tests/payment-route-guards.integration.test.js` |
+| Organizer Workflow Phase 2C — registrants page paginated with DB-side result-status narrowing across standard and accumulated submissions | Jun 24 | `tests/submission-review-route-guards.integration.test.js` |
 
 ---
 
