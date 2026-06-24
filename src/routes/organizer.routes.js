@@ -44,7 +44,6 @@ const { tryAutoApproveEvent } = require('../services/event-approval.service');
 const {
   reviewAccumulatedActivitySubmission,
   getAccumulatedActivitiesForRegistrations,
-  getEventAccumulatedActivityCounts,
   buildAccumulatedProgress
 } = require('../services/accumulated-activity.service');
 const {
@@ -1537,31 +1536,16 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       )
     }));
 
-    const accumulatedCounts = event.virtualCompletionMode === 'accumulated_distance'
-      ? await getEventAccumulatedActivityCounts(event._id)
-      : { submitted: 0, approved: 0, rejected: 0 };
     const [
-      totalRegistrants,
-      virtualCount,
-      onsiteCount,
-      proofSubmittedCount,
-      paidCount,
-      proofRejectedCount,
-      unpaidCount,
-      submissionSubmittedCount,
-      submissionApprovedCount,
-      submissionRejectedCount
+      registrationSummaryCounts,
+      standardSubmissionSummaryCounts,
+      accumulatedSubmissionSummaryCounts
     ] = await Promise.all([
-      Registration.countDocuments({ eventId: event._id }),
-      Registration.countDocuments({ eventId: event._id, participationMode: 'virtual' }),
-      Registration.countDocuments({ eventId: event._id, participationMode: 'onsite' }),
-      Registration.countDocuments({ eventId: event._id, paymentStatus: 'proof_submitted' }),
-      Registration.countDocuments({ eventId: event._id, paymentStatus: 'paid' }),
-      Registration.countDocuments({ eventId: event._id, paymentStatus: 'proof_rejected' }),
-      Registration.countDocuments({ eventId: event._id, status: 'confirmed', paymentStatus: 'unpaid' }),
-      Submission.countDocuments({ eventId: event._id, status: 'submitted' }),
-      Submission.countDocuments({ eventId: event._id, status: 'approved' }),
-      Submission.countDocuments({ eventId: event._id, status: 'rejected' })
+      getEventRegistrationSummaryCounts(event._id),
+      getEventSubmissionSummaryCounts(Submission, event._id),
+      event.virtualCompletionMode === 'accumulated_distance'
+        ? getEventSubmissionSummaryCounts(AccumulatedActivitySubmission, event._id)
+        : { submitted: 0, approved: 0, rejected: 0 }
     ]);
 
     return res.render('organizer/event-registrants', {
@@ -1578,16 +1562,16 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       searchQuery,
       exportQuery: buildRegistrantExportQuery(filterContext),
       summary: {
-        totalRegistrants,
-        virtualCount,
-        onsiteCount,
-        proofSubmittedCount,
-        paidCount,
-        proofRejectedCount,
-        unpaidCount,
-        submissionSubmittedCount: submissionSubmittedCount + accumulatedCounts.submitted,
-        submissionApprovedCount: submissionApprovedCount + accumulatedCounts.approved,
-        submissionRejectedCount: submissionRejectedCount + accumulatedCounts.rejected
+        totalRegistrants: registrationSummaryCounts.totalRegistrants,
+        virtualCount: registrationSummaryCounts.virtualCount,
+        onsiteCount: registrationSummaryCounts.onsiteCount,
+        proofSubmittedCount: registrationSummaryCounts.proofSubmittedCount,
+        paidCount: registrationSummaryCounts.paidCount,
+        proofRejectedCount: registrationSummaryCounts.proofRejectedCount,
+        unpaidCount: registrationSummaryCounts.unpaidCount,
+        submissionSubmittedCount: standardSubmissionSummaryCounts.submitted + accumulatedSubmissionSummaryCounts.submitted,
+        submissionApprovedCount: standardSubmissionSummaryCounts.approved + accumulatedSubmissionSummaryCounts.approved,
+        submissionRejectedCount: standardSubmissionSummaryCounts.rejected + accumulatedSubmissionSummaryCounts.rejected
       },
       message: getPageMessage(req.query),
       pagination: {
@@ -3789,6 +3773,78 @@ function getRegistrantFilterContext(event, queryParams = {}) {
     eventRaceDistances,
     searchQuery,
     requestedPage
+  };
+}
+
+async function getEventRegistrationSummaryCounts(eventId) {
+  const [summary = {}] = await Registration.aggregate([
+    { $match: { eventId } },
+    {
+      $group: {
+        _id: null,
+        totalRegistrants: { $sum: 1 },
+        virtualCount: {
+          $sum: { $cond: [{ $eq: ['$participationMode', 'virtual'] }, 1, 0] }
+        },
+        onsiteCount: {
+          $sum: { $cond: [{ $eq: ['$participationMode', 'onsite'] }, 1, 0] }
+        },
+        proofSubmittedCount: {
+          $sum: { $cond: [{ $eq: ['$paymentStatus', 'proof_submitted'] }, 1, 0] }
+        },
+        paidCount: {
+          $sum: { $cond: [{ $eq: ['$paymentStatus', 'paid'] }, 1, 0] }
+        },
+        proofRejectedCount: {
+          $sum: { $cond: [{ $eq: ['$paymentStatus', 'proof_rejected'] }, 1, 0] }
+        },
+        unpaidCount: {
+          $sum: {
+            $cond: [
+              { $and: [{ $eq: ['$status', 'confirmed'] }, { $eq: ['$paymentStatus', 'unpaid'] }] },
+              1,
+              0
+            ]
+          }
+        }
+      }
+    }
+  ]);
+
+  return {
+    totalRegistrants: Number(summary.totalRegistrants || 0),
+    virtualCount: Number(summary.virtualCount || 0),
+    onsiteCount: Number(summary.onsiteCount || 0),
+    proofSubmittedCount: Number(summary.proofSubmittedCount || 0),
+    paidCount: Number(summary.paidCount || 0),
+    proofRejectedCount: Number(summary.proofRejectedCount || 0),
+    unpaidCount: Number(summary.unpaidCount || 0)
+  };
+}
+
+async function getEventSubmissionSummaryCounts(Model, eventId) {
+  const [summary = {}] = await Model.aggregate([
+    { $match: { eventId } },
+    {
+      $group: {
+        _id: null,
+        submitted: {
+          $sum: { $cond: [{ $eq: ['$status', 'submitted'] }, 1, 0] }
+        },
+        approved: {
+          $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] }
+        },
+        rejected: {
+          $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] }
+        }
+      }
+    }
+  ]);
+
+  return {
+    submitted: Number(summary.submitted || 0),
+    approved: Number(summary.approved || 0),
+    rejected: Number(summary.rejected || 0)
   };
 }
 
