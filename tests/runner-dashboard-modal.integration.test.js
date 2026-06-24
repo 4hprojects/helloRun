@@ -257,6 +257,10 @@ test('run proof modal process opens dashboard flow before eligible events finish
   assert.match(source, /selected\?\.isPersonalRecord\s*\?\s*'personal-record'/);
   assert.match(partial, /id="runProofSubmitInlineBtn"/);
   assert.match(footer, /\/js\/ocr\/ocr-location-resolver\.js/);
+
+  const runnerRoutes = fs.readFileSync(path.resolve(__dirname, '../src/routes/runner.routes.js'), 'utf8');
+  assert.match(runnerRoutes, /submissionEligibilityLimiter/);
+  assert.match(runnerRoutes, /\/runner\/submissions\/eligible'[\s\S]*submissionEligibilityLimiter/);
 });
 
 test('OCR identity helper matches display name and rejects non-matching names', () => {

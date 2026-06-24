@@ -20,6 +20,12 @@ const groupActionLimiter = createRateLimiter({
   message: 'Too many group actions. Please wait a few minutes and try again.'
 });
 
+const submissionEligibilityLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 30,
+  message: 'Too many submission eligibility checks. Please wait a moment and try again.'
+});
+
 router.use((req, res, next) => {
   if (req.method === 'POST') {
     // Skip blanket CSRF check for multipart/form-data — multer hasn't parsed the body yet
@@ -39,7 +45,7 @@ router.get('/runner/dashboard/refresh', requireAuth, runnerController.getDashboa
 router.get('/runner/dashboard/result-submissions', requireAuth, runnerController.getDashboardResultSubmissions);
 router.get('/runner/dashboard/badges', requireAuth, runnerController.getRunnerBadges);
 router.get('/runner/dashboard/badge-progress', requireAuth, runnerController.getRunnerBadgeProgress);
-router.get('/runner/submissions/eligible', requireAuth, runnerController.getEligibleResultSubmissionOptions);
+router.get('/runner/submissions/eligible', requireAuth, submissionEligibilityLimiter, runnerController.getEligibleResultSubmissionOptions);
 router.get('/runner/profile', requireAuth, runnerController.getProfilePage);
 router.get('/runner/profile/badges', requireAuth, runnerController.getRunnerBadges);
 router.get('/runner/profile/badge-progress', requireAuth, runnerController.getRunnerBadgeProgress);

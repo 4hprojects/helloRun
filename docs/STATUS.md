@@ -54,6 +54,7 @@ _Last updated: June 24, 2026_
 | Organizer Workflow Phase 3C — unpaid-payment reminder action now batches runner lookup before dispatching emails | June 24, 2026 | `tests/csrf-route-guards.integration.test.js` |
 | Organizer Workflow Phase 4A — eligible run-result options now expose upload deadline and modal cards show it before submission | June 24, 2026 | `tests/submission.service.integration.test.js`, `tests/runner-dashboard-modal.integration.test.js` |
 | Organizer Workflow Phase 4B — expired event upload windows now return context so the modal explains why only Personal Record is available | June 24, 2026 | `tests/submission.service.integration.test.js`, `tests/runner-dashboard-modal.integration.test.js` |
+| Organizer Workflow Phase 5A — runner submission eligibility checks now have a shared Redis/in-memory rate limit for submission-rush protection | June 24, 2026 | `tests/runner-dashboard-modal.integration.test.js` |
 
 ---
 
