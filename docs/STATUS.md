@@ -58,6 +58,7 @@ _Last updated: June 24, 2026_
 | Organizer Workflow Phase 5B — Strava activity refresh and Strava result submission endpoints now have shared rate limits for external API and submission-rush protection | June 24, 2026 | `tests/strava-integration.integration.test.js` |
 | Organizer Workflow Phase 5C — organizer registrant CSV/XLSX exports now have a shared rate limit for large-event download protection | June 24, 2026 | `tests/organizer-route-source.unit.test.js` |
 | Organizer Workflow Phase 5D — organizer shop report CSV/XLSX exports now have a shared rate limit for large-order download protection | June 24, 2026 | `tests/organizer-route-source.unit.test.js` |
+| Organizer Workflow Phase 5E — run-proof single and bulk review mutations now have a dedicated shared rate limit separate from payment review actions | June 24, 2026 | `tests/organizer-route-source.unit.test.js` |
 
 ---
 

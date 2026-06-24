@@ -85,6 +85,11 @@ const paymentReviewActionLimiter = createRateLimiter({
   maxRequests: 60,
   message: 'Too many payment review actions. Please wait before trying again.'
 });
+const submissionReviewActionLimiter = createRateLimiter({
+  windowMs: 5 * 60 * 1000,
+  maxRequests: 60,
+  message: 'Too many submission review actions. Please wait before trying again.'
+});
 const registrantExportLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 10,
@@ -1031,7 +1036,7 @@ router.get('/submissions/:submissionId/review-panel', requireAuth, async (req, r
    POST: Bulk Approve Submissions
    ========================================== */
 
-router.post('/submissions/bulk-approve', requireAuth, requireCsrfProtection, async (req, res) => {
+router.post('/submissions/bulk-approve', requireAuth, requireCsrfProtection, submissionReviewActionLimiter, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
     if (!user || !canAccessRegistrantReview(user)) {
@@ -2182,7 +2187,7 @@ router.post(
   '/events/:id/submissions/:submissionId/approve',
   requireAuth,
   requireCsrfProtection,
-  paymentReviewActionLimiter,
+  submissionReviewActionLimiter,
   async (req, res) => {
     try {
       const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
@@ -2272,7 +2277,7 @@ router.post(
   '/events/:id/submissions/:submissionId/reject',
   requireAuth,
   requireCsrfProtection,
-  paymentReviewActionLimiter,
+  submissionReviewActionLimiter,
   async (req, res) => {
     try {
       const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
