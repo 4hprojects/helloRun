@@ -1893,6 +1893,18 @@
         }, 1900);
       }
 
+      // Show toast when page reloads after a successful save (e.g. draft saved)
+      (function() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('type') === 'success') {
+          const msg = params.get('msg') || 'Draft saved.';
+          showInlineActionToast(decodeURIComponent(msg).replace(/\+/g, ' '), 'success');
+          // Clean the URL without triggering a reload
+          const clean = window.location.pathname + (params.toString().replace(/[?&]?(type|msg)=[^&]*/g, '').replace(/^&/, '?') || '');
+          window.history.replaceState({}, '', clean || window.location.pathname);
+        }
+      })();
+
       function escapeReviewHtml(value) {
         return String(value ?? '')
           .replace(/&/g, '&amp;')

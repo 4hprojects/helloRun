@@ -20,6 +20,8 @@ const {
 const homepageCarouselSettingService = require('../services/homepage-carousel-setting.service');
 const adSettingService = require('../services/ad-setting.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
+const { reviewSubmission } = require('../services/submission.service');
+const { reviewAccumulatedActivitySubmission } = require('../services/accumulated-activity.service');
 const { getPostgresClient } = require('../db/postgres');
 const crypto = require('crypto');
 const { listRecentBadgeAuditLogs } = require('../services/badge-audit.service');
@@ -2973,6 +2975,60 @@ exports.reviewQueue = async (req, res) => {
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading the admin review queue.');
+  }
+};
+
+exports.bulkRejectSubmissions = async (req, res) => {
+  try {
+    const rawIds = Array.isArray(req.body.submissionIds)
+      ? req.body.submissionIds
+      : String(req.body.submissionIds || '').split(',').filter(Boolean);
+    const submissionIds = rawIds.map((id) => String(id).trim()).filter(Boolean).slice(0, 50);
+    if (!submissionIds.length) {
+      const q = new URLSearchParams({ type: 'error', msg: 'No submissions selected.' });
+      return res.redirect(`/admin/submissions?${q}`);
+    }
+
+    const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
+    if (!rejectionReason) {
+      const q = new URLSearchParams({ type: 'error', msg: 'A rejection reason is required.' });
+      return res.redirect(`/admin/submissions?${q}`);
+    }
+
+    const results = await Promise.allSettled(
+      submissionIds.map((id) =>
+        reviewSubmission({
+          submissionId: id,
+          organizerId: req.session.userId,
+          reviewerRole: 'admin',
+          action: 'reject',
+          rejectionReason,
+          reviewNotes: String(req.body.reviewNotes || '').trim().slice(0, 1200)
+        }).catch(() =>
+          reviewAccumulatedActivitySubmission({
+            activityId: id,
+            organizerId: req.session.userId,
+            reviewerRole: 'admin',
+            action: 'reject',
+            rejectionReason,
+            reviewNotes: String(req.body.reviewNotes || '').trim().slice(0, 1200)
+          })
+        )
+      )
+    );
+
+    const succeeded = results.filter((r) => r.status === 'fulfilled').length;
+    const failed = results.length - succeeded;
+    const msg = failed > 0
+      ? `${succeeded} submission${succeeded !== 1 ? 's' : ''} rejected. ${failed} could not be processed.`
+      : `${succeeded} submission${succeeded !== 1 ? 's' : ''} rejected.`;
+
+    const q = new URLSearchParams({ type: succeeded > 0 ? 'success' : 'error', msg });
+    return res.redirect(`/admin/submissions?${q}`);
+  } catch (error) {
+    console.error('Admin bulk reject submissions error:', error);
+    const q = new URLSearchParams({ type: 'error', msg: 'An error occurred during bulk rejection.' });
+    return res.redirect(`/admin/submissions?${q}`);
   }
 };
 

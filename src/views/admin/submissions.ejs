@@ -99,9 +99,23 @@
       </div>
 
       <% if (submissions && submissions.length) { %>
+        <form method="POST" action="/admin/submissions/bulk-reject" id="adminBulkRejectForm">
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <div class="admin-bulk-bar" id="adminBulkBar" hidden>
+            <label class="admin-bulk-select-all-label">
+              <input type="checkbox" id="adminSelectAll"> Select all
+            </label>
+            <span class="admin-bulk-count" id="adminBulkCount">0 selected</span>
+            <div class="admin-bulk-reason-wrap">
+              <input type="text" name="rejectionReason" class="admin-bulk-reason-input" placeholder="Rejection reason (required)" maxlength="500" required>
+            </div>
+            <button type="submit" class="btn btn-sm btn-danger" id="adminBulkRejectBtn" disabled>Reject Selected</button>
+          </div>
+
         <table class="admin-table">
           <thead>
             <tr>
+              <th class="admin-bulk-check-col"><input type="checkbox" id="adminSelectAllHead" title="Select all"></th>
               <th>Event</th>
               <th>Participant</th>
               <th>Type</th>
@@ -115,6 +129,7 @@
           <tbody>
             <% submissions.forEach((item) => { %>
               <tr>
+                <td class="admin-bulk-check-col"><input type="checkbox" name="submissionIds" value="<%= item.id %>" class="admin-bulk-cb"></td>
                 <td>
                   <strong><%= item.eventTitle %></strong>
                   <div><small class="mono"><%= item.confirmationCode %></small></div>
@@ -161,6 +176,7 @@
           <span class="results-meta">Page <%= pagination.page %> of <%= pagination.totalPages %></span>
           <% if (links.next) { %><a href="<%= links.next %>" class="btn btn-secondary">Next</a><% } %>
         </div>
+        </form><!-- end adminBulkRejectForm -->
       <% } else { %>
         <div class="empty-state">
           <h3>No run submissions found</h3>
@@ -175,6 +191,44 @@
   <%- include('../partials/submission-link-modal') %>
   <script src="/js/main.js"></script>
   <script src="/js/submission-link-modal.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+
+    // Bulk reject wiring
+    (function() {
+      const bar = document.getElementById('adminBulkBar');
+      const selectAllHead = document.getElementById('adminSelectAllHead');
+      const selectAll = document.getElementById('adminSelectAll');
+      const countEl = document.getElementById('adminBulkCount');
+      const rejectBtn = document.getElementById('adminBulkRejectBtn');
+      const checkboxes = Array.from(document.querySelectorAll('.admin-bulk-cb'));
+      const reasonInput = document.querySelector('[name="rejectionReason"]');
+
+      if (!bar || !checkboxes.length) return;
+      bar.hidden = false;
+
+      function updateBar() {
+        const checked = checkboxes.filter((cb) => cb.checked);
+        countEl.textContent = checked.length + ' selected';
+        const hasReason = reasonInput && reasonInput.value.trim().length > 0;
+        rejectBtn.disabled = checked.length === 0 || !hasReason;
+        if (selectAll) selectAll.checked = checked.length === checkboxes.length;
+        if (selectAllHead) selectAllHead.checked = checked.length === checkboxes.length;
+      }
+
+      checkboxes.forEach((cb) => cb.addEventListener('change', updateBar));
+      if (reasonInput) reasonInput.addEventListener('input', updateBar);
+
+      function toggleAll(checked) {
+        checkboxes.forEach((cb) => { cb.checked = checked; });
+        updateBar();
+      }
+
+      if (selectAll) selectAll.addEventListener('change', (e) => toggleAll(e.target.checked));
+      if (selectAllHead) selectAllHead.addEventListener('change', (e) => toggleAll(e.target.checked));
+
+      updateBar();
+    })();
+  </script>
 </body>
 </html>

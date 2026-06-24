@@ -39,6 +39,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 30
   },
   {
+    eventKey: 'organiser.direct_message',
+    name: 'Organiser Direct Message to Runner',
+    description: 'Sent when an organiser messages a specific registrant directly from the registrants page.',
+    category: 'organiser',
+    priority: 'normal',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: true,
+    locked: false,
+    recipientRoles: ['runner'],
+    displayOrder: 53
+  },
+  {
     eventKey: 'organiser.runner_contact',
     name: 'Runner Contact Organiser',
     description: 'Sent when a runner submits a question or message to an event organiser from the event detail page.',

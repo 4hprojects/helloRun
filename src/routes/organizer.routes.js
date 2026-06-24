@@ -1217,6 +1217,74 @@ router.post('/events/:id/payment-reviews/bulk-approve', requireAuth, requireCsrf
    POST: Email All Unpaid Registrants
    ========================================== */
 
+const directMessageLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 20,
+  message: 'Too many messages sent. Please wait before messaging more runners.',
+  keyFn: (req) => `org-dm|${String(req.session?.userId || req.ip || 'anon')}`
+});
+
+router.post('/events/:id/registrants/:registrationId/send-message', requireAuth, requireCsrfProtection, directMessageLimiter, async (req, res) => {
+  try {
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+    if (!user || !canAccessRegistrantReview(user)) {
+      return res.status(403).json({ success: false, message: 'Access denied.' });
+    }
+
+    const event = await getRegistrantAccessibleEventOrNull(req.params.id, user);
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found.' });
+    }
+
+    const registration = await Registration.findOne({
+      _id: req.params.registrationId,
+      eventId: event._id
+    }).populate('userId', 'email firstName').lean();
+
+    if (!registration?.userId?.email) {
+      const q = new URLSearchParams({ type: 'error', msg: 'Runner not found or has no email address.' });
+      return res.redirect(`/organizer/events/${event._id}/registrants?${q}`);
+    }
+
+    const message = String(req.body.message || '').trim().slice(0, 1000);
+    const subject = String(req.body.subject || '').trim().slice(0, 200) || `Message about ${event.title}`;
+    if (message.length < 5) {
+      const q = new URLSearchParams({ type: 'error', msg: 'Message is too short.' });
+      return res.redirect(`/organizer/events/${event._id}/registrants?${q}`);
+    }
+
+    const organiserName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Event Organiser';
+    notifyWithRetryInBackground('organiser.direct_message', {
+      notification: {
+        userId: registration.userId._id || registration.userId,
+        type: 'organiser_message',
+        title: `Message from ${event.title}`,
+        message: message.slice(0, 200),
+        href: '/my-registrations',
+        metadata: { eventId: String(event._id), eventTitle: event.title }
+      },
+      email: {
+        to: registration.userId.email,
+        subject: `[${event.title}] ${subject}`,
+        organiserName,
+        eventTitle: event.title,
+        message,
+        replyTo: user.email,
+        recipientUserId: registration.userId._id || registration.userId,
+        firstName: registration.participant?.firstName || '',
+        metadata: { registrationId: String(registration._id), eventId: String(event._id) }
+      }
+    });
+
+    const q = new URLSearchParams({ type: 'success', msg: `Message sent to ${registration.participant?.firstName || 'runner'}.` });
+    return res.redirect(`/organizer/events/${event._id}/registrants?${q}`);
+  } catch (error) {
+    console.error('Organiser direct message error:', error);
+    const q = new URLSearchParams({ type: 'error', msg: 'Unable to send message right now.' });
+    return res.redirect(`/organizer/events/${req.params.id}/registrants?${q}`);
+  }
+});
+
 router.post('/events/:id/registrants/email-unpaid', requireAuth, requireCsrfProtection, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');

@@ -130,10 +130,10 @@
                     <span class="mode-badge mode-auto-approved">Auto validation</span>
                   <% } %>
                   <% if (item.suspiciousFlag || item.reviewSignal?.label) { %>
-                    <span class="mode-badge mode-warning" title="<%= item.reviewSignal?.description || item.suspiciousFlagReason %>"><%= item.reviewSignal?.label || 'Suspicious' %></span>
+                    <span class="mode-badge mode-warning" data-tooltip="<%= item.reviewSignal?.description || item.suspiciousFlagReason || 'This submission was flagged for manual review.' %>"><%= item.reviewSignal?.label || 'Suspicious' %></span>
                   <% } %>
                   <% if (item.hasOcrMismatch) { %>
-                    <span class="mode-badge mode-warning">OCR mismatch</span>
+                    <span class="mode-badge mode-warning" data-tooltip="The OCR scanner detected a value (distance, time, or name) that doesn't match what was entered. Review the proof image carefully.">OCR mismatch</span>
                   <% } %>
                 </div>
 

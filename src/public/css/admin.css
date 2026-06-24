@@ -3557,3 +3557,25 @@
   font-size: 0.65rem;
   padding: 0.1rem 0.35rem;
 }
+
+/* ── Admin bulk reject bar ── */
+.admin-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  background: #fef9ec;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+.admin-bulk-select-all-label { display: flex; align-items: center; gap: 0.35rem; font-weight: 600; white-space: nowrap; }
+.admin-bulk-count { color: #64748b; white-space: nowrap; }
+.admin-bulk-reason-wrap { flex: 1; min-width: 200px; }
+.admin-bulk-reason-input { width: 100%; padding: 0.35rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.82rem; }
+.admin-bulk-check-col { width: 2rem; text-align: center; }
+.btn-danger { background: #dc2626; color: #fff; border: none; }
+.btn-danger:hover:not(:disabled) { background: #b91c1c; }
+.btn-danger:disabled { background: #fca5a5; cursor: not-allowed; }

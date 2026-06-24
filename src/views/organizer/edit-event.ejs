@@ -2038,6 +2038,17 @@
         }, 1900);
       }
 
+      // Show toast when page reloads after a successful save
+      (function() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('type') === 'success') {
+          const msg = params.get('msg') || 'Event saved.';
+          showInlineActionToast(decodeURIComponent(msg).replace(/\+/g, ' '), 'success');
+          const clean = window.location.pathname + (params.toString().replace(/[?&]?(type|msg)=[^&]*/g, '').replace(/^&/, '?') || '');
+          window.history.replaceState({}, '', clean || window.location.pathname);
+        }
+      })();
+
       if (form) {
         form.addEventListener('submit', (event) => {
           const submitter = event.submitter;

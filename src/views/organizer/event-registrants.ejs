@@ -342,12 +342,12 @@
                     <% } else if (registration.submission) { %>
                       <span class="mode-badge mode-<%= registration.submission.status %>"><%= registration.submission.isAccumulatedActivity ? 'activity ' : '' %><%= registration.submission.status %></span>
                       <% if (registration.submission.suspiciousFlag) { %>
-                        <span class="mode-badge mode-warning" title="<%= registration.submission.reviewSignal?.description || registration.submission.suspiciousFlagReason %>">&#9888; <%= registration.submission.reviewSignal?.label || 'Suspicious' %></span>
+                        <span class="mode-badge mode-warning" data-tooltip="<%= registration.submission.reviewSignal?.description || registration.submission.suspiciousFlagReason || 'Flagged for manual review.' %>">&#9888; <%= registration.submission.reviewSignal?.label || 'Suspicious' %></span>
                       <% } else if (registration.submission.reviewSignal && registration.submission.reviewSignal.label) { %>
-                        <span class="mode-badge mode-warning" title="<%= registration.submission.reviewSignal.description || '' %>">&#9888; <%= registration.submission.reviewSignal.label %></span>
+                        <span class="mode-badge mode-warning" data-tooltip="<%= registration.submission.reviewSignal.description || 'Validation signal — review the proof carefully.' %>">&#9888; <%= registration.submission.reviewSignal.label %></span>
                       <% } %>
                       <% if (registration.submission.ocrData && (registration.submission.ocrData.distanceMismatch || registration.submission.ocrData.timeMismatch)) { %>
-                        <span class="mode-badge mode-warning" title="OCR detected possible mismatch">&#9888; Mismatch</span>
+                        <span class="mode-badge mode-warning" data-tooltip="OCR detected a value (distance or time) that differs from what was entered. Review the screenshot carefully.">&#9888; Mismatch</span>
                       <% } %>
                       <br>
                       <small><strong>Distance:</strong> <%= Number(registration.submission.distanceKm || 0).toFixed(2) %> km</small>
@@ -503,6 +503,16 @@
                     <% } %>
                   </td>
                   <td data-registrant-column="registeredAt"><%= registration.registeredAt ? new Date(registration.registeredAt).toLocaleString('en-US') : 'N/A' %></td>
+                  <td>
+                    <button type="button"
+                      class="nav-login-btn table-action-btn registrant-row-btn"
+                      data-msg-btn
+                      data-reg-id="<%= registration._id %>"
+                      data-runner-name="<%= (registration.participant?.firstName || '') + ' ' + (registration.participant?.lastName || '') %>"
+                      style="font-size:0.75rem">
+                      Message
+                    </button>
+                  </td>
                 </tr>
               <% }) %>
             </tbody>
@@ -686,6 +696,47 @@
       if (closeBtn) closeBtn.addEventListener('click', closeModal);
       if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
       modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+    })();
+  </script>
+
+  <!-- Message runner modal -->
+  <div id="msgRunnerModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:12px;padding:1.5rem;max-width:420px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.18)">
+      <h3 style="margin:0 0 1rem;font-size:1rem" id="msgRunnerTitle">Message Runner</h3>
+      <form method="POST" id="msgRunnerForm">
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+        <label style="display:block;font-size:.82rem;font-weight:600;margin-bottom:.3rem">Subject</label>
+        <input type="text" name="subject" maxlength="200" placeholder="e.g. About your registration" style="width:100%;padding:.4rem .6rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.85rem;margin-bottom:.75rem">
+        <label style="display:block;font-size:.82rem;font-weight:600;margin-bottom:.3rem">Message</label>
+        <textarea name="message" rows="4" maxlength="1000" placeholder="Your message to the runner..." required style="width:100%;padding:.4rem .6rem;border:1px solid #cbd5e1;border-radius:6px;font-size:.85rem;resize:vertical;margin-bottom:.75rem"></textarea>
+        <div style="display:flex;gap:.5rem;justify-content:flex-end">
+          <button type="button" id="msgRunnerCancel" class="btn btn-outline btn-sm">Cancel</button>
+          <button type="submit" class="btn btn-primary btn-sm">Send Message</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script>
+    (function() {
+      const modal = document.getElementById('msgRunnerModal');
+      const form = document.getElementById('msgRunnerForm');
+      const title = document.getElementById('msgRunnerTitle');
+      const cancelBtn = document.getElementById('msgRunnerCancel');
+      if (!modal || !form) return;
+
+      document.querySelectorAll('[data-msg-btn]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          const regId = btn.dataset.regId;
+          const name = (btn.dataset.runnerName || '').trim() || 'Runner';
+          form.action = '/organizer/events/<%= event._id %>/registrants/' + regId + '/send-message';
+          title.textContent = 'Message ' + name;
+          modal.style.display = 'flex';
+          form.querySelector('textarea').focus();
+        });
+      });
+
+      cancelBtn.addEventListener('click', function() { modal.style.display = 'none'; });
+      modal.addEventListener('click', function(e) { if (e.target === modal) modal.style.display = 'none'; });
     })();
   </script>
 </body>
