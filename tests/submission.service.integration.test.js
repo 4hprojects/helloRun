@@ -27,7 +27,8 @@ const {
   PERSONAL_RECORD_REGISTRATION_ID,
   detectSuspiciousActivity,
   isAutoApprovableOcrSubmission,
-  buildSubmissionPayload
+  buildSubmissionPayload,
+  __setRunSubmissionBackgroundTasksInline
 } = require('../src/services/submission.service');
 const {
   assertRunDateNotFuture,
@@ -42,10 +43,12 @@ const {
 const { resolveAccumulatedTargetDistanceKm } = require('../src/services/accumulated-target.service');
 
 test.before(async () => {
+  __setRunSubmissionBackgroundTasksInline(true);
   await mongoose.connect(process.env.MONGODB_URI);
 });
 
 test.after(async () => {
+  __setRunSubmissionBackgroundTasksInline(false);
   await mongoose.disconnect();
 });
 

@@ -26,6 +26,7 @@ const PERSONAL_RECORD_REGISTRATION_ID = 'personal-record';
 const AUTO_APPROVAL_CONFIDENCE_THRESHOLD = 0.7;
 const AUTO_APPROVAL_REVIEW_NOTE = 'Auto-approved from OCR name match.';
 const STRAVA_AUTO_APPROVAL_REVIEW_NOTE = 'Auto-approved from verified Strava activity.';
+let runSubmissionBackgroundTasksInline = false;
 
 async function createSubmission({
   registrationId,
@@ -302,7 +303,10 @@ async function reviewSubmission({
       : (reviewedSubmission.rejectionReason || reviewedSubmission.reviewNotes),
     occurredAt: reviewedSubmission.reviewedAt
   });
-  attachCertAndNotifyInBackground(reviewedSubmission, safeAction, event.title || 'Event');
+  const backgroundTask = attachCertAndNotifyInBackground(reviewedSubmission, safeAction, event.title || 'Event');
+  if (runSubmissionBackgroundTasksInline) {
+    await backgroundTask;
+  }
   if (safeAction === 'approve') {
     evaluateSubmissionAchievementsSafe(reviewedSubmission, {
       performedBy: organizerId
@@ -1584,7 +1588,7 @@ async function attachCertificateIfNeeded(submission) {
 }
 
 function attachCertAndNotifyInBackground(submission, action, knownEventTitle) {
-  (async () => {
+  const task = (async () => {
     try {
       const hadCertificate = Boolean(submission.certificate?.url);
       if (action === 'approve') {
@@ -1609,6 +1613,7 @@ function attachCertAndNotifyInBackground(submission, action, knownEventTitle) {
       });
     }
   })();
+  return task;
 }
 
 async function applyAutoApprovalIfEligible(submission) {
@@ -1637,7 +1642,10 @@ async function applyAutoApprovalIfEligible(submission) {
     occurredAt: submission.reviewedAt
   });
 
-  attachCertAndNotifyInBackground(submission, 'approve');
+  const backgroundTask = attachCertAndNotifyInBackground(submission, 'approve');
+  if (runSubmissionBackgroundTasksInline) {
+    await backgroundTask;
+  }
   evaluateSubmissionAchievementsSafe(submission, {
     performedBy: ''
   });
@@ -1927,6 +1935,10 @@ function parseDateSafe(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function __setRunSubmissionBackgroundTasksInline(value) {
+  runSubmissionBackgroundTasksInline = Boolean(value);
+}
+
 module.exports = {
   createSubmission,
   editRejectedSubmissionMetadata,
@@ -1944,5 +1956,6 @@ module.exports = {
   isAutoApprovableSubmission,
   getAutoApprovalReviewNote,
   buildSubmissionPayload,
-  getEligibleRunnerRegistration
+  getEligibleRunnerRegistration,
+  __setRunSubmissionBackgroundTasksInline
 };

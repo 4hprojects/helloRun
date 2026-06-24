@@ -60,6 +60,7 @@ _Last updated: June 24, 2026_
 | Organizer Workflow Phase 5D — organizer shop report CSV/XLSX exports now have a shared rate limit for large-order download protection | June 24, 2026 | `tests/organizer-route-source.unit.test.js` |
 | Organizer Workflow Phase 5E — run-proof single and bulk review mutations now have a dedicated shared rate limit separate from payment review actions | June 24, 2026 | `tests/organizer-route-source.unit.test.js` |
 | Runtime Stabilization Phase 6A — accumulated activity submissions no longer trigger submission-service circular dependency warnings or missing-helper failures | June 24, 2026 | `tests/submission.service.integration.test.js --test-name-pattern accumulated` |
+| Runtime Stabilization Phase 6B — submission service integration tests now run certificate/notification background work inline when requested, making certificate/email assertions deterministic | June 24, 2026 | `tests/submission.service.integration.test.js` 46/46 |
 
 ---
 

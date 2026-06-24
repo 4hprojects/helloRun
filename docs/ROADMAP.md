@@ -37,6 +37,7 @@
 | Organizer Workflow Phase 5D — organizer shop report CSV/XLSX export routes now use a shared export rate limiter | Jun 24 | `tests/organizer-route-source.unit.test.js` |
 | Organizer Workflow Phase 5E — run-proof single and bulk review mutations now use a dedicated submission review action limiter | Jun 24 | `tests/organizer-route-source.unit.test.js` |
 | Runtime Stabilization Phase 6A — accumulated activity service now lazily loads submission helpers to remove circular dependency warnings/failures | Jun 24 | `tests/submission.service.integration.test.js --test-name-pattern accumulated` |
+| Runtime Stabilization Phase 6B — submission service tests can run cert/notification background work inline for deterministic certificate/email assertions | Jun 24 | `tests/submission.service.integration.test.js` |
 
 ---
 
