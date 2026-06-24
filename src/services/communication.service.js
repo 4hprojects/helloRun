@@ -1,6 +1,7 @@
 const CommunicationSetting = require('../models/CommunicationSetting');
 const CommunicationEventSetting = require('../models/CommunicationEventSetting');
 const CommunicationLog = require('../models/CommunicationLog');
+const CommunicationRetry = require('../models/CommunicationRetry');
 const User = require('../models/User');
 const emailService = require('./email.service');
 const { createNotificationSafe } = require('./notification.service');
@@ -358,9 +359,10 @@ async function recordFallbackInApp(eventKey, payload, eventSetting, reason) {
 
 async function getAdminCommunicationPageData(filters = {}) {
   const setting = await getCommunicationSetting();
-  const [events, budget] = await Promise.all([
+  const [events, budget, deliveryDigest] = await Promise.all([
     listEventSettings(),
-    getEmailBudgetSnapshot(setting)
+    getEmailBudgetSnapshot(setting),
+    getCommunicationDeliveryDigest()
   ]);
   const logQuery = buildLogQuery(filters);
   const page = Math.max(1, Number.parseInt(filters.page, 10) || 1);
@@ -377,6 +379,7 @@ async function getAdminCommunicationPageData(filters = {}) {
     setting: setting.toObject ? setting.toObject() : setting,
     events,
     budget,
+    deliveryDigest,
     logs,
     logFilters: normalizeLogFilters(filters),
     pagination: {
@@ -385,6 +388,106 @@ async function getAdminCommunicationPageData(filters = {}) {
       totalPages: Math.max(1, Math.ceil(totalLogs / limit))
     }
   };
+}
+
+async function getCommunicationDeliveryDigest(options = {}) {
+  const now = options.now instanceof Date ? options.now : new Date();
+  const windows = [
+    { key: '24h', label: 'Last 24 hours', since: new Date(now.getTime() - 24 * 60 * 60 * 1000) },
+    { key: '7d', label: 'Last 7 days', since: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) }
+  ];
+  return Promise.all(windows.map((window) => buildDeliveryDigestWindow(window, options.limit || 8)));
+}
+
+async function buildDeliveryDigestWindow(window, limit) {
+  const [logRows, retryRows] = await Promise.all([
+    CommunicationLog.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: window.since },
+          status: 'failed'
+        }
+      },
+      {
+        $group: {
+          _id: '$eventKey',
+          failedLogs: { $sum: 1 },
+          lastSeenAt: { $max: '$createdAt' }
+        }
+      }
+    ]),
+    CommunicationRetry.aggregate([
+      {
+        $match: {
+          status: { $in: ['queued', 'retrying', 'dead'] },
+          $or: [
+            { createdAt: { $gte: window.since } },
+            { updatedAt: { $gte: window.since } }
+          ]
+        }
+      },
+      {
+        $group: {
+          _id: {
+            eventKey: '$eventKey',
+            status: '$status'
+          },
+          count: { $sum: 1 },
+          lastSeenAt: { $max: '$updatedAt' }
+        }
+      }
+    ])
+  ]);
+
+  const byEvent = new Map();
+  for (const row of logRows) {
+    const item = getDeliveryDigestEvent(byEvent, row._id);
+    item.failedLogs = row.failedLogs || 0;
+    item.lastSeenAt = maxDate(item.lastSeenAt, row.lastSeenAt);
+  }
+  for (const row of retryRows) {
+    const item = getDeliveryDigestEvent(byEvent, row._id?.eventKey);
+    const status = row._id?.status;
+    if (status === 'dead') item.deadRetries += row.count || 0;
+    if (status === 'queued') item.queuedRetries += row.count || 0;
+    if (status === 'retrying') item.retryingRetries += row.count || 0;
+    item.lastSeenAt = maxDate(item.lastSeenAt, row.lastSeenAt);
+  }
+
+  const allEvents = Array.from(byEvent.values())
+    .map((item) => ({
+      ...item,
+      totalFailures: item.failedLogs + item.deadRetries + item.queuedRetries + item.retryingRetries
+    }))
+    .filter((item) => item.totalFailures > 0)
+    .sort((a, b) => b.totalFailures - a.totalFailures || String(a.eventKey).localeCompare(String(b.eventKey)));
+
+  return {
+    ...window,
+    totalFailures: allEvents.reduce((sum, item) => sum + item.totalFailures, 0),
+    events: allEvents.slice(0, limit)
+  };
+}
+
+function getDeliveryDigestEvent(byEvent, eventKey) {
+  const safeEventKey = String(eventKey || 'unknown').trim() || 'unknown';
+  if (!byEvent.has(safeEventKey)) {
+    byEvent.set(safeEventKey, {
+      eventKey: safeEventKey,
+      failedLogs: 0,
+      queuedRetries: 0,
+      retryingRetries: 0,
+      deadRetries: 0,
+      lastSeenAt: null
+    });
+  }
+  return byEvent.get(safeEventKey);
+}
+
+function maxDate(left, right) {
+  if (!left) return right || null;
+  if (!right) return left;
+  return new Date(left).getTime() >= new Date(right).getTime() ? left : right;
 }
 
 function buildLogQuery(filters = {}) {
@@ -588,5 +691,6 @@ module.exports = {
   updateEventSetting,
   notify,
   sendTestEmail,
+  getCommunicationDeliveryDigest,
   getAdminCommunicationPageData
 };

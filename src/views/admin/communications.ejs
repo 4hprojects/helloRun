@@ -29,6 +29,11 @@
         const criticalReserveRemaining = Math.max(0, (budget.remaining || 0) - (budget.reservedCriticalEmailCount || 0));
         const queueHealth = retryHealth || {};
         const deliveryAlerts = queueHealth.alerts || [];
+        const digestWindows = deliveryDigest || [];
+        const eventNameByKey = events.reduce((memo, event) => {
+          memo[event.eventKey] = event.name;
+          return memo;
+        }, { 'admin.test_email': 'Admin Test Email' });
       %>
 
       <% if (deliveryAlerts.length) { %>
@@ -139,6 +144,56 @@
             </div>
           </div>
         </article>
+      </div>
+
+      <h3 class="dashboard-section-title">Delivery Digest</h3>
+      <div class="communication-digest-grid" aria-label="Notification delivery digest">
+        <% digestWindows.forEach((window) => { %>
+          <section class="communication-digest-panel">
+            <div class="communication-digest-head">
+              <div>
+                <h4><%= window.label %></h4>
+                <p><strong><%= window.totalFailures || 0 %></strong> failed or retrying deliveries</p>
+              </div>
+              <a href="/admin/communications?status=failed">Failed logs</a>
+            </div>
+            <div class="admin-users-table-wrap">
+              <table class="admin-table communication-digest-table">
+                <thead>
+                  <tr>
+                    <th>Event</th>
+                    <th>Failed Logs</th>
+                    <th>Queued</th>
+                    <th>Retrying</th>
+                    <th>Dead</th>
+                    <th>Last Seen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% if (window.events.length) { %>
+                    <% window.events.forEach((item) => { %>
+                      <tr>
+                        <td>
+                          <strong><%= eventNameByKey[item.eventKey] || item.eventKey %></strong>
+                          <div><small class="mono"><%= item.eventKey %></small></div>
+                        </td>
+                        <td><a href="/admin/communications?eventKey=<%= encodeURIComponent(item.eventKey) %>&status=failed"><%= item.failedLogs || 0 %></a></td>
+                        <td><a href="/admin/communications/retries?eventKey=<%= encodeURIComponent(item.eventKey) %>&status=queued"><%= item.queuedRetries || 0 %></a></td>
+                        <td><a href="/admin/communications/retries?eventKey=<%= encodeURIComponent(item.eventKey) %>&status=retrying"><%= item.retryingRetries || 0 %></a></td>
+                        <td><a href="/admin/communications/retries?eventKey=<%= encodeURIComponent(item.eventKey) %>&status=dead"><%= item.deadRetries || 0 %></a></td>
+                        <td><%= item.lastSeenAt ? formatDateTime(item.lastSeenAt) : 'N/A' %></td>
+                      </tr>
+                    <% }) %>
+                  <% } else { %>
+                    <tr>
+                      <td colspan="6">No failed or retrying deliveries in this window.</td>
+                    </tr>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        <% }) %>
       </div>
 
       <h3 id="email-budget" class="dashboard-section-title">Email Budget</h3>

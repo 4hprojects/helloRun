@@ -1268,6 +1268,57 @@
   font-weight: 900;
 }
 
+.communication-digest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 0.9rem;
+  margin: 0.9rem 0 1.35rem;
+}
+
+.communication-digest-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.communication-digest-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.85rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.communication-digest-head h4 {
+  margin: 0 0 0.25rem;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.communication-digest-head p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.86rem;
+}
+
+.communication-digest-head a {
+  flex: 0 0 auto;
+  color: #c2410c;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.communication-digest-table {
+  min-width: 680px;
+}
+
+.communication-digest-table a {
+  color: #c2410c;
+  font-weight: 900;
+}
+
 .communication-toolkit-card {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);

@@ -53,6 +53,7 @@ test('admin communications exposes retry queue inspection and manual retry', () 
   const adminRoutes = readSource('src/routes/admin.routes.js');
   const adminController = readSource('src/controllers/admin.controller.js');
   const retryService = readSource('src/services/reliable-communication.service.js');
+  const communicationService = readSource('src/services/communication.service.js');
   const communicationsView = readSource('src/views/admin/communications.ejs');
   const retriesView = readSource('src/views/admin/communication-retries.ejs');
 
@@ -70,9 +71,15 @@ test('admin communications exposes retry queue inspection and manual retry', () 
   assert.match(retryService, /DUE_RETRY_BACKLOG_MS/);
   assert.match(retryService, /dead_letters_increased/);
   assert.match(retryService, /retry_worker_backlog/);
+  assert.match(communicationService, /getCommunicationDeliveryDigest/);
+  assert.match(communicationService, /buildDeliveryDigestWindow/);
+  assert.match(communicationService, /CommunicationLog\.aggregate/);
+  assert.match(communicationService, /CommunicationRetry\.aggregate/);
   assert.match(communicationsView, /\/admin\/communications\/retries/);
   assert.match(communicationsView, /deliveryAlerts/);
   assert.match(communicationsView, /communication-delivery-alert/);
+  assert.match(communicationsView, /Delivery Digest/);
+  assert.match(communicationsView, /communication-digest-table/);
   assert.match(communicationsView, /queueHealth\.dueNow/);
   assert.match(communicationsView, /queueHealth\.overdueDue/);
   assert.match(communicationsView, /dead-lettered/);
