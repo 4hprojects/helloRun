@@ -11,6 +11,10 @@ const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubm
 const OrganiserApplication = require('../models/OrganiserApplication');
 const uploadService = require('../services/upload.service');
 const communicationService = require('../services/communication.service');
+const {
+  notifyWithRetry,
+  notifyWithRetryInBackground
+} = require('../services/reliable-communication.service');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const { requireAuth, requireApprovedOrganizer, requireCanCreateEvents } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
@@ -1137,10 +1141,12 @@ router.post('/events/:id/payment-reviews/bulk-approve', requireAuth, requireCsrf
           occurredAt: registration.paymentReviewedAt
         });
         const runner = await User.findById(registration.userId).select('email firstName');
-        communicationService.notify('payment.approved', {
+        notifyWithRetryInBackground('payment.approved', {
           notification: { userId: registration.userId, type: 'payment_approved', title: 'Payment Approved', message: `Your payment for ${event.title || 'the event'} has been approved.`, href: '/my-registrations', metadata: { registrationId: String(registration._id), eventId: String(event._id), eventTitle: event.title || '' } },
           email: runner?.email ? { to: runner.email, firstName: runner.firstName || 'Runner', eventTitle: event.title || 'Event', confirmationCode: registration.confirmationCode || '', recipientUserId: registration.userId, metadata: { registrationId: String(registration._id), eventId: String(event._id) } } : null
-        }).catch(() => {});
+        }, {
+          source: 'organizer.bulk_payment_approve'
+        });
       })
     );
 
@@ -1200,7 +1206,7 @@ router.post('/events/:id/registrants/email-unpaid', requireAuth, requireCsrfProt
       unpaidRegistrations.map(async (reg) => {
         const runner = runnersById.get(String(reg.userId || ''));
         if (!runner?.email) return;
-        communicationService.notify('organiser.payment_reminder', {
+        notifyWithRetryInBackground('organiser.payment_reminder', {
           email: {
             to: runner.email,
             firstName: runner.firstName || 'Runner',
@@ -1210,7 +1216,9 @@ router.post('/events/:id/registrants/email-unpaid', requireAuth, requireCsrfProt
             recipientUserId: reg.userId,
             metadata: { registrationId: String(reg._id), eventId: String(event._id) }
           }
-        }).catch(() => {});
+        }, {
+          source: 'organizer.payment_reminder'
+        });
       })
     );
 
@@ -2074,7 +2082,7 @@ router.post(
 
       try {
         const runner = await User.findById(registration.userId).select('email firstName');
-        await communicationService.notify('payment.approved', {
+        await notifyWithRetry('payment.approved', {
           notification: {
             userId: registration.userId,
             type: 'payment_approved',
@@ -2098,6 +2106,8 @@ router.post(
               eventId: String(event._id)
             }
           } : null
+        }, {
+          source: 'organizer.payment_approve'
         });
       } catch (communicationError) {
         console.error('Payment approval communication failed:', {
@@ -2215,7 +2225,7 @@ router.post(
 
       try {
         const runner = await User.findById(registration.userId).select('email firstName');
-        await communicationService.notify('payment.rejected', {
+        await notifyWithRetry('payment.rejected', {
           notification: {
             userId: registration.userId,
             type: 'payment_rejected',
@@ -2241,6 +2251,8 @@ router.post(
               eventId: String(event._id)
             }
           } : null
+        }, {
+          source: 'organizer.payment_reject'
         });
       } catch (communicationError) {
         console.error('Payment rejection communication failed:', {

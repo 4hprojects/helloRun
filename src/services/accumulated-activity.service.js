@@ -4,6 +4,7 @@ const Event = require('../models/Event');
 const User = require('../models/User');
 const { issueSubmissionCertificate } = require('./certificate.service');
 const communicationService = require('./communication.service');
+const { notifyWithRetry } = require('./reliable-communication.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 const {
   refreshAccumulatedChallengeProgress,
@@ -449,7 +450,7 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
     if (!runner) return;
 
     const approved = action === 'approve';
-    await communicationService.notify(approved ? 'result.approved' : 'result.rejected', {
+    await notifyWithRetry(approved ? 'result.approved' : 'result.rejected', {
       notification: {
         userId: activity.runnerId,
         type: approved ? 'result_approved' : 'result_rejected',
@@ -480,6 +481,8 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
           eventId: String(activity.eventId)
         }
       } : null
+    }, {
+      source: approved ? 'accumulated_activity.review_approve' : 'accumulated_activity.review_reject'
     });
 
     if (certificateWasIssued) {

@@ -6,7 +6,7 @@ const paymentReviewService = require('../services/shop/payment-review.service');
 const Registration = require('../models/Registration');
 const User = require('../models/User');
 const Event = require('../models/Event');
-const communicationService = require('../services/communication.service');
+const { notifyWithRetry } = require('../services/reliable-communication.service');
 const { evaluateRegistrationAchievementsInBackground } = require('../services/achievement.service');
 const { recordCriticalAuditEventInBackground } = require('../services/critical-audit.service');
 
@@ -354,7 +354,7 @@ exports.patchPaymentReview = async (req, res, next) => {
         ]);
 
         if (nextOrderPaymentStatus === 'paid') {
-          await communicationService.notify('payment.approved', {
+          await notifyWithRetry('payment.approved', {
             notification: {
               userId: registration.userId,
               type: 'payment_approved',
@@ -378,9 +378,11 @@ exports.patchPaymentReview = async (req, res, next) => {
                 eventId: String(req.params.eventId || '')
               }
             } : null
+          }, {
+            source: 'organizer.shop_payment_approve'
           });
         } else {
-          await communicationService.notify('payment.rejected', {
+          await notifyWithRetry('payment.rejected', {
             notification: {
               userId: registration.userId,
               type: 'payment_rejected',
@@ -406,6 +408,8 @@ exports.patchPaymentReview = async (req, res, next) => {
                 eventId: String(req.params.eventId || '')
               }
             } : null
+          }, {
+            source: 'organizer.shop_payment_reject'
           });
         }
       } catch (communicationError) {

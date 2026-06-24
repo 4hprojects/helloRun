@@ -45,6 +45,7 @@
 | Runtime Stabilization Phase 7A — payment receipt submissions and organiser CSV/XLSX exports now emit critical audit events | Jun 24 | `tests/audit-source.unit.test.js`, `tests/page-controller-payment-proof-sync.unit.test.js` |
 | Runtime Stabilization Phase 7B — admin and event-scoped organiser audit consoles now filter critical actions by group, target, actor, date, and search | Jun 24 | `tests/audit-source.unit.test.js` |
 | Runtime Stabilization Phase 7C — audit consoles now flag high export volume, many rejection actions, and rapid review/export activity | Jun 24 | `tests/audit-source.unit.test.js` |
+| Runtime Stabilization Phase 8A — high-impact organiser notifications now queue failed sends for retry without blocking review/reminder actions | Jun 24 | `tests/communication-retry-source.unit.test.js` |
 | Badge system refinement — early generation at event save, wizard Badges step (13 steps), event logo fallback, badge previews on event detail page | Jun 24 | — |
 | P5 Social sharing — certificate verify share buttons + og:image; submission detail share strip; badge detail already complete | Jun 24 | — |
 | P8 Email notification settings — Notifications section on runner profile; 5 opt-outable types; emailOptOut on User model; service respects opt-out | Jun 24 | — |

@@ -154,6 +154,9 @@ async function notify(eventKey, payload = {}) {
       priority: eventSetting.priority,
       metadata: payload.notification.metadata || {}
     });
+    if (!result.inApp && payload.throwOnInAppFailure) {
+      throw new Error('In-app notification creation failed.');
+    }
   }
 
   if (!payload.email) {

@@ -7,6 +7,7 @@ const User = require('../models/User');
 const { issueSubmissionCertificate } = require('./certificate.service');
 const { buildVerificationUrl } = require('./certificateNumber.service');
 const communicationService = require('./communication.service');
+const { notifyWithRetry } = require('./reliable-communication.service');
 const { isSubmissionWindowOpen } = require('../utils/submission-window');
 const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
@@ -1686,7 +1687,7 @@ async function sendRunnerReviewNotifications({
 
     if (action === 'approve') {
       const notifyTasks = [
-        communicationService.notify('result.approved', {
+        notifyWithRetry('result.approved', {
           notification: {
             userId: submission.runnerId,
             type: 'result_approved',
@@ -1712,6 +1713,8 @@ async function sendRunnerReviewNotifications({
               registrationId: String(submission.registrationId || '')
             }
           } : null
+        }, {
+          source: 'submission.review_approve'
         })
       ];
 
@@ -1750,7 +1753,7 @@ async function sendRunnerReviewNotifications({
     }
 
     if (action === 'reject') {
-      await communicationService.notify('result.rejected', {
+      await notifyWithRetry('result.rejected', {
         notification: {
           userId: submission.runnerId,
           type: 'result_rejected',
@@ -1776,6 +1779,8 @@ async function sendRunnerReviewNotifications({
             registrationId: String(submission.registrationId || '')
           }
         } : null
+      }, {
+        source: 'submission.review_reject'
       });
     }
   } catch (error) {
