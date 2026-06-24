@@ -227,7 +227,8 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       accumulatedSubmissionMetrics,
       nextPaymentReview,
       nextResultReview,
-      nextAccumulatedResultReview
+      nextAccumulatedResultReview,
+      unpaidRegistrationsCount
     ] = await Promise.all([
       getOrganizerDashboardRegistrationMetrics(organizerEventIds, recentEventIds, rangeWindow),
       getOrganizerDashboardSubmissionMetrics(Submission, organizerEventIds, rangeWindow),
@@ -249,7 +250,10 @@ router.get('/dashboard', requireAuth, async (req, res) => {
           .sort({ submittedAt: -1, updatedAt: -1, createdAt: -1 })
           .select('eventId submittedAt')
           .lean()
-        : null
+        : null,
+      organizerEventIds.length
+        ? Registration.countDocuments({ eventId: { $in: organizerEventIds }, paymentStatus: 'unpaid', status: 'confirmed' })
+        : 0
     ]);
 
     const totalRegistrations = registrationMetrics.totalRegistrations;
@@ -496,6 +500,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
       reviewQueue: {
         pendingPaymentReviews,
         pendingResultReviews: totalPendingResultReviews,
+        unpaidRegistrations: unpaidRegistrationsCount,
         paymentReviewHref: nextPaymentReview?.eventId
           ? `/organizer/events/${String(nextPaymentReview.eventId)}/payment-proofs/review`
           : '/organizer/events',
@@ -599,6 +604,47 @@ router.post('/acknowledge-event-creation', requireAuth, requireCsrfProtection, a
    GET: Create Event Page (Approved Organizers)
    ========================================== */
 
+router.get('/events/:id/clone', requireCanCreateEvents, async (req, res) => {
+  try {
+    const [user, sourceEvent] = await Promise.all([
+      User.findById(req.session.userId),
+      getOwnedEventOrNull(req.params.id, req.session.userId)
+    ]);
+
+    if (!user) return res.status(404).render('error', { title: '404', status: 404, message: 'User not found.' });
+    if (!sourceEvent) return res.status(404).render('error', { title: '404', status: 404, message: 'Event not found or you do not have access.' });
+
+    // Build form data from the source event then reset fields that must be unique or are event-instance-specific
+    const formData = getCreateEventFormDataFromEvent(sourceEvent);
+    formData.slug = '';
+    formData.eventStartAt = '';
+    formData.eventEndAt = '';
+    formData.registrationOpenAt = '';
+    formData.registrationCloseAt = '';
+    formData.publicListingAvailableAt = '';
+    formData.virtualWindow = { startAt: '', endAt: '' };
+    formData.finalSubmissionDeadlineAt = '';
+    formData.actionType = 'draft';
+
+    return res.render('organizer/create-event', {
+      title: `Clone Event - ${sourceEvent.title} - HelloRun`,
+      user,
+      errors: {},
+      formData,
+      readinessChecklist: getEventReadinessChecklist(formData),
+      reviewSummary: getEventReviewSummary(formData),
+      consistencyWarnings: getConsistencyWarnings(formData),
+      countries,
+      defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+      message: null,
+      cloneSourceName: sourceEvent.title
+    });
+  } catch (error) {
+    console.error('Error loading event clone page:', error);
+    return res.status(500).render('error', { title: 'Server Error', status: 500, message: 'An error occurred while loading the clone page.' });
+  }
+});
+
 router.get('/create-event', requireCanCreateEvents, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
@@ -627,7 +673,8 @@ router.get('/create-event', requireCanCreateEvents, async (req, res) => {
       consistencyWarnings: getConsistencyWarnings(formData),
       countries,
       defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
-      message: getPageMessage(req.query)
+      message: getPageMessage(req.query),
+      cloneSourceName: null
     });
   } catch (error) {
     console.error('Error loading create-event page:', error);

@@ -735,6 +735,24 @@ exports.postEventRegistration = async (req, res) => {
       }
     }
 
+    // Capacity check: enforce race category slots if configured
+    if (Object.keys(validationErrors).length === 0 && resolvedPrice.raceCategoryId) {
+      const selectedCategory = (event.raceCategories || []).find(
+        (cat) => String(cat.categoryId || '') === String(resolvedPrice.raceCategoryId)
+      );
+      if (selectedCategory && Number.isFinite(selectedCategory.slots) && selectedCategory.slots > 0) {
+        const filledSlots = await Registration.countDocuments({
+          eventId: event._id,
+          'pricingSnapshot.raceCategoryId': resolvedPrice.raceCategoryId,
+          status: { $in: ['confirmed'] },
+          paymentStatus: { $nin: ['refunded'] }
+        });
+        if (filledSlots >= selectedCategory.slots) {
+          validationErrors.raceDistance = `The ${selectedCategory.distanceLabel || selectedCategory.name || 'selected'} category is now full (${selectedCategory.slots} slots). Please choose a different distance.`;
+        }
+      }
+    }
+
     if (Object.keys(validationErrors).length > 0) {
       return res.status(400).render('pages/event-register', {
         title: `Register - ${event.title}`,

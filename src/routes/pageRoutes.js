@@ -20,7 +20,8 @@ const paymentProofUploadLimiter = createRateLimiter({
 const resultSubmissionLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 8,
-  message: 'Too many result submissions. Please wait a few minutes and try again.'
+  message: 'Too many result submissions. Please wait a few minutes and try again.',
+  keyFn: (req) => `result-submission|${req.session?.userId || req.ip || 'anon'}`
 });
 const quickProfileUpdateLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,

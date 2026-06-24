@@ -11,9 +11,19 @@
   <main class="create-event-page">
     <section class="create-event-shell">
       <header class="page-header">
-        <h1>Create Event</h1>
+        <h1><%= locals.cloneSourceName ? 'Clone Event' : 'Create Event' %></h1>
         <p>Set up the public details, schedule, rules, waiver, and media for your event.</p>
       </header>
+
+      <% if (locals.cloneSourceName) { %>
+        <div class="status-note status-note-info" role="status">
+          <i data-lucide="copy"></i>
+          <div>
+            <strong>Cloning from "<%= cloneSourceName %>"</strong>
+            <p>All settings have been copied. Update the event title, slug, and dates before publishing.</p>
+          </div>
+        </div>
+      <% } %>
 
       <% if (message) { %>
         <div class="status-note status-note-<%= message.type %>" role="status">

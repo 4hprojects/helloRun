@@ -633,6 +633,19 @@
                   </div>
                 </div>
               </div>
+              <% if (reviewQueue?.unpaidRegistrations > 0) { %>
+              <div class="review-queue-item">
+                <div>
+                  <strong><%= reviewQueue.unpaidRegistrations %></strong>
+                  <div class="review-queue-label-row">
+                    <p>Unpaid registrations</p>
+                    <a href="/organizer/events" class="btn btn-secondary review-icon-btn" aria-label="View registrants">
+                      <i data-lucide="arrow-up-right"></i>
+                    </a>
+                  </div>
+                </div>
+              </div>
+              <% } %>
             </div>
           </div>
         </aside>
