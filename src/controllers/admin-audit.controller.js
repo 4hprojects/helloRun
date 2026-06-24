@@ -34,7 +34,7 @@ exports.listCriticalAudit = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error loading critical audit trail:', error);
+    logger.error('Error loading critical audit trail:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,

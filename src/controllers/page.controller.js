@@ -188,7 +188,7 @@ exports.getHome = async (req, res) => {
       carouselSettings
     });
   } catch (error) {
-    console.error('Error loading home page:', error);
+    logger.error('Error loading home page:', error);
     return res.status(500).render('error', {
       title: '500 - Server Error',
       status: 500,
@@ -222,7 +222,7 @@ exports.getEvents = async (req, res) => {
       savedEventIds
     });
   } catch (error) {
-    console.error('Error loading public events:', error);
+    logger.error('Error loading public events:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -243,7 +243,7 @@ exports.getAbout = async (req, res) => {
       currentEvents
     });
   } catch (error) {
-    console.error('Error loading about page:', error);
+    logger.error('Error loading about page:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -298,7 +298,7 @@ exports.getEventDetails = async (req, res) => {
       countryName: getCountryName
     });
   } catch (error) {
-    console.error('Error loading public event details:', error);
+    logger.error('Error loading public event details:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -344,7 +344,7 @@ exports.postContactOrganiser = async (req, res) => {
 
     return res.redirect(`/events/${event.slug}?type=success&msg=Your+message+has+been+sent+to+the+organiser.#contact-organiser`);
   } catch (error) {
-    console.error('Contact organiser error:', error);
+    logger.error('Contact organiser error:', error);
     return res.redirect(`/events/${req.params.slug}?type=error&msg=An+error+occurred.+Please+try+again.#contact-organiser`);
   }
 };
@@ -359,7 +359,7 @@ exports.getEventBadges = async (req, res) => {
     const badges = await getEventBadgesByMongoEventId(event._id);
     return res.json({ success: true, badges });
   } catch (error) {
-    console.error('Event badges load error:', error);
+    logger.error('Event badges load error:', error);
     return res.status(500).json({ success: false, message: 'Unable to load event badges.' });
   }
 };
@@ -404,7 +404,7 @@ exports.getPublicBadgePage = async (req, res) => {
       formatDateOnly
     });
   } catch (error) {
-    console.error('Public badge verification page error:', error);
+    logger.error('Public badge verification page error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -427,7 +427,7 @@ exports.getPublicOpenBadgeMetadata = async (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=3600');
     return res.json(buildOpenBadgeMetadata(badge, { baseUrl, badgeUrl, badgeShareImageUrl, openBadgeUrl }));
   } catch (error) {
-    console.error('Public Open Badge metadata error:', error);
+    logger.error('Public Open Badge metadata error:', error);
     return res.status(500).json({ success: false, message: 'Unable to load badge metadata.' });
   }
 };
@@ -455,7 +455,7 @@ exports.getPublicBadgeShareImage = async (req, res) => {
       footer: `Verification ID ${badge.verificationCode}`
     }));
   } catch (error) {
-    console.error('Public badge share image error:', error);
+    logger.error('Public badge share image error:', error);
     return res.status(500).type('image/svg+xml').send(buildShareImageSvg({
       title: 'HelloRun Badge',
       subtitle: 'Verified achievement preview is unavailable right now.',
@@ -492,7 +492,7 @@ exports.getPublicBadgeVerification = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Public badge verification API error:', error);
+    logger.error('Public badge verification API error:', error);
     return res.status(500).json({ success: false, message: 'Unable to verify badge.' });
   }
 };
@@ -551,7 +551,7 @@ exports.getPublicRunnerBadgeCollection = async (req, res) => {
       formatDateOnly
     });
   } catch (error) {
-    console.error('Public runner badge collection error:', error);
+    logger.error('Public runner badge collection error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -616,7 +616,7 @@ exports.getPublicRunnerProfile = async (req, res) => {
       linkedInShareUrl: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(profileUrl)}`
     });
   } catch (error) {
-    console.error('Public runner profile error:', error);
+    logger.error('Public runner profile error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -659,7 +659,7 @@ exports.getPublicRunnerBadgeCollectionShareImage = async (req, res) => {
       footer: `Runner ID ${runner.userId}`
     }));
   } catch (error) {
-    console.error('Public runner badge collection share image error:', error);
+    logger.error('Public runner badge collection share image error:', error);
     return res.status(500).type('image/svg+xml').send(buildShareImageSvg({
       title: 'HelloRun Collection',
       subtitle: 'Verified collection preview is unavailable right now.',
@@ -745,7 +745,7 @@ exports.getEventRegistrationForm = async (req, res) => {
       justRegistered: req.query.registered === '1'
     });
   } catch (error) {
-    console.error('Error loading event registration form:', error);
+    logger.error('Error loading event registration form:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1014,7 +1014,7 @@ exports.postEventRegistration = async (req, res) => {
       }
     }
 
-    console.error('Error submitting event registration:', error);
+    logger.error('Error submitting event registration:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1081,7 +1081,7 @@ exports.postQuickProfileUpdate = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Quick profile update error:', error);
+    logger.error('Quick profile update error:', error);
     return res.status(500).json({
       success: false,
       message: 'Unable to update profile right now.'
@@ -1140,7 +1140,7 @@ exports.getMyRegistrations = async (req, res) => {
       ageLabel: formatAgeFromDob
     });
   } catch (error) {
-    console.error('Error loading my registrations:', error);
+    logger.error('Error loading my registrations:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1267,7 +1267,7 @@ exports.getSubmissionCertificateDownload = async (req, res) => {
 
     return res.redirect(certificateUrl);
   } catch (error) {
-    console.error('Error downloading submission certificate:', error);
+    logger.error('Error downloading submission certificate:', error);
     return redirectWithPageMessage(res, 'error', 'Unable to download certificate at this time.');
   }
 };
@@ -1442,7 +1442,7 @@ exports.postUploadPaymentProof = async (req, res) => {
           } : null
         });
       } catch (communicationError) {
-        console.error('Payment receipt submission communication failed:', {
+        logger.error('Payment receipt submission communication failed:', {
           error: communicationError.message,
           registrationId: String(registration._id)
         });
@@ -1464,7 +1464,7 @@ exports.postUploadPaymentProof = async (req, res) => {
       await uploadService.deleteObjects([uploadedProofKey]);
     }
     if (error?.code !== 'SUBMISSION_IDEMPOTENCY_CONFLICT') {
-      console.error('Error uploading payment receipt:', error);
+      logger.error('Error uploading payment receipt:', error);
     }
     const query = new URLSearchParams({
       type: 'error',
@@ -1690,7 +1690,7 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       await uploadService.deleteObjects([uploadedProofKey]);
     }
     if (error?.code !== 'SUBMISSION_IDEMPOTENCY_CONFLICT') {
-      console.error('Error submitting runner result:', error);
+      logger.error('Error submitting runner result:', error);
     }
     return redirectWithPageMessage(
       res,
@@ -1814,7 +1814,7 @@ exports.getBlogList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error loading blog list:', error);
+    logger.error('Error loading blog list:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1876,7 +1876,7 @@ exports.getBlogPost = async (req, res) => {
           post.views = Number(post.views || 0) + 1;
         }
       } catch (viewError) {
-        console.error('Blog view tracking failed:', viewError.message);
+        logger.error('Blog view tracking failed:', viewError.message);
       }
     }
 
@@ -1933,7 +1933,7 @@ exports.getBlogPost = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error loading blog post:', error);
+    logger.error('Error loading blog post:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1987,7 +1987,7 @@ exports.getLeaderboard = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error loading leaderboard:', error);
+    logger.error('Error loading leaderboard:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -2032,7 +2032,7 @@ exports.getEventLeaderboardPage = async (req, res) => {
       myStanding
     });
   } catch (error) {
-    console.error('Error loading event leaderboard:', error);
+    logger.error('Error loading event leaderboard:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -2058,7 +2058,7 @@ exports.getEventLeaderboardData = async (req, res) => {
     }
     return res.json({ success: true, leaderboard: data });
   } catch (error) {
-    console.error('Error loading event leaderboard data:', error);
+    logger.error('Error loading event leaderboard data:', error);
     return res.status(500).json({ success: false, message: 'Unable to load leaderboard data.' });
   }
 };
@@ -2079,7 +2079,7 @@ exports.getEventLeaderboardMyStanding = async (req, res) => {
     }
     return res.json({ success: true, myStanding: data });
   } catch (error) {
-    console.error('Error loading my leaderboard standing:', error);
+    logger.error('Error loading my leaderboard standing:', error);
     return res.status(500).json({ success: false, message: 'Unable to load your standing.' });
   }
 };
@@ -2152,7 +2152,7 @@ exports.getSitemapXml = async (req, res) => {
       .set('Cache-Control', 'public, max-age=3600')
       .send(xml);
   } catch (error) {
-    console.error('Error generating sitemap:', error);
+    logger.error('Error generating sitemap:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -2660,7 +2660,7 @@ async function loadRegistrationAddOns(eventId) {
       .filter((item) => item.name.length > 0)
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   } catch (error) {
-    console.warn('Registration add-ons unavailable:', error.message || error);
+    logger.warn('Registration add-ons unavailable:', error.message || error);
     return [];
   }
 }
@@ -2897,7 +2897,7 @@ async function createRegistrationCheckoutOrderIfNeeded({
       `;
     }
   } catch (error) {
-    console.error('Registration add-on order bridge failed:', {
+    logger.error('Registration add-on order bridge failed:', {
       registrationId: String(registration._id || ''),
       eventId: String(event._id || ''),
       userId: String(user._id || ''),
@@ -2976,7 +2976,7 @@ async function upsertShopPaymentForRegistrationProof({ registration, proof } = {
       where id = ${order.id}
     `;
   } catch (error) {
-    console.error('Registration payment review bridge failed:', {
+    logger.error('Registration payment review bridge failed:', {
       registrationId: String(registration._id || ''),
       error: error?.message || String(error)
     });

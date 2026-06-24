@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const logger = require('../utils/logger');
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const Registration = require('../models/Registration');
@@ -327,7 +328,7 @@ function syncSubmissionShadowInBackground(submission) {
   if (disableSubmissionSyncBackgroundTasks) return;
   if (!submission || !submission._id || !process.env.DATABASE_URL) return;
   syncSubmissionShadow(submission, { operation: 'live_sync' }).catch((error) => {
-    console.error('[Submission Shadow Sync] Failed to sync submission:', {
+    logger.error('[Submission Shadow Sync] Failed to sync submission:', {
       submissionId: String(submission._id),
       error: error?.message || String(error)
     });
@@ -1586,7 +1587,7 @@ async function attachCertificateIfNeeded(submission) {
     });
   } catch (error) {
     // Certificate generation should not block review completion.
-    console.error('Submission certificate generation failed:', error.message);
+    logger.error('Submission certificate generation failed:', error.message);
   }
 }
 
@@ -1610,7 +1611,7 @@ function attachCertAndNotifyInBackground(submission, action, knownEventTitle) {
         certificateWasIssued
       });
     } catch (error) {
-      console.error('cert/notify background error:', {
+      logger.error('cert/notify background error:', {
         error: error.message,
         submissionId: String(submission?._id || '')
       });
@@ -1784,7 +1785,7 @@ async function sendRunnerReviewNotifications({
       });
     }
   } catch (error) {
-    console.error('Submission review notification lookup failed:', {
+    logger.error('Submission review notification lookup failed:', {
       error: error.message,
       submissionId: String(submission?._id || '')
     });
@@ -1825,7 +1826,7 @@ function evaluateSubmissionAchievementsSafe(submission, options = {}) {
     const { evaluateSubmissionAchievementsInBackground } = require('./achievement.service');
     evaluateSubmissionAchievementsInBackground(submission, options);
   } catch (error) {
-    console.error('Submission achievement hook failed:', {
+    logger.error('Submission achievement hook failed:', {
       submissionId: String(submission?._id || ''),
       error: error.message
     });
@@ -1837,7 +1838,7 @@ function refreshGlobalDistanceMilestonesSafe(mongoUserId, options = {}) {
     const { refreshGlobalDistanceMilestoneProgressInBackground } = require('./badge-progress.service');
     refreshGlobalDistanceMilestoneProgressInBackground(mongoUserId, options);
   } catch (error) {
-    console.error('Global distance badge progress hook failed:', {
+    logger.error('Global distance badge progress hook failed:', {
       mongoUserId: String(mongoUserId || ''),
       error: error.message
     });
@@ -1889,7 +1890,7 @@ function syncEventRankingsInBackground(submission, eventSlug) {
             }
           }
           if (lastErr) {
-            console.error('Ranking sync failed after retries:', {
+            logger.error('Ranking sync failed after retries:', {
               submissionId: String(sub._id),
               error: lastErr.message
             });
@@ -1899,7 +1900,7 @@ function syncEventRankingsInBackground(submission, eventSlug) {
 
       await evaluatePublishedRankingAchievements({ eventSlug });
     } catch (error) {
-      console.error('syncEventRankingsInBackground failed:', {
+      logger.error('syncEventRankingsInBackground failed:', {
         eventId: String(submission.eventId || ''),
         error: error.message
       });

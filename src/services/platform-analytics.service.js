@@ -211,7 +211,7 @@ async function getPlatformAnalytics(options = {}) {
     ]);
     return { totals, funnel, growth, topEvents, topOrganisers, revenue };
   } catch (error) {
-    console.error('Platform analytics query failed:', error.message);
+    logger.error('Platform analytics query failed:', error.message);
     return null;
   }
 }

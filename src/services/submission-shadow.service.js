@@ -2,6 +2,7 @@
 // Normalizes MongoDB Submission/AccumulatedActivitySubmission into Supabase shadow tables
 
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 const { getPostgresClient } = require('../db/postgres');
 const { toPostgresSmokeMeta } = require('../utils/smoke-test-meta');
 
@@ -323,7 +324,7 @@ async function syncSubmissionShadow(submission, options = {}) {
       checksum
     };
   } catch (error) {
-    console.error('Submission shadow sync error:', error.message);
+    logger.error('Submission shadow sync error:', error.message);
     throw error;
   }
 }

@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 const { Resend } = require('resend');
 
 const resend = process.env.RESEND_API_KEY
@@ -194,13 +195,13 @@ exports.sendPasswordResetEmail = async (email, resetToken, firstName) => {
     });
 
     if (error) {
-      console.error('Resend email error:', error);
+      logger.error('Resend email error:', error);
       throw new Error('Failed to send password reset email');
     }
 
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -377,13 +378,13 @@ exports.sendPasswordResetConfirmation = async (email, firstName) => {
     });
 
     if (error) {
-      console.error('Resend confirmation email error:', error);
+      logger.error('Resend confirmation email error:', error);
       throw new Error('Failed to send confirmation email');
     }
 
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -576,7 +577,7 @@ exports.sendVerificationEmail = async (email, verificationToken, firstName, role
 
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -798,7 +799,7 @@ exports.sendApplicationSubmittedEmail = async (email, firstName, applicationId) 
 
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -1015,7 +1016,7 @@ exports.sendApplicationApprovedEmail = async (email, firstName) => {
 
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -1191,7 +1192,7 @@ exports.sendApplicationRejectedEmail = async (email, firstName, reason) => {
 
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -1244,7 +1245,7 @@ exports.sendEventRegistrationConfirmationEmail = async (
 
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -1280,7 +1281,7 @@ exports.sendPaymentProofSubmittedEmailToOrganizer = async (
 
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -1315,7 +1316,7 @@ exports.sendPaymentApprovedEmailToRunner = async (
 
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -1363,7 +1364,7 @@ exports.sendEventPublishedEmailToOrganizer = async (
 
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -1405,7 +1406,7 @@ exports.sendPaymentRejectedEmailToRunner = async (
 
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -1444,7 +1445,7 @@ exports.sendResultApprovedEmailToRunner = async (
     }
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -1487,7 +1488,7 @@ exports.sendResultRejectedEmailToRunner = async (
     }
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -1526,7 +1527,7 @@ exports.sendCertificateIssuedEmailToRunner = async (
     }
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };
@@ -1576,7 +1577,7 @@ exports.sendBadgeEarnedEmailToRunner = async (
     }
     return data;
   } catch (error) {
-    console.error('Email service error:', error);
+    logger.error('Email service error:', error);
     throw error;
   }
 };

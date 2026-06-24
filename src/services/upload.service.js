@@ -1,4 +1,5 @@
 ﻿const multer = require('multer');
+const logger = require('../utils/logger');
 const {
   S3Client,
   PutObjectCommand,
@@ -534,7 +535,7 @@ exports.deleteObjects = async (keys = []) => {
           })
         );
       } catch (error) {
-        console.error(`[R2] Failed to delete object ${key}:`, error.message);
+        logger.error(`[R2] Failed to delete object ${key}:`, error.message);
       }
     })
   );

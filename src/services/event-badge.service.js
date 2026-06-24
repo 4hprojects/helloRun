@@ -1,4 +1,5 @@
 const Event = require('../models/Event');
+const logger = require('../utils/logger');
 const User = require('../models/User');
 const BadgeContent = require('../models/BadgeContent');
 const { getPostgresClient } = require('../db/postgres');
@@ -94,7 +95,7 @@ async function generateDefaultEventBadges(eventOrId, options = {}) {
 
 function generateDefaultEventBadgesInBackground(eventOrId, options = {}) {
   generateDefaultEventBadges(eventOrId, options).catch((error) => {
-    console.error('Event badge generation failed:', {
+    logger.error('Event badge generation failed:', {
       eventId: String(eventOrId?._id || eventOrId || ''),
       error: error.message
     });

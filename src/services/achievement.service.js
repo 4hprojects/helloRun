@@ -1,4 +1,5 @@
 const Event = require('../models/Event');
+const logger = require('../utils/logger');
 const User = require('../models/User');
 const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
@@ -196,7 +197,7 @@ async function evaluateOrganiserAchievements(mongoUserId, options = {}) {
 
 function evaluateOrganiserAchievementsInBackground(mongoUserId, options = {}) {
   evaluateOrganiserAchievements(mongoUserId, options).catch((error) => {
-    console.error('Organiser achievement evaluation failed:', {
+    logger.error('Organiser achievement evaluation failed:', {
       mongoUserId: String(mongoUserId || ''),
       error: error.message
     });
@@ -828,7 +829,7 @@ async function recalculateBadgeAwards(input = {}, options = {}) {
 
 function evaluateRegistrationAchievementsInBackground(registrationOrId, options = {}) {
   evaluateRegistrationAchievements(registrationOrId, options).catch((error) => {
-    console.error('Registration achievement evaluation failed:', {
+    logger.error('Registration achievement evaluation failed:', {
       registrationId: String(registrationOrId?._id || registrationOrId || ''),
       error: error.message
     });
@@ -837,7 +838,7 @@ function evaluateRegistrationAchievementsInBackground(registrationOrId, options 
 
 function evaluateSubmissionAchievementsInBackground(submissionOrId, options = {}) {
   evaluateSubmissionAchievements(submissionOrId, options).catch((error) => {
-    console.error('Submission achievement evaluation failed:', {
+    logger.error('Submission achievement evaluation failed:', {
       submissionId: String(submissionOrId?._id || submissionOrId || ''),
       error: error.message
     });

@@ -1,4 +1,5 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const fs = require('fs/promises');
 const router = express.Router();
 const pageController = require('../controllers/page.controller');
@@ -180,7 +181,7 @@ function createPolicyPageRenderer(policyDocument) {
         };
       }
     } catch (error) {
-      console.error(`${policyDocument.title} DB load error:`, error);
+      logger.error(`${policyDocument.title} DB load error:`, error);
     }
 
     if (!policyHtml) {
@@ -195,7 +196,7 @@ function createPolicyPageRenderer(policyDocument) {
         };
       } catch (error) {
         if (error.code !== 'ENOENT') {
-          console.error(`${policyDocument.title} fallback load error:`, error);
+          logger.error(`${policyDocument.title} fallback load error:`, error);
         }
       }
     }

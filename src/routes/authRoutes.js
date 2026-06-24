@@ -128,7 +128,7 @@ function syncUserComplianceInBackground(user, source = 'live_sync') {
 function syncProfileCompletionInBackground(user) {
   syncProfileCompletionNotification(user)
     .catch((error) => {
-      console.error('Profile completion notification sync failed:', {
+      logger.error('Profile completion notification sync failed:', {
         userId: String(user?._id || ''),
         error: error.message
       });
@@ -228,7 +228,7 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
         remoteIp
       });
       if (!turnstileResult.ok) {
-        console.warn('Turnstile rejected login request:', {
+        logger.warn('Turnstile rejected login request:', {
           reason: turnstileResult.reason,
           errorCodes: turnstileResult.errorCodes || [],
           ip: remoteIp,
@@ -304,7 +304,7 @@ router.post('/login', redirectIfAuth, loginLimiter, async (req, res) => {
     return redirectAfterLogin(req, res, user);
     
   } catch (error) {
-    console.error('Login error:', error);
+    logger.error('Login error:', error);
     renderLoginPage(req, res, {
       error: 'An error occurred. Please try again.',
       email: normalizeEmail(req.body?.email),
@@ -344,7 +344,7 @@ async function handleRegistration(req, res) {
     const email = normalizeEmail(req.body.email);
     const botSignalResult = validateSignupBotSignals(req);
     if (!botSignalResult.ok) {
-      console.warn('Signup bot protection rejected request:', {
+      logger.warn('Signup bot protection rejected request:', {
         reason: botSignalResult.reason,
         ip: getRequestIpAddress(req),
         email
@@ -406,7 +406,7 @@ async function handleRegistration(req, res) {
       remoteIp: getRequestIpAddress(req)
     });
     if (!turnstileResult.ok) {
-      console.warn('Turnstile rejected signup request:', {
+      logger.warn('Turnstile rejected signup request:', {
         reason: turnstileResult.reason,
         errorCodes: turnstileResult.errorCodes || [],
         ip: getRequestIpAddress(req),
@@ -500,14 +500,14 @@ async function handleRegistration(req, res) {
         }
       });
     } catch (emailError) {
-      console.error('Verification email send failed during signup:', emailError);
+      logger.error('Verification email send failed during signup:', emailError);
     }
 
     // Redirect to verification sent page
     res.redirect(`/verify-email-sent?email=${encodeURIComponent(newUser.email)}`);
 
   } catch (error) {
-    console.error('Registration error:', error);
+    logger.error('Registration error:', error);
     return renderSignupPage(req, res, {
       error: 'An error occurred during registration. Please try again.',
       formData: req.body
@@ -717,7 +717,7 @@ router.get('/auth/google/callback', redirectIfAuth, async (req, res) => {
 
     return redirectAfterLogin(req, res, user);
   } catch (error) {
-    console.error('Google OAuth callback error:', error);
+    logger.error('Google OAuth callback error:', error);
     return res.redirect('/login?type=error&message=Google+sign-in+failed');
   }
 });
@@ -793,7 +793,7 @@ router.post('/forgot-password', requireCsrfProtection, forgotPasswordLimiter, as
       prefillEmail: email
     });
   } catch (error) {
-    console.error('Forgot password error:', error);
+    logger.error('Forgot password error:', error);
     res.render('auth/forgot-password', {
       error: 'An error occurred. Please try again.',
       success: null,
@@ -827,7 +827,7 @@ router.get('/reset-password/:token', async (req, res) => {
       token: token
     });
   } catch (error) {
-    console.error('Reset password page error:', error);
+    logger.error('Reset password page error:', error);
     res.render('auth/reset-password', {
       error: 'An error occurred. Please try again.',
       success: null,
@@ -896,7 +896,7 @@ router.post('/reset-password/:token', requireCsrfProtection, async (req, res) =>
         metadata: { userId: String(user._id) }
       }
     })
-      .catch(err => console.error('Failed to send confirmation email:', err));
+      .catch(err => logger.error('Failed to send confirmation email:', err));
 
     res.render('auth/reset-password', {
       error: null,
@@ -905,7 +905,7 @@ router.post('/reset-password/:token', requireCsrfProtection, async (req, res) =>
       redirectToLogin: true
     });
   } catch (error) {
-    console.error('Reset password error:', error);
+    logger.error('Reset password error:', error);
     res.render('auth/reset-password', {
       error: 'An error occurred. Please try again.',
       success: null,
@@ -922,7 +922,7 @@ router.get('/verify-email/:token', async (req, res) => {
 
     // SCENARIO 5: Handle null/malformed token
     if (!token || token.trim() === '') {
-      console.warn('[Email Verification] Empty token provided');
+      logger.warn('[Email Verification] Empty token provided');
       return res.render('auth/verify-email-result', {
         success: false,
         message: 'Invalid verification link.',
@@ -942,7 +942,7 @@ router.get('/verify-email/:token', async (req, res) => {
 
     // SCENARIO 4: Token doesn't exist in database
     if (!user) {
-      console.warn(`[Email Verification] Token not found in database: ${token.substring(0, 10)}...`);
+      logger.warn(`[Email Verification] Token not found in database: ${token.substring(0, 10)}...`);
       
       // SCENARIO 3 & 6: Check if email was provided and user exists with that email
       if (email) {
@@ -951,14 +951,14 @@ router.get('/verify-email/:token', async (req, res) => {
         if (userByEmail) {
           // User exists - check if already verified
           if (userByEmail.emailVerified === true) {
-            console.info(`[Email Verification] Email already verified: ${email}`);
+            logger.info(`[Email Verification] Email already verified: ${email}`);
             return res.render('auth/verify-email-already-verified', {
               email: email,
               firstName: userByEmail.firstName
             });
           } else if (!userByEmail.emailVerificationToken) {
             // Token was cleared but email not verified - likely expired
-            console.info(`[Email Verification] Token expired/cleared for: ${email}`);
+            logger.info(`[Email Verification] Token expired/cleared for: ${email}`);
             return res.render('auth/verify-email-expired', {
               email: email
             });
@@ -982,14 +982,14 @@ router.get('/verify-email/:token', async (req, res) => {
 
     // SCENARIO 2: Token exists but IS expired
     if (expiresAt && expiresAt < now) {
-      console.warn(`[Email Verification] Token expired for user: ${user.email}`);
+      logger.warn(`[Email Verification] Token expired for user: ${user.email}`);
       return res.render('auth/verify-email-expired', {
         email: user.email
       });
     }
 
     // SCENARIO 1: Valid token + Not expired → Verify email ✅
-    console.info(`[Email Verification] Successfully verified email: ${user.email}`);
+    logger.info(`[Email Verification] Successfully verified email: ${user.email}`);
     
     // Update user: mark as verified, clear token
     await User.findByIdAndUpdate(
@@ -1019,7 +1019,7 @@ router.get('/verify-email/:token', async (req, res) => {
     return res.redirect(`${dashboardPath}?welcome=1`);
 
   } catch (error) {
-    console.error('[Email Verification] Unexpected error:', error);
+    logger.error('[Email Verification] Unexpected error:', error);
     res.status(500).render('auth/verify-email-result', {
       success: false,
       message: 'An error occurred during email verification. Please try again.',
@@ -1034,7 +1034,7 @@ router.get('/verify-email/:token', async (req, res) => {
 router.post('/logout', requireCsrfProtection, (req, res) => {
   req.session.destroy((err) => {
     if (err) {
-      console.error('Logout error:', err);
+      logger.error('Logout error:', err);
       return res.redirect('/');
     }
     res.clearCookie('connect.sid');
@@ -1099,7 +1099,7 @@ router.post('/resend-verification', requireCsrfProtection, resendVerificationLim
     });
 
   } catch (error) {
-    console.error('Resend verification error:', error.message);
+    logger.error('Resend verification error:', error.message);
 
     return renderResendVerificationPage(req, res, {
       error: 'Something went wrong. Please try again later.',

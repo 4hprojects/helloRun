@@ -1,4 +1,5 @@
 const express = require('express');
+const logger = require('../utils/logger');
 const router = express.Router();
 const mongoose = require('mongoose');
 const crypto = require('crypto');
@@ -111,7 +112,7 @@ const registrantExportLimiter = createRateLimiter({
 function syncRegistrationPaymentShadowInBackground(registration, context = {}) {
   if (!registration || !registration._id || !process.env.DATABASE_URL) return;
   syncRegistrationPaymentShadow(registration, { operation: 'live_sync' }).catch((error) => {
-    console.error('Supabase registration/payment shadow sync failed:', {
+    logger.error('Supabase registration/payment shadow sync failed:', {
       registrationId: String(registration._id),
       error: error?.message || String(error),
       ...context
@@ -384,7 +385,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
     const isApprovedOrganizer = user.role === 'organiser' && user.organizerStatus === 'approved';
     const organiserBadges = isApprovedOrganizer
       ? await getRunnerEarnedBadges(user._id, { limit: 6, badgeScopes: ['organiser'] }).catch((error) => {
-          console.error('Error loading organiser dashboard badges:', error);
+          logger.error('Error loading organiser dashboard badges:', error);
           return [];
         })
       : [];
@@ -537,7 +538,7 @@ router.get('/dashboard', requireAuth, async (req, res) => {
 
     res.render('organizer/dashboard', dashboardData);
   } catch (error) {
-    console.error('Error loading organizer dashboard:', error);
+    logger.error('Error loading organizer dashboard:', error);
     res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -595,7 +596,7 @@ router.post('/acknowledge-event-creation', requireAuth, requireCsrfProtection, a
 
     return res.redirect('/organizer/create-event');
   } catch (error) {
-    console.error('Error saving event creation acknowledgement:', error);
+    logger.error('Error saving event creation acknowledgement:', error);
     return res.redirect('/organizer/dashboard?ack_error=server');
   }
 });
@@ -640,7 +641,7 @@ router.get('/events/:id/clone', requireCanCreateEvents, async (req, res) => {
       cloneSourceName: sourceEvent.title
     });
   } catch (error) {
-    console.error('Error loading event clone page:', error);
+    logger.error('Error loading event clone page:', error);
     return res.status(500).render('error', { title: 'Server Error', status: 500, message: 'An error occurred while loading the clone page.' });
   }
 });
@@ -677,7 +678,7 @@ router.get('/create-event', requireCanCreateEvents, async (req, res) => {
       cloneSourceName: null
     });
   } catch (error) {
-    console.error('Error loading create-event page:', error);
+    logger.error('Error loading create-event page:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -712,7 +713,7 @@ router.post('/preview-event', requireCanCreateEvents, requireCsrfProtection, asy
       previewUrl: `/organizer/preview-event?previewId=${encodeURIComponent(previewId)}`
     });
   } catch (error) {
-    console.error('Error creating event preview session:', error);
+    logger.error('Error creating event preview session:', error);
     return res.status(500).json({ ok: false, message: 'An error occurred while preparing the event preview.' });
   }
 });
@@ -730,7 +731,7 @@ router.post('/event-readiness', requireCanCreateEvents, requireCsrfProtection, a
       consistencyWarnings: getConsistencyWarnings(formData)
     });
   } catch (error) {
-    console.error('Error refreshing event readiness:', error);
+    logger.error('Error refreshing event readiness:', error);
     return res.status(500).json({ ok: false, message: 'An error occurred while refreshing event readiness.' });
   }
 });
@@ -830,7 +831,7 @@ router.get('/preview-event', requireCanCreateEvents, async (req, res) => {
       previewErrors: Object.values(errors)
     });
   } catch (error) {
-    console.error('Error loading event preview page:', error);
+    logger.error('Error loading event preview page:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -900,7 +901,7 @@ router.get('/events', requireApprovedOrganizer, async (req, res) => {
       message: getPageMessage(req.query)
     });
   } catch (error) {
-    console.error('Error loading organizer events:', error);
+    logger.error('Error loading organizer events:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -960,7 +961,7 @@ router.get('/submissions', requireAuth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error loading organizer submissions:', error);
+    logger.error('Error loading organizer submissions:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1086,7 +1087,7 @@ router.get('/submissions/:submissionId/review-panel', requireAuth, async (req, r
       }
     });
   } catch (error) {
-    console.error('Submission review panel error:', error);
+    logger.error('Submission review panel error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load submission details.' });
   }
 });
@@ -1131,7 +1132,7 @@ router.post('/submissions/bulk-approve', requireAuth, requireCsrfProtection, sub
 
     return res.redirect('/organizer/submissions?' + new URLSearchParams({ type: 'success', msg }).toString());
   } catch (error) {
-    console.error('Bulk submission approve error:', error);
+    logger.error('Bulk submission approve error:', error);
     return res.redirect('/organizer/submissions?' + new URLSearchParams({ type: 'error', msg: 'An error occurred during bulk approval.' }).toString());
   }
 });
@@ -1207,7 +1208,7 @@ router.post('/events/:id/payment-reviews/bulk-approve', requireAuth, requireCsrf
     const q = new URLSearchParams({ type: 'success', msg });
     return res.redirect(`/organizer/events/${event._id}/payment-proof-review?${q}`);
   } catch (error) {
-    console.error('Bulk payment approve error:', error);
+    logger.error('Bulk payment approve error:', error);
     const q = new URLSearchParams({ type: 'error', msg: 'An error occurred during bulk approval.' });
     return res.redirect(`/organizer/events/${req.params.id}/payment-proof-review?${q}`);
   }
@@ -1279,7 +1280,7 @@ router.post('/events/:id/registrants/:registrationId/send-message', requireAuth,
     const q = new URLSearchParams({ type: 'success', msg: `Message sent to ${registration.participant?.firstName || 'runner'}.` });
     return res.redirect(`/organizer/events/${event._id}/registrants?${q}`);
   } catch (error) {
-    console.error('Organiser direct message error:', error);
+    logger.error('Organiser direct message error:', error);
     const q = new URLSearchParams({ type: 'error', msg: 'Unable to send message right now.' });
     return res.redirect(`/organizer/events/${req.params.id}/registrants?${q}`);
   }
@@ -1352,7 +1353,7 @@ router.post('/events/:id/registrants/email-unpaid', requireAuth, requireCsrfProt
     const q = new URLSearchParams({ type: 'success', msg: `Payment reminder sent to ${unpaidRegistrations.length} runner${unpaidRegistrations.length !== 1 ? 's' : ''}.` });
     return res.redirect(`/organizer/events/${event._id}/registrants?${q}`);
   } catch (error) {
-    console.error('Bulk email unpaid error:', error);
+    logger.error('Bulk email unpaid error:', error);
     const q = new URLSearchParams({ type: 'error', msg: 'An error occurred while sending emails.' });
     return res.redirect(`/organizer/events/${req.params.id}/registrants?${q}`);
   }
@@ -1389,7 +1390,7 @@ router.get('/events/:id', requireApprovedOrganizer, async (req, res) => {
       message: getPageMessage(req.query)
     });
   } catch (error) {
-    console.error('Error loading event details:', error);
+    logger.error('Error loading event details:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1460,7 +1461,7 @@ router.get('/events/:id/audit', requireAuth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error loading organizer event audit trail:', error);
+    logger.error('Error loading organizer event audit trail:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1480,7 +1481,7 @@ router.get('/events/:id/badges', requireApprovedOrganizer, async (req, res) => {
     const badges = await getEventBadgesByMongoEventId(event._id);
     return res.json({ success: true, badges });
   } catch (error) {
-    console.error('Organizer event badges load error:', error);
+    logger.error('Organizer event badges load error:', error);
     return res.status(500).json({ success: false, message: 'Unable to load event badges.' });
   }
 });
@@ -1498,7 +1499,7 @@ router.get('/events/:id/badges/manage', requireApprovedOrganizer, async (req, re
     }
 
     await generateDefaultEventBadges(event, { performedBy: user._id }).catch((error) => {
-      console.error('Organizer badge manager generation error:', error);
+      logger.error('Organizer badge manager generation error:', error);
     });
 
     const badges = await getEventBadgesByMongoEventId(event._id, {
@@ -1535,7 +1536,7 @@ router.get('/events/:id/badges/manage', requireApprovedOrganizer, async (req, re
       message: getPageMessage(req.query)
     });
   } catch (error) {
-    console.error('Organizer badge manager load error:', error);
+    logger.error('Organizer badge manager load error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1580,7 +1581,7 @@ router.post('/events/:id/badges/:badgeId', requireApprovedOrganizer, requireCsrf
     }
     return res.json({ success: true, badge: updated });
   } catch (error) {
-    console.error('Organizer event badge update error:', error);
+    logger.error('Organizer event badge update error:', error);
     if (!acceptsJson(req)) {
       return res.redirect(`/organizer/events/${req.params.id}/badges/manage?type=error&msg=Unable%20to%20update%20event%20badge.`);
     }
@@ -1614,7 +1615,7 @@ router.post('/events/:id/badges/:badgeId/image', requireApprovedOrganizer, uploa
     if (!updated) return res.status(404).json({ success: false, message: 'Badge not found.' });
     return res.json({ success: true, imageUrl: uploaded.url });
   } catch (error) {
-    console.error('Badge image upload error:', error);
+    logger.error('Badge image upload error:', error);
     return res.status(500).json({ success: false, message: 'Badge image upload failed.' });
   }
 });
@@ -1806,7 +1807,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error loading event registrants:', error);
+    logger.error('Error loading event registrants:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1916,7 +1917,7 @@ router.get('/events/:eventId/payment-proofs/review', requireAuth, async (req, re
       }
     });
   } catch (error) {
-    console.error('Error loading payment proof review:', error);
+    logger.error('Error loading payment proof review:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -2044,7 +2045,7 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
       }
     });
   } catch (error) {
-    console.error('Error loading run proof review:', error);
+    logger.error('Error loading run proof review:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -2099,7 +2100,7 @@ router.get('/events/:id/submissions/:submissionId/review', requireAuth, async (r
       ...context
     });
   } catch (error) {
-    console.error('Error loading submission review:', error);
+    logger.error('Error loading submission review:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -2248,7 +2249,7 @@ router.post(
           source: 'organizer.payment_approve'
         });
       } catch (communicationError) {
-        console.error('Payment approval communication failed:', {
+        logger.error('Payment approval communication failed:', {
           error: communicationError.message,
           registrationId: String(registration._id)
         });
@@ -2257,7 +2258,7 @@ router.post(
       const q = new URLSearchParams({ type: 'success', msg: 'Payment marked as approved.' });
       return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
     } catch (error) {
-      console.error('Error approving payment receipt:', error);
+      logger.error('Error approving payment receipt:', error);
       return res.status(500).render('error', {
         title: 'Server Error',
         status: 500,
@@ -2393,7 +2394,7 @@ router.post(
           source: 'organizer.payment_reject'
         });
       } catch (communicationError) {
-        console.error('Payment rejection communication failed:', {
+        logger.error('Payment rejection communication failed:', {
           error: communicationError.message,
           registrationId: String(registration._id)
         });
@@ -2402,7 +2403,7 @@ router.post(
       const q = new URLSearchParams({ type: 'success', msg: 'Payment receipt rejected and runner notified.' });
       return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
     } catch (error) {
-      console.error('Error rejecting payment receipt:', error);
+      logger.error('Error rejecting payment receipt:', error);
       return res.status(500).render('error', {
         title: 'Server Error',
         status: 500,
@@ -2663,7 +2664,7 @@ router.get('/events/:id/registrants/export', requireAuth, registrantExportLimite
     res.setHeader('Content-Disposition', `attachment; filename=\"${filename}\"`);
     return res.status(200).send(csvContent);
   } catch (error) {
-    console.error('Error exporting event registrants CSV:', error);
+    logger.error('Error exporting event registrants CSV:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -2742,7 +2743,7 @@ router.get('/events/:id/registrants/export-xlsx', requireAuth, registrantExportL
     res.setHeader('Content-Disposition', `attachment; filename=\"${filename}\"`);
     return res.status(200).send(buffer);
   } catch (error) {
-    console.error('Error exporting event registrants XLSX:', error);
+    logger.error('Error exporting event registrants XLSX:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -2798,7 +2799,7 @@ router.get('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
       eventBadges
     });
   } catch (error) {
-    console.error('Error loading event edit page:', error);
+    logger.error('Error loading event edit page:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -3076,7 +3077,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     });
     return res.redirect(`/organizer/events/${event._id}?${query.toString()}`);
   } catch (error) {
-    console.error('Error updating event:', error);
+    logger.error('Error updating event:', error);
     if (uploadedBrandingKeys.length) {
       await uploadService.deleteObjects(uploadedBrandingKeys);
     }
@@ -3149,7 +3150,7 @@ router.post('/events/:id/status', requireApprovedOrganizer, requireCsrfProtectio
     });
     return res.redirect(`/organizer/events/${event._id}?${q.toString()}`);
   } catch (error) {
-    console.error('Error updating event status:', error);
+    logger.error('Error updating event status:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -3248,7 +3249,7 @@ router.post('/events/:id/media/remove', requireApprovedOrganizer, requireCsrfPro
       }
     });
   } catch (error) {
-    console.error('Error removing event media:', error);
+    logger.error('Error removing event media:', error);
     return res.status(500).json({ success: false, message: 'Failed to remove media. Please try again.' });
   }
 });
@@ -3474,7 +3475,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     const query = new URLSearchParams({ type: 'success', msg: successText });
     return res.redirect(`/organizer/events?${query.toString()}`);
   } catch (error) {
-    console.error('Error creating event:', error);
+    logger.error('Error creating event:', error);
     if (uploadedBrandingKeys.length) {
       await uploadService.deleteObjects(uploadedBrandingKeys);
     }
@@ -3520,7 +3521,7 @@ router.get('/complete-profile', requireAuth, async (req, res) => {
         : ''
     });
   } catch (error) {
-    console.error('Error loading complete-profile:', error);
+    logger.error('Error loading complete-profile:', error);
     res.status(500).send('Server error');
   }
 });
@@ -3667,7 +3668,7 @@ router.post(
           if (uploadedDocs.businessProof?.key) uploadedObjectKeys.push(uploadedDocs.businessProof.key);
         }
       } catch (uploadError) {
-        console.error('R2 upload error:', uploadError);
+        logger.error('R2 upload error:', uploadError);
         return res.status(500).json({
           success: false,
           message: 'Failed to upload documents. Please try again.'
@@ -3708,7 +3709,7 @@ router.post(
         await application.save();
         await uploadService.deleteObjects(oldDocumentKeys.filter(Boolean));
       } catch (dbError) {
-        console.error('Database save error:', dbError);
+        logger.error('Database save error:', dbError);
 
         // Delete uploaded cloud objects on database failure
         await uploadService.deleteObjects(uploadedObjectKeys);
@@ -3725,7 +3726,7 @@ router.post(
         user.organizerStatus = 'pending';
         await user.save();
       } catch (updateError) {
-        console.error('User update error:', updateError);
+        logger.error('User update error:', updateError);
         // Continue even if user update fails - application is already saved
       }
 
@@ -3741,7 +3742,7 @@ router.post(
           }
         });
       } catch (emailError) {
-        console.error('Email sending error:', emailError);
+        logger.error('Email sending error:', emailError);
         // Don't fail the submission if email fails
       }
 
@@ -3757,7 +3758,7 @@ router.post(
       });
 
     } catch (error) {
-      console.error('Unexpected error in complete-profile POST:', error);
+      logger.error('Unexpected error in complete-profile POST:', error);
 
       // Attempt to delete uploaded cloud objects if they exist
       if (uploadedObjectKeys.length > 0) {
@@ -3825,7 +3826,7 @@ router.get('/application-status', requireAuth, async (req, res) => {
       adminEmail: process.env.ADMIN_EMAIL || 'hellorunonline@gmail.com'
     });
   } catch (error) {
-    console.error('Error loading application status:', error);
+    logger.error('Error loading application status:', error);
     res.status(500).render('error', {
       title: 'Server Error',
       status: 500,

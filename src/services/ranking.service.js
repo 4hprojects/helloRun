@@ -2,6 +2,7 @@
 // Normalizes MongoDB leaderboard data into Supabase rankings and reporting tables
 
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 const { getPostgresClient } = require('../db/postgres');
 
 /**
@@ -162,7 +163,7 @@ async function syncRankingEntry(entry, eventData, runnerData, options = {}) {
 
     return rankingRow;
   } catch (error) {
-    console.error('Ranking sync error:', error.message);
+    logger.error('Ranking sync error:', error.message);
     throw error;
   }
 }
@@ -201,7 +202,7 @@ async function publishRankings(filter = {}, options = {}) {
     }
     return result.length;
   } catch (error) {
-    console.error('Ranking publish error:', error.message);
+    logger.error('Ranking publish error:', error.message);
     throw error;
   }
 }
@@ -211,7 +212,7 @@ async function evaluatePublishedRankingAchievementsSafe(input = {}, options = {}
     const { evaluatePublishedRankingAchievements } = require('./achievement.service');
     return await evaluatePublishedRankingAchievements(input, options);
   } catch (error) {
-    console.error('Ranking achievement evaluation failed:', error.message);
+    logger.error('Ranking achievement evaluation failed:', error.message);
     return [];
   }
 }
@@ -235,7 +236,7 @@ async function getRankingForSubmission(mongoSubmissionId, options = {}) {
 
     return result.length > 0 ? result[0] : null;
   } catch (error) {
-    console.error('Get ranking error:', error.message);
+    logger.error('Get ranking error:', error.message);
     return null;
   }
 }
@@ -271,7 +272,7 @@ async function getEventLeaderboard(eventSlug, filter = {}, options = {}) {
     `;
     return result;
   } catch (error) {
-    console.error('Get event leaderboard error:', error.message);
+    logger.error('Get event leaderboard error:', error.message);
     return [];
   }
 }
@@ -300,7 +301,7 @@ async function getRunnerCertifications(appUserId, options = {}) {
       most_recent_certificate_at: null
     };
   } catch (error) {
-    console.error('Get runner certifications error:', error.message);
+    logger.error('Get runner certifications error:', error.message);
     return null;
   }
 }

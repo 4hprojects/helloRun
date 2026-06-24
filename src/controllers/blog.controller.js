@@ -26,7 +26,7 @@ exports.renderPublicBlogIndex = async (req, res) => {
       guides
     });
   } catch (error) {
-    console.error('renderPublicBlogIndex error:', error);
+    logger.error('renderPublicBlogIndex error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -65,7 +65,7 @@ exports.renderPublicBlogPost = async (req, res) => {
       comments
     });
   } catch (error) {
-    console.error('renderPublicBlogPost error:', error);
+    logger.error('renderPublicBlogPost error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -90,7 +90,7 @@ exports.getGuidesAndResources = async (req, res) => {
     const data = await getGuidesAndResources({ limitPerGroup });
     return res.json({ success: true, ...data });
   } catch (error) {
-    console.error('getGuidesAndResources error:', error);
+    logger.error('getGuidesAndResources error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load guides/resources.' });
   }
 };
@@ -138,7 +138,7 @@ exports.getBlogFeed = async (req, res) => {
     res.set('Content-Type', 'application/xml');
     return res.send(feed.rss2());
   } catch (error) {
-    console.error('getBlogFeed error:', error);
+    logger.error('getBlogFeed error:', error);
     return res.status(500).send('Failed to generate feed.');
   }
 };
@@ -151,7 +151,7 @@ exports.getTopWritersLeaderboard = async (req, res) => {
     const writers = await getTopWriters({ limit });
     return res.json({ success: true, writers });
   } catch (error) {
-    console.error('getTopWritersLeaderboard error:', error);
+    logger.error('getTopWritersLeaderboard error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load top writers.' });
   }
 };
@@ -174,11 +174,12 @@ exports.getTrendingBlogs = async (req, res) => {
       posts
     });
   } catch (error) {
-    console.error('getTrendingBlogs error:', error);
+    logger.error('getTrendingBlogs error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load trending posts.' });
   }
 };
 const mongoose = require('mongoose');
+const logger = require('../utils/logger');
 const Blog = require('../models/Blog');
 const BlogRevision = require('../models/BlogRevision');
 const User = require('../models/User');
@@ -258,7 +259,7 @@ exports.getMyBlogs = async (req, res) => {
       posts
     });
   } catch (error) {
-    console.error('getMyBlogs error:', error);
+    logger.error('getMyBlogs error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load posts.' });
   }
 };
@@ -285,7 +286,7 @@ exports.getMyBlogById = async (req, res) => {
 
     return res.json({ success: true, post });
   } catch (error) {
-    console.error('getMyBlogById error:', error);
+    logger.error('getMyBlogById error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load post.' });
   }
 };
@@ -367,7 +368,7 @@ exports.createDraft = async (req, res) => {
       post
     });
   } catch (error) {
-    console.error('createDraft error:', error);
+    logger.error('createDraft error:', error);
     if (uploadedKeys.length) {
       await uploadService.deleteObjects(uploadedKeys);
     }
@@ -527,7 +528,7 @@ exports.updateDraft = async (req, res) => {
       post
     });
   } catch (error) {
-    console.error('updateDraft error:', error);
+    logger.error('updateDraft error:', error);
     if (uploadedKeys.length) {
       await uploadService.deleteObjects(uploadedKeys);
     }
@@ -583,7 +584,7 @@ exports.submitForReview = async (req, res) => {
       post
     });
   } catch (error) {
-    console.error('submitForReview error:', error);
+    logger.error('submitForReview error:', error);
     return res.status(500).json({ success: false, message: 'Failed to submit post for review.' });
   }
 };
@@ -620,7 +621,7 @@ exports.deleteMyDraft = async (req, res) => {
 
     return res.json({ success: true, message: 'Post deleted successfully.' });
   } catch (error) {
-    console.error('deleteMyDraft error:', error);
+    logger.error('deleteMyDraft error:', error);
     return res.status(500).json({ success: false, message: 'Failed to delete post.' });
   }
 };
@@ -660,7 +661,7 @@ exports.discardRevision = async (req, res) => {
     await post.save();
     return res.json({ success: true, message: 'Revision discarded.' });
   } catch (error) {
-    console.error('discardRevision error:', error);
+    logger.error('discardRevision error:', error);
     return res.status(500).json({ success: false, message: 'Failed to discard revision.' });
   }
 };
@@ -707,7 +708,7 @@ exports.uploadBlogImagesForEditor = async (req, res) => {
       galleryImageUrls: uploadedGallery.map((item) => item.url)
     });
   } catch (error) {
-    console.error('uploadBlogImagesForEditor error:', error);
+    logger.error('uploadBlogImagesForEditor error:', error);
     if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
     return res.status(500).json({ success: false, message: 'Failed to upload gallery images.' });
   }
@@ -739,7 +740,7 @@ exports.renderAuthorDashboard = async (req, res) => {
       message: getBlogPageMessage(req.query)
     });
   } catch (error) {
-    console.error('renderAuthorDashboard error:', error);
+    logger.error('renderAuthorDashboard error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -769,7 +770,7 @@ exports.renderCreatePage = async (req, res) => {
       post: null
     });
   } catch (error) {
-    console.error('renderCreatePage error:', error);
+    logger.error('renderCreatePage error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -885,7 +886,7 @@ exports.createDraftPage = async (req, res) => {
     }
     return res.redirect('/blogs/me/dashboard?type=success&msg=Draft%20created%20successfully.');
   } catch (error) {
-    console.error('createDraftPage error:', error);
+    logger.error('createDraftPage error:', error);
     if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
     return res.status(500).render('error', {
       title: 'Server Error',
@@ -957,7 +958,7 @@ exports.renderEditPage = async (req, res) => {
       revision
     });
   } catch (error) {
-    console.error('renderEditPage error:', error);
+    logger.error('renderEditPage error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1168,7 +1169,7 @@ exports.updateDraftPage = async (req, res) => {
     }
     return res.redirect(`/blogs/me/${post._id}/edit?type=success&msg=Draft%20updated%20successfully.`);
   } catch (error) {
-    console.error('updateDraftPage error:', error);
+    logger.error('updateDraftPage error:', error);
     if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
     return res.status(500).render('error', {
       title: 'Server Error',
@@ -1214,7 +1215,7 @@ exports.submitForReviewPage = async (req, res) => {
 
     return res.redirect('/blogs/me/dashboard?type=success&msg=Post%20submitted%20for%20review.');
   } catch (error) {
-    console.error('submitForReviewPage error:', error);
+    logger.error('submitForReviewPage error:', error);
     return res.redirect('/blogs/me/dashboard?type=error&msg=Failed%20to%20submit%20post%20for%20review.');
   }
 };
@@ -1246,7 +1247,7 @@ exports.deleteMyDraftPage = async (req, res) => {
 
     return res.redirect('/blogs/me/dashboard?type=success&msg=Post%20deleted%20successfully.');
   } catch (error) {
-    console.error('deleteMyDraftPage error:', error);
+    logger.error('deleteMyDraftPage error:', error);
     return res.redirect('/blogs/me/dashboard?type=error&msg=Failed%20to%20delete%20post.');
   }
 };
@@ -1282,7 +1283,7 @@ exports.listPendingBlogs = async (req, res) => {
       posts
     });
   } catch (error) {
-    console.error('listPendingBlogs error:', error);
+    logger.error('listPendingBlogs error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load admin blog queue.' });
   }
 };
@@ -1307,7 +1308,7 @@ exports.previewBlogPost = async (req, res) => {
 
     return res.json({ success: true, post });
   } catch (error) {
-    console.error('previewBlogPost error:', error);
+    logger.error('previewBlogPost error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load blog post preview.' });
   }
 };
@@ -1344,7 +1345,7 @@ exports.approveBlogPost = async (req, res) => {
       post: result.post
     });
   } catch (error) {
-    console.error('approveBlogPost error:', error);
+    logger.error('approveBlogPost error:', error);
     return res.status(500).json({ success: false, message: 'Failed to approve post.' });
   }
 };
@@ -1395,7 +1396,7 @@ exports.rejectBlogPost = async (req, res) => {
       post: result.post
     });
   } catch (error) {
-    console.error('rejectBlogPost error:', error);
+    logger.error('rejectBlogPost error:', error);
     return res.status(500).json({ success: false, message: 'Failed to reject post.' });
   }
 };
@@ -1431,7 +1432,7 @@ exports.archiveBlogPost = async (req, res) => {
       post
     });
   } catch (error) {
-    console.error('archiveBlogPost error:', error);
+    logger.error('archiveBlogPost error:', error);
     return res.status(500).json({ success: false, message: 'Failed to archive post.' });
   }
 };
@@ -1555,7 +1556,7 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('autosaveBlogPostAdmin error:', error);
+    logger.error('autosaveBlogPostAdmin error:', error);
     return res.status(500).json({ success: false, message: 'Failed to auto-save blog post.' });
   }
 };
@@ -1592,7 +1593,7 @@ exports.renderAdminQueuePage = async (req, res) => {
       message: getBlogPageMessage(req.query)
     });
   } catch (error) {
-    console.error('renderAdminQueuePage error:', error);
+    logger.error('renderAdminQueuePage error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1667,7 +1668,7 @@ exports.renderAdminReviewPage = async (req, res) => {
       openReportCounts
     });
   } catch (error) {
-    console.error('renderAdminReviewPage error:', error);
+    logger.error('renderAdminReviewPage error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -1706,7 +1707,7 @@ exports.uploadAdminBlogAssets = async (req, res) => {
       galleryImageUrls: uploadedGallery.map((item) => item.url)
     });
   } catch (error) {
-    console.error('uploadAdminBlogAssets error:', error);
+    logger.error('uploadAdminBlogAssets error:', error);
     if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
     return res.status(500).json({ success: false, message: 'Failed to upload admin blog assets.' });
   }
@@ -1737,7 +1738,7 @@ exports.approveBlogPostPage = async (req, res) => {
       `/admin/blog/posts/${post._id}/review?type=success&msg=${encodeURIComponent(result.revisionApplied ? 'Revision approved and applied.' : 'Post approved and published.')}`
     );
   } catch (error) {
-    console.error('approveBlogPostPage error:', error);
+    logger.error('approveBlogPostPage error:', error);
     return res.redirect(`/admin/blog/posts/${req.params.id}/review?type=error&msg=Failed%20to%20approve%20post.`);
   }
 };
@@ -1781,7 +1782,7 @@ exports.rejectBlogPostPage = async (req, res) => {
       `/admin/blog/posts/${post._id}/review?type=success&msg=${encodeURIComponent(result.revisionRejected ? 'Revision rejected.' : 'Post rejected.')}`
     );
   } catch (error) {
-    console.error('rejectBlogPostPage error:', error);
+    logger.error('rejectBlogPostPage error:', error);
     return res.redirect(`/admin/blog/posts/${req.params.id}/review?type=error&msg=Failed%20to%20reject%20post.`);
   }
 };
@@ -1809,7 +1810,7 @@ exports.archiveBlogPostPage = async (req, res) => {
 
     return res.redirect(`/admin/blog/posts/${post._id}/review?type=success&msg=Post%20archived.`);
   } catch (error) {
-    console.error('archiveBlogPostPage error:', error);
+    logger.error('archiveBlogPostPage error:', error);
     return res.redirect(`/admin/blog/posts/${req.params.id}/review?type=error&msg=Failed%20to%20archive%20post.`);
   }
 };

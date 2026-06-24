@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const logger = require('../utils/logger');
 const Blog = require('../models/Blog');
 const BlogComment = require('../models/BlogComment');
 const BlogLike = require('../models/BlogLike');
@@ -58,7 +59,7 @@ exports.listComments = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('listComments error:', error);
+    logger.error('listComments error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load comments.' });
   }
 };
@@ -97,7 +98,7 @@ exports.createComment = async (req, res) => {
 
     return res.status(201).json({ success: true, comment });
   } catch (error) {
-    console.error('createComment error:', error);
+    logger.error('createComment error:', error);
     return res.status(500).json({ success: false, message: 'Failed to post comment.' });
   }
 };
@@ -136,7 +137,7 @@ exports.deleteComment = async (req, res) => {
 
     return res.json({ success: true });
   } catch (error) {
-    console.error('deleteComment error:', error);
+    logger.error('deleteComment error:', error);
     return res.status(500).json({ success: false, message: 'Failed to delete comment.' });
   }
 };
@@ -167,7 +168,7 @@ exports.toggleLike = async (req, res) => {
     if (error && error.code === 11000) {
       return res.status(409).json({ success: false, message: 'Already liked.' });
     }
-    console.error('toggleLike error:', error);
+    logger.error('toggleLike error:', error);
     return res.status(500).json({ success: false, message: 'Failed to toggle like.' });
   }
 };
@@ -199,7 +200,7 @@ exports.reportPost = async (req, res) => {
     if (error && error.code === 11000) {
       return res.status(409).json({ success: false, message: 'You already have an open report for this post.' });
     }
-    console.error('reportPost error:', error);
+    logger.error('reportPost error:', error);
     return res.status(500).json({ success: false, message: 'Failed to submit report.' });
   }
 };
@@ -245,7 +246,7 @@ exports.reportComment = async (req, res) => {
     if (error && error.code === 11000) {
       return res.status(409).json({ success: false, message: 'You already have an open report for this comment.' });
     }
-    console.error('reportComment error:', error);
+    logger.error('reportComment error:', error);
     return res.status(500).json({ success: false, message: 'Failed to submit report.' });
   }
 };
@@ -280,7 +281,7 @@ exports.adminListComments = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('adminListComments error:', error);
+    logger.error('adminListComments error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load comments.' });
   }
 };
@@ -317,7 +318,7 @@ exports.adminRemoveComment = async (req, res) => {
 
     return res.json({ success: true });
   } catch (error) {
-    console.error('adminRemoveComment error:', error);
+    logger.error('adminRemoveComment error:', error);
     return res.status(500).json({ success: false, message: 'Failed to remove comment.' });
   }
 };
@@ -349,7 +350,7 @@ exports.adminRestoreComment = async (req, res) => {
 
     return res.json({ success: true });
   } catch (error) {
-    console.error('adminRestoreComment error:', error);
+    logger.error('adminRestoreComment error:', error);
     return res.status(500).json({ success: false, message: 'Failed to restore comment.' });
   }
 };
@@ -372,7 +373,7 @@ exports.adminListReports = async (req, res) => {
       selectedStatus: safeStatus
     });
   } catch (error) {
-    console.error('adminListReports error:', error);
+    logger.error('adminListReports error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
@@ -399,7 +400,7 @@ exports.adminResolveReport = async (req, res) => {
 
     return res.redirect('/admin/blog/reports?status=open');
   } catch (error) {
-    console.error('adminResolveReport error:', error);
+    logger.error('adminResolveReport error:', error);
     return res.redirect('/admin/blog/reports?status=open');
   }
 };
@@ -422,7 +423,7 @@ exports.adminDismissReport = async (req, res) => {
 
     return res.redirect('/admin/blog/reports?status=open');
   } catch (error) {
-    console.error('adminDismissReport error:', error);
+    logger.error('adminDismissReport error:', error);
     return res.redirect('/admin/blog/reports?status=open');
   }
 };

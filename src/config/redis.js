@@ -4,6 +4,7 @@ if (process.env.REDIS_URL) {
   try {
     // eslint-disable-next-line global-require
     const Redis = require('ioredis');
+const logger = require('../utils/logger');
     redisClient = new Redis(process.env.REDIS_URL, {
       lazyConnect: true,
       enableReadyCheck: true,
@@ -16,15 +17,15 @@ if (process.env.REDIS_URL) {
     });
 
     redisClient.on('error', (err) => {
-      console.error('Redis connection error:', err.message);
+      logger.error('Redis connection error:', err.message);
     });
 
     redisClient.connect().catch((err) => {
-      console.error('Redis connect failed:', err.message);
+      logger.error('Redis connect failed:', err.message);
       redisClient = null;
     });
   } catch (err) {
-    console.error('Failed to initialize Redis client:', err.message);
+    logger.error('Failed to initialize Redis client:', err.message);
     redisClient = null;
   }
 }

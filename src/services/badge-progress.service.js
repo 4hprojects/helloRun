@@ -1,4 +1,5 @@
 const Event = require('../models/Event');
+const logger = require('../utils/logger');
 const Registration = require('../models/Registration');
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
@@ -142,7 +143,7 @@ async function refreshGlobalDistanceMilestoneProgress(mongoUserId, options = {})
 
 function refreshGlobalDistanceMilestoneProgressInBackground(mongoUserId, options = {}) {
   refreshGlobalDistanceMilestoneProgress(mongoUserId, options).catch((error) => {
-    console.error('Global distance badge progress refresh failed:', {
+    logger.error('Global distance badge progress refresh failed:', {
       mongoUserId: String(mongoUserId || ''),
       error: error.message
     });

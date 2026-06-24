@@ -1,4 +1,5 @@
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
+const logger = require('../utils/logger');
 const Registration = require('../models/Registration');
 const Event = require('../models/Event');
 const User = require('../models/User');
@@ -138,7 +139,7 @@ async function reviewAccumulatedActivitySubmission({
     refreshAccumulatedChallengeProgress(reviewedActivity.registrationId, {
       performedBy: organizerId
     }).catch((error) => {
-      console.error('Accumulated challenge badge progress refresh failed:', {
+      logger.error('Accumulated challenge badge progress refresh failed:', {
         activityId: String(reviewedActivity._id || ''),
         registrationId: String(reviewedActivity.registrationId || ''),
         error: error.message
@@ -402,7 +403,7 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
   refreshAccumulatedChallengeProgress(activity.registrationId, {
     performedBy: ''
   }).catch((error) => {
-    console.error('Accumulated challenge badge progress refresh failed:', {
+    logger.error('Accumulated challenge badge progress refresh failed:', {
       activityId: String(activity._id || ''),
       registrationId: String(activity.registrationId || ''),
       error: error.message
@@ -516,7 +517,7 @@ async function sendActivityReviewNotifications({ activity, eventTitle, action, c
       });
     }
   } catch (error) {
-    console.error('Accumulated activity review notification failed:', {
+    logger.error('Accumulated activity review notification failed:', {
       error: error.message,
       activityId: String(activity?._id || '')
     });

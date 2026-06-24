@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const logger = require('../utils/logger');
 const OrganiserApplication = require('../models/OrganiserApplication');
 const User = require('../models/User');
 const passwordService = require('../services/password.service');
@@ -213,7 +214,7 @@ function renderApplicationNotFound(res) {
 }
 
 function renderServerError(res, error, fallbackMessage) {
-  console.error(fallbackMessage, error);
+  logger.error(fallbackMessage, error);
   return res.status(500).render('error', {
     title: '500 - Server Error',
     status: 500,
@@ -1303,6 +1304,12 @@ async function renderApplicationDetails(res, applicationId, options = {}) {
   });
 }
 
+
+// ═══════════════════════════════════════════════════════════
+// SECTION: User Management (listUsers, viewUser, updateUser,
+//   deleteUsers, renderEditUser + P1 governance actions)
+// ═══════════════════════════════════════════════════════════
+
 exports.listUsers = async (req, res) => {
   try {
     const filters = normalizeAdminUserFilters(req.query);
@@ -1593,6 +1600,11 @@ exports.viewUser = async (req, res) => {
   }
 };
 
+
+// ═══════════════════════════════════════════════════════════
+// SECTION: Organiser Applications
+// ═══════════════════════════════════════════════════════════
+
 exports.listApplications = async (req, res) => {
   try {
     const status = VALID_FILTER_STATUSES.includes(req.query.status) ? req.query.status : '';
@@ -1723,7 +1735,7 @@ exports.approveApplication = async (req, res) => {
           }
         });
       } catch (emailError) {
-        console.error(
+        logger.error(
           `[Admin Review] Failed to send approval email for application ${application.applicationId}`,
           emailError
         );
@@ -1819,7 +1831,7 @@ exports.rejectApplication = async (req, res) => {
           }
         });
       } catch (emailError) {
-        console.error(
+        logger.error(
           `[Admin Review] Failed to send rejection email for application ${application.applicationId}`,
           emailError
         );
@@ -1833,6 +1845,11 @@ exports.rejectApplication = async (req, res) => {
     return renderServerError(res, error, 'An error occurred while rejecting the application.');
   }
 };
+
+
+// ═══════════════════════════════════════════════════════════
+// SECTION: Event Management
+// ═══════════════════════════════════════════════════════════
 
 exports.listEvents = async (req, res) => {
   try {
@@ -2147,7 +2164,7 @@ exports.approveEvent = async (req, res) => {
           }
         });
       } catch (notifyError) {
-        console.error('Event published communication failed:', {
+        logger.error('Event published communication failed:', {
           eventId: String(event._id),
           error: notifyError?.message || String(notifyError)
         });
@@ -2155,7 +2172,7 @@ exports.approveEvent = async (req, res) => {
     }
     return res.json({ success: true, message: 'Event approved and published.' });
   } catch (error) {
-    console.error('approveEvent error:', error);
+    logger.error('approveEvent error:', error);
     return res.status(500).json({ success: false, message: 'Failed to approve event.' });
   }
 };
@@ -2187,7 +2204,7 @@ exports.archiveEvent = async (req, res) => {
     });
     return res.json({ success: true, message: 'Event archived.' });
   } catch (error) {
-    console.error('archiveEvent error:', error);
+    logger.error('archiveEvent error:', error);
     return res.status(500).json({ success: false, message: 'Failed to archive event.' });
   }
 };
@@ -2220,7 +2237,7 @@ exports.deleteEvent = async (req, res) => {
     });
     return res.json({ success: true, message: 'Event soft-deleted.' });
   } catch (error) {
-    console.error('deleteEvent error:', error);
+    logger.error('deleteEvent error:', error);
     return res.status(500).json({ success: false, message: 'Failed to delete event.' });
   }
 };
@@ -2269,7 +2286,7 @@ exports.bulkDeleteEvents = async (req, res) => {
     }
     return res.json({ success: true, message: `${deletedIds.length} event${deletedIds.length === 1 ? '' : 's'} soft-deleted.`, deletedCount: deletedIds.length });
   } catch (error) {
-    console.error('bulkDeleteEvents error:', error);
+    logger.error('bulkDeleteEvents error:', error);
     return res.status(500).json({ success: false, message: 'Failed to bulk-delete events.' });
   }
 };
@@ -2308,7 +2325,7 @@ exports.removeEventMedia = async (req, res) => {
     if (keysToDelete.length) await uploadService.deleteObjects(keysToDelete);
     return res.json({ success: true });
   } catch (error) {
-    console.error('removeEventMedia error:', error);
+    logger.error('removeEventMedia error:', error);
     return res.status(500).json({ success: false, message: 'Failed to remove media.' });
   }
 };
@@ -2456,6 +2473,11 @@ exports.dashboard = async (req, res) => {
   }
 };
 
+
+// ═══════════════════════════════════════════════════════════
+// SECTION: Badge Management
+// ═══════════════════════════════════════════════════════════
+
 exports.listBadges = async (req, res) => {
   try {
     const wantsJson = acceptsJson(req);
@@ -2495,7 +2517,7 @@ exports.listBadges = async (req, res) => {
     }
     return res.json({ success: true, badges, userBadges, auditLogs, analytics, filters: { status: statusFilter, scope: scopeFilter } });
   } catch (error) {
-    console.error('listBadges error:', error);
+    logger.error('listBadges error:', error);
     if (!acceptsJson(req)) {
       return renderServerError(res, error, 'An error occurred while loading badge management.');
     }
@@ -2530,7 +2552,7 @@ exports.revokeBadge = async (req, res) => {
     }
     return res.json({ success: true, badge: revoked });
   } catch (error) {
-    console.error('revokeBadge error:', error);
+    logger.error('revokeBadge error:', error);
     if (!acceptsJson(req)) {
       return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'Failed to revoke badge.'));
     }
@@ -2584,7 +2606,7 @@ exports.updateBadgeDefinitionStatus = async (req, res) => {
     }
     return res.json({ success: true, badgeDefinition: updated });
   } catch (error) {
-    console.error('updateBadgeDefinitionStatus error:', error);
+    logger.error('updateBadgeDefinitionStatus error:', error);
     if (!acceptsJson(req)) {
       return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'Failed to update badge definition.'));
     }
@@ -2624,7 +2646,7 @@ exports.updateBadgeDefinitionEmailLevel = async (req, res) => {
     }
     return res.json({ success: true, badgeDefinition: updated });
   } catch (error) {
-    console.error('updateBadgeDefinitionEmailLevel error:', error);
+    logger.error('updateBadgeDefinitionEmailLevel error:', error);
     if (!acceptsJson(req)) {
       return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'Failed to update badge email notification level.'));
     }
@@ -2657,7 +2679,7 @@ exports.recalculateBadges = async (req, res) => {
     }
     return res.json({ success: true, result });
   } catch (error) {
-    console.error('recalculateBadges error:', error);
+    logger.error('recalculateBadges error:', error);
     if (!acceptsJson(req)) {
       return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'Failed to recalculate badge awards.'));
     }
@@ -2978,6 +3000,11 @@ exports.reviewQueue = async (req, res) => {
   }
 };
 
+
+// ═══════════════════════════════════════════════════════════
+// SECTION: Submission Review
+// ═══════════════════════════════════════════════════════════
+
 exports.bulkRejectSubmissions = async (req, res) => {
   try {
     const rawIds = Array.isArray(req.body.submissionIds)
@@ -3026,7 +3053,7 @@ exports.bulkRejectSubmissions = async (req, res) => {
     const q = new URLSearchParams({ type: succeeded > 0 ? 'success' : 'error', msg });
     return res.redirect(`/admin/submissions?${q}`);
   } catch (error) {
-    console.error('Admin bulk reject submissions error:', error);
+    logger.error('Admin bulk reject submissions error:', error);
     const q = new URLSearchParams({ type: 'error', msg: 'An error occurred during bulk rejection.' });
     return res.redirect(`/admin/submissions?${q}`);
   }
@@ -3062,6 +3089,12 @@ exports.listSubmissions = async (req, res) => {
     return renderServerError(res, error, 'An error occurred while loading run submissions.');
   }
 };
+
+
+// ═══════════════════════════════════════════════════════════
+// SECTION: Policy Document Management (Privacy, Terms, Cookie)
+// TODO DEBT-1: Extract to admin-policy.controller.js
+// ═══════════════════════════════════════════════════════════
 
 exports.listPrivacyPolicies = async (req, res) => {
   try {

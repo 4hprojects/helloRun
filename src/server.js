@@ -106,21 +106,26 @@ app.get('/healthz', (req, res) => {
   res.status(200).json({ ok: true });
 });
 
-app.get('/readyz', (req, res) => {
+app.get('/readyz', async (req, res) => {
   const mongoReady = mongoose.connection.readyState === 1;
-  if (!mongoReady) {
-    return res.status(503).json({
-      ok: false,
-      dependencies: {
-        mongo: 'not_ready'
-      }
-    });
+  const { getRedisClient } = require('./config/redis');
+  const redisClient = getRedisClient();
+  let redisStatus = 'not_configured';
+  if (redisClient) {
+    try {
+      const pong = await redisClient.ping();
+      redisStatus = pong === 'PONG' ? 'ready' : 'degraded';
+    } catch (_) {
+      redisStatus = 'not_ready';
+    }
   }
 
-  return res.status(200).json({
-    ok: true,
+  const ok = mongoReady && redisStatus !== 'not_ready';
+  return res.status(ok ? 200 : 503).json({
+    ok,
     dependencies: {
-      mongo: 'ready'
+      mongo: mongoReady ? 'ready' : 'not_ready',
+      redis: redisStatus
     }
   });
 });
@@ -172,8 +177,12 @@ if (!isProduction && process.env.DEBUG_HTTP_BODIES === '1') {
   });
 }
 
-// Static files
-app.use(express.static(path.join(__dirname, 'public')));
+// Static files — 1-day cache; browsers revalidate with ETag/Last-Modified
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: isProduction ? '1d' : 0,
+  etag: true,
+  lastModified: true
+}));
 
 // ===== STEP 2: VIEW ENGINE =====
 app.set('view engine', 'ejs');

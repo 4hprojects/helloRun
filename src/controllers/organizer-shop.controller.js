@@ -1,4 +1,5 @@
 const ExcelJS = require('exceljs');
+const logger = require('../utils/logger');
 const productService = require('../services/shop/product.service');
 const variantService = require('../services/shop/variant.service');
 const orderService = require('../services/shop/order.service');
@@ -413,7 +414,7 @@ exports.patchPaymentReview = async (req, res, next) => {
           });
         }
       } catch (communicationError) {
-        console.error('Shop payment review communication failed:', {
+        logger.error('Shop payment review communication failed:', {
           paymentId: String(payment.id || ''),
           error: communicationError?.message || String(communicationError)
         });

@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 const { getRedisClient } = require('../config/redis');
 
 const DEFAULT_MIN_SIGNUP_FORM_AGE_MS = 1500;
@@ -111,7 +112,7 @@ async function getLoginFailureCount({ email, remoteIp } = {}) {
       const count = await redis.get(`login-fail:${key}`);
       return Math.max(0, Number(count || 0));
     } catch (error) {
-      console.error('Login failure counter Redis read error:', error.message);
+      logger.error('Login failure counter Redis read error:', error.message);
     }
   }
   return getInMemoryLoginFailureCount(key);
@@ -129,7 +130,7 @@ async function recordLoginFailure({ email, remoteIp } = {}) {
       }
       return count;
     } catch (error) {
-      console.error('Login failure counter Redis write error:', error.message);
+      logger.error('Login failure counter Redis write error:', error.message);
     }
   }
   return recordInMemoryLoginFailure(key);
@@ -144,7 +145,7 @@ async function clearLoginFailures({ email, remoteIp } = {}) {
     try {
       await redis.del(`login-fail:${key}`);
     } catch (error) {
-      console.error('Login failure counter Redis clear error:', error.message);
+      logger.error('Login failure counter Redis clear error:', error.message);
     }
   }
 }

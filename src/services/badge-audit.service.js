@@ -77,7 +77,7 @@ async function listRecentBadgeAuditLogs(options = {}) {
 
 function logBadgeAuditInBackground(input = {}) {
   logBadgeAudit(input).catch((error) => {
-    console.error('Badge audit write failed:', {
+    logger.error('Badge audit write failed:', {
       action: input.action,
       badgeDefinitionId: input.badgeDefinitionId,
       userBadgeId: input.userBadgeId,

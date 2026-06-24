@@ -124,6 +124,27 @@ async function runRetryBatch() {
 }
 
 let workerTimer = null;
+let consecutiveErrors = 0;
+const MAX_CONSECUTIVE_ERRORS = 5;
+const BACKOFF_BASE_MS = 10000;
+
+async function runRetryBatchSafe() {
+  try {
+    await runRetryBatch();
+    consecutiveErrors = 0;
+  } catch (err) {
+    consecutiveErrors += 1;
+    logger.error('[pg-sync-worker] Batch error:', {
+      message: err?.message || String(err),
+      consecutiveErrors
+    });
+    if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+      const backoff = Math.min(BACKOFF_BASE_MS * consecutiveErrors, 300000);
+      logger.warn(`[pg-sync-worker] ${consecutiveErrors} consecutive errors — pausing ${backoff}ms before next cycle`);
+      await new Promise((resolve) => setTimeout(resolve, backoff));
+    }
+  }
+}
 
 function startSyncRetryWorker() {
   if (process.env.NODE_ENV === 'test' || !process.env.DATABASE_URL) {
@@ -132,18 +153,10 @@ function startSyncRetryWorker() {
 
   const interval = Number(process.env.PG_SYNC_RETRY_INTERVAL_MS || 60000);
 
-  workerTimer = setInterval(() => {
-    runRetryBatch().catch((err) => {
-      logger.error('[pg-sync-worker] Batch error:', err?.message || String(err));
-    });
-  }, interval);
+  workerTimer = setInterval(() => { runRetryBatchSafe(); }, interval);
 
   // Run once shortly after startup to catch any pre-existing failures
-  setTimeout(() => {
-    runRetryBatch().catch((err) => {
-      logger.error('[pg-sync-worker] Startup batch error:', err?.message || String(err));
-    });
-  }, 5000);
+  setTimeout(() => { runRetryBatchSafe(); }, 5000);
 
   const cleanup = () => {
     if (workerTimer) {

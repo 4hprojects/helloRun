@@ -30,7 +30,7 @@ async function logCertificateAudit(input = {}, options = {}) {
 
 function logCertificateAuditInBackground(input = {}) {
   logCertificateAudit(input).catch((error) => {
-    console.error('Certificate audit log failed:', {
+    logger.error('Certificate audit log failed:', {
       action: input.action,
       error: error.message
     });
