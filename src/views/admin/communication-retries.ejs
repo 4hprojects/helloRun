@@ -33,6 +33,55 @@
         <% }) %>
       </div>
 
+      <h3 class="dashboard-section-title">Retry Action Trail</h3>
+      <div class="admin-users-table-wrap">
+        <table class="admin-table communication-retry-audit-table">
+          <thead>
+            <tr>
+              <th>When</th>
+              <th>Action</th>
+              <th>Actor</th>
+              <th>Event / Retry</th>
+              <th>Status</th>
+              <th>Counts / Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (retryAudit.length) { %>
+              <% retryAudit.forEach((audit) => { %>
+                <tr>
+                  <td><%= formatDateTime(audit.createdAt) %></td>
+                  <td><span class="status-badge status-badge-<%= audit.action %>"><%= audit.action %></span></td>
+                  <td>
+                    <%= audit.actorType || 'system' %>
+                    <% if (audit.actorUserId) { %>
+                      <div><small class="mono"><%= audit.actorUserId %></small></div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <% if (audit.eventKey) { %><span class="mono"><%= audit.eventKey %></span><% } else { %>Batch<% } %>
+                    <% if (audit.retryId) { %>
+                      <div><small class="mono"><%= audit.retryId %></small></div>
+                    <% } %>
+                  </td>
+                  <td>
+                    <%= audit.statusFrom || '-' %>
+                    <% if (audit.statusTo) { %> &rarr; <%= audit.statusTo %><% } %>
+                  </td>
+                  <td>
+                    <small><%= JSON.stringify({ counts: audit.counts || {}, metadata: audit.metadata || {} }).slice(0, 600) %></small>
+                  </td>
+                </tr>
+              <% }) %>
+            <% } else { %>
+              <tr>
+                <td colspan="6">No retry operator actions recorded yet.</td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+
       <form class="admin-filters communication-log-filters" method="GET" action="/admin/communications/retries">
         <div class="filter-field">
           <label for="eventKey">Event</label>

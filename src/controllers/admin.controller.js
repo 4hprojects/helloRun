@@ -13,6 +13,7 @@ const PrivacyPolicy = require('../models/PrivacyPolicy');
 const communicationService = require('../services/communication.service');
 const {
   getCommunicationRetryHealth,
+  listCommunicationRetryAudit,
   listCommunicationRetries,
   retryCommunicationNow
 } = require('../services/reliable-communication.service');
@@ -2680,14 +2681,16 @@ exports.renderCommunications = async (req, res) => {
 
 exports.renderCommunicationRetries = async (req, res) => {
   try {
-    const [retryData, communicationData] = await Promise.all([
+    const [retryData, communicationData, retryAudit] = await Promise.all([
       listCommunicationRetries(req.query),
-      communicationService.getAdminCommunicationPageData({})
+      communicationService.getAdminCommunicationPageData({}),
+      listCommunicationRetryAudit({ limit: 20 })
     ]);
     return res.render('admin/communication-retries', {
       title: 'Notification Retry Queue - HelloRun Admin',
       message: getAdminPageMessage(req.query),
       events: communicationData.events,
+      retryAudit,
       ...retryData,
       formatDateTime: formatAdminDateTime,
       buildRetryPageHref: (page) => buildCommunicationRetryHref(retryData.filters, page),
@@ -2716,7 +2719,13 @@ exports.renderCommunicationFailureDetail = async (req, res) => {
 exports.retryCommunicationDelivery = async (req, res) => {
   const returnTo = buildCommunicationRetryHref(req.query || {});
   try {
-    const result = await retryCommunicationNow(req.params.retryId);
+    const result = await retryCommunicationNow(req.params.retryId, {
+      actor: {
+        actorUserId: req.session?.userId || null,
+        ipAddress: String(req.ip || ''),
+        userAgent: String(req.get('user-agent') || '')
+      }
+    });
     if (result.alreadySent) {
       return res.redirect(appendAdminPageMessage(returnTo, 'info', 'This retry job was already sent.'));
     }

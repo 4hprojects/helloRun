@@ -1318,6 +1318,10 @@
   min-width: 840px;
 }
 
+.communication-retry-audit-table {
+  min-width: 920px;
+}
+
 .communication-digest-table a {
   color: #c2410c;
   font-weight: 900;

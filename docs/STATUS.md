@@ -74,6 +74,7 @@ _Last updated: June 24, 2026_
 | Runtime Stabilization Phase 8D — admin Communications now surfaces delivery alerts for recent dead letters, stale retry jobs, and overdue retry backlog | June 24, 2026 | `tests/communication-retry-source.unit.test.js` |
 | Runtime Stabilization Phase 8E — admin Communications now shows 24h/7d delivery digest tables ranking event types by failed logs and retry queue failures | June 24, 2026 | `tests/communication-retry-source.unit.test.js` |
 | Runtime Stabilization Phase 8F — admins can drill into a failing notification event to review recent failed logs, recipients, retry sources, attempts, and status | June 24, 2026 | `tests/communication-retry-source.unit.test.js` |
+| Runtime Stabilization Phase 8G — retry operations now write an admin-visible action trail for manual retries, automatic dead letters, and hygiene cleanup | June 24, 2026 | `tests/communication-retry-source.unit.test.js` |
 | Badge system refinement — early generation at event save, Badges wizard step (13-step wizard), event logo as badge image fallback, badge previews on public event detail page | June 24, 2026 | — |
 | P5 Social sharing — certificate verify page share buttons + og:image; submission detail "Share your achievement" strip; badge detail page was already complete | June 24, 2026 | — |
 | P8 Email notification settings — runner profile Notifications section with 5 opt-outable event types; user-level emailOptOut stored on User model; communication.service respects opt-out (email suppressed, in-app still fires) | June 24, 2026 | — |

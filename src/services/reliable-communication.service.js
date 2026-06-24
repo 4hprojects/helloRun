@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const mongoose = require('mongoose');
 const CommunicationRetry = require('../models/CommunicationRetry');
+const CommunicationRetryAudit = require('../models/CommunicationRetryAudit');
 const communicationService = require('./communication.service');
 const logger = require('../utils/logger');
 
@@ -122,11 +123,17 @@ async function runCommunicationRetryHygiene(options = {}) {
     })
   ]);
 
-  return {
+  const result = {
     staleDeadLettered: staleDeadLettered.modifiedCount || 0,
     sentDeleted: sentDeleted.deletedCount || 0,
     deadDeleted: deadDeleted.deletedCount || 0
   };
+  await recordCommunicationRetryHygieneAudit(result, {
+    staleCutoff,
+    sentCutoff,
+    deadCutoff
+  });
+  return result;
 }
 
 async function getCommunicationRetryHealth(options = {}) {
@@ -230,7 +237,15 @@ async function listCommunicationRetries(filters = {}) {
   };
 }
 
-async function retryCommunicationNow(retryId) {
+async function listCommunicationRetryAudit(options = {}) {
+  const limit = Math.max(5, Math.min(50, Number(options.limit || 20)));
+  return CommunicationRetryAudit.find({})
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
+}
+
+async function retryCommunicationNow(retryId, options = {}) {
   const safeId = String(retryId || '').trim();
   if (!mongoose.Types.ObjectId.isValid(safeId)) {
     throw new Error('Invalid retry job.');
@@ -240,7 +255,17 @@ async function retryCommunicationNow(retryId) {
   if (!job) {
     throw new Error('Retry job not found.');
   }
+  const statusFrom = String(job.status || '');
   if (job.status === 'sent') {
+    await recordCommunicationRetryAudit({
+      action: 'manual_retry',
+      actor: options.actor,
+      retryId: job._id,
+      eventKey: job.eventKey,
+      statusFrom,
+      statusTo: job.status,
+      metadata: { alreadySent: true }
+    });
     return { alreadySent: true, job };
   }
 
@@ -250,6 +275,19 @@ async function retryCommunicationNow(retryId) {
   job.lastError = '';
   await job.save();
   const result = await retryCommunicationJob(job);
+  await recordCommunicationRetryAudit({
+    action: 'manual_retry',
+    actor: options.actor,
+    retryId: job._id,
+    eventKey: job.eventKey,
+    statusFrom,
+    statusTo: job.status,
+    metadata: {
+      sent: Boolean(result.sent),
+      dead: Boolean(result.dead),
+      attempts: job.attempts || 0
+    }
+  });
   return { ...result, job };
 }
 
@@ -280,9 +318,76 @@ async function retryCommunicationJob(job) {
         eventKey: job.eventKey,
         error: job.lastError
       });
+      await recordCommunicationRetryAudit({
+        action: 'auto_dead_letter',
+        retryId: job._id,
+        eventKey: job.eventKey,
+        statusFrom: 'retrying',
+        statusTo: 'dead',
+        metadata: {
+          attempts: attemptNumber,
+          error: job.lastError
+        }
+      });
     }
     return { sent: false, dead };
   }
+}
+
+async function recordCommunicationRetryHygieneAudit(result = {}, metadata = {}) {
+  const staleCount = Number(result.staleDeadLettered || 0);
+  const cleanupCount = Number(result.sentDeleted || 0) + Number(result.deadDeleted || 0);
+  const writes = [];
+  if (staleCount > 0) {
+    writes.push(recordCommunicationRetryAudit({
+      action: 'hygiene_dead_letter',
+      counts: { staleDeadLettered: staleCount },
+      metadata
+    }));
+  }
+  if (cleanupCount > 0) {
+    writes.push(recordCommunicationRetryAudit({
+      action: 'hygiene_cleanup',
+      counts: {
+        sentDeleted: Number(result.sentDeleted || 0),
+        deadDeleted: Number(result.deadDeleted || 0)
+      },
+      metadata
+    }));
+  }
+  await Promise.all(writes);
+}
+
+async function recordCommunicationRetryAudit(input = {}) {
+  try {
+    const actor = normalizeRetryAuditActor(input.actor);
+    return await CommunicationRetryAudit.create({
+      action: input.action,
+      actorType: actor.actorType,
+      actorUserId: actor.actorUserId,
+      retryId: input.retryId || null,
+      eventKey: String(input.eventKey || '').trim().slice(0, 160),
+      statusFrom: String(input.statusFrom || '').trim().slice(0, 40),
+      statusTo: String(input.statusTo || '').trim().slice(0, 40),
+      counts: normalizeMetadata(input.counts || {}),
+      metadata: normalizeMetadata(input.metadata || {}),
+      ipAddress: String(actor.ipAddress || '').trim().slice(0, 120),
+      userAgent: String(actor.userAgent || '').trim().slice(0, 300)
+    });
+  } catch (error) {
+    logger.warn('[communication-retry] Could not record retry audit:', error?.message || String(error));
+    return null;
+  }
+}
+
+function normalizeRetryAuditActor(actor = {}) {
+  const actorUserId = String(actor.actorUserId || actor.userId || '').trim();
+  return {
+    actorType: actorUserId ? 'admin' : 'system',
+    actorUserId: mongoose.Types.ObjectId.isValid(actorUserId) ? actorUserId : null,
+    ipAddress: actor.ipAddress || '',
+    userAgent: actor.userAgent || ''
+  };
 }
 
 function withEmailFailureThrow(payload = {}) {
@@ -375,6 +480,7 @@ module.exports = {
   buildCommunicationRetryKey,
   enqueueCommunicationRetry,
   getCommunicationRetryHealth,
+  listCommunicationRetryAudit,
   listCommunicationRetries,
   notifyWithRetry,
   notifyWithRetryInBackground,
