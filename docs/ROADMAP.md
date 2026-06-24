@@ -60,6 +60,12 @@
 | P11 Admin user management gaps — accountStatus filter; lastLoginAt tracking + display; earned badge list on user detail | Jun 24 | `tests/admin-governance.integration.test.js` |
 | P15 Platform Analytics — /admin/analytics with totals, funnel (approval rate + avg review time), 12-month growth table, top events, top organisers, shop revenue | Jun 24 | — |
 | Sitemap customization — isTestData/excludeFromSitemap on Event model; migration script marks 198 test events; test fixtures updated (51 insertions); admin per-event sitemap toggle; sitemap cleaned 232 → 33 URLs on production | Jun 24 | — |
+| P0 Security — organiser self-approval blocked + audit logged; atomic password reset token; webhook rate limit | Jun 24 | — |
+| P1 Reliability — Sentry APM; unhandledRejection handler; Mongoose pool maxPoolSize:20; request timeout; admin Show All capped | Jun 24 | — |
+| P2 Organiser UX — registration capacity enforcement; event cloning (/events/:id/clone); unpaid count in dashboard; per-user submission rate limit | Jun 24 | — |
+| P3 Runner UX — public runner profile /runners/:userId; event date range filter; contact organiser form on event detail | Jun 24 | — |
+| P4 Organiser quality — OCR badge tooltips; draft saved toast; admin bulk reject submissions; Message Runner modal | Jun 24 | — |
+| P5 Infrastructure — static cache headers; Redis /readyz check; worker backoff; 480 console.* → logger; section markers on large files | Jun 24 | — |
 
 ---
 
