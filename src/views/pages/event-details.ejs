@@ -277,7 +277,13 @@
               <div class="event-badge-grid" aria-label="Available achievement badges">
                 <% eventBadges.forEach((badge) => { %>
                   <article class="event-badge-card">
-                    <span class="event-badge-icon"><i data-lucide="award"></i></span>
+                    <span class="event-badge-icon">
+                      <% if (badge.imageUrl) { %>
+                        <img src="<%= badge.imageUrl %>" alt="" loading="lazy">
+                      <% } else { %>
+                        <i data-lucide="award"></i>
+                      <% } %>
+                    </span>
                     <div>
                       <h3><%= badge.name %></h3>
                       <p><%= badge.description || 'Awarded after verified event activity.' %></p>

@@ -258,7 +258,7 @@ exports.getEventDetails = async (req, res) => {
         eventId: event._id,
         status: { $ne: 'cancelled' }
       }),
-      getEventBadgesByMongoEventId(event._id).catch(() => []),
+      getEventBadgesByMongoEventId(event._id, { visibleOnly: true }).catch(() => []),
       listProductsByMongoEventId(String(event._id), { limit: 4, publicOnly: true }).catch(() => []),
       getRelatedEvents(event, getPublicEventVisibilityQuery(now), now).catch(() => [])
     ]);

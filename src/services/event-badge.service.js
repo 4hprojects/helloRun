@@ -21,15 +21,22 @@ async function generateDefaultEventBadges(eventOrId, options = {}) {
   const eventCore = await resolveEventCore(event, { sql });
   if (!eventCore?.id) return [];
 
-  const existing = await sql`
-    SELECT id FROM event_badges WHERE event_core_id = ${eventCore.id} LIMIT 1
+  // Check which badge_codes already exist for this event so we only create new ones.
+  // This allows re-running after new race categories are added without duplicating existing badges.
+  const existingRows = await sql`
+    SELECT bd.badge_code
+    FROM event_badges eb
+    JOIN badge_definitions bd ON bd.id = eb.badge_definition_id
+    WHERE eb.event_core_id = ${eventCore.id}
   `;
-  if (existing.length) return [];
+  const existingBadgeCodes = new Set(existingRows.map((row) => row.badge_code));
 
-  const payloads = buildDefaultEventBadges(event).map((payload) => ({
-    ...payload,
-    createdBy: actorAppUserId
-  }));
+  const logoFallback = String(event.logoUrl || '').trim() || null;
+  const payloads = buildDefaultEventBadges(event)
+    .filter((payload) => !existingBadgeCodes.has(payload.badgeCode))
+    .map((payload) => ({ ...payload, createdBy: actorAppUserId }));
+
+  if (!payloads.length) return [];
 
   const created = [];
   await sql.begin(async (tx) => {
@@ -42,6 +49,7 @@ async function generateDefaultEventBadges(eventOrId, options = {}) {
           event_core_id,
           mongo_event_id,
           badge_definition_id,
+          badge_image_url,
           is_visible_on_event_page,
           is_active
         )
@@ -49,6 +57,7 @@ async function generateDefaultEventBadges(eventOrId, options = {}) {
           ${eventCore.id},
           ${String(event._id)},
           ${definition.id},
+          ${logoFallback},
           TRUE,
           TRUE
         )

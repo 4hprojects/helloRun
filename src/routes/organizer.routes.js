@@ -35,6 +35,7 @@ const {
 } = require('../services/achievement.service');
 const {
   generateDefaultEventBadges,
+  generateDefaultEventBadgesInBackground,
   getEventBadgesByMongoEventId,
   updateEventBadgeDisplay
 } = require('../services/event-badge.service');
@@ -2643,6 +2644,7 @@ router.get('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
     }
 
     const formData = getCreateEventFormDataFromEvent(event);
+    const eventBadges = await getEventBadgesByMongoEventId(event._id).catch(() => []);
     return res.render('organizer/edit-event', {
       title: `Edit Event - ${event.title}`,
       user,
@@ -2653,7 +2655,8 @@ router.get('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
       reviewSummary: getEventReviewSummary(formData),
       countries,
       defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
-      message: getPageMessage(req.query)
+      message: getPageMessage(req.query),
+      eventBadges
     });
   } catch (error) {
     console.error('Error loading event edit page:', error);
@@ -2892,6 +2895,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
     }
 
     await event.save();
+    generateDefaultEventBadgesInBackground(event, { performedBy: user._id });
 
     const autoApproval = isDraftSubmitForReview
       ? await tryAutoApproveEvent(event, { organizer: user })
@@ -2992,6 +2996,7 @@ router.post('/events/:id/status', requireApprovedOrganizer, requireCsrfProtectio
       event.submittedForReviewAt = new Date();
     }
     await event.save();
+    generateDefaultEventBadgesInBackground(event, { performedBy: user._id });
 
     const autoApproval = nextStatus === 'pending_review'
       ? await tryAutoApproveEvent(event, { organizer: user })

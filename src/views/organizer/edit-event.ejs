@@ -64,9 +64,10 @@
             <li><a href="#pricing-step" data-step-link="pricing-step"><span>7</span> Pricing</a></li>
             <li><a href="#payment-setup-step" data-step-link="payment-setup-step"><span>8</span> Payment Setup</a></li>
             <li><a href="#event-details-step" data-step-link="event-details-step"><span>9</span> Event Details</a></li>
-            <li><a href="#media-step" data-step-link="media-step"><span>10</span> Branding and Media</a></li>
-            <li><a href="#waiver-step" data-step-link="waiver-step"><span>11</span> Waiver</a></li>
-            <li><a href="#review-step" data-step-link="review-step"><span>12</span> Review</a></li>
+            <li><a href="#badges-step" data-step-link="badges-step"><span>10</span> Badges</a></li>
+            <li><a href="#media-step" data-step-link="media-step"><span>11</span> Branding and Media</a></li>
+            <li><a href="#waiver-step" data-step-link="waiver-step"><span>12</span> Waiver</a></li>
+            <li><a href="#review-step" data-step-link="review-step"><span>13</span> Review</a></li>
           </ol>
         </aside>
 
@@ -82,15 +83,16 @@
             <li><a href="#pricing-step" class="wizard-pill" data-pill-step="pricing-step"><span class="pill-num">7</span><span class="pill-label">Pricing</span></a></li>
             <li><a href="#payment-setup-step" class="wizard-pill" data-pill-step="payment-setup-step"><span class="pill-num">8</span><span class="pill-label">Payment</span></a></li>
             <li><a href="#event-details-step" class="wizard-pill" data-pill-step="event-details-step"><span class="pill-num">9</span><span class="pill-label">Event Details</span></a></li>
-            <li><a href="#media-step" class="wizard-pill" data-pill-step="media-step"><span class="pill-num">10</span><span class="pill-label">Media</span></a></li>
-            <li><a href="#waiver-step" class="wizard-pill" data-pill-step="waiver-step"><span class="pill-num">11</span><span class="pill-label">Waiver</span></a></li>
-            <li><a href="#review-step" class="wizard-pill" data-pill-step="review-step"><span class="pill-num">12</span><span class="pill-label">Review</span></a></li>
+            <li><a href="#badges-step" class="wizard-pill" data-pill-step="badges-step"><span class="pill-num">10</span><span class="pill-label">Badges</span></a></li>
+            <li><a href="#media-step" class="wizard-pill" data-pill-step="media-step"><span class="pill-num">11</span><span class="pill-label">Media</span></a></li>
+            <li><a href="#waiver-step" class="wizard-pill" data-pill-step="waiver-step"><span class="pill-num">12</span><span class="pill-label">Waiver</span></a></li>
+            <li><a href="#review-step" class="wizard-pill" data-pill-step="review-step"><span class="pill-num">13</span><span class="pill-label">Review</span></a></li>
           </ol>
         </nav>
 
         <div class="wizard-mini-strip" id="wizardMiniStrip" role="navigation" aria-label="Event builder progress">
           <div class="wizard-mini-info">
-            <span class="wizard-mini-step" id="wizardMiniStep">Step 1 of 12</span>
+            <span class="wizard-mini-step" id="wizardMiniStep">Step 1 of 13</span>
             <span class="wizard-mini-title" id="wizardMiniTitle">Event Type</span>
           </div>
           <button type="button" class="wizard-mini-toggle" id="wizardMiniToggle" aria-label="Show all steps" aria-expanded="false">
@@ -102,7 +104,7 @@
         </div>
 
         <div id="event-type-step" class="form-section form-section-event-type" tabindex="-1" data-wizard-step="event-type-step">
-          <div class="section-kicker">Step 1 of 12</div>
+          <div class="section-kicker">Step 1 of 13</div>
           <div class="section-title">Event Type</div>
           <p class="section-helper">Choose the participation format. Later sections adjust based on this choice.</p>
           <div class="form-grid">
@@ -134,7 +136,7 @@
 
         <!-- CORE DETAILS SECTION (same as create) -->
         <div id="core-details-step" class="form-section form-section-core" tabindex="-1" data-wizard-step="core-details-step">
-          <div class="section-kicker">Step 2 of 12</div>
+          <div class="section-kicker">Step 2 of 13</div>
           <div class="section-title">Core Details</div>
           <div class="form-grid">
             <div class="form-group">
@@ -191,7 +193,7 @@
 
         <!-- PRICING PER DISTANCE SECTION -->
         <div id="pricing-step" class="form-section form-section-fees" tabindex="-1" data-wizard-step="pricing-step">
-          <div class="section-kicker">Step 7 of 12</div>
+          <div class="section-kicker">Step 7 of 13</div>
           <div class="section-title">Pricing Setup</div>
           <p class="section-helper">Choose Free or Paid first, then set your pricing logic here. Payment account details and QR setup are managed in Step 8.</p>
           <% const pricingModeValue = ['distance_based', 'customized_options', 'distance_based_period', 'customized_options_period', 'package_period', 'per_distance', 'per_distance_period', 'same_fee'].includes(formData.pricingMode) ? formData.pricingMode : (formData.feeMode === 'paid' ? 'distance_based' : 'free'); %>
@@ -454,7 +456,7 @@
 
         <!-- PAYMENT SETUP SECTION -->
         <div id="payment-setup-step" class="form-section form-section-payment" tabindex="-1" data-wizard-step="payment-setup-step">
-          <div class="section-kicker">Step 8 of 12</div>
+          <div class="section-kicker">Step 8 of 13</div>
           <div class="section-title">Payment Setup</div>
           <p class="section-helper">Define how runners will pay. Required only for paid events.</p>
           <p class="payment-free-note field-hint" style="display:none;">&#10003; This event is free &mdash; payment setup is not required.</p>
@@ -503,7 +505,7 @@
 
         <!-- REWARDS AND INCLUSIONS SECTION -->
         <div id="rewards-step" class="form-section form-section-rewards" tabindex="-1" data-wizard-step="rewards-step">
-          <div class="section-kicker">Step 6 of 12</div>
+          <div class="section-kicker">Step 6 of 13</div>
           <div class="section-title">Rewards and Inclusions</div>
           <p class="section-helper">Define what runners receive. These inclusions apply across all distances or categories. Per-category package pricing will be available in a later update.</p>
           <div class="form-grid">
@@ -586,7 +588,7 @@
 
         <!-- EVENT DETAILS SECTION -->
         <div id="event-details-step" class="form-section form-section-details" tabindex="-1" data-wizard-step="event-details-step">
-          <div class="section-kicker">Step 9 of 12</div>
+          <div class="section-kicker">Step 9 of 13</div>
           <div class="section-title">Event Details</div>
           <p class="section-helper">Use this section for full event rules, FAQs, pricing explanation, submission rules, and runner guidance.</p>
           <div class="waiver-panels">
@@ -610,9 +612,80 @@
           </div>
         </div>
 
+        <!-- BADGES STEP -->
+        <div id="badges-step" class="form-section form-section-badges" tabindex="-1" data-wizard-step="badges-step">
+          <div class="section-kicker">Step 10 of 13</div>
+          <div class="section-title">Badges</div>
+          <p class="section-helper">These badges are automatically awarded to runners based on your event configuration. Rename them, upload custom artwork, or hide them from the public event page.</p>
+          <%
+            const BADGE_ICONS_WIZ = {
+              participant: 'user-check', finisher: 'trophy',
+              distance_finisher: 'medal', mode_finisher: 'zap',
+              challenge_progress: 'trending-up', challenge_finisher: 'award',
+              category_winner: 'crown', top_rank: 'star',
+              distance_winner: 'flag', mode_winner: 'shield-check'
+            };
+            const getBadgeIconWiz = (type) => BADGE_ICONS_WIZ[type] || 'award';
+            const wizardBadges = locals.eventBadges || [];
+          %>
+          <% if (wizardBadges.length) { %>
+            <div class="wizard-badge-list">
+              <% wizardBadges.forEach((badge) => { %>
+                <article class="wizard-badge-card">
+                  <div class="wizard-badge-preview">
+                    <span class="wizard-badge-art">
+                      <% if (badge.imageUrl) { %>
+                        <img src="<%= badge.imageUrl %>" alt="" loading="lazy" id="wizBadgeImg-<%= badge.eventBadgeId %>">
+                      <% } else { %>
+                        <i data-lucide="<%= getBadgeIconWiz(badge.badgeType) %>"></i>
+                      <% } %>
+                    </span>
+                    <div>
+                      <strong><%= badge.name %></strong>
+                      <p><%= badge.description || '' %></p>
+                      <span class="wizard-badge-type-tag"><%= badge.badgeType.replace(/_/g, ' ') %></span>
+                      <% if (!badge.isVisibleOnEventPage) { %><span class="wizard-badge-type-tag wizard-badge-hidden-tag">Hidden</span><% } %>
+                    </div>
+                  </div>
+                  <form method="POST" action="/organizer/events/<%= event._id %>/badges/<%= badge.eventBadgeId %>" class="wizard-badge-form">
+                    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                    <div class="wizard-badge-fields">
+                      <label>
+                        <span>Name</span>
+                        <input type="text" name="name" value="<%= badge.name %>" maxlength="120">
+                      </label>
+                      <label>
+                        <span>Custom image</span>
+                        <div class="wizard-badge-img-row">
+                          <input type="url" name="imageUrl" id="wizBadgeUrl-<%= badge.eventBadgeId %>" value="<%= badge.imageUrl || '' %>" placeholder="Upload or paste URL">
+                          <label class="badge-upload-btn" title="Upload image">
+                            <input type="file" accept="image/jpeg,image/png,image/webp" class="wiz-badge-file" data-badge-id="<%= badge.eventBadgeId %>" data-event-id="<%= event._id %>" style="display:none">
+                            <i data-lucide="upload"></i>
+                          </label>
+                        </div>
+                      </label>
+                      <label class="wizard-badge-toggle">
+                        <input type="hidden" name="isVisible" value="0">
+                        <input type="checkbox" name="isVisible" value="1" <%= badge.isVisibleOnEventPage ? 'checked' : '' %>>
+                        <span>Show on event page</span>
+                      </label>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary wizard-badge-save">Save</button>
+                  </form>
+                </article>
+              <% }) %>
+            </div>
+          <% } else { %>
+            <div class="wizard-badge-empty">
+              <i data-lucide="award"></i>
+              <p>Badges will appear here once your event is saved. Save this event and return to this step to customize them.</p>
+            </div>
+          <% } %>
+        </div>
+
         <!-- WAIVER SECTION (same as create) -->
         <div id="waiver-step" class="form-section form-section-waiver" tabindex="-1" data-wizard-step="waiver-step">
-          <div class="section-kicker">Step 11 of 12</div>
+          <div class="section-kicker">Step 12 of 13</div>
           <div class="section-title">Waiver (Required for publishing)</div>
           <div class="waiver-panels">
             <div class="waiver-panel <%= errors.waiverTemplate ? 'has-error' : '' %>">
@@ -648,7 +721,7 @@
 
         <!-- SCHEDULE SECTION (same as create) -->
         <div id="schedule-step" class="form-section form-section-schedule" tabindex="-1" data-wizard-step="schedule-step">
-          <div class="section-kicker">Step 3 of 12</div>
+          <div class="section-kicker">Step 3 of 13</div>
           <div class="section-title">Schedule</div>
           <div class="form-grid">
             <div class="form-group form-group-full">
@@ -695,7 +768,7 @@
         <!-- LOCATION SECTION (conditional) -->
         <div id="location-virtual-step" class="wizard-step-anchor" aria-hidden="true"></div>
         <div class="form-section form-section-location location-section" tabindex="-1" data-wizard-step="location-virtual-step" style="display: none;">
-          <div class="section-kicker">Step 4 of 12</div>
+          <div class="section-kicker">Step 4 of 13</div>
           <div class="section-title">Location (required for on-site/hybrid publishing)</div>
           <div class="form-grid">
             <div class="form-group">
@@ -740,7 +813,7 @@
 
         <!-- VIRTUAL RULES SECTION (conditional) -->
         <div class="form-section form-section-virtual virtual-section" tabindex="-1" data-wizard-step="location-virtual-step" style="display: none;">
-          <div class="section-kicker">Step 4 of 12</div>
+          <div class="section-kicker">Step 4 of 13</div>
           <div class="section-title">Virtual Rules (required for virtual/hybrid publishing)</div>
           <div class="form-grid">
             <div class="form-group form-group-full <%= errors.virtualCompletionMode ? 'has-error' : '' %>">
@@ -903,7 +976,7 @@
         </div>
 
         <div id="race-categories-step" class="form-section form-section-race-categories" tabindex="-1" data-wizard-step="race-categories-step">
-          <div class="section-kicker">Step 5 of 12</div>
+          <div class="section-kicker">Step 5 of 13</div>
           <div class="section-title">Race Categories</div>
           <p class="section-helper" id="raceCategoryHelper">Choose the distances runners can join, then adjust the display name and optional limits only when needed.</p>
           <div class="form-grid">
@@ -961,7 +1034,7 @@
 
         <!-- BRANDING & MEDIA SECTION (adapted for edit) -->
         <div id="media-step" class="form-section form-section-media" tabindex="-1" data-wizard-step="media-step">
-          <div class="section-kicker">Step 10 of 12</div>
+          <div class="section-kicker">Step 11 of 13</div>
           <div class="section-title">Branding & Media</div>
 
           <!-- Logo -->
@@ -1100,7 +1173,7 @@
         </div>
 
         <div id="review-step" class="form-section form-section-review" tabindex="-1" data-wizard-step="review-step">
-          <div class="section-kicker">Step 12 of 12</div>
+          <div class="section-kicker">Step 13 of 13</div>
           <div class="section-title">Review Changes</div>
           <p class="section-helper">Preview the event page, save your updates, or submit this draft for admin review.</p>
           <div id="submitReadinessChecklist" class="submit-readiness-checklist" aria-live="polite">
@@ -1173,9 +1246,10 @@
               <li><a href="#pricing-step" data-overlay-step="pricing-step"><span class="overlay-step-num">7</span> Pricing</a></li>
               <li><a href="#payment-setup-step" data-overlay-step="payment-setup-step"><span class="overlay-step-num">8</span> Payment Setup</a></li>
               <li><a href="#event-details-step" data-overlay-step="event-details-step"><span class="overlay-step-num">9</span> Event Details</a></li>
-              <li><a href="#media-step" data-overlay-step="media-step"><span class="overlay-step-num">10</span> Branding &amp; Media</a></li>
-              <li><a href="#waiver-step" data-overlay-step="waiver-step"><span class="overlay-step-num">11</span> Waiver</a></li>
-              <li><a href="#review-step" data-overlay-step="review-step"><span class="overlay-step-num">12</span> Review</a></li>
+              <li><a href="#badges-step" data-overlay-step="badges-step"><span class="overlay-step-num">10</span> Badges</a></li>
+              <li><a href="#media-step" data-overlay-step="media-step"><span class="overlay-step-num">11</span> Branding &amp; Media</a></li>
+              <li><a href="#waiver-step" data-overlay-step="waiver-step"><span class="overlay-step-num">12</span> Waiver</a></li>
+              <li><a href="#review-step" data-overlay-step="review-step"><span class="overlay-step-num">13</span> Review</a></li>
             </ol>
           </div>
         </div>
@@ -2847,6 +2921,39 @@
         });
       }
       initializeEventDetailsEditor();
+
+      // Badge image upload in wizard step
+      document.querySelectorAll('.wiz-badge-file').forEach(function(input) {
+        input.addEventListener('change', async function() {
+          const file = input.files[0];
+          if (!file) return;
+          const badgeId = input.dataset.badgeId;
+          const eventId = input.dataset.eventId;
+          const urlInput = document.getElementById('wizBadgeUrl-' + badgeId);
+          const imgEl = document.getElementById('wizBadgeImg-' + badgeId);
+          const csrfToken = document.querySelector('[name="_csrf"]')?.value || '';
+          const formData = new FormData();
+          formData.append('badgeImageFile', file);
+          formData.append('_csrf', csrfToken);
+          try {
+            const res = await fetch('/organizer/events/' + eventId + '/badges/' + badgeId + '/image', {
+              method: 'POST',
+              body: formData
+            });
+            const data = await res.json();
+            if (data.success && data.imageUrl) {
+              if (urlInput) urlInput.value = data.imageUrl;
+              if (imgEl) { imgEl.src = data.imageUrl; }
+              else {
+                const art = input.closest('.wizard-badge-art') || input.closest('.wizard-badge-card')?.querySelector('.wizard-badge-art');
+                if (art) { art.innerHTML = '<img id="wizBadgeImg-' + badgeId + '" src="' + data.imageUrl + '" alt="" loading="lazy">'; }
+              }
+            }
+          } catch (err) {
+            console.error('Badge image upload failed', err);
+          }
+        });
+      });
     })();
   </script>
 </body>

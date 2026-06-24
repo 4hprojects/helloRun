@@ -3183,3 +3183,180 @@ textarea:focus {
 .wizard-consistency-warnings strong {
   color: #78350f;
 }
+
+/* ===== BADGES STEP ===== */
+.wizard-badge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.wizard-badge-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem;
+  background: #f8fafc;
+}
+
+.wizard-badge-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.wizard-badge-art {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.wizard-badge-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wizard-badge-art i {
+  color: #64748b;
+}
+
+.wizard-badge-preview > div strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.wizard-badge-preview > div p {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0.15rem 0 0.4rem;
+}
+
+.wizard-badge-type-tag {
+  display: inline-block;
+  font-size: 0.7rem;
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  text-transform: capitalize;
+}
+
+.wizard-badge-hidden-tag {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.wizard-badge-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.wizard-badge-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.wizard-badge-fields input[type="text"],
+.wizard-badge-fields input[type="url"] {
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.wizard-badge-img-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.wizard-badge-img-row input {
+  flex: 1;
+}
+
+.wizard-badge-toggle {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.4rem !important;
+}
+
+.wizard-badge-save {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.75rem;
+}
+
+.wizard-badge-form {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.75rem;
+}
+
+.wizard-badge-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #64748b;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+}
+
+.wizard-badge-empty i {
+  display: block;
+  margin: 0 auto 0.75rem;
+  width: 2rem;
+  height: 2rem;
+}
+
+/* Create wizard — informational badge preview */
+.wizard-badge-preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.wizard-badge-preview-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.wizard-badge-preview-item i {
+  color: #64748b;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.wizard-badge-preview-item strong {
+  display: block;
+  font-size: 0.875rem;
+  color: #0f172a;
+}
+
+.wizard-badge-preview-item p {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0.1rem 0 0;
+}
+
+.wizard-badge-note {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.75rem;
+  margin: 0;
+}
