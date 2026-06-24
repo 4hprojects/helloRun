@@ -39,6 +39,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     displayOrder: 30
   },
   {
+    eventKey: 'organiser.runner_contact',
+    name: 'Runner Contact Organiser',
+    description: 'Sent when a runner submits a question or message to an event organiser from the event detail page.',
+    category: 'organiser',
+    priority: 'normal',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: false,
+    locked: false,
+    recipientRoles: ['organiser'],
+    displayOrder: 54
+  },
+  {
     eventKey: 'organiser.payment_reminder',
     name: 'Organiser Payment Reminder',
     description: 'Sent by organisers to remind unpaid registrants to upload their payment receipt.',

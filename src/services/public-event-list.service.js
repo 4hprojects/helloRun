@@ -20,8 +20,19 @@ async function buildPublicEventListPage(queryParams = {}) {
   if (filterValues.distance) {
     query.raceDistances = filterValues.distance;
   }
+  if (filterValues.dateFrom || filterValues.dateTo) {
+    const dateConstraint = {};
+    if (filterValues.dateFrom) dateConstraint.$gte = filterValues.dateFrom;
+    if (filterValues.dateTo) {
+      // Include events that start on or before dateTo (end of day)
+      const endOfDay = new Date(filterValues.dateTo);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+      dateConstraint.$lte = endOfDay;
+    }
+    query.eventStartAt = dateConstraint;
+  }
   if (filterValues.status === 'upcoming') {
-    query.eventStartAt = { $gte: now };
+    query.eventStartAt = { ...(query.eventStartAt || {}), $gte: now };
   } else if (filterValues.status === 'open') {
     query.registrationOpenAt = { $lte: now };
     query.registrationCloseAt = { $gte: now };
@@ -94,7 +105,9 @@ async function buildPublicEventListPage(queryParams = {}) {
   const activeFilterCount = Number(Boolean(filterValues.q))
     + Number(Boolean(filterValues.eventType))
     + Number(Boolean(filterValues.distance))
-    + Number(filterValues.status !== 'all');
+    + Number(filterValues.status !== 'all')
+    + Number(Boolean(filterValues.dateFrom))
+    + Number(Boolean(filterValues.dateTo));
 
   const activeFilters = getEventsActiveFilters(filterValues);
   const pageContent = getEventsPageContent(filterValues, { currentPage, totalPages });
@@ -253,6 +266,14 @@ function buildPublicLocationLabel(event, countryLabel = '') {
   return isVirtual ? 'Anywhere' : 'Location details not listed';
 }
 
+function parseFilterDate(value) {
+  if (!value) return null;
+  const str = String(value).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(str)) return null;
+  const d = new Date(`${str}T00:00:00.000Z`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 function getEventsFilterValues(query = {}) {
   const q = String(query.q || '').trim().slice(0, 100);
   const rawType = String(query.eventType || '').trim().toLowerCase();
@@ -261,7 +282,9 @@ function getEventsFilterValues(query = {}) {
   const eventType = ['virtual', 'onsite', 'hybrid'].includes(rawType) ? rawType : '';
   const distance = rawDistance && rawDistance.length <= 30 ? rawDistance : '';
   const status = ['all', 'upcoming', 'open', 'closed'].includes(rawStatus) ? rawStatus : 'all';
-  return { q, eventType, distance, status };
+  const dateFrom = parseFilterDate(query.dateFrom);
+  const dateTo = parseFilterDate(query.dateTo);
+  return { q, eventType, distance, status, dateFrom, dateTo };
 }
 
 function getMatchingCountryCodes(searchQuery) {

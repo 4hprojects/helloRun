@@ -132,6 +132,16 @@
             </select>
           </div>
 
+          <div class="filter-group filter-group-date">
+            <label for="eventsDateFrom">From</label>
+            <input type="date" id="eventsDateFrom" name="dateFrom" value="<%= filters?.dateFrom ? filters.dateFrom.toISOString().slice(0,10) : '' %>">
+          </div>
+
+          <div class="filter-group filter-group-date">
+            <label for="eventsDateTo">To</label>
+            <input type="date" id="eventsDateTo" name="dateTo" value="<%= filters?.dateTo ? filters.dateTo.toISOString().slice(0,10) : '' %>">
+          </div>
+
           <% if (filterMeta?.hasActiveFilters) { %>
             <div class="filter-actions">
               <a href="/events" class="btn btn-outline">

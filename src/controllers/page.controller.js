@@ -60,6 +60,7 @@ const {
   editRejectedSubmissionMetadata,
   resubmitSubmission,
   getRunnerSubmissions,
+  getRunnerPerformanceSnapshot,
   PERSONAL_RECORD_REGISTRATION_ID
 } = require('../services/submission.service');
 let { syncRegistrationPaymentShadow } = require('../services/registration-payment-shadow.service');
@@ -306,6 +307,48 @@ exports.getEventDetails = async (req, res) => {
   }
 };
 
+exports.postContactOrganiser = async (req, res) => {
+  try {
+    const event = await getPublishedEventBySlug(req.params.slug);
+    if (!event) return res.redirect('/events');
+
+    const sender = await User.findById(req.session.userId).select('firstName lastName email').lean();
+    if (!sender) return res.redirect('/login');
+
+    const message = String(req.body.message || '').trim().slice(0, 1000);
+    const subject = String(req.body.subject || '').trim().slice(0, 200) || `Question about ${event.title}`;
+    if (message.length < 10) {
+      return res.redirect(`/events/${event.slug}?type=error&msg=Message+must+be+at+least+10+characters.#contact-organiser`);
+    }
+
+    // Fetch organiser's email via their user record — not exposed to the runner
+    const organiser = await User.findById(event.organizerId).select('email firstName').lean();
+    if (!organiser?.email) {
+      return res.redirect(`/events/${event.slug}?type=error&msg=Unable+to+reach+the+organiser+right+now.#contact-organiser`);
+    }
+
+    const senderName = [sender.firstName, sender.lastName].filter(Boolean).join(' ') || 'A HelloRun runner';
+    await communicationService.notify('organiser.runner_contact', {
+      email: {
+        to: organiser.email,
+        subject: `[HelloRun] ${subject}`,
+        senderName,
+        senderEmail: sender.email,
+        eventTitle: event.title,
+        message,
+        replyTo: sender.email,
+        recipientUserId: event.organizerId,
+        metadata: { eventId: String(event._id), senderUserId: String(req.session.userId) }
+      }
+    });
+
+    return res.redirect(`/events/${event.slug}?type=success&msg=Your+message+has+been+sent+to+the+organiser.#contact-organiser`);
+  } catch (error) {
+    console.error('Contact organiser error:', error);
+    return res.redirect(`/events/${req.params.slug}?type=error&msg=An+error+occurred.+Please+try+again.#contact-organiser`);
+  }
+};
+
 exports.getEventBadges = async (req, res) => {
   try {
     const event = await getPublishedEventBySlug(req.params.slug);
@@ -513,6 +556,71 @@ exports.getPublicRunnerBadgeCollection = async (req, res) => {
       title: 'Server Error',
       status: 500,
       message: 'Unable to load this badge collection right now.'
+    });
+  }
+};
+
+exports.getPublicRunnerProfile = async (req, res) => {
+  try {
+    const publicUserId = String(req.params.userId || '').trim();
+    const runner = await User.findOne({
+      userId: publicUserId,
+      role: 'runner'
+    }).select('_id userId firstName lastName avatarUrl runningGroup createdAt').lean();
+
+    if (!runner) {
+      return res.status(404).render('error', {
+        title: 'Runner Not Found - HelloRun',
+        status: 404,
+        message: 'This runner profile could not be found.'
+      });
+    }
+
+    const runnerName = [runner.firstName, runner.lastName].filter(Boolean).join(' ') || 'HelloRun Runner';
+    const baseUrl = getSitemapBaseUrl(req);
+    const profileUrl = `${baseUrl}/runners/${encodeURIComponent(runner.userId)}`;
+
+    const [snapshot, recentBadges] = await Promise.all([
+      getRunnerPerformanceSnapshot(runner._id, { recentLimit: 3 }).catch(() => null),
+      getRunnerEarnedBadges(runner._id, { limit: 6 }).catch(() => [])
+    ]);
+
+    return res.render('pages/runner-profile', {
+      title: `${runnerName} - Runner Profile - HelloRun`,
+      seo: {
+        description: `${runnerName}'s running profile on HelloRun.`,
+        canonicalUrl: profileUrl,
+        ogType: 'profile',
+        ogTitle: `${runnerName} - HelloRun Runner Profile`,
+        ogImage: runner.avatarUrl || ''
+      },
+      runner: {
+        userId: runner.userId,
+        name: runnerName,
+        avatarUrl: runner.avatarUrl || '',
+        runningGroup: runner.runningGroup || '',
+        joinedAt: runner.createdAt || null,
+        badgesHref: `/runners/${encodeURIComponent(runner.userId)}/badges`
+      },
+      metrics: snapshot ? {
+        totalDistanceKm: snapshot.metrics?.totalDistanceKm || 0,
+        completedEvents: snapshot.metrics?.completedEvents || 0,
+        fastestElapsedLabel: snapshot.metrics?.fastestElapsedLabel || '',
+        certificatesCount: snapshot.counts?.certificates || 0
+      } : null,
+      recentBadges,
+      profileUrl,
+      shareText: `Check out ${runnerName}'s running profile on HelloRun!`,
+      facebookShareUrl: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(profileUrl)}`,
+      xShareUrl: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out ${runnerName}'s running profile on HelloRun!`)}&url=${encodeURIComponent(profileUrl)}`,
+      linkedInShareUrl: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(profileUrl)}`
+    });
+  } catch (error) {
+    console.error('Public runner profile error:', error);
+    return res.status(500).render('error', {
+      title: 'Server Error',
+      status: 500,
+      message: 'Unable to load this runner profile right now.'
     });
   }
 };

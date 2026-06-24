@@ -521,6 +521,24 @@
             </section>
           <% } %>
 
+          <% if (locals.user && !isPreviewMode) { %>
+            <section class="event-side-card" id="contact-organiser">
+              <h3>Contact Organiser</h3>
+              <% if (locals.message?.type && req?.query?.msg && req?.query?.msg.toString().includes('organiser')) { %>
+                <div class="page-message page-message-<%= locals.message.type %>"><%= locals.message?.text || '' %></div>
+              <% } %>
+              <form method="POST" action="/events/<%= event.slug %>/contact-organiser" class="contact-organiser-form">
+                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                <label class="contact-organiser-label" for="contactSubject">Subject</label>
+                <input type="text" id="contactSubject" name="subject" class="contact-organiser-input" maxlength="200" placeholder="e.g. Question about proof format">
+                <label class="contact-organiser-label" for="contactMessage">Message</label>
+                <textarea id="contactMessage" name="message" class="contact-organiser-input" rows="4" maxlength="1000" placeholder="Your question or message to the organiser..."></textarea>
+                <button type="submit" class="btn btn-outline btn-block btn-sm">Send Message</button>
+                <p class="contact-organiser-note">Your message will be sent to the organiser. Your email will be included so they can reply directly.</p>
+              </form>
+            </section>
+          <% } %>
+
           <% if (!isPreviewMode) { %>
             <%- include('../partials/ad-unit', { group: 'eventDetails', placement: 'sidebar', className: 'ad-unit-sidebar' }) %>
           <% } %>

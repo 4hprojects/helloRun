@@ -17,6 +17,12 @@ const paymentProofUploadLimiter = createRateLimiter({
   maxRequests: 8,
   message: 'Too many payment receipt submissions. Please wait a few minutes and try again.'
 });
+const contactOrganiserLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  message: 'Too many messages sent. Please wait before contacting this organiser again.',
+  keyFn: (req) => `contact-organiser|${req.session?.userId || req.ip || 'anon'}|${req.params.slug || ''}`
+});
 const resultSubmissionLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 8,
@@ -73,11 +79,13 @@ router.post(
 router.get('/my-submissions/:submissionId/certificate', requireAuth, pageController.getSubmissionCertificateDownload);
 router.get('/runners/:userId/badges/share-image.svg', pageController.getPublicRunnerBadgeCollectionShareImage);
 router.get('/runners/:userId/badges', pageController.getPublicRunnerBadgeCollection);
+router.get('/runners/:userId', pageController.getPublicRunnerProfile);
 router.get('/badges/:userBadgeId/share-image.svg', pageController.getPublicBadgeShareImage);
 router.get('/badges/:userBadgeId/open-badge.json', pageController.getPublicOpenBadgeMetadata);
 router.get('/badges/:userBadgeId/verify', pageController.getPublicBadgeVerification);
 router.get('/badges/:userBadgeId', pageController.getPublicBadgePage);
 router.get('/events/:slug/badges', pageController.getEventBadges);
+router.post('/events/:slug/contact-organiser', requireAuth, requireCsrfProtection, contactOrganiserLimiter, pageController.postContactOrganiser);
 router.get('/events/:slug', pageController.getEventDetails);
 router.get('/sitemap.xml', pageController.getSitemapXml);
 
