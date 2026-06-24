@@ -4,12 +4,6 @@ const Event = require('../models/Event');
 const User = require('../models/User');
 const { issueSubmissionCertificate } = require('./certificate.service');
 const communicationService = require('./communication.service');
-const {
-  buildSubmissionPayload,
-  getEligibleRunnerRegistration,
-  isAutoApprovableSubmission,
-  getAutoApprovalReviewNote
-} = require('./submission.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 const {
   refreshAccumulatedChallengeProgress,
@@ -21,6 +15,10 @@ const APPROVABLE_STATUS = new Set(['submitted', 'rejected']);
 const REJECTABLE_STATUS = new Set(['submitted']);
 
 async function createAccumulatedActivitySubmission(input) {
+  const {
+    buildSubmissionPayload,
+    getEligibleRunnerRegistration
+  } = getSubmissionServiceHelpers();
   const registration = await getEligibleRunnerRegistration({
     registrationId: input.registrationId,
     runnerId: input.runnerId
@@ -364,6 +362,10 @@ async function attachCompletionCertificateIfNeeded(activity) {
 }
 
 async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
+  const {
+    isAutoApprovableSubmission,
+    getAutoApprovalReviewNote
+  } = getSubmissionServiceHelpers();
   if (!isAutoApprovableSubmission(activity)) {
     return activity;
   }
@@ -532,6 +534,10 @@ function clampInt(value, min, max, fallback) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
+}
+
+function getSubmissionServiceHelpers() {
+  return require('./submission.service');
 }
 
 module.exports = {
