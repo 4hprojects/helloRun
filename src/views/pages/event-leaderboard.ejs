@@ -49,7 +49,11 @@
           <div>
             <p class="leaderboard-card-kicker">My Standing</p>
             <h2 id="my-standing-heading"><%= standing.rank ? `#${standing.rank} ${standing.category || 'Category'} Rank` : standing.statusLabel %></h2>
-            <p><%= standing.category || 'Registered category' %></p>
+            <% if (standing.rank && leaderboard.stats.verifiedEntries > 0) { %>
+              <p class="leaderboard-rank-context">Ranked <strong>#<%= standing.rank %></strong> of <strong><%= leaderboard.stats.verifiedEntries %></strong> verified<%= standing.category ? ' ' + standing.category : '' %> runners</p>
+            <% } else { %>
+              <p><%= standing.category || 'Registered category' %></p>
+            <% } %>
           </div>
           <dl>
             <div><dt>Status</dt><dd><%= standing.statusLabel %></dd></div>

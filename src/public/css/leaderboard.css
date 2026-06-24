@@ -184,6 +184,17 @@
   border-color: #e2e8f0;
 }
 
+.leaderboard-rank-context {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0.1rem 0 0;
+}
+
+.leaderboard-rank-context strong {
+  color: #0f172a;
+  font-weight: 700;
+}
+
 .leaderboard-nearby {
   border-top: 1px solid rgba(194, 65, 12, 0.18);
   padding-top: 0.85rem;

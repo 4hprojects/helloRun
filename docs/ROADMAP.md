@@ -18,6 +18,9 @@
 | AdSense blog seed inventory — 15 guide posts, practical takeaway/checklist structure | Jun 24 | `tests/adsense-blog-seed.unit.test.js`, seed dry-run |
 | Safer ad loading — script loads only when a configured slot can render; thin category/tag pages noindex/ad-free | Jun 24 | `tests/ad-setting.service.unit.test.js`, admin ad assertions |
 | Organiser route protection extraction | Jun 24 | `node --check` route validation |
+| Run completion workflow hardening — SQL injection fix, DB indexes (proof.hash/certificate.url/Strava PR), approval latency (cert+notify background), parallel notifications, accumulated cert atomic lock, Redis leaderboard cache, parallel multi-reg submissions, auto Supabase ranking sync | Jun 24 | `ranking.service.unit.test.js` |
+| P4 Personal Leaderboard Rank — "Ranked #N of M verified runners" in My Standing card | Jun 24 | — |
+| Organizer Workflow Phase 1A — CSRF protection added to payment review, run-proof review, event status, and media removal mutations; security matrix expanded | Jun 24 | `tests/csrf-route-guards.integration.test.js` |
 
 ---
 
