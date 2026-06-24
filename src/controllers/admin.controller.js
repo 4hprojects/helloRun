@@ -26,7 +26,8 @@ const {
   revokeUserBadge,
   updateBadgeDefinitionStatus,
   updateBadgeDefinitionEmailLevel,
-  recalculateBadgeAwards
+  recalculateBadgeAwards,
+  getRunnerEarnedBadges
 } = require('../services/achievement.service');
 const {
   buildSubmissionHubPath,
@@ -70,6 +71,7 @@ const ADMIN_EVENT_STATUSES = ['draft', 'pending_review', 'published', 'closed', 
 const ADMIN_USER_ROLES = ['runner', 'organiser', 'admin'];
 const ADMIN_USER_ORGANIZER_STATUSES = ['not_applied', 'pending', 'approved', 'rejected'];
 const ADMIN_USER_AUTH_PROVIDERS = ['local', 'google'];
+const ADMIN_USER_ACCOUNT_STATUSES = ['active', 'restricted', 'suspended', 'closed'];
 const ADMIN_USER_SORTS = ['newest', 'oldest', 'updated', 'role'];
 const ADMIN_USERS_PER_PAGE = 25;
 const ADMIN_USER_PER_PAGE_OPTIONS = [25, 50, 100];
@@ -318,11 +320,16 @@ function normalizeAdminUserFilters(query = {}) {
     ? 'all'
     : (ADMIN_USER_PER_PAGE_OPTIONS.includes(perPageParsed) ? perPageParsed : ADMIN_USERS_PER_PAGE);
 
+  const accountStatus = ADMIN_USER_ACCOUNT_STATUSES.includes(String(query.accountStatus || '').trim())
+    ? String(query.accountStatus).trim()
+    : '';
+
   return {
     role,
     organizerStatus,
     emailVerified,
     authProvider,
+    accountStatus,
     sort,
     q,
     page,
@@ -337,6 +344,7 @@ function buildAdminUserQuery(filters) {
   if (filters.emailVerified === 'yes') query.emailVerified = true;
   if (filters.emailVerified === 'no') query.emailVerified = false;
   if (filters.authProvider) query.authProvider = filters.authProvider;
+  if (filters.accountStatus) query.accountStatus = filters.accountStatus;
   if (filters.q) {
     const safeRegex = new RegExp(escapeRegex(filters.q), 'i');
     query.$or = [
@@ -359,7 +367,7 @@ function getAdminUserSort(sort) {
 function buildAdminUserListPath(filters, overrides = {}) {
   const next = { ...filters, ...overrides };
   const params = new URLSearchParams();
-  ['q', 'role', 'organizerStatus', 'emailVerified', 'authProvider', 'sort'].forEach((key) => {
+  ['q', 'role', 'organizerStatus', 'emailVerified', 'authProvider', 'accountStatus', 'sort'].forEach((key) => {
     if (next[key]) params.set(key, next[key]);
   });
   if (next.perPage && next.perPage !== ADMIN_USERS_PER_PAGE) params.set('perPage', String(next.perPage));
@@ -616,6 +624,10 @@ function mapAdminUserListItem(user, counts, currentAdminId = '') {
     runningGroups: user.runningGroups && user.runningGroups.length
       ? user.runningGroups.join(', ')
       : (user.runningGroup || 'Not set'),
+    accountStatus: user.accountStatus || 'active',
+    lastLoginAt: user.lastLoginAt || null,
+    lastLoginAtLabel: user.lastLoginAt ? formatAdminShortDate(user.lastLoginAt) : 'Never',
+    lastLoginAtDetailLabel: user.lastLoginAt ? formatAdminDateTime(user.lastLoginAt) : 'Never logged in',
     createdAt: user.createdAt,
     createdAtLabel: formatAdminShortDate(user.createdAt),
     createdAtDetailLabel: formatAdminDateTime(user.createdAt),
@@ -1265,7 +1277,7 @@ exports.listUsers = async (req, res) => {
     const page = Math.min(filters.page, totalPages);
 
     const userQuery = User.find(query)
-      .select('userId email firstName lastName mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified authProvider googleId createdAt updatedAt')
+      .select('userId email firstName lastName mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified authProvider googleId accountStatus lastLoginAt createdAt updatedAt')
       .sort(getAdminUserSort(filters.sort));
 
     if (!isAll) {
@@ -1456,7 +1468,8 @@ exports.viewUser = async (req, res) => {
       application,
       recentRegistrations,
       recentSubmissions,
-      ownedEvents
+      ownedEvents,
+      earnedBadges
     ] = await Promise.all([
       Registration.countDocuments({ userId: objectId }),
       Submission.countDocuments({ runnerId: objectId }),
@@ -1482,7 +1495,8 @@ exports.viewUser = async (req, res) => {
         .select('title slug status eventStartAt updatedAt')
         .sort({ updatedAt: -1, createdAt: -1 })
         .limit(5)
-        .lean()
+        .lean(),
+      getRunnerEarnedBadges(objectId, { limit: 20 }).catch(() => [])
     ]);
 
     const hasLocalPassword = Boolean(user.passwordHash);
@@ -1528,6 +1542,7 @@ exports.viewUser = async (req, res) => {
       recentRegistrations,
       recentSubmissions,
       ownedEvents,
+      earnedBadges,
       auditLog,
       message: getAdminPageMessage(req.query)
     });

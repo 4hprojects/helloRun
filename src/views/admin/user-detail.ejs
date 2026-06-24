@@ -93,6 +93,7 @@
             <li><strong>Local Password:</strong> <%= managedUser.hasLocalPassword ? 'Set' : 'Not set' %></li>
             <li><strong>Email Verified:</strong> <%= managedUser.emailVerified ? 'Yes' : 'No' %></li>
             <li><strong>Account Status:</strong> <span class="status-badge status-badge-<%= managedUser.accountStatus || 'active' %>"><%= managedUser.accountStatus || 'active' %></span></li>
+            <li><strong>Last Login:</strong> <%= managedUser.lastLoginAt ? new Date(managedUser.lastLoginAt).toLocaleString('en-US') : 'Never' %></li>
             <li><strong>Created:</strong> <%= managedUser.createdAt ? new Date(managedUser.createdAt).toLocaleString('en-US') : 'N/A' %></li>
             <li><strong>Updated:</strong> <%= managedUser.updatedAt ? new Date(managedUser.updatedAt).toLocaleString('en-US') : 'N/A' %></li>
           </ul>
@@ -268,6 +269,34 @@
           </form>
         <% } else { %>
           <p class="shop-muted">You cannot change your own account status.</p>
+        <% } %>
+      </article>
+
+      <!-- Earned Badges -->
+      <h3 class="dashboard-section-title">Earned Badges (<%= (earnedBadges || []).length %>)</h3>
+      <article class="detail-card detail-card-full">
+        <% const _badges = earnedBadges || []; %>
+        <% if (_badges.length) { %>
+          <div class="admin-badge-grid">
+            <% _badges.forEach(function(badge) { %>
+              <div class="admin-badge-item">
+                <span class="admin-badge-art">
+                  <% if (badge.imageUrl) { %>
+                    <img src="<%= badge.imageUrl %>" alt="" loading="lazy">
+                  <% } else { %>
+                    <i data-lucide="award"></i>
+                  <% } %>
+                </span>
+                <div class="admin-badge-info">
+                  <strong><%= badge.name %></strong>
+                  <span><%= badge.eventTitle || badge.badgeScope || 'Platform' %></span>
+                  <% if (badge.awardedAt) { %><small><%= new Date(badge.awardedAt).toLocaleDateString('en-US') %></small><% } %>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <div class="empty-state"><p>No badges earned yet.</p></div>
         <% } %>
       </article>
 

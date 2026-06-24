@@ -274,6 +274,8 @@ const userSchema = new mongoose.Schema({
     emailOptOut: { type: [String], default: [] }
   },
 
+  lastLoginAt: { type: Date, default: null },
+
   savedEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event' }],
 
   createdAt: {

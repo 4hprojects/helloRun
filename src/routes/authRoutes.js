@@ -108,6 +108,9 @@ function startAuthenticatedSession(req, user) {
   req.session.userName = user.firstName || '';
   req.session.user = user;
   req.session.loginSuccess = true;
+  // Fire-and-forget — don't block the login response
+  const User = require('../models/User');
+  User.updateOne({ _id: user._id }, { $set: { lastLoginAt: new Date() } }).catch(() => {});
 }
 
 function syncUserComplianceInBackground(user, source = 'live_sync') {

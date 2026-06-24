@@ -51,13 +51,16 @@ Completed capabilities:
 - User deletion is guarded by an admin password confirmation modal. Admins can delete other accounts, but cannot delete their own admin account. Bulk deletion is capped to reduce accidental damage.
 - Focused route coverage exists in `tests/admin-users.test.js`.
 
-Still deferred:
+All deferred items completed as of June 22–24, 2026:
 
-- `AdminAuditLog` model and mutation audit trail.
-- Account restriction/suspension workflow.
-- Admin notes.
-- Resend verification and verification override workflows.
-- Role-specific admin permission tiers.
+- `AdminAuditLog` model and mutation audit trail — implemented via Postgres `audit_critical` table in critical-audit.service.js (June 22)
+- Account restriction/suspension workflow — implemented with 4 statuses (active/restricted/suspended/closed), enforcement in auth middleware and key write routes (June 22)
+- Admin notes — append-only adminNotes[] array on User model, UI in user-detail.ejs (June 22)
+- Resend verification and verification override workflows — rate-limited resend + 20-char reason override (June 22)
+- Account status filter on user list — accountStatus dropdown added to filter form (June 24)
+- lastLoginAt tracking — field added to User model, set on every successful login, shown in list and detail (June 24)
+- Earned badge list on user detail — badges section using getRunnerEarnedBadges() (June 24)
+- Role-specific admin permission tiers — deferred indefinitely; not required for current scale
 
 ## Current State
 

@@ -66,6 +66,11 @@ _Last updated: June 24, 2026_
 | Runtime Stabilization Phase 6E — payment receipt uploads now use short-lived Mongo idempotency locks to prevent concurrent duplicate payment review work | June 24, 2026 | `tests/submission-idempotency.service.integration.test.js`, `tests/submission-idempotency-source.unit.test.js`, `tests/page-controller-payment-proof-sync.unit.test.js` |
 | Runtime Stabilization Phase 6F — shop order payment receipt uploads now use short-lived Mongo idempotency locks to prevent concurrent duplicate shop payment review work | June 24, 2026 | `tests/submission-idempotency-source.unit.test.js`, `tests/shop-runner-payment-actions.integration.test.js` |
 | Runtime Stabilization Phase 7A — registration/shop payment proof submissions plus registrant/shop export downloads now write critical audit events | June 24, 2026 | `tests/audit-source.unit.test.js`, `tests/page-controller-payment-proof-sync.unit.test.js` |
+| Badge system refinement — early generation at event save, Badges wizard step (13-step wizard), event logo as badge image fallback, badge previews on public event detail page | June 24, 2026 | — |
+| P5 Social sharing — certificate verify page share buttons + og:image; submission detail "Share your achievement" strip; badge detail page was already complete | June 24, 2026 | — |
+| P8 Email notification settings — runner profile Notifications section with 5 opt-outable event types; user-level emailOptOut stored on User model; communication.service respects opt-out (email suppressed, in-app still fires) | June 24, 2026 | — |
+| P4 Personal leaderboard rank — "Ranked #N of M verified runners" in My Standing card on event leaderboard page | June 24, 2026 | — |
+| P11 Admin user management gaps — accountStatus filter on user list; lastLoginAt field tracked on login and shown in list + detail; earned badge list section on user detail page | June 24, 2026 | `tests/admin-governance.integration.test.js`, `tests/admin-users.integration.test.js` |
 
 ---
 
