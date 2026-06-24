@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title || 'Notification Failure Detail - HelloRun Admin' }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="admin-page">
+    <section class="section admin-shell">
+      <div class="admin-header-row">
+        <div>
+          <h2>Notification Failure Detail</h2>
+          <p><strong><%= detail.eventName %></strong> failures and retry status from the last <%= detail.windowDays %> days.</p>
+          <p class="mono"><%= detail.eventKey %></p>
+          <% if (detail.eventDescription) { %>
+            <p><%= detail.eventDescription %></p>
+          <% } %>
+        </div>
+        <div class="admin-user-header-actions">
+          <a href="/admin/communications" class="btn btn-secondary">Back to Communications</a>
+          <a href="<%= buildLogHref() %>" class="btn btn-secondary">Filtered Logs</a>
+          <a href="<%= buildRetryHref() %>" class="btn btn-secondary">Filtered Retries</a>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+        <article class="metric-card">
+          <p class="metric-label">Failed Logs</p>
+          <p class="metric-value"><%= detail.failedLogCount || 0 %></p>
+          <p class="metric-helper">Since <%= formatDateTime(detail.since) %></p>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Queued Retries</p>
+          <p class="metric-value"><%= detail.retryCounts.queued || 0 %></p>
+          <p class="metric-helper"><a href="<%= buildRetryHref('queued') %>">Inspect queued</a></p>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Retrying</p>
+          <p class="metric-value"><%= detail.retryCounts.retrying || 0 %></p>
+          <p class="metric-helper"><a href="<%= buildRetryHref('retrying') %>">Inspect retrying</a></p>
+        </article>
+        <article class="metric-card">
+          <p class="metric-label">Dead Letters</p>
+          <p class="metric-value"><%= detail.retryCounts.dead || 0 %></p>
+          <p class="metric-helper"><a href="<%= buildRetryHref('dead') %>">Inspect dead</a></p>
+        </article>
+      </div>
+
+      <h3 class="dashboard-section-title">Recent Failed Logs</h3>
+      <div class="admin-users-table-wrap">
+        <table class="admin-table communication-failure-detail-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Channel</th>
+              <th>Recipient</th>
+              <th>Subject</th>
+              <th>Error</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (detail.failedLogs.length) { %>
+              <% detail.failedLogs.forEach((log) => { %>
+                <tr>
+                  <td><%= formatDateTime(log.createdAt) %></td>
+                  <td><%= log.channel %></td>
+                  <td>
+                    <%= log.recipientEmail || 'N/A' %>
+                    <% if (log.recipientUserId) { %>
+                      <div><small class="mono"><%= log.recipientUserId %></small></div>
+                    <% } %>
+                  </td>
+                  <td><small><%= log.subject || 'N/A' %></small></td>
+                  <td><small><%= log.statusReason || 'No error detail recorded.' %></small></td>
+                </tr>
+              <% }) %>
+            <% } else { %>
+              <tr>
+                <td colspan="5">No failed logs found for this event in the current window.</td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="dashboard-section-title">Recent Retry Jobs</h3>
+      <div class="admin-users-table-wrap">
+        <table class="admin-table communication-failure-detail-table">
+          <thead>
+            <tr>
+              <th>Updated</th>
+              <th>Status</th>
+              <th>Recipient</th>
+              <th>Source</th>
+              <th>Attempts</th>
+              <th>Error</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (detail.retries.length) { %>
+              <% detail.retries.forEach((retry) => { %>
+                <tr>
+                  <td><%= formatDateTime(retry.updatedAt || retry.createdAt) %></td>
+                  <td><span class="status-badge status-badge-<%= retry.status %>"><%= retry.status %></span></td>
+                  <td>
+                    <%= retry.payload?.email?.to || 'N/A' %>
+                    <% if (retry.payload?.email?.recipientUserId || retry.payload?.notification?.userId) { %>
+                      <div><small class="mono"><%= retry.payload?.email?.recipientUserId || retry.payload?.notification?.userId %></small></div>
+                    <% } %>
+                  </td>
+                  <td><small><%= retry.source || 'N/A' %></small></td>
+                  <td>
+                    <%= retry.attempts || 0 %>
+                    <% if (retry.nextAttemptAt) { %>
+                      <div><small>Next: <%= formatDateTime(retry.nextAttemptAt) %></small></div>
+                    <% } %>
+                  </td>
+                  <td><small><%= retry.lastError || 'No error detail recorded.' %></small></td>
+                </tr>
+              <% }) %>
+            <% } else { %>
+              <tr>
+                <td colspan="6">No retry jobs found for this event in the current window.</td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
+</body>
+</html>

@@ -258,6 +258,10 @@ function buildCommunicationRetryActionHref(retryId, filters = {}) {
   return `/admin/communications/retries/${retryId}/retry${query ? `?${query}` : ''}`;
 }
 
+function buildCommunicationFailureDetailHref(eventKey) {
+  return `/admin/communications/failures/${encodeURIComponent(String(eventKey || '').trim())}`;
+}
+
 function getAdminPageMessage(query = {}) {
   const type = String(query.type || '').trim();
   const text = String(query.msg || '').trim();
@@ -2666,7 +2670,8 @@ exports.renderCommunications = async (req, res) => {
       retryHealth,
       emailFrom: process.env.EMAIL_FROM || '',
       formatDateTime: formatAdminDateTime,
-      buildLogPageHref: (page) => buildCommunicationLogHref(data.logFilters, page)
+      buildLogPageHref: (page) => buildCommunicationLogHref(data.logFilters, page),
+      buildFailureDetailHref: buildCommunicationFailureDetailHref
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading communication settings.');
@@ -2690,6 +2695,21 @@ exports.renderCommunicationRetries = async (req, res) => {
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading notification retries.');
+  }
+};
+
+exports.renderCommunicationFailureDetail = async (req, res) => {
+  try {
+    const detail = await communicationService.getCommunicationFailureDetail(req.params.eventKey);
+    return res.render('admin/communication-failure-detail', {
+      title: `${detail.eventName} Failures - HelloRun Admin`,
+      detail,
+      formatDateTime: formatAdminDateTime,
+      buildLogHref: () => buildCommunicationLogHref({ eventKey: detail.eventKey, status: 'failed' }),
+      buildRetryHref: (status = '') => buildCommunicationRetryHref({ eventKey: detail.eventKey, status })
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading notification failure detail.');
   }
 };
 

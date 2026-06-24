@@ -399,6 +399,70 @@ async function getCommunicationDeliveryDigest(options = {}) {
   return Promise.all(windows.map((window) => buildDeliveryDigestWindow(window, options.limit || 8)));
 }
 
+async function getCommunicationFailureDetail(eventKey, options = {}) {
+  const safeEventKey = String(eventKey || '').trim().slice(0, 160);
+  if (!safeEventKey) {
+    throw new Error('Communication event is required.');
+  }
+
+  const now = options.now instanceof Date ? options.now : new Date();
+  const windowDays = Math.max(1, Math.min(30, Number.parseInt(String(options.days || '7'), 10) || 7));
+  const limit = Math.max(5, Math.min(50, Number.parseInt(String(options.limit || '25'), 10) || 25));
+  const since = new Date(now.getTime() - windowDays * 24 * 60 * 60 * 1000);
+  const retryWindowQuery = {
+    eventKey: safeEventKey,
+    status: { $in: ['queued', 'retrying', 'dead'] },
+    $or: [
+      { createdAt: { $gte: since } },
+      { updatedAt: { $gte: since } }
+    ]
+  };
+  const failedLogQuery = {
+    eventKey: safeEventKey,
+    status: 'failed',
+    createdAt: { $gte: since }
+  };
+
+  const [events, failedLogs, failedLogCount, retryRows, retries] = await Promise.all([
+    listEventSettings(),
+    CommunicationLog.find(failedLogQuery)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean(),
+    CommunicationLog.countDocuments(failedLogQuery),
+    CommunicationRetry.aggregate([
+      { $match: retryWindowQuery },
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]),
+    CommunicationRetry.find(retryWindowQuery)
+      .sort({ updatedAt: -1, createdAt: -1 })
+      .limit(limit)
+      .lean()
+  ]);
+
+  const retryCounts = retryRows.reduce((memo, row) => {
+    memo[row._id || 'unknown'] = row.count;
+    return memo;
+  }, {});
+  const event = events.find((item) => item.eventKey === safeEventKey) || null;
+
+  return {
+    eventKey: safeEventKey,
+    eventName: event?.name || (safeEventKey === 'admin.test_email' ? 'Admin Test Email' : safeEventKey),
+    eventDescription: event?.description || '',
+    windowDays,
+    since,
+    failedLogCount,
+    retryCounts: {
+      queued: retryCounts.queued || 0,
+      retrying: retryCounts.retrying || 0,
+      dead: retryCounts.dead || 0
+    },
+    failedLogs,
+    retries
+  };
+}
+
 async function buildDeliveryDigestWindow(window, limit) {
   const [logRows, retryRows] = await Promise.all([
     CommunicationLog.aggregate([
@@ -692,5 +756,6 @@ module.exports = {
   notify,
   sendTestEmail,
   getCommunicationDeliveryDigest,
+  getCommunicationFailureDetail,
   getAdminCommunicationPageData
 };

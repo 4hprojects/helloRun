@@ -167,6 +167,7 @@
                     <th>Retrying</th>
                     <th>Dead</th>
                     <th>Last Seen</th>
+                    <th>Detail</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -182,11 +183,12 @@
                         <td><a href="/admin/communications/retries?eventKey=<%= encodeURIComponent(item.eventKey) %>&status=retrying"><%= item.retryingRetries || 0 %></a></td>
                         <td><a href="/admin/communications/retries?eventKey=<%= encodeURIComponent(item.eventKey) %>&status=dead"><%= item.deadRetries || 0 %></a></td>
                         <td><%= item.lastSeenAt ? formatDateTime(item.lastSeenAt) : 'N/A' %></td>
+                        <td><a href="<%= buildFailureDetailHref(item.eventKey) %>">Details</a></td>
                       </tr>
                     <% }) %>
                   <% } else { %>
                     <tr>
-                      <td colspan="6">No failed or retrying deliveries in this window.</td>
+                      <td colspan="7">No failed or retrying deliveries in this window.</td>
                     </tr>
                   <% } %>
                 </tbody>
