@@ -3,8 +3,21 @@ const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
+const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const stravaService = require('../services/strava.service');
 const { submitStravaActivity } = require('../services/strava-submission.service');
+
+const stravaActivityFetchLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 20,
+  message: 'Too many Strava activity refreshes. Please wait a moment and try again.'
+});
+
+const stravaSubmissionLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 8,
+  message: 'Too many Strava result submissions. Please wait a few minutes and try again.'
+});
 
 router.get('/integrations/strava/connect', requireAuth, (req, res) => {
   try {
@@ -64,7 +77,7 @@ router.get('/api/strava/connection', requireAuthJson, async (req, res) => {
   }
 });
 
-router.get('/api/strava/activities', requireAuthJson, async (req, res) => {
+router.get('/api/strava/activities', requireAuthJson, stravaActivityFetchLimiter, async (req, res) => {
   try {
     const result = await stravaService.fetchRecentActivities(req.session.userId, {
       after: req.query.after,
@@ -85,7 +98,7 @@ router.get('/api/strava/activities', requireAuthJson, async (req, res) => {
   }
 });
 
-router.post('/api/events/:eventId/submissions/strava', requireAuthJson, requireCsrfProtection, async (req, res) => {
+router.post('/api/events/:eventId/submissions/strava', requireAuthJson, requireCsrfProtection, stravaSubmissionLimiter, async (req, res) => {
   try {
     const result = await submitStravaActivity({
       runnerId: req.session.userId,

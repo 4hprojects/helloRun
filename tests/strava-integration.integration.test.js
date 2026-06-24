@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 
 test('Strava token encryption round trips without storing plaintext', () => {
   process.env.STRAVA_ENCRYPTION_KEY = 'test-strava-encryption-key-for-local-runs';
@@ -62,4 +64,13 @@ test('Strava run type mapping supports MVP activity types', () => {
   assert.equal(normalizeStravaRunType('TrailRun'), 'trail_run');
   assert.equal(normalizeStravaRunType('Ride'), '');
   assert.equal(_private.PERSONAL_RECORD_EVENT_ID, 'personal-record');
+});
+
+test('Strava routes rate limit activity refresh and submission endpoints', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '../src/routes/strava.routes.js'), 'utf8');
+
+  assert.match(source, /stravaActivityFetchLimiter/);
+  assert.match(source, /stravaSubmissionLimiter/);
+  assert.match(source, /\/api\/strava\/activities'[\s\S]*stravaActivityFetchLimiter/);
+  assert.match(source, /\/api\/events\/:eventId\/submissions\/strava'[\s\S]*stravaSubmissionLimiter/);
 });

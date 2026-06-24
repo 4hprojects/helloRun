@@ -32,6 +32,7 @@
 | Organizer Workflow Phase 4A — runner submit-run modal now shows upload deadline for eligible event targets | Jun 24 | `tests/submission.service.integration.test.js`, `tests/runner-dashboard-modal.integration.test.js` |
 | Organizer Workflow Phase 4B — late/closed upload fallback now tells runners why only Personal Record is available | Jun 24 | `tests/submission.service.integration.test.js`, `tests/runner-dashboard-modal.integration.test.js` |
 | Organizer Workflow Phase 5A — runner submission eligibility lookup now uses the shared rate limiter to reduce modal refresh storms | Jun 24 | `tests/runner-dashboard-modal.integration.test.js` |
+| Organizer Workflow Phase 5B — Strava activity refresh and Strava result submission endpoints now use shared rate limits | Jun 24 | `tests/strava-integration.integration.test.js` |
 
 ---
 
