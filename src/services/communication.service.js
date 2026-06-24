@@ -1,6 +1,7 @@
 const CommunicationSetting = require('../models/CommunicationSetting');
 const CommunicationEventSetting = require('../models/CommunicationEventSetting');
 const CommunicationLog = require('../models/CommunicationLog');
+const User = require('../models/User');
 const emailService = require('./email.service');
 const { createNotificationSafe } = require('./notification.service');
 const {
@@ -183,6 +184,33 @@ async function notify(eventKey, payload = {}) {
       await recordFallbackInApp(eventKey, payload, eventSetting, emailDecision.reason);
     }
     return result;
+  }
+
+  // Check user-level email opt-out before dispatching.
+  const recipientUserId = payload.email.recipientUserId || payload.notification?.userId;
+  if (recipientUserId) {
+    const userPrefs = await User.findById(recipientUserId)
+      .select('notificationPreferences')
+      .lean()
+      .catch(() => null);
+    const optedOut = Array.isArray(userPrefs?.notificationPreferences?.emailOptOut)
+      && userPrefs.notificationPreferences.emailOptOut.includes(eventKey);
+    if (optedOut) {
+      result.email = { status: 'suppressed', skipped: true, reason: 'user_opt_out' };
+      await recordCommunicationLog({
+        eventKey,
+        channel: 'email',
+        recipientUserId,
+        recipientEmail: payload.email.to || '',
+        subject: payload.email.subject || getSubjectForEvent(eventKey, payload),
+        status: 'suppressed',
+        statusReason: 'User opted out of this notification type.',
+        provider: settings.provider,
+        priority: eventSetting.priority,
+        metadata: payload.email.metadata || {}
+      });
+      return result;
+    }
   }
 
   try {

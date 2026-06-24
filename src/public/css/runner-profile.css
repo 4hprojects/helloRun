@@ -1001,3 +1001,69 @@
   color: var(--color-success, #16a34a);
   font-weight: 600;
 }
+
+/* ── Notification preference toggles ── */
+.profile-section-helper {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0 0 1rem;
+}
+
+.notif-form {
+  display: block;
+}
+
+.notif-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+}
+
+.notif-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+  transition: background 0.12s;
+}
+
+.notif-row:last-child {
+  border-bottom: none;
+}
+
+.notif-row:hover {
+  background: #f8fafc;
+}
+
+.notif-row-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.notif-row-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.notif-row-sub {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.notif-checkbox {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #2563eb;
+}

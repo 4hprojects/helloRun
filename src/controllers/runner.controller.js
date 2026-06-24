@@ -463,6 +463,38 @@ exports.unlinkGoogleAuth = async (req, res) => {
   }
 };
 
+const NOTIFICATION_OPTOUT_ALLOWED_KEYS = new Set([
+  'result.approved',
+  'result.rejected',
+  'certificate.issued',
+  'badge.earned',
+  'organiser.payment_reminder'
+]);
+
+exports.updateNotificationSettings = async (req, res) => {
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) return res.redirect('/login');
+
+    const submitted = Array.isArray(req.body.emailEnabled)
+      ? req.body.emailEnabled
+      : (req.body.emailEnabled ? [req.body.emailEnabled] : []);
+
+    const enabledKeys = new Set(
+      submitted.map((k) => String(k).trim()).filter((k) => NOTIFICATION_OPTOUT_ALLOWED_KEYS.has(k))
+    );
+    const emailOptOut = [...NOTIFICATION_OPTOUT_ALLOWED_KEYS].filter((k) => !enabledKeys.has(k));
+
+    user.notificationPreferences = { emailOptOut };
+    await user.save();
+
+    return res.redirect('/runner/profile?section=notifications&type=success&msg=Notification+preferences+saved.');
+  } catch (error) {
+    logger.error('Update notification settings error:', error);
+    return res.redirect('/runner/profile?section=notifications&type=error&msg=Unable+to+save+preferences.');
+  }
+};
+
 exports.createRunningGroup = async (req, res) => {
   try {
     const user = await getRunnerFromSession(req);

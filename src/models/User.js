@@ -270,6 +270,10 @@ const userSchema = new mongoose.Schema({
 
   adminVerificationResentAt: { type: [Date], default: [] },
 
+  notificationPreferences: {
+    emailOptOut: { type: [String], default: [] }
+  },
+
   savedEvents: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event' }],
 
   createdAt: {

@@ -34,6 +34,7 @@
 <a href="#identity"><i data-lucide="fingerprint"></i>Identity</a>
 <a href="#contact"><i data-lucide="mail"></i>Contact</a>
 <a href="#emergency"><i data-lucide="phone-forwarded"></i>Emergency</a>
+<a href="#notifications"><i data-lucide="bell"></i>Notifications</a>
 <a href="#badges"><i data-lucide="award"></i>Badges</a>
 <a href="#integrations"><i data-lucide="plug"></i>Integrations</a>
 <a href="#account"><i data-lucide="settings"></i>Account</a>
@@ -187,6 +188,44 @@
             <div class="runner-profile-form-actions" hidden>
               <button type="submit" class="btn btn-primary" data-save-btn>Save Emergency Contact</button>
               <button type="button" class="btn btn-outline" data-cancel-edit>Cancel</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="runner-profile-card" id="notifications">
+          <div class="runner-profile-panel-header">
+            <h3>Email Notifications</h3>
+          </div>
+          <p class="profile-section-helper">Choose which emails you receive. In-app notifications are always on.</p>
+          <%
+            const _notifOptOut = (user.notificationPreferences && Array.isArray(user.notificationPreferences.emailOptOut))
+              ? user.notificationPreferences.emailOptOut
+              : [];
+            const _notifTypes = [
+              { key: 'result.approved',            label: 'Run result approved',    sub: 'Email when your result is approved by the organiser' },
+              { key: 'result.rejected',            label: 'Run result rejected',    sub: 'Email when your result needs attention or resubmission' },
+              { key: 'certificate.issued',         label: 'Certificate ready',      sub: 'Email when your finisher certificate is issued' },
+              { key: 'badge.earned',               label: 'Badge earned',           sub: 'Email when you earn an achievement badge' },
+              { key: 'organiser.payment_reminder', label: 'Payment reminders',      sub: 'Email payment reminders from event organisers' }
+            ];
+          %>
+          <form method="POST" action="/runner/profile/notifications" class="runner-profile-form notif-form">
+            <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+            <div class="notif-list">
+              <% _notifTypes.forEach(function(nt) { %>
+                <label class="notif-row">
+                  <div class="notif-row-copy">
+                    <span class="notif-row-label"><%= nt.label %></span>
+                    <span class="notif-row-sub"><%= nt.sub %></span>
+                  </div>
+                  <input type="checkbox" name="emailEnabled" value="<%= nt.key %>"
+                    class="notif-checkbox"
+                    <%= _notifOptOut.includes(nt.key) ? '' : 'checked' %>>
+                </label>
+              <% }); %>
+            </div>
+            <div class="runner-profile-form-actions" style="display:flex">
+              <button type="submit" class="btn btn-primary">Save Preferences</button>
             </div>
           </form>
         </article>

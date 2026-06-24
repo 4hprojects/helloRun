@@ -63,6 +63,7 @@ router.post('/runner/profile/contact', requireAuth, profileUpdateLimiter, runner
 router.post('/runner/profile/emergency', requireAuth, profileUpdateLimiter, runnerController.updateProfileEmergency);
 router.post('/runner/profile/badges/featured', requireAuth, profileUpdateLimiter, runnerController.updateFeaturedBadge);
 router.post('/runner/security/password', requireAuth, profileUpdateLimiter, runnerController.updatePasswordSettings);
+router.post('/runner/profile/notifications', requireAuth, profileUpdateLimiter, runnerController.updateNotificationSettings);
 router.post('/runner/auth/google/unlink', requireAuth, profileUpdateLimiter, runnerController.unlinkGoogleAuth);
 router.post('/runner/notifications/read-all', requireAuth, runnerController.markAllNotificationsRead);
 router.post('/runner/notifications/:notificationId/read', requireAuth, runnerController.markNotificationRead);
