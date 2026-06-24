@@ -41,6 +41,7 @@
 | Runtime Stabilization Phase 6C — submission service tests can suppress shadow/ranking sync side effects for quiet deterministic output | Jun 24 | `tests/submission.service.integration.test.js` |
 | Runtime Stabilization Phase 6D — runner screenshot and Strava result submissions now use short-lived Mongo idempotency locks to block concurrent duplicate retries | Jun 24 | `tests/submission-idempotency.service.integration.test.js`, `tests/submission-idempotency-source.unit.test.js`, `tests/submission-routes.integration.test.js` |
 | Runtime Stabilization Phase 6E — payment receipt uploads now use short-lived Mongo idempotency locks to block concurrent duplicate retries | Jun 24 | `tests/submission-idempotency.service.integration.test.js`, `tests/submission-idempotency-source.unit.test.js`, `tests/page-controller-payment-proof-sync.unit.test.js` |
+| Runtime Stabilization Phase 6F — shop order payment receipt uploads now use short-lived Mongo idempotency locks to block concurrent duplicate retries | Jun 24 | `tests/submission-idempotency-source.unit.test.js`, `tests/shop-runner-payment-actions.integration.test.js` |
 
 ---
 

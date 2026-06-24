@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const productService = require('../services/shop/product.service');
 const orderService = require('../services/shop/order.service');
@@ -7,6 +8,10 @@ const uploadService = require('../services/upload.service');
 const Event = require('../models/Event');
 const User = require('../models/User');
 const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
+const {
+  acquireSubmissionIdempotencyLock,
+  buildPaymentProofIdempotencyKey
+} = require('../services/submission-idempotency.service');
 
 exports.getEventShop = async (req, res, next) => {
   try {
@@ -562,28 +567,53 @@ exports.postOrderPaymentProof = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Please select a payment receipt file before submitting.' });
     }
 
-    const uploadedProof = await uploadService.uploadPaymentProofToR2({
-      userId: req.session.userId,
-      paymentProofFile: proofFile
-    });
-    uploadedProofKey = uploadedProof.key;
+    const proofHash = crypto.createHash('sha256').update(proofFile.buffer).digest('hex');
+    let idempotencyLock = null;
+    try {
+      idempotencyLock = await acquireSubmissionIdempotencyLock(
+        buildPaymentProofIdempotencyKey({
+          runnerId: req.session.userId,
+          registrationId: order.id,
+          proofHash
+        }),
+        {
+          scope: 'shop_payment_proof_submission',
+          runnerId: req.session.userId,
+          message: 'This payment receipt is already being processed. Please wait a moment.'
+        }
+      );
 
-    const paymentMethod = String(req.body.paymentMethod || req.body.payment_method || '').trim();
-    const paymentReference = String(req.body.paymentReference || req.body.payment_reference || '').trim();
+      const uploadedProof = await uploadService.uploadPaymentProofToR2({
+        userId: req.session.userId,
+        paymentProofFile: proofFile
+      });
+      uploadedProofKey = uploadedProof.key;
 
-    await paymentReviewService.submitPaymentProofForOrder(order.id, {
-      paymentMethod: paymentMethod || 'manual_receipt',
-      paymentReference,
-      proofUrl: uploadedProof.url,
-      amountPaid: order.total_amount
-    });
+      const paymentMethod = String(req.body.paymentMethod || req.body.payment_method || '').trim();
+      const paymentReference = String(req.body.paymentReference || req.body.payment_reference || '').trim();
 
-    uploadedProofKey = '';
+      await paymentReviewService.submitPaymentProofForOrder(order.id, {
+        paymentMethod: paymentMethod || 'manual_receipt',
+        paymentReference,
+        proofUrl: uploadedProof.url,
+        amountPaid: order.total_amount
+      });
 
-    return res.json({ success: true, message: 'Payment proof submitted for review.' });
+      uploadedProofKey = '';
+
+      return res.json({ success: true, message: 'Payment proof submitted for review.' });
+    } catch (error) {
+      if (idempotencyLock && error?.code !== 'SUBMISSION_IDEMPOTENCY_CONFLICT') {
+        await idempotencyLock.release().catch(() => {});
+      }
+      throw error;
+    }
   } catch (error) {
     if (uploadedProofKey) {
       await uploadService.deleteObjects([uploadedProofKey]);
+    }
+    if (error?.code === 'SUBMISSION_IDEMPOTENCY_CONFLICT') {
+      return res.status(409).json({ success: false, message: error.message });
     }
     return next(error);
   }

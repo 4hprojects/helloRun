@@ -19,6 +19,14 @@ test('payment receipt submission path uses receipt idempotency lock', () => {
   assert.match(source, /This payment receipt is already being processed/);
 });
 
+test('shop order payment receipt path uses receipt idempotency lock', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '../src/controllers/shop.controller.js'), 'utf8');
+
+  assert.match(source, /buildPaymentProofIdempotencyKey/);
+  assert.match(source, /shop_payment_proof_submission/);
+  assert.match(source, /This payment receipt is already being processed/);
+});
+
 test('Strava submission path uses activity idempotency lock', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '../src/services/strava-submission.service.js'), 'utf8');
 
