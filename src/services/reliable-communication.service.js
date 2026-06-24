@@ -9,6 +9,8 @@ const RETRY_DELAYS_MS = [60 * 1000, 5 * 60 * 1000, 15 * 60 * 1000, 60 * 60 * 100
 const STALE_RETRY_DEAD_LETTER_MS = Number(process.env.COMMUNICATION_RETRY_STALE_MS || 24 * 60 * 60 * 1000);
 const SENT_RETRY_RETENTION_MS = Number(process.env.COMMUNICATION_RETRY_SENT_RETENTION_MS || 14 * 24 * 60 * 60 * 1000);
 const DEAD_RETRY_RETENTION_MS = Number(process.env.COMMUNICATION_RETRY_DEAD_RETENTION_MS || 30 * 24 * 60 * 60 * 1000);
+const DEAD_RETRY_ALERT_WINDOW_MS = Number(process.env.COMMUNICATION_RETRY_DEAD_ALERT_WINDOW_MS || 24 * 60 * 60 * 1000);
+const DUE_RETRY_BACKLOG_MS = Number(process.env.COMMUNICATION_RETRY_DUE_BACKLOG_MS || 15 * 60 * 1000);
 
 async function notifyWithRetry(eventKey, payload = {}, options = {}) {
   const retryPayload = withEmailFailureThrow(payload);
@@ -130,8 +132,12 @@ async function runCommunicationRetryHygiene(options = {}) {
 async function getCommunicationRetryHealth(options = {}) {
   const now = options.now instanceof Date ? options.now : new Date();
   const staleMs = Number(options.staleMs || STALE_RETRY_DEAD_LETTER_MS);
+  const deadAlertWindowMs = Number(options.deadAlertWindowMs || DEAD_RETRY_ALERT_WINDOW_MS);
+  const dueBacklogMs = Number(options.dueBacklogMs || DUE_RETRY_BACKLOG_MS);
   const staleCutoff = new Date(now.getTime() - staleMs);
-  const [counts, staleQueued, dueNow] = await Promise.all([
+  const deadAlertCutoff = new Date(now.getTime() - deadAlertWindowMs);
+  const dueBacklogCutoff = new Date(now.getTime() - dueBacklogMs);
+  const [counts, staleQueued, dueNow, overdueDue, deadRecently] = await Promise.all([
     CommunicationRetry.aggregate([
       { $group: { _id: '$status', count: { $sum: 1 } } }
     ]),
@@ -143,6 +149,15 @@ async function getCommunicationRetryHealth(options = {}) {
       status: { $in: ['queued', 'retrying'] },
       nextAttemptAt: { $lte: now },
       attempts: { $lt: MAX_RETRY_ATTEMPTS }
+    }),
+    CommunicationRetry.countDocuments({
+      status: { $in: ['queued', 'retrying'] },
+      nextAttemptAt: { $lte: dueBacklogCutoff },
+      attempts: { $lt: MAX_RETRY_ATTEMPTS }
+    }),
+    CommunicationRetry.countDocuments({
+      status: 'dead',
+      updatedAt: { $gte: deadAlertCutoff }
     })
   ]);
 
@@ -151,14 +166,18 @@ async function getCommunicationRetryHealth(options = {}) {
     return memo;
   }, {});
 
-  return {
+  const health = {
     queued: byStatus.queued || 0,
     retrying: byStatus.retrying || 0,
     sent: byStatus.sent || 0,
     dead: byStatus.dead || 0,
     staleQueued,
-    dueNow
+    dueNow,
+    overdueDue,
+    deadRecently
   };
+  health.alerts = buildCommunicationRetryAlerts(health);
+  return health;
 }
 
 async function listCommunicationRetries(filters = {}) {
@@ -319,7 +338,40 @@ function getRetryDelayMs(attemptNumber) {
   return RETRY_DELAYS_MS[Math.min(Math.max(attemptNumber - 1, 0), RETRY_DELAYS_MS.length - 1)];
 }
 
+function buildCommunicationRetryAlerts(health = {}) {
+  const alerts = [];
+  if (Number(health.deadRecently || 0) > 0) {
+    alerts.push({
+      code: 'dead_letters_increased',
+      severity: 'error',
+      title: 'Dead letters increased',
+      message: `${health.deadRecently} notification retry${health.deadRecently === 1 ? ' has' : 'ies have'} dead-lettered recently.`,
+      href: '/admin/communications/retries?status=dead'
+    });
+  }
+  if (Number(health.staleQueued || 0) > 0) {
+    alerts.push({
+      code: 'stale_queue',
+      severity: 'warning',
+      title: 'Retry queue has stale jobs',
+      message: `${health.staleQueued} queued notification retry${health.staleQueued === 1 ? ' is' : 'ies are'} older than the stale queue window.`,
+      href: '/admin/communications/retries?status=queued'
+    });
+  }
+  if (Number(health.overdueDue || 0) > 0) {
+    alerts.push({
+      code: 'retry_worker_backlog',
+      severity: 'warning',
+      title: 'Retry worker may be falling behind',
+      message: `${health.overdueDue} due notification retry${health.overdueDue === 1 ? ' has' : 'ies have'} not cleared within the backlog window.`,
+      href: '/admin/communications/retries'
+    });
+  }
+  return alerts;
+}
+
 module.exports = {
+  buildCommunicationRetryAlerts,
   buildCommunicationRetryKey,
   enqueueCommunicationRetry,
   getCommunicationRetryHealth,

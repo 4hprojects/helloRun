@@ -28,7 +28,22 @@
         const highPriorityEvents = events.filter((event) => event.priority === 'high' || event.priority === 'critical');
         const criticalReserveRemaining = Math.max(0, (budget.remaining || 0) - (budget.reservedCriticalEmailCount || 0));
         const queueHealth = retryHealth || {};
+        const deliveryAlerts = queueHealth.alerts || [];
       %>
+
+      <% if (deliveryAlerts.length) { %>
+        <div class="communication-delivery-alerts" aria-label="Notification delivery alerts">
+          <% deliveryAlerts.forEach((alert) => { %>
+            <article class="admin-alert admin-alert-<%= alert.severity %> communication-delivery-alert">
+              <div>
+                <h3><%= alert.title %></h3>
+                <p><%= alert.message %></p>
+              </div>
+              <a href="<%= alert.href %>">Inspect</a>
+            </article>
+          <% }) %>
+        </div>
+      <% } %>
 
       <div class="dashboard-grid">
         <article class="metric-card">
@@ -117,7 +132,7 @@
           </div>
           <div>
             <h4>Retry Queue</h4>
-            <p><strong><%= (queueHealth.queued || 0) + (queueHealth.retrying || 0) %></strong> active, <strong><%= queueHealth.dueNow || 0 %></strong> due, <strong><%= queueHealth.staleQueued || 0 %></strong> stale, <strong><%= queueHealth.dead || 0 %></strong> dead-lettered.</p>
+            <p><strong><%= (queueHealth.queued || 0) + (queueHealth.retrying || 0) %></strong> active, <strong><%= queueHealth.dueNow || 0 %></strong> due, <strong><%= queueHealth.overdueDue || 0 %></strong> overdue, <strong><%= queueHealth.staleQueued || 0 %></strong> stale, <strong><%= queueHealth.dead || 0 %></strong> dead-lettered.</p>
             <div class="communication-toolkit-actions">
               <a href="/admin/communications/retries">Open retries</a>
               <a href="/admin/communications/retries?status=dead">Dead letters</a>

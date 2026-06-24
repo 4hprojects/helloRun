@@ -1237,6 +1237,37 @@
   margin: 0.9rem 0 1.35rem;
 }
 
+.communication-delivery-alerts {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0.85rem 0 1rem;
+}
+
+.communication-delivery-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.communication-delivery-alert h3 {
+  margin: 0 0 0.2rem;
+  font-size: 0.95rem;
+}
+
+.communication-delivery-alert p {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.communication-delivery-alert a {
+  flex: 0 0 auto;
+  color: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
 .communication-toolkit-card {
   display: grid;
   grid-template-columns: 42px minmax(0, 1fr);

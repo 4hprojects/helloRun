@@ -48,6 +48,7 @@
 | Runtime Stabilization Phase 8A — high-impact organiser notifications now queue failed sends for retry without blocking review/reminder actions | Jun 24 | `tests/communication-retry-source.unit.test.js` |
 | Runtime Stabilization Phase 8B — admin Communications now has a retry queue view with filters, payload inspection, and manual retry controls | Jun 24 | `tests/communication-retry-source.unit.test.js` |
 | Runtime Stabilization Phase 8C — retry queue hygiene now dead-letters stale jobs, cleans old sent/dead rows, and surfaces queue health on Communications | Jun 24 | `tests/communication-retry-source.unit.test.js` |
+| Runtime Stabilization Phase 8D — admin Communications now warns on recent dead letters, stale retry jobs, and overdue due retries before users report delivery failures | Jun 24 | `tests/communication-retry-source.unit.test.js` |
 | Badge system refinement — early generation at event save, wizard Badges step (13 steps), event logo fallback, badge previews on event detail page | Jun 24 | — |
 | P5 Social sharing — certificate verify share buttons + og:image; submission detail share strip; badge detail already complete | Jun 24 | — |
 | P8 Email notification settings — Notifications section on runner profile; 5 opt-outable types; emailOptOut on User model; service respects opt-out | Jun 24 | — |

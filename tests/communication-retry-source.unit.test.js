@@ -22,6 +22,7 @@ test('communication retry queue captures failed critical notifications and runs 
   assert.match(service, /processCommunicationRetryBatch/);
   assert.match(service, /runCommunicationRetryHygiene/);
   assert.match(service, /getCommunicationRetryHealth/);
+  assert.match(service, /buildCommunicationRetryAlerts/);
   assert.match(service, /throwOnEmailFailure: true/);
   assert.match(service, /throwOnInAppFailure: true/);
   assert.match(communicationService, /throwOnInAppFailure/);
@@ -65,8 +66,15 @@ test('admin communications exposes retry queue inspection and manual retry', () 
   assert.match(retryService, /STALE_RETRY_DEAD_LETTER_MS/);
   assert.match(retryService, /SENT_RETRY_RETENTION_MS/);
   assert.match(retryService, /DEAD_RETRY_RETENTION_MS/);
+  assert.match(retryService, /DEAD_RETRY_ALERT_WINDOW_MS/);
+  assert.match(retryService, /DUE_RETRY_BACKLOG_MS/);
+  assert.match(retryService, /dead_letters_increased/);
+  assert.match(retryService, /retry_worker_backlog/);
   assert.match(communicationsView, /\/admin\/communications\/retries/);
+  assert.match(communicationsView, /deliveryAlerts/);
+  assert.match(communicationsView, /communication-delivery-alert/);
   assert.match(communicationsView, /queueHealth\.dueNow/);
+  assert.match(communicationsView, /queueHealth\.overdueDue/);
   assert.match(communicationsView, /dead-lettered/);
   assert.match(retriesView, /Notification Retry Queue/);
   assert.match(retriesView, /Inspect payload/);
