@@ -12,6 +12,7 @@ const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubm
 const PrivacyPolicy = require('../models/PrivacyPolicy');
 const communicationService = require('../services/communication.service');
 const {
+  getCommunicationRetryHealth,
   listCommunicationRetries,
   retryCommunicationNow
 } = require('../services/reliable-communication.service');
@@ -2654,11 +2655,15 @@ exports.recalculateBadges = async (req, res) => {
 
 exports.renderCommunications = async (req, res) => {
   try {
-    const data = await communicationService.getAdminCommunicationPageData(req.query);
+    const [data, retryHealth] = await Promise.all([
+      communicationService.getAdminCommunicationPageData(req.query),
+      getCommunicationRetryHealth()
+    ]);
     return res.render('admin/communications', {
       title: 'Communications - HelloRun Admin',
       message: getAdminPageMessage(req.query),
       ...data,
+      retryHealth,
       emailFrom: process.env.EMAIL_FROM || '',
       formatDateTime: formatAdminDateTime,
       buildLogPageHref: (page) => buildCommunicationLogHref(data.logFilters, page)

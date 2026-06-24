@@ -6,6 +6,9 @@ const logger = require('../utils/logger');
 
 const MAX_RETRY_ATTEMPTS = Number(process.env.COMMUNICATION_RETRY_MAX_ATTEMPTS || 5);
 const RETRY_DELAYS_MS = [60 * 1000, 5 * 60 * 1000, 15 * 60 * 1000, 60 * 60 * 1000, 6 * 60 * 60 * 1000];
+const STALE_RETRY_DEAD_LETTER_MS = Number(process.env.COMMUNICATION_RETRY_STALE_MS || 24 * 60 * 60 * 1000);
+const SENT_RETRY_RETENTION_MS = Number(process.env.COMMUNICATION_RETRY_SENT_RETENTION_MS || 14 * 24 * 60 * 60 * 1000);
+const DEAD_RETRY_RETENTION_MS = Number(process.env.COMMUNICATION_RETRY_DEAD_RETENTION_MS || 30 * 24 * 60 * 60 * 1000);
 
 async function notifyWithRetry(eventKey, payload = {}, options = {}) {
   const retryPayload = withEmailFailureThrow(payload);
@@ -79,6 +82,83 @@ async function processCommunicationRetryBatch(options = {}) {
   }
 
   return { processed: jobs.length };
+}
+
+async function runCommunicationRetryHygiene(options = {}) {
+  const now = options.now instanceof Date ? options.now : new Date();
+  const staleMs = Number(options.staleMs || STALE_RETRY_DEAD_LETTER_MS);
+  const sentRetentionMs = Number(options.sentRetentionMs || SENT_RETRY_RETENTION_MS);
+  const deadRetentionMs = Number(options.deadRetentionMs || DEAD_RETRY_RETENTION_MS);
+  const staleCutoff = new Date(now.getTime() - staleMs);
+  const sentCutoff = new Date(now.getTime() - sentRetentionMs);
+  const deadCutoff = new Date(now.getTime() - deadRetentionMs);
+
+  const [staleDeadLettered, sentDeleted, deadDeleted] = await Promise.all([
+    CommunicationRetry.updateMany(
+      {
+        status: { $in: ['queued', 'retrying'] },
+        createdAt: { $lte: staleCutoff }
+      },
+      {
+        $set: {
+          status: 'dead',
+          lastError: 'Retry job exceeded the stale queue window and was dead-lettered automatically.',
+          updatedAt: now
+        }
+      }
+    ),
+    CommunicationRetry.deleteMany({
+      status: 'sent',
+      $or: [
+        { sentAt: { $lte: sentCutoff } },
+        { sentAt: { $exists: false }, updatedAt: { $lte: sentCutoff } }
+      ]
+    }),
+    CommunicationRetry.deleteMany({
+      status: 'dead',
+      updatedAt: { $lte: deadCutoff }
+    })
+  ]);
+
+  return {
+    staleDeadLettered: staleDeadLettered.modifiedCount || 0,
+    sentDeleted: sentDeleted.deletedCount || 0,
+    deadDeleted: deadDeleted.deletedCount || 0
+  };
+}
+
+async function getCommunicationRetryHealth(options = {}) {
+  const now = options.now instanceof Date ? options.now : new Date();
+  const staleMs = Number(options.staleMs || STALE_RETRY_DEAD_LETTER_MS);
+  const staleCutoff = new Date(now.getTime() - staleMs);
+  const [counts, staleQueued, dueNow] = await Promise.all([
+    CommunicationRetry.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]),
+    CommunicationRetry.countDocuments({
+      status: { $in: ['queued', 'retrying'] },
+      createdAt: { $lte: staleCutoff }
+    }),
+    CommunicationRetry.countDocuments({
+      status: { $in: ['queued', 'retrying'] },
+      nextAttemptAt: { $lte: now },
+      attempts: { $lt: MAX_RETRY_ATTEMPTS }
+    })
+  ]);
+
+  const byStatus = counts.reduce((memo, row) => {
+    memo[row._id || 'unknown'] = row.count;
+    return memo;
+  }, {});
+
+  return {
+    queued: byStatus.queued || 0,
+    retrying: byStatus.retrying || 0,
+    sent: byStatus.sent || 0,
+    dead: byStatus.dead || 0,
+    staleQueued,
+    dueNow
+  };
 }
 
 async function listCommunicationRetries(filters = {}) {
@@ -242,9 +322,11 @@ function getRetryDelayMs(attemptNumber) {
 module.exports = {
   buildCommunicationRetryKey,
   enqueueCommunicationRetry,
+  getCommunicationRetryHealth,
   listCommunicationRetries,
   notifyWithRetry,
   notifyWithRetryInBackground,
   processCommunicationRetryBatch,
-  retryCommunicationNow
+  retryCommunicationNow,
+  runCommunicationRetryHygiene
 };

@@ -27,6 +27,7 @@
         const inAppOnCount = events.filter((event) => event.inAppEnabled).length;
         const highPriorityEvents = events.filter((event) => event.priority === 'high' || event.priority === 'critical');
         const criticalReserveRemaining = Math.max(0, (budget.remaining || 0) - (budget.reservedCriticalEmailCount || 0));
+        const queueHealth = retryHealth || {};
       %>
 
       <div class="dashboard-grid">
@@ -116,7 +117,7 @@
           </div>
           <div>
             <h4>Retry Queue</h4>
-            <p>Inspect queued and dead-lettered critical notification deliveries.</p>
+            <p><strong><%= (queueHealth.queued || 0) + (queueHealth.retrying || 0) %></strong> active, <strong><%= queueHealth.dueNow || 0 %></strong> due, <strong><%= queueHealth.staleQueued || 0 %></strong> stale, <strong><%= queueHealth.dead || 0 %></strong> dead-lettered.</p>
             <div class="communication-toolkit-actions">
               <a href="/admin/communications/retries">Open retries</a>
               <a href="/admin/communications/retries?status=dead">Dead letters</a>

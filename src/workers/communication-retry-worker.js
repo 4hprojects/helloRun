@@ -1,4 +1,7 @@
-const { processCommunicationRetryBatch } = require('../services/reliable-communication.service');
+const {
+  processCommunicationRetryBatch,
+  runCommunicationRetryHygiene
+} = require('../services/reliable-communication.service');
 const logger = require('../utils/logger');
 
 let communicationRetryTimer = null;
@@ -9,13 +12,13 @@ function startCommunicationRetryWorker() {
   const interval = Number(process.env.COMMUNICATION_RETRY_INTERVAL_MS || 60000);
 
   setTimeout(() => {
-    processCommunicationRetryBatch().catch((error) => {
+    runCommunicationRetryCycle().catch((error) => {
       logger.error('[communication-retry-worker] Startup batch error:', error?.message || String(error));
     });
   }, 8000);
 
   communicationRetryTimer = setInterval(() => {
-    processCommunicationRetryBatch().catch((error) => {
+    runCommunicationRetryCycle().catch((error) => {
       logger.error('[communication-retry-worker] Batch error:', error?.message || String(error));
     });
   }, interval);
@@ -32,6 +35,12 @@ function startCommunicationRetryWorker() {
   logger.info(`[communication-retry-worker] Started — interval: ${interval}ms`);
 }
 
+async function runCommunicationRetryCycle() {
+  await runCommunicationRetryHygiene();
+  return processCommunicationRetryBatch();
+}
+
 module.exports = {
+  runCommunicationRetryCycle,
   startCommunicationRetryWorker
 };

@@ -20,10 +20,14 @@ test('communication retry queue captures failed critical notifications and runs 
   assert.match(service, /notifyWithRetry/);
   assert.match(service, /enqueueCommunicationRetry/);
   assert.match(service, /processCommunicationRetryBatch/);
+  assert.match(service, /runCommunicationRetryHygiene/);
+  assert.match(service, /getCommunicationRetryHealth/);
   assert.match(service, /throwOnEmailFailure: true/);
   assert.match(service, /throwOnInAppFailure: true/);
   assert.match(communicationService, /throwOnInAppFailure/);
   assert.match(worker, /startCommunicationRetryWorker/);
+  assert.match(worker, /runCommunicationRetryCycle/);
+  assert.match(worker, /runCommunicationRetryHygiene\(\)/);
   assert.match(server, /startCommunicationRetryWorker\(\)/);
 });
 
@@ -55,9 +59,15 @@ test('admin communications exposes retry queue inspection and manual retry', () 
   assert.match(adminRoutes, /\/communications\/retries\/:retryId\/retry'[\s\S]*retryCommunicationDelivery/);
   assert.match(adminController, /renderCommunicationRetries/);
   assert.match(adminController, /retryCommunicationDelivery/);
+  assert.match(adminController, /getCommunicationRetryHealth/);
   assert.match(retryService, /listCommunicationRetries/);
   assert.match(retryService, /retryCommunicationNow/);
+  assert.match(retryService, /STALE_RETRY_DEAD_LETTER_MS/);
+  assert.match(retryService, /SENT_RETRY_RETENTION_MS/);
+  assert.match(retryService, /DEAD_RETRY_RETENTION_MS/);
   assert.match(communicationsView, /\/admin\/communications\/retries/);
+  assert.match(communicationsView, /queueHealth\.dueNow/);
+  assert.match(communicationsView, /dead-lettered/);
   assert.match(retriesView, /Notification Retry Queue/);
   assert.match(retriesView, /Inspect payload/);
   assert.match(retriesView, /Retry now/);
