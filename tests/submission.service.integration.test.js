@@ -1102,6 +1102,7 @@ async function createEvent(organizer, tag) {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const now = Date.now();
   return Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `phase5-${tag}-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `SB-${String(stamp).slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,

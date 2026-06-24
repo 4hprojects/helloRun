@@ -187,6 +187,35 @@
         </article>
       </div>
 
+      <!-- Sitemap & Visibility Controls -->
+      <section class="detail-card detail-card-full admin-sitemap-card">
+        <h3>Search Engine Visibility</h3>
+        <div class="admin-sitemap-row">
+          <div>
+            <strong>Sitemap status:</strong>
+            <% if (event.isTestData) { %>
+              <span class="status-badge status-badge-restricted">Test data — excluded</span>
+              <small>This event is marked as test data and is excluded from public listings and the sitemap.</small>
+            <% } else if (event.excludeFromSitemap) { %>
+              <span class="status-badge status-badge-restricted">Excluded from sitemap</span>
+              <small>This event is publicly accessible but excluded from sitemap.xml.</small>
+            <% } else { %>
+              <span class="status-badge status-badge-active">Included in sitemap</span>
+              <small>This event appears in sitemap.xml and may be indexed by search engines.</small>
+            <% } %>
+          </div>
+          <% if (!event.isTestData) { %>
+            <form method="POST" action="/admin/events/<%= event._id %>/sitemap-toggle" style="display:inline">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <input type="hidden" name="excludeFromSitemap" value="<%= event.excludeFromSitemap ? '0' : '1' %>">
+              <button type="submit" class="btn btn-sm btn-outline">
+                <%= event.excludeFromSitemap ? 'Re-include in sitemap' : 'Exclude from sitemap' %>
+              </button>
+            </form>
+          <% } %>
+        </div>
+      </section>
+
       <% if (readinessErrors.length) { %>
         <div class="admin-alert admin-alert-warning">
           <strong>Cannot approve yet.</strong>

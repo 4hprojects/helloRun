@@ -416,6 +416,7 @@ async function seedFixture() {
 
   const createEvent = (title, overrides = {}) =>
     Event.create({
+      isTestData: true,
       slug: `sub-test-${Math.random().toString(36).slice(2, 10)}`,
       title,
       description: 'Test event for submission route tests.',

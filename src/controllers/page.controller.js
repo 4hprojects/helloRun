@@ -1973,7 +1973,7 @@ exports.getSitemapXml = async (req, res) => {
     ];
 
     const [events, blogPosts] = await Promise.all([
-      Event.find(getPublicEventVisibilityQuery(new Date()))
+      Event.find({ ...getPublicEventVisibilityQuery(new Date()), excludeFromSitemap: { $ne: true } })
         .select('slug updatedAt createdAt')
         .sort({ updatedAt: -1 })
         .lean(),

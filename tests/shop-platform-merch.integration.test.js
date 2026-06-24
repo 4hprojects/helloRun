@@ -385,6 +385,7 @@ async function seedFixtures() {
 
   const now = Date.now();
   const event = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `shop-platmerch-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `SPM-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,

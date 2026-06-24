@@ -63,6 +63,7 @@ router.get('/events/:id', requireAdmin, adminController.viewEvent);
 router.get('/events/:id/edit', requireAdmin, adminController.renderEditEvent);
 router.post('/events/:id/edit', requireAdmin, uploadService.uploadEventBranding, adminController.updateEvent);
 router.post('/events/:id/media/remove', requireAdmin, adminController.removeEventMedia);
+router.post('/events/:id/sitemap-toggle', requireAdmin, adminController.toggleEventSitemapExclusion);
 router.post('/events/:id/approve', requireAdmin, adminModerationLimiter, adminController.approveEvent);
 router.post('/events/:id/archive', requireAdmin, adminModerationLimiter, adminController.archiveEvent);
 router.post('/events/:id/delete', requireAdmin, adminModerationLimiter, adminController.deleteEvent);

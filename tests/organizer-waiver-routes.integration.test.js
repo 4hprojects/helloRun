@@ -1410,6 +1410,7 @@ async function seedEditableEvent(currentSeed, overrides = {}) {
   await ensureConnected();
   const now = Date.now();
   return Event.create({
+      isTestData: true,
     organizerId: currentSeed.organizer._id,
     slug: `editable-${currentSeed.stamp}-${String(overrides.status || 'draft')}-${Math.floor(Math.random() * 100000)}`.toLowerCase(),
     title: overrides.title || `Editable Event ${currentSeed.stamp}`,

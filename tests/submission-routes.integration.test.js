@@ -316,6 +316,7 @@ async function seedData(tag) {
   });
 
   const event = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `phase5-route-${tag}-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `RT-${String(stamp).slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -373,6 +374,7 @@ async function createAdditionalRegistration(seed, tag) {
   await mongoose.connect(process.env.MONGODB_URI);
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const event = await Event.create({
+      isTestData: true,
     organizerId: seed.event.organizerId,
     slug: `phase5-route-${tag}-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `RT-${String(stamp).slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,

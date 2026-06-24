@@ -698,6 +698,7 @@ async function seedRegistrationAddonFixtures() {
 
   const now = Date.now();
   const event = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `registration-addons-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `RGA-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -720,6 +721,7 @@ async function seedRegistrationAddonFixtures() {
   });
 
   const customEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `registration-custom-option-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `RGC-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -749,6 +751,7 @@ async function seedRegistrationAddonFixtures() {
   });
 
   const packageEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `registration-package-period-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `RGP-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -797,6 +800,7 @@ async function seedRegistrationAddonFixtures() {
   });
 
   const distanceEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `registration-distance-price-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `RGD-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -826,6 +830,7 @@ async function seedRegistrationAddonFixtures() {
   });
 
   const distancePeriodEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `registration-distance-period-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `RGE-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -868,6 +873,7 @@ async function seedRegistrationAddonFixtures() {
   });
 
   const inactivePackageEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `registration-inactive-package-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `RGI-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -909,6 +915,7 @@ async function seedRegistrationAddonFixtures() {
   });
 
   const categoryEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `registration-category-export-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `RGX-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,

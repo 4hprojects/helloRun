@@ -677,6 +677,7 @@ async function seedAdminDashboardFixture() {
 
   const now = Date.now();
   const event = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `admin-dashboard-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `AD-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -697,6 +698,7 @@ async function seedAdminDashboardFixture() {
   });
 
   const pendingEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `admin-pending-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `PE-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -722,6 +724,7 @@ async function seedAdminDashboardFixture() {
   });
 
   const draftEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `admin-draft-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `DE-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -734,6 +737,7 @@ async function seedAdminDashboardFixture() {
   });
 
   const deleteEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `admin-delete-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `SD-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -758,6 +762,7 @@ async function seedAdminDashboardFixture() {
   });
 
   const bulkDeleteEventA = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `admin-bulk-delete-a-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `BDA-${String(stamp).replace(/\D/g, '').slice(-5)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -782,6 +787,7 @@ async function seedAdminDashboardFixture() {
   });
 
   const bulkDeleteEventB = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `admin-bulk-delete-b-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `BDB-${String(stamp).replace(/\D/g, '').slice(-5)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -806,6 +812,7 @@ async function seedAdminDashboardFixture() {
   });
 
   const alreadyDeletedBulkEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `admin-bulk-deleted-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `BDD-${String(stamp).replace(/\D/g, '').slice(-5)}${Math.floor(Math.random() * 90 + 10)}`,

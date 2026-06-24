@@ -838,6 +838,7 @@ async function seedReviewData(tag, options = {}) {
 
     const now = Date.now();
     const event = await Event.create({
+      isTestData: true,
       organizerId: ownerOrganizer._id,
       slug: `phase5-review-${tag}-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
       referenceCode: `RV-${String(Date.now()).slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,

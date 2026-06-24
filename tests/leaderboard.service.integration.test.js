@@ -314,6 +314,7 @@ async function seedLeaderboardData(tag) {
 
   const now = Date.now();
   const eventA = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `leaderboard-a-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `LB-${String(now).slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -334,6 +335,7 @@ async function seedLeaderboardData(tag) {
   });
 
   const eventB = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `leaderboard-b-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `LC-${String(now + 1).slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -439,6 +441,7 @@ async function seedAccumulatedLeaderboardData(tag) {
   const runnerB = await createRunner(`leaderboard.${tag}.runnerb.${stamp}`, passwordHash);
   const now = Date.now();
   const event = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `accumulated-leaderboard-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `LA-${String(now).slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,

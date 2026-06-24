@@ -2035,6 +2035,22 @@ exports.updateEvent = async (req, res) => {
   }
 };
 
+exports.toggleEventSitemapExclusion = async (req, res) => {
+  try {
+    const event = await findAdminEventOrNull(req.params.id);
+    if (!event) return res.status(404).json({ success: false, message: 'Event not found.' });
+    if (event.isTestData) {
+      return res.redirect(getAdminEventRedirect(event._id, 'error', 'Test data events cannot have their sitemap status changed.'));
+    }
+    event.excludeFromSitemap = req.body.excludeFromSitemap === '1';
+    await event.save();
+    const msg = event.excludeFromSitemap ? 'Event excluded from sitemap.' : 'Event re-included in sitemap.';
+    return res.redirect(getAdminEventRedirect(event._id, 'success', msg));
+  } catch (error) {
+    return renderServerError(res, error, 'Unable to update sitemap exclusion.');
+  }
+};
+
 exports.approveEvent = async (req, res) => {
   try {
     const event = await findAdminEventOrNull(req.params.id);

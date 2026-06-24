@@ -133,6 +133,7 @@ async function seedRouteLeaderboardData() {
   });
   const now = Date.now();
   const event = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `route-leaderboard-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `RL-${String(now).slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,

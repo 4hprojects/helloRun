@@ -561,6 +561,14 @@ const eventSchema = new mongoose.Schema(
       default: false,
       index: true
     },
+    isTestData: {
+      type: Boolean,
+      default: false
+    },
+    excludeFromSitemap: {
+      type: Boolean,
+      default: false
+    },
     isDeleted: {
       type: Boolean,
       default: false,

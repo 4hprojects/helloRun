@@ -229,6 +229,7 @@ async function seedFixtures() {
 
   async function createEvent(suffix) {
     return Event.create({
+      isTestData: true,
       organizerId: organizer._id,
       slug: `shop-cartact-${suffix}-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
       referenceCode: `SCA${suffix}-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,

@@ -244,6 +244,7 @@ async function seedPublicFilterFixture() {
   const now = Date.now();
 
   const upcomingVirtual = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `virtual-sunrise-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `PV-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -274,6 +275,7 @@ async function seedPublicFilterFixture() {
     // Keep the query text and distance/mode identical for deterministic filter matches.
     // Vary dates/slugs so records remain unique.
     const extraEvent = await Event.create({
+      isTestData: true,
       organizerId: organizer._id,
       slug: `virtual-sunrise-${stamp}-extra-${i}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
       referenceCode: `PX-${String(stamp).replace(/\D/g, '').slice(-4)}${String(i).padStart(2, '0')}`,
@@ -298,6 +300,7 @@ async function seedPublicFilterFixture() {
   }
 
   const upcomingOnsite = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `onsite-trail-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `PO-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -321,6 +324,7 @@ async function seedPublicFilterFixture() {
   });
 
   const descriptionOnlyEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `description-only-public-organizer-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `PD-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -343,6 +347,7 @@ async function seedPublicFilterFixture() {
   });
 
   const oldEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `old-city-run-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `PC-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -365,6 +370,7 @@ async function seedPublicFilterFixture() {
   });
 
   const recentClosedEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `recent-closed-run-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `PR-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -387,6 +393,7 @@ async function seedPublicFilterFixture() {
   });
 
   const futurePostedEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `scheduled-posting-hidden-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `PF-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -410,6 +417,7 @@ async function seedPublicFilterFixture() {
   });
 
   const pastPostedEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `scheduled-posting-visible-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `PY-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,

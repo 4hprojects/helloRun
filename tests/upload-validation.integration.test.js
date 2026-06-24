@@ -397,6 +397,7 @@ async function seedFixtures() {
 
   const now = Date.now();
   const event = await Event.create({
+      isTestData: true,
     organizerId: eventOwner._id,
     slug: `upload-val-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `UV-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,

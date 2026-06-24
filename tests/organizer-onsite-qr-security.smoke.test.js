@@ -241,6 +241,7 @@ function createUser(data) {
 function createEvent({ organizerId, slug, referenceCode }) {
   const now = Date.now();
   return Event.create({
+      isTestData: true,
     organizerId,
     slug,
     referenceCode,

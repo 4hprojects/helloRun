@@ -333,6 +333,7 @@ async function seedFixtures() {
 
   const now = Date.now();
   const event = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `csrf-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `CF-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -353,6 +354,7 @@ async function seedFixtures() {
   });
 
   const paidEvent = await Event.create({
+      isTestData: true,
     organizerId: organizer._id,
     slug: `csrf-paid-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `CP-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,

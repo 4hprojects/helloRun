@@ -3,6 +3,7 @@ function getPublicEventVisibilityQuery(now = new Date()) {
     status: 'published',
     isDeleted: { $ne: true },
     isPersonalRecord: { $ne: true },
+    isTestData: { $ne: true },
     $and: [
       {
         $or: [
@@ -18,7 +19,7 @@ function getPublicEventVisibilityQuery(now = new Date()) {
 function isPublicEventVisible(event, now = new Date()) {
   if (!event) return false;
   if (event.status !== 'published') return false;
-  if (event.isDeleted === true || event.isPersonalRecord === true) return false;
+  if (event.isDeleted === true || event.isPersonalRecord === true || event.isTestData === true) return false;
   if (!event.publicListingAvailableAt) return true;
   const availableAt = new Date(event.publicListingAvailableAt);
   if (Number.isNaN(availableAt.getTime())) return true;

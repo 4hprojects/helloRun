@@ -451,6 +451,7 @@ async function seedRouteGuardData(tag, options = {}) {
 
   const now = new Date();
   const event = await Event.create({
+      isTestData: true,
     organizerId: ownerOrganizer._id,
     slug: `phase4-${tag}-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `TG-${String(Date.now()).slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,

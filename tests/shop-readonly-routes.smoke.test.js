@@ -565,6 +565,7 @@ async function seedShopReadonlyFixtures() {
 
   const now = Date.now();
   const event = await Event.create({
+      isTestData: true,
     organizerId: ownerOrganizer._id,
     slug: `shop-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `SHP-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
@@ -585,6 +586,7 @@ async function seedShopReadonlyFixtures() {
   });
 
   const emptyEvent = await Event.create({
+      isTestData: true,
     organizerId: ownerOrganizer._id,
     slug: `shop-empty-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
     referenceCode: `SHE-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
