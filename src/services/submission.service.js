@@ -27,6 +27,7 @@ const AUTO_APPROVAL_CONFIDENCE_THRESHOLD = 0.7;
 const AUTO_APPROVAL_REVIEW_NOTE = 'Auto-approved from OCR name match.';
 const STRAVA_AUTO_APPROVAL_REVIEW_NOTE = 'Auto-approved from verified Strava activity.';
 let runSubmissionBackgroundTasksInline = false;
+let disableSubmissionSyncBackgroundTasks = false;
 
 async function createSubmission({
   registrationId,
@@ -322,6 +323,7 @@ async function reviewSubmission({
 }
 
 function syncSubmissionShadowInBackground(submission) {
+  if (disableSubmissionSyncBackgroundTasks) return;
   if (!submission || !submission._id || !process.env.DATABASE_URL) return;
   syncSubmissionShadow(submission, { operation: 'live_sync' }).catch((error) => {
     console.error('[Submission Shadow Sync] Failed to sync submission:', {
@@ -1838,6 +1840,7 @@ function refreshGlobalDistanceMilestonesSafe(mongoUserId, options = {}) {
 }
 
 function syncEventRankingsInBackground(submission, eventSlug) {
+  if (disableSubmissionSyncBackgroundTasks) return;
   if (!process.env.DATABASE_URL || !eventSlug || submission.isPersonalRecord) return;
   (async () => {
     try {
@@ -1939,6 +1942,10 @@ function __setRunSubmissionBackgroundTasksInline(value) {
   runSubmissionBackgroundTasksInline = Boolean(value);
 }
 
+function __setDisableSubmissionSyncBackgroundTasks(value) {
+  disableSubmissionSyncBackgroundTasks = Boolean(value);
+}
+
 module.exports = {
   createSubmission,
   editRejectedSubmissionMetadata,
@@ -1957,5 +1964,6 @@ module.exports = {
   getAutoApprovalReviewNote,
   buildSubmissionPayload,
   getEligibleRunnerRegistration,
-  __setRunSubmissionBackgroundTasksInline
+  __setRunSubmissionBackgroundTasksInline,
+  __setDisableSubmissionSyncBackgroundTasks
 };

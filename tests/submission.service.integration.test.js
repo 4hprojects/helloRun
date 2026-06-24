@@ -28,7 +28,8 @@ const {
   detectSuspiciousActivity,
   isAutoApprovableOcrSubmission,
   buildSubmissionPayload,
-  __setRunSubmissionBackgroundTasksInline
+  __setRunSubmissionBackgroundTasksInline,
+  __setDisableSubmissionSyncBackgroundTasks
 } = require('../src/services/submission.service');
 const {
   assertRunDateNotFuture,
@@ -41,14 +42,19 @@ const {
   getRegistrationAccumulatedProgress
 } = require('../src/services/accumulated-activity.service');
 const { resolveAccumulatedTargetDistanceKm } = require('../src/services/accumulated-target.service');
+const { __setDisableSubmissionShadowSync } = require('../src/services/submission-shadow.service');
 
 test.before(async () => {
   __setRunSubmissionBackgroundTasksInline(true);
+  __setDisableSubmissionSyncBackgroundTasks(true);
+  __setDisableSubmissionShadowSync(true);
   await mongoose.connect(process.env.MONGODB_URI);
 });
 
 test.after(async () => {
   __setRunSubmissionBackgroundTasksInline(false);
+  __setDisableSubmissionSyncBackgroundTasks(false);
+  __setDisableSubmissionShadowSync(false);
   await mongoose.disconnect();
 });
 

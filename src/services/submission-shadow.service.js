@@ -5,6 +5,8 @@ const crypto = require('crypto');
 const { getPostgresClient } = require('../db/postgres');
 const { toPostgresSmokeMeta } = require('../utils/smoke-test-meta');
 
+let disableSubmissionShadowSync = false;
+
 /**
  * Normalize MongoDB Submission into Supabase submissions_core record
  * 
@@ -105,6 +107,9 @@ function normalizeMongoSubmissionCertificate(submission, submissionCoreRow) {
  * @returns {Promise<Object>} synced submission and certificate rows
  */
 async function syncSubmissionShadow(submission, options = {}) {
+  if (disableSubmissionShadowSync) {
+    return null;
+  }
   const sql = options.sql || getPostgresClient();
   const operation = options.operation || 'live_sync';
 
@@ -323,9 +328,14 @@ async function syncSubmissionShadow(submission, options = {}) {
   }
 }
 
+function __setDisableSubmissionShadowSync(value) {
+  disableSubmissionShadowSync = Boolean(value);
+}
+
 module.exports = {
   normalizeMongoSubmission,
   buildSubmissionChecksum,
   normalizeMongoSubmissionCertificate,
-  syncSubmissionShadow
+  syncSubmissionShadow,
+  __setDisableSubmissionShadowSync
 };
