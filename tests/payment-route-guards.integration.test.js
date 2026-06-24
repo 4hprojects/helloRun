@@ -225,6 +225,49 @@ test('payment-proof review page renders pending proof workflow', async () => {
   assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/registrants/${seed.registrationA._id}/payment/reject`));
 });
 
+test('payment-proof review page paginates pending proofs and preserves filters', async () => {
+  const seed = await seedRouteGuardData('review-page-pagination', {
+    paymentStatusA: 'proof_submitted',
+    paymentProofUrlA: 'https://example.com/proofs/page-a.png',
+    paymentStatusB: 'proof_submitted',
+    paymentProofUrlB: 'https://example.com/proofs/page-b.png'
+  });
+
+  const extraRegistrations = Array.from({ length: 50 }, (_, index) => buildRegistrationPayload({
+    eventId: seed.event._id,
+    user: {
+      _id: new mongoose.Types.ObjectId(),
+      firstName: 'Runner',
+      lastName: `Page ${index}`,
+      email: `phase4.review-page-pagination.extra-${index}.${Date.now()}@example.com`,
+      mobile: '09171230000',
+      country: 'PH',
+      gender: 'male',
+      emergencyContactName: 'Emergency Extra',
+      emergencyContactNumber: '09170000999'
+    },
+    paymentStatus: 'proof_submitted',
+    paymentProofUrl: `https://example.com/proofs/page-extra-${index}.png`
+  }));
+  await Registration.insertMany(extraRegistrations);
+
+  const organizerSession = await login(seed.ownerOrganizer.email, seed.password);
+  await assertOrganizerSessionReady(organizerSession);
+
+  const response = await fetch(
+    `${BASE_URL}/organizer/events/${seed.event._id}/payment-proofs/review?q=Runner`,
+    {
+      headers: { Cookie: organizerSession },
+      redirect: 'manual'
+    }
+  );
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Showing <strong>50<\/strong> of <strong>52<\/strong> payment proofs/i);
+  assert.match(html, /Page 1 of 2/i);
+  assert.match(html, new RegExp(`/organizer/events/${seed.event._id}/payment-proofs/review\\?q=[^"]+&amp;page=2`, 'i'));
+});
+
 test('payment-proof review page filters reviewed items and empty search states', async () => {
   const seed = await seedRouteGuardData('review-page-filters', {
     paymentStatusA: 'proof_submitted',

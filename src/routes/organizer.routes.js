@@ -60,6 +60,7 @@ const MAX_GALLERY_IMAGES = 12;
 const PREVIEW_SESSION_TTL_MS = 30 * 60 * 1000;
 const MAX_PREVIEW_SESSION_ENTRIES = 5;
 const RUN_PROOF_REVIEW_PAGE_SIZE = 50;
+const PAYMENT_PROOF_REVIEW_PAGE_SIZE = 50;
 const VIRTUAL_COMPLETION_MODES = new Set(['single_activity', 'accumulated_distance']);
 const ACCEPTED_RUN_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
 const RECOGNITION_MODES = new Set(['completion_only', 'completion_with_optional_ranking']);
@@ -1747,15 +1748,26 @@ router.get('/events/:eventId/payment-proofs/review', requireAuth, async (req, re
       ];
     }
 
-    const [registrationsRaw, pendingCount, paidCount, rejectedCount] = await Promise.all([
-      Registration.find(query)
-        .sort({ 'paymentProof.uploadedAt': -1, paymentReviewedAt: -1, updatedAt: -1, registeredAt: -1 })
-        .populate('paymentReviewedBy', 'firstName lastName email')
-        .lean(),
+    const [totalItems, pendingCount, paidCount, rejectedCount] = await Promise.all([
+      Registration.countDocuments(query),
       Registration.countDocuments({ eventId: event._id, paymentStatus: 'proof_submitted' }),
       Registration.countDocuments({ eventId: event._id, paymentStatus: 'paid' }),
       Registration.countDocuments({ eventId: event._id, paymentStatus: 'proof_rejected' })
     ]);
+
+    const totalPages = Math.max(1, Math.ceil(totalItems / PAYMENT_PROOF_REVIEW_PAGE_SIZE));
+    const page = Math.min(filters.page, totalPages);
+    const pageStart = (page - 1) * PAYMENT_PROOF_REVIEW_PAGE_SIZE;
+    filters.page = page;
+
+    const registrationsRaw = totalItems > 0
+      ? await Registration.find(query)
+        .sort({ 'paymentProof.uploadedAt': -1, paymentReviewedAt: -1, updatedAt: -1, registeredAt: -1 })
+        .skip(pageStart)
+        .limit(PAYMENT_PROOF_REVIEW_PAGE_SIZE)
+        .populate('paymentReviewedBy', 'firstName lastName email')
+        .lean()
+      : [];
 
     const reviewItems = registrationsRaw.map((registration) => buildPaymentProofReviewRow(registration, event));
     const reviewedCount = paidCount + rejectedCount;
@@ -1774,11 +1786,19 @@ router.get('/events/:eventId/payment-proofs/review', requireAuth, async (req, re
         rejected: rejectedCount,
         paid: paidCount
       },
+      pagination: {
+        page,
+        totalPages,
+        totalItems,
+        pageSize: PAYMENT_PROOF_REVIEW_PAGE_SIZE,
+        prevHref: page > 1 ? buildPaymentProofReviewPath(event._id, filters, { page: page - 1 }) : '',
+        nextHref: page < totalPages ? buildPaymentProofReviewPath(event._id, filters, { page: page + 1 }) : ''
+      },
       links: {
-        pending: buildPaymentProofReviewPath(event._id, filters, { status: 'pending' }),
-        approved: buildPaymentProofReviewPath(event._id, filters, { status: 'approved' }),
-        rejected: buildPaymentProofReviewPath(event._id, filters, { status: 'rejected' }),
-        all: buildPaymentProofReviewPath(event._id, filters, { status: 'all' }),
+        pending: buildPaymentProofReviewPath(event._id, filters, { status: 'pending', page: 1 }),
+        approved: buildPaymentProofReviewPath(event._id, filters, { status: 'approved', page: 1 }),
+        rejected: buildPaymentProofReviewPath(event._id, filters, { status: 'rejected', page: 1 }),
+        all: buildPaymentProofReviewPath(event._id, filters, { status: 'all', page: 1 }),
         reset: `/organizer/events/${event._id}/payment-proofs/review`,
         registrants: `/organizer/events/${event._id}/registrants`
       }
@@ -3864,7 +3884,9 @@ function normalizePaymentProofReviewFilters(queryParams = {}) {
     ? String(queryParams.status).trim()
     : 'pending';
   const q = typeof queryParams.q === 'string' ? queryParams.q.trim().slice(0, 80) : '';
-  return { status, q };
+  const requestedPage = Number.parseInt(String(queryParams.page || '1'), 10);
+  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  return { status, q, page };
 }
 
 function getPaymentProofReviewStatusQuery(status) {
@@ -3879,6 +3901,7 @@ function buildPaymentProofReviewPath(eventId, filters = {}, overrides = {}) {
   const params = new URLSearchParams();
   if (next.status && next.status !== 'pending') params.set('status', next.status);
   if (next.q) params.set('q', next.q);
+  if (Number(next.page || 1) > 1) params.set('page', String(next.page));
   const query = params.toString();
   return `/organizer/events/${String(eventId)}/payment-proofs/review${query ? `?${query}` : ''}`;
 }
