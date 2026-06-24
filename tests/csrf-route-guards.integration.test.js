@@ -217,6 +217,74 @@ test('result submission rejects missing csrf token', async () => {
   assert.equal(response.status, 403);
 });
 
+test('organizer payment review action rejects missing csrf token', async () => {
+  const organizerCookie = await login(seed.organizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', organizerCookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/registrants/${seed.unpaidRegistration._id}/payment/approve`, {
+    method: 'POST',
+    headers: {
+      Cookie: organizerCookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ reviewNotes: 'Missing CSRF should fail first.' }),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 403);
+});
+
+test('organizer run proof review action rejects missing csrf token', async () => {
+  const organizerCookie = await login(seed.organizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', organizerCookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/submissions/000000000000000000000000/approve`, {
+    method: 'POST',
+    headers: {
+      Cookie: organizerCookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ reviewNotes: 'Missing CSRF should fail first.' }),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 403);
+});
+
+test('organizer event status action rejects missing csrf token', async () => {
+  const organizerCookie = await login(seed.organizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', organizerCookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/status`, {
+    method: 'POST',
+    headers: {
+      Cookie: organizerCookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ nextStatus: 'closed' }),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 403);
+});
+
+test('organizer media removal action rejects missing csrf token', async () => {
+  const organizerCookie = await login(seed.organizer.email, seed.password);
+  await waitForSessionReady('/organizer/dashboard', organizerCookie);
+
+  const response = await fetch(`${BASE_URL}/organizer/events/${seed.event._id}/media/remove`, {
+    method: 'POST',
+    headers: {
+      Cookie: organizerCookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ kind: 'banner' }),
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 403);
+});
+
 async function seedFixtures() {
   await ensureCurrentPolicies();
 

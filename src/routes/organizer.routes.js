@@ -1968,6 +1968,7 @@ router.get('/events/:id/submissions/:submissionId/review', requireAuth, async (r
 router.post(
   '/events/:id/registrants/:registrationId/payment/approve',
   requireAuth,
+  requireCsrfProtection,
   paymentReviewActionLimiter,
   async (req, res) => {
     try {
@@ -2087,6 +2088,7 @@ router.post(
 router.post(
   '/events/:id/registrants/:registrationId/payment/reject',
   requireAuth,
+  requireCsrfProtection,
   paymentReviewActionLimiter,
   async (req, res) => {
     try {
@@ -2214,6 +2216,7 @@ router.post(
 router.post(
   '/events/:id/submissions/:submissionId/approve',
   requireAuth,
+  requireCsrfProtection,
   paymentReviewActionLimiter,
   async (req, res) => {
     try {
@@ -2303,6 +2306,7 @@ router.post(
 router.post(
   '/events/:id/submissions/:submissionId/reject',
   requireAuth,
+  requireCsrfProtection,
   paymentReviewActionLimiter,
   async (req, res) => {
     try {
@@ -2864,7 +2868,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
    POST: Event Status Transition (Owner Only)
    ========================================== */
 
-router.post('/events/:id/status', requireApprovedOrganizer, async (req, res) => {
+router.post('/events/:id/status', requireApprovedOrganizer, requireCsrfProtection, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -2933,7 +2937,7 @@ router.post('/events/:id/status', requireApprovedOrganizer, async (req, res) => 
    POST: Remove Event Media Immediately (Owner Only)
    ========================================== */
 
-router.post('/events/:id/media/remove', requireApprovedOrganizer, async (req, res) => {
+router.post('/events/:id/media/remove', requireApprovedOrganizer, requireCsrfProtection, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {

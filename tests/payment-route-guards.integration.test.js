@@ -63,6 +63,7 @@ test('runner cannot upload payment proof for another runner registration', async
   const runnerSession = await login(seed.runnerA.email, seed.password);
   await assertRunnerSessionReady(runnerSession);
   const form = buildProofFormData();
+  form.append('_csrf', await getCsrfToken('/my-registrations', runnerSession));
 
   const response = await fetch(`${BASE_URL}/my-registrations/${seed.registrationB._id}/payment-proof`, {
     method: 'POST',
@@ -249,7 +250,9 @@ test('payment approve creates runner in-app notification', async () => {
     headers: { Cookie: runnerSession }
   });
   const html = await notificationsPage.text();
-  assert.match(html, /nav-notification-badge[^>]*>1</i);
+  assert.match(html, /Payment Approved/i);
+  assert.match(html, new RegExp(escapeRegex(seed.event.title), 'i'));
+  assert.match(html, /payment_approved/i);
 });
 
 test('payment reject creates runner in-app notification', async () => {
@@ -286,7 +289,9 @@ test('payment reject creates runner in-app notification', async () => {
     headers: { Cookie: runnerSession }
   });
   const html = await notificationsPage.text();
-  assert.match(html, /nav-notification-badge[^>]*>1</i);
+  assert.match(html, /Payment Needs Update/i);
+  assert.match(html, new RegExp(escapeRegex(seed.event.title), 'i'));
+  assert.match(html, /payment_rejected/i);
 });
 
 async function seedRouteGuardData(tag, options = {}) {
@@ -493,15 +498,32 @@ async function login(email, password) {
 }
 
 async function postForm(routePath, cookie, payload = {}) {
+  const csrfToken = await getCsrfToken('/organizer/dashboard', cookie);
   return fetch(`${BASE_URL}${routePath}`, {
     method: 'POST',
     headers: {
       Cookie: cookie,
       'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: new URLSearchParams(payload),
+    body: new URLSearchParams({
+      _csrf: csrfToken,
+      ...payload
+    }),
     redirect: 'manual'
   });
+}
+
+async function getCsrfToken(pathname, cookie) {
+  const response = await fetch(`${BASE_URL}${pathname}`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  const tokenMatch = html.match(/name="_csrf"\s+value="([^"]+)"/i)
+    || html.match(/<meta name="csrf-token" content="([^"]+)"/i);
+  assert.ok(tokenMatch, `Expected CSRF token on ${pathname}`);
+  return tokenMatch[1];
 }
 
 async function assertOrganizerSessionReady(cookie) {
