@@ -1120,6 +1120,7 @@ router.post('/events/:id/payment-reviews/bulk-approve', requireAuth, requireCsrf
       registrationIds.map(async (regId) => {
         const registration = await Registration.findOne({ _id: regId, eventId: event._id });
         if (!registration || !canOrganizerReviewPaymentProof(registration)) throw new Error('Skipped');
+        if (String(registration.userId) === String(user._id)) throw new Error('Skipped');
         const previousStatus = registration.paymentStatus;
         registration.paymentStatus = 'paid';
         registration.paymentReviewedAt = new Date();
@@ -2023,6 +2024,28 @@ router.post(
           status: 404,
           message: 'Event not found or you do not have access.'
         });
+      }
+
+      // Guard: organiser cannot approve their own payment proof
+      const targetReg = await Registration.findOne({
+        _id: req.params.registrationId,
+        eventId: event._id
+      }).select('userId').lean();
+      if (targetReg && String(targetReg.userId) === String(user._id)) {
+        recordCriticalAuditEventInBackground({
+          actorMongoUserId: user._id,
+          action: 'payment.self_approval_blocked',
+          targetType: 'registration',
+          targetId: String(req.params.registrationId),
+          statusFrom: '',
+          statusTo: '',
+          notes: '[SELF-APPROVAL BLOCKED] Organiser attempted to approve their own payment proof.',
+          ipAddress: getRequestIpAddress(req),
+          userAgent: getRequestUserAgent(req),
+          occurredAt: new Date()
+        });
+        const q = new URLSearchParams({ type: 'error', msg: 'You cannot approve your own payment proof.' });
+        return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
       }
 
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1000);

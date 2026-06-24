@@ -7,6 +7,14 @@ const crypto = require('crypto');
 const { sendJsonServerError } = require('../../utils/json-error-response');
 const { recordOnsiteResult, logResultImport } = require('../../services/onsite-operations.service');
 const { getPostgresClient } = require('../../db/postgres');
+const { createRateLimiter } = require('../../middleware/rate-limit.middleware');
+
+// 10 webhook calls per minute per IP — prevents abuse if the secret is compromised
+const webhookRateLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many webhook requests. Please slow down.'
+});
 
 // Webhook signature verification middleware
 function verifyWebhookSignature(req, res, next) {
@@ -43,7 +51,7 @@ function verifyWebhookSignature(req, res, next) {
 // POST /webhooks/timing-system/results
 // Headers: x-timing-webhook-signature, x-timing-webhook-timestamp
 // Body: { event_id, system_name, results: [{ bib_number, elapsed_ms, run_date, ... }, ...] }
-router.post('/results', verifyWebhookSignature, async (req, res) => {
+router.post('/results', webhookRateLimiter, verifyWebhookSignature, async (req, res) => {
   try {
     const { event_id, system_name, results } = req.body;
 
@@ -168,7 +176,7 @@ router.post('/results', verifyWebhookSignature, async (req, res) => {
 
 // Webhook: check-in confirmation from timing system
 // POST /webhooks/timing-system/check-ins
-router.post('/check-ins', verifyWebhookSignature, async (req, res) => {
+router.post('/check-ins', webhookRateLimiter, verifyWebhookSignature, async (req, res) => {
   try {
     const { event_id, bib_number, timestamp } = req.body;
 

@@ -859,11 +859,26 @@ router.post('/reset-password/:token', requireCsrfProtection, async (req, res) =>
     }
 
     const hashedToken = passwordService.hashToken(token);
-    
-    const user = await User.findOne({
-      passwordResetToken: hashedToken,
-      passwordResetExpires: { $gt: Date.now() }
-    });
+
+    // Hash the new password before the atomic update so the token is cleared
+    // and the password is set in a single round trip — eliminating the race
+    // window where a concurrent request could reuse the same token.
+    const newPasswordHash = await passwordService.hashPassword(password);
+
+    const user = await User.findOneAndUpdate(
+      {
+        passwordResetToken: hashedToken,
+        passwordResetExpires: { $gt: Date.now() }
+      },
+      {
+        $set: {
+          passwordHash: newPasswordHash,
+          passwordResetToken: null,
+          passwordResetExpires: null
+        }
+      },
+      { new: false }
+    );
 
     if (!user) {
       return res.render('auth/reset-password', {
@@ -872,19 +887,6 @@ router.post('/reset-password/:token', requireCsrfProtection, async (req, res) =>
         token: null
       });
     }
-
-    const newPasswordHash = await passwordService.hashPassword(password);
-
-    await User.updateOne(
-      { _id: user._id },
-      {
-        $set: {
-          passwordHash: newPasswordHash,
-          passwordResetToken: null,
-          passwordResetExpires: null
-        }
-      }
-    );
 
     communicationService.notify('account.password_reset_confirmation', {
       email: {
