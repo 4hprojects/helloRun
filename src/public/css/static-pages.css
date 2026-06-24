@@ -495,3 +495,47 @@
     bottom: 1rem;
   }
 }
+
+/* ── Certificate share block ── */
+.cert-share-block {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.cert-share-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 0.75rem;
+}
+
+.cert-share-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.cert-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: opacity 0.15s;
+}
+
+.cert-share-btn:hover { opacity: 0.85; }
+
+.cert-share-facebook { background: #1877f2; color: #fff; }
+.cert-share-x        { background: #000; color: #fff; }
+.cert-share-linkedin { background: #0a66c2; color: #fff; }
+.cert-share-email    { background: #f1f5f9; color: #0f172a; border-color: #e2e8f0; }
+.cert-share-copy     { background: #f1f5f9; color: #0f172a; border-color: #e2e8f0; }

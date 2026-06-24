@@ -228,6 +228,8 @@ function formatSubmissionListItem(doc) {
     proofUrl: doc.proof?.url || '',
     hasCertificate,
     certificateUrl: hasCertificate ? `/my-submissions/${String(doc._id)}/certificate` : '',
+    certVerificationUrl: hasCertificate ? (doc.certificate?.verificationUrl || '') : '',
+    certificateNumber: hasCertificate ? (doc.certificate?.certificateNumber || '') : '',
     certificateIssuedAt: doc.certificate?.issuedAt || null,
     isPersonalRecord: Boolean(doc.isPersonalRecord),
     isAccumulatedActivity,

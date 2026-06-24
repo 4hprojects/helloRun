@@ -23,7 +23,7 @@ async function verifyCertificateNumber(certificateNumber) {
 async function findCertificateRecord(certificateNumber) {
   const query = { 'certificate.certificateNumber': certificateNumber };
   const populate = [
-    { path: 'eventId', select: 'title organiserName eventStartAt eventEndAt' },
+    { path: 'eventId', select: 'title organiserName eventStartAt eventEndAt logoUrl' },
     { path: 'registrationId', select: 'raceDistance participant confirmationCode' },
     { path: 'runnerId', select: 'firstName lastName' }
   ];
@@ -55,7 +55,8 @@ function buildPublicCertificateData(record) {
     rank: '',
     generatedAt: certificate.issuedAt || record.reviewedAt || null,
     revokedAt: certificate.revokedAt || null,
-    verificationUrl: certificate.verificationUrl || ''
+    verificationUrl: certificate.verificationUrl || '',
+    eventLogoUrl: String(event.logoUrl || '').trim()
   };
 }
 

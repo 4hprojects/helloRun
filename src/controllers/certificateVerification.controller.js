@@ -39,20 +39,36 @@ async function getVerificationResult(req, res, next) {
     });
     const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
     const canonicalUrl = `${appUrl}/certificates/verify/${encodeURIComponent(certificateNumber)}`;
-    const seo = result.found
-      ? {
-          ogTitle: `${result.eventTitle} — Verified HelloRun Certificate`,
-          description: `Certificate verified for ${result.runnerName}. Issued by HelloRun.`,
-          canonicalUrl,
-          ogType: 'profile'
-        }
-      : null;
+
+    let seo = null;
+    let shareUrls = null;
+    if (result.found && result.certificate.status === 'valid') {
+      const cert = result.certificate;
+      const ogTitle = `${cert.eventTitle} — Verified HelloRun Certificate`;
+      const shareText = `I completed ${cert.eventTitle} and earned a verified certificate! 🏃 #HelloRun`;
+      seo = {
+        ogTitle,
+        description: `${cert.runnerName} completed ${cert.eventTitle}${cert.distance ? ` (${cert.distance})` : ''}${cert.finishTime ? ` in ${cert.finishTime}` : ''}. Verified by HelloRun.`,
+        canonicalUrl,
+        ogType: 'profile',
+        ogImage: cert.eventLogoUrl || '',
+        twitterCard: 'summary_large_image'
+      };
+      shareUrls = {
+        facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(canonicalUrl)}`,
+        x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(canonicalUrl)}`,
+        linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(canonicalUrl)}`,
+        mail: `mailto:?subject=${encodeURIComponent(ogTitle)}&body=${encodeURIComponent(`${shareText}\n\n${canonicalUrl}`)}`
+      };
+    }
 
     return res.render('certificates/verification-result', {
       title: 'Certificate Verification - HelloRun',
       seo,
       certificateNumber,
-      result
+      result,
+      canonicalUrl,
+      shareUrls
     });
   } catch (error) {
     return next(error);

@@ -1515,3 +1515,44 @@
   color: #64748b;
   font-size: 0.75rem;
 }
+
+/* ── Certificate share strip ── */
+.sub-cert-share {
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.sub-cert-share-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.5rem;
+}
+
+.sub-cert-share-btns {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sub-share-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sub-share-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}

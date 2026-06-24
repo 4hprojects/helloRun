@@ -391,12 +391,41 @@
                 <a href="/my-submissions/<%= submission.submissionId %>/certificate" class="btn btn-primary btn-sm">
                   <i data-lucide="download" aria-hidden="true"></i> Download Certificate
                 </a>
+                <% if (submission.certVerificationUrl) { %>
+                  <a href="<%= submission.certVerificationUrl %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">
+                    <i data-lucide="shield-check" aria-hidden="true"></i> Verify
+                  </a>
+                <% } %>
                 <% if (!submission.isPersonalRecord && submission.eventSlug) { %>
                   <a href="/events/<%= submission.eventSlug %>" class="btn btn-outline btn-sm">
                     <i data-lucide="external-link" aria-hidden="true"></i> Event Page
                   </a>
                 <% } %>
               </div>
+              <% if (submission.certVerificationUrl) { %>
+                <div class="sub-cert-share">
+                  <p class="sub-cert-share-label">Share your achievement</p>
+                  <div class="sub-cert-share-btns">
+                    <%
+                      const _certUrl = submission.certVerificationUrl;
+                      const _shareText = encodeURIComponent('I completed ' + submission.eventTitle + ' and earned a verified certificate! 🏃 #HelloRun');
+                      const _certUrlEnc = encodeURIComponent(_certUrl);
+                    %>
+                    <a href="https://twitter.com/intent/tweet?text=<%= _shareText %>&url=<%= _certUrlEnc %>" target="_blank" rel="noopener noreferrer" class="sub-share-btn" aria-label="Share on X">
+                      <i data-lucide="twitter" aria-hidden="true"></i>
+                    </a>
+                    <a href="https://www.facebook.com/sharer/sharer.php?u=<%= _certUrlEnc %>" target="_blank" rel="noopener noreferrer" class="sub-share-btn" aria-label="Share on Facebook">
+                      <i data-lucide="facebook" aria-hidden="true"></i>
+                    </a>
+                    <a href="https://www.linkedin.com/sharing/share-offsite/?url=<%= _certUrlEnc %>" target="_blank" rel="noopener noreferrer" class="sub-share-btn" aria-label="Share on LinkedIn">
+                      <i data-lucide="linkedin" aria-hidden="true"></i>
+                    </a>
+                    <button type="button" class="sub-share-btn sub-share-copy" data-copy-url="<%= _certUrl %>" aria-label="Copy verification link">
+                      <i data-lucide="copy" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </div>
+              <% } %>
             </div>
           </section>
         <% } %>
@@ -434,6 +463,15 @@
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
+  <script>
+    if (window.lucide) lucide.createIcons();
+    document.querySelector('.sub-share-copy')?.addEventListener('click', function() {
+      navigator.clipboard.writeText(this.dataset.copyUrl).then(() => {
+        const icon = this.querySelector('[data-lucide]');
+        if (icon) { icon.setAttribute('data-lucide', 'check'); lucide.createIcons(); }
+        setTimeout(() => { if (icon) { icon.setAttribute('data-lucide', 'copy'); lucide.createIcons(); } }, 2000);
+      });
+    });
+  </script>
 </body>
 </html>
