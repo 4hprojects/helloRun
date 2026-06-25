@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "reason": "Inter is committed as --hr-font-body in design-system.css across the full product; identity-preservation wins per brand register.",
+        "createdAt": "2026-06-25T08:37:59.352Z"
+      }
+    ]
+  }
+}

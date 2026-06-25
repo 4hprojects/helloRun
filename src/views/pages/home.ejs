@@ -3,7 +3,6 @@
 <head>
   <%- include('../layouts/head', { title: title || 'HelloRun - Find Your Next Virtual Race', seo: seo }) %>
   <link rel="stylesheet" href="/css/helloRun.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
 
@@ -16,20 +15,12 @@
         <div class="hero-text">
           <h1 class="hero-title">Run anywhere. <span class="highlight">Show up with purpose.</span></h1>
           <p class="hero-subtitle">
-            Discover virtual, on-site, and hybrid running events that match your pace, submit completed runs for review, and keep your progress visible in one organized running profile.
+            Find virtual and on-site running events, submit your finish online, and keep results, certificates, and progress in one place — no GPS lock-in required.
           </p>
 
-          <div class="hero-stats">
-            <% (stats || []).forEach((stat) => { %>
-              <div class="stat-item">
-                <div class="stat-heading">
-                  <i data-lucide="<%= stat.icon %>" class="stat-icon"></i>
-                  <span class="stat-value"><%= stat.value %></span>
-                </div>
-                <span class="stat-label"><%= stat.label %></span>
-                <span class="stat-detail"><%= stat.detail %></span>
-              </div>
-            <% }) %>
+          <div class="hero-cta-row">
+            <a href="/events" class="btn btn-primary">View Events</a>
+            <a href="/signup" class="btn btn-outline">Sign Up Free</a>
           </div>
 
           <a class="hero-inline-action" href="/my-registrations">
@@ -40,17 +31,29 @@
 
         <div class="hero-visual">
           <div class="visual-placeholder">
-            <div class="hero-visual-card">
-              <div class="hero-visual-chip">
-                <i data-lucide="trophy"></i>
-                <span>Real finish tracking</span>
+            <div class="hero-result-card">
+              <div class="hero-result-approved">
+                <span class="hero-result-approved-dot"></span>
+                Result Approved
               </div>
-
-              <img src="/images/helloRun-icon.webp" alt="HelloRun - Virtual Running Platform" class="hero-logo">
-
-              <div class="hero-buttons hero-buttons-panel">
-                <a href="/events" class="btn btn-primary">View Events</a>
-                <a href="/signup" class="btn btn-outline">Sign Up Free</a>
+              <span class="hero-result-event-name">June Active Quest 5K</span>
+              <div class="hero-result-stats">
+                <div class="hero-result-stat">
+                  <span class="hero-result-stat-value">5.2 km</span>
+                  <span class="hero-result-stat-label">Distance</span>
+                </div>
+                <div class="hero-result-stat">
+                  <span class="hero-result-stat-value">34:12</span>
+                  <span class="hero-result-stat-label">Time</span>
+                </div>
+                <div class="hero-result-stat">
+                  <span class="hero-result-stat-value">#4</span>
+                  <span class="hero-result-stat-label">Rank</span>
+                </div>
+              </div>
+              <div class="hero-result-cert">
+                <i data-lucide="award"></i>
+                <span>Finisher certificate ready</span>
               </div>
             </div>
           </div>
@@ -97,39 +100,6 @@
                   Keep your activity history, approved results, leaderboard progress, and recognition together instead of scattered across different places.
                 </p>
               </div>
-            </article>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <%- include('../partials/ad-unit', { group: 'home', placement: 'after_features' }) %>
-
-    <section class="why-hellorun">
-      <div class="container">
-        <div class="why-shell">
-          <div class="why-intro">
-            <h2 class="section-title section-title-left">A clearer way to join and finish running events</h2>
-            <p class="why-summary">
-              Many community races now happen beyond a single starting line. Some runners join from home, some submit activities over several days, and some organizers combine virtual submissions with on-site check-ins. HelloRun keeps those moving parts understandable before anyone creates an account.
-            </p>
-            <p class="why-summary">
-              Public event pages explain distances, registration windows, proof rules, rewards, and deadlines. Runners can compare options on the <a href="/events">Events</a> page, learn the submission process in <a href="/how-it-works">How It Works</a>, and check common questions in the <a href="/faq">FAQ</a>. The goal is simple: every participant should know what to run, what to submit, and how review decisions are made.
-            </p>
-          </div>
-
-          <div class="why-points" aria-label="HelloRun public value">
-            <article class="why-point">
-              <h3>For first-time virtual runners</h3>
-              <p>Learn how to choose a distance, prepare proof from a running app or screenshot, avoid common submission mistakes, and understand why organizers review results before certificates or leaderboard entries are finalized.</p>
-            </article>
-            <article class="why-point">
-              <h3>For returning participants</h3>
-              <p>Use your dashboard to revisit registrations, payment status, submitted results, badges, certificates, and saved events. Public guides remain available when you need a quick reminder before race week.</p>
-            </article>
-            <article class="why-point">
-              <h3>For organizers</h3>
-              <p>Create event pages that explain rules clearly, collect registrations, review proof, manage payment receipts where enabled, and publish recognition in a way runners can understand and trust.</p>
             </article>
           </div>
         </div>
@@ -345,24 +315,6 @@
         </div>
       </section>
     <% } %>
-
-    <section class="testimonial">
-      <div class="container">
-        <div class="testimonial-card">
-          <i class="fas fa-quote-left quote-icon"></i>
-          <p class="testimonial-text">
-            "HelloRun changed the way I train. The real-time rankings push me to give my best, even when I'm running alone. I've already signed up for three events!"
-          </p>
-          <div class="testimonial-author">
-            <img src="https://ui-avatars.com/api/?name=Henson+Sagorsor&size=50&background=fa9a4b&color=fff" alt="Henson Sagorsor" class="author-avatar">
-            <div>
-              <strong>Henson Sagorsor</strong>
-              <span>member since 2026</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <%- include('../partials/ad-unit', { group: 'home', placement: 'before_cta' }) %>
 
