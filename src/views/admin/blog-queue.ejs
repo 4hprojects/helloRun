@@ -35,24 +35,32 @@
     <% if (posts && posts.length) { %>
       <div style="display: grid; grid-template-columns: 1fr; gap: 0.65rem;">
         <% posts.forEach((post) => { %>
-          <article style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.8rem;">
-            <div style="display: flex; justify-content: space-between; align-items: start; gap: 0.65rem; flex-wrap: wrap;">
-              <div>
-                <h3 style="margin: 0 0 0.3rem;"><%= post.title %></h3>
-                <p style="margin: 0; color: #64748b; font-size: 0.9rem;">
-                  <%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %> | /blog/<%= post.slug %> | <%= post.readingTime || 1 %> min read
-                </p>
-                <p style="margin: 0.25rem 0 0; color: #64748b; font-size: 0.85rem;">
-                  Author: <%= post.authorId?.firstName || '' %> <%= post.authorId?.lastName || '' %> (<%= post.authorId?.email || 'N/A' %>)
-                </p>
+          <% const opensInNewTab = selectedStatus === 'published'; %>
+          <article style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.8rem; display: grid; gap: 0.75rem;">
+            <div style="display: grid; grid-template-columns: <%= post.coverImageUrl ? '150px minmax(0, 1fr)' : '1fr' %>; gap: 0.8rem; align-items: start;">
+              <% if (post.coverImageUrl) { %>
+                <img src="<%= post.coverImageUrl %>" alt="<%= post.title %> cover image" loading="lazy" style="width: 100%; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc;">
+              <% } %>
+              <div style="min-width: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: start; gap: 0.65rem; flex-wrap: wrap;">
+                  <div style="min-width: 0;">
+                    <h3 style="margin: 0 0 0.3rem;"><%= post.title %></h3>
+                    <p style="margin: 0; color: #64748b; font-size: 0.9rem; overflow-wrap: anywhere;">
+                      <%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %> | /blog/<%= post.slug %> | <%= post.readingTime || 1 %> min read
+                    </p>
+                    <p style="margin: 0.25rem 0 0; color: #64748b; font-size: 0.85rem;">
+                      Author: <%= post.authorId?.firstName || '' %> <%= post.authorId?.lastName || '' %> (<%= post.authorId?.email || 'N/A' %>)
+                    </p>
+                  </div>
+                  <span style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 999px; background: #f1f5f9; color: #334155;"><%= post.status %></span>
+                </div>
+                <% if (post.status === 'rejected' && post.rejectionReason) { %>
+                  <p style="margin: 0.5rem 0 0; color: #991b1b;"><strong>Reason:</strong> <%= post.rejectionReason %></p>
+                <% } %>
               </div>
-              <span style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 999px; background: #f1f5f9; color: #334155;"><%= post.status %></span>
             </div>
-            <% if (post.status === 'rejected' && post.rejectionReason) { %>
-              <p style="margin: 0.5rem 0 0; color: #991b1b;"><strong>Reason:</strong> <%= post.rejectionReason %></p>
-            <% } %>
-            <div style="margin-top: 0.65rem;">
-              <a href="/admin/blog/posts/<%= post._id %>/review" class="btn btn-secondary btn-sm">Review Post</a>
+            <div style="display: flex; justify-content: flex-end;">
+              <a href="/admin/blog/posts/<%= post._id %>/review" class="btn btn-secondary btn-sm"<%= opensInNewTab ? ' target="_blank" rel="noopener noreferrer"' : '' %>>Review Post</a>
             </div>
           </article>
         <% }) %>

@@ -1583,7 +1583,7 @@ exports.renderAdminQueuePage = async (req, res) => {
     const posts = await Blog.find(query)
       .populate('authorId', 'firstName lastName email')
       .sort({ activeRevisionSubmittedAt: -1, submittedAt: -1, updatedAt: -1 })
-      .select('title slug status category customCategory submittedAt publishedAt rejectedAt rejectionReason readingTime createdAt updatedAt activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
+      .select('title slug status category customCategory coverImageUrl submittedAt publishedAt rejectedAt rejectionReason readingTime createdAt updatedAt activeRevisionStatus activeRevisionSubmittedAt activeRevisionUpdatedAt activeRevisionRejectionReason');
 
     return res.render('admin/blog-queue', {
       title: 'Blog Moderation - HelloRun Admin',
