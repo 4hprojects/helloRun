@@ -2,7 +2,7 @@
 
 ## Document Role
 - Purpose: Spec for all remaining Phase 11 shop UI surfaces.
-- Status: Active backlog — Priority 1.
+- Status: ✅ DONE — June 21, 2026 (Phase 11 Shop reports, exports, and admin settings complete per STATUS.md).
 - PRD reference: See `docs/PRD.md` Phase 11 and `docs/shop_feature.md` for full backend context.
 
 ## Current Alignment Snapshot (June 7, 2026 — updated, UI conversion + runner payment-proof/cancellation + cart + checkout + platform-merch complete)

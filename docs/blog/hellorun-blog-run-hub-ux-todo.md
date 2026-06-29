@@ -1,5 +1,7 @@
 # HelloRun Blog Run Hub UX Todo
 
+_Status: Active backlog — not started as of June 29, 2026. This is Priority 3 after production deployment and homepage P1 fixes._
+
 Purpose: review and improve the public `/blog` experience so it feels like a HelloRun running and event guide hub, not a generic blog index and article slug view.
 
 This todo focuses on the public reader experience first:

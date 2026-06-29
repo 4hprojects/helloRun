@@ -3,7 +3,18 @@
 **Written:** June 22, 2026
 **Based on:** Full codebase audit, user journey review, docs review, and security analysis
 
-**Latest reconciliation:** June 24, 2026
+**Latest reconciliation:** June 29, 2026
+
+---
+
+## Session Completed (June 25–29, 2026)
+
+| Feature | Completed | Notes |
+|---------|-----------|-------|
+| PRODUCT.md — product brief, user personas (Runner/Organiser), brand personality, design principles, accessibility targets | Jun 25 | Root-level `PRODUCT.md` added as product source of truth |
+| Impeccable live config — detector wired into main layout for in-browser UI critique | Jun 25 | `.impeccable/` config files added |
+| Homepage distill pass — cut four redundancies, copy tightened, layout bolder | Jun 25 | `a5d3f7d`, `c61d254` commits; impeccable critique score 27/40 (3 P1 issues remain — see STATUS.md) |
+| Admin published blog queue cards — improved card design and information density | Jun 25 | `80a1b82` commit |
 
 ---
 
