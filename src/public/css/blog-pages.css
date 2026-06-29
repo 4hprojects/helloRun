@@ -286,7 +286,7 @@
   stroke: currentColor;
   fill: none;
   flex: 0 0 auto;
-  transition: fill 0.18s ease, stroke 0.18s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: fill 0.18s ease, stroke 0.18s ease, transform 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .blog-like-btn.is-liked {
   border-color: #f43f5e;
@@ -297,7 +297,7 @@
 .blog-like-btn.is-liked i {
   fill: #f43f5e;
   stroke: #f43f5e;
-  animation: heart-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: heart-pop 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
 @keyframes heart-pop {
   0%   { transform: scale(1); }
@@ -723,8 +723,9 @@
 }
 .blog-content blockquote {
   margin: 0.9rem 0;
-  padding: 0.55rem 0.8rem;
-  border-left: 4px solid #93c5fd;
+  padding: 0.65rem 1rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
   background: #eff6ff;
   color: #1e3a8a;
 }
@@ -1047,4 +1048,156 @@
 /* ===== Utilities ===== */
 .no-scroll {
   overflow: hidden;
+}
+
+/* ===== Audience chips ===== */
+.post-audience-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0.85rem;
+}
+
+.post-audience-chip-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.post-audience-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(250, 154, 75, 0.12);
+  color: var(--accent-dark);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.post-audience-chip-tag {
+  background: var(--border-light);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ===== Run Action Panel ===== */
+.run-action-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  background: color-mix(in srgb, var(--accent-primary) 6%, var(--bg-primary));
+  border: 1px solid color-mix(in srgb, var(--accent-primary) 20%, transparent);
+  border-radius: 10px;
+  margin-bottom: 1.25rem;
+}
+
+.run-action-panel-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+  margin-right: 0.15rem;
+}
+
+.run-action-panel-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.run-action-panel-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.run-action-panel-link:hover {
+  border-color: var(--accent-primary);
+  color: #b74716;
+}
+
+.run-action-panel-link i,
+.run-action-panel-link svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+}
+
+/* ===== Next step CTA ===== */
+.post-next-step {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 1.1rem 1.35rem;
+  background: linear-gradient(135deg, var(--accent-primary) 0%, #E07030 100%);
+  border-radius: 12px;
+  margin: 2rem 1.15rem 1.5rem;
+}
+
+.post-next-step-text {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+}
+
+.post-next-step-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1.1rem;
+  background: white;
+  color: #b74716;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.post-next-step-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.post-next-step-cta i,
+.post-next-step-cta svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 768px) {
+  .post-next-step {
+    flex-direction: column;
+    align-items: flex-start;
+    margin: 1.5rem 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-action-panel-link,
+  .post-next-step-cta {
+    transition: none;
+  }
+  .post-next-step-cta:hover {
+    transform: none;
+  }
 }

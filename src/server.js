@@ -249,6 +249,7 @@ app.use(populatePublicPageLocals);
 
 app.use('/', authRoutes);
 app.use('/', shopRoutes);
+// pageRoutes mounts before blogRoutes — pageController owns GET /blog and GET /blog/:slug
 app.use('/', pageRoutes);
 app.use('/', runnerRoutes);
 app.use('/', stravaRoutes);

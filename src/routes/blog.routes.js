@@ -43,8 +43,4 @@ router.post('/blogs/me/:id/delete', requireAuth, blogWriteLimiter, requireCsrfPr
 router.post('/blogs/me/:id/revision/discard', requireAuth, blogWriteLimiter, requireCsrfProtection, blogController.discardRevision);
 
 
-// Public blog index and post page (Phase A/E)
-router.get('/blog', blogController.renderPublicBlogIndex);
-router.get('/blog/:slug', blogController.renderPublicBlogPost);
-
 module.exports = router;

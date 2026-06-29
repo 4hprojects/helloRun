@@ -24,6 +24,28 @@
           <h1><%= post.title %></h1>
           <span class="blog-category-chip"><%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %></span>
         </div>
+        <%
+          const audienceMap = {
+            'Training': 'Runners & Walkers',
+            'Race Tips': 'Race Participants',
+            'Virtual Run Guide': 'Virtual Runners',
+            'Organizer Guide': 'Event Organizers',
+            'Nutrition': 'Runners & Walkers',
+            'Gear': 'All Runners',
+            'Injury Prevention': 'Runners & Walkers',
+            'Mental Health': 'All Runners',
+            'Community': 'HelloRun Community',
+            'Motivation': 'All Runners',
+          };
+          const audience = audienceMap[post.category] || 'All Runners';
+        %>
+        <div class="post-audience-chips">
+          <span class="post-audience-chip-label">For:</span>
+          <span class="post-audience-chip"><%= audience %></span>
+          <% (post.tags || []).slice(0, 2).forEach(function(tag) { %>
+            <span class="post-audience-chip post-audience-chip-tag">#<%= tag %></span>
+          <% }) %>
+        </div>
         <% if (post.excerpt) { %>
           <p class="blog-post-excerpt"><%= post.excerpt %></p>
         <% } %>
@@ -94,6 +116,46 @@
         </aside>
 
         <div class="blog-post-body">
+          <%
+            const actionPanelLinks = {
+              'Training': [
+                { label: 'Browse Events', href: '/events', icon: 'calendar' },
+                { label: 'How Proof Works', href: '/how-it-works', icon: 'file-check' },
+                { label: 'Your Results', href: '/runner', icon: 'trophy' },
+              ],
+              'Race Tips': [
+                { label: 'Browse Events', href: '/events', icon: 'calendar' },
+                { label: 'Register for a Run', href: '/events', icon: 'user-plus' },
+                { label: 'Event FAQ', href: '/faq', icon: 'help-circle' },
+              ],
+              'Virtual Run Guide': [
+                { label: 'Browse Virtual Runs', href: '/events', icon: 'play-circle' },
+                { label: 'How to Submit Proof', href: '/how-it-works', icon: 'file-check' },
+                { label: 'FAQ', href: '/faq', icon: 'help-circle' },
+              ],
+              'Organizer Guide': [
+                { label: 'Organiser Portal', href: '/organizer', icon: 'layout-dashboard' },
+                { label: 'Create an Event', href: '/organizer', icon: 'plus-circle' },
+                { label: 'Proof Review FAQ', href: '/faq', icon: 'search' },
+              ],
+            };
+            const panelLinks = actionPanelLinks[post.category] || [
+              { label: 'Browse Events', href: '/events', icon: 'calendar' },
+              { label: 'How It Works', href: '/how-it-works', icon: 'info' },
+              { label: 'FAQ', href: '/faq', icon: 'help-circle' },
+            ];
+          %>
+          <div class="run-action-panel">
+            <span class="run-action-panel-label">Quick links</span>
+            <div class="run-action-panel-links">
+              <% panelLinks.forEach(function(link) { %>
+                <a href="<%= link.href %>" class="run-action-panel-link">
+                  <i data-lucide="<%= link.icon %>" aria-hidden="true"></i>
+                  <%= link.label %>
+                </a>
+              <% }) %>
+            </div>
+          </div>
           <section class="blog-content" id="blogPostContent">
             <%- (blogContentParts && blogContentParts.beforeAd) || post.contentHtml %>
             <% if (blogContentParts && blogContentParts.afterAd) { %>
@@ -208,11 +270,27 @@
       </div>
     </article>
 
+    <%
+      const nextStepMap = {
+        'Training': { label: 'Find your next run', href: '/events' },
+        'Virtual Run Guide': { label: 'Browse virtual events', href: '/events' },
+        'Organizer Guide': { label: 'Go to Organiser Portal', href: '/organizer' },
+        'Race Tips': { label: 'Browse events', href: '/events' },
+      };
+      const nextStep = nextStepMap[post.category] || { label: 'Browse events', href: '/events' };
+    %>
+    <div class="post-next-step">
+      <span class="post-next-step-text">Ready to put this into practice?</span>
+      <a href="<%= nextStep.href %>" class="post-next-step-cta">
+        <%= nextStep.label %> <i data-lucide="arrow-right" aria-hidden="true"></i>
+      </a>
+    </div>
+
     <% if (relatedPosts && relatedPosts.length) { %>
       <%- include('../partials/ad-unit', { group: 'blogPost', placement: 'before_related' }) %>
 
       <section class="blog-related">
-        <h3>Related Posts</h3>
+        <h3>Continue this path</h3>
         <div class="blog-related-grid">
           <% relatedPosts.forEach((item) => { %>
             <a href="/blog/<%= item.slug %>" class="blog-related-card">

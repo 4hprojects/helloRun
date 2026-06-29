@@ -3,9 +3,19 @@
 **Written:** June 22, 2026
 **Based on:** Full codebase audit, user journey review, docs review, and security analysis
 
-**Latest reconciliation:** June 29, 2026
+**Latest reconciliation:** June 29, 2026 (evening)
 
 ---
+
+## Session Completed (June 29, 2026 — evening)
+
+| Feature | Completed | Notes |
+|---------|-----------|-------|
+| Homepage CSS polish | Jun 29 | Impeccable re-run: 30/40 (up from 27/40), 0 P0/P1; `hero-title` → `clamp(2rem, 5vw, 3.25rem)`; ~130 lines dead CSS removed; `.btn` transition enumerated; blockquote full-border; heart-pop easing fixed |
+| Blog Run Hub — Phase 1: route dead code | Jun 29 | Removed dead `GET /blog` + `GET /blog/:slug` from `blog.routes.js`; added route-ownership comment in `server.js` |
+| Blog Run Hub — Phase 2: `/blog` listing reframe | Jun 29 | Header renamed to "Run Hub"; 4 intent tiles (Virtual Runs, Training Tips, Race Prep, Organiser Guides); "Featured Guides" heading; intent labels on post cards |
+| Blog Run Hub — Phase 3: `/blog/:slug` journey layer | Jun 29 | Audience chips (category-mapped "For: X" + up to 2 tags); Run Action Panel (3 category-mapped quick links); "Next step" CTA strip before related posts; "Continue this path" heading replaces "Related Posts" |
+| CSS quality improvements | Jun 29 | `blog.css`: run-hub-tiles, intent-label components; `blog-pages.css`: audience-chips, run-action-panel, post-next-step; blockquote redesigned (full border, no side-stripe); heart-pop easing corrected to ease-out-quint |
 
 ## Session Completed (June 25–29, 2026)
 

@@ -7,15 +7,13 @@
 <body>
   <%- include('../layouts/nav') %>
   <main class="blog-page-shell">
-    <!-- Compact Header -->
+    <!-- Run Hub Header -->
     <section class="blog-header-compact">
       <div class="container">
         <div class="header-top-row">
           <div class="header-titles">
-            <h1>Running stories, tips, and race recaps from the community.</h1>
-            <p>
-              Use the HelloRun blog to learn how virtual runs work, how to prepare proof correctly, how leaderboards and certificates are reviewed, and how organizers can run clearer online events. Articles are written for beginner runners, casual walkers, community organizers, and participants who want practical answers before registering.
-            </p>
+            <h1>Run Hub</h1>
+            <p>Guides for runners and organisers — proof, events, training, certificates, and more.</p>
           </div>
           <div class="header-actions">
             <% if (locals.isAuthenticated) { %>
@@ -29,6 +27,25 @@
               <span class="btn-text">Write</span>
             </a>
           </div>
+        </div>
+
+        <div class="run-hub-tiles">
+          <a href="/blog?category=Virtual+Run+Guide" class="run-hub-tile">
+            <i data-lucide="play-circle" aria-hidden="true"></i>
+            <span class="run-hub-tile-label">Virtual Runs</span>
+          </a>
+          <a href="/blog?category=Training" class="run-hub-tile">
+            <i data-lucide="trending-up" aria-hidden="true"></i>
+            <span class="run-hub-tile-label">Training Tips</span>
+          </a>
+          <a href="/blog?category=Race+Tips" class="run-hub-tile">
+            <i data-lucide="flag" aria-hidden="true"></i>
+            <span class="run-hub-tile-label">Race Prep</span>
+          </a>
+          <a href="/blog?category=Organizer+Guide" class="run-hub-tile">
+            <i data-lucide="clipboard-list" aria-hidden="true"></i>
+            <span class="run-hub-tile-label">Organiser Guides</span>
+          </a>
         </div>
 
         <form method="GET" action="/blog" class="filter-form-compact" id="blogFilterForm">
@@ -84,7 +101,7 @@
 
         <% if (featuredPosts && featuredPosts.length) { %>
           <section class="blog-featured">
-            <h2 class="blog-featured-heading">Featured Posts</h2>
+            <h2 class="blog-featured-heading">Featured Guides</h2>
             <div class="blog-grid">
               <% featuredPosts.forEach((post) => { %>
                 <article class="blog-card featured">
@@ -115,11 +132,26 @@
           </section>
         <% } %>
 
+        <%
+          const intentLabelMap = {
+            'Training': 'Improve Your Run',
+            'Virtual Run Guide': 'Virtual Runs',
+            'Organizer Guide': 'Organiser Guide',
+            'Race Tips': 'Race Prep',
+            'Nutrition': 'Nutrition',
+            'Gear': 'Gear',
+            'Injury Prevention': 'Injury Prevention',
+            'Mental Health': 'Wellness',
+            'Community': 'Community',
+            'Motivation': 'Motivation',
+          };
+        %>
         <!-- Posts Grid -->
         <% if (posts && posts.length) { %>
           <div class="blog-grid">
             <% let blogFeedAdCount = 0; %>
             <% posts.forEach((post, postIndex) => { %>
+              <% const intentLabel = intentLabelMap[post.category]; %>
               <article class="blog-card">
                 <% if (post.coverImageUrl) { %>
                   <a href="/blog/<%= post.slug %>" class="blog-image" aria-label="<%= post.title %>">
@@ -139,9 +171,13 @@
                   </div>
                   <div class="blog-title-row">
                     <h3><a href="/blog/<%= post.slug %>"><%= post.title %></a></h3>
-                    <span class="blog-category">
-                      <%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %>
-                    </span>
+                    <% if (intentLabel) { %>
+                      <span class="blog-intent-label"><%= intentLabel %></span>
+                    <% } else { %>
+                      <span class="blog-category">
+                        <%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %>
+                      </span>
+                    <% } %>
                   </div>
                   <p class="blog-excerpt"><%= post.excerpt || 'No excerpt provided.' %></p>
                   <div class="blog-footer">

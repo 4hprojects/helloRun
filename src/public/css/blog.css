@@ -854,3 +854,75 @@ body {
     font-size: 0.86rem;
   }
 }
+
+/* ===== Run Hub tiles ===== */
+.run-hub-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.run-hub-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 0.5rem;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  text-decoration: none;
+  color: white;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.run-hub-tile:hover {
+  background: rgba(255, 255, 255, 0.28);
+  transform: translateY(-1px);
+}
+
+.run-hub-tile:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+.run-hub-tile i,
+.run-hub-tile svg {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.run-hub-tile-label {
+  line-height: 1.2;
+}
+
+/* ===== Intent labels ===== */
+.blog-intent-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.22rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(250, 154, 75, 0.14);
+  color: #b74716;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .run-hub-tiles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .run-hub-tile {
+    transition: none;
+  }
+}

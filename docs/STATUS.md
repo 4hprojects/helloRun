@@ -1,6 +1,6 @@
 # HelloRun — Current Status
 
-_Last updated: June 29, 2026_
+_Last updated: June 29, 2026 (evening)_
 
 ---
 
@@ -91,16 +91,16 @@ _Last updated: June 29, 2026_
 | P5 Infrastructure — static asset cache headers (maxAge:1d in production); Redis PING in /readyz; worker exponential backoff on consecutive DB errors; ~480 console.* calls replaced with logger across 25 server-side files; section markers added to admin.controller.js and organizer.routes.js (DEBT-1/DEBT-2 splits deferred pending test-suite verification) | June 24, 2026 | — |
 | PRODUCT.md + impeccable live config — product brief, brand personality, design principles, accessibility targets; impeccable live mode wired into main layout | June 25, 2026 | — |
 | Homepage polish — distill pass (cut four redundancies, tightened copy, bolder layout), admin published blog queue card improvements | June 25–29, 2026 | — |
+| Homepage CSS polish — impeccable re-run (score 30/40, 0 P0/P1); hero-title `clamp(2rem, 5vw, 3.25rem)`; ~130 lines of dead CSS removed (`.hero-stats`, `.hero-eyebrow`, `.hero-visual-card` etc.); `.btn` transition enumerated; blockquote full-border; heart-pop easing fixed | June 29, 2026 | EJS compile OK |
+| Blog Run Hub UX — Phase 1: removed dead public blog routes from `blog.routes.js`, added route-ownership comment in `server.js`; Phase 2: `/blog` reframed as Run Hub (intent tiles, "Featured Guides", intent labels on cards); Phase 3: `/blog/:slug` audience chips, Run Action Panel (category-mapped quick links), "Next step" CTA, "Continue this path" heading; CSS: `blog.css` + `blog-pages.css` new components, blockquote redesigned, heart-pop easing corrected | June 29, 2026 | EJS compile OK, blog tests |
 
 ---
 
 ## 🟡 In Progress / Follow-Up
 
 - **Priority 1 — Production AdSense (ops only):** deploy current main, run `npm run seed:adsense-blog` if needed, verify live `/robots.txt`, `/sitemap.xml`, `/ads.txt`, submit/refresh sitemap in Google Search Console, then request review after crawl stability.
-- **Priority 2 — Homepage P1 fixes (code, ~1 day):** impeccable critique Jun 25 (score 27/40) found 3 P1 issues still open: (1) CTAs buried in `.hero-visual-card` — must move to `.hero-text` for mobile visibility; (2) hero visual is still the logo — replace with a product screenshot; (3) fabricated testimonial (ui-avatars.com, "member since 2026") — remove or replace with real social proof.
-- **Priority 3 — Blog Run Hub UX (code, ~1 week):** reframe `/blog` as a Run Hub with intent-based entry points; add Run Action Panel to `/blog/:slug`; confirm canonical blog route (pageRoutes vs blogRoutes shadow). Spec: `docs/blog/hellorun-blog-run-hub-ux-todo.md`.
-- **Priority 4 — Structured data / JSON-LD (code, ~2 days):** add `Organization`, `BlogPosting`, `FAQPage`, and `BreadcrumbList` JSON-LD to public pages. Listed in AdSense checklist Phase 6, not yet implemented.
-- **Priority 5 — DEBT-1/DEBT-2 file splits:** `admin.controller.js` (~5,500 lines) and `organizer.routes.js` (~5,300 lines). Section markers in place. Do one file per sprint.
+- **Priority 2 — Structured data / JSON-LD (code, ~2 days):** add `Organization`, `BlogPosting`, `FAQPage`, and `BreadcrumbList` JSON-LD to public pages. Listed in AdSense checklist Phase 6, not yet implemented.
+- **Priority 3 — DEBT-1/DEBT-2 file splits:** `admin.controller.js` (~5,500 lines) and `organizer.routes.js` (~5,300 lines). Section markers in place. Do one file per sprint.
 - Test runtime follow-up: several server-spawning smoke/integration tests pass assertions locally but do not exit cleanly during teardown; investigate open handles separately (low urgency).
 - Documentation follow-up: keep `docs/to-implement/*` files as historical design records unless a new gap reopens. Stale `docs/todo refinement/` files archived to `docs/archive/todo-refinement/`.
 
