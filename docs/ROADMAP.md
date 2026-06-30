@@ -12,6 +12,7 @@
 | Feature | Completed | Notes |
 |---------|-----------|-------|
 | Structured data / JSON-LD | Jun 30 | `Organization` in `head.ejs` (site-wide, static); `BlogPosting` + `BreadcrumbList` in `blog-post.ejs` (dynamic: `post.*`, `authorDisplay`, `seo.*`); `FAQPage` in `faq.ejs` (all 23 Q&A pairs hardcoded); `safeJson()` helper prevents `</script>` injection; all 3 schemas validated via JSON.parse render test |
+| DEBT-1: admin.controller.js split | Jun 30 | 5,682-line monolith → 10-line barrel + `src/controllers/admin/` with `_shared.js` (166 exports), `users.controller.js` (9), `applications.controller.js` (4), `events.controller.js` (12), `badges.controller.js` (17), `submissions.controller.js` (2), `policy.controller.js` (52); `admin.routes.js` unchanged; dead code (lines 3099–5005, ~1,906 lines of overridden per-type policy) excluded; 2 live bugs fixed: missing `evaluateOrganiserAchievementsInBackground` import + undefined `formatPolicyContentFromRequest` |
 
 ## Session Completed (June 29, 2026 — evening)
 

@@ -94,13 +94,14 @@ _Last updated: June 29, 2026 (evening)_
 | Homepage CSS polish — impeccable re-run (score 30/40, 0 P0/P1); hero-title `clamp(2rem, 5vw, 3.25rem)`; ~130 lines of dead CSS removed (`.hero-stats`, `.hero-eyebrow`, `.hero-visual-card` etc.); `.btn` transition enumerated; blockquote full-border; heart-pop easing fixed | June 29, 2026 | EJS compile OK |
 | Blog Run Hub UX — Phase 1: removed dead public blog routes from `blog.routes.js`, added route-ownership comment in `server.js`; Phase 2: `/blog` reframed as Run Hub (intent tiles, "Featured Guides", intent labels on cards); Phase 3: `/blog/:slug` audience chips, Run Action Panel (category-mapped quick links), "Next step" CTA, "Continue this path" heading; CSS: `blog.css` + `blog-pages.css` new components, blockquote redesigned, heart-pop easing corrected | June 29, 2026 | EJS compile OK, blog tests |
 | Structured data / JSON-LD — `Organization` in `head.ejs` (site-wide); `BlogPosting` + `BreadcrumbList` in `blog-post.ejs` (dynamic from `post.*` / `seo.*`); `FAQPage` in `faq.ejs` (23 Q&A pairs); all validated via JSON.parse render test | June 30, 2026 | EJS compile OK, JSON-LD valid |
+| DEBT-1: `admin.controller.js` split — 5,682-line monolith replaced with 10-line barrel + 7 focused sub-files under `src/controllers/admin/`; `_shared.js` exports 166 symbols; all 96 controller exports verified present; `admin.routes.js` unchanged; also fixed 2 live bugs: `evaluateOrganiserAchievementsInBackground` missing import (would throw on organiser approval) and `formatPolicyContentFromRequest` never defined (would throw on format policy endpoints) | June 30, 2026 | require chain OK, all 96 exports functions |
 
 ---
 
 ## 🟡 In Progress / Follow-Up
 
 - **Priority 1 — Production AdSense (ops only):** deploy current main, run `npm run seed:adsense-blog` if needed, verify live `/robots.txt`, `/sitemap.xml`, `/ads.txt`, submit/refresh sitemap in Google Search Console, then request review after crawl stability.
-- **Priority 2 — DEBT-1/DEBT-2 file splits:** `admin.controller.js` (~5,500 lines) and `organizer.routes.js` (~5,300 lines). Section markers in place. Do one file per sprint.
+- **Priority 2 — DEBT-2 file split:** `organizer.routes.js` (~5,530 lines). Section markers in place. `src/routes/organiser/` sub-directory already exists with `onsite-operations` and `qr-and-dashboard` sub-routes — continue that pattern.
 - Test runtime follow-up: several server-spawning smoke/integration tests pass assertions locally but do not exit cleanly during teardown; investigate open handles separately (low urgency).
 - Documentation follow-up: keep `docs/to-implement/*` files as historical design records unless a new gap reopens. Stale `docs/todo refinement/` files archived to `docs/archive/todo-refinement/`.
 
