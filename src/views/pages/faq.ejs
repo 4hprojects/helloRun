@@ -3,6 +3,35 @@
 <head>
   <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
   <link rel="stylesheet" href="/css/static-pages.css">
+  <script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    { "@type": "Question", "name": "What is HelloRun?", "acceptedAnswer": { "@type": "Answer", "text": "HelloRun is a running event platform for virtual, on-site, and hybrid events. Runners can register, submit proof, track review status, and access event recognition when enabled." } },
+    { "@type": "Question", "name": "What is a virtual run?", "acceptedAnswer": { "@type": "Answer", "text": "A virtual run is an event where you complete your activity from your own safe location within the event period, then submit activity proof for review." } },
+    { "@type": "Question", "name": "Do I need a GPS watch?", "acceptedAnswer": { "@type": "Answer", "text": "No. Use the tracking method accepted by the event. Many events accept screenshots from running apps, GPS watches, treadmill records, or manual entries when the rules allow them." } },
+    { "@type": "Question", "name": "Can I use Strava, Garmin, Nike Run Club, Huawei Health, Samsung Health, or other apps?", "acceptedAnswer": { "@type": "Answer", "text": "Usually yes if the event accepts app screenshots and your proof clearly shows the required details. Always check the event page before submitting." } },
+    { "@type": "Question", "name": "Can I walk instead of run?", "acceptedAnswer": { "@type": "Answer", "text": "Some events accept walking, hiking, or mixed activities. The event page lists accepted activity types and completion rules." } },
+    { "@type": "Question", "name": "Can I join from anywhere?", "acceptedAnswer": { "@type": "Answer", "text": "Virtual events are generally open from anywhere unless the organizer lists location, delivery, eligibility, or country restrictions." } },
+    { "@type": "Question", "name": "Can one activity count for multiple eligible events?", "acceptedAnswer": { "@type": "Answer", "text": "HelloRun may allow one activity to be submitted to multiple eligible registrations when the activity falls within each event window and matches the rules. Organizers still review each submission separately." } },
+    { "@type": "Question", "name": "What proof is accepted?", "acceptedAnswer": { "@type": "Answer", "text": "Accepted proof depends on the event. Common proof includes app screenshots, GPS activity records, treadmill screenshots, or manual entries with clear supporting details." } },
+    { "@type": "Question", "name": "What should my screenshot show?", "acceptedAnswer": { "@type": "Answer", "text": "Your screenshot should show the activity date, distance, duration, and source app or device. If possible, include the activity type and name shown by the app." } },
+    { "@type": "Question", "name": "Why does my result need review?", "acceptedAnswer": { "@type": "Answer", "text": "Review helps protect event credibility. Organizers may check dates, distance, names, duplicate submissions, proof clarity, and eligibility before approving results." } },
+    { "@type": "Question", "name": "Why was my result rejected?", "acceptedAnswer": { "@type": "Answer", "text": "Common reasons include missing details, wrong event date, distance below the requirement, blurry proof, duplicate submission, or proof that does not match the account or event rules." } },
+    { "@type": "Question", "name": "What if my app shows miles instead of kilometers?", "acceptedAnswer": { "@type": "Answer", "text": "Submit the clearest proof available and explain the unit if the event allows it. Organizers may convert the distance or ask for clearer evidence." } },
+    { "@type": "Question", "name": "When will my result appear?", "acceptedAnswer": { "@type": "Answer", "text": "Approved results may appear after organizer review, depending on leaderboard settings. Pending or rejected results may not be shown publicly." } },
+    { "@type": "Question", "name": "How are rankings calculated?", "acceptedAnswer": { "@type": "Answer", "text": "Rankings depend on the event setup. Some leaderboards rank fastest finishers, while accumulated challenges may rank verified total distance." } },
+    { "@type": "Question", "name": "How do certificates work?", "acceptedAnswer": { "@type": "Answer", "text": "Certificates become available only when the event enables certificates and your registration or result meets the event requirements." } },
+    { "@type": "Question", "name": "What if my certificate has the wrong name?", "acceptedAnswer": { "@type": "Answer", "text": "Check your profile name and contact support or the organizer with the event name, confirmation code, and the correction needed." } },
+    { "@type": "Question", "name": "Can I create an event?", "acceptedAnswer": { "@type": "Answer", "text": "Organizer access depends on account status and platform review. Approved organizers can create and manage events through their dashboard." } },
+    { "@type": "Question", "name": "What event types are supported?", "acceptedAnswer": { "@type": "Answer", "text": "HelloRun supports virtual runs, on-site races, hybrid events, single-distance events, and accumulated distance challenges." } },
+    { "@type": "Question", "name": "Can schools or communities use HelloRun?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Schools, clubs, local groups, and community organizations can use HelloRun for wellness events, fundraising runs, and participation challenges when their setup fits the platform workflow." } },
+    { "@type": "Question", "name": "Can events be free or paid?", "acceptedAnswer": { "@type": "Answer", "text": "Events may be free or paid depending on the organizer configuration. Paid events can require payment receipt review before result submission unlocks." } },
+    { "@type": "Question", "name": "Is HelloRun free?", "acceptedAnswer": { "@type": "Answer", "text": "Creating an account may be free, but individual event fees depend on the organizer and event setup." } },
+    { "@type": "Question", "name": "How is my data handled?", "acceptedAnswer": { "@type": "Answer", "text": "HelloRun uses account, registration, payment, and activity proof data to operate event workflows. Read the Privacy Policy and Data Usage Policy at hellorun.online/privacy for details." } },
+    { "@type": "Question", "name": "How do I contact support?", "acceptedAnswer": { "@type": "Answer", "text": "Use the Contact page at hellorun.online/contact and include your event name, confirmation code, account email, and a clear description of the concern." } }
+  ]
+}</script>
 </head>
 <body>
   <%- include('../layouts/nav') %>

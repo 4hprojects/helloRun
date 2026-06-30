@@ -49,6 +49,9 @@
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<%= locals.ads.publisherId %>" crossorigin="anonymous"></script>
 <% } %>
 
+<!-- Organization structured data -->
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"HelloRun","url":"https://hellorun.online","logo":{"@type":"ImageObject","url":"https://hellorun.online/images/helloRun-icon.webp"},"description":"HelloRun is a running event management platform for virtual, on-site, and hybrid events."}</script>
+
 <!-- Google Analytics -->
 <% if (process.env.GA_MEASUREMENT_ID) { %>
 <script async src="https://www.googletagmanager.com/gtag/js?id=<%= process.env.GA_MEASUREMENT_ID %>"></script>

@@ -3,9 +3,15 @@
 **Written:** June 22, 2026
 **Based on:** Full codebase audit, user journey review, docs review, and security analysis
 
-**Latest reconciliation:** June 29, 2026 (evening)
+**Latest reconciliation:** June 30, 2026
 
 ---
+
+## Session Completed (June 30, 2026)
+
+| Feature | Completed | Notes |
+|---------|-----------|-------|
+| Structured data / JSON-LD | Jun 30 | `Organization` in `head.ejs` (site-wide, static); `BlogPosting` + `BreadcrumbList` in `blog-post.ejs` (dynamic: `post.*`, `authorDisplay`, `seo.*`); `FAQPage` in `faq.ejs` (all 23 Q&A pairs hardcoded); `safeJson()` helper prevents `</script>` injection; all 3 schemas validated via JSON.parse render test |
 
 ## Session Completed (June 29, 2026 — evening)
 
