@@ -13,10 +13,16 @@
         <div>
           <p class="admin-page-eyebrow">Admin</p>
           <h1>Platform Analytics</h1>
-          <p class="admin-page-subtitle">Aggregate platform metrics from Supabase.</p>
+          <p class="admin-page-subtitle">Aggregate platform metrics — Supabase + MongoDB.</p>
         </div>
         <a href="/admin" class="btn btn-outline btn-sm">← Dashboard</a>
       </header>
+
+      <nav class="analytics-range-tabs" aria-label="Date range">
+        <% [['7d','7D'],['30d','30D'],['90d','90D'],['365d','1Y']].forEach(function(opt) { %>
+          <a href="/admin/analytics?range=<%= opt[0] %>" class="analytics-range-tab<%= range === opt[0] ? ' active' : '' %>"><%= opt[1] %></a>
+        <% }); %>
+      </nav>
 
       <% if (message) { %>
         <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
@@ -38,6 +44,7 @@
 
         <%
           const { totals, funnel, growth, topEvents, topOrganisers, revenue } = analytics;
+          const hasSupa = !!(totals);
           function fmtNum(n) { return Number(n || 0).toLocaleString('en-US'); }
           function fmtPct(n) { return Number(n || 0).toFixed(1) + '%'; }
           function fmtHrs(n) {
@@ -56,6 +63,7 @@
         %>
 
         <!-- Section 1: Platform Totals -->
+        <% if (hasSupa) { %>
         <section class="dashboard-band" aria-labelledby="analytics-totals-title">
           <h2 id="analytics-totals-title" class="dashboard-section-title">Platform Totals</h2>
           <div class="dashboard-grid">
@@ -253,8 +261,10 @@
           </section>
         <% } %>
 
+        <% } /* end hasSupa */ %>
+
         <!-- Section 6: Revenue -->
-        <% if (revenue) { %>
+        <% if (hasSupa && revenue) { %>
           <section class="dashboard-band" aria-labelledby="analytics-revenue-title">
             <h2 id="analytics-revenue-title" class="dashboard-section-title">Shop Revenue</h2>
             <div class="dashboard-grid" style="margin-bottom:1.5rem">
@@ -296,6 +306,179 @@
               </div>
             <% } %>
           </section>
+        <% } %>
+
+        <!-- MongoDB Sections -->
+        <% if (analytics.mongo) { %>
+          <%
+            const mongo = analytics.mongo;
+            function fmtBar(count, total) {
+              return total > 0 ? Math.round((count / total) * 100) : 0;
+            }
+            function fmtMonthLabel(year, month) {
+              return new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+            }
+          %>
+
+          <!-- Section 7: User Account Status -->
+          <% if (mongo.userBreakdown) { %>
+            <% const ub = mongo.userBreakdown; const totalUsers = Object.values(ub.byStatus).reduce((a,b)=>a+b,0); %>
+            <section class="dashboard-band" aria-labelledby="analytics-users-title">
+              <h2 id="analytics-users-title" class="dashboard-section-title">User Account Status</h2>
+              <div class="analytics-split-grid">
+                <% [['active','Active'],['restricted','Restricted'],['suspended','Suspended'],['closed','Closed']].forEach(function(s) { %>
+                  <div class="analytics-split-card">
+                    <p class="analytics-split-label"><%= s[1] %></p>
+                    <p class="analytics-split-value"><%= fmtNum(ub.byStatus[s[0]] || 0) %></p>
+                    <p class="analytics-split-sub"><%= fmtBar(ub.byStatus[s[0]] || 0, totalUsers) %>% of users</p>
+                  </div>
+                <% }); %>
+                <div class="analytics-split-card">
+                  <p class="analytics-split-label">Email Verified</p>
+                  <p class="analytics-split-value"><%= fmtNum(ub.emailVerified) %></p>
+                  <p class="analytics-split-sub"><%= fmtBar(ub.emailVerified, totalUsers) %>% of users</p>
+                </div>
+                <div class="analytics-split-card">
+                  <p class="analytics-split-label">Google OAuth</p>
+                  <p class="analytics-split-value"><%= fmtNum(ub.byAuthProvider.google || 0) %></p>
+                  <p class="analytics-split-sub">vs <%= fmtNum(ub.byAuthProvider.local || 0) %> email/password</p>
+                </div>
+              </div>
+            </section>
+          <% } %>
+
+          <!-- Section 8: Organiser Application Funnel -->
+          <% if (mongo.organiserFunnel) { %>
+            <% const of = mongo.organiserFunnel; const totalApps = Object.values(of.byStatus).reduce((a,b)=>a+b,0); %>
+            <section class="dashboard-band" aria-labelledby="analytics-orgfunnel-title">
+              <h2 id="analytics-orgfunnel-title" class="dashboard-section-title">Organiser Application Funnel</h2>
+              <div class="analytics-split-grid" style="margin-bottom:1rem">
+                <% [['pending','Pending'],['under_review','Under Review'],['approved','Approved'],['rejected','Rejected']].forEach(function(s) { %>
+                  <div class="analytics-split-card">
+                    <p class="analytics-split-label"><%= s[1] %></p>
+                    <p class="analytics-split-value"><%= fmtNum(of.byStatus[s[0]] || 0) %></p>
+                    <p class="analytics-split-sub"><%= fmtBar(of.byStatus[s[0]] || 0, totalApps) %>% of total</p>
+                  </div>
+                <% }); %>
+              </div>
+              <% if (of.monthly && of.monthly.length) { %>
+                <div class="admin-analytics-table-wrap">
+                  <table class="admin-analytics-table">
+                    <thead><tr><th>Month</th><th class="num">New Applications</th></tr></thead>
+                    <tbody>
+                      <% of.monthly.forEach(function(row) { %>
+                        <tr>
+                          <td><%= fmtMonthLabel(row.year, row.month) %></td>
+                          <td class="num"><%= fmtNum(row.count) %></td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              <% } %>
+            </section>
+          <% } %>
+
+          <!-- Section 9: Event Breakdown -->
+          <% if (mongo.eventBreakdown) { %>
+            <% const eb = mongo.eventBreakdown; const totalByType = Object.values(eb.byType).reduce((a,b)=>a+b,0); %>
+            <section class="dashboard-band" aria-labelledby="analytics-eventbreakdown-title">
+              <h2 id="analytics-eventbreakdown-title" class="dashboard-section-title">Event Breakdown</h2>
+              <div class="analytics-split-grid" style="margin-bottom:1rem">
+                <% [['virtual','Virtual'],['onsite','Onsite'],['hybrid','Hybrid']].forEach(function(t) { %>
+                  <div class="analytics-split-card">
+                    <p class="analytics-split-label"><%= t[1] %></p>
+                    <p class="analytics-split-value"><%= fmtNum(eb.byType[t[0]] || 0) %></p>
+                    <p class="analytics-split-sub"><%= fmtBar(eb.byType[t[0]] || 0, totalByType) %>% of events</p>
+                  </div>
+                <% }); %>
+              </div>
+              <% if (eb.monthly && eb.monthly.length) { %>
+                <div class="admin-analytics-table-wrap">
+                  <table class="admin-analytics-table">
+                    <thead><tr><th>Month</th><th class="num">New Events Created</th></tr></thead>
+                    <tbody>
+                      <% eb.monthly.forEach(function(row) { %>
+                        <tr>
+                          <td><%= fmtMonthLabel(row.year, row.month) %></td>
+                          <td class="num"><%= fmtNum(row.count) %></td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              <% } %>
+            </section>
+          <% } %>
+
+          <!-- Section 10: Submission Breakdown -->
+          <% if (mongo.submissionBreakdown) { %>
+            <% const sb = mongo.submissionBreakdown; const totalSubs = sb.standardCount + sb.accumulatedCount; %>
+            <section class="dashboard-band" aria-labelledby="analytics-subbreakdown-title">
+              <h2 id="analytics-subbreakdown-title" class="dashboard-section-title">Submission Breakdown</h2>
+              <div class="analytics-split-grid">
+                <div class="analytics-split-card">
+                  <p class="analytics-split-label">Standard Submissions</p>
+                  <p class="analytics-split-value"><%= fmtNum(sb.standardCount) %></p>
+                  <p class="analytics-split-sub"><%= fmtBar(sb.standardCount, totalSubs) %>% of total</p>
+                </div>
+                <div class="analytics-split-card">
+                  <p class="analytics-split-label">Accumulated Activities</p>
+                  <p class="analytics-split-value"><%= fmtNum(sb.accumulatedCount) %></p>
+                  <p class="analytics-split-sub"><%= fmtBar(sb.accumulatedCount, totalSubs) %>% of total</p>
+                </div>
+                <div class="analytics-split-card">
+                  <p class="analytics-split-label">Strava Source</p>
+                  <p class="analytics-split-value"><%= fmtNum(sb.bySource.strava) %></p>
+                  <p class="analytics-split-sub">vs <%= fmtNum(sb.bySource.manual_upload) %> manual</p>
+                </div>
+                <div class="analytics-split-card">
+                  <p class="analytics-split-label">GPS Proof</p>
+                  <p class="analytics-split-value"><%= fmtNum(sb.byProofType.gps) %></p>
+                  <p class="analytics-split-sub">Photo: <%= fmtNum(sb.byProofType.photo) %> · Manual: <%= fmtNum(sb.byProofType.manual) %></p>
+                </div>
+                <div class="analytics-split-card">
+                  <p class="analytics-split-label">Auto-Approved</p>
+                  <p class="analytics-split-value"><%= fmtNum(sb.autoApprovedCount) %></p>
+                  <p class="analytics-split-sub"><%= fmtBar(sb.autoApprovedCount, sb.standardCount) %>% of standard</p>
+                </div>
+                <div class="analytics-split-card">
+                  <p class="analytics-split-label">Suspicious Flagged</p>
+                  <p class="analytics-split-value"><%= fmtNum(sb.suspiciousCount) %></p>
+                  <p class="analytics-split-sub"><%= fmtBar(sb.suspiciousCount, sb.standardCount) %>% of standard</p>
+                </div>
+              </div>
+            </section>
+          <% } %>
+
+          <!-- Section 11: Run Type Distribution -->
+          <% if (mongo.runTypeDistribution && mongo.runTypeDistribution.length) { %>
+            <% const rtTotal = mongo.runTypeDistribution.reduce(function(a,r){ return a + r.count; }, 0); %>
+            <section class="dashboard-band" aria-labelledby="analytics-runtype-title">
+              <h2 id="analytics-runtype-title" class="dashboard-section-title">Run Type Distribution (Approved)</h2>
+              <div class="admin-analytics-table-wrap">
+                <table class="admin-analytics-table">
+                  <thead><tr><th>Run Type</th><th class="num">Count</th><th style="width:40%">Share</th></tr></thead>
+                  <tbody>
+                    <% mongo.runTypeDistribution.forEach(function(row) { %>
+                      <% const pct = fmtBar(row.count, rtTotal); %>
+                      <tr>
+                        <td style="text-transform:capitalize"><%= String(row.runType || '').replace(/_/g,' ') %></td>
+                        <td class="num"><%= fmtNum(row.count) %></td>
+                        <td>
+                          <div class="analytics-bar-row">
+                            <div class="analytics-bar-track"><div class="analytics-bar-fill" style="--pct:<%= pct %>"></div></div>
+                            <span style="font-size:0.75rem;color:#64748b;min-width:2.5rem"><%= pct %>%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    <% }); %>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          <% } %>
+
         <% } %>
 
       <% } %>
