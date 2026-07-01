@@ -13,6 +13,7 @@ const { isSubmissionWindowOpen } = require('../utils/submission-window');
 const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { detectSuspiciousActivity } = require('../utils/submission-integrity');
+const { REVIEW_REASON_LABELS } = require('../utils/submission-review-labels');
 const { assertRunDateNotFuture } = require('../utils/platform-date');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 const { invalidateLeaderboardCache } = require('./leaderboard.service');
@@ -128,6 +129,98 @@ async function editRejectedSubmissionMetadata({ submissionId, runnerId, distance
 
   await submission.save();
   return submission;
+}
+
+async function applyAdminSubmissionCorrection({
+  submissionId,
+  adminUserId,
+  distanceKm,
+  elapsedMs,
+  runDate,
+  runLocation,
+  runType,
+  reviewReason,
+  autoApprovalEligible,
+  ipAddress,
+  userAgent
+}) {
+  if (!mongoose.Types.ObjectId.isValid(String(submissionId || ''))) {
+    throw new Error('Submission not found.');
+  }
+
+  let submission = await Submission.findById(submissionId);
+  let submissionKind = 'standard';
+  if (!submission) {
+    submission = await AccumulatedActivitySubmission.findById(submissionId);
+    submissionKind = submission ? 'accumulated' : '';
+  }
+  if (!submission) throw new Error('Submission not found.');
+
+  const changes = [];
+
+  if (distanceKm !== undefined) {
+    const before = submission.distanceKm;
+    submission.distanceKm = sanitizeNumber(distanceKm, 0.1, 500, 'Distance must be between 0.1 and 500 km.');
+    changes.push(`distanceKm ${before}->${submission.distanceKm}`);
+  }
+  if (elapsedMs !== undefined) {
+    const before = submission.elapsedMs;
+    submission.elapsedMs = sanitizeNumber(elapsedMs, 1, 7 * 24 * 60 * 60 * 1000, 'Elapsed time is invalid.');
+    changes.push(`elapsedMs ${before}->${submission.elapsedMs}`);
+  }
+  if (runDate !== undefined) {
+    const before = submission.runDate;
+    submission.runDate = sanitizeRunDate(runDate);
+    changes.push(`runDate ${before ? before.toISOString() : 'none'}->${submission.runDate.toISOString()}`);
+  }
+  if (runLocation !== undefined) {
+    const before = submission.runLocation;
+    submission.runLocation = sanitizeRunLocation(runLocation);
+    changes.push(`runLocation "${before}"->"${submission.runLocation}"`);
+  }
+  if (runType !== undefined) {
+    const before = submission.runType;
+    submission.runType = sanitizeRunType(runType);
+    changes.push(`runType ${before}->${submission.runType}`);
+  }
+  if (reviewReason !== undefined) {
+    const safeReason = String(reviewReason || '').trim();
+    if (safeReason && !Object.prototype.hasOwnProperty.call(REVIEW_REASON_LABELS, safeReason)) {
+      throw new Error('Unrecognized review reason code.');
+    }
+    if (!submission.validation) submission.validation = {};
+    const before = submission.validation.reviewReason || '';
+    submission.validation.reviewReason = safeReason;
+    changes.push(`validation.reviewReason "${before}"->"${safeReason}"`);
+  }
+  if (autoApprovalEligible !== undefined) {
+    if (!submission.validation) submission.validation = {};
+    const before = Boolean(submission.validation.autoApprovalEligible);
+    const safeBool = autoApprovalEligible === true || autoApprovalEligible === 'true' || autoApprovalEligible === 'on';
+    submission.validation.autoApprovalEligible = safeBool;
+    changes.push(`validation.autoApprovalEligible ${before}->${safeBool}`);
+  }
+
+  if (!changes.length) {
+    throw new Error('No changes were submitted.');
+  }
+
+  await submission.save();
+
+  recordCriticalAuditEventInBackground({
+    actorMongoUserId: adminUserId,
+    action: submissionKind === 'accumulated' ? 'accumulated_activity.corrected' : 'submission.corrected',
+    targetType: submissionKind === 'accumulated' ? 'accumulated_activity_submission' : 'submission',
+    targetId: String(submission._id),
+    statusFrom: submission.status,
+    statusTo: submission.status,
+    notes: `Admin data correction: ${changes.join('; ')}`,
+    ipAddress,
+    userAgent,
+    occurredAt: new Date()
+  });
+
+  return { submission, submissionKind };
 }
 
 async function resubmitSubmission({
@@ -1993,6 +2086,7 @@ function __setDisableSubmissionSyncBackgroundTasks(value) {
 module.exports = {
   createSubmission,
   editRejectedSubmissionMetadata,
+  applyAdminSubmissionCorrection,
   resubmitSubmission,
   reviewSubmission,
   getRunnerSubmissions,

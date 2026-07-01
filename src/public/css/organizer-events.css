@@ -1407,7 +1407,11 @@
   font-weight: 800;
 }
 
-.submission-review-action-form textarea {
+.submission-review-action-form textarea,
+.submission-review-action-form input[type="text"],
+.submission-review-action-form input[type="number"],
+.submission-review-action-form input[type="date"],
+.submission-review-action-form select {
   min-width: 0;
   border-radius: 8px;
   padding: 0.65rem 0.75rem;

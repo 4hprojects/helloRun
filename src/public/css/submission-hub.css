@@ -198,8 +198,12 @@ body.submission-hub-modal-open {
 .sub-panel-ocr-confidence { font-size: 0.78rem; color: #64748b; }
 
 .sub-panel-actions { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 0.5rem; border-top: 1px solid #f1f5f9; }
-.sub-panel-approve-form, .sub-panel-reject-form { display: flex; flex-direction: column; gap: 0.4rem; }
+.sub-panel-approve-form, .sub-panel-reject-form, .sub-panel-correction-form { display: flex; flex-direction: column; gap: 0.4rem; }
 .sub-panel-textarea { font-size: 0.82rem; resize: vertical; }
+.sub-panel-admin-audit { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.6rem 0.85rem; font-size: 0.8rem; color: #334155; }
+.sub-panel-admin-audit p { margin: 0.2rem 0; }
+.sub-panel-correction-form { padding-top: 0.5rem; border-top: 1px solid #f1f5f9; }
+.sub-panel-muted { font-size: 0.75rem; color: #64748b; margin: 0.2rem 0 0; }
 .sub-panel-approve-btn { align-self: flex-start; }
 .sub-panel-reject-btn { align-self: flex-start; }
 .sub-panel-form-error { color: #dc2626; font-size: 0.8rem; margin: 0; }

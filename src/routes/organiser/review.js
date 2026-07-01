@@ -48,7 +48,9 @@ const {
   getPageMessage,
   getRequestIpAddress,
   getRequestUserAgent,
-  escapeRegex
+  escapeRegex,
+  isFullAdminTier,
+  REVIEW_REASON_LABELS
 } = require('./_shared');
 
 /* ==========================================
@@ -121,10 +123,11 @@ router.get('/submissions', requireAuth, async (req, res) => {
 
 router.get('/submissions/:submissionId/review-panel', requireAuth, async (req, res) => {
   try {
-    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus adminTier');
     if (!user || !canAccessRegistrantReview(user)) {
       return res.status(403).json({ success: false, message: 'Access denied.' });
     }
+    const isFullAdmin = user.role === 'admin' && isFullAdminTier(user);
 
     const submissionId = String(req.params.submissionId || '').trim();
     if (!mongoose.Types.ObjectId.isValid(submissionId)) {
@@ -228,7 +231,20 @@ router.get('/submissions/:submissionId/review-panel', requireAuth, async (req, r
         reviewedAtLabel: submission.reviewedAt ? new Date(submission.reviewedAt).toLocaleString('en-US') : '',
         approveUrl: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/approve`,
         rejectUrl: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/reject`,
-        fullPageUrl: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review`
+        fullPageUrl: `/organizer/events/${String(event._id)}/submissions/${String(submission._id)}/review`,
+        ...(isFullAdmin ? {
+          isFullAdmin: true,
+          adminAudit: {
+            detectedSource: ocrData.detectedSource || '',
+            validationMethod: submission.validation?.method || 'unknown',
+            autoApprovalEligible: Boolean(submission.validation?.autoApprovalEligible),
+            reviewRequired: Boolean(submission.validation?.reviewRequired),
+            submissionMode: submission.validation?.submissionMode || 'unknown',
+            reviewReasonCode: submission.validation?.reviewReason || ''
+          },
+          correctionUrl: `/admin/submissions/${String(submission._id)}/correct`,
+          reviewReasonOptions: Object.entries(REVIEW_REASON_LABELS).map(([value, label]) => ({ value, label }))
+        } : {})
       }
     });
   } catch (error) {
@@ -753,7 +769,7 @@ router.get('/events/:eventId/run-proofs/review', requireAuth, async (req, res) =
 
 router.get('/events/:id/submissions/:submissionId/review', requireAuth, async (req, res) => {
   try {
-    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
+    const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus adminTier');
     if (!user) {
       return res.status(404).render('error', {
         title: '404 - User Not Found',
@@ -788,10 +804,13 @@ router.get('/events/:id/submissions/:submissionId/review', requireAuth, async (r
       });
     }
 
+    const isFullAdmin = user.role === 'admin' && isFullAdminTier(user);
     return res.render('organizer/submission-review', {
       title: `Submission Review - ${event.title}`,
       user,
       isAdminViewer: user.role === 'admin',
+      isFullAdmin,
+      reviewReasonOptions: isFullAdmin ? Object.entries(REVIEW_REASON_LABELS) : [],
       event,
       message: getPageMessage(req.query),
       ...context

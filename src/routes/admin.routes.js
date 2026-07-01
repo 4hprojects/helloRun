@@ -127,6 +127,7 @@ router.post('/ads', requireAdmin, requireFullAdmin, adminContentSettingsLimiter,
 router.get('/reviews', requireAdmin, adminController.reviewQueue);
 router.get('/submissions', requireAdmin, adminController.listSubmissions);
 router.post('/submissions/bulk-reject', requireAdmin, adminModerationLimiter, adminController.bulkRejectSubmissions);
+router.post('/submissions/:submissionId/correct', requireAdmin, requireFullAdmin, adminModerationLimiter, adminController.correctSubmission);
 router.get('/privacy-policy', requireAdmin, adminController.listPrivacyPolicies);
 router.get('/privacy-policy/new', requireAdmin, adminController.renderNewPrivacyPolicyDraft);
 router.post('/privacy-policy', requireAdmin, adminContentSettingsLimiter, adminController.createPrivacyPolicyDraft);

@@ -254,6 +254,54 @@
             </section>
           <% } %>
 
+          <% if (isFullAdmin) { %>
+            <section class="submission-review-section submission-review-admin-audit">
+              <h3>
+                <i data-lucide="shield-check"></i>
+                Admin Audit (Full Admin Only)
+              </h3>
+              <dl class="submission-review-meta-grid">
+                <div><dt>Detected Source</dt><dd><%= (submission.ocrData && submission.ocrData.detectedSource) || 'N/A' %></dd></div>
+                <div><dt>Validation Method</dt><dd><%= (submission.validation && submission.validation.method) || 'unknown' %></dd></div>
+                <div><dt>Submission Mode</dt><dd><%= (submission.validation && submission.validation.submissionMode) || 'unknown' %></dd></div>
+                <div><dt>Auto-Approval Eligible</dt><dd><%= (submission.validation && submission.validation.autoApprovalEligible) ? 'Yes' : 'No' %></dd></div>
+                <div><dt>Review Reason (raw)</dt><dd><%= (submission.reviewSignal && submission.reviewSignal.code) || '(none)' %></dd></div>
+              </dl>
+
+              <form id="js-admin-correction-form" data-correction-url="/admin/submissions/<%= submission._id || submission.id %>/correct" class="submission-review-action-form">
+                <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                <label for="admin-correct-distance">Distance (km)</label>
+                <input type="number" step="0.01" min="0.1" max="500" id="admin-correct-distance" name="distanceKm" value="<%= Number(submission.distanceKm || 0).toFixed(2) %>">
+                <label for="admin-correct-elapsed">Elapsed (HH:MM:SS)</label>
+                <input type="text" id="admin-correct-elapsed" name="elapsedHms" value="<%= submission.elapsedLabel || '00:00:00' %>" pattern="\d{1,2}:\d{2}:\d{2}">
+                <label for="admin-correct-date">Run Date</label>
+                <input type="date" id="admin-correct-date" name="runDate" value="<%= submission.runDate ? new Date(submission.runDate).toISOString().slice(0, 10) : '' %>">
+                <label for="admin-correct-location">Run Location</label>
+                <input type="text" id="admin-correct-location" name="runLocation" value="<%= submission.runLocation || '' %>" maxlength="200">
+                <label for="admin-correct-runtype">Run Type</label>
+                <select id="admin-correct-runtype" name="runType">
+                  <% ['run', 'walk', 'hike', 'trail_run'].forEach((rt) => { %>
+                    <option value="<%= rt %>" <%= submission.runType === rt ? 'selected' : '' %>><%= rt %></option>
+                  <% }) %>
+                </select>
+                <label for="admin-correct-reviewreason">Review Reason Override</label>
+                <select id="admin-correct-reviewreason" name="reviewReason">
+                  <option value="">(none / auto-approved)</option>
+                  <% (reviewReasonOptions || []).forEach(([value, label]) => { %>
+                    <option value="<%= value %>" <%= (submission.validation && submission.validation.reviewReason === value) ? 'selected' : '' %>><%= label %></option>
+                  <% }) %>
+                </select>
+                <label>
+                  <input type="checkbox" name="autoApprovalEligible" <%= (submission.validation && submission.validation.autoApprovalEligible) ? 'checked' : '' %>>
+                  Auto-Approval Eligible
+                </label>
+                <button type="submit" class="btn btn-outline btn-sm">Save Correction</button>
+                <p class="submission-review-muted">Saving a correction does not change approval status — use Approve/Reject below afterward.</p>
+                <p class="js-admin-correction-error submission-review-muted" hidden></p>
+              </form>
+            </section>
+          <% } %>
+
           <% if (submission.stravaActivity && submission.stravaActivity.id) { %>
             <section class="submission-review-section">
               <h3>
@@ -374,6 +422,43 @@
           lb.querySelector('img').src = src;
           lb.hidden = false;
         });
+      });
+    })();
+
+    // Admin correction form (full-tier admins only)
+    (function () {
+      var form = document.getElementById('js-admin-correction-form');
+      if (!form) return;
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var errorEl = form.querySelector('.js-admin-correction-error');
+        var elapsedInput = form.querySelector('#admin-correct-elapsed');
+        var parts = String(elapsedInput.value || '00:00:00').split(':').map(function (v) { return Number(v) || 0; });
+        var elapsedMs = ((parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0)) * 1000;
+
+        var body = new URLSearchParams(new FormData(form));
+        body.set('elapsedMs', String(elapsedMs));
+        body.delete('elapsedHms');
+        if (!form.querySelector('[name="autoApprovalEligible"]').checked) {
+          body.set('autoApprovalEligible', 'false');
+        }
+
+        fetch(form.dataset.correctionUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: body
+        })
+          .then(function (res) { return res.json(); })
+          .then(function (data) {
+            if (!data.success) throw new Error(data.message || 'Correction failed');
+            window.location.reload();
+          })
+          .catch(function (err) {
+            if (errorEl) {
+              errorEl.textContent = 'Correction failed: ' + (err.message || 'Unknown error');
+              errorEl.hidden = false;
+            }
+          });
       });
     })();
 

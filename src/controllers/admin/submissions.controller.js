@@ -3,8 +3,9 @@
 const {
   logger, reviewSubmission, reviewAccumulatedActivitySubmission,
   buildSubmissionHubPath, listSubmissionHub, listSubmissionHubEvents,
-  renderServerError
+  renderServerError, getRequestIpAddress, getRequestUserAgent
 } = require('./_shared');
+const { applyAdminSubmissionCorrection } = require('../../services/submission.service');
 
 // SECTION: Submission Review
 // ═══════════════════════════════════════════════════════════
@@ -60,6 +61,29 @@ exports.bulkRejectSubmissions = async (req, res) => {
     logger.error('Admin bulk reject submissions error:', error);
     const q = new URLSearchParams({ type: 'error', msg: 'An error occurred during bulk rejection.' });
     return res.redirect(`/admin/submissions?${q}`);
+  }
+};
+
+exports.correctSubmission = async (req, res) => {
+  try {
+    const submissionId = String(req.params.submissionId || '').trim();
+    const result = await applyAdminSubmissionCorrection({
+      submissionId,
+      adminUserId: req.session.userId,
+      distanceKm: req.body.distanceKm,
+      elapsedMs: req.body.elapsedMs,
+      runDate: req.body.runDate,
+      runLocation: req.body.runLocation,
+      runType: req.body.runType,
+      reviewReason: req.body.reviewReason,
+      autoApprovalEligible: req.body.autoApprovalEligible,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req)
+    });
+    return res.json({ success: true, message: 'Submission corrected.', submissionKind: result.submissionKind });
+  } catch (error) {
+    logger.error('Admin submission correction error:', error);
+    return res.status(400).json({ success: false, message: error.message || 'Failed to correct submission.' });
   }
 };
 

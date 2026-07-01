@@ -19,7 +19,7 @@ const {
   notifyWithRetryInBackground
 } = require('../../services/reliable-communication.service');
 const { createRateLimiter } = require('../../middleware/rate-limit.middleware');
-const { requireAuth, requireApprovedOrganizer, requireCanCreateEvents } = require('../../middleware/auth.middleware');
+const { requireAuth, requireApprovedOrganizer, requireCanCreateEvents, isFullAdminTier } = require('../../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../../middleware/csrf.middleware');
 const { getCountries, isValidCountryCode, normalizeCountryCode, getCountryName } = require('../../utils/country');
 const { DEFAULT_WAIVER_TEMPLATE, normalizeWaiverTemplate } = require('../../utils/waiver');
@@ -27,7 +27,7 @@ const { sanitizeHtml, htmlToPlainText } = require('../../utils/sanitize');
 const { markdownToHtml } = require('../../utils/markdown');
 const { generateUniqueReferenceCode } = require('../../utils/referenceCode');
 const { canOrganizerReviewPaymentProof } = require('../../utils/payment-workflow');
-const { buildSubmissionReviewSignal } = require('../../utils/submission-review-labels');
+const { buildSubmissionReviewSignal, REVIEW_REASON_LABELS } = require('../../utils/submission-review-labels');
 const {
   buildPublicEventView,
   renderEventDetailsContent
@@ -1619,6 +1619,8 @@ module.exports = {
   requireApprovedOrganizer,
   requireCanCreateEvents,
   requireCsrfProtection,
+  isFullAdminTier,
+  REVIEW_REASON_LABELS,
   getCountries,
   isValidCountryCode,
   normalizeCountryCode,

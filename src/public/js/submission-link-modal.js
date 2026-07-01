@@ -134,6 +134,18 @@
       html += '<div class="sub-panel-ocr-confidence">OCR confidence: ' + s.ocrData.confidence + '%</div>';
     }
 
+    // Admin audit + correction (full-tier admins only)
+    if (s.isFullAdmin && s.adminAudit) {
+      html += '<div class="sub-panel-admin-audit">';
+      html += '<p><strong>Detected Source:</strong> ' + esc(s.adminAudit.detectedSource || 'N/A') + '</p>';
+      html += '<p><strong>Validation Method:</strong> ' + esc(s.adminAudit.validationMethod) + '</p>';
+      html += '<p><strong>Submission Mode:</strong> ' + esc(s.adminAudit.submissionMode) + '</p>';
+      html += '<p><strong>Auto-Approval Eligible:</strong> ' + (s.adminAudit.autoApprovalEligible ? 'Yes' : 'No') + '</p>';
+      html += '<p><strong>Review Reason (raw):</strong> ' + esc(s.adminAudit.reviewReasonCode || '(none)') + '</p>';
+      html += '</div>';
+      html += buildCorrectionFormHtml(s);
+    }
+
     // Action area
     html += '<div class="sub-panel-actions">';
     if (isPending) {
@@ -174,6 +186,9 @@
     if (approveForm) approveForm.addEventListener('submit', handleApprove);
     if (rejectForm) rejectForm.addEventListener('submit', handleReject);
 
+    var correctionForm = body.querySelector('.js-panel-correction-form');
+    if (correctionForm) correctionForm.addEventListener('submit', handleCorrection);
+
     // Proof image lightbox
     var lightboxImg = body.querySelector('.js-lightbox-trigger');
     if (lightboxImg) {
@@ -209,6 +224,63 @@
       return;
     }
     submitDecision(url, { rejectionReason: reason }, 'rejected');
+  }
+
+  function buildCorrectionFormHtml(s) {
+    var options = Array.isArray(s.reviewReasonOptions) ? s.reviewReasonOptions : [];
+    var html = '<form class="sub-panel-correction-form js-panel-correction-form" data-correction-url="' + esc(s.correctionUrl) + '">';
+    html += '<label>Distance (km)</label><input type="number" step="0.01" min="0.1" max="500" name="distanceKm" value="' + esc(s.distanceKm) + '" class="form-input">';
+    html += '<label>Elapsed (HH:MM:SS)</label><input type="text" name="elapsedHms" value="' + esc(s.elapsedLabel) + '" pattern="\\d{1,2}:\\d{2}:\\d{2}" class="form-input">';
+    html += '<label>Run Location</label><input type="text" name="runLocation" value="' + esc(s.runLocation) + '" maxlength="200" class="form-input">';
+    html += '<label>Run Type</label><select name="runType" class="form-input">';
+    ['run', 'walk', 'hike', 'trail_run'].forEach(function (rt) {
+      html += '<option value="' + rt + '"' + (s.runType === rt ? ' selected' : '') + '>' + rt + '</option>';
+    });
+    html += '</select>';
+    html += '<label>Review Reason Override</label><select name="reviewReason" class="form-input"><option value="">(none / auto-approved)</option>';
+    options.forEach(function (opt) {
+      html += '<option value="' + esc(opt.value) + '"' + (s.adminAudit.reviewReasonCode === opt.value ? ' selected' : '') + '>' + esc(opt.label) + '</option>';
+    });
+    html += '</select>';
+    html += '<label><input type="checkbox" name="autoApprovalEligible"' + (s.adminAudit.autoApprovalEligible ? ' checked' : '') + '> Auto-Approval Eligible</label>';
+    html += '<button type="submit" class="btn btn-outline btn-sm">Save Correction</button>';
+    html += '<p class="sub-panel-muted">Saving does not change approval status — use Approve/Reject above afterward.</p>';
+    html += '</form>';
+    return html;
+  }
+
+  function handleCorrection(e) {
+    e.preventDefault();
+    var form = e.target;
+    var url = form.dataset.correctionUrl;
+    var elapsedInput = form.querySelector('[name="elapsedHms"]');
+    var parts = String((elapsedInput || {}).value || '00:00:00').split(':').map(function (v) { return Number(v) || 0; });
+    var elapsedMs = ((parts[0] || 0) * 3600 + (parts[1] || 0) * 60 + (parts[2] || 0)) * 1000;
+
+    var params = new URLSearchParams(new FormData(form));
+    params.set('elapsedMs', String(elapsedMs));
+    params.delete('elapsedHms');
+    if (!form.querySelector('[name="autoApprovalEligible"]').checked) {
+      params.set('autoApprovalEligible', 'false');
+    }
+    params.set('_csrf', csrfToken);
+
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'x-csrf-token': csrfToken },
+      body: params
+    })
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (!data.success) throw new Error(data.message || 'Correction failed');
+        loadPanel(currentSubmissionId);
+      })
+      .catch(function (err) {
+        var el = form.querySelector('.sub-panel-form-error') || document.createElement('p');
+        el.className = 'sub-panel-form-error';
+        el.textContent = 'Correction failed: ' + (err.message || 'Unknown error');
+        form.appendChild(el);
+      });
   }
 
   function submitDecision(url, bodyParams, decision) {
