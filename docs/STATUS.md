@@ -1,6 +1,6 @@
 # HelloRun — Current Status
 
-_Last updated: June 29, 2026 (evening)_
+_Last updated: June 30, 2026_
 
 ---
 
@@ -95,13 +95,15 @@ _Last updated: June 29, 2026 (evening)_
 | Blog Run Hub UX — Phase 1: removed dead public blog routes from `blog.routes.js`, added route-ownership comment in `server.js`; Phase 2: `/blog` reframed as Run Hub (intent tiles, "Featured Guides", intent labels on cards); Phase 3: `/blog/:slug` audience chips, Run Action Panel (category-mapped quick links), "Next step" CTA, "Continue this path" heading; CSS: `blog.css` + `blog-pages.css` new components, blockquote redesigned, heart-pop easing corrected | June 29, 2026 | EJS compile OK, blog tests |
 | Structured data / JSON-LD — `Organization` in `head.ejs` (site-wide); `BlogPosting` + `BreadcrumbList` in `blog-post.ejs` (dynamic from `post.*` / `seo.*`); `FAQPage` in `faq.ejs` (23 Q&A pairs); all validated via JSON.parse render test | June 30, 2026 | EJS compile OK, JSON-LD valid |
 | DEBT-1: `admin.controller.js` split — 5,682-line monolith replaced with 10-line barrel + 7 focused sub-files under `src/controllers/admin/`; `_shared.js` exports 166 symbols; all 96 controller exports verified present; `admin.routes.js` unchanged; also fixed 2 live bugs: `evaluateOrganiserAchievementsInBackground` missing import (would throw on organiser approval) and `formatPolicyContentFromRequest` never defined (would throw on format policy endpoints) | June 30, 2026 | require chain OK, all 96 exports functions |
+| DEBT-2: `organizer.routes.js` split — 5,530-line monolith replaced with 23-line barrel + `_shared.js` (1,782 lines, 183 exports) + 8 sub-routers: `dashboard.js`, `event-creation.js`, `event-management.js`, `registrants.js`, `review.js`, `profile.js`, `qr-and-dashboard.js`, `onsite-operations.js`; all `node --check` passes | June 30, 2026 | `node --check` all sub-files |
+| Platform Analytics enhancements — `/admin/analytics` page: date-range tabs (7D/30D/90D/1Y), 5 new MongoDB sections (user status, organiser funnel, event breakdown, submission breakdown, run-type distribution with CSS bars), `hasSupa` guard for graceful degradation without Supabase; logger import bug fixed in `platform-analytics.service.js` | June 30, 2026 | `node --check` OK |
+| Event Promotion feature — organisers can email their runner pool (previous participants or non-participants) about upcoming events, 20 emails/day cap; admins can send to any audience including all runners, no cap; `EventPromotion` MongoDB model tracks campaigns + quota; `event.promotion` event key registered; professional HTML email template with event poster; organiser page at `/organizer/promote`; admin page at `/admin/promote`; AJAX recipient count preview; opt-out respected via existing `notify()` pipeline | June 30, 2026 | `node --check` all files |
 
 ---
 
 ## 🟡 In Progress / Follow-Up
 
 - **Priority 1 — Production AdSense (ops only):** deploy current main, run `npm run seed:adsense-blog` if needed, verify live `/robots.txt`, `/sitemap.xml`, `/ads.txt`, submit/refresh sitemap in Google Search Console, then request review after crawl stability.
-- **Priority 2 — DEBT-2 file split:** `organizer.routes.js` (~5,530 lines). Section markers in place. `src/routes/organiser/` sub-directory already exists with `onsite-operations` and `qr-and-dashboard` sub-routes — continue that pattern.
 - Test runtime follow-up: several server-spawning smoke/integration tests pass assertions locally but do not exit cleanly during teardown; investigate open handles separately (low urgency).
 - Documentation follow-up: keep `docs/to-implement/*` files as historical design records unless a new gap reopens. Stale `docs/todo refinement/` files archived to `docs/archive/todo-refinement/`.
 

@@ -28,20 +28,25 @@ npm run mark-test-events   # Mark existing test events as isTestData:true (sitem
 | `docs/architecture/` | DB schema, workflow diagrams, security route matrix |
 | `docs/adsense-readiness/` | AdSense implementation status — locally complete, production deployment pending |
 
-## Current Priority (June 29, 2026)
+## Current Priority (June 30, 2026)
 
-1. **Deploy to production + AdSense** — ops only, no code; all code is done
-2. **Homepage P1 fixes** — impeccable critique (27/40): move CTAs to hero-text, replace logo with product screenshot, remove fabricated testimonial
-3. **Blog Run Hub UX** — spec at `docs/blog/hellorun-blog-run-hub-ux-todo.md`
-4. **Structured data / JSON-LD** — AdSense checklist Phase 6; Organization, BlogPosting, FAQPage, BreadcrumbList
-5. **DEBT-1/2** — split `admin.controller.js` and `organizer.routes.js` (section markers already in place)
+1. **Deploy to production + AdSense** — ops only, no code; all code is done (see STATUS.md In Progress for steps)
+2. **Event Promotion feature** — code complete (Jun 30). Spec: `docs/to-implement/event-promotion.md`
+
+### Done this session (June 29–30)
+- Homepage CSS polish — 30/40, 0 P0/P1 remaining
+- Blog Run Hub UX — all 3 phases complete (`/blog` as Run Hub, intent tiles, audience chips, action panel)
+- Structured data / JSON-LD — Organization, BlogPosting, BreadcrumbList, FAQPage all done
+- DEBT-1 — `admin.controller.js` split (barrel + `_shared.js` + 6 sub-controllers); 2 live bugs fixed
+- DEBT-2 — `organizer.routes.js` split (barrel + `_shared.js` + 8 sub-routers); analytics enhancements
+- Event Promotion — `EventPromotion` model, `event.promotion` event key, organiser page, admin page
 
 ## Architecture Notes
 
 - **Sessions:** `connect-mongo` — multi-process deployment is safe
 - **Auth:** Express sessions + Cloudflare Turnstile on auth forms
 - **Uploads:** Cloudflare R2 via multer (5 MB limit, type-validated)
-- **Email:** Nodemailer via communication.service.js; opt-out stored on User.emailOptOut
+- **Email:** Resend via `src/services/email.service.js`; all sends go through `notify()` in `communication.service.js`; opt-out stored on `User.notificationPreferences.emailOptOut[]` (array of event keys)
 - **Workers:** pg-sync-worker (sync retry), communication-retry-worker, blog-scheduler-worker — all wired into server startup
 - **Rate limiting:** Shared Redis limiters across auth, submissions, exports, reviews
 - **Monitoring:** Sentry APM (conditional on SENTRY_DSN), `/healthz` + `/readyz` endpoints
