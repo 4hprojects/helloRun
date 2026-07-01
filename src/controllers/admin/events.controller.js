@@ -496,10 +496,15 @@ exports.removeEventMedia = async (req, res) => {
 exports.analyticsPage = async (req, res) => {
   try {
     const { getPlatformAnalytics } = require('../../services/platform-analytics.service');
-    const analytics = await getPlatformAnalytics();
+    const VALID_RANGES = ['7d', '30d', '90d', '365d'];
+    const range = VALID_RANGES.includes(req.query.range) ? req.query.range : '365d';
+    const rangeDays = { '7d': 7, '30d': 30, '90d': 90, '365d': 365 };
+    const since = new Date(Date.now() - rangeDays[range] * 24 * 60 * 60 * 1000);
+    const analytics = await getPlatformAnalytics({ since });
     return res.render('admin/analytics', {
       title: 'Platform Analytics - HelloRun Admin',
       analytics,
+      range,
       message: getAdminPageMessage(req.query)
     });
   } catch (error) {
@@ -636,5 +641,169 @@ exports.dashboard = async (req, res) => {
   }
 };
 
-
 // ═══════════════════════════════════════════════════════════
+// SECTION: Event Promotion (Admin)
+// ═══════════════════════════════════════════════════════════
+
+const ADMIN_PROMO_NON_PARTICIPANT_CAP = 200;
+const ADMIN_PROMO_ALL_RUNNERS_CAP = 500;
+
+async function adminGetParticipantIds(eventIds) {
+  const Registration = require('../../models/Registration');
+  const rows = await Registration.aggregate([
+    { $match: { eventId: { $in: eventIds } } },
+    { $group: { _id: '$userId' } }
+  ]);
+  return rows.map((r) => r._id);
+}
+
+async function adminResolveAudience(audience, selectedEvent) {
+  if (audience === 'previous_participants') {
+    const participantIds = await adminGetParticipantIds([selectedEvent._id]);
+    if (!participantIds.length) return [];
+    return User.find({ _id: { $in: participantIds } }).select('_id email firstName').lean();
+  }
+  if (audience === 'non_participants') {
+    const orgEventIds = (await Event.find({ organizerId: selectedEvent.organizerId, isDeleted: { $ne: true } }).select('_id').lean()).map((d) => d._id);
+    const participantIds = await adminGetParticipantIds(orgEventIds);
+    return User.find({ role: 'runner', _id: { $nin: participantIds } })
+      .select('_id email firstName')
+      .limit(ADMIN_PROMO_NON_PARTICIPANT_CAP)
+      .lean();
+  }
+  if (audience === 'all_runners') {
+    return User.find({ role: 'runner' })
+      .select('_id email firstName')
+      .limit(ADMIN_PROMO_ALL_RUNNERS_CAP)
+      .lean();
+  }
+  return [];
+}
+
+exports.promotePage = async (req, res) => {
+  try {
+    const EventPromotion = require('../../models/EventPromotion');
+    const DailyEmailUsage = require('../../models/DailyEmailUsage');
+    const dateKey = new Date().toISOString().slice(0, 10);
+
+    const [events, recentCampaigns, dailyUsage] = await Promise.all([
+      Event.find({ isDeleted: { $ne: true }, status: { $ne: 'archived' } })
+        .select('_id title slug status organizerId organizerDisplayName')
+        .sort({ updatedAt: -1 })
+        .limit(200)
+        .lean(),
+      EventPromotion.find({})
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .populate('eventId', 'title')
+        .populate('organizerId', 'firstName lastName')
+        .lean(),
+      DailyEmailUsage.findOne({ dateKey }).lean()
+    ]);
+
+    const platformSent = Number(dailyUsage?.sentCount || 0);
+    const platformLimit = Number(dailyUsage?.totalLimit || 100);
+
+    return res.render('admin/promote', {
+      title: 'Promote Event - Admin',
+      events,
+      recentCampaigns,
+      platformSent,
+      platformRemaining: Math.max(0, platformLimit - platformSent),
+      platformLimit,
+      message: getAdminPageMessage(req.query)
+    });
+  } catch (error) {
+    return renderServerError(res, error, 'Unable to load promotion page.');
+  }
+};
+
+exports.promotePreview = async (req, res) => {
+  try {
+    const { eventId, audience } = req.query;
+    const validAudiences = ['previous_participants', 'non_participants', 'all_runners'];
+    if (!eventId || !validAudiences.includes(audience)) {
+      return res.json({ count: 0 });
+    }
+    const event = await Event.findById(eventId).select('_id organizerId slug').lean();
+    if (!event) return res.status(404).json({ error: 'Event not found.' });
+
+    const recipients = await adminResolveAudience(audience, event);
+    return res.json({ count: recipients.length });
+  } catch (error) {
+    logger.error('Admin promote preview error:', error);
+    return res.status(500).json({ error: 'Preview failed.' });
+  }
+};
+
+exports.promoteSend = async (req, res) => {
+  const redirectBase = '/admin/promote';
+  try {
+    const EventPromotion = require('../../models/EventPromotion');
+    const { notifyWithRetryInBackground } = require('../../services/reliable-communication.service');
+    const { eventId, audience } = req.body;
+    const validAudiences = ['previous_participants', 'non_participants', 'all_runners'];
+    if (!eventId || !validAudiences.includes(audience)) {
+      const q = new URLSearchParams({ type: 'error', msg: 'Invalid promotion request.' });
+      return res.redirect(`${redirectBase}?${q}`);
+    }
+
+    const event = await Event.findById(eventId).select('_id title slug organizerId organizerDisplayName posterImageUrl bannerImageUrl').lean();
+    if (!event) {
+      const q = new URLSearchParams({ type: 'error', msg: 'Event not found.' });
+      return res.redirect(`${redirectBase}?${q}`);
+    }
+
+    const recipients = await adminResolveAudience(audience, event);
+    if (!recipients.length) {
+      const q = new URLSearchParams({ type: 'error', msg: 'No eligible recipients found.' });
+      return res.redirect(`${redirectBase}?${q}`);
+    }
+
+    const dateKey = new Date().toISOString().slice(0, 10);
+    const campaign = await EventPromotion.create({
+      organizerId: event.organizerId,
+      eventId: event._id,
+      audience,
+      recipientCount: 0,
+      dateKey,
+      status: 'sending',
+      adminTriggered: true,
+      sentAt: new Date()
+    });
+
+    const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
+    const eventUrl = `${appUrl}/events/${event.slug}`;
+    const organiserName = event.organizerDisplayName || 'an organiser';
+    const posterUrl = event.posterImageUrl || event.bannerImageUrl || null;
+
+    await Promise.allSettled(
+      recipients.map((runner) => {
+        if (!runner.email) return Promise.resolve();
+        return notifyWithRetryInBackground('event.promotion', {
+          email: {
+            to: runner.email,
+            firstName: runner.firstName || 'Runner',
+            eventTitle: event.title || 'Event',
+            posterUrl,
+            eventUrl,
+            organiserName,
+            recipientUserId: runner._id,
+            metadata: { campaignId: String(campaign._id), eventId: String(event._id), adminTriggered: true }
+          }
+        }, { source: 'event.promotion.admin' });
+      })
+    );
+
+    campaign.recipientCount = recipients.length;
+    campaign.status = 'completed';
+    await campaign.save();
+
+    const q = new URLSearchParams({ type: 'success', msg: `Promotion sent to ${recipients.length} runner${recipients.length !== 1 ? 's' : ''}.` });
+    return res.redirect(`${redirectBase}?${q}`);
+  } catch (error) {
+    logger.error('Admin promote send error:', error);
+    const q = new URLSearchParams({ type: 'error', msg: 'An error occurred while sending the promotion.' });
+    return res.redirect(`${redirectBase}?${q}`);
+  }
+};

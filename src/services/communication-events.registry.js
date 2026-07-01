@@ -245,6 +245,19 @@ const COMMUNICATION_EVENTS = Object.freeze([
     locked: false,
     recipientRoles: ['runner'],
     displayOrder: 600
+  },
+  {
+    eventKey: 'event.promotion',
+    name: 'Event Promotion',
+    description: 'Promotional email sent by an organiser or admin to invite runners to an upcoming event.',
+    category: 'organiser',
+    priority: 'low',
+    required: false,
+    emailEnabled: true,
+    inAppEnabled: false,
+    locked: false,
+    recipientRoles: ['runner'],
+    displayOrder: 700
   }
 ]);
 

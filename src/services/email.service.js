@@ -1719,6 +1719,94 @@ exports.sendBasicTestEmail = async (to, subject, message) => {
   return data;
 };
 
+exports.sendEventPromotionEmail = async (to, firstName, eventTitle, posterUrl, eventUrl, organiserName) => {
+  const safeTitle = escapeHtml(eventTitle);
+  const safeName = escapeHtml(firstName || 'Runner');
+  const safeOrganiser = escapeHtml(organiserName || 'an organiser');
+  const posterBlock = posterUrl
+    ? `<div style="text-align:center;margin:0 0 30px;">
+         <img src="${posterUrl}" alt="${safeTitle}" style="max-width:100%;height:auto;border-radius:8px;border:1px solid #e2e8f0;" />
+       </div>`
+    : '';
+
+  const { data, error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM,
+    to,
+    subject: `Don't miss it: ${eventTitle} — Register Now`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; margin: 0; padding: 0; }
+          .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+          .header { background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%); padding: 32px 20px; text-align: center; }
+          .header-content { display: flex; align-items: center; justify-content: center; gap: 12px; }
+          .logo { width: 40px; height: 40px; vertical-align: middle; }
+          .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; display: inline; }
+          .content { padding: 36px 30px; }
+          .greeting { font-size: 18px; font-weight: 600; color: #1e293b; margin-bottom: 16px; }
+          .event-title { font-size: 22px; font-weight: 700; color: #FA9A4B; margin: 0 0 24px; }
+          .message { color: #64748b; margin-bottom: 24px; font-size: 15px; }
+          .button-container { text-align: center; margin: 32px 0; }
+          .cta-button { display: inline-block; background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%); color: #ffffff !important; text-decoration: none; padding: 16px 48px; border-radius: 8px; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(250,154,75,0.35); }
+          .footer { background-color: #f8fafc; padding: 28px; text-align: center; border-top: 1px solid #e2e8f0; }
+          .footer p { color: #94a3b8; font-size: 13px; margin: 4px 0; }
+          .footer a { color: #FA9A4B; text-decoration: none; }
+          .unsubscribe { margin-top: 16px; font-size: 12px; color: #cbd5e1; }
+        </style>
+      </head>
+      <body>
+        <div class="email-container">
+          <div class="header">
+            <div class="header-content">
+              <img src="${LOGO_URL}" alt="HelloRun" class="logo" />
+              <h1>HelloRun</h1>
+            </div>
+          </div>
+          <div class="content">
+            <p class="greeting">Hi ${safeName},</p>
+            <h2 class="event-title">${safeTitle}</h2>
+            ${posterBlock}
+            <p class="message">
+              ${safeOrganiser} is inviting you to join an upcoming running event on HelloRun.
+              Don't miss your chance to register and be part of this exciting run!
+            </p>
+            <div class="button-container">
+              <a href="${eventUrl}" class="cta-button">Register Now</a>
+            </div>
+            <p class="message" style="font-size:13px;color:#94a3b8;">
+              Can't click the button? Copy and paste this link into your browser:<br>
+              <a href="${eventUrl}" style="color:#FA9A4B;word-break:break-all;">${eventUrl}</a>
+            </p>
+          </div>
+          <div class="footer">
+            <p><strong>HelloRun</strong></p>
+            <p>Your running journey companion</p>
+            <p style="margin-top:16px;">
+              <a href="${process.env.APP_URL}">Visit HelloRun</a> &bull;
+              <a href="${process.env.APP_URL}/contact">Support</a>
+            </p>
+            <p class="unsubscribe">
+              This promotional email was sent on behalf of ${safeOrganiser} via HelloRun.<br>
+              <a href="${process.env.APP_URL}/unsubscribe?key=event.promotion" style="color:#94a3b8;">Unsubscribe from event promotions</a>
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  });
+
+  if (error) {
+    logger.error('Resend email error (event.promotion):', error);
+    throw new Error('Failed to send event promotion email');
+  }
+  return data;
+};
+
 function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')

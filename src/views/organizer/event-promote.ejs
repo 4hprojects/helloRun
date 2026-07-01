@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title: title }) %>
+  <link rel="stylesheet" href="/css/organizer-events.css">
+  <style>
+    .promote-shell { max-width: 860px; margin: 0 auto; padding: 0 16px 48px; }
+    .promote-header { margin: 32px 0 24px; }
+    .promote-header h1 { font-size: 1.6rem; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
+    .promote-header p { color: #64748b; font-size: 0.95rem; margin: 0; }
+    .promote-back { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #64748b; text-decoration: none; margin-bottom: 20px; }
+    .promote-back:hover { color: #FA9A4B; }
+    .promote-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+    @media (max-width: 640px) { .promote-layout { grid-template-columns: 1fr; } }
+    .promote-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 24px; }
+    .promote-card h2 { font-size: 1rem; font-weight: 600; color: #1e293b; margin: 0 0 20px; padding-bottom: 12px; border-bottom: 1px solid #f1f5f9; }
+    .form-group { margin-bottom: 20px; }
+    .form-label { display: block; font-size: 0.85rem; font-weight: 600; color: #374151; margin-bottom: 6px; }
+    .form-select { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.9rem; color: #1e293b; background: #fff; }
+    .form-select:focus { outline: none; border-color: #FA9A4B; box-shadow: 0 0 0 3px rgba(250,154,75,0.15); }
+    .radio-group { display: flex; flex-direction: column; gap: 10px; }
+    .radio-option { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: border-color 0.15s; }
+    .radio-option:hover { border-color: #FA9A4B; }
+    .radio-option input[type=radio] { margin-top: 2px; accent-color: #FA9A4B; }
+    .radio-option-label { font-size: 0.9rem; font-weight: 500; color: #1e293b; }
+    .radio-option-desc { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+    .quota-bar-wrap { margin-bottom: 20px; }
+    .quota-bar-label { display: flex; justify-content: space-between; font-size: 0.8rem; color: #64748b; margin-bottom: 6px; }
+    .quota-bar-track { height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden; }
+    .quota-bar-fill { height: 100%; background: linear-gradient(90deg, #FA9A4B, #E0A46A); border-radius: 4px; transition: width 0.3s; }
+    .quota-bar-fill.full { background: #ef4444; }
+    .recipient-preview { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; text-align: center; }
+    .recipient-count { font-size: 2rem; font-weight: 700; color: #FA9A4B; line-height: 1; }
+    .recipient-label { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+    .recipient-capped { font-size: 0.75rem; color: #f59e0b; margin-top: 4px; }
+    .submit-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #FA9A4B 0%, #E0A46A 100%); color: #fff; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-top: 8px; transition: opacity 0.15s; }
+    .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .submit-btn:not(:disabled):hover { opacity: 0.9; }
+    .campaigns-card { margin-top: 24px; }
+    .campaigns-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .campaigns-table th { text-align: left; padding: 8px 10px; font-weight: 600; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+    .campaigns-table td { padding: 10px; color: #374151; border-bottom: 1px solid #f1f5f9; }
+    .campaigns-table tr:last-child td { border-bottom: none; }
+    .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .status-badge.completed { background: #dcfce7; color: #166534; }
+    .status-badge.sending { background: #fef3c7; color: #92400e; }
+    .status-badge.failed { background: #fee2e2; color: #991b1b; }
+    .audience-label { font-size: 0.75rem; color: #64748b; }
+    .empty-state { text-align: center; padding: 24px; color: #94a3b8; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+
+  <main class="events-page">
+    <div class="promote-shell">
+      <a href="/organizer/events" class="promote-back">
+        <i data-lucide="arrow-left" style="width:14px;height:14px;"></i>
+        My Events
+      </a>
+
+      <header class="promote-header">
+        <h1>Promote Event</h1>
+        <p>Email runners in your audience about an upcoming event.</p>
+      </header>
+
+      <% if (pageMessage) { %>
+        <div class="page-message page-message-<%= pageMessage.type %>"><%= pageMessage.text %></div>
+      <% } %>
+
+      <%
+        const eventList = Array.isArray(events) ? events : [];
+        const pctUsed = quotaLimit > 0 ? Math.min(100, Math.round((quotaUsed / quotaLimit) * 100)) : 0;
+        const isExhausted = quotaRemaining <= 0;
+      %>
+
+      <div class="promote-layout">
+        <!-- Left: Form -->
+        <div class="promote-card">
+          <h2>Send Promotion</h2>
+
+          <div class="quota-bar-wrap">
+            <div class="quota-bar-label">
+              <span>Daily emails used</span>
+              <span><strong><%= quotaUsed %></strong> / <%= quotaLimit %></span>
+            </div>
+            <div class="quota-bar-track">
+              <div class="quota-bar-fill <%= isExhausted ? 'full' : '' %>" style="width:<%= pctUsed %>%;"></div>
+            </div>
+            <% if (isExhausted) { %>
+              <p style="font-size:0.78rem;color:#ef4444;margin:6px 0 0;">Daily limit reached. Promotions reset at midnight.</p>
+            <% } else { %>
+              <p style="font-size:0.78rem;color:#64748b;margin:6px 0 0;"><%= quotaRemaining %> email<%= quotaRemaining !== 1 ? 's' : '' %> remaining today.</p>
+            <% } %>
+          </div>
+
+          <form method="POST" action="/organizer/promote" id="promote-form">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+            <div class="form-group">
+              <label class="form-label" for="eventId">Event</label>
+              <% if (!eventList.length) { %>
+                <p style="font-size:0.85rem;color:#64748b;">No active events found. <a href="/organizer/create-event" style="color:#FA9A4B;">Create one</a>.</p>
+              <% } else { %>
+                <select id="eventId" name="eventId" class="form-select" required>
+                  <option value="">Select an event…</option>
+                  <% eventList.forEach(function(ev) { %>
+                    <option value="<%= ev._id %>"><%= ev.title %> (<%= ev.status %>)</option>
+                  <% }); %>
+                </select>
+              <% } %>
+            </div>
+
+            <div class="form-group">
+              <span class="form-label">Audience</span>
+              <div class="radio-group">
+                <label class="radio-option">
+                  <input type="radio" name="audience" value="previous_participants" required>
+                  <div>
+                    <div class="radio-option-label">Previous Participants</div>
+                    <div class="radio-option-desc">Runners who registered for at least one of your events.</div>
+                  </div>
+                </label>
+                <label class="radio-option">
+                  <input type="radio" name="audience" value="non_participants">
+                  <div>
+                    <div class="radio-option-label">Runners Who Haven't Joined My Events</div>
+                    <div class="radio-option-desc">Platform runners who have not yet participated in your events (up to 200).</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="promote-submit" disabled>
+              Send Promotion
+            </button>
+          </form>
+        </div>
+
+        <!-- Right: Preview -->
+        <div class="promote-card">
+          <h2>Recipient Preview</h2>
+          <div class="recipient-preview" id="recipient-preview">
+            <div class="recipient-count" id="recipient-count">—</div>
+            <div class="recipient-label" id="recipient-label">Select an event and audience to preview</div>
+            <div class="recipient-capped" id="recipient-capped" style="display:none;"></div>
+          </div>
+          <p style="font-size:0.78rem;color:#94a3b8;margin:12px 0 0;line-height:1.5;">
+            Emails respect platform opt-out preferences. Runners who opted out of event promotions will not receive this email.
+          </p>
+        </div>
+      </div>
+
+      <!-- Recent Campaigns -->
+      <div class="promote-card campaigns-card">
+        <h2>Recent Campaigns</h2>
+        <% if (!recentCampaigns || !recentCampaigns.length) { %>
+          <div class="empty-state">No promotions sent yet.</div>
+        <% } else { %>
+          <table class="campaigns-table">
+            <thead>
+              <tr>
+                <th>Event</th>
+                <th>Audience</th>
+                <th>Recipients</th>
+                <th>Sent</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% recentCampaigns.forEach(function(c) { %>
+                <tr>
+                  <td><%= c.eventId && c.eventId.title ? c.eventId.title : '—' %></td>
+                  <td class="audience-label">
+                    <% if (c.audience === 'previous_participants') { %>Previous Participants
+                    <% } else if (c.audience === 'non_participants') { %>Non-Participants
+                    <% } else { %><%= c.audience %><% } %>
+                  </td>
+                  <td><%= c.recipientCount %></td>
+                  <td><%= c.sentAt ? new Date(c.sentAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—' %></td>
+                  <td><span class="status-badge <%= c.status %>"><%= c.status %></span></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        <% } %>
+      </div>
+    </div>
+  </main>
+
+  <%- include('../layouts/footer') %>
+
+  <script>
+    (function () {
+      const eventSelect = document.getElementById('eventId');
+      const audienceRadios = document.querySelectorAll('input[name="audience"]');
+      const countEl = document.getElementById('recipient-count');
+      const labelEl = document.getElementById('recipient-label');
+      const cappedEl = document.getElementById('recipient-capped');
+      const submitBtn = document.getElementById('promote-submit');
+      const quotaRemaining = <%= quotaRemaining %>;
+
+      function getAudience() {
+        const checked = document.querySelector('input[name="audience"]:checked');
+        return checked ? checked.value : '';
+      }
+
+      async function updatePreview() {
+        const eventId = eventSelect ? eventSelect.value : '';
+        const audience = getAudience();
+        if (!eventId || !audience) {
+          countEl.textContent = '—';
+          labelEl.textContent = 'Select an event and audience to preview';
+          cappedEl.style.display = 'none';
+          submitBtn.disabled = true;
+          return;
+        }
+        countEl.textContent = '…';
+        labelEl.textContent = 'Loading…';
+        try {
+          const resp = await fetch(`/organizer/promote/preview?eventId=${encodeURIComponent(eventId)}&audience=${encodeURIComponent(audience)}`);
+          const data = await resp.json();
+          const count = data.count || 0;
+          countEl.textContent = count;
+          labelEl.textContent = count === 1 ? 'eligible runner' : 'eligible runners';
+          if (data.rawCount > count) {
+            cappedEl.textContent = `(${data.rawCount} matched, capped by daily quota)`;
+            cappedEl.style.display = 'block';
+          } else {
+            cappedEl.style.display = 'none';
+          }
+          submitBtn.disabled = count === 0 || quotaRemaining === 0;
+        } catch (_) {
+          countEl.textContent = '?';
+          labelEl.textContent = 'Preview unavailable';
+          cappedEl.style.display = 'none';
+        }
+      }
+
+      if (eventSelect) eventSelect.addEventListener('change', updatePreview);
+      audienceRadios.forEach(function (r) { r.addEventListener('change', updatePreview); });
+    })();
+  </script>
+</body>
+</html>

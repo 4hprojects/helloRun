@@ -716,6 +716,16 @@ async function sendEventEmail(eventKey, payload = {}) {
       }
     );
   }
+  if (eventKey === 'event.promotion') {
+    return emailService.sendEventPromotionEmail(
+      email.to,
+      email.firstName,
+      email.eventTitle,
+      email.posterUrl,
+      email.eventUrl,
+      email.organiserName
+    );
+  }
   throw new Error(`No email sender registered for ${eventKey}`);
 }
 
@@ -737,7 +747,8 @@ function getSubjectForEvent(eventKey, payload = {}) {
     'result.approved': `Result Approved: ${eventTitle}`,
     'result.rejected': `Result Rejected: ${eventTitle}`,
     'certificate.issued': `Certificate Available: ${eventTitle}`,
-    'badge.earned': `Badge Earned: ${email.badgeName || 'Achievement Badge'}`
+    'badge.earned': `Badge Earned: ${email.badgeName || 'Achievement Badge'}`,
+    'event.promotion': `Don't miss it: ${eventTitle} — Register Now`
   };
   return subjects[eventKey] || eventKey;
 }

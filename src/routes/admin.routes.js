@@ -155,6 +155,11 @@ for (const policyDocument of listPolicyDocuments().filter((item) => !['privacy',
   router.post(`/${adminSlug}/:id/archive`, requireAdmin, adminController.archivePolicyDocumentVersion);
 }
 
+// Event promotion
+router.get('/promote', requireAdmin, adminController.promotePage);
+router.get('/promote/preview', requireAdmin, adminController.promotePreview);
+router.post('/promote', requireAdmin, requireCsrfProtection, adminController.promoteSend);
+
 // Blog moderation queue
 router.get('/blog/review', requireAdmin, blogController.renderAdminQueuePage);
 router.get('/blog/posts/:id/review', requireAdmin, blogController.renderAdminReviewPage);
