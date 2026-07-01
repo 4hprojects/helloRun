@@ -1384,6 +1384,10 @@ function normalizeValidationMethod(source, ocrData) {
   return hasOcrSignals ? 'ocr' : 'manual_upload';
 }
 
+function isNameMatchAcceptableForAutoApproval(nameMatchStatus) {
+  return nameMatchStatus === 'matched' || nameMatchStatus === 'not_detected';
+}
+
 function getSubmissionReviewReason({
   method,
   ocrData,
@@ -1402,7 +1406,7 @@ function getSubmissionReviewReason({
   if (method !== 'ocr') {
     return `${method}_review_required`;
   }
-  if (ocrData?.nameMatchStatus !== 'matched') {
+  if (!isNameMatchAcceptableForAutoApproval(ocrData?.nameMatchStatus)) {
     return 'ocr_name_not_matched';
   }
   if (!normalizePositiveDistance(ocrData?.extractedDistanceKm)) {
@@ -1421,7 +1425,7 @@ function isAutoApprovableOcrPayload({ ocrData, suspiciousFlag }) {
   const extractedDistanceKm = Number(ocrData?.extractedDistanceKm);
   const extractedTimeMs = Number(ocrData?.extractedTimeMs);
   return (
-    ocrData?.nameMatchStatus === 'matched' &&
+    isNameMatchAcceptableForAutoApproval(ocrData?.nameMatchStatus) &&
     Number.isFinite(extractedDistanceKm) &&
     extractedDistanceKm > 0 &&
     Number.isFinite(extractedTimeMs) &&
@@ -1478,7 +1482,7 @@ function isAutoApprovableOcrSubmission(submission) {
   const extractedTimeMs = Number(ocrData.extractedTimeMs);
   return (
     String(submission.status || '') === 'submitted' &&
-    ocrData.nameMatchStatus === 'matched' &&
+    isNameMatchAcceptableForAutoApproval(ocrData.nameMatchStatus) &&
     Number.isFinite(extractedDistanceKm) &&
     extractedDistanceKm > 0 &&
     Number.isFinite(extractedTimeMs) &&

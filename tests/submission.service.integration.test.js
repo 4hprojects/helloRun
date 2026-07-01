@@ -1452,6 +1452,20 @@ test('isAutoApprovableOcrSubmission requires a clean matched OCR result', () => 
       elevationMismatch: false
     }
   }), true);
+
+  assert.equal(isAutoApprovableOcrSubmission({
+    status: 'submitted',
+    suspiciousFlag: false,
+    ocrData: {
+      nameMatchStatus: 'not_detected',
+      extractedName: '',
+      extractedDistanceKm: 10,
+      extractedTimeMs: 3600000,
+      confidence: 0.9,
+      distanceMismatch: false,
+      timeMismatch: false
+    }
+  }), true);
 });
 
 test('createSubmission saves suspicious OCR elevation edits without auto-approving', async () => {
@@ -1734,7 +1748,7 @@ test('createSubmission auto-approves clean matched OCR personal record without c
   assert.equal(result.validation.minimumRequiredDistanceKm, null);
 });
 
-test('createSubmission keeps mismatched and undetected names pending with correct flags', async () => {
+test('createSubmission keeps mismatched names pending but auto-approves clean undetected-name results', async () => {
   const mismatchSeed = await seedSubmissionFixture('ocr-mismatch-pending');
   const noNameSeed = await seedSubmissionFixture('ocr-no-name-pending');
 
@@ -1787,8 +1801,10 @@ test('createSubmission keeps mismatched and undetected names pending with correc
   assert.equal(mismatched.status, 'submitted');
   assert.equal(mismatched.suspiciousFlag, true);
   assert.match(mismatched.suspiciousFlagReason, /name does not match/i);
-  assert.equal(noName.status, 'submitted');
+  assert.equal(noName.status, 'approved');
   assert.equal(noName.suspiciousFlag, false);
+  assert.equal(noName.validation.autoApprovalEligible, true);
+  assert.equal(noName.validation.reviewReason, '');
 });
 
 test('resubmitSubmission recalculates OCR state and can auto-approve a clean replacement', async () => {
