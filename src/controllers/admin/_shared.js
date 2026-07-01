@@ -63,6 +63,7 @@ const {
   normalizeCountryCode
 } = require('../../utils/country');
 const { buildSubmissionReviewSignal } = require('../../utils/submission-review-labels');
+const { isFullAdminTier } = require('../../middleware/auth.middleware');
 
 const VALID_FILTER_STATUSES = ['pending', 'under_review', 'approved', 'rejected'];
 const REVIEWABLE_STATUSES = ['pending', 'under_review'];
@@ -79,6 +80,7 @@ const ADMIN_REVIEW_TYPES = ['all', 'payments', 'results'];
 const ADMIN_REVIEW_SORTS = ['oldest', 'newest'];
 const ADMIN_EVENT_STATUSES = ['draft', 'pending_review', 'published', 'closed', 'archived'];
 const ADMIN_USER_ROLES = ['runner', 'organiser', 'admin'];
+const ADMIN_TIER_OPTIONS = ['full', 'support'];
 const ADMIN_USER_ORGANIZER_STATUSES = ['not_applied', 'pending', 'approved', 'rejected'];
 const ADMIN_USER_AUTH_PROVIDERS = ['local', 'google'];
 const ADMIN_USER_ACCOUNT_STATUSES = ['active', 'restricted', 'suspended', 'closed'];
@@ -493,7 +495,8 @@ function getAdminUserEditFormData(source = {}) {
     runningGroups,
     runningGroup: runningGroups[0] || '',
     role: String(source.role || '').trim() || 'runner',
-    organizerStatus: String(source.organizerStatus || '').trim() || 'not_applied'
+    organizerStatus: String(source.organizerStatus || '').trim() || 'not_applied',
+    adminTier: String(source.adminTier || '').trim() || 'full'
   };
 }
 
@@ -542,6 +545,9 @@ function validateAdminUserEditForm(formData) {
   if (!ADMIN_USER_ORGANIZER_STATUSES.includes(formData.organizerStatus)) {
     errors.organizerStatus = 'Select a valid organizer status.';
   }
+  if (!ADMIN_TIER_OPTIONS.includes(formData.adminTier)) {
+    errors.adminTier = 'Select a valid admin tier.';
+  }
 
   return errors;
 }
@@ -568,10 +574,13 @@ function renderAdminUserEdit(res, user, formData, options = {}) {
       email: user.email || 'N/A',
       displayName: formatUserDisplayName(user),
       role: user.role || 'runner',
-      organizerStatus: user.organizerStatus || 'not_applied'
+      organizerStatus: user.organizerStatus || 'not_applied',
+      adminTier: user.adminTier || 'full'
     },
     formData,
     countries: adminUserProfileCountries,
+    viewerIsFullAdmin: Boolean(options.viewerIsFullAdmin),
+    isSelfEdit: Boolean(options.isSelfEdit),
     errors: options.errors || {},
     message: options.message || null
   });
@@ -664,6 +673,7 @@ function mapAdminUserListItem(user, counts, currentAdminId = '') {
       ? user.runningGroups.join(', ')
       : (user.runningGroup || 'Not set'),
     accountStatus: user.accountStatus || 'active',
+    adminTier: user.role === 'admin' ? (user.adminTier || 'full') : '',
     lastLoginAt: user.lastLoginAt || null,
     lastLoginAtLabel: user.lastLoginAt ? formatAdminShortDate(user.lastLoginAt) : 'Never',
     lastLoginAtDetailLabel: user.lastLoginAt ? formatAdminDateTime(user.lastLoginAt) : 'Never logged in',
@@ -1329,7 +1339,7 @@ module.exports = {
   ADMIN_USER_ORGANIZER_STATUSES, ADMIN_USER_AUTH_PROVIDERS, ADMIN_USER_ACCOUNT_STATUSES,
   ADMIN_USER_SORTS, ADMIN_USERS_PER_PAGE, ADMIN_USER_PER_PAGE_OPTIONS, ADMIN_BADGE_STATUSES,
   ADMIN_BADGE_SCOPES, adminUserProfileCountries, POLICY_HEADING_PATTERNS, POLICY_LABEL_ALLOWLIST,
-  POLICY_LABEL_BLOCKLIST, BULK_DELETE_CAP,
+  POLICY_LABEL_BLOCKLIST, BULK_DELETE_CAP, ADMIN_TIER_OPTIONS, isFullAdminTier,
   escapeRegex, getMessageFromQuery, canPublishFromMessage, buildDetailRedirect, canTransitionStatus,
   getRequestIpAddress, getRequestUserAgent, purgeApplicationDocuments, renderApplicationNotFound,
   renderServerError, buildAdminRedirect, appendAdminPageMessage, buildCommunicationLogHref,

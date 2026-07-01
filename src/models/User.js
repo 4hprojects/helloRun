@@ -44,6 +44,13 @@ const userSchema = new mongoose.Schema({
     enum: ['runner', 'organiser', 'admin'],
     default: 'runner'
   },
+  // Only meaningful when role === 'admin'. Missing/undefined is treated as
+  // 'full' everywhere it's checked, so existing admins are never locked out.
+  adminTier: {
+    type: String,
+    enum: ['full', 'support'],
+    default: 'full'
+  },
   firstName: {
     type: String,
     trim: true

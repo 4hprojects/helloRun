@@ -37,7 +37,8 @@ const AUDIT_ACTION_GROUPS = Object.freeze({
     'admin.user.note_added',
     'admin.user.verification_resent',
     'admin.user.email_verified_override',
-    'admin.user.account_status_changed'
+    'admin.user.account_status_changed',
+    'admin.user.admin_tier_changed'
   ],
   events: [
     'event.published',

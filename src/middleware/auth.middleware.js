@@ -149,6 +149,31 @@ async function requireAdmin(req, res, next) {
 }
 
 /**
+ * Treats missing/undefined adminTier as 'full' so existing admins are never
+ * locked out by a schema field that didn't exist when their account was created.
+ */
+function isFullAdminTier(user) {
+  return Boolean(user) && user.adminTier !== 'support';
+}
+
+/**
+ * Require admin role AND full admin tier (blocks the 'support' tier from the
+ * highest-blast-radius actions: account/event deletion, policy publishing,
+ * communications settings, site-wide settings, mass-email promotion, and
+ * data exports). Always run after requireAdmin on the same route.
+ */
+async function requireFullAdmin(req, res, next) {
+  if (!req.session || !req.session.userId) {
+    return res.redirect('/login');
+  }
+  const user = await User.findById(req.session.userId).select('role adminTier').lean();
+  if (!user || user.role !== 'admin' || !isFullAdminTier(user)) {
+    return res.status(403).send('This action requires full admin access.');
+  }
+  next();
+}
+
+/**
  * Require organiser role
  */
 async function requireOrganizer(req, res, next) {
@@ -203,6 +228,8 @@ module.exports = {
   redirectIfAuth,
   requireAuth,
   requireAdmin,
+  requireFullAdmin,
+  isFullAdminTier,
   requireOrganizer,
   requireApprovedOrganizer,
   requireCanCreateEvents

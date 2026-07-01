@@ -39,6 +39,12 @@
           <p class="meta-label">Current Role</p>
           <p class="meta-value"><span class="status-badge status-badge-<%= managedUser.role %>"><%= managedUser.role %></span></p>
         </div>
+        <% if (managedUser.role === 'admin') { %>
+          <div class="meta-card">
+            <p class="meta-label">Admin Tier</p>
+            <p class="meta-value"><span class="status-badge status-badge-<%= managedUser.adminTier %>"><%= managedUser.adminTier %></span></p>
+          </div>
+        <% } %>
         <div class="meta-card">
           <p class="meta-label">Organizer Status</p>
           <p class="meta-value">
@@ -125,6 +131,16 @@
                 <option value="admin" <%= formData.role === 'admin' ? 'selected' : '' %>>Admin</option>
               </select>
               <% if (errors.role) { %><small class="field-error"><%= errors.role %></small><% } %>
+            </label>
+            <label class="admin-form-field">
+              <span>Admin Tier <small>(only applies when Platform Role = Admin)</small></span>
+              <select name="adminTier" <%= (!viewerIsFullAdmin || isSelfEdit) ? 'disabled' : '' %>>
+                <option value="full" <%= formData.adminTier === 'full' ? 'selected' : '' %>>Full (unrestricted)</option>
+                <option value="support" <%= formData.adminTier === 'support' ? 'selected' : '' %>>Support (blocked from deletion, policy publishing, mass email, platform settings, and data exports)</option>
+              </select>
+              <% if (isSelfEdit) { %><small class="field-hint">You cannot change your own admin tier &mdash; ask another full admin.</small><% } %>
+              <% if (!isSelfEdit && !viewerIsFullAdmin) { %><small class="field-hint">Only a full admin can change this.</small><% } %>
+              <% if (errors.adminTier) { %><small class="field-error"><%= errors.adminTier %></small><% } %>
             </label>
             <label class="admin-form-field">
               <span>Organizer Status</span>

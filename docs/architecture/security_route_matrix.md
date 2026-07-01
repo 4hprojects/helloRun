@@ -40,27 +40,36 @@ rate limiter (Phase 2); this section makes that coverage auditable. Only the
 destructive/high-risk routes are listed — see `src/routes/admin.routes.js` for the full
 route table.
 
-| Route | Method | Auth | CSRF | Rate Limit | Bot Protection |
-| --- | --- | --- | --- | --- | --- |
-| `/admin/users/delete` | POST | admin | yes | adminAccountActionLimiter | n/a |
-| `/admin/users/:id/edit` | POST | admin | yes | adminAccountActionLimiter | n/a |
-| `/admin/users/:id/delete` | POST | admin | yes | adminAccountActionLimiter | n/a |
-| `/admin/events/bulk-delete` | POST | admin | yes | adminModerationLimiter | n/a |
-| `/admin/events/:id/edit` | POST | admin | yes | adminModerationLimiter | n/a |
-| `/admin/events/:id/delete` | POST | admin | yes | adminModerationLimiter | n/a |
-| `/admin/applications/:id/approve` | POST | admin | yes | adminModerationLimiter | n/a |
-| `/admin/applications/:id/reject` | POST | admin | yes | adminModerationLimiter | n/a |
-| `/admin/promote` | POST | admin | yes | adminPromotionLimiter | n/a |
-| `/admin/communications/test-email` | POST | admin | yes | adminTestEmailLimiter | n/a |
-| `/admin/privacy-policy/:id/publish` | POST | admin | yes | adminContentSettingsLimiter | n/a |
-| `/admin/terms-and-conditions/:id/publish` | POST | admin | yes | adminContentSettingsLimiter | n/a |
-| `/admin/cookie-policy/:id/publish` | POST | admin | yes | adminContentSettingsLimiter | n/a |
-| `/admin/users/export.csv` | GET | admin | n/a | adminExportLimiter | n/a |
-| `/admin/users/export.xlsx` | GET | admin | n/a | adminExportLimiter | n/a |
-| `/admin/audit/export.csv` | GET | admin | n/a | adminExportLimiter | n/a |
-| `/admin/audit/export.xlsx` | GET | admin | n/a | adminExportLimiter | n/a |
-| `/admin/analytics/export.csv` | GET | admin | n/a | adminExportLimiter | n/a |
-| `/admin/analytics/export.xlsx` | GET | admin | n/a | adminExportLimiter | n/a |
+| Route | Method | Auth | Admin Tier | CSRF | Rate Limit | Bot Protection |
+| --- | --- | --- | --- | --- | --- | --- |
+| `/admin/users/delete` | POST | admin | **full** | yes | adminAccountActionLimiter | n/a |
+| `/admin/users/:id/edit` | POST | admin | any | yes | adminAccountActionLimiter | n/a |
+| `/admin/users/:id/delete` | POST | admin | **full** | yes | adminAccountActionLimiter | n/a |
+| `/admin/events/bulk-delete` | POST | admin | **full** | yes | adminModerationLimiter | n/a |
+| `/admin/events/:id/edit` | POST | admin | any | yes | adminModerationLimiter | n/a |
+| `/admin/events/:id/delete` | POST | admin | **full** | yes | adminModerationLimiter | n/a |
+| `/admin/applications/:id/approve` | POST | admin | any | yes | adminModerationLimiter | n/a |
+| `/admin/applications/:id/reject` | POST | admin | any | yes | adminModerationLimiter | n/a |
+| `/admin/promote` | POST | admin | **full** | yes | adminPromotionLimiter | n/a |
+| `/admin/communications/settings` | POST | admin | **full** | yes | adminContentSettingsLimiter | n/a |
+| `/admin/communications/events/:eventKey` | POST | admin | **full** | yes | adminContentSettingsLimiter | n/a |
+| `/admin/communications/test-email` | POST | admin | **full** | yes | adminTestEmailLimiter | n/a |
+| `/admin/homepage-carousel` | POST | admin | **full** | yes | adminContentSettingsLimiter | n/a |
+| `/admin/ads` | POST | admin | **full** | yes | adminContentSettingsLimiter | n/a |
+| `/admin/privacy-policy/:id/publish` | POST | admin | **full** | yes | adminContentSettingsLimiter | n/a |
+| `/admin/terms-and-conditions/:id/publish` | POST | admin | **full** | yes | adminContentSettingsLimiter | n/a |
+| `/admin/cookie-policy/:id/publish` | POST | admin | **full** | yes | adminContentSettingsLimiter | n/a |
+| `/admin/data-usage-policy/:id/publish` | POST | admin | **full** | yes | adminContentSettingsLimiter | n/a |
+| `/admin/refund-and-cancellation-policy/:id/publish` | POST | admin | **full** | yes | adminContentSettingsLimiter | n/a |
+| `/admin/organiser-terms/:id/publish` | POST | admin | **full** | yes | adminContentSettingsLimiter | n/a |
+| `/admin/community-guidelines/:id/publish` | POST | admin | **full** | yes | adminContentSettingsLimiter | n/a |
+| `/admin/acceptable-use-policy/:id/publish` | POST | admin | **full** | yes | adminContentSettingsLimiter | n/a |
+| `/admin/users/export.csv` | GET | admin | **full** | n/a | adminExportLimiter | n/a |
+| `/admin/users/export.xlsx` | GET | admin | **full** | n/a | adminExportLimiter | n/a |
+| `/admin/audit/export.csv` | GET | admin | **full** | n/a | adminExportLimiter | n/a |
+| `/admin/audit/export.xlsx` | GET | admin | **full** | n/a | adminExportLimiter | n/a |
+| `/admin/analytics/export.csv` | GET | admin | **full** | n/a | adminExportLimiter | n/a |
+| `/admin/analytics/export.xlsx` | GET | admin | **full** | n/a | adminExportLimiter | n/a |
 
 Admin notes:
 - CSRF: `admin.routes.js` applies `requireCsrfProtection` at the router level to every
@@ -70,6 +79,15 @@ Admin notes:
   `adminAccountActionLimiter`, `adminModerationLimiter`, `adminContentSettingsLimiter`,
   `adminTestEmailLimiter`, `adminPromotionLimiter`, or `adminExportLimiter` — the admin
   mutation rate-limiting gap referenced in earlier planning docs is now closed.
+- **Admin permission tiers (implemented 2026-07-01, see `docs/to-implement/admin-permission-tiers.md`):**
+  `User.adminTier` (`'full'` default, or `'support'`) plus a new `requireFullAdmin`
+  middleware (`src/middleware/auth.middleware.js`) gate the "Admin Tier" column above.
+  Missing/undefined `adminTier` is always treated as `'full'`, so existing admins are
+  never locked out by the new field. `requireFullAdmin` always runs immediately after
+  `requireAdmin` on a route. Only a full admin can grant/change another user's admin role
+  or tier (`src/controllers/admin/users.controller.js#updateUser`); nobody can change
+  their own tier via the edit form. This was the "role-based admin permission tiers"
+  future-consideration item, promoted from backlog to implemented.
 - **Auth guard inconsistency (documented, not fixed):** the codebase uses two different
   admin-role guards. `admin.routes.js` uses `requireAdmin`
   (`src/middleware/auth.middleware.js`), which re-queries MongoDB for the user's current
@@ -77,8 +95,7 @@ Admin notes:
   `src/routes/admin/onsite-operations.js`) used `requireRole('admin')`
   (`src/middleware/role.middleware.js`), which trusts `req.session.role` without a fresh
   DB read. This is a pre-existing architectural inconsistency, not addressed by this
-  matrix update — see `docs/todo/admin-improvements/04-phase-future-considerations-backlog.md`
-  for the related role-tiering backlog item.
+  matrix update.
 - `src/routes/admin/onsite-operations.js` was deleted 2026-07-01: it was never mounted in
   `src/server.js` (confirmed via full-tree grep), so its 6 endpoints and no-op
   `verifyAdminAccess` middleware were unreachable dead code. Its sole service dependency,

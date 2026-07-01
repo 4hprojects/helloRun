@@ -9,7 +9,7 @@ const {
   renderServerError, buildAdminRedirect, normalizeUserIdsForDeletion, getUserDeleteBlockers,
   formatUserDisplayName, maskDateForAdmin, findAdminManagedUser, renderAdminUserNotFound,
   renderAdminUserEdit, getAdminUserEditFormData, validateAdminUserEditForm,
-  getRequestIpAddress, getRequestUserAgent
+  getRequestIpAddress, getRequestUserAgent, isFullAdminTier
 } = require('./_shared');
 const {
   buildCsvContent,
@@ -72,7 +72,7 @@ exports.listUsers = async (req, res) => {
     const cappedForAll = isAll && total > ADMIN_USERS_ALL_CAP;
 
     const userQuery = User.find(query)
-      .select('userId email firstName lastName mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified authProvider googleId accountStatus lastLoginAt createdAt updatedAt')
+      .select('userId email firstName lastName mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus adminTier emailVerified authProvider googleId accountStatus lastLoginAt createdAt updatedAt')
       .sort(getAdminUserSort(filters.sort))
       .limit(limit);
 
@@ -234,7 +234,13 @@ exports.renderEditUser = async (req, res) => {
     const user = await findAdminManagedUser(req.params.id);
     if (!user) return renderAdminUserNotFound(res);
 
-    return renderAdminUserEdit(res, user, getAdminUserEditFormData(user));
+    const isSelfEdit = String(user._id) === String(req.session.userId || '');
+    const viewer = await User.findById(req.session.userId).select('adminTier').lean();
+
+    return renderAdminUserEdit(res, user, getAdminUserEditFormData(user), {
+      viewerIsFullAdmin: isFullAdminTier(viewer),
+      isSelfEdit
+    });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading the user edit form.');
   }
@@ -245,6 +251,10 @@ exports.updateUser = async (req, res) => {
     const user = await findAdminManagedUser(req.params.id);
     if (!user) return renderAdminUserNotFound(res);
 
+    const isSelfEdit = String(user._id) === String(req.session.userId || '');
+    const viewer = await User.findById(req.session.userId).select('adminTier').lean();
+    const viewerIsFullAdmin = isFullAdminTier(viewer);
+
     const formData = getAdminUserEditFormData(req.body);
     // Parse verifiedAuthor and trustScore from form
     user.verifiedAuthor = String(req.body.verifiedAuthor) === 'true';
@@ -252,12 +262,39 @@ exports.updateUser = async (req, res) => {
     if (isNaN(trustScore) || trustScore < 0) trustScore = 0;
     if (trustScore > 100) trustScore = 100;
     user.trustScore = trustScore;
-    if (String(user._id) === String(req.session.userId || '') && formData.role !== 'admin') {
+    if (isSelfEdit && formData.role !== 'admin') {
       formData.role = 'admin';
+      formData.adminTier = user.adminTier || 'full';
       return renderAdminUserEdit(res, user, formData, {
         status: 400,
+        viewerIsFullAdmin,
+        isSelfEdit,
         errors: { role: 'You cannot remove the admin role from your own account.' },
         message: { type: 'error', text: 'Your own admin role cannot be changed here.' }
+      });
+    }
+    // Admin tier is a privilege-escalation surface: never editable on your own
+    // account, and only a full admin may grant/change it on someone else's.
+    const targetIsOrBecomesAdmin = user.role === 'admin' || formData.role === 'admin';
+    if (isSelfEdit && formData.adminTier !== (user.adminTier || 'full')) {
+      formData.adminTier = user.adminTier || 'full';
+      return renderAdminUserEdit(res, user, formData, {
+        status: 400,
+        viewerIsFullAdmin,
+        isSelfEdit,
+        errors: { adminTier: 'You cannot change your own admin tier. Ask another full admin to do this.' },
+        message: { type: 'error', text: 'Your own admin tier cannot be changed here.' }
+      });
+    }
+    if (!viewerIsFullAdmin && targetIsOrBecomesAdmin) {
+      formData.role = user.role;
+      formData.adminTier = user.adminTier || 'full';
+      return renderAdminUserEdit(res, user, formData, {
+        status: 403,
+        viewerIsFullAdmin,
+        isSelfEdit,
+        errors: { role: 'Only a full admin can grant or edit admin access.' },
+        message: { type: 'error', text: 'You do not have permission to change admin role or tier.' }
       });
     }
 
@@ -265,6 +302,8 @@ exports.updateUser = async (req, res) => {
     if (Object.keys(errors).length) {
       return renderAdminUserEdit(res, user, formData, {
         status: 400,
+        viewerIsFullAdmin,
+        isSelfEdit,
         errors,
         message: { type: 'error', text: 'Review the highlighted fields and try again.' }
       });
@@ -272,6 +311,7 @@ exports.updateUser = async (req, res) => {
 
     const prevRole = user.role;
     const prevOrgStatus = user.organizerStatus;
+    const prevAdminTier = user.adminTier || 'full';
 
     user.firstName = formData.firstName;
     user.lastName = formData.lastName;
@@ -285,6 +325,7 @@ exports.updateUser = async (req, res) => {
     user.runningGroup = formData.runningGroups[0] || '';
     user.role = formData.role;
     user.organizerStatus = formData.organizerStatus;
+    user.adminTier = formData.role === 'admin' ? formData.adminTier : 'full';
 
     await user.save();
 
@@ -293,6 +334,9 @@ exports.updateUser = async (req, res) => {
     }
     if (prevOrgStatus !== formData.organizerStatus) {
       recordCriticalAuditEventInBackground({ action: 'admin.user.organiser_status_changed', targetType: 'user', targetId: String(user._id), statusFrom: prevOrgStatus, statusTo: formData.organizerStatus, actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+    }
+    if (prevAdminTier !== user.adminTier) {
+      recordCriticalAuditEventInBackground({ action: 'admin.user.admin_tier_changed', targetType: 'user', targetId: String(user._id), statusFrom: prevAdminTier, statusTo: user.adminTier, actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
     }
 
     return res.redirect(buildAdminRedirect(`/admin/users/${user._id}`, 'success', 'User information updated.'));

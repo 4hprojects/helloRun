@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { requireAdmin } = require('../middleware/auth.middleware');
+const { requireAdmin, requireFullAdmin } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const adminController = require('../controllers/admin.controller');
@@ -59,18 +59,18 @@ router.use((req, res, next) => {
 
 // Analytics
 router.get('/analytics', requireAdmin, adminController.analyticsPage);
-router.get('/analytics/export.csv', requireAdmin, adminExportLimiter, adminController.exportAnalyticsCsv);
-router.get('/analytics/export.xlsx', requireAdmin, adminExportLimiter, adminController.exportAnalyticsXlsx);
+router.get('/analytics/export.csv', requireAdmin, requireFullAdmin, adminExportLimiter, adminController.exportAnalyticsCsv);
+router.get('/analytics/export.xlsx', requireAdmin, requireFullAdmin, adminExportLimiter, adminController.exportAnalyticsXlsx);
 
 // User management
 router.get('/users', requireAdmin, adminController.listUsers);
-router.get('/users/export.csv', requireAdmin, adminExportLimiter, adminController.exportUsersCsv);
-router.get('/users/export.xlsx', requireAdmin, adminExportLimiter, adminController.exportUsersXlsx);
-router.post('/users/delete', requireAdmin, adminAccountActionLimiter, adminController.deleteUsers);
+router.get('/users/export.csv', requireAdmin, requireFullAdmin, adminExportLimiter, adminController.exportUsersCsv);
+router.get('/users/export.xlsx', requireAdmin, requireFullAdmin, adminExportLimiter, adminController.exportUsersXlsx);
+router.post('/users/delete', requireAdmin, requireFullAdmin, adminAccountActionLimiter, adminController.deleteUsers);
 router.get('/users/:id/edit', requireAdmin, adminController.renderEditUser);
 router.post('/users/:id/edit', requireAdmin, adminAccountActionLimiter, adminController.updateUser);
 router.get('/users/:id', requireAdmin, adminController.viewUser);
-router.post('/users/:id/delete', requireAdmin, adminAccountActionLimiter, adminController.deleteUsers);
+router.post('/users/:id/delete', requireAdmin, requireFullAdmin, adminAccountActionLimiter, adminController.deleteUsers);
 
 // Admin governance
 router.post('/users/:id/notes', requireAdmin, adminAccountActionLimiter, adminController.addAdminNote);
@@ -80,7 +80,7 @@ router.post('/users/:id/account-status', requireAdmin, adminAccountActionLimiter
 
 // Event management
 router.get('/events', requireAdmin, adminController.listEvents);
-router.post('/events/bulk-delete', requireAdmin, adminModerationLimiter, adminController.bulkDeleteEvents);
+router.post('/events/bulk-delete', requireAdmin, requireFullAdmin, adminModerationLimiter, adminController.bulkDeleteEvents);
 router.get('/badges', requireAdmin, adminController.listBadges);
 router.post('/badges/recalculate', requireAdmin, adminModerationLimiter, adminController.recalculateBadges);
 router.post('/badge-definitions/:badgeDefinitionId/status', requireAdmin, adminModerationLimiter, adminController.updateBadgeDefinitionStatus);
@@ -93,7 +93,7 @@ router.post('/events/:id/media/remove', requireAdmin, adminModerationLimiter, ad
 router.post('/events/:id/sitemap-toggle', requireAdmin, adminModerationLimiter, adminController.toggleEventSitemapExclusion);
 router.post('/events/:id/approve', requireAdmin, adminModerationLimiter, adminController.approveEvent);
 router.post('/events/:id/archive', requireAdmin, adminModerationLimiter, adminController.archiveEvent);
-router.post('/events/:id/delete', requireAdmin, adminModerationLimiter, adminController.deleteEvent);
+router.post('/events/:id/delete', requireAdmin, requireFullAdmin, adminModerationLimiter, adminController.deleteEvent);
 
 // List all organizer applications
 router.get('/applications', requireAdmin, adminController.listApplications);
@@ -110,20 +110,20 @@ router.post('/applications/:id/reject', requireAdmin, adminModerationLimiter, ad
 // Admin dashboard
 router.get('/dashboard', requireAdmin, adminController.dashboard);
 router.get('/audit', requireAdmin, adminAuditController.listCriticalAudit);
-router.get('/audit/export.csv', requireAdmin, adminExportLimiter, adminAuditController.exportCriticalAuditCsv);
-router.get('/audit/export.xlsx', requireAdmin, adminExportLimiter, adminAuditController.exportCriticalAuditXlsx);
+router.get('/audit/export.csv', requireAdmin, requireFullAdmin, adminExportLimiter, adminAuditController.exportCriticalAuditCsv);
+router.get('/audit/export.xlsx', requireAdmin, requireFullAdmin, adminExportLimiter, adminAuditController.exportCriticalAuditXlsx);
 router.get('/communications', requireAdmin, adminController.renderCommunications);
 router.get('/communications/logs', requireAdmin, adminController.renderCommunications);
 router.get('/communications/retries', requireAdmin, adminController.renderCommunicationRetries);
 router.get('/communications/failures/:eventKey', requireAdmin, adminController.renderCommunicationFailureDetail);
 router.post('/communications/retries/:retryId/retry', requireAdmin, adminModerationLimiter, adminController.retryCommunicationDelivery);
-router.post('/communications/settings', requireAdmin, adminContentSettingsLimiter, adminController.updateCommunicationSettings);
-router.post('/communications/events/:eventKey', requireAdmin, adminContentSettingsLimiter, adminController.updateCommunicationEvent);
-router.post('/communications/test-email', requireAdmin, adminTestEmailLimiter, adminController.sendCommunicationTestEmail);
+router.post('/communications/settings', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.updateCommunicationSettings);
+router.post('/communications/events/:eventKey', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.updateCommunicationEvent);
+router.post('/communications/test-email', requireAdmin, requireFullAdmin, adminTestEmailLimiter, adminController.sendCommunicationTestEmail);
 router.get('/homepage-carousel', requireAdmin, adminController.renderHomepageCarouselSettings);
-router.post('/homepage-carousel', requireAdmin, adminContentSettingsLimiter, adminController.updateHomepageCarouselSettings);
+router.post('/homepage-carousel', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.updateHomepageCarouselSettings);
 router.get('/ads', requireAdmin, adminController.renderAdSettings);
-router.post('/ads', requireAdmin, adminContentSettingsLimiter, adminController.updateAdSettings);
+router.post('/ads', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.updateAdSettings);
 router.get('/reviews', requireAdmin, adminController.reviewQueue);
 router.get('/submissions', requireAdmin, adminController.listSubmissions);
 router.post('/submissions/bulk-reject', requireAdmin, adminModerationLimiter, adminController.bulkRejectSubmissions);
@@ -137,7 +137,7 @@ router.get('/privacy-policy/:id/edit', requireAdmin, adminController.renderEditP
 router.post('/privacy-policy/:id/save', requireAdmin, adminContentSettingsLimiter, adminController.updatePrivacyPolicyDraft);
 router.post('/privacy-policy/:id/format', requireAdmin, adminContentSettingsLimiter, adminController.formatExistingPrivacyPolicyDraft);
 router.post('/privacy-policy/:id/preview', requireAdmin, adminContentSettingsLimiter, adminController.previewExistingPrivacyPolicyDraft);
-router.post('/privacy-policy/:id/publish', requireAdmin, adminContentSettingsLimiter, adminController.publishPrivacyPolicyDraft);
+router.post('/privacy-policy/:id/publish', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.publishPrivacyPolicyDraft);
 router.post('/privacy-policy/:id/clone', requireAdmin, adminContentSettingsLimiter, adminController.clonePrivacyPolicyVersion);
 router.post('/privacy-policy/:id/archive', requireAdmin, adminContentSettingsLimiter, adminController.archivePrivacyPolicyVersion);
 router.get('/terms-and-conditions', requireAdmin, adminController.listTermsPolicies);
@@ -150,7 +150,7 @@ router.get('/terms-and-conditions/:id/edit', requireAdmin, adminController.rende
 router.post('/terms-and-conditions/:id/save', requireAdmin, adminContentSettingsLimiter, adminController.updateTermsPolicyDraft);
 router.post('/terms-and-conditions/:id/format', requireAdmin, adminContentSettingsLimiter, adminController.formatExistingTermsPolicyDraft);
 router.post('/terms-and-conditions/:id/preview', requireAdmin, adminContentSettingsLimiter, adminController.previewExistingTermsPolicyDraft);
-router.post('/terms-and-conditions/:id/publish', requireAdmin, adminContentSettingsLimiter, adminController.publishTermsPolicyDraft);
+router.post('/terms-and-conditions/:id/publish', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.publishTermsPolicyDraft);
 router.post('/terms-and-conditions/:id/clone', requireAdmin, adminContentSettingsLimiter, adminController.cloneTermsPolicyVersion);
 router.post('/terms-and-conditions/:id/archive', requireAdmin, adminContentSettingsLimiter, adminController.archiveTermsPolicyVersion);
 router.get('/cookie-policy', requireAdmin, adminController.listCookiePolicies);
@@ -163,7 +163,7 @@ router.get('/cookie-policy/:id/edit', requireAdmin, adminController.renderEditCo
 router.post('/cookie-policy/:id/save', requireAdmin, adminContentSettingsLimiter, adminController.updateCookiePolicyDraft);
 router.post('/cookie-policy/:id/format', requireAdmin, adminContentSettingsLimiter, adminController.formatExistingCookiePolicyDraft);
 router.post('/cookie-policy/:id/preview', requireAdmin, adminContentSettingsLimiter, adminController.previewExistingCookiePolicyDraft);
-router.post('/cookie-policy/:id/publish', requireAdmin, adminContentSettingsLimiter, adminController.publishCookiePolicyDraft);
+router.post('/cookie-policy/:id/publish', requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.publishCookiePolicyDraft);
 router.post('/cookie-policy/:id/clone', requireAdmin, adminContentSettingsLimiter, adminController.cloneCookiePolicyVersion);
 router.post('/cookie-policy/:id/archive', requireAdmin, adminContentSettingsLimiter, adminController.archiveCookiePolicyVersion);
 
@@ -179,7 +179,7 @@ for (const policyDocument of listPolicyDocuments().filter((item) => !['privacy',
   router.post(`/${adminSlug}/:id/save`, requireAdmin, adminContentSettingsLimiter, adminController.updatePolicyDocumentDraft);
   router.post(`/${adminSlug}/:id/format`, requireAdmin, adminContentSettingsLimiter, adminController.formatExistingPolicyDocumentDraft);
   router.post(`/${adminSlug}/:id/preview`, requireAdmin, adminContentSettingsLimiter, adminController.previewExistingPolicyDocumentDraft);
-  router.post(`/${adminSlug}/:id/publish`, requireAdmin, adminContentSettingsLimiter, adminController.publishPolicyDocumentDraft);
+  router.post(`/${adminSlug}/:id/publish`, requireAdmin, requireFullAdmin, adminContentSettingsLimiter, adminController.publishPolicyDocumentDraft);
   router.post(`/${adminSlug}/:id/clone`, requireAdmin, adminContentSettingsLimiter, adminController.clonePolicyDocumentVersion);
   router.post(`/${adminSlug}/:id/archive`, requireAdmin, adminContentSettingsLimiter, adminController.archivePolicyDocumentVersion);
 }
@@ -187,7 +187,7 @@ for (const policyDocument of listPolicyDocuments().filter((item) => !['privacy',
 // Event promotion
 router.get('/promote', requireAdmin, adminController.promotePage);
 router.get('/promote/preview', requireAdmin, adminController.promotePreview);
-router.post('/promote', requireAdmin, adminPromotionLimiter, adminController.promoteSend);
+router.post('/promote', requireAdmin, requireFullAdmin, adminPromotionLimiter, adminController.promoteSend);
 
 // Blog moderation queue
 router.get('/blog/review', requireAdmin, blogController.renderAdminQueuePage);

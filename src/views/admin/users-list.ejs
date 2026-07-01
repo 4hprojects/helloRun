@@ -248,6 +248,12 @@
                       <span class="badge-full"><%= item.role %></span>
                       <span class="badge-short"><%= item.role === 'admin' ? 'A' : (item.role === 'organiser' ? 'O' : 'R') %></span>
                     </span>
+                    <% if (item.adminTier) { %>
+                      <span class="status-badge status-badge-<%= item.adminTier %> admin-user-compact-badge" title="Admin tier: <%= item.adminTier %>">
+                        <span class="badge-full"><%= item.adminTier %></span>
+                        <span class="badge-short"><%= item.adminTier === 'full' ? 'F' : 'S' %></span>
+                      </span>
+                    <% } %>
                   </td>
                   <td data-column="organizer">
                     <span class="status-badge status-badge-<%= item.organizerStatus %> admin-user-compact-badge" title="<%= item.organizerStatus.replace('_', ' ') %>">
