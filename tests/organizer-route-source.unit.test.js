@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 test('organizer registrant export routes use the shared export limiter', () => {
-  const source = fs.readFileSync(path.resolve(__dirname, '../src/routes/organizer.routes.js'), 'utf8');
+  const source = fs.readFileSync(path.resolve(__dirname, '../src/routes/organiser/registrants.js'), 'utf8');
 
   assert.match(source, /registrantExportLimiter/);
   assert.match(source, /\/events\/:id\/registrants\/export'[\s\S]*registrantExportLimiter/);
@@ -12,7 +12,7 @@ test('organizer registrant export routes use the shared export limiter', () => {
 });
 
 test('organizer submission review routes use the shared review action limiter', () => {
-  const source = fs.readFileSync(path.resolve(__dirname, '../src/routes/organizer.routes.js'), 'utf8');
+  const source = fs.readFileSync(path.resolve(__dirname, '../src/routes/organiser/review.js'), 'utf8');
 
   assert.match(source, /submissionReviewActionLimiter/);
   assert.match(source, /\/submissions\/bulk-approve'[\s\S]*submissionReviewActionLimiter/);

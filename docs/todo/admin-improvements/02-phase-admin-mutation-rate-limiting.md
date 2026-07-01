@@ -1,6 +1,16 @@
 # Phase 2 — Admin Mutation Rate Limiting
 
-Status: not started.
+Status: implemented 2026-07-01. All ~90 previously-unprotected mutating routes in
+`src/routes/admin.routes.js` now wrapped by an appropriate limiter (verified via a
+source-scan test asserting zero mutating routes are missing a known limiter). Task 0
+(fixing the stale `tests/organizer-route-source.unit.test.js`) was done first, since
+Task 7 copies its pattern. Verified via `node --check`, a full route-file require/load
+check, and `tests/admin-route-source.unit.test.js` (7/7 passing) plus the corrected
+`tests/organizer-route-source.unit.test.js` (3/3 passing). Manual 429 smoke-check on
+`/admin/promote` and `/admin/communications/test-email` (Task 8) could not be run — no
+live server/Redis session in this environment. Move this file to
+`docs/done/admin-improvements/` once that manual check has been done against a live
+deployment.
 
 ## Objective
 
