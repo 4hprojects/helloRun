@@ -894,6 +894,7 @@ test('accumulated activities auto-approve clean OCR and issue certificate only o
       }
     }
   );
+  await Registration.updateOne({ _id: seed.registration._id }, { $set: { raceDistance: '10K' } });
 
   const first = await createAccumulatedActivitySubmission({
     registrationId: seed.registration._id,
