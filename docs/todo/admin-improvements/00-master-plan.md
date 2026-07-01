@@ -48,7 +48,13 @@ code. Decision: delete the file (Phase 3, Task 1).
   429 smoke-check against a live server before moving to `docs/done/`
 - `03-phase-security-matrix-and-dead-middleware-cleanup.md` — done; moved to
   `../../done/admin-improvements/03-phase-security-matrix-and-dead-middleware-cleanup.md`
-- `04-phase-future-considerations-backlog.md`
+- `04-phase-future-considerations-backlog.md` — done; moved to
+  `../../done/admin-improvements/04-phase-future-considerations-backlog.md`. Its
+  deliverable, `future-considerations.md`, moved alongside it.
+
+This file (`00-master-plan.md`) stays in `docs/todo/admin-improvements/` until Phases 1
+and 2 also move to `docs/done/` (pending live-DB test verification), at which point it
+moves there too to close out the initiative.
 
 ## How To Use With Codex Or Claude
 

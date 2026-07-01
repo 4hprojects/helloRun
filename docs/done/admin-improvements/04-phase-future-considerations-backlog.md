@@ -1,6 +1,10 @@
 # Phase 4 — Future Considerations Backlog (Documentation Only)
 
-Status: not started — this phase produces a document, not code.
+Status: implemented 2026-07-01. Wrote
+`docs/todo/admin-improvements/future-considerations.md` covering all three ideas at
+backlog-level detail (problem statement + rough shape, no design work). No code, schema,
+or route changes made. This is the last phase of the admin-improvements initiative — see
+`00-master-plan.md` for the full record.
 
 ## Objective
 
