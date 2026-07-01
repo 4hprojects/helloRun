@@ -8,8 +8,52 @@ const {
   mapAdminUserListItem, buildAdminUserListPath, buildAdminUsersRedirect, getAdminPageMessage,
   renderServerError, buildAdminRedirect, normalizeUserIdsForDeletion, getUserDeleteBlockers,
   formatUserDisplayName, maskDateForAdmin, findAdminManagedUser, renderAdminUserNotFound,
-  renderAdminUserEdit, getAdminUserEditFormData, validateAdminUserEditForm
+  renderAdminUserEdit, getAdminUserEditFormData, validateAdminUserEditForm,
+  getRequestIpAddress, getRequestUserAgent
 } = require('./_shared');
+const {
+  buildCsvContent,
+  buildXlsxBuffer,
+  buildExportFilename
+} = require('../../utils/tabular-export');
+
+const ADMIN_USERS_EXPORT_CAP = 5000;
+const ADMIN_USER_EXPORT_HEADERS = [
+  'User ID', 'Email', 'First Name', 'Last Name', 'Mobile', 'Country', 'Date of Birth',
+  'Gender', 'Role', 'Organizer Status', 'Email Verified', 'Auth Provider', 'Account Status',
+  'Last Login At', 'Created At'
+];
+
+function mapAdminUserToExportRow(user) {
+  return [
+    user.userId || '',
+    user.email || '',
+    user.firstName || '',
+    user.lastName || '',
+    user.mobile || '',
+    user.country || '',
+    user.dateOfBirth ? new Date(user.dateOfBirth).toISOString() : '',
+    user.gender || '',
+    user.role || '',
+    user.organizerStatus || '',
+    user.emailVerified ? 'yes' : 'no',
+    user.authProvider || '',
+    user.accountStatus || '',
+    user.lastLoginAt ? new Date(user.lastLoginAt).toISOString() : '',
+    user.createdAt ? new Date(user.createdAt).toISOString() : ''
+  ];
+}
+
+async function getUsersForExport(req) {
+  const filters = normalizeAdminUserFilters(req.query);
+  const query = buildAdminUserQuery(filters);
+  const users = await User.find(query)
+    .select('userId email firstName lastName mobile country dateOfBirth gender role organizerStatus emailVerified authProvider accountStatus lastLoginAt createdAt')
+    .sort(getAdminUserSort(filters.sort))
+    .limit(ADMIN_USERS_EXPORT_CAP)
+    .lean();
+  return users;
+}
 
 // SECTION: User Management (listUsers, viewUser, updateUser,
 //   deleteUsers, renderEditUser + P1 governance actions)
@@ -61,6 +105,65 @@ exports.listUsers = async (req, res) => {
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading users.');
+  }
+};
+
+exports.exportUsersCsv = async (req, res) => {
+  try {
+    const users = await getUsersForExport(req);
+    const rows = users.map(mapAdminUserToExportRow);
+    const csvContent = buildCsvContent(ADMIN_USER_EXPORT_HEADERS, rows);
+    const filename = buildExportFilename('users', 'csv');
+
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: req.session.userId,
+      action: 'admin.users_exported',
+      targetType: 'user',
+      targetId: 'admin.users',
+      notes: `CSV user export generated with ${rows.length} row(s).`,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: new Date()
+    });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(csvContent);
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while exporting users.');
+  }
+};
+
+exports.exportUsersXlsx = async (req, res) => {
+  try {
+    const users = await getUsersForExport(req);
+    const rows = users.map(mapAdminUserToExportRow);
+    const buffer = await buildXlsxBuffer({
+      sheetName: 'Users',
+      headers: ADMIN_USER_EXPORT_HEADERS,
+      rows
+    });
+    const filename = buildExportFilename('users', 'xlsx');
+
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: req.session.userId,
+      action: 'admin.users_exported',
+      targetType: 'user',
+      targetId: 'admin.users',
+      notes: `XLSX user export generated with ${rows.length} row(s).`,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: new Date()
+    });
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(buffer);
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while exporting users.');
   }
 };
 

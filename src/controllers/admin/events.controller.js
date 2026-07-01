@@ -8,8 +8,14 @@ const {
   getAdminPageMessage, renderServerError, findAdminEventOrNull, getPublishReadinessErrors,
   getAdminEventRedirect, buildAdminRedirect, buildEventDetailsHtml,
   getCreateEventFormDataFromEvent, validateCreateEventForm, applyEventFormData,
-  countries, DEFAULT_WAIVER_TEMPLATE, formatAdminShortDate, formatAdminDateTime
+  countries, DEFAULT_WAIVER_TEMPLATE, formatAdminShortDate, formatAdminDateTime,
+  getRequestIpAddress, getRequestUserAgent
 } = require('./_shared');
+const {
+  buildCsvContent,
+  buildMultiSheetXlsxBuffer,
+  buildExportFilename
+} = require('../../utils/tabular-export');
 
 // SECTION: Event Management
 // ═══════════════════════════════════════════════════════════
@@ -509,6 +515,136 @@ exports.analyticsPage = async (req, res) => {
     });
   } catch (error) {
     return renderServerError(res, error, 'Unable to load platform analytics.');
+  }
+};
+
+// SECTION: Analytics Export (CSV/XLSX)
+// ═══════════════════════════════════════════════════════════
+
+const ANALYTICS_EXPORT_RANGES = { '7d': 7, '30d': 30, '90d': 90, '365d': 365 };
+
+function formatAnalyticsValue(value) {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value.toISOString();
+  return value;
+}
+
+function flattenAnalyticsSections(analytics, prefix = '') {
+  const sections = [];
+  if (!analytics || typeof analytics !== 'object') return sections;
+
+  const scalarRows = [];
+  for (const [key, value] of Object.entries(analytics)) {
+    const label = prefix ? `${prefix}.${key}` : key;
+    if (value === null || value === undefined) {
+      continue;
+    } else if (Array.isArray(value)) {
+      if (!value.length) {
+        sections.push({ sectionName: label, headers: ['Value'], rows: [] });
+        continue;
+      }
+      if (value[0] && typeof value[0] === 'object') {
+        const headerSet = new Set();
+        value.forEach((item) => Object.keys(item).forEach((k) => headerSet.add(k)));
+        const headers = Array.from(headerSet);
+        const rows = value.map((item) => headers.map((h) => formatAnalyticsValue(item[h])));
+        sections.push({ sectionName: label, headers, rows });
+      } else {
+        sections.push({ sectionName: label, headers: ['Value'], rows: value.map((v) => [formatAnalyticsValue(v)]) });
+      }
+    } else if (typeof value === 'object') {
+      sections.push(...flattenAnalyticsSections(value, label));
+    } else {
+      scalarRows.push([key, formatAnalyticsValue(value)]);
+    }
+  }
+  if (scalarRows.length) {
+    sections.unshift({ sectionName: prefix || 'summary', headers: ['Metric', 'Value'], rows: scalarRows });
+  }
+  return sections;
+}
+
+function sanitizeAnalyticsSheetName(name, usedNames) {
+  let safe = String(name || 'Sheet').replace(/[\\/?*[\]:]/g, ' ').trim().slice(0, 31) || 'Sheet';
+  let candidate = safe;
+  let suffix = 2;
+  while (usedNames.has(candidate)) {
+    candidate = `${safe.slice(0, 28)}-${suffix}`;
+    suffix += 1;
+  }
+  usedNames.add(candidate);
+  return candidate;
+}
+
+async function getAnalyticsForExport(req) {
+  const { getPlatformAnalytics } = require('../../services/platform-analytics.service');
+  const range = ANALYTICS_EXPORT_RANGES[req.query.range] ? req.query.range : '365d';
+  const since = new Date(Date.now() - ANALYTICS_EXPORT_RANGES[range] * 24 * 60 * 60 * 1000);
+  const analytics = await getPlatformAnalytics({ since });
+  return { range, sections: flattenAnalyticsSections(analytics || {}) };
+}
+
+exports.exportAnalyticsCsv = async (req, res) => {
+  try {
+    const { range, sections } = await getAnalyticsForExport(req);
+    const csvBlocks = sections.map((section) => {
+      const header = `=== ${section.sectionName} ===`;
+      const body = buildCsvContent(section.headers, section.rows);
+      return `${header}\n${body}`;
+    });
+    const csvContent = csvBlocks.join('\n\n');
+    const filename = buildExportFilename(`analytics-${range}`, 'csv');
+
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: req.session.userId,
+      action: 'admin.analytics_exported',
+      targetType: 'analytics',
+      targetId: `admin.analytics.${range}`,
+      notes: `CSV analytics export generated for range ${range}.`,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: new Date()
+    });
+
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(csvContent);
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while exporting platform analytics.');
+  }
+};
+
+exports.exportAnalyticsXlsx = async (req, res) => {
+  try {
+    const { range, sections } = await getAnalyticsForExport(req);
+    const usedNames = new Set();
+    const sheets = sections.map((section) => ({
+      sheetName: sanitizeAnalyticsSheetName(section.sectionName, usedNames),
+      headers: section.headers,
+      rows: section.rows
+    }));
+    const buffer = await buildMultiSheetXlsxBuffer({ sheets });
+    const filename = buildExportFilename(`analytics-${range}`, 'xlsx');
+
+    recordCriticalAuditEventInBackground({
+      actorMongoUserId: req.session.userId,
+      action: 'admin.analytics_exported',
+      targetType: 'analytics',
+      targetId: `admin.analytics.${range}`,
+      notes: `XLSX analytics export generated for range ${range}.`,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req),
+      occurredAt: new Date()
+    });
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.status(200).send(buffer);
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while exporting platform analytics.');
   }
 };
 

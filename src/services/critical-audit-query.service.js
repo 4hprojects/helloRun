@@ -22,7 +22,10 @@ const AUDIT_ACTION_GROUPS = Object.freeze({
   ],
   exports: [
     'organiser.registrants_exported',
-    'organiser.shop_orders_exported'
+    'organiser.shop_orders_exported',
+    'admin.users_exported',
+    'admin.audit_exported',
+    'admin.analytics_exported'
   ],
   reminders: [
     'organiser.payment_reminder_sent'
@@ -190,6 +193,57 @@ async function listCriticalAuditEvents(options = {}) {
     pageSize: filters.pageSize,
     unavailable: false
   };
+}
+
+const MAX_AUDIT_EXPORT_ROWS = 10000;
+
+async function listCriticalAuditEventsForExport(options = {}) {
+  if (!process.env.DATABASE_URL) {
+    return { entries: [], unavailable: true };
+  }
+
+  const sql = options.sql || getPostgresClient();
+  const filters = normalizeCriticalAuditFilters(options.filters || {});
+  const actionValues = getActionValues(filters);
+  const hasActionValues = actionValues.length > 0;
+  const hasQ = Boolean(filters.q);
+  const hasDateFrom = Boolean(filters.dateFrom);
+  const hasDateTo = Boolean(filters.dateTo);
+  const hasTargetId = Boolean(filters.targetId);
+  const hasTargetType = Boolean(filters.targetType);
+  const hasActor = Boolean(filters.actorMongoUserId);
+  const qPattern = `%${filters.q}%`;
+  const targetIdPattern = `%${filters.targetId}%`;
+  const dateFrom = hasDateFrom ? new Date(`${filters.dateFrom}T00:00:00.000Z`) : new Date(0);
+  const dateTo = hasDateTo ? new Date(`${filters.dateTo}T23:59:59.999Z`) : new Date('9999-12-31T23:59:59.999Z');
+
+  const entries = await sql`
+    select ac.action, ac.target_type, ac.target_id, ac.status_from, ac.status_to, ac.notes,
+           ac.ip_address, ac.user_agent, ac.actor_mongo_user_id, ac.created_at,
+           au.display_name as actor_display_name, au.email as actor_email
+    from audit_critical ac
+    left join app_users au on au.id = ac.actor_user_id
+    where (${hasActionValues} = false or ac.action = any(${hasActionValues ? actionValues : ['__none__']}))
+      and (${hasTargetType} = false or ac.target_type = ${filters.targetType})
+      and (${hasTargetId} = false or ac.target_id ilike ${targetIdPattern})
+      and (${hasActor} = false or ac.actor_mongo_user_id = ${filters.actorMongoUserId})
+      and (${hasDateFrom} = false or ac.created_at >= ${dateFrom})
+      and (${hasDateTo} = false or ac.created_at <= ${dateTo})
+      and (
+        ${hasQ} = false
+        or ac.action ilike ${qPattern}
+        or ac.target_type ilike ${qPattern}
+        or ac.target_id ilike ${qPattern}
+        or coalesce(ac.notes, '') ilike ${qPattern}
+        or coalesce(au.display_name, '') ilike ${qPattern}
+        or coalesce(au.email, '') ilike ${qPattern}
+        or coalesce(ac.actor_mongo_user_id, '') ilike ${qPattern}
+      )
+    order by ac.created_at desc
+    limit ${MAX_AUDIT_EXPORT_ROWS}
+  `;
+
+  return { entries, unavailable: false, capped: entries.length >= MAX_AUDIT_EXPORT_ROWS };
 }
 
 async function listCriticalAuditSignals(options = {}) {
@@ -373,6 +427,7 @@ module.exports = {
   AUDIT_PAGE_SIZE,
   buildCriticalAuditPath,
   listCriticalAuditEvents,
+  listCriticalAuditEventsForExport,
   listCriticalAuditSignals,
   normalizeCriticalAuditFilters
 };

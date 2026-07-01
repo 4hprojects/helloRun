@@ -26,6 +26,12 @@ const adminBlogAutosaveLimiter = createRateLimiter({
   maxRequests: 600,
   message: 'Too many auto-save requests. Please wait and try again.'
 });
+const adminExportLimiter = createRateLimiter({
+  windowMs: 10 * 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many exports. Please wait a few minutes and try again.',
+  keyFn: (req) => `admin-export|${String(req.session?.userId || 'anon')}`
+});
 
 router.use((req, res, next) => {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(req.method || '').toUpperCase())) {
@@ -36,9 +42,13 @@ router.use((req, res, next) => {
 
 // Analytics
 router.get('/analytics', requireAdmin, adminController.analyticsPage);
+router.get('/analytics/export.csv', requireAdmin, adminExportLimiter, adminController.exportAnalyticsCsv);
+router.get('/analytics/export.xlsx', requireAdmin, adminExportLimiter, adminController.exportAnalyticsXlsx);
 
 // User management
 router.get('/users', requireAdmin, adminController.listUsers);
+router.get('/users/export.csv', requireAdmin, adminExportLimiter, adminController.exportUsersCsv);
+router.get('/users/export.xlsx', requireAdmin, adminExportLimiter, adminController.exportUsersXlsx);
 router.post('/users/delete', requireAdmin, adminController.deleteUsers);
 router.get('/users/:id/edit', requireAdmin, adminController.renderEditUser);
 router.post('/users/:id/edit', requireAdmin, adminController.updateUser);
@@ -83,6 +93,8 @@ router.post('/applications/:id/reject', requireAdmin, adminController.rejectAppl
 // Admin dashboard
 router.get('/dashboard', requireAdmin, adminController.dashboard);
 router.get('/audit', requireAdmin, adminAuditController.listCriticalAudit);
+router.get('/audit/export.csv', requireAdmin, adminExportLimiter, adminAuditController.exportCriticalAuditCsv);
+router.get('/audit/export.xlsx', requireAdmin, adminExportLimiter, adminAuditController.exportCriticalAuditXlsx);
 router.get('/communications', requireAdmin, adminController.renderCommunications);
 router.get('/communications/logs', requireAdmin, adminController.renderCommunications);
 router.get('/communications/retries', requireAdmin, adminController.renderCommunicationRetries);
