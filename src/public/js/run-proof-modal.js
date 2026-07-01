@@ -831,8 +831,11 @@
 
       if (ocrWarningEl) {
         const warnings = Array.isArray(comparison.warnings) ? comparison.warnings : [];
-        if (warnings.length > 0) {
-          ocrWarningEl.innerHTML = '<strong>Possible mismatch detected</strong><br>' + warnings.map(escapeHtml).join('<br>');
+        const categoryWarnings = getRegisteredCategoryMismatchWarnings();
+        const accumulatedWarnings = getImplausibleAccumulatedActivityWarnings();
+        const allWarnings = warnings.concat(categoryWarnings, accumulatedWarnings);
+        if (allWarnings.length > 0) {
+          ocrWarningEl.innerHTML = '<strong>Possible mismatch detected</strong><br>' + allWarnings.map(escapeHtml).join('<br>');
           ocrWarningEl.hidden = false;
         } else {
           ocrWarningEl.hidden = true;
@@ -2458,27 +2461,58 @@
         ));
     };
 
+    const getRegisteredCategoryMismatchWarnings = () => getBelowMinimumStandardSelections().map((entry) => (
+      'You registered for ' + (entry.item.raceDistance || (formatDistanceKm(entry.minimumRequiredDistanceKm) + ' km')) +
+      ', but this screenshot shows about ' + formatDistanceKm(entry.detectedDistanceKm) +
+      ' km. Double check you selected the right event/category before submitting.'
+    ));
+
+    const getImplausibleAccumulatedActivitySelections = () => {
+      if (state.selectedStravaActivity) return [];
+      const detectedDistanceKm = getDetectedReviewDistanceKm();
+      if (!detectedDistanceKm) return [];
+      return getSelectedOptions()
+        .filter((item) => getSubmissionMode(item) === 'accumulated')
+        .map((item) => ({
+          item,
+          detectedDistanceKm,
+          targetDistanceKm: Number(item.targetDistanceKm || 0)
+        }))
+        .filter((entry) => (
+          entry.detectedDistanceKm > 100 ||
+          (Number.isFinite(entry.targetDistanceKm) && entry.targetDistanceKm > 0 && entry.detectedDistanceKm >= entry.targetDistanceKm)
+        ));
+    };
+
+    const getImplausibleAccumulatedActivityWarnings = () => getImplausibleAccumulatedActivitySelections().map((entry) => (
+      'This looks unusually long for a single activity update (detected about ' + formatDistanceKm(entry.detectedDistanceKm) + ' km' +
+      (entry.targetDistanceKm > 0 ? ' vs. your ' + formatDistanceKm(entry.targetDistanceKm) + ' km challenge target' : '') +
+      '). If this is a lifetime/monthly total from your app, please upload a screenshot of just this one activity.'
+    ));
+
     const buildSubmitReview = () => {
       if (!submitReviewRows) return;
       submitReviewRows.innerHTML = '';
       const belowMinimumSelections = getBelowMinimumStandardSelections();
+      const implausibleAccumulatedSelections = getImplausibleAccumulatedActivitySelections();
       const hasBelowMinimumSelection = belowMinimumSelections.length > 0;
+      const hasForcedReviewSelection = hasBelowMinimumSelection || implausibleAccumulatedSelections.length > 0;
 
       if (submitReviewTitle) {
         submitReviewTitle.textContent = hasBelowMinimumSelection
           ? 'Run proof does not meet the minimum distance'
-          : 'Review before submitting';
+          : (implausibleAccumulatedSelections.length > 0 ? 'Activity distance looks unusually long' : 'Review before submitting');
       }
       if (submitReviewDesc) {
-        submitReviewDesc.textContent = hasBelowMinimumSelection
+        submitReviewDesc.textContent = hasForcedReviewSelection
           ? 'This proof can still be submitted, but it will not be auto-approved. It will be held for organiser review.'
           : 'Please confirm your details are correct. Once submitted, changes require admin assistance.';
       }
       if (submitReviewEdit) {
-        submitReviewEdit.textContent = hasBelowMinimumSelection ? 'Cancel and Upload Another Proof' : 'Edit Details';
+        submitReviewEdit.textContent = hasForcedReviewSelection ? 'Cancel and Upload Another Proof' : 'Edit Details';
       }
       if (submitReviewConfirm) {
-        submitReviewConfirm.textContent = hasBelowMinimumSelection ? 'Submit for Review' : 'Submit Now';
+        submitReviewConfirm.textContent = hasForcedReviewSelection ? 'Submit for Review' : 'Submit Now';
       }
 
       // Event (selected event name or Personal Record)
@@ -2550,10 +2584,20 @@
       }
 
       belowMinimumSelections.forEach((entry) => {
-        const eventTitle = String(entry.item.eventTitle || 'Selected event');
+        const registeredDistance = String(entry.item.raceDistance || (formatDistanceKm(entry.minimumRequiredDistanceKm) + ' km'));
         submitReviewRows.appendChild(makeReviewRow(
           'Minimum distance',
-          eventTitle + ' requires at least ' + formatDistanceKm(entry.minimumRequiredDistanceKm) + ' km; detected/submitted distance is ' + formatDistanceKm(entry.detectedDistanceKm) + ' km. This entry will be sent for organiser review.',
+          'You registered for ' + registeredDistance + ', but this screenshot shows about ' + formatDistanceKm(entry.detectedDistanceKm) + ' km. This entry will be sent for organiser review.',
+          'warn'
+        ));
+      });
+
+      implausibleAccumulatedSelections.forEach((entry) => {
+        submitReviewRows.appendChild(makeReviewRow(
+          'Activity distance',
+          'This looks unusually long for a single activity update (detected about ' + formatDistanceKm(entry.detectedDistanceKm) + ' km' +
+          (entry.targetDistanceKm > 0 ? ' vs. your ' + formatDistanceKm(entry.targetDistanceKm) + ' km challenge target' : '') +
+          '). It will be sent for organiser review.',
           'warn'
         ));
       });

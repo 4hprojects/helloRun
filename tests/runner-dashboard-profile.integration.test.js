@@ -429,7 +429,7 @@ test('runner dashboard refresh endpoint requires authentication and returns frag
   const payload = await response.json();
   assert.equal(payload.success, true);
   assert.ok(payload.refreshedAt);
-  for (const key of ['summary', 'upcoming', 'badges', 'badgeProgress', 'eventProgress', 'resultSubmissions', 'past', 'activity', 'certificates', 'progressStats', 'runningGroups']) {
+  for (const key of ['summary', 'upcoming', 'badges', 'badgeProgress', 'eventProgress', 'missedSubmissions', 'resultSubmissions', 'past', 'activity', 'certificates', 'progressStats', 'runningGroups']) {
     assert.equal(typeof payload.fragments[key], 'string');
   }
   assert.match(payload.fragments.resultSubmissions, /aria-current=(?:&#34;|")page/i);

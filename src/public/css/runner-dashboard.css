@@ -691,6 +691,11 @@ body {
   background: rgba(255, 248, 243, 0.76);
 }
 
+.dashboard-event-progress-row--missed {
+  border-color: rgba(100, 116, 139, 0.22);
+  background: rgba(241, 245, 249, 0.7);
+}
+
 .dashboard-event-progress-main {
   min-width: 0;
   flex: 1;
@@ -1064,7 +1069,8 @@ body {
 }
 
 .badge-local,
-.badge-registration {
+.badge-registration,
+.badge-missed {
   color: #475569;
   background: #e2e8f0;
 }

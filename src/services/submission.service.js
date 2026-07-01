@@ -596,6 +596,9 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
           : 'standard',
         minimumRequiredDistanceKm: minimumDistanceKm,
         minimumActivityDistanceKm: Number(registration.eventId?.minimumActivityDistanceKm || 0) || null,
+        targetDistanceKm: registration.eventId?.virtualCompletionMode === 'accumulated_distance'
+          ? resolveAccumulatedTargetDistanceKm(registration, registration.eventId)
+          : null,
         venueName: registration.eventId?.venueName || '',
         city: registration.eventId?.city || '',
         country: registration.eventId?.country || '',
@@ -834,7 +837,7 @@ function buildSubmissionEligibilityContext(registrations, eligibleRegistrations,
   return context;
 }
 
-function buildSubmissionPayload(registration, input) {
+function buildSubmissionPayload(registration, input, context = {}) {
   const safeDistance = sanitizeNumber(input.distanceKm, 0.1, 500, 'Distance is invalid.');
   const safeElapsedMs = sanitizeNumber(input.elapsedMs, 1, 7 * 24 * 60 * 60 * 1000, 'Elapsed time is invalid.');
   const safeRunDate = sanitizeRunDate(input.runDate);
@@ -864,11 +867,24 @@ function buildSubmissionPayload(registration, input) {
       `Submitted distance is below the minimum required distance for this one-time result (${formatDistanceForMessage(minimumDistanceCheck.minimumRequiredDistanceKm)} km).`
     );
   }
+  let implausibleAccumulatedCheck = { implausible: false, detectedDistanceKm: null, targetDistanceKm: null };
+  if (context.event?.virtualCompletionMode === 'accumulated_distance') {
+    implausibleAccumulatedCheck = detectImplausibleAccumulatedActivityDistance({
+      submittedDistanceKm: safeDistance,
+      ocrData,
+      targetDistanceKm: context.targetDistanceKm ?? resolveAccumulatedTargetDistanceKm(registration, context.event)
+    });
+    if (implausibleAccumulatedCheck.implausible) {
+      suspiciousReasons.push(
+        `This looks unusually long for a single activity update (detected ${formatDistanceForMessage(implausibleAccumulatedCheck.detectedDistanceKm)} km). If this is a lifetime/monthly total from your app, please upload a screenshot of just this one activity.`
+      );
+    }
+  }
   const mergedOcrData = {
     ...ocrData,
     ...integrity.comparisons
   };
-  const suspiciousFlag = integrity.suspicious || minimumDistanceCheck.belowMinimum;
+  const suspiciousFlag = integrity.suspicious || minimumDistanceCheck.belowMinimum || implausibleAccumulatedCheck.implausible;
 
   return {
     registrationId: registration._id,
@@ -1177,6 +1193,28 @@ function detectBelowMinimumStandardSubmissionDistance({
     belowMinimum,
     detectedDistanceKm: detectedDistance,
     minimumRequiredDistanceKm: minimum
+  };
+}
+
+function detectImplausibleAccumulatedActivityDistance({
+  submittedDistanceKm,
+  ocrData,
+  targetDistanceKm
+}) {
+  const target = normalizePositiveDistance(targetDistanceKm);
+  const ocrDistance = normalizePositiveDistance(ocrData?.extractedDistanceKm);
+  const submittedDistance = normalizePositiveDistance(submittedDistanceKm);
+  const detectedDistance = ocrDistance !== null ? ocrDistance : submittedDistance;
+
+  const implausible = detectedDistance !== null && (
+    detectedDistance > 100 ||
+    (target !== null && detectedDistance >= target)
+  );
+
+  return {
+    implausible,
+    detectedDistanceKm: detectedDistance,
+    targetDistanceKm: target
   };
 }
 

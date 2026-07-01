@@ -4,21 +4,8 @@
     <% const eventProgressCards = cards.eventProgress || []; %>
     <% if (eventProgressCards.length) { %>
       <ul class="dashboard-event-progress-list" aria-label="Registered event progress and run proof status">
-        <% eventProgressCards.forEach((item) => { const progressPercent = Math.max(0, Math.min(100, Number(item.progress?.percent || 0))); %>
-          <li class="dashboard-event-progress-row dashboard-event-progress-row--<%= item.stateTone || item.state %>">
-            <div class="dashboard-event-progress-main">
-              <div class="dashboard-event-progress-title"><% if (item.eventSlug) { %><a href="/events/<%= item.eventSlug %>"><%= item.eventTitle %></a><% } else { %><%= item.eventTitle %><% } %></div>
-              <div class="item-meta"><span><%= item.raceDistance || 'Distance TBA' %></span> &middot; <span><%= item.isAccumulated ? 'Accumulated challenge' : 'Run result' %></span> &middot; <span>Code: <code><%= item.confirmationCode %></code></span></div>
-              <% if (item.isAccumulated && item.progress) { %><div class="dashboard-event-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= Math.round(progressPercent) %>"><span style="width: <%= progressPercent %>%"></span></div><div class="dashboard-event-progress-stats"><strong><%= item.progress.progressLabel %></strong><span><%= item.progress.approvedActivityCount %> approved, <%= item.progress.pendingActivityCount %> pending, <%= item.progress.rejectedActivityCount %> rejected</span></div><% } %>
-              <p class="dashboard-event-progress-help"><%= item.helperText %></p>
-              <% if (item.submittedAtLabel && item.submittedAtLabel !== 'TBA') { %><div class="item-meta">Submitted: <%= item.submittedAtLabel %><% if (item.submittedAtRelativeLabel) { %> <span class="text-muted">(<%= item.submittedAtRelativeLabel %>)</span><% } %></div><% } %>
-              <% if (item.reviewedAtLabel && item.reviewedAtLabel !== 'TBA') { %><div class="item-meta">Reviewed: <%= item.reviewedAtLabel %><% if (item.reviewedAtRelativeLabel) { %> <span class="text-muted">(<%= item.reviewedAtRelativeLabel %>)</span><% } %></div><% } %>
-            </div>
-            <div class="dashboard-event-progress-side">
-              <span class="badge badge-<%= item.stateTone || item.state %>"><%= item.stateLabel %></span>
-              <% if (item.nextAction) { %><% if (item.nextAction.type === 'submit' || item.nextAction.type === 'resubmit') { %><button type="button" class="btn btn-sm <%= item.nextAction.type === 'resubmit' ? 'btn-outline' : 'btn-primary' %>" data-open-run-proof-modal data-run-proof-mode="<%= item.nextAction.type === 'resubmit' ? 'resubmit' : 'submit' %>" data-run-proof-registration-id="<%= item.registrationId %>"><%= item.nextAction.label %></button><% } else { %><a href="<%= item.nextAction.href %>" class="btn btn-sm btn-outline"><%= item.nextAction.label %></a><% } %><% } %>
-            </div>
-          </li>
+        <% eventProgressCards.forEach((item) => { %>
+          <%- include('event-progress-row', { item }) %>
         <% }) %>
       </ul>
     <% } else { %><div class="empty-state"><p class="empty-message">No registered event progress yet.</p><a href="/events" class="btn btn-primary btn-sm">Browse events</a></div><% } %>

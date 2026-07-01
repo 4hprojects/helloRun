@@ -1372,6 +1372,7 @@
       const virtualEndInput = document.getElementById('virtualEndAt');
       const finalSubmissionDeadlineInput = document.getElementById('finalSubmissionDeadlineAt');
       const finalSubmissionDeadlineHint = document.getElementById('finalSubmissionDeadlineHint');
+      const targetDistanceHint = document.getElementById('targetDistanceHint');
       const raceDistanceCustomInput = document.getElementById('raceDistanceCustom');
       const raceDistancePresetInputs = Array.from(document.querySelectorAll('input[name="raceDistancePresets"]'));
       const feeModeSelect = document.getElementById('feeMode');
@@ -1800,6 +1801,7 @@
           }
           if (showAccumulated) {
             syncFinalSubmissionDeadlineFromEventEnd();
+            syncAccumulatedTargetDistanceDefault();
           }
         }
       }
@@ -1889,6 +1891,54 @@
         eventEndInput.addEventListener('change', syncFinalSubmissionDeadlineFromEventEnd);
       }
       syncFinalSubmissionDeadlineFromEventEnd();
+
+      function getAccumulatedChallengeYear() {
+        const candidates = [
+          eventStartInput?.value,
+          virtualStartInput?.value,
+          eventEndInput?.value,
+          virtualEndInput?.value
+        ];
+        for (const raw of candidates) {
+          const parsed = parseDateTimeLocalValue(raw);
+          if (parsed) return parsed.getFullYear();
+        }
+        return null;
+      }
+
+      function syncAccumulatedTargetDistanceDefault() {
+        if (!virtualCompletionModeSelect || virtualCompletionModeSelect.value !== 'accumulated_distance') return;
+        const rows = Array.from(document.querySelectorAll('[data-race-category-row]'));
+        if (rows.length !== 1) return;
+        const kmInput = rows[0].querySelector('input[name="raceCategoryDistanceKm"]');
+        if (!kmInput || kmInput.value) return;
+        const year = getAccumulatedChallengeYear();
+        if (!year) return;
+        kmInput.value = String(year);
+        updateRaceCategorySummary(rows[0]);
+        if (targetDistanceHint) {
+          targetDistanceHint.textContent = `Defaulted to ${year} km based on your ${year} event dates. Edit "Distance km" in Race Categories to use a different target.`;
+          targetDistanceHint.classList.add('is-autofilled');
+        }
+      }
+
+      if (eventStartInput) {
+        eventStartInput.addEventListener('input', syncAccumulatedTargetDistanceDefault);
+        eventStartInput.addEventListener('change', syncAccumulatedTargetDistanceDefault);
+      }
+      if (eventEndInput) {
+        eventEndInput.addEventListener('input', syncAccumulatedTargetDistanceDefault);
+        eventEndInput.addEventListener('change', syncAccumulatedTargetDistanceDefault);
+      }
+      if (virtualStartInput) {
+        virtualStartInput.addEventListener('input', syncAccumulatedTargetDistanceDefault);
+        virtualStartInput.addEventListener('change', syncAccumulatedTargetDistanceDefault);
+      }
+      if (virtualEndInput) {
+        virtualEndInput.addEventListener('input', syncAccumulatedTargetDistanceDefault);
+        virtualEndInput.addEventListener('change', syncAccumulatedTargetDistanceDefault);
+      }
+      syncAccumulatedTargetDistanceDefault();
 
       function getIndexedInput(name, index) {
         return Array.from(document.querySelectorAll(`input[name="${name}"]`))[Number(index)] || null;

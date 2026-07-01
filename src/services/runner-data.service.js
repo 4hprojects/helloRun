@@ -3,12 +3,13 @@ const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const { buildAccumulatedProgress } = require('./accumulated-activity.service');
 const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
+const { isSubmissionWindowOpen } = require('../utils/submission-window');
 
 async function getRunnerRegistrations(userId) {
   return Registration.find({ userId })
     .populate({
       path: 'eventId',
-      select: 'title slug status eventStartAt eventEndAt city country venueName virtualCompletionMode targetDistanceKm raceCategories minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt feeMode feeAmount feeCurrency paymentAccountName paymentInstructions paymentQrImageUrl',
+      select: 'title slug status eventStartAt eventEndAt city country venueName virtualCompletionMode targetDistanceKm raceCategories minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt virtualWindow onsiteCheckinWindows feeMode feeAmount feeCurrency paymentAccountName paymentInstructions paymentQrImageUrl',
       match: { isPersonalRecord: { $ne: true } }
     })
     .sort({ registeredAt: -1 })
@@ -63,7 +64,7 @@ function buildRunnerDashboardData(registrations = [], now = new Date()) {
   };
 }
 
-async function getRunnerEventProgressCards(registrations = []) {
+async function getRunnerEventProgressCards(registrations = [], options = {}) {
   const validRegistrations = registrations.filter((item) => item && item.eventId);
   const registrationIds = validRegistrations.map((item) => item._id).filter(Boolean);
   if (!registrationIds.length) return [];
@@ -82,12 +83,13 @@ async function getRunnerEventProgressCards(registrations = []) {
   return buildRunnerEventProgressCards(validRegistrations, {
     standardSubmissions,
     accumulatedActivities
-  });
+  }, options);
 }
 
-function buildRunnerEventProgressCards(registrations = [], sources = {}) {
+function buildRunnerEventProgressCards(registrations = [], sources = {}, options = {}) {
   const standardByRegistration = groupFirstByRegistrationId(sources.standardSubmissions || []);
   const accumulatedByRegistration = groupManyByRegistrationId(sources.accumulatedActivities || []);
+  const now = options.now || new Date();
 
   return registrations
     .filter((registration) => registration && registration.eventId)
@@ -108,6 +110,8 @@ function buildRunnerEventProgressCards(registrations = [], sources = {}) {
         participationMode: registration.participationMode || '',
         eventStartAt: event.eventStartAt || null,
         eventStartAtLabel: '',
+        registeredAt: registration.registeredAt || null,
+        registrationUpdatedAt: registration.updatedAt || null,
         paymentStatus,
         registrationStatus,
         paymentLabel: getPaymentStatusLabel(paymentStatus),
@@ -144,13 +148,37 @@ function buildRunnerEventProgressCards(registrations = [], sources = {}) {
         };
       }
 
-      if (isAccumulated) {
-        return buildAccumulatedProgressCard(base, accumulatedByRegistration.get(registrationId) || [], registration, event);
+      const accumulatedActivities = accumulatedByRegistration.get(registrationId) || [];
+      const standardSubmission = standardByRegistration.get(registrationId) || null;
+      const hasNonRejectedSubmission = isAccumulated
+        ? accumulatedActivities.some((activity) => activity.status !== 'rejected')
+        : Boolean(standardSubmission && standardSubmission.status !== 'rejected');
+
+      if (!hasNonRejectedSubmission && !isSubmissionWindowOpen({ registration, event, now })) {
+        return {
+          ...base,
+          state: 'missed',
+          stateLabel: 'Submission Closed',
+          stateTone: 'missed',
+          helperText: 'The submission window for this event has closed and no run proof was submitted. This event has been moved to Missed.',
+          nextAction: null
+        };
       }
 
-      return buildStandardProgressCard(base, standardByRegistration.get(registrationId) || null);
+      if (isAccumulated) {
+        return buildAccumulatedProgressCard(base, accumulatedActivities, registration, event);
+      }
+
+      return buildStandardProgressCard(base, standardSubmission);
     })
     .sort((a, b) => sortProgressCards(a, b));
+}
+
+function splitEventProgressCards(cards = []) {
+  return {
+    active: cards.filter((card) => card.state !== 'missed'),
+    missed: cards.filter((card) => card.state === 'missed')
+  };
 }
 
 function buildStandardProgressCard(base, submission) {
@@ -296,7 +324,11 @@ function getRegistrationStatusLabel(status) {
   return labels[status] || status || 'Confirmed';
 }
 
-function sortProgressCards(a, b) {
+function sortProgressCards(a, b, options = {}) {
+  if (options.sortMode === 'recent_activity') {
+    return getMostRecentActivityTimestamp(b) - getMostRecentActivityTimestamp(a);
+  }
+
   const priority = {
     rejected: 0,
     payment_required: 1,
@@ -312,6 +344,23 @@ function sortProgressCards(a, b) {
   return new Date(b.submittedAt || b.eventStartAt || 0) - new Date(a.submittedAt || a.eventStartAt || 0);
 }
 
+function getMostRecentActivityTimestamp(card) {
+  const candidates = [
+    card.submittedAt,
+    card.reviewedAt,
+    card.registeredAt,
+    card.registrationUpdatedAt,
+    card.eventStartAt
+  ]
+    .map((value) => (value ? new Date(value).getTime() : NaN))
+    .filter(Number.isFinite);
+  return candidates.length ? Math.max(...candidates) : 0;
+}
+
+function sortEventProgressCardsByRecency(cards = []) {
+  return [...cards].sort((a, b) => sortProgressCards(a, b, { sortMode: 'recent_activity' }));
+}
+
 function parseDateSafe(value) {
   if (!value) return null;
   const parsed = new Date(value);
@@ -322,5 +371,7 @@ module.exports = {
   getRunnerRegistrations,
   getRunnerEventProgressCards,
   buildRunnerDashboardData,
-  buildRunnerEventProgressCards
+  buildRunnerEventProgressCards,
+  splitEventProgressCards,
+  sortEventProgressCardsByRecency
 };

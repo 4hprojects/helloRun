@@ -635,7 +635,7 @@ function normalizeTargetDistanceValues(values = []) {
   ));
 }
 
-function inferTargetDistanceKm(raceDistances = [], raceCategories = []) {
+function inferTargetDistanceKm(raceDistances = [], raceCategories = [], { yearFallback } = {}) {
   const categoryTargets = normalizeTargetDistanceValues(
     (raceCategories || []).map((category) => category?.distanceKm)
   );
@@ -643,7 +643,16 @@ function inferTargetDistanceKm(raceDistances = [], raceCategories = []) {
     (raceDistances || []).map(parseRaceDistanceKm)
   );
   const targets = categoryTargets.length ? categoryTargets : labelTargets;
-  return targets.length ? Math.max(...targets) : null;
+  if (targets.length) return Math.max(...targets);
+  return Number.isFinite(yearFallback) && yearFallback > 0 ? yearFallback : null;
+}
+
+function resolveEventYearFromDates(...values) {
+  for (const value of values) {
+    const parsed = parseDateSafe(value);
+    if (parsed) return parsed.getFullYear();
+  }
+  return null;
 }
 
 function addDays(date, days) {
@@ -760,7 +769,11 @@ function getCreateEventFormData(body = {}) {
     virtualEndAt: body.virtualEndAt || '',
     proofTypesAllowed: normalizeProofTypes(body.proofTypesAllowed),
     virtualCompletionMode: normalizeVirtualCompletionMode(body.virtualCompletionMode),
-    targetDistanceKm: inferTargetDistanceKm(raceDistances, raceCategories),
+    targetDistanceKm: inferTargetDistanceKm(raceDistances, raceCategories, {
+      yearFallback: normalizeVirtualCompletionMode(body.virtualCompletionMode) === 'accumulated_distance'
+        ? resolveEventYearFromDates(body.eventStartAt, body.virtualStartAt, body.eventEndAt, body.virtualEndAt)
+        : null
+    }),
     minimumActivityDistanceKm: parseOptionalPositiveNumber(body.minimumActivityDistanceKm),
     acceptedRunTypes: normalizeRunTypes(body.acceptedRunTypes),
     finalSubmissionDeadlineAt: body.finalSubmissionDeadlineAt || '',
@@ -893,7 +906,11 @@ function getCreateEventFormDataFromEvent(event) {
     virtualEndAt: formatDateForInput(event.virtualWindow?.endAt),
     proofTypesAllowed: normalizeProofTypes(event.proofTypesAllowed),
     virtualCompletionMode: normalizeVirtualCompletionMode(event.virtualCompletionMode),
-    targetDistanceKm: Number.isFinite(event.targetDistanceKm) ? event.targetDistanceKm : inferTargetDistanceKm(normalizedEventDistances, raceCategories),
+    targetDistanceKm: Number.isFinite(event.targetDistanceKm) ? event.targetDistanceKm : inferTargetDistanceKm(normalizedEventDistances, raceCategories, {
+      yearFallback: normalizeVirtualCompletionMode(event.virtualCompletionMode) === 'accumulated_distance'
+        ? resolveEventYearFromDates(event.eventStartAt, event.virtualWindow?.startAt, event.eventEndAt, event.virtualWindow?.endAt)
+        : null
+    }),
     minimumActivityDistanceKm: Number.isFinite(event.minimumActivityDistanceKm) ? event.minimumActivityDistanceKm : null,
     acceptedRunTypes: Array.isArray(event.acceptedRunTypes) ? event.acceptedRunTypes : [],
     finalSubmissionDeadlineAt: formatDateForInput(event.finalSubmissionDeadlineAt),

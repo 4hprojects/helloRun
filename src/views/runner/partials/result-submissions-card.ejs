@@ -32,74 +32,15 @@
   </div>
   <div class="card-content result-submissions-panel">
     <% if (resultCards && resultCards.length) { %>
-      <p class="result-submissions-count"><small>Latest <%= resultCards.length %> result<%= resultCards.length !== 1 ? 's' : '' %></small></p>
-      <ul class="item-list">
+      <p class="result-submissions-count"><small>Latest <%= resultCards.length %> event<%= resultCards.length !== 1 ? 's' : '' %> by recent activity</small></p>
+      <ul class="dashboard-event-progress-list">
         <% resultCards.forEach((item) => { %>
-          <% const PROOF_TYPE_LABELS = { photo: 'Photo', gps: 'GPS Tracked', manual: 'Manual' }; %>
-          <% const RUN_TYPE_LABELS = { run: 'Run', walk: 'Walk', hike: 'Hike', trail_run: 'Trail Run' }; %>
-          <li class="item-row">
-            <% if (item.submissionId) { %>
-              <a
-                href="/runner/submissions/<%= item.submissionId %>"
-                class="item-detail-btn"
-                aria-label="View submission details"
-                title="View details"
-              ><i data-lucide="external-link"></i></a>
-            <% } %>
-            <div class="item-main">
-              <div class="item-title">
-                <% if (item.eventSlug) { %>
-                  <a href="/events/<%= item.eventSlug %>"><%= item.eventTitle %></a>
-                <% } else { %>
-                  <%= item.eventTitle %>
-                <% } %>
-                <% if (item.isPersonalRecord) { %>
-                  <span class="badge badge-pr">Personal Record</span>
-                <% } %>
-                <% if (item.isAccumulatedActivity) { %>
-                  <span class="badge badge-group">Challenge Activity</span>
-                <% } %>
-              </div>
-              <div class="item-meta">
-                <span><%= item.elapsedLabel %></span> &middot; <span><%= Number(item.distanceKm || 0).toFixed(2) %> km</span> &middot; <span class="badge badge-<%= item.proofType || 'manual' %>"><%= PROOF_TYPE_LABELS[item.proofType] || String(item.proofType || 'manual') %></span> &middot; <span><%= RUN_TYPE_LABELS[item.runType] || item.runType %></span>
-              </div>
-              <div class="item-meta">
-                Status: <span class="badge badge-<%= item.status %>"><%= item.status %></span>
-                <% if (item.rejectionReason) { %> &middot; <span class="text-danger">Reason: <%= item.rejectionReason %></span><% } %>
-              </div>
-              <% if (item.submittedAtLabel && item.submittedAtLabel !== 'TBA') { %>
-                <div class="item-meta">Submitted: <%= item.submittedAtLabel %><% if (item.submittedAtRelativeLabel) { %> <span class="text-muted">(<%= item.submittedAtRelativeLabel %>)</span><% } %></div>
-              <% } %>
-              <% if (item.reviewedAtLabel && item.reviewedAtLabel !== 'TBA') { %>
-                <div class="item-meta">Reviewed: <%= item.reviewedAtLabel %><% if (item.reviewedAtRelativeLabel) { %> <span class="text-muted">(<%= item.reviewedAtRelativeLabel %>)</span><% } %></div>
-              <% } %>
-            </div>
-            <div class="item-actions">
-              <% if (item.status === 'rejected' && item.registrationId && item.isAccumulatedActivity) { %>
-                <button
-                  class="btn btn-sm btn-outline"
-                  data-open-run-proof-modal
-                  data-run-proof-mode="submit"
-                  data-run-proof-registration-id="<%= item.registrationId %>"
-                >Add Activity</button>
-              <% } else if (item.status === 'rejected' && item.registrationId) { %>
-                <button
-                  class="btn btn-sm btn-outline"
-                  data-open-run-proof-modal
-                  data-run-proof-mode="resubmit"
-                  data-run-proof-registration-id="<%= item.registrationId %>"
-                >Resubmit</button>
-              <% } %>
-              <% if (item.certificateUrl) { %>
-                <a href="/my-submissions/<%= item.submissionId %>/certificate" class="btn btn-sm btn-outline">Certificate</a>
-              <% } %>
-            </div>
-          </li>
+          <%- include('event-progress-row', { item }) %>
         <% }) %>
       </ul>
     <% } else { %>
       <div class="empty-state">
-        <p class="empty-message">No result submissions yet. After registering for an event, submit your run result here to earn a certificate and badges.</p>
+        <p class="empty-message">No result activity yet. After registering for an event, submit your run result here to earn a certificate and badges.</p>
       </div>
     <% } %>
   </div>

@@ -26,7 +26,7 @@ async function createAccumulatedActivitySubmission(input) {
     runnerId: input.runnerId
   });
   const event = await Event.findById(registration.eventId)
-    .select('virtualCompletionMode targetDistanceKm minimumActivityDistanceKm acceptedRunTypes title')
+    .select('virtualCompletionMode targetDistanceKm minimumActivityDistanceKm acceptedRunTypes raceCategories title')
     .lean();
 
   assertAccumulatedEvent(event);
@@ -35,7 +35,7 @@ async function createAccumulatedActivitySubmission(input) {
   const payload = buildSubmissionPayload(registration, {
     ...input,
     submissionCount: 1
-  });
+  }, { event });
   delete payload.isPersonalRecord;
   delete payload.submissionCount;
   payload.validation = {

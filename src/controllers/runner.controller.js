@@ -7,7 +7,9 @@ const { getCountries, isValidCountryCode, normalizeCountryCode } = require('../u
 const {
   getRunnerRegistrations,
   getRunnerEventProgressCards,
-  buildRunnerDashboardData
+  buildRunnerDashboardData,
+  splitEventProgressCards,
+  sortEventProgressCardsByRecency
 } = require('../services/runner-data.service');
 const {
   getRunnerPerformanceSnapshot,
@@ -92,15 +94,18 @@ exports.getDashboardResultSubmissions = async (req, res) => {
     const locale = getRequestLocale(req);
     const groupQuery = String(req.query.groupQ || '').trim().slice(0, 80);
     const dashboardFilters = getDashboardFilters(req.query);
-    const performanceSnapshot = await getRunnerPerformanceSnapshot(user._id, {
-      recentLimit: 2,
-      resultStatus: dashboardFilters.resultStatus
-    });
+    const registrations = await getRunnerRegistrations(user._id);
+    const eventProgressCards = await getRunnerEventProgressCards(registrations);
+    const { active: activeProgressCards } = splitEventProgressCards(eventProgressCards);
+    const resultCards = filterEventProgressCardsForResultsCard(
+      sortEventProgressCardsByRecency(activeProgressCards),
+      dashboardFilters.resultStatus
+    );
 
     return res.render('runner/partials/result-submissions-card', {
       selectedResultStatus: dashboardFilters.resultStatus,
       preservedGroupQuery: groupQuery,
-      resultCards: formatRunnerResultSubmissions(performanceSnapshot, locale)
+      resultCards: formatRunnerEventProgressCards(resultCards, locale)
     });
   } catch (error) {
     logger.error('Runner result submissions partial load error:', error);
@@ -173,6 +178,7 @@ exports.getDashboardRefresh = async (req, res) => {
       'badges',
       'badge-progress',
       'event-progress',
+      'missed-submissions',
       'result-submissions',
       'past',
       'activity',
@@ -797,6 +803,7 @@ async function buildRunnerDashboardViewData(user, req) {
   ]);
   const dashboardData = buildRunnerDashboardData(registrations);
   const eventProgressCards = await getRunnerEventProgressCards(registrations);
+  const { active: activeProgressCards, missed: missedProgressCards } = splitEventProgressCards(eventProgressCards);
   const mergedActivity = mergeRunnerActivity(
     dashboardData.activity,
     recentGroupActivity,
@@ -848,8 +855,12 @@ async function buildRunnerDashboardViewData(user, req) {
         ...item,
         issuedAtLabel: formatDateTime(item.issuedAt, locale)
       })),
-      results: formatRunnerResultSubmissions(performanceSnapshot, locale),
-      eventProgress: formatRunnerEventProgressCards(eventProgressCards, locale).slice(0, 6),
+      results: formatRunnerEventProgressCards(
+        filterEventProgressCardsForResultsCard(sortEventProgressCardsByRecency(activeProgressCards), dashboardFilters.resultStatus),
+        locale
+      ).slice(0, 8),
+      eventProgress: formatRunnerEventProgressCards(activeProgressCards, locale).slice(0, 6),
+      missedSubmissions: formatRunnerEventProgressCards(missedProgressCards, locale),
       badges: recentBadges,
       badgeProgress
     },
@@ -1185,17 +1196,16 @@ function getDashboardFilters(query = {}) {
   };
 }
 
-function formatRunnerResultSubmissions(performanceSnapshot, locale) {
-  return (performanceSnapshot?.recentSubmissions || []).map((item) => ({
-    ...item,
-    submittedAtLabel: formatDateTime(item.submittedAt, locale),
-    reviewedAtLabel: formatDateTime(item.reviewedAt, locale),
-    submittedAtRelativeLabel: formatRelativeTime(item.submittedAt),
-    reviewedAtRelativeLabel: formatRelativeTime(item.reviewedAt),
-    isPersonalRecord: Boolean(item.isPersonalRecord),
-    runType: item.runType || 'run',
-    registrationId: String(item.registrationId || '')
-  }));
+const RESULTS_CARD_STATES = new Set(['submitted', 'in_progress', 'rejected', 'completed', 'approved']);
+const RESULTS_CARD_STATUS_STATES = {
+  submitted: new Set(['submitted', 'in_progress']),
+  approved: new Set(['approved', 'completed']),
+  rejected: new Set(['rejected'])
+};
+
+function filterEventProgressCardsForResultsCard(cards = [], resultStatus = '') {
+  const allowedStates = RESULTS_CARD_STATUS_STATES[resultStatus] || RESULTS_CARD_STATES;
+  return (cards || []).filter((card) => RESULTS_CARD_STATES.has(card.state) && allowedStates.has(card.state));
 }
 
 function formatRunnerEventProgressCards(cards = [], locale) {
