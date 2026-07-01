@@ -31,13 +31,14 @@ npm run mark-test-events   # Mark existing test events as isTestData:true (sitem
 ## Current Priority (July 1, 2026)
 
 1. **Deploy to production + AdSense** — ops only, no code; all code is done (see STATUS.md In Progress for steps)
-2. **Admin improvements Phases 1–2 verification** — code complete and pushed, needs a live-DB `npm run test:admin` run plus a manual rate-limit smoke check. See `docs/todo/admin-improvements/`.
+2. **Admin improvements Phases 1–2 + permission tiers verification** — code complete and pushed, needs a live-DB `npm run test:admin` run plus manual smoke checks (rate limits, and a `support`-tier admin click-through). See `docs/todo/admin-improvements/` and `docs/to-implement/admin-permission-tiers.md`.
 
 ### Done this session (July 1)
 - Admin improvements Phase 1 — CSV/XLSX exports for `/admin/{users,audit,analytics}`
 - Admin improvements Phase 2 — closed rate-limiting gaps on ~90 admin mutation routes
 - Admin improvements Phase 3 — extended security route matrix; deleted dead `onsite-operations.js` (admin, unmounted)
 - Admin improvements Phase 4 — future-considerations backlog doc (permission tiers, email templates, impersonation)
+- Admin permission tiers — `User.adminTier` (full/support), `requireFullAdmin` middleware gating 24 high-risk routes, privilege-escalation guards in the user-edit flow; promoted from Phase 4 backlog to implemented same session
 
 ### Done previous session (June 29–30)
 - Homepage CSS polish — 30/40, 0 P0/P1 remaining

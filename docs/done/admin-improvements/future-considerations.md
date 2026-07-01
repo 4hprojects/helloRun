@@ -5,24 +5,20 @@
 - **Purpose:** Lightweight backlog capture for longer-term admin-panel ideas surfaced
   during the admin-improvements initiative (`docs/todo/admin-improvements/`), deferred
   rather than designed in detail.
-- **Status:** Backlog — none of these are scheduled. Each needs its own dedicated
-  planning pass before implementation.
+- **Status:** Backlog, except the first item below (implemented July 1, 2026). The
+  remaining two are still unscheduled and need their own dedicated planning pass before
+  implementation.
 
 ---
 
-## Role-based admin permission tiers
+## Role-based admin permission tiers — ✅ Implemented July 1, 2026
 
-Today, `requireAdmin` (`src/middleware/auth.middleware.js`) and `requireRole('admin')`
-(`src/middleware/role.middleware.js`) both treat "admin" as a single flat role with full
-access to every route in `src/routes/admin.routes.js` — there is no distinction between,
-say, a support admin who can view/edit users and a super-admin who can delete accounts,
-edit policy documents, or send platform-wide promotions.
-
-**Rough shape for later:** a `permissions` or `adminTier` field on the `User` model, a
-small `requirePermission(permission)` middleware alongside the existing `requireAdmin`,
-and a mapping of admin routes to required permissions — the extended security matrix
-added in Phase 3 (`docs/architecture/security_route_matrix.md`) would be a natural input
-to that mapping.
+Promoted from backlog to implemented. See `docs/to-implement/admin-permission-tiers.md`
+for the full spec/implementation record. Summary: `User.adminTier` (`'full'` default, or
+`'support'`) plus a new `requireFullAdmin` middleware gate the highest-blast-radius admin
+routes (user/event deletion, policy publishing, communications settings, site config,
+mass-email promotion, and data exports). Everyday admin work (user edit, event edit,
+badge actions, application review, blog moderation) remains available to both tiers.
 
 ## Admin-editable email template UI
 

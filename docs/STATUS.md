@@ -102,6 +102,7 @@ _Last updated: July 1, 2026_
 | Admin improvements Phase 2 — closed rate-limiting gaps on ~90 unprotected admin mutation routes (incl. user delete, mass-email `/promote`); 3 new limiters; fixed stale `tests/organizer-route-source.unit.test.js` (broken since DEBT-2) | July 1, 2026 | `tests/admin-route-source.unit.test.js` 7/7, `tests/organizer-route-source.unit.test.js` 3/3; manual 429 smoke-check unverified (no live server) |
 | Admin improvements Phase 3 — extended `security_route_matrix.md` with `/admin/*` section; deleted dead unmounted `src/routes/admin/onsite-operations.js` + `onsite-operations-bulk.service.js` | July 1, 2026 | `node --check`, full-tree grep, server require smoke check |
 | Admin improvements Phase 4 — future-considerations backlog doc (permission tiers, email template editor, impersonation), docs only | July 1, 2026 | — |
+| Admin permission tiers — `User.adminTier` (`full`/`support`, default `full`); new `requireFullAdmin` middleware gates user/event deletion, policy publishing, communications settings, site config (homepage carousel/ads), mass-email promotion, and all data exports; only a full admin can grant/change admin role or tier, and self-tier-changes are always blocked; UI tier selector + badges in admin user views; promoted from the Phase 4 future-considerations backlog | July 1, 2026 | `tests/admin-permission-tier-source.unit.test.js` 9/9; full `npm run test:admin` unverified (no live DB) |
 
 ---
 
@@ -109,6 +110,7 @@ _Last updated: July 1, 2026_
 
 - **Priority 1 — Production AdSense (ops only):** deploy current main, run `npm run seed:adsense-blog` if needed, verify live `/robots.txt`, `/sitemap.xml`, `/ads.txt`, submit/refresh sitemap in Google Search Console, then request review after crawl stability.
 - **Admin improvements Phases 1–2 verification:** code is complete and pushed, but `docs/todo/admin-improvements/01-phase-admin-data-exports.md` and `02-phase-admin-mutation-rate-limiting.md` remain in `docs/todo/` pending (1) a full `npm run test:admin` run against live MongoDB + PostgreSQL, and (2) a manual 429 smoke-check on `/admin/promote` and `/admin/communications/test-email` against a running server. Move both files to `docs/done/admin-improvements/` once verified.
+- **Admin permission tiers verification:** implemented and source-verified, but needs a live-DB `npm run test:admin` run plus a manual click-through as a `support`-tier admin (confirm the 24 gated routes 403 correctly and the edit-form escalation guards behave as designed) before considering it fully verified.
 - Test runtime follow-up: several server-spawning smoke/integration tests pass assertions locally but do not exit cleanly during teardown; investigate open handles separately (low urgency).
 - Documentation follow-up: keep `docs/to-implement/*` files as historical design records unless a new gap reopens. Stale `docs/todo refinement/` files archived to `docs/archive/todo-refinement/`.
 
