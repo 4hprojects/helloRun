@@ -1,6 +1,6 @@
 # HelloRun — Current Status
 
-_Last updated: June 30, 2026_
+_Last updated: July 1, 2026_
 
 ---
 
@@ -98,12 +98,17 @@ _Last updated: June 30, 2026_
 | DEBT-2: `organizer.routes.js` split — 5,530-line monolith replaced with 23-line barrel + `_shared.js` (1,782 lines, 183 exports) + 8 sub-routers: `dashboard.js`, `event-creation.js`, `event-management.js`, `registrants.js`, `review.js`, `profile.js`, `qr-and-dashboard.js`, `onsite-operations.js`; all `node --check` passes | June 30, 2026 | `node --check` all sub-files |
 | Platform Analytics enhancements — `/admin/analytics` page: date-range tabs (7D/30D/90D/1Y), 5 new MongoDB sections (user status, organiser funnel, event breakdown, submission breakdown, run-type distribution with CSS bars), `hasSupa` guard for graceful degradation without Supabase; logger import bug fixed in `platform-analytics.service.js` | June 30, 2026 | `node --check` OK |
 | Event Promotion feature — organisers can email their runner pool (previous participants or non-participants) about upcoming events, 20 emails/day cap; admins can send to any audience including all runners, no cap; `EventPromotion` MongoDB model tracks campaigns + quota; `event.promotion` event key registered; professional HTML email template with event poster; organiser page at `/organizer/promote`; admin page at `/admin/promote`; AJAX recipient count preview; opt-out respected via existing `notify()` pipeline | June 30, 2026 | `node --check` all files |
+| Admin improvements Phase 1 — CSV/XLSX exports for `/admin/users`, `/admin/audit`, `/admin/analytics`; shared `tabular-export.js` util; `adminExportLimiter`; `listCriticalAuditEventsForExport()`; fixed missing `logger` import bug in `admin-audit.controller.js` | July 1, 2026 | `tests/admin-export-source.unit.test.js` 5/5; full `npm run test:admin` unverified (no live DB) |
+| Admin improvements Phase 2 — closed rate-limiting gaps on ~90 unprotected admin mutation routes (incl. user delete, mass-email `/promote`); 3 new limiters; fixed stale `tests/organizer-route-source.unit.test.js` (broken since DEBT-2) | July 1, 2026 | `tests/admin-route-source.unit.test.js` 7/7, `tests/organizer-route-source.unit.test.js` 3/3; manual 429 smoke-check unverified (no live server) |
+| Admin improvements Phase 3 — extended `security_route_matrix.md` with `/admin/*` section; deleted dead unmounted `src/routes/admin/onsite-operations.js` + `onsite-operations-bulk.service.js` | July 1, 2026 | `node --check`, full-tree grep, server require smoke check |
+| Admin improvements Phase 4 — future-considerations backlog doc (permission tiers, email template editor, impersonation), docs only | July 1, 2026 | — |
 
 ---
 
 ## 🟡 In Progress / Follow-Up
 
 - **Priority 1 — Production AdSense (ops only):** deploy current main, run `npm run seed:adsense-blog` if needed, verify live `/robots.txt`, `/sitemap.xml`, `/ads.txt`, submit/refresh sitemap in Google Search Console, then request review after crawl stability.
+- **Admin improvements Phases 1–2 verification:** code is complete and pushed, but `docs/todo/admin-improvements/01-phase-admin-data-exports.md` and `02-phase-admin-mutation-rate-limiting.md` remain in `docs/todo/` pending (1) a full `npm run test:admin` run against live MongoDB + PostgreSQL, and (2) a manual 429 smoke-check on `/admin/promote` and `/admin/communications/test-email` against a running server. Move both files to `docs/done/admin-improvements/` once verified.
 - Test runtime follow-up: several server-spawning smoke/integration tests pass assertions locally but do not exit cleanly during teardown; investigate open handles separately (low urgency).
 - Documentation follow-up: keep `docs/to-implement/*` files as historical design records unless a new gap reopens. Stale `docs/todo refinement/` files archived to `docs/archive/todo-refinement/`.
 

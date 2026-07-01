@@ -28,12 +28,18 @@ npm run mark-test-events   # Mark existing test events as isTestData:true (sitem
 | `docs/architecture/` | DB schema, workflow diagrams, security route matrix |
 | `docs/adsense-readiness/` | AdSense implementation status — locally complete, production deployment pending |
 
-## Current Priority (June 30, 2026)
+## Current Priority (July 1, 2026)
 
 1. **Deploy to production + AdSense** — ops only, no code; all code is done (see STATUS.md In Progress for steps)
-2. **Event Promotion feature** — code complete (Jun 30). Spec: `docs/to-implement/event-promotion.md`
+2. **Admin improvements Phases 1–2 verification** — code complete and pushed, needs a live-DB `npm run test:admin` run plus a manual rate-limit smoke check. See `docs/todo/admin-improvements/`.
 
-### Done this session (June 29–30)
+### Done this session (July 1)
+- Admin improvements Phase 1 — CSV/XLSX exports for `/admin/{users,audit,analytics}`
+- Admin improvements Phase 2 — closed rate-limiting gaps on ~90 admin mutation routes
+- Admin improvements Phase 3 — extended security route matrix; deleted dead `onsite-operations.js` (admin, unmounted)
+- Admin improvements Phase 4 — future-considerations backlog doc (permission tiers, email templates, impersonation)
+
+### Done previous session (June 29–30)
 - Homepage CSS polish — 30/40, 0 P0/P1 remaining
 - Blog Run Hub UX — all 3 phases complete (`/blog` as Run Hub, intent tiles, audience chips, action panel)
 - Structured data / JSON-LD — Organization, BlogPosting, BreadcrumbList, FAQPage all done

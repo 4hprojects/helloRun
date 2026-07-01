@@ -3,9 +3,19 @@
 **Written:** June 22, 2026
 **Based on:** Full codebase audit, user journey review, docs review, and security analysis
 
-**Latest reconciliation:** June 30, 2026
+**Latest reconciliation:** July 1, 2026
 
 ---
+
+## Session Completed (July 1, 2026)
+
+| Feature | Completed | Notes |
+|---------|-----------|-------|
+| Admin improvements Phase 1: CSV/XLSX exports | Jul 1 | New `src/utils/tabular-export.js` (csvEscape/buildCsvContent/buildXlsxBuffer/buildMultiSheetXlsxBuffer, wraps ExcelJS); 6 new GET routes behind `requireAdmin` + new `adminExportLimiter` (10/10min, session-keyed): `/admin/{users,audit,analytics}/export.{csv,xlsx}`; `listCriticalAuditEventsForExport()` reuses existing filter predicates, capped at 10k rows; analytics export uses a generic recursive object flattener (survives future `getPlatformAnalytics()` schema changes); 3 new audit action strings added to `AUDIT_ACTION_GROUPS.exports`; fixed a latent missing-`logger`-import bug in `admin-audit.controller.js` hit while adding handlers; `tests/admin-export-source.unit.test.js` (5 tests, DB-free) |
+| Admin improvements Phase 2: mutation rate limiting | Jul 1 | ~90 previously-unprotected mutating `/admin/*` routes (incl. both user-delete entry points and `POST /promote`, a mass-email endpoint with zero prior protection) now covered by 3 new limiters (`adminContentSettingsLimiter`, `adminTestEmailLimiter`, `adminPromotionLimiter`) plus existing ones reused where appropriate; removed a redundant inline `requireCsrfProtection` call on `/promote`; fixed `tests/organizer-route-source.unit.test.js`, stale since the DEBT-2 route split; new `tests/admin-route-source.unit.test.js` (7 tests) asserts zero mutating admin routes lack a limiter |
+| Admin improvements Phase 3: security matrix + dead code cleanup | Jul 1 | `docs/architecture/security_route_matrix.md` gained an `/admin/*` section (every row cross-checked against live route source before commit); documented (not fixed) the `requireAdmin` vs `requireRole('admin')` guard inconsistency; deleted `src/routes/admin/onsite-operations.js` + its sole dependency `src/services/onsite-operations-bulk.service.js` after confirming via full-tree grep neither was mounted in `server.js` or referenced anywhere (6 endpoints + no-op `verifyAdminAccess` middleware were unreachable dead code) |
+| Admin improvements Phase 4: future considerations backlog | Jul 1 | `docs/done/admin-improvements/future-considerations.md` — backlog-level capture (problem statement + rough shape only) of role-based admin permission tiers, admin-editable email template UI, and admin "login as user" impersonation; no code changes |
+| Admin improvements plan docs | Jul 1 | `docs/todo/admin-improvements/` (00–02) + `docs/done/admin-improvements/` (03, 04, future-considerations.md) — phased markdown plan with objectives/tasks/acceptance criteria/agent prompts per phase, following the `docs/adsense-readiness/phases/` precedent; Phases 1–2 remain in `todo/` pending live-DB integration test verification and a manual rate-limit smoke check (no MongoDB/Postgres/live server available in the implementing environment) |
 
 ## Session Completed (June 30, 2026)
 
