@@ -30,4 +30,57 @@ Notes:
 - Turnstile is enabled only when both `TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` are configured.
 - Signup limits are 5 attempts per IP per hour and 3 attempts per email + IP per hour.
 - Login keeps the existing 10-attempt email + IP rate limit and adds an adaptive Turnstile threshold at 3 invalid credential attempts. The threshold uses Redis when available and an in-memory fallback otherwise.
-- Organizer payment and run-proof review actions share the review-action limiter. Event status and media removal are CSRF-protected but should still receive dedicated mutation rate limits in the next hardening pass.
+- Organizer payment and run-proof review actions share the review-action limiter. Event status and media removal are CSRF-protected but still lack dedicated mutation rate limits — that hardening pass has not been done yet for organiser routes.
+
+## Admin Routes (`/admin/*`)
+
+Added 2026-07-01 as part of the admin-panel improvements initiative
+(`docs/todo/admin-improvements/`, Phase 3). All `/admin/*` mutating routes now carry a
+rate limiter (Phase 2); this section makes that coverage auditable. Only the
+destructive/high-risk routes are listed — see `src/routes/admin.routes.js` for the full
+route table.
+
+| Route | Method | Auth | CSRF | Rate Limit | Bot Protection |
+| --- | --- | --- | --- | --- | --- |
+| `/admin/users/delete` | POST | admin | yes | adminAccountActionLimiter | n/a |
+| `/admin/users/:id/edit` | POST | admin | yes | adminAccountActionLimiter | n/a |
+| `/admin/users/:id/delete` | POST | admin | yes | adminAccountActionLimiter | n/a |
+| `/admin/events/bulk-delete` | POST | admin | yes | adminModerationLimiter | n/a |
+| `/admin/events/:id/edit` | POST | admin | yes | adminModerationLimiter | n/a |
+| `/admin/events/:id/delete` | POST | admin | yes | adminModerationLimiter | n/a |
+| `/admin/applications/:id/approve` | POST | admin | yes | adminModerationLimiter | n/a |
+| `/admin/applications/:id/reject` | POST | admin | yes | adminModerationLimiter | n/a |
+| `/admin/promote` | POST | admin | yes | adminPromotionLimiter | n/a |
+| `/admin/communications/test-email` | POST | admin | yes | adminTestEmailLimiter | n/a |
+| `/admin/privacy-policy/:id/publish` | POST | admin | yes | adminContentSettingsLimiter | n/a |
+| `/admin/terms-and-conditions/:id/publish` | POST | admin | yes | adminContentSettingsLimiter | n/a |
+| `/admin/cookie-policy/:id/publish` | POST | admin | yes | adminContentSettingsLimiter | n/a |
+| `/admin/users/export.csv` | GET | admin | n/a | adminExportLimiter | n/a |
+| `/admin/users/export.xlsx` | GET | admin | n/a | adminExportLimiter | n/a |
+| `/admin/audit/export.csv` | GET | admin | n/a | adminExportLimiter | n/a |
+| `/admin/audit/export.xlsx` | GET | admin | n/a | adminExportLimiter | n/a |
+| `/admin/analytics/export.csv` | GET | admin | n/a | adminExportLimiter | n/a |
+| `/admin/analytics/export.xlsx` | GET | admin | n/a | adminExportLimiter | n/a |
+
+Admin notes:
+- CSRF: `admin.routes.js` applies `requireCsrfProtection` at the router level to every
+  `POST`/`PUT`/`PATCH`/`DELETE` request, so all mutating admin routes are covered even
+  though the table doesn't repeat an inline call per route.
+- As of Phase 2 (2026-07-01), every mutating route in `admin.routes.js` carries one of:
+  `adminAccountActionLimiter`, `adminModerationLimiter`, `adminContentSettingsLimiter`,
+  `adminTestEmailLimiter`, `adminPromotionLimiter`, or `adminExportLimiter` — the admin
+  mutation rate-limiting gap referenced in earlier planning docs is now closed.
+- **Auth guard inconsistency (documented, not fixed):** the codebase uses two different
+  admin-role guards. `admin.routes.js` uses `requireAdmin`
+  (`src/middleware/auth.middleware.js`), which re-queries MongoDB for the user's current
+  role on every request. Organiser routes (and the now-deleted
+  `src/routes/admin/onsite-operations.js`) used `requireRole('admin')`
+  (`src/middleware/role.middleware.js`), which trusts `req.session.role` without a fresh
+  DB read. This is a pre-existing architectural inconsistency, not addressed by this
+  matrix update — see `docs/todo/admin-improvements/04-phase-future-considerations-backlog.md`
+  for the related role-tiering backlog item.
+- `src/routes/admin/onsite-operations.js` was deleted 2026-07-01: it was never mounted in
+  `src/server.js` (confirmed via full-tree grep), so its 6 endpoints and no-op
+  `verifyAdminAccess` middleware were unreachable dead code. Its sole service dependency,
+  `src/services/onsite-operations-bulk.service.js`, was deleted alongside it after
+  confirming no other file referenced it.

@@ -1,6 +1,15 @@
 # Phase 3 — Security Route Matrix Extension + Dead Middleware Cleanup
 
-Status: not started.
+Status: implemented 2026-07-01. `src/routes/admin/onsite-operations.js` and its sole
+dependency `src/services/onsite-operations-bulk.service.js` were deleted after
+re-confirming via full-tree grep that neither `src/server.js` nor any view/test
+referenced them. `docs/architecture/security_route_matrix.md` now has an `/admin/*`
+section covering every route touched by Phase 1/2, cross-checked row-by-row against the
+live `admin.routes.js` source. The `requireAdmin` vs `requireRole('admin')`
+inconsistency is documented in the matrix, not fixed (out of scope). Verified via
+`node --check`, a full-tree grep for dangling references (none found), and a
+`require('./src/server.js')` smoke check (loads without throwing). Move this file to
+`docs/done/admin-improvements/`.
 
 ## Objective
 

@@ -42,9 +42,12 @@ code. Decision: delete the file (Phase 3, Task 1).
 
 ## Files
 
-- `01-phase-admin-data-exports.md`
-- `02-phase-admin-mutation-rate-limiting.md`
-- `03-phase-security-matrix-and-dead-middleware-cleanup.md`
+- `01-phase-admin-data-exports.md` — implemented 2026-07-01, pending live-DB integration
+  test verification before moving to `docs/done/`
+- `02-phase-admin-mutation-rate-limiting.md` — implemented 2026-07-01, pending a manual
+  429 smoke-check against a live server before moving to `docs/done/`
+- `03-phase-security-matrix-and-dead-middleware-cleanup.md` — done; moved to
+  `../../done/admin-improvements/03-phase-security-matrix-and-dead-middleware-cleanup.md`
 - `04-phase-future-considerations-backlog.md`
 
 ## How To Use With Codex Or Claude
