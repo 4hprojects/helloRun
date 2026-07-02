@@ -8,7 +8,9 @@ const EventPromotion = require('../models/EventPromotion');
 const CertificateTemplate = require('../models/CertificateTemplate');
 const User = require('../models/User');
 const { getPostgresClient } = require('../db/postgres');
-const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
+// Required as a namespace (not destructured) so tests can monkey-patch
+// criticalAuditService.recordCriticalAuditEventInBackground without a real Postgres client.
+const criticalAuditService = require('./critical-audit.service');
 
 // Postgres tables that reference events_core (directly or via event_core_id/event_id),
 // in FK-safe delete order. Mirrors the ordering approach in
@@ -70,9 +72,9 @@ async function deletePostgresRows(tx, table, column, ids) {
 // transaction, before any MongoDB deletion happens — if this fails, nothing is deleted
 // anywhere, so we never end up with Postgres rows referencing an Event that Mongo has
 // already forgotten.
-async function purgePostgresShadowData(mongoEventIds) {
+async function purgePostgresShadowData(mongoEventIds, options = {}) {
   if (!mongoEventIds.length) return;
-  const sql = getPostgresClient();
+  const sql = options.sql || getPostgresClient();
 
   await sql.begin(async (tx) => {
     let eventCoreIds = [];
@@ -136,7 +138,7 @@ async function getTestDataCounts() {
 
 // Permanently deletes every Event flagged isTestData plus everything that hangs off it,
 // in both MongoDB and the Postgres/Supabase shadow tables. Irreversible.
-async function purgeTestData({ actorUserId, ipAddress, userAgent } = {}) {
+async function purgeTestData({ actorUserId, ipAddress, userAgent, sql } = {}) {
   const eventIds = await getTestDataEventIds();
   const emptySummary = {
     eventsDeleted: 0,
@@ -151,7 +153,7 @@ async function purgeTestData({ actorUserId, ipAddress, userAgent } = {}) {
   const mongoEventIds = eventIds.map((id) => String(id));
 
   // Postgres first and fully transactional: if it fails, abort before any Mongo writes.
-  await purgePostgresShadowData(mongoEventIds);
+  await purgePostgresShadowData(mongoEventIds, { sql });
 
   const [registrationsResult, submissionsResult, accumulatedResult, promotionsResult, certTemplatesResult] = await Promise.all([
     Registration.deleteMany({ eventId: { $in: eventIds } }),
@@ -175,7 +177,7 @@ async function purgeTestData({ actorUserId, ipAddress, userAgent } = {}) {
     certificateTemplatesDeleted: certTemplatesResult.deletedCount || 0
   };
 
-  recordCriticalAuditEventInBackground({
+  criticalAuditService.recordCriticalAuditEventInBackground({
     actorMongoUserId: actorUserId,
     action: 'admin.test_data.purged',
     targetType: 'test_data_purge',
@@ -192,5 +194,6 @@ async function purgeTestData({ actorUserId, ipAddress, userAgent } = {}) {
 module.exports = {
   getTestDataCounts,
   purgeTestData,
+  purgePostgresShadowData,
   POSTGRES_EVENT_TABLES
 };
