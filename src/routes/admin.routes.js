@@ -49,6 +49,12 @@ const adminPromotionLimiter = createRateLimiter({
   message: 'Too many promotion campaigns sent. Please wait an hour and try again.',
   keyFn: (req) => `admin-promote|${String(req.session?.userId || 'anon')}`
 });
+const adminTestDataPurgeLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  message: 'Too many test-data purge attempts. Please wait an hour and try again.',
+  keyFn: (req) => `admin-test-data-purge|${String(req.session?.userId || 'anon')}`
+});
 
 router.use((req, res, next) => {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(req.method || '').toUpperCase())) {
@@ -81,6 +87,7 @@ router.post('/users/:id/account-status', requireAdmin, adminAccountActionLimiter
 // Event management
 router.get('/events', requireAdmin, adminController.listEvents);
 router.post('/events/bulk-delete', requireAdmin, requireFullAdmin, adminModerationLimiter, adminController.bulkDeleteEvents);
+router.post('/events/test-data/purge', requireAdmin, requireFullAdmin, adminTestDataPurgeLimiter, adminController.purgeTestData);
 router.get('/badges', requireAdmin, adminController.listBadges);
 router.post('/badges/recalculate', requireAdmin, adminModerationLimiter, adminController.recalculateBadges);
 router.post('/badge-definitions/:badgeDefinitionId/status', requireAdmin, adminModerationLimiter, adminController.updateBadgeDefinitionStatus);

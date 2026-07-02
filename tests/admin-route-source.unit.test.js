@@ -81,7 +81,8 @@ test('every mutating admin route has a rate limiter', () => {
     'adminContentSettingsLimiter',
     'adminTestEmailLimiter',
     'adminPromotionLimiter',
-    'adminExportLimiter'
+    'adminExportLimiter',
+    'adminTestDataPurgeLimiter'
   ];
 
   const unprotected = mutationLines.filter((line) => !knownLimiters.some((limiter) => line.includes(limiter)));

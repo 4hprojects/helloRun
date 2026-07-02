@@ -46,6 +46,7 @@ route table.
 | `/admin/users/:id/edit` | POST | admin | any | yes | adminAccountActionLimiter | n/a |
 | `/admin/users/:id/delete` | POST | admin | **full** | yes | adminAccountActionLimiter | n/a |
 | `/admin/events/bulk-delete` | POST | admin | **full** | yes | adminModerationLimiter | n/a |
+| `/admin/events/test-data/purge` | POST | admin | **full** | yes | adminTestDataPurgeLimiter | n/a |
 | `/admin/events/:id/edit` | POST | admin | any | yes | adminModerationLimiter | n/a |
 | `/admin/events/:id/delete` | POST | admin | **full** | yes | adminModerationLimiter | n/a |
 | `/admin/applications/:id/approve` | POST | admin | any | yes | adminModerationLimiter | n/a |
@@ -88,6 +89,15 @@ Admin notes:
   or tier (`src/controllers/admin/users.controller.js#updateUser`); nobody can change
   their own tier via the edit form. This was the "role-based admin permission tiers"
   future-consideration item, promoted from backlog to implemented.
+- **Test-data purge (added 2026-07-02):** `POST /admin/events/test-data/purge`
+  permanently deletes every `Event` flagged `isTestData: true` plus everything linked to
+  it (Registrations, Submissions, AccumulatedActivitySubmissions, EventPromotions,
+  CertificateTemplates in MongoDB; the matching shadow rows in Postgres/Supabase). Unlike
+  every other destructive route in this table, it is a hard delete, not a soft-delete —
+  `verifyAdminDeletionPassword` plus a required typed `PURGE` confirmation gate it in
+  addition to the usual reason/password checks, and it has its own strict
+  `adminTestDataPurgeLimiter` (5/hour, per-admin-session-keyed) rather than sharing
+  `adminModerationLimiter`. See `src/services/test-data-cleanup.service.js`.
 - **Auth guard inconsistency (documented, not fixed):** the codebase uses two different
   admin-role guards. `admin.routes.js` uses `requireAdmin`
   (`src/middleware/auth.middleware.js`), which re-queries MongoDB for the user's current

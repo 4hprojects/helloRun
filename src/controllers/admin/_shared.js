@@ -21,6 +21,7 @@ const {
 const homepageCarouselSettingService = require('../../services/homepage-carousel-setting.service');
 const adSettingService = require('../../services/ad-setting.service');
 const { recordCriticalAuditEventInBackground } = require('../../services/critical-audit.service');
+const { getTestDataCounts, purgeTestData } = require('../../services/test-data-cleanup.service');
 const { reviewSubmission } = require('../../services/submission.service');
 const { reviewAccumulatedActivitySubmission } = require('../../services/accumulated-activity.service');
 const { getPostgresClient } = require('../../db/postgres');
@@ -310,6 +311,7 @@ function normalizeAdminEventFilters(query = {}) {
   const status = ADMIN_EVENT_STATUSES.includes(statusRaw) ? statusRaw : '';
   const eventType = ['virtual', 'onsite', 'hybrid'].includes(String(query.eventType || '').trim()) ? String(query.eventType).trim() : '';
   const deleted = statusRaw === 'deleted' || String(query.deleted || '').trim() === '1';
+  const testData = String(query.testData || '').trim() === '1';
   const q = String(query.q || '').trim().slice(0, 100);
   const needsReview = String(query.needsReview || '').trim() === '1';
   const page = Math.max(1, Number.parseInt(query.page, 10) || 1);
@@ -318,11 +320,12 @@ function normalizeAdminEventFilters(query = {}) {
   const perPage = perPageRaw === 'all'
     ? 'all'
     : ([25, 50, 100].includes(perPageParsed) ? perPageParsed : 25);
-  return { status, eventType, deleted, q, needsReview, page, perPage };
+  return { status, eventType, deleted, testData, q, needsReview, page, perPage };
 }
 
 function buildAdminEventQuery(filters) {
   const query = filters.deleted ? { isDeleted: true } : { isDeleted: { $ne: true } };
+  if (filters.testData) query.isTestData = true;
   if (filters.needsReview) query.status = 'pending_review';
   else if (filters.status) query.status = filters.status;
   else if (!filters.deleted) query.status = { $ne: 'archived' };
@@ -1345,6 +1348,7 @@ module.exports = {
   renderServerError, buildAdminRedirect, appendAdminPageMessage, buildCommunicationLogHref,
   buildCommunicationRetryHref, buildCommunicationRetryActionHref, buildCommunicationFailureDetailHref,
   getAdminPageMessage, acceptsJson, normalizePositiveInt, verifyAdminDeletionPassword,
+  getTestDataCounts, purgeTestData,
   normalizeAdminEventFilters, buildAdminEventQuery, normalizeAdminUserFilters, buildAdminUserQuery,
   getAdminUserSort, buildAdminUserListPath, buildAdminUsersRedirect, formatUserDisplayName,
   getCountMap, maskDateForAdmin, formatAdminShortDate, formatAdminDateTime, formatAdminEnumLabel,

@@ -44,7 +44,33 @@
           <span class="quick-link-title">Deleted</span>
           <span class="quick-link-meta">Soft-deleted events</span>
         </a>
+        <a class="quick-link-card" href="/admin/events?testData=1">
+          <span class="quick-link-title">Test Data</span>
+          <span class="quick-link-meta"><%= testDataCount %> flagged event<%= testDataCount === 1 ? '' : 's' %></span>
+        </a>
       </div>
+
+      <% if (filters.testData && testDataCascadeCounts) { %>
+        <div class="admin-alert admin-alert-warning">
+          <strong><%= testDataCascadeCounts.events %></strong> test-data event<%= testDataCascadeCounts.events === 1 ? '' : 's' %> flagged for cleanup, linked to
+          <strong><%= testDataCascadeCounts.registrations %></strong> registration<%= testDataCascadeCounts.registrations === 1 ? '' : 's' %>,
+          <strong><%= testDataCascadeCounts.submissions %></strong> submission<%= testDataCascadeCounts.submissions === 1 ? '' : 's' %>,
+          <strong><%= testDataCascadeCounts.accumulatedSubmissions %></strong> accumulated-activity submission<%= testDataCascadeCounts.accumulatedSubmissions === 1 ? '' : 's' %>,
+          <strong><%= testDataCascadeCounts.promotions %></strong> promotion campaign<%= testDataCascadeCounts.promotions === 1 ? '' : 's' %>, and
+          <strong><%= testDataCascadeCounts.certificateTemplates %></strong> certificate template<%= testDataCascadeCounts.certificateTemplates === 1 ? '' : 's' %>.
+          Purging also removes the matching Postgres/Supabase shadow records.
+          <% if (viewerIsFullAdmin && testDataCascadeCounts.events > 0) { %>
+            <div style="margin-top: 0.75rem;">
+              <button type="button" class="btn btn-danger" id="adminEventsPurgeTestDataBtn">
+                <i data-lucide="trash-2" aria-hidden="true"></i>
+                Permanently Purge All Test Data
+              </button>
+            </div>
+          <% } else if (!viewerIsFullAdmin) { %>
+            <p class="metric-helper" style="margin-top: 0.5rem;">Only full-tier admins can permanently purge test data.</p>
+          <% } %>
+        </div>
+      <% } %>
 
       <form method="GET" action="/admin/events" class="admin-filters event-admin-filters">
         <div class="filter-field filter-grow">
@@ -242,12 +268,85 @@
     </div>
   </div>
 
+  <div class="admin-delete-confirm-backdrop" id="adminEventsPurgeTestDataModal" hidden aria-hidden="true">
+    <div class="admin-delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="adminEventsPurgeTestDataTitle" tabindex="-1">
+      <div class="admin-delete-confirm-icon-wrap">
+        <i data-lucide="triangle-alert" aria-hidden="true"></i>
+      </div>
+      <h3 id="adminEventsPurgeTestDataTitle">Permanently Purge Test Data</h3>
+      <p id="adminEventsPurgeTestDataDesc" class="admin-delete-confirm-desc"></p>
+      <div class="admin-delete-confirm-pw-group">
+        <label for="adminEventsPurgeTestDataReason">Reason for purging <span aria-hidden="true">(min 8 characters)</span></label>
+        <textarea
+          id="adminEventsPurgeTestDataReason"
+          rows="3"
+          placeholder="Enter a reason..."
+          class="admin-delete-confirm-pw-input"
+          style="resize:vertical;"
+        ></textarea>
+        <p class="admin-delete-confirm-pw-error" id="adminEventsPurgeTestDataReasonError" hidden></p>
+      </div>
+      <div class="admin-delete-confirm-pw-group">
+        <label for="adminEventsPurgeTestDataConfirmText">Type <strong>PURGE</strong> to confirm this is permanent and cannot be undone</label>
+        <input
+          type="text"
+          id="adminEventsPurgeTestDataConfirmText"
+          autocomplete="off"
+          placeholder="PURGE"
+          class="admin-delete-confirm-pw-input"
+        >
+        <p class="admin-delete-confirm-pw-error" id="adminEventsPurgeTestDataConfirmError" hidden></p>
+      </div>
+      <div class="admin-delete-confirm-pw-group">
+        <label for="adminEventsPurgeTestDataPassword">Enter your password to confirm</label>
+        <div class="admin-delete-confirm-pw-wrap">
+          <input
+            type="password"
+            id="adminEventsPurgeTestDataPassword"
+            autocomplete="current-password"
+            placeholder="Your password"
+            class="admin-delete-confirm-pw-input"
+          >
+          <button type="button" class="admin-delete-confirm-pw-toggle" id="adminEventsPurgeTestDataPwToggle" aria-label="Show password">
+            <i data-lucide="eye" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p class="admin-delete-confirm-pw-error" id="adminEventsPurgeTestDataPwError" hidden></p>
+      </div>
+      <div class="admin-delete-confirm-progress" id="adminEventsPurgeTestDataProgress" hidden aria-live="polite">
+        <div class="admin-delete-confirm-progress-label-row">
+          <span class="admin-delete-confirm-progress-label">Processing purge</span>
+          <span class="admin-delete-confirm-progress-status" id="adminEventsPurgeTestDataProgressStatus">Working...</span>
+        </div>
+        <p class="admin-delete-confirm-progress-reason" id="adminEventsPurgeTestDataProgressReason">
+          Preparing your request.
+        </p>
+        <div class="admin-delete-confirm-progress-track" aria-hidden="true">
+          <div class="admin-delete-confirm-progress-bar"></div>
+        </div>
+        <ol class="admin-delete-confirm-progress-steps" id="adminEventsPurgeTestDataProgressSteps">
+          <li data-progress-step="prepare">Preparing request</li>
+          <li data-progress-step="verify">Verifying password and security token</li>
+          <li data-progress-step="delete">Deleting from MongoDB and Postgres, writing audit log</li>
+        </ol>
+      </div>
+      <div class="admin-delete-confirm-actions">
+        <button type="button" class="btn btn-secondary" id="adminEventsPurgeTestDataCancelBtn">Cancel</button>
+        <button type="button" class="btn btn-danger" id="adminEventsPurgeTestDataOkBtn">
+          <i data-lucide="trash-2" aria-hidden="true"></i>
+          Purge Permanently
+        </button>
+      </div>
+    </div>
+  </div>
+
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
   <script>if (window.lucide) lucide.createIcons();</script>
   <script>
     window.helloRunAdminEventsList = {
-      csrfToken: <%- JSON.stringify(locals.csrfToken || '') %>
+      csrfToken: <%- JSON.stringify(locals.csrfToken || '') %>,
+      testDataCascadeCounts: <%- JSON.stringify(testDataCascadeCounts || null) %>
     };
   </script>
   <script src="/js/admin-events-list.js"></script>

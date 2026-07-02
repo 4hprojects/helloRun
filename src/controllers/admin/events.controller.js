@@ -9,7 +9,8 @@ const {
   getAdminEventRedirect, buildAdminRedirect, buildEventDetailsHtml,
   getCreateEventFormDataFromEvent, validateCreateEventForm, applyEventFormData,
   countries, DEFAULT_WAIVER_TEMPLATE, formatAdminShortDate, formatAdminDateTime,
-  getRequestIpAddress, getRequestUserAgent
+  getRequestIpAddress, getRequestUserAgent,
+  verifyAdminDeletionPassword, getTestDataCounts, purgeTestData, isFullAdminTier
 } = require('./_shared');
 const {
   buildCsvContent,
@@ -52,14 +53,17 @@ exports.listEvents = async (req, res) => {
       eventQuery.skip(skip).limit(limit);
     }
 
-    const [totalEvents, events, statusCounts] = await Promise.all([
+    const [totalEvents, events, statusCounts, testDataCount] = await Promise.all([
       Event.countDocuments(query),
       eventQuery.lean(),
       Event.aggregate([
         { $match: { isDeleted: { $ne: true } } },
         { $group: { _id: '$status', count: { $sum: 1 } } }
-      ])
+      ]),
+      Event.countDocuments({ isTestData: true })
     ]);
+    const testDataCascadeCounts = filters.testData ? await getTestDataCounts() : null;
+    const viewer = await User.findById(req.session.userId).select('adminTier').lean();
 
     const eventIds = events.map((event) => event._id);
     const counts = await getEventCountsById(eventIds);
@@ -91,7 +95,10 @@ exports.listEvents = async (req, res) => {
         draft: statusCountMap.get('draft') || 0,
         published: statusCountMap.get('published') || 0,
         archived: statusCountMap.get('archived') || 0
-      }
+      },
+      testDataCount,
+      testDataCascadeCounts,
+      viewerIsFullAdmin: isFullAdminTier(viewer)
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading admin events.');
@@ -457,6 +464,37 @@ exports.bulkDeleteEvents = async (req, res) => {
   } catch (error) {
     logger.error('bulkDeleteEvents error:', error);
     return res.status(500).json({ success: false, message: 'Failed to bulk-delete events.' });
+  }
+};
+
+exports.purgeTestData = async (req, res) => {
+  try {
+    const passwordResult = await verifyAdminDeletionPassword(req);
+    if (!passwordResult.ok) return res.status(passwordResult.status).json({ success: false, message: passwordResult.message });
+    const reason = String(req.body?.reason || '').trim();
+    if (reason.length < 8) {
+      return res.status(400).json({ success: false, message: 'Purge reason must be at least 8 characters.' });
+    }
+    const confirmation = String(req.body?.confirmation || '').trim().toUpperCase();
+    if (confirmation !== 'PURGE') {
+      return res.status(400).json({ success: false, message: 'Type PURGE to confirm this action.' });
+    }
+    const summary = await purgeTestData({
+      actorUserId: req.session.userId,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req)
+    });
+    if (!summary.eventsDeleted) {
+      return res.json({ success: true, message: 'No test-data events found to purge.', ...summary });
+    }
+    return res.json({
+      success: true,
+      message: `Permanently deleted ${summary.eventsDeleted} test-data event${summary.eventsDeleted === 1 ? '' : 's'} and everything linked to them.`,
+      ...summary
+    });
+  } catch (error) {
+    logger.error('purgeTestData error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to purge test data.' });
   }
 };
 
