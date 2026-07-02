@@ -31,13 +31,23 @@ npm run mark-test-events   # Mark existing test events as isTestData:true (sitem
 ## Current Priority (July 2, 2026)
 
 1. **Deploy to production + AdSense** — ops only, no code; all code is done (see STATUS.md In Progress for steps)
-2. **Live-DB test verification backlog** — three completed features are source-verified but not yet run against a live MongoDB + PostgreSQL: admin improvements Phases 1–2, admin permission tiers, and the new run-proof submission smarts (implausible-single-activity-distance check + OCR "not_detected" auto-approval). Run `npm run test:admin` and `node --test tests/submission.service.integration.test.js` plus the manual smoke checks (rate limits, `support`-tier admin click-through) before treating any of the three as fully verified. See `docs/todo/admin-improvements/` and `docs/to-implement/admin-permission-tiers.md`.
+2. **Live-DB test verification backlog** — three completed features are source-verified but not yet run against a live MongoDB + PostgreSQL: admin improvements Phases 1–2, admin permission tiers, and the run-proof submission smarts (implausible-single-activity-distance check + OCR "not_detected" auto-approval). Run `npm run test:admin` and `node --test tests/submission.service.integration.test.js` plus the manual smoke checks (rate limits, `support`-tier admin click-through) before treating any of the three as fully verified. See `docs/todo/admin-improvements/` and `docs/to-implement/admin-permission-tiers.md`.
+3. **2 leftover placeholder Users** (`purge.runner.*@example.com`, `purge.organizer.*@example.com`) from the test-data-purge verification incident below — harmless but still in the live database, not yet removed.
+
+**Important operational fact (confirmed July 2, 2026): this project has no staging environment.** A single `.env` is used for everything and its `APP_URL` matches production. Live integration tests that write real documents have nowhere safe to run — prefer DB-free unit tests with mocked Mongoose/Postgres clients (pattern: `tests/test-data-cleanup-service.unit.test.js`) over live-DB integration tests going forward.
 
 ### Done this session (July 1–2)
 - Run-proof submission smarts — accumulated-challenge target defaults to event calendar year, category-aware OCR mismatch warnings, implausible-single-activity-distance check; runner dashboard "Missed Submissions" section + recency-sorted status view
 - Submission auto-approval audit script (`src/scripts/audit-submission-auto-approval.js`) + admin correction tool (full-tier-admin-only, gated behind `requireFullAdmin`)
 - OCR auto-approval fix — "name not detected" now auto-approves like "matched" (audit showed the name-check caught nothing the confidence/suspicious-activity checks didn't already catch)
 - Fixed a test fixture that was silently exercising the wrong accumulated-distance target, masking whether the new distance-plausibility check actually worked
+- Admin test-data purge — `/admin/events?testData=1` full-tier-admin-only permanent-delete action (`src/services/test-data-cleanup.service.js`), cascades across MongoDB and 16 Postgres shadow tables; run for real against the live database, purged 336 `isTestData` events plus everything linked to them
+- Verification incident + correction — a live integration test connected to production without a target check and left orphaned fixtures behind (cleaned up by the real purge run above); replaced with a DB-free mocked unit test after adding `sql`/audit dependency-injection to the service
+
+### Done previous session (July 1)
+- Admin improvements Phase 1 — CSV/XLSX exports for `/admin/{users,audit,analytics}`
+- Admin improvements Phase 2 — closed rate-limiting gaps on ~90 admin mutation routes
+- Admin improvements Phase 3 — extended security route matrix; deleted dead `onsite-operations.js` (admin, unmounted)
 
 ### Done previous session (July 1)
 - Admin improvements Phase 1 — CSV/XLSX exports for `/admin/{users,audit,analytics}`
@@ -72,6 +82,8 @@ node --test tests/submission.service.integration.test.js
 ```
 
 Integration tests require live MongoDB + PostgreSQL. Server-spawning smoke tests may leave open handles on teardown (known, low priority).
+
+**No staging environment exists.** A single `.env` is used everywhere and its `APP_URL` matches production — running an `*.integration.test.js` file connects to the real database, not a sandbox. For new tests that touch Mongoose models or the Postgres client, prefer a DB-free `*.unit.test.js` with mocked statics/client (see `tests/test-data-cleanup-service.unit.test.js`) unless a live run is a deliberate, supervised, one-off action.
 
 ## Docs Conventions
 
