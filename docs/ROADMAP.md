@@ -3,9 +3,18 @@
 **Written:** June 22, 2026
 **Based on:** Full codebase audit, user journey review, docs review, and security analysis
 
-**Latest reconciliation:** July 1, 2026
+**Latest reconciliation:** July 2, 2026
 
 ---
+
+## Session Completed (July 1–2, 2026)
+
+| Feature | Completed | Notes |
+|---------|-----------|-------|
+| Run-proof submission smarts + dashboard status view | Jul 1 | Accumulated-distance challenge target now defaults to the event's calendar year when the organiser leaves it blank (client pre-fill in `create-event.ejs`/`edit-event.ejs` + server fallback in `event-form.service.js`); added category-aware OCR mismatch warnings and an implausible-single-activity-distance check for accumulated challenges (`accumulated-activity.service.js`, `submission.service.js`); runner dashboard gained a "Missed Submissions" section for events whose window closed with no proof, using the previously-unused `isSubmissionWindowOpen()`; replaced the raw "Result Submissions" list with a recency-sorted per-event status view reusing the existing Event Progress card pipeline (`runner.controller.js`, `runner-data.service.js`, `dashboard.ejs`) |
+| Submission auto-approval audit script + admin correction tool | Jul 1 | New read-only CLI `src/scripts/audit-submission-auto-approval.js` (534 lines) reports why Submission/AccumulatedActivitySubmission docs do or don't auto-approve today, grouped by review-reason, OCR confidence, name-match status, and detected source — first run written to `logs/submission-auto-approval-audit-2026-07-01T15-00-43-575Z.json` and directly motivated the OCR name-match fix below; shared review panel (`submission-review.ejs`) now surfaces `detectedSource`, `validation.method`, `submissionMode`, `autoApprovalEligible`, and raw `reviewReason`; new full-tier-admin-only correction action lets an admin fix run data or override the review outcome without changing status, gated behind existing `requireFullAdmin`/`isFullAdminTier` (invisible to organisers and support-tier admins) |
+| OCR auto-approval fix: treat "no name detected" like "matched" | Jul 2 | The audit script showed `ocr_name_not_matched` blocking 28% of accumulated-activity submissions with a 100% "approved anyway" manual-override rate, and every one of those was already independently caught by the confidence threshold or suspicious-activity flag — the name-check wasn't load-bearing. `submission.service.js` now auto-approves OCR name status `not_detected` the same as `matched`, while still blocking `mismatched` (a different name actually found) |
+| Test fixture fix: accumulated-challenge distance red flag | Jul 2 | The "auto-approve clean OCR and issue certificate only on completion" integration test set the event's accumulated target to 10km but left the registration's generic `5K` `raceDistance` label unaligned; since `resolveAccumulatedTargetDistanceKm()` prefers a registration's own category over the event target (real, documented per-registrant-tier behavior), the test resolved a target of 5km and a legitimate 6km activity tripped the implausible-single-activity-distance check added above. Aligned the registration's `raceDistance` with the intended target, matching the sibling accumulated snapshot test's existing pattern |
 
 ## Session Completed (July 1, 2026)
 

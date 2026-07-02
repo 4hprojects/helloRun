@@ -1,6 +1,6 @@
 # HelloRun — Current Status
 
-_Last updated: July 1, 2026_
+_Last updated: July 2, 2026_
 
 ---
 
@@ -103,6 +103,9 @@ _Last updated: July 1, 2026_
 | Admin improvements Phase 3 — extended `security_route_matrix.md` with `/admin/*` section; deleted dead unmounted `src/routes/admin/onsite-operations.js` + `onsite-operations-bulk.service.js` | July 1, 2026 | `node --check`, full-tree grep, server require smoke check |
 | Admin improvements Phase 4 — future-considerations backlog doc (permission tiers, email template editor, impersonation), docs only | July 1, 2026 | — |
 | Admin permission tiers — `User.adminTier` (`full`/`support`, default `full`); new `requireFullAdmin` middleware gates user/event deletion, policy publishing, communications settings, site config (homepage carousel/ads), mass-email promotion, and all data exports; only a full admin can grant/change admin role or tier, and self-tier-changes are always blocked; UI tier selector + badges in admin user views; promoted from the Phase 4 future-considerations backlog | July 1, 2026 | `tests/admin-permission-tier-source.unit.test.js` 9/9; full `npm run test:admin` unverified (no live DB) |
+| Run-proof submission smarts — accumulated-challenge target defaults to event calendar year when blank, category-aware OCR mismatch warnings, implausible-single-activity-distance check; runner dashboard "Missed Submissions" section + recency-sorted per-event status view replacing raw submission list | July 1, 2026 | `tests/submission.service.integration.test.js` (updated) |
+| Submission auto-approval audit script + admin correction tool — read-only CLI reporting auto-approval blockers by reason/confidence/name-match/source; review panel surfaces detection/validation metadata; full-tier-admin-only correction action to fix run data or override review outcome | July 1, 2026 | manual CLI run against prod-shaped data (`logs/submission-auto-approval-audit-2026-07-01T15-00-43-575Z.json`) |
+| OCR auto-approval fix — "name not detected" now auto-approves like "matched" (still blocks "mismatched"); audit showed the name-check wasn't load-bearing, catching nothing the confidence/suspicious-activity checks didn't already catch | July 2, 2026 | `tests/submission.service.integration.test.js` (updated) |
 
 ---
 
@@ -111,6 +114,7 @@ _Last updated: July 1, 2026_
 - **Priority 1 — Production AdSense (ops only):** deploy current main, run `npm run seed:adsense-blog` if needed, verify live `/robots.txt`, `/sitemap.xml`, `/ads.txt`, submit/refresh sitemap in Google Search Console, then request review after crawl stability.
 - **Admin improvements Phases 1–2 verification:** code is complete and pushed, but `docs/todo/admin-improvements/01-phase-admin-data-exports.md` and `02-phase-admin-mutation-rate-limiting.md` remain in `docs/todo/` pending (1) a full `npm run test:admin` run against live MongoDB + PostgreSQL, and (2) a manual 429 smoke-check on `/admin/promote` and `/admin/communications/test-email` against a running server. Move both files to `docs/done/admin-improvements/` once verified.
 - **Admin permission tiers verification:** implemented and source-verified, but needs a live-DB `npm run test:admin` run plus a manual click-through as a `support`-tier admin (confirm the 24 gated routes 403 correctly and the edit-form escalation guards behave as designed) before considering it fully verified.
+- **Run-proof submission smarts verification:** implemented and source-verified (including a fixed test fixture that had been silently exercising the wrong accumulated-distance target), but the full `submission.service.integration.test.js` suite has not been run against a live MongoDB + PostgreSQL in this environment. Run it before trusting the new implausible-single-activity-distance check and the OCR "not_detected" auto-approval change in production.
 - Test runtime follow-up: several server-spawning smoke/integration tests pass assertions locally but do not exit cleanly during teardown; investigate open handles separately (low urgency).
 - Documentation follow-up: keep `docs/to-implement/*` files as historical design records unless a new gap reopens. Stale `docs/todo refinement/` files archived to `docs/archive/todo-refinement/`.
 

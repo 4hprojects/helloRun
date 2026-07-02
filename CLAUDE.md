@@ -28,12 +28,18 @@ npm run mark-test-events   # Mark existing test events as isTestData:true (sitem
 | `docs/architecture/` | DB schema, workflow diagrams, security route matrix |
 | `docs/adsense-readiness/` | AdSense implementation status — locally complete, production deployment pending |
 
-## Current Priority (July 1, 2026)
+## Current Priority (July 2, 2026)
 
 1. **Deploy to production + AdSense** — ops only, no code; all code is done (see STATUS.md In Progress for steps)
-2. **Admin improvements Phases 1–2 + permission tiers verification** — code complete and pushed, needs a live-DB `npm run test:admin` run plus manual smoke checks (rate limits, and a `support`-tier admin click-through). See `docs/todo/admin-improvements/` and `docs/to-implement/admin-permission-tiers.md`.
+2. **Live-DB test verification backlog** — three completed features are source-verified but not yet run against a live MongoDB + PostgreSQL: admin improvements Phases 1–2, admin permission tiers, and the new run-proof submission smarts (implausible-single-activity-distance check + OCR "not_detected" auto-approval). Run `npm run test:admin` and `node --test tests/submission.service.integration.test.js` plus the manual smoke checks (rate limits, `support`-tier admin click-through) before treating any of the three as fully verified. See `docs/todo/admin-improvements/` and `docs/to-implement/admin-permission-tiers.md`.
 
-### Done this session (July 1)
+### Done this session (July 1–2)
+- Run-proof submission smarts — accumulated-challenge target defaults to event calendar year, category-aware OCR mismatch warnings, implausible-single-activity-distance check; runner dashboard "Missed Submissions" section + recency-sorted status view
+- Submission auto-approval audit script (`src/scripts/audit-submission-auto-approval.js`) + admin correction tool (full-tier-admin-only, gated behind `requireFullAdmin`)
+- OCR auto-approval fix — "name not detected" now auto-approves like "matched" (audit showed the name-check caught nothing the confidence/suspicious-activity checks didn't already catch)
+- Fixed a test fixture that was silently exercising the wrong accumulated-distance target, masking whether the new distance-plausibility check actually worked
+
+### Done previous session (July 1)
 - Admin improvements Phase 1 — CSV/XLSX exports for `/admin/{users,audit,analytics}`
 - Admin improvements Phase 2 — closed rate-limiting gaps on ~90 admin mutation routes
 - Admin improvements Phase 3 — extended security route matrix; deleted dead `onsite-operations.js` (admin, unmounted)
