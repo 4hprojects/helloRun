@@ -1,6 +1,6 @@
 # HelloRun — Current Status
 
-_Last updated: July 2, 2026_
+_Last updated: July 4, 2026_
 
 ---
 
@@ -107,6 +107,7 @@ _Last updated: July 2, 2026_
 | Submission auto-approval audit script + admin correction tool — read-only CLI reporting auto-approval blockers by reason/confidence/name-match/source; review panel surfaces detection/validation metadata; full-tier-admin-only correction action to fix run data or override review outcome | July 1, 2026 | manual CLI run against prod-shaped data (`logs/submission-auto-approval-audit-2026-07-01T15-00-43-575Z.json`) |
 | OCR auto-approval fix — "name not detected" now auto-approves like "matched" (still blocks "mismatched"); audit showed the name-check wasn't load-bearing, catching nothing the confidence/suspicious-activity checks didn't already catch | July 2, 2026 | `tests/submission.service.integration.test.js` (updated) |
 | Admin test-data purge — `/admin/events?testData=1` full-tier-admin-only action permanently deletes every `isTestData` Event plus linked Registrations/Submissions/AccumulatedActivitySubmissions/EventPromotions/CertificateTemplates in MongoDB and the matching shadow rows across 16 Postgres tables; password + reason + typed `PURGE` confirmation; dedicated rate limiter + audit logging. Run for real against the live database: purged 336 events and everything linked to them. Bonus fix: `deleteEvent`/`bulkDeleteEvents` had a latent missing-import `ReferenceError` bug, fixed alongside | July 2, 2026 | `tests/test-data-cleanup-service.unit.test.js` 7/7 (DB-free — see In Progress note on why) |
+| Event promotion email flow analysis — diagnosed the grayed-out Send button after a Selected Emails test send: the test recipient account is opted out of `event.promotion` (one-click GET unsubscribe link opts out the logged-in session user), so the preview count is 0 and the button disables; no Resend credits consumed because opted-out recipients never reach the provider. Recovery path + 7 follow-up findings documented in `docs/features/event_promotion_email_sending.md` (docs only, no code changed) | July 4, 2026 | Code-path analysis; live-DB opt-out flag not yet checked |
 
 ---
 

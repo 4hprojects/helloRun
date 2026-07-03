@@ -7,6 +7,12 @@
 
 ---
 
+## Session Completed (July 4, 2026)
+
+| Feature | Completed | Notes |
+|---------|-----------|-------|
+| Event promotion email flow analysis + grayed-Send-button diagnosis | Jul 4 | Docs only, no code changed. Investigated why the `/admin/promote` Send button grayed out after a successful Selected Emails test send while the platform email quota stayed flat. Root cause: the button is gated purely on the recipient-preview count, and the test recipient account got opted out of `event.promotion` — most plausibly by clicking the email footer's unsubscribe link, a confirmation-free GET that opts out the *logged-in session user* (`/unsubscribe?key=event.promotion`), not the addressed recipient. Opted-out users are filtered from the preview (count 0 → button disabled) and would be suppressed at `notify()` anyway, so no Resend credits are consumed — the button and the credit quota are independent systems. Full pipeline walkthrough, all four gray-out causes, recovery steps (re-tick "Event promotions" in `/runner/profile?section=notifications`, any role), and 7 backlog-candidate findings (admin sends burn the organiser's 25/day quota; quota counts selected-not-sent recipients; UTC `dateKey` resets quotas at 8 AM PH; one-click GET unsubscribe needs a confirm step; disabled button gives no reason) written up in `docs/features/event_promotion_email_sending.md` |
+
 ## Session Completed (July 1–2, 2026)
 
 | Feature | Completed | Notes |
