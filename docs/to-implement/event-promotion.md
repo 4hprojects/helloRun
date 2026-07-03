@@ -10,7 +10,7 @@
 
 Organisers and admins can email runner audiences about upcoming events directly from the platform.
 
-- **Organiser scope:** Own runner pool only (previous participants OR runners who haven't joined their events). Daily cap: 20 emails/day (basic package).
+- **Organiser scope:** Own runner pool only (previous participants OR runners who haven't joined their events). Daily cap: 25 emails/day (basic package).
 - **Admin scope:** Any event, any audience (including all runners). No daily cap.
 - **Platform email limit:** Resend free tier — 100 emails/day total.
 - **Email content:** Auto-generated professional template with event poster, event details, and "Register Now" CTA.
@@ -30,6 +30,7 @@ Organisers and admins can email runner audiences about upcoming events directly 
 | 5 | Admin dashboard discoverability link for `/admin/promote` | ✅ Done | Jul 3, 2026 |
 | 6 | Refinement: event-promotion opt-out UI, unsubscribe route, opt-out-aware recipient preview/send | ✅ Done | Jul 3, 2026 |
 | 7 | Refinement: campaign outcome counts for sent/skipped/suppressed/failed/queued sends | ✅ Done | Jul 3, 2026 |
+| 8 | Admin selected email recipient mode for `/admin/promote` | ✅ Done | Jul 3, 2026 |
 
 ---
 
@@ -62,7 +63,7 @@ Routes in `src/routes/organiser/event-management.js`:
 
 View: `src/views/organizer/event-promote.ejs`
 
-Daily quota: 20 emails/day tracked via `EventPromotion` aggregate on `(organizerId, dateKey)`.
+Daily quota: 25 emails/day tracked via `EventPromotion` aggregate on `(organizerId, dateKey)`.
 
 ### Phase 3 — Admin Page
 
@@ -79,6 +80,8 @@ Dashboard discoverability: the admin promotion send flow exists at `/admin/promo
 Refinement: `event.promotion` is now available in runner notification preferences, the email footer `/unsubscribe?key=event.promotion` path is backed by a route, and admin/organiser preview + send recipient resolution excludes users who opted out of event promotion emails.
 
 Campaign outcome refinement: promotion sends now use the reliable communication path directly, record selected/sent/skipped/suppressed/failed/queued counts on `EventPromotion`, and show outcome detail in admin and organiser campaign history.
+
+Admin selected-recipient refinement: `/admin/promote` now supports a `selected_emails` audience. Full admins can paste specific email addresses, preview the parsed eligible count, and send the promotion to that selected list. Existing HelloRun users who opted out of `event.promotion` are excluded.
 
 ### Phase 4 — Ship
 

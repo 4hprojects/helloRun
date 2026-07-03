@@ -912,7 +912,7 @@ router.post('/events/:id/media/remove', requireApprovedOrganizer, requireCsrfPro
    Event Promotion
    ========================================== */
 
-const PROMO_DAILY_LIMIT = 20;
+const PROMO_DAILY_LIMIT = 25;
 
 async function getQuotaUsed(organizerId) {
   const dateKey = new Date().toISOString().slice(0, 10);

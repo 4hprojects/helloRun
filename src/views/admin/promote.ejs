@@ -18,6 +18,11 @@
     .radio-option input[type=radio] { margin-top: 2px; accent-color: #FA9A4B; }
     .radio-option-label { font-size: 0.88rem; font-weight: 500; color: #1e293b; }
     .radio-option-desc { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
+    .selected-email-panel { display: none; margin-top: 10px; }
+    .selected-email-panel.is-visible { display: block; }
+    .selected-email-panel textarea { width: 100%; min-height: 120px; resize: vertical; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 6px; font: inherit; font-size: 0.85rem; color: #1e293b; }
+    .selected-email-panel textarea:focus { outline: none; border-color: #FA9A4B; box-shadow: 0 0 0 3px rgba(250,154,75,0.15); }
+    .selected-email-help { font-size: 0.75rem; color: #64748b; margin: 6px 0 0; line-height: 1.4; }
     .platform-quota { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
     .platform-quota strong { font-size: 0.9rem; color: #166534; }
     .platform-quota span { font-size: 0.82rem; color: #15803d; }
@@ -114,6 +119,18 @@
                     <div class="radio-option-desc">All platform runners (up to 500). Admin only.</div>
                   </div>
                 </label>
+                <label class="radio-option">
+                  <input type="radio" name="audience" value="selected_emails">
+                  <div>
+                    <div class="radio-option-label">Selected Emails</div>
+                    <div class="radio-option-desc">Paste specific recipient emails, separated by commas, spaces, or new lines.</div>
+                  </div>
+                </label>
+              </div>
+              <div class="selected-email-panel" id="selected-email-panel">
+                <label class="form-label" for="selectedEmails" style="margin-top:12px;">Email list</label>
+                <textarea id="selectedEmails" name="selectedEmails" placeholder="runner@example.com&#10;another.runner@example.com"></textarea>
+                <p class="selected-email-help">Existing HelloRun users who opted out of event promotions are excluded. Unknown emails can still receive this admin-selected promotion.</p>
               </div>
             </div>
 
@@ -129,6 +146,7 @@
           <div class="recipient-preview">
             <div class="recipient-count" id="recipient-count">—</div>
             <div class="recipient-label" id="recipient-label">Select an event and audience to preview</div>
+            <div class="selected-email-help" id="recipient-extra" style="display:none;"></div>
           </div>
           <p style="font-size:0.78rem;color:#94a3b8;margin:12px 0 0;line-height:1.5;">
             Runners who opted out of event.promotion emails are excluded. All sends count against the platform daily quota.
@@ -164,6 +182,7 @@
                     <% if (c.audience === 'previous_participants') { %>Prev. Participants
                     <% } else if (c.audience === 'non_participants') { %>Non-Participants
                     <% } else if (c.audience === 'all_runners') { %>All Runners
+                    <% } else if (c.audience === 'selected_emails') { %>Selected Emails
                     <% } else { %><%= c.audience %><% } %>
                   </td>
                   <td>
@@ -196,7 +215,10 @@
       const audienceRadios = document.querySelectorAll('input[name="audience"]');
       const countEl = document.getElementById('recipient-count');
       const labelEl = document.getElementById('recipient-label');
+      const extraEl = document.getElementById('recipient-extra');
       const submitBtn = document.getElementById('promote-submit');
+      const selectedEmailPanel = document.getElementById('selected-email-panel');
+      const selectedEmails = document.getElementById('selectedEmails');
 
       function getAudience() {
         const checked = document.querySelector('input[name="audience"]:checked');
@@ -206,28 +228,53 @@
       async function updatePreview() {
         const eventId = eventSelect ? eventSelect.value : '';
         const audience = getAudience();
+        const selectedEmailValue = selectedEmails ? selectedEmails.value : '';
+        if (selectedEmailPanel) {
+          selectedEmailPanel.classList.toggle('is-visible', audience === 'selected_emails');
+        }
         if (!eventId || !audience) {
           countEl.textContent = '—';
           labelEl.textContent = 'Select an event and audience to preview';
+          extraEl.style.display = 'none';
+          submitBtn.disabled = true;
+          return;
+        }
+        if (audience === 'selected_emails' && !selectedEmailValue.trim()) {
+          countEl.textContent = '—';
+          labelEl.textContent = 'Enter one or more recipient emails';
+          extraEl.style.display = 'none';
           submitBtn.disabled = true;
           return;
         }
         countEl.textContent = '…';
         labelEl.textContent = 'Loading…';
+        extraEl.style.display = 'none';
         try {
-          const resp = await fetch(`/admin/promote/preview?eventId=${encodeURIComponent(eventId)}&audience=${encodeURIComponent(audience)}`);
+          const params = new URLSearchParams({ eventId, audience });
+          if (audience === 'selected_emails') params.set('selectedEmails', selectedEmailValue);
+          const resp = await fetch(`/admin/promote/preview?${params.toString()}`);
           const data = await resp.json();
           const count = data.count || 0;
           countEl.textContent = count;
           labelEl.textContent = count === 1 ? 'eligible runner' : 'eligible runners';
+          if (audience === 'selected_emails') {
+            const details = [];
+            if (data.invalidCount) details.push(`${data.invalidCount} invalid`);
+            if (data.optedOutCount) details.push(`${data.optedOutCount} opted out`);
+            if (data.capped) details.push(`capped at ${data.limit}`);
+            extraEl.textContent = details.join(' • ');
+            extraEl.style.display = details.length ? 'block' : 'none';
+          }
           submitBtn.disabled = count === 0;
         } catch (_) {
           countEl.textContent = '?';
           labelEl.textContent = 'Preview unavailable';
+          extraEl.style.display = 'none';
         }
       }
 
       if (eventSelect) eventSelect.addEventListener('change', updatePreview);
+      if (selectedEmails) selectedEmails.addEventListener('input', updatePreview);
       audienceRadios.forEach(function (r) { r.addEventListener('change', updatePreview); });
     })();
   </script>

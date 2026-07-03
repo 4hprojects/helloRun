@@ -6,7 +6,7 @@ const eventPromotionSchema = new mongoose.Schema(
     eventId: { type: mongoose.Schema.Types.ObjectId, ref: 'Event', required: true },
     audience: {
       type: String,
-      enum: ['previous_participants', 'non_participants', 'all_runners'],
+      enum: ['previous_participants', 'non_participants', 'all_runners', 'selected_emails'],
       required: true
     },
     recipientCount: { type: Number, default: 0 },

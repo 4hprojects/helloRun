@@ -19,6 +19,7 @@ const {
 } = require('../../utils/tabular-export');
 const {
   dispatchEventPromotionCampaign,
+  hydrateSelectedPromotionRecipients,
   resolveAdminPromotionRecipients
 } = require('../../services/event-promotion.service');
 
@@ -863,13 +864,24 @@ exports.promotePage = async (req, res) => {
 
 exports.promotePreview = async (req, res) => {
   try {
-    const { eventId, audience } = req.query;
-    const validAudiences = ['previous_participants', 'non_participants', 'all_runners'];
+    const { eventId, audience, selectedEmails } = req.query;
+    const validAudiences = ['previous_participants', 'non_participants', 'all_runners', 'selected_emails'];
     if (!eventId || !validAudiences.includes(audience)) {
       return res.json({ count: 0 });
     }
     const event = await Event.findById(eventId).select('_id organizerId slug').lean();
     if (!event) return res.status(404).json({ error: 'Event not found.' });
+
+    if (audience === 'selected_emails') {
+      const parsed = await hydrateSelectedPromotionRecipients(selectedEmails);
+      return res.json({
+        count: parsed.recipients.length,
+        invalidCount: parsed.invalid.length,
+        optedOutCount: parsed.optedOutCount || 0,
+        capped: parsed.capped,
+        limit: parsed.limit
+      });
+    }
 
     const recipients = await resolveAdminPromotionRecipients({ event, audience });
     return res.json({ count: recipients.length });
@@ -883,8 +895,8 @@ exports.promoteSend = async (req, res) => {
   const redirectBase = '/admin/promote';
   try {
     const EventPromotion = require('../../models/EventPromotion');
-    const { eventId, audience } = req.body;
-    const validAudiences = ['previous_participants', 'non_participants', 'all_runners'];
+    const { eventId, audience, selectedEmails } = req.body;
+    const validAudiences = ['previous_participants', 'non_participants', 'all_runners', 'selected_emails'];
     if (!eventId || !validAudiences.includes(audience)) {
       const q = new URLSearchParams({ type: 'error', msg: 'Invalid promotion request.' });
       return res.redirect(`${redirectBase}?${q}`);
@@ -896,7 +908,17 @@ exports.promoteSend = async (req, res) => {
       return res.redirect(`${redirectBase}?${q}`);
     }
 
-    const recipients = await resolveAdminPromotionRecipients({ event, audience });
+    const selectedEmailResult = audience === 'selected_emails'
+      ? await hydrateSelectedPromotionRecipients(selectedEmails)
+      : null;
+    if (selectedEmailResult && selectedEmailResult.invalid.length) {
+      const q = new URLSearchParams({ type: 'error', msg: `${selectedEmailResult.invalid.length} invalid email${selectedEmailResult.invalid.length === 1 ? '' : 's'} found. Please fix the selected email list.` });
+      return res.redirect(`${redirectBase}?${q}`);
+    }
+
+    const recipients = selectedEmailResult
+      ? selectedEmailResult.recipients
+      : await resolveAdminPromotionRecipients({ event, audience });
     if (!recipients.length) {
       const q = new URLSearchParams({ type: 'error', msg: 'No eligible recipients found.' });
       return res.redirect(`${redirectBase}?${q}`);

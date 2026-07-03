@@ -13,7 +13,7 @@
 
 The event promotion feature is partially implemented and the main send pipeline is wired. Organisers and admins can open promotion pages, preview recipient counts, submit campaigns, create `EventPromotion` records, and enqueue `event.promotion` emails through the shared communication system.
 
-The feature has now had its highest-priority refinements applied: the email footer unsubscribe path is backed by a route, runner notification settings expose `event.promotion`, admin/organiser preview + send recipient resolution excludes users who opted out of event promotion emails, and campaign history stores outcome counts for sent/skipped/suppressed/failed/queued sends. Remaining refinement work is mostly broader safety controls, signed one-click unsubscribe, and route-level integration coverage.
+The feature has now had its highest-priority refinements applied: the email footer unsubscribe path is backed by a route, runner notification settings expose `event.promotion`, admin/organiser preview + send recipient resolution excludes users who opted out of event promotion emails, campaign history stores outcome counts for sent/skipped/suppressed/failed/queued sends, and admin promotion supports a selected pasted-email recipient mode. Remaining refinement work is mostly broader safety controls, signed one-click unsubscribe, and route-level integration coverage.
 
 ---
 
@@ -78,14 +78,15 @@ Access model:
 Admin capabilities:
 
 - Select any non-deleted, non-archived event.
-- Send to `previous_participants`, `non_participants`, or `all_runners`.
+- Send to `previous_participants`, `non_participants`, `all_runners`, or `selected_emails`.
+- Paste selected recipient emails for admin-directed campaigns.
 - View platform daily email usage from `DailyEmailUsage`.
 - View recent campaigns across organisers.
 
 Admin send behavior:
 
 - Creates an `EventPromotion` with `status: sending`.
-- Enqueues background notifications through `notifyWithRetryInBackground('event.promotion')`.
+- Dispatches event promotion emails through the reliable communication path and records campaign outcome counts.
 - Marks campaign `completed` after enqueue attempts settle.
 - Stores `recipientCount` as the number of selected recipient records, not confirmed email deliveries.
 
@@ -115,7 +116,7 @@ Organiser send behavior:
 - Resolves recipients from organiser event participation.
 - Slices recipients by daily quota remaining.
 - Creates an `EventPromotion` with `status: sending`.
-- Enqueues emails through `notifyWithRetryInBackground('event.promotion')`.
+- Dispatches event promotion emails through the reliable communication path and records campaign outcome counts.
 - Marks campaign `completed` after enqueue attempts settle.
 
 ### Dashboard Discoverability

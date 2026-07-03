@@ -8,6 +8,8 @@ const EVENT_PROMOTION_KEY = 'event.promotion';
 const ORGANIZER_PROMO_NON_PARTICIPANT_CAP = 200;
 const ADMIN_PROMO_NON_PARTICIPANT_CAP = 200;
 const ADMIN_PROMO_ALL_RUNNERS_CAP = 500;
+const ADMIN_SELECTED_EMAILS_CAP = 500;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function toObjectId(value) {
   const id = String(value || '').trim();
@@ -42,6 +44,64 @@ async function filterEventPromotionOptOutRecipients(recipients) {
   }).select('_id').lean();
   const optedOutIds = new Set(optedOutRows.map((row) => String(row._id)));
   return list.filter((recipient) => !optedOutIds.has(String(recipient._id)));
+}
+
+function parseSelectedPromotionEmails(input, { limit = ADMIN_SELECTED_EMAILS_CAP } = {}) {
+  const raw = String(input || '').split(/[\s,;]+/);
+  const seen = new Set();
+  const recipients = [];
+  const invalid = [];
+
+  for (const item of raw) {
+    const email = String(item || '').trim().toLowerCase();
+    if (!email) continue;
+    if (!EMAIL_PATTERN.test(email)) {
+      invalid.push(email);
+      continue;
+    }
+    if (seen.has(email)) continue;
+    seen.add(email);
+    recipients.push({ email, firstName: 'Runner', manual: true });
+    if (recipients.length >= limit) break;
+  }
+
+  return {
+    recipients,
+    invalid,
+    capped: seen.size >= limit,
+    limit
+  };
+}
+
+async function hydrateSelectedPromotionRecipients(input, options = {}) {
+  const parsed = parseSelectedPromotionEmails(input, options);
+  if (!parsed.recipients.length) return parsed;
+
+  const emails = parsed.recipients.map((recipient) => recipient.email);
+  const users = await User.find({ email: { $in: emails } })
+    .select('_id email firstName notificationPreferences')
+    .lean();
+  const userByEmail = new Map(users.map((user) => [String(user.email || '').toLowerCase(), user]));
+  const recipients = [];
+  let optedOutCount = 0;
+
+  for (const recipient of parsed.recipients) {
+    const user = userByEmail.get(recipient.email);
+    if (Array.isArray(user?.notificationPreferences?.emailOptOut)
+      && user.notificationPreferences.emailOptOut.includes(EVENT_PROMOTION_KEY)) {
+      optedOutCount += 1;
+      continue;
+    }
+    recipients.push(user
+      ? { _id: user._id, email: recipient.email, firstName: user.firstName || 'Runner', manual: true }
+      : recipient);
+  }
+
+  return {
+    ...parsed,
+    recipients,
+    optedOutCount
+  };
 }
 
 async function resolveOrganizerPromotionRecipients({ organizerId, audience }) {
@@ -94,6 +154,11 @@ async function resolveAdminPromotionRecipients({ event, audience }) {
   }
 
   return [];
+}
+
+async function resolveAdminSelectedEmailRecipients(input, options = {}) {
+  const parsed = await hydrateSelectedPromotionRecipients(input, options);
+  return parsed.recipients;
 }
 
 function getCampaignStatus(summary) {
@@ -189,7 +254,10 @@ module.exports = {
   getParticipantIds,
   getOrganizerEventIds,
   filterEventPromotionOptOutRecipients,
+  parseSelectedPromotionEmails,
+  hydrateSelectedPromotionRecipients,
   resolveOrganizerPromotionRecipients,
   resolveAdminPromotionRecipients,
+  resolveAdminSelectedEmailRecipients,
   dispatchEventPromotionCampaign
 };
