@@ -17,6 +17,10 @@ const {
   buildMultiSheetXlsxBuffer,
   buildExportFilename
 } = require('../../utils/tabular-export');
+const {
+  dispatchEventPromotionCampaign,
+  resolveAdminPromotionRecipients
+} = require('../../services/event-promotion.service');
 
 // SECTION: Event Management
 // ═══════════════════════════════════════════════════════════
@@ -819,41 +823,6 @@ exports.dashboard = async (req, res) => {
 // SECTION: Event Promotion (Admin)
 // ═══════════════════════════════════════════════════════════
 
-const ADMIN_PROMO_NON_PARTICIPANT_CAP = 200;
-const ADMIN_PROMO_ALL_RUNNERS_CAP = 500;
-
-async function adminGetParticipantIds(eventIds) {
-  const Registration = require('../../models/Registration');
-  const rows = await Registration.aggregate([
-    { $match: { eventId: { $in: eventIds } } },
-    { $group: { _id: '$userId' } }
-  ]);
-  return rows.map((r) => r._id);
-}
-
-async function adminResolveAudience(audience, selectedEvent) {
-  if (audience === 'previous_participants') {
-    const participantIds = await adminGetParticipantIds([selectedEvent._id]);
-    if (!participantIds.length) return [];
-    return User.find({ _id: { $in: participantIds } }).select('_id email firstName').lean();
-  }
-  if (audience === 'non_participants') {
-    const orgEventIds = (await Event.find({ organizerId: selectedEvent.organizerId, isDeleted: { $ne: true } }).select('_id').lean()).map((d) => d._id);
-    const participantIds = await adminGetParticipantIds(orgEventIds);
-    return User.find({ role: 'runner', _id: { $nin: participantIds } })
-      .select('_id email firstName')
-      .limit(ADMIN_PROMO_NON_PARTICIPANT_CAP)
-      .lean();
-  }
-  if (audience === 'all_runners') {
-    return User.find({ role: 'runner' })
-      .select('_id email firstName')
-      .limit(ADMIN_PROMO_ALL_RUNNERS_CAP)
-      .lean();
-  }
-  return [];
-}
-
 exports.promotePage = async (req, res) => {
   try {
     const EventPromotion = require('../../models/EventPromotion');
@@ -902,7 +871,7 @@ exports.promotePreview = async (req, res) => {
     const event = await Event.findById(eventId).select('_id organizerId slug').lean();
     if (!event) return res.status(404).json({ error: 'Event not found.' });
 
-    const recipients = await adminResolveAudience(audience, event);
+    const recipients = await resolveAdminPromotionRecipients({ event, audience });
     return res.json({ count: recipients.length });
   } catch (error) {
     logger.error('Admin promote preview error:', error);
@@ -914,7 +883,6 @@ exports.promoteSend = async (req, res) => {
   const redirectBase = '/admin/promote';
   try {
     const EventPromotion = require('../../models/EventPromotion');
-    const { notifyWithRetryInBackground } = require('../../services/reliable-communication.service');
     const { eventId, audience } = req.body;
     const validAudiences = ['previous_participants', 'non_participants', 'all_runners'];
     if (!eventId || !validAudiences.includes(audience)) {
@@ -928,7 +896,7 @@ exports.promoteSend = async (req, res) => {
       return res.redirect(`${redirectBase}?${q}`);
     }
 
-    const recipients = await adminResolveAudience(audience, event);
+    const recipients = await resolveAdminPromotionRecipients({ event, audience });
     if (!recipients.length) {
       const q = new URLSearchParams({ type: 'error', msg: 'No eligible recipients found.' });
       return res.redirect(`${redirectBase}?${q}`);
@@ -946,34 +914,31 @@ exports.promoteSend = async (req, res) => {
       sentAt: new Date()
     });
 
-    const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
-    const eventUrl = `${appUrl}/events/${event.slug}`;
     const organiserName = event.organizerDisplayName || 'an organiser';
-    const posterUrl = event.posterImageUrl || event.bannerImageUrl || null;
 
-    await Promise.allSettled(
-      recipients.map((runner) => {
-        if (!runner.email) return Promise.resolve();
-        return notifyWithRetryInBackground('event.promotion', {
-          email: {
-            to: runner.email,
-            firstName: runner.firstName || 'Runner',
-            eventTitle: event.title || 'Event',
-            posterUrl,
-            eventUrl,
-            organiserName,
-            recipientUserId: runner._id,
-            metadata: { campaignId: String(campaign._id), eventId: String(event._id), adminTriggered: true }
-          }
-        }, { source: 'event.promotion.admin' });
-      })
-    );
+    const summary = await dispatchEventPromotionCampaign({
+      campaign,
+      recipients,
+      event,
+      organiserName,
+      source: 'event.promotion.admin',
+      adminTriggered: true
+    });
 
-    campaign.recipientCount = recipients.length;
-    campaign.status = 'completed';
+    campaign.recipientCount = summary.selectedCount;
+    campaign.selectedCount = summary.selectedCount;
+    campaign.sentCount = summary.sentCount;
+    campaign.skippedCount = summary.skippedCount;
+    campaign.suppressedCount = summary.suppressedCount;
+    campaign.failedCount = summary.failedCount;
+    campaign.queuedCount = summary.queuedCount;
+    campaign.status = summary.status;
     await campaign.save();
 
-    const q = new URLSearchParams({ type: 'success', msg: `Promotion sent to ${recipients.length} runner${recipients.length !== 1 ? 's' : ''}.` });
+    const resultText = summary.status === 'completed'
+      ? `Promotion sent to ${summary.sentCount} runner${summary.sentCount !== 1 ? 's' : ''}.`
+      : `Promotion processed for ${summary.selectedCount} runner${summary.selectedCount !== 1 ? 's' : ''}: ${summary.sentCount} sent, ${summary.queuedCount} queued, ${summary.skippedCount + summary.suppressedCount} skipped, ${summary.failedCount} failed.`;
+    const q = new URLSearchParams({ type: summary.status === 'failed' ? 'error' : 'success', msg: resultText });
     return res.redirect(`${redirectBase}?${q}`);
   } catch (error) {
     logger.error('Admin promote send error:', error);

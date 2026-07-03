@@ -44,6 +44,7 @@
     .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
     .status-badge.completed { background: #dcfce7; color: #166534; }
     .status-badge.sending { background: #fef3c7; color: #92400e; }
+    .status-badge.partial { background: #dbeafe; color: #1d4ed8; }
     .status-badge.failed { background: #fee2e2; color: #991b1b; }
     .audience-label { font-size: 0.75rem; color: #64748b; }
     .empty-state { text-align: center; padding: 24px; color: #94a3b8; font-size: 0.85rem; }
@@ -176,7 +177,16 @@
                     <% } else if (c.audience === 'non_participants') { %>Non-Participants
                     <% } else { %><%= c.audience %><% } %>
                   </td>
-                  <td><%= c.recipientCount %></td>
+                  <td>
+                    <% const sentDisplay = c.sentCount != null ? c.sentCount : (c.recipientCount || 0); %>
+                    <strong><%= sentDisplay %></strong> sent
+                    <div style="font-size:0.72rem;color:#94a3b8;">
+                      <%= c.selectedCount || c.recipientCount || 0 %> selected
+                      <% if ((c.queuedCount || 0) > 0) { %> &bull; <%= c.queuedCount %> queued<% } %>
+                      <% if (((c.skippedCount || 0) + (c.suppressedCount || 0)) > 0) { %> &bull; <%= (c.skippedCount || 0) + (c.suppressedCount || 0) %> skipped<% } %>
+                      <% if ((c.failedCount || 0) > 0) { %> &bull; <%= c.failedCount %> failed<% } %>
+                    </div>
+                  </td>
                   <td><%= c.sentAt ? new Date(c.sentAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—' %></td>
                   <td><span class="status-badge <%= c.status %>"><%= c.status %></span></td>
                 </tr>

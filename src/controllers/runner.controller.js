@@ -474,7 +474,8 @@ const NOTIFICATION_OPTOUT_ALLOWED_KEYS = new Set([
   'result.rejected',
   'certificate.issued',
   'badge.earned',
-  'organiser.payment_reminder'
+  'organiser.payment_reminder',
+  'event.promotion'
 ]);
 
 exports.updateNotificationSettings = async (req, res) => {

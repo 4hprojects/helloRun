@@ -5,6 +5,7 @@ const router = express.Router();
 const pageController = require('../controllers/page.controller');
 const blogInteractionController = require('../controllers/blog-interaction.controller');
 const PrivacyPolicy = require('../models/PrivacyPolicy');
+const User = require('../models/User');
 const { requireAuth } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
@@ -37,6 +38,29 @@ const quickProfileUpdateLimiter = createRateLimiter({
 });
 
 router.get('/', pageController.getHome);
+router.get('/unsubscribe', requireAuth, async (req, res) => {
+  try {
+    const key = String(req.query.key || '').trim();
+    if (key !== 'event.promotion') {
+      return res.redirect('/runner/profile?section=notifications&type=error&msg=Unknown+email+preference.');
+    }
+
+    const user = await User.findById(req.session.userId).select('role').lean();
+    await User.updateOne(
+      { _id: req.session.userId },
+      { $addToSet: { 'notificationPreferences.emailOptOut': key } }
+    );
+
+    if (user?.role !== 'runner') {
+      return res.redirect('/');
+    }
+
+    return res.redirect('/runner/profile?section=notifications&type=success&msg=You+have+been+unsubscribed+from+event+promotion+emails.');
+  } catch (error) {
+    logger.error('Unsubscribe preference update failed:', error);
+    return res.redirect('/runner/profile?section=notifications&type=error&msg=Unable+to+update+email+preference.');
+  }
+});
 
 router.get('/events', pageController.getEvents);
 router.get('/my-registrations', requireAuth, pageController.getMyRegistrations);

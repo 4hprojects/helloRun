@@ -27,6 +27,9 @@ Organisers and admins can email runner audiences about upcoming events directly 
 | 2 | Organiser promotion page (GET/POST /organizer/promote + preview AJAX) | ✅ Done | Jun 30, 2026 |
 | 3 | Admin promotion page (GET/POST /admin/promote + preview AJAX) | ✅ Done | Jun 30, 2026 |
 | 4 | Polish, tests, CLAUDE.md fix, commit, push, docs update | ✅ Done | Jun 30, 2026 |
+| 5 | Admin dashboard discoverability link for `/admin/promote` | ✅ Done | Jul 3, 2026 |
+| 6 | Refinement: event-promotion opt-out UI, unsubscribe route, opt-out-aware recipient preview/send | ✅ Done | Jul 3, 2026 |
+| 7 | Refinement: campaign outcome counts for sent/skipped/suppressed/failed/queued sends | ✅ Done | Jul 3, 2026 |
 
 ---
 
@@ -70,6 +73,12 @@ Handlers in `src/controllers/admin/events.controller.js`.
 View: `src/views/admin/promote.ejs`
 
 Admin extras: all-runners audience option, no quota check, shows platform DailyEmailUsage remaining.
+
+Dashboard discoverability: the admin promotion send flow exists at `/admin/promote` and is linked from the Admin Dashboard tools and shortcuts sections.
+
+Refinement: `event.promotion` is now available in runner notification preferences, the email footer `/unsubscribe?key=event.promotion` path is backed by a route, and admin/organiser preview + send recipient resolution excludes users who opted out of event promotion emails.
+
+Campaign outcome refinement: promotion sends now use the reliable communication path directly, record selected/sent/skipped/suppressed/failed/queued counts on `EventPromotion`, and show outcome detail in admin and organiser campaign history.
 
 ### Phase 4 — Ship
 

@@ -10,8 +10,14 @@ const eventPromotionSchema = new mongoose.Schema(
       required: true
     },
     recipientCount: { type: Number, default: 0 },
+    selectedCount: { type: Number, default: 0 },
+    sentCount: { type: Number, default: 0 },
+    skippedCount: { type: Number, default: 0 },
+    suppressedCount: { type: Number, default: 0 },
+    failedCount: { type: Number, default: 0 },
+    queuedCount: { type: Number, default: 0 },
     dateKey: { type: String, required: true },
-    status: { type: String, enum: ['sending', 'completed', 'failed'], default: 'sending' },
+    status: { type: String, enum: ['sending', 'completed', 'partial', 'failed'], default: 'sending' },
     adminTriggered: { type: Boolean, default: false },
     sentAt: { type: Date }
   },

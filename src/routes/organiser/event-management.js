@@ -3,10 +3,8 @@ const express = require('express');
 const router = express.Router();
 const {
   logger,
-  mongoose,
   User,
   Event,
-  Registration,
   EventPromotion,
   Submission,
   AccumulatedActivitySubmission,
@@ -15,7 +13,6 @@ const {
   requireCsrfProtection,
   uploadService,
   eventFormService,
-  notifyWithRetryInBackground,
   countries,
   DEFAULT_WAIVER_TEMPLATE,
   MAX_GALLERY_IMAGES,
@@ -52,6 +49,11 @@ const {
   acceptsJson,
   getCreateEventFormData
 } = require('./_shared');
+const {
+  dispatchEventPromotionCampaign,
+  resolveOrganizerPromotionRecipients,
+  toObjectId
+} = require('../../services/event-promotion.service');
 
 /* ==========================================
    GET: My Events
@@ -911,41 +913,11 @@ router.post('/events/:id/media/remove', requireApprovedOrganizer, requireCsrfPro
    ========================================== */
 
 const PROMO_DAILY_LIMIT = 20;
-const PROMO_NON_PARTICIPANT_CAP = 200;
-
-async function getOrgEventIds(organizerId) {
-  const docs = await Event.find({ organizerId, isDeleted: { $ne: true } }).select('_id').lean();
-  return docs.map((d) => d._id);
-}
-
-async function getParticipantIds(orgEventIds) {
-  const rows = await Registration.aggregate([
-    { $match: { eventId: { $in: orgEventIds } } },
-    { $group: { _id: '$userId' } }
-  ]);
-  return rows.map((r) => r._id);
-}
-
-async function resolveAudienceRecipients(audience, orgEventIds) {
-  if (audience === 'previous_participants') {
-    const ids = await getParticipantIds(orgEventIds);
-    if (!ids.length) return [];
-    return User.find({ _id: { $in: ids } }).select('_id email firstName').lean();
-  }
-  if (audience === 'non_participants') {
-    const ids = await getParticipantIds(orgEventIds);
-    return User.find({ role: 'runner', _id: { $nin: ids } })
-      .select('_id email firstName')
-      .limit(PROMO_NON_PARTICIPANT_CAP)
-      .lean();
-  }
-  return [];
-}
 
 async function getQuotaUsed(organizerId) {
   const dateKey = new Date().toISOString().slice(0, 10);
   const agg = await EventPromotion.aggregate([
-    { $match: { organizerId: mongoose.Types.ObjectId.createFromHexString ? mongoose.Types.ObjectId.createFromHexString(String(organizerId)) : new mongoose.Types.ObjectId(String(organizerId)), dateKey } },
+    { $match: { organizerId: toObjectId(organizerId), dateKey } },
     { $group: { _id: null, total: { $sum: '$recipientCount' } } }
   ]);
   return Number(agg[0]?.total || 0);
@@ -997,9 +969,8 @@ router.get('/promote/preview', requireApprovedOrganizer, async (req, res) => {
     const event = await getOwnedEventOrNull(eventId, req.session.userId);
     if (!event) return res.status(403).json({ error: 'Event not found.' });
 
-    const orgEventIds = await getOrgEventIds(req.session.userId);
     const [recipients, quotaUsed] = await Promise.all([
-      resolveAudienceRecipients(audience, orgEventIds),
+      resolveOrganizerPromotionRecipients({ organizerId: req.session.userId, audience }),
       getQuotaUsed(req.session.userId)
     ]);
 
@@ -1040,8 +1011,7 @@ router.post('/promote', requireApprovedOrganizer, requireCsrfProtection, async (
       return res.redirect(`${redirectBase}?${q}`);
     }
 
-    const orgEventIds = await getOrgEventIds(req.session.userId);
-    const allRecipients = await resolveAudienceRecipients(audience, orgEventIds);
+    const allRecipients = await resolveOrganizerPromotionRecipients({ organizerId: req.session.userId, audience });
     const recipients = allRecipients.slice(0, quotaRemaining);
 
     if (!recipients.length) {
@@ -1060,37 +1030,33 @@ router.post('/promote', requireApprovedOrganizer, requireCsrfProtection, async (
       sentAt: new Date()
     });
 
-    const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
-    const eventUrl = `${appUrl}/events/${event.slug}`;
     const organiserName = event.organizerDisplayName || event.organizerFirstName || 'an organiser';
-    const posterUrl = event.posterImageUrl || event.bannerImageUrl || null;
 
     const user = await User.findById(req.session.userId).select('firstName lastName').lean();
     const senderName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : organiserName;
 
-    await Promise.allSettled(
-      recipients.map((runner) => {
-        if (!runner.email) return Promise.resolve();
-        return notifyWithRetryInBackground('event.promotion', {
-          email: {
-            to: runner.email,
-            firstName: runner.firstName || 'Runner',
-            eventTitle: event.title || 'Event',
-            posterUrl,
-            eventUrl,
-            organiserName: senderName,
-            recipientUserId: runner._id,
-            metadata: { campaignId: String(campaign._id), eventId: String(event._id) }
-          }
-        }, { source: 'event.promotion' });
-      })
-    );
+    const summary = await dispatchEventPromotionCampaign({
+      campaign,
+      recipients,
+      event,
+      organiserName: senderName,
+      source: 'event.promotion'
+    });
 
-    campaign.recipientCount = recipients.length;
-    campaign.status = 'completed';
+    campaign.recipientCount = summary.selectedCount;
+    campaign.selectedCount = summary.selectedCount;
+    campaign.sentCount = summary.sentCount;
+    campaign.skippedCount = summary.skippedCount;
+    campaign.suppressedCount = summary.suppressedCount;
+    campaign.failedCount = summary.failedCount;
+    campaign.queuedCount = summary.queuedCount;
+    campaign.status = summary.status;
     await campaign.save();
 
-    const q = new URLSearchParams({ type: 'success', msg: `Promotion sent to ${recipients.length} runner${recipients.length !== 1 ? 's' : ''}.` });
+    const resultText = summary.status === 'completed'
+      ? `Promotion sent to ${summary.sentCount} runner${summary.sentCount !== 1 ? 's' : ''}.`
+      : `Promotion processed for ${summary.selectedCount} runner${summary.selectedCount !== 1 ? 's' : ''}: ${summary.sentCount} sent, ${summary.queuedCount} queued, ${summary.skippedCount + summary.suppressedCount} skipped, ${summary.failedCount} failed.`;
+    const q = new URLSearchParams({ type: summary.status === 'failed' ? 'error' : 'success', msg: resultText });
     return res.redirect(`${redirectBase}?${q}`);
   } catch (error) {
     logger.error('Promote send error:', error);
