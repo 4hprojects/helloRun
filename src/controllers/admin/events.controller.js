@@ -18,7 +18,7 @@ const {
   buildExportFilename
 } = require('../../utils/tabular-export');
 const {
-  dispatchEventPromotionCampaign,
+  dispatchEventPromotionCampaignInBackground,
   hydrateSelectedPromotionRecipients,
   resolveAdminPromotionRecipients
 } = require('../../services/event-promotion.service');
@@ -925,11 +925,13 @@ exports.promoteSend = async (req, res) => {
     }
 
     const dateKey = new Date().toISOString().slice(0, 10);
+    // recipientCount is set up front so daily-quota sums include in-flight campaigns.
     const campaign = await EventPromotion.create({
       organizerId: event.organizerId,
       eventId: event._id,
       audience,
-      recipientCount: 0,
+      recipientCount: recipients.length,
+      selectedCount: recipients.length,
       dateKey,
       status: 'sending',
       adminTriggered: true,
@@ -938,7 +940,9 @@ exports.promoteSend = async (req, res) => {
 
     const organiserName = event.organizerDisplayName || 'an organiser';
 
-    const summary = await dispatchEventPromotionCampaign({
+    // Sends are throttled to respect the email provider's rate limit, so a large
+    // campaign takes minutes — dispatch in the background and redirect immediately.
+    dispatchEventPromotionCampaignInBackground({
       campaign,
       recipients,
       event,
@@ -947,20 +951,8 @@ exports.promoteSend = async (req, res) => {
       adminTriggered: true
     });
 
-    campaign.recipientCount = summary.selectedCount;
-    campaign.selectedCount = summary.selectedCount;
-    campaign.sentCount = summary.sentCount;
-    campaign.skippedCount = summary.skippedCount;
-    campaign.suppressedCount = summary.suppressedCount;
-    campaign.failedCount = summary.failedCount;
-    campaign.queuedCount = summary.queuedCount;
-    campaign.status = summary.status;
-    await campaign.save();
-
-    const resultText = summary.status === 'completed'
-      ? `Promotion sent to ${summary.sentCount} runner${summary.sentCount !== 1 ? 's' : ''}.`
-      : `Promotion processed for ${summary.selectedCount} runner${summary.selectedCount !== 1 ? 's' : ''}: ${summary.sentCount} sent, ${summary.queuedCount} queued, ${summary.skippedCount + summary.suppressedCount} skipped, ${summary.failedCount} failed.`;
-    const q = new URLSearchParams({ type: summary.status === 'failed' ? 'error' : 'success', msg: resultText });
+    const resultText = `Promotion started for ${recipients.length} runner${recipients.length !== 1 ? 's' : ''}. Progress appears under Recent Campaigns.`;
+    const q = new URLSearchParams({ type: 'success', msg: resultText });
     return res.redirect(`${redirectBase}?${q}`);
   } catch (error) {
     logger.error('Admin promote send error:', error);

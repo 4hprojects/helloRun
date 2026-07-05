@@ -48,12 +48,33 @@ test('promotion sends record outcome summaries instead of immediate background c
 
   assert.match(service, /notifyWithRetry/);
   assert.match(service, /dispatchEventPromotionCampaign/);
-  assert.match(adminController, /dispatchEventPromotionCampaign/);
-  assert.match(adminController, /campaign\.sentCount = summary\.sentCount/);
-  assert.match(organizerRoutes, /dispatchEventPromotionCampaign/);
-  assert.match(organizerRoutes, /campaign\.sentCount = summary\.sentCount/);
+  assert.match(service, /dispatchAndFinalizeEventPromotionCampaign/);
+  assert.match(service, /campaign\.sentCount = summary\.sentCount/);
+  assert.match(adminController, /dispatchEventPromotionCampaignInBackground/);
+  assert.match(organizerRoutes, /dispatchEventPromotionCampaignInBackground/);
   assert.doesNotMatch(adminController, /notifyWithRetryInBackground\('event\.promotion'/);
   assert.doesNotMatch(organizerRoutes, /notifyWithRetryInBackground\('event\.promotion'/);
+});
+
+test('promotion dispatch is throttled and campaigns count toward quota at creation', () => {
+  const service = read('src/services/event-promotion.service.js');
+  const retryService = read('src/services/reliable-communication.service.js');
+  const adminController = read('src/controllers/admin/events.controller.js');
+  const organizerRoutes = read('src/routes/organiser/event-management.js');
+
+  // Sequential throttled sends — a concurrent Promise.allSettled dispatch trips the
+  // email provider's requests-per-second limit and queues most of the campaign.
+  assert.match(service, /EVENT_PROMOTION_SEND_INTERVAL_MS/);
+  assert.doesNotMatch(service, /Promise\.allSettled/);
+
+  // Retry idempotency keys must be campaign-scoped, otherwise a re-send campaign
+  // collides with the previous campaign's finished retry job and never delivers.
+  assert.match(retryService, /campaignId: String\(metadata\.campaignId \|\| ''\)/);
+
+  // recipientCount is written at campaign creation so daily-quota sums see
+  // in-flight background campaigns.
+  assert.match(adminController, /recipientCount: recipients\.length/);
+  assert.match(organizerRoutes, /recipientCount: recipients\.length/);
 });
 
 test('admin promotion supports selected pasted email recipients', () => {

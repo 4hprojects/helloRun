@@ -3,8 +3,11 @@ const Event = require('../models/Event');
 const Registration = require('../models/Registration');
 const User = require('../models/User');
 const { notifyWithRetry } = require('./reliable-communication.service');
+const logger = require('../utils/logger');
 
 const EVENT_PROMOTION_KEY = 'event.promotion';
+// Resend allows ~2 requests/second; concurrent dispatch 429s everything past the first burst.
+const SEND_INTERVAL_MS = Number(process.env.EVENT_PROMOTION_SEND_INTERVAL_MS || 600);
 const ORGANIZER_PROMO_NON_PARTICIPANT_CAP = 200;
 const ADMIN_PROMO_NON_PARTICIPANT_CAP = 200;
 const ADMIN_PROMO_ALL_RUNNERS_CAP = 500;
@@ -183,13 +186,18 @@ function buildEmptyCampaignSummary(selectedCount) {
   };
 }
 
+function sleep(ms) {
+  return ms > 0 ? new Promise((resolve) => setTimeout(resolve, ms)) : Promise.resolve();
+}
+
 async function dispatchEventPromotionCampaign({
   campaign,
   recipients,
   event,
   organiserName,
   source = 'event.promotion',
-  adminTriggered = false
+  adminTriggered = false,
+  sendIntervalMs = SEND_INTERVAL_MS
 } = {}) {
   const recipientList = Array.isArray(recipients) ? recipients.filter((runner) => runner && runner.email) : [];
   const appUrl = String(process.env.APP_URL || '').replace(/\/$/, '');
@@ -197,32 +205,34 @@ async function dispatchEventPromotionCampaign({
   const posterUrl = event.posterImageUrl || event.bannerImageUrl || null;
   const summary = buildEmptyCampaignSummary(recipientList.length);
 
-  const results = await Promise.allSettled(
-    recipientList.map((runner) => notifyWithRetry(EVENT_PROMOTION_KEY, {
-      email: {
-        to: runner.email,
-        firstName: runner.firstName || 'Runner',
-        eventTitle: event.title || 'Event',
-        posterUrl,
-        eventUrl,
-        organiserName,
-        recipientUserId: runner._id,
-        metadata: {
-          campaignId: String(campaign._id),
-          eventId: String(event._id),
-          adminTriggered
-        }
-      }
-    }, { source }))
-  );
+  for (let index = 0; index < recipientList.length; index += 1) {
+    const runner = recipientList[index];
+    if (index > 0) await sleep(sendIntervalMs);
 
-  for (const result of results) {
-    if (result.status === 'rejected') {
+    let value = null;
+    try {
+      value = await notifyWithRetry(EVENT_PROMOTION_KEY, {
+        email: {
+          to: runner.email,
+          firstName: runner.firstName || 'Runner',
+          eventTitle: event.title || 'Event',
+          posterUrl,
+          eventUrl,
+          organiserName,
+          recipientUserId: runner._id,
+          metadata: {
+            campaignId: String(campaign._id),
+            eventId: String(event._id),
+            adminTriggered
+          }
+        }
+      }, { source });
+    } catch (error) {
       summary.failedCount += 1;
       continue;
     }
 
-    const value = result.value || {};
+    value = value || {};
     if (value.queued) {
       summary.queuedCount += 1;
       continue;
@@ -248,6 +258,36 @@ async function dispatchEventPromotionCampaign({
   };
 }
 
+async function dispatchAndFinalizeEventPromotionCampaign(options = {}) {
+  const { campaign } = options;
+  try {
+    const summary = await dispatchEventPromotionCampaign(options);
+    campaign.recipientCount = summary.selectedCount;
+    campaign.selectedCount = summary.selectedCount;
+    campaign.sentCount = summary.sentCount;
+    campaign.skippedCount = summary.skippedCount;
+    campaign.suppressedCount = summary.suppressedCount;
+    campaign.failedCount = summary.failedCount;
+    campaign.queuedCount = summary.queuedCount;
+    campaign.status = summary.status;
+    await campaign.save();
+    return summary;
+  } catch (error) {
+    campaign.status = 'failed';
+    await campaign.save().catch(() => {});
+    throw error;
+  }
+}
+
+function dispatchEventPromotionCampaignInBackground(options = {}) {
+  dispatchAndFinalizeEventPromotionCampaign(options).catch((error) => {
+    logger.error('[event-promotion] Background campaign dispatch failed:', {
+      campaignId: String(options.campaign?._id || ''),
+      error: error?.message || String(error)
+    });
+  });
+}
+
 module.exports = {
   EVENT_PROMOTION_KEY,
   toObjectId,
@@ -259,5 +299,7 @@ module.exports = {
   resolveOrganizerPromotionRecipients,
   resolveAdminPromotionRecipients,
   resolveAdminSelectedEmailRecipients,
-  dispatchEventPromotionCampaign
+  dispatchEventPromotionCampaign,
+  dispatchAndFinalizeEventPromotionCampaign,
+  dispatchEventPromotionCampaignInBackground
 };

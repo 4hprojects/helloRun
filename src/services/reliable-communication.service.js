@@ -435,7 +435,10 @@ function buildCommunicationRetryKey(eventKey, payload = {}, options = {}) {
     registrationId: String(metadata.registrationId || ''),
     submissionId: String(metadata.submissionId || ''),
     activityId: String(metadata.activityId || ''),
-    eventId: String(metadata.eventId || '')
+    eventId: String(metadata.eventId || ''),
+    // Without the campaign id, a re-send campaign to the same recipient collides with the
+    // previous campaign's finished (sent/dead) retry job and is silently never delivered.
+    campaignId: String(metadata.campaignId || '')
   };
   return crypto.createHash('sha256').update(JSON.stringify(stable)).digest('hex');
 }
