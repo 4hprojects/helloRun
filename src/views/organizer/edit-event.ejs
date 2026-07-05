@@ -1146,8 +1146,8 @@
             <% if (formData.galleryImageUrls && formData.galleryImageUrls.length) { %>
             <div class="gallery-preview-grid" id="galleryPreviewGrid">
               <% formData.galleryImageUrls.forEach((galleryUrl, galleryIndex) => { %>
-                <div class="gallery-thumb-wrap" data-gallery-url="<%- galleryUrl %>">
-                  <button type="button" class="gallery-remove-btn" data-gallery-url="<%- galleryUrl %>" aria-label="Remove gallery image <%= galleryIndex + 1 %>">x</button>
+                <div class="gallery-thumb-wrap" data-gallery-url="<%= galleryUrl %>">
+                  <button type="button" class="gallery-remove-btn" data-gallery-url="<%= galleryUrl %>" aria-label="Remove gallery image <%= galleryIndex + 1 %>">x</button>
                   <img src="<%= galleryUrl %>" alt="Gallery Preview <%= galleryIndex + 1 %>" class="gallery-preview-thumb">
                 </div>
               <% }) %>
@@ -1408,7 +1408,7 @@
       const enablePricingPeriodsCheckbox = pricingStepController.enablePricingPeriodsCheckbox;
       togglePaymentFields();
 
-      const EXISTING_DISTANCE_PRICING = <%- JSON.stringify((formData.distancePricing || []).map(function(d) { return { categoryId: d.categoryId || '', distance: d.distance, amount: d.amount, earlyBirdAmount: d.earlyBirdAmount, regularAmount: d.regularAmount, lateAmount: d.lateAmount }; })) %>;
+      const EXISTING_DISTANCE_PRICING = <%- JSON.stringify((formData.distancePricing || []).map(function(d) { return { categoryId: d.categoryId || '', distance: d.distance, amount: d.amount, earlyBirdAmount: d.earlyBirdAmount, regularAmount: d.regularAmount, lateAmount: d.lateAmount }; })).replace(/</g, '\\u003c') %>;
 
       function normalizeDistanceLabel(value) {
         const raw = String(value || '').trim();
@@ -2757,8 +2757,8 @@
       const resetWaiverBtn = document.getElementById('resetWaiverBtn');
       const insertOrganizerPlaceholderBtn = document.getElementById('insertOrganizerPlaceholderBtn');
       const insertEventPlaceholderBtn = document.getElementById('insertEventPlaceholderBtn');
-      const defaultWaiverTemplate = <%- JSON.stringify(defaultWaiverTemplate || '') %>;
-      const initialWaiverTemplate = <%- JSON.stringify(formData.waiverTemplate || '') %>;
+      const defaultWaiverTemplate = <%- JSON.stringify(defaultWaiverTemplate || '').replace(/</g, '\\u003c') %>;
+      const initialWaiverTemplate = <%- JSON.stringify(formData.waiverTemplate || '').replace(/</g, '\\u003c') %>;
       let waiverQuill = null;
 
       function getWaiverTemplateValue() {
@@ -2910,7 +2910,7 @@
       const eventDetailsInput = document.getElementById('eventDetailsMarkdown');
       const eventDetailsPreview = document.getElementById('eventDetailsPreview');
       const clearEventDetailsBtn = document.getElementById('clearEventDetailsBtn');
-      const initialEventDetails = <%- JSON.stringify(formData.eventDetailsMarkdown || '') %>;
+      const initialEventDetails = <%- JSON.stringify(formData.eventDetailsMarkdown || '').replace(/</g, '\\u003c') %>;
       let eventDetailsQuill = null;
 
       function renderEventDetailsPreview() {

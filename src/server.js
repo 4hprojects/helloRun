@@ -36,17 +36,9 @@ const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 const { attachCsrfToken } = require('./middleware/csrf.middleware');
 
-// Fail fast if critical env vars are missing
-if (!process.env.SESSION_SECRET) {
-  logger.error('FATAL: SESSION_SECRET environment variable is not set. Refusing to start.');
-  process.exit(1);
-}
-{
-  const resetTtl = Number(process.env.PASSWORD_RESET_EXPIRY);
-  if (!Number.isFinite(resetTtl) || resetTtl <= 0) {
-    logger.warn('PASSWORD_RESET_EXPIRY is unset or not a positive number of milliseconds; password reset links will use the 1-hour default.');
-  }
-}
+// Fail fast on missing/invalid env vars (fatal: SESSION_SECRET, MONGODB_URI)
+const { enforceEnvAtBoot } = require('./config/validate-env');
+enforceEnvAtBoot();
 
 // ===== STEP 1: MIDDLEWARE (MUST BE FIRST) =====
 logger.info('Loading middleware...');

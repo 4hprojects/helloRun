@@ -124,7 +124,7 @@
             <button
               type="button"
               class="detail-poster-thumb-btn"
-              data-poster-src="<%- event.posterImageUrl %>"
+              data-poster-src="<%= event.posterImageUrl %>"
               aria-label="Open promotional poster"
             >
               <img class="detail-poster-image" src="<%= event.posterImageUrl %>" alt="<%= event.title %> poster">
@@ -140,7 +140,7 @@
                   type="button"
                   class="detail-gallery-thumb-btn"
                   data-gallery-index="<%= galleryIndex %>"
-                  data-gallery-src="<%- galleryUrl %>"
+                  data-gallery-src="<%= galleryUrl %>"
                   aria-label="Open gallery image <%= galleryIndex + 1 %>"
                 >
                   <img class="detail-gallery-image" src="<%= galleryUrl %>" alt="<%= event.title %> gallery image <%= galleryIndex + 1 %>">

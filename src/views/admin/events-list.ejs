@@ -345,8 +345,8 @@
   <script>if (window.lucide) lucide.createIcons();</script>
   <script>
     window.helloRunAdminEventsList = {
-      csrfToken: <%- JSON.stringify(locals.csrfToken || '') %>,
-      testDataCascadeCounts: <%- JSON.stringify(testDataCascadeCounts || null) %>
+      csrfToken: <%- JSON.stringify(locals.csrfToken || '').replace(/</g, '\\u003c') %>,
+      testDataCascadeCounts: <%- JSON.stringify(testDataCascadeCounts || null).replace(/</g, '\\u003c') %>
     };
   </script>
   <script src="/js/admin-events-list.js"></script>

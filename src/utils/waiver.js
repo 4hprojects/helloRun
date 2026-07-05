@@ -56,6 +56,21 @@ const DEFAULT_WAIVER_TEMPLATE = `
 </div>
 `.trim();
 
+const { sanitizeHtml } = require('./sanitize');
+
+// The waiver template is organizer-supplied HTML rendered raw (<%-) into the
+// runner-facing registration page, so it must be sanitized here. The allowlist
+// covers everything the default template uses plus basic formatting.
+const WAIVER_SANITIZE_OPTIONS = {
+  allowedTags: ['div', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'u', 'ul', 'ol', 'li', 'blockquote', 'a'],
+  allowedAttributes: {
+    a: ['href', 'rel', 'target'],
+    div: ['class'],
+    ul: ['class'],
+    ol: ['class']
+  }
+};
+
 function normalizeWaiverTemplate(value) {
   if (!value || typeof value !== 'string') return '';
   return value.trim();
@@ -66,9 +81,12 @@ function renderWaiverTemplate(template, context = {}) {
   const organizerName = String(context.organizerName || 'the organizer').trim() || 'the organizer';
   const eventTitle = String(context.eventTitle || 'this event').trim() || 'this event';
 
-  return source
+  const rendered = source
     .replace(/\{\{\s*ORGANIZER_NAME\s*\}\}/g, organizerName)
     .replace(/\{\{\s*EVENT_TITLE\s*\}\}/g, eventTitle);
+
+  // Sanitize after placeholder substitution so injected values are covered too
+  return sanitizeHtml(rendered, WAIVER_SANITIZE_OPTIONS);
 }
 
 module.exports = {

@@ -345,7 +345,7 @@
   <script src="/js/main.js"></script>
   <script src="/js/quick-profile-modal.js"></script>
   <% if (showRaceDistancePricePreview) { %>
-    <script type="application/json" id="raceDistancePricingPreviewData"><%- JSON.stringify(raceDistancePricePreviewData) %></script>
+    <script type="application/json" id="raceDistancePricingPreviewData"><%- JSON.stringify(raceDistancePricePreviewData).replace(/</g, '\\u003c') %></script>
     <script>
       (function initRaceDistancePricingPreview() {
         const raceDistanceSelect = document.getElementById('raceDistance');
@@ -419,7 +419,7 @@
   <% if (showRaceDistancePricePreview && Object.keys(raceDistancePricePreviewData).length) { %>
     <script>
       (function() {
-        var priceData = <%- JSON.stringify(raceDistancePricePreviewData) %>;
+        var priceData = <%- JSON.stringify(raceDistancePricePreviewData).replace(/</g, '\\u003c') %>;
         var distanceSelect = document.getElementById('raceDistance');
         var priceValue = document.getElementById('raceDistancePriceValue');
         var pricePeriod = document.getElementById('raceDistancePricePeriod');

@@ -4,41 +4,66 @@ const fs = require('node:fs');
 const path = require('node:path');
 const ejs = require('ejs');
 
-// Guards the stored-XSS class fixed July 5, 2026 (analysis SEC-A/SEC-B):
-// author-controlled scalars must never reach the page through unescaped <%-.
+// Guards the stored-XSS class fixed July 5-6, 2026 (analysis SEC-A/SEC-B + CQ-1
+// convention sweep): user-controlled scalars must never reach a page through
+// unescaped <%-. Convention (see CLAUDE.md → Architecture Notes):
+//   <%- %> is allowed ONLY for include(...), JSON bootstraps hardened with
+//   .replace(/</g, '<') (or the blog-post safeJson helper), the layout
+//   body, and server-sanitized HTML fields named on the allowlist below.
+//   Everything else must use <%= %>.
 
-const TEMPLATES = [
-  'src/views/admin/blog-review.ejs',
-  'src/views/blog/author-form.ejs'
-];
-
-// The only raw outputs these templates are allowed to keep:
-// - include(...) partials
-// - JSON script bootstraps hardened with .replace(/</g, '<')
-// - post.contentHtml in the review textarea (sanitizer-processed HTML)
+// Expressions allowed inside <%- ... %> anywhere under src/views/
 const ALLOWED_RAW_OUTPUT = [
   /^include\(/,
-  /^JSON\.stringify\(.*\)\.replace\(\/<\/g, '\\\\u003c'\)$/,
-  /^post\.contentHtml \|\| ''$/
+  // JSON embedded in <script> must escape "<" so "</script>" in the data
+  // cannot terminate the tag
+  /\.replace\(\/<\/g, '\\\\u003c'\)$/,
+  /^safeJson\(/,
+  // layouts/main.ejs template composition
+  /^body$/,
+  // Server-sanitized HTML (all pass through utils/sanitize.js before render):
+  /^post\.contentHtml( \|\| '')?$/,
+  /^\(blogContentParts && blogContentParts\.beforeAd\) \|\| post\.contentHtml$/,
+  /^blogContentParts\.afterAd$/,
+  /^policyHtml$/,
+  /^policy\.contentHtmlPreview \|\| ''$/,
+  /^eventDetailsHtml$/,
+  /^waiverHtml$/
 ];
 
 function readTemplate(relativePath) {
   return fs.readFileSync(path.resolve(__dirname, '..', relativePath), 'utf8');
 }
 
-test('blog form templates only use <%- for includes, hardened JSON, and sanitized HTML', () => {
-  for (const relativePath of TEMPLATES) {
-    const source = readTemplate(relativePath);
-    const rawTags = [...source.matchAll(/<%-([\s\S]*?)%>/g)].map((match) => match[1].trim());
-    const violations = rawTags.filter(
-      (expression) => !ALLOWED_RAW_OUTPUT.some((pattern) => pattern.test(expression))
+function listEjsFiles(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) return listEjsFiles(fullPath);
+    return entry.name.endsWith('.ejs') ? [fullPath] : [];
+  });
+}
+
+test('all views only use <%- for includes, hardened JSON, and sanitized HTML', () => {
+  const viewsRoot = path.resolve(__dirname, '..', 'src/views');
+  const violations = [];
+
+  for (const filePath of listEjsFiles(viewsRoot)) {
+    const source = fs.readFileSync(filePath, 'utf8');
+    const rawTags = [...source.matchAll(/<%-([\s\S]*?)%>/g)].map((match) =>
+      match[1].trim().replace(/\s+/g, ' ')
     );
-    assert.deepEqual(
-      violations,
-      [],
-      `${relativePath} emits unescaped <%- output that is not on the allowlist:\n${violations.join('\n')}`
-    );
+    for (const expression of rawTags) {
+      if (!ALLOWED_RAW_OUTPUT.some((pattern) => pattern.test(expression))) {
+        violations.push(`${path.relative(viewsRoot, filePath)}: <%- ${expression} %>`);
+      }
+    }
   }
+
+  assert.deepEqual(
+    violations,
+    [],
+    `Unescaped <%- output not on the allowlist — use <%= %>, or harden/sanitize and extend the allowlist deliberately:\n${violations.join('\n')}`
+  );
 });
 
 test('admin blog review neutralises hostile author-controlled values', () => {

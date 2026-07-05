@@ -220,7 +220,7 @@
             }
           });
 
-          const initialRichHtml = <%- JSON.stringify(policy.contentHtmlRaw || policy.contentHtmlPreview || '') %>;
+          const initialRichHtml = <%- JSON.stringify(policy.contentHtmlRaw || policy.contentHtmlPreview || '').replace(/</g, '\\u003c') %>;
           quill.root.innerHTML = initialRichHtml || '<h2>Introduction</h2><p></p><h2>Data We Collect</h2><p></p><h2>How We Use Data</h2><p></p>';
         }
 

@@ -73,6 +73,7 @@ npm run mark-test-events   # Mark existing test events as isTestData:true (sitem
 - **Workers:** pg-sync-worker (sync retry), communication-retry-worker, blog-scheduler-worker — all wired into server startup
 - **Rate limiting:** Shared Redis limiters across auth, submissions, exports, reviews
 - **Monitoring:** Sentry APM (conditional on SENTRY_DSN), `/healthz` + `/readyz` endpoints
+- **EJS escaping convention (enforced by `tests/blog-template-escaping.unit.test.js`):** use `<%= %>` for everything by default. `<%- %>` is allowed only for: `include(...)`; JSON embedded in `<script>` when written as `JSON.stringify(x).replace(/</g, '<')` (or the blog-post `safeJson` helper) so `</script>` in the data can't terminate the tag; the layout `body`; and server-sanitized HTML fields that pass through `utils/sanitize.js` (`contentHtml`, `policyHtml`, `eventDetailsHtml`, `waiverHtml`, …). Adding a new raw output means extending that test's allowlist deliberately.
 
 ## Test Patterns
 

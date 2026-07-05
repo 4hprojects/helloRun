@@ -119,9 +119,9 @@
       const form = document.getElementById('shopCheckoutForm');
       if (!form) return;
 
-      const subtotal = <%- JSON.stringify(summary.subtotal) %>;
-      const deliveryFee = <%- JSON.stringify(summary.deliveryFee) %>;
-      const currency = <%- JSON.stringify(summary.currency) %>;
+      const subtotal = <%- JSON.stringify(summary.subtotal).replace(/</g, '\\u003c') %>;
+      const deliveryFee = <%- JSON.stringify(summary.deliveryFee).replace(/</g, '\\u003c') %>;
+      const currency = <%- JSON.stringify(summary.currency).replace(/</g, '\\u003c') %>;
       const addressField = document.getElementById('shopCheckoutAddressField');
       const deliveryFeeLabel = document.getElementById('shopCheckoutDeliveryFee');
       const totalLabel = document.getElementById('shopCheckoutTotal');

@@ -6,7 +6,7 @@
     <link rel="alternate" type="application/json" title="Open Badges metadata" href="<%= openBadgeUrl %>">
   <% } %>
   <% if (typeof openBadgeMetadata !== 'undefined' && openBadgeMetadata) { %>
-    <script type="application/ld+json"><%- JSON.stringify(openBadgeMetadata) %></script>
+    <script type="application/ld+json"><%- JSON.stringify(openBadgeMetadata).replace(/</g, '\\u003c') %></script>
   <% } %>
   <link rel="stylesheet" href="/css/badge-verification.css">
 </head>

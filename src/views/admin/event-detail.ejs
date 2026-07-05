@@ -349,8 +349,8 @@
   <script src="/js/main.js"></script>
   <script>
     (function() {
-      const csrfToken = <%- JSON.stringify(locals.csrfToken || '') %>;
-      const eventId = <%- JSON.stringify(String(event._id)) %>;
+      const csrfToken = <%- JSON.stringify(locals.csrfToken || '').replace(/</g, '\\u003c') %>;
+      const eventId = <%- JSON.stringify(String(event._id)).replace(/</g, '\\u003c') %>;
       const messageBox = document.getElementById('eventActionMessage');
       const approveModal = document.getElementById('adminEventApproveConfirmModal');
       const approveModalDialog = approveModal ? approveModal.querySelector('.admin-delete-confirm-dialog') : null;
