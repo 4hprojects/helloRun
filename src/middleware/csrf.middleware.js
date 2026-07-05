@@ -1,4 +1,23 @@
 const crypto = require('crypto');
+const logger = require('../utils/logger');
+
+// The CSRF_PROTECTION=0 kill-switch exists for the local test harness only.
+// In production it is ignored (fail-safe): one stray env value must not be able
+// to disable CSRF site-wide.
+const isProduction = process.env.NODE_ENV === 'production';
+const killSwitchSet = process.env.CSRF_PROTECTION === '0';
+if (killSwitchSet && isProduction) {
+  logger.warn('CSRF_PROTECTION=0 is set but ignored because NODE_ENV=production. CSRF protection stays ON.');
+} else if (killSwitchSet) {
+  logger.warn('CSRF protection is DISABLED (CSRF_PROTECTION=0). Only acceptable in local test runs.');
+}
+
+function tokensMatch(sessionToken, requestToken) {
+  const a = Buffer.from(String(sessionToken));
+  const b = Buffer.from(String(requestToken));
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
 
 function getOrCreateCsrfToken(req) {
   if (!req.session) return '';
@@ -14,8 +33,8 @@ function attachCsrfToken(req, res, next) {
 }
 
 function requireCsrfProtection(req, res, next) {
-  // Default ON — disable explicitly with CSRF_PROTECTION=0
-  const skipCsrf = process.env.CSRF_PROTECTION === '0';
+  // Default ON — the CSRF_PROTECTION=0 kill-switch only works outside production
+  const skipCsrf = process.env.CSRF_PROTECTION === '0' && process.env.NODE_ENV !== 'production';
   if (skipCsrf) {
     return next();
   }
@@ -30,7 +49,7 @@ function requireCsrfProtection(req, res, next) {
   const headerToken = req.get('x-csrf-token') || '';
   const token = bodyToken || headerToken;
 
-  if (!sessionToken || !token || sessionToken !== token) {
+  if (!sessionToken || !token || !tokensMatch(sessionToken, token)) {
     if (req.path === '/logout') {
       return res.redirect('/login?type=error&message=Invalid+or+expired+security+token');
     }
@@ -46,5 +65,7 @@ function requireCsrfProtection(req, res, next) {
 
 module.exports = {
   attachCsrfToken,
-  requireCsrfProtection
+  requireCsrfProtection,
+  // Exposed for DB-free unit tests only
+  _tokensMatch: tokensMatch
 };

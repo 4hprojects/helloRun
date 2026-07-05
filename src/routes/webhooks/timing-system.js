@@ -40,7 +40,14 @@ function verifyWebhookSignature(req, res, next) {
     .update(`${timestamp}.${payload}`)
     .digest('hex');
 
-  if (!crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(signature))) {
+  // timingSafeEqual throws on length mismatch — a wrong-length signature must be
+  // a clean 401, not a 500
+  const hmacBuffer = Buffer.from(hmac);
+  const signatureBuffer = Buffer.from(String(signature));
+  if (
+    hmacBuffer.length !== signatureBuffer.length ||
+    !crypto.timingSafeEqual(hmacBuffer, signatureBuffer)
+  ) {
     return res.status(401).json({ error: 'Invalid webhook signature' });
   }
 

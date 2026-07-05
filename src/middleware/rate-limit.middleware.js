@@ -1,15 +1,43 @@
 const { getRedisClient } = require('../config/redis');
 const logger = require('../utils/logger');
 
-// In-memory fallback store (used when Redis is not configured or unavailable)
+// In-memory fallback store (used when Redis is not configured or unavailable).
+// Keys are path|user|ip, so under real traffic the Map accumulates one entry per
+// unique visitor forever unless pruned — a slow leak and a cheap memory-exhaustion
+// vector. Expired buckets are swept lazily; a hard cap evicts oldest-first
+// (Map preserves insertion order) if the sweep alone can't hold the line.
 const buckets = new Map();
+const MAX_BUCKETS = 50_000;
+const SWEEP_INTERVAL_MS = 60_000;
+let nextSweepAt = Date.now() + SWEEP_INTERVAL_MS;
+
+function sweepExpiredBuckets(now) {
+  for (const [key, bucket] of buckets) {
+    if (now - bucket.start > bucket.windowMs) {
+      buckets.delete(key);
+    }
+  }
+}
 
 function inMemoryCheck(key, safeWindowMs, safeMaxRequests) {
   const now = Date.now();
+
+  if (now >= nextSweepAt) {
+    nextSweepAt = now + SWEEP_INTERVAL_MS;
+    sweepExpiredBuckets(now);
+  }
+
   const existing = buckets.get(key);
 
-  if (!existing || now - existing.start > safeWindowMs) {
-    buckets.set(key, { start: now, count: 1 });
+  if (!existing || now - existing.start > existing.windowMs) {
+    if (!existing && buckets.size >= MAX_BUCKETS) {
+      sweepExpiredBuckets(now);
+      while (buckets.size >= MAX_BUCKETS) {
+        const oldestKey = buckets.keys().next().value;
+        buckets.delete(oldestKey);
+      }
+    }
+    buckets.set(key, { start: now, count: 1, windowMs: safeWindowMs });
     return { allowed: true, count: 1 };
   }
 
@@ -70,5 +98,7 @@ function createRateLimiter({ windowMs, maxRequests, message, keyFn }) {
 }
 
 module.exports = {
-  createRateLimiter
+  createRateLimiter,
+  // Exposed for DB-free unit tests only
+  _inMemory: { buckets, inMemoryCheck, sweepExpiredBuckets, MAX_BUCKETS }
 };
