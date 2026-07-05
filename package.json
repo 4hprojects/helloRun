@@ -58,8 +58,9 @@
     "race",
     "marathon"
   ],
-  "author": "HelloRun Team",
-  "license": "ISC",
+  "author": "Henson M. Sagorsor <hensonsagorsor@gmail.com>",
+  "license": "UNLICENSED",
+  "private": true,
   "dependencies": {
     "@aws-sdk/client-s3": "^3.998.0",
     "@aws-sdk/s3-request-presigner": "^3.998.0",
