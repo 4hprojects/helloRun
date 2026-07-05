@@ -7,6 +7,14 @@ function readSource(relativePath) {
   return fs.readFileSync(path.resolve(__dirname, '..', relativePath), 'utf8');
 }
 
+function readSourceDir(relativeDir) {
+  const dir = path.resolve(__dirname, '..', relativeDir);
+  return fs.readdirSync(dir)
+    .filter((name) => name.endsWith('.js'))
+    .map((name) => fs.readFileSync(path.join(dir, name), 'utf8'))
+    .join('\n');
+}
+
 test('communication retry queue captures failed critical notifications and runs a worker', () => {
   const model = readSource('src/models/CommunicationRetry.js');
   const service = readSource('src/services/reliable-communication.service.js');
@@ -33,7 +41,8 @@ test('communication retry queue captures failed critical notifications and runs 
 });
 
 test('high-impact organizer workflow notifications use retry-backed delivery', () => {
-  const organizerRoutes = readSource('src/routes/organizer.routes.js');
+  // organizer.routes.js is a barrel since DEBT-2 — handlers live in src/routes/organiser/
+  const organizerRoutes = readSourceDir('src/routes/organiser');
   const organizerShopController = readSource('src/controllers/organizer-shop.controller.js');
   const submissionService = readSource('src/services/submission.service.js');
   const accumulatedActivityService = readSource('src/services/accumulated-activity.service.js');
@@ -51,7 +60,8 @@ test('high-impact organizer workflow notifications use retry-backed delivery', (
 
 test('admin communications exposes retry queue inspection and manual retry', () => {
   const adminRoutes = readSource('src/routes/admin.routes.js');
-  const adminController = readSource('src/controllers/admin.controller.js');
+  // admin.controller.js is a barrel since DEBT-1 — handlers live in src/controllers/admin/
+  const adminController = readSourceDir('src/controllers/admin');
   const retryAuditModel = readSource('src/models/CommunicationRetryAudit.js');
   const retryService = readSource('src/services/reliable-communication.service.js');
   const communicationService = readSource('src/services/communication.service.js');

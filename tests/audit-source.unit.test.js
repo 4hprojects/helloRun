@@ -7,10 +7,23 @@ function readSource(relativePath) {
   return fs.readFileSync(path.resolve(__dirname, '..', relativePath), 'utf8');
 }
 
+function readSourceDir(relativeDir) {
+  const dir = path.resolve(__dirname, '..', relativeDir);
+  return fs.readdirSync(dir)
+    .filter((name) => name.endsWith('.js'))
+    .map((name) => fs.readFileSync(path.join(dir, name), 'utf8'))
+    .join('\n');
+}
+
+// organizer.routes.js is a barrel since DEBT-2 — the route handlers live in src/routes/organiser/
+function readOrganizerRoutesSource() {
+  return readSource('src/routes/organizer.routes.js') + '\n' + readSourceDir('src/routes/organiser');
+}
+
 test('high-impact runner and organizer workflows emit critical audit events', () => {
   const pageController = readSource('src/controllers/page.controller.js');
   const shopController = readSource('src/controllers/shop.controller.js');
-  const organizerRoutes = readSource('src/routes/organizer.routes.js');
+  const organizerRoutes = readOrganizerRoutesSource();
   const organizerShopController = readSource('src/controllers/organizer-shop.controller.js');
 
   assert.match(pageController, /payment\.receipt_submitted/);
@@ -22,7 +35,7 @@ test('high-impact runner and organizer workflows emit critical audit events', ()
 
 test('admin and organizer audit consoles expose filtered critical audit views', () => {
   const adminRoutes = readSource('src/routes/admin.routes.js');
-  const organizerRoutes = readSource('src/routes/organizer.routes.js');
+  const organizerRoutes = readOrganizerRoutesSource();
   const auditService = readSource('src/services/critical-audit-query.service.js');
   const adminAuditView = readSource('src/views/admin/audit-trail.ejs');
   const organizerAuditView = readSource('src/views/organizer/event-audit.ejs');
@@ -45,7 +58,7 @@ test('admin and organizer audit consoles expose filtered critical audit views', 
 test('critical audit consoles surface anomaly signals', () => {
   const auditService = readSource('src/services/critical-audit-query.service.js');
   const adminAuditController = readSource('src/controllers/admin-audit.controller.js');
-  const organizerRoutes = readSource('src/routes/organizer.routes.js');
+  const organizerRoutes = readOrganizerRoutesSource();
   const adminAuditView = readSource('src/views/admin/audit-trail.ejs');
   const organizerAuditView = readSource('src/views/organizer/event-audit.ejs');
 
