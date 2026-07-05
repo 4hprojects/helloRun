@@ -22,6 +22,7 @@ const homepageCarouselSettingService = require('../../services/homepage-carousel
 const adSettingService = require('../../services/ad-setting.service');
 const { recordCriticalAuditEventInBackground } = require('../../services/critical-audit.service');
 const { getTestDataCounts, purgeTestData } = require('../../services/test-data-cleanup.service');
+const { getTestUserCounts, purgeTestUsers, TEST_USER_EMAIL_PATTERN } = require('../../services/test-user-cleanup.service');
 const { reviewSubmission } = require('../../services/submission.service');
 const { reviewAccumulatedActivitySubmission } = require('../../services/accumulated-activity.service');
 const { getPostgresClient } = require('../../db/postgres');
@@ -367,6 +368,7 @@ function normalizeAdminUserFilters(query = {}) {
   const accountStatus = ADMIN_USER_ACCOUNT_STATUSES.includes(String(query.accountStatus || '').trim())
     ? String(query.accountStatus).trim()
     : '';
+  const testFixture = String(query.testFixture || '').trim() === '1';
 
   return {
     role,
@@ -374,6 +376,7 @@ function normalizeAdminUserFilters(query = {}) {
     emailVerified,
     authProvider,
     accountStatus,
+    testFixture,
     sort,
     q,
     page,
@@ -389,6 +392,10 @@ function buildAdminUserQuery(filters) {
   if (filters.emailVerified === 'no') query.emailVerified = false;
   if (filters.authProvider) query.authProvider = filters.authProvider;
   if (filters.accountStatus) query.accountStatus = filters.accountStatus;
+  if (filters.testFixture) {
+    query.email = TEST_USER_EMAIL_PATTERN;
+    query.role = { $ne: 'admin' };
+  }
   if (filters.q) {
     const safeRegex = new RegExp(escapeRegex(filters.q), 'i');
     query.$or = [
@@ -414,6 +421,7 @@ function buildAdminUserListPath(filters, overrides = {}) {
   ['q', 'role', 'organizerStatus', 'emailVerified', 'authProvider', 'accountStatus', 'sort'].forEach((key) => {
     if (next[key]) params.set(key, next[key]);
   });
+  if (next.testFixture) params.set('testFixture', '1');
   if (next.perPage && next.perPage !== ADMIN_USERS_PER_PAGE) params.set('perPage', String(next.perPage));
   if (next.page && Number(next.page) > 1) params.set('page', String(next.page));
   const query = params.toString();
@@ -1348,7 +1356,7 @@ module.exports = {
   renderServerError, buildAdminRedirect, appendAdminPageMessage, buildCommunicationLogHref,
   buildCommunicationRetryHref, buildCommunicationRetryActionHref, buildCommunicationFailureDetailHref,
   getAdminPageMessage, acceptsJson, normalizePositiveInt, verifyAdminDeletionPassword,
-  getTestDataCounts, purgeTestData,
+  getTestDataCounts, purgeTestData, getTestUserCounts, purgeTestUsers,
   normalizeAdminEventFilters, buildAdminEventQuery, normalizeAdminUserFilters, buildAdminUserQuery,
   getAdminUserSort, buildAdminUserListPath, buildAdminUsersRedirect, formatUserDisplayName,
   getCountMap, maskDateForAdmin, formatAdminShortDate, formatAdminDateTime, formatAdminEnumLabel,

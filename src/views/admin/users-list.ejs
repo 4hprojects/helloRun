@@ -27,6 +27,36 @@
         </div>
       <% } %>
 
+      <div class="quick-link-grid">
+        <a class="quick-link-card" href="/admin/users?testFixture=1">
+          <span class="quick-link-title">Test/Fixture Accounts</span>
+          <span class="quick-link-meta"><%= testFixtureCount %> @example.com account<%= testFixtureCount === 1 ? '' : 's' %></span>
+        </a>
+      </div>
+
+      <% if (filters.testFixture && testFixtureCascadeCounts) { %>
+        <div class="admin-alert admin-alert-warning">
+          <strong><%= testFixtureCascadeCounts.users %></strong> test-fixture account<%= testFixtureCascadeCounts.users === 1 ? '' : 's' %> found (email ends in @example.com, excludes admin-role accounts and your own account), linked to
+          <strong><%= testFixtureCascadeCounts.registrations %></strong> registration<%= testFixtureCascadeCounts.registrations === 1 ? '' : 's' %>,
+          <strong><%= testFixtureCascadeCounts.submissions %></strong> submission<%= testFixtureCascadeCounts.submissions === 1 ? '' : 's' %>,
+          <strong><%= testFixtureCascadeCounts.events %></strong> organized event<%= testFixtureCascadeCounts.events === 1 ? '' : 's' %>, and more (blog posts, running groups, Strava connections, organiser applications, notifications).
+          Purging also removes the matching Postgres/Supabase shadow records.
+          <% if (viewerIsFullAdmin && testFixtureCascadeCounts.users > 0) { %>
+            <form method="POST" action="/admin/users/test-fixtures/purge" id="adminPurgeTestUsersForm" style="margin-top: 0.75rem;">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <input type="hidden" name="reason" id="adminPurgeTestUsersReasonHidden">
+              <input type="hidden" name="confirmation" id="adminPurgeTestUsersConfirmationHidden">
+              <button type="submit" class="btn btn-danger" id="adminPurgeTestUsersBtn">
+                <i data-lucide="trash-2" aria-hidden="true"></i>
+                Permanently Purge Test Accounts
+              </button>
+            </form>
+          <% } else if (!viewerIsFullAdmin) { %>
+            <p class="metric-helper" style="margin-top: 0.5rem;">Only full-tier admins can permanently purge test accounts.</p>
+          <% } %>
+        </div>
+      <% } %>
+
       <form class="admin-filters admin-users-filters" method="GET" action="/admin/users">
         <div class="filter-field filter-grow admin-user-search-field">
           <label for="q">Search</label>
@@ -372,6 +402,44 @@
           <a href="/admin/users" class="btn btn-secondary">View All Users</a>
         </div>
       <% } %>
+
+      <!-- Purge Test Accounts Confirmation Modal -->
+      <div class="admin-delete-confirm-backdrop" id="adminPurgeTestUsersModal" hidden aria-hidden="true">
+        <div class="admin-delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="adminPurgeTestUsersTitle" tabindex="-1">
+          <div class="admin-delete-confirm-icon-wrap">
+            <i data-lucide="triangle-alert" aria-hidden="true"></i>
+          </div>
+          <h3 id="adminPurgeTestUsersTitle">Permanently Purge Test Accounts</h3>
+          <p class="admin-delete-confirm-desc">This permanently deletes every test-fixture account and everything linked to it, across MongoDB and Postgres. This cannot be undone.</p>
+          <div class="admin-delete-confirm-pw-group">
+            <label for="adminPurgeTestUsersReason">Reason for purging <span aria-hidden="true">(min 8 characters)</span></label>
+            <textarea id="adminPurgeTestUsersReason" rows="3" placeholder="Enter a reason..." class="admin-delete-confirm-pw-input" style="resize:vertical;"></textarea>
+            <p class="admin-delete-confirm-pw-error" id="adminPurgeTestUsersReasonError" hidden></p>
+          </div>
+          <div class="admin-delete-confirm-pw-group">
+            <label for="adminPurgeTestUsersConfirmText">Type <strong>PURGE</strong> to confirm this is permanent and cannot be undone</label>
+            <input type="text" id="adminPurgeTestUsersConfirmText" autocomplete="off" placeholder="PURGE" class="admin-delete-confirm-pw-input">
+            <p class="admin-delete-confirm-pw-error" id="adminPurgeTestUsersConfirmError" hidden></p>
+          </div>
+          <div class="admin-delete-confirm-pw-group">
+            <label for="adminPurgeTestUsersPassword">Enter your password to confirm</label>
+            <div class="admin-delete-confirm-pw-wrap">
+              <input type="password" id="adminPurgeTestUsersPassword" autocomplete="current-password" placeholder="Your password" class="admin-delete-confirm-pw-input">
+              <button type="button" class="admin-delete-confirm-pw-toggle" id="adminPurgeTestUsersPwToggle" aria-label="Show password">
+                <i data-lucide="eye" aria-hidden="true"></i>
+              </button>
+            </div>
+            <p class="admin-delete-confirm-pw-error" id="adminPurgeTestUsersPwError" hidden></p>
+          </div>
+          <div class="admin-delete-confirm-actions">
+            <button type="button" class="btn btn-secondary" id="adminPurgeTestUsersCancelBtn">Cancel</button>
+            <button type="button" class="btn btn-danger" id="adminPurgeTestUsersOkBtn">
+              <i data-lucide="trash-2" aria-hidden="true"></i>
+              Purge Permanently
+            </button>
+          </div>
+        </div>
+      </div>
 
       <!-- Delete Confirmation Modal -->
       <div class="admin-delete-confirm-backdrop" id="adminDeleteConfirmModal" hidden aria-hidden="true">
@@ -881,6 +949,128 @@
 
       applyColumnState(getStoredColumnState(), false);
       updateBulkState();
+
+      const purgeForm = document.getElementById('adminPurgeTestUsersForm');
+      const purgeBtn = document.getElementById('adminPurgeTestUsersBtn');
+      const purgeReasonHidden = document.getElementById('adminPurgeTestUsersReasonHidden');
+      const purgeConfirmationHidden = document.getElementById('adminPurgeTestUsersConfirmationHidden');
+      const purgeModal = document.getElementById('adminPurgeTestUsersModal');
+      const purgeModalDialog = purgeModal ? purgeModal.querySelector('.admin-delete-confirm-dialog') : null;
+      const purgeReasonInput = document.getElementById('adminPurgeTestUsersReason');
+      const purgeReasonError = document.getElementById('adminPurgeTestUsersReasonError');
+      const purgeConfirmInput = document.getElementById('adminPurgeTestUsersConfirmText');
+      const purgeConfirmError = document.getElementById('adminPurgeTestUsersConfirmError');
+      const purgePwInput = document.getElementById('adminPurgeTestUsersPassword');
+      const purgePwError = document.getElementById('adminPurgeTestUsersPwError');
+      const purgePwToggle = document.getElementById('adminPurgeTestUsersPwToggle');
+      const purgeCancelBtn = document.getElementById('adminPurgeTestUsersCancelBtn');
+      const purgeOkBtn = document.getElementById('adminPurgeTestUsersOkBtn');
+      let purgeModalResolve = null;
+      let lastPurgeModalTrigger = null;
+
+      function openPurgeModal(triggerEl) {
+        if (!purgeModal) return Promise.resolve(null);
+        lastPurgeModalTrigger = triggerEl || null;
+        if (purgeReasonInput) purgeReasonInput.value = '';
+        if (purgeReasonError) { purgeReasonError.hidden = true; purgeReasonError.textContent = ''; }
+        if (purgeConfirmInput) purgeConfirmInput.value = '';
+        if (purgeConfirmError) { purgeConfirmError.hidden = true; purgeConfirmError.textContent = ''; }
+        if (purgePwInput) { purgePwInput.value = ''; purgePwInput.type = 'password'; }
+        if (purgePwError) { purgePwError.hidden = true; purgePwError.textContent = ''; }
+        if (purgePwToggle) {
+          const icon = purgePwToggle.querySelector('i');
+          if (icon) icon.setAttribute('data-lucide', 'eye');
+          purgePwToggle.setAttribute('aria-label', 'Show password');
+          if (window.lucide) lucide.createIcons({ nodes: [purgePwToggle] });
+        }
+        purgeModal.hidden = false;
+        purgeModal.setAttribute('aria-hidden', 'false');
+        if (purgeModalDialog) purgeModalDialog.focus();
+        return new Promise((resolve) => { purgeModalResolve = resolve; });
+      }
+
+      function closePurgeModal(result) {
+        if (!purgeModal) return;
+        purgeModal.hidden = true;
+        purgeModal.setAttribute('aria-hidden', 'true');
+        if (purgePwInput) purgePwInput.value = '';
+        const resolve = purgeModalResolve;
+        purgeModalResolve = null;
+        if (resolve) resolve(result);
+        if (lastPurgeModalTrigger) lastPurgeModalTrigger.focus();
+        lastPurgeModalTrigger = null;
+      }
+
+      if (purgePwToggle && purgePwInput) {
+        purgePwToggle.addEventListener('click', () => {
+          const isPassword = purgePwInput.type === 'password';
+          purgePwInput.type = isPassword ? 'text' : 'password';
+          const icon = purgePwToggle.querySelector('i');
+          if (icon) icon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+          purgePwToggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+          if (window.lucide) lucide.createIcons({ nodes: [purgePwToggle] });
+        });
+      }
+
+      if (purgeCancelBtn) purgeCancelBtn.addEventListener('click', () => closePurgeModal(null));
+
+      if (purgeOkBtn) {
+        purgeOkBtn.addEventListener('click', () => {
+          let valid = true;
+          const reason = purgeReasonInput ? purgeReasonInput.value.trim() : '';
+          if (reason.length < 8) {
+            if (purgeReasonError) { purgeReasonError.textContent = 'Reason must be at least 8 characters.'; purgeReasonError.hidden = false; }
+            if (purgeReasonInput) purgeReasonInput.focus();
+            valid = false;
+          } else if (purgeReasonError) {
+            purgeReasonError.hidden = true;
+          }
+          const confirmation = purgeConfirmInput ? purgeConfirmInput.value.trim().toUpperCase() : '';
+          if (confirmation !== 'PURGE') {
+            if (purgeConfirmError) { purgeConfirmError.textContent = 'Type PURGE (all caps) to confirm.'; purgeConfirmError.hidden = false; }
+            if (valid && purgeConfirmInput) purgeConfirmInput.focus();
+            valid = false;
+          } else if (purgeConfirmError) {
+            purgeConfirmError.hidden = true;
+          }
+          const pw = purgePwInput ? purgePwInput.value.trim() : '';
+          if (!pw) {
+            if (purgePwError) { purgePwError.textContent = 'Please enter your password.'; purgePwError.hidden = false; }
+            if (valid && purgePwInput) purgePwInput.focus();
+            valid = false;
+          } else if (purgePwError) {
+            purgePwError.hidden = true;
+          }
+          if (!valid) return;
+          closePurgeModal({ reason, confirmation, password: pw });
+        });
+      }
+
+      if (purgePwInput) {
+        purgePwInput.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') { event.preventDefault(); if (purgeOkBtn) purgeOkBtn.click(); }
+        });
+      }
+
+      if (purgeModal) {
+        purgeModal.addEventListener('click', (event) => {
+          if (event.target === purgeModal) closePurgeModal(null);
+        });
+        purgeModal.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') closePurgeModal(null);
+        });
+      }
+
+      if (purgeForm) {
+        purgeForm.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const result = await openPurgeModal(purgeBtn);
+          if (!result) return;
+          if (purgeReasonHidden) purgeReasonHidden.value = result.reason;
+          if (purgeConfirmationHidden) purgeConfirmationHidden.value = result.confirmation;
+          injectPasswordAndSubmit(purgeForm, result.password);
+        });
+      }
     })();
   </script>
   <script>if (window.lucide) lucide.createIcons();</script>

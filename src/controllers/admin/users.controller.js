@@ -9,7 +9,8 @@ const {
   renderServerError, buildAdminRedirect, normalizeUserIdsForDeletion, getUserDeleteBlockers,
   formatUserDisplayName, maskDateForAdmin, findAdminManagedUser, renderAdminUserNotFound,
   renderAdminUserEdit, getAdminUserEditFormData, validateAdminUserEditForm,
-  getRequestIpAddress, getRequestUserAgent, isFullAdminTier
+  getRequestIpAddress, getRequestUserAgent, isFullAdminTier,
+  getTestUserCounts, purgeTestUsers
 } = require('./_shared');
 const {
   buildCsvContent,
@@ -85,6 +86,10 @@ exports.listUsers = async (req, res) => {
     const counts = await getAdminUserActivityCounts(users.map((user) => user._id));
     const mappedUsers = users.map((user) => mapAdminUserListItem(user, counts, req.session.userId));
 
+    const testFixtureCount = await User.countDocuments({ email: /@example\.com$/i, role: { $ne: 'admin' } });
+    const testFixtureCascadeCounts = filters.testFixture ? await getTestUserCounts(req.session.userId) : null;
+    const viewer = await User.findById(req.session.userId).select('adminTier').lean();
+
     return res.render('admin/users-list', {
       title: 'User Management - HelloRun Admin',
       users: mappedUsers,
@@ -92,6 +97,9 @@ exports.listUsers = async (req, res) => {
       message: cappedForAll
         ? { type: 'warning', text: `Showing first ${ADMIN_USERS_ALL_CAP.toLocaleString()} of ${total.toLocaleString()} users. Use filters to narrow results.` }
         : getAdminPageMessage(req.query),
+      testFixtureCount,
+      testFixtureCascadeCounts,
+      viewerIsFullAdmin: isFullAdminTier(viewer),
       pagination: {
         page,
         totalPages,
@@ -226,6 +234,46 @@ exports.deleteUsers = async (req, res) => {
     return res.redirect(buildAdminUsersRedirect('success', message));
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while deleting users.');
+  }
+};
+
+exports.purgeTestUsers = async (req, res) => {
+  try {
+    const adminPassword = String(req.body?.adminPassword || '');
+    if (!adminPassword) {
+      return res.redirect(buildAdminUsersRedirect('error', 'Password is required to confirm this action.'));
+    }
+    const adminUser = await User.findById(req.session.userId).select('passwordHash').lean();
+    if (!adminUser || !adminUser.passwordHash) {
+      return res.redirect(buildAdminUsersRedirect('error', 'Unable to verify your identity. Purge cancelled.'));
+    }
+    const isValidPassword = await passwordService.comparePassword(adminPassword, adminUser.passwordHash);
+    if (!isValidPassword) {
+      return res.redirect(buildAdminUsersRedirect('error', 'Incorrect password. Purge cancelled.'));
+    }
+    const reason = String(req.body?.reason || '').trim();
+    if (reason.length < 8) {
+      return res.redirect(buildAdminUsersRedirect('error', 'Purge reason must be at least 8 characters.'));
+    }
+    const confirmation = String(req.body?.confirmation || '').trim().toUpperCase();
+    if (confirmation !== 'PURGE') {
+      return res.redirect(buildAdminUsersRedirect('error', 'Type PURGE to confirm this action.'));
+    }
+
+    const summary = await purgeTestUsers({
+      actorUserId: req.session.userId,
+      ipAddress: getRequestIpAddress(req),
+      userAgent: getRequestUserAgent(req)
+    });
+    if (!summary.usersDeleted) {
+      return res.redirect(buildAdminUsersRedirect('success', 'No test-fixture accounts found to purge.'));
+    }
+    return res.redirect(buildAdminUsersRedirect(
+      'success',
+      `Permanently deleted ${summary.usersDeleted} test-fixture account${summary.usersDeleted === 1 ? '' : 's'} and everything linked to them.`
+    ));
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while purging test-fixture accounts.');
   }
 };
 

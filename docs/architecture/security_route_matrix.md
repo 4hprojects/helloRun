@@ -47,6 +47,7 @@ route table.
 | `/admin/users/:id/delete` | POST | admin | **full** | yes | adminAccountActionLimiter | n/a |
 | `/admin/events/bulk-delete` | POST | admin | **full** | yes | adminModerationLimiter | n/a |
 | `/admin/events/test-data/purge` | POST | admin | **full** | yes | adminTestDataPurgeLimiter | n/a |
+| `/admin/users/test-fixtures/purge` | POST | admin | **full** | yes | adminTestUserPurgeLimiter | n/a |
 | `/admin/events/:id/edit` | POST | admin | any | yes | adminModerationLimiter | n/a |
 | `/admin/events/:id/delete` | POST | admin | **full** | yes | adminModerationLimiter | n/a |
 | `/admin/applications/:id/approve` | POST | admin | any | yes | adminModerationLimiter | n/a |
@@ -98,6 +99,17 @@ Admin notes:
   addition to the usual reason/password checks, and it has its own strict
   `adminTestDataPurgeLimiter` (5/hour, per-admin-session-keyed) rather than sharing
   `adminModerationLimiter`. See `src/services/test-data-cleanup.service.js`.
+- **Test-user purge (added 2026-07-02):** `POST /admin/users/test-fixtures/purge`
+  permanently deletes every User with an `@example.com` email (excluding `role: 'admin'`
+  and the acting admin's own account) plus everything they own — Registrations,
+  Submissions, AccumulatedActivitySubmissions, OrganiserApplications, StravaConnections,
+  Notifications, Blogs (+ their comments/likes/views/revisions), RunningGroups (+ their
+  activity logs), EventPromotions, CertificateTemplates, and any Events they organize
+  (reusing the test-data purge's event cascade) — in both MongoDB and the Postgres
+  shadow tables (`app_users` and everything referencing it). Same elevated confirmation
+  bar as the event purge (password + reason + typed `PURGE`) and its own strict
+  `adminTestUserPurgeLimiter` (5/hour, per-admin-session-keyed). See
+  `src/services/test-user-cleanup.service.js`.
 - **Auth guard inconsistency (documented, not fixed):** the codebase uses two different
   admin-role guards. `admin.routes.js` uses `requireAdmin`
   (`src/middleware/auth.middleware.js`), which re-queries MongoDB for the user's current

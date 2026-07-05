@@ -136,24 +136,22 @@ async function getTestDataCounts() {
   };
 }
 
-// Permanently deletes every Event flagged isTestData plus everything that hangs off it,
-// in both MongoDB and the Postgres/Supabase shadow tables. Irreversible.
-async function purgeTestData({ actorUserId, ipAddress, userAgent, sql } = {}) {
-  const eventIds = await getTestDataEventIds();
-  const emptySummary = {
-    eventsDeleted: 0,
-    registrationsDeleted: 0,
-    submissionsDeleted: 0,
-    accumulatedSubmissionsDeleted: 0,
-    promotionsDeleted: 0,
-    certificateTemplatesDeleted: 0
-  };
-  if (!eventIds.length) return emptySummary;
+const EMPTY_EVENT_CASCADE_SUMMARY = {
+  eventsDeleted: 0,
+  registrationsDeleted: 0,
+  submissionsDeleted: 0,
+  accumulatedSubmissionsDeleted: 0,
+  promotionsDeleted: 0,
+  certificateTemplatesDeleted: 0
+};
 
-  const mongoEventIds = eventIds.map((id) => String(id));
-
-  // Postgres first and fully transactional: if it fails, abort before any Mongo writes.
-  await purgePostgresShadowData(mongoEventIds, { sql });
+// Deletes an explicit list of Events (and everything that hangs off them in MongoDB:
+// Registrations, Submissions, AccumulatedActivitySubmissions, EventPromotions,
+// CertificateTemplates, and User.savedEvents references) — Mongo-only, no Postgres.
+// Shared by purgeTestData (isTestData-driven) and the test-user purge (organizer-driven,
+// see test-user-cleanup.service.js), so both call the same cascade instead of duplicating it.
+async function cascadeDeleteEventsMongo(eventIds) {
+  if (!eventIds || !eventIds.length) return { ...EMPTY_EVENT_CASCADE_SUMMARY };
 
   const [registrationsResult, submissionsResult, accumulatedResult, promotionsResult, certTemplatesResult] = await Promise.all([
     Registration.deleteMany({ eventId: { $in: eventIds } }),
@@ -168,7 +166,7 @@ async function purgeTestData({ actorUserId, ipAddress, userAgent, sql } = {}) {
   );
   const eventsResult = await Event.deleteMany({ _id: { $in: eventIds } });
 
-  const summary = {
+  return {
     eventsDeleted: eventsResult.deletedCount || 0,
     registrationsDeleted: registrationsResult.deletedCount || 0,
     submissionsDeleted: submissionsResult.deletedCount || 0,
@@ -176,6 +174,20 @@ async function purgeTestData({ actorUserId, ipAddress, userAgent, sql } = {}) {
     promotionsDeleted: promotionsResult.deletedCount || 0,
     certificateTemplatesDeleted: certTemplatesResult.deletedCount || 0
   };
+}
+
+// Permanently deletes every Event flagged isTestData plus everything that hangs off it,
+// in both MongoDB and the Postgres/Supabase shadow tables. Irreversible.
+async function purgeTestData({ actorUserId, ipAddress, userAgent, sql } = {}) {
+  const eventIds = await getTestDataEventIds();
+  if (!eventIds.length) return { ...EMPTY_EVENT_CASCADE_SUMMARY };
+
+  const mongoEventIds = eventIds.map((id) => String(id));
+
+  // Postgres first and fully transactional: if it fails, abort before any Mongo writes.
+  await purgePostgresShadowData(mongoEventIds, { sql });
+
+  const summary = await cascadeDeleteEventsMongo(eventIds);
 
   criticalAuditService.recordCriticalAuditEventInBackground({
     actorMongoUserId: actorUserId,
@@ -195,5 +207,6 @@ module.exports = {
   getTestDataCounts,
   purgeTestData,
   purgePostgresShadowData,
+  cascadeDeleteEventsMongo,
   POSTGRES_EVENT_TABLES
 };

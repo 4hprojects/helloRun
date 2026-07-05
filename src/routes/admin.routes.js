@@ -55,6 +55,12 @@ const adminTestDataPurgeLimiter = createRateLimiter({
   message: 'Too many test-data purge attempts. Please wait an hour and try again.',
   keyFn: (req) => `admin-test-data-purge|${String(req.session?.userId || 'anon')}`
 });
+const adminTestUserPurgeLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 5,
+  message: 'Too many test-user purge attempts. Please wait an hour and try again.',
+  keyFn: (req) => `admin-test-user-purge|${String(req.session?.userId || 'anon')}`
+});
 
 router.use((req, res, next) => {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(req.method || '').toUpperCase())) {
@@ -73,6 +79,7 @@ router.get('/users', requireAdmin, adminController.listUsers);
 router.get('/users/export.csv', requireAdmin, requireFullAdmin, adminExportLimiter, adminController.exportUsersCsv);
 router.get('/users/export.xlsx', requireAdmin, requireFullAdmin, adminExportLimiter, adminController.exportUsersXlsx);
 router.post('/users/delete', requireAdmin, requireFullAdmin, adminAccountActionLimiter, adminController.deleteUsers);
+router.post('/users/test-fixtures/purge', requireAdmin, requireFullAdmin, adminTestUserPurgeLimiter, adminController.purgeTestUsers);
 router.get('/users/:id/edit', requireAdmin, adminController.renderEditUser);
 router.post('/users/:id/edit', requireAdmin, adminAccountActionLimiter, adminController.updateUser);
 router.get('/users/:id', requireAdmin, adminController.viewUser);
