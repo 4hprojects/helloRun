@@ -8,7 +8,8 @@ function readSource(relativePath) {
 }
 
 test('admin published blog queue cards show cover previews and open review in a new tab', () => {
-  const controller = readSource('src/controllers/blog.controller.js');
+  // blog.controller.js is a barrel since the CQ-2 split — admin handlers live in blog/admin.controller.js
+  const controller = readSource('src/controllers/blog/admin.controller.js');
   const queueView = readSource('src/views/admin/blog-queue.ejs');
 
   assert.match(controller, /\.select\('title slug status category customCategory coverImageUrl/);
