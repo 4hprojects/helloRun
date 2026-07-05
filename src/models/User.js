@@ -363,4 +363,9 @@ userSchema.methods.canCreateEvents = function() {
          Boolean(this.organizerEventCreationAcknowledgement?.agreedAt);
 };
 
+// Sparse: only the handful of users with an outstanding token carry index entries,
+// but token-redemption lookups no longer scan the whole collection.
+userSchema.index({ passwordResetToken: 1 }, { sparse: true });
+userSchema.index({ emailVerificationToken: 1 }, { sparse: true });
+
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);

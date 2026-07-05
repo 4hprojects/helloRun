@@ -771,7 +771,7 @@ router.post('/forgot-password', requireCsrfProtection, forgotPasswordLimiter, as
       {
         $set: {
           passwordResetToken: hashedToken,
-          passwordResetExpires: new Date(Date.now() + parseInt(process.env.PASSWORD_RESET_EXPIRY))
+          passwordResetExpires: new Date(Date.now() + passwordService.getResetTokenTtlMs())
         }
       }
     );

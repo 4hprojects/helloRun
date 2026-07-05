@@ -653,11 +653,11 @@
           <div class="admin-edit-fields">
             <div class="admin-field admin-field-wide">
               <label for="adminTitle">Title</label>
-              <input id="adminTitle" name="title" type="text" value="<%- post.title %>" maxlength="150" required>
+              <input id="adminTitle" name="title" type="text" value="<%= post.title %>" maxlength="150" required>
             </div>
             <div class="admin-field admin-field-wide">
               <label for="adminExcerpt">Excerpt</label>
-              <textarea id="adminExcerpt" name="excerpt" maxlength="320"><%- post.excerpt || '' %></textarea>
+              <textarea id="adminExcerpt" name="excerpt" maxlength="320"><%= post.excerpt || '' %></textarea>
             </div>
             <div class="admin-field">
               <label for="adminCategory">Category</label>
@@ -669,7 +669,7 @@
             </div>
             <div class="admin-field" id="adminCustomCategoryWrap" <%= post.category === 'Other' ? '' : 'style="display:none;"' %>>
               <label for="adminCustomCategory">Custom Category</label>
-              <input id="adminCustomCategory" name="customCategory" type="text" value="<%- post.customCategory || '' %>" maxlength="80">
+              <input id="adminCustomCategory" name="customCategory" type="text" value="<%= post.customCategory || '' %>" maxlength="80">
             </div>
             <div class="admin-field">
               <label for="adminStatus">Status</label>
@@ -702,19 +702,19 @@
               </script>
             <div class="admin-field">
               <label for="adminTags">Tags (comma separated)</label>
-              <input id="adminTags" name="tags" type="text" value="<%- Array.isArray(post.tags) ? post.tags.join(', ') : '' %>">
+              <input id="adminTags" name="tags" type="text" value="<%= Array.isArray(post.tags) ? post.tags.join(', ') : '' %>">
             </div>
             <div class="admin-field admin-field-wide">
               <label for="adminCoverImageUrl">Cover Image URL</label>
-              <input id="adminCoverImageUrl" name="coverImageUrl" type="url" value="<%- post.coverImageUrl || '' %>">
+              <input id="adminCoverImageUrl" name="coverImageUrl" type="url" value="<%= post.coverImageUrl || '' %>">
             </div>
             <div class="admin-field admin-field-wide">
               <label for="adminCoverImageAlt">Cover Image Alt Text</label>
-              <input id="adminCoverImageAlt" name="coverImageAlt" type="text" value="<%- post.coverImageAlt || '' %>" maxlength="180">
+              <input id="adminCoverImageAlt" name="coverImageAlt" type="text" value="<%= post.coverImageAlt || '' %>" maxlength="180">
             </div>
             <div class="admin-field admin-field-wide">
               <label for="adminGalleryImageUrls">Gallery Image URLs</label>
-              <textarea id="adminGalleryImageUrls" name="galleryImageUrls" placeholder="One URL per line"><%- Array.isArray(post.galleryImageUrls) ? post.galleryImageUrls.join('\n') : '' %></textarea>
+              <textarea id="adminGalleryImageUrls" name="galleryImageUrls" placeholder="One URL per line"><%= Array.isArray(post.galleryImageUrls) ? post.galleryImageUrls.join('\n') : '' %></textarea>
               <p class="admin-field-help">One image URL per line, max 3 images.</p>
               <input id="adminGalleryImageFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple>
               <p class="admin-field-help">Optional: upload gallery images and append them here automatically.</p>
@@ -753,23 +753,23 @@
             </div>
             <div class="admin-field admin-field-wide">
               <label for="adminContentRaw">Content Raw / Notes</label>
-              <textarea id="adminContentRaw" name="contentRaw"><%- post.contentRaw || '' %></textarea>
+              <textarea id="adminContentRaw" name="contentRaw"><%= post.contentRaw || '' %></textarea>
             </div>
             <div class="admin-field">
               <label for="adminSeoTitle">SEO Title</label>
-              <input id="adminSeoTitle" name="seoTitle" type="text" value="<%- post.seoTitle || '' %>" maxlength="160">
+              <input id="adminSeoTitle" name="seoTitle" type="text" value="<%= post.seoTitle || '' %>" maxlength="160">
             </div>
             <div class="admin-field">
               <label for="adminOgImageUrl">OG Image URL</label>
-              <input id="adminOgImageUrl" name="ogImageUrl" type="url" value="<%- post.ogImageUrl || '' %>" maxlength="2000">
+              <input id="adminOgImageUrl" name="ogImageUrl" type="url" value="<%= post.ogImageUrl || '' %>" maxlength="2000">
             </div>
             <div class="admin-field admin-field-wide">
               <label for="adminSeoDescription">SEO Description</label>
-              <textarea id="adminSeoDescription" name="seoDescription" maxlength="320"><%- post.seoDescription || '' %></textarea>
+              <textarea id="adminSeoDescription" name="seoDescription" maxlength="320"><%= post.seoDescription || '' %></textarea>
             </div>
             <div class="admin-field admin-field-wide">
               <label for="adminModerationNotes">Moderation Notes</label>
-              <textarea id="adminModerationNotes" name="moderationNotes" maxlength="1000"><%- post.moderationNotes || '' %></textarea>
+              <textarea id="adminModerationNotes" name="moderationNotes" maxlength="1000"><%= post.moderationNotes || '' %></textarea>
             </div>
             <div class="admin-field admin-field-wide">
               <label>Moderation Flags</label>
@@ -896,9 +896,9 @@
       const adminPreview = document.getElementById("adminComposerPreview");
       const adminContentBlocksInput = document.getElementById("adminContentBlocksJson");
       const adminContentHtml = document.getElementById("adminContentHtml");
-      const adminTemplateBlocks = <%- JSON.stringify(templateBlocksByKey || {}) %>;
-      const adminBlockLabels = <%- JSON.stringify((blockTypes || []).reduce((acc, item) => { acc[item.key] = item.label; return acc; }, {})) %>;
-      let adminBlocks = <%- JSON.stringify(post.contentBlocks || []) %>;
+      const adminTemplateBlocks = <%- JSON.stringify(templateBlocksByKey || {}).replace(/</g, '\\u003c') %>;
+      const adminBlockLabels = <%- JSON.stringify((blockTypes || []).reduce((acc, item) => { acc[item.key] = item.label; return acc; }, {})).replace(/</g, '\\u003c') %>;
+      let adminBlocks = <%- JSON.stringify(post.contentBlocks || []).replace(/</g, '\\u003c') %>;
       let scheduleAutosave = function () {};
 
       const setAutosaveState = function (state, message) {

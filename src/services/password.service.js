@@ -26,6 +26,15 @@ exports.getPasswordStrength = (password) => {
   return checks;
 };
 
+// Password-reset token lifetime in ms. PASSWORD_RESET_EXPIRY must be a positive
+// number of milliseconds; anything else (unset, non-numeric) falls back to 1 hour —
+// a NaN here would produce an Invalid Date expiry and silently break every reset link.
+const DEFAULT_RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
+exports.getResetTokenTtlMs = () => {
+  const ttl = Number(process.env.PASSWORD_RESET_EXPIRY);
+  return Number.isFinite(ttl) && ttl > 0 ? ttl : DEFAULT_RESET_TOKEN_TTL_MS;
+};
+
 // Generate secure password reset token
 exports.generateResetToken = () => {
   return crypto.randomBytes(32).toString('hex');

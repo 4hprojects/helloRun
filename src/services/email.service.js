@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const logger = require('../utils/logger');
 const { Resend } = require('resend');
+const { getResetTokenTtlMs } = require('./password.service');
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -12,7 +13,7 @@ const LOGO_URL = 'https://raw.githubusercontent.com/4hprojects/helloRun/main/src
 // Send password reset email
 exports.sendPasswordResetEmail = async (email, resetToken, firstName) => {
   const resetUrl = `${process.env.APP_URL}/reset-password/${resetToken}`;
-  const expiryHours = parseInt(process.env.PASSWORD_RESET_EXPIRY) / (1000 * 60 * 60);
+  const expiryHours = getResetTokenTtlMs() / (1000 * 60 * 60);
 
   try {
     const { data, error } = await resend.emails.send({

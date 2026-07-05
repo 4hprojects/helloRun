@@ -141,11 +141,15 @@ async function requireAdmin(req, res, next) {
   if (!req.session || !req.session.userId) {
     return res.redirect('/login');
   }
-  const user = await User.findById(req.session.userId).select('role').lean();
-  if (!user || user.role !== 'admin') {
-    return res.status(403).send('Access denied');
+  try {
+    const user = await User.findById(req.session.userId).select('role').lean();
+    if (!user || user.role !== 'admin') {
+      return res.status(403).send('Access denied');
+    }
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 }
 
 /**
@@ -166,11 +170,15 @@ async function requireFullAdmin(req, res, next) {
   if (!req.session || !req.session.userId) {
     return res.redirect('/login');
   }
-  const user = await User.findById(req.session.userId).select('role adminTier').lean();
-  if (!user || user.role !== 'admin' || !isFullAdminTier(user)) {
-    return res.status(403).send('This action requires full admin access.');
+  try {
+    const user = await User.findById(req.session.userId).select('role adminTier').lean();
+    if (!user || user.role !== 'admin' || !isFullAdminTier(user)) {
+      return res.status(403).send('This action requires full admin access.');
+    }
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 }
 
 /**
@@ -180,11 +188,15 @@ async function requireOrganizer(req, res, next) {
   if (!req.session || !req.session.userId) {
     return res.redirect('/login');
   }
-  const user = await User.findById(req.session.userId).select('role').lean();
-  if (!user || user.role !== 'organiser') {
-    return res.status(403).send('Access denied');
+  try {
+    const user = await User.findById(req.session.userId).select('role').lean();
+    if (!user || user.role !== 'organiser') {
+      return res.status(403).send('Access denied');
+    }
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 }
 
 /**
@@ -194,11 +206,15 @@ async function requireApprovedOrganizer(req, res, next) {
   if (!req.session || !req.session.userId) {
     return res.redirect('/login');
   }
-  const user = await User.findById(req.session.userId).select('role organizerStatus').lean();
-  if (!user || user.role !== 'organiser' || user.organizerStatus !== 'approved') {
-    return res.status(403).send('Access denied - Organizer approval required');
+  try {
+    const user = await User.findById(req.session.userId).select('role organizerStatus').lean();
+    if (!user || user.role !== 'organiser' || user.organizerStatus !== 'approved') {
+      return res.status(403).send('Access denied - Organizer approval required');
+    }
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 }
 
 /**
@@ -208,13 +224,17 @@ async function requireCanCreateEvents(req, res, next) {
   if (!req.session || !req.session.userId) {
     return res.redirect('/login');
   }
-  const user = await User.findById(req.session.userId)
-    .select('role organizerStatus emailVerified organizerEventCreationAcknowledgement')
-    .lean();
-  if (!user || !canCreateEventsFromLeanUser(user)) {
-    return res.status(403).send('Access denied - verified organizer approval required');
+  try {
+    const user = await User.findById(req.session.userId)
+      .select('role organizerStatus emailVerified organizerEventCreationAcknowledgement')
+      .lean();
+    if (!user || !canCreateEventsFromLeanUser(user)) {
+      return res.status(403).send('Access denied - verified organizer approval required');
+    }
+    next();
+  } catch (error) {
+    next(error);
   }
-  next();
 }
 
 function canCreateEventsFromLeanUser(user) {

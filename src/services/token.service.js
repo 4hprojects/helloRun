@@ -35,8 +35,8 @@ exports.generateEmailVerificationToken = () => {
  */
 exports.generatePasswordResetToken = () => {
   const token = this.generateToken();
-  const expires = new Date(Date.now() + parseInt(process.env.PASSWORD_RESET_EXPIRY));
-  
+  const expires = new Date(Date.now() + require('./password.service').getResetTokenTtlMs());
+
   return { token, expires };
 };
 

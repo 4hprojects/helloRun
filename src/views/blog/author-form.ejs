@@ -1205,7 +1205,7 @@
           <h2 class="form-section-title" id="galleryHeading">Gallery Images</h2>
           <p class="form-section-description">Optional. Upload up to 3 extra images, then reorder or remove them before saving.</p>
         </div>
-        <input type="hidden" name="galleryImageUrlsJson" id="galleryImageUrlsJson" value='<%- formData?.galleryImageUrlsJson || "[]" %>'>
+        <input type="hidden" name="galleryImageUrlsJson" id="galleryImageUrlsJson" value='<%= formData?.galleryImageUrlsJson || "[]" %>'>
         <div class="form-field">
           <div class="field-label-row">
             <label for="galleryImageFiles">Upload Gallery Images</label>
@@ -1229,7 +1229,7 @@
         </div>
         <% const isLegacyPost = mode === 'edit' && !(formData?.contentBlocks && formData.contentBlocks.length); %>
         <input type="hidden" name="contentBlocksJson" id="contentBlocksJson" value="">
-        <input type="hidden" name="contentHtml" id="contentHtml" value="<%- formData?.contentHtml || '' %>">
+        <input type="hidden" name="contentHtml" id="contentHtml" value="<%= formData?.contentHtml || '' %>">
         <% if (!isLegacyPost) { %>
           <div class="composer-shell" id="structuredComposer">
             <div>
@@ -1321,7 +1321,7 @@
               <label for="legacyContentHtml">Legacy HTML Content</label>
               <span class="field-badge field-badge-required" title="Required" aria-label="Required" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required</span></span>
             </div>
-            <textarea id="legacyContentHtml" rows="14" style="width: 100%; padding: 0.6rem;"><%- formData?.contentHtml || '' %></textarea>
+            <textarea id="legacyContentHtml" rows="14" style="width: 100%; padding: 0.6rem;"><%= formData?.contentHtml || '' %></textarea>
             <small class="field-help">This older post has no structured blocks yet, so it remains editable as sanitized HTML.</small>
           </div>
         <% } %>
@@ -1371,9 +1371,9 @@
       const form = document.querySelector('form[action="<%= formAction %>"]');
       if (!form || !contentInput) return;
 
-      const templateBlocks = <%- JSON.stringify(templateBlocksByKey || {}) %>;
-      const blockLabels = <%- JSON.stringify((blockTypes || []).reduce((acc, item) => { acc[item.key] = item.label; return acc; }, {})) %>;
-      const existingBlocks = <%- JSON.stringify(formData?.contentBlocks || []) %>;
+      const templateBlocks = <%- JSON.stringify(templateBlocksByKey || {}).replace(/</g, '\\u003c') %>;
+      const blockLabels = <%- JSON.stringify((blockTypes || []).reduce((acc, item) => { acc[item.key] = item.label; return acc; }, {})).replace(/</g, '\\u003c') %>;
+      const existingBlocks = <%- JSON.stringify(formData?.contentBlocks || []).replace(/</g, '\\u003c') %>;
       const templateSelect = document.getElementById('templateKey');
       const templateDescription = document.getElementById('templateDescription');
       const templateCustomSelect = document.getElementById('templateCustomSelect');

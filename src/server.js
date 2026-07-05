@@ -41,6 +41,12 @@ if (!process.env.SESSION_SECRET) {
   logger.error('FATAL: SESSION_SECRET environment variable is not set. Refusing to start.');
   process.exit(1);
 }
+{
+  const resetTtl = Number(process.env.PASSWORD_RESET_EXPIRY);
+  if (!Number.isFinite(resetTtl) || resetTtl <= 0) {
+    logger.warn('PASSWORD_RESET_EXPIRY is unset or not a positive number of milliseconds; password reset links will use the 1-hour default.');
+  }
+}
 
 // ===== STEP 1: MIDDLEWARE (MUST BE FIRST) =====
 logger.info('Loading middleware...');
@@ -130,32 +136,6 @@ app.get('/readyz', async (req, res) => {
   });
 });
 
-app.get('/healthz/sync', async (req, res) => {
-  if (req.session?.role !== 'admin') {
-    return res.status(403).json({ ok: false, error: 'Admin access required.' });
-  }
-  try {
-    const { getRecentFailures, countUnresolvedFailures } = require('./services/sync-failure.service');
-    const [byType, recent] = await Promise.all([
-      countUnresolvedFailures(1440),
-      getRecentFailures({ limit: 10, sinceMins: 1440 })
-    ]);
-    const total = byType.reduce((sum, row) => sum + row.count, 0);
-    return res.status(200).json({
-      ok: total === 0,
-      checkedAt: new Date().toISOString(),
-      unresolvedLast24h: { total, byType },
-      recentFailures: recent
-    });
-  } catch (error) {
-    return sendJsonServerError(res, 'Sync health check failed:', error, {
-      status: 503,
-      clientMessage: 'Postgres unavailable.',
-      body: { ok: false }
-    });
-  }
-});
-
 // Avoid noisy 404s for favicon requests in development
 app.get('/favicon.ico', (_req, res) => {
   res.status(204).end();
@@ -222,6 +202,33 @@ app.use(session({
   })
 }));
 app.use(attachCsrfToken);
+
+// Admin-only sync health — must sit below the session middleware so req.session exists
+app.get('/healthz/sync', async (req, res) => {
+  if (req.session?.role !== 'admin') {
+    return res.status(403).json({ ok: false, error: 'Admin access required.' });
+  }
+  try {
+    const { getRecentFailures, countUnresolvedFailures } = require('./services/sync-failure.service');
+    const [byType, recent] = await Promise.all([
+      countUnresolvedFailures(1440),
+      getRecentFailures({ limit: 10, sinceMins: 1440 })
+    ]);
+    const total = byType.reduce((sum, row) => sum + row.count, 0);
+    return res.status(200).json({
+      ok: total === 0,
+      checkedAt: new Date().toISOString(),
+      unresolvedLast24h: { total, byType },
+      recentFailures: recent
+    });
+  } catch (error) {
+    return sendJsonServerError(res, 'Sync health check failed:', error, {
+      status: 503,
+      clientMessage: 'Postgres unavailable.',
+      body: { ok: false }
+    });
+  }
+});
 
 // ===== ROUTES =====
 logger.info('Loading routes...');
