@@ -131,6 +131,42 @@
         </ol>
       </section>
 
+      <% if (application.status !== 'approved') { %>
+        <% const hasAck = Boolean(user.organizerEventCreationAcknowledgement && user.organizerEventCreationAcknowledgement.agreedAt); %>
+        <section class="panel">
+          <div class="panel-head">
+            <h3>What You Can Do Right Now</h3>
+          </div>
+          <p>
+            You don't have to wait for approval to get started — free virtual events are
+            available to every verified organizer.
+          </p>
+          <dl class="detail-grid">
+            <div class="detail-item detail-item-full">
+              <dt>Available now</dt>
+              <dd>
+                Create and manage <strong>free virtual events</strong>, review run proofs, and
+                issue digital certificates and badges.
+                <% if (hasAck) { %>
+                  You've already signed the event-creation acknowledgement —
+                  <a href="/organizer/create-event">create an event</a>.
+                <% } else { %>
+                  Sign the one-time event-creation acknowledgement from your
+                  <a href="/organizer/dashboard">dashboard</a> to begin.
+                <% } %>
+              </dd>
+            </div>
+            <div class="detail-item detail-item-full">
+              <dt>Unlocked by this application</dt>
+              <dd>
+                Paid registration, physical rewards and delivery, onsite/hybrid events, and
+                event promotion emails.
+              </dd>
+            </div>
+          </dl>
+        </section>
+      <% } %>
+
       <section class="panel">
         <div class="panel-head">
           <h3>Application Details</h3>

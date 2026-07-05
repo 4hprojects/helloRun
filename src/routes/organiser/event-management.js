@@ -10,6 +10,7 @@ const {
   AccumulatedActivitySubmission,
   requireAuth,
   requireApprovedOrganizer,
+  requireCanCreateEvents,
   requireCsrfProtection,
   uploadService,
   eventFormService,
@@ -21,6 +22,8 @@ const {
   getEventBadgesByMongoEventId,
   updateEventBadgeDisplay,
   tryAutoApproveEvent,
+  getRestrictedSetupReasons,
+  VERIFY_TO_UNLOCK_MESSAGE,
   AUDIT_GROUP_OPTIONS,
   AUDIT_TARGET_TYPE_OPTIONS,
   buildCriticalAuditPath,
@@ -59,7 +62,7 @@ const {
    GET: My Events
    ========================================== */
 
-router.get('/events', requireApprovedOrganizer, async (req, res) => {
+router.get('/events', requireCanCreateEvents, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
 
@@ -129,7 +132,7 @@ router.get('/events', requireApprovedOrganizer, async (req, res) => {
    GET: Event Details
    ========================================== */
 
-router.get('/events/:id', requireApprovedOrganizer, async (req, res) => {
+router.get('/events/:id', requireCanCreateEvents, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -244,7 +247,7 @@ router.get('/events/:id/audit', requireAuth, async (req, res) => {
    GET: Event Badges (JSON)
    ========================================== */
 
-router.get('/events/:id/badges', requireApprovedOrganizer, async (req, res) => {
+router.get('/events/:id/badges', requireCanCreateEvents, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     const event = await getOwnedEventOrNull(req.params.id, user?._id);
@@ -264,7 +267,7 @@ router.get('/events/:id/badges', requireApprovedOrganizer, async (req, res) => {
    GET: Badge Manager
    ========================================== */
 
-router.get('/events/:id/badges/manage', requireApprovedOrganizer, async (req, res) => {
+router.get('/events/:id/badges/manage', requireCanCreateEvents, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     const event = await getOwnedEventOrNull(req.params.id, user?._id);
@@ -327,7 +330,7 @@ router.get('/events/:id/badges/manage', requireApprovedOrganizer, async (req, re
    POST: Update Badge Display
    ========================================== */
 
-router.post('/events/:id/badges/:badgeId', requireApprovedOrganizer, requireCsrfProtection, async (req, res) => {
+router.post('/events/:id/badges/:badgeId', requireCanCreateEvents, requireCsrfProtection, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     const event = await getOwnedEventOrNull(req.params.id, user?._id);
@@ -375,7 +378,7 @@ router.post('/events/:id/badges/:badgeId', requireApprovedOrganizer, requireCsrf
    POST: Badge Image Upload
    ========================================== */
 
-router.post('/events/:id/badges/:badgeId/image', requireApprovedOrganizer, uploadService.uploadBadgeImage, requireCsrfProtection, async (req, res) => {
+router.post('/events/:id/badges/:badgeId/image', requireCanCreateEvents, uploadService.uploadBadgeImage, requireCsrfProtection, async (req, res) => {
   try {
     if (req.uploadError) return res.status(400).json({ success: false, message: req.uploadError });
     if (!req.file) return res.status(400).json({ success: false, message: 'No image file provided.' });
@@ -410,7 +413,7 @@ router.post('/events/:id/badges/:badgeId/image', requireApprovedOrganizer, uploa
    GET: Edit Event
    ========================================== */
 
-router.get('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
+router.get('/events/:id/edit', requireCanCreateEvents, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -466,7 +469,7 @@ router.get('/events/:id/edit', requireApprovedOrganizer, async (req, res) => {
    POST: Update Event
    ========================================== */
 
-router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEventBranding, requireCsrfProtection, async (req, res) => {
+router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEventBranding, requireCsrfProtection, async (req, res) => {
   const uploadedBrandingKeys = [];
   try {
     const user = await User.findById(req.session.userId);
@@ -688,6 +691,24 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
       event.submittedForReviewAt = new Date();
     }
 
+    if (user.organizerStatus !== 'approved' && getRestrictedSetupReasons(event).length) {
+      if (uploadedBrandingKeys.length) {
+        await uploadService.deleteObjects(uploadedBrandingKeys);
+      }
+      return res.status(400).render('organizer/edit-event', {
+        title: `Edit Event - ${event.title}`,
+        user,
+        event,
+        errors: { feeMode: VERIFY_TO_UNLOCK_MESSAGE },
+        formData,
+        readinessChecklist: getEventReadinessChecklist(formData),
+        reviewSummary: getEventReviewSummary(formData),
+        countries,
+        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+        message: { type: 'error', text: VERIFY_TO_UNLOCK_MESSAGE }
+      });
+    }
+
     await event.save();
     generateDefaultEventBadgesInBackground(event, { performedBy: user._id });
 
@@ -747,7 +768,7 @@ router.post('/events/:id/edit', requireApprovedOrganizer, uploadService.uploadEv
    POST: Event Status Transition
    ========================================== */
 
-router.post('/events/:id/status', requireApprovedOrganizer, requireCsrfProtection, async (req, res) => {
+router.post('/events/:id/status', requireCanCreateEvents, requireCsrfProtection, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -817,7 +838,7 @@ router.post('/events/:id/status', requireApprovedOrganizer, requireCsrfProtectio
    POST: Remove Event Media
    ========================================== */
 
-router.post('/events/:id/media/remove', requireApprovedOrganizer, requireCsrfProtection, async (req, res) => {
+router.post('/events/:id/media/remove', requireCanCreateEvents, requireCsrfProtection, async (req, res) => {
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {

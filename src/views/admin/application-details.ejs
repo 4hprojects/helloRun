@@ -93,6 +93,29 @@
                 <% } %>
               </li>
               <li>
+                <strong>ID Name Check (OCR assist):</strong>
+                <% if (application.idNameMatchStatus === 'matched') { %>
+                  <span class="status-badge status-badge-approved">Matched</span>
+                  <% if (application.idDetectedName) { %>
+                    <span>&mdash; found &ldquo;<%= application.idDetectedName %>&rdquo; on the ID</span>
+                  <% } %>
+                <% } else if (application.idNameMatchStatus === 'not_detected') { %>
+                  <span class="status-badge status-badge-rejected">Name not found</span>
+                  <span>&mdash; the account name was not readable on the ID; verify manually</span>
+                <% } else if (application.idNameMatchStatus === 'not_checked') { %>
+                  <span class="status-badge status-badge-pending">Not checked</span>
+                  <span>&mdash; OCR was unavailable for this upload (PDF or engine error)</span>
+                <% } else { %>
+                  <span>N/A (submitted before OCR assist)</span>
+                <% } %>
+              </li>
+              <% if (Number(application.duplicatePhoneCount || 0) > 0) { %>
+                <li>
+                  <strong>Duplicate signal:</strong>
+                  <span class="status-badge status-badge-rejected"><%= application.duplicatePhoneCount %> other application<%= application.duplicatePhoneCount === 1 ? '' : 's' %> share this phone number</span>
+                </li>
+              <% } %>
+              <li>
                 <strong>Business Proof:</strong>
                 <% if (application.businessProofUrl) { %>
                   <a href="<%= application.businessProofUrl %>" target="_blank" rel="noopener noreferrer">Open document</a>

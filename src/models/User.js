@@ -355,12 +355,13 @@ userSchema.methods.canParticipateInEvents = function() {
   return this.emailVerified && (this.role === 'runner' || this.role === 'organiser' || this.role === 'admin');
 };
 
+// Identity approval only gates paid/physical event setups (checked at event save);
+// any verified organiser who signed the acknowledgement can create free virtual events.
 userSchema.methods.canCreateEvents = function() {
   if (this.role !== 'organiser' || !this.emailVerified) return false;
+  if (this.accountStatus === 'restricted') return false;
   if (this.organizerStatus === 'approved') return true;
-  return this.role === 'organiser' &&
-         this.organizerStatus === 'pending' &&
-         Boolean(this.organizerEventCreationAcknowledgement?.agreedAt);
+  return Boolean(this.organizerEventCreationAcknowledgement?.agreedAt);
 };
 
 // Sparse: only the handful of users with an outstanding token carry index entries,

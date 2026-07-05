@@ -296,6 +296,13 @@
 
       <!-- ========== FORM VIEW (No Application) ========== -->
       <% } else { %>
+        <div class="document-guidance" aria-label="Why verify">
+          <p>
+            <strong>You can already create free virtual events</strong> — no application needed.
+            Completing identity verification unlocks <strong>paid registration, physical rewards
+            and delivery, and onsite/hybrid events</strong>.
+          </p>
+        </div>
         <form id="organizerApplicationForm" class="application-form" enctype="multipart/form-data" method="POST" action="/organizer/complete-profile" novalidate>
           <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
           <% if (editMode) { %>
@@ -310,7 +317,7 @@
           <div class="progress-steps" role="tablist" aria-label="Application steps">
             <div class="progress-step active" data-step="1" role="tab" aria-selected="true" aria-controls="step1" id="step1-tab" tabindex="0">
               <span class="progress-step-circle">1</span>
-              <span class="progress-step-label">Business Info</span>
+              <span class="progress-step-label">Organizer Info</span>
             </div>
             <div class="progress-step" data-step="2" role="tab" aria-selected="false" aria-controls="step2" id="step2-tab" tabindex="-1">
               <span class="progress-step-circle">2</span>
@@ -329,44 +336,52 @@
               Business Information
             </h2>
             
+            <% const isIndividualType = (formApplication?.businessType || '') === 'individual'; %>
             <div class="form-row">
-              <div class="input-group">
-                <input type="text" id="businessName" name="businessName" required maxlength="100" autocomplete="organization" placeholder=" " value="<%= formApplication?.businessName || '' %>">
-                <label for="businessName">Business Name <span class="required">*</span></label>
-                <div class="input-error" id="businessName-error" role="alert"></div>
-              </div>
-
               <div class="input-group">
                 <select id="businessType" name="businessType" required>
                   <option value="" disabled <%= formApplication?.businessType ? '' : 'selected' %> hidden></option>
-                  <option value="individual" <%= formApplication?.businessType === 'individual' ? 'selected' : '' %>>Individual/Solo Organizer</option>
+                  <option value="individual" <%= isIndividualType ? 'selected' : '' %>>Individual/Solo Organizer</option>
                   <option value="company" <%= formApplication?.businessType === 'company' ? 'selected' : '' %>>Company/Commercial</option>
                   <option value="ngo" <%= formApplication?.businessType === 'ngo' ? 'selected' : '' %>>Non-Profit/NGO</option>
                   <option value="sports_club" <%= formApplication?.businessType === 'sports_club' ? 'selected' : '' %>>Sports Club/Association</option>
                 </select>
-                <label for="businessType">Business Type <span class="required">*</span></label>
+                <label for="businessType">Organizer Type <span class="required">*</span></label>
                 <div class="input-error" id="businessType-error" role="alert"></div>
               </div>
-            </div>
 
-            <div class="form-row">
               <div class="input-group">
                 <input type="tel" id="contactPhone" name="contactPhone" required maxlength="20" autocomplete="tel" placeholder=" " value="<%= formApplication?.contactPhone || '' %>">
                 <label for="contactPhone">Contact Phone <span class="required">*</span></label>
                 <div class="input-error" id="contactPhone-error" role="alert"></div>
               </div>
+            </div>
+
+            <div class="form-row" id="businessOrgRow" <%= isIndividualType ? 'hidden' : '' %>>
+              <div class="input-group">
+                <input type="text" id="businessName" name="businessName" maxlength="100" autocomplete="organization" placeholder=" " value="<%= formApplication?.businessName || '' %>">
+                <label for="businessName">Business Name <span class="required">*</span></label>
+                <div class="input-error" id="businessName-error" role="alert"></div>
+              </div>
 
               <div class="input-group">
                 <input type="text" id="businessRegistrationNumber" name="businessRegistrationNumber" maxlength="50" placeholder=" " value="<%= formApplication?.businessRegistrationNumber || '' %>">
-                <label for="businessRegistrationNumber">Business Registration Number (optional)</label>
+                <label for="businessRegistrationNumber" id="businessRegistrationLabel">Business Registration Number <span class="required">*</span></label>
+                <div class="input-error" id="businessRegistrationNumber-error" role="alert"></div>
               </div>
             </div>
 
-            <div class="input-group">
-              <input type="text" id="businessAddress" name="businessAddress" required maxlength="200" autocomplete="street-address" placeholder=" " value="<%= formApplication?.businessAddress || '' %>">
+            <div class="input-group" id="businessAddressGroup" <%= isIndividualType ? 'hidden' : '' %>>
+              <input type="text" id="businessAddress" name="businessAddress" maxlength="500" autocomplete="street-address" placeholder=" " value="<%= formApplication?.businessAddress || '' %>">
               <label for="businessAddress">Business Address <span class="required">*</span></label>
               <div class="input-error" id="businessAddress-error" role="alert"></div>
             </div>
+
+            <p class="document-guidance" id="individualTypeNote" <%= isIndividualType ? '' : 'hidden' %>>
+              Solo organizers don't need business details — your account name
+              (<strong><%= ((user.firstName || '') + ' ' + (user.lastName || '')).trim() %></strong>)
+              is used as your organizer name.
+            </p>
 
             <div class="input-group">
               <textarea id="additionalInfo" name="additionalInfo" maxlength="500" rows="3" placeholder=" "><%= formApplication?.additionalInfo || '' %></textarea>
@@ -385,7 +400,7 @@
               <p><strong>What to upload:</strong> Use clear, readable documents that match the organizer details in Step 1.</p>
               <ul>
                 <li><strong>ID proof:</strong> government ID, passport, driver's license, or other official photo ID.</li>
-                <li><strong>Business proof, optional for now:</strong> DTI/SEC/CDA registration, mayor's permit, BIR certificate, club/association document, or signed organizer authorization. Solo and small organizers can submit without this document; admins may mark it as document pending and request it later if needed.</li>
+                <li><strong>Business proof (required for companies, NGOs, and sports clubs; not needed for solo organizers):</strong> DTI/SEC/CDA registration, mayor's permit, BIR certificate, club/association document, or signed organizer authorization.</li>
               </ul>
               <p><strong>Confidentiality:</strong> Uploaded verification documents are used only for organizer review. They are kept confidential and purged from the system after verification is completed to help protect your personal and business information.</p>
               <p>PDF files are stored as uploaded. JPG and PNG files are converted to WebP before secure storage.</p>
@@ -427,8 +442,8 @@
               <div class="input-error" id="idProof-error" role="alert"></div>
             </div>
 
-            <div class="input-group">
-              <label for="businessProof">Business Proof (optional, PDF, JPG, PNG, WebP, max 5MB)</label>
+            <div class="input-group" id="businessProofGroup" <%= isIndividualType ? 'hidden' : '' %>>
+              <label for="businessProof" id="businessProofLabel">Business Proof (PDF, JPG, PNG, WebP, max 5MB) <span class="required" id="businessProofRequiredMark">*</span></label>
               <% if (formApplication?.businessProofUrl) { %>
                 <div class="existing-document-card" aria-label="Current business proof document">
                   <svg data-lucide="shield-check" width="20" height="20" aria-hidden="true"></svg>
@@ -441,13 +456,13 @@
               <div class="file-upload-zone" id="businessProofZone" tabindex="0" role="button" aria-label="Upload business proof">
                 <input type="file" id="businessProof" name="businessProof" accept=".pdf,.jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp,application/pdf" data-existing-file="<%= formApplication?.businessProofUrl ? '1' : '0' %>" data-existing-label="<%= businessProofLabel %>">
                 <svg data-lucide="upload" width="24" height="24" aria-hidden="true"></svg>
-                <span><%= formApplication?.businessProofUrl ? 'Upload a replacement file' : 'Drag & drop or click to upload if available' %></span>
-                <span class="file-types">Registration, permit, certificate, club document, or organizer authorization; otherwise leave blank</span>
+                <span><%= formApplication?.businessProofUrl ? 'Upload a replacement file' : 'Drag & drop or click to upload' %></span>
+                <span class="file-types">Registration, permit, certificate, club document, or organizer authorization</span>
               </div>
               <% if (formApplication?.businessProofUrl) { %>
                 <p class="file-types">Current business proof is on file. Upload a new file only if you need to replace it.</p>
               <% } else if (formApplication) { %>
-                <p class="file-types">No business proof is on file. You can add one now or leave it pending.</p>
+                <p class="file-types">No business proof is on file. Companies, NGOs, and sports clubs must upload one.</p>
               <% } %>
               <div class="file-preview" id="businessProofPreview" hidden>
                 <div class="file-preview-item">

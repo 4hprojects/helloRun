@@ -226,7 +226,7 @@ async function requireCanCreateEvents(req, res, next) {
   }
   try {
     const user = await User.findById(req.session.userId)
-      .select('role organizerStatus emailVerified organizerEventCreationAcknowledgement')
+      .select('role organizerStatus emailVerified accountStatus organizerEventCreationAcknowledgement')
       .lean();
     if (!user || !canCreateEventsFromLeanUser(user)) {
       return res.status(403).send('Access denied - verified organizer approval required');
@@ -237,10 +237,14 @@ async function requireCanCreateEvents(req, res, next) {
   }
 }
 
+// Identity approval is not required to create events — only to unlock paid/physical
+// setups (enforced at event save time). Any verified organiser who signed the
+// event-creation acknowledgement may create and manage free virtual events.
 function canCreateEventsFromLeanUser(user) {
   if (user.role !== 'organiser' || !user.emailVerified) return false;
+  if (user.accountStatus === 'restricted') return false;
   if (user.organizerStatus === 'approved') return true;
-  return user.organizerStatus === 'pending' && Boolean(user.organizerEventCreationAcknowledgement?.agreedAt);
+  return Boolean(user.organizerEventCreationAcknowledgement?.agreedAt);
 }
 
 module.exports = {
@@ -252,5 +256,6 @@ module.exports = {
   isFullAdminTier,
   requireOrganizer,
   requireApprovedOrganizer,
-  requireCanCreateEvents
+  requireCanCreateEvents,
+  canCreateEventsFromLeanUser
 };

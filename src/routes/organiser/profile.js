@@ -13,6 +13,7 @@ const {
   validateFiles,
   wantsJsonResponse
 } = require('./_shared');
+const { extractIdNameMatch } = require('../../services/id-ocr.service');
 
 /* ==========================================
    GET: Complete Profile Page
@@ -116,10 +117,17 @@ router.post(
         terms: agreeTerms
       } = req.body;
 
-      // Validate required fields
+      // Validate required fields. Individuals don't have a business — their
+      // "business name" defaults to the account name and address is optional;
+      // organisations must instead carry real evidence (registration number + proof).
       const errors = {};
+      const isIndividual = businessType === 'individual';
+      const accountFullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+      const resolvedBusinessName = isIndividual
+        ? (businessName?.trim() || accountFullName)
+        : businessName;
 
-      if (!businessName || businessName.trim().length < 2) {
+      if (!resolvedBusinessName || resolvedBusinessName.trim().length < 2) {
         errors.businessName = 'Business name is required (minimum 2 characters)';
       }
 
@@ -127,8 +135,16 @@ router.post(
         errors.businessType = 'Please select a valid business type';
       }
 
+      if (!isIndividual && !businessRegistrationNumber?.trim()) {
+        errors.businessRegistrationNumber = 'Registration number is required for companies, NGOs, and sports clubs';
+      }
+
       if (!contactPhone || !isValidPhone(contactPhone)) {
         errors.contactPhone = 'Please provide a valid phone number';
+      }
+
+      if (!isIndividual && !businessAddress?.trim()) {
+        errors.businessAddress = 'Business address is required for companies, NGOs, and sports clubs';
       }
 
       if (businessAddress && businessAddress.length > 500) {
@@ -174,6 +190,13 @@ router.post(
         });
       }
 
+      if (!isIndividual && !businessProofFile && !existingApplication?.businessProofUrl) {
+        return res.status(400).json({
+          success: false,
+          message: 'Business proof document is required for companies, NGOs, and sports clubs'
+        });
+      }
+
       const fileValidation = validateFiles([idProofFile, businessProofFile].filter(Boolean));
       if (!fileValidation.valid) {
         return res.status(400).json({
@@ -181,6 +204,24 @@ router.post(
           message: fileValidation.error
         });
       }
+
+      // ========== STEP 4b: OCR-Assist Name Check (advisory only) ==========
+      // Pre-computes a name-match verdict for the admin reviewer. Runs only on a
+      // fresh ID upload; any OCR problem falls back to 'not_checked' and the
+      // submission continues normally.
+      let idNameMatch = null;
+      if (idProofFile?.buffer) {
+        idNameMatch = await extractIdNameMatch({
+          buffer: idProofFile.buffer,
+          mimetype: idProofFile.mimetype,
+          accountName: accountFullName
+        });
+      }
+
+      const duplicatePhoneCount = await OrganiserApplication.countDocuments({
+        contactPhone: contactPhone.trim(),
+        userId: { $ne: userId }
+      }).catch(() => 0);
 
       // ========== STEP 5: Upload Documents to Cloudflare R2 ==========
       let uploadedDocs = { idProof: null, businessProof: null };
@@ -219,7 +260,7 @@ router.post(
           oldDocumentKeys.push(uploadService.extractObjectKeyFromPublicUrl(application.businessProofUrl));
         }
 
-        application.businessName = businessName.trim();
+        application.businessName = resolvedBusinessName.trim();
         application.businessType = businessType;
         application.contactPhone = contactPhone.trim();
         application.businessRegistrationNumber = businessRegistrationNumber?.trim() || '';
@@ -227,7 +268,14 @@ router.post(
         application.idProofUrl = uploadedDocs.idProof?.url || application.idProofUrl || '';
         application.businessProofUrl = uploadedDocs.businessProof?.url || application.businessProofUrl || '';
         application.additionalInfo = additionalInfo?.trim() || '';
-        application.status = 'pending';
+        if (idNameMatch) {
+          application.idNameMatchStatus = idNameMatch.status;
+          application.idDetectedName = idNameMatch.detectedName || '';
+        }
+        application.duplicatePhoneCount = duplicatePhoneCount;
+        // 'not_detected' routes to the under_review triage lane for a closer look;
+        // 'matched' and 'not_checked' (OCR unavailable) queue as normal.
+        application.status = application.idNameMatchStatus === 'not_detected' ? 'under_review' : 'pending';
         application.rejectionReason = '';
         application.reviewedBy = undefined;
         application.reviewedAt = undefined;

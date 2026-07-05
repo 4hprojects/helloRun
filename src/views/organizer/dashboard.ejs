@@ -59,16 +59,11 @@
                       <i data-lucide="plus"></i>
                       <span>Create Event</span>
                     </a>
-                  <% } else if (user.organizerStatus === 'pending') { %>
+                  <% } else { %>
                     <button type="button" class="btn btn-create btn-create-tile" id="pendingCreateEventTrigger" data-pending-create-event-trigger>
                       <i data-lucide="plus"></i>
                       <span>Create New Event</span>
                     </button>
-                  <% } else { %>
-                    <a href="<%= applicationAction.href %>" class="btn btn-create btn-create-tile" target="_blank" rel="noopener noreferrer">
-                      <i data-lucide="arrow-up-right"></i>
-                      <span><%= applicationAction.label %></span>
-                    </a>
                   <% } %>
                 </div>
               </div>
@@ -665,7 +660,7 @@
           <i data-lucide="alert-triangle"></i>
         </div>
         <div>
-          <span class="pce-modal-kicker">Pending Account</span>
+          <span class="pce-modal-kicker">Unverified Account</span>
           <h2 class="pce-modal-title" id="pceModalTitle">Create New Event with Limited Access</h2>
         </div>
         <button type="button" class="pce-modal-close" id="pceModalClose" aria-label="Close">
@@ -675,18 +670,18 @@
 
       <div class="pce-modal-body">
         <p class="pce-modal-intro">
-          Your organizer account is currently <strong>pending review</strong>. You may create events now,
-          but certain features will be restricted until your account is fully verified and approved.
+          Your organizer identity is <strong>not yet verified</strong>. You can create and manage
+          <strong>free virtual events</strong> right away; identity verification unlocks the rest.
         </p>
 
         <div class="pce-modal-limitations">
           <h3 class="pce-modal-limitations-title">
             <i data-lucide="info"></i>
-            What's limited while pending:
+            What's limited until you're verified:
           </h3>
           <ul class="pce-modal-limitations-list">
-            <li>Events will undergo additional admin review before becoming publicly visible</li>
-            <li>Payment collection features may be restricted pending document verification</li>
+            <li>Events are limited to free, virtual-only runs — paid registration, physical rewards, delivery, and onsite logistics stay locked</li>
+            <li>Each event undergoes admin review before becoming publicly visible</li>
             <li>Organizer support and dispute resolution features require full approval</li>
             <li>Full branding and promotional tools unlock after account approval</li>
           </ul>
@@ -695,12 +690,12 @@
         <div class="pce-modal-requirements">
           <h3 class="pce-modal-requirements-title">
             <i data-lucide="clipboard-check"></i>
-            Complete your account requirements:
+            Want to run paid events?
           </h3>
           <p>
-            To unlock full organizer access, complete all required documentation via your
-            <a href="/organizer/complete-profile" target="_blank" rel="noopener noreferrer">organizer profile</a>.
-            Required documents include business registration, valid ID, and contact verification.
+            Verify your identity via your
+            <a href="/organizer/complete-profile" target="_blank" rel="noopener noreferrer">organizer profile</a> —
+            a valid ID for individuals, plus business registration documents for companies, NGOs, and sports clubs.
           </p>
         </div>
 

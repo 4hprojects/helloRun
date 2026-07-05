@@ -112,6 +112,7 @@ class ApplicationStatusPage {
       2: () => this.validateStep3()
     };
 
+    this.initBusinessTypeRules();
     this.setupFormEvents();
     this.updateStepVisibility();
     this.setupFileUploads();
@@ -215,15 +216,39 @@ class ApplicationStatusPage {
     });
   }
 
+  /* ----- Business Type Rules -----
+     Individuals have no business: name/address/registration/business-proof are
+     hidden and skipped; organisations must provide all of them. */
+  initBusinessTypeRules() {
+    this.businessTypeSelect = document.getElementById('businessType');
+    if (!this.businessTypeSelect) return;
+    this.businessTypeSelect.addEventListener('change', () => this.applyBusinessTypeRules());
+    this.applyBusinessTypeRules();
+  }
+
+  isIndividualType() {
+    return (this.businessTypeSelect?.value || '') === 'individual';
+  }
+
+  applyBusinessTypeRules() {
+    const individual = this.isIndividualType();
+    const orgRow = document.getElementById('businessOrgRow');
+    const addressGroup = document.getElementById('businessAddressGroup');
+    const proofGroup = document.getElementById('businessProofGroup');
+    const individualNote = document.getElementById('individualTypeNote');
+    if (orgRow) orgRow.hidden = individual;
+    if (addressGroup) addressGroup.hidden = individual;
+    if (proofGroup) proofGroup.hidden = individual;
+    if (individualNote) individualNote.hidden = !individual;
+  }
+
   /* ----- Validation Helpers ----- */
   validateStep1() {
     let isValid = true;
-    const requiredFields = [
-      'businessName',
-      'businessType',
-      'contactPhone',
-      'businessAddress'
-    ];
+    const requiredFields = ['businessType', 'contactPhone'];
+    if (!this.isIndividualType()) {
+      requiredFields.push('businessName', 'businessRegistrationNumber', 'businessAddress');
+    }
 
     requiredFields.forEach(id => {
       const field = document.getElementById(id);
@@ -242,6 +267,9 @@ class ApplicationStatusPage {
   validateStep2() {
     let isValid = true;
     const fileFields = ['idProof'];
+    if (!this.isIndividualType()) {
+      fileFields.push('businessProof');
+    }
 
     fileFields.forEach(id => {
       const field = document.getElementById(id);
@@ -536,11 +564,13 @@ class ApplicationStatusPage {
     if (!summary) return;
 
     const formData = new FormData(this.form);
-    const businessName = formData.get('businessName') || 'Not provided';
+    const individual = this.isIndividualType();
+    const individualPlaceholder = 'Not needed for solo organizers';
+    const businessName = formData.get('businessName') || (individual ? 'Your account name' : 'Not provided');
     const businessType = formData.get('businessType') || 'Not selected';
     const contactPhone = formData.get('contactPhone') || 'Not provided';
-    const businessReg = formData.get('businessRegistrationNumber') || 'Not provided';
-    const businessAddress = formData.get('businessAddress') || 'Not provided';
+    const businessReg = formData.get('businessRegistrationNumber') || (individual ? individualPlaceholder : 'Not provided');
+    const businessAddress = formData.get('businessAddress') || (individual ? individualPlaceholder : 'Not provided');
     const additionalInfo = formData.get('additionalInfo') || 'Not provided';
 
     // Map business type to display text

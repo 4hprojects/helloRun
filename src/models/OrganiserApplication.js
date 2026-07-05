@@ -57,6 +57,24 @@ const organiserApplicationSchema = new mongoose.Schema({
     maxlength: 500,
     trim: true
   },
+
+  // OCR-assist verdict (advisory only — admins decide; see id-ocr.service.js).
+  // Survives the post-decision document purge so the audit context remains.
+  idNameMatchStatus: {
+    type: String,
+    enum: ['', 'matched', 'not_detected', 'not_checked'],
+    default: ''
+  },
+  idDetectedName: {
+    type: String,
+    maxlength: 160,
+    trim: true,
+    default: ''
+  },
+  duplicatePhoneCount: {
+    type: Number,
+    default: 0
+  },
   
   // Application Status
   status: {

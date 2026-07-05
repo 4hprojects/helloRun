@@ -281,32 +281,22 @@ router.get('/dashboard', requireAuth, async (req, res) => {
             description: 'Application status'
           }
         ]
-      : user.organizerStatus === 'pending'
-        ? [
-            {
-              icon: 'plus-circle',
-              label: 'Create New Event',
-              href: '#pending-create-event-modal',
-              description: 'Set up a new running event',
-              pendingCreateEvent: true
-            },
-            {
-              icon: 'file-check',
-              label: applicationAction.label,
-              href: applicationAction.href,
-              description: applicationAction.description,
-              targetBlank: true
-            }
-          ]
-        : [
-            {
-              icon: application ? 'file-check' : 'file-plus-2',
-              label: applicationAction.label,
-              href: applicationAction.href,
-              description: applicationAction.description,
-              targetBlank: true
-            }
-          ];
+      : [
+          {
+            icon: 'plus-circle',
+            label: 'Create New Event',
+            href: '#pending-create-event-modal',
+            description: 'Set up a free virtual running event',
+            pendingCreateEvent: true
+          },
+          {
+            icon: application ? 'file-check' : 'file-plus-2',
+            label: applicationAction.label,
+            href: applicationAction.href,
+            description: applicationAction.description,
+            targetBlank: true
+          }
+        ];
 
     // Build dashboard data
     const dashboardData = {
@@ -414,8 +404,8 @@ router.post('/acknowledge-event-creation', requireAuth, requireCsrfProtection, a
       return res.redirect('/organizer/create-event');
     }
 
-    if (user.organizerStatus !== 'pending') {
-      return res.redirect('/organizer/dashboard?ack_error=not_pending');
+    if (!user.emailVerified) {
+      return res.redirect('/organizer/dashboard?ack_error=email_unverified');
     }
 
     const { agreedCheckbox, signatureName } = req.body;

@@ -47,7 +47,10 @@ const {
   updateEventBadgeDisplay
 } = require('../../services/event-badge.service');
 const eventFormService = require('../../services/event-form.service');
-const { tryAutoApproveEvent } = require('../../services/event-approval.service');
+const { tryAutoApproveEvent, getRestrictedSetupReasons } = require('../../services/event-approval.service');
+
+// Shown when a non-identity-verified organizer tries to save paid/physical/onsite setups.
+const VERIFY_TO_UNLOCK_MESSAGE = 'Paid registration, physical rewards, delivery, and onsite setups are locked until your organizer identity is verified. Remove these settings, or verify your identity in your organizer profile to unlock them.';
 const {
   reviewAccumulatedActivitySubmission,
   getAccumulatedActivitiesForRegistrations,
@@ -1647,6 +1650,8 @@ module.exports = {
   updateEventBadgeDisplay,
   eventFormService,
   tryAutoApproveEvent,
+  getRestrictedSetupReasons,
+  VERIFY_TO_UNLOCK_MESSAGE,
   reviewAccumulatedActivitySubmission,
   getAccumulatedActivitiesForRegistrations,
   buildAccumulatedProgress,

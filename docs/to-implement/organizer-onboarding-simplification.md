@@ -5,8 +5,12 @@
 - **Purpose:** Design proposal for simplifying organizer registration, automating
   application approval, and making the onboarding flow intuitive — based on a full
   code-path analysis of the current workflow.
-- **Status:** **In implementation — started July 5, 2026.** See the Implementation
-  Tracker below for per-phase status and timestamps.
+- **Status:** **Implemented — all 4 phases completed July 6, 2026.** See the
+  Implementation Tracker below for per-phase timestamps. Verified by
+  `tests/organizer-gating.unit.test.js` (8), `tests/event-auto-approval-trusted.unit.test.js` (6),
+  and `tests/id-ocr-name-match.unit.test.js` (10); full DB-free suite 315/315.
+  Live smoke checks (real signup → acknowledgement → free event; real ID upload OCR
+  verdict) still pending — no staging environment exists.
 - **Source:** July 5, 2026 session analysis; every `file:line` reference below was
   verified against the code as of that date.
 
@@ -23,7 +27,7 @@ starts/completes.
 | 1 — Risk-based gating | P1 | Free virtual events without application; ID = "unlock paid events"; per-type form fields; route-guard rationalization | **Done** | July 5, 2026 | July 6, 2026 |
 | 2 — UX + validation fixes | P2 | Status-page capabilities panel; stepped form; form/server validation mismatches | **Done** | July 6, 2026 | July 6, 2026 |
 | 3 — Graduated auto-publish | P3 | v2 trusted-organizer rule: ≥3 completed events → paid-event auto-publish (onsite/hybrid stays manual) | **Done** | July 6, 2026 | July 6, 2026 |
-| 4 — OCR-assist review | P4 | Server-side Tesseract name-match verdict shown to admin; `under_review` triage lane; duplicate-phone flag; **no auto-decision** | In progress | July 6, 2026 | — |
+| 4 — OCR-assist review | P4 | Server-side Tesseract name-match verdict shown to admin; `under_review` triage lane; duplicate-phone flag; **no auto-decision** | **Done** | July 6, 2026 | July 6, 2026 |
 
 ### Decisions (July 5, 2026 — resolve the Open Questions below)
 

@@ -643,6 +643,14 @@
           <div class="section-kicker">Step 7 of 13</div>
           <div class="section-title">Pricing Setup</div>
           <p class="section-helper">Choose Free or Paid first, then configure one pricing method. Step 8 handles payment account and QR details.</p>
+          <% if (user && user.organizerStatus !== 'approved') { %>
+            <div class="alert alert-warning" role="note">
+              <strong>Paid events are locked until your identity is verified.</strong>
+              Keep this event free (and virtual-only, without physical rewards or delivery), or
+              <a href="/organizer/complete-profile" target="_blank" rel="noopener noreferrer">verify your identity</a>
+              to unlock paid registration.
+            </div>
+          <% } %>
           <% const pricingModeValue = ['distance_based', 'customized_options', 'distance_based_period', 'customized_options_period', 'package_period', 'per_distance', 'per_distance_period', 'same_fee'].includes(formData.pricingMode) ? formData.pricingMode : (formData.feeMode === 'paid' ? 'distance_based' : 'free'); %>
           <% const pricingModeBase = pricingModeValue === 'package_period' ? 'package_period' : (['customized_options', 'customized_options_period', 'same_fee'].includes(pricingModeValue) ? 'customized_options' : 'distance_based'); %>
           <input type="hidden" id="pricingMode" name="pricingMode" value="<%= pricingModeValue === 'per_distance' ? 'distance_based' : pricingModeValue === 'per_distance_period' ? 'distance_based_period' : pricingModeValue === 'same_fee' ? 'customized_options' : pricingModeValue %>">

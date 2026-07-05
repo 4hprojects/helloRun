@@ -34,6 +34,8 @@ const {
   resolveFinalSubmissionDeadline,
   sanitizeWaiverTemplate,
   tryAutoApproveEvent,
+  getRestrictedSetupReasons,
+  VERIFY_TO_UNLOCK_MESSAGE,
   generateDefaultEventBadgesInBackground,
   mapUploadFieldToFormField,
   getOwnedEventOrNull,
@@ -498,6 +500,23 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     eventFormService.applyEventFormData(event, formData, user);
     event.status = status;
     event.submittedForReviewAt = status === 'pending_review' ? new Date() : null;
+
+    if (user.organizerStatus !== 'approved' && getRestrictedSetupReasons(event).length) {
+      if (uploadedBrandingKeys.length) {
+        await uploadService.deleteObjects(uploadedBrandingKeys);
+      }
+      return res.status(400).render('organizer/create-event', {
+        title: 'Create Event - HelloRun',
+        user,
+        errors: { feeMode: VERIFY_TO_UNLOCK_MESSAGE },
+        formData,
+        readinessChecklist: getEventReadinessChecklist(formData),
+        reviewSummary: getEventReviewSummary(formData),
+        countries,
+        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+        message: { type: 'error', text: VERIFY_TO_UNLOCK_MESSAGE }
+      });
+    }
 
     await event.save();
 
