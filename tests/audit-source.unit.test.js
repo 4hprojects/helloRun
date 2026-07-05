@@ -21,7 +21,8 @@ function readOrganizerRoutesSource() {
 }
 
 test('high-impact runner and organizer workflows emit critical audit events', () => {
-  const pageController = readSource('src/controllers/page.controller.js');
+  // page.controller.js is a barrel since the CQ-2 split — handlers live in src/controllers/page/
+  const pageController = readSourceDir('src/controllers/page');
   const shopController = readSource('src/controllers/shop.controller.js');
   const organizerRoutes = readOrganizerRoutesSource();
   const organizerShopController = readSource('src/controllers/organizer-shop.controller.js');

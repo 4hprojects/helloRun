@@ -3,8 +3,15 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
+// page.controller.js is a barrel since the CQ-2 split — the runner submission
+// handlers now live in src/controllers/page/submission.controller.js
+const submissionControllerSource = fs.readFileSync(
+  path.resolve(__dirname, '../src/controllers/page/submission.controller.js'),
+  'utf8'
+);
+
 test('runner screenshot submission path uses proof-hash idempotency lock', () => {
-  const source = fs.readFileSync(path.resolve(__dirname, '../src/controllers/page.controller.js'), 'utf8');
+  const source = submissionControllerSource;
 
   assert.match(source, /buildProofSubmissionIdempotencyKey/);
   assert.match(source, /acquireSubmissionIdempotencyLock/);
@@ -12,7 +19,7 @@ test('runner screenshot submission path uses proof-hash idempotency lock', () =>
 });
 
 test('payment receipt submission path uses receipt idempotency lock', () => {
-  const source = fs.readFileSync(path.resolve(__dirname, '../src/controllers/page.controller.js'), 'utf8');
+  const source = submissionControllerSource;
 
   assert.match(source, /buildPaymentProofIdempotencyKey/);
   assert.match(source, /payment_proof_submission/);
