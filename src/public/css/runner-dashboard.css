@@ -2123,6 +2123,27 @@ code {
     padding-right: 0.9rem;
   }
 
+  .runner-saved-events-header,
+  .runner-event-progress-header,
+  .runner-badges-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .runner-saved-events-header h2,
+  .runner-event-progress-header h2,
+  .runner-badges-header h2 {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .runner-saved-events-header .btn,
+  .runner-event-progress-action,
+  .runner-badges-action {
+    width: 100%;
+    margin-left: 0;
+  }
+
   .dashboard-profile-nudge {
     align-items: stretch;
     padding: 1rem;
@@ -2160,14 +2181,6 @@ code {
 
   .running-groups-content {
     gap: 0.9rem;
-  }
-
-  .runner-badges-header {
-    align-items: flex-start;
-  }
-
-  .runner-badges-action {
-    flex-shrink: 0;
   }
 
   .dashboard-badge-row {
