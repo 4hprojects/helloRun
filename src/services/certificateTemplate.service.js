@@ -2,7 +2,8 @@ const CertificateTemplate = require('../models/CertificateTemplate');
 const Event = require('../models/Event');
 const User = require('../models/User');
 
-const LAYOUT_KEYS = new Set(['classic', 'modern_race', 'minimal', 'school_event', 'charity_run', 'split_panel_event']);
+const LAYOUT_KEYS = new Set(['verified_achievement', 'classic', 'modern_race', 'minimal', 'school_event', 'charity_run', 'split_panel_event']);
+const LEGACY_MAIN_LAYOUT_KEYS = new Set(['classic', 'modern_race', 'minimal', 'school_event', 'charity_run']);
 
 async function getOrCreateDefaultTemplate(eventId, options = {}) {
   const existing = await CertificateTemplate.findOne({
@@ -146,7 +147,7 @@ function buildDefaultTemplatePayload({ event, organizer }) {
     eventId: event._id,
     organizerId: event.organizerId,
     name: `${event.title || 'Event'} Certificate`.slice(0, 150),
-    layoutKey: normalizeLayoutKey(process.env.CERTIFICATE_DEFAULT_LAYOUT, 'modern_race'),
+    layoutKey: resolveRenderLayoutKey(normalizeLayoutKey(process.env.CERTIFICATE_DEFAULT_LAYOUT, 'verified_achievement')),
     status: 'draft',
     assets: {
       eventLogoUrl: event.logoUrl || '',
@@ -158,8 +159,8 @@ function buildDefaultTemplatePayload({ event, organizer }) {
     },
     content: {
       heading: 'Certificate of Completion',
-      bodyText: 'This certifies that {{runnerName}} successfully completed {{distance}} in {{eventTitle}}.',
-      footerText: 'Verify this certificate using the QR code below.',
+      bodyText: 'Officially completed {{distance}} at {{eventTitle}}.',
+      footerText: 'Scan the QR code to verify this achievement.',
       signatureName: organizerName,
       signatureRole: 'Organiser'
     },
@@ -179,7 +180,7 @@ function buildDefaultTemplatePayload({ event, organizer }) {
 function buildRenderTemplate(template) {
   return {
     id: String(template?._id || ''),
-    layoutKey: normalizeLayoutKey(template?.layoutKey, 'modern_race'),
+    layoutKey: normalizeLayoutKey(template?.layoutKey, 'verified_achievement'),
     assets: template?.assets || {},
     content: template?.content || {},
     displayOptions: template?.displayOptions || {},
@@ -187,9 +188,14 @@ function buildRenderTemplate(template) {
   };
 }
 
-function normalizeLayoutKey(value, fallback = 'modern_race') {
+function normalizeLayoutKey(value, fallback = 'verified_achievement') {
   const safe = String(value || '').trim();
   return LAYOUT_KEYS.has(safe) ? safe : fallback;
+}
+
+function resolveRenderLayoutKey(value) {
+  const layoutKey = normalizeLayoutKey(value, 'verified_achievement');
+  return LEGACY_MAIN_LAYOUT_KEYS.has(layoutKey) ? 'verified_achievement' : layoutKey;
 }
 
 function normalizeText(value, fallback, maxLength) {
@@ -230,6 +236,7 @@ function formatDateOnly(value) {
 
 module.exports = {
   LAYOUT_KEYS,
+  LEGACY_MAIN_LAYOUT_KEYS,
   getOrCreateDefaultTemplate,
   getActiveOrDefaultTemplate,
   updateTemplate,
@@ -237,5 +244,6 @@ module.exports = {
   applyUploadedAssets,
   buildDefaultTemplatePayload,
   buildRenderTemplate,
-  normalizeLayoutKey
+  normalizeLayoutKey,
+  resolveRenderLayoutKey
 };

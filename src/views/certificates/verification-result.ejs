@@ -7,73 +7,208 @@
 <body>
   <%- include('../layouts/nav') %>
 
-  <main class="static-page">
-  <section class="static-hero">
-    <p class="eyebrow">Certificate Verification</p>
-    <h1>Verification Result</h1>
-  </section>
-
-  <section class="static-content">
-    <% if (!result.found) { %>
-      <div class="alert alert-error">Certificate number <strong><%= certificateNumber %></strong> was not found.</div>
-      <p><a href="/certificates/verify">Try another certificate number</a></p>
-    <% } else if (result.certificate.status === 'revoked') { %>
-      <div class="alert alert-error">This certificate is no longer valid.</div>
-      <dl>
-        <dt>Certificate number</dt><dd><%= result.certificate.certificateNumber %></dd>
-        <dt>Runner</dt><dd><%= result.certificate.runnerName %></dd>
-        <dt>Event</dt><dd><%= result.certificate.eventTitle %></dd>
-      </dl>
-    <% } else { %>
-      <div class="alert alert-success">This certificate is valid.</div>
-      <dl>
-        <dt>Certificate number</dt><dd><%= result.certificate.certificateNumber %></dd>
-        <dt>Runner</dt><dd><%= result.certificate.runnerName %></dd>
-        <dt>Event</dt><dd><%= result.certificate.eventTitle %></dd>
-        <dt>Organiser</dt><dd><%= result.certificate.organizerName || 'HelloRun' %></dd>
-        <dt>Distance</dt><dd><%= result.certificate.distance || '-' %></dd>
-        <dt>Finish time</dt><dd><%= result.certificate.finishTime || '-' %></dd>
-        <dt>Generated</dt><dd><%= result.certificate.generatedAt ? new Date(result.certificate.generatedAt).toLocaleDateString('en-US') : '-' %></dd>
-      </dl>
-      <% if (shareUrls) { %>
-        <div class="cert-share-block">
-          <p class="cert-share-label">Share this achievement</p>
-          <div class="cert-share-buttons">
-            <a href="<%= shareUrls.facebook %>" target="_blank" rel="noopener noreferrer" class="cert-share-btn cert-share-facebook" aria-label="Share on Facebook">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-              Facebook
-            </a>
-            <a href="<%= shareUrls.x %>" target="_blank" rel="noopener noreferrer" class="cert-share-btn cert-share-x" aria-label="Share on X">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 4l16 16M4 20L20 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
-              X (Twitter)
-            </a>
-            <a href="<%= shareUrls.linkedin %>" target="_blank" rel="noopener noreferrer" class="cert-share-btn cert-share-linkedin" aria-label="Share on LinkedIn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
-              LinkedIn
-            </a>
-            <a href="<%= shareUrls.mail %>" class="cert-share-btn cert-share-email" aria-label="Share via email">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-              Email
-            </a>
-            <button type="button" class="cert-share-btn cert-share-copy" data-copy-url="<%= canonicalUrl %>" aria-label="Copy link">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-              Copy link
-            </button>
+  <main class="certificate-verification-page">
+    <div class="certificate-verification-wrap">
+      <% if (!result.found) { %>
+        <section class="certificate-state-card certificate-state-card--not-found" aria-labelledby="certificate-state-title">
+          <div class="certificate-state-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M8 11h6"/></svg>
           </div>
-        </div>
-        <script>
-          document.querySelector('.cert-share-copy')?.addEventListener('click', function() {
-            navigator.clipboard.writeText(this.dataset.copyUrl).then(() => {
-              this.textContent = 'Copied!';
-              setTimeout(() => { this.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy link'; }, 2000);
-            });
-          });
-        </script>
+          <p class="certificate-state-kicker">Certificate verification</p>
+          <h1 id="certificate-state-title">Certificate not found</h1>
+          <p>We could not match <strong><%= certificateNumber %></strong> with an issued HelloRun certificate. Check the number and try again.</p>
+          <div class="certificate-state-reference">
+            <span>Certificate number</span>
+            <strong><%= certificateNumber %></strong>
+          </div>
+          <a class="certificate-primary-action" href="/certificates/verify">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+            Verify another certificate
+          </a>
+        </section>
+      <% } else if (result.certificate.status === 'revoked') { %>
+        <section class="certificate-state-card certificate-state-card--revoked" aria-labelledby="certificate-state-title">
+          <div class="certificate-state-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.3 3.6 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z"/></svg>
+          </div>
+          <p class="certificate-state-kicker">Certificate verification</p>
+          <h1 id="certificate-state-title">This certificate is no longer valid</h1>
+          <p>HelloRun’s records show that this certificate has been revoked. It should not be presented as a current verified achievement.</p>
+          <dl class="certificate-state-details">
+            <div><dt>Certificate number</dt><dd><%= result.certificate.certificateNumber %></dd></div>
+            <div><dt>Runner</dt><dd><%= result.certificate.runnerName %></dd></div>
+            <div><dt>Event</dt><dd><%= result.certificate.eventTitle %></dd></div>
+          </dl>
+          <a class="certificate-primary-action" href="/certificates/verify">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>
+            Verify another certificate
+          </a>
+        </section>
+      <% } else { %>
+        <% const cert = result.certificate; %>
+        <% const eventDate = cert.eventDate ? new Date(cert.eventDate) : null; %>
+        <% const issuedDate = cert.generatedAt ? new Date(cert.generatedAt) : null; %>
+        <% const hasEventDate = eventDate && !Number.isNaN(eventDate.getTime()); %>
+        <% const hasIssuedDate = issuedDate && !Number.isNaN(issuedDate.getTime()); %>
+
+        <article class="certificate-achievement-card" aria-labelledby="certificate-runner-name">
+          <header class="certificate-achievement-hero">
+            <div class="certificate-hero-glow" aria-hidden="true"></div>
+            <div class="certificate-event-mark">
+              <img src="<%= cert.eventLogoUrl || '/images/helloRun-icon.webp' %>" alt="<%= cert.eventLogoUrl ? `${cert.eventTitle} logo` : 'HelloRun' %>" width="88" height="88">
+            </div>
+            <div class="certificate-hero-copy">
+              <div class="certificate-verified-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                Verified achievement
+              </div>
+              <p class="certificate-overline">Official HelloRun certificate</p>
+              <h1 id="certificate-runner-name"><%= cert.runnerName %></h1>
+              <p class="certificate-achievement-copy">
+                Officially completed
+                <% if (cert.distance) { %><strong><%= cert.distance %></strong> at<% } %>
+                <% if (cert.eventSlug) { %>
+                  <a href="/events/<%= cert.eventSlug %>"><%= cert.eventTitle %></a>.
+                <% } else { %>
+                  <strong><%= cert.eventTitle %></strong>.
+                <% } %>
+              </p>
+            </div>
+          </header>
+
+          <% if (cert.distance || cert.finishTime || hasEventDate || hasIssuedDate) { %>
+            <section class="certificate-metrics" aria-label="Achievement details">
+              <% if (cert.distance) { %>
+                <div class="certificate-metric">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19c4-7 10-7 14-14M5 5h4v4M15 15h4v4"/></svg>
+                  <span>Distance</span>
+                  <strong><%= cert.distance %></strong>
+                </div>
+              <% } %>
+              <% if (cert.finishTime) { %>
+                <div class="certificate-metric">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>
+                  <span>Finish time</span>
+                  <strong><%= cert.finishTime %></strong>
+                </div>
+              <% } %>
+              <% if (hasEventDate) { %>
+                <div class="certificate-metric">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 11h18"/></svg>
+                  <span>Event date</span>
+                  <strong><%= eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></strong>
+                </div>
+              <% } %>
+              <% if (hasIssuedDate) { %>
+                <div class="certificate-metric">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3 4 7v5c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V7l-8-4Z"/><path d="m9 12 2 2 4-4"/></svg>
+                  <span>Issued</span>
+                  <strong><%= issuedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %></strong>
+                </div>
+              <% } %>
+            </section>
+          <% } %>
+
+          <div class="certificate-card-body">
+            <section class="certificate-authenticity" aria-labelledby="certificate-authenticity-title">
+              <div class="certificate-authenticity-heading">
+                <span class="certificate-authenticity-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 4 7v5c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10V7l-8-4Z"/><path d="m9 12 2 2 4-4"/></svg>
+                </span>
+                <div>
+                  <p>Authenticity confirmed</p>
+                  <h2 id="certificate-authenticity-title">Verified by HelloRun</h2>
+                </div>
+              </div>
+              <p class="certificate-authenticity-copy">This public record confirms that HelloRun issued this certificate after the participant’s result was approved.</p>
+              <dl class="certificate-authenticity-details">
+                <div><dt>Certificate number</dt><dd><%= cert.certificateNumber %></dd></div>
+                <div><dt>Organiser</dt><dd><%= cert.organizerName || 'HelloRun' %></dd></div>
+              </dl>
+            </section>
+
+            <% if (shareUrls) { %>
+              <section class="cert-share-block" aria-labelledby="certificate-share-title">
+                <p class="cert-share-eyebrow">Celebrate the milestone</p>
+                <h2 id="certificate-share-title">Share this achievement</h2>
+                <p class="cert-share-intro">Let friends, family, and your running community celebrate this verified finish.</p>
+                <div class="cert-share-buttons">
+                  <a href="<%= shareUrls.facebook %>" target="_blank" rel="noopener noreferrer" class="cert-share-btn cert-share-facebook" aria-label="Share this achievement on Facebook">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                    Facebook
+                  </a>
+                  <a href="<%= shareUrls.x %>" target="_blank" rel="noopener noreferrer" class="cert-share-btn cert-share-x" aria-label="Share this achievement on X">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M4 4l16 16M4 20 20 4"/></svg>
+                    X
+                  </a>
+                  <a href="<%= shareUrls.linkedin %>" target="_blank" rel="noopener noreferrer" class="cert-share-btn cert-share-linkedin" aria-label="Share this achievement on LinkedIn">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6ZM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>
+                    LinkedIn
+                  </a>
+                  <a href="<%= shareUrls.mail %>" class="cert-share-btn cert-share-email" aria-label="Share this achievement by email">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+                    Email
+                  </a>
+                  <button type="button" class="cert-share-btn cert-share-copy" data-copy-url="<%= canonicalUrl %>" aria-label="Copy certificate verification link" aria-describedby="certificate-copy-status">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    <span>Copy link</span>
+                  </button>
+                </div>
+                <p id="certificate-copy-status" class="cert-copy-status" role="status" aria-live="polite"></p>
+              </section>
+            <% } %>
+          </div>
+        </article>
+
+        <aside class="certificate-discover-card" aria-label="Discover HelloRun events">
+          <div>
+            <p>Ready for your next milestone?</p>
+            <span>Find a challenge, move at your pace, and earn your next verified achievement.</span>
+          </div>
+          <a href="/events">Discover running events <span aria-hidden="true">→</span></a>
+        </aside>
       <% } %>
-    <% } %>
-  </section>
+    </div>
   </main>
 
   <%- include('../layouts/footer') %>
+  <% if (result.found && result.certificate.status === 'valid' && shareUrls) { %>
+    <script>
+      (() => {
+        const button = document.querySelector('.cert-share-copy');
+        const status = document.getElementById('certificate-copy-status');
+        if (!button || !status) return;
+
+        button.addEventListener('click', async () => {
+          const label = button.querySelector('span');
+          try {
+            if (navigator.clipboard && window.isSecureContext) {
+              await navigator.clipboard.writeText(button.dataset.copyUrl);
+            } else {
+              const input = document.createElement('textarea');
+              input.value = button.dataset.copyUrl;
+              input.setAttribute('readonly', '');
+              input.style.position = 'fixed';
+              input.style.opacity = '0';
+              document.body.appendChild(input);
+              input.select();
+              const copied = document.execCommand('copy');
+              input.remove();
+              if (!copied) throw new Error('Copy command failed');
+            }
+            label.textContent = 'Copied';
+            status.textContent = 'Certificate link copied to your clipboard.';
+          } catch (error) {
+            label.textContent = 'Copy link';
+            status.textContent = 'Could not copy automatically. Please copy the address from your browser.';
+          }
+          window.setTimeout(() => {
+            label.textContent = 'Copy link';
+            status.textContent = '';
+          }, 3000);
+        });
+      })();
+    </script>
+  <% } %>
 </body>
 </html>

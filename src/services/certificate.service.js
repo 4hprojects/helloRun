@@ -3,15 +3,23 @@ const path = require('node:path');
 const PDFDocument = require('pdfkit');
 const QRCode = require('qrcode');
 const uploadService = require('./upload.service');
-const { getActiveOrDefaultTemplate, buildRenderTemplate } = require('./certificateTemplate.service');
+const {
+  getActiveOrDefaultTemplate,
+  buildRenderTemplate,
+  resolveRenderLayoutKey
+} = require('./certificateTemplate.service');
 const { generateCertificateNumber, buildVerificationUrl } = require('./certificateNumber.service');
 
 const BRAND_ORANGE = '#FA9A4B';
 const BRAND_BLUE = '#78C0E9';
 const INK = '#0F172A';
 const MUTED = '#64748B';
-const BORDER = '#E2E8F0';
 const LOGO_PATH = path.resolve(__dirname, '../public/images/helloRun-icon.png');
+const DEFAULT_ACHIEVEMENT_BODY = 'Officially completed {{distance}} at {{eventTitle}}.';
+const LEGACY_DEFAULT_BODY_TEXTS = new Set([
+  'This certifies that {{runnerName}} successfully completed {{distance}} in {{eventTitle}}.',
+  'This certifies that {{runnerName}} completed {{distance}} in {{eventTitle}}.'
+]);
 
 async function issueSubmissionCertificate({ submission, registration, event, runner }) {
   if (!submission || !registration || !event || !runner) {
@@ -111,7 +119,7 @@ async function buildCertificateRenderData({
     || 'Runner';
   const eventTitle = String(event.title || 'HelloRun Event').trim() || 'HelloRun Event';
   const organizerName = String(event.organiserName || '').trim() || 'HelloRun';
-  const distance = String(registration.raceDistance || submission.raceDistance || formatDistance(submission.distanceKm) || 'N/A').trim();
+  const distance = String(registration.raceDistance || submission.raceDistance || formatDistance(submission.distanceKm) || '').trim();
   const finishTime = formatElapsedMs(submission.elapsedMs);
   const eventDate = formatCertificateDate(event.eventStartAt || event.eventEndAt || issuedAt || new Date());
 
@@ -167,23 +175,36 @@ async function normalizeCertificateInput(input) {
     ? await QRCode.toDataURL(verificationUrl, { margin: 1, width: 180 })
     : '';
   const assets = input.assets || {};
+  const sponsorLogoUrls = Array.isArray(assets.sponsorLogoUrls)
+    ? assets.sponsorLogoUrls.filter(Boolean).slice(0, 6)
+    : [];
+  const [eventLogo, organizerLogo, eventArtwork, background, signature, sponsorLogos] = await Promise.all([
+    loadImageBuffer(assets.eventLogoUrl),
+    loadImageBuffer(assets.organizerLogoUrl),
+    loadImageBuffer(assets.eventArtworkUrl),
+    loadImageBuffer(assets.backgroundImageUrl),
+    loadImageBuffer(assets.signatureImageUrl),
+    Promise.all(sponsorLogoUrls.map((url) => loadImageBuffer(url)))
+  ]);
   const assetImages = {
-    eventLogo: await loadImageBuffer(assets.eventLogoUrl),
-    organizerLogo: await loadImageBuffer(assets.organizerLogoUrl),
-    eventArtwork: await loadImageBuffer(assets.eventArtworkUrl || assets.backgroundImageUrl),
-    signature: await loadImageBuffer(assets.signatureImageUrl)
+    eventLogo,
+    organizerLogo,
+    eventArtwork,
+    background,
+    signature,
+    sponsorLogos: sponsorLogos.filter(Boolean)
   };
 
   return {
     runnerName: String(input.runnerName || '').trim() || 'Runner',
     eventTitle: String(input.eventTitle || '').trim() || 'HelloRun Event',
     organizerName: String(input.organizerName || '').trim() || 'HelloRun',
-    raceDistance: String(input.raceDistance || input.distance || '').trim() || 'N/A',
-    distance: String(input.distance || input.raceDistance || '').trim() || 'N/A',
-    elapsedLabel: String(input.elapsedLabel || input.finishTime || '').trim() || '00:00:00',
-    finishTime: String(input.finishTime || input.elapsedLabel || '').trim() || '00:00:00',
-    rank: String(input.rank || '').trim(),
-    eventDate: String(input.eventDate || formatCertificateDate(approvedAt)).trim(),
+    raceDistance: normalizeMetricValue(input.raceDistance || input.distance),
+    distance: normalizeMetricValue(input.distance || input.raceDistance),
+    elapsedLabel: normalizeFinishTime(input.elapsedLabel || input.finishTime),
+    finishTime: normalizeFinishTime(input.finishTime || input.elapsedLabel),
+    rank: normalizeMetricValue(input.rank),
+    eventDate: normalizeMetricValue(input.eventDate),
     confirmationCode: String(input.confirmationCode || '').trim() || 'N/A',
     submissionId: String(input.submissionId || '').trim(),
     certificateNumber,
@@ -194,14 +215,14 @@ async function normalizeCertificateInput(input) {
     assetImages,
     content: {
       heading: String(input.content?.heading || 'Certificate of Completion').trim(),
-      bodyText: String(input.content?.bodyText || 'This certifies that {{runnerName}} successfully completed {{distance}} in {{eventTitle}}.').trim(),
-      footerText: String(input.content?.footerText || 'Verify this certificate using the QR code below.').trim(),
+      bodyText: normalizeCertificateBodyText(input.content?.bodyText),
+      footerText: String(input.content?.footerText || 'Scan the QR code to verify this achievement.').trim(),
       signatureName: String(input.content?.signatureName || '').trim(),
       signatureRole: String(input.content?.signatureRole || '').trim()
     },
     displayOptions,
     styleOptions,
-    layoutKey: input.template?.layoutKey || input.layoutKey || 'modern_race',
+    layoutKey: resolveRenderLayoutKey(input.template?.layoutKey || input.layoutKey || 'verified_achievement'),
     approvedAt
   };
 }
@@ -211,510 +232,415 @@ function drawCertificate(doc, data) {
     drawSplitPanelCertificate(doc, data);
     return;
   }
+  drawVerifiedAchievementCertificate(doc, data);
+}
 
+function drawVerifiedAchievementCertificate(doc, data) {
   const { width, height } = doc.page;
-  const margin = 34;
+  const portrait = height > width;
+  const pad = Math.max(28, Math.round(Math.min(width, height) * 0.052));
+  const heroHeight = portrait ? Math.round(height * 0.39) : Math.round(height * 0.38);
+  const primary = data.styleOptions.primaryColor;
+  const accent = data.styleOptions.accentColor;
+  const secondary = data.styleOptions.secondaryAccentColor;
 
+  drawCertificateCanvas(doc, data, width, height, pad);
+  drawAchievementHero(doc, data, {
+    x: 0,
+    y: 0,
+    width,
+    height: heroHeight,
+    pad,
+    portrait,
+    primary,
+    secondary,
+    accent
+  });
+
+  const stats = buildVisibleStats(data);
+  const metricsTop = heroHeight + (portrait ? 20 : 16);
+  const metricsBottom = drawAchievementMetrics(doc, stats, {
+    x: pad,
+    y: metricsTop,
+    width: width - pad * 2,
+    portrait,
+    primary,
+    accent
+  });
+
+  drawAchievementAuthenticity(doc, data, {
+    x: pad,
+    y: metricsBottom + (portrait ? 24 : 18),
+    width: width - pad * 2,
+    bottom: height - pad,
+    portrait,
+    primary,
+    accent,
+    secondary
+  });
+}
+
+function drawCertificateCanvas(doc, data, width, height, pad) {
   doc.rect(0, 0, width, height).fill('#FFFFFF');
-  drawAccentShapes(doc, width, height);
+  if (data.assetImages.background) {
+    doc.save().opacity(0.045);
+    drawImageCover(doc, data.assetImages.background, 0, 0, width, height);
+    doc.restore();
+  }
+  doc.roundedRect(12, 12, width - 24, height - 24, 16).lineWidth(1.2).strokeColor('#DCE7EF').stroke();
+  doc.roundedRect(18, 18, width - 36, height - 36, 13).lineWidth(0.65).strokeColor('#E9F1F6').stroke();
+  doc.save().fillColor('#F8FAFC').circle(width - pad * 0.55, height - pad * 0.35, pad * 2.5).fill().restore();
+}
 
-  doc
-    .roundedRect(margin, margin, width - margin * 2, height - margin * 2, 18)
-    .lineWidth(2)
-    .stroke(BORDER);
-  doc
-    .roundedRect(margin + 10, margin + 10, width - (margin + 10) * 2, height - (margin + 10) * 2, 14)
-    .lineWidth(1.2)
-    .stroke('#FED7AA');
+function drawAchievementHero(doc, data, box) {
+  const { x, y, width, height, pad, portrait, primary, secondary, accent } = box;
+  const gradient = doc.linearGradient(x, y, x + width, y + height);
+  gradient.stop(0, primary).stop(1, secondary);
+  doc.rect(x, y, width, height).fill(gradient);
 
-  drawHeader(doc, margin, data);
-  drawMainContent(doc, data, width);
-  drawStats(doc, data, width);
-  drawFooter(doc, data, width, height, margin);
+  doc.save().fillColor('#FFFFFF').opacity(0.08);
+  doc.circle(x + width - pad, y - pad * 0.3, pad * 2.6).fill();
+  doc.circle(x + width - pad * 0.4, y + height + pad * 0.4, pad * 1.8).fill();
+  doc.restore();
+
+  if (data.assetImages.eventArtwork) {
+    const artworkWidth = portrait ? width * 0.48 : width * 0.32;
+    doc.save().opacity(0.11);
+    drawImageCover(doc, data.assetImages.eventArtwork, x + width - artworkWidth, y, artworkWidth, height);
+    doc.restore();
+  }
+
+  const logoSize = portrait ? 76 : 92;
+  drawCertificateLogo(doc, data, x + pad, y + pad * 0.72, logoSize);
+
+  const badgeWidth = portrait ? 146 : 154;
+  const badgeX = x + width - pad - badgeWidth;
+  const badgeY = y + pad * 0.78;
+  doc.roundedRect(badgeX, badgeY, badgeWidth, 27, 13.5).fillOpacity(0.18).fill('#FFFFFF');
+  doc.fillOpacity(1).circle(badgeX + 16, badgeY + 13.5, 7).fill(accent);
+  drawCheckMark(doc, badgeX + 16, badgeY + 13.5, '#FFFFFF', 1.4);
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(8.2).text('VERIFIED ACHIEVEMENT', badgeX + 29, badgeY + 9, {
+    width: badgeWidth - 37,
+    characterSpacing: 0.45
+  });
+
+  const copyX = portrait ? x + pad : x + pad + logoSize + 26;
+  const copyWidth = portrait
+    ? width - pad * 2
+    : width - (copyX - x) - pad - badgeWidth - 18;
+  const copyY = portrait ? y + 122 : y + pad * 0.82;
+  const heading = String(data.content.heading || 'Certificate of Completion').toUpperCase();
+  doc.fillColor('#BAE6FD').font('Helvetica-Bold').fontSize(8.5).text(heading, copyX, copyY, {
+    width: copyWidth,
+    characterSpacing: 1.2
+  });
+
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(fitFontSize(data.runnerName, portrait ? 30 : 35, portrait ? 19 : 23)).text(data.runnerName, copyX, copyY + 24, {
+    width: copyWidth,
+    height: portrait ? 75 : 56,
+    ellipsis: true,
+    lineGap: 2
+  });
+
+  const bodyText = renderTemplateText(data.content.bodyText, data);
+  doc.fillColor('#E0F2FE').font('Helvetica').fontSize(portrait ? 10.5 : 11.5).text(bodyText, copyX, copyY + (portrait ? 96 : 76), {
+    width: copyWidth,
+    height: portrait ? 50 : 36,
+    ellipsis: true,
+    lineGap: 3
+  });
+}
+
+function drawCertificateLogo(doc, data, x, y, size) {
+  const logo = data.displayOptions.showEventLogo && data.assetImages.eventLogo
+    ? data.assetImages.eventLogo
+    : data.displayOptions.showOrganizerLogo && data.assetImages.organizerLogo
+      ? data.assetImages.organizerLogo
+      : fs.existsSync(LOGO_PATH) ? LOGO_PATH : null;
+  if (logo) {
+    drawImageFit(doc, logo, x, y, size, size);
+  } else {
+    doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(size * 0.3).text('HR', x, y + size * 0.34, { width: size, align: 'center' });
+  }
+}
+
+function drawAchievementMetrics(doc, stats, options) {
+  const { x, y, width, portrait, primary, accent } = options;
+  if (!stats.length) return y;
+  const columns = portrait ? Math.min(2, stats.length) : stats.length;
+  const rows = Math.ceil(stats.length / columns);
+  const gap = portrait ? 10 : 12;
+  const cardHeight = portrait ? 58 : 60;
+  const cardWidth = (width - gap * (columns - 1)) / columns;
+
+  stats.forEach(([label, value], index) => {
+    const col = index % columns;
+    const row = Math.floor(index / columns);
+    const cardX = x + col * (cardWidth + gap);
+    const cardY = y + row * (cardHeight + gap);
+    doc.roundedRect(cardX, cardY, cardWidth, cardHeight, 11).fillAndStroke('#F8FBFD', '#DCE7EF');
+    doc.roundedRect(cardX, cardY, 4, cardHeight, 2).fill(accent);
+    doc.fillColor(primary).font('Helvetica-Bold').fontSize(7.2).text(label.toUpperCase(), cardX + 15, cardY + 12, {
+      width: cardWidth - 27,
+      characterSpacing: 0.55
+    });
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(fitFontSize(value, 13.5, 9.5)).text(value, cardX + 15, cardY + 31, {
+      width: cardWidth - 27,
+      height: 18,
+      ellipsis: true
+    });
+  });
+  return y + rows * cardHeight + (rows - 1) * gap;
+}
+
+function drawAchievementAuthenticity(doc, data, options) {
+  const { x, y: requestedY, width, bottom, portrait, primary, accent } = options;
+  const sponsors = data.displayOptions.showSponsorLogos ? data.assetImages.sponsorLogos : [];
+  const sponsorHeight = sponsors.length ? 38 : 0;
+  const panelBottom = bottom - sponsorHeight;
+  const targetHeight = portrait ? 180 : 135;
+  const y = Math.max(requestedY, panelBottom - targetHeight);
+  const panelHeight = Math.max(116, panelBottom - y);
+  const qrSize = data.displayOptions.showQrCode && data.qrCodeDataUrl ? (portrait ? 66 : 72) : 0;
+
+  doc.roundedRect(x, y, width, panelHeight, 14).fillAndStroke('#F0F9FF', '#BAE6FD');
+  doc.circle(x + 24, y + 25, 13).fill(primary);
+  drawCheckMark(doc, x + 24, y + 25, '#FFFFFF', 2);
+  doc.fillColor(primary).font('Helvetica-Bold').fontSize(7.4).text('AUTHENTICITY CONFIRMED', x + 46, y + 14, {
+    width: width - 65 - qrSize,
+    characterSpacing: 0.65
+  });
+  doc.fillColor(INK).font('Helvetica-Bold').fontSize(12.5).text('Verified by HelloRun', x + 46, y + 29, {
+    width: width - 65 - qrSize
+  });
+
+  const detailWidth = portrait ? width - 32 - qrSize : Math.min(width * 0.55, width - 32 - qrSize);
+  doc.fillColor(MUTED).font('Helvetica').fontSize(7.4).text(data.content.footerText || 'Scan to verify this achievement.', x + 46, y + 45, {
+    width: width - 65 - qrSize,
+    height: 12,
+    ellipsis: true
+  });
+
+  const detailY = y + 63;
+  const numberText = data.displayOptions.showCertificateNumber && data.certificateNumber
+    ? `Certificate No. ${data.certificateNumber}`
+    : 'Official HelloRun achievement record';
+  doc.fillColor(MUTED).font('Helvetica').fontSize(8.3).text(numberText, x + 18, detailY, {
+    width: detailWidth,
+    height: 22,
+    ellipsis: true
+  });
+  const hasOrganizerLogo = data.displayOptions.showOrganizerLogo && data.assetImages.organizerLogo;
+  if (hasOrganizerLogo) {
+    drawImageFit(doc, data.assetImages.organizerLogo, x + 18, detailY + 18, 25, 25);
+  }
+  doc.fillColor(INK).font('Helvetica-Bold').fontSize(8.7).text(`Organiser: ${data.organizerName}`, x + (hasOrganizerLogo ? 49 : 18), detailY + 22, {
+    width: detailWidth - (hasOrganizerLogo ? 31 : 0),
+    height: 20,
+    ellipsis: true
+  });
+
+  drawCertificateSignature(doc, data, {
+    x: portrait ? x + 18 : x + width * 0.58,
+    y: portrait ? detailY + 48 : detailY - 2,
+    width: portrait ? Math.max(150, width - 54 - qrSize) : Math.max(130, width * 0.22),
+    maxHeight: portrait ? panelHeight - 112 : panelHeight - 58
+  });
+
+  if (qrSize) {
+    const qrBuffer = dataUrlToBuffer(data.qrCodeDataUrl);
+    if (qrBuffer) {
+      const qrX = x + width - qrSize - 15;
+      const qrY = y + 13;
+      doc.roundedRect(qrX - 5, qrY - 5, qrSize + 10, qrSize + 24, 9).fillAndStroke('#FFFFFF', '#DCE7EF');
+      doc.image(qrBuffer, qrX, qrY, { width: qrSize, height: qrSize });
+      doc.fillColor(primary).font('Helvetica-Bold').fontSize(6.8).text('SCAN TO VERIFY', qrX - 2, qrY + qrSize + 4, {
+        width: qrSize + 4,
+        align: 'center',
+        characterSpacing: 0.45
+      });
+    }
+  }
+
+  if (sponsors.length) {
+    drawSponsorLogos(doc, sponsors, x, bottom - sponsorHeight + 4, width, sponsorHeight - 6, accent);
+  }
+}
+
+function drawCertificateSignature(doc, data, box) {
+  if (!data.assetImages.signature && !data.content.signatureName) return;
+  const { x, y, width, maxHeight } = box;
+  if (maxHeight < 30) return;
+  let lineY = y + 26;
+  if (data.assetImages.signature) {
+    const signatureHeight = Math.min(31, Math.max(20, maxHeight - 22));
+    drawImageFit(doc, data.assetImages.signature, x, y - 5, width, signatureHeight);
+    lineY = y + signatureHeight;
+  }
+  doc.moveTo(x + 7, lineY).lineTo(x + width - 7, lineY).lineWidth(0.7).strokeColor('#94A3B8').stroke();
+  if (data.content.signatureName) {
+    doc.fillColor(INK).font('Helvetica-Bold').fontSize(7.8).text(data.content.signatureName, x, lineY + 4, {
+      width,
+      height: 11,
+      ellipsis: true,
+      align: 'center'
+    });
+  }
+  doc.fillColor(MUTED).font('Helvetica').fontSize(6.8).text(data.content.signatureRole || 'Organiser', x, lineY + 15, {
+    width,
+    align: 'center'
+  });
+}
+
+function drawSponsorLogos(doc, logos, x, y, width, height, accent) {
+  doc.moveTo(x, y - 3).lineTo(x + width, y - 3).lineWidth(0.7).strokeColor('#E2E8F0').stroke();
+  const visible = logos.slice(0, 6);
+  const gap = 8;
+  const logoWidth = Math.min(72, (width - gap * (visible.length - 1)) / visible.length);
+  const totalWidth = logoWidth * visible.length + gap * (visible.length - 1);
+  const startX = x + (width - totalWidth) / 2;
+  visible.forEach((logo, index) => drawImageFit(doc, logo, startX + index * (logoWidth + gap), y, logoWidth, height));
+  if (!visible.length) {
+    doc.fillColor(accent).font('Helvetica-Bold').fontSize(7).text('SUPPORTED BY OUR EVENT PARTNERS', x, y + 8, { width, align: 'center' });
+  }
 }
 
 function drawSplitPanelCertificate(doc, data) {
   const { width, height } = doc.page;
-  const panelWidth = Math.round(width * 0.36);
-  const rightX = panelWidth;
-  const rightWidth = width - panelWidth;
-  const primary = data.styleOptions.accentColor || BRAND_ORANGE;
-  const secondary = data.styleOptions.secondaryAccentColor || BRAND_BLUE;
+  const portrait = height > width;
+  const primary = data.styleOptions.primaryColor;
+  const secondary = data.styleOptions.secondaryAccentColor;
+  const accent = data.styleOptions.accentColor;
+  const pad = Math.max(26, Math.round(Math.min(width, height) * 0.05));
 
-  doc.rect(0, 0, width, height).fill('#FFFFFF');
-  doc.rect(0, 0, panelWidth, height).fill(primary);
-  drawSplitPanelPattern(doc, rightX, rightWidth, height);
-
-  drawSplitPanelBranding(doc, data, panelWidth, height, primary, secondary);
-  drawSplitPanelContent(doc, data, rightX, rightWidth, height, primary, secondary);
-}
-
-function drawSplitPanelPattern(doc, x, width, height) {
-  doc.save();
-  doc.fillColor('#F8FAFC').rect(x, 0, width, height).fill();
-  doc.strokeColor('#EEF2F7').lineWidth(0.7);
-  for (let i = -height; i < width; i += 26) {
-    doc.moveTo(x + i, height).lineTo(x + i + height, 0).stroke();
-  }
-  doc.restore();
-}
-
-function drawSplitPanelBranding(doc, data, panelWidth, height, primary, secondary) {
-  const padding = 30;
-  const logoSize = 72;
-
-  doc.save();
-  doc.fillColor('#FFFFFF').fillOpacity(0.13).circle(panelWidth - 20, 76, 110).fill();
-  doc.fillColor('#FFFFFF').fillOpacity(0.10).circle(42, height - 42, 145).fill();
-  doc.fillOpacity(1).restore();
-
-  const logo = data.assetImages.eventLogo || data.assetImages.organizerLogo;
-  if (logo) {
-    drawImageFit(doc, logo, padding, 28, logoSize, logoSize);
-  } else if (fs.existsSync(LOGO_PATH)) {
-    doc.image(LOGO_PATH, padding, 28, { width: logoSize, height: logoSize });
+  drawCertificateCanvas(doc, data, width, height, pad);
+  if (portrait) {
+    const brandHeight = Math.round(height * 0.27);
+    drawSplitBrandPanel(doc, data, { x: 0, y: 0, width, height: brandHeight, pad, primary, secondary, accent, portrait });
+    drawSplitContentPanel(doc, data, { x: pad, y: brandHeight + 22, width: width - pad * 2, bottom: height - pad, portrait, primary, secondary, accent });
   } else {
-    doc.roundedRect(padding, 28, logoSize, logoSize, 14).fill('#FFFFFF');
-    doc.fillColor(primary).font('Helvetica-Bold').fontSize(22).text('HR', padding, 52, {
-      width: logoSize,
-      align: 'center'
-    });
+    const brandWidth = Math.round(width * 0.34);
+    drawSplitBrandPanel(doc, data, { x: 0, y: 0, width: brandWidth, height, pad, primary, secondary, accent, portrait });
+    drawSplitContentPanel(doc, data, { x: brandWidth + pad, y: pad, width: width - brandWidth - pad * 2, bottom: height - pad, portrait, primary, secondary, accent });
   }
-
-  doc
-    .fillColor('#FFFFFF')
-    .font('Helvetica-Bold')
-    .fontSize(fitFontSize(data.eventTitle, 24, 15))
-    .text(data.eventTitle, padding, 124, {
-      width: panelWidth - padding * 2,
-      align: 'left',
-      lineGap: 5
-    });
-
-  doc
-    .fillColor('#FFF7ED')
-    .font('Helvetica')
-    .fontSize(10)
-    .text(data.eventDate || 'Event certificate', padding, 202, {
-      width: panelWidth - padding * 2,
-      align: 'left'
-    });
-
-  const artX = padding;
-  const artY = 245;
-  const artW = panelWidth - padding * 2;
-  const artH = 195;
-  if (data.assetImages.eventArtwork) {
-    drawImageFit(doc, data.assetImages.eventArtwork, artX, artY, artW, artH);
-  } else {
-    drawMedalPlaceholder(doc, artX, artY, artW, artH, secondary);
-  }
-
-  doc
-    .fillColor('#FFFFFF')
-    .font('Helvetica-Bold')
-    .fontSize(10)
-    .text('Powered by HelloRun', padding, height - 70, {
-      width: panelWidth - padding * 2,
-      align: 'left',
-      characterSpacing: 0.4
-    });
-  doc
-    .fillColor('#FFF7ED')
-    .font('Helvetica')
-    .fontSize(8.5)
-    .text('Running events, results, and certificates', padding, height - 52, {
-      width: panelWidth - padding * 2,
-      align: 'left'
-    });
 }
 
-function drawSplitPanelContent(doc, data, rightX, rightWidth, height, primary, secondary) {
-  const padding = 52;
-  const x = rightX + padding;
-  const contentWidth = rightWidth - padding * 2;
-  const heading = data.content.heading || 'Certificate of Completion';
-  const bodyText = renderTemplateText(data.content.bodyText, data);
+function drawSplitBrandPanel(doc, data, box) {
+  const { x, y, width, height, pad, primary, secondary, accent, portrait } = box;
+  const gradient = doc.linearGradient(x, y, x + width, y + height);
+  gradient.stop(0, primary).stop(1, secondary);
+  doc.rect(x, y, width, height).fill(gradient);
+  doc.save().fillColor('#FFFFFF').opacity(0.1).circle(x + width, y + height * 0.22, Math.min(width, height) * 0.28).fill().restore();
+  drawCertificateLogo(doc, data, x + pad, y + pad, portrait ? 72 : 88);
 
-  doc
-    .fillColor(primary)
-    .font('Helvetica-Bold')
-    .fontSize(11)
-    .text(heading.toUpperCase(), x, 70, {
-      width: contentWidth,
-      characterSpacing: 1.6
-    });
+  const titleX = portrait ? x + pad + 76 : x + pad;
+  const titleY = portrait ? y + pad + 3 : y + 124;
+  const titleWidth = portrait ? width - pad * 2 - 76 : width - pad * 2;
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(fitFontSize(data.eventTitle, portrait ? 20 : 23, 14)).text(data.eventTitle, titleX, titleY, {
+    width: titleWidth,
+    height: portrait ? 52 : 80,
+    ellipsis: true,
+    lineGap: 3
+  });
+  doc.fillColor('#E0F2FE').font('Helvetica').fontSize(9).text(data.eventDate || 'Official event achievement', titleX, titleY + (portrait ? 53 : 86), {
+    width: titleWidth
+  });
 
-  doc
-    .fillColor(INK)
-    .font('Helvetica-Bold')
-    .fontSize(30)
-    .text('Recognizing Your Finish', x, 104, {
-      width: contentWidth,
-      lineGap: 2
-    });
-
-  doc
-    .fillColor(MUTED)
-    .font('Helvetica')
-    .fontSize(12)
-    .text('Awarded to', x, 165, {
-      width: contentWidth
-    });
-
-  const runnerName = String(data.runnerName || 'Runner').toUpperCase();
-  doc
-    .fillColor(INK)
-    .font('Helvetica-Bold')
-    .fontSize(fitFontSize(runnerName, 31, 19))
-    .text(runnerName, x, 190, {
-      width: contentWidth,
-      align: 'left',
-      lineGap: 2
-    });
-
-  doc
-    .moveTo(x, 236)
-    .lineTo(x + Math.min(contentWidth, 360), 236)
-    .lineWidth(2)
-    .strokeColor(primary)
-    .stroke();
-
-  doc
-    .fillColor(MUTED)
-    .font('Helvetica')
-    .fontSize(12)
-    .text(bodyText || 'for successfully completing this HelloRun event.', x, 263, {
-      width: contentWidth,
-      lineGap: 5
-    });
-
-  doc
-    .fillColor(INK)
-    .font('Helvetica-Bold')
-    .fontSize(18)
-    .text(data.eventTitle, x, 320, {
-      width: contentWidth,
-      lineGap: 3
-    });
-
-  drawSplitPanelDetails(doc, data, x, 365, contentWidth, primary);
-  drawSplitPanelFooter(doc, data, x, contentWidth, height, primary, secondary);
+  if (!portrait && data.assetImages.eventArtwork) {
+    doc.save().opacity(0.2);
+    drawImageCover(doc, data.assetImages.eventArtwork, x + pad, y + height * 0.42, width - pad * 2, height * 0.33);
+    doc.restore();
+  }
+  doc.fillColor('#FFFFFF').font('Helvetica-Bold').fontSize(7.6).text('VERIFIED BY HELLORUN', x + pad, y + height - pad - 10, {
+    width: width - pad * 2,
+    characterSpacing: 0.65
+  });
+  doc.rect(x + pad, y + height - pad + 5, Math.min(92, width - pad * 2), 4).fill(accent);
 }
 
-function drawSplitPanelDetails(doc, data, x, y, width, primary) {
-  const stats = buildStats(data);
-  const cols = Math.min(2, Math.max(1, stats.length));
-  const gap = 12;
-  const cardWidth = (width - gap * (cols - 1)) / cols;
-  const cardHeight = 54;
+function drawSplitContentPanel(doc, data, box) {
+  const { x, y, width, bottom, portrait, primary, secondary, accent } = box;
+  const badgeWidth = 154;
+  doc.roundedRect(x, y, badgeWidth, 27, 13.5).fill('#E0F2FE');
+  doc.circle(x + 16, y + 13.5, 7).fill(accent);
+  drawCheckMark(doc, x + 16, y + 13.5, '#FFFFFF', 1.4);
+  doc.fillColor(primary).font('Helvetica-Bold').fontSize(8).text('VERIFIED ACHIEVEMENT', x + 29, y + 9, { width: badgeWidth - 37, characterSpacing: 0.4 });
 
-  stats.forEach(([label, value], index) => {
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-    const cardX = x + col * (cardWidth + gap);
-    const cardY = y + row * (cardHeight + gap);
-    doc.roundedRect(cardX, cardY, cardWidth, cardHeight, 10).fillAndStroke('#FFFFFF', '#E2E8F0');
-    doc
-      .fillColor(primary)
-      .font('Helvetica-Bold')
-      .fontSize(7.5)
-      .text(label.toUpperCase(), cardX + 12, cardY + 12, {
-        width: cardWidth - 24,
-        characterSpacing: 0.7
-      });
-    doc
-      .fillColor(INK)
-      .font('Helvetica-Bold')
-      .fontSize(fitFontSize(value, 13, 9))
-      .text(value || '-', cardX + 12, cardY + 30, {
-        width: cardWidth - 24,
-        ellipsis: true
-      });
+  doc.fillColor(primary).font('Helvetica-Bold').fontSize(8.5).text(String(data.content.heading || 'Certificate of Completion').toUpperCase(), x, y + 45, {
+    width,
+    characterSpacing: 1
+  });
+  doc.fillColor(INK).font('Helvetica-Bold').fontSize(fitFontSize(data.runnerName, portrait ? 28 : 31, 19)).text(data.runnerName, x, y + 70, {
+    width,
+    height: portrait ? 68 : 52,
+    ellipsis: true,
+    lineGap: 2
+  });
+  doc.fillColor(MUTED).font('Helvetica').fontSize(10.5).text(renderTemplateText(data.content.bodyText, data), x, y + (portrait ? 142 : 128), {
+    width,
+    height: 44,
+    ellipsis: true,
+    lineGap: 3
+  });
+
+  const metricsY = y + (portrait ? 196 : 180);
+  const metricsBottom = drawAchievementMetrics(doc, buildVisibleStats(data), { x, y: metricsY, width, portrait: true, primary, accent });
+  drawAchievementAuthenticity(doc, data, {
+    x,
+    y: metricsBottom + 18,
+    width,
+    bottom,
+    portrait: true,
+    primary,
+    accent,
+    secondary
   });
 }
 
-function drawSplitPanelFooter(doc, data, x, width, height, primary, secondary) {
-  const footerY = height - 96;
-  doc
-    .moveTo(x, footerY)
-    .lineTo(x + width, footerY)
-    .lineWidth(1)
-    .strokeColor('#E2E8F0')
-    .stroke();
-
-  const certText = data.displayOptions.showCertificateNumber && data.certificateNumber
-    ? `Certificate No: ${data.certificateNumber}`
-    : 'Certified through HelloRun';
-  doc
-    .fillColor(INK)
-    .font('Helvetica-Bold')
-    .fontSize(10)
-    .text('Certified through HelloRun', x, footerY + 17, {
-      width: width - 98
-    });
-  doc
-    .fillColor(MUTED)
-    .font('Helvetica')
-    .fontSize(8.5)
-    .text(certText, x, footerY + 34, {
-      width: width - 98
-    });
-
-  if (data.content.signatureName) {
-    doc
-      .fillColor(INK)
-      .font('Helvetica-Bold')
-      .fontSize(9)
-      .text(data.content.signatureName, x + 210, footerY + 17, {
-        width: 150,
-        align: 'center'
-      });
-    doc
-      .moveTo(x + 218, footerY + 34)
-      .lineTo(x + 352, footerY + 34)
-      .lineWidth(0.8)
-      .strokeColor('#CBD5E1')
-      .stroke();
-    doc
-      .fillColor(MUTED)
-      .font('Helvetica')
-      .fontSize(7.5)
-      .text(data.content.signatureRole || 'Organiser', x + 210, footerY + 39, {
-        width: 150,
-        align: 'center'
-      });
-  }
-
-  if (data.displayOptions.showQrCode && data.qrCodeDataUrl) {
-    const qrBuffer = dataUrlToBuffer(data.qrCodeDataUrl);
-    if (qrBuffer) {
-      doc.image(qrBuffer, x + width - 74, footerY + 12, { width: 62, height: 62 });
-    }
-  } else {
-    doc.roundedRect(x + width - 74, footerY + 14, 58, 58, 8).fillAndStroke('#FFFFFF', '#E2E8F0');
-    doc.fillColor(secondary).font('Helvetica-Bold').fontSize(8).text('VERIFY', x + width - 74, footerY + 38, {
-      width: 58,
-      align: 'center'
-    });
-  }
-}
-
-function drawMedalPlaceholder(doc, x, y, width, height, secondary) {
-  const centerX = x + width / 2;
-  const centerY = y + height / 2 + 12;
-  doc.save();
-  doc.roundedRect(x, y, width, height, 24).fillOpacity(0.14).fill('#FFFFFF');
-  doc.fillOpacity(1);
-  doc
-    .moveTo(centerX - 34, y + 28)
-    .lineTo(centerX - 8, centerY - 22)
-    .lineTo(centerX - 25, centerY - 18)
-    .lineTo(centerX - 52, y + 28)
-    .fill('#FFFFFF');
-  doc
-    .moveTo(centerX + 34, y + 28)
-    .lineTo(centerX + 8, centerY - 22)
-    .lineTo(centerX + 25, centerY - 18)
-    .lineTo(centerX + 52, y + 28)
-    .fill('#FFFFFF');
-  doc.circle(centerX, centerY, 52).fill('#FFFFFF');
-  doc.circle(centerX, centerY, 41).lineWidth(4).strokeColor(secondary).stroke();
-  doc.fillColor(secondary).font('Helvetica-Bold').fontSize(25).text('FINISH', centerX - 48, centerY - 12, {
-    width: 96,
-    align: 'center'
-  });
-  doc.restore();
-}
-
-function drawAccentShapes(doc, width, height) {
-  doc.save();
-  doc.circle(70, 62, 115).fillOpacity(0.12).fill(BRAND_ORANGE);
-  doc.circle(width - 46, height - 42, 138).fillOpacity(0.13).fill(BRAND_BLUE);
-  doc.circle(width - 122, 72, 46).fillOpacity(0.15).fill(BRAND_ORANGE);
-  doc.fillOpacity(1).restore();
-
-  doc
-    .moveTo(54, 104)
-    .lineTo(156, 104)
-    .lineWidth(5)
-    .strokeColor(BRAND_ORANGE)
-    .stroke();
-  doc
-    .moveTo(width - 182, height - 105)
-    .lineTo(width - 56, height - 105)
-    .lineWidth(5)
-    .strokeColor(BRAND_BLUE)
-    .stroke();
-  doc.strokeColor(INK);
-}
-
-function drawHeader(doc, margin, data) {
-  const logoSize = 42;
-  if (fs.existsSync(LOGO_PATH)) {
-    doc.image(LOGO_PATH, margin + 30, margin + 28, { width: logoSize, height: logoSize });
-  } else {
-    doc.circle(margin + 51, margin + 49, 21).fill(BRAND_ORANGE);
-  }
-
-  doc
-    .fillColor(INK)
-    .font('Helvetica-Bold')
-    .fontSize(18)
-    .text('HelloRun', margin + 82, margin + 30, { lineBreak: false });
-  doc
-    .fillColor(MUTED)
-    .font('Helvetica')
-    .fontSize(8.5)
-    .text(data.organizerName || 'Verified runner achievement', margin + 83, margin + 53, { lineBreak: false });
-}
-
-function drawMainContent(doc, data, width) {
-  const centerX = width / 2;
-
-  doc
-    .fillColor(BRAND_ORANGE)
-    .font('Helvetica-Bold')
-    .fontSize(13)
-    .text(String(data.content.heading || 'Certificate of Completion').toUpperCase(), 0, 132, {
-      align: 'center',
-      characterSpacing: 1.1
-    });
-
-  const bodyText = renderTemplateText(data.content.bodyText, data);
-  doc
-    .fillColor(MUTED)
-    .font('Helvetica')
-    .fontSize(12)
-    .text(bodyText || 'This certifies that', 132, 166, {
-      width: width - 264,
-      align: 'center',
-      lineGap: 3
-    });
-
-  doc
-    .fillColor(INK)
-    .font('Helvetica-Bold')
-    .fontSize(fitFontSize(data.runnerName, 38, 28))
-    .text(data.runnerName, 92, 210, {
-      width: width - 184,
-      align: 'center',
-      lineGap: 2
-    });
-
-  doc
-    .moveTo(centerX - 178, 262)
-    .lineTo(centerX + 178, 262)
-    .lineWidth(1.2)
-    .strokeColor('#CBD5E1')
-    .stroke();
-
-  doc
-    .fillColor(MUTED)
-    .font('Helvetica')
-    .fontSize(12)
-    .text('Event', 0, 282, { align: 'center' });
-
-  doc
-    .fillColor(INK)
-    .font('Helvetica-Bold')
-    .fontSize(fitFontSize(data.eventTitle, 24, 16))
-    .text(data.eventTitle, 112, 306, {
-      width: width - 224,
-      align: 'center',
-      lineGap: 4
-    });
-}
-
-function drawStats(doc, data, width) {
-  const cardWidth = 148;
-  const cardHeight = 72;
-  const gap = 14;
-  const stats = buildStats(data);
-  const totalWidth = cardWidth * stats.length + gap * Math.max(0, stats.length - 1);
-  const startX = (width - totalWidth) / 2;
-  const y = 366;
-
-  stats.forEach(([label, value], index) => {
-    const x = startX + index * (cardWidth + gap);
-    doc
-      .roundedRect(x, y, cardWidth, cardHeight, 12)
-      .fillAndStroke('#FFFFFF', '#E2E8F0');
-    doc
-      .fillColor(MUTED)
-      .font('Helvetica-Bold')
-      .fontSize(8)
-      .text(label.toUpperCase(), x + 14, y + 15, {
-        width: cardWidth - 28,
-        characterSpacing: 0.5
-      });
-    doc
-      .fillColor(INK)
-      .font('Helvetica-Bold')
-      .fontSize(fitFontSize(value, 15, 10))
-      .text(value, x + 14, y + 35, {
-        width: cardWidth - 28,
-        height: 24,
-        ellipsis: true
-      });
-  });
-}
-
-function drawFooter(doc, data, width, height, margin) {
-  const footerY = height - margin - 78;
-  const verification = data.certificateNumber
-    ? `Certificate No: ${data.certificateNumber}`
-    : data.submissionId
-      ? `Certificate ID: cert_${data.submissionId}`
-      : `Certificate issued: ${data.approvedAt.toISOString()}`;
-
-  doc
-    .moveTo(margin + 38, footerY)
-    .lineTo(width - margin - 38, footerY)
-    .lineWidth(1)
-    .strokeColor('#E2E8F0')
-    .stroke();
-
-  doc
-    .fillColor(MUTED)
-    .font('Helvetica')
-    .fontSize(8.5)
-    .text(verification, margin + 38, footerY + 18, {
-      width: 360
-    });
-
-  if (data.displayOptions.showQrCode && data.qrCodeDataUrl) {
-    const qrBuffer = dataUrlToBuffer(data.qrCodeDataUrl);
-    if (qrBuffer) {
-      doc.image(qrBuffer, margin + 38, footerY + 34, { width: 42, height: 42 });
-    }
-  }
-
-  doc
-    .fillColor(INK)
-    .font('Helvetica-Bold')
-    .fontSize(12)
-    .text('HelloRun', width - margin - 220, footerY + 12, {
-      width: 182,
-      align: 'right'
-    });
-  doc
-    .fillColor(MUTED)
-    .font('Helvetica')
-    .fontSize(8.5)
-    .text('Running events, results, and certificates', width - margin - 260, footerY + 31, {
-      width: 222,
-      align: 'right'
-    });
-}
-
-function buildStats(data) {
+function buildVisibleStats(data) {
   const stats = [];
-  if (data.displayOptions.showDistance) stats.push(['Distance', data.raceDistance]);
-  if (data.displayOptions.showFinishTime) stats.push(['Finish Time', data.elapsedLabel]);
+  if (data.displayOptions.showDistance && data.raceDistance) stats.push(['Distance', data.raceDistance]);
+  if (data.displayOptions.showFinishTime && data.elapsedLabel) stats.push(['Finish Time', data.elapsedLabel]);
   if (data.displayOptions.showRank && data.rank) stats.push(['Rank', data.rank]);
-  if (data.displayOptions.showEventDate) stats.push(['Event Date', data.eventDate || formatCertificateDate(data.approvedAt)]);
+  if (data.displayOptions.showEventDate && data.eventDate) stats.push(['Event Date', data.eventDate]);
   return stats.slice(0, 4);
+}
+
+function drawImageCover(doc, image, x, y, width, height) {
+  try {
+    doc.image(image, x, y, { cover: [width, height], align: 'center', valign: 'center' });
+  } catch (error) {
+    // Optional artwork must never prevent certificate generation.
+  }
+}
+
+function drawCheckMark(doc, centerX, centerY, color, lineWidth) {
+  doc.save()
+    .moveTo(centerX - 3.2, centerY)
+    .lineTo(centerX - 0.8, centerY + 2.5)
+    .lineTo(centerX + 4, centerY - 2.8)
+    .lineWidth(lineWidth)
+    .lineCap('round')
+    .lineJoin('round')
+    .strokeColor(color)
+    .stroke()
+    .restore();
+}
+
+function normalizeCertificateBodyText(value) {
+  const bodyText = String(value || '').trim();
+  if (!bodyText || LEGACY_DEFAULT_BODY_TEXTS.has(bodyText)) return DEFAULT_ACHIEVEMENT_BODY;
+  return bodyText;
+}
+
+function normalizeFinishTime(value) {
+  const finishTime = String(value || '').trim();
+  return /^(?:N\/?A|-|00:00:00)$/i.test(finishTime) ? '' : finishTime;
+}
+
+function normalizeMetricValue(value) {
+  const metric = String(value || '').trim();
+  return /^(?:N\/?A|-|not available)$/i.test(metric) ? '' : metric;
 }
 
 function renderTemplateText(templateText, data) {
@@ -835,7 +761,7 @@ function buildParticipantName(registration) {
 
 function formatElapsedMs(value) {
   const totalMs = Number(value || 0);
-  if (!Number.isFinite(totalMs) || totalMs <= 0) return '00:00:00';
+  if (!Number.isFinite(totalMs) || totalMs <= 0) return '';
   const totalSeconds = Math.floor(totalMs / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
@@ -847,5 +773,8 @@ module.exports = {
   issueSubmissionCertificate,
   buildCertificatePdfBuffer,
   buildCertificateRenderData,
-  renderTemplateText
+  renderTemplateText,
+  normalizeCertificateInput,
+  normalizeCertificateBodyText,
+  buildVisibleStats
 };

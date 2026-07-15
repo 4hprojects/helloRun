@@ -32,13 +32,13 @@ const contentSchema = new mongoose.Schema(
       type: String,
       trim: true,
       maxlength: 1000,
-      default: 'This certifies that {{runnerName}} successfully completed {{distance}} in {{eventTitle}}.'
+      default: 'Officially completed {{distance}} at {{eventTitle}}.'
     },
     footerText: {
       type: String,
       trim: true,
       maxlength: 300,
-      default: 'Verify this certificate using the QR code below.'
+      default: 'Scan the QR code to verify this achievement.'
     },
     signatureName: { type: String, trim: true, maxlength: 120, default: '' },
     signatureRole: { type: String, trim: true, maxlength: 120, default: '' }
@@ -109,8 +109,8 @@ const certificateTemplateSchema = new mongoose.Schema(
     },
     layoutKey: {
       type: String,
-      enum: ['classic', 'modern_race', 'minimal', 'school_event', 'charity_run', 'split_panel_event'],
-      default: 'modern_race'
+      enum: ['verified_achievement', 'classic', 'modern_race', 'minimal', 'school_event', 'charity_run', 'split_panel_event'],
+      default: 'verified_achievement'
     },
     status: {
       type: String,

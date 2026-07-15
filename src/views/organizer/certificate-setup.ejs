@@ -36,19 +36,53 @@
             <p>Choose a fixed layout for reliable PDF generation.</p>
           </div>
         </div>
+        <% const selectedLayoutKey = template.layoutKey === 'split_panel_event' ? 'split_panel_event' : 'verified_achievement'; %>
         <label for="layoutKey">Layout</label>
         <select id="layoutKey" name="layoutKey">
           <% [
-            ['modern_race', 'Modern Race'],
-            ['classic', 'Classic'],
-            ['minimal', 'Minimal'],
-            ['school_event', 'School Event'],
-            ['charity_run', 'Charity Run'],
+            ['verified_achievement', 'Verified Achievement'],
             ['split_panel_event', 'Split Panel Event']
           ].forEach(([value, label]) => { %>
-            <option value="<%= value %>" <%= template.layoutKey === value ? 'selected' : '' %>><%= label %></option>
+            <option value="<%= value %>" <%= selectedLayoutKey === value ? 'selected' : '' %>><%= label %></option>
           <% }) %>
         </select>
+        <% if (selectedLayoutKey !== template.layoutKey) { %>
+          <p class="form-help">This legacy template now renders with the upgraded Verified Achievement design. Saving stores the canonical layout name.</p>
+        <% } %>
+      </div>
+
+      <div class="form-section">
+        <div class="section-header">
+          <div>
+            <h2>Design and Print Format</h2>
+            <p>Apply your event identity within the verified HelloRun certificate composition.</p>
+          </div>
+        </div>
+        <div class="certificate-color-grid">
+          <label>Primary color
+            <span class="certificate-color-control"><input type="color" name="primaryColor" value="<%= template.styleOptions.primaryColor || '#0F172A' %>"><span>Navy header and verification details</span></span>
+          </label>
+          <label>Achievement accent
+            <span class="certificate-color-control"><input type="color" name="accentColor" value="<%= template.styleOptions.accentColor || '#FA9A4B' %>"><span>Verified seal and metric highlights</span></span>
+          </label>
+          <label>Secondary color
+            <span class="certificate-color-control"><input type="color" name="secondaryAccentColor" value="<%= template.styleOptions.secondaryAccentColor || '#78C0E9' %>"><span>Header blend and supporting details</span></span>
+          </label>
+        </div>
+        <div class="form-grid two-col">
+          <label>Page size
+            <select name="pageSize">
+              <option value="A4" <%= template.styleOptions.pageSize !== 'LETTER' ? 'selected' : '' %>>A4</option>
+              <option value="LETTER" <%= template.styleOptions.pageSize === 'LETTER' ? 'selected' : '' %>>Letter</option>
+            </select>
+          </label>
+          <label>Orientation
+            <select name="orientation">
+              <option value="landscape" <%= template.styleOptions.orientation !== 'portrait' ? 'selected' : '' %>>Landscape</option>
+              <option value="portrait" <%= template.styleOptions.orientation === 'portrait' ? 'selected' : '' %>>Portrait</option>
+            </select>
+          </label>
+        </div>
       </div>
 
       <div class="form-section">
@@ -117,24 +151,35 @@
           <p>JPEG, PNG, and WebP images are supported.</p>
         </div>
       </div>
-      <div class="form-grid two-col">
+      <div class="form-grid two-col certificate-asset-grid">
         <label>Background image
+          <% if (template.assets.backgroundImageUrl) { %><span class="certificate-asset-preview"><img src="<%= template.assets.backgroundImageUrl %>" alt="Current certificate background"><span>Current background</span></span><% } %>
           <input type="file" name="backgroundImageFile" accept="image/jpeg,image/png,image/webp">
         </label>
         <label>Event logo override
+          <% if (template.assets.eventLogoUrl) { %><span class="certificate-asset-preview"><img src="<%= template.assets.eventLogoUrl %>" alt="Current event logo"><span>Current event logo</span></span><% } %>
           <input type="file" name="eventLogoFile" accept="image/jpeg,image/png,image/webp">
         </label>
         <label>Event artwork or medal image
+          <% if (template.assets.eventArtworkUrl) { %><span class="certificate-asset-preview"><img src="<%= template.assets.eventArtworkUrl %>" alt="Current event artwork"><span>Current event artwork</span></span><% } %>
           <input type="file" name="eventArtworkFile" accept="image/jpeg,image/png,image/webp">
         </label>
         <label>Organiser logo
+          <% if (template.assets.organizerLogoUrl) { %><span class="certificate-asset-preview"><img src="<%= template.assets.organizerLogoUrl %>" alt="Current organiser logo"><span>Current organiser logo</span></span><% } %>
           <input type="file" name="organizerLogoFile" accept="image/jpeg,image/png,image/webp">
         </label>
         <label>Signature image
+          <% if (template.assets.signatureImageUrl) { %><span class="certificate-asset-preview certificate-asset-preview--signature"><img src="<%= template.assets.signatureImageUrl %>" alt="Current signature"><span>Current signature</span></span><% } %>
           <input type="file" name="signatureImageFile" accept="image/jpeg,image/png,image/webp">
         </label>
         <label>Sponsor logos
+          <% if (template.assets.sponsorLogoUrls && template.assets.sponsorLogoUrls.length) { %>
+            <span class="certificate-sponsor-previews">
+              <% template.assets.sponsorLogoUrls.slice(0, 6).forEach((url, index) => { %><img src="<%= url %>" alt="Current sponsor logo <%= index + 1 %>"><% }) %>
+            </span>
+          <% } %>
           <input type="file" name="sponsorLogoFiles" accept="image/jpeg,image/png,image/webp" multiple>
+          <span class="form-help">Upload up to six logos. New uploads replace the current sponsor set.</span>
         </label>
       </div>
       <button type="submit" class="btn btn-outline">Upload Assets</button>
