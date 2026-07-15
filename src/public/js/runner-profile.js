@@ -11,6 +11,51 @@
     setupDobToggle();
     highlightActiveMenu();
     setupUnlinkConfirmation();
+    setupTimezoneSuggestion();
+  }
+
+  function setupTimezoneSuggestion() {
+    const select = document.getElementById('profileTimezone');
+    const source = document.getElementById('profileTimezoneSource');
+    const container = document.getElementById('profileTimezoneSuggestion');
+    const text = document.getElementById('profileTimezoneSuggestionText');
+    const useButton = document.getElementById('useDetectedTimezone');
+    if (!select || !container || !text || !useButton) return;
+
+    let detected = '';
+    try {
+      detected = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    } catch (_) {}
+    const countrySuggestion = container.dataset.countrySuggestion || '';
+    const suggestion = detected || countrySuggestion;
+    const hasOption = suggestion && Array.from(select.options).some((option) => option.value === suggestion);
+
+    if (!hasOption || suggestion === select.value) {
+      text.textContent = select.value
+        ? `Saved timezone: ${select.value}`
+        : 'Choose the timezone where you normally live or run.';
+      return;
+    }
+
+    text.textContent = detected
+      ? `Your browser suggests ${detected}. Confirm it or choose another timezone.`
+      : `Your country suggests ${countrySuggestion}. Confirm it or choose another timezone.`;
+    const editButton = document.querySelector('[data-form-id="contactForm"]');
+    if (editButton) {
+      editButton.addEventListener('click', () => {
+        useButton.hidden = false;
+      });
+    }
+    useButton.addEventListener('click', () => {
+      select.value = suggestion;
+      if (source) source.value = detected ? 'browser' : 'country_suggestion';
+      text.textContent = `${suggestion} selected. Save Contact to confirm.`;
+      useButton.hidden = true;
+      select.focus();
+    });
+    select.addEventListener('change', () => {
+      if (source) source.value = 'user';
+    });
   }
 
   function setupEditablePanels() {

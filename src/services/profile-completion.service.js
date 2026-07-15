@@ -10,6 +10,7 @@ const PROFILE_COMPLETENESS_FIELDS = [
   { key: 'lastName', label: 'Last Name', section: 'identity' },
   { key: 'mobile', label: 'Mobile', section: 'contact' },
   { key: 'country', label: 'Country', section: 'contact' },
+  { key: 'timezone', label: 'Timezone', section: 'contact' },
   { key: 'dateOfBirth', label: 'Date of Birth', section: 'identity' },
   { key: 'gender', label: 'Gender', section: 'identity' },
   { key: 'emergencyContactName', label: 'Emergency Contact Name', section: 'emergency' },

@@ -106,7 +106,6 @@ function startAuthenticatedSession(req, user) {
   req.session.userId = user._id;
   req.session.role = user.role;
   req.session.userName = user.firstName || '';
-  req.session.user = user;
   req.session.loginSuccess = true;
   // Fire-and-forget — don't block the login response
   const User = require('../models/User');

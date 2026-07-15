@@ -157,6 +157,23 @@
                 </select>
               </label>
               <label class="profile-form-field">
+                <span>Timezone</span>
+                <select name="timezone" id="profileTimezone" data-editable disabled>
+                  <option value="" <%= !profileData.timezone ? 'selected' : '' %>>Not set</option>
+                  <% (timezones || []).forEach((timezone) => { %>
+                    <option value="<%= timezone %>" <%= profileData.timezone === timezone ? 'selected' : '' %>><%= timezone.replace(/_/g, ' ') %></option>
+                  <% }) %>
+                </select>
+                <small>Your timezone shows deadlines in your local time. Official event deadlines remain based on Asia/Manila.</small>
+                <input type="hidden" name="timezoneSource" id="profileTimezoneSource" value="user">
+              </label>
+              <div class="profile-form-field" id="profileTimezoneSuggestion" data-country-suggestion="<%= suggestedTimezone || '' %>">
+                <span>Timezone suggestion</span>
+                <p id="profileTimezoneSuggestionText" role="status">Browser timezone detection is available when you edit your contact details.</p>
+                <button type="button" class="btn btn-outline btn-sm" id="useDetectedTimezone" hidden>Use suggested timezone</button>
+                <small>HelloRun does not request or track your precise location.</small>
+              </div>
+              <label class="profile-form-field">
                 <span>Running Group</span>
                 <input type="text" value="<%= (profileData.runningGroups && profileData.runningGroups.length) ? profileData.runningGroups.join(', ') : (profileData.runningGroup || 'Not set') %>" readonly disabled>
               </label>

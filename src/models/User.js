@@ -89,6 +89,21 @@ const userSchema = new mongoose.Schema({
     maxlength: 100,
     default: ''
   },
+  timezone: {
+    type: String,
+    trim: true,
+    maxlength: 100,
+    default: ''
+  },
+  timezoneConfirmedAt: {
+    type: Date,
+    default: null
+  },
+  timezoneSource: {
+    type: String,
+    enum: ['user', 'browser', 'country_suggestion', ''],
+    default: ''
+  },
   dateOfBirth: {
     type: Date,
     default: null

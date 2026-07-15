@@ -60,14 +60,17 @@
         </script>
       <% } %>
 
-      <% if (profileCompleteness && profileCompleteness.percent < 60) { %>
+      <% if (profileCompleteness && profileCompleteness.missingFields && profileCompleteness.missingFields.length) { %>
         <div class="dashboard-profile-nudge">
           <div class="nudge-progress">
             <strong>Profile <%= profileCompleteness.percent %>% complete</strong>
             <div class="nudge-progress-track"><div class="nudge-progress-fill" style="width:<%= profileCompleteness.percent %>%"></div></div>
           </div>
           <p class="nudge-missing">Missing: <%= (profileCompleteness.missingFields || []).join(', ') %></p>
-          <a href="/runner/profile" class="btn btn-sm btn-primary">Complete Profile →</a>
+          <% if (profileCompleteness.missingFields.includes('Country') || profileCompleteness.missingFields.includes('Timezone')) { %>
+            <p class="nudge-missing">Update your location and timezone so event schedules appear correctly wherever you run.</p>
+          <% } %>
+          <a href="/runner/profile<%= (profileCompleteness.missingFields.includes('Country') || profileCompleteness.missingFields.includes('Timezone')) ? '#contact' : '' %>" class="btn btn-sm btn-primary">Complete Profile →</a>
         </div>
       <% } %>
 

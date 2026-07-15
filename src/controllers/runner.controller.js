@@ -5,6 +5,11 @@ const Event = require('../models/Event');
 const passwordService = require('../services/password.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode } = require('../utils/country');
 const {
+  getSupportedTimeZones,
+  normalizeTimeZone,
+  suggestTimeZoneForCountry
+} = require('../utils/timezone');
+const {
   getRunnerRegistrations,
   getRunnerEventProgressCards,
   buildRunnerDashboardData,
@@ -52,6 +57,7 @@ const { getRunnerBadgeProgress, getRunnerNextMilestones } = require('../services
 const stravaService = require('../services/strava.service');
 
 const countries = getCountries();
+const timezones = getSupportedTimeZones();
 
 exports.getDashboard = async (req, res) => {
   try {
@@ -324,15 +330,28 @@ exports.updateProfileContact = async (req, res) => {
 
     const mobile = String(req.body.mobile || '').trim();
     const country = normalizeCountryCode(req.body.country);
+    const submittedTimezone = String(req.body.timezone || '').trim();
+    const timezone = normalizeTimeZone(submittedTimezone);
     if (mobile && !/^[\d\s\-()+]{7,25}$/.test(mobile)) {
       return res.redirect('/runner/profile?type=error&msg=Enter%20a%20valid%20mobile%20number.#contact');
     }
     if (country && !isValidCountryCode(country)) {
       return res.redirect('/runner/profile?type=error&msg=Select%20a%20valid%20country.#contact');
     }
+    if (submittedTimezone && !timezone) {
+      return res.redirect('/runner/profile?type=error&msg=Select%20a%20valid%20timezone.#contact');
+    }
 
     user.mobile = mobile;
     user.country = country;
+    if (timezone !== String(user.timezone || '')) {
+      user.timezone = timezone;
+      user.timezoneConfirmedAt = timezone ? new Date() : null;
+      user.timezoneSource = timezone ? normalizeTimezoneSource(req.body.timezoneSource) : '';
+    } else if (timezone && !user.timezoneConfirmedAt) {
+      user.timezoneConfirmedAt = new Date();
+      user.timezoneSource = normalizeTimezoneSource(req.body.timezoneSource);
+    }
     await user.save();
     await syncProfileCompletionNotification(user);
     return res.redirect('/runner/profile?type=success&msg=Contact%20details%20updated.#contact');
@@ -927,6 +946,8 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
     profileData,
     profileCompleteness,
     countries,
+    timezones,
+    suggestedTimezone: profileData.timezone || suggestTimeZoneForCountry(profileData.country),
     selectedCountryName: selectedCountry?.name || 'Not set',
     stravaConnection,
     badges,
@@ -1054,6 +1075,7 @@ function getRunnerProfileFormData(body = {}) {
     displayName: String(body.displayName || '').trim(),
     mobile: String(body.mobile || '').trim(),
     country: normalizeCountryCode(body.country),
+    timezone: normalizeTimeZone(body.timezone),
     dateOfBirth: formatDateForInput(body.dateOfBirth),
     gender: String(body.gender || '').trim(),
     emergencyContactName: String(body.emergencyContactName || '').trim(),
@@ -1061,6 +1083,11 @@ function getRunnerProfileFormData(body = {}) {
     runningGroups: normalizedGroups,
     runningGroup: normalizedGroups[0] || ''
   };
+}
+
+function normalizeTimezoneSource(value) {
+  const source = String(value || '').trim();
+  return ['browser', 'country_suggestion'].includes(source) ? source : 'user';
 }
 
 function validateRunnerProfileForm(formData) {
