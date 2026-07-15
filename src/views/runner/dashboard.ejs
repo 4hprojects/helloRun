@@ -70,7 +70,7 @@
           <% if (profileCompleteness.missingFields.includes('Country') || profileCompleteness.missingFields.includes('Timezone')) { %>
             <p class="nudge-missing">Update your location and timezone so event schedules appear correctly wherever you run.</p>
           <% } %>
-          <a href="/runner/profile<%= (profileCompleteness.missingFields.includes('Country') || profileCompleteness.missingFields.includes('Timezone')) ? '#contact' : '' %>" class="btn btn-sm btn-primary">Complete Profile →</a>
+          <a href="/runner/profile<%= (profileCompleteness.missingFields.includes('Country') || profileCompleteness.missingFields.includes('Timezone')) ? '#location' : '' %>" class="btn btn-sm btn-primary">Complete Profile →</a>
         </div>
       <% } %>
 

@@ -13,7 +13,8 @@ Implemented in the first slice:
 - Persisted timezone, confirmation timestamp, and selection source on runner profiles.
 - Editable IANA timezone selector in the profile contact/location section.
 - Browser recommendation, conservative Philippines country suggestion, privacy copy, and explicit confirmation.
-- Timezone in profile completeness and dashboard reminders linked to `/runner/profile#contact`.
+- Timezone in profile completeness and dashboard reminders linked to `/runner/profile#location`.
+- Dedicated Location & Timezone profile panel with a separate save action. Missing values are preselected from Cloudflare's country header and the browser timezone but are never persisted without confirmation.
 
 Registration review reminders, submission evidence comparison, mismatch dismissal state, and paired deadline displays remain to be implemented.
 
@@ -54,7 +55,7 @@ Country must not automatically select a timezone when more than one reasonable t
 
 ## Profile experience
 
-Add a Timezone field to the contact/location section at `/runner/profile#contact`.
+Add a dedicated location and timezone section at `/runner/profile#location`.
 
 The selector should:
 
@@ -76,7 +77,7 @@ Suggested privacy copy:
 
 ### Runner dashboard
 
-Include Country and Timezone in the existing profile-completeness notice. When either is missing, link the action to `/runner/profile#contact`.
+Include Country and Timezone in the existing profile-completeness notice. When either is missing, link the action to `/runner/profile#location`.
 
 Suggested copy:
 
@@ -174,7 +175,7 @@ This sequence depends on the centralized timezone utilities defined in the archi
 - A single-zone country can provide a suggestion; a multi-zone country requires user choice.
 - Missing Country or Timezone appears in the existing profile-completeness experience.
 - Confirmation suppresses routine reminders, while a new meaningful mismatch can be dismissed independently.
-- Registration and submission reminders link clearly to `/runner/profile#contact`.
+- Registration and submission reminders link clearly to `/runner/profile#location`.
 - Critical runner deadlines show both runner-local and Manila time unless both zones are Manila.
 - Browser detection failure leaves the experience functional with an explicitly labeled Manila fallback.
 - Profile timezone changes do not alter stored event instants or historical activity evidence.

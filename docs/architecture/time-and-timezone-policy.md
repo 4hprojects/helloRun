@@ -14,6 +14,7 @@ The initial foundation is implemented:
 
 - Central `Asia/Manila` business-timezone constant, IANA validation, supported-zone listing, country suggestion, and explicit-zone formatting.
 - Runner timezone profile fields and profile-completeness integration.
+- Runner country/timezone suggestions use Cloudflare's country header and the browser-reported IANA timezone; saved values retain precedence and suggestions require explicit saving.
 - DB-free unit coverage for timezone validation, formatting, and completeness.
 
 Event form parsing, critical-time display conversion, activity eligibility, and existing-data verification remain future phases.

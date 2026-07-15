@@ -11,50 +11,54 @@
     setupDobToggle();
     highlightActiveMenu();
     setupUnlinkConfirmation();
-    setupTimezoneSuggestion();
+    setupLocationForm();
   }
 
-  function setupTimezoneSuggestion() {
-    const select = document.getElementById('profileTimezone');
+  function setupLocationForm() {
+    const form = document.getElementById('locationForm');
+    const countrySelect = document.getElementById('profileCountry');
+    const timezoneSelect = document.getElementById('profileTimezone');
     const source = document.getElementById('profileTimezoneSource');
-    const container = document.getElementById('profileTimezoneSuggestion');
-    const text = document.getElementById('profileTimezoneSuggestionText');
-    const useButton = document.getElementById('useDetectedTimezone');
-    if (!select || !container || !text || !useButton) return;
+    const status = document.getElementById('profileLocationStatus');
+    if (!form || !countrySelect || !timezoneSelect || !source || !status) return;
 
     let detected = '';
     try {
       detected = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
     } catch (_) {}
-    const countrySuggestion = container.dataset.countrySuggestion || '';
-    const suggestion = detected || countrySuggestion;
-    const hasOption = suggestion && Array.from(select.options).some((option) => option.value === suggestion);
+    const savedCountry = form.dataset.savedCountry || '';
+    const suggestedCountry = form.dataset.suggestedCountry || '';
+    const savedTimezone = form.dataset.savedTimezone || '';
+    const timezoneIsSupported = detected && Array.from(timezoneSelect.options).some((option) => option.value === detected);
 
-    if (!hasOption || suggestion === select.value) {
-      text.textContent = select.value
-        ? `Saved timezone: ${select.value}`
-        : 'Choose the timezone where you normally live or run.';
-      return;
+    if (!savedTimezone && timezoneIsSupported) {
+      timezoneSelect.value = detected;
+      source.value = 'browser';
     }
 
-    text.textContent = detected
-      ? `Your browser suggests ${detected}. Confirm it or choose another timezone.`
-      : `Your country suggests ${countrySuggestion}. Confirm it or choose another timezone.`;
-    const editButton = document.querySelector('[data-form-id="contactForm"]');
-    if (editButton) {
-      editButton.addEventListener('click', () => {
-        useButton.hidden = false;
-      });
+    const messages = [];
+    if (savedCountry || savedTimezone) {
+      messages.push('Your saved location is selected.');
+    } else if (suggestedCountry || timezoneIsSupported) {
+      messages.push('We preselected available suggestions. Review them before saving.');
+    } else {
+      messages.push('Select your country and timezone.');
     }
-    useButton.addEventListener('click', () => {
-      select.value = suggestion;
-      if (source) source.value = detected ? 'browser' : 'country_suggestion';
-      text.textContent = `${suggestion} selected. Save Contact to confirm.`;
-      useButton.hidden = true;
-      select.focus();
+    if (suggestedCountry && !savedCountry) messages.push('Country suggested from your network.');
+    if (timezoneIsSupported && !savedTimezone) messages.push(`Timezone suggested as ${detected}.`);
+    status.textContent = messages.join(' ');
+
+    timezoneSelect.addEventListener('change', () => {
+      source.value = timezoneSelect.value === detected ? 'browser' : 'user';
     });
-    select.addEventListener('change', () => {
-      if (source) source.value = 'user';
+
+    form.addEventListener('submit', () => {
+      const saveButton = form.querySelector('[data-save-btn]');
+      if (saveButton) {
+        saveButton.disabled = true;
+        saveButton.setAttribute('aria-busy', 'true');
+      }
+      status.textContent = 'Saving location and timezone…';
     });
   }
 

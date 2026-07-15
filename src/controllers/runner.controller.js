@@ -6,9 +6,9 @@ const passwordService = require('../services/password.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode } = require('../utils/country');
 const {
   getSupportedTimeZones,
-  normalizeTimeZone,
-  suggestTimeZoneForCountry
+  normalizeTimeZone
 } = require('../utils/timezone');
+const { getCloudflareCountrySuggestion } = require('../utils/location-suggestion');
 const {
   getRunnerRegistrations,
   getRunnerEventProgressCards,
@@ -329,35 +329,45 @@ exports.updateProfileContact = async (req, res) => {
     }
 
     const mobile = String(req.body.mobile || '').trim();
-    const country = normalizeCountryCode(req.body.country);
-    const submittedTimezone = String(req.body.timezone || '').trim();
-    const timezone = normalizeTimeZone(submittedTimezone);
     if (mobile && !/^[\d\s\-()+]{7,25}$/.test(mobile)) {
       return res.redirect('/runner/profile?type=error&msg=Enter%20a%20valid%20mobile%20number.#contact');
     }
-    if (country && !isValidCountryCode(country)) {
-      return res.redirect('/runner/profile?type=error&msg=Select%20a%20valid%20country.#contact');
-    }
-    if (submittedTimezone && !timezone) {
-      return res.redirect('/runner/profile?type=error&msg=Select%20a%20valid%20timezone.#contact');
-    }
 
     user.mobile = mobile;
-    user.country = country;
-    if (timezone !== String(user.timezone || '')) {
-      user.timezone = timezone;
-      user.timezoneConfirmedAt = timezone ? new Date() : null;
-      user.timezoneSource = timezone ? normalizeTimezoneSource(req.body.timezoneSource) : '';
-    } else if (timezone && !user.timezoneConfirmedAt) {
-      user.timezoneConfirmedAt = new Date();
-      user.timezoneSource = normalizeTimezoneSource(req.body.timezoneSource);
-    }
     await user.save();
     await syncProfileCompletionNotification(user);
     return res.redirect('/runner/profile?type=success&msg=Contact%20details%20updated.#contact');
   } catch (error) {
     logger.error('Runner profile contact update error:', error);
     return res.redirect('/runner/profile?type=error&msg=Unable%20to%20update%20contact%20details.#contact');
+  }
+};
+
+exports.updateProfileLocation = async (req, res) => {
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) return res.redirect('/login');
+
+    const country = normalizeCountryCode(req.body.country);
+    const submittedTimezone = String(req.body.timezone || '').trim();
+    const timezone = normalizeTimeZone(submittedTimezone);
+    if (!country || !isValidCountryCode(country)) {
+      return res.redirect('/runner/profile?type=error&msg=Select%20a%20valid%20country.#location');
+    }
+    if (!timezone) {
+      return res.redirect('/runner/profile?type=error&msg=Select%20a%20valid%20timezone.#location');
+    }
+
+    user.country = country;
+    user.timezone = timezone;
+    user.timezoneConfirmedAt = new Date();
+    user.timezoneSource = normalizeTimezoneSource(req.body.timezoneSource);
+    await user.save();
+    await syncProfileCompletionNotification(user);
+    return res.redirect('/runner/profile?type=success&msg=Location%20and%20timezone%20saved.#location');
+  } catch (error) {
+    logger.error('Runner profile location update error:', error);
+    return res.redirect('/runner/profile?type=error&msg=Unable%20to%20save%20location%20and%20timezone.#location');
   }
 };
 
@@ -918,6 +928,7 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
   const profileData = getRunnerProfileFormData(user);
   const profileCompleteness = getProfileCompleteness(profileData);
   const selectedCountry = (countries || []).find((item) => item.code === profileData.country);
+  const suggestedCountry = getCloudflareCountrySuggestion(req.headers);
   const [stravaConnection, badges, badgeProgress, badgePointsSummary] = await Promise.all([
     stravaService.getConnectionSummary(user._id).catch(() => ({ connected: false })),
     getRunnerEarnedBadges(user._id, { limit: 30 }).catch(() => []),
@@ -947,8 +958,8 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
     profileCompleteness,
     countries,
     timezones,
-    suggestedTimezone: profileData.timezone || suggestTimeZoneForCountry(profileData.country),
     selectedCountryName: selectedCountry?.name || 'Not set',
+    suggestedCountry,
     stravaConnection,
     badges,
     badgeProgress,

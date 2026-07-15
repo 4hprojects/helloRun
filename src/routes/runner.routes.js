@@ -60,6 +60,7 @@ router.get('/runner/security/password', requireAuth, runnerController.getPasswor
 router.post('/runner/profile', requireAuth, profileUpdateLimiter, runnerController.updateProfile);
 router.post('/runner/profile/identity', requireAuth, profileUpdateLimiter, runnerController.updateProfileIdentity);
 router.post('/runner/profile/contact', requireAuth, profileUpdateLimiter, runnerController.updateProfileContact);
+router.post('/runner/profile/location', requireAuth, profileUpdateLimiter, runnerController.updateProfileLocation);
 router.post('/runner/profile/emergency', requireAuth, profileUpdateLimiter, runnerController.updateProfileEmergency);
 router.post('/runner/profile/badges/featured', requireAuth, profileUpdateLimiter, runnerController.updateFeaturedBadge);
 router.post('/runner/security/password', requireAuth, profileUpdateLimiter, runnerController.updatePasswordSettings);

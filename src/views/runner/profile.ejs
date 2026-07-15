@@ -33,6 +33,7 @@
 <a href="#overview"><i data-lucide="user"></i>Overview</a>
 <a href="#identity"><i data-lucide="fingerprint"></i>Identity</a>
 <a href="#contact"><i data-lucide="mail"></i>Contact</a>
+<a href="#location"><i data-lucide="map-pin"></i>Location</a>
 <a href="#emergency"><i data-lucide="phone-forwarded"></i>Emergency</a>
 <a href="#notifications"><i data-lucide="bell"></i>Notifications</a>
 <a href="#badges"><i data-lucide="award"></i>Badges</a>
@@ -148,32 +149,6 @@
                 <input type="text" name="mobile" value="<%= profileData.mobile || '' %>" data-editable readonly>
               </label>
               <label class="profile-form-field">
-                <span>Country</span>
-                <select name="country" data-editable disabled>
-                  <option value="" <%= !profileData.country ? 'selected' : '' %>>Not set</option>
-                  <% (countries || []).forEach((country) => { %>
-                    <option value="<%= country.code %>" <%= profileData.country === country.code ? 'selected' : '' %>><%= country.name %></option>
-                  <% }) %>
-                </select>
-              </label>
-              <label class="profile-form-field">
-                <span>Timezone</span>
-                <select name="timezone" id="profileTimezone" data-editable disabled>
-                  <option value="" <%= !profileData.timezone ? 'selected' : '' %>>Not set</option>
-                  <% (timezones || []).forEach((timezone) => { %>
-                    <option value="<%= timezone %>" <%= profileData.timezone === timezone ? 'selected' : '' %>><%= timezone.replace(/_/g, ' ') %></option>
-                  <% }) %>
-                </select>
-                <small>Your timezone shows deadlines in your local time. Official event deadlines remain based on Asia/Manila.</small>
-                <input type="hidden" name="timezoneSource" id="profileTimezoneSource" value="user">
-              </label>
-              <div class="profile-form-field" id="profileTimezoneSuggestion" data-country-suggestion="<%= suggestedTimezone || '' %>">
-                <span>Timezone suggestion</span>
-                <p id="profileTimezoneSuggestionText" role="status">Browser timezone detection is available when you edit your contact details.</p>
-                <button type="button" class="btn btn-outline btn-sm" id="useDetectedTimezone" hidden>Use suggested timezone</button>
-                <small>HelloRun does not request or track your precise location.</small>
-              </div>
-              <label class="profile-form-field">
                 <span>Running Group</span>
                 <input type="text" value="<%= (profileData.runningGroups && profileData.runningGroups.length) ? profileData.runningGroups.join(', ') : (profileData.runningGroup || 'Not set') %>" readonly disabled>
               </label>
@@ -181,6 +156,46 @@
             <div class="runner-profile-form-actions" hidden>
               <button type="submit" class="btn btn-primary" data-save-btn>Save Contact</button>
               <button type="button" class="btn btn-outline" data-cancel-edit>Cancel</button>
+            </div>
+          </form>
+        </article>
+
+        <article class="runner-profile-card" id="location">
+          <div class="runner-profile-panel-header">
+            <h3>Location &amp; Timezone</h3>
+          </div>
+          <p class="profile-section-helper">Choose where you normally live or run. Your timezone displays deadlines in your local time; official event deadlines remain based on Asia/Manila.</p>
+          <form id="locationForm" method="POST" action="/runner/profile/location" class="runner-profile-form"
+                data-saved-country="<%= profileData.country || '' %>"
+                data-suggested-country="<%= suggestedCountry || '' %>"
+                data-saved-timezone="<%= profileData.timezone || '' %>">
+            <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+            <div class="profile-form-grid">
+              <label class="profile-form-field">
+                <span>Country</span>
+                <% const initialCountry = profileData.country || suggestedCountry || ''; %>
+                <select name="country" id="profileCountry" required>
+                  <option value="">Select country</option>
+                  <% (countries || []).forEach((country) => { %>
+                    <option value="<%= country.code %>" <%= initialCountry === country.code ? 'selected' : '' %>><%= country.name %></option>
+                  <% }) %>
+                </select>
+              </label>
+              <label class="profile-form-field">
+                <span>Timezone</span>
+                <select name="timezone" id="profileTimezone" required>
+                  <option value="">Select timezone</option>
+                  <% (timezones || []).forEach((timezone) => { %>
+                    <option value="<%= timezone %>" <%= profileData.timezone === timezone ? 'selected' : '' %>><%= timezone.replace(/_/g, ' ') %></option>
+                  <% }) %>
+                </select>
+              </label>
+            </div>
+            <input type="hidden" name="timezoneSource" id="profileTimezoneSource" value="<%= profileData.timezone ? 'user' : 'browser' %>">
+            <p class="location-suggestion-status" id="profileLocationStatus" role="status" aria-live="polite">Checking available location suggestions…</p>
+            <p class="profile-field-help">Country may be suggested by Cloudflare and timezone by your browser. HelloRun does not request or track your precise location.</p>
+            <div class="runner-profile-form-actions location-form-actions">
+              <button type="submit" class="btn btn-primary" data-save-btn>Save Location</button>
             </div>
           </form>
         </article>
