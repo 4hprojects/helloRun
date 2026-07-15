@@ -1172,6 +1172,13 @@ p {
         width: 2.85rem;
         height: 2.85rem;
     }
+
+}
+
+@media (max-width: 768px) {
+    .global-back-to-top--with-mobile-nav {
+        bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 1rem);
+    }
 }
 
 @media (max-width: 480px) {
