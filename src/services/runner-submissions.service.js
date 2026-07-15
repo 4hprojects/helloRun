@@ -1,6 +1,7 @@
 'use strict';
 
 const mongoose = require('mongoose');
+const { REJECTION_REASONS } = require('../utils/rejection-reasons');
 const Submission = require('../models/Submission');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 
@@ -224,6 +225,8 @@ function formatSubmissionListItem(doc) {
     submittedAt: doc.submittedAt || null,
     reviewedAt: doc.reviewedAt || null,
     rejectionReason: doc.rejectionReason || '',
+    rejectionCode: doc.rejectionCode || '',
+    rejectionGuidance: REJECTION_REASONS.run[doc.rejectionCode]?.guidance || '',
     hasProof: Boolean(doc.proof?.url),
     proofUrl: doc.proof?.url || '',
     hasCertificate,

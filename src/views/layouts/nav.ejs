@@ -75,15 +75,16 @@
 
         <!-- Role-based dashboard link -->
         <% if (locals.isAdmin) { %>
-          <a href="/admin/dashboard" class="<%= navClass('/admin/dashboard') %>" aria-label="Admin" title="Admin" <% if (ariaCurrent('/admin/dashboard')) { %>aria-current="page"<% } %>>
+          <a href="/admin/dashboard" class="<%= navClass('/admin/dashboard') %>" aria-label="Admin" title="Admin" data-admin-tier="<%= locals.isFullAdmin ? 'full' : 'support' %>" <% if (ariaCurrent('/admin/dashboard')) { %>aria-current="page"<% } %>>
             <i data-lucide="shield-check"></i>
-            <span class="nav-tooltip">Admin</span>
+            <span class="nav-tooltip">Admin — <%= locals.isFullAdmin ? 'Full access' : 'Support access' %></span>
           </a>
         <% } else if (locals.isApprovedOrganizer) { %>
           <a href="/organizer/dashboard" class="<%= navClass('/organizer/dashboard') %>" aria-label="Dashboard" title="Dashboard" <% if (ariaCurrent('/organizer/dashboard')) { %>aria-current="page"<% } %>>
             <i data-lucide="layout-dashboard"></i>
             <span class="nav-tooltip">Dashboard</span>
           </a>
+          <a href="/runner/dashboard" class="<%= navClass('/runner/dashboard') %>" aria-label="Switch to Runner mode" title="Switch to Runner mode"><i data-lucide="person-standing"></i><span class="nav-tooltip">Runner mode</span></a>
         <% } else if (locals.isOrganizer) { %>
           <a href="/organizer/dashboard" class="<%= navClass('/organizer/dashboard') %>" aria-label="Dashboard" title="Dashboard" <% if (ariaCurrent('/organizer/dashboard')) { %>aria-current="page"<% } %>>
             <i data-lucide="layout-dashboard"></i>
@@ -133,6 +134,12 @@
     </div>
   </div>
 </nav>
+<% if (locals.flash && locals.flash.message) { %>
+  <div class="global-flash global-flash-<%= locals.flash.type %>" role="<%= locals.flash.type === 'error' ? 'alert' : 'status' %>" data-global-flash>
+    <span><%= locals.flash.message %></span>
+    <button type="button" aria-label="Dismiss message" data-dismiss-global-flash><i data-lucide="x" aria-hidden="true"></i></button>
+  </div>
+<% } %>
 <% if (locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer) { %>
 <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
   <a href="/runner/dashboard" class="mobile-nav-tab<%= isCurrent('/runner/dashboard') ? ' is-active' : '' %>" aria-label="Dashboard" <%= isCurrent('/runner/dashboard') ? 'aria-current="page"' : '' %>>
@@ -151,5 +158,19 @@
     <i data-lucide="file-check" aria-hidden="true"></i>
     <span>Submissions</span>
   </a>
+</nav>
+<% } else if (locals.isAuthenticated && locals.isApprovedOrganizer) { %>
+<nav class="mobile-bottom-nav" aria-label="Organizer mobile navigation">
+  <a href="/organizer/dashboard" class="mobile-nav-tab<%= isCurrent('/organizer/dashboard') ? ' is-active' : '' %>"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+  <a href="/organizer/events" class="mobile-nav-tab<%= isCurrent('/organizer/events') ? ' is-active' : '' %>"><i data-lucide="calendar-days"></i><span>Events</span></a>
+  <a href="/organizer/dashboard#queue-breakdown-heading" class="mobile-nav-tab"><i data-lucide="inbox"></i><span>Work</span></a>
+  <a href="/organizer/promote" class="mobile-nav-tab<%= isCurrent('/organizer/promote') ? ' is-active' : '' %>"><i data-lucide="more-horizontal"></i><span>More</span></a>
+</nav>
+<% } else if (locals.isAuthenticated && locals.isAdmin) { %>
+<nav class="mobile-bottom-nav" aria-label="Admin mobile navigation">
+  <a href="/admin/dashboard" class="mobile-nav-tab<%= isCurrent('/admin/dashboard') ? ' is-active' : '' %>"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
+  <a href="/admin/reviews" class="mobile-nav-tab<%= isCurrent('/admin/reviews') ? ' is-active' : '' %>"><i data-lucide="list-checks"></i><span>Reviews</span></a>
+  <a href="/admin/search" class="mobile-nav-tab<%= isCurrent('/admin/search') ? ' is-active' : '' %>"><i data-lucide="search"></i><span>Search</span></a>
+  <a href="/admin/communications" class="mobile-nav-tab<%= isCurrent('/admin/communications') ? ' is-active' : '' %>"><i data-lucide="more-horizontal"></i><span>More</span></a>
 </nav>
 <% } %>

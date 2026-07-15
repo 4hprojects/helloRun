@@ -82,7 +82,14 @@
         <div class="policy-form-actions">
           <% if (policy.status === 'draft') { %>
             <a href="<%= `${managePath}/${policy.id}/edit` %>" class="btn">Edit Draft</a>
-            <form method="POST" action="<%= `${managePath}/${policy.id}/publish` %>">
+            <form method="POST" action="<%= `${managePath}/${policy.id}/publish` %>"
+              data-high-risk-confirm
+              data-confirm-title="Publish policy version"
+              data-confirm-target="<%= documentName %> version <%= policy.versionNumber %>"
+              data-confirm-impact="Makes the saved draft the current public policy immediately."
+              data-confirm-reversibility="A later version can replace it, but this publication remains in version history."
+              data-confirm-privilege="Full administrator"
+              data-confirm-button="Publish policy">
               <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
               <button type="submit" class="btn btn-success">Publish Draft</button>
             </form>
@@ -169,6 +176,13 @@
                 formaction="<%= `${managePath}/${policy.id}/publish` %>"
                 formmethod="POST"
                 class="btn btn-success"
+                data-high-risk-confirm
+                data-confirm-title="Publish policy version"
+                data-confirm-target="<%= documentName %> version <%= policy.versionNumber %>"
+                data-confirm-impact="Makes the saved draft the current public policy immediately."
+                data-confirm-reversibility="A later version can replace it, but this publication remains in version history."
+                data-confirm-privilege="Full administrator"
+                data-confirm-button="Publish policy"
                 <%= canPublish ? '' : 'disabled' %>
                 title="<%= canPublish ? 'Publish this saved draft.' : 'Save draft first before publishing.' %>"
               >

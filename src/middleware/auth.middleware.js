@@ -1,8 +1,10 @@
 const User = require('../models/User');
 const { countUnreadNotifications } = require('../services/notification.service');
 const logger = require('../utils/logger');
+const { sendHttpError } = require('../utils/http-error-response');
+const { consumeSessionFlash } = require('../utils/session-flash');
 
-const AUTH_LOCAL_USER_FIELDS = 'userId email firstName lastName displayName role organizerStatus emailVerified authProvider profileImageUrl avatarUrl accountStatus';
+const AUTH_LOCAL_USER_FIELDS = 'userId email firstName lastName displayName role adminTier organizerStatus emailVerified authProvider profileImageUrl avatarUrl accountStatus';
 const RUNNER_UNREAD_CACHE_MS = 30 * 1000;
 
 /**
@@ -73,6 +75,7 @@ function shouldLoadRunnerUnreadCount(req) {
  */
 async function populateAuthLocals(req, res, next) {
   res.locals.currentPath = req.path;
+  res.locals.flash = consumeSessionFlash(req);
 
   if (req.session && req.session.userId) {
     try {
@@ -89,6 +92,7 @@ async function populateAuthLocals(req, res, next) {
         res.locals.isAuthenticated = true;
         res.locals.isOrganizer = user.role === 'organiser';
         res.locals.isAdmin = user.role === 'admin';
+        res.locals.isFullAdmin = user.role === 'admin' && isFullAdminTier(user);
         res.locals.isApprovedOrganizer = user.role === 'organiser' && user.organizerStatus === 'approved';
         res.locals.runnerUnreadNotifications = await getRunnerUnreadCountForLocals(req, user);
       } else {
@@ -97,6 +101,7 @@ async function populateAuthLocals(req, res, next) {
         res.locals.isAuthenticated = false;
         res.locals.isOrganizer = false;
         res.locals.isAdmin = false;
+        res.locals.isFullAdmin = false;
         res.locals.isApprovedOrganizer = false;
         res.locals.runnerUnreadNotifications = 0;
       }
@@ -106,6 +111,7 @@ async function populateAuthLocals(req, res, next) {
       res.locals.isAuthenticated = false;
       res.locals.isOrganizer = false;
       res.locals.isAdmin = false;
+      res.locals.isFullAdmin = false;
       res.locals.isApprovedOrganizer = false;
       res.locals.runnerUnreadNotifications = 0;
     }
@@ -114,6 +120,7 @@ async function populateAuthLocals(req, res, next) {
     res.locals.isAuthenticated = false;
     res.locals.isOrganizer = false;
     res.locals.isAdmin = false;
+    res.locals.isFullAdmin = false;
     res.locals.isApprovedOrganizer = false;
     res.locals.runnerUnreadNotifications = 0;
   }
@@ -144,7 +151,11 @@ async function requireAdmin(req, res, next) {
   try {
     const user = await User.findById(req.session.userId).select('role').lean();
     if (!user || user.role !== 'admin') {
-      return res.status(403).send('Access denied');
+      return sendHttpError(req, res, {
+        status: 403,
+        message: 'You do not have access to the admin area.',
+        detail: 'Sign in with an administrator account or return to your dashboard.'
+      });
     }
     next();
   } catch (error) {
@@ -173,7 +184,13 @@ async function requireFullAdmin(req, res, next) {
   try {
     const user = await User.findById(req.session.userId).select('role adminTier').lean();
     if (!user || user.role !== 'admin' || !isFullAdminTier(user)) {
-      return res.status(403).send('This action requires full admin access.');
+      return sendHttpError(req, res, {
+        status: 403,
+        message: 'This action requires full admin access.',
+        detail: 'Your account can continue using support-safe admin tools. Ask a full administrator to complete this action.',
+        actionHref: '/admin/dashboard',
+        actionLabel: 'Return to Admin Dashboard'
+      });
     }
     next();
   } catch (error) {
@@ -191,7 +208,11 @@ async function requireOrganizer(req, res, next) {
   try {
     const user = await User.findById(req.session.userId).select('role').lean();
     if (!user || user.role !== 'organiser') {
-      return res.status(403).send('Access denied');
+      return sendHttpError(req, res, {
+        status: 403,
+        message: 'This area is available to organizer accounts.',
+        detail: 'Return to your dashboard to continue with the tools available to your account.'
+      });
     }
     next();
   } catch (error) {
@@ -209,7 +230,13 @@ async function requireApprovedOrganizer(req, res, next) {
   try {
     const user = await User.findById(req.session.userId).select('role organizerStatus').lean();
     if (!user || user.role !== 'organiser' || user.organizerStatus !== 'approved') {
-      return res.status(403).send('Access denied - Organizer approval required');
+      return sendHttpError(req, res, {
+        status: 403,
+        message: 'Organizer approval is required for this action.',
+        detail: 'Review your application status for the current decision and any next steps.',
+        actionHref: '/organizer/application-status',
+        actionLabel: 'View Application Status'
+      });
     }
     next();
   } catch (error) {
@@ -229,7 +256,13 @@ async function requireCanCreateEvents(req, res, next) {
       .select('role organizerStatus emailVerified accountStatus organizerEventCreationAcknowledgement')
       .lean();
     if (!user || !canCreateEventsFromLeanUser(user)) {
-      return res.status(403).send('Access denied - verified organizer approval required');
+      return sendHttpError(req, res, {
+        status: 403,
+        message: 'Your organizer account is not ready to create events.',
+        detail: 'Verify your email and review the organizer dashboard for approval or event-creation requirements.',
+        actionHref: '/organizer/dashboard',
+        actionLabel: 'Review Organizer Dashboard'
+      });
     }
     next();
   } catch (error) {

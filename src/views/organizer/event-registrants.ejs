@@ -15,6 +15,7 @@
           <div class="registrants-header-meta">
             <p>View participants registered for this event.</p>
             <div class="header-actions">
+              <% if (!isAdminViewer) { %><a href="/organizer/events/<%= event._id %>/registrants?fieldMode=1" class="nav-login-btn registrant-header-btn registrant-toolbar-btn registrant-toolbar-btn-primary" aria-label="Open field mode" title="Large controls and explicit network state for onsite work"><i data-lucide="smartphone"></i><span>Field mode</span></a><% } %>
               <a href="/organizer/events/<%= event._id %>/registrants/export<%= exportQuery ? `?${exportQuery}` : '' %>" class="nav-login-btn registrant-header-btn registrant-toolbar-btn registrant-toolbar-btn-secondary" aria-label="Export CSV" data-tooltip="Export CSV" title="Export CSV">
                 <i data-lucide="file-down" aria-hidden="true"></i>
               </a>
@@ -314,7 +315,13 @@
                       </form>
                       <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= registration._id %>/payment/reject" class="payment-action-form">
                         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                        <textarea name="rejectionReason" rows="2" maxlength="500" required placeholder="Required rejection reason"></textarea>
+                        <select name="rejectionCode" required class="form-input" aria-label="Payment rejection reason">
+                          <option value="">Select the issue…</option>
+                          <% paymentRejectionReasonOptions.forEach((reason) => { %>
+                            <option value="<%= reason.code %>"><%= reason.label %></option>
+                          <% }) %>
+                        </select>
+                        <textarea name="rejectionReason" rows="2" maxlength="500" placeholder="Additional correction details (required for another issue)"></textarea>
                         <textarea name="reviewNotes" rows="2" maxlength="1000" placeholder="Optional review notes"></textarea>
                         <button type="submit" class="nav-login-btn table-action-btn registrant-row-btn registrant-row-btn-reject">Reject</button>
                       </form>

@@ -21,8 +21,12 @@
         <div class="error-icon">
           <i data-lucide="alert-triangle"></i>
         </div>
-        <h1><%= status || 'Error' %></h1>
-        <h2><%= message || 'Something went wrong' %></h2>
+        <p class="error-status">Error <%= status || '' %></p>
+        <h1><%= locals.heading || 'Something went wrong' %></h1>
+        <p class="error-message"><%= message || 'Something went wrong' %></p>
+        <% if (locals.detail) { %>
+          <p class="error-guidance"><%= detail %></p>
+        <% } %>
         
         <% if (locals.error && process.env.NODE_ENV === 'development') { %>
           <div class="error-details">
@@ -31,8 +35,10 @@
         <% } %>
         
         <div class="error-actions">
-          <a href="/" class="btn btn-full">Go to Homepage</a>
-          <a href="javascript:history.back()" class="btn btn-secondary btn-full">Go Back</a>
+          <a href="<%= locals.actionHref || '/' %>" class="btn btn-full"><%= locals.actionLabel || 'Go to Homepage' %></a>
+          <% if ((locals.actionHref || '/') !== '/') { %>
+            <a href="/" class="btn btn-secondary btn-full">Go to Homepage</a>
+          <% } %>
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ const {
   logger, communicationService, getCommunicationRetryHealth, listCommunicationRetryAudit,
   listCommunicationRetries, retryCommunicationNow, homepageCarouselSettingService, adSettingService,
   listBadgeDefinitions, listAdminUserBadges, getAdminBadgeAnalytics, revokeUserBadge,
-  updateBadgeDefinitionStatusSvc, updateBadgeDefinitionEmailLevelSvc, recalculateBadgeAwards,
+  updateBadgeDefinitionStatusSvc, updateBadgeDefinitionEmailLevelSvc, recalculateBadgeAwards, previewBadgeRecalculation,
   listRecentBadgeAuditLogs, buildSubmissionHubPath, listSubmissionHub, listSubmissionHubEvents,
   buildSubmissionReviewSignal,
   ADMIN_BADGE_STATUSES, ADMIN_BADGE_SCOPES, ADMIN_REVIEW_TYPES, ADMIN_REVIEW_SORTS,
@@ -205,6 +205,14 @@ exports.recalculateBadges = async (req, res) => {
     const scope = String(req.body.scope || 'all').trim();
     const limit = normalizePositiveInt(req.body.limit, 50);
     const reason = String(req.body.reason || '').trim();
+
+    if (String(req.body.previewOnly || '') === '1') {
+      const preview = await previewBadgeRecalculation({ scope, limit });
+      const message = `Preview: up to ${preview.maximumRecordsEvaluated} source records will be evaluated (${preview.registrationsEligible} registrations, ${preview.submissionsEligible} submissions, ${preview.organisersEligible} organizers). No awards were changed.`;
+      if (!wantsJson) return res.redirect(buildAdminRedirect('/admin/badges', 'info', message));
+      return res.json({ success: true, preview, dryRun: true });
+    }
+
     if (reason.length < 10) {
       if (!wantsJson) {
         return res.redirect(buildAdminRedirect('/admin/badges', 'error', 'A recalculation reason of at least 10 characters is required.'));
@@ -222,7 +230,7 @@ exports.recalculateBadges = async (req, res) => {
     if (!wantsJson) {
       return res.redirect(buildAdminRedirect('/admin/badges', result.errors.length ? 'error' : 'success', message));
     }
-    return res.json({ success: true, result });
+    return res.json({ success: true, result, dryRun: false });
   } catch (error) {
     logger.error('recalculateBadges error:', error);
     if (!acceptsJson(req)) {

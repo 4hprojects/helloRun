@@ -69,7 +69,8 @@ exports.viewApplication = async (req, res) => {
     }
 
     return renderApplicationDetails(res, applicationId, {
-      message: getMessageFromQuery(req)
+      message: getMessageFromQuery(req),
+      returnTo: req.query.returnTo
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading the application details.');
@@ -150,7 +151,7 @@ exports.approveApplication = async (req, res) => {
     }
 
     return res.redirect(
-      buildDetailRedirect(application._id.toString(), 'success', 'Application approved successfully.')
+      buildDetailRedirect(application._id.toString(), 'success', 'Application approved successfully.', req.body.returnTo)
     );
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while approving the application.');
@@ -246,7 +247,7 @@ exports.rejectApplication = async (req, res) => {
     }
 
     return res.redirect(
-      buildDetailRedirect(application._id.toString(), 'success', 'Application rejected successfully.')
+      buildDetailRedirect(application._id.toString(), 'success', 'Application rejected successfully.', req.body.returnTo)
     );
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while rejecting the application.');

@@ -99,7 +99,14 @@
       </div>
 
       <% if (submissions && submissions.length) { %>
-        <form method="POST" action="/admin/submissions/bulk-reject" id="adminBulkRejectForm">
+        <form method="POST" action="/admin/submissions/bulk-reject" id="adminBulkRejectForm"
+          data-high-risk-confirm
+          data-confirm-title="Reject selected submissions"
+          data-confirm-target="The selected run submissions"
+          data-confirm-impact="Rejects every selected result using one runner-facing reason and may change certificate or leaderboard eligibility."
+          data-confirm-reversibility="Runners may resubmit, but rejection notifications cannot be recalled."
+          data-confirm-privilege="Administrator"
+          data-confirm-button="Reject selected submissions">
           <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
           <div class="admin-bulk-bar" id="adminBulkBar" hidden>
             <label class="admin-bulk-select-all-label">

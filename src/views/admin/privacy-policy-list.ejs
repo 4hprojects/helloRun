@@ -89,7 +89,14 @@
                     <a href="<%= `${managePath}/${version.id}` %>" class="btn btn-secondary btn-sm">View</a>
                     <% if (version.status === 'draft') { %>
                       <a href="<%= `${managePath}/${version.id}/edit` %>" class="btn btn-sm">Edit</a>
-                      <form method="POST" action="<%= `${managePath}/${version.id}/publish` %>">
+                      <form method="POST" action="<%= `${managePath}/${version.id}/publish` %>"
+                        data-high-risk-confirm
+                        data-confirm-title="Publish policy version"
+                        data-confirm-target="<%= documentName %> version <%= version.versionNumber %>"
+                        data-confirm-impact="Makes this version the current public policy immediately."
+                        data-confirm-reversibility="A later version can replace it, but the publication record and effective time remain in history."
+                        data-confirm-privilege="Full administrator"
+                        data-confirm-button="Publish policy">
                         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                         <button type="submit" class="btn btn-success btn-sm">Publish</button>
                       </form>

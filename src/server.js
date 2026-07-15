@@ -31,8 +31,11 @@ const path = require('path');
 const mongoose = require('mongoose');
 const logger = require('./utils/logger');
 const { sendJsonServerError } = require('./utils/json-error-response');
+const { sendHttpError } = require('./utils/http-error-response');
+const { getLifecycleStatus } = require('./utils/lifecycle-status');
 
 const app = express();
+app.locals.getLifecycleStatus = getLifecycleStatus;
 const isProduction = process.env.NODE_ENV === 'production';
 const { attachCsrfToken } = require('./middleware/csrf.middleware');
 
@@ -52,7 +55,14 @@ if (Sentry) {
 app.use((req, res, next) => {
   res.setTimeout(30000, () => {
     logger.warn('Request timeout', { method: req.method, url: req.url });
-    if (!res.headersSent) res.status(503).json({ error: 'Request timed out.' });
+    if (!res.headersSent) {
+      sendHttpError(req, res, {
+        status: 503,
+        message: 'This request took too long to complete.',
+        detail: 'Please try again. If you were saving a form or submitting proof, check its current status before repeating the action.',
+        retryable: true
+      });
+    }
   });
   next();
 });

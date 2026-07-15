@@ -274,7 +274,14 @@
                   <td><%= award.earnedAt ? formatDateTime(award.earnedAt) : 'N/A' %></td>
                   <td>
                     <% if (award.verificationStatus === 'verified') { %>
-                      <form method="POST" action="/admin/user-badges/<%= award.userBadgeId %>/revoke" class="admin-badge-revoke-form" onsubmit="return confirm('Revoke this badge award?');">
+                      <form method="POST" action="/admin/user-badges/<%= award.userBadgeId %>/revoke" class="admin-badge-revoke-form"
+                        data-high-risk-confirm
+                        data-confirm-title="Revoke badge award"
+                        data-confirm-target="<%= award.badgeName || 'Badge' %> — <%= award.runnerEmail || award.runnerName || award.mongoUserId %>"
+                        data-confirm-impact="Marks this earned badge as revoked and changes its public verification state."
+                        data-confirm-reversibility="This action is recorded for audit; restoring an award requires a separate governed action."
+                        data-confirm-privilege="Administrator"
+                        data-confirm-button="Revoke badge">
                         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                         <input type="text" name="reason" value="Admin review revocation" minlength="5" aria-label="Revocation reason">
                         <button type="submit" class="btn btn-sm btn-danger">Revoke</button>
@@ -348,7 +355,13 @@
           method="POST"
           action="/admin/badges/recalculate"
           class="admin-badge-filter"
-          onsubmit="return confirm('Recalculate badge awards for the selected scope? This may create new awards but will not revoke existing awards.');"
+          data-high-risk-confirm
+          data-confirm-title="Recalculate badge awards"
+          data-confirm-target="Selected badge scope and batch limit"
+          data-confirm-impact="May create new badge awards and send configured notifications. Existing awards are not revoked."
+          data-confirm-reversibility="Created awards require separate review or revocation; this recalculation cannot be rolled back as one operation."
+          data-confirm-privilege="Administrator"
+          data-confirm-button="Start recalculation"
         >
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <label for="recalculateScope">Scope</label>
@@ -365,6 +378,7 @@
             <option value="250">250</option>
           </select>
           <input type="text" name="reason" minlength="10" value="Admin badge rule recalculation" aria-label="Recalculation reason">
+          <button type="submit" name="previewOnly" value="1" class="btn btn-sm btn-secondary" data-skip-high-risk-confirm>Preview Impact</button>
           <button type="submit" class="btn btn-sm btn-secondary">Recalculate</button>
         </form>
       </section>

@@ -227,6 +227,7 @@
     <% } else { %>
       <ul class="item-list sub-entry-list sub-entry-list--tiles" id="subEntryList" aria-label="Submitted entries">
         <% submissions.forEach(function(sub) { %>
+          <% const submissionLifecycle = getLifecycleStatus('submission', sub.status); %>
           <li class="sub-card sub-card-<%= sub.status %><%= sub.isPersonalRecord ? ' sub-card-personal' : '' %>">
             <div class="sub-card-main">
               <div class="sub-card-topline">
@@ -238,11 +239,7 @@
                   <a href="/runner/submissions/<%= sub.submissionId %>" class="sub-card-title item-title"><%= sub.eventTitle %></a>
                 </div>
                 <div class="sub-card-badges">
-                  <span class="badge badge-<%= sub.status %>" aria-label="Status: <%= sub.status %>">
-                    <% if (sub.status === 'submitted') { %>Pending Review
-                    <% } else if (sub.status === 'approved') { %>Approved
-                    <% } else { %>Rejected<% } %>
-                  </span>
+                  <span class="badge badge-<%= sub.status %>" aria-label="Status: <%= submissionLifecycle.label %>" title="<%= submissionLifecycle.description %>"><%= submissionLifecycle.label %></span>
                   <% if (sub.hasCertificate) { %>
                     <span class="badge badge-certificate" aria-label="Certificate ready"><i data-lucide="award" aria-hidden="true"></i> Certificate</span>
                   <% } %>

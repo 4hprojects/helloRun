@@ -445,6 +445,15 @@ async function getCommunicationFailureDetail(eventKey, options = {}) {
     return memo;
   }, {});
   const event = events.find((item) => item.eventKey === safeEventKey) || null;
+  const causes = groupCommunicationFailureCauses(failedLogs, retries);
+  const activeRetryCount = (retryCounts.queued || 0) + (retryCounts.retrying || 0);
+  const incidentState = retryCounts.dead
+    ? 'action_required'
+    : activeRetryCount
+      ? 'recovering'
+      : failedLogCount
+        ? 'monitoring'
+        : 'resolved';
 
   return {
     eventKey: safeEventKey,
@@ -459,8 +468,46 @@ async function getCommunicationFailureDetail(eventKey, options = {}) {
       dead: retryCounts.dead || 0
     },
     failedLogs,
-    retries
+    retries,
+    causes,
+    incidentState,
+    incidentSummary: {
+      activeRetryCount,
+      deadCount: retryCounts.dead || 0,
+      resolutionVerified: failedLogCount === 0 && activeRetryCount === 0 && !retryCounts.dead,
+      firstObservedAt: [...failedLogs, ...retries]
+        .map((item) => item.createdAt)
+        .filter(Boolean)
+        .sort((a, b) => new Date(a) - new Date(b))[0] || null,
+      lastObservedAt: [...failedLogs, ...retries]
+        .map((item) => item.updatedAt || item.createdAt)
+        .filter(Boolean)
+        .sort((a, b) => new Date(b) - new Date(a))[0] || null
+    }
   };
+}
+
+function classifyCommunicationFailure(message) {
+  const value = String(message || '').toLowerCase();
+  if (/timeout|timed out|econnreset|network|socket/.test(value)) return { key: 'network', label: 'Provider or network timeout', action: 'Retry after provider connectivity recovers.' };
+  if (/rate.?limit|quota|429|too many/.test(value)) return { key: 'quota', label: 'Rate limit or quota', action: 'Wait for the quota window, then retry queued deliveries.' };
+  if (/invalid.*(email|recipient)|mailbox|address|bounce/.test(value)) return { key: 'recipient', label: 'Recipient address rejected', action: 'Verify the recipient address; repeated retries are unlikely to succeed.' };
+  if (/auth|credential|api.?key|401|403|unauthor/.test(value)) return { key: 'configuration', label: 'Provider configuration', action: 'Verify provider credentials before retrying.' };
+  if (/template|render|missing.*field/.test(value)) return { key: 'content', label: 'Message content or template', action: 'Correct the message data or template before retrying.' };
+  return { key: 'unknown', label: 'Unclassified delivery failure', action: 'Inspect the latest error and test one delivery before a bulk retry.' };
+}
+
+function groupCommunicationFailureCauses(failedLogs = [], retries = []) {
+  const groups = new Map();
+  [...failedLogs.map((item) => item.statusReason), ...retries.map((item) => item.lastError)]
+    .filter(Boolean)
+    .forEach((message) => {
+      const cause = classifyCommunicationFailure(message);
+      const current = groups.get(cause.key) || { ...cause, count: 0, sample: String(message).slice(0, 240) };
+      current.count += 1;
+      groups.set(cause.key, current);
+    });
+  return [...groups.values()].sort((a, b) => b.count - a.count);
 }
 
 async function buildDeliveryDigestWindow(window, limit) {
@@ -768,5 +815,7 @@ module.exports = {
   sendTestEmail,
   getCommunicationDeliveryDigest,
   getCommunicationFailureDetail,
+  classifyCommunicationFailure,
+  groupCommunicationFailureCauses,
   getAdminCommunicationPageData
 };

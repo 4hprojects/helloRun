@@ -25,6 +25,10 @@
         <% if (message) { %>
           <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
         <% } %>
+        <aside class="payment-scope-banner" aria-label="Order scope">
+          <strong><%= order.event_title ? 'Event merchandise order' : 'HelloRun merchandise order' %></strong>
+          <span>Order <%= order.order_number %> is separate from event registration and registration-fee payment.</span>
+        </aside>
 
         <section class="shop-detail-section">
           <h2>Order Status</h2>

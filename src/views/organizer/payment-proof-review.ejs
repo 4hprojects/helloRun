@@ -72,9 +72,19 @@
 
       <% const pendingProofs = (reviewItems || []).filter(i => i.isPending); %>
       <% if (!isAdminViewer && pendingProofs.length) { %>
-        <form method="POST" action="/organizer/events/<%= event._id %>/payment-reviews/bulk-approve" id="js-bulk-payment-form" class="bulk-action-bar">
+        <form method="POST" action="/organizer/events/<%= event._id %>/payment-reviews/bulk-approve" id="js-bulk-payment-form" class="bulk-action-bar"
+          data-high-risk-confirm
+          data-confirm-title="Approve selected payment proofs"
+          data-confirm-target="Selected pending payment proofs"
+          data-confirm-impact="Marks each eligible registration as paid, unlocks its next lifecycle step, and notifies the runner."
+          data-confirm-reversibility="Approval notifications cannot be recalled. Incorrect decisions require individual administrative correction."
+          data-confirm-privilege="Approved organizer"
+          data-confirm-button="Approve selected proofs">
           <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
           <input type="hidden" name="registrationIds" id="js-bulk-payment-ids" value="">
+          <input type="hidden" name="returnStatus" value="<%= filters.status %>">
+          <input type="hidden" name="returnQ" value="<%= filters.q %>">
+          <input type="hidden" name="returnPage" value="<%= filters.page %>">
           <label class="bulk-select-all-label">
             <input type="checkbox" id="js-select-all-payments" class="bulk-select-all"> Select all pending (<%= pendingProofs.length %>)
           </label>
@@ -175,8 +185,15 @@
 
                   <form method="POST" action="/organizer/events/<%= event._id %>/registrants/<%= item.id %>/payment/reject" class="payment-action-form">
                     <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                    <label for="reject-reason-<%= item.id %>">Rejection Reason</label>
-                    <textarea id="reject-reason-<%= item.id %>" name="rejectionReason" rows="3" maxlength="500" required placeholder="Required rejection reason"></textarea>
+                    <label for="reject-code-<%= item.id %>">Rejection Reason</label>
+                    <select id="reject-code-<%= item.id %>" name="rejectionCode" required class="form-input">
+                      <option value="">Select the issue…</option>
+                      <% paymentRejectionReasonOptions.forEach((reason) => { %>
+                        <option value="<%= reason.code %>"><%= reason.label %></option>
+                      <% }) %>
+                    </select>
+                    <label for="reject-reason-<%= item.id %>">Additional details <span class="shop-muted">(required for “another issue”)</span></label>
+                    <textarea id="reject-reason-<%= item.id %>" name="rejectionReason" rows="3" maxlength="500" placeholder="Tell the runner exactly what to correct"></textarea>
                     <label for="reject-notes-<%= item.id %>">Review Notes</label>
                     <textarea id="reject-notes-<%= item.id %>" name="reviewNotes" rows="3" maxlength="1000" placeholder="Optional review notes"></textarea>
                     <button type="submit" class="nav-login-btn table-action-btn">Reject Payment</button>
@@ -242,6 +259,7 @@
       var selectAll = document.getElementById('js-select-all-payments');
       var idsInput = document.getElementById('js-bulk-payment-ids');
       var approveBtn = document.getElementById('js-bulk-payment-approve');
+      var bulkForm = document.getElementById('js-bulk-payment-form');
       var countEl = document.getElementById('js-payment-selected-count');
       var checkboxes = Array.from(document.querySelectorAll('.js-payment-checkbox'));
       if (!selectAll || !checkboxes.length) return;
@@ -250,10 +268,12 @@
         var selected = checkboxes.filter(function (c) { return c.checked; });
         if (idsInput) idsInput.value = selected.map(function (c) { return c.value; }).join(',');
         if (approveBtn) approveBtn.disabled = selected.length === 0;
+        if (bulkForm) bulkForm.dataset.confirmTarget = selected.length + ' selected pending payment proof' + (selected.length === 1 ? '' : 's');
         if (countEl) {
           countEl.style.display = selected.length > 0 ? '' : 'none';
-          countEl.textContent = selected.length + ' selected' + (selected.length > 50 ? ' (first 50 will be processed)' : '');
+          countEl.textContent = selected.length + ' selected' + (selected.length > 50 ? ' — reduce selection to 50' : '');
         }
+        if (approveBtn && selected.length > 50) approveBtn.disabled = true;
         selectAll.indeterminate = selected.length > 0 && selected.length < checkboxes.length;
         selectAll.checked = selected.length === checkboxes.length && checkboxes.length > 0;
       }

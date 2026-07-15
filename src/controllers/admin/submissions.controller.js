@@ -77,10 +77,16 @@ exports.correctSubmission = async (req, res) => {
       runType: req.body.runType,
       reviewReason: req.body.reviewReason,
       autoApprovalEligible: req.body.autoApprovalEligible,
+      correctionReason: req.body.correctionReason,
       ipAddress: getRequestIpAddress(req),
       userAgent: getRequestUserAgent(req)
     });
-    return res.json({ success: true, message: 'Submission corrected.', submissionKind: result.submissionKind });
+    return res.json({
+      success: true,
+      message: 'Submission corrected.',
+      submissionKind: result.submissionKind,
+      auditReference: result.auditReference
+    });
   } catch (error) {
     logger.error('Admin submission correction error:', error);
     return res.status(400).json({ success: false, message: error.message || 'Failed to correct submission.' });

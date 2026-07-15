@@ -14,8 +14,9 @@ const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.ser
 const { DEFAULT_WAIVER_TEMPLATE } = require('../utils/waiver');
 const { detectSuspiciousActivity } = require('../utils/submission-integrity');
 const { REVIEW_REASON_LABELS } = require('../utils/submission-review-labels');
+const { resolveRejectionReason } = require('../utils/rejection-reasons');
 const { assertRunDateNotFuture } = require('../utils/platform-date');
-const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
+const { buildAuditIdempotencyKey, recordCriticalAuditEventInBackground } = require('./critical-audit.service');
 const { invalidateLeaderboardCache } = require('./leaderboard.service');
 const { normalizeSingleActivityRanking, syncRankingEntry } = require('./ranking.service');
 const { evaluatePublishedRankingAchievements } = require('./achievement.service');
@@ -130,6 +131,7 @@ async function editRejectedSubmissionMetadata({ submissionId, runnerId, distance
 
   submission.status = 'submitted';
   submission.rejectionReason = '';
+  submission.rejectionCode = '';
   submission.reviewNotes = '';
   submission.reviewedAt = null;
   submission.reviewedBy = null;
@@ -150,6 +152,7 @@ async function applyAdminSubmissionCorrection({
   runType,
   reviewReason,
   autoApprovalEligible,
+  correctionReason,
   ipAddress,
   userAgent
 }) {
@@ -164,6 +167,11 @@ async function applyAdminSubmissionCorrection({
     submissionKind = submission ? 'accumulated' : '';
   }
   if (!submission) throw new Error('Submission not found.');
+
+  const safeCorrectionReason = String(correctionReason || '').trim().slice(0, 500);
+  if (safeCorrectionReason.length < 10) {
+    throw new Error('A correction reason of at least 10 characters is required.');
+  }
 
   const changes = [];
 
@@ -216,20 +224,23 @@ async function applyAdminSubmissionCorrection({
 
   await submission.save();
 
-  recordCriticalAuditEventInBackground({
+  const auditOccurredAt = new Date();
+  const auditInput = {
     actorMongoUserId: adminUserId,
     action: submissionKind === 'accumulated' ? 'accumulated_activity.corrected' : 'submission.corrected',
     targetType: submissionKind === 'accumulated' ? 'accumulated_activity_submission' : 'submission',
     targetId: String(submission._id),
     statusFrom: submission.status,
     statusTo: submission.status,
-    notes: `Admin data correction: ${changes.join('; ')}`,
+    notes: `Reason: ${safeCorrectionReason}. Admin data correction: ${changes.join('; ')}`,
     ipAddress,
     userAgent,
-    occurredAt: new Date()
-  });
+    occurredAt: auditOccurredAt
+  };
+  auditInput.idempotencyKey = buildAuditIdempotencyKey(auditInput);
+  recordCriticalAuditEventInBackground(auditInput);
 
-  return { submission, submissionKind };
+  return { submission, submissionKind, auditReference: auditInput.idempotencyKey };
 }
 
 async function resubmitSubmission({
@@ -305,6 +316,7 @@ async function resubmitSubmission({
   existing.reviewedBy = null;
   existing.reviewNotes = '';
   existing.rejectionReason = '';
+  existing.rejectionCode = '';
   existing.certificate = {
     url: '',
     key: '',
@@ -327,7 +339,8 @@ async function reviewSubmission({
   reviewerRole,
   action,
   reviewNotes,
-  rejectionReason
+  rejectionReason,
+  rejectionCode
 }) {
   const safeAction = String(action || '').trim().toLowerCase();
   if (safeAction !== 'approve' && safeAction !== 'reject') {
@@ -362,7 +375,8 @@ async function reviewSubmission({
     reviewedAt,
     reviewedBy: organizerId,
     reviewNotes: safeReviewNotes,
-    rejectionReason: ''
+    rejectionReason: '',
+    rejectionCode: ''
   };
 
   if (safeAction === 'approve') {
@@ -371,12 +385,10 @@ async function reviewSubmission({
     update.suspiciousFlag = false;
     update.suspiciousFlagReason = '';
   } else {
-    const reason = String(rejectionReason || '').trim().slice(0, 500);
-    if (!reason) {
-      throw new Error('Rejection reason is required.');
-    }
+    const reason = resolveRejectionReason('run', rejectionCode, rejectionReason, { allowLegacyDetail: true });
     update.status = 'rejected';
-    update.rejectionReason = reason;
+    update.rejectionCode = reason.code;
+    update.rejectionReason = reason.runnerMessage;
   }
 
   const reviewedSubmission = await Submission.findOneAndUpdate(
@@ -516,14 +528,14 @@ async function getRunnerPerformanceSnapshot(runnerId, options = {}) {
       .limit(recentLimit)
       .populate({ path: 'eventId', select: 'title slug' })
       .populate({ path: 'registrationId', select: 'confirmationCode raceDistance' })
-      .select('status distanceKm elapsedMs runDate runLocation runType proofType submittedAt reviewedAt reviewNotes rejectionReason certificate eventId registrationId isPersonalRecord')
+      .select('status distanceKm elapsedMs runDate runLocation runType proofType submittedAt reviewedAt reviewNotes rejectionReason rejectionCode certificate eventId registrationId isPersonalRecord')
       .lean(),
     AccumulatedActivitySubmission.find(recentFilter)
       .sort({ submittedAt: -1 })
       .limit(recentLimit)
       .populate({ path: 'eventId', select: 'title slug virtualCompletionMode targetDistanceKm raceCategories' })
       .populate({ path: 'registrationId', select: 'confirmationCode raceDistance' })
-      .select('status distanceKm elapsedMs runDate runLocation runType proofType submittedAt reviewedAt reviewNotes rejectionReason certificate eventId registrationId')
+      .select('status distanceKm elapsedMs runDate runLocation runType proofType submittedAt reviewedAt reviewNotes rejectionReason rejectionCode certificate eventId registrationId')
       .lean(),
     Submission.find({ runnerId, status: 'approved' })
       .select('eventId distanceKm')
@@ -610,6 +622,7 @@ async function getRunnerPerformanceSnapshot(runnerId, options = {}) {
       submittedAt: item.submittedAt || null,
       reviewedAt: item.reviewedAt || null,
       rejectionReason: item.rejectionReason || '',
+      rejectionCode: item.rejectionCode || '',
       certificateUrl: item.certificate?.url || '',
       isAccumulatedActivity: item.submissionKind === 'accumulated_activity',
       submissionKind: item.submissionKind || 'standard'
@@ -1385,6 +1398,7 @@ async function applyAutoApprovalIfEligible(submission) {
   submission.reviewedBy = null;
   submission.reviewNotes = autoApprovalReviewNote;
   submission.rejectionReason = '';
+  submission.rejectionCode = '';
   await submission.save();
   Event.findById(submission.eventId).select('slug').lean()
     .then((ev) => { if (ev?.slug) invalidateLeaderboardCache(ev.slug); })

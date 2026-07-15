@@ -7,6 +7,7 @@ const { issueSubmissionCertificate } = require('./certificate.service');
 const communicationService = require('./communication.service');
 const { notifyWithRetry } = require('./reliable-communication.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
+const { resolveRejectionReason } = require('../utils/rejection-reasons');
 const {
   refreshAccumulatedChallengeProgress,
   refreshGlobalDistanceMilestoneProgressInBackground
@@ -53,7 +54,8 @@ async function reviewAccumulatedActivitySubmission({
   reviewerRole,
   action,
   reviewNotes,
-  rejectionReason
+  rejectionReason,
+  rejectionCode
 }) {
   const safeAction = String(action || '').trim().toLowerCase();
   if (safeAction !== 'approve' && safeAction !== 'reject') {
@@ -90,7 +92,8 @@ async function reviewAccumulatedActivitySubmission({
     reviewedAt,
     reviewedBy: organizerId,
     reviewNotes: safeReviewNotes,
-    rejectionReason: ''
+    rejectionReason: '',
+    rejectionCode: ''
   };
 
   if (safeAction === 'approve') {
@@ -99,12 +102,10 @@ async function reviewAccumulatedActivitySubmission({
     update.suspiciousFlag = false;
     update.suspiciousFlagReason = '';
   } else {
-    const reason = String(rejectionReason || '').trim().slice(0, 500);
-    if (!reason) {
-      throw new Error('Rejection reason is required.');
-    }
+    const reason = resolveRejectionReason('run', rejectionCode, rejectionReason, { allowLegacyDetail: true });
     update.status = 'rejected';
-    update.rejectionReason = reason;
+    update.rejectionCode = reason.code;
+    update.rejectionReason = reason.runnerMessage;
   }
 
   const reviewedActivity = await AccumulatedActivitySubmission.findOneAndUpdate(
@@ -386,6 +387,7 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
   activity.reviewedBy = null;
   activity.reviewNotes = autoApprovalReviewNote;
   activity.rejectionReason = '';
+  activity.rejectionCode = '';
   await activity.save();
 
   recordCriticalAuditEventInBackground({

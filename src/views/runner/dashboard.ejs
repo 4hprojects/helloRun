@@ -124,7 +124,20 @@
         </div>
       <% } %>
 
+      <% if (cards.certificates && cards.certificates.length) { const latestCompletion = cards.certificates[0]; %>
+        <section class="runner-completion-hero" aria-labelledby="completion-title">
+          <div><p class="dashboard-eyebrow">Finish line reached</p><h2 id="completion-title"><%= latestCompletion.eventTitle %> completed</h2><p>Your result, certificate, earned badges, and leaderboard progress now live together.</p></div>
+          <div class="runner-completion-actions"><a class="btn btn-primary" href="/my-submissions/<%= latestCompletion.submissionId %>/certificate">Certificate</a><a class="btn btn-outline" href="/runner/profile#badges"><%= badgePointsSummary?.badgeCount || 0 %> badges</a><a class="btn btn-outline" href="/leaderboard">Leaderboard</a><button class="btn btn-outline" type="button" data-copy-cert-url="<%= latestCompletion.verifyUrl || `/my-submissions/${latestCompletion.submissionId}/certificate` %>">Share link</button></div>
+        </section>
+      <% } %>
+
       <%- include('partials/dashboard-summary') %>
+
+      <section class="runner-lifecycle-intro" aria-labelledby="runner-lifecycle-title">
+        <div><span class="dashboard-eyebrow">Your next step</span><h2 id="runner-lifecycle-title">Active event journey</h2></div>
+        <p>Each event appears once at its current stage: payment, ready to run, proof review, correction, or completion.</p>
+      </section>
+      <%- include('partials/dashboard-event-progress') %>
 
       <div class="dashboard-grid">
         <%- include('partials/dashboard-upcoming') %>
@@ -288,7 +301,6 @@
         </section>
         <% } %>
 
-        <%- include('partials/dashboard-event-progress') %>
 
         <%- include('partials/dashboard-missed-submissions') %>
 
@@ -302,6 +314,7 @@
             <% if (cards.past && cards.past.length) { %>
               <ul class="item-list">
                 <% cards.past.forEach((item) => { %>
+                  <% const itemLifecycle = getLifecycleStatus('registration', item.status); %>
                   <li class="item-row">
                     <div class="item-main">
                       <div class="item-title">
@@ -314,7 +327,7 @@
                       <div class="item-meta">
                         <span><%= item.startAtLabel %></span> &middot; <span><%= item.distance %></span> &middot; <span class="badge badge-<%= item.mode %>"><%= item.mode %></span>
                       </div>
-                      <div class="item-meta">Status: <span class="badge badge-<%= item.status %>"><%= item.status %></span></div>
+                      <div class="item-meta">Status: <span class="badge badge-<%= item.status %>" title="<%= itemLifecycle.description %>"><%= itemLifecycle.label %></span></div>
                     </div>
                   </li>
                 <% }) %>
