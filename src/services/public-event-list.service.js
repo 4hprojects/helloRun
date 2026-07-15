@@ -1,6 +1,7 @@
 const Event = require('../models/Event');
 const { getCountries, getCountryName } = require('../utils/country');
 const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
+const { formatPlatformDate } = require('../utils/platform-date');
 
 const countries = getCountries();
 const DEFAULT_EVENT_IMAGE_URL = '/images/helloRun-icon.webp';
@@ -125,11 +126,7 @@ async function buildPublicEventListPage(queryParams = {}) {
       return {
         ...event,
         raceDistances,
-        startDateLabel: event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric'
-        }) : 'Start date not listed',
+        startDateLabel: formatPlatformDate(event.eventStartAt, 'Start date not listed'),
         locationLabel: buildPublicLocationLabel(event, getCountryName(event.country)),
         distanceLabel: raceDistances.join(', ') || 'Distances not listed',
         countryLabel: getCountryName(event.country),
@@ -247,11 +244,7 @@ function normalizeHomepageEventCard(event, now = new Date()) {
     distanceLabel: raceDistances.join(', ') || 'Distances not listed',
     imageUrl: event.bannerImageUrl || DEFAULT_EVENT_IMAGE_URL,
     fallbackImageUrl: DEFAULT_EVENT_IMAGE_URL,
-    dateLabel: event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    }) : 'Start date not listed',
+    dateLabel: formatPlatformDate(event.eventStartAt, 'Start date not listed'),
     locationLabel: buildPublicLocationLabel(event, countryLabel),
     displayState: getEventCardDisplayState(event, now),
     isFeatured: Boolean(event.homeFeatured)
@@ -630,11 +623,7 @@ function formatRelativeDayLabel(targetDate, now = new Date()) {
   if (dayDiff > 1 && dayDiff <= 14) return `in ${dayDiff} days`;
   if (dayDiff < -1 && dayDiff >= -14) return `${Math.abs(dayDiff)} days ago`;
 
-  return target.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric'
-  });
+  return formatPlatformDate(target);
 }
 
 function normalizePositiveInt(input, fallback) {

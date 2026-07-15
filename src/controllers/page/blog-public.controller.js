@@ -61,6 +61,8 @@ const {
   getHomepageCarouselSettings,
   getPostgresClient,
   getPublicEventVisibilityQuery,
+  getCanonicalBlogSlug,
+  getPublicBlogQuery,
   logger,
   recordSyncFailureInBackground,
   recordCriticalAuditEventInBackground,
@@ -112,10 +114,10 @@ exports.getBlogTagPage = async (req, res) => {
 
 exports.getBlogList = async (req, res) => {
   try {
-    const query = {
+    const query = getPublicBlogQuery({
       status: 'published',
       isDeleted: { $ne: true }
-    };
+    });
     const searchQuery = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 80) : '';
     const selectedCategory = normalizeBlogCategory(req.query.category);
     const selectedAuthor = normalizeObjectIdString(req.query.author);
@@ -155,10 +157,10 @@ exports.getBlogList = async (req, res) => {
         .limit(3)
         .select('title slug excerpt category customCategory tags coverImageUrl readingTime views likesCount commentsCount featured publishedAt createdAt')
         : Promise.resolve([]),
-      Blog.distinct('category', {
+      Blog.distinct('category', getPublicBlogQuery({
         status: 'published',
         isDeleted: { $ne: true }
-      })
+      }))
     ]);
     const featuredPosts = featuredPostsRaw;
     const featuredIds = featuredPosts.map((post) => post._id);
@@ -252,6 +254,8 @@ exports.getBlogPost = async (req, res) => {
         message: 'This blog post is not available.'
       });
     }
+    const canonicalSlug = getCanonicalBlogSlug(slug);
+    if (canonicalSlug) return res.redirect(301, `/blog/${canonicalSlug}`);
 
     const post = await Blog.findOne({
       slug,
@@ -290,7 +294,7 @@ exports.getBlogPost = async (req, res) => {
       }
     }
 
-    const relatedPosts = await Blog.find({
+    const relatedPosts = await Blog.find(getPublicBlogQuery({
       _id: { $ne: post._id },
       status: 'published',
       isDeleted: { $ne: true },
@@ -298,7 +302,7 @@ exports.getBlogPost = async (req, res) => {
         { category: post.category },
         { tags: { $in: post.tags || [] } }
       ]
-    })
+    }))
       .sort({ publishedAt: -1 })
       .limit(4)
       .select('title slug category customCategory coverImageUrl publishedAt');

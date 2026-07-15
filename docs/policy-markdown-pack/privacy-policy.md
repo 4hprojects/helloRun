@@ -344,7 +344,19 @@ HelloRun may use cookies and similar technologies to support:
 
 For more details, read the HelloRun Cookie Policy.
 
-## 13. Data Retention
+## 13. Advertising and Google AdSense
+
+HelloRun may display advertising through Google AdSense or other advertising partners.
+
+Advertising partners may use cookies, web beacons, pixel tags, IP addresses, browser or device identifiers, ad request data, and similar technologies to serve ads, measure ad performance, prevent fraud, limit repetitive ads, and comply with advertising policies.
+
+Third parties, including Google, may place or read cookies on a user's browser or use web beacons, IP addresses, or other identifiers as a result of ad serving on HelloRun. Google may use data from HelloRun and other partner sites or apps to provide, personalize, measure, and improve advertising, subject to Google's policies and user settings.
+
+Advertising may be personalized or non-personalized depending on user settings, consent requirements, region, and Google or browser controls. HelloRun does not provide Google with passwords, payment proof images, run proof images, or knowingly pass information that Google could recognize as personally identifiable information for advertising.
+
+Users can learn how Google uses data from partner sites at https://policies.google.com/technologies/partner-sites and manage Google advertising preferences at https://adssettings.google.com where available.
+
+## 14. Data Retention
 
 HelloRun retains personal data only for as long as necessary for platform operations, legal compliance, event management, payment verification, dispute resolution, fraud prevention, security, and legitimate business purposes.
 
@@ -363,7 +375,7 @@ HelloRun retains personal data only for as long as necessary for platform operat
 
 HelloRun may delete, anonymise, archive, or restrict access to data that is no longer needed.
 
-## 14. Data Subject Rights
+## 15. Data Subject Rights
 
 Users may exercise rights available under applicable privacy laws, including:
 
@@ -380,7 +392,7 @@ Requests may be subject to identity verification.
 
 HelloRun may deny or limit a request when retention or processing is required for legal obligations, payment records, dispute resolution, fraud prevention, event integrity, security, or other lawful grounds.
 
-## 15. Security
+## 16. Security
 
 HelloRun implements reasonable technical, organisational, and operational safeguards to protect personal data.
 
@@ -399,7 +411,7 @@ These may include:
 
 No online platform can guarantee absolute security. Users are responsible for protecting their account credentials and reporting suspected unauthorised access.
 
-## 16. Security Incident and Breach Notification
+## 17. Security Incident and Breach Notification
 
 If a personal data breach occurs, HelloRun will investigate, contain, and assess the incident.
 
@@ -414,7 +426,7 @@ Notifications may include:
 - recommended actions for affected users
 - contact details for further assistance
 
-## 17. Children and Minors
+## 18. Children and Minors
 
 HelloRun is designed mainly for users who can legally manage their own online accounts and event participation.
 
@@ -424,13 +436,13 @@ For events involving minors, organisers are responsible for ensuring that requir
 
 HelloRun may remove or restrict accounts, registrations, or submissions involving minors where required by law, platform policy, or safety concerns.
 
-## 18. International Transfers and Cloud Services
+## 19. International Transfers and Cloud Services
 
 HelloRun may use cloud infrastructure, storage, email, analytics, or other service providers located in or outside the Philippines.
 
 When data is processed outside the Philippines, HelloRun will use reasonable measures to protect personal data according to applicable privacy requirements.
 
-## 19. Policy Updates
+## 20. Policy Updates
 
 HelloRun may update this Privacy Policy from time to time.
 
@@ -438,7 +450,7 @@ Material updates may be announced through the platform, email, dashboard notice,
 
 Continued use of HelloRun after an update means users acknowledge the updated policy, where allowed by law.
 
-## 20. Contact
+## 21. Contact
 
 For privacy questions, data subject requests, or complaints, contact:
 

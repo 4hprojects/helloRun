@@ -182,10 +182,20 @@
           <% if (details.isAccumulatedChallenge || details.virtualRules?.targetDistanceKm) { %>
             <section class="event-section event-goal-section">
               <div>
-                <p class="event-section-kicker">Accumulated Completion Goal</p>
-                <h2>Complete <%= details.targetDistanceLabel %></h2>
+                <p class="event-section-kicker"><%= details.hasCategorySpecificGoals ? 'Category Completion Goals' : 'Accumulated Completion Goal' %></p>
+                <h2><%= details.hasCategorySpecificGoals ? 'Complete your selected category distance' : `Complete ${details.targetDistanceLabel}` %></h2>
                 <p>Only approved submissions count toward the official total. Keep submitting valid activities until your progress reaches the completion goal.</p>
-                <% if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
+                <% if (details.hasCategorySpecificGoals) { %>
+                  <div class="event-goal-options">
+                    <strong>Category goals:</strong>
+                    <ul class="event-registration-option-bullets">
+                      <% details.categoryGoalOptions.forEach((option) => { %>
+                        <li><%= option.name %> - <%= option.distanceKmLabel %></li>
+                      <% }) %>
+                    </ul>
+                    <p>Completion is measured against the distance for the category selected during registration.</p>
+                  </div>
+                <% } else if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
                   <div class="event-goal-options">
                     <strong>Registration options:</strong>
                     <% if (showRegistrationOptionBullets) { %>
@@ -194,17 +204,19 @@
                           <li><%= option %></li>
                         <% }) %>
                       </ul>
-                      <p>These are runner-facing distance labels; completion is measured against the goal above.</p>
+                      <p>These are runner-facing distance labels for the listed completion goal.</p>
                     <% } else { %>
-                      <p><%= details.distanceSummaryLabel %>. These are runner-facing distance labels; completion is measured against the goal above.</p>
+                      <p><%= details.distanceSummaryLabel %>. These are runner-facing distance labels for the listed completion goal.</p>
                     <% } %>
                   </div>
                 <% } %>
               </div>
               <div class="event-goal-panel">
-                <strong><%= details.targetDistanceLabel %></strong>
-                <span>Completion goal</span>
-                <% if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
+                <strong><%= details.completionGoalLabel || details.targetDistanceLabel %></strong>
+                <span><%= details.hasCategorySpecificGoals ? 'Per-category goal' : 'Completion goal' %></span>
+                <% if (details.hasCategorySpecificGoals) { %>
+                  <small>Based on selected registration category</small>
+                <% } else if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
                   <% if (showRegistrationOptionBullets) { %>
                     <small>Options:</small>
                     <ul class="event-registration-option-bullets event-registration-option-bullets-compact">
@@ -274,7 +286,7 @@
 
             <% const eventBadges = badges || []; %>
             <% if (eventBadges.length) { %>
-              <div class="event-badge-grid" aria-label="Available achievement badges">
+              <div class="event-badge-grid" aria-label="Event badges">
                 <% eventBadges.forEach((badge) => { %>
                   <article class="event-badge-card">
                     <span class="event-badge-icon">
@@ -296,8 +308,8 @@
               <div class="event-badge-empty">
                 <i data-lucide="award"></i>
                 <div>
-                  <strong>Badges not enabled</strong>
-                  <p>This event is not currently issuing digital achievement badges.</p>
+                  <strong>No event badges listed</strong>
+                  <p>This event is not currently listing digital badges.</p>
                 </div>
               </div>
             <% } %>
@@ -488,7 +500,7 @@
                 <% } %>
               <% } %>
               <% if (details.isAccumulatedChallenge) { %>
-                <p><strong>Completion Goal</strong><span><%= details.targetDistanceLabel || 'Goal not listed' %></span></p>
+                <p><strong>Completion Goal</strong><span><%= details.completionGoalLabel || details.targetDistanceLabel || 'Goal not listed' %></span></p>
               <% } %>
               <p><strong>Mode</strong><span><%= (details.allowedModes || []).join(' / ') || details.eventTypeLabel || 'Event mode not listed' %></span></p>
               <% if (details.showLocation) { %>

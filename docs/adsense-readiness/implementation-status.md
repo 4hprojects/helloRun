@@ -56,6 +56,48 @@ The work focused on public content depth, crawl hygiene, event page quality, tru
 - Local noindex checks for `/login` and empty/unavailable `/shop` HTML responses.
 - Public template/content scan for unfinished placeholder terms.
 
+## June 18, 2026 Follow-Up Cleanup
+
+- Added shared public event filtering for `isSmokeTest: true` and legacy test/smoke/dummy/QA/staging event text, including `Submission service test event`.
+- Added canonical blog redirects for duplicate AdSense posts and excluded duplicate slugs from public blog discovery, feeds, services, related posts, and sitemap output.
+- Archived the three duplicate blog records in the configured MongoDB database and moved featured status to `best-apps-to-track-your-virtual-run`.
+- Removed unfinished newsletter copy from public blog templates.
+- Replaced inflated runner-count/social-proof copy on public auth/home surfaces.
+- Cleaned public event badge wording from "Available achievement badges" and "Badges not enabled" to neutral event-badge language.
+- Expanded sitemap and public route smoke coverage for test event exclusion, duplicate blog redirects, newsletter cleanup, and badge wording.
+
+### Follow-Up Verification
+
+- `node --test tests/event-public-view.unit.test.js` - PASS
+- `node --test tests/public-search-filters.smoke.test.js` - PASS
+- `node --test tests/sitemap-readiness.smoke.test.js` - PASS
+
+The two smoke suites still print existing Supabase shadow-sync `ENOTFOUND` warnings in this local environment, but the targeted checks pass.
+
+## June 18, 2026 Blocker Cleanup
+
+- Expanded legacy public event filtering to exclude `Shop Empty Event`, `empty event`, and placeholder event records in addition to smoke/test/QA/staging records.
+- Added platform-aware public date formatting for event list, homepage, detail, sitemap-adjacent display helpers, and event descriptions, including UTC end-of-day handling for stored `23:59Z` event dates.
+- Changed accumulated multi-distance event pages to show category-specific completion goals instead of a single largest-distance target.
+- Updated organizer form helper copy so new accumulated multi-distance events describe category goals instead of largest-distance goals.
+- Updated Privacy and Cookie policy markdown with explicit Google AdSense, advertising cookie, web beacon, IP address, browser/device identifier, personalization, and Google partner-site disclosures.
+- Updated policy seeding so `--publish-current` can publish new current policy versions from source markdown instead of skipping existing policy records.
+- Added `npm run adsense:blocker-cleanup` for the live cleanup pass: publishing policy versions, archiving placeholder events, reconciling the four named event descriptions from structured fields, and generating missing badges where Postgres is reachable.
+- Ran the live cleanup against the configured MongoDB database. Current policy versions are now Privacy `1.4`, Cookie `1.3`, and Data Usage `1.1`; the four named event descriptions were rewritten; no published placeholder event was found.
+- Badge generation for the four named events was skipped because the configured Postgres/Supabase endpoint returned `ENOTFOUND`. Event copy was rewritten without badge promises until badge rows can be generated from a working Postgres connection.
+
+### Blocker Cleanup Verification
+
+- `node --check src/scripts/seed-policies.js` - PASS
+- `node --check src/scripts/adsense-blocker-cleanup.js` - PASS
+- `node --check src/utils/event-public-view.js` - PASS
+- `node --check src/controllers/page.controller.js` - PASS
+- `node --test tests/event-public-view.unit.test.js` - PASS
+- `node --test tests/achievement-badges.service.unit.test.js` - PASS
+- `node --test tests/sitemap-readiness.smoke.test.js` - PASS
+- `node --test tests/static-pages.smoke.test.js` - PASS
+- `node --test tests/public-search-filters.smoke.test.js` - PASS
+
 ## Known Environment Limitations
 
 - The in-app Browser visual QA could not run because the Browser plugin failed during runtime setup with `failed to write kernel assets`.

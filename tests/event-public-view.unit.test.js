@@ -6,6 +6,10 @@ const {
   buildPublicEventView,
   renderEventDetailsContent
 } = require('../src/utils/event-public-view');
+const {
+  getPublicEventVisibilityQuery,
+  isPublicEventVisible
+} = require('../src/utils/public-event-visibility');
 
 test('renderEventDetailsContent preserves safe Quill HTML', () => {
   const html = renderEventDetailsContent('<h1>Challenge Details</h1><p>Earn a <strong>badge</strong>.</p><script>alert(1)</script>');
@@ -14,6 +18,49 @@ test('renderEventDetailsContent preserves safe Quill HTML', () => {
   assert.match(html, /<strong>badge<\/strong>/);
   assert.doesNotMatch(html, /script/);
   assert.doesNotMatch(html, /&lt;h1&gt;/);
+});
+
+test('public event visibility excludes smoke and legacy test events', () => {
+  const now = new Date('2026-06-18T00:00:00.000Z');
+  const query = getPublicEventVisibilityQuery(now);
+
+  assert.deepEqual(query.isSmokeTest, { $ne: true });
+  assert.equal(isPublicEventVisible({
+    title: 'Public Community 5K',
+    slug: 'public-community-5k',
+    description: 'A public event.',
+    status: 'published',
+    isDeleted: false,
+    isPersonalRecord: false,
+    isSmokeTest: false
+  }, now), true);
+  assert.equal(isPublicEventVisible({
+    title: 'Smoke Test Run',
+    slug: 'smoke-test-run',
+    description: 'Internal smoke event.',
+    status: 'published',
+    isDeleted: false,
+    isPersonalRecord: false,
+    isSmokeTest: true
+  }, now), false);
+  assert.equal(isPublicEventVisible({
+    title: 'Submission service test event',
+    slug: 'submission-service-test-event',
+    description: 'Legacy public test event.',
+    status: 'published',
+    isDeleted: false,
+    isPersonalRecord: false,
+    isSmokeTest: false
+  }, now), false);
+  assert.equal(isPublicEventVisible({
+    title: 'Shop Empty Event 1781713312677-36814',
+    slug: 'shop-empty-event-1781713312677-36814',
+    description: 'Placeholder event record.',
+    status: 'published',
+    isDeleted: false,
+    isPersonalRecord: false,
+    isSmokeTest: false
+  }, now), false);
 });
 
 test('renderEventDetailsContent still supports markdown input', () => {
@@ -114,6 +161,87 @@ test('buildPublicEventView shows accumulated registration options without duplic
   assert.equal(publicEvent.distanceSummaryLabel, '5K, 10K');
   assert.deepEqual(publicEvent.stats[1], { label: 'Registration Options', value: '5K, 10K', helper: 'Distance labels' });
   assert.equal(publicEvent.stats.some((stat) => stat.label === 'Target'), false);
+});
+
+test('buildPublicEventView exposes category-specific goals for accumulated multi-distance events', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'Category Quest',
+    slug: 'category-quest',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['25K', '50K', '100K'],
+    raceCategories: [
+      { categoryId: 'c25', name: '25K Quest', distanceLabel: '25K', distanceKm: 25 },
+      { categoryId: 'c50', name: '50K Quest', distanceLabel: '50K', distanceKm: 50 },
+      { categoryId: 'c100', name: '100K Quest', distanceLabel: '100K', distanceKm: 100 }
+    ],
+    virtualCompletionMode: 'accumulated_distance',
+    targetDistanceKm: 100,
+    feeMode: 'free'
+  });
+
+  assert.equal(publicEvent.hasCategorySpecificGoals, true);
+  assert.equal(publicEvent.completionGoalLabel, 'Selected category distance');
+  assert.deepEqual(
+    publicEvent.categoryGoalOptions.map((option) => [option.name, option.distanceKmLabel]),
+    [['25K Quest', '25 km'], ['50K Quest', '50 km'], ['100K Quest', '100 km']]
+  );
+});
+
+test('buildPublicEventView formats public event dates in the platform timezone', () => {
+  const publicEvent = buildPublicEventView({
+    title: '2026K Challenge',
+    slug: '2026k-challenge',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['2026K'],
+    eventStartAt: '2025-12-31T16:00:00.000Z',
+    eventEndAt: '2026-12-31T15:59:00.000Z',
+    virtualCompletionMode: 'accumulated_distance',
+    targetDistanceKm: 2026,
+    feeMode: 'free'
+  });
+
+  const start = publicEvent.timeline.find((item) => item.label === 'Event Starts');
+  const end = publicEvent.timeline.find((item) => item.label === 'Event Ends');
+  assert.equal(start.value, 'Jan 1, 2026');
+  assert.equal(end.value, 'Dec 31, 2026');
+});
+
+test('buildPublicEventView preserves UTC end-of-day calendar dates', () => {
+  const publicEvent = buildPublicEventView({
+    title: 'June Quest',
+    slug: 'june-quest',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['25K'],
+    eventStartAt: '2026-06-01T00:00:00.000Z',
+    eventEndAt: '2026-06-30T23:59:00.000Z',
+    virtualCompletionMode: 'accumulated_distance',
+    targetDistanceKm: 25,
+    feeMode: 'free'
+  });
+
+  const end = publicEvent.timeline.find((item) => item.label === 'Event Ends');
+  assert.equal(end.value, 'Jun 30, 2026');
+});
+
+test('buildPublicEventView only lists digital badge reward when public badges are listed', () => {
+  const event = {
+    title: 'Badge Event',
+    slug: 'badge-event',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    digitalBadgeEnabled: true,
+    digitalCertificateEnabled: true,
+    leaderboardRecognitionEnabled: true
+  };
+
+  const withoutBadges = buildPublicEventView(event, { eventBadges: [] });
+  assert.equal(withoutBadges.rewardItems.some((item) => item.label === 'Digital badge'), false);
+
+  const withBadges = buildPublicEventView(event, { eventBadges: [{ name: 'Finisher' }] });
+  assert.equal(withBadges.rewardItems.some((item) => item.label === 'Digital badge'), true);
 });
 
 test('buildPublicEventView uses Anywhere for virtual events without a venue', () => {

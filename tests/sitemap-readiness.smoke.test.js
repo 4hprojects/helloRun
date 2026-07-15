@@ -77,12 +77,45 @@ test('dynamic sitemap includes live public content and excludes auth and placeho
   }
   assert.match(xml, new RegExp(`<loc>${escapeForRegex(`${BASE_URL}/events/${encodeURIComponent(seed.event.slug)}`)}</loc>`));
   assert.match(xml, new RegExp(`<loc>${escapeForRegex(`${BASE_URL}/blog/${encodeURIComponent(seed.blog.slug)}`)}</loc>`));
+  assert.doesNotMatch(xml, new RegExp(`/events/${escapeForRegex(seed.placeholderEvent.slug)}`));
 
   assert.doesNotMatch(xml, /<loc>.*\/login<\/loc>/i);
   assert.doesNotMatch(xml, /<loc>.*\/leaderboard<\/loc>/i);
   assert.doesNotMatch(xml, /<loc>.*\/shop<\/loc>/i);
   assert.doesNotMatch(xml, /blog\/category\//i);
   assert.doesNotMatch(xml, /what-is-virtual-run-philippines/i);
+  assert.doesNotMatch(xml, /virtual-run-vs-traditional-race<\/loc>/i);
+  assert.doesNotMatch(xml, /best-running-apps-for-virtual-runs<\/loc>/i);
+  assert.doesNotMatch(xml, /how-to-organize-community-virtual-run<\/loc>/i);
+});
+
+test('duplicate blog slugs redirect to canonical posts', async () => {
+  const response = await fetch(`${BASE_URL}/blog/best-running-apps-for-virtual-runs`, {
+    redirect: 'manual'
+  });
+
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get('location'), '/blog/best-apps-to-track-your-virtual-run');
+});
+
+test('public blog page does not render unfinished newsletter copy', async () => {
+  const response = await fetch(`${BASE_URL}/blog`);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+
+  assert.doesNotMatch(html, /Newsletter signups are temporarily unavailable/i);
+  assert.doesNotMatch(html, /Stay in the loop/i);
+  assert.doesNotMatch(html, /blog-newsletter/i);
+});
+
+test('public event page uses cleaned badge wording', async () => {
+  const response = await fetch(`${BASE_URL}/events/${seed.event.slug}`);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+
+  assert.doesNotMatch(html, /Available achievement badges/i);
+  assert.doesNotMatch(html, /Badges not enabled/i);
+  assert.match(html, /No event badges listed/i);
 });
 
 test('robots.txt blocks utility routes and points to sitemap', async () => {
@@ -164,6 +197,26 @@ async function seedFixtures() {
     waiverVersion: 1
   });
 
+  const placeholderEvent = await Event.create({
+    organizerId: organizer._id,
+    slug: `shop-empty-event-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `SX-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: `Shop Empty Event ${stamp}`,
+    organiserName: 'Sitemap Organizer',
+    description: 'Placeholder event should not be indexed.',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    registrationOpenAt: new Date(now - 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 2 * 24 * 60 * 60 * 1000),
+    proofTypesAllowed: ['gps'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
   const blog = await Blog.create({
     authorId: author._id,
     title: `Sitemap Blog ${stamp}`,
@@ -178,14 +231,14 @@ async function seedFixtures() {
     approvedAt: new Date()
   });
 
-  return { author, organizer, event, blog };
+  return { author, organizer, event, placeholderEvent, blog };
 }
 
 async function cleanupFixtures(currentSeed) {
   if (!currentSeed) return;
   await Promise.all([
     Blog.deleteMany({ _id: currentSeed.blog._id }),
-    Event.deleteMany({ _id: currentSeed.event._id }),
+    Event.deleteMany({ _id: { $in: [currentSeed.event._id, currentSeed.placeholderEvent._id] } }),
     User.deleteMany({
       _id: { $in: [currentSeed.author._id, currentSeed.organizer._id] }
     })

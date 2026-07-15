@@ -32,6 +32,7 @@ const uploadService = require('../../services/upload.service');
 const { BLOG_CATEGORIES, BLOG_STATUSES, slugifyBlogTitle, normalizeTags } = require('../../utils/blog');
 
 const { sanitizeHtml, htmlToPlainText } = require('../../utils/sanitize');
+const { getCanonicalBlogSlug, getPublicBlogQuery } = require('../../utils/blog-canonical');
 
 const BlogReport = require('../../models/BlogReport');
 
@@ -881,6 +882,8 @@ module.exports = {
   normalizeTags,
   sanitizeHtml,
   htmlToPlainText,
+  getCanonicalBlogSlug,
+  getPublicBlogQuery,
   BlogReport,
   analyzePostSpamSignals,
   detectSimilarityFlags,

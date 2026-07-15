@@ -16,6 +16,7 @@ async function seedPolicies(options = {}) {
   const policyKeys = Array.isArray(options.policyKeys) && options.policyKeys.length
     ? options.policyKeys
     : listPolicyDocuments().map((policy) => policy.key);
+  const publishCurrent = options.publishCurrent === true;
 
   if (!process.env.MONGODB_URI) {
     throw new Error('MONGODB_URI is not set.');
@@ -35,12 +36,6 @@ async function seedPolicies(options = {}) {
       throw new Error(`Unknown policy key: ${key}`);
     }
 
-    const existingPolicyCount = await PrivacyPolicy.countDocuments({ slug: policyDocument.slug });
-    if (existingPolicyCount > 0) {
-      skipped.push(policyDocument.title);
-      continue;
-    }
-
     const rawContent = await fs.readFile(policyDocument.sourceFile, 'utf8');
     const contentMarkdown = rawContent.replace(/\r\n/g, '\n').trim();
     if (!contentMarkdown) {
@@ -52,11 +47,41 @@ async function seedPolicies(options = {}) {
       allowedAttributes: ALLOWED_ATTRIBUTES
     });
     const now = new Date();
+    const existingCurrent = await PrivacyPolicy.findOne({
+      slug: policyDocument.slug,
+      status: 'published',
+      isCurrent: true
+    }).lean();
+
+    if (existingCurrent && !publishCurrent) {
+      skipped.push(policyDocument.title);
+      continue;
+    }
+
+    if (existingCurrent && normalizeMarkdown(existingCurrent.contentMarkdown) === contentMarkdown) {
+      skipped.push(`${policyDocument.title} (already current)`);
+      continue;
+    }
+
+    const existingPolicyCount = await PrivacyPolicy.countDocuments({ slug: policyDocument.slug });
+    const versionNumber = existingPolicyCount > 0
+      ? await getNextVersionNumber(policyDocument.slug, existingCurrent?.versionNumber)
+      : INITIAL_VERSION;
+
+    if (existingPolicyCount > 0 && !publishCurrent) {
+      skipped.push(policyDocument.title);
+      continue;
+    }
+
+    await PrivacyPolicy.updateMany(
+      { slug: policyDocument.slug, isCurrent: true },
+      { $set: { isCurrent: false } }
+    );
 
     await PrivacyPolicy.create({
       title: policyDocument.dbTitle,
       slug: policyDocument.slug,
-      versionNumber: INITIAL_VERSION,
+      versionNumber,
       status: 'published',
       effectiveDate: now,
       contentMarkdown,
@@ -70,7 +95,7 @@ async function seedPolicies(options = {}) {
       publishedAt: now
     });
 
-    seeded.push(policyDocument.title);
+    seeded.push(`${policyDocument.title} v${versionNumber}`);
   }
 
   return { seeded, skipped };
@@ -78,7 +103,7 @@ async function seedPolicies(options = {}) {
 
 async function runCli() {
   try {
-    const result = await seedPolicies();
+    const result = await seedPolicies(parseCliOptions(process.argv.slice(2)));
     console.log(`Seeded policies: ${result.seeded.length ? result.seeded.join(', ') : 'none'}`);
     console.log(`Skipped existing policies: ${result.skipped.length ? result.skipped.join(', ') : 'none'}`);
     process.exit(0);
@@ -88,10 +113,52 @@ async function runCli() {
   }
 }
 
+function parseCliOptions(args = []) {
+  const options = {};
+  for (const arg of args) {
+    if (arg === '--publish-current') {
+      options.publishCurrent = true;
+      continue;
+    }
+    if (arg.startsWith('--keys=')) {
+      options.policyKeys = arg
+        .slice('--keys='.length)
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+  }
+  return options;
+}
+
+async function getNextVersionNumber(slug, currentVersionNumber) {
+  const base = parseVersionNumber(currentVersionNumber);
+  for (let minor = base.minor + 1; minor < base.minor + 100; minor += 1) {
+    const candidate = `${base.major}.${minor}`;
+    const exists = await PrivacyPolicy.exists({ slug, versionNumber: candidate });
+    if (!exists) return candidate;
+  }
+  return `${base.major + 1}.0`;
+}
+
+function parseVersionNumber(value) {
+  const match = String(value || INITIAL_VERSION).trim().match(/^(\d+)(?:\.(\d+))?/);
+  if (!match) return { major: 1, minor: 0 };
+  return {
+    major: Number(match[1]) || 1,
+    minor: Number(match[2]) || 0
+  };
+}
+
+function normalizeMarkdown(value) {
+  return String(value || '').replace(/\r\n/g, '\n').trim();
+}
+
 if (require.main === module) {
   runCli();
 }
 
 module.exports = {
-  seedPolicies
+  seedPolicies,
+  parseCliOptions
 };

@@ -52,6 +52,30 @@ test('public static pages render successfully', async () => {
   }
 });
 
+test('public policy pages include complete AdSense and data usage disclosures', async () => {
+  const dataUsage = await fetch(`${BASE_URL}/data-usage-policy`);
+  assert.equal(dataUsage.status, 200);
+  const dataUsageHtml = await dataUsage.text();
+  assert.doesNotMatch(dataUsageHtml, /Initial data usage policy/i);
+  assert.match(dataUsageHtml, /OCR-assisted screenshot reading|Activity proof/i);
+
+  const privacy = await fetch(`${BASE_URL}/privacy`);
+  assert.equal(privacy.status, 200);
+  const privacyHtml = await privacy.text();
+  assert.match(privacyHtml, /Google AdSense/i);
+  assert.match(privacyHtml, /web beacons/i);
+  assert.match(privacyHtml, /IP addresses/i);
+  assert.match(privacyHtml, /browser or device identifiers/i);
+
+  const cookie = await fetch(`${BASE_URL}/cookie-policy`);
+  assert.equal(cookie.status, 200);
+  const cookieHtml = await cookie.text();
+  assert.match(cookieHtml, /Advertising Cookies and Google AdSense/i);
+  assert.match(cookieHtml, /web beacons/i);
+  assert.match(cookieHtml, /IP addresses/i);
+  assert.match(cookieHtml, /Google advertising preferences/i);
+});
+
 test('about page includes required trust, privacy, and event-management guidance', async () => {
   const response = await fetch(`${BASE_URL}/about`);
   assert.equal(response.status, 200);

@@ -14,13 +14,13 @@
 
 | Period | File | Sessions |
 |--------|------|----------|
-| June 2026 | [changelog/2026-06-june.md](changelog/2026-06-june.md) | 9 |
+| June 2026 | [changelog/2026-06-june.md](changelog/2026-06-june.md) | 10 |
 | May 2026 | [changelog/2026-05-may.md](changelog/2026-05-may.md) | 21 |
 | April 2026 | [changelog/2026-04-april.md](changelog/2026-04-april.md) | 8 |
 | March 2026 | [changelog/2026-03-march.md](changelog/2026-03-march.md) | 33 |
 | February 2026 | [changelog/2026-02-february.md](changelog/2026-02-february.md) | 16 |
 
-**Total:** 87 sessions across 5 months.
+**Total:** 88 sessions across 5 months.
 
 ---
 

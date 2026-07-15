@@ -61,6 +61,7 @@ const {
   getHomepageCarouselSettings,
   getPostgresClient,
   getPublicEventVisibilityQuery,
+  getPublicBlogQuery,
   logger,
   recordSyncFailureInBackground,
   recordCriticalAuditEventInBackground,
@@ -95,10 +96,10 @@ exports.getHome = async (req, res) => {
         role: 'organiser',
         organizerStatus: 'approved'
       }),
-      Blog.find({
+      Blog.find(getPublicBlogQuery({
         status: 'published',
         isDeleted: { $ne: true }
-      })
+      }))
         .populate('authorId', 'firstName lastName')
         .sort({ publishedAt: -1, createdAt: -1 })
         .limit(3)

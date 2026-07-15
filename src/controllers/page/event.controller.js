@@ -92,7 +92,7 @@ exports.getEventDetails = async (req, res) => {
       getRelatedEvents(event, getPublicEventVisibilityQuery(now), now).catch(() => [])
     ]);
     const baseUrl = getSitemapBaseUrl(req);
-    const publicEvent = buildPublicEventView(event, { registrationCount });
+    const publicEvent = buildPublicEventView(event, { registrationCount, eventBadges: badges });
     const eventShop = {
       href: `/events/${event.slug}/shop`,
       products: eventShopProducts,

@@ -7,6 +7,20 @@ const PLATFORM_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
   day: '2-digit'
 });
 
+const PLATFORM_DISPLAY_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: PLATFORM_TIME_ZONE,
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric'
+});
+
+const UTC_DISPLAY_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'UTC',
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric'
+});
+
 function getPlatformDateKey(date = new Date()) {
   const value = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(value.getTime())) {
@@ -54,8 +68,23 @@ function assertRunDateNotFuture(value, { now = new Date() } = {}) {
   return date;
 }
 
+function formatPlatformDate(value, fallback = 'Date not listed') {
+  if (!value) return fallback;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return fallback;
+  if (isUtcEndOfDayTimestamp(date)) {
+    return UTC_DISPLAY_DATE_FORMATTER.format(date);
+  }
+  return PLATFORM_DISPLAY_DATE_FORMATTER.format(date);
+}
+
+function isUtcEndOfDayTimestamp(date) {
+  return date.getUTCHours() === 23 && date.getUTCMinutes() >= 55;
+}
+
 module.exports = {
   PLATFORM_TIME_ZONE,
+  formatPlatformDate,
   getPlatformDateKey,
   parseRunDateOnly,
   assertRunDateNotFuture
