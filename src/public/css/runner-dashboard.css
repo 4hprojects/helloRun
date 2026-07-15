@@ -2501,3 +2501,89 @@ code {
   flex: 1;
   min-width: 160px;
 }
+
+/* Task-first dashboard layout */
+.runner-dashboard-zone { margin-top: 1.5rem; }
+.runner-dashboard-zone-heading { display: flex; align-items: end; justify-content: space-between; gap: 1.25rem; margin-bottom: .75rem; }
+.runner-dashboard-zone-heading h2, .runner-dashboard-zone-heading p { margin: .15rem 0 0; }
+.runner-dashboard-zone-heading h2 { color: var(--text-strong); font-family: var(--font-heading); font-size: clamp(1.2rem, 1.8vw, 1.55rem); }
+.runner-dashboard-zone-heading p { max-width: 38rem; color: var(--text-muted); font-size: .9rem; text-align: right; }
+.runner-dashboard-overview-grid, .runner-dashboard-history-grid { display: grid; grid-template-columns: 1fr; align-items: start; gap: 1rem; }
+.runner-dashboard-overview-grid > .card, .runner-dashboard-history-grid > .card { min-width: 0; width: 100%; }
+.runner-dashboard-overview-grid .card-header, .runner-dashboard-history-grid .card-header { min-height: 4.25rem; }
+.runner-dashboard-overview-grid .card-content { min-height: 10rem; }
+
+/* Active Event Journey is the canonical task surface. */
+.runner-event-progress-card { width: 100%; margin-bottom: 0; }
+.runner-event-progress-card .dashboard-event-progress-list { grid-template-columns: 1fr; }
+.dashboard-event-progress-row { min-width: 0; overflow-wrap: normal; word-break: normal; }
+.dashboard-event-progress-title, .dashboard-event-progress-help, .dashboard-event-progress-stats, .dashboard-event-progress-row .item-meta { overflow-wrap: break-word; word-break: normal; }
+.dashboard-event-progress-row code, .dashboard-event-progress-side, .dashboard-event-progress-side .badge, .dashboard-event-progress-side .btn { flex-shrink: 0; }
+.dashboard-event-progress-row code, .dashboard-event-progress-side .badge, .dashboard-event-progress-side .btn { white-space: nowrap; }
+
+/* Full-width compact result history. */
+.runner-dashboard-results [data-dashboard-fragment="resultSubmissions"], .runner-dashboard-results .result-submissions-card { width: 100%; min-width: 0; }
+.runner-dashboard-results .result-submissions-card { overflow: visible; }
+.runner-dashboard-results .result-submissions-header { display: grid; grid-template-columns: minmax(12rem, 1fr) auto; align-items: center; }
+.runner-dashboard-results .result-status-tabs { grid-column: 1 / -1; width: fit-content; max-width: 100%; }
+.runner-compact-activity-list { display: flex; flex-direction: column; gap: .65rem; margin: 0; padding: 0; list-style: none; }
+.runner-compact-activity-row { display: grid; grid-template-columns: minmax(16rem, 1fr) minmax(10rem, auto) auto auto; align-items: center; gap: .75rem 1rem; min-width: 0; padding: .9rem 1rem; border: 1px solid var(--border); border-left: 4px solid #94a3b8; border-radius: 14px; background: #fff; }
+.runner-compact-activity-row--approved { border-left-color: #16a34a; }
+.runner-compact-activity-row--submitted { border-left-color: #d97706; }
+.runner-compact-activity-row--rejected, .runner-compact-activity-row--missed { border-left-color: #64748b; }
+.runner-compact-activity-row--warning { border-left-color: var(--orange); }
+.runner-compact-activity-main, .runner-compact-activity-time { min-width: 0; }
+.runner-compact-activity-main strong, .runner-compact-activity-main span, .runner-compact-activity-time span { display: block; }
+.runner-compact-activity-main strong { color: var(--text-strong); font-size: .96rem; overflow-wrap: break-word; }
+.runner-compact-activity-main a { color: inherit; text-decoration: none; }
+.runner-compact-activity-main a:hover { color: #b45309; text-decoration: underline; }
+.runner-compact-activity-main span, .runner-compact-activity-time { color: var(--text-muted); font-size: .78rem; }
+.runner-compact-activity-time { line-height: 1.45; }
+.runner-compact-activity-row > .badge, .runner-compact-activity-action .btn { white-space: nowrap; }
+.runner-compact-activity-action { justify-self: end; }
+
+/* Closed work stays available without dominating active tasks. */
+.runner-missed-archive { margin-top: 1rem; }
+.runner-missed-submissions-card { display: block; }
+.runner-missed-submissions-card > summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: .8rem; padding: 1rem 1.2rem; cursor: pointer; list-style: none; }
+.runner-missed-submissions-card > summary::-webkit-details-marker { display: none; }
+.runner-missed-submissions-card > summary:focus-visible { outline: 3px solid rgba(20, 149, 209, .35); outline-offset: 3px; }
+.runner-missed-summary-icon { display: inline-flex; align-items: center; justify-content: center; width: 2.4rem; height: 2.4rem; border-radius: 12px; background: #f1f5f9; color: #64748b; }
+.runner-missed-summary-icon svg, .runner-missed-toggle svg { width: 1.1rem; height: 1.1rem; }
+.runner-missed-submissions-card summary strong, .runner-missed-submissions-card summary small { display: block; }
+.runner-missed-submissions-card summary strong { color: var(--text-strong); }
+.runner-missed-submissions-card summary small { margin-top: .1rem; color: var(--text-muted); }
+.runner-missed-count { min-width: 2rem; padding: .25rem .55rem; border-radius: 999px; background: #e2e8f0; color: #334155; font-weight: 800; text-align: center; }
+.runner-missed-toggle { display: inline-flex; transition: transform var(--transition); }
+.runner-missed-submissions-card[open] .runner-missed-toggle { transform: rotate(180deg); }
+.runner-missed-body { padding: 0 1.2rem 1.2rem; border-top: 1px solid var(--border); }
+.runner-missed-body .runner-compact-activity-list { padding-top: 1rem; }
+.runner-compact-activity-row--missed { grid-template-columns: minmax(15rem, 1fr) auto minmax(18rem, 1.2fr); background: #f8fafc; }
+.runner-compact-activity-row--missed p { margin: 0; color: var(--text-muted); font-size: .82rem; overflow-wrap: break-word; }
+
+@media (min-width: 900px) {
+  .runner-event-progress-card .dashboard-event-progress-list { grid-template-columns: repeat(2, minmax(320px, 1fr)); }
+  .runner-dashboard-overview-grid, .runner-dashboard-history-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1200px) {
+  .runner-event-progress-card .dashboard-event-progress-list, .runner-dashboard-overview-grid, .runner-dashboard-history-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 899px) {
+  .runner-dashboard-zone-heading { align-items: flex-start; flex-direction: column; gap: .25rem; }
+  .runner-dashboard-zone-heading p { text-align: left; }
+  .runner-compact-activity-row, .runner-compact-activity-row--missed { grid-template-columns: minmax(0, 1fr) auto; }
+  .runner-compact-activity-time, .runner-compact-activity-row--missed p { grid-column: 1 / -1; }
+  .runner-compact-activity-action { grid-column: 2; grid-row: 1 / span 2; }
+}
+@media (max-width: 620px) {
+  .runner-dashboard-results .result-submissions-header { display: flex; }
+  .runner-dashboard-results .result-status-tabs { width: 100%; }
+  .runner-compact-activity-row, .runner-compact-activity-row--missed { display: flex; align-items: stretch; flex-direction: column; }
+  .runner-compact-activity-action { align-self: stretch; }
+  .runner-compact-activity-action .btn { width: 100%; }
+  .runner-missed-submissions-card > summary { grid-template-columns: auto minmax(0, 1fr) auto; padding: .9rem; }
+  .runner-missed-count { grid-column: 3; grid-row: 1; }
+  .runner-missed-toggle { grid-column: 3; grid-row: 1; margin-right: 2.8rem; }
+  .runner-missed-body { padding: 0 .9rem .9rem; }
+}
+@media (prefers-reduced-motion: reduce) { .runner-missed-toggle { transition: none; } }

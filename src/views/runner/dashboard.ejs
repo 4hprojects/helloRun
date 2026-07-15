@@ -139,7 +139,12 @@
       </section>
       <%- include('partials/dashboard-event-progress') %>
 
-      <div class="dashboard-grid">
+      <section class="runner-dashboard-zone runner-dashboard-overview" aria-labelledby="dashboard-overview-title">
+        <div class="runner-dashboard-zone-heading">
+          <div><span class="section-kicker">Overview</span><h2 id="dashboard-overview-title">Your running essentials</h2></div>
+          <p>Events, account details, and achievement progress at a glance.</p>
+        </div>
+      <div class="runner-dashboard-overview-grid">
         <%- include('partials/dashboard-upcoming') %>
         <%- include('partials/dashboard-saved-events') %>
 
@@ -300,12 +305,25 @@
           </div>
         </section>
         <% } %>
+      </div>
+      </section>
 
-
-        <%- include('partials/dashboard-missed-submissions') %>
-
+      <section class="runner-dashboard-zone runner-dashboard-results" aria-labelledby="dashboard-results-title">
+        <div class="runner-dashboard-zone-heading">
+          <div><span class="section-kicker">Recent activity</span><h2 id="dashboard-results-title">Result history</h2></div>
+          <p>Review recent decisions without repeating your active event journey.</p>
+        </div>
         <%- include('partials/dashboard-result-submissions') %>
+      </section>
 
+      <%- include('partials/dashboard-missed-submissions') %>
+
+      <section class="runner-dashboard-zone runner-dashboard-history" aria-labelledby="dashboard-history-title">
+        <div class="runner-dashboard-zone-heading">
+          <div><span class="section-kicker">History and achievements</span><h2 id="dashboard-history-title">Your running record</h2></div>
+          <p>Past events, certificates, community activity, and long-term statistics.</p>
+        </div>
+      <div class="runner-dashboard-history-grid">
         <section class="card" data-dashboard-fragment="past">
           <div class="card-header">
             <h2><i data-lucide="history"></i> Past Events</h2>
@@ -499,6 +517,7 @@
           </div>
         </section>
       </div>
+      </section>
     </div>
   </main>
 
