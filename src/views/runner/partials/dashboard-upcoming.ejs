@@ -1,8 +1,4 @@
 <section class="card card-featured" data-dashboard-fragment="upcoming">
-  <div class="card-header"><h2><i data-lucide="calendar"></i> Upcoming Events</h2></div>
-  <div class="card-content">
-    <% if (cards.upcoming && cards.upcoming.length) { %>
-      <ul class="item-list"><% cards.upcoming.forEach((item) => { %><li class="item-row"><div class="item-main"><div class="item-title"><% if (item.slug) { %><a href="/events/<%= item.slug %>"><%= item.title %></a><% } else { %><%= item.title %><% } %></div><div class="item-meta"><span><%= item.startAtLabel %></span> &middot; <span><%= item.distance %></span> &middot; <span class="badge badge-<%= item.mode %>"><%= item.mode %></span></div><div class="item-meta">Confirmation: <code><%= item.confirmationCode %></code></div></div><% if (item.isUnpaid) { %><a href="/my-registrations" class="btn btn-sm btn-warning">Pay</a><% } %></li><% }) %></ul>
-    <% } else { %><div class="empty-state"><p class="empty-message">No upcoming events.</p><a href="/events" class="btn btn-primary btn-sm">Browse events</a></div><% } %>
-  </div>
+  <div class="card-header"><h3><i data-lucide="calendar" aria-hidden="true"></i> Upcoming Event</h3></div>
+  <div class="card-content"><% const item = cards.upcoming?.[0]; %><% if (item) { %><div class="dashboard-upcoming-event"><span class="badge badge-<%= item.mode %>"><%= item.mode %></span><h4><% if (item.slug) { %><a href="/events/<%= item.slug %>"><%= item.title %></a><% } else { %><%= item.title %><% } %></h4><dl><div><dt>Distance</dt><dd><%= item.distance %></dd></div><div><dt>Starts</dt><dd><%= item.startAtLabel %></dd></div><div><dt>Payment</dt><dd><%= item.paymentStatus === 'paid' ? 'Paid' : item.paymentStatus === 'proof_submitted' ? 'Under review' : 'Payment needed' %></dd></div></dl><a href="<%= item.slug ? '/events/' + item.slug : '/my-registrations' %>" class="btn btn-outline btn-sm">View Event</a></div><% } else { %><div class="empty-state"><p class="empty-message">No upcoming registered event. Join an event to keep its start date and payment status close at hand.</p><a href="/events" class="btn btn-primary btn-sm">Browse Events</a></div><% } %></div>
 </section>

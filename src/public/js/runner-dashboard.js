@@ -15,25 +15,46 @@ function initializeDashboard() {
 }
 
 function setupCertificateActions() {
+  if (typeof document.addEventListener !== 'function') return;
   document.addEventListener('click', async (event) => {
+    const shareButton = event.target.closest('[data-share-cert-url]');
+    if (shareButton) {
+      const url = shareButton.getAttribute('data-share-cert-url');
+      const title = shareButton.getAttribute('data-share-cert-title') || 'My HelloRun achievement';
+      if (!url) return;
+      try {
+        if (!navigator.share) throw new Error('Web Share unavailable');
+        await navigator.share({ title, text: `View my HelloRun achievement: ${title}`, url });
+      } catch (error) {
+        if (error?.name === 'AbortError') return;
+        await copyCertificateUrl(url, shareButton);
+      }
+      return;
+    }
+
     const button = event.target.closest('[data-copy-cert-url]');
     if (!button) return;
     const url = button.getAttribute('data-copy-cert-url');
     if (!url) return;
 
+    await copyCertificateUrl(url, button);
+  });
+}
+
+async function copyCertificateUrl(url, button) {
     try {
       if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('Clipboard unavailable');
       await navigator.clipboard.writeText(url);
-      button.setAttribute('data-action-label', 'Copied!');
-      button.setAttribute('aria-label', 'Verification link copied');
+      const originalAriaLabel = button.getAttribute('aria-label') || 'Copy certificate link';
+      button.setAttribute('data-action-label', 'Link copied');
+      button.setAttribute('aria-label', 'Certificate link copied');
       window.setTimeout(() => {
-        button.setAttribute('data-action-label', 'Copy link');
-        button.setAttribute('aria-label', 'Copy verification link');
+        button.removeAttribute('data-action-label');
+        button.setAttribute('aria-label', originalAriaLabel);
       }, 2000);
     } catch (_) {
       window.prompt('Copy this verification link:', url);
     }
-  });
 }
 
 /**

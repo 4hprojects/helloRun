@@ -257,6 +257,7 @@ test('approved submission detail shows certificate download when certificate iss
   assert.equal(res.status, 200);
   const html = await res.text();
   assert.match(html, /Download Certificate/i);
+  assert.match(html, /href="\/my-submissions\/[^"]+\/certificate" target="_blank" rel="noopener noreferrer"/i);
 });
 
 test('pending submission detail does not show resubmit action', async () => {

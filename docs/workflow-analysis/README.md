@@ -31,7 +31,7 @@ An item may not move ahead of an unmet dependency even when it has the same prio
 | 4. Operational queue consistency | **Complete** | Durable filter/return context, grouped communication incidents, badge dry-run, campaign outcomes, and explicit commerce payment ownership |
 | 5. Role workspace consolidation | **Complete** | Canonical runner stages, stable event workspace, ranked role queues, universal admin search, and cross-domain user cases |
 | 6. Mobile task optimization | **Complete** | Full-screen resumable proof, sticky/zoomable reviews, safe field mode, role mobile nav, card tables, and expiring registration drafts |
-| 7. Strategic workflow improvements | **Complete** | Shared autosave/readiness workspaces, versioned policies, explicit role switching, event breadcrumbs, and unified runner completion state |
+| 7. Strategic workflow improvements | **Complete** | Shared autosave/readiness workspaces, versioned policies, explicit role switching, event breadcrumbs, and contextual runner completion paths |
 
 ## Priority 1: shared error and recovery handling — Complete
 
@@ -117,7 +117,7 @@ Mobile work follows the redesigned lifecycle and queue patterns rather than inde
 | 7.2 | A-12 | Shared versioned policy editor | All policy types use consistent autosave, diff, preview, validation, publish, archive, and public verification while retaining route/data compatibility |
 | 7.3 | O-14 | Explicit Runner/Organizer mode switch | Navigation mode changes without changing stored roles or weakening authorization |
 | 7.4 | O-15 | Consistent organizer breadcrumbs and action labels | Event hierarchy is clear and touch actions use visible labels or accessible overflow |
-| 7.5 | U-12 | Stronger approval/completion celebration | Result, certificate, badge, leaderboard, and optional sharing are presented as one coherent completion state |
+| 7.5 | U-12 | Stronger approval/completion celebration | Result, certificate, badge, leaderboard, and optional sharing remain coherently connected through contextual completion paths rather than a persistent dashboard banner |
 
 ## Implementation operating rules
 

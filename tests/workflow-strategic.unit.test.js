@@ -31,7 +31,10 @@ test('organizers can switch mode and retain event hierarchy labels', () => {
   assert.match(main, /Event workspace breadcrumb/);
 });
 
-test('runner completion brings certificate, badges, leaderboard and sharing together', () => {
+test('runner completion remains contextual instead of rendering a persistent dashboard banner', () => {
   const dashboard = read('src/views/runner/dashboard.ejs');
-  ['Finish line reached', 'Certificate', 'badges', 'Leaderboard', 'Share link'].forEach((label) => assert.match(dashboard, new RegExp(label)));
+  assert.doesNotMatch(dashboard, /Finish line reached/);
+  assert.doesNotMatch(dashboard, /runner-completion-hero/);
+  assert.match(dashboard, /Certificates Earned/);
+  assert.match(dashboard, /Recent Badges/);
 });

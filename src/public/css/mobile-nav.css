@@ -31,6 +31,10 @@
     text-decoration: none;
     transition: color 0.15s ease;
     -webkit-tap-highlight-color: transparent;
+    border: 0;
+    background: transparent;
+    font-family: inherit;
+    cursor: pointer;
   }
 
   .mobile-nav-tab i,
@@ -42,6 +46,16 @@
 
   .mobile-nav-tab.is-active {
     color: var(--color-primary, #2563eb);
+  }
+
+  .mobile-nav-tab:focus-visible {
+    outline: 3px solid var(--color-primary, #2563eb);
+    outline-offset: -3px;
+  }
+
+  .mobile-nav-tab-submit {
+    color: var(--color-primary, #2563eb);
+    font-weight: 700;
   }
 
   .mobile-nav-tab:active {

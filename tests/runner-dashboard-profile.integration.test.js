@@ -142,7 +142,7 @@ test('buildRunnerEventProgressCards summarizes registered event proof status', (
 
   const standard = cards.find((item) => item.registrationId === 'reg-standard');
   assert.equal(standard.state, 'submitted');
-  assert.equal(standard.stateLabel, 'Pending Review');
+  assert.equal(standard.stateLabel, 'Under Review');
   assert.equal(standard.nextAction.href, '/runner/submissions/sub-standard');
 
   const accumulated = cards.find((item) => item.registrationId === 'reg-accumulated');
@@ -429,14 +429,14 @@ test('runner dashboard refresh endpoint requires authentication and returns frag
   const payload = await response.json();
   assert.equal(payload.success, true);
   assert.ok(payload.refreshedAt);
-  for (const key of ['summary', 'upcoming', 'badges', 'badgeProgress', 'eventProgress', 'missedSubmissions', 'resultSubmissions', 'past', 'activity', 'certificates', 'progressStats', 'runningGroups']) {
+  for (const key of ['nextAction', 'summary', 'upcoming', 'badges', 'badgeProgress', 'eventProgress', 'missedSubmissions', 'resultSubmissions', 'past', 'activity', 'certificates', 'progressStats', 'runningGroups', 'latestAchievement']) {
     assert.equal(typeof payload.fragments[key], 'string');
   }
   assert.match(payload.fragments.resultSubmissions, /aria-current=(?:&#34;|")page/i);
   assert.match(payload.fragments.resultSubmissions, /Approved/i);
 });
 
-test('runner dashboard submit trigger includes dashboard-specific modal configuration', async () => {
+test('runner dashboard gives a new runner an action-first empty state', async () => {
   const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
   const password = 'Pass1234';
   const runner = await createRunner(`dashboard.trigger.${stamp}`, password);
@@ -450,11 +450,10 @@ test('runner dashboard submit trigger includes dashboard-specific modal configur
   });
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /data-run-proof-surface="runner-dashboard"/i);
-  assert.match(html, /data-run-proof-empty-link-href="\/my-registrations"/i);
-  assert.match(html, /Submit latest run result/i);
-  assert.match(html, /Event Progress/i);
-  assert.match(html, /No registered event progress yet/i);
+  assert.match(html, /Your Next Action/i);
+  assert.match(html, /Browse Active Events/i);
+  assert.match(html, /Active Event Progress/i);
+  assert.match(html, /You have not joined an event yet/i);
 });
 
 test('runner change password requires valid current password', async () => {

@@ -61,6 +61,66 @@ class FakeElement {
   focus() { this.doc.activeElement = this; }
 }
 
+function createCertificateActionContext({ share, writeText, prompt = () => {} } = {}) {
+  const listeners = new Map();
+  const document = {
+    readyState: 'loading',
+    addEventListener(type, handler) { listeners.set(type, handler); }
+  };
+  const messages = [];
+  const context = vm.createContext({
+    document,
+    navigator: {
+      ...(share ? { share } : {}),
+      ...(writeText ? { clipboard: { writeText } } : {})
+    },
+    window: {
+      prompt,
+      setTimeout: () => {},
+      showRunnerDashboardFlashMessage: (message) => messages.push(message)
+    }
+  });
+  const source = fs.readFileSync(path.resolve(__dirname, '../src/public/js/runner-dashboard.js'), 'utf8');
+  vm.runInContext(source, context, { filename: 'runner-dashboard.js' });
+  context.setupCertificateActions();
+  return { click: listeners.get('click'), messages };
+}
+
+test('certificate Share opens native sharing with the verification URL', async () => {
+  const calls = [];
+  const { click } = createCertificateActionContext({ share: async (payload) => calls.push(payload) });
+  const button = {
+    getAttribute(name) {
+      return { 'data-share-cert-url': 'https://example.test/verify/abc', 'data-share-cert-title': 'July Quest' }[name] || null;
+    }
+  };
+
+  await click({ target: { closest: (selector) => selector === '[data-share-cert-url]' ? button : null } });
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].title, 'July Quest');
+  assert.equal(calls[0].text, 'View my HelloRun achievement: July Quest');
+  assert.equal(calls[0].url, 'https://example.test/verify/abc');
+});
+
+test('certificate Share confirms its clipboard fallback without scrolling the page', async () => {
+  const copied = [];
+  const { click, messages } = createCertificateActionContext({ writeText: async (value) => copied.push(value) });
+  const attributes = new Map([
+    ['data-share-cert-url', 'https://example.test/verify/abc'],
+    ['data-share-cert-title', 'July Quest']
+  ]);
+  const button = {
+    getAttribute: (name) => attributes.get(name) || null,
+    setAttribute: (name, value) => attributes.set(name, value)
+  };
+
+  await click({ target: { closest: (selector) => selector === '[data-share-cert-url]' ? button : null } });
+  assert.deepEqual(copied, ['https://example.test/verify/abc']);
+  assert.equal(attributes.get('data-action-label'), 'Link copied');
+  assert.equal(attributes.get('aria-label'), 'Certificate link copied');
+  assert.equal(messages.length, 0);
+});
+
 test('runner dashboard exposes a full refresh hook', async () => {
   const doc = {
     readyState: 'complete',

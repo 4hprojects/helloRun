@@ -279,7 +279,7 @@
             <div class="sub-card-actions item-actions">
               <a href="/runner/submissions/<%= sub.submissionId %>" class="btn btn-sm btn-outline"><i data-lucide="eye" aria-hidden="true"></i> View Entry</a>
               <% if (sub.hasCertificate) { %>
-                <a href="/my-submissions/<%= sub.submissionId %>/certificate" class="btn btn-sm btn-primary"><i data-lucide="download" aria-hidden="true"></i> Certificate</a>
+                <a href="/my-submissions/<%= sub.submissionId %>/certificate" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary"><i data-lucide="download" aria-hidden="true"></i> Certificate</a>
               <% } %>
               <% if (sub.status === 'rejected' && sub.registrationObjectId) { %>
                 <button
@@ -345,7 +345,7 @@
                 <div class="sub-tbl-actions">
                   <a href="/runner/submissions/<%= sub.submissionId %>" class="btn btn-sm btn-outline"><i data-lucide="eye" aria-hidden="true"></i> View</a>
                   <% if (sub.hasCertificate) { %>
-                    <a href="/my-submissions/<%= sub.submissionId %>/certificate" class="btn btn-sm btn-primary"><i data-lucide="download" aria-hidden="true"></i> Cert</a>
+                    <a href="/my-submissions/<%= sub.submissionId %>/certificate" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary"><i data-lucide="download" aria-hidden="true"></i> Cert</a>
                   <% } %>
                   <% if (sub.status === 'rejected' && sub.registrationObjectId) { %>
                     <button

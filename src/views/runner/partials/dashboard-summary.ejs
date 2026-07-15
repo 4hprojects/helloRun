@@ -1,10 +1,13 @@
-  <section class="kpi-section" aria-label="Runner dashboard summary" data-dashboard-fragment="summary">
-    <div class="section-heading"><div><span class="section-kicker">At a glance</span><h2>Current running snapshot</h2></div></div>
-    <div class="kpi-grid">
-      <div class="kpi-card kpi-card-upcoming"><div class="kpi-icon"><i data-lucide="calendar"></i></div><div class="kpi-content"><span class="kpi-label">Upcoming Events</span><span class="kpi-value"><%= stats?.upcoming || 0 %></span></div></div>
-      <div class="kpi-card kpi-card-results"><div class="kpi-icon"><i data-lucide="clock"></i></div><div class="kpi-content"><span class="kpi-label">Pending Results</span><span class="kpi-value"><%= submissionStats?.submitted || 0 %></span></div></div>
-      <div class="kpi-card kpi-card-certificates"><div class="kpi-icon"><i data-lucide="award"></i></div><div class="kpi-content"><span class="kpi-label">Certificates</span><span class="kpi-value"><%= submissionStats?.certificates || 0 %></span></div></div>
-      <div class="kpi-card kpi-card-distance"><div class="kpi-icon"><i data-lucide="map-pin"></i></div><div class="kpi-content"><span class="kpi-label">Total Distance</span><span class="kpi-value"><%= Number(performanceStats?.totalDistanceKm || 0).toFixed(2) %> km</span></div></div>
-      <div class="kpi-card kpi-card-points"><div class="kpi-icon"><i data-lucide="star"></i></div><div class="kpi-content"><span class="kpi-label">Achievement Points</span><span class="kpi-value"><%= badgePointsSummary?.totalPoints || 0 %></span></div></div>
-    </div>
-  </section>
+<section class="kpi-section" aria-labelledby="snapshot-title" data-dashboard-fragment="summary">
+  <div class="section-heading"><div><span class="section-kicker">At a glance</span><h2 id="snapshot-title">Current Snapshot</h2></div></div>
+  <div class="kpi-grid kpi-grid-primary">
+    <a href="/my-registrations" class="kpi-card kpi-card-upcoming"><div class="kpi-icon"><i data-lucide="flag" aria-hidden="true"></i></div><div class="kpi-content"><span class="kpi-label">Active Events</span><span class="kpi-value"><%= dashboardSnapshot.activeEvents %></span></div></a>
+    <a href="/runner/submissions?status=approved" class="kpi-card kpi-card-distance"><div class="kpi-icon"><i data-lucide="route" aria-hidden="true"></i></div><div class="kpi-content"><span class="kpi-label">Approved Distance</span><span class="kpi-value"><%= dashboardSnapshot.approvedDistanceKm.toFixed(2) %> km</span></div></a>
+    <a href="/runner/submissions?status=submitted" class="kpi-card kpi-card-results"><div class="kpi-icon"><i data-lucide="clock" aria-hidden="true"></i></div><div class="kpi-content"><span class="kpi-label">Pending Review</span><span class="kpi-value"><%= dashboardSnapshot.pendingReview %></span></div></a>
+  </div>
+  <div class="dashboard-secondary-metrics" aria-label="Additional runner statistics">
+    <a href="/my-registrations"><span>Completed Events</span><strong><%= dashboardSnapshot.completedEvents %></strong></a>
+    <a href="/runner/submissions?status=approved"><span>Certificates</span><strong><%= dashboardSnapshot.certificates %></strong></a>
+    <a href="/runner/profile#badges"><span>Achievement Points</span><strong><%= dashboardSnapshot.achievementPoints %></strong></a>
+  </div>
+</section>

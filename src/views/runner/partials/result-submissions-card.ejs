@@ -47,7 +47,7 @@
             <span class="badge badge-<%= item.stateTone || item.state %>"><%= item.stateLabel %></span>
             <% if (item.nextAction) { %>
               <div class="runner-compact-activity-action">
-                <% if (item.nextAction.type === 'submit' || item.nextAction.type === 'resubmit') { %><button type="button" class="btn btn-sm <%= item.nextAction.type === 'resubmit' ? 'btn-outline' : 'btn-primary' %>" data-open-run-proof-modal data-run-proof-mode="<%= item.nextAction.type === 'resubmit' ? 'resubmit' : 'submit' %>" data-run-proof-registration-id="<%= item.registrationId %>"><%= item.nextAction.label %></button><% } else { %><a href="<%= item.nextAction.href %>" class="btn btn-sm btn-outline"><%= item.nextAction.label %></a><% } %>
+                <% if (item.nextAction.type === 'submit' || item.nextAction.type === 'resubmit') { %><button type="button" class="btn btn-sm <%= item.nextAction.type === 'resubmit' ? 'btn-outline' : 'btn-primary' %>" data-open-run-proof-modal data-run-proof-mode="<%= item.nextAction.type === 'resubmit' ? 'resubmit' : 'submit' %>" data-run-proof-registration-id="<%= item.registrationId %>"><%= item.nextAction.label %></button><% } else { %><a href="<%= item.nextAction.href %>"<% if (item.nextAction.type === 'download_certificate') { %> target="_blank" rel="noopener noreferrer"<% } %> class="btn btn-sm btn-outline"><%= item.nextAction.label %></a><% } %>
               </div>
             <% } %>
           </li>

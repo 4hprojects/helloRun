@@ -133,6 +133,7 @@ async function seedFixtures() {
     lastName: 'Runner',
     mobile: '+63 912 345 6789',
     country: 'PH',
+    timezone: 'Asia/Manila',
     dateOfBirth: new Date('1990-05-15'),
     gender: 'male',
     emergencyContactName: 'Jane Runner',

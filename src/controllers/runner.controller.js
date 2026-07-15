@@ -129,14 +129,11 @@ exports.updateProfile = async (req, res) => {
     const errors = validateRunnerProfileForm(formData);
 
     if (Object.keys(errors).length > 0) {
-      const dashboardViewData = await buildRunnerDashboardViewData(user, req);
-      return res.status(400).render('runner/dashboard', {
-        user,
-        userName: user.firstName,
+      return res.status(400).render('runner/profile', await buildRunnerProfileViewData(user, req, {
         errors,
-        message: null,
-        ...dashboardViewData
-      });
+        message: { type: 'error', text: Object.values(errors).join(' ') },
+        profileData: formData
+      }));
     }
 
     user.firstName = formData.firstName;
@@ -178,6 +175,7 @@ exports.getDashboardRefresh = async (req, res) => {
 
     const viewData = await buildRunnerDashboardViewData(user, req);
     const fragmentNames = [
+      'next-action',
       'summary',
       'hero-highlights',
       'upcoming',
@@ -190,7 +188,8 @@ exports.getDashboardRefresh = async (req, res) => {
       'activity',
       'certificates',
       'progress-stats',
-      'running-groups'
+      'running-groups',
+      'latest-achievement'
     ];
     const rendered = await Promise.all(fragmentNames.map(async (name) => [
       name.replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase()),
@@ -839,6 +838,8 @@ async function buildRunnerDashboardViewData(user, req) {
     recentGroupActivity,
     performanceSnapshot.recentActivity
   );
+  const formattedProgressCards = formatRunnerEventProgressCards(activeProgressCards, locale);
+  const nextActionCard = formattedProgressCards[0] || null;
 
   const now = new Date();
   let savedEvents = [];
@@ -873,10 +874,16 @@ async function buildRunnerDashboardViewData(user, req) {
       currentGroups: currentRunningGroups
     },
     savedEvents,
+    runnerJourney: buildRunnerJourney({
+      user,
+      nextActionCard,
+      activeCards: formattedProgressCards,
+      profileCompleteness: getRunnerProfileCompleteness(user)
+    }),
     cards: {
-      upcoming: dashboardData.upcoming.slice(0, 5).map(normalizeRegistrationCard),
+      upcoming: dashboardData.upcoming.slice(0, 1).map(normalizeRegistrationCard),
       past: dashboardData.past.slice(0, 5).map(normalizeRegistrationCard),
-      activity: mergedActivity.slice(0, 8).map((item) => ({
+      activity: mergedActivity.slice(0, 3).map((item) => ({
         ...item,
         atLabel: formatDateTime(item.at, locale),
         atRelativeLabel: formatRelativeTime(item.at)
@@ -889,13 +896,27 @@ async function buildRunnerDashboardViewData(user, req) {
         filterEventProgressCardsForResultsCard(sortEventProgressCardsByRecency(activeProgressCards), dashboardFilters.resultStatus),
         locale
       ).slice(0, 8),
-      eventProgress: formatRunnerEventProgressCards(activeProgressCards, locale).slice(0, 6),
+      eventProgress: formattedProgressCards,
       missedSubmissions: formatRunnerEventProgressCards(missedProgressCards, locale),
       badges: recentBadges,
       badgeProgress
     },
     badgePointsSummary,
     nextMilestones,
+    latestAchievement: buildLatestAchievement({
+      certificates: performanceSnapshot.recentCertificates || [],
+      badges: recentBadges,
+      nextMilestones,
+      locale
+    }),
+    dashboardSnapshot: {
+      activeEvents: activeProgressCards.length,
+      approvedDistanceKm: Number(performanceSnapshot.metrics?.totalDistanceKm || 0),
+      pendingReview: Number(performanceSnapshot.counts?.submitted || 0),
+      completedEvents: Number(performanceSnapshot.metrics?.completedEvents || 0),
+      certificates: Number(performanceSnapshot.counts?.certificates || 0),
+      achievementPoints: Number(badgePointsSummary?.totalPoints || 0)
+    },
     stats: dashboardData.stats,
     submissionStats: performanceSnapshot.counts || { total: 0, submitted: 0, approved: 0, rejected: 0, certificates: 0 },
     performanceStats: performanceSnapshot.metrics || {
@@ -905,6 +926,74 @@ async function buildRunnerDashboardViewData(user, req) {
       fastestElapsedLabel: ''
     },
     personalBest: performanceSnapshot.personalBest || null
+  };
+}
+
+function buildRunnerJourney({ user, nextActionCard, activeCards = [], profileCompleteness }) {
+  const fallbackAction = {
+    type: 'link',
+    label: 'Browse Events',
+    href: '/events'
+  };
+  const primaryAction = nextActionCard?.nextAction
+    ? { ...nextActionCard.nextAction, registrationId: nextActionCard.registrationId }
+    : fallbackAction;
+  const urgentAlerts = [];
+
+  if (user?.accountStatus === 'restricted') {
+    urgentAlerts.push({ tone: 'warning', text: 'Your account is restricted. Submissions and registrations are unavailable until support restores access.', href: '/contact', label: 'Contact Support' });
+  }
+  for (const card of activeCards) {
+    if (card.state === 'rejected') urgentAlerts.push({ tone: 'danger', text: `${card.eventTitle}: your activity needs a correction.`, href: `/runner/submissions/${card.latestSubmission?.id || ''}`, label: 'Review Submission' });
+    if (card.payment?.status === 'proof_rejected') urgentAlerts.push({ tone: 'danger', text: `${card.eventTitle}: your payment proof needs an update.`, href: '/my-registrations', label: 'Fix Payment' });
+    if (['warning', 'urgent'].includes(card.deadlineTone) && ['not_submitted', 'in_progress'].includes(card.state)) urgentAlerts.push({ tone: card.deadlineTone === 'urgent' ? 'danger' : 'warning', text: `${card.eventTitle}: ${card.deadlineLabel}.`, href: card.eventSlug ? `/events/${card.eventSlug}` : '/my-registrations', label: 'View Deadline' });
+  }
+  if (profileCompleteness?.missingFields?.length && activeCards.some((card) => ['approved', 'certificate_ready', 'completed'].includes(card.state))) {
+    urgentAlerts.push({ tone: 'warning', text: 'Complete your profile so your registration and certificate details are accurate.', href: '/runner/profile', label: 'Complete Profile' });
+  }
+
+  return {
+    nextActionCard,
+    primaryAction,
+    urgentAlerts: urgentAlerts.slice(0, 3),
+    subtitle: nextActionCard
+      ? `${nextActionCard.stateLabel} for ${nextActionCard.eventTitle}. ${nextActionCard.deadlineLabel || ''}`.trim()
+      : 'Choose an event, register for a distance, and start your next challenge.'
+  };
+}
+
+function buildLatestAchievement({ certificates = [], badges = [], nextMilestones, locale }) {
+  const certificate = certificates[0];
+  if (certificate) {
+    return {
+      type: 'certificate',
+      title: certificate.eventTitle,
+      label: 'Certificate Ready',
+      description: `Issued ${formatDateTime(certificate.issuedAt, locale)}`,
+      href: `/my-submissions/${certificate.submissionId}/certificate`,
+      verifyUrl: certificate.verifyUrl || '',
+      submissionId: certificate.submissionId
+    };
+  }
+  const badge = badges[0];
+  if (badge) {
+    return {
+      type: 'badge',
+      title: badge.name || 'New badge',
+      label: 'Latest Badge',
+      description: badge.description || 'A new achievement was added to your collection.',
+      href: '/runner/profile#badges',
+      imageUrl: badge.imageUrl || ''
+    };
+  }
+  const milestone = nextMilestones?.nextGlobalMilestone || nextMilestones?.challengesInProgress?.[0];
+  if (!milestone) return null;
+  return {
+    type: 'milestone',
+    title: milestone.name || `${milestone.distanceKm || 0} km milestone`,
+    label: 'Next Milestone',
+    description: `${Number(milestone.progressPercent || 0).toFixed(0)}% complete`,
+    href: '/runner/profile#badges'
   };
 }
 
@@ -1251,6 +1340,8 @@ function formatRunnerEventProgressCards(cards = [], locale) {
   return (cards || []).map((item) => ({
     ...item,
     eventStartAtLabel: formatDateTime(item.eventStartAt, locale),
+    eventEndAtLabel: formatDateTime(item.eventEndAt, locale),
+    submissionDeadlineLabel: formatDateTime(item.submissionDeadlineAt, locale),
     submittedAtLabel: formatDateTime(item.submittedAt, locale),
     reviewedAtLabel: formatDateTime(item.reviewedAt, locale),
     submittedAtRelativeLabel: formatRelativeTime(item.submittedAt),

@@ -197,7 +197,7 @@
                       <%= registration.accumulatedProgress.rejectedActivityCount %> rejected
                     </p>
                     <% if (registration.accumulatedProgress.certificateActivityId) { %>
-                      <p><a href="/my-submissions/<%= registration.accumulatedProgress.certificateActivityId %>/certificate" class="btn btn-link">Download certificate <i data-lucide="download"></i></a></p>
+                      <p><a href="/my-submissions/<%= registration.accumulatedProgress.certificateActivityId %>/certificate" target="_blank" rel="noopener noreferrer" class="btn btn-link">Download certificate <i data-lucide="download"></i></a></p>
                     <% } %>
                   <% } %>
                   <% if (submission) { %>
@@ -212,7 +212,7 @@
                       <p><a href="<%= submission.proof.url %>" target="_blank" rel="noopener noreferrer" class="btn btn-link">View Run Result Evidence</a></p>
                     <% } %>
                     <% if (submission.status === 'approved' && submission.certificate?.url) { %>
-                      <p><a href="/my-submissions/<%= submission._id %>/certificate" class="btn btn-link">Download certificate <i data-lucide="download"></i></a></p>
+                      <p><a href="/my-submissions/<%= submission._id %>/certificate" target="_blank" rel="noopener noreferrer" class="btn btn-link">Download certificate <i data-lucide="download"></i></a></p>
                     <% } %>
                     <% if (submission.rejectionReason) { %>
                       <p class="rejection"><strong>Rejection reason:</strong> <%= submission.rejectionReason %></p>
