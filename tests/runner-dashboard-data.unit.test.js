@@ -6,10 +6,22 @@ const {
   buildRunnerEventProgressCards,
   buildDeadlineDisplay,
   buildChallengeTimingDisplay,
-  buildSubmissionTimingDisplay
+  buildSubmissionTimingDisplay,
+  buildCertificateShareUrls
 } = require('../src/services/runner-data.service');
 
 const NOW = new Date('2026-07-15T00:00:00.000Z');
+
+test('certificate social URLs share the verified page with encoded achievement text', () => {
+  const url = 'https://hellorun.example/certificates/verify/HR 100/25';
+  const result = buildCertificateShareUrls(url, 'July Active Quest');
+
+  assert.equal(result.text, 'I completed July Active Quest and earned a verified certificate! 🏃 #HelloRun');
+  assert.equal(result.facebook, `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`);
+  assert.equal(result.x, `https://twitter.com/intent/tweet?text=${encodeURIComponent(result.text)}&url=${encodeURIComponent(url)}`);
+  assert.equal(result.linkedin, `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`);
+  assert.equal(buildCertificateShareUrls('', 'July Active Quest'), null);
+});
 
 test('deadline display uses textual urgency and closes expired submissions', () => {
   const event = { finalSubmissionDeadlineAt: '2026-07-17T00:00:00.000Z' };

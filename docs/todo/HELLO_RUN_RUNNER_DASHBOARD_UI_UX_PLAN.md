@@ -1521,3 +1521,16 @@ The July Active Quest Virtual Run ends on July 31, 2026, but accepts final submi
 - Restricted dashboard event artwork to the real event logo with the lightweight HelloRun icon as fallback, removing large event banners from the icon fallback chain.
 - Added fixed, non-growing icon containers with clipped overflow to prevent oversized source artwork from causing layout flash or shifting nearby content.
 - Verified real, missing, and whitespace logo sources, template image attributes, responsive container constraints, EJS compilation, and focused dashboard tests.
+
+---
+
+# 37. Latest Achievement Social Sharing
+
+**Completed:** 2026-07-15 17:46:57 PST
+**Status:** Implemented and verified
+
+- Replaced the single Share action with an accessible menu for Facebook, X, LinkedIn, native device sharing, and copy-link fallback.
+- Kept all social destinations tied to the public certificate verification URL and reused the verified achievement message and preview metadata.
+- Added menu focus management, arrow-key navigation, Escape and outside-click dismissal, accurate expanded state, and minimum 44px touch targets.
+- Kept native sharing available through More for installed apps such as Instagram, Messenger, and WhatsApp; unsupported browsers copy the link with local, non-scrolling feedback.
+- Verified encoded social URLs, native and clipboard paths, menu accessibility behavior, responsive layout, EJS compilation, and focused dashboard tests.

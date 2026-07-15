@@ -522,6 +522,21 @@ function parseDateSafe(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function buildCertificateShareUrls(verificationUrl, eventTitle) {
+  const url = String(verificationUrl || '').trim();
+  if (!url) return null;
+  const title = String(eventTitle || 'my HelloRun event').trim() || 'my HelloRun event';
+  const text = `I completed ${title} and earned a verified certificate! 🏃 #HelloRun`;
+  const encodedUrl = encodeURIComponent(url);
+  const encodedText = encodeURIComponent(text);
+  return {
+    text,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+    x: `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+    linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`
+  };
+}
+
 module.exports = {
   getRunnerRegistrations,
   getRunnerEventProgressCards,
@@ -532,5 +547,6 @@ module.exports = {
   ,
   buildDeadlineDisplay,
   buildChallengeTimingDisplay,
-  buildSubmissionTimingDisplay
+  buildSubmissionTimingDisplay,
+  buildCertificateShareUrls
 };

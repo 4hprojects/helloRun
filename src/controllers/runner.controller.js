@@ -14,7 +14,8 @@ const {
   getRunnerEventProgressCards,
   buildRunnerDashboardData,
   splitEventProgressCards,
-  sortEventProgressCardsByRecency
+  sortEventProgressCardsByRecency,
+  buildCertificateShareUrls
 } = require('../services/runner-data.service');
 const {
   getRunnerPerformanceSnapshot,
@@ -972,6 +973,7 @@ function buildLatestAchievement({ certificates = [], badges = [], nextMilestones
       description: `Issued ${formatDateTime(certificate.issuedAt, locale)}`,
       href: `/my-submissions/${certificate.submissionId}/certificate`,
       verifyUrl: certificate.verifyUrl || '',
+      shareUrls: buildCertificateShareUrls(certificate.verifyUrl, certificate.eventTitle),
       submissionId: certificate.submissionId
     };
   }

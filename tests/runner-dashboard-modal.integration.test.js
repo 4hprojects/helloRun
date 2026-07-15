@@ -65,7 +65,9 @@ function createCertificateActionContext({ share, writeText, prompt = () => {} } 
   const listeners = new Map();
   const document = {
     readyState: 'loading',
-    addEventListener(type, handler) { listeners.set(type, handler); }
+    addEventListener(type, handler) { listeners.set(type, handler); },
+    querySelector: () => null,
+    querySelectorAll: () => []
   };
   const messages = [];
   const context = vm.createContext({
@@ -83,42 +85,138 @@ function createCertificateActionContext({ share, writeText, prompt = () => {} } 
   const source = fs.readFileSync(path.resolve(__dirname, '../src/public/js/runner-dashboard.js'), 'utf8');
   vm.runInContext(source, context, { filename: 'runner-dashboard.js' });
   context.setupCertificateActions();
-  return { click: listeners.get('click'), messages };
+  return { click: listeners.get('click'), keydown: listeners.get('keydown'), messages, document };
 }
 
-test('certificate Share opens native sharing with the verification URL', async () => {
+test('certificate More opens native sharing with the verification URL and social text', async () => {
   const calls = [];
   const { click } = createCertificateActionContext({ share: async (payload) => calls.push(payload) });
   const button = {
     getAttribute(name) {
-      return { 'data-share-cert-url': 'https://example.test/verify/abc', 'data-share-cert-title': 'July Quest' }[name] || null;
-    }
+      return { 'data-native-cert-share-url': 'https://example.test/verify/abc', 'data-share-cert-title': 'July Quest', 'data-share-cert-text': 'I completed July Quest!' }[name] || null;
+    },
+    closest: () => null
   };
 
-  await click({ target: { closest: (selector) => selector === '[data-share-cert-url]' ? button : null } });
+  await click({ target: { closest: (selector) => selector === '[data-native-cert-share-url]' ? button : null } });
   assert.equal(calls.length, 1);
   assert.equal(calls[0].title, 'July Quest');
-  assert.equal(calls[0].text, 'View my HelloRun achievement: July Quest');
+  assert.equal(calls[0].text, 'I completed July Quest!');
   assert.equal(calls[0].url, 'https://example.test/verify/abc');
 });
 
-test('certificate Share confirms its clipboard fallback without scrolling the page', async () => {
+test('cancelling native certificate sharing does not copy or prompt', async () => {
+  let copied = false;
+  let prompted = false;
+  const cancelled = Object.assign(new Error('cancelled'), { name: 'AbortError' });
+  const { click } = createCertificateActionContext({
+    share: async () => { throw cancelled; },
+    writeText: async () => { copied = true; },
+    prompt: () => { prompted = true; }
+  });
+  const button = {
+    getAttribute(name) {
+      return { 'data-native-cert-share-url': 'https://example.test/verify/abc', 'data-share-cert-title': 'July Quest' }[name] || null;
+    },
+    closest: () => null
+  };
+
+  await click({ target: { closest: (selector) => selector === '[data-native-cert-share-url]' ? button : null } });
+  assert.equal(copied, false);
+  assert.equal(prompted, false);
+});
+
+test('certificate More confirms its clipboard fallback without scrolling the page', async () => {
   const copied = [];
   const { click, messages } = createCertificateActionContext({ writeText: async (value) => copied.push(value) });
   const attributes = new Map([
-    ['data-share-cert-url', 'https://example.test/verify/abc'],
+    ['data-native-cert-share-url', 'https://example.test/verify/abc'],
     ['data-share-cert-title', 'July Quest']
   ]);
   const button = {
     getAttribute: (name) => attributes.get(name) || null,
-    setAttribute: (name, value) => attributes.set(name, value)
+    setAttribute: (name, value) => attributes.set(name, value),
+    closest: () => null
   };
 
-  await click({ target: { closest: (selector) => selector === '[data-share-cert-url]' ? button : null } });
+  await click({ target: { closest: (selector) => selector === '[data-native-cert-share-url]' ? button : null } });
   assert.deepEqual(copied, ['https://example.test/verify/abc']);
   assert.equal(attributes.get('data-action-label'), 'Link copied');
   assert.equal(attributes.get('aria-label'), 'Certificate link copied');
   assert.equal(messages.length, 0);
+});
+
+test('certificate More uses the copy prompt when native share and clipboard are unavailable', async () => {
+  const prompts = [];
+  const { click } = createCertificateActionContext({ prompt: (message, value) => prompts.push({ message, value }) });
+  const button = {
+    getAttribute(name) {
+      return { 'data-native-cert-share-url': 'https://example.test/verify/abc', 'data-share-cert-title': 'July Quest' }[name] || null;
+    },
+    closest: () => null,
+    setAttribute: () => {}
+  };
+
+  await click({ target: { closest: (selector) => selector === '[data-native-cert-share-url]' ? button : null } });
+  assert.equal(prompts.length, 1);
+  assert.equal(prompts[0].message, 'Copy this verification link:');
+  assert.equal(prompts[0].value, 'https://example.test/verify/abc');
+});
+
+test('certificate social menu toggles and Escape closes it with focus restored', async () => {
+  const { click, keydown, document } = createCertificateActionContext();
+  const menuAttributes = new Map([['hidden', '']]);
+  let firstItemFocused = false;
+  let secondItemFocused = false;
+  let toggleFocused = false;
+  const firstItem = { focus: () => { firstItemFocused = true; }, closest: () => menu };
+  const secondItem = { focus: () => { secondItemFocused = true; }, closest: () => menu };
+  const menu = {
+    hasAttribute: (name) => menuAttributes.has(name),
+    removeAttribute: (name) => menuAttributes.delete(name),
+    setAttribute: (name, value = '') => menuAttributes.set(name, value),
+    querySelector: (selector) => selector === '[role="menuitem"]' ? firstItem : null,
+    querySelectorAll: () => [firstItem, secondItem],
+    closest: () => wrapper
+  };
+  const toggleAttributes = new Map([['aria-expanded', 'false']]);
+  const toggle = {
+    closest: () => wrapper,
+    setAttribute: (name, value) => toggleAttributes.set(name, value),
+    focus: () => { toggleFocused = true; }
+  };
+  const wrapper = {
+    querySelector(selector) {
+      if (selector === '[data-certificate-share-menu]') return menu;
+      if (selector === '[data-certificate-share-toggle]') return toggle;
+      return null;
+    }
+  };
+  document.querySelectorAll = () => menuAttributes.has('hidden') ? [] : [menu];
+  document.querySelector = () => menuAttributes.has('hidden') ? null : menu;
+
+  await click({ target: { closest: (selector) => selector === '[data-certificate-share-toggle]' ? toggle : null } });
+  assert.equal(menuAttributes.has('hidden'), false);
+  assert.equal(toggleAttributes.get('aria-expanded'), 'true');
+  assert.equal(firstItemFocused, true);
+
+  let arrowPrevented = false;
+  await keydown({ key: 'ArrowDown', target: firstItem, preventDefault: () => { arrowPrevented = true; } });
+  assert.equal(secondItemFocused, true);
+  assert.equal(arrowPrevented, true);
+
+  let prevented = false;
+  await keydown({ key: 'Escape', target: secondItem, preventDefault: () => { prevented = true; } });
+  assert.equal(menuAttributes.has('hidden'), true);
+  assert.equal(toggleAttributes.get('aria-expanded'), 'false');
+  assert.equal(toggleFocused, true);
+  assert.equal(prevented, true);
+
+  toggleFocused = false;
+  await click({ target: { closest: (selector) => selector === '[data-certificate-share-toggle]' ? toggle : null } });
+  await click({ target: { closest: () => null } });
+  assert.equal(menuAttributes.has('hidden'), true);
+  assert.equal(toggleFocused, true);
 });
 
 test('runner dashboard exposes a full refresh hook', async () => {

@@ -17,28 +17,98 @@ function initializeDashboard() {
 function setupCertificateActions() {
   if (typeof document.addEventListener !== 'function') return;
   document.addEventListener('click', async (event) => {
-    const shareButton = event.target.closest('[data-share-cert-url]');
-    if (shareButton) {
-      const url = shareButton.getAttribute('data-share-cert-url');
-      const title = shareButton.getAttribute('data-share-cert-title') || 'My HelloRun achievement';
-      if (!url) return;
-      try {
-        if (!navigator.share) throw new Error('Web Share unavailable');
-        await navigator.share({ title, text: `View my HelloRun achievement: ${title}`, url });
-      } catch (error) {
-        if (error?.name === 'AbortError') return;
-        await copyCertificateUrl(url, shareButton);
+    const shareToggle = event.target.closest('[data-certificate-share-toggle]');
+    if (shareToggle) {
+      const wrapper = shareToggle.closest('[data-certificate-share]');
+      const menu = wrapper?.querySelector('[data-certificate-share-menu]');
+      if (!menu) return;
+      const willOpen = menu.hasAttribute('hidden');
+      closeCertificateShareMenus({ except: willOpen ? menu : null });
+      if (willOpen) {
+        menu.removeAttribute('hidden');
+        shareToggle.setAttribute('aria-expanded', 'true');
+        menu.querySelector('[role="menuitem"]')?.focus();
+      } else {
+        closeCertificateShareMenu(menu, { restoreFocus: true });
       }
       return;
     }
 
-    const button = event.target.closest('[data-copy-cert-url]');
-    if (!button) return;
-    const url = button.getAttribute('data-copy-cert-url');
-    if (!url) return;
+    const socialLink = event.target.closest('[data-certificate-social-link]');
+    if (socialLink) {
+      closeCertificateShareMenu(socialLink.closest('[data-certificate-share-menu]'));
+      return;
+    }
 
-    await copyCertificateUrl(url, button);
+    const nativeShareButton = event.target.closest('[data-native-cert-share-url]');
+    if (nativeShareButton) {
+      const url = nativeShareButton.getAttribute('data-native-cert-share-url');
+      const title = nativeShareButton.getAttribute('data-share-cert-title') || 'My HelloRun achievement';
+      const text = nativeShareButton.getAttribute('data-share-cert-text') || `View my HelloRun achievement: ${title}`;
+      if (!url) return;
+      try {
+        if (!navigator.share) throw new Error('Web Share unavailable');
+        await navigator.share({ title, text, url });
+      } catch (error) {
+        if (error?.name === 'AbortError') {
+          closeCertificateShareMenu(nativeShareButton.closest('[data-certificate-share-menu]'));
+          return;
+        }
+        const feedbackButton = nativeShareButton.closest('[data-certificate-share]')?.querySelector('[data-certificate-share-toggle]') || nativeShareButton;
+        await copyCertificateUrl(url, feedbackButton);
+      }
+      closeCertificateShareMenu(nativeShareButton.closest('[data-certificate-share-menu]'));
+      return;
+    }
+
+    const button = event.target.closest('[data-copy-cert-url]');
+    if (button) {
+      const url = button.getAttribute('data-copy-cert-url');
+      if (!url) return;
+      const feedbackButton = button.closest('[data-certificate-share]')?.querySelector('[data-certificate-share-toggle]') || button;
+      await copyCertificateUrl(url, feedbackButton);
+      closeCertificateShareMenu(button.closest('[data-certificate-share-menu]'));
+      return;
+    }
+
+    if (!event.target.closest('[data-certificate-share]')) closeCertificateShareMenus({ restoreFocus: true });
   });
+
+  document.addEventListener('keydown', (event) => {
+    const menu = event.target.closest?.('[data-certificate-share-menu]');
+    if (event.key === 'Escape') {
+      const openMenu = menu || document.querySelector('[data-certificate-share-menu]:not([hidden])');
+      if (!openMenu) return;
+      event.preventDefault();
+      closeCertificateShareMenu(openMenu, { restoreFocus: true });
+      return;
+    }
+    if (!menu || !['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return;
+    const items = Array.from(menu.querySelectorAll('[role="menuitem"]'));
+    if (!items.length) return;
+    event.preventDefault();
+    const current = Math.max(0, items.indexOf(event.target));
+    const next = event.key === 'Home'
+      ? 0
+      : event.key === 'End'
+        ? items.length - 1
+        : (current + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+    items[next].focus();
+  });
+}
+
+function closeCertificateShareMenus({ except = null, restoreFocus = false } = {}) {
+  document.querySelectorAll('[data-certificate-share-menu]:not([hidden])').forEach((menu) => {
+    if (menu !== except) closeCertificateShareMenu(menu, { restoreFocus });
+  });
+}
+
+function closeCertificateShareMenu(menu, { restoreFocus = false } = {}) {
+  if (!menu) return;
+  menu.setAttribute('hidden', '');
+  const toggle = menu.closest('[data-certificate-share]')?.querySelector('[data-certificate-share-toggle]');
+  toggle?.setAttribute('aria-expanded', 'false');
+  if (restoreFocus) toggle?.focus();
 }
 
 async function copyCertificateUrl(url, button) {

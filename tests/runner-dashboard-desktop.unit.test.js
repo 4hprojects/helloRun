@@ -172,9 +172,13 @@ test('latest achievement actions become accessible icon buttons on mobile', () =
   const css = read('src/public/css/runner-dashboard.css');
 
   assert.match(partial, /data-lucide="<%= latestAchievement\.type === 'certificate' \? 'file-down' : 'eye' %>"/);
-  for (const icon of ['shield-check', 'copy', 'share-2']) assert.match(partial, new RegExp(`data-lucide="${icon}"`));
+  for (const icon of ['shield-check', 'share-2', 'facebook', 'twitter', 'linkedin', 'send', 'copy']) assert.match(partial, new RegExp(`data-lucide="${icon}"`));
   assert.match(partial, /latest-achievement-action[\s\S]*aria-label=/);
+  assert.match(partial, /aria-haspopup="menu" aria-expanded="false"[\s\S]*data-certificate-share-menu/);
+  assert.match(partial, /role="menuitem" data-certificate-social-link/);
   assert.match(css, /\.latest-achievement-action \{ width: 2\.75rem; height: 2\.75rem;[^}]*border-radius: 50%; \}/);
   assert.match(css, /\.latest-achievement-action span \{[^}]*position: absolute;[^}]*clip: rect/);
   assert.match(css, /\.latest-achievement-action\[data-action-label\]::after \{[^}]*content: attr\(data-action-label\);/);
+  assert.match(css, /\.latest-achievement-share-menu \{[^}]*position: absolute;[^}]*width: min\(14rem, calc\(100vw - 2rem\)\);/);
+  assert.match(css, /\.latest-achievement-share-menu a, \.latest-achievement-share-menu button \{[^}]*min-height: 2\.75rem;/);
 });
