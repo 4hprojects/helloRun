@@ -19,41 +19,27 @@
           </div>
           <% if (item.confirmationCode) { %><div class="item-meta">Code: <code><%= item.confirmationCode %></code></div><% } %>
         </div>
-        <div class="item-actions">
-          <a href="/my-submissions/<%= item.submissionId %>/certificate" class="btn btn-sm btn-primary" title="Download certificate">
-            <i data-lucide="download" aria-hidden="true"></i> Download
+        <div class="certificate-actions" aria-label="Certificate actions">
+          <a href="/my-submissions/<%= item.submissionId %>/certificate" class="certificate-action certificate-action-primary" aria-label="Download certificate" data-action-label="Download">
+            <i data-lucide="download" aria-hidden="true"></i>
           </a>
           <% if (item.verifyUrl) { %>
-            <a href="<%= item.verifyUrl %>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline" title="Open public verification page">
-              <i data-lucide="external-link" aria-hidden="true"></i> Verify
+            <a href="<%= item.verifyUrl %>" target="_blank" rel="noopener noreferrer" class="certificate-action" aria-label="Verify certificate" data-action-label="Verify">
+              <i data-lucide="shield-check" aria-hidden="true"></i>
             </a>
             <button
               type="button"
-              class="btn btn-sm btn-outline"
+              class="certificate-action"
               data-copy-cert-url="<%= item.verifyUrl %>"
-              title="Copy verification link to clipboard"
+              aria-label="Copy verification link"
+              data-action-label="Copy link"
             >
-              <i data-lucide="link" aria-hidden="true"></i> <span class="copy-label">Copy Link</span>
+              <i data-lucide="link" aria-hidden="true"></i>
             </button>
           <% } %>
         </div>
       </li>
     <% }) %>
   </ul>
-  <script>
-    document.querySelectorAll('[data-copy-cert-url]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var url = btn.getAttribute('data-copy-cert-url');
-        var label = btn.querySelector('.copy-label');
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(url).then(function() {
-            if (label) { label.textContent = 'Copied!'; setTimeout(function() { label.textContent = 'Copy Link'; }, 2000); }
-          }).catch(function() { prompt('Copy this verification link:', url); });
-        } else {
-          prompt('Copy this verification link:', url);
-        }
-      });
-    });
-  </script>
   <% } else { %><div class="empty-state"><p class="empty-message">No certificates yet.</p></div><% } %>
 </div>

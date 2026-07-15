@@ -11,6 +11,29 @@ function initializeDashboard() {
   setupDashboardFlashBridge();
   setupLoadingStates();
   setupAutoDismissMessages();
+  setupCertificateActions();
+}
+
+function setupCertificateActions() {
+  document.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-copy-cert-url]');
+    if (!button) return;
+    const url = button.getAttribute('data-copy-cert-url');
+    if (!url) return;
+
+    try {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error('Clipboard unavailable');
+      await navigator.clipboard.writeText(url);
+      button.setAttribute('data-action-label', 'Copied!');
+      button.setAttribute('aria-label', 'Verification link copied');
+      window.setTimeout(() => {
+        button.setAttribute('data-action-label', 'Copy link');
+        button.setAttribute('aria-label', 'Copy verification link');
+      }, 2000);
+    } catch (_) {
+      window.prompt('Copy this verification link:', url);
+    }
+  });
 }
 
 /**

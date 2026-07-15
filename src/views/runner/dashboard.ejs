@@ -403,7 +403,19 @@
                       </div>
                       <% if (item.confirmationCode) { %><div class="item-meta">Code: <code><%= item.confirmationCode %></code></div><% } %>
                     </div>
-                    <a href="/my-submissions/<%= item.submissionId %>/certificate" class="btn btn-sm btn-primary"><i data-lucide="download" aria-hidden="true"></i> Download</a>
+                    <div class="certificate-actions" aria-label="Certificate actions">
+                      <a href="/my-submissions/<%= item.submissionId %>/certificate" class="certificate-action certificate-action-primary" aria-label="Download certificate" data-action-label="Download">
+                        <i data-lucide="download" aria-hidden="true"></i>
+                      </a>
+                      <% if (item.verifyUrl) { %>
+                        <a href="<%= item.verifyUrl %>" target="_blank" rel="noopener noreferrer" class="certificate-action" aria-label="Verify certificate" data-action-label="Verify">
+                          <i data-lucide="shield-check" aria-hidden="true"></i>
+                        </a>
+                        <button type="button" class="certificate-action" data-copy-cert-url="<%= item.verifyUrl %>" aria-label="Copy verification link" data-action-label="Copy link">
+                          <i data-lucide="link" aria-hidden="true"></i>
+                        </button>
+                      <% } %>
+                    </div>
                   </li>
                 <% }) %>
               </ul>
