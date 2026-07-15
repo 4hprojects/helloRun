@@ -1508,3 +1508,16 @@ The July Active Quest Virtual Run ends on July 31, 2026, but accepts final submi
 - Added Asia/Manila calendar-day handling, including the platform's UTC end-of-day convention.
 - Replaced the Active Event Progress distance tiles with the requested compact vertical list.
 - Verified 17 focused dashboard tests, affected EJS compilation, syntax checks, diff hygiene, authenticated dashboard rendering, and refresh fragment rendering.
+
+---
+
+# 36. Event Icon Layout Stability
+
+**Completed:** 2026-07-15 17:00:29 PST
+**Status:** Implemented and verified
+
+- Added intrinsic 40×40 and 44×44 image dimensions so active-event artwork reserves its final space before dashboard CSS and remote images finish loading.
+- Kept the primary Next Action logo eager, while below-the-fold Active Event Progress logos remain lazy-loaded; both use asynchronous decoding.
+- Restricted dashboard event artwork to the real event logo with the lightweight HelloRun icon as fallback, removing large event banners from the icon fallback chain.
+- Added fixed, non-growing icon containers with clipped overflow to prevent oversized source artwork from causing layout flash or shifting nearby content.
+- Verified real, missing, and whitespace logo sources, template image attributes, responsive container constraints, EJS compilation, and focused dashboard tests.

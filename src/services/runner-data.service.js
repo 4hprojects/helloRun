@@ -110,7 +110,7 @@ function buildRunnerEventProgressCards(registrations = [], sources = {}, options
         eventId: String(event._id || ''),
         eventTitle: event.title || 'Event unavailable',
         eventSlug: event.slug || '',
-        eventImageUrl: event.logoUrl || event.bannerImageUrl || '/images/helloRun-icon.webp',
+        eventImageUrl: String(event.logoUrl || '').trim() || '/images/helloRun-icon.webp',
         confirmationCode: registration.confirmationCode || '',
         raceDistance: registration.raceDistance || '',
         participationMode: registration.participationMode || '',

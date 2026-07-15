@@ -85,7 +85,7 @@ test('dashboard card keeps registration snapshot price and payment correction co
   assert.match(card.helperText, /Receipt amount/);
 });
 
-test('dashboard card prefers the real event logo with safe image fallbacks', () => {
+test('dashboard card uses the event logo and never falls back to the large banner', () => {
   const baseRegistration = {
     _id: 'event-image-registration',
     paymentStatus: 'unpaid',
@@ -95,8 +95,11 @@ test('dashboard card prefers the real event logo with safe image fallbacks', () 
   const [logoCard] = buildRunnerEventProgressCards([baseRegistration], {}, { now: NOW });
   assert.equal(logoCard.eventImageUrl, 'https://cdn.example/logo.webp');
 
-  const [bannerCard] = buildRunnerEventProgressCards([{ ...baseRegistration, eventId: { ...baseRegistration.eventId, logoUrl: '' } }], {}, { now: NOW });
-  assert.equal(bannerCard.eventImageUrl, 'https://cdn.example/banner.webp');
+  const [fallbackCard] = buildRunnerEventProgressCards([{ ...baseRegistration, eventId: { ...baseRegistration.eventId, logoUrl: '' } }], {}, { now: NOW });
+  assert.equal(fallbackCard.eventImageUrl, '/images/helloRun-icon.webp');
+
+  const [whitespaceCard] = buildRunnerEventProgressCards([{ ...baseRegistration, eventId: { ...baseRegistration.eventId, logoUrl: '   ' } }], {}, { now: NOW });
+  assert.equal(whitespaceCard.eventImageUrl, '/images/helloRun-icon.webp');
 });
 
 test('accumulated progress separates official, pending, rejected, and potential distance', () => {

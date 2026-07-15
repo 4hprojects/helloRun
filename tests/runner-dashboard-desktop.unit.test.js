@@ -67,7 +67,9 @@ test('active event progress displays the real event logo beside title metadata',
   const partial = read('src/views/runner/partials/event-progress-row.ejs');
   const css = read('src/public/css/runner-dashboard.css');
   assert.match(partial, /dashboard-event-progress-event-icon[\s\S]*item\.eventImageUrl \|\| '\/images\/helloRun-icon\.webp'[\s\S]*dashboard-event-progress-title/);
+  assert.match(partial, /width="40" height="40" loading="lazy" decoding="async"/);
   assert.match(css, /\.dashboard-event-progress-event \{ display: grid; grid-template-columns: auto minmax\(0, 1fr\);/);
+  assert.match(css, /\.dashboard-event-progress-event-icon \{[^}]*width: 2\.5rem;[^}]*height: 2\.5rem;[^}]*overflow: hidden;/);
   assert.match(css, /\.dashboard-event-progress-event-icon img[^}]*object-fit: contain/);
 });
 
@@ -149,8 +151,11 @@ test('next action event icon sits beside the event title and distance', () => {
   const partial = read('src/views/runner/partials/dashboard-next-action.ejs');
   const css = read('src/public/css/runner-dashboard.css');
   assert.match(partial, /runner-next-action-event-icon[\s\S]*item\.eventImageUrl \|\| '\/images\/helloRun-icon\.webp'[\s\S]*<h3 class="dashboard-event-progress-title">/);
+  assert.match(partial, /width="44" height="44" decoding="async"/);
+  assert.doesNotMatch(partial, /runner-next-action-event-icon[\s\S]{0,250}loading="lazy"/);
   assert.match(partial, /<p class="item-meta"><%= item\.raceDistance/);
   assert.match(css, /\.runner-next-action-event \{ display: grid; grid-template-columns: auto minmax\(0, 1fr\);/);
+  assert.match(css, /\.runner-next-action-event-icon \{[^}]*width: 2\.75rem;[^}]*height: 2\.75rem;[^}]*overflow: hidden;/);
 });
 
 test('runner mobile navigation provides the five task-oriented destinations', () => {
