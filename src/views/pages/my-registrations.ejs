@@ -21,16 +21,11 @@
 
       <% if (registrations && registrations.length) { %>
         <div class="my-reg-grid">
-          <% registrations.forEach((registration) => { %>
-            <article class="my-reg-card">
-              <% const paymentLabelMap = {
-                unpaid: 'Unpaid',
-                proof_submitted: 'Payment Receipt Submitted',
-                proof_rejected: 'Payment Receipt Rejected',
-                paid: 'Paid',
-                failed: 'Failed',
-                refunded: 'Refunded'
-              }; %>
+              <% registrations.forEach((registration) => { %>
+                <% const registrationLifecycle = getLifecycleStatus('registration', registration.status); %>
+                <% const paymentLifecycle = getLifecycleStatus('payment', registration.paymentStatus); %>
+                <% const submissionLifecycle = registration.submission ? getLifecycleStatus('submission', registration.submission.status) : null; %>
+            <article class="my-reg-card" id="registration-<%= registration._id %>" tabindex="-1">
               <%
                 const eventFeeMode = String(registration.eventId?.feeMode || 'free').toLowerCase();
                 const isPaidEvent = eventFeeMode === 'paid';
@@ -55,13 +50,13 @@
 
               <!-- Status Badges -->
               <div class="badge-row">
-                <span class="badge badge-status"><%= registration.status %></span>
+                <span class="badge badge-status" title="<%= registrationLifecycle.description %>"><%= registrationLifecycle.label %></span>
                 <span class="badge badge-payment mode-<%= registration.paymentStatus %>">
-                  <i data-lucide="credit-card"></i> <%= paymentLabelMap[registration.paymentStatus] || registration.paymentStatus %>
+                  <i data-lucide="credit-card"></i> <%= paymentLifecycle.label %>
                 </span>
                 <% if (registration.submission) { %>
                   <span class="badge badge-submission mode-<%= registration.submission.status %>">
-                    <i data-lucide="flag"></i> Run Result: <%= registration.submission.status %>
+                    <i data-lucide="flag"></i> <%= submissionLifecycle.label %>
                   </span>
                 <% } else if (registration.isAccumulatedChallenge && registration.accumulatedProgress) { %>
                   <span class="badge badge-submission mode-submitted">
@@ -160,6 +155,15 @@
                   <% } %>
                   <% if (registration.paymentRejectionReason) { %>
                     <p class="rejection"><strong>Payment rejection reason:</strong> <%= registration.paymentRejectionReason %></p>
+                    <% const paymentGuidance = {
+                      unreadable_receipt: 'Upload a clear receipt showing the payment date, amount, recipient, and reference.',
+                      wrong_amount: 'Check the event fee and upload proof for the correct total.',
+                      wrong_recipient: 'Use the organizer payment account shown in these registration instructions.',
+                      missing_reference: 'Upload proof that clearly shows the transaction or reference number.',
+                      duplicate_receipt: 'Upload the unique receipt for this registration.',
+                      other: 'Review the organizer’s details and upload corrected proof.'
+                    }[registration.paymentRejectionCode]; %>
+                    <% if (paymentGuidance) { %><p class="form-hint"><strong>How to fix this:</strong> <%= paymentGuidance %></p><% } %>
                   <% } %>
                   <% if (registration.paymentReviewNotes) { %>
                     <p><strong>Payment review notes:</strong> <%= registration.paymentReviewNotes %></p>

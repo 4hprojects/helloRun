@@ -33,9 +33,24 @@
   <div class="card-content result-submissions-panel">
     <% if (resultCards && resultCards.length) { %>
       <p class="result-submissions-count"><small>Latest <%= resultCards.length %> event<%= resultCards.length !== 1 ? 's' : '' %> by recent activity</small></p>
-      <ul class="dashboard-event-progress-list">
+      <ul class="runner-compact-activity-list" aria-label="Recent result submission activity">
         <% resultCards.forEach((item) => { %>
-          <%- include('event-progress-row', { item }) %>
+          <li class="runner-compact-activity-row runner-compact-activity-row--<%= item.stateTone || item.state %>">
+            <div class="runner-compact-activity-main">
+              <strong><% if (item.eventSlug) { %><a href="/events/<%= item.eventSlug %>"><%= item.eventTitle %></a><% } else { %><%= item.eventTitle %><% } %></strong>
+              <span><%= item.raceDistance || 'Distance TBA' %> · <%= item.isAccumulated ? 'Accumulated challenge' : 'Run result' %><% if (item.confirmationCode) { %> · Code <code><%= item.confirmationCode %></code><% } %></span>
+            </div>
+            <div class="runner-compact-activity-time">
+              <% if (item.submittedAtLabel && item.submittedAtLabel !== 'TBA') { %><span>Submitted <%= item.submittedAtLabel %></span><% } %>
+              <% if (item.reviewedAtLabel && item.reviewedAtLabel !== 'TBA') { %><span>Reviewed <%= item.reviewedAtLabel %></span><% } %>
+            </div>
+            <span class="badge badge-<%= item.stateTone || item.state %>"><%= item.stateLabel %></span>
+            <% if (item.nextAction) { %>
+              <div class="runner-compact-activity-action">
+                <% if (item.nextAction.type === 'submit' || item.nextAction.type === 'resubmit') { %><button type="button" class="btn btn-sm <%= item.nextAction.type === 'resubmit' ? 'btn-outline' : 'btn-primary' %>" data-open-run-proof-modal data-run-proof-mode="<%= item.nextAction.type === 'resubmit' ? 'resubmit' : 'submit' %>" data-run-proof-registration-id="<%= item.registrationId %>"><%= item.nextAction.label %></button><% } else { %><a href="<%= item.nextAction.href %>" class="btn btn-sm btn-outline"><%= item.nextAction.label %></a><% } %>
+              </div>
+            <% } %>
+          </li>
         <% }) %>
       </ul>
     <% } else { %>

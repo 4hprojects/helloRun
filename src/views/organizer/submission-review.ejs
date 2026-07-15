@@ -295,8 +295,10 @@
                   <input type="checkbox" name="autoApprovalEligible" <%= (submission.validation && submission.validation.autoApprovalEligible) ? 'checked' : '' %>>
                   Auto-Approval Eligible
                 </label>
+                <label for="admin-correct-reason">Correction Reason</label>
+                <textarea id="admin-correct-reason" name="correctionReason" minlength="10" maxlength="500" required placeholder="Explain why this elevated correction is necessary"></textarea>
                 <button type="submit" class="btn btn-outline btn-sm">Save Correction</button>
-                <p class="submission-review-muted">Saving a correction does not change approval status — use Approve/Reject below afterward.</p>
+                <p class="submission-review-muted">Saving changes the stored activity data and records the before/after values and your reason in the critical audit trail. Approval status is unchanged.</p>
                 <p class="js-admin-correction-error submission-review-muted" hidden></p>
               </form>
             </section>
@@ -370,8 +372,15 @@
               <% Object.entries(queueContext || {}).forEach(([key, value]) => { %>
                 <input type="hidden" name="<%= key %>" value="<%= value %>">
               <% }) %>
-              <label for="reject-reason-<%= submission._id %>">Rejection Reason</label>
-              <textarea id="reject-reason-<%= submission._id %>" name="rejectionReason" rows="4" maxlength="500" required placeholder="Required rejection reason (min 5 chars)"></textarea>
+              <label for="reject-code-<%= submission._id %>">Rejection Reason</label>
+              <select id="reject-code-<%= submission._id %>" name="rejectionCode" required>
+                <option value="">Select the issue…</option>
+                <% runRejectionReasonOptions.forEach((reason) => { %>
+                  <option value="<%= reason.code %>"><%= reason.label %></option>
+                <% }) %>
+              </select>
+              <label for="reject-reason-<%= submission._id %>">Additional details</label>
+              <textarea id="reject-reason-<%= submission._id %>" name="rejectionReason" rows="4" maxlength="500" placeholder="Tell the runner exactly what to correct (required for another issue)"></textarea>
               <label for="reject-notes-<%= submission._id %>">Review Notes</label>
               <textarea id="reject-notes-<%= submission._id %>" name="reviewNotes" rows="4" maxlength="1200" placeholder="Optional review notes"></textarea>
               <button type="submit" class="btn-danger table-action-btn">
@@ -431,6 +440,7 @@
       if (!form) return;
       form.addEventListener('submit', function (e) {
         e.preventDefault();
+        if (!form.reportValidity()) return;
         var errorEl = form.querySelector('.js-admin-correction-error');
         var elapsedInput = form.querySelector('#admin-correct-elapsed');
         var parts = String(elapsedInput.value || '00:00:00').split(':').map(function (v) { return Number(v) || 0; });
@@ -443,6 +453,17 @@
           body.set('autoApprovalEligible', 'false');
         }
 
+        var target = '<%= String(submission._id || submission.id) %>';
+        var correctionReason = String(body.get('correctionReason') || '').trim();
+        var confirmed = window.confirm(
+          'Confirm elevated submission correction\n\n' +
+          'Target: ' + target + '\n' +
+          'Impact: changes stored result data and may affect later leaderboard, certificate, and badge outcomes.\n' +
+          'Approval status: unchanged.\n' +
+          'Reason: ' + correctionReason
+        );
+        if (!confirmed) return;
+
         fetch(form.dataset.correctionUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -451,7 +472,16 @@
           .then(function (res) { return res.json(); })
           .then(function (data) {
             if (!data.success) throw new Error(data.message || 'Correction failed');
-            window.location.reload();
+            if (errorEl) {
+              errorEl.textContent = 'Correction saved. Audit reference: ' + (data.auditReference || 'pending');
+              errorEl.hidden = false;
+              errorEl.setAttribute('role', 'status');
+            }
+            var submitButton = form.querySelector('[type="submit"]');
+            if (submitButton) {
+              submitButton.disabled = true;
+              submitButton.textContent = 'Correction Saved';
+            }
           })
           .catch(function (err) {
             if (errorEl) {

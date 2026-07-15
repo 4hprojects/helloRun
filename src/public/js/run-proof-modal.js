@@ -1448,6 +1448,25 @@
       showDateStep();
     };
 
+    const runProofDraftKey = 'helloRun:runProofDraft:v1';
+    const saveRunProofDraft = () => {
+      try {
+        const values = {};
+        [runDateInput, distanceInput, hoursInput, minutesInput, secondsInput, locationInput, elevationInput, stepsInput, runTypeInput].filter(Boolean).forEach((field) => { values[field.id] = field.value; });
+        window.localStorage.setItem(runProofDraftKey, JSON.stringify({ savedAt: Date.now(), values }));
+      } catch (_) {}
+    };
+    const restoreRunProofDraft = () => {
+      try {
+        const draft = JSON.parse(window.localStorage.getItem(runProofDraftKey) || 'null');
+        if (!draft) return;
+        if (Date.now() - Number(draft.savedAt || 0) > 7 * 24 * 60 * 60 * 1000) { window.localStorage.removeItem(runProofDraftKey); return; }
+        Object.entries(draft.values || {}).forEach(([id, value]) => { const field = document.getElementById(id); if (field) field.value = value; });
+        setMessage('Your saved run details were restored. Select the proof image again for privacy and browser security.', 'info');
+      } catch (_) { window.localStorage.removeItem(runProofDraftKey); }
+    };
+    form.addEventListener('input', saveRunProofDraft);
+
     const showModalShell = () => {
       modal.removeAttribute('hidden');
       modal.setAttribute('aria-hidden', 'false');
@@ -1552,6 +1571,7 @@
         const isDuplicate = resultMessage.type === 'error' && /already been submitted/i.test(resultMessage.text);
 
         if (resultMessage.type === 'success' || isDuplicate) {
+          if (resultMessage.type === 'success') window.localStorage.removeItem(runProofDraftKey);
           // Dashboard-specific: refresh the result card on success
           if (resultMessage.type === 'success' && state.currentSurface === 'runner-dashboard') {
             if (typeof window.refreshRunnerDashboard === 'function') {
@@ -1818,6 +1838,7 @@
 
       state.lastTrigger = triggerElement || null;
       resetFormState();
+      restoreRunProofDraft();
 
       if (overrides && typeof overrides === 'object') {
         applyModeConfig({ ...state.modeConfig, ...overrides });

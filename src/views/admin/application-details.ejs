@@ -14,7 +14,7 @@
           <h2>Application Details</h2>
           <p>Review documents and finalize the organizer application status.</p>
         </div>
-        <a href="/admin/applications" class="btn btn-secondary">Back to Applications</a>
+        <a href="<%= typeof returnTo === 'string' && returnTo ? returnTo : '/admin/applications' %>" class="btn btn-secondary">Back to Queue</a>
       </div>
 
       <% if (application) { %>
@@ -151,8 +151,16 @@
           <% } %>
 
           <div class="action-form-row">
-            <form action="/admin/applications/<%= application._id %>/approve" method="POST" onsubmit="return confirm('Approve this organizer application?');">
+            <form action="/admin/applications/<%= application._id %>/approve" method="POST"
+              data-high-risk-confirm
+              data-confirm-title="Approve organizer application"
+              data-confirm-target="<%= application.businessName || application.contactEmail || application.applicationId %>"
+              data-confirm-impact="Grants approved-organizer capabilities and unlocks protected organizer workflows."
+              data-confirm-reversibility="Account access can be restricted later, but approval communication and immediate access cannot be recalled."
+              data-confirm-privilege="Administrator"
+              data-confirm-button="Approve application">
               <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <input type="hidden" name="returnTo" value="<%= typeof returnTo === 'string' ? returnTo : '' %>">
               <button type="submit" class="btn btn-success" <%= isFinalized ? 'disabled' : '' %>>Approve Application</button>
             </form>
           </div>
@@ -161,9 +169,16 @@
             class="reject-form"
             action="/admin/applications/<%= application._id %>/reject"
             method="POST"
-            onsubmit="return confirm('Reject this organizer application?');"
+            data-high-risk-confirm
+            data-confirm-title="Reject organizer application"
+            data-confirm-target="<%= application.businessName || application.contactEmail || application.applicationId %>"
+            data-confirm-impact="Sends the applicant back to correction and resubmission using the reason entered below."
+            data-confirm-reversibility="The organizer can edit and resubmit the application."
+            data-confirm-privilege="Administrator"
+            data-confirm-button="Reject application"
           >
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <input type="hidden" name="returnTo" value="<%= typeof returnTo === 'string' ? returnTo : '' %>">
             <label for="rejectionReason">Rejection Reason (minimum 15 characters)</label>
             <textarea
               id="rejectionReason"

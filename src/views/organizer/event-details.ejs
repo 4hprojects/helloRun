@@ -33,6 +33,27 @@
       <% if (message) { %>
         <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
       <% } %>
+      <section class="operational-readiness" aria-labelledby="operationalReadinessTitle">
+        <div class="operational-readiness-header">
+          <div>
+            <p class="manage-eyebrow">Operational readiness</p>
+            <h2 id="operationalReadinessTitle"><%= operationalReadiness.length ? `${operationalReadiness.length} setup task${operationalReadiness.length === 1 ? '' : 's'} need attention` : 'Core event setup is ready' %></h2>
+          </div>
+          <span class="status status-<%= operationalReadiness.length ? 'pending_review' : 'published' %>"><%= operationalReadiness.length ? 'Needs attention' : 'Ready' %></span>
+        </div>
+        <% if (operationalReadiness.length) { %>
+          <div class="operational-readiness-list">
+            <% operationalReadiness.forEach((item) => { %>
+              <article>
+                <div><strong><%= item.title %></strong><p><%= item.impact %></p></div>
+                <a href="<%= item.href %>" class="btn btn-sm"><%= item.action %></a>
+              </article>
+            <% }) %>
+          </div>
+        <% } else { %>
+          <p>Payment, certificate, badge, and publication prerequisites currently enabled for this event are complete.</p>
+        <% } %>
+      </section>
       <% const showLocationPanel = event.eventType === 'onsite' || event.eventType === 'hybrid' || (event.eventTypesAllowed || []).includes('onsite'); %>
       <% const eventReferenceCode = event.referenceCode || `EVT-${String(event._id || '').slice(0, 8).toUpperCase()}`; %>
       <% const publicEventPath = `/events/${event.slug}`; %>

@@ -1,6 +1,8 @@
 // src/routes/organiser/review.js
 const express = require('express');
 const router = express.Router();
+const { getRejectionReasonOptions, resolveRejectionReason } = require('../../utils/rejection-reasons');
+const { redirectWithFlash } = require('../../utils/session-flash');
 const {
   logger,
   mongoose,
@@ -303,6 +305,12 @@ router.post('/submissions/bulk-approve', requireAuth, requireCsrfProtection, sub
    ========================================== */
 
 router.post('/events/:id/payment-reviews/bulk-approve', requireAuth, requireCsrfProtection, async (req, res) => {
+  const returnFilters = normalizePaymentProofReviewFilters({
+    status: req.body.returnStatus,
+    q: req.body.returnQ,
+    page: req.body.returnPage
+  });
+  const buildReturnHref = (eventId) => buildPaymentProofReviewPath(eventId, returnFilters);
   try {
     const user = await User.findById(req.session.userId).select('firstName lastName email role organizerStatus');
     if (!user || !canAccessRegistrantReview(user)) {
@@ -319,8 +327,7 @@ router.post('/events/:id/payment-reviews/bulk-approve', requireAuth, requireCsrf
       : String(req.body.registrationIds || '').split(',').filter(Boolean);
     const registrationIds = rawIds.map((id) => String(id).trim()).filter(Boolean).slice(0, 50);
     if (!registrationIds.length) {
-      const q = new URLSearchParams({ type: 'error', msg: 'No payment proofs selected.' });
-      return res.redirect(`/organizer/events/${event._id}/payment-proof-review?${q}`);
+      return redirectWithFlash(req, res, buildReturnHref(event._id), 'error', 'No payment proofs selected.');
     }
 
     const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1000);
@@ -336,6 +343,7 @@ router.post('/events/:id/payment-reviews/bulk-approve', requireAuth, requireCsrf
         registration.paymentReviewedBy = user._id;
         registration.paymentReviewNotes = reviewNotes;
         registration.paymentRejectionReason = '';
+        registration.paymentRejectionCode = '';
         await registration.save();
         evaluateRegistrationAchievementsInBackground(registration, { performedBy: user._id });
         recordCriticalAuditEventInBackground({
@@ -352,7 +360,7 @@ router.post('/events/:id/payment-reviews/bulk-approve', requireAuth, requireCsrf
         });
         const runner = await User.findById(registration.userId).select('email firstName');
         notifyWithRetryInBackground('payment.approved', {
-          notification: { userId: registration.userId, type: 'payment_approved', title: 'Payment Approved', message: `Your payment for ${event.title || 'the event'} has been approved.`, href: '/my-registrations', metadata: { registrationId: String(registration._id), eventId: String(event._id), eventTitle: event.title || '' } },
+          notification: { userId: registration.userId, type: 'payment_approved', title: 'Payment Approved', message: `Your payment for ${event.title || 'the event'} has been approved.`, href: `/my-registrations#registration-${String(registration._id)}`, metadata: { registrationId: String(registration._id), eventId: String(event._id), eventTitle: event.title || '' } },
           email: runner?.email ? { to: runner.email, firstName: runner.firstName || 'Runner', eventTitle: event.title || 'Event', confirmationCode: registration.confirmationCode || '', recipientUserId: registration.userId, metadata: { registrationId: String(registration._id), eventId: String(event._id) } } : null
         }, {
           source: 'organizer.bulk_payment_approve'
@@ -366,12 +374,10 @@ router.post('/events/:id/payment-reviews/bulk-approve', requireAuth, requireCsrf
       ? `${succeeded} payment${succeeded !== 1 ? 's' : ''} approved. ${failed} skipped.`
       : `${succeeded} payment${succeeded !== 1 ? 's' : ''} approved.`;
 
-    const q = new URLSearchParams({ type: 'success', msg });
-    return res.redirect(`/organizer/events/${event._id}/payment-proof-review?${q}`);
+    return redirectWithFlash(req, res, buildReturnHref(event._id), succeeded > 0 ? 'success' : 'error', msg);
   } catch (error) {
     logger.error('Bulk payment approve error:', error);
-    const q = new URLSearchParams({ type: 'error', msg: 'An error occurred during bulk approval.' });
-    return res.redirect(`/organizer/events/${req.params.id}/payment-proof-review?${q}`);
+    return redirectWithFlash(req, res, buildReturnHref(req.params.id), 'error', 'An error occurred during bulk approval.');
   }
 });
 
@@ -415,7 +421,7 @@ router.post('/events/:id/registrants/:registrationId/send-message', requireAuth,
         type: 'organiser_message',
         title: `Message from ${event.title}`,
         message: message.slice(0, 200),
-        href: '/my-registrations',
+        href: `/my-registrations#registration-${String(registration._id)}`,
         metadata: { eventId: String(event._id), eventTitle: event.title }
       },
       email: {
@@ -597,6 +603,7 @@ router.get('/events/:eventId/payment-proofs/review', requireAuth, async (req, re
       event,
       filters,
       reviewItems,
+      paymentRejectionReasonOptions: getRejectionReasonOptions('payment'),
       message: getPageMessage(req.query),
       counts: {
         pending: pendingCount,
@@ -811,6 +818,7 @@ router.get('/events/:id/submissions/:submissionId/review', requireAuth, async (r
       isAdminViewer: user.role === 'admin',
       isFullAdmin,
       reviewReasonOptions: isFullAdmin ? Object.entries(REVIEW_REASON_LABELS) : [],
+      runRejectionReasonOptions: getRejectionReasonOptions('run'),
       event,
       message: getPageMessage(req.query),
       ...context
@@ -899,7 +907,8 @@ router.post(
             paymentReviewedAt: reviewedAt,
             paymentReviewedBy: user._id,
             paymentReviewNotes: reviewNotes,
-            paymentRejectionReason: ''
+            paymentRejectionReason: '',
+            paymentRejectionCode: ''
           }
         },
         { new: true, runValidators: true }
@@ -947,7 +956,7 @@ router.post(
             type: 'payment_approved',
             title: 'Payment Approved',
             message: `Your payment for ${event.title || 'the event'} has been approved.`,
-            href: '/my-registrations',
+            href: `/my-registrations#registration-${String(registration._id)}`,
             metadata: {
               registrationId: String(registration._id),
               eventId: String(event._id),
@@ -1025,16 +1034,20 @@ router.post(
         });
       }
 
-      const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
-      const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1000);
-      if (!rejectionReason || rejectionReason.length < 5) {
-        const q = new URLSearchParams({
-          type: 'error',
-          msg: 'Rejection reason is required (at least 5 characters).'
-        });
+      let resolvedRejection;
+      try {
+        resolvedRejection = resolveRejectionReason(
+          'payment',
+          req.body.rejectionCode,
+          req.body.rejectionReason,
+          { allowLegacyDetail: true }
+        );
+      } catch (validationError) {
+        const q = new URLSearchParams({ type: 'error', msg: validationError.message });
         return res.redirect(`/organizer/events/${event._id}/registrants?${q.toString()}`);
       }
-
+      const rejectionReason = resolvedRejection.runnerMessage;
+      const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1000);
       const reviewedAt = new Date();
       const registration = await Registration.findOneAndUpdate(
         {
@@ -1049,7 +1062,8 @@ router.post(
             paymentReviewedAt: reviewedAt,
             paymentReviewedBy: user._id,
             paymentReviewNotes: reviewNotes,
-            paymentRejectionReason: rejectionReason
+            paymentRejectionReason: rejectionReason,
+            paymentRejectionCode: resolvedRejection.code
           }
         },
         { new: true, runValidators: true }
@@ -1094,7 +1108,7 @@ router.post(
             type: 'payment_rejected',
             title: 'Payment Needs Update',
             message: `Your payment receipt for ${event.title || 'the event'} was rejected. Please review and resubmit.`,
-            href: '/my-registrations',
+            href: `/my-registrations#registration-${String(registration._id)}`,
             metadata: {
               registrationId: String(registration._id),
               eventId: String(event._id),
@@ -1289,18 +1303,14 @@ router.post(
         }
 
         const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
-        if (!rejectionReason || rejectionReason.length < 5) {
-          return res.redirect(buildSubmissionReviewPath(event._id, activityRecord._id, req.body, {
-            type: 'error',
-            msg: 'Rejection reason must be at least 5 characters.'
-          }));
-        }
+        const rejectionCode = String(req.body.rejectionCode || '').trim();
         const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
         await reviewAccumulatedActivitySubmission({
           activityId: activityRecord._id,
           organizerId: user._id,
           reviewerRole: user.role,
           action: 'reject',
+          rejectionCode,
           rejectionReason,
           reviewNotes
         });
@@ -1312,18 +1322,14 @@ router.post(
       }
 
       const rejectionReason = String(req.body.rejectionReason || '').trim().slice(0, 500);
-      if (!rejectionReason || rejectionReason.length < 5) {
-        return res.redirect(buildSubmissionReviewPath(event._id, submissionRecord._id, req.body, {
-          type: 'error',
-          msg: 'Rejection reason must be at least 5 characters.'
-        }));
-      }
+      const rejectionCode = String(req.body.rejectionCode || '').trim();
       const reviewNotes = String(req.body.reviewNotes || '').trim().slice(0, 1200);
       await reviewSubmission({
         submissionId: submissionRecord._id,
         organizerId: user._id,
         reviewerRole: user.role,
         action: 'reject',
+        rejectionCode,
         rejectionReason,
         reviewNotes
       });

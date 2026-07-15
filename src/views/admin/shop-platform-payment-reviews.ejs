@@ -25,6 +25,7 @@
       <% if (message) { %>
         <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
       <% } %>
+      <aside class="payment-scope-banner"><strong>Scope: HelloRun merchandise only</strong><span>These proofs belong to platform-owned orders. Event registration payments and organizer event-shop orders are reviewed in their own queues.</span></aside>
 
       <section class="detail-card detail-card-full">
         <div class="shop-manage-section-head">
@@ -36,6 +37,7 @@
               <li>
                 <div class="shop-manage-list-primary">
                   <strong><%= item.order_number %></strong>
+                  <span class="payment-owner-chip">HelloRun is reviewer</span>
                   <span class="shop-badge shop-badge-<%= statusTone(item.status) %>"><%= item.status %></span>
                 </div>
                 <div class="shop-manage-list-meta">
@@ -45,11 +47,11 @@
                     <span class="shop-muted">Ref: <%= item.payment_reference %></span>
                   <% } %>
                   <% if (item.proof_image_url) { %>
-                    <a href="<%= item.proof_image_url %>" target="_blank" rel="noopener noreferrer">View proof</a>
+                    <a href="<%= item.proof_image_url %>" target="_blank" rel="noopener noreferrer">Open proof at full size</a>
                   <% } %>
                 </div>
 
-                <form class="shop-payment-review-form shop-form-grid" data-payment-id="<%= item.id %>">
+                <form class="shop-payment-review-form shop-form-grid" data-payment-id="<%= item.id %>" data-high-risk-confirm data-confirm-title="Record merchandise payment decision" data-confirm-target="Order <%= item.order_number %> · <%= formatCurrency(item.amount_paid, item.currency) %>" data-confirm-impact="Updates this HelloRun merchandise order and its runner-facing payment state." data-confirm-reversibility="A later correction is possible but the runner may act on this decision immediately." data-confirm-privilege="Platform commerce reviewer" data-confirm-button="Record decision">
                   <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                   <label>
                     <span>Decision</span>

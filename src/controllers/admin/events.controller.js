@@ -11,6 +11,7 @@ const {
   countries, DEFAULT_WAIVER_TEMPLATE, formatAdminShortDate, formatAdminDateTime,
   getRequestIpAddress, getRequestUserAgent,
   verifyAdminDeletionPassword, getTestDataCounts, purgeTestData, isFullAdminTier
+  , escapeRegex
 } = require('./_shared');
 const {
   buildCsvContent,
@@ -817,6 +818,43 @@ exports.dashboard = async (req, res) => {
     });
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading the admin dashboard.');
+  }
+};
+
+exports.universalSearch = async (req, res) => {
+  try {
+    const q = String(req.query.q || '').trim().slice(0, 120);
+    const results = { users: [], events: [], applications: [], submissions: [] };
+    if (q.length >= 2) {
+      const pattern = new RegExp(escapeRegex(q), 'i');
+      const objectIdQuery = require('mongoose').Types.ObjectId.isValid(q) ? [{ _id: q }] : [];
+      [results.users, results.events, results.applications, results.submissions] = await Promise.all([
+        User.find({ $or: [...objectIdQuery, { email: pattern }, { firstName: pattern }, { lastName: pattern }] }).select('firstName lastName email role accountStatus').limit(12).lean(),
+        Event.find({ $or: [...objectIdQuery, { title: pattern }, { slug: pattern }] }).select('title slug status organizerId updatedAt').populate('organizerId', 'email firstName lastName').limit(12).lean(),
+        OrganiserApplication.find({ $or: [...objectIdQuery, { applicationId: pattern }, { businessName: pattern }, { contactEmail: pattern }] }).select('applicationId businessName status userId submittedAt').populate('userId', 'email firstName lastName').limit(12).lean(),
+        Submission.find({ $or: [...objectIdQuery, { status: pattern }] }).select('status runnerId eventId registrationId submittedAt').populate('runnerId', 'email firstName lastName').populate('eventId', 'title').limit(12).lean()
+      ]);
+    }
+    return res.render('admin/search', { title: 'Admin Search - HelloRun', q, results });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while searching platform records.');
+  }
+};
+
+exports.userCaseView = async (req, res) => {
+  try {
+    if (!require('mongoose').Types.ObjectId.isValid(req.params.id)) return res.status(404).render('error', { title: 'Case not found', status: 404, message: 'The case subject is unavailable.' });
+    const subject = await User.findById(req.params.id).select('firstName lastName email role accountStatus organizerStatus createdAt updatedAt').lean();
+    if (!subject) return res.status(404).render('error', { title: 'Case not found', status: 404, message: 'The case subject is unavailable.' });
+    const [registrations, submissions, applications, events] = await Promise.all([
+      Registration.find({ userId: subject._id }).select('confirmationCode status paymentStatus eventId registeredAt').populate('eventId', 'title').sort({ registeredAt: -1 }).limit(20).lean(),
+      Submission.find({ runnerId: subject._id }).select('status eventId registrationId submittedAt reviewedAt rejectionReason').populate('eventId', 'title').sort({ submittedAt: -1 }).limit(20).lean(),
+      OrganiserApplication.find({ userId: subject._id }).select('applicationId businessName status submittedAt reviewedAt rejectionReason').sort({ submittedAt: -1 }).limit(10).lean(),
+      Event.find({ organizerId: subject._id, isDeleted: { $ne: true } }).select('title status updatedAt').sort({ updatedAt: -1 }).limit(20).lean()
+    ]);
+    return res.render('admin/user-case', { title: 'Admin Case - HelloRun', subject, registrations, submissions, applications, events });
+  } catch (error) {
+    return renderServerError(res, error, 'An error occurred while loading the admin case.');
   }
 };
 

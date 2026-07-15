@@ -26,6 +26,11 @@
           <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
         <% } %>
 
+        <aside class="payment-scope-banner" aria-label="Payment type and reviewer">
+          <strong><%= order.event_title ? 'Event merchandise payment' : 'HelloRun merchandise payment' %></strong>
+          <span>This pays for order <%= order.order_number %>, not event registration. Reviewed by <%= order.event_title ? 'the event organizer' : 'HelloRun administration' %>.</span>
+        </aside>
+
         <input type="hidden" name="_csrf" id="shopPaymentCsrfToken" value="<%= locals.csrfToken || '' %>">
 
         <section class="shop-detail-section">
@@ -56,7 +61,9 @@
               <label>
                 <span>Receipt or Proof of Payment</span>
                 <input type="file" name="paymentProofFile" accept="image/*,.pdf" required>
+                <small>Image or PDF. Confirm the amount, recipient, date, and reference are readable.</small>
               </label>
+              <div id="shopPaymentProofPreview" class="payment-proof-preview" aria-live="polite"></div>
               <div class="shop-form-footer">
                 <button type="submit" class="nav-signup-btn detail-status-btn">Submit Payment Proof</button>
               </div>
@@ -78,6 +85,12 @@
             <p>Payment proof upload is not available for this order's current status.</p>
           </section>
         <% } %>
+        <% if (order.payment_rejection_reason || order.rejection_reason) { %>
+          <section class="shop-readonly-note payment-recovery-note">
+            <i data-lucide="alert-triangle"></i>
+            <p><strong>What needs correction:</strong> <%= order.payment_rejection_reason || order.rejection_reason %>. Check the proof against the order total above, then upload a corrected file when available.</p>
+          </section>
+        <% } %>
       </div>
     </section>
   </main>
@@ -90,6 +103,23 @@
     (function () {
       const form = document.getElementById('shopPaymentProofForm');
       if (!form) return;
+      const fileInput = form.querySelector('input[type="file"]');
+      const preview = document.getElementById('shopPaymentProofPreview');
+      if (fileInput && preview) fileInput.addEventListener('change', () => {
+        const file = fileInput.files && fileInput.files[0];
+        preview.replaceChildren();
+        if (!file) return;
+        const summary = document.createElement('p');
+        summary.textContent = `${file.name} · ${Math.ceil(file.size / 1024)} KB`;
+        preview.appendChild(summary);
+        if (file.type.startsWith('image/')) {
+          const image = document.createElement('img');
+          image.alt = 'Selected payment proof preview';
+          image.src = URL.createObjectURL(file);
+          image.onload = () => URL.revokeObjectURL(image.src);
+          preview.appendChild(image);
+        }
+      });
 
       form.addEventListener('submit', async (event) => {
         event.preventDefault();

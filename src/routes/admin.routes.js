@@ -123,6 +123,8 @@ router.post('/applications/:id/reject', requireAdmin, adminModerationLimiter, ad
 
 // Admin dashboard
 router.get('/dashboard', requireAdmin, adminController.dashboard);
+router.get('/search', requireAdmin, adminController.universalSearch);
+router.get('/cases/user/:id', requireAdmin, adminController.userCaseView);
 router.get('/audit', requireAdmin, adminAuditController.listCriticalAudit);
 router.get('/audit/export.csv', requireAdmin, requireFullAdmin, adminExportLimiter, adminAuditController.exportCriticalAuditCsv);
 router.get('/audit/export.xlsx', requireAdmin, requireFullAdmin, adminExportLimiter, adminAuditController.exportCriticalAuditXlsx);

@@ -827,6 +827,34 @@ async function recalculateBadgeAwards(input = {}, options = {}) {
   return result;
 }
 
+async function previewBadgeRecalculation(input = {}) {
+  const scope = normalizeRecalculationScope(input.scope);
+  const limit = clampInt(input.limit, 1, 250, 50);
+  const preview = {
+    scope,
+    limit,
+    registrationsEligible: 0,
+    submissionsEligible: 0,
+    organisersEligible: 0,
+    maximumRecordsEvaluated: 0,
+    note: 'Preview counts eligible source records. Actual new awards depend on badge rules and awards already earned.'
+  };
+  if (scope === 'all' || scope === 'event') {
+    const [registrations, submissions] = await Promise.all([
+      Registration.countDocuments({ status: 'confirmed' }),
+      Submission.countDocuments({ status: 'approved', isPersonalRecord: { $ne: true } })
+    ]);
+    preview.registrationsEligible = Math.min(registrations, limit);
+    preview.submissionsEligible = Math.min(submissions, limit);
+  }
+  if (scope === 'all' || scope === 'organiser') {
+    const organisers = await User.countDocuments({ role: 'organiser', organizerStatus: 'approved' });
+    preview.organisersEligible = Math.min(organisers, limit);
+  }
+  preview.maximumRecordsEvaluated = preview.registrationsEligible + preview.submissionsEligible + preview.organisersEligible;
+  return preview;
+}
+
 function evaluateRegistrationAchievementsInBackground(registrationOrId, options = {}) {
   evaluateRegistrationAchievements(registrationOrId, options).catch((error) => {
     logger.error('Registration achievement evaluation failed:', {
@@ -1521,6 +1549,7 @@ module.exports = {
   updateBadgeDefinitionStatus,
   updateBadgeDefinitionEmailLevel,
   recalculateBadgeAwards,
+  previewBadgeRecalculation,
   checkBadgeRequirement,
   hasRevokedBadge,
   resolveRegistrationForEvaluation,

@@ -1,7 +1,8 @@
 <% const progressPercent = Math.max(0, Math.min(100, Number(item.progress?.percent || 0))); %>
+<% const stageNumbers = { payment_required: 1, registration_not_ready: 1, not_submitted: 2, in_progress: 2, submitted: 3, rejected: 3, approved: 4, completed: 4 }; %>
 <li class="dashboard-event-progress-row dashboard-event-progress-row--<%= item.stateTone || item.state %>">
   <div class="dashboard-event-progress-main">
-    <div class="dashboard-event-progress-title"><% if (item.eventSlug) { %><a href="/events/<%= item.eventSlug %>"><%= item.eventTitle %></a><% } else { %><%= item.eventTitle %><% } %></div>
+    <div class="dashboard-event-progress-title"><span class="runner-stage-chip">Stage <%= stageNumbers[item.state] || 1 %> of 4</span> <% if (item.eventSlug) { %><a href="/events/<%= item.eventSlug %>"><%= item.eventTitle %></a><% } else { %><%= item.eventTitle %><% } %></div>
     <div class="item-meta"><span><%= item.raceDistance || 'Distance TBA' %></span> &middot; <span><%= item.isAccumulated ? 'Accumulated challenge' : 'Run result' %></span> &middot; <span>Code: <code><%= item.confirmationCode %></code></span></div>
     <% if (item.isAccumulated && item.progress) { %><div class="dashboard-event-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= Math.round(progressPercent) %>"><span style="width: <%= progressPercent %>%"></span></div><div class="dashboard-event-progress-stats"><strong><%= item.progress.progressLabel %></strong><span><%= item.progress.approvedActivityCount %> approved, <%= item.progress.pendingActivityCount %> pending, <%= item.progress.rejectedActivityCount %> rejected</span></div><% } %>
     <p class="dashboard-event-progress-help"><%= item.helperText %></p>

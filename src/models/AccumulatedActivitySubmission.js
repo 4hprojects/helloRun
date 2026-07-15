@@ -166,6 +166,12 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
       default: '',
       maxlength: 500
     },
+    rejectionCode: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 80
+    },
     certificate: {
       url: { type: String, default: '' },
       key: { type: String, default: '' },

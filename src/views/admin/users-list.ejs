@@ -450,6 +450,11 @@
           <h3 id="adminDeleteConfirmTitle">Confirm Deletion</h3>
           <p id="adminDeleteConfirmDesc" class="admin-delete-confirm-desc"></p>
           <div class="admin-delete-confirm-pw-group">
+            <label for="adminDeleteConfirmReason">Reason for deletion</label>
+            <textarea id="adminDeleteConfirmReason" rows="3" minlength="8" maxlength="500" placeholder="Explain why these accounts must be deleted" class="admin-delete-confirm-pw-input"></textarea>
+            <p class="admin-delete-confirm-pw-error" id="adminDeleteConfirmReasonError" hidden></p>
+          </div>
+          <div class="admin-delete-confirm-pw-group">
             <label for="adminDeleteConfirmPassword">Enter your password to confirm</label>
             <div class="admin-delete-confirm-pw-wrap">
               <input
@@ -683,6 +688,8 @@
       const deleteModalDialog = deleteModal ? deleteModal.querySelector('.admin-delete-confirm-dialog') : null;
       const deleteConfirmDesc = document.getElementById('adminDeleteConfirmDesc');
       const deleteConfirmInput = document.getElementById('adminDeleteConfirmPassword');
+      const deleteConfirmReason = document.getElementById('adminDeleteConfirmReason');
+      const deleteConfirmReasonError = document.getElementById('adminDeleteConfirmReasonError');
       const deleteConfirmPwError = document.getElementById('adminDeleteConfirmPwError');
       const deleteConfirmCancelBtn = document.getElementById('adminDeleteConfirmCancelBtn');
       const deleteConfirmOkBtn = document.getElementById('adminDeleteConfirmOkBtn');
@@ -695,6 +702,8 @@
         lastDeleteModalTrigger = triggerEl || null;
         if (deleteConfirmDesc) deleteConfirmDesc.textContent = description;
         if (deleteConfirmInput) { deleteConfirmInput.value = ''; deleteConfirmInput.type = 'password'; }
+        if (deleteConfirmReason) deleteConfirmReason.value = '';
+        if (deleteConfirmReasonError) { deleteConfirmReasonError.hidden = true; deleteConfirmReasonError.textContent = ''; }
         if (deleteConfirmPwError) { deleteConfirmPwError.hidden = true; deleteConfirmPwError.textContent = ''; }
         if (deleteConfirmPwToggle) {
           const icon = deleteConfirmPwToggle.querySelector('i');
@@ -713,6 +722,7 @@
         deleteModal.hidden = true;
         deleteModal.setAttribute('aria-hidden', 'true');
         if (deleteConfirmInput) deleteConfirmInput.value = '';
+        if (deleteConfirmReason) deleteConfirmReason.value = '';
         const resolve = deleteModalResolve;
         deleteModalResolve = null;
         if (resolve) resolve(result);
@@ -737,13 +747,19 @@
 
       if (deleteConfirmOkBtn) {
         deleteConfirmOkBtn.addEventListener('click', () => {
+          const reason = deleteConfirmReason ? deleteConfirmReason.value.trim() : '';
+          if (reason.length < 8) {
+            if (deleteConfirmReasonError) { deleteConfirmReasonError.textContent = 'Reason must be at least 8 characters.'; deleteConfirmReasonError.hidden = false; }
+            if (deleteConfirmReason) deleteConfirmReason.focus();
+            return;
+          }
           const pw = deleteConfirmInput ? deleteConfirmInput.value.trim() : '';
           if (!pw) {
             if (deleteConfirmPwError) { deleteConfirmPwError.textContent = 'Please enter your password.'; deleteConfirmPwError.hidden = false; }
             if (deleteConfirmInput) deleteConfirmInput.focus();
             return;
           }
-          closeDeleteConfirmModal(pw);
+          closeDeleteConfirmModal({ password: pw, reason });
         });
       }
 
@@ -762,7 +778,7 @@
         });
       }
 
-      function injectPasswordAndSubmit(form, password) {
+      function injectDeleteConfirmationAndSubmit(form, confirmation) {
         let pwInput = form.querySelector('input[name="adminPassword"]');
         if (!pwInput) {
           pwInput = document.createElement('input');
@@ -770,7 +786,15 @@
           pwInput.name = 'adminPassword';
           form.appendChild(pwInput);
         }
-        pwInput.value = password;
+        pwInput.value = confirmation.password;
+        let reasonInput = form.querySelector('input[name="reason"]');
+        if (!reasonInput) {
+          reasonInput = document.createElement('input');
+          reasonInput.type = 'hidden';
+          reasonInput.name = 'reason';
+          form.appendChild(reasonInput);
+        }
+        reasonInput.value = confirmation.reason;
         form.submit();
       }
 
@@ -790,9 +814,9 @@
             return;
           }
           const desc = `You are about to permanently delete ${selected.length} user account${selected.length === 1 ? '' : 's'}. This cannot be undone.`;
-          const password = await openDeleteConfirmModal(desc, bulkButton);
-          if (!password) return;
-          injectPasswordAndSubmit(bulkForm, password);
+          const confirmation = await openDeleteConfirmModal(desc, bulkButton);
+          if (!confirmation) return;
+          injectDeleteConfirmationAndSubmit(bulkForm, confirmation);
         });
       }
 
@@ -802,9 +826,9 @@
           const deleteBtn = form.querySelector('button[type="submit"]');
           const emailLabel = deleteBtn ? deleteBtn.getAttribute('aria-label') : 'this user';
           const desc = `You are about to permanently delete ${emailLabel.replace('Delete ', '')}. This cannot be undone.`;
-          const password = await openDeleteConfirmModal(desc, deleteBtn);
-          if (!password) return;
-          injectPasswordAndSubmit(form, password);
+          const confirmation = await openDeleteConfirmModal(desc, deleteBtn);
+          if (!confirmation) return;
+          injectDeleteConfirmationAndSubmit(form, confirmation);
         });
       });
 
@@ -1068,7 +1092,7 @@
           if (!result) return;
           if (purgeReasonHidden) purgeReasonHidden.value = result.reason;
           if (purgeConfirmationHidden) purgeConfirmationHidden.value = result.confirmation;
-          injectPasswordAndSubmit(purgeForm, result.password);
+          injectDeleteConfirmationAndSubmit(purgeForm, { password: result.password, reason: result.reason });
         });
       }
     })();

@@ -255,7 +255,14 @@
         <% if (managedUser.accountStatusReason) { %> &mdash; <%= managedUser.accountStatusReason %><% } %>
         <% if (managedUser.accountStatusUpdatedAt) { %><br><small>Updated: <%= new Date(managedUser.accountStatusUpdatedAt).toLocaleString('en-US') %></small><% } %></p>
         <% if (!isSelf) { %>
-          <form method="POST" action="/admin/users/<%= managedUser.id %>/account-status" style="margin-top:0.75rem">
+          <form method="POST" action="/admin/users/<%= managedUser.id %>/account-status" style="margin-top:0.75rem"
+            data-high-risk-confirm
+            data-confirm-title="Confirm account status change"
+            data-confirm-target="<%= managedUser.email %>"
+            data-confirm-impact="Changes this user's ability to sign in and use HelloRun. The user may be removed from active sessions."
+            data-confirm-reversibility="An administrator can change the status again, but user disruption and notifications cannot be undone."
+            data-confirm-privilege="Administrator"
+            data-confirm-button="Change account status">
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
             <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:flex-start">
               <select name="accountStatus" class="form-select" style="min-width:140px">

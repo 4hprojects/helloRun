@@ -389,6 +389,10 @@ New `/admin/analytics` page with Postgres aggregate queries:
 
 ## Priority Summary Table
 
+The cross-role workflow improvement program in `docs/workflow-analysis/README.md` completed all seven implementation waves on July 15, 2026. Remaining work is production/device validation and metric collection; it is tracked in `docs/STATUS.md`, not as an unfinished product priority.
+
+The runner desktop dashboard task-first layout follow-up is also implemented. Its remaining checkpoint is visual confirmation with production-shaped authenticated data at the documented desktop widths.
+
 | # | Feature | Effort | Impact | Type |
 |---|---------|--------|--------|------|
 | P1 | Admin Governance (audit, notes, suspension, verify) | 2–3 weeks | 🔴 Critical | Safety | ✅ Done |

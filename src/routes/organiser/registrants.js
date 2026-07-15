@@ -1,6 +1,7 @@
 // src/routes/organiser/registrants.js
 const express = require('express');
 const router = express.Router();
+const { getRejectionReasonOptions } = require('../../utils/rejection-reasons');
 const {
   logger,
   User,
@@ -193,6 +194,7 @@ router.get('/events/:id/registrants', requireAuth, async (req, res) => {
       isAdminViewer: user.role === 'admin',
       event,
       registrations,
+      paymentRejectionReasonOptions: getRejectionReasonOptions('payment'),
       selectedMode,
       selectedDistance,
       selectedPaymentStatus: filterContext.selectedPaymentStatus,

@@ -25,6 +25,37 @@
         </div>
       </div>
 
+      <section class="workflow-incident-summary" aria-labelledby="incident-heading">
+        <div>
+          <p class="workflow-eyebrow">Incident state</p>
+          <h3 id="incident-heading"><%= detail.incidentState.replaceAll('_', ' ') %></h3>
+          <p>
+            <% if (detail.incidentState === 'action_required') { %>Dead-lettered deliveries need operator review before retry.
+            <% } else if (detail.incidentState === 'recovering') { %>Retries are active. Confirm they reach Sent before closing this incident.
+            <% } else if (detail.incidentState === 'monitoring') { %>No retry is active; verify a successful delivery or decide whether recovery is required.
+            <% } else { %>No unresolved failure or retry is visible in this window.<% } %>
+          </p>
+        </div>
+        <dl class="workflow-incident-facts">
+          <div><dt>First observed</dt><dd><%= detail.incidentSummary.firstObservedAt ? formatDateTime(detail.incidentSummary.firstObservedAt) : 'None' %></dd></div>
+          <div><dt>Last activity</dt><dd><%= detail.incidentSummary.lastObservedAt ? formatDateTime(detail.incidentSummary.lastObservedAt) : 'None' %></dd></div>
+          <div><dt>Recovery verified</dt><dd><%= detail.incidentSummary.resolutionVerified ? 'Yes' : 'Not yet' %></dd></div>
+        </dl>
+      </section>
+
+      <h3 class="dashboard-section-title">Failures Grouped by Cause</h3>
+      <div class="workflow-cause-grid">
+        <% if (detail.causes.length) { detail.causes.forEach((cause) => { %>
+          <article class="workflow-cause-card">
+            <div><strong><%= cause.label %></strong> <span class="status-badge"><%= cause.count %></span></div>
+            <p><%= cause.action %></p>
+            <small><%= cause.sample %></small>
+          </article>
+        <% }); } else { %>
+          <p class="empty-state">No failure causes are present in this window.</p>
+        <% } %>
+      </div>
+
       <div class="dashboard-grid">
         <article class="metric-card">
           <p class="metric-label">Failed Logs</p>

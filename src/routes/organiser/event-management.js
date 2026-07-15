@@ -1,6 +1,7 @@
 // src/routes/organiser/event-management.js
 const express = require('express');
 const router = express.Router();
+const CertificateTemplate = require('../../models/CertificateTemplate');
 const {
   logger,
   User,
@@ -151,10 +152,55 @@ router.get('/events/:id', requireCanCreateEvents, async (req, res) => {
         message: 'Event not found or you do not have access.'
       });
     }
+    const [activeCertificateTemplate, eventBadges] = await Promise.all([
+      CertificateTemplate.findOne({ eventId: event._id, status: 'active' }).select('_id').lean(),
+      event.digitalBadgeEnabled
+        ? getEventBadgesByMongoEventId(event._id).catch(() => [])
+        : Promise.resolve([])
+    ]);
+    const operationalReadiness = [];
+    if (event.feeMode === 'paid' && (!event.paymentAccountName || !event.paymentInstructions)) {
+      operationalReadiness.push({
+        key: 'payment',
+        title: 'Complete payment instructions',
+        impact: 'Runners cannot confidently pay or submit a verifiable receipt until the payee and instructions are complete.',
+        href: `/organizer/events/${event._id}/edit`,
+        action: 'Edit payment setup'
+      });
+    }
+    if (event.digitalCertificateEnabled && !activeCertificateTemplate) {
+      operationalReadiness.push({
+        key: 'certificate',
+        title: 'Publish a certificate template',
+        impact: 'Approved runners will not receive the intended event certificate until an active template is available.',
+        href: `/organizer/events/${event._id}/certificate`,
+        action: 'Set up certificate'
+      });
+    }
+    if (event.digitalBadgeEnabled && !eventBadges.length) {
+      operationalReadiness.push({
+        key: 'badge',
+        title: 'Generate event badges',
+        impact: 'Badge awards cannot be displayed until event badge definitions exist.',
+        href: `/organizer/events/${event._id}/badges/manage`,
+        action: 'Manage badges'
+      });
+    }
+    if (!['published', 'closed', 'archived'].includes(event.status)) {
+      operationalReadiness.push({
+        key: 'publication',
+        title: 'Complete publication readiness',
+        impact: 'The public event lifecycle and runner registration depend on a publish-ready event.',
+        href: `/organizer/events/${event._id}/edit`,
+        action: 'Review event setup'
+      });
+    }
+
     return res.render('organizer/event-details', {
       title: `Event Details - ${event.title}`,
       user,
       event,
+      operationalReadiness,
       eventDetailsHtml: renderEventDetailsMarkdown(event.eventDetailsMarkdown),
       message: getPageMessage(req.query)
     });

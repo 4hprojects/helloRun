@@ -8,6 +8,7 @@
 <body>
   <%- include('../layouts/nav') %>
   <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
+  <% const submissionLifecycle = getLifecycleStatus('submission', submission.status); %>
 
   <main class="dashboard-container sub-page sub-detail-page">
     <nav class="sub-breadcrumb" aria-label="Breadcrumb">
@@ -25,11 +26,7 @@
             <i data-lucide="<%= submission.isPersonalRecord ? 'star' : 'flag' %>" aria-hidden="true"></i>
             <%= submission.isPersonalRecord ? 'Personal Record' : (submission.isAccumulatedActivity ? 'Challenge Activity' : 'Event Entry') %>
           </span>
-          <span class="badge badge-<%= submission.status %>">
-            <% if (submission.status === 'submitted') { %>Pending Review
-            <% } else if (submission.status === 'approved') { %>Approved
-            <% } else { %>Rejected<% } %>
-          </span>
+          <span class="badge badge-<%= submission.status %>" title="<%= submissionLifecycle.description %>"><%= submissionLifecycle.label %></span>
         </div>
         <p>
           Submitted <%= submission.submittedAtRelativeLabel || submission.submittedAtLabel %>
@@ -207,8 +204,11 @@
                   { keywords: ['receipt','payment','wrong','document','not an activity','incorrect file'], tip: 'The uploaded file doesn\'t appear to be a run activity screenshot. Upload a screenshot from your running app showing your activity details.', action: 'resubmit' }
                 ];
                 const matchedRule = GUIDANCE_RULES.find(r => r.keywords.some(k => rejReason.includes(k)));
-                const guidanceTip = matchedRule ? matchedRule.tip : 'Review the reason above and either correct your activity details below or upload a new proof.';
-                const guidanceAction = matchedRule ? matchedRule.action : 'both';
+                const guidanceTip = submission.rejectionGuidance || (matchedRule ? matchedRule.tip : 'Review the reason above and either correct your activity details below or upload a new proof.');
+                const resubmitOnlyCodes = ['unclear_proof', 'wrong_activity', 'identity_mismatch', 'date_outside_window', 'duplicate_activity'];
+                const guidanceAction = submission.rejectionCode
+                  ? (resubmitOnlyCodes.includes(submission.rejectionCode) ? 'resubmit' : 'both')
+                  : (matchedRule ? matchedRule.action : 'both');
               %>
               <details class="sub-rejection-guidance" open>
                 <summary><i data-lucide="lightbulb" aria-hidden="true"></i> How to fix this</summary>

@@ -1,5 +1,6 @@
 const { getRedisClient } = require('../config/redis');
 const logger = require('../utils/logger');
+const { sendHttpError } = require('../utils/http-error-response');
 
 // In-memory fallback store (used when Redis is not configured or unavailable).
 // Keys are path|user|ip, so under real traffic the Map accumulates one entry per
@@ -85,12 +86,13 @@ function createRateLimiter({ windowMs, maxRequests, message, keyFn }) {
     }
 
     if (!allowed) {
-      if (req.headers.accept && req.headers.accept.includes('application/json')) {
-        res.status(429).json({ success: false, message: safeMessage });
-        return;
-      }
-      res.status(429).send(safeMessage);
-      return;
+      res.set('Retry-After', String(Math.max(1, Math.ceil(safeWindowMs / 1000))));
+      return sendHttpError(req, res, {
+        status: 429,
+        message: safeMessage,
+        detail: 'Wait a moment before trying again. If you submitted a form, check its current status before repeating the action.',
+        retryable: true
+      });
     }
 
     next();

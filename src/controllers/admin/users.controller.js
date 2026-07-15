@@ -177,6 +177,10 @@ exports.exportUsersXlsx = async (req, res) => {
 
 exports.deleteUsers = async (req, res) => {
   try {
+    const reason = String(req.body?.reason || '').trim().slice(0, 500);
+    if (reason.length < 8) {
+      return res.redirect(buildAdminUsersRedirect('error', 'A deletion reason of at least 8 characters is required.'));
+    }
     const adminPassword = String(req.body?.adminPassword || '');
     if (!adminPassword) {
       return res.redirect(buildAdminUsersRedirect('error', 'Password is required to confirm deletion.'));
@@ -228,7 +232,7 @@ exports.deleteUsers = async (req, res) => {
       : `${deletedCount} user(s) deleted.`;
 
     for (const u of deletableUsers) {
-      recordCriticalAuditEventInBackground({ action: 'admin.user.deleted', targetType: 'user', targetId: String(u._id), notes: `Deleted user ${u.email}`, actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+      recordCriticalAuditEventInBackground({ action: 'admin.user.deleted', targetType: 'user', targetId: String(u._id), notes: `Deleted user ${u.email}. Reason: ${reason}`, actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
     }
 
     return res.redirect(buildAdminUsersRedirect('success', message));

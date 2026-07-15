@@ -78,7 +78,14 @@
             <span><%= platformSent %> / <%= platformLimit %> used today &bull; <%= platformRemaining %> remaining</span>
           </div>
 
-          <form method="POST" action="/admin/promote" id="promote-form">
+          <form method="POST" action="/admin/promote" id="promote-form"
+            data-high-risk-confirm
+            data-confirm-title="Send event promotion"
+            data-confirm-target="The selected event and previewed audience"
+            data-confirm-impact="Starts an email campaign immediately for the eligible recipients shown in the preview."
+            data-confirm-reversibility="Sent messages cannot be recalled. Verify the event, audience, and recipient count first."
+            data-confirm-privilege="Full administrator"
+            data-confirm-button="Start promotion">
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
 
             <div class="form-group">

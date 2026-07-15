@@ -95,7 +95,14 @@
             <% } %>
           </div>
 
-          <form method="POST" action="/organizer/promote" id="promote-form">
+          <form method="POST" action="/organizer/promote" id="promote-form"
+            data-high-risk-confirm
+            data-confirm-title="Send event promotion"
+            data-confirm-target="The selected event and previewed organizer audience"
+            data-confirm-impact="Starts an email campaign immediately for the eligible recipients shown in the preview."
+            data-confirm-reversibility="Sent messages cannot be recalled. Verify the event, audience, quota, and recipient count first."
+            data-confirm-privilege="Approved organizer"
+            data-confirm-button="Start promotion">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
             <div class="form-group">
@@ -147,7 +154,7 @@
             <div class="recipient-capped" id="recipient-capped" style="display:none;"></div>
           </div>
           <p style="font-size:0.78rem;color:#94a3b8;margin:12px 0 0;line-height:1.5;">
-            Emails respect platform opt-out preferences. Runners who opted out of event promotions will not receive this email.
+            The eligible count already excludes runners who opted out of event promotions. The quota cap and any additional delivery suppression are shown separately.
           </p>
         </div>
       </div>
@@ -186,6 +193,7 @@
                       <% if (((c.skippedCount || 0) + (c.suppressedCount || 0)) > 0) { %> &bull; <%= (c.skippedCount || 0) + (c.suppressedCount || 0) %> skipped<% } %>
                       <% if ((c.failedCount || 0) > 0) { %> &bull; <%= c.failedCount %> failed<% } %>
                     </div>
+                    <% if ((c.suppressedCount || 0) > 0) { %><div style="font-size:0.72rem;color:#64748b;"><%= c.suppressedCount %> suppressed by preferences or delivery policy</div><% } %>
                   </td>
                   <td><%= c.sentAt ? new Date(c.sentAt).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—' %></td>
                   <td><span class="status-badge <%= c.status %>"><%= c.status %></span></td>
@@ -200,6 +208,7 @@
 
   <%- include('../layouts/footer') %>
 
+  <script src="/js/main.js"></script>
   <script>
     (function () {
       const eventSelect = document.getElementById('eventId');

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><%- include('../layouts/head', { title }) %><link rel="stylesheet" href="/css/admin.css"></head>
+<body><%- include('../layouts/nav') %>
+<main class="admin-page"><section class="section admin-shell">
+  <div class="admin-header-row"><div><p class="dashboard-kicker">Cross-domain lookup</p><h2>Admin Search</h2><p>Find authorized users, events, organizer applications, and run submissions from one query.</p></div><a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a></div>
+  <form class="admin-filters" method="GET" action="/admin/search"><div class="filter-field filter-grow"><label for="adminSearch">Name, email, title, slug, application ID, status, or object ID</label><input id="adminSearch" type="search" name="q" value="<%= q %>" minlength="2" required autofocus></div><div class="filter-actions"><button class="btn" type="submit">Search</button></div></form>
+  <% const sections = [
+    ['Users', results.users, (x) => `${x.firstName || ''} ${x.lastName || ''}`.trim() || x.email, (x) => `${x.role} · ${x.accountStatus || 'active'} · ${x.email}`, (x) => `/admin/cases/user/${x._id}`],
+    ['Events', results.events, (x) => x.title, (x) => `${x.status} · ${x.organizerId?.email || 'No organizer email'}`, (x) => `/admin/events/${x._id}`],
+    ['Organizer applications', results.applications, (x) => x.businessName || x.applicationId, (x) => `${x.status} · ${x.userId?.email || x.applicationId}`, (x) => `/admin/applications/${x._id}`],
+    ['Run submissions', results.submissions, (x) => x.eventId?.title || `Submission ${x._id}`, (x) => `${x.status} · ${x.runnerId?.email || 'Unknown runner'}`, (x) => `/admin/submissions?search=${x._id}`]
+  ]; %>
+  <% if (q.length < 2) { %><div class="empty-state"><h3>Search platform records</h3><p>Enter at least two characters. Results respect the current admin authorization boundary.</p></div><% } else { %>
+    <div class="admin-search-grid"><% sections.forEach(([label, items, primary, secondary, href]) => { %><section class="detail-card"><h3><%= label %> <span class="status-badge"><%= items.length %></span></h3><% if (items.length) { %><ul class="admin-search-results"><% items.forEach((item) => { %><li><div><strong><%= primary(item) %></strong><small><%= secondary(item) %></small><code><%= item._id %></code></div><a class="btn btn-sm" href="<%= href(item) %>">Open</a></li><% }); %></ul><% } else { %><p class="text-muted">No matching <%= label.toLowerCase() %>.</p><% } %></section><% }); %></div>
+  <% } %>
+</section></main><%- include('../layouts/footer') %><script src="/js/main.js"></script><script>if (window.lucide) lucide.createIcons();</script></body></html>

@@ -38,6 +38,7 @@ const {
   updateBadgeDefinitionStatus: updateBadgeDefinitionStatusSvc,
   updateBadgeDefinitionEmailLevel: updateBadgeDefinitionEmailLevelSvc,
   recalculateBadgeAwards,
+  previewBadgeRecalculation,
   getRunnerEarnedBadges,
   evaluateOrganiserAchievementsInBackground
 } = require('../../services/achievement.service');
@@ -174,11 +175,19 @@ function canPublishFromMessage(message) {
   return /draft saved/i.test(String(message.text || ''));
 }
 
-function buildDetailRedirect(applicationId, type, message) {
+function normalizeApplicationQueueReturn(value) {
+  const path = String(value || '').trim();
+  if (!path.startsWith('/admin/applications') || path.startsWith('//') || /[\r\n]/.test(path)) return '';
+  return path.slice(0, 1200);
+}
+
+function buildDetailRedirect(applicationId, type, message, returnTo = '') {
   const params = new URLSearchParams({
     type,
     msg: message
   });
+  const safeReturnTo = normalizeApplicationQueueReturn(returnTo);
+  if (safeReturnTo) params.set('returnTo', safeReturnTo);
   return `/admin/applications/${applicationId}?${params.toString()}`;
 }
 
@@ -1322,7 +1331,8 @@ async function renderApplicationDetails(res, applicationId, options = {}) {
     title: 'Application Details - HelloRun Admin',
     application,
     message: options.message || null,
-    rejectionReasonDraft: options.rejectionReasonDraft || ''
+    rejectionReasonDraft: options.rejectionReasonDraft || '',
+    returnTo: normalizeApplicationQueueReturn(options.returnTo)
   });
 }
 
@@ -1337,7 +1347,7 @@ module.exports = {
   reviewAccumulatedActivitySubmission, getPostgresClient, crypto, listRecentBadgeAuditLogs, publishEvent,
   getPolicyByAdminPath, listBadgeDefinitions, listAdminUserBadges, getAdminBadgeAnalytics, revokeUserBadge,
   updateBadgeDefinitionStatusSvc, updateBadgeDefinitionEmailLevelSvc,
-  recalculateBadgeAwards, getRunnerEarnedBadges, evaluateOrganiserAchievementsInBackground,
+  recalculateBadgeAwards, previewBadgeRecalculation, getRunnerEarnedBadges, evaluateOrganiserAchievementsInBackground,
   buildSubmissionHubPath, listSubmissionHub,
   listSubmissionHubEvents, uploadService, markdownToHtml, sanitizeHtml, DEFAULT_WAIVER_TEMPLATE,
   applyEventFormData, countries, getCreateEventFormData, getCreateEventFormDataFromEvent,
@@ -1351,7 +1361,7 @@ module.exports = {
   ADMIN_USER_SORTS, ADMIN_USERS_PER_PAGE, ADMIN_USER_PER_PAGE_OPTIONS, ADMIN_BADGE_STATUSES,
   ADMIN_BADGE_SCOPES, adminUserProfileCountries, POLICY_HEADING_PATTERNS, POLICY_LABEL_ALLOWLIST,
   POLICY_LABEL_BLOCKLIST, BULK_DELETE_CAP, ADMIN_TIER_OPTIONS, isFullAdminTier,
-  escapeRegex, getMessageFromQuery, canPublishFromMessage, buildDetailRedirect, canTransitionStatus,
+  escapeRegex, getMessageFromQuery, canPublishFromMessage, buildDetailRedirect, normalizeApplicationQueueReturn, canTransitionStatus,
   getRequestIpAddress, getRequestUserAgent, purgeApplicationDocuments, renderApplicationNotFound,
   renderServerError, buildAdminRedirect, appendAdminPageMessage, buildCommunicationLogHref,
   buildCommunicationRetryHref, buildCommunicationRetryActionHref, buildCommunicationFailureDetailHref,

@@ -151,6 +151,12 @@ const registrationSchema = new mongoose.Schema(
       trim: true,
       maxlength: 500
     },
+    paymentRejectionCode: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: 80
+    },
     waiver: {
       accepted: { type: Boolean, required: true, default: true },
       version: { type: Number, required: true, min: 1 },

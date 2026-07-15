@@ -1,13 +1,27 @@
-<section class="card runner-missed-submissions-card" data-dashboard-fragment="missedSubmissions">
-  <div class="card-header runner-event-progress-header"><h2><i data-lucide="calendar-x"></i> Missed Submissions</h2></div>
-  <div class="card-content runner-event-progress-content">
-    <% const missedCards = cards.missedSubmissions || []; %>
-    <% if (missedCards.length) { %>
-      <ul class="dashboard-event-progress-list" aria-label="Events whose submission window has closed without a proof submission">
-        <% missedCards.forEach((item) => { %>
-          <%- include('event-progress-row', { item }) %>
-        <% }) %>
-      </ul>
-    <% } else { %><div class="empty-state"><p class="empty-message">No missed submissions. Nice work staying on top of your run proofs.</p></div><% } %>
-  </div>
+<% const missedCards = cards.missedSubmissions || []; %>
+<section class="runner-missed-archive" data-dashboard-fragment="missedSubmissions" aria-labelledby="missed-archive-title">
+  <details class="card runner-missed-submissions-card">
+    <summary>
+      <span class="runner-missed-summary-icon"><i data-lucide="archive"></i></span>
+      <span><strong id="missed-archive-title">Missed submissions</strong><small>Closed events without a run proof</small></span>
+      <span class="runner-missed-count"><%= missedCards.length %></span>
+      <span class="runner-missed-toggle" aria-hidden="true"><i data-lucide="chevron-down"></i></span>
+    </summary>
+    <div class="runner-missed-body">
+      <% if (missedCards.length) { %>
+        <ul class="runner-compact-activity-list" aria-label="Events whose submission window closed without a proof">
+          <% missedCards.forEach((item) => { %>
+            <li class="runner-compact-activity-row runner-compact-activity-row--missed">
+              <div class="runner-compact-activity-main">
+                <strong><% if (item.eventSlug) { %><a href="/events/<%= item.eventSlug %>"><%= item.eventTitle %></a><% } else { %><%= item.eventTitle %><% } %></strong>
+                <span><%= item.raceDistance || 'Distance TBA' %> · <%= item.isAccumulated ? 'Accumulated challenge' : 'Run result' %><% if (item.confirmationCode) { %> · Code <code><%= item.confirmationCode %></code><% } %></span>
+              </div>
+              <span class="badge badge-missed">Submission closed</span>
+              <p><%= item.helperText %></p>
+            </li>
+          <% }) %>
+        </ul>
+      <% } else { %><div class="empty-state"><p class="empty-message">No missed submissions. Nice work staying on top of your run proofs.</p></div><% } %>
+    </div>
+  </details>
 </section>

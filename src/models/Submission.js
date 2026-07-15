@@ -73,6 +73,7 @@ const commonActivityFields = {
   reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   reviewNotes: { type: String, trim: true, default: '', maxlength: 1200 },
   rejectionReason: { type: String, trim: true, default: '', maxlength: 500 },
+  rejectionCode: { type: String, trim: true, default: '', maxlength: 80 },
   suspiciousFlag: { type: Boolean, default: false },
   suspiciousFlagReason: { type: String, trim: true, default: '', maxlength: 500 }
 };

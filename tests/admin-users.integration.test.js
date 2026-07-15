@@ -258,7 +258,7 @@ test('admin can delete any other account after password confirmation and cannot 
       Cookie: cookie,
       'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: new URLSearchParams({ _csrf: csrfToken, adminPassword: seed.password }),
+    body: new URLSearchParams({ _csrf: csrfToken, adminPassword: seed.password, reason: 'Verify self-delete protection' }),
     redirect: 'manual'
   });
   assert.equal(selfDeleteResponse.status, 302);
@@ -276,6 +276,7 @@ test('admin can delete any other account after password confirmation and cannot 
     body: new URLSearchParams({
       _csrf: csrfToken,
       userIds: seed.runner.id,
+      reason: 'Verify incorrect-password protection',
       adminPassword: 'WrongPass123'
     }),
     redirect: 'manual'
@@ -293,6 +294,7 @@ test('admin can delete any other account after password confirmation and cannot 
     body: new URLSearchParams({
       _csrf: csrfToken,
       userIds: [seed.runner.id, seed.dormant.id].join(','),
+      reason: 'Remove admin integration test fixtures',
       adminPassword: seed.password
     }),
     redirect: 'manual'
