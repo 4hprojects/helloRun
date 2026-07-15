@@ -186,7 +186,7 @@
                 <select name="timezone" id="profileTimezone" required>
                   <option value="">Select timezone</option>
                   <% (timezones || []).forEach((timezone) => { %>
-                    <option value="<%= timezone %>" <%= profileData.timezone === timezone ? 'selected' : '' %>><%= timezone.replace(/_/g, ' ') %></option>
+                    <option value="<%= timezone.value %>" <%= profileData.timezone === timezone.value ? 'selected' : '' %>><%= timezone.label %></option>
                   <% }) %>
                 </select>
               </label>

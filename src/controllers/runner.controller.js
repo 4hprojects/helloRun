@@ -5,7 +5,7 @@ const Event = require('../models/Event');
 const passwordService = require('../services/password.service');
 const { getCountries, isValidCountryCode, normalizeCountryCode } = require('../utils/country');
 const {
-  getSupportedTimeZones,
+  getTimeZoneOptions,
   normalizeTimeZone
 } = require('../utils/timezone');
 const { getCloudflareCountrySuggestion } = require('../utils/location-suggestion');
@@ -57,7 +57,7 @@ const { getRunnerBadgeProgress, getRunnerNextMilestones } = require('../services
 const stravaService = require('../services/strava.service');
 
 const countries = getCountries();
-const timezones = getSupportedTimeZones();
+const timezones = getTimeZoneOptions();
 
 exports.getDashboard = async (req, res) => {
   try {

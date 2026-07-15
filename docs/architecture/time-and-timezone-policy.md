@@ -67,6 +67,8 @@ Date-only values must not be represented as midnight UTC merely for convenience.
 - Country may suggest a timezone but is not authoritative. Countries can span multiple zones, and a runner can live or run outside their profile country.
 - Browser detection may suggest a timezone. It must never silently replace a confirmed profile value.
 - When the profile timezone is absent or invalid, use `Asia/Manila` for display and show a prompt or warning rather than pretending it is the runner's local time.
+- Profile selectors display an offset-first label such as `UTC+08:00 — Manila`, while the submitted and stored value remains `Asia/Manila`.
+- Offset labels are calculated for the current date and may change seasonally; the underlying IANA value does not change.
 
 ### Activity timezone
 
@@ -118,6 +120,7 @@ Introduce one centralized time module before converting individual screens. Its 
 
 - `BUSINESS_TIME_ZONE = 'Asia/Manila'` and the default locale `en-PH`.
 - Validate and normalize supported IANA timezone identifiers.
+- Generate timezone choices from supported IANA zones, sorted by current numeric UTC offset and then readable city name.
 - Parse a Manila wall-clock form value into a UTC instant.
 - Parse an ISO 8601 instant only when it has an offset or `Z`.
 - Format an instant in an explicitly supplied timezone.

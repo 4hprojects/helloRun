@@ -59,7 +59,10 @@ Add a dedicated location and timezone section at `/runner/profile#location`.
 
 The selector should:
 
-- List supported IANA timezones with readable city/region labels and current offsets.
+- Display supported zones as `UTC±HH:MM — City`, ordered by current numeric offset and then city.
+- Keep the IANA identifier as the option value so daylight-saving rules remain correct.
+- Include real-world whole-hour, half-hour, and quarter-hour zones represented by the runtime's supported IANA data.
+- Recalculate visible offsets seasonally without migrating or rewriting saved profile values.
 - Support type-ahead search.
 - Show the currently detected browser timezone as a recommendation when it differs from the saved value.
 - Explain that offsets can change seasonally and the named timezone is therefore saved instead of a fixed `UTC+/-` offset.
