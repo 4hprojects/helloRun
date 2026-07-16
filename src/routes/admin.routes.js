@@ -219,7 +219,7 @@ router.get('/blog/posts/:id', requireAdmin, blogController.previewBlogPost);
 router.post('/blog/posts/:id/approve', requireAdmin, adminModerationLimiter, blogController.approveBlogPost);
 router.post('/blog/posts/:id/reject', requireAdmin, adminModerationLimiter, blogController.rejectBlogPost);
 router.post('/blog/posts/:id/archive', requireAdmin, adminModerationLimiter, blogController.archiveBlogPost);
-router.patch('/blog/posts/:id/autosave', requireAdmin, adminBlogAutosaveLimiter, blogController.autosaveBlogPostAdmin);
+router.patch('/blog/posts/:id/autosave', requireAdmin, adminBlogAutosaveLimiter, uploadService.uploadBlogAssets, blogController.autosaveBlogPostAdmin);
 
 // Blog comment moderation
 router.get('/blog/comments', requireAdmin, blogInteractionController.adminListComments);

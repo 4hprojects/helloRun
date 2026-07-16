@@ -184,7 +184,8 @@ exports.uploadBlogCover = (req, res, next) => {
 exports.uploadBlogAssets = (req, res, next) => {
   const uploadFields = brandingUpload.fields([
     { name: 'coverImageFile', maxCount: 1 },
-    { name: 'galleryImageFiles', maxCount: 3 }
+    { name: 'galleryImageFiles', maxCount: 3 },
+    { name: 'inlineImageFile', maxCount: 1 }
   ]);
 
   uploadFields(req, res, (err) => {
@@ -453,16 +454,33 @@ exports.uploadBlogGalleryToR2 = async ({ userId, galleryImageFiles }) => {
   }
 
   const uploads = [];
-  for (const galleryImageFile of galleryFiles) {
-    // eslint-disable-next-line no-await-in-loop
-    const uploaded = await uploadFileToR2({
-      userId,
-      file: galleryImageFile,
-      category: 'blog/gallery'
-    });
-    uploads.push(uploaded);
+  try {
+    for (const galleryImageFile of galleryFiles) {
+      // eslint-disable-next-line no-await-in-loop
+      const uploaded = await uploadFileToR2({
+        userId,
+        file: galleryImageFile,
+        category: 'blog/gallery'
+      });
+      uploads.push(uploaded);
+    }
+  } catch (error) {
+    await exports.deleteObjects(uploads.map((item) => item.key));
+    throw error;
   }
   return uploads;
+};
+
+exports.uploadBlogInlineToR2 = async ({ userId, inlineImageFile }) => {
+  assertR2Configured();
+  if (!inlineImageFile) {
+    throw new Error('Inline image file is required.');
+  }
+  return uploadFileToR2({
+    userId,
+    file: inlineImageFile,
+    category: 'blog/inline'
+  });
 };
 
 exports.uploadPaymentProofToR2 = async ({ userId, paymentProofFile }) => {

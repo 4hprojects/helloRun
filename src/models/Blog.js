@@ -80,9 +80,9 @@ const blogSchema = new mongoose.Schema(
     },
     coverImageUrl: {
       type: String,
-      required: true,
       trim: true,
-      maxlength: 2000
+      maxlength: 2000,
+      default: ''
     },
     coverImageAlt: {
       type: String,

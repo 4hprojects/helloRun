@@ -266,6 +266,8 @@ exports.archiveBlogPost = async (req, res) => {
 };
 
 exports.autosaveBlogPostAdmin = async (req, res) => {
+  const uploadedKeys = [];
+  let assetsPersisted = false;
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ success: false, message: 'Invalid post id.' });
@@ -279,14 +281,77 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Post not found.' });
     }
 
+    if (req.uploadError) {
+      return res.status(400).json({ success: false, message: req.uploadError });
+    }
+
+    let requestBody = req.body || {};
+    if (Object.prototype.hasOwnProperty.call(requestBody, 'payload')) {
+      try {
+        requestBody = JSON.parse(String(requestBody.payload || '{}'));
+      } catch (_error) {
+        return res.status(400).json({ success: false, message: 'Invalid autosave payload.' });
+      }
+      if (!requestBody || typeof requestBody !== 'object' || Array.isArray(requestBody)) {
+        return res.status(400).json({ success: false, message: 'Invalid autosave payload.' });
+      }
+    }
+
     const pendingRevision = await getActivePendingRevision(post._id);
     const reviewSource = pendingRevision ? { ...post.toObject(), ...pendingRevision.after } : post;
     const beforeSnapshot = pendingRevision
       ? createRevisionSnapshot(reviewSource)
       : getAdminAutosaveSnapshot(post);
-    const nextPayload = normalizeAdminAutosavePayload(req.body, reviewSource);
-    const validationErrors = validateBlogPayload(nextPayload);
+    const nextPayload = normalizeAdminAutosavePayload(requestBody, reviewSource);
+
+    const coverImageFile = getUploadedFile(req, 'coverImageFile');
+    const galleryImageFiles = getUploadedFiles(req, 'galleryImageFiles');
+    const inlineImageFile = getUploadedFile(req, 'inlineImageFile');
+    if (nextPayload.galleryImageUrls.length + galleryImageFiles.length > MAX_BLOG_GALLERY_IMAGES) {
+      return res.status(400).json({
+        success: false,
+        message: `Maximum ${MAX_BLOG_GALLERY_IMAGES} gallery images are allowed.`
+      });
+    }
+
+    const actorId = req.session?.userId || 'admin';
+    if (coverImageFile) {
+      const uploadedCover = await uploadService.uploadBlogCoverToR2({ userId: actorId, coverImageFile });
+      uploadedKeys.push(uploadedCover.key);
+      nextPayload.coverImageUrl = uploadedCover.url;
+    }
+    if (galleryImageFiles.length) {
+      const uploadedGallery = await uploadService.uploadBlogGalleryToR2({
+        userId: actorId,
+        galleryImageFiles
+      });
+      uploadedGallery.forEach((item) => uploadedKeys.push(item.key));
+      nextPayload.galleryImageUrls = [
+        ...nextPayload.galleryImageUrls,
+        ...uploadedGallery.map((item) => item.url)
+      ];
+    }
+    if (inlineImageFile) {
+      const inlineImageIndex = Number(requestBody.inlineImageBlockIndex);
+      const targetBlock = Number.isInteger(inlineImageIndex) ? nextPayload.contentBlocks[inlineImageIndex] : null;
+      if (!targetBlock || targetBlock.type !== 'image') {
+        if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
+        return res.status(400).json({ success: false, message: 'Inline image target is invalid.' });
+      }
+      const uploadedInline = await uploadService.uploadBlogInlineToR2({
+        userId: actorId,
+        inlineImageFile
+      });
+      uploadedKeys.push(uploadedInline.key);
+      targetBlock.content = { ...(targetBlock.content || {}), url: uploadedInline.url };
+      nextPayload.contentHtml = renderContentBlocksToHtml(nextPayload.contentBlocks);
+      nextPayload.contentText = getStructuredContentText(nextPayload.contentBlocks);
+    }
+    const validationErrors = validateBlogPayload(nextPayload, {
+      requireCover: ['pending', 'published', 'scheduled'].includes(nextPayload.status)
+    });
     if (validationErrors.length) {
+      if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
       return res.status(400).json({
         success: false,
         message: 'Validation failed.',
@@ -312,6 +377,7 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
       pendingRevision.moderationFlags = moderation.flags;
       pendingRevision.moderationFlagSummary = moderation.summary;
       await pendingRevision.save();
+      assetsPersisted = true;
 
       post.activeRevisionUpdatedAt = pendingRevision.editedAt;
       await post.save();
@@ -333,6 +399,7 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
       }
 
       await post.save();
+      assetsPersisted = true;
     }
     const afterSnapshot = pendingRevision
       ? createRevisionSnapshot({ ...post.toObject(), ...pendingRevision.after })
@@ -340,12 +407,12 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
     const changedFields = getChangedFields(beforeSnapshot, afterSnapshot);
 
     if (changedFields.length) {
-      const actorId = mongoose.Types.ObjectId.isValid(req.session?.userId)
+      const revisionActorId = mongoose.Types.ObjectId.isValid(req.session?.userId)
         ? req.session.userId
         : null;
       await BlogRevision.create({
         postId: post._id,
-        editedBy: actorId,
+        editedBy: revisionActorId,
         source: 'admin_autosave',
         changedFields,
         before: pickFields(beforeSnapshot, changedFields),
@@ -353,6 +420,30 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
         editedAt: new Date()
       });
     }
+
+    const keysToDelete = [];
+    const previousCoverUrl = String(beforeSnapshot.coverImageUrl || '');
+    if (previousCoverUrl && previousCoverUrl !== nextPayload.coverImageUrl) {
+      const previousCoverKey = uploadService.extractObjectKeyFromPublicUrl(previousCoverUrl);
+      if (previousCoverKey) keysToDelete.push(previousCoverKey);
+    }
+    keysToDelete.push(...collectRemovedGalleryKeys(beforeSnapshot.galleryImageUrls, nextPayload.galleryImageUrls));
+    const previousInlineUrls = (Array.isArray(beforeSnapshot.contentBlocks) ? beforeSnapshot.contentBlocks : [])
+      .filter((block) => block?.type === 'image')
+      .map((block) => String(block.content?.url || ''))
+      .filter(Boolean);
+    const nextInlineUrlSet = new Set(
+      (Array.isArray(nextPayload.contentBlocks) ? nextPayload.contentBlocks : [])
+        .filter((block) => block?.type === 'image')
+        .map((block) => String(block.content?.url || ''))
+        .filter(Boolean)
+    );
+    previousInlineUrls
+      .filter((url) => !nextInlineUrlSet.has(url))
+      .map((url) => uploadService.extractObjectKeyFromPublicUrl(url))
+      .filter(Boolean)
+      .forEach((key) => keysToDelete.push(key));
+    if (keysToDelete.length) await uploadService.deleteObjects(Array.from(new Set(keysToDelete)));
 
     return res.json({
       success: true,
@@ -385,6 +476,9 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
     });
   } catch (error) {
     logger.error('autosaveBlogPostAdmin error:', error);
+    if (!assetsPersisted && uploadedKeys.length) {
+      await uploadService.deleteObjects(uploadedKeys);
+    }
     return res.status(500).json({ success: false, message: 'Failed to auto-save blog post.' });
   }
 };

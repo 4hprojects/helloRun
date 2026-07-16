@@ -291,6 +291,72 @@
       font-size: 0.76rem;
     }
 
+    .admin-image-manager {
+      display: grid;
+      gap: 0.55rem;
+      padding: 0.65rem;
+      border: 1px solid #dbeafe;
+      border-radius: 9px;
+      background: #f8fbff;
+    }
+
+    .admin-image-preview {
+      width: 100%;
+      max-height: 240px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #e2e8f0;
+    }
+
+    .admin-image-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+
+    .admin-image-actions button,
+    .admin-image-upload-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 34px;
+      padding: 0.4rem 0.65rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 7px;
+      background: #fff;
+      color: #334155;
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .admin-image-upload-label input { display: none; }
+
+    .admin-gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.55rem;
+    }
+
+    .admin-gallery-card {
+      display: grid;
+      gap: 0.35rem;
+      min-width: 0;
+    }
+
+    .admin-gallery-card img {
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      object-fit: cover;
+      border-radius: 7px;
+      background: #e2e8f0;
+    }
+
+    .admin-upload-state { margin: 0; font-size: 0.78rem; color: #475569; }
+    .admin-upload-state[data-state="error"] { color: #b91c1c; font-weight: 700; }
+
     .admin-composer {
       display: grid;
       gap: 0.55rem;
@@ -626,9 +692,7 @@
     <% } %>
 
     <article style="border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; overflow: hidden;">
-      <% if (post.coverImageUrl) { %>
-        <img src="<%= post.coverImageUrl %>" alt="<%= post.title %> cover" style="width: 100%; max-height: 320px; object-fit: cover;">
-      <% } %>
+      <img id="adminArticleCover" src="<%= post.coverImageUrl || '' %>" alt="<%= post.title %> cover" style="width: 100%; max-height: 320px; object-fit: cover;<%= post.coverImageUrl ? '' : ' display:none;' %>">
       <div style="padding: 1rem 1.1rem;">
         <p style="margin: 0.2rem 0 0; color: #64748b;">
           Author: <%= post.authorId?.firstName || '' %> <%= post.authorId?.lastName || '' %> (<%= post.authorId?.email || 'N/A' %>)
@@ -707,6 +771,16 @@
             <div class="admin-field admin-field-wide">
               <label for="adminCoverImageUrl">Cover Image URL</label>
               <input id="adminCoverImageUrl" name="coverImageUrl" type="url" value="<%= post.coverImageUrl || '' %>">
+              <div class="admin-image-manager">
+                <img id="adminCoverPreview" class="admin-image-preview" src="<%= post.coverImageUrl || '' %>" alt="Cover preview" <%= post.coverImageUrl ? '' : 'hidden' %>>
+                <div class="admin-image-actions">
+                  <label class="admin-image-upload-label">Upload or replace
+                    <input id="adminCoverImageFile" type="file" accept="image/jpeg,image/png,image/webp">
+                  </label>
+                  <button id="adminRemoveCover" type="button">Remove cover</button>
+                </div>
+                <p id="adminCoverUploadState" class="admin-upload-state" data-state="saved">JPEG/PNG uploads are converted to WebP.</p>
+              </div>
             </div>
             <div class="admin-field admin-field-wide">
               <label for="adminCoverImageAlt">Cover Image Alt Text</label>
@@ -715,9 +789,16 @@
             <div class="admin-field admin-field-wide">
               <label for="adminGalleryImageUrls">Gallery Image URLs</label>
               <textarea id="adminGalleryImageUrls" name="galleryImageUrls" placeholder="One URL per line"><%= Array.isArray(post.galleryImageUrls) ? post.galleryImageUrls.join('\n') : '' %></textarea>
-              <p class="admin-field-help">One image URL per line, max 3 images.</p>
-              <input id="adminGalleryImageFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple>
-              <p class="admin-field-help">Optional: upload gallery images and append them here automatically.</p>
+              <div class="admin-image-manager">
+                <div id="adminGalleryPreview" class="admin-gallery-grid"></div>
+                <div class="admin-image-actions">
+                  <label class="admin-image-upload-label">Add images
+                    <input id="adminGalleryImageFiles" type="file" accept="image/jpeg,image/png,image/webp" multiple>
+                  </label>
+                  <span id="adminGallerySlots" class="admin-field-help"></span>
+                </div>
+                <p id="adminGalleryUploadState" class="admin-upload-state" data-state="saved">Maximum 3 images. JPEG/PNG uploads are converted to WebP.</p>
+              </div>
             </div>
             <% const adminHasStructuredBlocks = post.contentBlocks && post.contentBlocks.length; %>
             <% if (adminHasStructuredBlocks) { %>
@@ -896,10 +977,25 @@
       const adminPreview = document.getElementById("adminComposerPreview");
       const adminContentBlocksInput = document.getElementById("adminContentBlocksJson");
       const adminContentHtml = document.getElementById("adminContentHtml");
+      const adminCoverUrl = document.getElementById("adminCoverImageUrl");
+      const adminCoverFile = document.getElementById("adminCoverImageFile");
+      const adminCoverPreview = document.getElementById("adminCoverPreview");
+      const adminCoverState = document.getElementById("adminCoverUploadState");
+      const adminArticleCover = document.getElementById("adminArticleCover");
+      const adminGalleryUrls = document.getElementById("adminGalleryImageUrls");
+      const adminGalleryFiles = document.getElementById("adminGalleryImageFiles");
+      const adminGalleryPreview = document.getElementById("adminGalleryPreview");
+      const adminGallerySlots = document.getElementById("adminGallerySlots");
+      const adminGalleryState = document.getElementById("adminGalleryUploadState");
       const adminTemplateBlocks = <%- JSON.stringify(templateBlocksByKey || {}).replace(/</g, '\\u003c') %>;
       const adminBlockLabels = <%- JSON.stringify((blockTypes || []).reduce((acc, item) => { acc[item.key] = item.label; return acc; }, {})).replace(/</g, '\\u003c') %>;
       let adminBlocks = <%- JSON.stringify(post.contentBlocks || []).replace(/</g, '\\u003c') %>;
       let scheduleAutosave = function () {};
+      let flushAutosave = async function () { return true; };
+      let pendingCoverFile = null;
+      let pendingGalleryFiles = [];
+      let pendingInlineUpload = null;
+      let coverObjectUrl = "";
 
       const setAutosaveState = function (state, message) {
         if (!autosaveStatus) return;
@@ -1127,10 +1223,18 @@
           fields.innerHTML = adminTextToolsMarkup(false, "admin-inline-text-tools") + '<textarea data-field="items" rows="4" placeholder="One item per line"></textarea><small style="color:#64748b;">Select item text, then use Bold, Italic, or Underline.</small>';
           fields.querySelector('[data-field="items"]').value = (block.content?.items || []).join("\n");
         } else if (block.type === "image") {
-          fields.innerHTML = '<input data-field="url" type="url" placeholder="Image URL"><input data-field="alt" type="text" maxlength="180" placeholder="Alt text"><input data-field="caption" type="text" maxlength="240" placeholder="Caption">';
+          fields.innerHTML = '<input data-field="url" type="url" placeholder="Image URL"><input data-field="alt" type="text" maxlength="180" placeholder="Alt text"><input data-field="caption" type="text" maxlength="240" placeholder="Caption"><label class="admin-image-upload-label">Upload or replace<input data-field="inline-file" type="file" accept="image/jpeg,image/png,image/webp"></label><small data-field="inline-state" class="admin-upload-state">JPEG/PNG uploads are converted to WebP.</small>';
           fields.querySelector('[data-field="url"]').value = block.content?.url || "";
           fields.querySelector('[data-field="alt"]').value = block.content?.alt || "";
           fields.querySelector('[data-field="caption"]').value = block.content?.caption || "";
+          fields.querySelector('[data-field="inline-file"]')?.addEventListener("change", function (event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            pendingInlineUpload = { file, block };
+            const state = fields.querySelector('[data-field="inline-state"]');
+            if (state) state.textContent = "Pending upload: " + file.name;
+            scheduleAutosave();
+          });
         } else {
           fields.innerHTML = '<small style="color:#64748b;">Divider line.</small>';
         }
@@ -1352,6 +1456,117 @@
         updateCounter();
       });
 
+      const filePreviewUrls = new WeakMap();
+      const previewUrlForFile = function (file) {
+        if (!filePreviewUrls.has(file)) filePreviewUrls.set(file, URL.createObjectURL(file));
+        return filePreviewUrls.get(file);
+      };
+      const readGalleryUrls = function () {
+        return String(adminGalleryUrls?.value || "")
+          .split(/[\n,]+/)
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .slice(0, 3);
+      };
+      const renderCoverManager = function () {
+        const src = pendingCoverFile ? previewUrlForFile(pendingCoverFile) : String(adminCoverUrl?.value || "").trim();
+        if (adminCoverPreview) {
+          adminCoverPreview.src = src;
+          adminCoverPreview.hidden = !src;
+        }
+        if (adminCoverState && pendingCoverFile) {
+          adminCoverState.dataset.state = "pending";
+          adminCoverState.textContent = "Pending upload: " + pendingCoverFile.name;
+        } else if (adminCoverState) {
+          adminCoverState.dataset.state = "saved";
+          adminCoverState.textContent = src ? "Saved image" : "No cover image";
+        }
+      };
+      const renderGalleryManager = function () {
+        if (!adminGalleryPreview) return;
+        const savedUrls = readGalleryUrls();
+        const items = [
+          ...savedUrls.map((url, index) => ({ url, savedIndex: index, pending: false })),
+          ...pendingGalleryFiles.map((file, index) => ({
+            url: previewUrlForFile(file),
+            pendingIndex: index,
+            pending: true,
+            name: file.name
+          }))
+        ];
+        adminGalleryPreview.innerHTML = "";
+        items.forEach((item) => {
+          const card = document.createElement("div");
+          card.className = "admin-gallery-card";
+          const img = document.createElement("img");
+          img.src = item.url;
+          img.alt = item.pending ? "Pending gallery upload" : "Gallery image";
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.textContent = item.pending ? "Cancel upload" : "Remove";
+          remove.addEventListener("click", () => {
+            if (item.pending) {
+              pendingGalleryFiles.splice(item.pendingIndex, 1);
+            } else {
+              const next = readGalleryUrls();
+              next.splice(item.savedIndex, 1);
+              adminGalleryUrls.value = next.join("\n");
+            }
+            renderGalleryManager();
+            scheduleAutosave();
+          });
+          card.append(img, remove);
+          if (item.pending) {
+            const label = document.createElement("small");
+            label.className = "admin-upload-state";
+            label.textContent = item.name;
+            card.append(label);
+          }
+          adminGalleryPreview.append(card);
+        });
+        const remaining = Math.max(0, 3 - savedUrls.length - pendingGalleryFiles.length);
+        if (adminGallerySlots) adminGallerySlots.textContent = remaining + " slot" + (remaining === 1 ? "" : "s") + " available";
+        if (adminGalleryFiles) adminGalleryFiles.disabled = remaining === 0;
+        if (adminGalleryState) {
+          adminGalleryState.dataset.state = pendingGalleryFiles.length ? "pending" : "saved";
+          adminGalleryState.textContent = pendingGalleryFiles.length
+            ? pendingGalleryFiles.length + " image upload" + (pendingGalleryFiles.length === 1 ? "" : "s") + " pending"
+            : "Maximum 3 images. JPEG/PNG uploads are converted to WebP.";
+        }
+      };
+
+      adminCoverFile?.addEventListener("change", function () {
+        pendingCoverFile = adminCoverFile.files?.[0] || null;
+        renderCoverManager();
+        if (pendingCoverFile) scheduleAutosave();
+      });
+      document.getElementById("adminRemoveCover")?.addEventListener("click", function () {
+        pendingCoverFile = null;
+        if (adminCoverFile) adminCoverFile.value = "";
+        if (adminCoverUrl) adminCoverUrl.value = "";
+        renderCoverManager();
+        scheduleAutosave();
+      });
+      adminCoverUrl?.addEventListener("input", function () {
+        pendingCoverFile = null;
+        if (adminCoverFile) adminCoverFile.value = "";
+        renderCoverManager();
+      });
+      adminGalleryUrls?.addEventListener("input", renderGalleryManager);
+      adminGalleryFiles?.addEventListener("change", function () {
+        const selected = Array.from(adminGalleryFiles.files || []);
+        const remaining = Math.max(0, 3 - readGalleryUrls().length - pendingGalleryFiles.length);
+        if (selected.length > remaining) {
+          window.alert("Only " + remaining + " gallery slot" + (remaining === 1 ? " is" : "s are") + " available.");
+        }
+        pendingGalleryFiles.push(...selected.slice(0, remaining));
+        adminGalleryFiles.value = "";
+        renderGalleryManager();
+        if (selected.length && remaining) scheduleAutosave();
+      });
+      renderCoverManager();
+      renderGalleryManager();
+
       if (autosaveForm) {
         const autosaveUrl = "/admin/blog/posts/<%= post._id %>/autosave";
         const csrfToken = "<%= locals.csrfToken || '' %>";
@@ -1412,35 +1627,86 @@
         const saveNow = async function () {
           const payload = readPayload();
           const payloadJson = JSON.stringify(payload);
-          if (payloadJson === lastSavedPayload) return;
+          const hasPendingImages = Boolean(pendingCoverFile || pendingGalleryFiles.length || pendingInlineUpload);
+          if (payloadJson === lastSavedPayload && !hasPendingImages) return true;
           if (inFlight) {
             hasQueuedSave = true;
-            return;
+            return false;
           }
 
           inFlight = true;
-          setAutosaveState("saving", "Saving...");
+          setAutosaveState("saving", hasPendingImages ? "Uploading images..." : "Saving...");
+          if (pendingCoverFile && adminCoverState) {
+            adminCoverState.dataset.state = "uploading";
+            adminCoverState.textContent = "Uploading " + pendingCoverFile.name + "...";
+          }
+          if (pendingGalleryFiles.length && adminGalleryState) {
+            adminGalleryState.dataset.state = "uploading";
+            adminGalleryState.textContent = "Uploading gallery images...";
+          }
           try {
-            const response = await fetch(autosaveUrl, {
+            const requestOptions = {
               method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-                "x-csrf-token": csrfToken
-              },
-              credentials: "same-origin",
-              body: payloadJson
+              headers: { "x-csrf-token": csrfToken },
+              credentials: "same-origin"
+            };
+            if (hasPendingImages) {
+              const formData = new FormData();
+              if (pendingInlineUpload) payload.inlineImageBlockIndex = adminBlocks.indexOf(pendingInlineUpload.block);
+              formData.append("payload", JSON.stringify(payload));
+              if (pendingCoverFile) formData.append("coverImageFile", pendingCoverFile);
+              pendingGalleryFiles.forEach((file) => formData.append("galleryImageFiles", file));
+              if (pendingInlineUpload) formData.append("inlineImageFile", pendingInlineUpload.file);
+              formData.append("_csrf", csrfToken);
+              requestOptions.body = formData;
+            } else {
+              requestOptions.headers["Content-Type"] = "application/json";
+              requestOptions.body = payloadJson;
+            }
+            const response = await fetch(autosaveUrl, {
+              ...requestOptions
             });
             const result = await response.json();
             if (!response.ok || !result.success) {
               throw new Error((result && (result.errors?.[0] || result.message)) || "Auto-save failed.");
             }
 
-            lastSavedPayload = payloadJson;
+            if (result.post?.coverImageUrl !== undefined && adminCoverUrl) {
+              adminCoverUrl.value = result.post.coverImageUrl || "";
+            }
+            if (Array.isArray(result.post?.galleryImageUrls) && adminGalleryUrls) {
+              adminGalleryUrls.value = result.post.galleryImageUrls.join("\n");
+            }
+            if (Array.isArray(result.post?.contentBlocks) && adminComposer) {
+              adminBlocks = result.post.contentBlocks;
+            }
+            pendingCoverFile = null;
+            pendingGalleryFiles = [];
+            pendingInlineUpload = null;
+            if (adminCoverFile) adminCoverFile.value = "";
+            renderCoverManager();
+            renderGalleryManager();
+            if (adminComposer) renderAdminComposer();
+            if (adminArticleCover) {
+              adminArticleCover.src = String(result.post?.coverImageUrl || "");
+              adminArticleCover.style.display = result.post?.coverImageUrl ? "" : "none";
+            }
+            lastSavedPayload = JSON.stringify(readPayload());
             setAutosaveState("saved", "Saved");
             setChangedFields(result.post?.changedFields || []);
             updateHeaderMeta(result.post || null);
+            return true;
           } catch (error) {
             setAutosaveState("error", error.message || "Save failed");
+            if (pendingCoverFile && adminCoverState) {
+              adminCoverState.dataset.state = "error";
+              adminCoverState.textContent = "Upload failed. The file is ready to retry.";
+            }
+            if (pendingGalleryFiles.length && adminGalleryState) {
+              adminGalleryState.dataset.state = "error";
+              adminGalleryState.textContent = "Upload failed. The files are ready to retry.";
+            }
+            return false;
           } finally {
             inFlight = false;
             if (hasQueuedSave) {
@@ -1448,6 +1714,24 @@
               saveNow();
             }
           }
+        };
+        flushAutosave = async function () {
+          if (debounceTimer) {
+            clearTimeout(debounceTimer);
+            debounceTimer = null;
+          }
+          while (inFlight) {
+            await new Promise((resolve) => setTimeout(resolve, 40));
+          }
+          const saved = await saveNow();
+          while (inFlight) {
+            await new Promise((resolve) => setTimeout(resolve, 40));
+          }
+          return saved !== false
+            && !pendingCoverFile
+            && pendingGalleryFiles.length === 0
+            && !pendingInlineUpload
+            && JSON.stringify(readPayload()) === lastSavedPayload;
         };
 
         const scheduleSave = function () {
@@ -1464,7 +1748,7 @@
         });
 
         window.addEventListener("beforeunload", function (event) {
-          if (inFlight || JSON.stringify(readPayload()) !== lastSavedPayload) {
+          if (inFlight || pendingCoverFile || pendingGalleryFiles.length || pendingInlineUpload || JSON.stringify(readPayload()) !== lastSavedPayload) {
             event.preventDefault();
             event.returnValue = "";
           }
@@ -1485,7 +1769,8 @@
 
       const forms = document.querySelectorAll(".moderation-panel form");
       forms.forEach((form) => {
-        form.addEventListener("submit", () => {
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
           const button = form.querySelector("button[type='submit']");
           if (!button) return;
           const loadingText = button.getAttribute("data-loading-text");
@@ -1495,38 +1780,16 @@
           }
           button.disabled = true;
           button.setAttribute("aria-busy", "true");
-        });
-      });
-
-      const adminGalleryFiles = document.getElementById("adminGalleryImageFiles");
-      const adminGalleryUrls = document.getElementById("adminGalleryImageUrls");
-      adminGalleryFiles?.addEventListener("change", async () => {
-        if (!adminGalleryFiles.files || !adminGalleryFiles.files.length || !adminGalleryUrls) return;
-        const formData = new FormData();
-        Array.from(adminGalleryFiles.files).slice(0, 3).forEach((file) => {
-          formData.append("galleryImageFiles", file);
-        });
-        formData.append("_csrf", "<%= locals.csrfToken || '' %>");
-
-        try {
-          const response = await fetch("/admin/blog/posts/<%= sourcePost?._id || post._id %>/assets-upload", {
-            method: "POST",
-            body: formData
-          });
-          const body = await response.json();
-          if (!response.ok || !body.success) {
-            throw new Error(body.message || "Upload failed.");
+          const saved = await flushAutosave();
+          if (!saved) {
+            button.disabled = false;
+            button.removeAttribute("aria-busy");
+            if (button.dataset.originalText) button.textContent = button.dataset.originalText;
+            window.alert("The post could not be saved. Resolve the image or autosave error before continuing.");
+            return;
           }
-          const current = String(adminGalleryUrls.value || "")
-            .split(/[\n,]+/)
-            .map((item) => item.trim())
-            .filter(Boolean);
-          adminGalleryUrls.value = [...current, ...(body.galleryImageUrls || [])].slice(0, 3).join("\n");
-          adminGalleryFiles.value = "";
-          scheduleAutosave?.();
-        } catch (error) {
-          window.alert(error.message || "Failed to upload gallery images.");
-        }
+          form.submit();
+        });
       });
     })();
   </script>
