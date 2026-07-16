@@ -2,6 +2,7 @@ const Event = require('../models/Event');
 const { getCountries, getCountryName } = require('../utils/country');
 const { getPublicEventVisibilityQuery } = require('../utils/public-event-visibility');
 const { formatPlatformDate } = require('../utils/platform-date');
+const { buildPublicEventView } = require('../utils/event-public-view');
 
 const countries = getCountries();
 const DEFAULT_EVENT_IMAGE_URL = '/images/helloRun-icon.webp';
@@ -32,6 +33,9 @@ async function buildPublicEventListPage(queryParams = {}) {
     }
     query.eventStartAt = dateConstraint;
   }
+  const dateRangeError = filterValues.dateFrom && filterValues.dateTo && filterValues.dateFrom > filterValues.dateTo
+    ? 'From date must be on or before To date.'
+    : '';
   if (filterValues.status === 'upcoming') {
     query.eventStartAt = { ...(query.eventStartAt || {}), $gte: now };
   } else if (filterValues.status === 'open') {
@@ -75,7 +79,7 @@ async function buildPublicEventListPage(queryParams = {}) {
   const currentPage = Math.min(page, totalPages);
   const skip = (currentPage - 1) * limit;
 
-  const eventSelect = 'title slug description organiserName eventType eventTypesAllowed raceDistances eventStartAt eventEndAt venueName city country bannerImageUrl registrationCloseAt registrationOpenAt createdAt';
+  const eventSelect = 'title slug description organiserName eventType eventTypesAllowed raceDistances raceCategories eventStartAt eventEndAt venueName city country bannerImageUrl registrationCloseAt registrationOpenAt createdAt feeMode feeAmount feeCurrency pricingMode distancePricing pricingPeriods customizedOptions suggestedEventFee finalEventFee registrationPackages deliveryFeeEnabled deliveryFeeAmount';
   let events;
   if (filterValues.q) {
     const rankedEvents = await Event.find(query).select(eventSelect).lean();
@@ -112,6 +116,8 @@ async function buildPublicEventListPage(queryParams = {}) {
 
   const activeFilters = getEventsActiveFilters(filterValues);
   const pageContent = getEventsPageContent(filterValues, { currentPage, totalPages });
+  const resultStart = totalEvents === 0 ? 0 : skip + 1;
+  const resultEnd = totalEvents === 0 ? 0 : Math.min(skip + events.length, totalEvents);
 
   return {
     title: pageContent.title,
@@ -123,9 +129,14 @@ async function buildPublicEventListPage(queryParams = {}) {
       const raceDistances = Array.isArray(event.raceDistances)
         ? event.raceDistances.map((distanceItem) => String(distanceItem || '').trim().toUpperCase()).filter(Boolean)
         : [];
+      const publicView = buildPublicEventView({ ...event, raceDistances }, { now });
       return {
         ...event,
         raceDistances,
+        organizerName: publicView.organizerName,
+        eventTypeLabel: publicView.eventTypeLabel,
+        priceLabel: publicView.pricing.amountLabel,
+        descriptionText: publicView.descriptionText,
         startDateLabel: formatPlatformDate(event.eventStartAt, 'Start date not listed'),
         locationLabel: buildPublicLocationLabel(event, getCountryName(event.country)),
         distanceLabel: raceDistances.join(', ') || 'Distances not listed',
@@ -141,13 +152,17 @@ async function buildPublicEventListPage(queryParams = {}) {
       resultsCount: totalEvents,
       distanceOptions: normalizedDistanceOptions,
       activeFilters,
-      summary: buildEventsResultsSummary(filterValues, totalEvents)
+      summary: buildEventsResultsSummary(filterValues, totalEvents),
+      validationError: dateRangeError
     },
     pagination: {
       currentPage,
       totalPages,
       pageSize: limit,
-      getPageUrl: (pageNumber) => buildEventsPageUrl(filterValues, pageNumber)
+      resultStart,
+      resultEnd,
+      totalResults: totalEvents,
+      getPageUrl: (pageNumber) => `${buildEventsPageUrl(filterValues, pageNumber)}#event-results`
     }
   };
 }
@@ -404,6 +419,8 @@ function buildEventsQueryParams(filterValues, currentPage = 1) {
   if (filterValues.eventType) params.set('eventType', filterValues.eventType);
   if (filterValues.distance) params.set('distance', filterValues.distance);
   if (filterValues.status && filterValues.status !== 'all') params.set('status', filterValues.status);
+  if (filterValues.dateFrom) params.set('dateFrom', formatFilterDate(filterValues.dateFrom));
+  if (filterValues.dateTo) params.set('dateTo', formatFilterDate(filterValues.dateTo));
   if (currentPage > 1) params.set('page', String(currentPage));
   return params;
 }
@@ -447,6 +464,24 @@ function getEventsActiveFilters(filterValues) {
     });
   }
 
+  if (filterValues.dateFrom) {
+    activeFilters.push({
+      key: 'dateFrom',
+      label: 'From',
+      value: formatPlatformDate(filterValues.dateFrom),
+      clearUrl: buildEventsPageUrl({ ...filterValues, dateFrom: null }, 1)
+    });
+  }
+
+  if (filterValues.dateTo) {
+    activeFilters.push({
+      key: 'dateTo',
+      label: 'To',
+      value: formatPlatformDate(filterValues.dateTo),
+      clearUrl: buildEventsPageUrl({ ...filterValues, dateTo: null }, 1)
+    });
+  }
+
   return activeFilters;
 }
 
@@ -466,18 +501,19 @@ function formatEventStatusLabel(value) {
 
 function getEventsPageContent(filterValues, pagination = {}) {
   const filterLabel = getEventsFilterNarrative(filterValues);
+  const displayFilterLabel = capitalizeFirst(filterLabel);
   const pageSuffix = Number(pagination.currentPage || 1) > 1
     ? ` - Page ${pagination.currentPage}`
     : '';
-  const titlePrefix = filterLabel ? `${filterLabel} Events` : 'Running Events';
-  const heroTitle = filterLabel ? `${filterLabel} Events` : 'Check Out Ongoing Events';
+  const titlePrefix = displayFilterLabel ? `${displayFilterLabel} Events` : 'Running Events';
+  const heroTitle = displayFilterLabel ? `${displayFilterLabel} Events` : 'Discover Running Events';
   const defaultDescription = 'Discover HelloRun events, browse by mode and distance, and find your next race or virtual challenge.';
   const filteredDescription = filterLabel
     ? `Browse ${getEventsFilterNarrative(filterValues, { lowercaseBase: true })} on HelloRun and find your next race or virtual challenge.`
     : defaultDescription;
   const heroDescription = filterLabel
     ? buildEventsHeroDescription(filterValues)
-    : 'Explore active HelloRun races and pick your next challenge.';
+    : 'Compare virtual, on-site, and hybrid events to find your next challenge.';
 
   return {
     title: `${titlePrefix}${pageSuffix} - HelloRun`,
@@ -525,17 +561,19 @@ function getEventsFilterNarrative(filterValues, options = {}) {
   if (filterValues.distance) {
     parts.push(filterValues.distance);
   }
+  const dateNarrative = getEventsDateNarrative(filterValues);
 
   const base = parts.length
     ? parts.map((part) => (lowercaseBase ? String(part).toLowerCase() : part)).join(' ')
     : '';
+  const datedBase = [base, dateNarrative].filter(Boolean).join(' ');
   if (filterValues.q) {
-    return base
-      ? `${base} results for "${filterValues.q}"`
+    return datedBase
+      ? `${datedBase} results for "${filterValues.q}"`
       : `results for "${filterValues.q}"`;
   }
 
-  return base;
+  return datedBase;
 }
 
 function hasAnyEventsFilters(filterValues) {
@@ -543,8 +581,30 @@ function hasAnyEventsFilters(filterValues) {
     filterValues.q ||
     filterValues.eventType ||
     filterValues.distance ||
-    (filterValues.status && filterValues.status !== 'all')
+    (filterValues.status && filterValues.status !== 'all') ||
+    filterValues.dateFrom ||
+    filterValues.dateTo
   );
+}
+
+function capitalizeFirst(value) {
+  const text = String(value || '');
+  return text ? `${text.charAt(0).toUpperCase()}${text.slice(1)}` : '';
+}
+
+function getEventsDateNarrative(filterValues) {
+  if (filterValues.dateFrom && filterValues.dateTo) {
+    return `from ${formatPlatformDate(filterValues.dateFrom)} through ${formatPlatformDate(filterValues.dateTo)}`;
+  }
+  if (filterValues.dateFrom) return `starting on or after ${formatPlatformDate(filterValues.dateFrom)}`;
+  if (filterValues.dateTo) return `starting on or before ${formatPlatformDate(filterValues.dateTo)}`;
+  return '';
+}
+
+function formatFilterDate(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toISOString().slice(0, 10);
 }
 
 function getEventCardDisplayState(event, now = new Date()) {
@@ -644,6 +704,8 @@ module.exports = {
   getEventCardDisplayState,
   getEventsFilterValues,
   buildEventsPageUrl,
+  buildEventsQueryParams,
+  getEventsActiveFilters,
   listHomepagePromotedEvents,
   normalizeHomepageEventCard
 };

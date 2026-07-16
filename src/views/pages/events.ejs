@@ -69,15 +69,7 @@
             <p class="events-toolbar-kicker">Browse races</p>
             <h2>Find your next starting line</h2>
           </div>
-          <p>Filter by mode, distance, and registration status to compare events quickly. Virtual events let you run from a safe route or treadmill, on-site events happen at a physical venue, and hybrid events may support both formats depending on the organizer's rules.</p>
-        </div>
-
-        <div class="events-toolbar">
-          <div>
-            <p class="events-toolbar-kicker">Choosing a distance</p>
-            <h2>Match the event to your current training</h2>
-          </div>
-          <p>A 5K is friendly for beginners and walkers, a 10K gives returning runners a stronger weekly goal, and 21K or accumulated-distance challenges require more planning. Before registering, open the event page and check the activity window, accepted proof, payment instructions, rewards, and whether leaderboard ranking is enabled. New to HelloRun? Read <a href="/how-it-works">How It Works</a> or scan the <a href="/faq">FAQ</a> before joining.</p>
+          <p>Search by event, organizer, or location, then narrow the list by mode, distance, registration status, or start date.</p>
         </div>
 
         <!-- Filter Bar -->
@@ -92,55 +84,65 @@
                   type="search"
                   name="q"
                   value="<%= filters?.q || '' %>"
-                  placeholder="Search events..."
+                  placeholder="Search events, organizer, or location..."
                 >
               </div>
             </div>
             <button type="submit" class="btn btn-secondary">
               <i data-lucide="search" aria-hidden="true"></i>
-              <span>Search</span>
+              <span>Show events</span>
             </button>
           </div>
 
-          <div class="filter-group filter-group-select">
-            <label for="eventsMode">Mode</label>
-            <select id="eventsMode" name="eventType">
-              <option value="">All Modes</option>
-              <option value="virtual" <%= filters?.eventType === 'virtual' ? 'selected' : '' %>>Virtual</option>
-              <option value="onsite" <%= filters?.eventType === 'onsite' ? 'selected' : '' %>>On-site</option>
-              <option value="hybrid" <%= filters?.eventType === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
-            </select>
+          <div class="filter-primary-grid" aria-label="Event filters">
+            <div class="filter-group filter-group-select">
+              <label for="eventsMode">Mode</label>
+              <select id="eventsMode" name="eventType">
+                <option value="">All Modes</option>
+                <option value="virtual" <%= filters?.eventType === 'virtual' ? 'selected' : '' %>>Virtual</option>
+                <option value="onsite" <%= filters?.eventType === 'onsite' ? 'selected' : '' %>>On-site</option>
+                <option value="hybrid" <%= filters?.eventType === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
+              </select>
+            </div>
+
+            <div class="filter-group filter-group-select">
+              <label for="eventsDistance">Distance</label>
+              <select id="eventsDistance" name="distance">
+                <option value="">All Distances</option>
+                <% (filterMeta?.distanceOptions || []).forEach((distanceItem) => { %>
+                  <option value="<%= distanceItem %>" <%= filters?.distance === distanceItem ? 'selected' : '' %>><%= distanceItem %></option>
+                <% }) %>
+              </select>
+            </div>
+
+            <div class="filter-group filter-group-select">
+              <label for="eventsStatus">Registration status</label>
+              <select id="eventsStatus" name="status">
+                <option value="all" <%= (filters?.status || 'all') === 'all' ? 'selected' : '' %>>All statuses</option>
+                <option value="upcoming" <%= filters?.status === 'upcoming' ? 'selected' : '' %>>Upcoming</option>
+                <option value="open" <%= filters?.status === 'open' ? 'selected' : '' %>>Open</option>
+                <option value="closed" <%= filters?.status === 'closed' ? 'selected' : '' %>>Closed / Past</option>
+              </select>
+            </div>
           </div>
 
-          <div class="filter-group filter-group-select">
-            <label for="eventsDistance">Distance</label>
-            <select id="eventsDistance" name="distance">
-              <option value="">All Distances</option>
-              <% (filterMeta?.distanceOptions || []).forEach((distanceItem) => { %>
-                <option value="<%= distanceItem %>" <%= filters?.distance === distanceItem ? 'selected' : '' %>><%= distanceItem %></option>
-              <% }) %>
-            </select>
-          </div>
+          <details class="filter-more" <%= filters?.dateFrom || filters?.dateTo ? 'open' : '' %>>
+            <summary>
+              <i data-lucide="calendar-range" aria-hidden="true"></i>
+              Event start date<%= filters?.dateFrom || filters?.dateTo ? ' (active)' : '' %>
+            </summary>
+            <div class="filter-date-grid">
+              <div class="filter-group filter-group-date">
+                <label for="eventsDateFrom">From</label>
+                <input type="date" id="eventsDateFrom" name="dateFrom" value="<%= filters?.dateFrom ? filters.dateFrom.toISOString().slice(0,10) : '' %>" <%= filterMeta?.validationError ? 'aria-invalid="true" aria-describedby="eventsDateError"' : '' %>>
+              </div>
 
-          <div class="filter-group filter-group-select">
-            <label for="eventsStatus">Status</label>
-            <select id="eventsStatus" name="status">
-              <option value="all" <%= (filters?.status || 'all') === 'all' ? 'selected' : '' %>>All</option>
-              <option value="upcoming" <%= filters?.status === 'upcoming' ? 'selected' : '' %>>Upcoming</option>
-              <option value="open" <%= filters?.status === 'open' ? 'selected' : '' %>>Open</option>
-              <option value="closed" <%= filters?.status === 'closed' ? 'selected' : '' %>>Closed / Past</option>
-            </select>
-          </div>
-
-          <div class="filter-group filter-group-date">
-            <label for="eventsDateFrom">From</label>
-            <input type="date" id="eventsDateFrom" name="dateFrom" value="<%= filters?.dateFrom ? filters.dateFrom.toISOString().slice(0,10) : '' %>">
-          </div>
-
-          <div class="filter-group filter-group-date">
-            <label for="eventsDateTo">To</label>
-            <input type="date" id="eventsDateTo" name="dateTo" value="<%= filters?.dateTo ? filters.dateTo.toISOString().slice(0,10) : '' %>">
-          </div>
+              <div class="filter-group filter-group-date">
+                <label for="eventsDateTo">To</label>
+                <input type="date" id="eventsDateTo" name="dateTo" value="<%= filters?.dateTo ? filters.dateTo.toISOString().slice(0,10) : '' %>" <%= filterMeta?.validationError ? 'aria-invalid="true" aria-describedby="eventsDateError"' : '' %>>
+              </div>
+            </div>
+          </details>
 
           <% if (filterMeta?.hasActiveFilters) { %>
             <div class="filter-actions">
@@ -152,28 +154,43 @@
           <% } %>
         </form>
 
+        <% if (filterMeta?.validationError) { %>
+          <p class="filter-validation-error" id="eventsDateError" role="alert"><%= filterMeta.validationError %></p>
+        <% } %>
+
         <!-- Results Meta -->
+        <div class="events-results-header">
+          <div>
+            <p class="events-toolbar-kicker">Results</p>
+            <h2 id="event-results" tabindex="-1">Available events</h2>
+          </div>
+          <p class="events-sort-note"><strong>Recommended order:</strong> open registration first</p>
+        </div>
         <p class="results-meta">
-          Showing <strong><%= filterMeta?.resultsCount || 0 %></strong> event<%= (filterMeta?.resultsCount || 0) === 1 ? '' : 's' %><%= filterMeta?.hasActiveFilters ? ` with ${filterMeta.activeFilterCount} active filter${filterMeta.activeFilterCount === 1 ? '' : 's'}` : '' %>.
+          <% if ((filterMeta?.resultsCount || 0) > 0) { %>
+            Showing <strong><%= pagination.resultStart %>–<%= pagination.resultEnd %></strong> of <strong><%= filterMeta.resultsCount %></strong> events<%= filterMeta?.hasActiveFilters ? ` with ${filterMeta.activeFilterCount} active filter${filterMeta.activeFilterCount === 1 ? '' : 's'}` : '' %>.
+          <% } else { %>
+            Showing <strong>0</strong> events<%= filterMeta?.hasActiveFilters ? ` with ${filterMeta.activeFilterCount} active filter${filterMeta.activeFilterCount === 1 ? '' : 's'}` : '' %>.
+          <% } %>
         </p>
         <% if (filterMeta?.summary) { %>
           <p class="results-summary"><%= filterMeta.summary %></p>
         <% } %>
 
-        <% if (events && events.length) { %>
-          <%- include('../partials/ad-unit', { group: 'events', placement: 'after_results_meta' }) %>
-        <% } %>
-
         <% if (filterMeta?.activeFilters?.length) { %>
           <div class="active-filters" aria-label="Active filters">
             <% filterMeta.activeFilters.forEach((activeFilter) => { %>
-              <a href="<%= activeFilter.clearUrl %>" class="filter-chip">
+              <a href="<%= activeFilter.clearUrl %>#event-results" class="filter-chip" aria-label="Remove <%= activeFilter.label %> filter: <%= activeFilter.value %>">
                 <span><strong><%= activeFilter.label %>:</strong> <%= activeFilter.value %></span>
                 <span class="filter-chip-remove" aria-hidden="true">×</span>
               </a>
             <% }) %>
-            <a href="/events" class="filter-chip filter-chip-clear">Clear all</a>
+            <a href="/events#event-results" class="filter-chip filter-chip-clear">Clear all</a>
           </div>
+        <% } %>
+
+        <% if (events && events.length) { %>
+          <%- include('../partials/ad-unit', { group: 'events', placement: 'after_results_meta' }) %>
         <% } %>
 
         <!-- Event Cards -->
@@ -183,11 +200,11 @@
             <% events.forEach((event, eventIndex) => { %>
               <article class="card" data-event-slug="<%= event.slug %>">
                 <% const eventBannerImageUrl = event.bannerImageUrl || defaultEventImageUrl; %>
-                <a href="/events/<%= event.slug %>" class="card-image-link">
+                <a href="/events/<%= event.slug %>" class="card-image-link" tabindex="-1" aria-hidden="true">
                   <img
                     class="card-image"
                     src="<%= eventBannerImageUrl %>"
-                    alt="<%= event.title %> banner"
+                    alt=""
                     onerror="this.onerror=null;this.src='<%= defaultEventImageUrl %>';"
                   >
                 </a>
@@ -195,7 +212,7 @@
                 <div class="card-content">
                   <div class="card-tags">
                     <span class="tag tag-status tag-status-<%= event.displayState?.tone || 'neutral' %>"><%= event.displayState?.label || 'Event Listing' %></span>
-                    <span class="tag"><%= event.eventType || 'event' %></span>
+                    <span class="tag"><%= event.eventTypeLabel || 'Event' %></span>
                   </div>
 
                   <h3 class="card-title">
@@ -207,25 +224,37 @@
                   <% } %>
 
                   <div class="card-meta">
-                    <i data-lucide="calendar"></i>
+                    <i data-lucide="calendar" aria-hidden="true"></i>
                     <span><%= event.startDateLabel || (event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US') : 'Start date not listed') %></span>
                   </div>
 
                   <div class="card-meta">
-                    <i data-lucide="map-pin"></i>
+                    <i data-lucide="map-pin" aria-hidden="true"></i>
                     <span><%= event.locationLabel || 'Location details not listed' %></span>
                   </div>
 
                   <div class="card-meta">
-                    <i data-lucide="flag"></i>
+                    <i data-lucide="flag" aria-hidden="true"></i>
                     <span><%= event.distanceLabel || (event.raceDistances || []).join(', ') || 'Distances not listed' %></span>
                   </div>
 
-                  <p class="card-description"><%= event.description || 'No event description available.' %></p>
+                  <div class="card-meta">
+                    <i data-lucide="user-round" aria-hidden="true"></i>
+                    <span><%= event.organizerName || 'HelloRun' %></span>
+                  </div>
+
+                  <div class="card-meta card-meta-price">
+                    <i data-lucide="wallet-cards" aria-hidden="true"></i>
+                    <span><%= event.priceLabel || 'Pricing not listed' %></span>
+                  </div>
+
+                  <% if (event.descriptionText) { %>
+                    <p class="card-description"><%= event.descriptionText %></p>
+                  <% } %>
 
                   <div class="card-actions">
                     <a href="/events/<%= event.slug %>" class="btn btn-secondary btn-sm">
-                      View Event
+                      View details
                       <i data-lucide="arrow-right" aria-hidden="true"></i>
                     </a>
                     <% if (locals.isAuthenticated) { %>
@@ -255,9 +284,10 @@
               <a
                 href="<%= pagination.getPageUrl(Math.max(1, pagination.currentPage - 1)) %>"
                 class="pagination-prev <%= pagination.currentPage === 1 ? 'disabled' : '' %>"
+                aria-label="Go to previous events page"
                 <%= pagination.currentPage === 1 ? 'aria-disabled="true" tabindex="-1"' : '' %>
               >
-                <i data-lucide="chevron-left"></i> Previous
+                <i data-lucide="chevron-left" aria-hidden="true"></i> Previous
               </a>
 
               <div class="pagination-numbers">
@@ -266,6 +296,7 @@
                     <a
                       href="<%= pagination.getPageUrl(i) %>"
                       class="events-page-number<%= i === pagination.currentPage ? ' active' : '' %>"
+                      aria-label="<%= i === pagination.currentPage ? `Current page, page ${i}` : `Go to page ${i}` %>"
                       <%= i === pagination.currentPage ? 'aria-current="page"' : '' %>
                     >
                       <%= i %>
@@ -279,9 +310,10 @@
               <a
                 href="<%= pagination.getPageUrl(Math.min(pagination.totalPages, pagination.currentPage + 1)) %>"
                 class="pagination-next <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>"
+                aria-label="Go to next events page"
                 <%= pagination.currentPage === pagination.totalPages ? 'aria-disabled="true" tabindex="-1"' : '' %>
               >
-                Next <i data-lucide="chevron-right"></i>
+                Next <i data-lucide="chevron-right" aria-hidden="true"></i>
               </a>
             </nav>
           <% } %>
@@ -302,11 +334,20 @@
             <% } %>
           </div>
         <% } %>
+
+        <details class="events-guide">
+          <summary>How to choose the right event</summary>
+          <div class="events-guide-content">
+            <p>A 5K is friendly for beginners and walkers, a 10K gives returning runners a stronger weekly goal, and 21K or accumulated-distance challenges require more planning.</p>
+            <p>Before registering, open the event page and check its activity window, accepted proof, payment instructions, rewards, and leaderboard rules. New to HelloRun? Read <a href="/how-it-works">How It Works</a> or the <a href="/faq">FAQ</a>.</p>
+          </div>
+        </details>
       </div>
     </section>
   </main>
 
   <%- include('../layouts/footer') %>
+  <div class="events-action-status" data-events-action-status role="status" aria-live="polite" aria-atomic="true"></div>
   <script src="/js/main.js"></script>
   <% if (locals.isAuthenticated) { %><script src="/js/event-save.js"></script><% } %>
   <script>if (window.lucide) lucide.createIcons();</script>
