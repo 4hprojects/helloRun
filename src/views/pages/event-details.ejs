@@ -1,3 +1,8 @@
+<%
+  const details = publicEvent || {};
+  const isPreviewMode = Boolean(typeof previewMode !== 'undefined' && previewMode);
+  const showMobileStickyCta = Boolean(!isPreviewMode && details.primaryCta && !details.primaryCta.disabled);
+-%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,16 +10,14 @@
   <link rel="stylesheet" href="/css/events.css">
   <link rel="stylesheet" href="/css/event-details.css">
 </head>
-<body>
+<body class="event-details-body<%= locals.isAuthenticated ? ' is-authenticated' : '' %><%= locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer ? ' has-runner-mobile-nav' : '' %><%= showMobileStickyCta ? ' has-event-mobile-sticky-cta' : '' %>">
   <%- include('../layouts/nav') %>
 
   <main class="event-details-page">
     <%
-      const details = publicEvent || {};
       const registrationToneClass = details.registrationState ? `event-status-${details.registrationState.tone}` : 'event-status-neutral';
       const defaultEventImageUrl = '/images/helloRun-icon.webp';
       const heroImageUrl = details.heroImageUrl || defaultEventImageUrl;
-      const isPreviewMode = Boolean(typeof previewMode !== 'undefined' && previewMode);
       const previewReturnHref = typeof previewBackHref !== 'undefined' && previewBackHref ? previewBackHref : '/organizer/create-event';
       const previewErrorsRaw = typeof previewErrors !== 'undefined' ? previewErrors : [];
       const previewErrorMessages = Array.isArray(previewErrorsRaw)
@@ -26,6 +29,17 @@
       const showRegistrationOptionBullets = Boolean(
         details.isAccumulatedChallenge &&
         registrationOptionItems.length > 1
+      );
+      const hasDetailedRaceCategories = (details.raceCategories || []).some((category) => Boolean(
+        (category.type && category.type !== 'distance') ||
+        category.slotsLabel ||
+        category.cutoffTime ||
+        category.ageGroup ||
+        category.rewardsDescription
+      ));
+      const showRaceCategoriesSection = Boolean(
+        (details.raceCategories || []).length &&
+        (!details.hasCategorySpecificGoals || hasDetailedRaceCategories)
       );
     %>
 
@@ -66,7 +80,10 @@
 
           <p class="event-organizer">Hosted by <%= details.organizerName || 'HelloRun' %></p>
           <h1><%= details.title %></h1>
-          <p class="event-lead"><%= details.description || 'View event details, registration timing, and completion rules.' %></p>
+          <div class="event-lead">
+            <span class="event-lead-label">About this event</span>
+            <p><%= details.descriptionText || details.description || 'Review the event schedule, registration details, and completion requirements.' %></p>
+          </div>
 
           <div class="event-hero-actions">
             <% if (details.primaryCta && !details.primaryCta.disabled) { %>
@@ -94,13 +111,18 @@
         </div>
 
         <aside class="event-hero-panel">
-          <p class="event-panel-label"><%= details.pricing?.label || 'Pricing' %></p>
-          <strong><%= details.pricing?.amountLabel || 'Pricing not listed' %></strong>
-          <span><%= details.pricing?.helper || details.registrationState?.helper || '' %></span>
+          <div class="event-hero-panel-group event-hero-panel-price">
+            <p class="event-panel-label"><%= details.pricing?.label || 'Pricing' %></p>
+            <strong><%= details.pricing?.amountLabel || 'Pricing not listed' %></strong>
+            <span><%= details.pricing?.helper || 'Review the available registration options.' %></span>
+          </div>
           <% if (details.registrationState?.helper) { %>
             <div class="event-panel-divider"></div>
-            <p class="event-panel-label">Registration</p>
-            <span><%= details.registrationState.helper %></span>
+            <div class="event-hero-panel-group event-hero-panel-registration">
+              <p class="event-panel-label">Registration</p>
+              <strong class="event-panel-status"><%= details.registrationState.label || 'Event listing' %></strong>
+              <span><%= details.registrationState.helper %></span>
+            </div>
           <% } %>
         </aside>
       </div>
@@ -109,40 +131,60 @@
     <section class="event-details-shell">
       <div class="event-nav-row">
         <% if (isPreviewMode) { %>
-          <a href="<%= previewReturnHref %>" class="btn btn-outline"><i data-lucide="arrow-left"></i><span>Back to Editor</span></a>
+          <a href="<%= previewReturnHref %>" class="btn btn-outline event-nav-back"><i data-lucide="arrow-left"></i><span>Back to Editor</span></a>
         <% } else { %>
-          <a href="/events" class="btn btn-outline"><i data-lucide="arrow-left"></i><span>Back to Events</span></a>
+          <a href="/events" class="btn btn-outline event-nav-back"><i data-lucide="arrow-left"></i><span>Back to Events</span></a>
         <% } %>
         <% if (!isPreviewMode && eventShop && eventShop.count > 0) { %>
-          <a href="<%= eventShop.href %>" class="btn btn-outline"><i data-lucide="shopping-bag"></i><span>Event Shop</span></a>
+          <a href="<%= eventShop.href %>" class="btn btn-outline event-nav-shop"><i data-lucide="shopping-bag"></i><span>Event Shop</span></a>
         <% } %>
         <% if (locals.isAuthenticated) { %>
-          <a href="/my-registrations" class="btn btn-outline"><i data-lucide="badge-check"></i><span>My Registrations</span></a>
+          <a href="/my-registrations" class="btn btn-outline event-nav-registrations"><i data-lucide="badge-check"></i><span>My Registrations</span></a>
         <% } %>
       </div>
 
       <section class="event-stats-strip" aria-label="Event highlights">
-        <% (details.stats || []).forEach((stat) => { %>
-          <% const useRegistrationOptionBullets = showRegistrationOptionBullets && stat.label === 'Registration Options'; %>
-          <article class="event-stat">
+        <% (details.stats || []).filter((stat) => stat.label !== 'Registration Options').forEach((stat) => { %>
+          <% const statClass = stat.label === 'Signups' ? 'event-stat-signups' : (stat.label === 'Duration' ? 'event-stat-duration' : 'event-stat-detail'); %>
+          <article class="event-stat <%= statClass %>">
             <span><%= stat.label %></span>
-            <% if (useRegistrationOptionBullets) { %>
-              <ul class="event-registration-option-bullets event-registration-option-bullets-stat">
-                <% registrationOptionItems.forEach((option) => { %>
-                  <li><%= option %></li>
-                <% }) %>
-              </ul>
-            <% } else { %>
-              <strong><%= stat.value %></strong>
-            <% } %>
+            <strong><%= stat.value %></strong>
             <small><%= stat.helper %></small>
           </article>
         <% }) %>
       </section>
 
+      <details class="event-section-jump">
+        <summary>Jump to section</summary>
+        <nav class="event-section-nav" aria-label="Event page sections">
+          <a href="#event-how-it-works">Steps</a>
+          <% if ((details.pricingOptions || []).length || (details.packageOptions || []).length || details.pricing?.hasOptionalCosts) { %>
+            <a href="#event-registration-options">Registration</a>
+          <% } %>
+          <a href="#event-submission-rules">Rules</a>
+          <a href="#event-rewards">Rewards</a>
+          <% if (eventDetailsHtml) { %><a href="#event-full-details">Full details</a><% } %>
+        </nav>
+      </details>
+
+      <section class="event-mobile-key-facts" id="event-summary" aria-labelledby="eventMobileFactsTitle">
+        <div class="event-mobile-key-facts-heading">
+          <p>At a glance</p>
+          <h2 id="eventMobileFactsTitle">Key event facts</h2>
+        </div>
+        <div class="event-mobile-facts-grid">
+          <% (details.timeline || []).forEach((item) => { %>
+            <p><span><%= item.label %></span><strong><%= item.value %></strong></p>
+          <% }) %>
+          <p><span>Mode</span><strong><%= (details.allowedModes || []).join(' / ') || details.eventTypeLabel || 'Not listed' %></strong></p>
+          <p><span><%= details.isAccumulatedChallenge ? 'Registration options' : 'Distance' %></span><strong><%= details.distanceSummaryLabel || details.targetDistanceLabel || 'Not listed' %></strong></p>
+          <p><span>Location</span><strong><%= details.location?.publicLabel || details.location?.summary || 'Not listed' %></strong></p>
+        </div>
+      </section>
+
       <div class="event-main-layout">
         <div class="event-main-content">
-          <section class="event-section">
+          <section class="event-section" id="event-how-it-works">
             <div class="event-section-heading">
               <span class="event-section-icon"><i data-lucide="route"></i></span>
               <div>
@@ -180,22 +222,28 @@
           <% } %>
 
           <% if (details.isAccumulatedChallenge || details.virtualRules?.targetDistanceKm) { %>
-            <section class="event-section event-goal-section">
-              <div>
-                <p class="event-section-kicker"><%= details.hasCategorySpecificGoals ? 'Category Completion Goals' : 'Accumulated Completion Goal' %></p>
-                <h2><%= details.hasCategorySpecificGoals ? 'Complete your selected category distance' : `Complete ${details.targetDistanceLabel}` %></h2>
-                <p>Only approved submissions count toward the official total. Keep submitting valid activities until your progress reaches the completion goal.</p>
-                <% if (details.hasCategorySpecificGoals) { %>
-                  <div class="event-goal-options">
-                    <strong>Category goals:</strong>
-                    <ul class="event-registration-option-bullets">
-                      <% details.categoryGoalOptions.forEach((option) => { %>
-                        <li><%= option.name %> - <%= option.distanceKmLabel %></li>
-                      <% }) %>
-                    </ul>
-                    <p>Completion is measured against the distance for the category selected during registration.</p>
+            <section class="event-section event-goal-section<%= details.hasCategorySpecificGoals ? ' event-goal-section-categories' : '' %>">
+              <% if (details.hasCategorySpecificGoals) { %>
+                <div class="event-category-goal-content">
+                  <p class="event-section-kicker">Category Completion Goals</p>
+                  <h2>Your category sets your finish target</h2>
+                  <p>Select a category during registration. Its distance becomes the approved total you need to complete.</p>
+                  <div class="event-category-goal-grid" aria-label="Category completion distances">
+                    <% details.categoryGoalOptions.forEach((option) => { %>
+                      <article>
+                        <span><%= option.name %></span>
+                        <strong><%= option.distanceKmLabel %></strong>
+                      </article>
+                    <% }) %>
                   </div>
-                <% } else if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
+                  <p class="event-category-goal-note">Only approved submissions count toward your finish target.</p>
+                </div>
+              <% } else { %>
+                <div>
+                  <p class="event-section-kicker">Accumulated Completion Goal</p>
+                  <h2>Complete <%= details.targetDistanceLabel %></h2>
+                  <p>Only approved submissions count toward the official total. Keep submitting valid activities until your progress reaches the completion goal.</p>
+                <% if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
                   <div class="event-goal-options">
                     <strong>Registration options:</strong>
                     <% if (showRegistrationOptionBullets) { %>
@@ -210,13 +258,11 @@
                     <% } %>
                   </div>
                 <% } %>
-              </div>
-              <div class="event-goal-panel">
-                <strong><%= details.completionGoalLabel || details.targetDistanceLabel %></strong>
-                <span><%= details.hasCategorySpecificGoals ? 'Per-category goal' : 'Completion goal' %></span>
-                <% if (details.hasCategorySpecificGoals) { %>
-                  <small>Based on selected registration category</small>
-                <% } else if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
+                </div>
+                <div class="event-goal-panel">
+                  <strong><%= details.completionGoalLabel || details.targetDistanceLabel %></strong>
+                  <span>Completion goal</span>
+                <% if (details.isAccumulatedChallenge && details.distanceSummaryLabel && details.distanceSummaryLabel !== details.targetDistanceLabel) { %>
                   <% if (showRegistrationOptionBullets) { %>
                     <small>Options:</small>
                     <ul class="event-registration-option-bullets event-registration-option-bullets-compact">
@@ -231,17 +277,18 @@
                   <small><%= details.virtualRules?.completionMode || 'Completion goal' %></small>
                 <% } %>
                 <% if (details.virtualRules?.minimumDistance) { %><small><%= details.virtualRules.minimumDistance %></small><% } %>
-              </div>
+                </div>
+              <% } %>
             </section>
           <% } %>
 
-          <% if ((details.raceCategories || []).length) { %>
+          <% if (showRaceCategoriesSection) { %>
             <section class="event-section">
               <div class="event-section-heading">
                 <span class="event-section-icon"><i data-lucide="list-checks"></i></span>
                 <div>
-                  <h2>Race Categories</h2>
-                  <p>Choose the category that matches your distance, eligibility, and event goal.</p>
+                  <h2><%= details.hasCategorySpecificGoals ? 'Category Details' : 'Race Categories' %></h2>
+                  <p><%= details.hasCategorySpecificGoals ? 'Review eligibility, availability, timing, and category-specific rewards.' : 'Choose the category that matches your distance, eligibility, and event goal.' %></p>
                 </div>
               </div>
 
@@ -258,7 +305,7 @@
             </section>
           <% } %>
 
-          <section class="event-section">
+          <section class="event-section" id="event-rewards">
             <div class="event-section-heading">
               <span class="event-section-icon"><i data-lucide="gift"></i></span>
               <div>
@@ -324,7 +371,7 @@
                   <p>This past event remains available as a useful public record for runners and visitors.</p>
                 </div>
               </div>
-              <p class="event-supporting-copy"><%= details.recap.body %></p>
+              <p class="event-recap-body"><%= details.recap.body %></p>
               <ul class="event-recap-list">
                 <% details.recap.details.forEach((item) => { %>
                   <li><%= item %></li>
@@ -334,7 +381,7 @@
           <% } %>
 
           <% if ((details.pricingOptions || []).length || (details.packageOptions || []).length || details.pricing?.hasOptionalCosts) { %>
-            <section class="event-section">
+            <section class="event-section" id="event-registration-options">
               <div class="event-section-heading">
                 <span class="event-section-icon"><i data-lucide="shopping-bag"></i></span>
                 <div>
@@ -384,7 +431,7 @@
             </section>
           <% } %>
 
-          <section class="event-section">
+          <section class="event-section" id="event-submission-rules">
             <div class="event-section-heading">
               <span class="event-section-icon"><i data-lucide="upload-cloud"></i></span>
               <div>
@@ -393,30 +440,32 @@
               </div>
             </div>
 
-            <div class="event-rule-list">
-              <p><strong>Event window</strong><span><%= details.virtualRules?.virtualWindowLabel || 'Event window not listed' %></span></p>
-              <p><strong>Accepted activities</strong><span><%= details.virtualRules?.acceptedActivities?.join(', ') || 'See event details' %></span></p>
-              <p><strong>Proof types</strong><span><%= details.virtualRules?.proofTypes?.join(', ') || 'See event details' %></span></p>
-              <p><strong>Final deadline</strong><span><%= details.virtualRules?.finalSubmissionDeadline || 'Deadline not listed' %></span></p>
-              <p><strong>Leaderboard</strong><span><%= details.virtualRules?.leaderboardMode || 'N/A' %></span></p>
-            </div>
+            <dl class="event-rule-list">
+              <div><dt>Event window</dt><dd><%= details.virtualRules?.virtualWindowLabel || 'Not listed' %></dd></div>
+              <div><dt>Accepted activities</dt><dd><%= details.virtualRules?.acceptedActivities?.join(', ') || 'Not specified' %></dd></div>
+              <div><dt>Proof types</dt><dd><%= details.virtualRules?.proofTypes?.join(', ') || 'Not specified' %></dd></div>
+              <div><dt>Final deadline</dt><dd><%= details.virtualRules?.finalSubmissionDeadline || 'Not listed' %></dd></div>
+              <div><dt>Leaderboard</dt><dd><%= details.virtualRules?.leaderboardMode || 'Not available' %></dd></div>
+            </dl>
           </section>
 
           <% if (eventDetailsHtml) { %>
-            <section class="event-section event-details-description">
+            <section class="event-section event-details-description" id="event-full-details">
               <div class="event-section-heading">
                 <span class="event-section-icon"><i data-lucide="file-text"></i></span>
                 <div>
                   <h2>Full Event Details</h2>
-                  <p>Organizer-published details, reminders, and event-specific rules.</p>
+                  <p>Read the organiser’s full event information, instructions, and important notes.</p>
                 </div>
               </div>
-              <div class="event-rich-details"><%- eventDetailsHtml %></div>
+              <div class="event-rich-details-shell">
+                <div class="event-rich-details"><%- eventDetailsHtml %></div>
+              </div>
             </section>
           <% } %>
 
           <% if ((details.galleryImageUrls || []).length) { %>
-            <section class="event-section">
+            <section class="event-section" id="event-gallery">
               <div class="event-section-heading">
                 <span class="event-section-icon"><i data-lucide="images"></i></span>
                 <div>
@@ -453,7 +502,7 @@
             <% } %>
           </section>
 
-          <section class="event-side-card">
+          <section class="event-side-card event-timeline-card">
             <h3>Event Timeline</h3>
             <div class="event-timeline-list">
               <% (details.timeline || []).forEach((item) => { %>
@@ -534,19 +583,30 @@
           <% } %>
 
           <% if (locals.user && !isPreviewMode) { %>
-            <section class="event-side-card" id="contact-organiser">
-              <h3>Contact Organiser</h3>
+            <section class="event-side-card event-contact-card" id="contact-organiser">
+              <div class="event-contact-heading">
+                <span class="event-contact-icon"><i data-lucide="message-circle" aria-hidden="true"></i></span>
+                <div>
+                  <h3>Contact Organiser</h3>
+                  <p>Ask a question about this event.</p>
+                </div>
+              </div>
               <% if (locals.message?.type && req?.query?.msg && req?.query?.msg.toString().includes('organiser')) { %>
                 <div class="page-message page-message-<%= locals.message.type %>"><%= locals.message?.text || '' %></div>
               <% } %>
               <form method="POST" action="/events/<%= event.slug %>/contact-organiser" class="contact-organiser-form">
                 <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                <label class="contact-organiser-label" for="contactSubject">Subject</label>
-                <input type="text" id="contactSubject" name="subject" class="contact-organiser-input" maxlength="200" placeholder="e.g. Question about proof format">
-                <label class="contact-organiser-label" for="contactMessage">Message</label>
-                <textarea id="contactMessage" name="message" class="contact-organiser-input" rows="4" maxlength="1000" placeholder="Your question or message to the organiser..."></textarea>
-                <button type="submit" class="btn btn-outline btn-block btn-sm">Send Message</button>
-                <p class="contact-organiser-note">Your message will be sent to the organiser. Your email will be included so they can reply directly.</p>
+                <div class="contact-organiser-field">
+                  <label class="contact-organiser-label" for="contactSubject">Subject <span>Optional</span></label>
+                  <input type="text" id="contactSubject" name="subject" class="contact-organiser-input" maxlength="200" placeholder="e.g. Question about proof format">
+                </div>
+                <div class="contact-organiser-field">
+                  <label class="contact-organiser-label" for="contactMessage">Message</label>
+                  <textarea id="contactMessage" name="message" class="contact-organiser-input" rows="4" minlength="10" maxlength="1000" required aria-describedby="contactMessageHelp" placeholder="Write your event question..."></textarea>
+                  <div class="contact-organiser-help" id="contactMessageHelp"><span>Minimum 10 characters</span><span data-contact-message-count>0 / 1000</span></div>
+                </div>
+                <button type="submit" class="btn btn-outline btn-block btn-sm"><i data-lucide="send" aria-hidden="true"></i><span>Send message</span></button>
+                <p class="contact-organiser-note"><i data-lucide="shield-check" aria-hidden="true"></i><span>Your email is shared only so the organiser can reply directly.</span></p>
               </form>
             </section>
           <% } %>
@@ -557,7 +617,7 @@
         </aside>
       </div>
 
-      <section class="event-cta-row">
+      <section class="event-cta-row event-final-cta-row">
         <% if (details.primaryCta && !details.primaryCta.disabled) { %>
           <a href="<%= details.primaryCta.href %>" class="btn btn-primary">Register for This Event</a>
         <% } else { %>
@@ -570,13 +630,16 @@
         <% } %>
       </section>
 
-      <div class="event-mobile-sticky-cta">
-        <% if (details.primaryCta && !details.primaryCta.disabled) { %>
-          <a href="<%= details.primaryCta.href %>" class="btn btn-primary btn-block">Register Now</a>
-        <% } else { %>
-          <button type="button" class="btn btn-outline btn-block" disabled><%= details.primaryCta?.label || 'Registration Unavailable' %></button>
-        <% } %>
-      </div>
+      <% if (showMobileStickyCta) { %>
+        <div class="event-mobile-sticky-cta" aria-label="Event registration">
+          <div class="event-mobile-sticky-copy">
+            <span><%= details.registrationState?.label || 'Registration open' %></span>
+            <strong><%= details.pricing?.amountLabel || 'View pricing' %></strong>
+            <% if (details.registrationState?.helper) { %><small><%= details.registrationState.helper %></small><% } %>
+          </div>
+          <a href="<%= details.primaryCta.href %>" class="btn btn-primary">Register</a>
+        </div>
+      <% } %>
 
       <% if ((details.galleryImageUrls || []).length) { %>
         <div id="galleryLightbox" class="gallery-lightbox hidden" aria-hidden="true">
@@ -646,6 +709,27 @@
   <script>
     if (window.lucide) lucide.createIcons();
 
+    (function initEventSectionJump() {
+      const jump = document.querySelector('.event-section-jump');
+      if (!jump) return;
+      jump.querySelectorAll('a[href^="#"]').forEach((link) => {
+        link.addEventListener('click', () => {
+          jump.open = false;
+        });
+      });
+    })();
+
+    (function initContactMessageCount() {
+      const message = document.getElementById('contactMessage');
+      const count = document.querySelector('[data-contact-message-count]');
+      if (!message || !count) return;
+      const updateCount = () => {
+        count.textContent = `${message.value.length} / 1000`;
+      };
+      message.addEventListener('input', updateCount);
+      updateCount();
+    })();
+
     (function initGalleryLightbox() {
       const lightbox = document.getElementById('galleryLightbox');
       if (!lightbox) return;
@@ -663,6 +747,22 @@
         alt: btn.querySelector('img')?.alt || 'Gallery image'
       }));
       let currentIndex = 0;
+      let lastFocusedElement = null;
+
+      function keepFocusInside(event) {
+        if (event.key !== 'Tab') return;
+        const focusable = Array.from(lightbox.querySelectorAll('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'));
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
 
       function updateLightboxImage() {
         const item = gallerySources[currentIndex];
@@ -673,6 +773,7 @@
       }
 
       function openLightbox(index) {
+        lastFocusedElement = document.activeElement;
         currentIndex = Math.max(0, Math.min(index, gallerySources.length - 1));
         updateLightboxImage();
         lightbox.classList.remove('hidden');
@@ -685,6 +786,7 @@
         lightbox.classList.add('hidden');
         lightbox.setAttribute('aria-hidden', 'true');
         body.classList.remove('no-scroll');
+        if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') lastFocusedElement.focus();
       }
 
       function showPrev() {
@@ -707,6 +809,7 @@
 
       document.addEventListener('keydown', (event) => {
         if (lightbox.classList.contains('hidden')) return;
+        keepFocusInside(event);
         if (event.key === 'Escape') closeLightbox();
         if (event.key === 'ArrowLeft') showPrev();
         if (event.key === 'ArrowRight') showNext();
@@ -733,6 +836,22 @@
       let isDragging = false;
       let dragStartX = 0;
       let dragStartY = 0;
+      let lastFocusedElement = null;
+
+      function keepFocusInside(event) {
+        if (event.key !== 'Tab') return;
+        const focusable = Array.from(lightbox.querySelectorAll('button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'));
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      }
 
       function updatePosterTransform() {
         imageEl.style.transform = `translate(${translateX}px, ${translateY}px) scale(${zoomLevel})`;
@@ -758,6 +877,7 @@
       }
 
       function openLightbox() {
+        lastFocusedElement = document.activeElement;
         imageEl.src = posterSrc;
         imageEl.alt = posterAlt;
         resetZoom();
@@ -772,6 +892,7 @@
         lightbox.setAttribute('aria-hidden', 'true');
         body.classList.remove('no-scroll');
         resetZoom();
+        if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') lastFocusedElement.focus();
       }
 
       posterBtn.addEventListener('click', openLightbox);
@@ -809,6 +930,7 @@
 
       document.addEventListener('keydown', (event) => {
         if (lightbox.classList.contains('hidden')) return;
+        keepFocusInside(event);
         if (event.key === 'Escape') closeLightbox();
       });
     })();
