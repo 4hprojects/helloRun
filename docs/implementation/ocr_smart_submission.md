@@ -1,5 +1,89 @@
 # HelloRun OCR Smart Activity Submission
 
+## Submit Run Entry Three-Step Redesign — Implementation Specification (July 2026)
+
+**Status:** implemented; automated regression validation completed. Manual device and assistive-technology QA remains a release task.
+
+### Current-state analysis and baseline
+
+The shared submit-run experience already provides browser OCR, Strava import, editable extracted values, multi-event targeting, Personal Record fallback, rejected-result resubmission, name-mismatch acknowledgement, integrity warnings, duplicate-proof protection, a seven-day local draft, and a final confirmation. The focused baseline passed 20 tests covering modal integration, routes, idempotency, integrity, and mobile behavior before this redesign began.
+
+The audit identified these material risks:
+
+- Event targets could be selected before the runner reached the event-selection stage, including a visually permanent Personal Record choice.
+- A preferred event was not sufficiently distinguished from automatically selected aligned events, increasing accidental multi-event submission risk.
+- Explicit discard did not clear the locally stored draft even though the UI said the work would be lost, and restored run-type values did not restore the visible chip state.
+- Eligibility could become stale between opening the modal and final submission.
+- Redirect parsing made network, authentication, rate-limit, CSRF, and validation failures hard to distinguish in the modal.
+- Multi-target writes could partially succeed before a later target failed, making recovery and retry unclear.
+- Proof cleanup checked standard submissions but could miss accumulated-activity references.
+- Client and server validation/copy differed for required location and WebP support.
+- The large browser controller mixed navigation, OCR, drafts, validation, targeting, dialogs, and transport, making state regressions difficult to isolate.
+
+### Locked three-step interaction
+
+1. **Step 1 of 3 — Choose Run Date.** Require a valid, non-future Manila date. Show an informational preview of matching event windows, but do not select a submission target.
+2. **Step 2 of 3 — Add and Analyze Proof.** Choose exactly one source: screenshot or Strava. Screenshot OCR may fill normalized activity data; OCR failure never blocks manual completion. Replacing or switching the source clears stale extracted state.
+3. **Step 3 of 3 — Select Event, Review Details, and Submit.** Show date-aligned targets and use the OCR/Strava distance and activity type to determine qualification. Screenshot submissions preselect every fully qualified event and explain that separate entries will be created; runners may deselect any event. Strava remains limited to one target. Personal Record remains explicit. Display editable details, target requirements, integrity warnings, and a final confirmation summary.
+
+Desktop retains a modal. Mobile renders the same state machine as a full-screen sheet with a persistent header, progress label, Back behavior, and one primary action per stage.
+
+### User scenarios and edge cases
+
+- New and repeat runners; event-specific launch; dashboard launch; Personal Record only; multiple aligned events; accumulated challenge; rejected resubmission.
+- Missing, future, malformed, or event-misaligned dates, including Manila timezone boundaries and OCR changing the entered date.
+- Screenshot picker cancellation, drag/drop, WebP, invalid/oversize/corrupt files, OCR timeout/unavailability/partial extraction, replacement during OCR, identity mismatch, and edits to OCR values.
+- Strava disconnected/expired, sync failure, no activities, duplicate activity, single-target enforcement, and switching between sources.
+- Eligibility changing while the form is open, double submit, offline/timeout, rate limiting, expired session/CSRF, duplicate proof, partial multi-target failure, and retry.
+- Draft resume, start over, expiry, malformed storage, explicit discard, successful clearing, keyboard-only completion, nested-dialog focus, zoom, mobile keyboard, and orientation changes.
+
+### Interface and reliability changes
+
+- Modal writes request JSON responses and retain redirect fallback for non-JavaScript submissions. The stable response fields are `success`, `code`, `message`, `fieldErrors`, `retryable`, and `submittedEntries`.
+- A client-generated `submissionAttemptId` identifies retries. Multi-target processing must be atomic or compensating and return an already completed attempt rather than duplicate it.
+- Eligibility is refreshed immediately before final submission. If selected targets changed, submission stops and Step 3 is refreshed without losing activity data.
+- Fully qualified screenshot targets are preselected only after OCR/manual details are available in Step 3; date alignment alone never selects an event. Personal Record is never silently included with an event.
+- Draft restore synchronizes visible controls. Users choose Resume or Start over; explicit discard and successful submission remove the draft. Files and raw OCR text are never persisted locally.
+- Client and server validation agree on date, location, activity type, distance, duration, elevation, steps, MIME types, and file size.
+- Proof deletion checks standard and accumulated submissions before removing an object.
+
+### Implementation checklist
+
+- [x] Record analysis, locked interaction, risks, interfaces, acceptance criteria, and test matrix before code changes.
+- [x] Enforce the locked three-stage UI and explicit target selection.
+- [x] Harden draft lifecycle and restore visible control state.
+- [x] Add pre-submit eligibility refresh and structured modal responses.
+- [x] Add attempt idempotency and compensating multi-target recovery.
+- [x] Align validation and proof cleanup across submission types.
+- [x] Add focused integration and browser-state regression tests.
+- [x] Run focused runner-submission validation and record results here.
+
+Validation record:
+
+- 24/24 focused modal, route, idempotency, integrity, mobile, and three-step tests passed.
+- Structured JSON submission and completed-attempt replay integration test passed.
+- Submission creation, resubmission, idempotency, OCR payload separation, and trusted auto-approval cases passed in the deeper service run.
+- The broader service run exposed one unrelated pre-existing rejection-copy assertion (`Select a valid rejection reason` versus the older expected wording); no changed submission-create/resubmit case failed.
+
+Remaining release checks:
+
+- Complete manual QA with actual mobile keyboards, orientation changes, 200% zoom, reduced motion, and screen readers.
+- Observe production error and abandonment telemetry before deciding whether to extract the state-machine concerns from the shared controller into separate browser modules.
+
+### Acceptance criteria
+
+- The visible sequence is always Date → Proof/OCR → Event selection and editable details.
+- Step 1 never commits an event target; Step 3 is the only target-selection surface.
+- OCR/Strava values are populated before Step 3 when extraction succeeds; manual completion remains available when it does not.
+- Personal Record is explicit, recoverable failures preserve input, discard truly clears the draft, and multi-target retries cannot leave an unrecoverable partial result.
+- All stages work with keyboard and screen readers and at mobile, tablet, desktop, 200% zoom, and reduced-motion settings.
+
+### Test matrix
+
+Automated coverage must include stage navigation and labels, target-selection rules, draft resume/start-over/discard, OCR replacement and timeout, Strava source switching, client/server validation parity, stale eligibility, structured errors, double submission, attempt retry, atomic multi-target failure, proof-reference cleanup, and the existing route/idempotency/integrity regressions. Manual QA covers mobile keyboard, orientation, focus trap/restoration, screen-reader announcements, zoom, and reduced motion.
+
+---
+
 ## Document Role
 
 This document defines the planned OCR-based smart activity submission system for HelloRun.

@@ -48,6 +48,7 @@ const {
   createSubmission,
   editRejectedSubmissionMetadata,
   resubmitSubmission,
+  getEligibleRunnerRegistration,
   getRunnerSubmissions,
   getRunnerPerformanceSnapshot,
   PERSONAL_RECORD_REGISTRATION_ID
@@ -197,6 +198,7 @@ module.exports = {
   createSubmission,
   editRejectedSubmissionMetadata,
   resubmitSubmission,
+  getEligibleRunnerRegistration,
   getRunnerSubmissions,
   getRunnerPerformanceSnapshot,
   PERSONAL_RECORD_REGISTRATION_ID,

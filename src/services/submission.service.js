@@ -57,7 +57,8 @@ async function createSubmission({
   steps,
   ocrData,
   source,
-  stravaActivity
+  stravaActivity,
+  submissionAttemptId
 }) {
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
     return createPersonalRecordSubmission({
@@ -74,7 +75,8 @@ async function createSubmission({
       steps,
       ocrData,
       source,
-      stravaActivity
+      stravaActivity,
+      submissionAttemptId
     });
   }
 
@@ -101,7 +103,8 @@ async function createSubmission({
     steps,
     ocrData,
     source,
-    stravaActivity
+    stravaActivity,
+    submissionAttemptId
   }));
   return applyAutoApprovalIfEligible(submission);
 }
@@ -258,7 +261,8 @@ async function resubmitSubmission({
   steps,
   ocrData,
   source,
-  stravaActivity
+  stravaActivity,
+  submissionAttemptId
 }) {
   if (String(registrationId || '').trim() === PERSONAL_RECORD_REGISTRATION_ID) {
     throw new Error('Personal record submissions create a new entry each time.');
@@ -290,10 +294,12 @@ async function resubmitSubmission({
     steps,
     ocrData,
     source,
-    stravaActivity
+    stravaActivity,
+    submissionAttemptId
   });
 
   existing.distanceKm = payload.distanceKm;
+  existing.submissionAttemptId = payload.submissionAttemptId;
   existing.elapsedMs = payload.elapsedMs;
   existing.runDate = payload.runDate;
   existing.runLocation = payload.runLocation;
@@ -668,7 +674,7 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
     .sort({ registeredAt: -1 })
     .populate({
       path: 'eventId',
-      select: 'title slug status eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode raceCategories targetDistanceKm minimumActivityDistanceKm finalSubmissionDeadlineAt'
+      select: 'title slug status eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow onsiteCheckinWindows venueName city country virtualCompletionMode raceCategories targetDistanceKm minimumActivityDistanceKm acceptedRunTypes finalSubmissionDeadlineAt'
     })
     .lean();
 
@@ -711,6 +717,9 @@ async function getRunnerEligibleSubmissionRegistrationState(runnerId, options = 
           : 'standard',
         minimumRequiredDistanceKm: minimumDistanceKm,
         minimumActivityDistanceKm: Number(registration.eventId?.minimumActivityDistanceKm || 0) || null,
+        acceptedRunTypes: Array.isArray(registration.eventId?.acceptedRunTypes)
+          ? registration.eventId.acceptedRunTypes
+          : [],
         targetDistanceKm: registration.eventId?.virtualCompletionMode === 'accumulated_distance'
           ? resolveAccumulatedTargetDistanceKm(registration, registration.eventId)
           : null,
@@ -785,7 +794,8 @@ async function createPersonalRecordSubmission({
   steps,
   ocrData,
   source,
-  stravaActivity
+  stravaActivity,
+  submissionAttemptId
 }) {
   const runner = await User.findById(runnerId)
     .select('firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup')
@@ -861,7 +871,8 @@ async function createPersonalRecordSubmission({
     steps,
     ocrData,
     source,
-    stravaActivity
+    stravaActivity,
+    submissionAttemptId
   });
   payload.isPersonalRecord = true;
   payload.validation = {
@@ -1005,6 +1016,7 @@ function buildSubmissionPayload(registration, input, context = {}) {
     registrationId: registration._id,
     eventId: registration.eventId,
     runnerId: registration.userId,
+    submissionAttemptId: String(input.submissionAttemptId || '').trim().slice(0, 100),
     isPersonalRecord: false,
     participationMode: registration.participationMode || 'virtual',
     raceDistance: String(registration.raceDistance || '').trim(),

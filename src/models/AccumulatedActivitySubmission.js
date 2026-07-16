@@ -42,6 +42,13 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    submissionAttemptId: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 100,
+      index: true
+    },
     participationMode: {
       type: String,
       enum: ['virtual', 'onsite'],
@@ -282,6 +289,7 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
 accumulatedActivitySubmissionSchema.index({ eventId: 1, status: 1, submittedAt: -1 });
 accumulatedActivitySubmissionSchema.index({ registrationId: 1, status: 1, submittedAt: -1 });
 accumulatedActivitySubmissionSchema.index({ runnerId: 1, status: 1, submittedAt: -1 });
+accumulatedActivitySubmissionSchema.index({ runnerId: 1, submissionAttemptId: 1 });
 accumulatedActivitySubmissionSchema.index({ eventId: 1, status: 1, distanceKm: -1 });
 accumulatedActivitySubmissionSchema.index(
   { runnerId: 1, eventId: 1, 'stravaActivity.id': 1 },

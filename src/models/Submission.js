@@ -121,6 +121,13 @@ const submissionSchema = new mongoose.Schema(
       required: true,
       index: true
     },
+    submissionAttemptId: {
+      type: String,
+      trim: true,
+      default: '',
+      maxlength: 100,
+      index: true
+    },
     isPersonalRecord: {
       type: Boolean,
       default: false,
@@ -364,6 +371,7 @@ const submissionSchema = new mongoose.Schema(
 
 submissionSchema.index({ eventId: 1, status: 1, elapsedMs: 1 });
 submissionSchema.index({ runnerId: 1, submittedAt: -1 });
+submissionSchema.index({ runnerId: 1, submissionAttemptId: 1 });
 submissionSchema.index({ eventId: 1, status: 1, submittedAt: -1 });
 submissionSchema.index({ runnerId: 1, status: 1, submittedAt: -1 });
 submissionSchema.index({ runnerId: 1, status: 1, 'certificate.issuedAt': -1 });

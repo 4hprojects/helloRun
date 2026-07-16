@@ -61,6 +61,7 @@
         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
         <input type="hidden" name="proofType" value="photo">
         <input type="hidden" id="runProofMode" name="modalMode" value="<%= defaultMode %>">
+        <input type="hidden" id="runProofSubmissionAttemptId" name="submissionAttemptId" value="">
         <input type="hidden" id="runProofSelectedRegistrationIds" name="selectedRegistrationIds" value="">
         <input type="hidden" id="runProofPrimaryRegistrationId" name="registrationId" value="">
         <input type="hidden" id="runProofElapsedTime" name="elapsedTime" value="">
@@ -89,6 +90,16 @@
         <input type="hidden" id="runProofImageHash" name="proofImageHash" value="">
 
         <div id="runProofStepDate">
+          <section class="run-proof-draft-prompt" id="runProofDraftPrompt" hidden aria-labelledby="runProofDraftTitle">
+            <div>
+              <h3 id="runProofDraftTitle">Continue your saved entry?</h3>
+              <p>Your run details are saved on this device. For privacy, choose the proof again after resuming.</p>
+            </div>
+            <div class="run-proof-draft-actions">
+              <button type="button" class="btn btn-primary" id="runProofDraftResume">Resume saved entry</button>
+              <button type="button" class="btn btn-outline" id="runProofDraftStartOver">Start over</button>
+            </div>
+          </section>
           <section class="run-proof-section" aria-labelledby="runProofSectionDate">
             <div class="run-proof-section-heading">
               <h3 id="runProofSectionDate">Run Date</h3>
@@ -191,20 +202,9 @@
               <h3 id="runProofSectionEvents">Event Selection</h3>
               <span class="run-proof-required-tag">Required</span>
             </div>
-            <p class="run-proof-helper" id="runProofEventsHelper">For screenshots, select each eligible event this activity should count toward. Strava submissions target one event or Personal Record.</p>
+            <p class="run-proof-helper" id="runProofEventsHelper">For screenshots, select each eligible event this activity should count toward. Strava submissions target one event or Personal Record (Personal log).</p>
 
-            <div class="run-proof-event-list" id="runProofEventsList" role="group" tabindex="-1" aria-describedby="runProofEventsHelper runProofEventsError">
-              <label class="run-proof-event-card is-locked" for="runProofPersonalRecord">
-                <span class="run-proof-event-main">
-                  <input id="runProofPersonalRecord" type="checkbox" checked disabled aria-disabled="true">
-                  <span>
-                    <strong>Personal Record</strong>
-                    <small>Available even when no event is accepting submissions</small>
-                  </span>
-                </span>
-                <span class="run-proof-event-pill">Personal log</span>
-              </label>
-            </div>
+            <div class="run-proof-event-list" id="runProofEventsList" role="group" tabindex="-1" aria-describedby="runProofEventsHelper runProofEventsError"></div>
             <p class="run-proof-field-error" id="runProofEventsError" aria-live="polite"></p>
           </section>
 
@@ -276,6 +276,7 @@
               <label for="runProofElevationGain">Elevation Gain (m)</label>
               <div class="run-proof-field-row-input">
                 <input id="runProofElevationGain" name="elevationGain" type="number" min="0" max="20000" step="1" placeholder="Optional">
+                <p class="run-proof-field-error" id="runProofElevationError" aria-live="polite"></p>
               </div>
             </div>
 
@@ -283,6 +284,7 @@
               <label for="runProofSteps">Steps</label>
               <div class="run-proof-field-row-input">
                 <input id="runProofSteps" name="steps" type="number" min="0" max="200000" step="1" placeholder="Optional">
+                <p class="run-proof-field-error" id="runProofStepsError" aria-live="polite"></p>
               </div>
             </div>
           </section>

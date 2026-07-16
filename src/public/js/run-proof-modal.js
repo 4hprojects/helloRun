@@ -14,6 +14,7 @@
     const messageEl = document.getElementById('runProofMessage');
 
     const modeInput = document.getElementById('runProofMode');
+    const submissionAttemptInput = document.getElementById('runProofSubmissionAttemptId');
     const selectedIdsInput = document.getElementById('runProofSelectedRegistrationIds');
     const primaryRegistrationInput = document.getElementById('runProofPrimaryRegistrationId');
 
@@ -89,6 +90,9 @@
     const dateStepPanel = document.getElementById('runProofStepDate');
     const dateContinueBtn = document.getElementById('runProofDateContinueBtn');
     const datePreviewEl = document.getElementById('runProofDatePreview');
+    const draftPrompt = document.getElementById('runProofDraftPrompt');
+    const draftResume = document.getElementById('runProofDraftResume');
+    const draftStartOver = document.getElementById('runProofDraftStartOver');
     const stepIndicator = document.getElementById('runProofStepIndicator');
     const stravaSyncBtn = document.getElementById('runProofStravaSyncBtn');
     const stravaPanel = document.getElementById('runProofStravaPanel');
@@ -164,7 +168,27 @@
       stravaSubmitting: false,
       selectedStravaActivity: null,
       source: 'screenshot',
-      targetKind: ''
+      targetKind: '',
+      pendingDraft: null,
+      phase: 'date',
+      hasReachedTargetStep: false,
+      preferredTargetApplied: false,
+      manuallyDeselectedTargetIds: new Set()
+    };
+
+    const FLOW_PHASES = Object.freeze({
+      DATE: 'date',
+      PROOF: 'proof',
+      OCR_PROCESSING: 'ocr_processing',
+      REVIEW: 'review',
+      CONFIRMATION: 'confirmation',
+      SUBMITTING: 'submitting',
+      SUCCESS: 'success',
+      RECOVERABLE_ERROR: 'recoverable_error'
+    });
+    const setFlowPhase = (phase) => {
+      state.phase = phase;
+      dialog.dataset.flowPhase = phase;
     };
 
     const STEP_ONE_ANALYSE_LABEL = 'Analyse Activity Screenshot';
@@ -275,6 +299,8 @@
       setFieldError('runProofDistanceError', 'distanceKm', '');
       setFieldError('runProofDurationError', 'elapsedTime', '');
       setFieldError('runProofLocationError', 'runLocation', '');
+      setFieldError('runProofElevationError', 'elevationGain', '');
+      setFieldError('runProofStepsError', 'steps', '');
       setFieldError('runProofRunTypeError', 'runType', '');
       setFieldError('runProofImageError', 'image', '');
     };
@@ -323,6 +349,21 @@
       return true;
     };
 
+    const isOptionQualified = (item) => {
+      if (!item || !isOptionAligned(item)) return false;
+      if (item.isPersonalRecord) return true;
+      const distanceKm = Number(distanceInput?.value || 0);
+      const runType = String(runTypeInput?.value || '').trim();
+      if (!Number.isFinite(distanceKm) || distanceKm <= 0 || !runType) return false;
+      const acceptedRunTypes = Array.isArray(item.acceptedRunTypes) ? item.acceptedRunTypes : [];
+      if (acceptedRunTypes.length && !acceptedRunTypes.includes(runType)) return false;
+      const mode = getSubmissionMode(item);
+      const minimumDistance = mode === 'accumulated'
+        ? Number(item.minimumActivityDistanceKm || 0)
+        : Number(item.minimumRequiredDistanceKm || 0);
+      return !Number.isFinite(minimumDistance) || minimumDistance <= 0 || distanceKm >= minimumDistance;
+    };
+
     const updateDatePreview = () => {
       if (!datePreviewEl) return;
       datePreviewEl.innerHTML = '';
@@ -334,7 +375,7 @@
       const eventOptions = (state.options || []).filter((item) => item && !item.isPersonalRecord);
       const aligned = eventOptions.filter((item) => isOptionAligned(item));
       if (!eventOptions.length) {
-        datePreviewEl.textContent = 'This run will be saved as a Personal Record.';
+        datePreviewEl.textContent = 'This run can be saved as a Personal Record after you select it in Step 3.';
         return;
       }
       if (!aligned.length) {
@@ -381,25 +422,6 @@
         return;
       }
 
-      const personalRecordOnly = state.options.length === 1 && state.options[0] && state.options[0].isPersonalRecord;
-      if (personalRecordOnly) {
-        const personalRecordId = String(state.options[0].registrationId || '').trim();
-        if (personalRecordId) {
-          state.selectedRegistrationIds.add(personalRecordId);
-          state.primaryRegistrationId = personalRecordId;
-          syncSelectedRegistrationFields();
-          syncFormAction();
-          updateSubmitLabelForSelection();
-        }
-        setEventsHelperText(
-          String(state.eligibilityContext?.fallbackMessage || '').trim() ||
-          'No eligible event is accepting submissions right now. You can still save this activity as a Personal Record.'
-        );
-        validateEvents();
-        updateDatePreview();
-        return;
-      }
-
       const preferredId = String(preferredRegistrationId || '').trim();
       state.lastPreferredId = preferredId;
       const runKey = getSelectedRunDateKey();
@@ -408,12 +430,21 @@
         const registrationId = String(item.registrationId || '').trim();
         if (!registrationId) return;
 
-        // Auto-select every event whose activity window contains the run date.
-        // Misaligned events are shown disabled with a reason and never selected.
         const aligned = isOptionAligned(item);
-        const checked = aligned && (preferredId ? preferredId === registrationId : true);
+        const qualified = isOptionQualified(item);
+        const selectable = aligned && (!state.hasReachedTargetStep || qualified);
+        const isStravaPreferred = state.selectedStravaActivity && (
+          (Boolean(preferredId) && preferredId === registrationId) ||
+          (!state.preferredTargetApplied && qualified)
+        );
+        const checked = state.hasReachedTargetStep && qualified && !item.isPersonalRecord &&
+          !state.manuallyDeselectedTargetIds.has(registrationId) &&
+          (!state.selectedStravaActivity || isStravaPreferred);
 
-        if (checked) state.selectedRegistrationIds.add(registrationId);
+        if (checked) {
+          state.selectedRegistrationIds.add(registrationId);
+          state.preferredTargetApplied = true;
+        }
 
         const label = document.createElement('label');
         label.className = 'run-proof-event-card';
@@ -426,36 +457,49 @@
 
         const targetLabel = getSubmissionTargetLabel(item);
         const targetMeta = getSubmissionTargetMeta(item, dateRange);
-        const misalignedNote = (!aligned && runKey)
-          ? '<small class="run-proof-event-misaligned">Run date ' + escapeHtml(runKey) + ' is outside ' + escapeHtml(dateRange) + '</small>'
-          : '';
+        let qualificationNote = '';
+        if (!aligned && runKey) {
+          qualificationNote = '<small class="run-proof-event-misaligned">Run date ' + escapeHtml(runKey) + ' is outside ' + escapeHtml(dateRange) + '</small>';
+        } else if (state.hasReachedTargetStep && !qualified && !item.isPersonalRecord) {
+          qualificationNote = '<small class="run-proof-event-misaligned">This activity does not meet this event\'s distance or activity-type requirement.</small>';
+        }
 
         label.innerHTML =
           '<span class="run-proof-event-main">' +
-            '<input type="checkbox" id="runProofEventOption-' + registrationId + '" data-registration-id="' + registrationId + '" ' + (checked ? 'checked' : '') + (aligned ? '' : ' disabled aria-disabled="true"') + '>' +
+            '<input type="checkbox" id="runProofEventOption-' + registrationId + '" data-registration-id="' + registrationId + '" ' + (checked ? 'checked' : '') + (selectable ? '' : ' disabled aria-disabled="true"') + '>' +
             '<span>' +
               '<strong>' + escapeHtml(String(item.eventTitle || 'Event')) + '</strong>' +
               '<small>' + escapeHtml(targetMeta) + '</small>' +
-              misalignedNote +
+              qualificationNote +
             '</span>' +
           '</span>' +
           '<span class="run-proof-event-pill">' + escapeHtml(targetLabel) + '</span>';
 
         if (checked) label.classList.add('is-selected');
-        if (!aligned) label.classList.add('is-locked');
+        if (!aligned || (state.hasReachedTargetStep && !qualified)) label.classList.add('is-locked');
         eventsList.appendChild(label);
       });
 
       if (state.options.length === 1) {
         const onlyOption = state.options[0];
         setEventsHelperText(
-          `${String(onlyOption?.eventTitle || 'Your eligible event')} is ready and preselected for this run result.`
+          onlyOption?.isPersonalRecord
+            ? (String(state.eligibilityContext?.fallbackMessage || '').trim() || 'No event is accepting this run. Select Personal Record to save it to your activity history.')
+            : `${String(onlyOption?.eventTitle || 'Your eligible event')} is available. Select it to submit this run result.`
         );
       } else {
         setEventsHelperText('For screenshot uploads, select each eligible event this activity should count toward. Strava submissions target one event or Personal Record.');
       }
 
       if (state.selectedStravaActivity) enforceSingleStravaTarget();
+
+      if (!state.selectedStravaActivity && state.selectedRegistrationIds.size > 1) {
+        setEventsHelperText(
+          'This activity qualifies for ' + state.selectedRegistrationIds.size +
+          ' events. All are selected and submitting will create ' +
+          state.selectedRegistrationIds.size + ' separate entries. Deselect any event you do not want to include.'
+        );
+      }
 
       syncSelectedRegistrationFields();
       state.targetKind = getSelectedTargetKind();
@@ -789,7 +833,6 @@
         chip.classList.remove('is-selected');
         chip.setAttribute('aria-checked', 'false');
       });
-      setTodayDate();
     };
 
     const formatOcrTime = (time) => {
@@ -1050,6 +1093,7 @@
     // Page 1 of 3 \u2014 pick the run date; this drives which joined events the proof
     // can be submitted to before the user uploads anything.
     const showDateStep = () => {
+      setFlowPhase(FLOW_PHASES.DATE);
       if (dateStepPanel) dateStepPanel.hidden = false;
       if (step1Panel) step1Panel.hidden = true;
       if (step2Panel) step2Panel.hidden = true;
@@ -1071,12 +1115,13 @@
       if (dateStepPanel) dateStepPanel.hidden = true;
       state.onDateStep = false;
       if (step === 1) {
+        setFlowPhase(FLOW_PHASES.PROOF);
         if (step1Panel) step1Panel.hidden = false;
         if (step2Panel) step2Panel.hidden = true;
         state.currentStep = 1;
         // The date step now precedes upload, so back returns there.
         setBackButtonMode('back');
-        if (stepIndicator) stepIndicator.textContent = 'Step 2 of 3 \u2014 Choose proof source';
+        if (stepIndicator) stepIndicator.textContent = 'Step 2 of 3 \u2014 Add and analyze proof';
         const hasFile = Boolean(fileInput.files && fileInput.files[0]);
         const hasCachedOcr = state.ocrResult !== null;
         const step1Label = hasCachedOcr && hasFile ? STEP_ONE_CONTINUE_LABEL : STEP_ONE_ANALYSE_LABEL;
@@ -1089,12 +1134,17 @@
         submitBtn.setAttribute('aria-busy', 'false');
         if (analyseHint) analyseHint.hidden = true;
       } else {
+        setFlowPhase(FLOW_PHASES.REVIEW);
+        if (!state.hasReachedTargetStep) {
+          state.hasReachedTargetStep = true;
+          recomputeAlignment();
+        }
         if (step1Panel) step1Panel.hidden = true;
         if (step2Panel) step2Panel.hidden = false;
         state.currentStep = 2;
         setBackButtonMode('back');
         submitBtn.hidden = false;
-        if (stepIndicator) stepIndicator.textContent = 'Step 3 of 3 \u2014 Review and submit';
+        if (stepIndicator) stepIndicator.textContent = 'Step 3 of 3 \u2014 Select event, review details, and submit';
         toggleSubmitState();
         focusEventSelectionPanel();
       }
@@ -1120,6 +1170,7 @@
 
       clearOcrState();
       state.ocrRunning = true;
+      setFlowPhase(FLOW_PHASES.OCR_PROCESSING);
       const runId = state.ocrRunId;
 
       setOcrStatus('Starting analysis...', { withEstimate: true });
@@ -1316,6 +1367,27 @@
       return true;
     };
 
+    const validateOptionalMetrics = () => {
+      let valid = true;
+      const elevationRaw = String(elevationInput?.value || '').trim();
+      const elevation = Number(elevationRaw);
+      if (elevationRaw && (!Number.isFinite(elevation) || elevation < 0 || elevation > 20000 || !Number.isInteger(elevation))) {
+        setFieldError('runProofElevationError', 'elevationGain', 'Elevation gain must be a whole number from 0 to 20,000.');
+        valid = false;
+      } else {
+        setFieldError('runProofElevationError', 'elevationGain', '');
+      }
+      const stepsRaw = String(stepsInput?.value || '').trim();
+      const steps = Number(stepsRaw);
+      if (stepsRaw && (!Number.isFinite(steps) || steps < 0 || steps > 200000 || !Number.isInteger(steps))) {
+        setFieldError('runProofStepsError', 'steps', 'Steps must be a whole number from 0 to 200,000.');
+        valid = false;
+      } else {
+        setFieldError('runProofStepsError', 'steps', '');
+      }
+      return valid;
+    };
+
     const validateImage = () => {
       if (state.selectedStravaActivity) {
         setFieldError('runProofImageError', 'image', '');
@@ -1327,7 +1399,7 @@
         return false;
       }
       if (!allowedImageMimes.has(selectedFile.type)) {
-        setFieldError('runProofImageError', 'image', 'Only JPG and PNG files are allowed.');
+        setFieldError('runProofImageError', 'image', 'Only JPG, PNG, and WebP files are allowed.');
         return false;
       }
       if (Number(selectedFile.size || 0) > maxImageBytes) {
@@ -1346,6 +1418,7 @@
         validateDuration(),
         validateLocation(),
         validateRunType(),
+        validateOptionalMetrics(),
         validateImage()
       ].every(Boolean);
 
@@ -1444,11 +1517,21 @@
       state.currentSurface = '';
       state.emptyState = null;
       state.eligibilityContext = null;
+      state.pendingDraft = null;
+      state.hasReachedTargetStep = false;
+      state.preferredTargetApplied = false;
+      state.manuallyDeselectedTargetIds.clear();
+      if (draftPrompt) draftPrompt.hidden = true;
+      if (submissionAttemptInput) submissionAttemptInput.value = createSubmissionAttemptId();
       toggleSubmitState();
       showDateStep();
     };
 
     const runProofDraftKey = 'helloRun:runProofDraft:v1';
+    const createSubmissionAttemptId = () => {
+      if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
+      return 'attempt-' + Date.now() + '-' + Math.random().toString(16).slice(2);
+    };
     const saveRunProofDraft = () => {
       try {
         const values = {};
@@ -1456,16 +1539,50 @@
         window.localStorage.setItem(runProofDraftKey, JSON.stringify({ savedAt: Date.now(), values }));
       } catch (_) {}
     };
-    const restoreRunProofDraft = () => {
+    const syncRunTypeChip = () => {
+      const restoredType = String(runTypeInput.value || '').trim();
+      chipList.querySelectorAll('.run-proof-chip').forEach((chip) => {
+        const selected = String(chip.dataset.runType || '') === restoredType;
+        chip.classList.toggle('is-selected', selected);
+        chip.setAttribute('aria-checked', selected ? 'true' : 'false');
+      });
+    };
+    const applyRunProofDraft = (draft) => {
+      Object.entries(draft?.values || {}).forEach(([id, value]) => {
+        const field = document.getElementById(id);
+        if (field) field.value = value;
+      });
+      syncRunTypeChip();
+      recomputeAlignment();
+      updateDatePreview();
+      if (draftPrompt) draftPrompt.hidden = true;
+      state.pendingDraft = null;
+      setMessage('Your saved run details were restored. Select the proof image again for privacy and browser security.', 'info');
+    };
+    const offerRunProofDraft = () => {
       try {
         const draft = JSON.parse(window.localStorage.getItem(runProofDraftKey) || 'null');
         if (!draft) return;
         if (Date.now() - Number(draft.savedAt || 0) > 7 * 24 * 60 * 60 * 1000) { window.localStorage.removeItem(runProofDraftKey); return; }
-        Object.entries(draft.values || {}).forEach(([id, value]) => { const field = document.getElementById(id); if (field) field.value = value; });
-        setMessage('Your saved run details were restored. Select the proof image again for privacy and browser security.', 'info');
+        state.pendingDraft = draft;
+        if (draftPrompt) draftPrompt.hidden = false;
       } catch (_) { window.localStorage.removeItem(runProofDraftKey); }
     };
     form.addEventListener('input', saveRunProofDraft);
+    if (draftResume) {
+      draftResume.addEventListener('click', () => {
+        if (state.pendingDraft) applyRunProofDraft(state.pendingDraft);
+      });
+    }
+    if (draftStartOver) {
+      draftStartOver.addEventListener('click', () => {
+        window.localStorage.removeItem(runProofDraftKey);
+        state.pendingDraft = null;
+        if (draftPrompt) draftPrompt.hidden = true;
+        resetFormState();
+        setMessage('Saved entry cleared. Start with your run date.', 'info');
+      });
+    }
 
     const showModalShell = () => {
       modal.removeAttribute('hidden');
@@ -1559,18 +1676,31 @@
         const response = await fetch(action, {
           method: 'POST',
           body: new FormData(form),
-          credentials: 'same-origin'
+          credentials: 'same-origin',
+          headers: { Accept: 'application/json' }
         });
 
-        if (response.url && new URL(response.url, window.location.origin).pathname === '/login') {
+        if (response.status === 401 || (response.url && new URL(response.url, window.location.origin).pathname === '/login')) {
           redirectToLogin();
           return;
         }
 
-        const resultMessage = parseRedirectMessage(response.url);
+        const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+        const payload = contentType.includes('application/json') ? await response.json().catch(() => ({})) : null;
+        const resultMessage = payload
+          ? {
+              type: response.ok && payload.success === true ? 'success' : 'error',
+              text: String(payload.message || 'Unable to save your result right now.'),
+              code: String(payload.code || ''),
+              retryable: payload.retryable === true,
+              fieldErrors: payload.fieldErrors && typeof payload.fieldErrors === 'object' ? payload.fieldErrors : {},
+              submittedEntries: Array.isArray(payload.submittedEntries) ? payload.submittedEntries : []
+            }
+          : parseRedirectMessage(response.url);
         const isDuplicate = resultMessage.type === 'error' && /already been submitted/i.test(resultMessage.text);
 
         if (resultMessage.type === 'success' || isDuplicate) {
+          setFlowPhase(FLOW_PHASES.SUCCESS);
           if (resultMessage.type === 'success') window.localStorage.removeItem(runProofDraftKey);
           // Dashboard-specific: refresh the result card on success
           if (resultMessage.type === 'success' && state.currentSurface === 'runner-dashboard') {
@@ -1585,7 +1715,14 @@
             if (postSubmitDesc) postSubmitDesc.textContent = 'This exact screenshot has already been submitted. Upload a different image to submit another entry, or view your existing submissions.';
           } else {
             if (postSubmitTitle) postSubmitTitle.textContent = 'Run result submitted!';
-            if (postSubmitDesc) postSubmitDesc.textContent = 'Your activity details and evidence were received for event result review. What would you like to do next?';
+            if (postSubmitDesc) {
+              const names = resultMessage.submittedEntries
+                ? resultMessage.submittedEntries.map((item) => String(item.eventTitle || '')).filter(Boolean)
+                : [];
+              postSubmitDesc.textContent = names.length
+                ? 'Submitted to: ' + names.join(', ') + '. What would you like to do next?'
+                : 'Your activity details and evidence were received for event result review. What would you like to do next?';
+            }
           }
 
           // All surfaces: show the post-submit overlay
@@ -1600,9 +1737,30 @@
           return;
         }
 
-        setMessage(resultMessage.text, 'error');
+        const serverFieldMap = {
+          runDate: [runDateInput, 'runProofDateError', 'runDate'],
+          distanceKm: [distanceInput, 'runProofDistanceError', 'distanceKm'],
+          elapsedTime: [hoursInput, 'runProofDurationError', 'elapsedTime'],
+          runLocation: [locationInput, 'runProofLocationError', 'runLocation'],
+          runType: [chipList, 'runProofRunTypeError', 'runType'],
+          resultProofFile: [fileInput, 'runProofImageError', 'image'],
+          elevationGain: [elevationInput, 'runProofElevationError', 'elevationGain'],
+          steps: [stepsInput, 'runProofStepsError', 'steps'],
+          selectedRegistrationIds: [eventsList, 'runProofEventsError', 'events']
+        };
+        let firstInvalid = null;
+        Object.entries(resultMessage.fieldErrors || {}).forEach(([key, value]) => {
+          const target = serverFieldMap[key];
+          if (!target) return;
+          setFieldError(target[1], target[2], String(value || 'Check this field.'));
+          if (!firstInvalid) firstInvalid = target[0];
+        });
+        if (firstInvalid && typeof firstInvalid.focus === 'function') firstInvalid.focus();
+        setFlowPhase(FLOW_PHASES.RECOVERABLE_ERROR);
+        setMessage(resultMessage.text + (resultMessage.retryable ? ' Your details are safe; try again when ready.' : ''), 'error');
       } catch (_error) {
-        setMessage('Unable to save your result right now. Please try again.', 'error');
+        setFlowPhase(FLOW_PHASES.RECOVERABLE_ERROR);
+        setMessage('Unable to save your result right now. Your details are safe; check your connection and try again.', 'error');
       } finally {
         state.isSubmitting = false;
         toggleSubmitState();
@@ -1789,12 +1947,14 @@
         if (postSubmitTitle) postSubmitTitle.textContent = 'Run result submitted!';
         if (postSubmitDesc) postSubmitDesc.textContent = 'Your Strava activity has been received. Clean synced activities may auto-approve; otherwise they remain available for review.';
         if (postSubmitOverlay) {
+          setFlowPhase(FLOW_PHASES.SUCCESS);
           postSubmitOverlay.hidden = false;
           if (postSubmitView) postSubmitView.focus();
         } else {
           setMessage(payload.message || 'Strava activity submitted for review.', 'success');
         }
       } catch (error) {
+        setFlowPhase(FLOW_PHASES.RECOVERABLE_ERROR);
         setStravaStatus(error.message || 'Unable to submit Strava activity.', 'error');
       } finally {
         state.stravaSubmitting = false;
@@ -1838,7 +1998,8 @@
 
       state.lastTrigger = triggerElement || null;
       resetFormState();
-      restoreRunProofDraft();
+      if (submissionAttemptInput) submissionAttemptInput.value = createSubmissionAttemptId();
+      offerRunProofDraft();
 
       if (overrides && typeof overrides === 'object') {
         applyModeConfig({ ...state.modeConfig, ...overrides });
@@ -2045,10 +2206,40 @@
     });
 
     modal.addEventListener('keydown', (event) => {
+      const activeOverlay = [closeConfirmOverlay, submitReviewOverlay, nameMismatchConfirmOverlay, postSubmitOverlay]
+        .find((overlay) => overlay && !overlay.hidden);
+      const focusRoot = activeOverlay
+        ? activeOverlay.querySelector('[role="dialog"]')
+        : dialog;
+      if (event.key === 'Tab' && focusRoot) {
+        const focusable = Array.from(focusRoot.querySelectorAll(
+          'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )).filter((node) => !node.hidden && node.getAttribute('aria-hidden') !== 'true');
+        if (focusable.length) {
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+      }
       if (event.key === 'Escape' && !state.isSubmitting) {
         event.preventDefault();
         if (closeConfirmOverlay && !closeConfirmOverlay.hidden) {
           dismissCloseConfirm();
+        } else if (submitReviewOverlay && !submitReviewOverlay.hidden) {
+          dismissSubmitReview();
+          if (submitInlineBtn) submitInlineBtn.focus();
+        } else if (nameMismatchConfirmOverlay && !nameMismatchConfirmOverlay.hidden) {
+          nameMismatchConfirmOverlay.hidden = true;
+          if (nameMismatchContinue) nameMismatchContinue.focus();
+        } else if (postSubmitOverlay && !postSubmitOverlay.hidden) {
+          // Success is a terminal state; keep its next actions visible.
+          if (postSubmitView) postSubmitView.focus();
         } else {
           requestCloseModal();
         }
@@ -2073,6 +2264,7 @@
       if (!registrationId) return;
 
       if (input.checked) {
+        state.manuallyDeselectedTargetIds.delete(registrationId);
         if (state.selectedStravaActivity) {
           state.selectedRegistrationIds.clear();
           eventsList.querySelectorAll('input[type="checkbox"][data-registration-id]').forEach((node) => {
@@ -2086,6 +2278,7 @@
         state.selectedRegistrationIds.add(registrationId);
       } else {
         state.selectedRegistrationIds.delete(registrationId);
+        state.manuallyDeselectedTargetIds.add(registrationId);
       }
 
       const card = input.closest('.run-proof-event-card');
@@ -2103,20 +2296,20 @@
     [runDateInput, distanceInput, locationInput].forEach((input) => {
       input.addEventListener('input', () => {
         if (input === runDateInput) { validateDate(); recomputeAlignment(); updateOcrComparison(); }
-        if (input === distanceInput) { validateDistance(); updateOcrComparison(); }
+        if (input === distanceInput) { validateDistance(); updateOcrComparison(); if (state.hasReachedTargetStep) recomputeAlignment(); }
         if (input === locationInput) { validateLocation(); updateOcrComparison(); }
       });
       input.addEventListener('blur', () => {
         if (input === runDateInput) { validateDate(); recomputeAlignment(); updateOcrComparison(); }
-        if (input === distanceInput) { validateDistance(); updateOcrComparison(); }
+        if (input === distanceInput) { validateDistance(); updateOcrComparison(); if (state.hasReachedTargetStep) recomputeAlignment(); }
         if (input === locationInput) { validateLocation(); updateOcrComparison(); }
       });
     });
 
     [elevationInput, stepsInput].forEach((input) => {
       if (!input) return;
-      input.addEventListener('input', updateOcrComparison);
-      input.addEventListener('blur', updateOcrComparison);
+      input.addEventListener('input', () => { validateOptionalMetrics(); updateOcrComparison(); });
+      input.addEventListener('blur', () => { validateOptionalMetrics(); updateOcrComparison(); });
     });
 
     const durationInputs = [hoursInput, minutesInput, secondsInput];
@@ -2151,6 +2344,7 @@
       });
       validateRunType();
       updateOcrComparison();
+      if (state.hasReachedTargetStep) recomputeAlignment();
     });
 
     chipList.addEventListener('keydown', (event) => {
@@ -2378,6 +2572,8 @@
           window.location.reload();
           return;
         }
+        window.localStorage.removeItem(runProofDraftKey);
+        state.pendingDraft = null;
         closeModal();
       });
     }
@@ -2680,6 +2876,7 @@
     };
 
     const showSubmitReview = () => {
+      setFlowPhase(FLOW_PHASES.CONFIRMATION);
       buildSubmitReview();
       appendIntegrityReviewWarnings();
       if (submitReviewOverlay) {
@@ -2688,7 +2885,32 @@
       }
     };
 
-    const submitConfirmedRunProof = () => {
+    const revalidateSelectedTargets = async () => {
+      const selectedIds = Array.from(state.selectedRegistrationIds);
+      try {
+        const freshItems = await fetchEligibleOptions();
+        const freshById = new Map(freshItems.map((item) => [String(item.registrationId || ''), item]));
+        const invalidIds = selectedIds.filter((id) => {
+          const fresh = freshById.get(String(id));
+          return !fresh || !isOptionAligned(fresh);
+        });
+        if (invalidIds.length) {
+          setFlowPhase(FLOW_PHASES.RECOVERABLE_ERROR);
+          renderEventOptions(freshItems, '');
+          goToStep(2);
+          setMessage('Your available submission targets changed. Select an eligible target again; your activity details were kept.', 'error');
+          return false;
+        }
+        state.options = freshItems;
+        return true;
+      } catch (_error) {
+        setFlowPhase(FLOW_PHASES.RECOVERABLE_ERROR);
+        setMessage('We could not recheck event availability. Your details are safe; check your connection and try again.', 'error');
+        return false;
+      }
+    };
+
+    const submitConfirmedRunProof = async () => {
       if (state.isSubmitting) return;
 
       syncSelectedRegistrationFields();
@@ -2710,8 +2932,16 @@
       }
 
       state.isSubmitting = true;
-      setMessage('', '');
+      setFlowPhase(FLOW_PHASES.SUBMITTING);
+      setMessage('Checking event availability...', '');
       toggleSubmitState();
+
+      if (!(await revalidateSelectedTargets())) {
+        state.isSubmitting = false;
+        toggleSubmitState();
+        return;
+      }
+      setMessage('', '');
 
       if (state.selectedStravaActivity) {
         void submitSelectedStravaActivity(state.selectedStravaActivity).finally(() => {
@@ -2733,7 +2963,7 @@
         return;
       }
       if (action === 'final-submit') {
-        submitConfirmedRunProof();
+        void submitConfirmedRunProof();
       }
     };
 
@@ -2744,7 +2974,7 @@
     if (submitReviewConfirm) {
       submitReviewConfirm.addEventListener('click', () => {
         dismissSubmitReview();
-        submitConfirmedRunProof();
+        void submitConfirmedRunProof();
       });
     }
 

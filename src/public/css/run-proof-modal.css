@@ -921,6 +921,38 @@
   pointer-events: none;
 }
 
+.run-proof-draft-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.75rem;
+  background: #eff6ff;
+}
+
+.run-proof-draft-prompt[hidden] {
+  display: none;
+}
+
+.run-proof-draft-prompt h3,
+.run-proof-draft-prompt p {
+  margin: 0;
+}
+
+.run-proof-draft-prompt p {
+  margin-top: 0.3rem;
+  color: #475569;
+}
+
+.run-proof-draft-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.5rem;
+}
+
 @media (min-width: 760px) {
   .run-proof-modal-backdrop {
     align-items: center;
@@ -974,6 +1006,12 @@
   }
 
   .run-proof-strava-content {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .run-proof-draft-prompt,
+  .run-proof-draft-actions {
     align-items: stretch;
     flex-direction: column;
   }

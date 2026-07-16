@@ -526,6 +526,49 @@ test('authenticated submit-result creates submissions for every selected registr
   assert.ok(created.every((item) => item.status === 'submitted'));
 });
 
+test('modal submission returns structured JSON and safely replays a completed attempt', async () => {
+  const seed = await seedData('json-attempt-replay');
+  const cookie = await login(seed.runner.email, seed.password);
+  await waitForSessionReady('/runner/dashboard', cookie);
+  const attemptId = `attempt-${Date.now()}-json-replay`;
+
+  const submit = async () => {
+    const form = buildResultProofForm({
+      distanceKm: '5',
+      elapsedTime: '00:30:00',
+      proofType: 'photo',
+      runLocation: 'BGC',
+      proofVariant: 29
+    });
+    form.append('runType', 'run');
+    form.append('submissionAttemptId', attemptId);
+    return fetch(`${BASE_URL}/my-registrations/${seed.registration._id}/submit-result`, {
+      method: 'POST',
+      headers: { Cookie: cookie, Accept: 'application/json' },
+      body: form
+    });
+  };
+
+  const first = await submit();
+  assert.equal(first.status, 200);
+  const firstPayload = await first.json();
+  assert.equal(firstPayload.success, true);
+  assert.equal(firstPayload.code, 'SUBMISSION_SAVED');
+  assert.equal(firstPayload.submittedEntries.length, 1);
+
+  const replay = await submit();
+  assert.equal(replay.status, 200);
+  const replayPayload = await replay.json();
+  assert.equal(replayPayload.success, true);
+  assert.equal(replayPayload.code, 'SUBMISSION_ALREADY_COMPLETED');
+  assert.equal(replayPayload.submittedEntries.length, 1);
+
+  await mongoose.connect(process.env.MONGODB_URI);
+  const count = await Submission.countDocuments({ runnerId: seed.runner._id, submissionAttemptId: attemptId });
+  await mongoose.disconnect();
+  assert.equal(count, 1);
+});
+
 test('authenticated submit-result blocks duplicate proof screenshot', async () => {
   const seed = await seedData('dupe-hash');
   const cookie = await login(seed.runner.email, seed.password);

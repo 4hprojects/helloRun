@@ -28,6 +28,7 @@ const {
   createSubmission,
   editRejectedSubmissionMetadata,
   resubmitSubmission,
+  getEligibleRunnerRegistration,
   getRunnerSubmissions,
   getRunnerPerformanceSnapshot,
   PERSONAL_RECORD_REGISTRATION_ID,
@@ -411,6 +412,7 @@ exports.__resetSyncRegistrationPaymentShadow = () => {
 
 async function handleRunnerSubmissionWrite(req, res, options = {}) {
   let uploadedProofKey = '';
+  const respond = (type, message, details = {}) => respondRunnerSubmission(req, res, type, message, details);
   try {
     const user = await User.findById(req.session.userId).select('email role firstName lastName accountStatus');
     if (!user) {
@@ -418,26 +420,55 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     }
 
     if (user.accountStatus === 'restricted') {
-      return redirectWithPageMessage(res, 'error', 'Your account is currently restricted and cannot submit run results.');
+      return respond('error', 'Your account is currently restricted and cannot submit run results.', { code: 'ACCOUNT_RESTRICTED' });
     }
 
     if (req.uploadError) {
-      return redirectWithPageMessage(res, 'error', req.uploadError);
+      return respond('error', req.uploadError, { code: 'INVALID_PROOF' });
     }
 
     const resultProofFile = req.file;
     if (!resultProofFile) {
-      return redirectWithPageMessage(res, 'error', 'Please select run result evidence before submitting.');
+      return respond('error', 'Please select run result evidence before submitting.', { code: 'PROOF_REQUIRED', fieldErrors: { resultProofFile: 'Proof image is required.' } });
     }
 
     const registrationId = String(req.params.registrationId || '').trim();
     const targetRegistrationIds = parseSelectedSubmissionRegistrationIds(req.body.selectedRegistrationIds, registrationId);
     if (!targetRegistrationIds.length) {
-      return redirectWithPageMessage(res, 'error', 'Select at least one eligible event before submitting.');
+      return respond('error', 'Select at least one eligible event before submitting.', { code: 'TARGET_REQUIRED', fieldErrors: { selectedRegistrationIds: 'Select at least one eligible target.' } });
+    }
+    const submissionAttemptId = parseSubmissionAttemptId(req.body.submissionAttemptId);
+    let priorAttemptEntries = [];
+    if (submissionAttemptId) {
+      const [priorStandard, priorAccumulated] = await Promise.all([
+        Submission.find({ runnerId: user._id, submissionAttemptId }).select('_id registrationId').lean(),
+        AccumulatedActivitySubmission.find({ runnerId: user._id, submissionAttemptId }).select('_id registrationId').lean()
+      ]);
+      priorAttemptEntries = priorStandard
+        .map((item) => ({ ...item, kind: 'standard' }))
+        .concat(priorAccumulated.map((item) => ({ ...item, kind: 'accumulated' })));
+      const priorRegistrationIds = new Set(priorAttemptEntries.map((item) => String(item.registrationId)));
+      const completedSameTargets = targetRegistrationIds.every((targetId) => (
+        targetId === PERSONAL_RECORD_REGISTRATION_ID || priorRegistrationIds.has(String(targetId))
+      ));
+      if (priorAttemptEntries.length === targetRegistrationIds.length && completedSameTargets) {
+        return respond('success', 'This submission attempt was already completed.', {
+          code: 'SUBMISSION_ALREADY_COMPLETED',
+          submittedEntries: priorAttemptEntries.map((item) => ({
+            submissionId: String(item._id),
+            registrationId: String(item.registrationId),
+            eventTitle: 'Previously submitted entry',
+            action: 'existing'
+          }))
+        });
+      }
     }
 
     const isPersonalRecordSubmission = registrationId === PERSONAL_RECORD_REGISTRATION_ID;
     const selectedHasPersonalRecord = targetRegistrationIds.includes(PERSONAL_RECORD_REGISTRATION_ID);
+    if (selectedHasPersonalRecord && targetRegistrationIds.length > 1) {
+      return respond('error', 'Personal Record must be submitted separately from event entries.', { code: 'INVALID_TARGET_COMBINATION' });
+    }
     const selectedEventRegistrationIds = targetRegistrationIds.filter((id) => id !== PERSONAL_RECORD_REGISTRATION_ID);
     const selectedRegistrations = selectedEventRegistrationIds.length
       ? await Registration.find({
@@ -448,6 +479,9 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         .select('_id eventId')
         .lean()
       : [];
+    if (selectedRegistrations.length !== selectedEventRegistrationIds.length) {
+      return respond('error', 'One or more selected events is no longer available.', { code: 'STALE_ELIGIBILITY', retryable: true });
+    }
     const eventByRegistrationId = new Map(
       selectedRegistrations
         .filter((item) => item.eventId)
@@ -464,7 +498,6 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
         registrationId: { $in: regularEventRegistrationIds },
         runnerId: user._id
       })
-        .select('_id status proof registrationId')
         .lean()
       : [];
     const existingSubmissionByRegistrationId = new Map(
@@ -475,17 +508,17 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       : existingSubmissionByRegistrationId.get(registrationId) || null;
 
     if (selectedHasPersonalRecord && options.mode === 'resubmit' && targetRegistrationIds.length === 1) {
-      return redirectWithPageMessage(res, 'error', 'Personal record submissions create a new entry each time.');
+      return respond('error', 'Personal record submissions create a new entry each time.', { code: 'INVALID_RESUBMISSION' });
     }
 
     if (!accumulatedTargetIds.has(registrationId) && targetRegistrationIds.length === 1 && options.mode === 'create' && existingSubmission) {
-      return redirectWithPageMessage(res, 'error', 'Submission already exists. Use resubmit flow if rejected.');
+      return respond('error', 'Submission already exists. Use resubmit flow if rejected.', { code: 'SUBMISSION_EXISTS' });
     }
     if (!accumulatedTargetIds.has(registrationId) && targetRegistrationIds.length === 1 && options.mode === 'resubmit' && !existingSubmission) {
-      return redirectWithPageMessage(res, 'error', 'No rejected submission found to resubmit.');
+      return respond('error', 'No rejected submission found to resubmit.', { code: 'RESUBMISSION_NOT_FOUND' });
     }
     if (!accumulatedTargetIds.has(registrationId) && targetRegistrationIds.length === 1 && options.mode === 'resubmit' && existingSubmission.status !== 'rejected') {
-      return redirectWithPageMessage(res, 'error', 'Only rejected submissions can be resubmitted.');
+      return respond('error', 'Only rejected submissions can be resubmitted.', { code: 'RESUBMISSION_NOT_ALLOWED' });
     }
 
     const runDate = parseRunDate(req.body.runDate);
@@ -494,14 +527,21 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       if (targetId === PERSONAL_RECORD_REGISTRATION_ID) continue;
       const targetEvent = eventByRegistrationId.get(String(targetId));
       if (targetEvent && !isRunDateAlignedWithEvent({ event: targetEvent, runDate })) {
-        return redirectWithPageMessage(res, 'error', `${targetEvent.title || 'This event'}: run date is outside the event window.`);
+        return respond('error', `${targetEvent.title || 'This event'}: run date is outside the event window.`, { code: 'RUN_DATE_OUTSIDE_EVENT', fieldErrors: { runDate: 'Choose a date within the selected event window.' } });
       }
       if (accumulatedTargetIds.has(String(targetId))) continue;
       const existingForTarget = existingSubmissionByRegistrationId.get(targetId);
-      if (existingForTarget && existingForTarget.status !== 'rejected') {
-        return redirectWithPageMessage(res, 'error', 'One or more selected entries already has a submitted or approved result.');
+      if (existingForTarget && existingForTarget.status !== 'rejected' && existingForTarget.submissionAttemptId !== submissionAttemptId) {
+        return respond('error', 'One or more selected entries already has a submitted or approved result.', { code: 'STALE_ELIGIBILITY', retryable: true });
       }
     }
+
+    // Validate every target before uploading or mutating any submission. This
+    // prevents the normal multi-target failure cases from partially committing.
+    await Promise.all(selectedEventRegistrationIds.map((targetId) => getEligibleRunnerRegistration({
+      registrationId: targetId,
+      runnerId: user._id
+    })));
 
     const distanceKm = parseDistanceKm(req.body.distanceKm);
     const elapsedMs = parseElapsedToMs(req.body.elapsedTime);
@@ -526,14 +566,17 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       duplicateQuery._id = { $nin: targetExistingSubmissionIds };
     }
     const duplicateSubmission = await Submission.findOne(duplicateQuery).select('_id').lean();
-    const duplicateActivity = await AccumulatedActivitySubmission.findOne({
+    const priorAccumulatedIds = priorAttemptEntries.filter((item) => item.kind === 'accumulated').map((item) => item._id);
+    const duplicateActivityQuery = {
       runnerId: user._id,
       'proof.hash': proofHash
-    }).select('_id').lean();
+    };
+    if (priorAccumulatedIds.length) duplicateActivityQuery._id = { $nin: priorAccumulatedIds };
+    const duplicateActivity = await AccumulatedActivitySubmission.findOne(duplicateActivityQuery).select('_id').lean();
     if (duplicateSubmission || duplicateActivity) {
       await uploadService.deleteObjects([uploadedProofKey]).catch(() => {});
       uploadedProofKey = '';
-      return redirectWithPageMessage(res, 'error', 'This screenshot has already been submitted.');
+      return respond('error', 'This screenshot has already been submitted.', { code: 'DUPLICATE_PROOF' });
     }
 
     try {
@@ -552,8 +595,18 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       });
       uploadedProofKey = uploadedProof.key;
 
-      const previousProofKeysList = await Promise.all(
-        targetRegistrationIds.map(async (targetId) => {
+      const completedAttemptRegistrationIds = new Set(priorAttemptEntries.map((item) => String(item.registrationId)));
+      const writeResults = priorAttemptEntries.map((item) => ({
+        previousKey: null,
+        submission: item,
+        targetId: String(item.registrationId),
+        action: 'existing',
+        kind: item.kind,
+        priorAttempt: true
+      }));
+      try {
+        for (const targetId of targetRegistrationIds) {
+          if (completedAttemptRegistrationIds.has(String(targetId))) continue;
           const existingForTarget = targetId === PERSONAL_RECORD_REGISTRATION_ID
             ? null
             : existingSubmissionByRegistrationId.get(targetId) || null;
@@ -576,23 +629,61 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
             runType,
             elevationGain,
             steps,
-            ocrData
+            ocrData,
+            submissionAttemptId
           };
 
+          let savedSubmission;
+          let action = 'created';
           if (existingForTarget && existingForTarget.status === 'rejected') {
-            await resubmitSubmission(payload);
+            savedSubmission = await resubmitSubmission(payload);
+            action = 'resubmitted';
             const previousKey = String(existingForTarget.proof?.key || '').trim();
-            return previousKey && previousKey !== uploadedProof.key ? previousKey : null;
+            writeResults.push({
+              previousKey: previousKey && previousKey !== uploadedProof.key ? previousKey : null,
+              submission: savedSubmission,
+              targetId,
+              action,
+              previousSubmission: existingForTarget
+            });
+            continue;
           } else if (accumulatedTargetIds.has(String(targetId))) {
-            await createAccumulatedActivitySubmission(payload);
+            savedSubmission = await createAccumulatedActivitySubmission(payload);
           } else {
-            await createSubmission(payload);
+            savedSubmission = await createSubmission(payload);
           }
-          return null;
-        })
-      );
-      const previousProofKeys = new Set(previousProofKeysList.filter(Boolean));
+          writeResults.push({
+            previousKey: null,
+            submission: savedSubmission,
+            targetId,
+            action,
+            kind: accumulatedTargetIds.has(String(targetId)) ? 'accumulated' : 'standard'
+          });
+        }
+      } catch (writeError) {
+        // Compensate in reverse order so a multi-target request is all-or-none
+        // even when MongoDB transactions are unavailable in the deployment.
+        for (const completed of writeResults.filter((item) => !item.priorAttempt).reverse()) {
+          if (completed.action === 'resubmitted' && completed.previousSubmission) {
+            await Submission.replaceOne({ _id: completed.previousSubmission._id }, completed.previousSubmission).catch(() => {});
+          } else if (completed.kind === 'accumulated') {
+            await AccumulatedActivitySubmission.deleteOne({ _id: completed.submission?._id }).catch(() => {});
+          } else {
+            await Submission.deleteOne({ _id: completed.submission?._id }).catch(() => {});
+          }
+        }
+        throw writeError;
+      }
+      const previousProofKeys = new Set(writeResults.map((item) => item.previousKey).filter(Boolean));
       const savedCount = targetRegistrationIds.length;
+      const submittedEntries = writeResults.map((item) => ({
+        submissionId: String(item.submission?._id || ''),
+        registrationId: String(item.targetId),
+        eventTitle: item.targetId === PERSONAL_RECORD_REGISTRATION_ID
+          ? 'Personal Record'
+          : String(eventByRegistrationId.get(String(item.targetId))?.title || 'Event'),
+        action: item.action
+      }));
 
       uploadedProofKey = '';
       for (const previousProofKey of previousProofKeys) {
@@ -602,7 +693,10 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
       const successMessage = savedCount > 1
         ? `Run result saved for ${savedCount} entries.`
         : (options.successMessage || 'Run result saved.');
-      return redirectWithPageMessage(res, 'success', successMessage);
+      return respond('success', successMessage, {
+        code: savedCount > 1 ? 'MULTI_SUBMISSION_SAVED' : 'SUBMISSION_SAVED',
+        submittedEntries
+      });
     } catch (error) {
       if (idempotencyLock && error?.code !== 'SUBMISSION_IDEMPOTENCY_CONFLICT') {
         await idempotencyLock.release().catch(() => {});
@@ -616,12 +710,45 @@ async function handleRunnerSubmissionWrite(req, res, options = {}) {
     if (error?.code !== 'SUBMISSION_IDEMPOTENCY_CONFLICT') {
       logger.error('Error submitting runner result:', error);
     }
-    return redirectWithPageMessage(
-      res,
+    return respond(
       'error',
-      String(error?.message || 'An error occurred while saving your result. Please try again.')
+      String(error?.message || 'An error occurred while saving your result. Please try again.'),
+      {
+        code: String(error?.code || 'SUBMISSION_FAILED'),
+        retryable: error?.code === 'SUBMISSION_IDEMPOTENCY_CONFLICT' || !error?.code,
+        fieldErrors: buildSubmissionFieldErrors(error)
+      }
     );
   }
+}
+
+function buildSubmissionFieldErrors(error) {
+  const message = String(error?.message || '').toLowerCase();
+  if (message.includes('location')) return { runLocation: String(error.message) };
+  if (message.includes('activity type') || message.includes('run type')) return { runType: String(error.message) };
+  if (message.includes('elapsed') || message.includes('duration')) return { elapsedTime: String(error.message) };
+  if (message.includes('distance')) return { distanceKm: String(error.message) };
+  if (message.includes('run date') || message.includes('future')) return { runDate: String(error.message) };
+  if (message.includes('elevation')) return { elevationGain: String(error.message) };
+  if (message.includes('steps')) return { steps: String(error.message) };
+  return {};
+}
+
+function respondRunnerSubmission(req, res, type, message, details = {}) {
+  const accept = String(req.get?.('accept') || '').toLowerCase();
+  const wantsJson = accept.includes('application/json') && !accept.includes('text/html');
+  if (wantsJson) {
+    const success = type !== 'error';
+    return res.status(success ? 200 : 422).json({
+      success,
+      code: String(details.code || (success ? 'SUBMISSION_SAVED' : 'SUBMISSION_FAILED')),
+      message: String(message || '').slice(0, 220),
+      fieldErrors: details.fieldErrors && typeof details.fieldErrors === 'object' ? details.fieldErrors : {},
+      retryable: details.retryable === true,
+      submittedEntries: Array.isArray(details.submittedEntries) ? details.submittedEntries : []
+    });
+  }
+  return redirectWithPageMessage(res, type, message);
 }
 
 function redirectWithPageMessage(res, type, message) {
@@ -672,6 +799,9 @@ function parseRunDate(value) {
 
 function parseRunLocation(value) {
   const safe = String(value || '').trim();
+  if (!safe) {
+    throw new Error('Run location is required.');
+  }
   if (safe.length > 200) {
     throw new Error('Run location must be 200 characters or less.');
   }
@@ -701,11 +831,20 @@ function parseSelectedSubmissionRegistrationIds(rawValue, fallbackRegistrationId
   return selected;
 }
 
+function parseSubmissionAttemptId(value) {
+  const safe = String(value || '').trim();
+  if (!safe) return '';
+  return /^[a-z0-9][a-z0-9-]{7,99}$/i.test(safe) ? safe : '';
+}
+
 async function deleteProofObjectIfUnused(proofKey) {
   const safeKey = String(proofKey || '').trim();
   if (!safeKey) return;
-  const stillUsed = await Submission.exists({ 'proof.key': safeKey });
-  if (stillUsed) return;
+  const [usedBySubmission, usedByAccumulatedActivity] = await Promise.all([
+    Submission.exists({ 'proof.key': safeKey }),
+    AccumulatedActivitySubmission.exists({ 'proof.key': safeKey })
+  ]);
+  if (usedBySubmission || usedByAccumulatedActivity) return;
   await uploadService.deleteObjects([safeKey]).catch(() => {});
 }
 
@@ -854,20 +993,21 @@ function cleanOcrNameCandidate(value) {
 function parseRunType(value) {
   const safe = String(value || '').trim().toLowerCase();
   const allowed = ['run', 'walk', 'hike', 'trail_run'];
-  return allowed.includes(safe) ? safe : 'run';
+  if (!allowed.includes(safe)) throw new Error('Select a valid activity type.');
+  return safe;
 }
 
 function parseElevationGain(value) {
   if (value === undefined || value === null || value === '') return null;
   const numeric = Number(String(value).trim());
-  if (!Number.isFinite(numeric) || numeric < 0 || numeric > 20000) return null;
+  if (!Number.isFinite(numeric) || numeric < 0 || numeric > 20000) throw new Error('Elevation gain must be between 0 and 20,000 metres.');
   return Math.round(numeric);
 }
 
 function parseSteps(value) {
   if (value === undefined || value === null || value === '') return null;
   const numeric = Number(String(value).trim());
-  if (!Number.isFinite(numeric) || numeric < 0 || numeric > 200000) return null;
+  if (!Number.isFinite(numeric) || numeric < 0 || numeric > 200000) throw new Error('Steps must be between 0 and 200,000.');
   return Math.round(numeric);
 }
 
