@@ -531,6 +531,10 @@ const eventSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
+    badgeImageUrl: {
+      type: String,
+      trim: true
+    },
     posterImageUrl: {
       type: String,
       trim: true

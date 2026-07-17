@@ -44,7 +44,8 @@ const {
   validateContentBlocks,
   renderContentBlocksToHtml,
   getStructuredContentText,
-  isStructuredPost
+  isStructuredPost,
+  isValidBlogImageUrl
 } = require('../../utils/blog-composer');
 
 const {
@@ -738,8 +739,8 @@ function validateBlogPayload(payload, options = {}) {
   }
   if (payload.coverImageUrl && payload.coverImageUrl.length > 2000) {
     errors.push('Cover image URL is too long.');
-  } else if (payload.coverImageUrl && !isValidHttpUrl(payload.coverImageUrl)) {
-    errors.push('Cover image URL must be a valid http/https URL.');
+  } else if (payload.coverImageUrl && !isValidBlogImageUrl(payload.coverImageUrl)) {
+    errors.push('Cover image URL must be a valid http/https URL or site-relative path.');
   }
   if (payload.coverImageAlt && payload.coverImageAlt.length > 180) {
     errors.push('Cover image alt text must be 180 characters or less.');
@@ -752,8 +753,8 @@ function validateBlogPayload(payload, options = {}) {
       errors.push('Gallery image URL is too long.');
       break;
     }
-    if (!isValidHttpUrl(galleryUrl)) {
-      errors.push('Gallery image URLs must be valid http/https URLs.');
+    if (!isValidBlogImageUrl(galleryUrl)) {
+      errors.push('Gallery image URLs must be valid http/https URLs or site-relative paths.');
       break;
     }
   }
@@ -781,8 +782,8 @@ function validateBlogPayload(payload, options = {}) {
   if (payload.seoDescription && payload.seoDescription.length > 320) {
     errors.push('SEO description must be 320 characters or less.');
   }
-  if (payload.ogImageUrl && !isValidHttpUrl(payload.ogImageUrl)) {
-    errors.push('OG image URL must be a valid http/https URL.');
+  if (payload.ogImageUrl && !isValidBlogImageUrl(payload.ogImageUrl)) {
+    errors.push('OG image URL must be a valid http/https URL or site-relative path.');
   }
 
   return errors;

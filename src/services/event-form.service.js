@@ -924,6 +924,7 @@ function getCreateEventFormDataFromEvent(event) {
     raceDistanceCustom,
     bannerImageUrl: event.bannerImageUrl || '',
     logoUrl: event.logoUrl || '',
+    badgeImageUrl: event.badgeImageUrl || '',
     posterImageUrl: event.posterImageUrl || '',
     galleryImageUrls: Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : [],
     galleryImageUrlsText: (Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : []).join('\n'),

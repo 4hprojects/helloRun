@@ -9,6 +9,7 @@ const { getPublicEventVisibilityQuery, isPublicEventVisible } = require('../util
 const { getRedisClient } = require('../config/redis');
 
 const LEADERBOARD_CACHE_TTL_SECONDS = 60;
+const HOMEPAGE_LEADERBOARD_EVENT_SLUG = '2026k-hellorun-challenge-4';
 
 const DEFAULT_EVENT_LEADERBOARD_COLUMNS = ['rank', 'runner', 'category', 'distance', 'time', 'pace', 'status'];
 const DEFAULT_EVENT_IMAGE_URL = '/images/helloRun-icon.webp';
@@ -21,6 +22,17 @@ async function getLeaderboardDiscoveryData(rawFilters = {}) {
     leaderboardRecognitionEnabled: { $ne: false },
     'leaderboardSettings.enabled': { $ne: false }
   };
+
+  if (rawFilters.visibility === 'public') {
+    query['leaderboardSettings.visibility'] = 'public';
+  }
+  if (rawFilters.explicitlyEnabled === true) {
+    query.leaderboardRecognitionEnabled = true;
+    query['leaderboardSettings.enabled'] = true;
+  }
+  if (rawFilters.eventSlug) {
+    query.slug = String(rawFilters.eventSlug).trim();
+  }
 
   if (filters.q) {
     const safePattern = new RegExp(escapeRegex(filters.q), 'i');
@@ -87,6 +99,87 @@ async function getLeaderboardDiscoveryData(rawFilters = {}) {
       totalVerifiedResults: cards.reduce((sum, card) => sum + card.verifiedCount, 0),
       totalPendingResults: cards.reduce((sum, card) => sum + card.pendingCount, 0)
     }
+  };
+}
+
+async function getHomepageLeaderboard(options = {}) {
+  const candidateLimit = clampInt(options.candidateLimit, 1, 50, 12);
+  const entryLimit = clampInt(options.entryLimit, 1, 5, 3);
+  const discovery = Array.isArray(options.candidates)
+    ? { cards: options.candidates }
+    : await getLeaderboardDiscoveryData({
+      eventSlug: HOMEPAGE_LEADERBOARD_EVENT_SLUG,
+      limit: candidateLimit,
+      visibility: 'public',
+      explicitlyEnabled: true
+    });
+  const loadLeaderboard = typeof options.loadLeaderboard === 'function'
+    ? options.loadLeaderboard
+    : getEventLeaderboard;
+  const candidates = discovery.cards.filter((card) => (
+    card.leaderboardVisibility === 'public' && Number(card.verifiedCount || 0) > 0
+  ));
+
+  for (const candidate of candidates) {
+    const leaderboard = await loadLeaderboard(candidate.slug, { page: 1, limit: 500 });
+    if (!leaderboard || leaderboard.settings.visibility !== 'public') continue;
+
+    const group = selectHomepageLeaderboardGroup(leaderboard.groups);
+    if (!group) continue;
+    const entries = (group.entries || [])
+      .filter((entry) => entry.status === 'verified' && Number.isInteger(entry.rank))
+      .slice(0, entryLimit)
+      .map((entry) => formatHomepageLeaderboardEntry(entry, leaderboard.settings.type));
+    if (!entries.length) continue;
+
+    const lastUpdatedAt = getLastUpdatedAt(group.entries || []);
+    return {
+      eventTitle: leaderboard.event.title,
+      eventSlug: leaderboard.event.slug,
+      href: `/events/${leaderboard.event.slug}/leaderboard?distance=${encodeURIComponent(group.key)}`,
+      leaderboardType: leaderboard.settings.type,
+      leaderboardTypeLabel: leaderboard.settings.type === 'accumulated_challenge'
+        ? 'Accumulated challenge'
+        : 'Race results',
+      categoryKey: group.key,
+      categoryLabel: group.label,
+      rankingExplanation: leaderboard.rankingExplanation,
+      lastUpdatedAt,
+      lastUpdatedLabel: formatDateTimeLabel(lastUpdatedAt),
+      entries
+    };
+  }
+
+  return null;
+}
+
+function selectHomepageLeaderboardGroup(groups = []) {
+  return groups.reduce((selected, group) => {
+    const verifiedEntries = Number(group?.stats?.verifiedEntries || 0);
+    if (verifiedEntries <= 0) return selected;
+    if (!selected || verifiedEntries > Number(selected.stats?.verifiedEntries || 0)) return group;
+    return selected;
+  }, null);
+}
+
+function formatHomepageLeaderboardEntry(entry, leaderboardType) {
+  const common = {
+    rank: entry.rank,
+    runnerName: entry.runnerName || 'Runner',
+    participationMode: entry.participationMode || '',
+    statusLabel: entry.statusLabel || 'Verified'
+  };
+  if (leaderboardType === 'accumulated_challenge') {
+    return {
+      ...common,
+      primaryMetric: entry.distanceLabel || '',
+      secondaryMetric: `${Number(entry.activityCount || 0).toLocaleString('en-US')} ${Number(entry.activityCount || 0) === 1 ? 'activity' : 'activities'}`
+    };
+  }
+  return {
+    ...common,
+    primaryMetric: entry.timeLabel || '',
+    secondaryMetric: entry.paceLabel || ''
   };
 }
 
@@ -478,9 +571,9 @@ async function getLeaderboardEventBySlug(eventSlug) {
 
 function resolveEventLeaderboardSettings(event = {}) {
   const existing = event.leaderboardSettings || {};
-  const type = ['race_result', 'accumulated_challenge'].includes(existing.type)
-    ? existing.type
-    : (event.virtualCompletionMode === 'accumulated_distance' ? 'accumulated_challenge' : 'race_result');
+  const type = event.virtualCompletionMode === 'accumulated_distance'
+    ? 'accumulated_challenge'
+    : (['race_result', 'accumulated_challenge'].includes(existing.type) ? existing.type : 'race_result');
   return {
     enabled: typeof existing.enabled === 'boolean' ? existing.enabled : event.leaderboardRecognitionEnabled !== false,
     type,
@@ -833,6 +926,7 @@ function formatLeaderboardDiscoveryCard({ event, settings, submissionStats = {},
     raceDistances,
     distanceLabel: raceDistances.join(', ') || 'Distances TBA',
     leaderboardType: settings.type,
+    leaderboardVisibility: settings.visibility,
     leaderboardTypeLabel: settings.type === 'accumulated_challenge' ? 'Accumulated Challenge' : 'Race Result',
     rankingExplanation: settings.type === 'accumulated_challenge'
       ? 'Ranked by highest verified accumulated distance.'
@@ -1163,6 +1257,7 @@ function clampInt(value, min, max, fallback) {
 
 module.exports = {
   getLeaderboardDiscoveryData,
+  getHomepageLeaderboard,
   getLeaderboardData,
   getEventLeaderboard,
   getMyStanding,

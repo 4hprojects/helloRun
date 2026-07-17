@@ -6,568 +6,200 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  <main class="admin-page admin-events-page">
+  <main class="admin-page admin-events-page admin-event-detail-page" id="main-content">
     <%
       const adminNow = new Date();
       const publicListingAt = event.publicListingAvailableAt ? new Date(event.publicListingAvailableAt) : null;
       const hasValidPublicListingAt = publicListingAt && !Number.isNaN(publicListingAt.getTime());
       const publicListingVisibleNow = !hasValidPublicListingAt || publicListingAt <= adminNow;
-      const publicListingDateTimeLabel = hasValidPublicListingAt
-        ? publicListingAt.toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-            timeZoneName: 'short'
-          })
-        : '';
-      const publicListingStatusLabel = hasValidPublicListingAt
-        ? (publicListingVisibleNow ? `Visible since ${publicListingDateTimeLabel}` : `Scheduled for ${publicListingDateTimeLabel}`)
-        : 'Visible immediately after approval';
+      const publicListingDateTimeLabel = hasValidPublicListingAt ? publicListingAt.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }) : '';
+      const publicListingStatusLabel = hasValidPublicListingAt ? (publicListingVisibleNow ? `Visible since ${publicListingDateTimeLabel}` : `Scheduled for ${publicListingDateTimeLabel}`) : 'Visible immediately after approval';
       const isPublishedButScheduledHidden = event.status === 'published' && !event.isDeleted && !publicListingVisibleNow;
+      const organizerName = [event.organizerId?.firstName, event.organizerId?.lastName].filter(Boolean).join(' ') || event.organiserName || 'N/A';
+      const eventId = String(event._id);
+      const editHref = `/admin/events/${eventId}/edit`;
+      const registrantsHref = `/organizer/events/${eventId}/registrants`;
+      const submissionsHref = `/admin/submissions?eventId=${encodeURIComponent(eventId)}`;
+      const adminPhysicalRewardItems = [event.physicalRewardMedalEnabled ? 'Medal' : '', event.physicalRewardShirtEnabled ? 'Shirt' : '', event.physicalRewardPatchEnabled ? 'Patch' : '', event.physicalRewardFinisherKitEnabled ? 'Finisher Kit' : ''].filter(Boolean);
+      const mediaItems = [
+        event.logoUrl ? { url: event.logoUrl, label: 'Event logo' } : null,
+        event.bannerImageUrl ? { url: event.bannerImageUrl, label: 'Event banner' } : null,
+        event.posterImageUrl ? { url: event.posterImageUrl, label: 'Event poster' } : null,
+        ...(event.galleryImageUrls || []).slice(0, 6).map((url, index) => ({ url, label: `Gallery image ${index + 1}` }))
+      ].filter(Boolean);
     %>
-    <section class="section admin-shell">
-      <div class="admin-header-row">
-        <div>
-          <h2><%= event.title %></h2>
-          <p>Admin event review, audit, and management.</p>
+    <section class="section admin-shell admin-event-workspace">
+      <nav class="admin-event-breadcrumb" aria-label="Breadcrumb">
+        <a href="/admin/events"><i data-lucide="arrow-left" aria-hidden="true"></i> All events</a>
+        <span aria-hidden="true">/</span><span aria-current="page"><%= event.referenceCode || event.slug %></span>
+      </nav>
+
+      <header class="admin-event-identity">
+        <div class="admin-event-title-block">
+          <div class="admin-event-title-meta">
+            <span class="status-badge status-badge-<%= event.isDeleted ? 'archived' : event.status %>"><%= event.isDeleted ? 'Deleted' : statusLabel %></span>
+            <% if (event.isTestData) { %><span class="status-badge status-badge-restricted">Test data</span><% } %>
+          </div>
+          <h1><%= event.title %></h1>
+          <p>Review public readiness, inspect event configuration, and manage its lifecycle.</p>
         </div>
-        <div class="policy-list-actions">
-          <a href="/admin/events" class="btn btn-secondary admin-event-action-btn">
-            <i data-lucide="list"></i>
-            <span>All Events</span>
-          </a>
-          <% if (!event.isDeleted) { %>
-            <a href="/admin/events/<%= event._id %>/edit" class="btn admin-event-action-btn">
-              <i data-lucide="pencil"></i>
-              <span>Edit Event</span>
-            </a>
-          <% } %>
-          <% if (event.status === 'published' && !event.isDeleted && publicListingVisibleNow) { %>
-            <a href="/events/<%= event.slug %>" class="btn btn-secondary admin-event-action-btn">
-              <i data-lucide="globe"></i>
-              <span>Public Page</span>
-            </a>
-          <% } else if (isPublishedButScheduledHidden) { %>
-            <button type="button" class="btn btn-secondary admin-event-action-btn" disabled title="This event is published but hidden until the scheduled public posting time.">
-              <i data-lucide="clock"></i>
-              <span>Public Page Scheduled</span>
-            </button>
-          <% } %>
-          <a href="/organizer/events/<%= event._id %>/registrants" class="btn btn-secondary admin-event-action-btn">
-            <i data-lucide="users"></i>
-            <span>Registrants</span>
-          </a>
-        </div>
-      </div>
-
-      <% if (message) { %>
-        <div class="admin-alert admin-alert-<%= message.type %>"><%= message.text %></div>
-      <% } %>
-
-      <div id="eventActionMessage" class="admin-alert" style="display:none;"></div>
-
-      <% if (isPublishedButScheduledHidden) { %>
-        <div class="admin-alert admin-alert-warning admin-event-visibility-alert">
-          <strong>Published but not public yet.</strong>
-          <span>This event is hidden from the public events list until <%= publicListingDateTimeLabel %>.</span>
-        </div>
-      <% } %>
-
-      <div class="application-meta-grid">
-        <article class="meta-card">
-          <p class="meta-label">Status</p>
-          <p class="meta-value"><span class="status-badge status-badge-<%= event.isDeleted ? 'archived' : event.status %>"><%= event.isDeleted ? 'Deleted' : statusLabel %></span></p>
-        </article>
-        <article class="meta-card">
-          <p class="meta-label">Reference</p>
-          <p class="meta-value mono"><%= event.referenceCode || event.slug %></p>
-        </article>
-        <article class="meta-card">
-          <p class="meta-label">Registrations</p>
-          <p class="meta-value"><%= counts.registrations %></p>
-        </article>
-        <article class="meta-card">
-          <p class="meta-label">Submissions</p>
-          <p class="meta-value"><%= counts.submissions %></p>
-        </article>
-        <article class="meta-card">
-          <p class="meta-label">Homepage</p>
-          <p class="meta-value"><%= event.homeFeatured ? 'Featured' : 'Automatic only' %></p>
-        </article>
-        <article class="meta-card <%= isPublishedButScheduledHidden ? 'meta-card-warning' : '' %>">
-          <p class="meta-label">Public Listing</p>
-          <p class="meta-value"><%= publicListingStatusLabel %></p>
-        </article>
-      </div>
-
-      <div class="details-grid">
-        <article class="detail-card">
-          <h3>Organizer</h3>
-          <p><strong>Name:</strong> <%= [event.organizerId?.firstName, event.organizerId?.lastName].filter(Boolean).join(' ') || event.organiserName || 'N/A' %></p>
-          <p><strong>Email:</strong> <%= event.organizerId?.email || 'N/A' %></p>
-          <p><strong>Display:</strong> <%= event.organiserName || 'N/A' %></p>
-        </article>
-        <article class="detail-card">
-          <h3>Schedule</h3>
-          <p><strong>Registration:</strong> <%= event.registrationOpenAt ? new Date(event.registrationOpenAt).toLocaleString('en-US') : 'N/A' %> to <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleString('en-US') : 'N/A' %></p>
-          <p><strong>Event:</strong> <%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'N/A' %> to <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleString('en-US') : 'N/A' %></p>
-          <p><strong>Public Listing:</strong> <%= publicListingStatusLabel %></p>
-          <p><strong>Submitted:</strong> <%= event.submittedForReviewAt ? new Date(event.submittedForReviewAt).toLocaleString('en-US') : 'N/A' %></p>
-          <p><strong>Approval:</strong> <%= event.approvalSource === 'auto' ? `Auto-approved (${event.autoApprovalRuleVersion || 'rule not recorded'})` : (event.approvalSource === 'admin' ? 'Admin approved' : 'Not approved') %></p>
-          <p><strong>Homepage Feature:</strong> <%= event.homeFeatured ? `Yes${Number.isFinite(event.homeFeaturedRank) ? `, rank ${event.homeFeaturedRank}` : ''}` : 'No' %></p>
-          <% if (event.homeFeaturedUntil) { %>
-            <p><strong>Featured Until:</strong> <%= new Date(event.homeFeaturedUntil).toLocaleString('en-US') %></p>
-          <% } %>
-        </article>
-        <article class="detail-card">
-          <h3>Event Rules</h3>
-          <p><strong>Type:</strong> <%= event.eventType || 'N/A' %></p>
-          <p><strong>Modes:</strong> <%= (event.eventTypesAllowed || []).join(', ') || 'N/A' %></p>
-          <p><strong>Distances:</strong> <%= (event.raceDistances || []).join(', ') || 'N/A' %></p>
-          <p><strong>Proofs:</strong> <%= (event.proofTypesAllowed || []).join(', ') || 'N/A' %></p>
-        </article>
-        <article class="detail-card">
-          <h3>Fees & Payment</h3>
-          <p><strong>Fee:</strong> <%= event.feeMode === 'paid' ? `${event.feeCurrency || 'PHP'} ${Number(event.feeAmount || 0).toFixed(2)}` : 'Free' %></p>
-          <% if (event.feeMode === 'paid') { %>
-            <p><strong>Account:</strong> <%= event.paymentAccountName || 'N/A' %></p>
-            <p><strong>Instructions:</strong> <%= event.paymentInstructions || 'N/A' %></p>
-            <p><strong>Payment QR:</strong> <%= event.paymentQrImageUrl ? 'Configured' : 'Missing' %></p>
-          <% } %>
-        </article>
-        <article class="detail-card">
-          <h3>Rewards</h3>
-          <% const adminPhysicalRewardItems = [
-            event.physicalRewardMedalEnabled ? 'Medal' : '',
-            event.physicalRewardShirtEnabled ? 'Shirt' : '',
-            event.physicalRewardPatchEnabled ? 'Patch' : '',
-            event.physicalRewardFinisherKitEnabled ? 'Finisher Kit' : ''
-          ].filter(Boolean); %>
-          <p><strong>Digital Badge:</strong> <%= event.digitalBadgeEnabled ? 'Enabled' : 'Disabled' %></p>
-          <p><strong>Digital Certificate:</strong> <%= event.digitalCertificateEnabled === false ? 'Disabled' : 'Enabled' %></p>
-          <p><strong>Leaderboard Recognition:</strong> <%= event.leaderboardRecognitionEnabled === false ? 'Disabled' : 'Enabled' %></p>
-          <p><strong>Physical Rewards:</strong> <%= event.physicalRewardsEnabled ? 'Enabled' : 'Disabled' %></p>
-          <% if (event.physicalRewardsEnabled && adminPhysicalRewardItems.length) { %>
-            <p><strong>Included Items:</strong> <%= adminPhysicalRewardItems.join(', ') %></p>
-          <% } %>
-          <% if (event.physicalRewardsEnabled && event.physicalRewardsDescription) { %>
-            <p><%= event.physicalRewardsDescription %></p>
-          <% } %>
-        </article>
-        <article class="detail-card">
-          <h3>Location</h3>
-          <p><strong>Venue:</strong> <%= event.venueName || 'N/A' %></p>
-          <p><strong>City:</strong> <%= [event.city, event.province, event.country].filter(Boolean).join(', ') || 'N/A' %></p>
-        </article>
-        <article class="detail-card detail-card-full">
-          <h3>Description</h3>
-          <p><%= event.description || 'No description yet.' %></p>
-        </article>
-        <% if (eventDetailsHtml) { %>
-          <article class="detail-card detail-card-full">
-            <h3>Event Details</h3>
-            <div class="event-rich-details"><%- eventDetailsHtml %></div>
-          </article>
+        <% if (!event.isDeleted) { %>
+          <a href="<%= editHref %>" class="btn admin-event-action-btn"><i data-lucide="pencil" aria-hidden="true"></i><span>Edit event</span></a>
         <% } %>
-        <article class="detail-card detail-card-full">
-          <h3>Media</h3>
-          <div class="admin-media-grid">
-            <% [event.logoUrl, event.bannerImageUrl, event.posterImageUrl].filter(Boolean).forEach((url) => { %>
-              <img src="<%= url %>" alt="" class="admin-event-thumb">
-            <% }) %>
-            <% (event.galleryImageUrls || []).slice(0, 6).forEach((url) => { %>
-              <img src="<%= url %>" alt="" class="admin-event-thumb">
-            <% }) %>
-            <% if (!event.logoUrl && !event.bannerImageUrl && !event.posterImageUrl && !(event.galleryImageUrls || []).length) { %>
-              <p>No media uploaded.</p>
-            <% } %>
-          </div>
-        </article>
-      </div>
+      </header>
 
-      <!-- Sitemap & Visibility Controls -->
-      <section class="detail-card detail-card-full admin-sitemap-card">
-        <h3>Search Engine Visibility</h3>
-        <div class="admin-sitemap-row">
-          <div>
-            <strong>Sitemap status:</strong>
-            <% if (event.isTestData) { %>
-              <span class="status-badge status-badge-restricted">Test data — excluded</span>
-              <small>This event is marked as test data and is excluded from public listings and the sitemap.</small>
-            <% } else if (event.excludeFromSitemap) { %>
-              <span class="status-badge status-badge-restricted">Excluded from sitemap</span>
-              <small>This event is publicly accessible but excluded from sitemap.xml.</small>
-            <% } else { %>
-              <span class="status-badge status-badge-active">Included in sitemap</span>
-              <small>This event appears in sitemap.xml and may be indexed by search engines.</small>
-            <% } %>
-          </div>
-          <% if (!event.isTestData) { %>
-            <form method="POST" action="/admin/events/<%= event._id %>/sitemap-toggle" style="display:inline">
-              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-              <input type="hidden" name="excludeFromSitemap" value="<%= event.excludeFromSitemap ? '0' : '1' %>">
-              <button type="submit" class="btn btn-sm btn-outline">
-                <%= event.excludeFromSitemap ? 'Re-include in sitemap' : 'Exclude from sitemap' %>
-              </button>
-            </form>
+      <% if (message) { %><div class="admin-alert admin-alert-<%= message.type %>" role="status"><%= message.text %></div><% } %>
+      <div id="eventActionMessage" class="admin-alert" role="status" aria-live="polite" hidden></div>
+
+      <section class="admin-event-overview" aria-labelledby="overview-title">
+        <h2 id="overview-title" class="sr-only">Event overview</h2>
+        <article class="admin-event-overview-card <%= isPublishedButScheduledHidden ? 'is-warning' : '' %>"><span>Status</span><strong><%= event.isDeleted ? 'Deleted' : statusLabel %></strong></article>
+        <article class="admin-event-overview-card <%= isPublishedButScheduledHidden ? 'is-warning' : '' %>"><span>Public listing</span><strong><%= publicListingStatusLabel %></strong></article>
+        <a class="admin-event-overview-card is-link" href="<%= registrantsHref %>"><span>Registrations</span><strong><%= counts.registrations %></strong><small>Open registrants <i data-lucide="arrow-right" aria-hidden="true"></i></small></a>
+        <a class="admin-event-overview-card is-link" href="<%= submissionsHref %>"><span>Submissions</span><strong><%= counts.submissions %></strong><small>Open submissions <i data-lucide="arrow-right" aria-hidden="true"></i></small></a>
+      </section>
+
+      <div class="admin-event-layout">
+        <div class="admin-event-main-column">
+          <nav class="admin-event-section-nav" aria-label="Event detail sections">
+            <a href="#event-essentials">Essentials</a><a href="#event-rules">Rules & rewards</a><a href="#event-content">Content</a><a href="#event-media">Media & visibility</a>
+          </nav>
+
+          <section class="admin-event-section" id="event-essentials" aria-labelledby="event-essentials-title">
+            <div class="admin-event-section-heading"><div><span class="admin-event-eyebrow">Event record</span><h2 id="event-essentials-title">Essentials</h2></div></div>
+            <div class="admin-event-fact-groups">
+              <article class="admin-event-fact-group"><h3>Organizer</h3><dl><div><dt>Name</dt><dd><%= organizerName %></dd></div><div><dt>Email</dt><dd><%= event.organizerId?.email || 'N/A' %></dd></div><div><dt>Display name</dt><dd><%= event.organiserName || 'N/A' %></dd></div></dl></article>
+              <article class="admin-event-fact-group"><h3>Schedule</h3><dl><div><dt>Registration</dt><dd><%= event.registrationOpenAt ? new Date(event.registrationOpenAt).toLocaleString('en-US') : 'N/A' %> to <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleString('en-US') : 'N/A' %></dd></div><div><dt>Event</dt><dd><%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleString('en-US') : 'N/A' %> to <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleString('en-US') : 'N/A' %></dd></div><div><dt>Submitted</dt><dd><%= event.submittedForReviewAt ? new Date(event.submittedForReviewAt).toLocaleString('en-US') : 'N/A' %></dd></div></dl></article>
+              <article class="admin-event-fact-group"><h3>Location</h3><dl><div><dt>Venue</dt><dd><%= event.venueName || 'N/A' %></dd></div><div><dt>Area</dt><dd><%= [event.city, event.province, event.country].filter(Boolean).join(', ') || 'N/A' %></dd></div></dl></article>
+              <article class="admin-event-fact-group"><h3>Fees & payment</h3><dl><div><dt>Fee</dt><dd><%= event.feeMode === 'paid' ? `${event.feeCurrency || 'PHP'} ${Number(event.feeAmount || 0).toFixed(2)}` : 'Free' %></dd></div><% if (event.feeMode === 'paid') { %><div><dt>Account</dt><dd><%= event.paymentAccountName || 'N/A' %></dd></div><div><dt>Payment QR</dt><dd><%= event.paymentQrImageUrl ? 'Configured' : 'Missing' %></dd></div><% } %></dl></article>
+            </div>
+          </section>
+
+          <section class="admin-event-section" id="event-rules" aria-labelledby="event-rules-title">
+            <div class="admin-event-section-heading"><div><span class="admin-event-eyebrow">Configuration</span><h2 id="event-rules-title">Rules & rewards</h2></div></div>
+            <div class="admin-event-fact-groups">
+              <article class="admin-event-fact-group"><h3>Event rules</h3><dl><div><dt>Type</dt><dd><%= event.eventType || 'N/A' %></dd></div><div><dt>Modes</dt><dd><%= (event.eventTypesAllowed || []).join(', ') || 'N/A' %></dd></div><div><dt>Distances</dt><dd><%= (event.raceDistances || []).join(', ') || 'N/A' %></dd></div><div><dt>Proofs</dt><dd><%= (event.proofTypesAllowed || []).join(', ') || 'N/A' %></dd></div></dl></article>
+              <article class="admin-event-fact-group"><h3>Rewards</h3><dl><div><dt>Digital badge</dt><dd><%= event.digitalBadgeEnabled ? 'Enabled' : 'Disabled' %></dd></div><div><dt>Certificate</dt><dd><%= event.digitalCertificateEnabled === false ? 'Disabled' : 'Enabled' %></dd></div><div><dt>Leaderboard</dt><dd><%= event.leaderboardRecognitionEnabled === false ? 'Disabled' : 'Enabled' %></dd></div><div><dt>Physical rewards</dt><dd><%= event.physicalRewardsEnabled ? (adminPhysicalRewardItems.join(', ') || 'Enabled') : 'Disabled' %></dd></div></dl></article>
+            </div>
+          </section>
+
+          <section class="admin-event-section" id="event-content" aria-labelledby="event-content-title">
+            <div class="admin-event-section-heading"><div><span class="admin-event-eyebrow">Public information</span><h2 id="event-content-title">Content</h2></div></div>
+            <article class="admin-event-content-block"><h3>Description</h3><p><%= event.description || 'No description yet.' %></p></article>
+            <% if (eventDetailsHtml) { %><details class="admin-event-rich-details" open><summary>Full event details</summary><div class="event-rich-details"><%- eventDetailsHtml %></div></details><% } %>
+          </section>
+
+          <section class="admin-event-section" id="event-media" aria-labelledby="event-media-title">
+            <div class="admin-event-section-heading"><div><span class="admin-event-eyebrow">Presentation & discovery</span><h2 id="event-media-title">Media & visibility</h2></div></div>
+            <div class="admin-event-media-grid">
+              <% mediaItems.forEach((item) => { %><figure><img src="<%= item.url %>" alt="<%= item.label %> for <%= event.title %>" loading="lazy"><figcaption><%= item.label %></figcaption></figure><% }) %>
+              <% if (!mediaItems.length) { %><div class="admin-event-empty-state"><i data-lucide="image-off" aria-hidden="true"></i><p>No event media uploaded.</p><% if (!event.isDeleted) { %><a href="<%= editHref %>">Add media in the editor</a><% } %></div><% } %>
+            </div>
+            <div class="admin-event-visibility-control">
+              <div><h3>Search engine visibility</h3><% if (event.isTestData) { %><p><span class="status-badge status-badge-restricted">Test data — excluded</span> Test events are excluded from public listings and the sitemap.</p><% } else if (event.excludeFromSitemap) { %><p><span class="status-badge status-badge-restricted">Excluded from sitemap</span> The public page remains accessible directly.</p><% } else { %><p><span class="status-badge status-badge-active">Included in sitemap</span> Search engines may index this event.</p><% } %></div>
+              <% if (!event.isTestData) { %><form method="POST" action="/admin/events/<%= event._id %>/sitemap-toggle"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><input type="hidden" name="excludeFromSitemap" value="<%= event.excludeFromSitemap ? '0' : '1' %>"><button type="submit" class="btn btn-secondary admin-event-action-btn btn-sm"><%= event.excludeFromSitemap ? 'Include in sitemap' : 'Exclude from sitemap' %></button></form><% } %>
+            </div>
+          </section>
+
+          <% if (!event.isDeleted) { %>
+            <section class="admin-event-danger-zone" aria-labelledby="danger-zone-title">
+              <div class="admin-event-danger-copy">
+                <span class="admin-event-eyebrow">Lifecycle controls</span>
+                <h2 id="danger-zone-title">Archive or delete</h2>
+                <p>These actions remove the event from active use. Registrations and submissions are preserved.</p>
+                <% if (!viewerIsFullAdmin) { %><p class="admin-event-permission-note"><i data-lucide="shield" aria-hidden="true"></i> Soft deletion requires full-admin access.</p><% } %>
+              </div>
+              <div class="admin-event-danger-actions">
+                <button type="button" class="btn btn-secondary event-action-btn admin-event-action-btn" data-action="archive" <%= event.status === 'archived' ? 'disabled' : '' %>><i data-lucide="archive" aria-hidden="true"></i> Archive event</button>
+                <% if (viewerIsFullAdmin) { %><button type="button" class="btn btn-danger event-action-btn admin-event-action-btn" data-action="delete"><i data-lucide="trash-2" aria-hidden="true"></i> Soft delete event</button><% } %>
+              </div>
+            </section>
           <% } %>
         </div>
-      </section>
 
-      <% if (readinessErrors.length) { %>
-        <div class="admin-alert admin-alert-warning">
-          <strong>Cannot approve yet.</strong>
-          <ul class="admin-readiness-error-list">
-            <% readinessErrors.forEach((error) => { %>
-              <li><%= error %></li>
-            <% }) %>
-          </ul>
-        </div>
-      <% } %>
+        <aside class="admin-event-task-column" aria-labelledby="event-task-title">
+          <section class="admin-event-task-card <%= event.status === 'pending_review' && !event.isDeleted ? 'is-review' : '' %>">
+            <span class="admin-event-eyebrow"><%= event.status === 'pending_review' && !event.isDeleted ? 'Primary task' : 'Current state' %></span>
+            <h2 id="event-task-title"><% if (event.isDeleted) { %>Event deleted<% } else if (event.status === 'pending_review') { %><%= readinessErrors.length ? 'Resolve approval blockers' : 'Ready for a decision' %><% } else if (isPublishedButScheduledHidden) { %>Publication scheduled<% } else if (event.status === 'published') { %>Event is live<% } else if (event.status === 'archived') { %>Event archived<% } else { %><%= statusLabel %><% } %></h2>
+            <% if (event.status === 'pending_review' && !event.isDeleted) { %>
+              <% if (readinessErrors.length) { %><p>This event cannot be published until the following items are corrected.</p><ul class="admin-event-blocker-list"><% readinessErrors.forEach((error) => { %><li><i data-lucide="circle-alert" aria-hidden="true"></i><span><%= error %></span></li><% }) %></ul><a href="<%= editHref %>" class="btn admin-event-action-btn"><i data-lucide="pencil" aria-hidden="true"></i> Fix in editor</a>
+              <% } else { %><p>Publish readiness passed. Confirm visibility, fee, and reward settings before publishing.</p><button type="button" class="btn btn-success event-action-btn admin-event-action-btn" data-action="approve"><i data-lucide="check-circle" aria-hidden="true"></i> Approve & publish</button><% } %>
+            <% } else if (event.isDeleted) { %><p>Registrations and submissions are retained, but the event is no longer active or editable.</p>
+            <% } else if (isPublishedButScheduledHidden) { %><p>The event is published but hidden until <strong><%= publicListingDateTimeLabel %></strong>.</p>
+            <% } else if (event.status === 'published') { %><p>The public listing is active. Use the links below to verify the public experience or manage participants.</p>
+            <% } else if (event.status === 'archived') { %><p>The event is no longer publicly active. Registrations and submissions remain available.</p>
+            <% } else { %><p>Edit the event when it is ready for its next lifecycle step.</p><% } %>
+            <div class="admin-event-context-links">
+              <% if (event.status === 'published' && !event.isDeleted && publicListingVisibleNow) { %><a href="/events/<%= event.slug %>"><i data-lucide="globe" aria-hidden="true"></i><span>View public page</span><i data-lucide="arrow-up-right" aria-hidden="true"></i></a><% } %>
+              <a href="<%= registrantsHref %>"><i data-lucide="users" aria-hidden="true"></i><span>Registrants</span><strong><%= counts.registrations %></strong></a>
+              <a href="<%= submissionsHref %>"><i data-lucide="clipboard-check" aria-hidden="true"></i><span>Submissions</span><strong><%= counts.submissions %></strong></a>
+            </div>
+          </section>
 
-      <section class="review-actions">
-        <h3>Admin Actions</h3>
-        <p class="action-note">Archive and delete require a reason. Registrations and submissions are preserved.</p>
-        <div class="policy-list-actions">
-          <button type="button" class="btn btn-success event-action-btn admin-event-action-btn" data-action="approve" <%= event.status !== 'pending_review' || event.isDeleted || readinessErrors.length ? 'disabled' : '' %>>
-            <i data-lucide="check-circle"></i>
-            <span>Approve & Publish</span>
-          </button>
-          <button type="button" class="btn btn-secondary event-action-btn admin-event-action-btn" data-action="archive" <%= event.isDeleted || event.status === 'archived' ? 'disabled' : '' %>>
-            <i data-lucide="archive"></i>
-            <span>Archive</span>
-          </button>
-          <button type="button" class="btn btn-danger event-action-btn admin-event-action-btn" data-action="delete" <%= event.isDeleted ? 'disabled' : '' %>>
-            <i data-lucide="trash-2"></i>
-            <span>Soft Delete</span>
-          </button>
-        </div>
-      </section>
+        </aside>
+      </div>
     </section>
   </main>
-  <div class="admin-delete-confirm-backdrop" id="adminEventApproveConfirmModal" hidden aria-hidden="true">
-    <div class="admin-delete-confirm-dialog admin-event-approve-dialog" role="dialog" aria-modal="true" aria-labelledby="adminEventApproveConfirmTitle" tabindex="-1">
-      <div class="admin-delete-confirm-icon-wrap admin-event-approve-icon-wrap">
-        <i data-lucide="check-circle" aria-hidden="true"></i>
-      </div>
-      <h3 id="adminEventApproveConfirmTitle">Approve & Publish Event</h3>
-      <p class="admin-delete-confirm-desc">Confirm the public-facing settings before publishing this event.</p>
-      <div class="admin-approval-summary-grid">
-        <div>
-          <span>Status</span>
-          <strong><%= statusLabel %></strong>
-        </div>
-        <div>
-          <span>Visibility</span>
-          <strong><%= hasValidPublicListingAt ? (publicListingVisibleNow ? 'Visible now' : 'Scheduled public posting') : 'Immediate after approval' %></strong>
-          <% if (hasValidPublicListingAt) { %>
-            <small><%= publicListingDateTimeLabel %></small>
-          <% } %>
-        </div>
-        <div>
-          <span>Fee</span>
-          <strong><%= event.feeMode === 'paid' ? 'Paid' : 'Free' %></strong>
-        </div>
-        <div>
-          <span>Badges</span>
-          <strong><%= event.digitalBadgeEnabled ? 'Enabled' : 'Disabled' %></strong>
-        </div>
-      </div>
-      <ul class="admin-approval-checklist">
-        <li><i data-lucide="check" aria-hidden="true"></i><span>Publish readiness passed.</span></li>
-        <li><i data-lucide="check" aria-hidden="true"></i><span>Registration and event dates are valid.</span></li>
-        <li><i data-lucide="<%= hasValidPublicListingAt && !publicListingVisibleNow ? 'clock' : 'check' %>" aria-hidden="true"></i><span><%= hasValidPublicListingAt && !publicListingVisibleNow ? `Public listing is scheduled for ${publicListingDateTimeLabel}.` : 'Public listing will be visible immediately after approval.' %></span></li>
-        <li><i data-lucide="check" aria-hidden="true"></i><span><%= event.feeMode === 'paid' ? 'Payment account and QR are configured.' : 'No payment setup required.' %></span></li>
-        <li><i data-lucide="check" aria-hidden="true"></i><span><%= event.digitalBadgeEnabled ? 'Default event badges will be generated in the background.' : 'Digital badge generation is disabled.' %></span></li>
-      </ul>
-      <div class="admin-delete-confirm-pw-group">
-        <label for="adminEventApprovalNote">Approval note <span aria-hidden="true">(optional)</span></label>
-        <textarea
-          id="adminEventApprovalNote"
-          rows="3"
-          maxlength="500"
-          placeholder="Add a short note for audit and organiser communication..."
-          class="admin-delete-confirm-pw-input admin-event-approval-note"
-        ></textarea>
-        <p class="admin-delete-confirm-pw-error" id="adminEventApprovalNoteError" hidden></p>
-      </div>
-      <div class="admin-delete-confirm-actions">
-        <button type="button" class="btn btn-secondary" id="adminEventApproveCancelBtn">Cancel</button>
-        <button type="button" class="btn btn-success" id="adminEventApproveOkBtn">
-          <i data-lucide="check-circle" aria-hidden="true"></i>
-          Approve & Publish
-        </button>
+
+  <% const dialogs = [
+    { action: 'approve', title: 'Approve and publish event', icon: 'check-circle', confirm: 'Approve & publish', className: 'btn-success' },
+    { action: 'archive', title: 'Archive event', icon: 'archive', confirm: 'Archive event', className: 'btn-secondary' },
+    { action: 'delete', title: 'Soft delete event', icon: 'triangle-alert', confirm: 'Soft delete event', className: 'btn-danger' }
+  ]; %>
+  <% dialogs.forEach((dialog) => { %>
+    <div class="admin-delete-confirm-backdrop admin-event-action-modal" id="adminEvent<%= dialog.action %>Modal" hidden aria-hidden="true">
+      <div class="admin-delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="adminEvent<%= dialog.action %>Title" aria-describedby="adminEvent<%= dialog.action %>Desc" tabindex="-1">
+        <div class="admin-delete-confirm-icon-wrap"><i data-lucide="<%= dialog.icon %>" aria-hidden="true"></i></div>
+        <h2 id="adminEvent<%= dialog.action %>Title"><%= dialog.title %></h2>
+        <p id="adminEvent<%= dialog.action %>Desc" class="admin-delete-confirm-desc"><% if (dialog.action === 'approve') { %>Publish <strong><%= event.title %></strong>. The organizer will be notified and the event will follow its public listing schedule.<% } else if (dialog.action === 'archive') { %>Archive <strong><%= event.title %></strong>. It will leave active public use; registrations and submissions remain available.<% } else { %>Soft delete <strong><%= event.title %></strong>. It will no longer be editable or publicly active; registrations and submissions are preserved.<% } %></p>
+        <% if (dialog.action === 'approve') { %><div class="admin-approval-summary-grid"><div><span>Visibility</span><strong><%= hasValidPublicListingAt ? (publicListingVisibleNow ? 'Visible now' : 'Scheduled') : 'Immediate' %></strong><% if (hasValidPublicListingAt) { %><small><%= publicListingDateTimeLabel %></small><% } %></div><div><span>Fee</span><strong><%= event.feeMode === 'paid' ? 'Paid' : 'Free' %></strong></div></div><div class="admin-delete-confirm-pw-group"><label for="adminEventapproveNote">Approval note <span>(optional)</span></label><textarea id="adminEventapproveNote" rows="3" maxlength="500" class="admin-delete-confirm-pw-input"></textarea></div>
+        <% } else { %><div class="admin-delete-confirm-pw-group"><label for="adminEvent<%= dialog.action %>Reason">Reason <span>(minimum 8 characters)</span></label><textarea id="adminEvent<%= dialog.action %>Reason" rows="3" maxlength="500" class="admin-delete-confirm-pw-input" required></textarea><p class="admin-delete-confirm-pw-error" data-field-error="reason" hidden></p></div><% } %>
+        <% if (dialog.action === 'delete') { %><div class="admin-delete-confirm-pw-group"><label for="adminEventdeletePassword">Your password</label><input type="password" id="adminEventdeletePassword" autocomplete="current-password" class="admin-delete-confirm-pw-input" required><p class="admin-delete-confirm-pw-error" data-field-error="password" hidden></p></div><% } %>
+        <p class="admin-delete-confirm-pw-error" data-modal-error hidden aria-live="assertive"></p>
+        <div class="admin-delete-confirm-actions"><button type="button" class="btn btn-secondary" data-modal-cancel>Cancel</button><button type="button" class="btn <%= dialog.className %>" data-modal-confirm><i data-lucide="<%= dialog.icon %>" aria-hidden="true"></i><span><%= dialog.confirm %></span></button></div>
       </div>
     </div>
-  </div>
-  <div class="admin-delete-confirm-backdrop" id="adminEventDeleteConfirmModal" hidden aria-hidden="true">
-    <div class="admin-delete-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="adminEventDeleteConfirmTitle" tabindex="-1">
-      <div class="admin-delete-confirm-icon-wrap">
-        <i data-lucide="triangle-alert" aria-hidden="true"></i>
-      </div>
-      <h3 id="adminEventDeleteConfirmTitle">Confirm Event Deletion</h3>
-      <p id="adminEventDeleteConfirmDesc" class="admin-delete-confirm-desc"></p>
-      <div class="admin-delete-confirm-pw-group">
-        <label for="adminEventDeleteReason">Reason for deletion <span aria-hidden="true">(min 8 characters)</span></label>
-        <textarea
-          id="adminEventDeleteReason"
-          rows="3"
-          placeholder="Enter a reason..."
-          class="admin-delete-confirm-pw-input"
-          style="resize:vertical;"
-        ></textarea>
-        <p class="admin-delete-confirm-pw-error" id="adminEventDeleteReasonError" hidden></p>
-      </div>
-      <div class="admin-delete-confirm-pw-group">
-        <label for="adminEventDeletePassword">Enter your password to confirm</label>
-        <div class="admin-delete-confirm-pw-wrap">
-          <input
-            type="password"
-            id="adminEventDeletePassword"
-            autocomplete="current-password"
-            placeholder="Your password"
-            class="admin-delete-confirm-pw-input"
-          >
-          <button type="button" class="admin-delete-confirm-pw-toggle" id="adminEventDeletePwToggle" aria-label="Show password">
-            <i data-lucide="eye" aria-hidden="true"></i>
-          </button>
-        </div>
-        <p class="admin-delete-confirm-pw-error" id="adminEventDeletePwError" hidden></p>
-      </div>
-      <div class="admin-delete-confirm-actions">
-        <button type="button" class="btn btn-secondary" id="adminEventDeleteCancelBtn">Cancel</button>
-        <button type="button" class="btn btn-danger" id="adminEventDeleteOkBtn">
-          <i data-lucide="trash-2" aria-hidden="true"></i>
-          Delete
-        </button>
-      </div>
-    </div>
-  </div>
+  <% }) %>
+
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
   <script>
-    (function() {
+    (function () {
       const csrfToken = <%- JSON.stringify(locals.csrfToken || '').replace(/</g, '\\u003c') %>;
       const eventId = <%- JSON.stringify(String(event._id)).replace(/</g, '\\u003c') %>;
       const messageBox = document.getElementById('eventActionMessage');
-      const approveModal = document.getElementById('adminEventApproveConfirmModal');
-      const approveModalDialog = approveModal ? approveModal.querySelector('.admin-delete-confirm-dialog') : null;
-      const approveNoteInput = document.getElementById('adminEventApprovalNote');
-      const approveNoteError = document.getElementById('adminEventApprovalNoteError');
-      const approveCancelBtn = document.getElementById('adminEventApproveCancelBtn');
-      const approveOkBtn = document.getElementById('adminEventApproveOkBtn');
-      const deleteModal = document.getElementById('adminEventDeleteConfirmModal');
-      const deleteModalDialog = deleteModal ? deleteModal.querySelector('.admin-delete-confirm-dialog') : null;
-      const deleteConfirmDesc = document.getElementById('adminEventDeleteConfirmDesc');
-      const deleteReasonInput = document.getElementById('adminEventDeleteReason');
-      const deleteReasonError = document.getElementById('adminEventDeleteReasonError');
-      const deletePwInput = document.getElementById('adminEventDeletePassword');
-      const deletePwError = document.getElementById('adminEventDeletePwError');
-      const deletePwToggle = document.getElementById('adminEventDeletePwToggle');
-      const deleteCancelBtn = document.getElementById('adminEventDeleteCancelBtn');
-      const deleteOkBtn = document.getElementById('adminEventDeleteOkBtn');
-      let deleteModalResolve = null;
-      let lastDeleteModalTrigger = null;
-      let approveModalResolve = null;
-      let lastApproveModalTrigger = null;
+      const modalState = { active: null, trigger: null };
 
-      function showMessage(type, text) {
-        messageBox.className = `admin-alert admin-alert-${type}`;
-        messageBox.textContent = text;
-        messageBox.style.display = 'block';
-      }
+      function showMessage(type, text) { messageBox.className = `admin-alert admin-alert-${type}`; messageBox.textContent = text; messageBox.hidden = false; messageBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
+      function focusable(dialog) { return Array.from(dialog.querySelectorAll('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')); }
+      function setModalError(modal, text) { const error = modal.querySelector('[data-modal-error]'); error.textContent = text || ''; error.hidden = !text; }
+      function setPageInert(modal, inert) { Array.from(document.body.children).forEach((node) => { if (node !== modal && node.tagName !== 'SCRIPT') node.inert = inert; }); }
+      function closeModal(modal) { if (!modal) return; modal.hidden = true; modal.setAttribute('aria-hidden', 'true'); setPageInert(modal, false); document.body.classList.remove('admin-modal-open'); modalState.active = null; if (modalState.trigger) modalState.trigger.focus(); modalState.trigger = null; }
+      function openModal(action, trigger) { const modal = document.getElementById(`adminEvent${action}Modal`); if (!modal) return; modalState.active = modal; modalState.trigger = trigger; setModalError(modal, ''); modal.querySelectorAll('textarea, input').forEach((field) => { field.value = ''; }); modal.hidden = false; modal.setAttribute('aria-hidden', 'false'); setPageInert(modal, true); document.body.classList.add('admin-modal-open'); const fields = focusable(modal); (fields[0] || modal.querySelector('[role="dialog"]')).focus(); }
+      function setPending(modal, pending) { const confirm = modal.querySelector('[data-modal-confirm]'); const cancel = modal.querySelector('[data-modal-cancel]'); confirm.disabled = pending; cancel.disabled = pending; confirm.setAttribute('aria-busy', String(pending)); const label = confirm.querySelector('span'); if (label) { if (!label.dataset.label) label.dataset.label = label.textContent; label.textContent = pending ? 'Working…' : label.dataset.label; } }
+      async function postAction(action, body) { const response = await fetch(`/admin/events/${eventId}/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken }, body: JSON.stringify(body) }); const data = await response.json().catch(() => ({})); if (!response.ok || !data.success) throw new Error(data.message || 'Action failed.'); return data; }
 
-      function openApproveConfirmModal(triggerEl) {
-        if (!approveModal) return Promise.resolve(null);
-        lastApproveModalTrigger = triggerEl || null;
-        if (approveNoteInput) approveNoteInput.value = '';
-        if (approveNoteError) { approveNoteError.hidden = true; approveNoteError.textContent = ''; }
-        approveModal.hidden = false;
-        approveModal.setAttribute('aria-hidden', 'false');
-        if (approveModalDialog) approveModalDialog.focus();
-        return new Promise((resolve) => { approveModalResolve = resolve; });
-      }
-
-      function closeApproveConfirmModal(result) {
-        if (!approveModal) return;
-        approveModal.hidden = true;
-        approveModal.setAttribute('aria-hidden', 'true');
-        if (approveNoteInput) approveNoteInput.value = '';
-        const resolve = approveModalResolve;
-        approveModalResolve = null;
-        if (resolve) resolve(result);
-        if (lastApproveModalTrigger) lastApproveModalTrigger.focus();
-        lastApproveModalTrigger = null;
-      }
-
-      function openDeleteConfirmModal(description, triggerEl) {
-        if (!deleteModal) return Promise.resolve(null);
-        lastDeleteModalTrigger = triggerEl || null;
-        if (deleteConfirmDesc) deleteConfirmDesc.textContent = description;
-        if (deleteReasonInput) deleteReasonInput.value = '';
-        if (deleteReasonError) { deleteReasonError.hidden = true; deleteReasonError.textContent = ''; }
-        if (deletePwInput) { deletePwInput.value = ''; deletePwInput.type = 'password'; }
-        if (deletePwError) { deletePwError.hidden = true; deletePwError.textContent = ''; }
-        if (deletePwToggle) {
-          const icon = deletePwToggle.querySelector('i');
-          if (icon) icon.setAttribute('data-lucide', 'eye');
-          deletePwToggle.setAttribute('aria-label', 'Show password');
-          if (window.lucide) lucide.createIcons({ nodes: [deletePwToggle] });
-        }
-        deleteModal.hidden = false;
-        deleteModal.setAttribute('aria-hidden', 'false');
-        if (deleteModalDialog) deleteModalDialog.focus();
-        return new Promise((resolve) => { deleteModalResolve = resolve; });
-      }
-
-      function closeDeleteConfirmModal(result) {
-        if (!deleteModal) return;
-        deleteModal.hidden = true;
-        deleteModal.setAttribute('aria-hidden', 'true');
-        if (deleteReasonInput) deleteReasonInput.value = '';
-        if (deletePwInput) deletePwInput.value = '';
-        const resolve = deleteModalResolve;
-        deleteModalResolve = null;
-        if (resolve) resolve(result);
-        if (lastDeleteModalTrigger) lastDeleteModalTrigger.focus();
-        lastDeleteModalTrigger = null;
-      }
-
-      if (deletePwToggle && deletePwInput) {
-        deletePwToggle.addEventListener('click', () => {
-          const isPassword = deletePwInput.type === 'password';
-          deletePwInput.type = isPassword ? 'text' : 'password';
-          const icon = deletePwToggle.querySelector('i');
-          if (icon) icon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
-          deletePwToggle.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
-          if (window.lucide) lucide.createIcons({ nodes: [deletePwToggle] });
+      document.querySelectorAll('.event-action-btn').forEach((button) => button.addEventListener('click', () => openModal(button.dataset.action, button)));
+      document.querySelectorAll('.admin-event-action-modal').forEach((modal) => {
+        const action = modal.id.replace('adminEvent', '').replace('Modal', '');
+        modal.querySelector('[data-modal-cancel]').addEventListener('click', () => closeModal(modal));
+        modal.addEventListener('click', (event) => { if (event.target === modal && !modal.querySelector('[data-modal-confirm]').disabled) closeModal(modal); });
+        modal.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && !modal.querySelector('[data-modal-confirm]').disabled) { event.preventDefault(); closeModal(modal); }
+          if (event.key === 'Tab') { const items = focusable(modal); if (!items.length) return; const first = items[0]; const last = items[items.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } }
         });
-      }
-
-      if (approveCancelBtn) {
-        approveCancelBtn.addEventListener('click', () => closeApproveConfirmModal(null));
-      }
-
-      if (approveOkBtn) {
-        approveOkBtn.addEventListener('click', () => {
-          const approvalNote = approveNoteInput ? approveNoteInput.value.trim() : '';
-          if (approvalNote.length > 500) {
-            if (approveNoteError) {
-              approveNoteError.textContent = 'Approval note must be 500 characters or less.';
-              approveNoteError.hidden = false;
-            }
-            if (approveNoteInput) approveNoteInput.focus();
-            return;
-          }
-          closeApproveConfirmModal({ approvalNote });
-        });
-      }
-
-      if (approveModal) {
-        approveModal.addEventListener('click', (event) => {
-          if (event.target === approveModal) closeApproveConfirmModal(null);
-        });
-        approveModal.addEventListener('keydown', (event) => {
-          if (event.key === 'Escape') closeApproveConfirmModal(null);
-        });
-      }
-
-      if (deleteCancelBtn) {
-        deleteCancelBtn.addEventListener('click', () => closeDeleteConfirmModal(null));
-      }
-
-      if (deleteOkBtn) {
-        deleteOkBtn.addEventListener('click', () => {
-          const reason = deleteReasonInput ? deleteReasonInput.value.trim() : '';
-          const pw = deletePwInput ? deletePwInput.value.trim() : '';
-          let valid = true;
-          if (reason.length < 8) {
-            if (deleteReasonError) {
-              deleteReasonError.textContent = 'Reason must be at least 8 characters.';
-              deleteReasonError.hidden = false;
-            }
-            if (deleteReasonInput) deleteReasonInput.focus();
-            valid = false;
-          } else if (deleteReasonError) {
-            deleteReasonError.hidden = true;
-          }
-          if (!pw) {
-            if (deletePwError) {
-              deletePwError.textContent = 'Please enter your password.';
-              deletePwError.hidden = false;
-            }
-            if (valid && deletePwInput) deletePwInput.focus();
-            valid = false;
-          } else if (deletePwError) {
-            deletePwError.hidden = true;
-          }
-          if (!valid) return;
-          closeDeleteConfirmModal({ reason, adminPassword: pw });
-        });
-      }
-
-      if (deletePwInput) {
-        deletePwInput.addEventListener('keydown', (event) => {
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            if (deleteOkBtn) deleteOkBtn.click();
-          }
-        });
-      }
-
-      if (deleteModal) {
-        deleteModal.addEventListener('click', (event) => {
-          if (event.target === deleteModal) closeDeleteConfirmModal(null);
-        });
-        deleteModal.addEventListener('keydown', (event) => {
-          if (event.key === 'Escape') closeDeleteConfirmModal(null);
-        });
-      }
-
-      async function postAction(action, body = {}) {
-        const response = await fetch(`/admin/events/${eventId}/${action}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
-          },
-          body: JSON.stringify(body)
-        });
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok || !data.success) {
-          throw new Error(data.message || 'Action failed.');
-        }
-        return data;
-      }
-      document.querySelectorAll('.event-action-btn').forEach((button) => {
-        button.addEventListener('click', async () => {
-          const action = button.dataset.action;
-          let body = {};
-          if (action === 'delete') {
-            const desc = 'You are about to soft-delete this event. Enter a reason and your password to continue.';
-            const result = await openDeleteConfirmModal(desc, button);
-            if (!result) return;
-            body = result;
-          } else if (action === 'archive') {
-            const reason = prompt(`Reason for ${action === 'archive' ? 'archiving' : 'soft-deleting'} this event:`);
-            if (!reason) return;
-            body.reason = reason;
-          } else if (action === 'approve') {
-            const result = await openApproveConfirmModal(button);
-            if (!result) return;
-            body = result;
-          }
-          button.disabled = true;
-          try {
-            const data = await postAction(action, body);
-            showMessage('success', data.message || 'Action completed.');
-            window.setTimeout(() => window.location.reload(), 700);
-          } catch (error) {
-            showMessage('error', error.message);
-            button.disabled = false;
-          }
+        modal.querySelector('[data-modal-confirm]').addEventListener('click', async () => {
+          const body = {};
+          const reason = modal.querySelector(`#adminEvent${action}Reason`);
+          const password = modal.querySelector('#adminEventdeletePassword');
+          const note = modal.querySelector('#adminEventapproveNote');
+          modal.querySelectorAll('[data-field-error]').forEach((error) => { error.hidden = true; error.textContent = ''; }); setModalError(modal, '');
+          if (reason && reason.value.trim().length < 8) { const error = modal.querySelector('[data-field-error="reason"]'); error.textContent = 'Reason must be at least 8 characters.'; error.hidden = false; reason.focus(); return; }
+          if (password && !password.value.trim()) { const error = modal.querySelector('[data-field-error="password"]'); error.textContent = 'Enter your password.'; error.hidden = false; password.focus(); return; }
+          if (reason) body.reason = reason.value.trim(); if (password) body.adminPassword = password.value; if (note) body.approvalNote = note.value.trim();
+          setPending(modal, true);
+          try { const data = await postAction(action, body); closeModal(modal); showMessage('success', data.message || 'Action completed.'); window.setTimeout(() => window.location.reload(), 700); }
+          catch (error) { setModalError(modal, error.message); setPending(modal, false); }
         });
       });
     })();

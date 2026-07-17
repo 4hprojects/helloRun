@@ -64,6 +64,10 @@ const adminTestUserPurgeLimiter = createRateLimiter({
 
 router.use((req, res, next) => {
   if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(String(req.method || '').toUpperCase())) {
+    // Multipart fields are not available until Multer parses the request. Multipart
+    // routes validate CSRF explicitly after their authenticated upload middleware.
+    const contentType = String(req.headers['content-type'] || '');
+    if (contentType.startsWith('multipart/form-data')) return next();
     return requireCsrfProtection(req, res, next);
   }
   return next();
@@ -102,7 +106,7 @@ router.post('/badge-definitions/:badgeDefinitionId/email', requireAdmin, adminMo
 router.post('/user-badges/:userBadgeId/revoke', requireAdmin, adminModerationLimiter, adminController.revokeBadge);
 router.get('/events/:id', requireAdmin, adminController.viewEvent);
 router.get('/events/:id/edit', requireAdmin, adminController.renderEditEvent);
-router.post('/events/:id/edit', requireAdmin, adminModerationLimiter, uploadService.uploadEventBranding, adminController.updateEvent);
+router.post('/events/:id/edit', requireAdmin, adminModerationLimiter, uploadService.uploadEventBranding, requireCsrfProtection, adminController.updateEvent);
 router.post('/events/:id/media/remove', requireAdmin, adminModerationLimiter, adminController.removeEventMedia);
 router.post('/events/:id/sitemap-toggle', requireAdmin, adminModerationLimiter, adminController.toggleEventSitemapExclusion);
 router.post('/events/:id/approve', requireAdmin, adminModerationLimiter, adminController.approveEvent);
@@ -209,7 +213,7 @@ router.post('/promote', requireAdmin, requireFullAdmin, adminPromotionLimiter, a
 // Blog moderation queue
 router.get('/blog/review', requireAdmin, blogController.renderAdminQueuePage);
 router.get('/blog/posts/:id/review', requireAdmin, blogController.renderAdminReviewPage);
-router.post('/blog/posts/:id/assets-upload', requireAdmin, adminModerationLimiter, uploadService.uploadBlogAssets, blogController.uploadAdminBlogAssets);
+router.post('/blog/posts/:id/assets-upload', requireAdmin, adminModerationLimiter, uploadService.uploadBlogAssets, requireCsrfProtection, blogController.uploadAdminBlogAssets);
 router.post('/blog/posts/:id/approve-form', requireAdmin, adminModerationLimiter, blogController.approveBlogPostPage);
 router.post('/blog/posts/:id/reject-form', requireAdmin, adminModerationLimiter, blogController.rejectBlogPostPage);
 router.post('/blog/posts/:id/archive-form', requireAdmin, adminModerationLimiter, blogController.archiveBlogPostPage);
@@ -219,7 +223,7 @@ router.get('/blog/posts/:id', requireAdmin, blogController.previewBlogPost);
 router.post('/blog/posts/:id/approve', requireAdmin, adminModerationLimiter, blogController.approveBlogPost);
 router.post('/blog/posts/:id/reject', requireAdmin, adminModerationLimiter, blogController.rejectBlogPost);
 router.post('/blog/posts/:id/archive', requireAdmin, adminModerationLimiter, blogController.archiveBlogPost);
-router.patch('/blog/posts/:id/autosave', requireAdmin, adminBlogAutosaveLimiter, uploadService.uploadBlogAssets, blogController.autosaveBlogPostAdmin);
+router.patch('/blog/posts/:id/autosave', requireAdmin, adminBlogAutosaveLimiter, uploadService.uploadBlogAssets, requireCsrfProtection, blogController.autosaveBlogPostAdmin);
 
 // Blog comment moderation
 router.get('/blog/comments', requireAdmin, blogInteractionController.adminListComments);

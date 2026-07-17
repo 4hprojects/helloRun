@@ -32,7 +32,7 @@ async function generateDefaultEventBadges(eventOrId, options = {}) {
   `;
   const existingBadgeCodes = new Set(existingRows.map((row) => row.badge_code));
 
-  const logoFallback = String(event.logoUrl || '').trim() || null;
+  const logoFallback = String(event.badgeImageUrl || event.logoUrl || '').trim() || null;
   const payloads = buildDefaultEventBadges(event)
     .filter((payload) => !existingBadgeCodes.has(payload.badgeCode))
     .map((payload) => ({ ...payload, createdBy: actorAppUserId }));
@@ -207,6 +207,20 @@ async function updateEventBadgeDisplay({ mongoEventId, eventBadgeId, updates = {
   `;
 
   return rows[0] || null;
+}
+
+async function synchronizeEventBadgeImages(mongoEventId, imageUrl, options = {}) {
+  if (!process.env.DATABASE_URL) return { updatedCount: 0 };
+
+  const sql = options.sql || getPostgresClient();
+  const rows = await sql`
+    UPDATE event_badges
+    SET badge_image_url = ${stringOrNull(imageUrl)}
+    WHERE mongo_event_id = ${String(mongoEventId)}
+    RETURNING id
+  `;
+
+  return { updatedCount: rows.length };
 }
 
 function buildDefaultEventBadges(event) {
@@ -512,6 +526,7 @@ module.exports = {
   generateDefaultEventBadgesInBackground,
   getEventBadgesByMongoEventId,
   updateEventBadgeDisplay,
+  synchronizeEventBadgeImages,
   buildDefaultEventBadges,
   isEligibleForEventBadges,
   buildChallengeMilestones,

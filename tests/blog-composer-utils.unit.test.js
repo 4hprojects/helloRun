@@ -6,7 +6,8 @@ const {
   normalizeContentBlocks,
   validateContentBlocks,
   renderContentBlocksToHtml,
-  getStructuredContentText
+  getStructuredContentText,
+  isValidBlogImageUrl
 } = require('../src/utils/blog-composer');
 
 test('template blocks provide editable starter content', () => {
@@ -123,6 +124,35 @@ test('strips unsupported block types and unsafe image urls', () => {
   const errors = validateContentBlocks(blocks);
   assert.ok(errors.some((error) => error.includes('image URL is required')));
   assert.doesNotMatch(renderContentBlocksToHtml(blocks), /<script>/);
+});
+
+test('accepts safe site-relative blog image paths and rejects unsafe URL forms', () => {
+  assert.equal(isValidBlogImageUrl('/images/helloRun-icon.webp'), true);
+  assert.equal(isValidBlogImageUrl('/blog/assets/cover.webp?v=2'), true);
+  assert.equal(isValidBlogImageUrl('https://cdn.example.com/cover.webp'), true);
+  assert.equal(isValidBlogImageUrl('http://cdn.example.com/cover.webp'), true);
+
+  [
+    '//evil.example/cover.webp',
+    '/images\\cover.webp',
+    '/images/bad%zz.webp',
+    '/images/bad path.webp',
+    'javascript:alert(1)',
+    'data:image/png;base64,abc',
+    'ftp://example.com/cover.webp',
+    'not-a-url'
+  ].forEach((value) => assert.equal(isValidBlogImageUrl(value), false, value));
+});
+
+test('preserves safe site-relative URLs in structured image blocks', () => {
+  const blocks = normalizeContentBlocks([
+    { type: 'image', content: { url: '/images/blog/inline.webp', alt: 'Runner', caption: 'Finish line' } },
+    { type: 'textSection', content: { text: 'This paragraph provides enough useful content to validate the structured blog post.' } }
+  ]);
+
+  assert.equal(blocks[0].content.url, '/images/blog/inline.webp');
+  assert.match(renderContentBlocksToHtml(blocks), /src="\/images\/blog\/inline\.webp"/);
+  assert.deepEqual(validateContentBlocks(blocks), []);
 });
 
 test('textSection renders paragraphs and bullet lines from one block', () => {

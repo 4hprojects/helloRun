@@ -56,6 +56,8 @@ const {
   countries,
   getCreateEventFormData,
   getCreateEventFormDataFromEvent,
+  getEventReadinessChecklist,
+  getEventReviewSummary,
   getPublishReadinessErrors,
   validateCreateEventForm
 } = require('../../services/event-form.service');
@@ -1351,6 +1353,7 @@ module.exports = {
   buildSubmissionHubPath, listSubmissionHub,
   listSubmissionHubEvents, uploadService, markdownToHtml, sanitizeHtml, DEFAULT_WAIVER_TEMPLATE,
   applyEventFormData, countries, getCreateEventFormData, getCreateEventFormDataFromEvent,
+  getEventReadinessChecklist, getEventReviewSummary,
   getPublishReadinessErrors, validateCreateEventForm, getCountries, getCountryName, isValidCountryCode,
   normalizeCountryCode, buildSubmissionReviewSignal,
   VALID_FILTER_STATUSES, REVIEWABLE_STATUSES, MIN_REJECTION_REASON_LENGTH, MAX_REJECTION_REASON_LENGTH,

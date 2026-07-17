@@ -78,6 +78,7 @@ const {
 
 const {
   getLeaderboardDiscoveryData,
+  getHomepageLeaderboard,
   getEventLeaderboard,
   getMyStanding
 } = require('../../services/leaderboard.service');
@@ -214,6 +215,7 @@ module.exports = {
   getRunnerEarnedBadges,
   loadPublicBadgeVerification,
   getLeaderboardDiscoveryData,
+  getHomepageLeaderboard,
   getEventLeaderboard,
   getMyStanding,
   buildPublicEventSeo,

@@ -770,7 +770,7 @@
             </div>
             <div class="admin-field admin-field-wide">
               <label for="adminCoverImageUrl">Cover Image URL</label>
-              <input id="adminCoverImageUrl" name="coverImageUrl" type="url" value="<%= post.coverImageUrl || '' %>">
+              <input id="adminCoverImageUrl" name="coverImageUrl" type="text" inputmode="url" autocomplete="url" value="<%= post.coverImageUrl || '' %>">
               <div class="admin-image-manager">
                 <img id="adminCoverPreview" class="admin-image-preview" src="<%= post.coverImageUrl || '' %>" alt="Cover preview" <%= post.coverImageUrl ? '' : 'hidden' %>>
                 <div class="admin-image-actions">
@@ -842,7 +842,7 @@
             </div>
             <div class="admin-field">
               <label for="adminOgImageUrl">OG Image URL</label>
-              <input id="adminOgImageUrl" name="ogImageUrl" type="url" value="<%= post.ogImageUrl || '' %>" maxlength="2000">
+              <input id="adminOgImageUrl" name="ogImageUrl" type="text" inputmode="url" autocomplete="url" value="<%= post.ogImageUrl || '' %>" maxlength="2000">
             </div>
             <div class="admin-field admin-field-wide">
               <label for="adminSeoDescription">SEO Description</label>
@@ -1223,7 +1223,7 @@
           fields.innerHTML = adminTextToolsMarkup(false, "admin-inline-text-tools") + '<textarea data-field="items" rows="4" placeholder="One item per line"></textarea><small style="color:#64748b;">Select item text, then use Bold, Italic, or Underline.</small>';
           fields.querySelector('[data-field="items"]').value = (block.content?.items || []).join("\n");
         } else if (block.type === "image") {
-          fields.innerHTML = '<input data-field="url" type="url" placeholder="Image URL"><input data-field="alt" type="text" maxlength="180" placeholder="Alt text"><input data-field="caption" type="text" maxlength="240" placeholder="Caption"><label class="admin-image-upload-label">Upload or replace<input data-field="inline-file" type="file" accept="image/jpeg,image/png,image/webp"></label><small data-field="inline-state" class="admin-upload-state">JPEG/PNG uploads are converted to WebP.</small>';
+          fields.innerHTML = '<input data-field="url" type="text" inputmode="url" autocomplete="url" placeholder="Image URL or /images/... path"><input data-field="alt" type="text" maxlength="180" placeholder="Alt text"><input data-field="caption" type="text" maxlength="240" placeholder="Caption"><label class="admin-image-upload-label">Upload or replace<input data-field="inline-file" type="file" accept="image/jpeg,image/png,image/webp"></label><small data-field="inline-state" class="admin-upload-state">JPEG/PNG uploads are converted to WebP.</small>';
           fields.querySelector('[data-field="url"]').value = block.content?.url || "";
           fields.querySelector('[data-field="alt"]').value = block.content?.alt || "";
           fields.querySelector('[data-field="caption"]').value = block.content?.caption || "";

@@ -299,6 +299,7 @@ router.get('/preview-event', requireCanCreateEvents, async (req, res) => {
 
 router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBranding, requireCsrfProtection, async (req, res) => {
   const uploadedBrandingKeys = [];
+  let brandingPersisted = false;
   try {
     const user = await User.findById(req.session.userId);
 
@@ -364,6 +365,10 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
         uploadedBrandingKeys.push(uploadedBranding.logo.key);
         formData.logoUrl = uploadedBranding.logo.url;
       }
+      if (uploadedBranding.badgeImage) {
+        uploadedBrandingKeys.push(uploadedBranding.badgeImage.key);
+        formData.badgeImageUrl = uploadedBranding.badgeImage.url;
+      }
       if (uploadedBranding.poster) {
         uploadedBrandingKeys.push(uploadedBranding.poster.key);
         formData.posterImageUrl = uploadedBranding.poster.url;
@@ -383,6 +388,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     }
 
     if ((formData.galleryImageUrls || []).length > MAX_GALLERY_IMAGES) {
+      if (uploadedBrandingKeys.length) await uploadService.deleteObjects(uploadedBrandingKeys);
       return res.status(400).render('organizer/create-event', {
         title: 'Create Event - HelloRun',
         user,
@@ -399,6 +405,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     const validationErrors = validateCreateEventForm(formData);
 
     if (Object.keys(validationErrors).length > 0) {
+      if (uploadedBrandingKeys.length) await uploadService.deleteObjects(uploadedBrandingKeys);
       return res.status(400).render('organizer/create-event', {
         title: 'Create Event - HelloRun',
         user,
@@ -490,6 +497,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
       physicalRewardsDescription: formData.physicalRewardsEnabled ? formData.physicalRewardsDescription || '' : '',
       bannerImageUrl: formData.bannerImageUrl || '',
       logoUrl: formData.logoUrl || '',
+      badgeImageUrl: formData.badgeImageUrl || '',
       posterImageUrl: formData.posterImageUrl || '',
       galleryImageUrls: formData.galleryImageUrls || [],
       waiverTemplate: sanitizeWaiverTemplate(formData.waiverTemplate),
@@ -519,6 +527,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     }
 
     await event.save();
+    brandingPersisted = true;
 
     const autoApproval = status === 'pending_review'
       ? await tryAutoApproveEvent(event, { organizer: user })
@@ -532,7 +541,7 @@ router.post('/create-event', requireCanCreateEvents, uploadService.uploadEventBr
     return res.redirect(`/organizer/events?${query.toString()}`);
   } catch (error) {
     logger.error('Error creating event:', error);
-    if (uploadedBrandingKeys.length) {
+    if (!brandingPersisted && uploadedBrandingKeys.length) {
       await uploadService.deleteObjects(uploadedBrandingKeys);
     }
     return res.status(500).render('error', {

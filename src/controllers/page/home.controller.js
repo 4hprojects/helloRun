@@ -43,6 +43,7 @@ const {
   getRunnerEarnedBadges,
   loadPublicBadgeVerification,
   getLeaderboardDiscoveryData,
+  getHomepageLeaderboard,
   getEventLeaderboard,
   getMyStanding,
   buildPublicEventSeo,
@@ -82,7 +83,7 @@ exports.getHome = async (req, res) => {
     const canonicalUrl = baseUrl ? `${baseUrl}/` : '';
     const ogImage = baseUrl ? `${baseUrl}/images/helloRun-icon.webp` : '';
 
-    const [activeEventsCount, approvedFinishersCount, approvedOrganizersCount, recentPostsRaw, carouselSettings] = await Promise.all([
+    const [activeEventsCount, approvedFinishersCount, approvedOrganizersCount, recentPostsRaw, carouselSettings, homeLeaderboard] = await Promise.all([
       Event.countDocuments({
         ...getPublicEventVisibilityQuery(now),
         $or: [
@@ -105,7 +106,13 @@ exports.getHome = async (req, res) => {
         .limit(3)
         .select('title slug excerpt category customCategory coverImageUrl readingTime publishedAt createdAt')
         .lean(),
-      getHomepageCarouselSettings()
+      getHomepageCarouselSettings(),
+      getHomepageLeaderboard().catch((error) => {
+        logger.warn('Homepage leaderboard unavailable; rendering fallback hero.', {
+          error: error?.message || String(error)
+        });
+        return null;
+      })
     ]);
     const featuredEvents = carouselSettings.enabled
       ? await listHomepagePromotedEvents({ now, limit: carouselSettings.maxItems })
@@ -151,7 +158,8 @@ exports.getHome = async (req, res) => {
       stats,
       recentPosts,
       featuredEvents,
-      carouselSettings
+      carouselSettings,
+      homeLeaderboard
     });
   } catch (error) {
     logger.error('Error loading home page:', error);

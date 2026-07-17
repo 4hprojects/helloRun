@@ -48,3 +48,35 @@ test('review UI coordinates pending image uploads with autosave and moderation',
   assert.match(view, /const saved = await flushAutosave\(\)/);
   assert.match(view, /Only ["'] \+ remaining[\s\S]*gallery slot/);
 });
+
+test('admin image fields allow existing site-relative paths without browser URL blocking', () => {
+  const view = read('src/views/admin/blog-review.ejs');
+
+  assert.match(view, /id="adminCoverImageUrl"[^>]*type="text"[^>]*inputmode="url"/);
+  assert.match(view, /id="adminOgImageUrl"[^>]*type="text"[^>]*inputmode="url"/);
+  assert.doesNotMatch(view, /id="adminCoverImageUrl"[^>]*type="url"/);
+  assert.doesNotMatch(view, /id="adminOgImageUrl"[^>]*type="url"/);
+});
+
+test('an uploaded absolute cover is valid alongside the target post relative OG image', () => {
+  const { validateBlogPayload } = require('../src/controllers/blog/_shared');
+  const errors = validateBlogPayload({
+    title: 'How to Join a Virtual Run in the Philippines',
+    excerpt: 'A useful guide for runners.',
+    category: 'Virtual Run Guide',
+    customCategory: '',
+    coverImageUrl: 'https://cdn.hellorun.example/blog/covers/new-cover.webp',
+    coverImageAlt: 'Virtual runner',
+    galleryImageUrls: ['/images/blog/gallery.webp'],
+    contentBlocks: [],
+    contentHtml: '<p>This guide contains enough useful information for runners replacing an existing cover image.</p>',
+    contentText: 'This guide contains enough useful information for runners replacing an existing cover image.',
+    contentRaw: '',
+    tags: [],
+    seoTitle: '',
+    seoDescription: '',
+    ogImageUrl: '/images/helloRun-icon.webp'
+  }, { requireCover: true });
+
+  assert.deepEqual(errors, []);
+});

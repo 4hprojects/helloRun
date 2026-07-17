@@ -11,7 +11,7 @@
   <main class="home">
 
     <section class="hero">
-      <div class="container hero-container">
+      <div class="container hero-container<%= homeLeaderboard ? ' has-leaderboard' : '' %>">
         <div class="hero-text">
           <h1 class="hero-title">Run anywhere. <span class="highlight">Show up with purpose.</span></h1>
           <p class="hero-subtitle">
@@ -24,40 +24,57 @@
           </div>
 
           <a class="hero-inline-action" href="/my-registrations">
-            <i data-lucide="clipboard-list"></i>
+            <i data-lucide="clipboard-list" aria-hidden="true"></i>
             <span>Already registered? Review your event entries.</span>
           </a>
         </div>
 
-        <div class="hero-visual">
-          <div class="visual-placeholder">
-            <div class="hero-result-card">
-              <div class="hero-result-approved">
-                <span class="hero-result-approved-dot"></span>
-                Result Approved
+        <% if (homeLeaderboard) { %>
+          <aside class="home-leaderboard" aria-labelledby="homeLeaderboardTitle">
+            <header class="home-leaderboard-header">
+              <div>
+                <p class="home-leaderboard-kicker">
+                  <span class="home-leaderboard-live-dot" aria-hidden="true"></span>
+                  Verified results
+                </p>
+                <h2 id="homeLeaderboardTitle"><%= homeLeaderboard.eventTitle %></h2>
+                <p class="home-leaderboard-context">
+                  <span><%= homeLeaderboard.categoryLabel %></span>
+                  <span aria-hidden="true">·</span>
+                  <span><%= homeLeaderboard.leaderboardTypeLabel %></span>
+                </p>
               </div>
-              <span class="hero-result-event-name">June Active Quest 5K</span>
-              <div class="hero-result-stats">
-                <div class="hero-result-stat">
-                  <span class="hero-result-stat-value">5.2 km</span>
-                  <span class="hero-result-stat-label">Distance</span>
-                </div>
-                <div class="hero-result-stat">
-                  <span class="hero-result-stat-value">34:12</span>
-                  <span class="hero-result-stat-label">Time</span>
-                </div>
-                <div class="hero-result-stat">
-                  <span class="hero-result-stat-value">#4</span>
-                  <span class="hero-result-stat-label">Rank</span>
-                </div>
-              </div>
-              <div class="hero-result-cert">
-                <i data-lucide="award"></i>
-                <span>Finisher certificate ready</span>
-              </div>
-            </div>
-          </div>
-        </div>
+              <i class="home-leaderboard-trophy" data-lucide="trophy" aria-hidden="true"></i>
+            </header>
+
+            <ol class="home-leaderboard-list" aria-label="Top verified finishers">
+              <% homeLeaderboard.entries.forEach((entry) => { %>
+                <li class="home-leaderboard-entry">
+                  <span class="home-leaderboard-rank" aria-label="Rank <%= entry.rank %>"><%= entry.rank %></span>
+                  <span class="home-leaderboard-runner"><%= entry.runnerName %></span>
+                  <span class="home-leaderboard-metrics">
+                    <strong><%= entry.primaryMetric %></strong>
+                    <% if (entry.secondaryMetric) { %><small><%= entry.secondaryMetric %></small><% } %>
+                  </span>
+                </li>
+              <% }) %>
+            </ol>
+
+            <footer class="home-leaderboard-footer">
+              <span class="home-leaderboard-updated">
+                <% if (homeLeaderboard.lastUpdatedAt) { %>
+                  Updated <time datetime="<%= new Date(homeLeaderboard.lastUpdatedAt).toISOString() %>"><%= homeLeaderboard.lastUpdatedLabel %></time>
+                <% } else { %>
+                  Current verified standings
+                <% } %>
+              </span>
+              <a href="<%= homeLeaderboard.href %>" class="home-leaderboard-link">
+                <span>Full leaderboard</span>
+                <i data-lucide="arrow-up-right" aria-hidden="true"></i>
+              </a>
+            </footer>
+          </aside>
+        <% } %>
       </div>
     </section>
 

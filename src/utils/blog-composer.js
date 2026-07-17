@@ -367,11 +367,28 @@ function renderTextSectionToHtml(value) {
 function cleanUrl(value) {
   const url = String(value || '').trim().slice(0, 2000);
   if (!url) return '';
+  return isValidBlogImageUrl(url) ? url : '';
+}
+
+function isValidBlogImageUrl(value) {
+  const url = String(value || '').trim();
+  if (!url || /[\\\u0000-\u001f\u007f\s]/.test(url) || /%(?![0-9a-f]{2})/i.test(url)) return false;
+
+  if (url.startsWith('/')) {
+    if (url.startsWith('//') || url.includes('\\')) return false;
+    try {
+      const base = 'https://hellorun.invalid';
+      return new URL(url, base).origin === base;
+    } catch (_) {
+      return false;
+    }
+  }
+
   try {
     const parsed = new URL(url);
-    return ['http:', 'https:'].includes(parsed.protocol) ? url : '';
+    return ['http:', 'https:'].includes(parsed.protocol);
   } catch (_) {
-    return '';
+    return false;
   }
 }
 
@@ -423,5 +440,6 @@ module.exports = {
   validateContentBlocks,
   renderContentBlocksToHtml,
   getStructuredContentText,
-  isStructuredPost
+  isStructuredPost,
+  isValidBlogImageUrl
 };

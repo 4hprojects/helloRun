@@ -58,6 +58,7 @@ const {
   resolveOrganizerPromotionRecipients,
   toObjectId
 } = require('../../services/event-promotion.service');
+const { synchronizeEventBadgeImages } = require('../../services/event-badge.service');
 
 /* ==========================================
    GET: My Events
@@ -517,6 +518,7 @@ router.get('/events/:id/edit', requireCanCreateEvents, async (req, res) => {
 
 router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEventBranding, requireCsrfProtection, async (req, res) => {
   const uploadedBrandingKeys = [];
+  let brandingPersisted = false;
   try {
     const user = await User.findById(req.session.userId);
     if (!user) {
@@ -588,6 +590,7 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
     const galleryImageFiles = req.files?.galleryImageFiles || [];
     const previousBannerUrl = event.bannerImageUrl || '';
     const previousLogoUrl = event.logoUrl || '';
+    const previousBadgeImageUrl = event.badgeImageUrl || '';
     const previousPosterUrl = event.posterImageUrl || '';
     const previousPaymentQrUrl = event.paymentQrImageUrl || '';
     const previousGalleryUrls = Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : [];
@@ -610,6 +613,10 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
       if (uploadedBranding.logo) {
         uploadedBrandingKeys.push(uploadedBranding.logo.key);
         formData.logoUrl = uploadedBranding.logo.url;
+      }
+      if (uploadedBranding.badgeImage) {
+        uploadedBrandingKeys.push(uploadedBranding.badgeImage.key);
+        formData.badgeImageUrl = uploadedBranding.badgeImage.url;
       }
       if (uploadedBranding.poster) {
         uploadedBrandingKeys.push(uploadedBranding.poster.key);
@@ -635,6 +642,10 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
     }
     if (formData.removeLogoImage && !logoFile) {
       formData.logoUrl = '';
+      formData.badgeImageUrl = '';
+    } else if (!logoFile && formData.logoUrl !== previousLogoUrl) {
+      // URL-only logos cannot be processed safely; use the original URL as the badge fallback.
+      formData.badgeImageUrl = '';
     }
     if (formData.removePosterImage && !posterImageFile) {
       formData.posterImageUrl = '';
@@ -649,6 +660,7 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
     }
 
     if ((formData.galleryImageUrls || []).length > MAX_GALLERY_IMAGES) {
+      if (uploadedBrandingKeys.length) await uploadService.deleteObjects(uploadedBrandingKeys);
       return res.status(400).render('organizer/edit-event', {
         title: `Edit Event - ${event.title}`,
         user,
@@ -666,6 +678,7 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
     const validationErrors = validateCreateEventForm(formData);
 
     if (Object.keys(validationErrors).length > 0) {
+      if (uploadedBrandingKeys.length) await uploadService.deleteObjects(uploadedBrandingKeys);
       return res.status(400).render('organizer/edit-event', {
         title: `Edit Event - ${event.title}`,
         user,
@@ -732,6 +745,9 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
       : 'finishers';
 
     eventFormService.applyEventFormData(event, formData, user);
+    if (logoFile || formData.removeLogoImage || formData.logoUrl !== previousLogoUrl) {
+      event.badgeImageUrl = formData.badgeImageUrl || '';
+    }
     if (isDraftSubmitForReview) {
       event.status = 'pending_review';
       event.submittedForReviewAt = new Date();
@@ -756,7 +772,23 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
     }
 
     await event.save();
+    brandingPersisted = true;
     generateDefaultEventBadgesInBackground(event, { performedBy: user._id });
+
+    const logoChanged = Boolean(logoFile || formData.removeLogoImage || event.logoUrl !== previousLogoUrl);
+    let badgeSyncSucceeded = true;
+    if (logoChanged) {
+      try {
+        await synchronizeEventBadgeImages(event._id, event.badgeImageUrl || event.logoUrl || '');
+      } catch (syncError) {
+        badgeSyncSucceeded = false;
+        logger.error('Event badge image synchronization failed:', {
+          eventId: String(event._id),
+          targetImageUrl: event.badgeImageUrl || event.logoUrl || null,
+          error: syncError.message
+        });
+      }
+    }
 
     const autoApproval = isDraftSubmitForReview
       ? await tryAutoApproveEvent(event, { organizer: user })
@@ -767,9 +799,13 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
       const previousBannerKey = uploadService.extractObjectKeyFromPublicUrl(previousBannerUrl);
       if (previousBannerKey) keysToDelete.push(previousBannerKey);
     }
-    if ((logoFile || formData.removeLogoImage) && previousLogoUrl && previousLogoUrl !== event.logoUrl) {
+    if (badgeSyncSucceeded && logoChanged && previousLogoUrl && previousLogoUrl !== event.logoUrl) {
       const previousLogoKey = uploadService.extractObjectKeyFromPublicUrl(previousLogoUrl);
       if (previousLogoKey) keysToDelete.push(previousLogoKey);
+    }
+    if (logoChanged && badgeSyncSucceeded && previousBadgeImageUrl && previousBadgeImageUrl !== event.badgeImageUrl) {
+      const previousBadgeImageKey = uploadService.extractObjectKeyFromPublicUrl(previousBadgeImageUrl);
+      if (previousBadgeImageKey) keysToDelete.push(previousBadgeImageKey);
     }
     if ((posterImageFile || formData.removePosterImage) && previousPosterUrl && previousPosterUrl !== event.posterImageUrl) {
       const previousPosterKey = uploadService.extractObjectKeyFromPublicUrl(previousPosterUrl);
@@ -799,7 +835,7 @@ router.post('/events/:id/edit', requireCanCreateEvents, uploadService.uploadEven
     return res.redirect(`/organizer/events/${event._id}?${query.toString()}`);
   } catch (error) {
     logger.error('Error updating event:', error);
-    if (uploadedBrandingKeys.length) {
+    if (!brandingPersisted && uploadedBrandingKeys.length) {
       await uploadService.deleteObjects(uploadedBrandingKeys);
     }
     return res.status(500).render('error', {

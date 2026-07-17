@@ -306,60 +306,103 @@ exports.uploadEventBrandingToR2 = async ({
     : null;
 
   const result = {};
+  const uploadedKeys = [];
 
-  if (bannerImageFile) {
-    result.banner = await uploadFileToR2({
-      userId,
-      file: bannerImageFile,
-      category: 'event-branding/banner',
-      label: safeSlug ? `${safeSlug}-banner` : 'banner'
-    });
-  }
-
-  if (logoFile) {
-    result.logo = await uploadFileToR2({
-      userId,
-      file: logoFile,
-      category: 'event-branding/logo',
-      label: safeSlug ? `${safeSlug}-logo` : 'logo'
-    });
-  }
-
-  if (posterImageFile) {
-    result.poster = await uploadFileToR2({
-      userId,
-      file: posterImageFile,
-      category: 'event-branding/poster',
-      label: safeSlug ? `${safeSlug}-poster` : 'poster'
-    });
-  }
-
-  if (paymentQrImageFile) {
-    result.paymentQr = await uploadFileToR2({
-      userId,
-      file: paymentQrImageFile,
-      category: 'event-payments/qr',
-      label: safeSlug ? `${safeSlug}-payment-qr` : 'payment-qr'
-    });
-  }
-
-  const galleryFiles = Array.isArray(galleryImageFiles) ? galleryImageFiles : [];
-  if (galleryFiles.length) {
-    result.gallery = [];
-    for (const [i, galleryFile] of galleryFiles.entries()) {
-      // eslint-disable-next-line no-await-in-loop
-      const uploadedGallery = await uploadFileToR2({
+  try {
+    if (bannerImageFile) {
+      result.banner = await uploadFileToR2({
         userId,
-        file: galleryFile,
-        category: 'event-branding/gallery',
-        label: safeSlug ? `${safeSlug}-gallery-${i + 1}` : `gallery-${i + 1}`
+        file: bannerImageFile,
+        category: 'event-branding/banner',
+        label: safeSlug ? `${safeSlug}-banner` : 'banner'
       });
-      result.gallery.push(uploadedGallery);
+      uploadedKeys.push(result.banner.key);
     }
+
+    if (logoFile) {
+      result.logo = await uploadFileToR2({
+        userId,
+        file: logoFile,
+        category: 'event-branding/logo',
+        label: safeSlug ? `${safeSlug}-logo` : 'logo'
+      });
+      uploadedKeys.push(result.logo.key);
+
+      const badgeBuffer = await createCircularBadgeImage(logoFile.buffer);
+      result.badgeImage = await uploadFileToR2({
+        userId,
+        file: {
+          buffer: badgeBuffer,
+          mimetype: 'image/webp',
+          originalname: `${safeSlug || 'event'}-badge.webp`
+        },
+        category: 'event-branding/badge',
+        label: safeSlug ? `${safeSlug}-badge` : 'badge'
+      });
+      uploadedKeys.push(result.badgeImage.key);
+    }
+
+    if (posterImageFile) {
+      result.poster = await uploadFileToR2({
+        userId,
+        file: posterImageFile,
+        category: 'event-branding/poster',
+        label: safeSlug ? `${safeSlug}-poster` : 'poster'
+      });
+      uploadedKeys.push(result.poster.key);
+    }
+
+    if (paymentQrImageFile) {
+      result.paymentQr = await uploadFileToR2({
+        userId,
+        file: paymentQrImageFile,
+        category: 'event-payments/qr',
+        label: safeSlug ? `${safeSlug}-payment-qr` : 'payment-qr'
+      });
+      uploadedKeys.push(result.paymentQr.key);
+    }
+
+    const galleryFiles = Array.isArray(galleryImageFiles) ? galleryImageFiles : [];
+    if (galleryFiles.length) {
+      result.gallery = [];
+      for (const [i, galleryFile] of galleryFiles.entries()) {
+        // eslint-disable-next-line no-await-in-loop
+        const uploadedGallery = await uploadFileToR2({
+          userId,
+          file: galleryFile,
+          category: 'event-branding/gallery',
+          label: safeSlug ? `${safeSlug}-gallery-${i + 1}` : `gallery-${i + 1}`
+        });
+        result.gallery.push(uploadedGallery);
+        uploadedKeys.push(uploadedGallery.key);
+      }
+    }
+  } catch (error) {
+    await exports.deleteObjects(uploadedKeys);
+    throw error;
   }
 
   return result;
 };
+
+async function createCircularBadgeImage(buffer) {
+  if (!Buffer.isBuffer(buffer) || !buffer.length) {
+    throw new Error('Event logo buffer is required to generate badge artwork.');
+  }
+
+  const circleMask = Buffer.from(
+    '<svg width="512" height="512"><circle cx="256" cy="256" r="256" fill="white"/></svg>'
+  );
+
+  return sharp(buffer)
+    .rotate()
+    .resize(512, 512, { fit: 'cover', position: 'centre' })
+    .composite([{ input: circleMask, blend: 'dest-in' }])
+    .webp({ quality: 82 })
+    .toBuffer();
+}
+
+exports._createCircularBadgeImage = createCircularBadgeImage;
 
 exports.uploadCertificateAssetsToR2 = async ({
   userId,

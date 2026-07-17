@@ -7,7 +7,8 @@ const {
   normalizeAdminEventFilters, buildAdminEventQuery, getEventCountsById, formatEventStatusLabel,
   getAdminPageMessage, renderServerError, findAdminEventOrNull, getPublishReadinessErrors,
   getAdminEventRedirect, buildAdminRedirect, buildEventDetailsHtml,
-  getCreateEventFormDataFromEvent, validateCreateEventForm, applyEventFormData,
+  getCreateEventFormData, getCreateEventFormDataFromEvent, getEventReadinessChecklist,
+  getEventReviewSummary, validateCreateEventForm, applyEventFormData,
   countries, DEFAULT_WAIVER_TEMPLATE, formatAdminShortDate, formatAdminDateTime,
   getRequestIpAddress, getRequestUserAgent,
   verifyAdminDeletionPassword, getTestDataCounts, purgeTestData, isFullAdminTier
@@ -23,6 +24,41 @@ const {
   hydrateSelectedPromotionRecipients,
   resolveAdminPromotionRecipients
 } = require('../../services/event-promotion.service');
+const {
+  normalizeAdminEventsReturnTo,
+  appendAdminEditMessage
+} = require('../../utils/admin-event-return');
+
+function getAdminEditReturnContext(req, eventId) {
+  const returnTo = normalizeAdminEventsReturnTo(req.body?.returnTo || req.query?.returnTo);
+  return {
+    returnTo,
+    backHref: returnTo || `/admin/events/${eventId}`
+  };
+}
+
+function buildAdminEditViewData({ req, event, formData, errors = {}, message = null }) {
+  const returnContext = getAdminEditReturnContext(req, event._id);
+  return {
+    title: `Admin Edit Event - ${event.title}`,
+    pageHeading: `Edit ${event.title}`,
+    pageDescription: 'Update event details, media, schedule, rules, and waiver as an admin.',
+    user: event.organizerId || null,
+    event,
+    errors,
+    formData,
+    readinessChecklist: getEventReadinessChecklist(formData),
+    reviewSummary: getEventReviewSummary(formData),
+    countries,
+    defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    message,
+    formAction: `/admin/events/${event._id}/edit`,
+    backHref: returnContext.backHref,
+    returnTo: returnContext.returnTo,
+    mediaRemovePath: `/admin/events/${event._id}/media/remove`,
+    isAdminEdit: true
+  };
+}
 
 // SECTION: Event Management
 // ═══════════════════════════════════════════════════════════
@@ -121,7 +157,10 @@ exports.viewEvent = async (req, res) => {
         message: 'The requested event does not exist.'
       });
     }
-    const counts = await getEventCountsById([event._id]);
+    const [counts, viewer] = await Promise.all([
+      getEventCountsById([event._id]),
+      User.findById(req.session.userId).select('adminTier').lean()
+    ]);
     const itemCounts = counts.get(String(event._id)) || { registrations: 0, submissions: 0 };
     const readinessErrors = event.status === 'pending_review' ? getPublishReadinessErrors(event) : [];
     return res.render('admin/event-detail', {
@@ -131,6 +170,7 @@ exports.viewEvent = async (req, res) => {
       readinessErrors,
       statusLabel: formatEventStatusLabel(event.status),
       eventDetailsHtml: buildEventDetailsHtml(event.eventDetailsMarkdown || ''),
+      viewerIsFullAdmin: isFullAdminTier(viewer),
       message: getAdminPageMessage(req.query)
     });
   } catch (error) {
@@ -148,21 +188,13 @@ exports.renderEditEvent = async (req, res) => {
         message: 'The requested event does not exist or has been deleted.'
       });
     }
-    return res.render('organizer/edit-event', {
-      title: `Admin Edit Event - ${event.title}`,
-      pageHeading: 'Admin Edit Event',
-      pageDescription: 'Update event details, media, schedule, rules, and waiver as an admin.',
-      user: event.organizerId || null,
+    const formData = getCreateEventFormDataFromEvent(event);
+    return res.render('organizer/edit-event', buildAdminEditViewData({
+      req,
       event,
-      errors: {},
-      formData: getCreateEventFormDataFromEvent(event),
-      countries,
-      defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
-      message: getAdminPageMessage(req.query),
-      formAction: `/admin/events/${event._id}/edit`,
-      backHref: `/admin/events/${event._id}`,
-      mediaRemovePath: `/admin/events/${event._id}/media/remove`
-    });
+      formData,
+      message: getAdminPageMessage(req.query)
+    }));
   } catch (error) {
     return renderServerError(res, error, 'An error occurred while loading the admin event editor.');
   }
@@ -189,43 +221,28 @@ exports.updateEvent = async (req, res) => {
       formData.paymentQrImageUrl = '';
       formData.paymentQrImageKey = '';
     }
-    formData.actionType = event.status === 'published' || event.status === 'pending_review' ? 'publish' : 'draft';
+    const isDraftSubmitForReview = event.status === 'draft' && req.body.actionType === 'publish';
+    formData.actionType = isDraftSubmitForReview || event.status === 'published' || event.status === 'pending_review'
+      ? 'publish'
+      : 'draft';
 
     if (req.uploadError) {
-      return res.status(400).render('organizer/edit-event', {
-        title: `Admin Edit Event - ${event.title}`,
-        pageHeading: 'Admin Edit Event',
-        pageDescription: 'Update event details, media, schedule, rules, and waiver as an admin.',
-        user: event.organizerId || null,
+      return res.status(400).render('organizer/edit-event', buildAdminEditViewData({
+        req,
         event,
-        errors: { bannerImageUrl: req.uploadError },
         formData,
-        countries,
-        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
-        message: null,
-        formAction: `/admin/events/${event._id}/edit`,
-        backHref: `/admin/events/${event._id}`,
-        mediaRemovePath: `/admin/events/${event._id}/media/remove`
-      });
+        errors: { bannerImageUrl: req.uploadError }
+      }));
     }
 
     const validationErrors = validateCreateEventForm(formData);
     if (Object.keys(validationErrors).length) {
-      return res.status(400).render('organizer/edit-event', {
-        title: `Admin Edit Event - ${event.title}`,
-        pageHeading: 'Admin Edit Event',
-        pageDescription: 'Update event details, media, schedule, rules, and waiver as an admin.',
-        user: event.organizerId || null,
+      return res.status(400).render('organizer/edit-event', buildAdminEditViewData({
+        req,
         event,
-        errors: validationErrors,
         formData,
-        countries,
-        defaultWaiverTemplate: DEFAULT_WAIVER_TEMPLATE,
-        message: null,
-        formAction: `/admin/events/${event._id}/edit`,
-        backHref: `/admin/events/${event._id}`,
-        mediaRemovePath: `/admin/events/${event._id}/media/remove`
-      });
+        errors: validationErrors
+      }));
     }
 
     const bannerImageFile = req.files?.bannerImageFile?.[0] || null;
@@ -267,9 +284,17 @@ exports.updateEvent = async (req, res) => {
     }
 
     applyEventFormData(event, formData, actor || event.organizerId);
+    if (isDraftSubmitForReview) {
+      event.status = 'pending_review';
+      event.submittedForReviewAt = new Date();
+    }
     event.adminNotes = String(req.body.adminNotes || event.adminNotes || '').trim().slice(0, 1000);
     await event.save();
-    return res.redirect(getAdminEventRedirect(event._id, 'success', 'Event updated.'));
+    const returnContext = getAdminEditReturnContext(req, event._id);
+    const successMessage = isDraftSubmitForReview ? 'Event submitted for review.' : 'Event updated.';
+    return res.redirect(returnContext.returnTo
+      ? appendAdminEditMessage(returnContext.returnTo, 'success', successMessage)
+      : getAdminEventRedirect(event._id, 'success', successMessage));
   } catch (error) {
     if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
     return renderServerError(res, error, 'An error occurred while updating the admin event.');
@@ -522,6 +547,11 @@ exports.removeEventMedia = async (req, res) => {
       const key = uploadService.extractObjectKeyFromPublicUrl(event.posterImageUrl);
       if (key) keysToDelete.push(key);
       event.posterImageUrl = '';
+    } else if (kind === 'paymentQr' && event.paymentQrImageUrl) {
+      const key = event.paymentQrImageKey || uploadService.extractObjectKeyFromPublicUrl(event.paymentQrImageUrl);
+      if (key) keysToDelete.push(key);
+      event.paymentQrImageUrl = '';
+      event.paymentQrImageKey = '';
     } else if (kind === 'gallery') {
       const url = String(req.body.url || '').trim();
       const current = Array.isArray(event.galleryImageUrls) ? event.galleryImageUrls : [];

@@ -89,3 +89,11 @@ test('every mutating admin route has a rate limiter', () => {
   const unprotected = mutationLines.filter((line) => !knownLimiters.some((limiter) => line.includes(limiter)));
   assert.deepEqual(unprotected, [], `Found mutating routes without a rate limiter: ${unprotected.join('\n')}`);
 });
+
+test('multipart admin routes parse uploads before explicit csrf validation', () => {
+  const source = readAdminRoutesSource();
+  assert.match(source, /contentType\.startsWith\('multipart\/form-data'\)[\s\S]*return next\(\)/);
+  assert.match(source, /'\/events\/:id\/edit'[\s\S]*uploadEventBranding, requireCsrfProtection, adminController\.updateEvent/);
+  assert.match(source, /'\/blog\/posts\/:id\/assets-upload'[\s\S]*uploadBlogAssets, requireCsrfProtection, blogController\.uploadAdminBlogAssets/);
+  assert.match(source, /'\/blog\/posts\/:id\/autosave'[\s\S]*uploadBlogAssets, requireCsrfProtection, blogController\.autosaveBlogPostAdmin/);
+});

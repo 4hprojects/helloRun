@@ -8,12 +8,25 @@
 <body>
   <%- include('../layouts/nav') %>
 
-  <main class="create-event-page">
+  <main class="create-event-page<%= typeof isAdminEdit !== 'undefined' && isAdminEdit ? ' admin-edit-mode' : '' %>">
     <section class="create-event-shell">
       <header class="page-header">
+        <% if (typeof isAdminEdit !== 'undefined' && isAdminEdit) { %>
+          <div class="admin-edit-context">
+            <span class="status-badge status-badge-<%= event.status %>"><%= String(event.status || 'draft').replace(/_/g, ' ') %></span>
+            <span class="admin-edit-reference"><%= event.referenceCode || event.slug %></span>
+          </div>
+        <% } %>
         <h1><%= typeof pageHeading !== 'undefined' ? pageHeading : 'Edit Event' %></h1>
         <p><%= typeof pageDescription !== 'undefined' ? pageDescription : 'Update setup, preview changes, and submit drafts for review.' %></p>
       </header>
+
+      <% if (typeof isAdminEdit !== 'undefined' && isAdminEdit && event.status === 'published') { %>
+        <div class="status-note status-note-warning admin-live-edit-warning" role="note">
+          <i data-lucide="radio-tower" aria-hidden="true"></i>
+          <div><strong>You are editing a published event.</strong><p>Saving changes updates the live event and can affect active registrations, payment instructions, submission rules, and runner expectations.</p></div>
+        </div>
+      <% } %>
 
       <% if (message) { %>
         <div class="status-note status-note-<%= message.type %>" role="status">
@@ -26,11 +39,11 @@
       <% } %>
 
       <% if (Object.keys(errors || {}).length) { %>
-        <div class="form-errors" role="alert">
-          <strong>Please fix the highlighted fields before saving.</strong>
+        <div class="form-errors" role="alert" aria-labelledby="formErrorTitle">
+          <strong id="formErrorTitle">Please fix the highlighted fields before saving.</strong>
           <ul>
-            <% Object.values(errors || {}).forEach((errorText) => { %>
-              <li><%= errorText %></li>
+            <% Object.entries(errors || {}).forEach(([errorField, errorText]) => { %>
+              <li><a href="#<%= errorField %>" data-builder-error-link><%= errorText %></a></li>
             <% }) %>
           </ul>
         </div>
@@ -50,9 +63,11 @@
         </div>
       </div>
 
-      <form class="create-event-form" method="POST" action="<%= typeof formAction !== 'undefined' ? formAction : `/organizer/events/${event._id}/edit` %>" enctype="multipart/form-data" novalidate>
+      <form id="eventEditForm" class="create-event-form" method="POST" action="<%= typeof formAction !== 'undefined' ? formAction : `/organizer/events/${event._id}/edit` %>" enctype="multipart/form-data" novalidate>
         <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-        <aside class="wizard-progress" aria-label="Edit event progress">
+        <% if (typeof returnTo !== 'undefined' && returnTo) { %><input type="hidden" name="returnTo" value="<%= returnTo %>"><% } %>
+        <%- include('partials/event-builder-navigation') %>
+        <aside class="wizard-progress" aria-label="Legacy edit event progress" hidden aria-hidden="true">
           <div class="wizard-progress-heading">Event Builder</div>
           <ol>
             <li><a href="#event-type-step" data-step-link="event-type-step"><span>1</span> Event Type</a></li>
@@ -72,7 +87,7 @@
         </aside>
 
         <div class="wizard-main">
-        <nav class="wizard-pills-bar" aria-label="Event builder steps">
+        <nav class="wizard-pills-bar" aria-label="Legacy event builder steps" hidden aria-hidden="true">
           <ol class="wizard-pills-list">
             <li><a href="#event-type-step" class="wizard-pill" data-pill-step="event-type-step"><span class="pill-num">1</span><span class="pill-label">Event Type</span></a></li>
             <li><a href="#core-details-step" class="wizard-pill" data-pill-step="core-details-step"><span class="pill-num">2</span><span class="pill-label">Core Details</span></a></li>
@@ -90,7 +105,7 @@
           </ol>
         </nav>
 
-        <div class="wizard-mini-strip" id="wizardMiniStrip" role="navigation" aria-label="Event builder progress">
+        <div class="wizard-mini-strip" id="wizardMiniStrip" role="navigation" aria-label="Legacy event builder progress" hidden aria-hidden="true">
           <div class="wizard-mini-info">
             <span class="wizard-mini-step" id="wizardMiniStep">Step 1 of 13</span>
             <span class="wizard-mini-title" id="wizardMiniTitle">Event Type</span>
@@ -103,8 +118,14 @@
           </div>
         </div>
 
-        <div id="event-type-step" class="form-section form-section-event-type" tabindex="-1" data-wizard-step="event-type-step">
-          <div class="section-kicker">Step 1 of 13</div>
+        <header class="builder-group-heading" data-builder-group="basics" data-builder-group-heading="basics"><span>Group 1 of 5</span><h2>Basics</h2><p>Define the event, its public identity, and operating schedule.</p></header>
+        <header class="builder-group-heading" data-builder-group="participation" data-builder-group-heading="participation"><span>Group 2 of 5</span><h2>Participation</h2><p>Configure where runners participate and which categories they can enter.</p></header>
+        <header class="builder-group-heading" data-builder-group="commerce" data-builder-group-heading="commerce"><span>Group 3 of 5</span><h2>Commerce</h2><p>Set rewards, registration pricing, and payment instructions.</p></header>
+        <header class="builder-group-heading" data-builder-group="public-experience" data-builder-group-heading="public-experience"><span>Group 4 of 5</span><h2>Public Experience</h2><p>Prepare public content, branding, media, badges, and participant terms.</p></header>
+        <header class="builder-group-heading" data-builder-group="review" data-builder-group-heading="review"><span>Group 5 of 5</span><h2>Review</h2><p>Check readiness, preview the event, and save or submit changes.</p></header>
+
+        <div id="event-type-step" class="form-section form-section-event-type" tabindex="-1" data-wizard-step="event-type-step" data-builder-group="basics">
+          <div class="section-kicker">Basics</div>
           <div class="section-title">Event Type</div>
           <p class="section-helper">Choose the participation format. Later sections adjust based on this choice.</p>
           <div class="form-grid">
@@ -135,8 +156,8 @@
         </div>
 
         <!-- CORE DETAILS SECTION (same as create) -->
-        <div id="core-details-step" class="form-section form-section-core" tabindex="-1" data-wizard-step="core-details-step">
-          <div class="section-kicker">Step 2 of 13</div>
+        <div id="core-details-step" class="form-section form-section-core" tabindex="-1" data-wizard-step="core-details-step" data-builder-group="basics">
+          <div class="section-kicker">Basics</div>
           <div class="section-title">Core Details</div>
           <div class="form-grid">
             <div class="form-group">
@@ -161,7 +182,7 @@
         </div>
 
         <% if (typeof formAction !== 'undefined' && String(formAction).startsWith('/admin/events/')) { %>
-          <div id="homepage-promotion-step" class="form-section" tabindex="-1">
+          <div id="homepage-promotion-step" class="form-section form-section-admin-promotion" tabindex="-1" data-builder-group="basics">
             <div class="section-kicker">Admin promotion</div>
             <div class="section-title">Homepage Featured Placement</div>
             <p class="section-helper">Admin-only controls for prioritizing this event in the public landing-page carousel.</p>
@@ -192,8 +213,8 @@
         <% } %>
 
         <!-- PRICING PER DISTANCE SECTION -->
-        <div id="pricing-step" class="form-section form-section-fees" tabindex="-1" data-wizard-step="pricing-step">
-          <div class="section-kicker">Step 7 of 13</div>
+        <div id="pricing-step" class="form-section form-section-fees" tabindex="-1" data-wizard-step="pricing-step" data-builder-group="commerce">
+          <div class="section-kicker">Commerce</div>
           <div class="section-title">Pricing Setup</div>
           <p class="section-helper">Choose Free or Paid first, then set your pricing logic here. Payment account details and QR setup are managed in Step 8.</p>
           <% if (user && user.organizerStatus !== 'approved') { %>
@@ -463,8 +484,8 @@
         </div>
 
         <!-- PAYMENT SETUP SECTION -->
-        <div id="payment-setup-step" class="form-section form-section-payment" tabindex="-1" data-wizard-step="payment-setup-step">
-          <div class="section-kicker">Step 8 of 13</div>
+        <div id="payment-setup-step" class="form-section form-section-payment" tabindex="-1" data-wizard-step="payment-setup-step" data-builder-group="commerce">
+          <div class="section-kicker">Commerce</div>
           <div class="section-title">Payment Setup</div>
           <p class="section-helper">Define how runners will pay. Required only for paid events.</p>
           <p class="payment-free-note field-hint" style="display:none;">&#10003; This event is free &mdash; payment setup is not required.</p>
@@ -512,8 +533,8 @@
         </div>
 
         <!-- REWARDS AND INCLUSIONS SECTION -->
-        <div id="rewards-step" class="form-section form-section-rewards" tabindex="-1" data-wizard-step="rewards-step">
-          <div class="section-kicker">Step 6 of 13</div>
+        <div id="rewards-step" class="form-section form-section-rewards" tabindex="-1" data-wizard-step="rewards-step" data-builder-group="commerce">
+          <div class="section-kicker">Commerce</div>
           <div class="section-title">Rewards and Inclusions</div>
           <p class="section-helper">Define what runners receive. These inclusions apply across all distances or categories. Per-category package pricing will be available in a later update.</p>
           <div class="form-grid">
@@ -595,8 +616,8 @@
         </div>
 
         <!-- EVENT DETAILS SECTION -->
-        <div id="event-details-step" class="form-section form-section-details" tabindex="-1" data-wizard-step="event-details-step">
-          <div class="section-kicker">Step 9 of 13</div>
+        <div id="event-details-step" class="form-section form-section-details" tabindex="-1" data-wizard-step="event-details-step" data-builder-group="public-experience">
+          <div class="section-kicker">Public Experience</div>
           <div class="section-title">Event Details</div>
           <p class="section-helper">Use this section for full event rules, FAQs, pricing explanation, submission rules, and runner guidance.</p>
           <div class="waiver-panels">
@@ -621,8 +642,8 @@
         </div>
 
         <!-- BADGES STEP -->
-        <div id="badges-step" class="form-section form-section-badges" tabindex="-1" data-wizard-step="badges-step">
-          <div class="section-kicker">Step 10 of 13</div>
+        <div id="badges-step" class="form-section form-section-badges" tabindex="-1" data-wizard-step="badges-step" data-builder-group="public-experience">
+          <div class="section-kicker">Public Experience</div>
           <div class="section-title">Badges</div>
           <p class="section-helper">These badges are automatically awarded to runners based on your event configuration. Rename them, upload custom artwork, or hide them from the public event page.</p>
           <%
@@ -636,7 +657,16 @@
             const getBadgeIconWiz = (type) => BADGE_ICONS_WIZ[type] || 'award';
             const wizardBadges = locals.eventBadges || [];
           %>
-          <% if (wizardBadges.length) { %>
+          <% if (typeof isAdminEdit !== 'undefined' && isAdminEdit) { %>
+            <div class="admin-badge-guidance" role="note">
+              <i data-lucide="shield-check" aria-hidden="true"></i>
+              <div>
+                <strong>Badge configuration is managed separately.</strong>
+                <p>This event's badge awards remain unchanged when this form is saved. Use Admin Badges for platform oversight, or the organizer badge manager for event artwork and display names.</p>
+                <a href="/admin/badges" class="btn btn-outline">Open Admin Badges</a>
+              </div>
+            </div>
+          <% } else if (wizardBadges.length) { %>
             <div class="wizard-badge-list">
               <% wizardBadges.forEach((badge) => { %>
                 <article class="wizard-badge-card">
@@ -692,8 +722,8 @@
         </div>
 
         <!-- WAIVER SECTION (same as create) -->
-        <div id="waiver-step" class="form-section form-section-waiver" tabindex="-1" data-wizard-step="waiver-step">
-          <div class="section-kicker">Step 12 of 13</div>
+        <div id="waiver-step" class="form-section form-section-waiver" tabindex="-1" data-wizard-step="waiver-step" data-builder-group="public-experience">
+          <div class="section-kicker">Public Experience</div>
           <div class="section-title">Waiver (Required for publishing)</div>
           <div class="waiver-panels">
             <div class="waiver-panel <%= errors.waiverTemplate ? 'has-error' : '' %>">
@@ -728,8 +758,8 @@
         </div>
 
         <!-- SCHEDULE SECTION (same as create) -->
-        <div id="schedule-step" class="form-section form-section-schedule" tabindex="-1" data-wizard-step="schedule-step">
-          <div class="section-kicker">Step 3 of 13</div>
+        <div id="schedule-step" class="form-section form-section-schedule" tabindex="-1" data-wizard-step="schedule-step" data-builder-group="basics">
+          <div class="section-kicker">Basics</div>
           <div class="section-title">Schedule</div>
           <div class="form-grid">
             <div class="form-group form-group-full">
@@ -774,9 +804,9 @@
         </div>
 
         <!-- LOCATION SECTION (conditional) -->
-        <div id="location-virtual-step" class="wizard-step-anchor" aria-hidden="true"></div>
-        <div class="form-section form-section-location location-section" tabindex="-1" data-wizard-step="location-virtual-step" style="display: none;">
-          <div class="section-kicker">Step 4 of 13</div>
+        <div id="location-virtual-step" class="wizard-step-anchor" aria-hidden="true" data-builder-group="participation"></div>
+        <div class="form-section form-section-location location-section" tabindex="-1" data-wizard-step="location-virtual-step" data-builder-group="participation" style="display: none;">
+          <div class="section-kicker">Participation</div>
           <div class="section-title">Location (required for on-site/hybrid publishing)</div>
           <div class="form-grid">
             <div class="form-group">
@@ -820,8 +850,8 @@
         </div>
 
         <!-- VIRTUAL RULES SECTION (conditional) -->
-        <div class="form-section form-section-virtual virtual-section" tabindex="-1" data-wizard-step="location-virtual-step" style="display: none;">
-          <div class="section-kicker">Step 4 of 13</div>
+        <div class="form-section form-section-virtual virtual-section" tabindex="-1" data-wizard-step="location-virtual-step" data-builder-group="participation" style="display: none;">
+          <div class="section-kicker">Participation</div>
           <div class="section-title">Virtual Rules (required for virtual/hybrid publishing)</div>
           <div class="form-grid">
             <div class="form-group form-group-full <%= errors.virtualCompletionMode ? 'has-error' : '' %>">
@@ -983,8 +1013,8 @@
           </div>
         </div>
 
-        <div id="race-categories-step" class="form-section form-section-race-categories" tabindex="-1" data-wizard-step="race-categories-step">
-          <div class="section-kicker">Step 5 of 13</div>
+        <div id="race-categories-step" class="form-section form-section-race-categories" tabindex="-1" data-wizard-step="race-categories-step" data-builder-group="participation">
+          <div class="section-kicker">Participation</div>
           <div class="section-title">Race Categories</div>
           <p class="section-helper" id="raceCategoryHelper">Choose the distances runners can join, then adjust the display name and optional limits only when needed.</p>
           <div class="form-grid">
@@ -1041,8 +1071,8 @@
         </div>
 
         <!-- BRANDING & MEDIA SECTION (adapted for edit) -->
-        <div id="media-step" class="form-section form-section-media" tabindex="-1" data-wizard-step="media-step">
-          <div class="section-kicker">Step 11 of 13</div>
+        <div id="media-step" class="form-section form-section-media" tabindex="-1" data-wizard-step="media-step" data-builder-group="public-experience">
+          <div class="section-kicker">Public Experience</div>
           <div class="section-title">Branding & Media</div>
 
           <!-- Logo -->
@@ -1077,6 +1107,10 @@
             <label for="logoUrl" style="margin-top:0.75rem; display:block;">Logo URL (optional)</label>
             <input id="logoUrl" name="logoUrl" type="url" value="<%= formData.logoUrl %>" placeholder="https://...">
             <small class="field-hint">If both URL and file are provided, uploaded file will be used.</small>
+            <div class="event-badge-art-preview" style="display:flex;align-items:center;gap:0.75rem;margin-top:0.9rem;">
+              <img id="eventBadgeArtPreviewImg" src="<%= formData.badgeImageUrl || formData.logoUrl || '/images/helloRun-icon.webp' %>" alt="Circular event badge preview" style="width:64px;height:64px;border-radius:50%;object-fit:cover;background:#f3f4f6;">
+              <small class="field-hint">HelloRun center-crops uploaded logos into a 512×512 circular WebP. Replacing or removing this logo updates every event badge and overwrites custom Badge Manager artwork.</small>
+            </div>
           </div>
 
           <!-- Banner -->
@@ -1180,10 +1214,10 @@
           </div>
         </div>
 
-        <div id="review-step" class="form-section form-section-review" tabindex="-1" data-wizard-step="review-step">
-          <div class="section-kicker">Step 13 of 13</div>
+        <div id="review-step" class="form-section form-section-review" tabindex="-1" data-wizard-step="review-step" data-builder-group="review">
+          <div class="section-kicker">Review</div>
           <div class="section-title">Review Changes</div>
-          <p class="section-helper">Preview the event page, save your updates, or submit this draft for admin review.</p>
+          <p class="section-helper"><%= typeof isAdminEdit !== 'undefined' && isAdminEdit ? 'Review the resulting public configuration, save updates, or move a complete draft into the review queue.' : 'Preview the event page, save your updates, or submit this draft for admin review.' %></p>
           <div id="submitReadinessChecklist" class="submit-readiness-checklist" aria-live="polite">
             <% const initialReadiness = typeof readinessChecklist !== 'undefined' ? readinessChecklist : { ready: false, missingCount: 0, items: [] }; %>
             <p class="<%= initialReadiness.ready ? 'readiness-all-clear' : 'readiness-incomplete' %>">
@@ -1213,10 +1247,18 @@
               <p class="field-hint"><strong>Submit for Review</strong> saves changes and validates required publishing fields before moving the draft to admin review.</p>
             <% } %>
           </div>
+          <% if (typeof isAdminEdit !== 'undefined' && isAdminEdit) { %>
+            <div class="form-group admin-edit-notes-field">
+              <label for="adminNotes">Admin notes</label>
+              <textarea id="adminNotes" name="adminNotes" rows="3" maxlength="1000" placeholder="Internal context for this event change"><%= event.adminNotes || '' %></textarea>
+              <small class="field-hint">Internal only. These notes are not shown to organizers or runners.</small>
+            </div>
+          <% } %>
           <div class="actions">
             <div class="action-btn-group">
-              <a href="<%= typeof backHref !== 'undefined' ? backHref : `/organizer/events/${event._id}` %>" class="btn btn-secondary btn-adaptive" aria-label="Back to Event" data-tooltip="Back to Event">
-                <i data-lucide="arrow-left"></i><span class="btn-label">Back to Event</span>
+              <% if (typeof isAdminEdit !== 'undefined' && isAdminEdit) { %><span class="admin-editor-save-state" id="adminEditorSaveState" role="status" aria-live="polite">No unsaved changes</span><% } %>
+              <a href="<%= typeof backHref !== 'undefined' ? backHref : `/organizer/events/${event._id}` %>" class="btn btn-secondary btn-adaptive" aria-label="<%= typeof returnTo !== 'undefined' && returnTo ? 'Return to Events' : 'Back to Event' %>" data-tooltip="<%= typeof returnTo !== 'undefined' && returnTo ? 'Return to Events' : 'Back to Event' %>">
+                <i data-lucide="arrow-left"></i><span class="btn-label"><%= typeof returnTo !== 'undefined' && returnTo ? 'Return to Events' : 'Back to Event' %></span>
               </a>
               <button type="button" class="btn btn-outline btn-adaptive" id="previewBtn" aria-label="Preview" data-tooltip="Preview">
                 <i data-lucide="eye"></i><span class="btn-label">Preview</span>
@@ -1235,7 +1277,7 @@
           </div>
         </div>
 
-        <div class="wizard-nav-overlay" id="wizardNavOverlay" aria-hidden="true">
+        <div class="wizard-nav-overlay" id="wizardNavOverlay" aria-hidden="true" hidden inert>
           <button type="button" class="wizard-nav-overlay-backdrop" id="wizardNavOverlayBackdrop" aria-label="Close steps panel"></button>
           <div class="wizard-nav-overlay-panel" role="dialog" aria-label="Event builder steps">
             <div class="wizard-nav-overlay-header">
@@ -1283,7 +1325,7 @@
       setWizardNavOffset();
       window.addEventListener('resize', setWizardNavOffset);
 
-      const WIZARD_TOTAL_STEPS = 12;
+      const WIZARD_TOTAL_STEPS = 13;
       const wizardSections = Array.from(document.querySelectorAll('[data-wizard-step]'));
       const progressLinks = Array.from(document.querySelectorAll('[data-step-link]'));
       const pillLinks = Array.from(document.querySelectorAll('[data-pill-step]'));
@@ -1301,9 +1343,10 @@
         'pricing-step': { num: 7, label: 'Pricing' },
         'payment-setup-step': { num: 8, label: 'Payment' },
         'event-details-step': { num: 9, label: 'Event Details' },
-        'media-step': { num: 10, label: 'Media' },
-        'waiver-step': { num: 11, label: 'Waiver' },
-        'review-step': { num: 12, label: 'Review' }
+        'badges-step': { num: 10, label: 'Badges' },
+        'media-step': { num: 11, label: 'Media' },
+        'waiver-step': { num: 12, label: 'Waiver' },
+        'review-step': { num: 13, label: 'Review' }
       };
 
       function setActiveWizardStep(stepId) {
@@ -1745,9 +1788,24 @@
       const actionOkBtn = document.getElementById('actionConfirmOkBtn');
       let actionConfirmResolve = null;
       let confirmedSubmitButton = null;
+      let actionDialogTrigger = null;
+
+      function setActionDialogBackgroundInert(inert) {
+        const shell = actionOverlay?.closest('.create-event-shell');
+        if (!shell) return;
+        Array.from(shell.children).forEach((node) => {
+          if (node !== actionOverlay) node.inert = inert;
+        });
+      }
+
+      function getActionDialogFocusable() {
+        if (!actionOverlay) return [];
+        return Array.from(actionOverlay.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+      }
 
       function openActionDialog({ icon, variant, title, desc, cancelText, okText, okClass }) {
         if (!actionOverlay) return Promise.resolve(window.confirm(title || 'Continue?'));
+        actionDialogTrigger = document.activeElement;
         if (actionIconWrap) {
           actionIconWrap.innerHTML = '<i data-lucide="' + (icon || 'help-circle') + '"></i>';
           actionIconWrap.dataset.variant = variant || '';
@@ -1760,17 +1818,21 @@
           actionOkBtn.className = 'draft-confirm-btn ' + (okClass || 'draft-confirm-btn--primary');
         }
         actionOverlay.hidden = false;
+        setActionDialogBackgroundInert(true);
         if (window.lucide) lucide.createIcons();
-        actionOverlay.querySelector('.draft-confirm-dialog')?.focus();
+        (getActionDialogFocusable()[0] || actionOverlay.querySelector('.draft-confirm-dialog'))?.focus();
         return new Promise((resolve) => { actionConfirmResolve = resolve; });
       }
 
       function closeActionDialog(result) {
         if (actionOverlay) actionOverlay.hidden = true;
+        setActionDialogBackgroundInert(false);
         if (actionConfirmResolve) {
           actionConfirmResolve(result);
           actionConfirmResolve = null;
         }
+        if (actionDialogTrigger && typeof actionDialogTrigger.focus === 'function') actionDialogTrigger.focus();
+        actionDialogTrigger = null;
       }
 
       if (actionCancelBtn) actionCancelBtn.addEventListener('click', () => closeActionDialog(false));
@@ -1778,6 +1840,20 @@
       if (actionOverlay) {
         actionOverlay.addEventListener('click', (event) => {
           if (event.target === actionOverlay) closeActionDialog(false);
+        });
+        actionOverlay.addEventListener('keydown', (event) => {
+          if (event.key !== 'Tab') return;
+          const items = getActionDialogFocusable();
+          if (!items.length) return;
+          const first = items[0];
+          const last = items[items.length - 1];
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
         });
       }
       document.addEventListener('keydown', (event) => {
@@ -2079,7 +2155,27 @@
       // ---------- REAL-TIME VALIDATION ----------
       const form = document.querySelector('.create-event-form');
       const inlineActionToast = document.getElementById('inlineActionToast');
+      const isAdminEditMode = <%= typeof isAdminEdit !== 'undefined' && isAdminEdit ? 'true' : 'false' %>;
+      const adminEditorSaveState = document.getElementById('adminEditorSaveState');
+      let adminEditorDirty = false;
+      let allowAdminEditorNavigation = false;
       let inlineActionToastTimer = null;
+
+      function markAdminEditorDirty() {
+        if (!isAdminEditMode || adminEditorDirty) return;
+        adminEditorDirty = true;
+        if (adminEditorSaveState) adminEditorSaveState.textContent = 'Unsaved changes';
+      }
+
+      if (form && isAdminEditMode) {
+        form.addEventListener('input', markAdminEditorDirty);
+        form.addEventListener('change', markAdminEditorDirty);
+        window.addEventListener('beforeunload', (event) => {
+          if (!adminEditorDirty || allowAdminEditorNavigation) return;
+          event.preventDefault();
+          event.returnValue = '';
+        });
+      }
 
       function showInlineActionToast(message, variant = 'success') {
         if (!inlineActionToast || !message) return;
@@ -2356,6 +2452,8 @@
           return;
         }
 
+        allowAdminEditorNavigation = true;
+
         // Disable all submit buttons
         document.querySelectorAll('button[type="submit"]').forEach(btn => {
           btn.disabled = true;
@@ -2437,6 +2535,11 @@
 
       // Setup upload areas (note: remove buttons for new uploads)
       setupUploadArea('logoUploadArea', 'logoPreviewContainer', 'logoPreviewImg', 'logoFile', 'logoUrl', '.remove-upload[data-for="logo"]');
+      document.getElementById('logoFile')?.addEventListener('change', function() {
+        const file = this.files?.[0];
+        const badgePreview = document.getElementById('eventBadgeArtPreviewImg');
+        if (file && badgePreview) badgePreview.src = URL.createObjectURL(file);
+      });
       setupUploadArea('bannerUploadArea', 'bannerPreviewContainer', 'bannerPreviewImg', 'bannerFile', 'bannerImageUrl', '.remove-upload[data-for="banner"]');
       setupUploadArea('posterUploadArea', 'posterPreviewContainer', 'posterPreviewImg', 'posterFile', 'posterImageUrl', '.remove-upload[data-for="poster"]');
       setupUploadArea('qrUploadArea', 'qrPreviewContainer', 'qrPreviewImg', 'paymentQrImageFile', null, '.remove-upload[data-for="qr"]');
@@ -2854,6 +2957,7 @@
 
           waiverQuill.on('text-change', () => {
             waiverTemplateInput.value = waiverQuill.root.innerHTML || '';
+            markAdminEditorDirty();
             renderWaiverPreview();
           });
 
@@ -2955,6 +3059,7 @@
           eventDetailsInput.value = initialEventDetails || '';
           eventDetailsQuill.on('text-change', () => {
             eventDetailsInput.value = eventDetailsQuill.root.innerHTML || '';
+            markAdminEditorDirty();
             renderEventDetailsPreview();
           });
           eventDetailsQuill.blur();
@@ -3025,5 +3130,6 @@
       });
     })();
   </script>
+  <script src="/js/event-builder-groups.js"></script>
 </body>
 </html>

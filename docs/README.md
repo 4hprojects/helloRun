@@ -47,6 +47,7 @@ Detailed specs for implemented features.
 | `hellorun_landing_event_carousel_plan.md` | Home page event carousel design |
 | `achievement_badges.md` | Badge system implementation handoff note (see full spec above) |
 | `event_qr_promotion_links.md` | QR code strategy for event discovery |
+| `hellorun_homepage_hero_leaderboard.md` | Live, privacy-safe homepage hero leaderboard contract |
 
 ---
 
@@ -97,6 +98,19 @@ Design system, component patterns, and frontend conventions.
 | `sitetheme.md` | Design system: color palette, typography |
 | `floating-back-to-top-pattern.md` | Scroll-to-top UX pattern |
 | `uploads-webp.md` | WebP conversion strategy for image uploads |
+
+---
+
+### `ux-analysis/` — Current UI/UX Audits
+Evidence-based findings, priorities, implementation tasks, and acceptance criteria for active interface refinement.
+
+| File | Topic |
+|------|-------|
+| `admin-event-editor-desktop-deep-dive.md` | Canonical full-desktop Event Builder audit and prioritized backlog |
+| `admin-event-editor-ui-ux-analysis.md` | Admin Event Editor implementation history and responsive follow-ups |
+| `admin-event-detail-ui-ux-analysis.md` | Admin Event Detail workflow and desktop analysis |
+| `event-details-mobile-ui-ux-analysis.md` | Public event details mobile audit |
+| `events-ui-ux-analysis.md` | Public event listing and discovery audit |
 
 ---
 

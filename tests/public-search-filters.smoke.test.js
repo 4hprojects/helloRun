@@ -147,6 +147,9 @@ test('homepage renders featured event carousel cards for eligible public events'
   assert.match(html, /Virtual Sunrise 5K/i);
   assert.match(html, new RegExp(`/events/${seed.upcomingVirtualSlug}`));
   assert.match(html, /\/images\/helloRun-icon\.webp/i);
+  assert.doesNotMatch(html, /hero-result-card/i);
+  assert.doesNotMatch(html, /Harbor Lights Run/i);
+  assert.doesNotMatch(html, /June Active Quest 5K/i);
   assert.doesNotMatch(html, /Scheduled Posting Hidden Run/i);
   assert.doesNotMatch(html, /Submission service test event/i);
 });
