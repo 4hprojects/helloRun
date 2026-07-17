@@ -43,19 +43,19 @@
     </button>
     
     <div class="nav-links" id="nav-links">
-      <a href="/" class="<%= navClass('/') %>" aria-label="Home" title="Home" <% if (ariaCurrent('/')) { %>aria-current="page"<% } %>>
+      <a href="/" class="<%= navClass('/', 'nav-primary-link') %>" aria-label="Home" title="Home" <% if (ariaCurrent('/')) { %>aria-current="page"<% } %>>
         <i data-lucide="home"></i>
         <span class="nav-tooltip">Home</span>
       </a>
-      <a href="/events" class="<%= navClass('/events') %>" aria-label="Events" title="Events" <% if (ariaCurrent('/events')) { %>aria-current="page"<% } %>>
+      <a href="/events" class="<%= navClass('/events', 'nav-primary-link') %>" aria-label="Events" title="Events" <% if (ariaCurrent('/events')) { %>aria-current="page"<% } %>>
         <i data-lucide="calendar-days"></i>
         <span class="nav-tooltip">Events</span>
       </a>
-      <a href="/blog" class="<%= navClass('/blog') %>" aria-label="Blog" title="Blog" <% if (ariaCurrent('/blog')) { %>aria-current="page"<% } %>>
+      <a href="/blog" class="<%= navClass('/blog', 'nav-primary-link') %>" aria-label="Blog" title="Blog" <% if (ariaCurrent('/blog')) { %>aria-current="page"<% } %>>
         <i data-lucide="newspaper"></i>
         <span class="nav-tooltip">Blog</span>
       </a>
-      <a href="/leaderboard" class="<%= navClass('/leaderboard') %>" aria-label="Leaderboard" title="Leaderboard" <% if (ariaCurrent('/leaderboard')) { %>aria-current="page"<% } %>>
+      <a href="/leaderboard" class="<%= navClass('/leaderboard', 'nav-primary-link') %>" aria-label="Leaderboard" title="Leaderboard" <% if (ariaCurrent('/leaderboard')) { %>aria-current="page"<% } %>>
         <i data-lucide="trophy"></i>
         <span class="nav-tooltip">Leaderboard</span>
       </a>

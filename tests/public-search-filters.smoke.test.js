@@ -42,12 +42,12 @@ test.after(async () => {
 
 test('events page applies combined filters and status filter', async () => {
   const combined = await fetch(
-    `${BASE_URL}/events?eventType=virtual&distance=5K&status=upcoming&q=Sunrise`
+    `${BASE_URL}/events?eventType=virtual&distance=5K&status=open&q=Sunrise`
   );
   assert.equal(combined.status, 200);
   const combinedHtml = await combined.text();
   assert.match(combinedHtml, /Virtual Sunrise 5K/i);
-  assert.match(combinedHtml, /Open Registration/i);
+  assert.match(combinedHtml, /Open now/i);
   assert.match(combinedHtml, /Registration closes/i);
   assert.doesNotMatch(combinedHtml, /Onsite Trail 10K/i);
   assert.doesNotMatch(combinedHtml, /Old City Run/i);
@@ -59,8 +59,18 @@ test('events page applies combined filters and status filter', async () => {
   assert.match(closedHtml, /Old City Run/i);
   assert.doesNotMatch(closedHtml, /Virtual Sunrise 5K/i);
   assert.match(closedHtml, /active filter/i);
-  assert.match(closedHtml, /Closed \/ Past/i);
-  assert.match(closedHtml, /Past Event/i);
+  assert.match(closedHtml, /<strong>Status:<\/strong>\s*Closed/i);
+  assert.match(closedHtml, /View recap/i);
+});
+
+test('opens-later availability is based on registration opening, not event start', async () => {
+  const response = await fetch(`${BASE_URL}/events?status=upcoming&q=Registration%20Later`);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Registration Later 5K/i);
+  assert.match(html, /Opens later/i);
+  assert.match(html, /Registration opens/i);
+  assert.doesNotMatch(html, /Virtual Sunrise 5K/i);
 });
 
 test('events page renders decision context, date state, and accessible saved-event feedback', async () => {
@@ -159,10 +169,11 @@ test('event detail page explains accumulated multi-distance goals by category', 
   assert.equal(response.status, 200);
   const html = await response.text();
 
-  assert.match(html, /Your category sets your finish target/i);
+  assert.match(html, /Pick a goal that fits your month/i);
+  assert.match(html, /class="event-challenge-goal-grid"/i);
   assert.match(html, /25K Quest[\s\S]*25 km/i);
   assert.match(html, /200K Quest[\s\S]*200 km/i);
-  assert.match(html, /Only approved submissions count toward your finish target/i);
+  assert.match(html, /Approved activities accumulate until you reach that category’s target/i);
   assert.doesNotMatch(html, /<strong>\s*Selected category distance\s*<\/strong>/i);
   assert.doesNotMatch(html, /completion is measured against the goal above/i);
   assert.doesNotMatch(html, /<h2>Complete 200 km<\/h2>/i);
@@ -189,17 +200,16 @@ test('events page search matches organiser name and rendered country name', asyn
   );
   assert.match(organiserHtml, /active filter/i);
   assert.match(organiserHtml, /<title>Results for &#34;Public Organizer&#34; Events - HelloRun<\/title>/i);
-  assert.match(organiserHtml, /<h1>Results for &#34;Public Organizer&#34; Events<\/h1>/i);
-  assert.match(organiserHtml, /[0-9,]+ events match results for &#34;Public Organizer&#34;/i);
+  assert.match(organiserHtml, /<h1[^>]*>Results for &#34;Public Organizer&#34; Events<\/h1>/i);
+  assert.match(organiserHtml, /<h2 id="event-results"[^>]*>[0-9,]+ events?<\/h2>/i);
 
   const countrySearch = await fetch(`${BASE_URL}/events?q=Philippines&eventType=onsite&distance=10K&status=open`);
   assert.equal(countrySearch.status, 200);
   const countryHtml = await countrySearch.text();
   assert.match(countryHtml, /Onsite Trail 10K/i);
   assert.match(countryHtml, /<strong>Search:<\/strong>\s*Philippines/i);
-  assert.match(countryHtml, /<meta name="description" content="Browse open on-site 10k results for &#34;Philippines&#34; on HelloRun and find your next race or virtual challenge\.">/i);
-  assert.match(countryHtml, /<h1>Open On-site 10K Results for &#34;Philippines&#34; Events<\/h1>/i);
-  assert.match(countryHtml, /[0-9,]+ events? match(?:es)? open on-site 10k results for &#34;Philippines&#34;/i);
+  assert.match(countryHtml, /<meta name="description" content="Browse open now on-site 10k results for &#34;Philippines&#34; on HelloRun and find your next race or virtual challenge\.">/i);
+  assert.match(countryHtml, /<h1[^>]*>Open now On-site 10K Results for &#34;Philippines&#34; Events<\/h1>/i);
 });
 
 test('closed events are sorted with the most recently closed items first', async () => {
@@ -211,39 +221,39 @@ test('closed events are sorted with the most recently closed items first', async
   assert.notEqual(recentIndex, -1);
   assert.notEqual(oldIndex, -1);
   assert.ok(recentIndex < oldIndex, 'recently closed event should appear before older closed event');
-  assert.match(html, /Registration Closed|Past Event/i);
+  assert.match(html, /Closed/i);
 });
 
 test('events pagination keeps active filters in page links', async () => {
   const response = await fetch(
-    `${BASE_URL}/events?eventType=virtual&distance=5K&status=upcoming&q=Sunrise&page=2`
+    `${BASE_URL}/events?eventType=virtual&distance=5K&status=open&q=Sunrise&sort=start-date&page=2`
   );
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Page 2 of/i);
+  assert.match(html, /Showing\s*<strong>10–12<\/strong>\s*of\s*<strong>12<\/strong>/i);
   assert.match(html, /<strong>Search:<\/strong>\s*Sunrise/i);
   assert.match(html, /<strong>Mode:<\/strong>\s*Virtual/i);
   assert.match(html, /<strong>Distance:<\/strong>\s*5K/i);
-  assert.match(html, /<strong>Status:<\/strong>\s*Upcoming/i);
+  assert.match(html, /<strong>Status:<\/strong>\s*Open now/i);
   assert.match(
     html,
-    /href="\/events\?eventType=virtual&amp;distance=5K&amp;status=upcoming#event-results"[^>]*>\s*<span><strong>Search:<\/strong>\s*Sunrise<\/span>/i
+    /href="\/events\?eventType=virtual&amp;distance=5K&amp;status=open&amp;sort=start-date#event-results"[^>]*>\s*<span><strong>Search:<\/strong>\s*Sunrise<\/span>/i
   );
   assert.match(
     html,
-    /href="\/events\?q=Sunrise&amp;eventType=virtual&amp;distance=5K&amp;status=upcoming#event-results"[^>]*class="pagination-prev/i
+    /href="\/events\?q=Sunrise&amp;eventType=virtual&amp;distance=5K&amp;status=open&amp;sort=start-date#event-results"[^>]*class="pagination-link pagination-prev/i
   );
   assert.match(
     html,
-    /class="events-page-number active"[^>]*aria-current=/i
+    /class="pagination-link events-page-number active"[^>]*aria-current=/i
   );
   assert.match(
     html,
-    /\/events\?q=Sunrise&amp;eventType=virtual&amp;distance=5K&amp;status=upcoming&amp;page=2/i
+    /\/events\?q=Sunrise&amp;eventType=virtual&amp;distance=5K&amp;status=open&amp;sort=start-date&amp;page=2/i
   );
   assert.match(
     html,
-    /href="\/events\?q=Sunrise&amp;eventType=virtual&amp;distance=5K#event-results"[^>]*>\s*<span><strong>Status:<\/strong>\s*Upcoming<\/span>/i
+    /href="\/events\?q=Sunrise&amp;eventType=virtual&amp;distance=5K&amp;sort=start-date#event-results"[^>]*>\s*<span><strong>Status:<\/strong>\s*Open now<\/span>/i
   );
   assert.doesNotMatch(
     html,
@@ -260,15 +270,29 @@ test('blog page applies search and category filters', async () => {
   assert.match(html, /Clear filters/i);
 });
 
+test('blog page preserves community author and sort filters without canonical sort duplication', async () => {
+  const response = await fetch(`${BASE_URL}/blog?author=${seed.blogAuthorId}&sort=popular`);
+  assert.equal(response.status, 200);
+  const html = await response.text();
+  assert.match(html, /Nutrition for New Runners/i);
+  assert.match(html, /Trail Training Basics/i);
+  assert.match(html, /<strong>Writer:<\/strong>\s*Blog Author/i);
+  assert.match(html, /value="popular"[^>]*selected/i);
+  assert.doesNotMatch(html, /<link[^>]+rel="canonical"[^>]+sort=popular/i);
+  assert.doesNotMatch(html, /q=&amp;|category=&amp;|author=&amp;/i);
+});
+
 test('leaderboard discovery shows filtered event cards and clear action', async () => {
   const response = await fetch(`${BASE_URL}/leaderboard?q=Sunrise&distance=5K&mode=virtual`);
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Find Event Leaderboards/i);
+  assert.match(html, /Find your leaderboard/i);
   assert.match(html, /Virtual Sunrise 5K/i);
   assert.match(html, /\/events\/virtual-sunrise-[^"]+\/leaderboard/i);
   assert.match(html, /active filter/i);
-  assert.match(html, /Clear filters/i);
+  assert.match(html, /Clear all/i);
+  assert.match(html, /<label for="leaderboard-sort">Sort by<\/label>/i);
+  assert.match(html, /<details class="leaderboard-filter-panel" open>/i);
   assert.doesNotMatch(html, /<th>Runner<\/th>[\s\S]*<th>Submitted<\/th>/i);
 });
 
@@ -333,6 +357,29 @@ async function seedPublicFilterFixture() {
     city: 'Manila',
     country: 'PH',
     proofTypesAllowed: ['gps', 'photo', 'manual'],
+    waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
+    waiverVersion: 1
+  });
+
+  const registrationLaterEvent = await Event.create({
+    isTestData: false,
+    organizerId: organizer._id,
+    slug: `registration-later-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 80),
+    referenceCode: `PL-${String(stamp).replace(/\D/g, '').slice(-6)}${Math.floor(Math.random() * 90 + 10)}`,
+    title: 'Registration Later 5K',
+    organiserName: 'Public Organizer',
+    description: 'Registration opens later for this virtual event.',
+    status: 'published',
+    eventType: 'virtual',
+    eventTypesAllowed: ['virtual'],
+    raceDistances: ['5K'],
+    registrationOpenAt: new Date(now + 3 * 24 * 60 * 60 * 1000),
+    registrationCloseAt: new Date(now + 8 * 24 * 60 * 60 * 1000),
+    eventStartAt: new Date(now + 10 * 24 * 60 * 60 * 1000),
+    eventEndAt: new Date(now + 11 * 24 * 60 * 60 * 1000),
+    city: 'Manila',
+    country: 'PH',
+    proofTypesAllowed: ['gps', 'photo'],
     waiverTemplate: DEFAULT_WAIVER_TEMPLATE,
     waiverVersion: 1
   });
@@ -635,10 +682,11 @@ async function seedPublicFilterFixture() {
     smokeTestSlug: smokeTestEvent.slug,
     placeholderEventSlug: placeholderEvent.slug,
     accumulatedMultiSlug: accumulatedMultiEvent.slug,
-    eventIds: [String(upcomingVirtual._id)]
+    eventIds: [String(upcomingVirtual._id), String(registrationLaterEvent._id)]
       .concat(extraUpcomingVirtualEvents.map((item) => String(item._id)))
       .concat([String(upcomingOnsite._id), String(descriptionOnlyEvent._id), String(oldEvent._id), String(recentClosedEvent._id), String(futurePostedEvent._id), String(pastPostedEvent._id), String(smokeTestEvent._id), String(placeholderEvent._id), String(accumulatedMultiEvent._id)]),
-    blogIds: [String(nutritionBlog._id), String(trainingBlog._id), String(draftBlog._id)]
+    blogIds: [String(nutritionBlog._id), String(trainingBlog._id), String(draftBlog._id)],
+    blogAuthorId: String(author._id)
   };
 }
 
@@ -681,7 +729,7 @@ async function cleanupPublicFilterArtifacts() {
   await Promise.all([
     Event.deleteMany({
       slug: {
-        $regex: /^(virtual-sunrise|onsite-trail|old-city-run|recent-closed-run|description-only-public-organizer|scheduled-posting-hidden|scheduled-posting-visible|submission-service-test-event|shop-empty-event|category-quest)-/
+        $regex: /^(virtual-sunrise|registration-later|onsite-trail|old-city-run|recent-closed-run|description-only-public-organizer|scheduled-posting-hidden|scheduled-posting-visible|submission-service-test-event|shop-empty-event|category-quest)-/
       }
     }),
     Blog.deleteMany({

@@ -41,7 +41,8 @@ test('hero description and summary card expose clear mobile content hierarchy', 
 });
 
 test('mobile registration bar is contextual and only renders for an actionable public event', () => {
-  assert.match(viewSource, /const showMobileStickyCta = Boolean\(!isPreviewMode && details\.primaryCta && !details\.primaryCta\.disabled\)/);
+  assert.match(viewSource, /const pagePrimaryAction = runnerState/);
+  assert.match(viewSource, /const showMobileStickyCta = Boolean\(!isPreviewMode && pagePrimaryAction\)/);
   assert.match(viewSource, /showMobileStickyCta \? ' has-event-mobile-sticky-cta' : ''/);
   assert.match(viewSource, /if \(showMobileStickyCta\)/);
   assert.match(viewSource, /class="event-mobile-sticky-copy"/);
@@ -89,6 +90,12 @@ test('how-this-event-works becomes a compact mobile step list', () => {
   assert.match(cssSource, /#event-how-it-works \.event-mechanics-grid p[\s\S]*font-size:\s*0\.82rem/);
 });
 
+test('how-this-event-works is also compact on desktop', () => {
+  assert.match(cssSource, /#event-how-it-works\s*\{[\s\S]*padding:\s*20px/);
+  assert.match(cssSource, /#event-how-it-works \.event-mechanics-grid article[\s\S]*grid-template-columns:\s*28px minmax\(0, 1fr\)[\s\S]*padding:\s*12px/);
+  assert.match(cssSource, /#event-how-it-works \.event-mechanics-grid span[\s\S]*grid-row:\s*1 \/ 3/);
+});
+
 test('category completion goals use a compact non-duplicative summary', () => {
   assert.match(viewSource, /event-goal-section-categories/);
   assert.match(viewSource, /Your category sets your finish target/);
@@ -118,16 +125,41 @@ test('race categories are deduplicated unless they contain additional runner det
   assert.match(viewSource, /details\.hasCategorySpecificGoals \? 'Category Details' : 'Race Categories'/);
 });
 
-test('recap, submission rules, and full event details use compact semantic patterns', () => {
+test('recap, submission rules, and organizer details use compact semantic patterns', () => {
   assert.match(viewSource, /class="event-recap-body"/);
   assert.match(viewSource, /class="event-recap-list"/);
   assert.match(viewSource, /<dl class="event-rule-list">/);
   assert.match(viewSource, /<dt>Event window<\/dt>/);
   assert.match(viewSource, /<dd><%= details\.virtualRules/);
-  assert.match(viewSource, /<h2>Full Event Details<\/h2>/);
-  assert.match(viewSource, /Read the organiser’s full event information, instructions, and important notes\./);
-  assert.doesNotMatch(viewSource, /Organizer [Nn]otes/);
+  assert.match(viewSource, /<details class="event-section event-details-description" id="event-full-details">/);
+  assert.match(viewSource, /Additional organizer details/);
+  assert.match(viewSource, /structured sections above are the current event settings/);
   assert.match(viewSource, /class="event-rich-details-shell"/);
+});
+
+test('accumulated challenges prioritize goal choice and personalized progress', () => {
+  assert.match(viewSource, /class="event-challenge-decision/);
+  assert.match(viewSource, /Pick a goal that fits your month/);
+  assert.match(viewSource, /class="event-challenge-goal-grid"/);
+  assert.match(viewSource, /option\.compactName \|\| option\.name/);
+  assert.doesNotMatch(viewSource, /Accumulated distance · choose during registration/);
+  assert.match(viewSource, /Choose a goal &amp; register/);
+  assert.match(viewSource, /You’ll select your category during registration/);
+  assert.match(viewSource, /runnerState\.approvedDistanceLabel/);
+  assert.match(viewSource, /runnerState\.pendingDistanceLabel/);
+  assert.match(viewSource, /role="progressbar"/);
+  assert.match(viewSource, /data-run-proof-surface="event-detail"/);
+  assert.match(viewSource, /details\.secondaryCtas\?\.\[0\]/);
+  assert.match(viewSource, /const showEventSidebar = Boolean/);
+  assert.match(viewSource, /event-details-shell<%= showEventSidebar \? '' : ' event-details-shell-wide' %>/);
+  assert.match(viewSource, /if \(showEventSidebar\) \{ %><aside class="event-side-panel">/);
+  assert.match(cssSource, /\.event-details-shell-wide\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\)/);
+  assert.match(cssSource, /\.event-challenge-goal-grid[\s\S]*repeat\(6, minmax\(0, 1fr\)\)/);
+  assert.match(cssSource, /\.event-details-shell:not\(\.event-details-shell-wide\) \.event-challenge-goal-grid[\s\S]*repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(cssSource, /@media \(max-width: 980px\)[\s\S]*\.event-challenge-goal-grid[\s\S]*repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-challenge-goal-grid[\s\S]*grid-template-columns:\s*1fr/);
+  assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-challenge-goal-grid article[\s\S]*grid-template-columns:\s*68px minmax\(0, 1fr\)/);
+  assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-challenge-decision-action[\s\S]*display:\s*none/);
 });
 
 test('recap, rules, and full event details compact safely on mobile', () => {
@@ -136,6 +168,20 @@ test('recap, rules, and full event details compact safely on mobile', () => {
   assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-rule-list > div[\s\S]*grid-template-columns:\s*minmax\(105px, 0\.42fr\) minmax\(0, 1fr\)/);
   assert.match(cssSource, /\.event-rich-details-shell[\s\S]*background:\s*#fbfcfe/);
   assert.match(cssSource, /\.event-rich-details h1[\s\S]*font-size:\s*1\.3rem/);
+});
+
+test('decision-support section labels align beside their icons', () => {
+  assert.match(cssSource, /:is\([\s\S]*#event-how-it-works,[\s\S]*#event-submission-rules,[\s\S]*#event-rewards,[\s\S]*\.event-challenge-poster-section[\s\S]*\) \.event-section-heading > div[\s\S]*text-align:\s*left/);
+  assert.match(cssSource, /\) \.event-section-heading h2[\s\S]*padding-bottom:\s*0;[\s\S]*text-align:\s*left/);
+  assert.match(cssSource, /\) \.event-section-heading h2::after[\s\S]*display:\s*none/);
+});
+
+test('accumulated guest journey ends with a desktop registration prompt', () => {
+  assert.match(viewSource, /details\.isAccumulatedChallenge && !runnerState && !isPreviewMode/);
+  assert.match(viewSource, /class="event-challenge-closing-cta"/);
+  assert.match(viewSource, /Register for this challenge/);
+  assert.match(cssSource, /\.event-challenge-closing-cta\s*\{[\s\S]*display:\s*flex/);
+  assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-challenge-closing-cta\s*\{[\s\S]*display:\s*none/);
 });
 
 test('contact organiser card has clear hierarchy, matching validation, and privacy context', () => {

@@ -37,16 +37,37 @@ async function buildPublicEventListPage(queryParams = {}) {
     ? 'From date must be on or before To date.'
     : '';
   if (filterValues.status === 'upcoming') {
-    query.eventStartAt = { ...(query.eventStartAt || {}), $gte: now };
+    query.registrationOpenAt = { $gt: now };
+    query.registrationCloseAt = { $gte: now };
+    query.$and = query.$and || [];
+    query.$and.push({
+      $or: [
+        { eventEndAt: { $exists: false } },
+        { eventEndAt: null },
+        { eventEndAt: { $gte: now } }
+      ]
+    });
   } else if (filterValues.status === 'open') {
     query.registrationOpenAt = { $lte: now };
     query.registrationCloseAt = { $gte: now };
+    query.$and = query.$and || [];
+    query.$and.push({
+      $or: [
+        { eventEndAt: { $exists: false } },
+        { eventEndAt: null },
+        { eventEndAt: { $gte: now } }
+      ]
+    });
   } else if (filterValues.status === 'closed') {
     query.$and = query.$and || [];
     query.$and.push({
       $or: [
         { eventEndAt: { $lt: now } },
-        { registrationCloseAt: { $lt: now } }
+        { registrationCloseAt: { $lt: now } },
+        { registrationOpenAt: { $exists: false } },
+        { registrationOpenAt: null },
+        { registrationCloseAt: { $exists: false } },
+        { registrationCloseAt: null }
       ]
     });
   }
@@ -81,25 +102,21 @@ async function buildPublicEventListPage(queryParams = {}) {
 
   const eventSelect = 'title slug description organiserName eventType eventTypesAllowed raceDistances raceCategories eventStartAt eventEndAt venueName city country bannerImageUrl registrationCloseAt registrationOpenAt createdAt feeMode feeAmount feeCurrency pricingMode distancePricing pricingPeriods customizedOptions suggestedEventFee finalEventFee registrationPackages deliveryFeeEnabled deliveryFeeAmount';
   let events;
-  if (filterValues.q) {
+  if (filterValues.sort !== 'recommended') {
+    const sortableEvents = await Event.find(query).select(eventSelect).lean();
+    events = sortableEvents
+      .sort((a, b) => compareEventsBySelectedSort(a, b, filterValues.sort, now))
+      .slice(skip, skip + limit);
+  } else if (filterValues.q) {
     const rankedEvents = await Event.find(query).select(eventSelect).lean();
     events = rankEventsForSearch(rankedEvents, filterValues.q)
-      .sort((a, b) => compareEventsForSearch(a, b, filterValues.status))
-      .slice(skip, skip + limit);
-  } else if (!filterValues.status || filterValues.status === 'all') {
-    // Default view: active (registration open) events first sorted by newest,
-    // then upcoming events, then past/closed — all sorted by most recently added.
-    const allEvents = await Event.find(query).select(eventSelect).lean();
-    events = allEvents
-      .sort((a, b) => compareEventsDefaultSort(a, b, now))
+      .sort((a, b) => compareEventsForSearch(a, b, now))
       .slice(skip, skip + limit);
   } else {
-    events = await Event.find(query)
-      .sort(getEventsSort(filterValues.status))
-      .skip(skip)
-      .limit(limit)
-      .select(eventSelect)
-      .lean();
+    const allEvents = await Event.find(query).select(eventSelect).lean();
+    events = allEvents
+      .sort((a, b) => compareEventsRecommended(a, b, now))
+      .slice(skip, skip + limit);
   }
 
   const normalizedDistanceOptions = distanceOptions
@@ -130,18 +147,22 @@ async function buildPublicEventListPage(queryParams = {}) {
         ? event.raceDistances.map((distanceItem) => String(distanceItem || '').trim().toUpperCase()).filter(Boolean)
         : [];
       const publicView = buildPublicEventView({ ...event, raceDistances }, { now });
+      const distanceLabels = getEventCardDistanceLabels(raceDistances);
+      const availability = getEventAvailability(event, now);
       return {
         ...event,
         raceDistances,
         organizerName: publicView.organizerName,
         eventTypeLabel: publicView.eventTypeLabel,
         priceLabel: publicView.pricing.amountLabel,
-        descriptionText: publicView.descriptionText,
         startDateLabel: formatPlatformDate(event.eventStartAt, 'Start date not listed'),
         locationLabel: buildPublicLocationLabel(event, getCountryName(event.country)),
-        distanceLabel: raceDistances.join(', ') || 'Distances not listed',
+        distanceLabel: distanceLabels.compact,
+        distanceFullLabel: distanceLabels.full,
         countryLabel: getCountryName(event.country),
-        displayState: getEventCardDisplayState(event, now)
+        availability,
+        displayState: availability,
+        cardCtaLabel: availability.ctaLabel
       };
     }),
     filters: filterValues,
@@ -152,6 +173,7 @@ async function buildPublicEventListPage(queryParams = {}) {
       resultsCount: totalEvents,
       distanceOptions: normalizedDistanceOptions,
       activeFilters,
+      clearFiltersUrl: buildEventsPageUrl(getClearedEventFilters(filterValues), 1),
       summary: buildEventsResultsSummary(filterValues, totalEvents),
       validationError: dateRangeError
     },
@@ -287,12 +309,16 @@ function getEventsFilterValues(query = {}) {
   const rawType = String(query.eventType || '').trim().toLowerCase();
   const rawDistance = String(query.distance || '').trim().toUpperCase();
   const rawStatus = String(query.status || '').trim().toLowerCase();
+  const rawSort = String(query.sort || '').trim().toLowerCase();
   const eventType = ['virtual', 'onsite', 'hybrid'].includes(rawType) ? rawType : '';
   const distance = rawDistance && rawDistance.length <= 30 ? rawDistance : '';
   const status = ['all', 'upcoming', 'open', 'closed'].includes(rawStatus) ? rawStatus : 'all';
+  const sort = ['recommended', 'closing-soon', 'start-date', 'newest'].includes(rawSort)
+    ? rawSort
+    : 'recommended';
   const dateFrom = parseFilterDate(query.dateFrom);
   const dateTo = parseFilterDate(query.dateTo);
-  return { q, eventType, distance, status, dateFrom, dateTo };
+  return { q, eventType, distance, status, dateFrom, dateTo, sort };
 }
 
 function getMatchingCountryCodes(searchQuery) {
@@ -303,37 +329,75 @@ function getMatchingCountryCodes(searchQuery) {
     .map((item) => item.code);
 }
 
-function getEventsSort(status) {
-  if (status === 'open') {
-    return { registrationCloseAt: 1, eventStartAt: 1, createdAt: -1 };
+function compareEventsBySelectedSort(a, b, sort, now = new Date()) {
+  if (sort === 'newest') return compareEventsBySort(a, b, { createdAt: -1, eventStartAt: 1 });
+  if (sort === 'start-date') {
+    return compareDateWithMissingLast(a.eventStartAt, b.eventStartAt)
+      || compareEventsBySort(a, b, { createdAt: -1 });
   }
-  if (status === 'closed') {
-    return { eventEndAt: -1, registrationCloseAt: -1, createdAt: -1 };
+  if (sort === 'closing-soon') {
+    const leftClose = getFutureDateValue(a.registrationCloseAt, now);
+    const rightClose = getFutureDateValue(b.registrationCloseAt, now);
+    return compareNullableNumbers(leftClose, rightClose)
+      || compareEventsRecommended(a, b, now);
   }
-  return { eventStartAt: 1, createdAt: -1 };
+  return compareEventsRecommended(a, b, now);
 }
 
-function getEventRegistrationPriority(event, now) {
-  const regOpen = event.registrationOpenAt ? new Date(event.registrationOpenAt) : null;
-  const regClose = event.registrationCloseAt ? new Date(event.registrationCloseAt) : null;
-  const eventEnd = event.eventEndAt ? new Date(event.eventEndAt) : null;
-
-  const isActive = regOpen && regClose && regOpen <= now && regClose >= now;
-  if (isActive) return 0; // registration currently open → highest priority
-
-  const isPast = (eventEnd && eventEnd < now) || (regClose && regClose < now);
-  if (isPast) return 2; // ended/closed → lowest priority
-
-  return 1; // upcoming (registration not yet open)
+function getFutureDateValue(value, now) {
+  const time = getValidDateTime(value);
+  return time !== null && time >= now.getTime() ? time : null;
 }
 
-function compareEventsDefaultSort(a, b, now) {
-  const priorityDiff = getEventRegistrationPriority(a, now) - getEventRegistrationPriority(b, now);
+function compareDateWithMissingLast(left, right) {
+  return compareNullableNumbers(getValidDateTime(left), getValidDateTime(right));
+}
+
+function compareNullableNumbers(left, right) {
+  if (left === right) return 0;
+  if (left === null) return 1;
+  if (right === null) return -1;
+  return left - right;
+}
+
+function getValidDateTime(value) {
+  if (!value) return null;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? null : time;
+}
+
+function compareEventsRecommended(a, b, now = new Date()) {
+  const leftAvailability = getEventAvailability(a, now);
+  const rightAvailability = getEventAvailability(b, now);
+  const priorityDiff = leftAvailability.priority - rightAvailability.priority;
   if (priorityDiff !== 0) return priorityDiff;
-  // Within same group: most recently created first
-  const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-  const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-  return bTime - aTime;
+
+  const actionDateField = leftAvailability.key === 'open'
+    ? 'registrationCloseAt'
+    : leftAvailability.key === 'upcoming'
+      ? 'registrationOpenAt'
+      : 'eventEndAt';
+  const leftActionDate = leftAvailability.key === 'closed'
+    ? (a.eventEndAt || a.registrationCloseAt)
+    : a[actionDateField];
+  const rightActionDate = rightAvailability.key === 'closed'
+    ? (b.eventEndAt || b.registrationCloseAt)
+    : b[actionDateField];
+  const actionDateDiff = leftAvailability.key === 'closed'
+    ? compareDateDescendingWithMissingLast(leftActionDate, rightActionDate)
+    : compareDateWithMissingLast(leftActionDate, rightActionDate);
+  if (actionDateDiff !== 0) return actionDateDiff;
+
+  return compareEventsBySort(a, b, { createdAt: -1, eventStartAt: 1 });
+}
+
+function compareDateDescendingWithMissingLast(left, right) {
+  const leftTime = getValidDateTime(left);
+  const rightTime = getValidDateTime(right);
+  if (leftTime === rightTime) return 0;
+  if (leftTime === null) return 1;
+  if (rightTime === null) return -1;
+  return rightTime - leftTime;
 }
 
 function rankEventsForSearch(events, searchQuery) {
@@ -363,10 +427,10 @@ function getEventSearchRank(event, searchQuery) {
   return 0;
 }
 
-function compareEventsForSearch(a, b, status) {
+function compareEventsForSearch(a, b, now = new Date()) {
   const rankDiff = Number(b.searchRank || 0) - Number(a.searchRank || 0);
   if (rankDiff !== 0) return rankDiff;
-  return compareEventsBySort(a, b, getEventsSort(status));
+  return compareEventsRecommended(a, b, now);
 }
 
 function compareEventsBySort(a, b, sortSpec) {
@@ -403,7 +467,7 @@ function buildEventsCanonicalUrl(filterValues, currentPage) {
   const baseUrl = getAppBaseUrl();
   if (!baseUrl) return '';
 
-  const params = buildEventsQueryParams(filterValues, currentPage);
+  const params = buildEventsQueryParams({ ...filterValues, sort: 'recommended' }, currentPage);
   const path = params.toString() ? `/events?${params.toString()}` : '/events';
   return `${baseUrl}${path}`;
 }
@@ -421,6 +485,7 @@ function buildEventsQueryParams(filterValues, currentPage = 1) {
   if (filterValues.status && filterValues.status !== 'all') params.set('status', filterValues.status);
   if (filterValues.dateFrom) params.set('dateFrom', formatFilterDate(filterValues.dateFrom));
   if (filterValues.dateTo) params.set('dateTo', formatFilterDate(filterValues.dateTo));
+  if (filterValues.sort && filterValues.sort !== 'recommended') params.set('sort', filterValues.sort);
   if (currentPage > 1) params.set('page', String(currentPage));
   return params;
 }
@@ -485,6 +550,18 @@ function getEventsActiveFilters(filterValues) {
   return activeFilters;
 }
 
+function getClearedEventFilters(filterValues = {}) {
+  return {
+    q: '',
+    eventType: '',
+    distance: '',
+    status: 'all',
+    dateFrom: null,
+    dateTo: null,
+    sort: filterValues.sort || 'recommended'
+  };
+}
+
 function formatEventTypeLabel(value) {
   if (value === 'onsite') return 'On-site';
   if (value === 'virtual') return 'Virtual';
@@ -493,9 +570,9 @@ function formatEventTypeLabel(value) {
 }
 
 function formatEventStatusLabel(value) {
-  if (value === 'upcoming') return 'Upcoming';
-  if (value === 'open') return 'Open';
-  if (value === 'closed') return 'Closed / Past';
+  if (value === 'upcoming') return 'Opens later';
+  if (value === 'open') return 'Open now';
+  if (value === 'closed') return 'Closed';
   return 'All';
 }
 
@@ -608,6 +685,10 @@ function formatFilterDate(value) {
 }
 
 function getEventCardDisplayState(event, now = new Date()) {
+  return getEventAvailability(event, now);
+}
+
+function getEventAvailability(event, now = new Date()) {
   const registrationOpenAt = event?.registrationOpenAt ? new Date(event.registrationOpenAt) : null;
   const registrationCloseAt = event?.registrationCloseAt ? new Date(event.registrationCloseAt) : null;
   const eventStartAt = event?.eventStartAt ? new Date(event.eventStartAt) : null;
@@ -622,50 +703,72 @@ function getEventCardDisplayState(event, now = new Date()) {
     ? registrationOpenAt <= now && registrationCloseAt >= now
     : false;
   const eventIsPast = hasValidEventEnd ? eventEndAt < now : false;
-  const startsSoon = hasValidEventStart
-    ? eventStartAt >= now && (eventStartAt.getTime() - now.getTime()) <= 3 * 24 * 60 * 60 * 1000
-    : false;
+  const registrationHasClosed = hasValidRegistrationClose && registrationCloseAt < now;
 
-  if (eventIsPast) {
+  if (eventIsPast || registrationHasClosed) {
     return {
-      label: 'Past Event',
-      tone: 'past',
-      helper: hasValidEventEnd ? `Ended ${formatRelativeDayLabel(eventEndAt, now)}.` : 'Event already finished.'
+      key: 'closed',
+      priority: 2,
+      label: 'Closed',
+      tone: 'closed',
+      helper: eventIsPast
+        ? `Event ended ${formatRelativeDayLabel(eventEndAt, now)}.`
+        : `Registration closed ${formatRelativeDayLabel(registrationCloseAt, now)}.`,
+      ctaLabel: 'View recap'
     };
   }
 
   if (registrationIsOpen) {
     return {
-      label: 'Open Registration',
+      key: 'open',
+      priority: 0,
+      label: 'Open now',
       tone: 'open',
       helper: hasValidRegistrationClose
         ? `Registration closes ${formatRelativeDayLabel(registrationCloseAt, now)}.`
-        : 'Registration is currently open.'
+        : 'Registration is currently open.',
+      ctaLabel: 'View & register'
     };
   }
 
-  if (startsSoon) {
+  if (hasValidRegistrationOpen && registrationOpenAt > now) {
     return {
-      label: 'Starts Soon',
+      key: 'upcoming',
+      priority: 1,
+      label: 'Opens later',
       tone: 'soon',
-      helper: hasValidEventStart ? `Starts ${formatRelativeDayLabel(eventStartAt, now)}.` : 'Starting soon.'
-    };
-  }
-
-  if (hasValidRegistrationClose && registrationCloseAt < now) {
-    return {
-      label: 'Registration Closed',
-      tone: 'closed',
-      helper: hasValidEventStart && eventStartAt >= now
-        ? `Event starts ${formatRelativeDayLabel(eventStartAt, now)}.`
-        : 'Registration window has closed.'
+      helper: `Registration opens ${formatRelativeDayLabel(registrationOpenAt, now)}.`,
+      ctaLabel: 'View event'
     };
   }
 
   return {
-    label: 'Event Listing',
-    tone: 'neutral',
-    helper: hasValidEventStart ? `Starts ${formatRelativeDayLabel(eventStartAt, now)}.` : 'View details for timing and registration info.'
+    key: 'closed',
+    priority: 2,
+    label: 'Closed',
+    tone: 'closed',
+    helper: hasValidEventStart
+      ? `Event starts ${formatRelativeDayLabel(eventStartAt, now)}; registration is unavailable.`
+      : 'Registration is unavailable.',
+    ctaLabel: 'View recap'
+  };
+}
+
+function getEventCardDistanceLabels(raceDistances = []) {
+  const normalized = Array.isArray(raceDistances)
+    ? raceDistances.map((item) => String(item || '').trim().toUpperCase()).filter(Boolean)
+    : [];
+  if (!normalized.length) return { compact: 'Distances not listed', full: 'Distances not listed' };
+  const compactOptions = normalized.map((item) => {
+    const distancePrefix = item.match(/^(\d+(?:\.\d+)?\s*(?:K|KM|MI|M))\b/i);
+    return distancePrefix ? distancePrefix[1].replace(/\s+/g, '') : item;
+  });
+  const uniqueCompactOptions = [...new Set(compactOptions)];
+  const visible = uniqueCompactOptions.slice(0, 3).join(', ');
+  const remaining = uniqueCompactOptions.length - 3;
+  return {
+    compact: remaining > 0 ? `${visible} +${remaining} more` : visible,
+    full: normalized.join(', ')
   };
 }
 
@@ -702,10 +805,16 @@ function getAppBaseUrl() {
 module.exports = {
   buildPublicEventListPage,
   getEventCardDisplayState,
+  getEventAvailability,
+  getEventCardDistanceLabels,
+  compareEventsRecommended,
   getEventsFilterValues,
   buildEventsPageUrl,
   buildEventsQueryParams,
+  buildEventsCanonicalUrl,
   getEventsActiveFilters,
+  getClearedEventFilters,
+  compareEventsBySelectedSort,
   listHomepagePromotedEvents,
   normalizeHomepageEventCard
 };

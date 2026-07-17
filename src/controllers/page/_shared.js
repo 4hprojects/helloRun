@@ -80,7 +80,8 @@ const {
   getLeaderboardDiscoveryData,
   getHomepageLeaderboard,
   getEventLeaderboard,
-  getMyStanding
+  getMyStanding,
+  buildEventLeaderboardPresentation
 } = require('../../services/leaderboard.service');
 
 const {
@@ -218,6 +219,7 @@ module.exports = {
   getHomepageLeaderboard,
   getEventLeaderboard,
   getMyStanding,
+  buildEventLeaderboardPresentation,
   buildPublicEventSeo,
   buildPublicEventView,
   renderEventDetailsContent,

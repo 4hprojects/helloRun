@@ -45,6 +45,7 @@ const {
   getLeaderboardDiscoveryData,
   getEventLeaderboard,
   getMyStanding,
+  buildEventLeaderboardPresentation,
   buildPublicEventSeo,
   buildPublicEventView,
   renderEventDetailsContent,
@@ -81,21 +82,19 @@ exports.getLeaderboard = async (req, res) => {
       type: req.query.type,
       distance: req.query.distance,
       mode: req.query.mode,
-      limit: req.query.limit
+      sort: req.query.sort,
+      page: req.query.page,
+      limit: req.query.limit,
+      baseUrl: getAppBaseUrl()
     });
-
-    const activeFilterCount = Number(Boolean(data.filters.q))
-      + Number(Boolean(data.filters.type))
-      + Number(Boolean(data.filters.distance))
-      + Number(Boolean(data.filters.mode));
-    const hasActiveFilters = activeFilterCount > 0;
 
     return res.render('pages/leaderboard', {
       title: 'Find Event Leaderboards - HelloRun',
       leaderboard: data,
-      filterMeta: {
-        activeFilterCount,
-        hasActiveFilters
+      filterMeta: data.filterMeta,
+      seo: {
+        canonicalUrl: data.seo.canonicalUrl,
+        description: 'Find official HelloRun event standings, verified results, and your personal race position.'
       }
     });
   } catch (error) {
@@ -131,17 +130,24 @@ exports.getEventLeaderboardPage = async (req, res) => {
 
     const myStanding = req.session?.userId
       ? await getMyStanding(req.params.slug, req.session.userId, {
-          distance: data.activeDistance?.key,
-          category: req.query.category,
-          mode: req.query.mode,
-          status: req.query.status
+          distance: data.activeDistance?.key
         })
       : null;
+    const presentation = buildEventLeaderboardPresentation(data, {
+      isAuthenticated: Boolean(req.session?.userId),
+      myStanding,
+      baseUrl: getAppBaseUrl()
+    });
 
     return res.render('pages/event-leaderboard', {
       title: `${data.event.title} Leaderboard - HelloRun`,
       leaderboard: data,
-      myStanding
+      myStanding,
+      presentation,
+      seo: {
+        canonicalUrl: presentation.seo.canonicalUrl,
+        description: `View official ${data.event.title} standings, verified results, and runner positions.`
+      }
     });
   } catch (error) {
     logger.error('Error loading event leaderboard:', error);

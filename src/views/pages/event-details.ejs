@@ -1,7 +1,24 @@
 <%
   const details = publicEvent || {};
   const isPreviewMode = Boolean(typeof previewMode !== 'undefined' && previewMode);
-  const showMobileStickyCta = Boolean(!isPreviewMode && details.primaryCta && !details.primaryCta.disabled);
+  const runnerState = typeof runnerEventState !== 'undefined' ? runnerEventState : null;
+  const pagePrimaryAction = runnerState
+    ? runnerState.primaryAction
+    : (details.primaryCta && !details.primaryCta.disabled ? { ...details.primaryCta, type: 'link' } : null);
+  const showMobileStickyCta = Boolean(!isPreviewMode && pagePrimaryAction);
+  const hasEventShopSidebar = Boolean(!isPreviewMode && typeof eventShop !== 'undefined' && eventShop && eventShop.count > 0);
+  const hasEventSidebarAd = Boolean(
+    !isPreviewMode
+    && locals.ads
+    && locals.ads.canRender('eventDetails', 'sidebar')
+    && locals.ads.getSlot('eventDetails', 'sidebar')
+  );
+  const showEventSidebar = Boolean(
+    !details.isAccumulatedChallenge
+    || hasEventShopSidebar
+    || (!isPreviewMode && locals.user)
+    || hasEventSidebarAd
+  );
 -%>
 <!DOCTYPE html>
 <html lang="en">
@@ -10,7 +27,7 @@
   <link rel="stylesheet" href="/css/events.css">
   <link rel="stylesheet" href="/css/event-details.css">
 </head>
-<body class="event-details-body<%= locals.isAuthenticated ? ' is-authenticated' : '' %><%= locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer ? ' has-runner-mobile-nav' : '' %><%= showMobileStickyCta ? ' has-event-mobile-sticky-cta' : '' %>">
+<body class="event-details-body<%= details.isAccumulatedChallenge ? ' is-accumulated-challenge' : '' %><%= locals.isAuthenticated ? ' is-authenticated' : '' %><%= locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer ? ' has-runner-mobile-nav' : '' %><%= showMobileStickyCta ? ' has-event-mobile-sticky-cta' : '' %>">
   <%- include('../layouts/nav') %>
 
   <main class="event-details-page">
@@ -82,19 +99,22 @@
           <h1><%= details.title %></h1>
           <div class="event-lead">
             <span class="event-lead-label">About this event</span>
-            <p><%= details.descriptionText || details.description || 'Review the event schedule, registration details, and completion requirements.' %></p>
+            <p><%= details.challengeSummary || details.descriptionText || details.description || 'Review the event schedule, registration details, and completion requirements.' %></p>
           </div>
 
           <div class="event-hero-actions">
-            <% if (details.primaryCta && !details.primaryCta.disabled) { %>
+            <% if (!runnerState && details.primaryCta && !details.primaryCta.disabled) { %>
               <a href="<%= details.primaryCta.href %>" class="btn btn-primary"><i data-lucide="ticket"></i><span><%= details.primaryCta.label %></span></a>
-            <% } else { %>
+            <% } else if (!runnerState) { %>
               <button type="button" class="btn btn-outline btn-hero-disabled" disabled><%= details.primaryCta?.label || 'Registration Unavailable' %></button>
             <% } %>
             <% if (isPreviewMode) { %>
               <a href="<%= previewReturnHref %>" class="btn btn-outline btn-hero-secondary"><i data-lucide="arrow-left"></i><span>Back to Editor</span></a>
             <% } else { %>
               <a href="/events" class="btn btn-outline btn-hero-secondary"><i data-lucide="search"></i><span>Browse Events</span></a>
+              <% if (details.secondaryCtas?.[0]) { %>
+                <a href="<%= details.secondaryCtas[0].href %>" class="btn btn-outline btn-hero-secondary"><i data-lucide="trophy"></i><span><%= details.secondaryCtas[0].label %></span></a>
+              <% } %>
               <% if (locals.isAuthenticated) { %>
                 <button type="button"
                   class="btn btn-outline btn-hero-secondary btn-save-event js-save-event<%= isSaved ? ' is-saved' : '' %>"
@@ -110,25 +130,39 @@
           </div>
         </div>
 
-        <aside class="event-hero-panel">
-          <div class="event-hero-panel-group event-hero-panel-price">
-            <p class="event-panel-label"><%= details.pricing?.label || 'Pricing' %></p>
-            <strong><%= details.pricing?.amountLabel || 'Pricing not listed' %></strong>
-            <span><%= details.pricing?.helper || 'Review the available registration options.' %></span>
-          </div>
-          <% if (details.registrationState?.helper) { %>
+        <aside class="event-hero-panel" aria-label="Event registration summary">
+          <% if (runnerState) { %>
+            <div class="event-hero-panel-group event-hero-panel-price">
+              <p class="event-panel-label">Your challenge</p>
+              <strong><%= runnerState.selectedQuest %></strong>
+              <span><%= runnerState.stateLabel %></span>
+            </div>
             <div class="event-panel-divider"></div>
             <div class="event-hero-panel-group event-hero-panel-registration">
-              <p class="event-panel-label">Registration</p>
-              <strong class="event-panel-status"><%= details.registrationState.label || 'Event listing' %></strong>
-              <span><%= details.registrationState.helper %></span>
+              <p class="event-panel-label">Verified progress</p>
+              <strong class="event-panel-status"><%= runnerState.approvedDistanceLabel %> / <%= runnerState.targetDistanceLabel %></strong>
+              <span><%= runnerState.progressLabel %></span>
             </div>
+          <% } else { %>
+            <div class="event-hero-panel-group event-hero-panel-price">
+              <p class="event-panel-label"><%= details.pricing?.label || 'Pricing' %></p>
+              <strong><%= details.pricing?.amountLabel || 'Pricing not listed' %></strong>
+              <span><%= details.pricing?.helper || 'Review the available registration options.' %></span>
+            </div>
+            <% if (details.registrationState?.helper) { %>
+              <div class="event-panel-divider"></div>
+              <div class="event-hero-panel-group event-hero-panel-registration">
+                <p class="event-panel-label">Registration</p>
+                <strong class="event-panel-status"><%= details.registrationState.label || 'Event listing' %></strong>
+                <span><%= details.registrationState.helper %></span>
+              </div>
+            <% } %>
           <% } %>
         </aside>
       </div>
     </section>
 
-    <section class="event-details-shell">
+    <section class="event-details-shell<%= showEventSidebar ? '' : ' event-details-shell-wide' %>">
       <div class="event-nav-row">
         <% if (isPreviewMode) { %>
           <a href="<%= previewReturnHref %>" class="btn btn-outline event-nav-back"><i data-lucide="arrow-left"></i><span>Back to Editor</span></a>
@@ -143,15 +177,109 @@
         <% } %>
       </div>
 
+      <% if (details.isAccumulatedChallenge) { %>
+        <section class="event-challenge-decision<%= runnerState ? ' event-runner-progress-card' : '' %>" id="event-goals" aria-labelledby="eventGoalsTitle">
+          <% if (runnerState) { %>
+            <div class="event-runner-progress-heading">
+              <div>
+                <p class="event-section-kicker">Your July quest</p>
+                <h2 id="eventGoalsTitle"><%= runnerState.selectedQuest %></h2>
+                <p><%= runnerState.helperText %></p>
+              </div>
+              <span class="event-runner-state event-runner-state-<%= runnerState.state %>"><%= runnerState.stateLabel %></span>
+            </div>
+
+            <div class="event-runner-progress-summary">
+              <div class="event-runner-progress-total">
+                <span>Verified distance</span>
+                <strong><%= runnerState.approvedDistanceLabel %></strong>
+                <small>of <%= runnerState.targetDistanceLabel %></small>
+              </div>
+              <div class="event-runner-progress-track-wrap">
+                <div
+                  class="event-runner-progress-track"
+                  role="progressbar"
+                  aria-label="Verified progress toward <%= runnerState.selectedQuest %>"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow="<%= runnerState.progressBarPercentage %>"
+                  aria-valuetext="<%= runnerState.progressLabel %>; <%= runnerState.approvedDistanceLabel %> of <%= runnerState.targetDistanceLabel %>"
+                >
+                  <span style="width: <%= runnerState.progressBarPercentage %>%"></span>
+                </div>
+                <strong><%= runnerState.progressLabel %></strong>
+              </div>
+              <dl class="event-runner-progress-facts">
+                <div><dt>Remaining</dt><dd><%= runnerState.completed ? 'Goal completed' : runnerState.remainingDistanceLabel %></dd></div>
+                <div><dt>Verified activities</dt><dd><%= runnerState.approvedActivityCount %></dd></div>
+                <div><dt>Pending</dt><dd><%= runnerState.pendingDistanceLabel %> · <%= runnerState.pendingActivityCount %> activit<%= runnerState.pendingActivityCount === 1 ? 'y' : 'ies' %></dd></div>
+                <div><dt>Submit by</dt><dd><%= runnerState.submissionTiming?.label || 'Deadline not listed' %></dd></div>
+              </dl>
+            </div>
+
+            <% if (runnerState.primaryAction || runnerState.secondaryAction) { %>
+              <div class="event-runner-actions">
+                <% [runnerState.primaryAction, runnerState.secondaryAction].filter(Boolean).forEach((action, actionIndex) => { %>
+                  <% if (action.type === 'submit' || action.type === 'resubmit') { %>
+                    <button
+                      type="button"
+                      class="btn <%= actionIndex === 0 ? 'btn-primary' : 'btn-outline' %>"
+                      data-open-run-proof-modal
+                      data-run-proof-surface="event-detail"
+                      data-run-proof-mode="<%= action.type %>"
+                      data-run-proof-registration-id="<%= action.registrationId %>"
+                    ><%= action.label %></button>
+                  <% } else { %>
+                    <a href="<%= action.href %>" class="btn <%= actionIndex === 0 ? 'btn-primary' : 'btn-outline' %>"><%= action.label %></a>
+                  <% } %>
+                <% }) %>
+              </div>
+            <% } %>
+          <% } else { %>
+            <div class="event-challenge-decision-heading">
+              <div>
+                <p class="event-section-kicker">Choose your challenge goal</p>
+                <h2 id="eventGoalsTitle">Pick a goal that fits your month</h2>
+                <p>Compare the targets below. Every approved activity moves you closer to your selected goal.</p>
+              </div>
+              <% if (details.primaryCta && !details.primaryCta.disabled) { %>
+                <div class="event-challenge-decision-action">
+                  <a href="<%= details.primaryCta.href %>" class="btn btn-primary">Choose a goal &amp; register</a>
+                  <small>You’ll select your category during registration.</small>
+                </div>
+              <% } %>
+            </div>
+            <div class="event-challenge-goal-grid" aria-label="Available accumulated distance goals">
+              <% (details.categoryGoalOptions || []).forEach((option) => { %>
+                <article aria-label="<%= option.name %>, <%= option.distanceKmLabel %>">
+                  <span><%= option.compactName || option.name %></span>
+                  <strong><%= option.distanceKmLabel %></strong>
+                </article>
+              <% }) %>
+            </div>
+          <% } %>
+        </section>
+      <% } %>
+
       <section class="event-stats-strip" aria-label="Event highlights">
-        <% (details.stats || []).filter((stat) => stat.label !== 'Registration Options').forEach((stat) => { %>
-          <% const statClass = stat.label === 'Signups' ? 'event-stat-signups' : (stat.label === 'Duration' ? 'event-stat-duration' : 'event-stat-detail'); %>
-          <article class="event-stat <%= statClass %>">
-            <span><%= stat.label %></span>
-            <strong><%= stat.value %></strong>
-            <small><%= stat.helper %></small>
-          </article>
-        <% }) %>
+        <% if (details.isAccumulatedChallenge) { %>
+          <% (details.challengeDates || []).forEach((item) => { %>
+            <article class="event-stat event-stat-<%= item.key %>">
+              <span><%= item.label %></span>
+              <strong><%= item.value %></strong>
+              <small><%= item.helper %></small>
+            </article>
+          <% }) %>
+        <% } else { %>
+          <% (details.stats || []).filter((stat) => stat.label !== 'Registration Options').forEach((stat) => { %>
+            <% const statClass = stat.label === 'Signups' ? 'event-stat-signups' : (stat.label === 'Duration' ? 'event-stat-duration' : 'event-stat-detail'); %>
+            <article class="event-stat <%= statClass %>">
+              <span><%= stat.label %></span>
+              <strong><%= stat.value %></strong>
+              <small><%= stat.helper %></small>
+            </article>
+          <% }) %>
+        <% } %>
       </section>
 
       <details class="event-section-jump">
@@ -167,7 +295,7 @@
         </nav>
       </details>
 
-      <section class="event-mobile-key-facts" id="event-summary" aria-labelledby="eventMobileFactsTitle">
+      <% if (!details.isAccumulatedChallenge) { %><section class="event-mobile-key-facts" id="event-summary" aria-labelledby="eventMobileFactsTitle">
         <div class="event-mobile-key-facts-heading">
           <p>At a glance</p>
           <h2 id="eventMobileFactsTitle">Key event facts</h2>
@@ -180,7 +308,7 @@
           <p><span><%= details.isAccumulatedChallenge ? 'Registration options' : 'Distance' %></span><strong><%= details.distanceSummaryLabel || details.targetDistanceLabel || 'Not listed' %></strong></p>
           <p><span>Location</span><strong><%= details.location?.publicLabel || details.location?.summary || 'Not listed' %></strong></p>
         </div>
-      </section>
+      </section><% } %>
 
       <div class="event-main-layout">
         <div class="event-main-content">
@@ -221,7 +349,25 @@
             <%- include('../partials/ad-unit', { group: 'eventDetails', placement: 'after_how_it_works' }) %>
           <% } %>
 
-          <% if (details.isAccumulatedChallenge || details.virtualRules?.targetDistanceKm) { %>
+          <section class="event-section" id="event-submission-rules">
+            <div class="event-section-heading">
+              <span class="event-section-icon"><i data-lucide="upload-cloud"></i></span>
+              <div>
+                <h2>Activities & Submission Rules</h2>
+                <p>Use eligible activities and clear proof so verified distance counts toward your goal.</p>
+              </div>
+            </div>
+
+            <dl class="event-rule-list">
+              <div><dt>Event window</dt><dd><%= details.virtualRules?.virtualWindowLabel || 'Not listed' %></dd></div>
+              <div><dt>Accepted activities</dt><dd><%= details.virtualRules?.acceptedActivities?.join(', ') || 'Not specified' %></dd></div>
+              <div><dt>Proof types</dt><dd><%= details.virtualRules?.proofTypes?.join(', ') || 'Not specified' %></dd></div>
+              <div><dt>Final deadline</dt><dd><%= details.virtualRules?.finalSubmissionDeadline || 'Not listed' %></dd></div>
+              <div><dt>Leaderboard</dt><dd><%= details.virtualRules?.leaderboardMode || 'Not available' %></dd></div>
+            </dl>
+          </section>
+
+          <% if ((details.isAccumulatedChallenge || details.virtualRules?.targetDistanceKm) && !details.hasCategorySpecificGoals) { %>
             <section class="event-section event-goal-section<%= details.hasCategorySpecificGoals ? ' event-goal-section-categories' : '' %>">
               <% if (details.hasCategorySpecificGoals) { %>
                 <div class="event-category-goal-content">
@@ -431,36 +577,42 @@
             </section>
           <% } %>
 
-          <section class="event-section" id="event-submission-rules">
-            <div class="event-section-heading">
-              <span class="event-section-icon"><i data-lucide="upload-cloud"></i></span>
-              <div>
-                <h2>Submission Rules</h2>
-                <p>Use clear proof so the organizer can review your progress accurately.</p>
-              </div>
-            </div>
-
-            <dl class="event-rule-list">
-              <div><dt>Event window</dt><dd><%= details.virtualRules?.virtualWindowLabel || 'Not listed' %></dd></div>
-              <div><dt>Accepted activities</dt><dd><%= details.virtualRules?.acceptedActivities?.join(', ') || 'Not specified' %></dd></div>
-              <div><dt>Proof types</dt><dd><%= details.virtualRules?.proofTypes?.join(', ') || 'Not specified' %></dd></div>
-              <div><dt>Final deadline</dt><dd><%= details.virtualRules?.finalSubmissionDeadline || 'Not listed' %></dd></div>
-              <div><dt>Leaderboard</dt><dd><%= details.virtualRules?.leaderboardMode || 'Not available' %></dd></div>
-            </dl>
-          </section>
-
           <% if (eventDetailsHtml) { %>
-            <section class="event-section event-details-description" id="event-full-details">
-              <div class="event-section-heading">
+            <details class="event-section event-details-description" id="event-full-details">
+              <summary class="event-organizer-details-summary">
                 <span class="event-section-icon"><i data-lucide="file-text"></i></span>
-                <div>
-                  <h2>Full Event Details</h2>
-                  <p>Read the organiser’s full event information, instructions, and important notes.</p>
-                </div>
+                <span>
+                  <strong>Additional organizer details</strong>
+                  <small>Read the full event information, extended instructions, and community notes.</small>
+                </span>
+              </summary>
+              <div class="event-authoritative-note" role="note">
+                <i data-lucide="shield-check" aria-hidden="true"></i>
+                <span>Dates, pricing, categories, and submission rules shown in the structured sections above are the current event settings.</span>
               </div>
               <div class="event-rich-details-shell">
                 <div class="event-rich-details"><%- eventDetailsHtml %></div>
               </div>
+            </details>
+          <% } %>
+
+          <% if (details.isAccumulatedChallenge && details.posterImageUrl) { %>
+            <section class="event-section event-challenge-poster-section">
+              <div class="event-section-heading">
+                <span class="event-section-icon"><i data-lucide="image"></i></span>
+                <div>
+                  <h2>Event Poster</h2>
+                  <p>Open the organizer’s promotional artwork. If artwork dates differ, the current structured dates above apply.</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                class="event-poster-thumb-btn"
+                data-poster-src="<%= details.posterImageUrl %>"
+                aria-label="Open promotional poster"
+              >
+                <img class="event-details-poster-inline" src="<%= details.posterImageUrl %>" alt="<%= details.title %> promotional poster" loading="lazy">
+              </button>
             </section>
           <% } %>
 
@@ -488,9 +640,21 @@
               </div>
             </section>
           <% } %>
+
+          <% if (details.isAccumulatedChallenge && !runnerState && !isPreviewMode && details.primaryCta && !details.primaryCta.disabled) { %>
+            <section class="event-challenge-closing-cta" aria-labelledby="eventChallengeClosingTitle">
+              <div>
+                <p class="event-section-kicker">Ready to take on the challenge?</p>
+                <h2 id="eventChallengeClosingTitle">Choose your goal and start building distance</h2>
+                <p>Register now, select the target that fits your month, and submit approved activities as you go.</p>
+              </div>
+              <a href="<%= details.primaryCta.href %>" class="btn btn-primary">Register for this challenge</a>
+            </section>
+          <% } %>
         </div>
 
-        <aside class="event-side-panel">
+        <% if (showEventSidebar) { %><aside class="event-side-panel">
+          <% if (!details.isAccumulatedChallenge) { %>
           <section class="event-side-card event-register-card">
             <p class="event-side-eyebrow"><%= details.registrationState?.label || 'Registration' %></p>
             <h2><%= details.pricing?.amountLabel || 'Pricing not listed' %></h2>
@@ -559,8 +723,9 @@
               <% } %>
             </div>
           </section>
+          <% } %>
 
-          <% if (details.posterImageUrl) { %>
+          <% if (details.posterImageUrl && !details.isAccumulatedChallenge) { %>
             <section class="event-side-card">
               <h3>Event Poster</h3>
               <button
@@ -614,10 +779,10 @@
           <% if (!isPreviewMode) { %>
             <%- include('../partials/ad-unit', { group: 'eventDetails', placement: 'sidebar', className: 'ad-unit-sidebar' }) %>
           <% } %>
-        </aside>
+        </aside><% } %>
       </div>
 
-      <section class="event-cta-row event-final-cta-row">
+      <% if (!details.isAccumulatedChallenge) { %><section class="event-cta-row event-final-cta-row">
         <% if (details.primaryCta && !details.primaryCta.disabled) { %>
           <a href="<%= details.primaryCta.href %>" class="btn btn-primary">Register for This Event</a>
         <% } else { %>
@@ -628,16 +793,27 @@
         <% } else { %>
           <a href="/events" class="btn btn-outline">Browse Other Events</a>
         <% } %>
-      </section>
+      </section><% } %>
 
       <% if (showMobileStickyCta) { %>
         <div class="event-mobile-sticky-cta" aria-label="Event registration">
           <div class="event-mobile-sticky-copy">
-            <span><%= details.registrationState?.label || 'Registration open' %></span>
-            <strong><%= details.pricing?.amountLabel || 'View pricing' %></strong>
-            <% if (details.registrationState?.helper) { %><small><%= details.registrationState.helper %></small><% } %>
+            <span><%= runnerState?.stateLabel || details.registrationState?.label || 'Registration open' %></span>
+            <strong><%= runnerState?.selectedQuest || details.pricing?.amountLabel || 'View pricing' %></strong>
+            <small><%= runnerState?.progressLabel || details.registrationState?.helper || '' %></small>
           </div>
-          <a href="<%= details.primaryCta.href %>" class="btn btn-primary">Register</a>
+          <% if (pagePrimaryAction.type === 'submit' || pagePrimaryAction.type === 'resubmit') { %>
+            <button
+              type="button"
+              class="btn btn-primary"
+              data-open-run-proof-modal
+              data-run-proof-surface="event-detail-mobile"
+              data-run-proof-mode="<%= pagePrimaryAction.type %>"
+              data-run-proof-registration-id="<%= pagePrimaryAction.registrationId %>"
+            ><%= pagePrimaryAction.label %></button>
+          <% } else { %>
+            <a href="<%= pagePrimaryAction.href %>" class="btn btn-primary"><%= pagePrimaryAction.label %></a>
+          <% } %>
         </div>
       <% } %>
 

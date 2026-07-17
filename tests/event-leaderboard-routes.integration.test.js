@@ -71,10 +71,10 @@ test('global leaderboard page renders event discovery cards', async () => {
   const response = await fetch(`${BASE_URL}/leaderboard?q=${encodeURIComponent(seed.event.title)}&type=race_result&distance=5K&mode=virtual`);
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Find Event Leaderboards/i);
+  assert.match(html, /Find your leaderboard/i);
   assert.match(html, new RegExp(`/events/${seed.event.slug}/leaderboard`, 'i'));
   assert.match(html, /View rankings/i);
-  assert.match(html, /Official ranks are event-specific/i);
+  assert.match(html, /verified result/i);
   assert.doesNotMatch(html, /<th>Runner<\/th>[\s\S]*<th>Event<\/th>[\s\S]*<th>Submitted<\/th>/i);
 });
 
@@ -82,8 +82,8 @@ test('global leaderboard page renders empty discovery state for unmatched filter
   const response = await fetch(`${BASE_URL}/leaderboard?q=no-such-leaderboard-event-${Date.now()}`);
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /No event leaderboards found/i);
-  assert.match(html, /Clear filters/i);
+  assert.match(html, /No event leaderboards match yet/i);
+  assert.match(html, /See all leaderboards/i);
 });
 
 test('event leaderboard my-standing endpoint requires login', async () => {

@@ -4,7 +4,6 @@ function initMainUi() {
   const navLinks = document.querySelector('.nav-links');
   const runProofCallouts = Array.from(document.querySelectorAll('[data-nav-run-proof-callout]'));
   const backToTopBtn = document.getElementById('globalBackToTopBtn');
-  const eventsFilterForm = document.querySelector('.filter-bar[action="/events"]');
   const eventCarousels = Array.from(document.querySelectorAll('[data-event-carousel]'));
   const globalFlash = document.querySelector('[data-global-flash]');
 
@@ -158,19 +157,6 @@ function initMainUi() {
     toggleBackToTop();
   }
 
-  if (eventsFilterForm && eventsFilterForm.dataset.autoSubmitInitialized !== '1') {
-    eventsFilterForm.dataset.autoSubmitInitialized = '1';
-    eventsFilterForm.querySelectorAll('select').forEach((select) => {
-      select.addEventListener('change', () => {
-        if (typeof eventsFilterForm.requestSubmit === 'function') {
-          eventsFilterForm.requestSubmit();
-          return;
-        }
-        eventsFilterForm.submit();
-      });
-    });
-  }
-
   eventCarousels.forEach(initEventCarousel);
 }
 
@@ -289,6 +275,7 @@ function initOrganizerBreadcrumbs() {
 }
 
 function initOperationalFilterTools() {
+  if (!/^\/(admin|organizer)(\/|$)/.test(window.location.pathname)) return;
   const form = document.querySelector('form.admin-filters[method="GET"], form.filter-bar[method="GET"]');
   if (!form) return;
   const params = new URLSearchParams(window.location.search);
@@ -540,6 +527,7 @@ function initEventCarousel(carousel) {
   const prevBtn = carousel.querySelector('[data-carousel-prev]');
   const nextBtn = carousel.querySelector('[data-carousel-next]');
   const dotsWrap = carousel.parentElement?.querySelector('[data-carousel-dots]');
+  const status = carousel.parentElement?.querySelector('[data-carousel-status]');
   const cards = Array.from(track?.querySelectorAll('.featured-event-card') || []);
   const loops = carousel.dataset.carouselLoop !== '0';
   if (!track || !cards.length) return;
@@ -583,6 +571,10 @@ function initEventCarousel(carousel) {
       Array.from(dotsWrap.children).forEach((dot, index) => {
         dot.setAttribute('aria-current', index === page ? 'true' : 'false');
       });
+    }
+    if (status && status.dataset.currentPage !== String(page)) {
+      status.dataset.currentPage = String(page);
+      status.textContent = `Featured events page ${page + 1} of ${pageCount}.`;
     }
   };
 

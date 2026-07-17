@@ -1,266 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: title }) %>
+  <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
   <link rel="stylesheet" href="/css/events.css">
 </head>
-<body>
+<body class="<%= locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer ? 'has-runner-mobile-nav' : '' %>">
   <%- include('../layouts/nav') %>
 
   <% if (loginSuccess && userName) { %>
-    <div class="toast toast-success">
-      <i data-lucide="check-circle"></i>
+    <div class="toast toast-success" role="status">
+      <i data-lucide="check-circle" aria-hidden="true"></i>
       <span>Welcome back, <strong><%= userName %></strong>.</span>
     </div>
   <% } %>
 
-  <main class="main-content">
+  <main class="events-page">
     <% const defaultEventImageUrl = '/images/helloRun-icon.webp'; %>
-    <!-- Hero -->
-    <section class="hero events-hero">
-      <div class="container">
-        <div class="events-hero-panel">
-          <div class="events-hero-copy">
-            <p class="events-hero-kicker">Event Discovery</p>
-            <h1><%= pageContent?.heroTitle || 'Check Out Ongoing Events' %></h1>
-            <p><%= pageContent?.heroDescription || 'Explore active HelloRun races and pick your next challenge.' %></p>
-            <% if (locals.isAuthenticated) { %>
-              <div class="events-hero-actions">
-                <a href="/my-registrations" class="btn btn-outline">
-                  <i data-lucide="clipboard-list" aria-hidden="true"></i>
-                  My Registrations
-                </a>
-              </div>
-            <% } %>
-          </div>
 
-          <div class="events-hero-summary" aria-label="Events overview">
-            <div class="events-hero-summary-item">
-              <span class="events-hero-summary-icon"><i data-lucide="calendar-check" aria-hidden="true"></i></span>
-              <span>
-                <strong><%= filterMeta?.resultsCount || 0 %></strong>
-                <small>Matching events</small>
-              </span>
-            </div>
-            <div class="events-hero-summary-item">
-              <span class="events-hero-summary-icon"><i data-lucide="flag" aria-hidden="true"></i></span>
-              <span>
-                <strong><%= (filterMeta?.distanceOptions || []).length %></strong>
-                <small>Distance choices</small>
-              </span>
-            </div>
-            <div class="events-hero-summary-item">
-              <span class="events-hero-summary-icon"><i data-lucide="sliders-horizontal" aria-hidden="true"></i></span>
-              <span>
-                <strong><%= filterMeta?.activeFilterCount || 0 %></strong>
-                <small>Active filters</small>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Events Section -->
-    <section class="events-section">
+    <section class="events-discovery-header" aria-labelledby="eventsPageTitle">
       <div class="container">
-        <div class="events-toolbar">
-          <div>
-            <p class="events-toolbar-kicker">Browse races</p>
-            <h2>Find your next starting line</h2>
+        <div class="events-intro-row">
+          <div class="events-intro-copy">
+            <p class="section-kicker">Find your next finish line</p>
+            <h1 id="eventsPageTitle"><%= pageContent?.heroTitle || 'Discover Running Events' %></h1>
+            <p><%= pageContent?.heroDescription || 'Compare virtual, on-site, and hybrid events to find your next challenge.' %></p>
           </div>
-          <p>Search by event, organizer, or location, then narrow the list by mode, distance, registration status, or start date.</p>
+          <% if (locals.isAuthenticated) { %>
+            <a href="/my-registrations" class="btn btn-outline events-registrations-link">
+              <i data-lucide="clipboard-list" aria-hidden="true"></i>
+              My Registrations
+            </a>
+          <% } %>
         </div>
 
-        <!-- Filter Bar -->
-        <form method="GET" action="/events" class="filter-bar">
-          <div class="filter-search-row">
-            <div class="filter-group filter-group-search">
-              <label for="eventsSearch" class="sr-only">Search</label>
-              <div class="search-wrapper">
-                <i data-lucide="search"></i>
-                <input
-                  id="eventsSearch"
-                  type="search"
-                  name="q"
-                  value="<%= filters?.q || '' %>"
-                  placeholder="Search events, organizer, or location..."
-                >
-              </div>
-            </div>
-            <button type="submit" class="btn btn-secondary">
+        <form method="GET" action="/events#event-results" class="events-discovery-form">
+          <div class="events-search-row">
+            <div class="search-field">
+              <label for="eventsSearch" class="sr-only">Search events, organizers, or locations</label>
               <i data-lucide="search" aria-hidden="true"></i>
-              <span>Show events</span>
+              <input
+                id="eventsSearch"
+                type="search"
+                name="q"
+                value="<%= filters?.q || '' %>"
+                placeholder="Search events, organizer, or location..."
+              >
+            </div>
+            <button type="submit" class="btn btn-primary events-search-submit">
+              <span>Search events</span>
+              <i data-lucide="arrow-right" aria-hidden="true"></i>
             </button>
           </div>
 
-          <div class="filter-primary-grid" aria-label="Event filters">
-            <div class="filter-group filter-group-select">
-              <label for="eventsMode">Mode</label>
-              <select id="eventsMode" name="eventType">
-                <option value="">All Modes</option>
-                <option value="virtual" <%= filters?.eventType === 'virtual' ? 'selected' : '' %>>Virtual</option>
-                <option value="onsite" <%= filters?.eventType === 'onsite' ? 'selected' : '' %>>On-site</option>
-                <option value="hybrid" <%= filters?.eventType === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
-              </select>
-            </div>
+          <div class="events-control-row">
+            <details class="events-filter-panel" <%= filterMeta?.hasActiveFilters || filterMeta?.validationError ? 'open' : '' %>>
+              <summary>
+                <span class="filter-summary-label">
+                  <i data-lucide="sliders-horizontal" aria-hidden="true"></i>
+                  Filters
+                  <% if (filterMeta?.activeFilterCount) { %>
+                    <span class="filter-count" aria-label="<%= filterMeta.activeFilterCount %> active <%= filterMeta.activeFilterCount === 1 ? 'filter' : 'filters' %>"><%= filterMeta.activeFilterCount %></span>
+                  <% } %>
+                </span>
+                <span class="filter-summary-hint">Mode, distance, availability, and date</span>
+              </summary>
 
-            <div class="filter-group filter-group-select">
-              <label for="eventsDistance">Distance</label>
-              <select id="eventsDistance" name="distance">
-                <option value="">All Distances</option>
-                <% (filterMeta?.distanceOptions || []).forEach((distanceItem) => { %>
-                  <option value="<%= distanceItem %>" <%= filters?.distance === distanceItem ? 'selected' : '' %>><%= distanceItem %></option>
-                <% }) %>
-              </select>
-            </div>
+              <div class="events-filter-content">
+                <div class="events-filter-grid" aria-label="Event filters">
+                  <div class="filter-group">
+                    <label for="eventsMode">Mode</label>
+                    <select id="eventsMode" name="eventType">
+                      <option value="">All modes</option>
+                      <option value="virtual" <%= filters?.eventType === 'virtual' ? 'selected' : '' %>>Virtual</option>
+                      <option value="onsite" <%= filters?.eventType === 'onsite' ? 'selected' : '' %>>On-site</option>
+                      <option value="hybrid" <%= filters?.eventType === 'hybrid' ? 'selected' : '' %>>Hybrid</option>
+                    </select>
+                  </div>
 
-            <div class="filter-group filter-group-select">
-              <label for="eventsStatus">Registration status</label>
-              <select id="eventsStatus" name="status">
-                <option value="all" <%= (filters?.status || 'all') === 'all' ? 'selected' : '' %>>All statuses</option>
-                <option value="upcoming" <%= filters?.status === 'upcoming' ? 'selected' : '' %>>Upcoming</option>
-                <option value="open" <%= filters?.status === 'open' ? 'selected' : '' %>>Open</option>
-                <option value="closed" <%= filters?.status === 'closed' ? 'selected' : '' %>>Closed / Past</option>
+                  <div class="filter-group">
+                    <label for="eventsDistance">Distance</label>
+                    <select id="eventsDistance" name="distance">
+                      <option value="">All distances</option>
+                      <% (filterMeta?.distanceOptions || []).forEach((distanceItem) => { %>
+                        <option value="<%= distanceItem %>" <%= filters?.distance === distanceItem ? 'selected' : '' %>><%= distanceItem %></option>
+                      <% }) %>
+                    </select>
+                  </div>
+
+                  <div class="filter-group">
+                    <label for="eventsStatus">Registration availability</label>
+                    <select id="eventsStatus" name="status">
+                      <option value="all" <%= (filters?.status || 'all') === 'all' ? 'selected' : '' %>>All availability</option>
+                      <option value="open" <%= filters?.status === 'open' ? 'selected' : '' %>>Open now</option>
+                      <option value="upcoming" <%= filters?.status === 'upcoming' ? 'selected' : '' %>>Opens later</option>
+                      <option value="closed" <%= filters?.status === 'closed' ? 'selected' : '' %>>Closed</option>
+                    </select>
+                  </div>
+
+                  <div class="filter-group">
+                    <label for="eventsDateFrom">Starts from</label>
+                    <input type="date" id="eventsDateFrom" name="dateFrom" value="<%= filters?.dateFrom ? filters.dateFrom.toISOString().slice(0,10) : '' %>" <%= filterMeta?.validationError ? 'aria-invalid="true" aria-describedby="eventsDateError"' : '' %>>
+                  </div>
+
+                  <div class="filter-group">
+                    <label for="eventsDateTo">Starts by</label>
+                    <input type="date" id="eventsDateTo" name="dateTo" value="<%= filters?.dateTo ? filters.dateTo.toISOString().slice(0,10) : '' %>" <%= filterMeta?.validationError ? 'aria-invalid="true" aria-describedby="eventsDateError"' : '' %>>
+                  </div>
+                </div>
+
+                <% if (filterMeta?.validationError) { %>
+                  <p class="filter-validation-error" id="eventsDateError" role="alert"><%= filterMeta.validationError %></p>
+                <% } %>
+
+                <div class="events-filter-actions">
+                  <% if (filterMeta?.hasActiveFilters) { %>
+                    <a href="<%= filterMeta.clearFiltersUrl %>#event-results" class="btn btn-outline">Clear filters</a>
+                  <% } %>
+                  <button type="submit" class="btn btn-primary">Apply filters</button>
+                </div>
+              </div>
+            </details>
+
+            <div class="events-sort-control">
+              <label for="eventsSort">Sort by</label>
+              <select id="eventsSort" name="sort">
+                <option value="recommended" <%= (filters?.sort || 'recommended') === 'recommended' ? 'selected' : '' %>>Recommended</option>
+                <option value="closing-soon" <%= filters?.sort === 'closing-soon' ? 'selected' : '' %>>Registration closing soon</option>
+                <option value="start-date" <%= filters?.sort === 'start-date' ? 'selected' : '' %>>Event start date</option>
+                <option value="newest" <%= filters?.sort === 'newest' ? 'selected' : '' %>>Newest listed</option>
               </select>
+              <button type="submit" class="btn btn-outline">Apply sort</button>
             </div>
           </div>
-
-          <details class="filter-more" <%= filters?.dateFrom || filters?.dateTo ? 'open' : '' %>>
-            <summary>
-              <i data-lucide="calendar-range" aria-hidden="true"></i>
-              Event start date<%= filters?.dateFrom || filters?.dateTo ? ' (active)' : '' %>
-            </summary>
-            <div class="filter-date-grid">
-              <div class="filter-group filter-group-date">
-                <label for="eventsDateFrom">From</label>
-                <input type="date" id="eventsDateFrom" name="dateFrom" value="<%= filters?.dateFrom ? filters.dateFrom.toISOString().slice(0,10) : '' %>" <%= filterMeta?.validationError ? 'aria-invalid="true" aria-describedby="eventsDateError"' : '' %>>
-              </div>
-
-              <div class="filter-group filter-group-date">
-                <label for="eventsDateTo">To</label>
-                <input type="date" id="eventsDateTo" name="dateTo" value="<%= filters?.dateTo ? filters.dateTo.toISOString().slice(0,10) : '' %>" <%= filterMeta?.validationError ? 'aria-invalid="true" aria-describedby="eventsDateError"' : '' %>>
-              </div>
-            </div>
-          </details>
-
-          <% if (filterMeta?.hasActiveFilters) { %>
-            <div class="filter-actions">
-              <a href="/events" class="btn btn-outline">
-                <i data-lucide="x" aria-hidden="true"></i>
-                Clear
-              </a>
-            </div>
-          <% } %>
         </form>
+      </div>
+    </section>
 
-        <% if (filterMeta?.validationError) { %>
-          <p class="filter-validation-error" id="eventsDateError" role="alert"><%= filterMeta.validationError %></p>
-        <% } %>
-
-        <!-- Results Meta -->
+    <section class="events-results-section" aria-labelledby="event-results">
+      <div class="container">
         <div class="events-results-header">
           <div>
-            <p class="events-toolbar-kicker">Results</p>
-            <h2 id="event-results" tabindex="-1">Available events</h2>
+            <p class="section-kicker">Events for you</p>
+            <h2 id="event-results" tabindex="-1"><%= (filterMeta?.resultsCount || 0).toLocaleString('en-US') %> <%= filterMeta?.resultsCount === 1 ? 'event' : 'events' %></h2>
           </div>
-          <p class="events-sort-note"><strong>Recommended order:</strong> open registration first</p>
+          <p class="results-range">
+            <% if ((filterMeta?.resultsCount || 0) > 0) { %>
+              Showing <strong><%= pagination.resultStart %>–<%= pagination.resultEnd %></strong> of <strong><%= filterMeta.resultsCount %></strong>
+            <% } else { %>
+              No matches yet
+            <% } %>
+          </p>
         </div>
-        <p class="results-meta">
-          <% if ((filterMeta?.resultsCount || 0) > 0) { %>
-            Showing <strong><%= pagination.resultStart %>–<%= pagination.resultEnd %></strong> of <strong><%= filterMeta.resultsCount %></strong> events<%= filterMeta?.hasActiveFilters ? ` with ${filterMeta.activeFilterCount} active filter${filterMeta.activeFilterCount === 1 ? '' : 's'}` : '' %>.
-          <% } else { %>
-            Showing <strong>0</strong> events<%= filterMeta?.hasActiveFilters ? ` with ${filterMeta.activeFilterCount} active filter${filterMeta.activeFilterCount === 1 ? '' : 's'}` : '' %>.
-          <% } %>
-        </p>
-        <% if (filterMeta?.summary) { %>
-          <p class="results-summary"><%= filterMeta.summary %></p>
-        <% } %>
 
         <% if (filterMeta?.activeFilters?.length) { %>
           <div class="active-filters" aria-label="Active filters">
             <% filterMeta.activeFilters.forEach((activeFilter) => { %>
               <a href="<%= activeFilter.clearUrl %>#event-results" class="filter-chip" aria-label="Remove <%= activeFilter.label %> filter: <%= activeFilter.value %>">
                 <span><strong><%= activeFilter.label %>:</strong> <%= activeFilter.value %></span>
-                <span class="filter-chip-remove" aria-hidden="true">×</span>
+                <span aria-hidden="true">×</span>
               </a>
             <% }) %>
-            <a href="/events#event-results" class="filter-chip filter-chip-clear">Clear all</a>
+            <a href="<%= filterMeta.clearFiltersUrl %>#event-results" class="filter-chip filter-chip-clear">Clear filters</a>
           </div>
         <% } %>
 
         <% if (events && events.length) { %>
-          <%- include('../partials/ad-unit', { group: 'events', placement: 'after_results_meta' }) %>
-        <% } %>
-
-        <!-- Event Cards -->
-        <% if (events && events.length) { %>
-          <div class="card-grid">
+          <div class="events-card-grid">
             <% let eventsFeedAdCount = 0; %>
             <% events.forEach((event, eventIndex) => { %>
-              <article class="card" data-event-slug="<%= event.slug %>">
-                <% const eventBannerImageUrl = event.bannerImageUrl || defaultEventImageUrl; %>
-                <a href="/events/<%= event.slug %>" class="card-image-link" tabindex="-1" aria-hidden="true">
+              <% const eventBannerImageUrl = event.bannerImageUrl || defaultEventImageUrl; %>
+              <article class="event-card" data-event-slug="<%= event.slug %>">
+                <a href="/events/<%= event.slug %>" class="event-card-image-link" tabindex="-1" aria-hidden="true">
                   <img
-                    class="card-image"
+                    class="event-card-image"
                     src="<%= eventBannerImageUrl %>"
                     alt=""
+                    loading="lazy"
                     onerror="this.onerror=null;this.src='<%= defaultEventImageUrl %>';"
                   >
                 </a>
 
-                <div class="card-content">
-                  <div class="card-tags">
-                    <span class="tag tag-status tag-status-<%= event.displayState?.tone || 'neutral' %>"><%= event.displayState?.label || 'Event Listing' %></span>
-                    <span class="tag"><%= event.eventTypeLabel || 'Event' %></span>
-                  </div>
-
-                  <h3 class="card-title">
-                    <a href="/events/<%= event.slug %>"><%= event.title %></a>
-                  </h3>
-
-                  <% if (event.displayState?.helper) { %>
-                    <p class="card-helper"><%= event.displayState.helper %></p>
-                  <% } %>
-
-                  <div class="card-meta">
-                    <i data-lucide="calendar" aria-hidden="true"></i>
-                    <span><%= event.startDateLabel || (event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US') : 'Start date not listed') %></span>
-                  </div>
-
-                  <div class="card-meta">
-                    <i data-lucide="map-pin" aria-hidden="true"></i>
-                    <span><%= event.locationLabel || 'Location details not listed' %></span>
-                  </div>
-
-                  <div class="card-meta">
-                    <i data-lucide="flag" aria-hidden="true"></i>
-                    <span><%= event.distanceLabel || (event.raceDistances || []).join(', ') || 'Distances not listed' %></span>
-                  </div>
-
-                  <div class="card-meta">
-                    <i data-lucide="user-round" aria-hidden="true"></i>
-                    <span><%= event.organizerName || 'HelloRun' %></span>
-                  </div>
-
-                  <div class="card-meta card-meta-price">
-                    <i data-lucide="wallet-cards" aria-hidden="true"></i>
-                    <span><%= event.priceLabel || 'Pricing not listed' %></span>
-                  </div>
-
-                  <% if (event.descriptionText) { %>
-                    <p class="card-description"><%= event.descriptionText %></p>
-                  <% } %>
-
-                  <div class="card-actions">
-                    <a href="/events/<%= event.slug %>" class="btn btn-secondary btn-sm">
-                      View details
-                      <i data-lucide="arrow-right" aria-hidden="true"></i>
-                    </a>
+                <div class="event-card-body">
+                  <div class="event-card-topline">
+                    <div class="event-card-tags">
+                      <span class="tag tag-status tag-status-<%= event.availability?.tone || 'closed' %>"><%= event.availability?.label || 'Closed' %></span>
+                      <span class="tag"><%= event.eventTypeLabel || 'Event' %></span>
+                    </div>
                     <% if (locals.isAuthenticated) { %>
                       <% const _isSaved = savedEventIds && savedEventIds.has(String(event._id)); %>
                       <button type="button"
-                        class="btn btn-icon-only btn-outline btn-save-event js-save-event<%= _isSaved ? ' is-saved' : '' %>"
+                        class="btn btn-save-event js-save-event<%= _isSaved ? ' is-saved' : '' %>"
                         data-event-slug="<%= event.slug %>"
                         data-saved="<%= _isSaved ? '1' : '0' %>"
                         aria-label="<%= _isSaved ? 'Remove from saved' : 'Save event' %>"
@@ -269,77 +198,100 @@
                       </button>
                     <% } %>
                   </div>
+
+                  <h3 class="event-card-title"><a href="/events/<%= event.slug %>"><%= event.title %></a></h3>
+                  <p class="event-card-helper"><%= event.availability?.helper || 'Review the event schedule and registration details.' %></p>
+
+                  <dl class="event-card-facts">
+                    <div>
+                      <dt><i data-lucide="calendar" aria-hidden="true"></i><span>Date</span></dt>
+                      <dd><%= event.startDateLabel || 'Not listed' %></dd>
+                    </div>
+                    <div>
+                      <dt><i data-lucide="map-pin" aria-hidden="true"></i><span>Location</span></dt>
+                      <dd><%= event.locationLabel || 'Not listed' %></dd>
+                    </div>
+                    <div>
+                      <dt><i data-lucide="flag" aria-hidden="true"></i><span>Distance</span></dt>
+                      <dd>
+                        <span aria-hidden="true"><%= event.distanceLabel || 'Not listed' %></span>
+                        <span class="sr-only"><%= event.distanceFullLabel || event.distanceLabel || 'Not listed' %></span>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt><i data-lucide="wallet-cards" aria-hidden="true"></i><span>Price</span></dt>
+                      <dd><%= event.priceLabel || 'Not listed' %></dd>
+                    </div>
+                  </dl>
+
+                  <p class="event-card-organizer">Hosted by <strong><%= event.organizerName || 'HelloRun' %></strong></p>
+
+                  <a href="/events/<%= event.slug %>" class="btn btn-primary event-card-cta">
+                    <%= event.cardCtaLabel || 'View event' %>
+                    <i data-lucide="arrow-right" aria-hidden="true"></i>
+                  </a>
                 </div>
               </article>
+
               <% if ((eventIndex + 1) % 6 === 0 && eventsFeedAdCount < 2) { eventsFeedAdCount += 1; %>
                 <%- include('../partials/ad-unit', { group: 'events', placement: 'in_feed', className: 'ad-unit-feed' }) %>
               <% } %>
             <% }); %>
           </div>
 
-          <!-- Pagination -->
+          <%- include('../partials/ad-unit', { group: 'events', placement: 'after_results_meta' }) %>
+
           <% if (pagination && pagination.totalPages > 1) { %>
-            <p class="results-meta">Page <%= pagination.currentPage %> of <%= pagination.totalPages %></p>
             <nav class="pagination" aria-label="Events pagination">
               <a
                 href="<%= pagination.getPageUrl(Math.max(1, pagination.currentPage - 1)) %>"
-                class="pagination-prev <%= pagination.currentPage === 1 ? 'disabled' : '' %>"
+                class="pagination-link pagination-prev <%= pagination.currentPage === 1 ? 'disabled' : '' %>"
                 aria-label="Go to previous events page"
                 <%= pagination.currentPage === 1 ? 'aria-disabled="true" tabindex="-1"' : '' %>
-              >
-                <i data-lucide="chevron-left" aria-hidden="true"></i> Previous
-              </a>
+              ><i data-lucide="chevron-left" aria-hidden="true"></i><span>Previous</span></a>
 
               <div class="pagination-numbers">
                 <% for (let i = 1; i <= pagination.totalPages; i++) { %>
                   <% if (i === 1 || i === pagination.totalPages || (i >= pagination.currentPage - 1 && i <= pagination.currentPage + 1)) { %>
                     <a
                       href="<%= pagination.getPageUrl(i) %>"
-                      class="events-page-number<%= i === pagination.currentPage ? ' active' : '' %>"
+                      class="pagination-link events-page-number<%= i === pagination.currentPage ? ' active' : '' %>"
                       aria-label="<%= i === pagination.currentPage ? `Current page, page ${i}` : `Go to page ${i}` %>"
                       <%= i === pagination.currentPage ? 'aria-current="page"' : '' %>
-                    >
-                      <%= i %>
-                    </a>
+                    ><%= i %></a>
                   <% } else if (i === pagination.currentPage - 2 || i === pagination.currentPage + 2) { %>
-                    <span class="pagination-ellipsis">…</span>
+                    <span class="pagination-ellipsis" aria-hidden="true">…</span>
                   <% } %>
                 <% } %>
               </div>
 
               <a
                 href="<%= pagination.getPageUrl(Math.min(pagination.totalPages, pagination.currentPage + 1)) %>"
-                class="pagination-next <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>"
+                class="pagination-link pagination-next <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>"
                 aria-label="Go to next events page"
                 <%= pagination.currentPage === pagination.totalPages ? 'aria-disabled="true" tabindex="-1"' : '' %>
-              >
-                Next <i data-lucide="chevron-right" aria-hidden="true"></i>
-              </a>
+              ><span>Next</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
             </nav>
           <% } %>
-
         <% } else { %>
-          <div class="empty-state">
-            <i data-lucide="calendar-x"></i>
-            <h3><%= filterMeta?.hasActiveFilters ? 'No events match these filters' : 'No published events yet' %></h3>
+          <div class="events-empty-state">
+            <span class="empty-state-icon"><i data-lucide="calendar-search" aria-hidden="true"></i></span>
+            <h3><%= filterMeta?.hasActiveFilters ? 'No events match your search yet' : 'New events are on the way' %></h3>
             <% if (filterMeta?.hasActiveFilters) { %>
-              <p>No events matched your current filters. Try removing a distance, mode, or status filter, then compare the available event pages again.</p>
-              <a href="/events" class="btn btn-outline">Clear filters</a>
+              <p>Try clearing a filter to see more races and challenges.</p>
+              <a href="<%= filterMeta.clearFiltersUrl %>#event-results" class="btn btn-primary">See all events</a>
             <% } else { %>
-              <p>Check back soon for newly published races. While waiting, learn how virtual submissions work, what proof usually needs to show, and how organizers review results.</p>
-              <div class="card-actions">
-                <a href="/how-it-works" class="btn btn-outline">How It Works</a>
-                <a href="/blog" class="btn btn-secondary">Read running guides</a>
-              </div>
+              <p>Check back soon for newly published races and virtual challenges.</p>
+              <a href="/how-it-works" class="btn btn-outline">See how HelloRun works</a>
             <% } %>
           </div>
         <% } %>
 
         <details class="events-guide">
-          <summary>How to choose the right event</summary>
-          <div class="events-guide-content">
-            <p>A 5K is friendly for beginners and walkers, a 10K gives returning runners a stronger weekly goal, and 21K or accumulated-distance challenges require more planning.</p>
-            <p>Before registering, open the event page and check its activity window, accepted proof, payment instructions, rewards, and leaderboard rules. New to HelloRun? Read <a href="/how-it-works">How It Works</a> or the <a href="/faq">FAQ</a>.</p>
+          <summary>Not sure which event fits you?</summary>
+          <div>
+            <p>A 5K works well for beginners and walkers. A 10K offers a stronger weekly goal, while 21K and accumulated-distance challenges need more planning.</p>
+            <p>Open an event to compare its activity window, accepted proof, payment instructions, rewards, and leaderboard rules. You can also read <a href="/how-it-works">How It Works</a> or the <a href="/faq">FAQ</a>.</p>
           </div>
         </details>
       </div>

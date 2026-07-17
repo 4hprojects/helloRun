@@ -56,78 +56,48 @@
 
     <article class="blog-post-article">
       <header class="blog-post-hero">
+        <div class="blog-post-topic-row">
+          <span class="blog-category-chip"><%= articlePresentation?.categoryLabel || post.category %></span>
+          <span class="blog-post-audience">For <strong><%= articlePresentation?.audience || 'the running community' %></strong></span>
+        </div>
         <div class="blog-post-title-row">
           <h1><%= post.title %></h1>
-          <span class="blog-category-chip"><%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %></span>
         </div>
-        <%
-          const audienceMap = {
-            'Training': 'Runners & Walkers',
-            'Race Tips': 'Race Participants',
-            'Virtual Run Guide': 'Virtual Runners',
-            'Organizer Guide': 'Event Organizers',
-            'Nutrition': 'Runners & Walkers',
-            'Gear': 'All Runners',
-            'Injury Prevention': 'Runners & Walkers',
-            'Mental Health': 'All Runners',
-            'Community': 'HelloRun Community',
-            'Motivation': 'All Runners',
-          };
-          const audience = audienceMap[post.category] || 'All Runners';
-        %>
         <div class="post-audience-chips">
-          <span class="post-audience-chip-label">For:</span>
-          <span class="post-audience-chip"><%= audience %></span>
-          <% (post.tags || []).slice(0, 2).forEach(function(tag) { %>
+          <% (articlePresentation?.tags || []).forEach(function(tag) { %>
             <span class="post-audience-chip post-audience-chip-tag">#<%= tag %></span>
           <% }) %>
         </div>
         <% if (post.excerpt) { %>
           <p class="blog-post-excerpt"><%= post.excerpt %></p>
         <% } %>
-        <div class="blog-post-submeta-row">
-          <p class="blog-post-submeta">
-            By <strong><%= authorDisplay?.name || `${post.authorId?.firstName || 'HelloRun'} ${post.authorId?.lastName || ''}` %>
+        <div class="blog-post-byline">
+          <span class="blog-post-author-avatar" aria-hidden="true">
+            <% if (post.authorId?.avatarUrl) { %>
+              <img src="<%= post.authorId.avatarUrl %>" alt="">
+            <% } else { %>
+              <%= (post.authorId?.firstName || 'H').charAt(0) %>
+            <% } %>
+          </span>
+          <div class="blog-post-author-copy">
+            <a href="<%= post.authorId?._id ? `/blog?author=${post.authorId._id}` : '/blog' %>" class="blog-post-author-name">
+              <%= authorDisplay?.name || `${post.authorId?.firstName || 'HelloRun'} ${post.authorId?.lastName || ''}` %>
               <% if (post.authorId?.verifiedAuthor) { %>
-                <span class="verified-author-badge" title="Verified Author" style="color:#2196f3;vertical-align:middle;">
-                  <i data-lucide="badge-check" aria-hidden="true"></i> Verified
-                </span>
+                <i data-lucide="badge-check" class="verified-author-icon" aria-label="Verified writer"></i>
               <% } %>
-            </strong>
-            <%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '' %> |
-            <%= post.readingTime || 1 %> min read |
-            <%= Number(post.views || 0).toLocaleString('en-US') %> views
-          </p>
-          <div class="blog-share-row" id="blogShareRow">
-            <!-- Mobile-only toggle button -->
-            <button type="button" class="btn btn-icon share-mobile-toggle" id="shareMobileToggle" aria-label="Share options" aria-expanded="false" title="Share">
-              <i data-lucide="share-2"></i>
-            </button>
-            <!-- Share buttons (inline on desktop, dropdown on mobile) -->
-            <div class="share-options" role="group" aria-label="Share options">
-              <button type="button" class="btn btn-icon" id="copyBlogLinkBtn" aria-label="Copy link" title="Copy link">
-                <i data-lucide="link"></i>
-              </button>
-              <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareFacebook" aria-label="Share on Facebook" title="Share on Facebook">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-              </a>
-              <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareTwitter" aria-label="Share on X" title="Share on X">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
-              </a>
-              <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareLinkedIn" aria-label="Share on LinkedIn" title="Share on LinkedIn">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
-              </a>
-              <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareWhatsApp" aria-label="Share on WhatsApp" title="Share on WhatsApp">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              </a>
-              <a class="btn btn-icon" href="#" id="shareEmail" aria-label="Share via Email" title="Share via Email">
-                <i data-lucide="mail"></i>
-              </a>
-            </div>
+            </a>
+            <p class="blog-post-submeta">
+              <%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '' %>
+              <span aria-hidden="true">·</span> <%= post.readingTime || 1 %> min read
+            </p>
+          </div>
+          <div class="blog-post-community-stats" aria-label="Article engagement">
+            <span><i data-lucide="eye" aria-hidden="true"></i><strong><%= Number(post.views || 0).toLocaleString('en-US') %></strong> views</span>
+            <span><i data-lucide="heart" aria-hidden="true"></i><strong><%= Number(post.likesCount || 0).toLocaleString('en-US') %></strong> likes</span>
+            <a href="#blogComments"><i data-lucide="message-circle" aria-hidden="true"></i><strong><%= Number(post.commentsCount || 0).toLocaleString('en-US') %></strong> comments</a>
           </div>
         </div>
-        <!-- Toast for copy feedback -->
-        <div class="toast hidden" id="copyToast">Link copied!</div>
+        <div class="toast hidden" id="copyToast" role="status" aria-live="polite">Link copied!</div>
       </header>
 
       <% if (post.coverImageUrl) { %>
@@ -145,6 +115,30 @@
           </aside>
         </details>
 
+        <aside class="blog-engagement-rail" aria-label="Article actions">
+          <div class="blog-engagement-rail-inner">
+            <button type="button" class="blog-like-btn<%= interactionState?.likedByCurrentUser ? ' is-liked' : '' %>" id="blogLikeBtn" data-liked="<%= interactionState?.likedByCurrentUser ? '1' : '0' %>" <%= interactionState?.isAuthenticated ? '' : 'data-login-required="1"' %> aria-pressed="<%= interactionState?.likedByCurrentUser ? 'true' : 'false' %>">
+              <i data-lucide="heart" aria-hidden="true"></i>
+              <span id="blogLikeLabel"><%= interactionState?.likedByCurrentUser ? 'Unlike' : 'Like' %></span>
+              <span class="blog-like-count" id="blogLikeCount"><%= Number(post.likesCount || 0).toLocaleString('en-US') %></span>
+            </button>
+            <div class="blog-share-row" id="blogShareRow">
+              <button type="button" class="btn btn-icon share-mobile-toggle" id="shareMobileToggle" aria-label="Share options" aria-expanded="false" title="Share">
+                <i data-lucide="share-2" aria-hidden="true"></i><span>Share</span>
+              </button>
+              <div class="share-options" role="group" aria-label="Share options">
+                <button type="button" class="btn btn-icon" id="copyBlogLinkBtn" aria-label="Copy link" title="Copy link"><i data-lucide="link" aria-hidden="true"></i></button>
+                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareFacebook" aria-label="Share on Facebook" title="Share on Facebook">f</a>
+                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareTwitter" aria-label="Share on X" title="Share on X">X</a>
+                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareLinkedIn" aria-label="Share on LinkedIn" title="Share on LinkedIn">in</a>
+                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareWhatsApp" aria-label="Share on WhatsApp" title="Share on WhatsApp"><i data-lucide="message-circle" aria-hidden="true"></i></a>
+                <a class="btn btn-icon" href="#" id="shareEmail" aria-label="Share via email" title="Share via email"><i data-lucide="mail" aria-hidden="true"></i></a>
+              </div>
+            </div>
+            <a href="#blogComments" class="blog-comment-jump"><i data-lucide="message-circle" aria-hidden="true"></i><span>Discuss</span></a>
+          </div>
+        </aside>
+
         <!-- Desktop TOC -->
         <aside class="blog-post-toc-card desktop-only" id="blogPostTocWrapDesktop">
           <h4>On this page</h4>
@@ -152,39 +146,10 @@
         </aside>
 
         <div class="blog-post-body">
-          <%
-            const actionPanelLinks = {
-              'Training': [
-                { label: 'Browse Events', href: '/events', icon: 'calendar' },
-                { label: 'How Proof Works', href: '/how-it-works', icon: 'file-check' },
-                { label: 'Your Results', href: '/runner', icon: 'trophy' },
-              ],
-              'Race Tips': [
-                { label: 'Browse Events', href: '/events', icon: 'calendar' },
-                { label: 'Register for a Run', href: '/events', icon: 'user-plus' },
-                { label: 'Event FAQ', href: '/faq', icon: 'help-circle' },
-              ],
-              'Virtual Run Guide': [
-                { label: 'Browse Virtual Runs', href: '/events', icon: 'play-circle' },
-                { label: 'How to Submit Proof', href: '/how-it-works', icon: 'file-check' },
-                { label: 'FAQ', href: '/faq', icon: 'help-circle' },
-              ],
-              'Organizer Guide': [
-                { label: 'Organiser Portal', href: '/organizer', icon: 'layout-dashboard' },
-                { label: 'Create an Event', href: '/organizer', icon: 'plus-circle' },
-                { label: 'Proof Review FAQ', href: '/faq', icon: 'search' },
-              ],
-            };
-            const panelLinks = actionPanelLinks[post.category] || [
-              { label: 'Browse Events', href: '/events', icon: 'calendar' },
-              { label: 'How It Works', href: '/how-it-works', icon: 'info' },
-              { label: 'FAQ', href: '/faq', icon: 'help-circle' },
-            ];
-          %>
           <div class="run-action-panel">
-            <span class="run-action-panel-label">Quick links</span>
+            <span class="run-action-panel-label">Put this into action</span>
             <div class="run-action-panel-links">
-              <% panelLinks.forEach(function(link) { %>
+              <% (articlePresentation?.actions || []).forEach(function(link) { %>
                 <a href="<%= link.href %>" class="run-action-panel-link">
                   <i data-lucide="<%= link.icon %>" aria-hidden="true"></i>
                   <%= link.label %>
@@ -200,6 +165,19 @@
             <% } %>
           </section>
 
+          <% if (post.galleryImageUrls && post.galleryImageUrls.length) { %>
+            <section class="blog-gallery">
+              <h3>Story gallery</h3>
+              <div class="blog-gallery-grid">
+                <% post.galleryImageUrls.forEach((imageUrl, imageIndex) => { %>
+                  <button type="button" class="blog-gallery-item" data-gallery-index="<%= imageIndex %>" data-gallery-url="<%= imageUrl %>" data-gallery-caption="<%= post.galleryCaptions?.[imageIndex] || '' %>" aria-label="Open gallery image <%= imageIndex + 1 %>">
+                    <img src="<%= imageUrl %>" alt="<%= post.title %> gallery image <%= imageIndex + 1 %>" loading="lazy">
+                  </button>
+                <% }) %>
+              </div>
+            </section>
+          <% } %>
+
           <% if (post.tags && post.tags.length) { %>
             <div class="blog-tag-list">
               <% post.tags.forEach((tag) => { %>
@@ -208,13 +186,15 @@
             </div>
           <% } %>
 
+          <div class="post-next-step">
+            <span class="post-next-step-text">Ready to take the next step?</span>
+            <a href="<%= articlePresentation?.nextStep?.href || '/events' %>" class="post-next-step-cta">
+              <%= articlePresentation?.nextStep?.label || 'Browse community events' %> <i data-lucide="arrow-right" aria-hidden="true"></i>
+            </a>
+          </div>
+
           <section class="blog-interactions">
             <div class="blog-interactions-bar">
-              <button type="button" class="blog-like-btn<%= interactionState?.likedByCurrentUser ? ' is-liked' : '' %>" id="blogLikeBtn" data-liked="<%= interactionState?.likedByCurrentUser ? '1' : '0' %>" <%= interactionState?.isAuthenticated ? '' : 'data-login-required="1"' %> aria-pressed="<%= interactionState?.likedByCurrentUser ? 'true' : 'false' %>">
-                <i data-lucide="heart"></i>
-                <span id="blogLikeLabel"><%= interactionState?.likedByCurrentUser ? 'Unlike' : 'Like' %></span>
-                <span class="blog-like-count" id="blogLikeCount"><%= Number(post.likesCount || 0).toLocaleString('en-US') %></span>
-              </button>
               <% if (interactionState?.isAuthenticated) { %>
                 <details class="blog-report-details">
                   <summary>Report post</summary>
@@ -237,8 +217,14 @@
               <% } %>
             </div>
 
-            <div class="blog-comments-section">
-              <h3 class="blog-comments-heading">Comments</h3>
+            <div class="blog-comments-section" id="blogComments">
+              <div class="blog-comments-heading-row">
+                <div>
+                  <span class="blog-comments-kicker">Community discussion</span>
+                  <h3 class="blog-comments-heading">Comments</h3>
+                </div>
+                <span><%= Number(post.commentsCount || 0).toLocaleString('en-US') %> contributions</span>
+              </div>
               <% if (interactionState?.isAuthenticated) { %>
                 <form id="blogCommentForm" class="blog-comment-form">
                   <textarea name="content" rows="4" maxlength="1000" placeholder="Add your comment…"></textarea>
@@ -283,50 +269,15 @@
             </div>
           </section>
 
-          <% if (post.galleryImageUrls && post.galleryImageUrls.length) { %>
-            <section class="blog-gallery">
-              <h3>Gallery</h3>
-              <div class="blog-gallery-grid">
-                <% post.galleryImageUrls.forEach((imageUrl, imageIndex) => { %>
-                  <button
-                    type="button"
-                    class="blog-gallery-item"
-                    data-gallery-index="<%= imageIndex %>"
-                    data-gallery-url="<%= imageUrl %>"
-                    data-gallery-caption="<%= post.galleryCaptions?.[imageIndex] || '' %>"
-                    aria-label="Open gallery image <%= imageIndex + 1 %>"
-                  >
-                    <img src="<%= imageUrl %>" alt="<%= post.title %> gallery image <%= imageIndex + 1 %>" loading="lazy">
-                  </button>
-                <% }) %>
-              </div>
-            </section>
-          <% } %>
         </div>
       </div>
     </article>
-
-    <%
-      const nextStepMap = {
-        'Training': { label: 'Find your next run', href: '/events' },
-        'Virtual Run Guide': { label: 'Browse virtual events', href: '/events' },
-        'Organizer Guide': { label: 'Go to Organiser Portal', href: '/organizer' },
-        'Race Tips': { label: 'Browse events', href: '/events' },
-      };
-      const nextStep = nextStepMap[post.category] || { label: 'Browse events', href: '/events' };
-    %>
-    <div class="post-next-step">
-      <span class="post-next-step-text">Ready to put this into practice?</span>
-      <a href="<%= nextStep.href %>" class="post-next-step-cta">
-        <%= nextStep.label %> <i data-lucide="arrow-right" aria-hidden="true"></i>
-      </a>
-    </div>
 
     <% if (relatedPosts && relatedPosts.length) { %>
       <%- include('../partials/ad-unit', { group: 'blogPost', placement: 'before_related' }) %>
 
       <section class="blog-related">
-        <h3>Continue this path</h3>
+        <h3>Continue reading</h3>
         <div class="blog-related-grid">
           <% relatedPosts.forEach((item) => { %>
             <a href="/blog/<%= item.slug %>" class="blog-related-card">
@@ -395,11 +346,11 @@
       const reportForm = document.getElementById('blogReportForm');
       
       // ---- Data from EJS ----
-      const postTitle = '<%= post.title %>';
-      const canonicalUrl = '<%= seo?.canonicalUrl || "" %>';
-      const postSlug = '<%= post.slug %>';
-      const csrfToken = '<%= locals.csrfToken || "" %>';
-      const currentUserId = '<%= interactionState?.currentUserId || "" %>';
+      const postTitle = <%- safeJson(post.title || '') %>;
+      const canonicalUrl = <%- safeJson(seo?.canonicalUrl || '') %>;
+      const postSlug = <%- safeJson(post.slug || '') %>;
+      const csrfToken = <%- safeJson(locals.csrfToken || '') %>;
+      const currentUserId = <%- safeJson(interactionState?.currentUserId || '') %>;
       const galleryButtons = Array.from(document.querySelectorAll('[data-gallery-index][data-gallery-url]'));
       let activeGalleryIndex = 0;
       let galleryUrls = [];
@@ -752,6 +703,8 @@
         }
         if (likePending) return;
         likePending = true;
+        likeBtn.setAttribute('aria-busy', 'true');
+        likeBtn.disabled = true;
 
         // Optimistic update
         const wasLiked = likeBtn.dataset.liked === '1';
@@ -782,6 +735,8 @@
           showToast(error.message || 'Failed to update like');
         } finally {
           likePending = false;
+          likeBtn.removeAttribute('aria-busy');
+          likeBtn.disabled = false;
         }
       });
 
@@ -794,6 +749,7 @@
         const btnLoader = submitBtn?.querySelector('.btn-loader');
         if (submitBtn) {
           submitBtn.disabled = true;
+          submitBtn.setAttribute('aria-busy', 'true');
           if (btnText) btnText.style.display = 'none';
           if (btnLoader) btnLoader.style.display = '';
         }
@@ -809,6 +765,7 @@
         } finally {
           if (submitBtn) {
             submitBtn.disabled = false;
+            submitBtn.removeAttribute('aria-busy');
             if (btnText) btnText.style.display = '';
             if (btnLoader) btnLoader.style.display = 'none';
           }
@@ -840,6 +797,11 @@
       reportForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
         const formData = new FormData(reportForm);
+        const submitButton = reportForm.querySelector('button[type="submit"]');
+        if (submitButton) {
+          submitButton.disabled = true;
+          submitButton.setAttribute('aria-busy', 'true');
+        }
         try {
           await jsonRequest(`/blog/${postSlug}/report`, {
             method: 'POST',
@@ -852,6 +814,11 @@
           showToast('Post reported.');
         } catch (error) {
           showToast(error.message || 'Failed to submit report');
+        } finally {
+          if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.removeAttribute('aria-busy');
+          }
         }
       });
 
@@ -860,4 +827,3 @@
   </script>
 </body>
 </html>
-

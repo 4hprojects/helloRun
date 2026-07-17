@@ -2,7 +2,7 @@
 
 function parseDistanceLabelKm(value) {
   const normalized = String(value || '').trim().toUpperCase().replace(/\s+/g, '');
-  const match = normalized.match(/^(\d+(?:\.\d+)?)(K|KM)?$/);
+  const match = normalized.match(/^(\d+(?:\.\d+)?)(?:(?:KM|K)(?:[^0-9.]|$)|$)/);
   if (!match) return null;
   const parsed = Number(match[1]);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;

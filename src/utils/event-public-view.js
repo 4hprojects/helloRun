@@ -101,6 +101,12 @@ function buildPublicEventView(event, options = {}) {
     isAccumulatedChallenge,
     hasCategorySpecificGoals,
     categoryGoalOptions,
+    challengeSummary: buildChallengeSummary(event, {
+      isAccumulatedChallenge,
+      categoryGoalOptions,
+      targetDistanceLabel
+    }),
+    challengeDates: buildChallengeDates(event),
     registrationState,
     pricing,
     pricingOptions,
@@ -127,9 +133,45 @@ function buildPublicEventView(event, options = {}) {
       ? { label: 'Register Now', href: `/events/${event.slug}/register`, disabled: false }
       : { label: registrationState.label, href: '', disabled: true },
     secondaryCtas: [
-      event.leaderboardRecognitionEnabled !== false ? { label: 'View Leaderboard', href: `/leaderboard?event=${encodeURIComponent(event.slug || '')}` } : null
+      event.leaderboardRecognitionEnabled !== false ? { label: 'View Standings', href: `/events/${encodeURIComponent(event.slug || '')}/leaderboard` } : null
     ].filter(Boolean)
   };
+}
+
+function buildChallengeSummary(event, options = {}) {
+  if (!options.isAccumulatedChallenge) {
+    return htmlToPlainText(event.description || '') || 'Review the event schedule, registration details, and completion requirements.';
+  }
+
+  const goals = Array.isArray(options.categoryGoalOptions) ? options.categoryGoalOptions : [];
+  const distances = goals.map((goal) => Number(goal.distanceKm || 0)).filter((value) => value > 0);
+  const goalLabel = distances.length > 1
+    ? `${formatNumber(Math.min(...distances))}-${formatNumber(Math.max(...distances))} km`
+    : (goals[0]?.distanceKmLabel || options.targetDistanceLabel || 'your selected distance');
+  return `Choose a ${goalLabel} challenge and build your distance through approved activities during the official event window.`;
+}
+
+function buildChallengeDates(event) {
+  return [
+    {
+      key: 'registration',
+      label: 'Register by',
+      value: formatDate(event.registrationCloseAt),
+      helper: 'Last day to choose a challenge'
+    },
+    {
+      key: 'activity',
+      label: 'Activities count',
+      value: formatDateRange(event.virtualWindow?.startAt || event.eventStartAt, event.virtualWindow?.endAt || event.eventEndAt),
+      helper: 'Complete eligible activities in this window'
+    },
+    {
+      key: 'submission',
+      label: 'Submit by',
+      value: formatDate(event.finalSubmissionDeadlineAt || event.eventEndAt),
+      helper: 'Final proof submission deadline'
+    }
+  ];
 }
 
 function buildPublicEventSeo(event, baseUrl = '') {
@@ -432,12 +474,22 @@ function buildCategoryGoalOptions(raceCategories = []) {
       return {
         id: category.id,
         name,
+        compactName: compactAccumulatedGoalName(name),
         distanceLabel,
         distanceKm,
         distanceKmLabel: `${formatNumber(distanceKm)} km`
       };
     })
     .filter(Boolean);
+}
+
+function compactAccumulatedGoalName(name) {
+  const normalizedName = String(name || '').trim();
+  const withoutLeadingDistance = normalizedName
+    .replace(/^\d+(?:\.\d+)?\s*(?:km|k)\b[\s:–—-]*/i, '')
+    .trim();
+
+  return withoutLeadingDistance || normalizedName;
 }
 
 function buildRaceCategorySummaries(event) {
@@ -484,14 +536,15 @@ function buildRaceCategorySummaries(event) {
   return normalizeList(event.raceDistances)
     .map((distance, index) => {
       const label = distance.toUpperCase();
+      const distanceKm = parseLeadingDistanceKm(label);
       return {
         id: `legacy-distance-${index + 1}`,
         name: label,
         type: 'distance',
         typeLabel: 'Distance',
         distanceLabel: label,
-        distanceKm: null,
-        distanceKmLabel: '',
+        distanceKm,
+        distanceKmLabel: distanceKm ? `${formatNumber(distanceKm)} km` : '',
         slots: null,
         slotsLabel: '',
         cutoffTime: '',
@@ -502,6 +555,14 @@ function buildRaceCategorySummaries(event) {
         isLegacy: true
       };
     });
+}
+
+function parseLeadingDistanceKm(value) {
+  const normalized = String(value || '').trim().toUpperCase().replace(/\s+/g, '');
+  const match = normalized.match(/^(\d+(?:\.\d+)?)(?:(?:KM|K)(?:[^0-9.]|$)|$)/);
+  if (!match) return null;
+  const number = Number(match[1]);
+  return Number.isFinite(number) && number > 0 ? number : null;
 }
 
 function buildPackageOptions(event) {

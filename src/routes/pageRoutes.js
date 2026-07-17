@@ -141,14 +141,7 @@ router.post('/blog/:slug/comments/:commentId/report', requireAuth, requireCsrfPr
 
 router.get('/about', pageController.getAbout);
 
-router.get('/how-it-works', (req, res) => {
-  res.render('pages/how-it-works', {
-    title: 'How Virtual Runs and Event Submissions Work - HelloRun',
-    seo: {
-      description: 'Learn how HelloRun virtual runs work, from account setup and event registration to proof submission, organizer review, leaderboards, and certificates.'
-    }
-  });
-});
+router.get('/how-it-works', pageController.getHowItWorks);
 
 router.get('/contact', (req, res) => {
   res.render('pages/contact', {

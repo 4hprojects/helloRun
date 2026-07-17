@@ -4,7 +4,7 @@
   <%- include('../layouts/head', { title: title, seo: seo }) %>
   <link rel="stylesheet" href="/css/about.css">
 </head>
-<body>
+<body class="about-body<%= locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer ? ' has-runner-mobile-nav' : '' %>">
   <%- include('../layouts/nav') %>
 
   <main class="about-page">
@@ -12,243 +12,167 @@
       <div class="about-container about-hero-grid">
         <div class="about-hero-copy">
           <p class="about-kicker">About HelloRun</p>
-          <h1 id="aboutHeroTitle">A running event platform for flexible participation and verified progress</h1>
-          <p class="about-hero-lead">HelloRun helps runners join events, submit results, track approvals, and keep their running achievements in one place.</p>
-          <p>It is built for runners who want flexibility, and for organisers who need a clearer way to manage registrations, payment proof, run submissions, leaderboards, and certificates.</p>
-          <p>Whether you are joining a virtual challenge, an on-site race, or a hybrid event, HelloRun gives you one place to register, submit, review, and celebrate progress.</p>
-          <div class="about-actions">
-            <a href="/events" class="btn btn-primary">Browse Events</a>
-            <a href="/signup" class="btn btn-outline">Create Account</a>
-            <a href="/signup" class="about-text-link">Become an Organiser <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+          <h1 id="aboutHeroTitle">A clearer way to join, prove, and celebrate every run.</h1>
+          <p class="about-hero-lead">HelloRun brings event discovery, registration, activity proof, review status, results, and recognition into one runner-friendly journey.</p>
+          <div class="about-actions" aria-label="About HelloRun actions">
+            <a href="<%= aboutActions.primary.href %>" class="btn btn-primary">
+              <i data-lucide="<%= aboutActions.primary.icon %>" aria-hidden="true"></i>
+              <span><%= aboutActions.primary.label %></span>
+            </a>
+            <a href="<%= aboutActions.account.href %>" class="btn btn-outline">
+              <i data-lucide="<%= aboutActions.account.icon %>" aria-hidden="true"></i>
+              <span><%= aboutActions.account.label %></span>
+            </a>
           </div>
+          <a href="<%= aboutActions.organizer.href %>" class="about-organizer-link">
+            <%= aboutActions.organizer.label %>
+            <i data-lucide="arrow-right" aria-hidden="true"></i>
+          </a>
         </div>
 
-        <div class="about-trust-panel" aria-label="HelloRun trust features">
-          <div class="about-logo-mark">
-            <img src="/images/helloRun-icon.webp" alt="" aria-hidden="true">
-          </div>
-          <div class="about-trust-list">
-            <span><i data-lucide="clipboard-check" aria-hidden="true"></i>Submission review</span>
-            <span><i data-lucide="file-check-2" aria-hidden="true"></i>Proof-based results</span>
-            <span><i data-lucide="users" aria-hidden="true"></i>Organiser-managed workflows</span>
-            <span><i data-lucide="award" aria-hidden="true"></i>Certificate-ready events</span>
-          </div>
-        </div>
+        <aside class="about-journey-preview" aria-label="HelloRun runner journey">
+          <p class="about-preview-label">One connected journey</p>
+          <ol>
+            <li><span>1</span><div><strong>Find your event</strong><small>Compare the goal, dates, rules, and organizer.</small></div></li>
+            <li><span>2</span><div><strong>Complete your activity</strong><small>Follow the event’s accepted activity and proof rules.</small></div></li>
+            <li><span>3</span><div><strong>Track the review</strong><small>See whether your submission is pending or approved.</small></div></li>
+            <li><span>4</span><div><strong>Keep the result</strong><small>View eligible standings, badges, or certificates.</small></div></li>
+          </ol>
+        </aside>
+      </div>
+    </section>
+
+    <section class="about-trust-strip" aria-label="Why runners use HelloRun">
+      <div class="about-container">
+        <article><i data-lucide="map" aria-hidden="true"></i><div><strong>Flexible formats</strong><span>Virtual, on-site, and hybrid events</span></div></article>
+        <article><i data-lucide="file-check-2" aria-hidden="true"></i><div><strong>Reviewed submissions</strong><span>Evidence checked where required</span></div></article>
+        <article><i data-lucide="scan-search" aria-hidden="true"></i><div><strong>Visible status</strong><span>Pending and approved states stay clear</span></div></article>
+        <article><i data-lucide="award" aria-hidden="true"></i><div><strong>Event recognition</strong><span>Results, badges, and certificates when enabled</span></div></article>
       </div>
     </section>
 
     <div class="about-container about-content">
-      <section class="about-section" aria-labelledby="whatHelloRunTitle">
+      <section class="about-section about-runner-journey" aria-labelledby="aboutJourneyTitle">
         <div class="about-section-heading">
-          <p class="about-eyebrow">The platform</p>
-          <h2 id="whatHelloRunTitle">What HelloRun is</h2>
+          <span class="about-section-icon"><i data-lucide="route" aria-hidden="true"></i></span>
+          <div>
+            <p class="about-eyebrow">From signup to recognition</p>
+            <h2 id="aboutJourneyTitle">How HelloRun works for runners</h2>
+            <p>Choose the event that fits your goal, follow its rules, and keep every next step visible.</p>
+          </div>
         </div>
-        <div class="about-prose about-prose-wide">
-          <p>HelloRun is a running event platform for runners, organisers, and communities.</p>
-          <p>The platform supports different types of running events, including virtual runs, on-site races, hybrid events, distance challenges, community runs, and organiser-managed events.</p>
-          <p>For runners, HelloRun makes the event journey easier. You can browse events, register online, submit run proof, monitor your review status, view approved results, and access certificates when your entry is accepted.</p>
-          <p>For organisers, HelloRun provides tools for managing event pages, participant records, payment verification, proof review, leaderboard publishing, and certificates.</p>
-          <p class="about-callout-line">The goal is simple: make running events easier to join, easier to manage, and easier to trust.</p>
-        </div>
-        <div class="about-chip-list" aria-label="Supported event types">
+
+        <ol class="about-steps">
+          <li><span>1</span><div><h3>Discover and register</h3><p>Review the format, distance, dates, price, and organizer before joining.</p></div></li>
+          <li><span>2</span><div><h3>Complete the activity</h3><p>Run or complete an accepted activity during the event window.</p></div></li>
+          <li><span>3</span><div><h3>Submit accepted proof</h3><p>Use the proof method published by the organizer and track its status.</p></div></li>
+          <li><span>4</span><div><h3>Receive reviewed recognition</h3><p>Approved entries may appear in standings and unlock event recognition.</p></div></li>
+        </ol>
+
+        <div class="about-format-row" aria-label="Event formats supported by HelloRun">
           <span>Virtual runs</span>
           <span>On-site races</span>
           <span>Hybrid events</span>
-          <span>Distance challenges</span>
-          <span>Community runs</span>
-          <span>Organiser-managed events</span>
+          <span>Accumulated-distance challenges</span>
+          <span>Community events</span>
         </div>
       </section>
 
-      <section class="about-section about-section-tinted" aria-labelledby="audienceTitle">
+      <section class="about-section about-accountability" aria-labelledby="aboutTrustTitle">
         <div class="about-section-heading">
-          <p class="about-eyebrow">Participation and management</p>
-          <h2 id="audienceTitle">Who HelloRun is for</h2>
-          <p>HelloRun is for runners who want to stay active without being limited by one location, schedule, device, or tracking app. It is also for organisers who want a better way to manage events without relying only on spreadsheets, chat messages, manual screenshots, and separate certificate files.</p>
-        </div>
-        <div class="about-card-grid about-card-grid-two">
-          <article class="about-feature-card">
-            <span class="about-icon"><i data-lucide="activity" aria-hidden="true"></i></span>
-            <h3>For runners</h3>
-            <p>Join events, submit results, monitor approvals, and keep your finishes in one place, whether you are entering your first virtual run or checking a leaderboard and certificate.</p>
-          </article>
-          <article class="about-feature-card">
-            <span class="about-icon"><i data-lucide="clipboard-list" aria-hidden="true"></i></span>
-            <h3>For organisers</h3>
-            <p>Create event pages, review submissions, manage participants, and publish approved results through one workflow built for coaches, community leaders, race organisers, and fitness group admins.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="about-section" aria-labelledby="virtualRunsTitle">
-        <div class="about-section-heading">
-          <p class="about-eyebrow">From registration to approval</p>
-          <h2 id="virtualRunsTitle">How virtual runs work</h2>
-          <p>A virtual run allows you to complete your distance wherever you are, within the event period set by the organiser. You can run on the road, on a track, on a treadmill, or in any safe location accepted by the event rules.</p>
-        </div>
-        <ol class="about-steps">
-          <li><span>1</span><p>Choose an event that matches your distance or goal.</p></li>
-          <li><span>2</span><p>Register through the event page.</p></li>
-          <li><span>3</span><p>Complete your run within the allowed event period.</p></li>
-          <li><span>4</span><p>Record your activity using your preferred running app, watch, treadmill record, or accepted tracking method.</p></li>
-          <li><span>5</span><p>Submit your proof through HelloRun.</p></li>
-          <li><span>6</span><p>Wait for organiser or admin review.</p></li>
-          <li><span>7</span><p>Once approved, your result may appear on the leaderboard and your certificate may become available.</p></li>
-        </ol>
-        <div class="about-note">
-          <i data-lucide="info" aria-hidden="true"></i>
-          <p>Each event may have its own rules. Before submitting, always check the event details, accepted proof types, distance rules, and submission deadline.</p>
-        </div>
-      </section>
-
-      <section class="about-section about-review-section" aria-labelledby="reviewTitle">
-        <div class="about-split">
+          <span class="about-section-icon"><i data-lucide="shield-check" aria-hidden="true"></i></span>
           <div>
-            <p class="about-eyebrow">Credible event results</p>
-            <h2 id="reviewTitle">Why submissions and leaderboards are reviewed</h2>
-            <div class="about-prose">
-              <p>HelloRun is built around submission review, status tracking, and organiser approval. Results are not meant to become final just because a screenshot was uploaded.</p>
-              <p>Submissions may be reviewed before they appear publicly, count toward rankings, or qualify for certificates. This helps protect the credibility of each event.</p>
-              <p>Organisers set the rules for their events, while HelloRun provides the workflow for submitting, reviewing, approving, and publishing results.</p>
-              <p class="about-callout-line">Approved results should be based on submitted evidence, not unchecked claims.</p>
+            <p class="about-eyebrow">Trust and accountability</p>
+            <h2 id="aboutTrustTitle">Know what is reviewed, private, and official</h2>
+            <p>Every event keeps its own published rules. HelloRun makes the responsible organizer, review state, and recognition boundaries easier to understand.</p>
+          </div>
+        </div>
+
+        <div class="about-accountability-grid">
+          <article>
+            <span class="about-card-icon"><i data-lucide="clipboard-check" aria-hidden="true"></i></span>
+            <h3>Why submissions and leaderboards are reviewed</h3>
+            <p>Where review is configured, an uploaded screenshot does not become an official result automatically. Authorized organizers or administrators check eligibility before approval and publication.</p>
+          </article>
+          <article>
+            <span class="about-card-icon"><i data-lucide="lock-keyhole" aria-hidden="true"></i></span>
+            <h3>Data privacy and proof handling</h3>
+            <p>Activity proof and payment records are available only to authorized reviewers unless an event explicitly identifies information that will be public.</p>
+            <a href="/privacy" class="about-inline-link">Read the Privacy Policy <i data-lucide="arrow-up-right" aria-hidden="true"></i></a>
+          </article>
+          <article>
+            <span class="about-card-icon"><i data-lucide="users" aria-hidden="true"></i></span>
+            <h3>Know who manages the event</h3>
+            <div class="about-owner-labels">
+              <span class="about-label about-label-official">Official HelloRun Event</span>
+              <span class="about-label about-label-managed">Organiser-Managed Event</span>
             </div>
-          </div>
-          <div class="about-check-card">
-            <h3>Reviewers may check</h3>
-            <ul class="about-check-list">
-              <li><i data-lucide="check" aria-hidden="true"></i>Runner name</li>
-              <li><i data-lucide="check" aria-hidden="true"></i>Distance completed</li>
-              <li><i data-lucide="check" aria-hidden="true"></i>Activity duration and date</li>
-              <li><i data-lucide="check" aria-hidden="true"></i>Uploaded screenshot or activity proof</li>
-              <li><i data-lucide="check" aria-hidden="true"></i>Event eligibility</li>
-              <li><i data-lucide="check" aria-hidden="true"></i>Duplicate or mismatched submissions</li>
-              <li><i data-lucide="check" aria-hidden="true"></i>Suspicious or incomplete entries</li>
-            </ul>
-          </div>
+            <p>Event pages identify whether HelloRun or an independent organizer controls the rules, reviews, participant support, and event-specific decisions.</p>
+          </article>
+          <article>
+            <span class="about-card-icon"><i data-lucide="badge-check" aria-hidden="true"></i></span>
+            <h3>Recognition has a clear boundary</h3>
+            <p>HelloRun certificates and badges are event-based recognition. They do not replace official timing, government records, accreditation, or third-party certification unless explicitly stated.</p>
+          </article>
         </div>
       </section>
 
-      <section class="about-section about-section-tinted" aria-labelledby="privacyTitle">
-        <div class="about-split">
+      <section class="about-organizer-path" aria-labelledby="aboutOrganizerTitle">
+        <div>
+          <p class="about-eyebrow">For event organizers</p>
+          <h2 id="aboutOrganizerTitle">Replace scattered forms and spreadsheets with one event workflow</h2>
+          <p>Create event pages, manage registrations, review payment and activity proof, publish approved results, and issue configured recognition from one platform.</p>
+        </div>
+        <ul>
+          <li><i data-lucide="check" aria-hidden="true"></i>Participant and registration records</li>
+          <li><i data-lucide="check" aria-hidden="true"></i>Submission review and status tracking</li>
+          <li><i data-lucide="check" aria-hidden="true"></i>Leaderboards and certificates</li>
+        </ul>
+        <a href="<%= aboutActions.organizer.href %>" class="btn btn-outline"><%= aboutActions.organizer.label %></a>
+      </section>
+
+      <section class="about-section about-operator" aria-labelledby="aboutOperatorTitle">
+        <div class="about-section-heading">
+          <span class="about-section-icon"><i data-lucide="map-pinned" aria-hidden="true"></i></span>
           <div>
-            <p class="about-eyebrow">Clear proof handling</p>
-            <h2 id="privacyTitle">Data privacy and proof handling</h2>
-            <div class="about-prose">
-              <p>HelloRun may ask runners to upload screenshots, activity records, payment receipts, or other event-related proof.</p>
-              <p>Uploaded proof may be viewed by authorised reviewers, such as platform administrators or the organiser responsible for the event. HelloRun does not treat uploaded proof as public content unless the platform or event page clearly states that a specific item will be shown publicly.</p>
-              <p>Public event information may include approved results, rankings, participant names, event participation, and leaderboard details, depending on the event settings.</p>
-              <p>You should know what you submit, why it is needed, and how it may be used for event review.</p>
-              <a href="/privacy" class="about-policy-link">Read the Privacy Policy <i data-lucide="arrow-up-right" aria-hidden="true"></i></a>
+            <p class="about-eyebrow">Local roots, accountable operation</p>
+            <h2 id="aboutOperatorTitle">Built from real community event work</h2>
+          </div>
+        </div>
+        <div class="about-operator-grid">
+          <div class="about-operator-story">
+            <p>HelloRun began with a practical problem: runners and organizers were managing registrations, receipts, screenshots, results, and certificates across disconnected tools.</p>
+            <p>The platform brings those tasks into one clearer workflow without replacing the experience of running or the authority of each event organizer.</p>
+          </div>
+          <aside class="about-operator-card" aria-label="HelloRun operator information">
+            <img src="/images/helloRun-icon.webp" alt="" aria-hidden="true">
+            <div>
+              <span>Developed and operated by</span>
+              <strong>Henson M. Sagorsor</strong>
+              <p>A product of <strong>4HProjects</strong>, based in Benguet, Philippines.</p>
+              <a href="/contact" class="about-inline-link">Contact HelloRun <i data-lucide="arrow-right" aria-hidden="true"></i></a>
             </div>
-          </div>
-          <div class="about-check-card about-check-card-light">
-            <h3>Uploaded proof may be used to</h3>
-            <ul class="about-check-list">
-              <li><i data-lucide="check" aria-hidden="true"></i>Confirm registration</li>
-              <li><i data-lucide="check" aria-hidden="true"></i>Review payment status</li>
-              <li><i data-lucide="check" aria-hidden="true"></i>Verify run completion</li>
-              <li><i data-lucide="check" aria-hidden="true"></i>Check leaderboard eligibility</li>
-              <li><i data-lucide="check" aria-hidden="true"></i>Resolve event concerns</li>
-              <li><i data-lucide="check" aria-hidden="true"></i>Support certificate approval</li>
-            </ul>
-          </div>
+          </aside>
         </div>
       </section>
 
-      <section class="about-section" aria-labelledby="certificatesTitle">
-        <div class="about-section-heading">
-          <p class="about-eyebrow">Structured recognition</p>
-          <h2 id="certificatesTitle">Certificates and recognition</h2>
-        </div>
-        <div class="about-info-card">
-          <span class="about-icon"><i data-lucide="award" aria-hidden="true"></i></span>
-          <div class="about-prose">
-            <p>HelloRun certificates are event-based recognition records. A certificate confirms that a runner joined or completed a specific event based on the event rules and approved submissions.</p>
-            <p>Certificates may be issued after the runner's registration, payment status, and run proof have been reviewed and accepted, depending on the event requirements.</p>
-            <p>A HelloRun certificate does not replace official race timing, government-issued documents, school records, professional accreditation, or third-party certification unless clearly stated by the organiser.</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="about-section about-section-tinted" aria-labelledby="eventTypesTitle">
-        <div class="about-section-heading">
-          <p class="about-eyebrow">Know who manages the event</p>
-          <h2 id="eventTypesTitle">Official and organiser-managed events</h2>
-          <p>HelloRun may host different types of events. Some events may be directly managed by HelloRun. Others may be created and managed by independent organisers using the HelloRun platform.</p>
-        </div>
-        <div class="about-card-grid about-card-grid-two">
-          <article class="about-label-card">
-            <span class="about-label about-label-official">Official HelloRun Event</span>
-            <h3>Directly managed or recognised</h3>
-            <p>This means the event is directly managed or officially recognised by HelloRun.</p>
-          </article>
-          <article class="about-label-card">
-            <span class="about-label about-label-managed">Organiser-Managed Event</span>
-            <h3>Run by an independent organiser</h3>
-            <p>This means the event is created, managed, and reviewed by an organiser using the HelloRun platform.</p>
-          </article>
-        </div>
-        <p class="about-section-footnote">Before joining, runners should always check the event details and organiser information to understand who is responsible for event rules, registration review, proof approval, participant support, and event-specific decisions.</p>
-      </section>
-
-      <section class="about-section" aria-labelledby="whyExistsTitle">
-        <div class="about-split about-narrative-split">
+      <section class="about-section about-current-events" aria-labelledby="currentEventsTitle">
+        <div class="about-section-heading about-section-heading-action">
+          <span class="about-section-icon"><i data-lucide="calendar-search" aria-hidden="true"></i></span>
           <div>
-            <p class="about-eyebrow">A clearer workflow</p>
-            <h2 id="whyExistsTitle">Why HelloRun exists</h2>
+            <p class="about-eyebrow">Put it into action</p>
+            <h2 id="currentEventsTitle">Find your next event</h2>
+            <p>These published events are available to explore now. Check each event page for its organizer, rules, dates, and registration state.</p>
           </div>
-          <div class="about-prose">
-            <p>Running events are meaningful, but the process behind them can become messy. Runners submit screenshots through chat. Organisers check payment receipts manually. Results get stored in spreadsheets. Certificates are prepared separately. Leaderboards are hard to keep updated.</p>
-            <p>HelloRun was created to make that process clearer by bringing registration, proof submission, review, results, and recognition into one organised workflow.</p>
-            <p>For runners, that means fewer scattered forms and messages. For organisers, that means less manual tracking and a clearer way to manage participants. For the running community, that means better event credibility and better visibility for approved finishers.</p>
-          </div>
+          <a href="/events" class="btn btn-outline">Browse All Events</a>
         </div>
-      </section>
 
-      <section class="about-section about-story-section" aria-labelledby="storyTitle">
-        <div class="about-story-card">
-          <p class="about-eyebrow">Local roots, open participation</p>
-          <h2 id="storyTitle">Our story</h2>
-          <div class="about-prose">
-            <p>HelloRun started from a practical idea: running events should be easier to manage and easier to trust.</p>
-            <p>Many running communities already have strong participation, motivated runners, and dedicated organisers. The challenge is often the system behind the event: collecting registrations, checking payment proof, reviewing screenshots, updating leaderboards, and issuing certificates without losing track of approved participants.</p>
-            <p>HelloRun was built to answer those problems. It began as a solution for managing running events in a local community. It is now designed for runners, organisers, and communities wherever they are.</p>
-            <p>The goal is not to replace the experience of running. The goal is to remove confusion around registration, submissions, review, results, and recognition.</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="about-section" aria-labelledby="founderTitle">
-        <div class="about-split about-narrative-split">
-          <div>
-            <p class="about-eyebrow">Founder and operator</p>
-            <h2 id="founderTitle">Who manages HelloRun</h2>
-          </div>
-          <div class="about-prose">
-            <p>HelloRun is a product of 4HProjects, developed and operated by Henson M. Sagorsor — an educator, systems developer, recreational runner, and event organizer based in Benguet, Philippines.</p>
-            <p>The platform reflects practical experience with community activity programs, event workflows, participant records, proof submission, and the need for clearer review processes in virtual and hybrid running events.</p>
-            <p>HelloRun keeps its public claims factual. Event pages identify organizer-managed events when they are run by independent organizers using the platform, and runners should always review each event's published rules before joining.</p>
-            <p>For support, questions, or data requests, visitors can reach the team through the <a href="/contact">Contact</a> page.</p>
-          </div>
-        </div>
-      </section>
-
-      <section class="about-section" aria-labelledby="currentEventsTitle">
-        <div class="about-section-heading">
-          <p class="about-eyebrow">Find a challenge</p>
-          <h2 id="currentEventsTitle">Current events</h2>
-          <p>Explore published events currently available on HelloRun. These listings are managed by their respective organisers unless an event page clearly identifies the event as an official HelloRun event.</p>
-        </div>
         <% if (currentEvents && currentEvents.length) { %>
           <div class="about-event-grid">
             <% currentEvents.forEach((event) => { %>
               <article class="about-event-card">
-                <a href="<%= event.href %>" class="about-event-image-link" aria-label="View <%= event.title %>">
-                  <img
-                    src="<%= event.imageUrl %>"
-                    alt="<%= event.title %> banner"
-                    loading="lazy"
-                    onerror="this.onerror=null;this.src='<%= event.fallbackImageUrl %>';">
+                <a href="<%= event.href %>" class="about-event-image-link" tabindex="-1" aria-hidden="true">
+                  <img src="<%= event.imageUrl %>" alt="" loading="lazy" onerror="this.onerror=null;this.src='<%= event.fallbackImageUrl %>';">
                 </a>
                 <div class="about-event-body">
                   <div class="about-event-tags">
@@ -258,25 +182,19 @@
                   <h3><a href="<%= event.href %>"><%= event.title %></a></h3>
                   <div class="about-event-meta">
                     <span><i data-lucide="calendar" aria-hidden="true"></i><%= event.dateLabel %></span>
-                    <span><i data-lucide="flag" aria-hidden="true"></i><%= event.distanceLabel %></span>
+                    <span><i data-lucide="flag" aria-hidden="true"></i><span class="about-event-distance"><%= event.distanceLabel %></span></span>
                     <span><i data-lucide="map-pin" aria-hidden="true"></i><%= event.locationLabel %></span>
                   </div>
-                  <% if (event.organiserName) { %>
-                    <p class="about-event-organiser">Hosted by <strong><%= event.organiserName %></strong></p>
-                  <% } %>
-                  <a href="<%= event.href %>" class="about-policy-link">View Event <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+                  <% if (event.organiserName) { %><p class="about-event-organizer">Hosted by <strong><%= event.organiserName %></strong></p><% } %>
+                  <a href="<%= event.href %>" class="about-inline-link">View event <i data-lucide="arrow-right" aria-hidden="true"></i></a>
                 </div>
               </article>
             <% }); %>
           </div>
-          <div class="about-events-action">
-            <a href="/events" class="btn btn-outline">Browse All Events</a>
-          </div>
         <% } else { %>
           <div class="about-empty-state">
-            <span class="about-icon"><i data-lucide="calendar-search" aria-hidden="true"></i></span>
-            <h3>No published events are available at the moment</h3>
-            <p>Check back soon for organiser-managed events and upcoming challenges.</p>
+            <span class="about-card-icon"><i data-lucide="calendar-search" aria-hidden="true"></i></span>
+            <div><h3>No published events are available right now</h3><p>Check back soon or browse the full event directory.</p></div>
             <a href="/events" class="btn btn-outline">Browse Events</a>
           </div>
         <% } %>
@@ -285,14 +203,14 @@
 
     <section class="about-final-cta" aria-labelledby="aboutCtaTitle">
       <div class="about-container">
-        <p class="about-kicker">Your next goal starts here</p>
-        <h2 id="aboutCtaTitle">Ready for your next run?</h2>
-        <p>Join an event, submit your progress, and keep your achievements in one place. Whether you are running your first 5K, completing a monthly challenge, or managing your own running event, HelloRun gives you a clearer way to participate, verify, and celebrate progress.</p>
-        <p class="about-cta-rhythm">Run it your way. Submit it clearly. Get recognised properly.</p>
-        <div class="about-actions about-actions-centered">
-          <a href="/events" class="btn btn-primary">Browse Events</a>
-          <a href="/signup" class="btn btn-outline">Create Account</a>
-          <a href="/signup" class="about-text-link">Become an Organiser <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+        <div>
+          <p class="about-kicker">Your next goal starts here</p>
+          <h2 id="aboutCtaTitle">Find an event that fits the way you run.</h2>
+          <p>Compare the goal, organizer, dates, and proof rules before you join.</p>
+        </div>
+        <div class="about-final-actions">
+          <a href="<%= aboutActions.primary.href %>" class="btn btn-primary"><%= aboutActions.primary.label %></a>
+          <a href="<%= aboutActions.organizer.href %>" class="about-organizer-link"><%= aboutActions.organizer.label %> <i data-lucide="arrow-right" aria-hidden="true"></i></a>
         </div>
       </div>
     </section>

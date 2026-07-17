@@ -73,6 +73,7 @@ const {
   getPublishedEventBySlug,
   renderEventNotFound
 } = require('./_shared');
+const { getPublicEventRunnerState } = require('../../services/public-event-detail.service');
 
 exports.getEventDetails = async (req, res) => {
   try {
@@ -82,14 +83,22 @@ exports.getEventDetails = async (req, res) => {
     }
 
     const now = new Date();
-    const [registrationCount, badges, eventShopProducts, relatedEvents] = await Promise.all([
+    const [registrationCount, badges, eventShopProducts, relatedEvents, runnerEventState] = await Promise.all([
       Registration.countDocuments({
         eventId: event._id,
         status: { $ne: 'cancelled' }
       }),
       getEventBadgesByMongoEventId(event._id, { visibleOnly: true }).catch(() => []),
       listProductsByMongoEventId(String(event._id), { limit: 4, publicOnly: true }).catch(() => []),
-      getRelatedEvents(event, getPublicEventVisibilityQuery(now), now).catch(() => [])
+      getRelatedEvents(event, getPublicEventVisibilityQuery(now), now).catch(() => []),
+      getPublicEventRunnerState({ event, userId: req.session.userId, now }).catch((error) => {
+        logger.warn('Unable to load public event runner progress:', {
+          eventId: String(event._id),
+          userId: String(req.session.userId || ''),
+          error: error.message
+        });
+        return null;
+      })
     ]);
     const baseUrl = getSitemapBaseUrl(req);
     const publicEvent = buildPublicEventView(event, { registrationCount, eventBadges: badges });
@@ -114,6 +123,7 @@ exports.getEventDetails = async (req, res) => {
       publicEvent,
       badges,
       eventShop,
+      runnerEventState,
       isSaved,
       relatedEvents,
       eventDetailsHtml: renderEventDetailsContent(event.eventDetailsMarkdown),

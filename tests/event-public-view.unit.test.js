@@ -183,9 +183,12 @@ test('buildPublicEventView exposes category-specific goals for accumulated multi
   assert.equal(publicEvent.hasCategorySpecificGoals, true);
   assert.equal(publicEvent.completionGoalLabel, 'Selected category distance');
   assert.deepEqual(
-    publicEvent.categoryGoalOptions.map((option) => [option.name, option.distanceKmLabel]),
-    [['25K Quest', '25 km'], ['50K Quest', '50 km'], ['100K Quest', '100 km']]
+    publicEvent.categoryGoalOptions.map((option) => [option.name, option.compactName, option.distanceKmLabel]),
+    [['25K Quest', 'Quest', '25 km'], ['50K Quest', 'Quest', '50 km'], ['100K Quest', 'Quest', '100 km']]
   );
+  assert.equal(publicEvent.challengeSummary, 'Choose a 25-100 km challenge and build your distance through approved activities during the official event window.');
+  assert.equal(publicEvent.secondaryCtas[0].href, '/events/category-quest/leaderboard');
+  assert.deepEqual(publicEvent.challengeDates.map((item) => item.label), ['Register by', 'Activities count', 'Submit by']);
 });
 
 test('buildPublicEventView formats public event dates in the platform timezone', () => {

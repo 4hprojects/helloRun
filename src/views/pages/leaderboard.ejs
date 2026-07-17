@@ -1,149 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title }) %>
+  <%- include('../layouts/head', { title, seo }) %>
   <link rel="stylesheet" href="/css/leaderboard.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
 
+  <% const filters = leaderboard.filters || {}; %>
+  <% const pagination = leaderboard.pagination || {}; %>
   <main class="leaderboard-page">
-    <section class="leaderboard-shell leaderboard-discovery-shell">
-      <header class="leaderboard-header leaderboard-discovery-header">
-        <div>
-          <p class="leaderboard-card-kicker">Event Results</p>
-          <h1>Find Event Leaderboards</h1>
-          <p>Choose an event to view official rankings, your standing, nearby runners, search, and verification status.</p>
-        </div>
-        <div class="leaderboard-discovery-summary" aria-label="Leaderboard summary">
-          <strong><%= leaderboard.stats.totalShown %></strong>
-          <span>leaderboard event<%= leaderboard.stats.totalShown === 1 ? '' : 's' %> shown</span>
-        </div>
+    <div class="leaderboard-shell leaderboard-discovery-shell">
+      <header class="leaderboard-compact-header">
+        <p class="leaderboard-kicker">Official event results</p>
+        <h1>Find your leaderboard</h1>
+        <p>Choose your event, then find your verified result, review status, and place among other runners.</p>
+        <form method="GET" action="/leaderboard" class="leaderboard-primary-search" role="search">
+          <label for="leaderboard-q">Search event or organizer</label>
+          <div class="leaderboard-search-control">
+            <i data-lucide="search" aria-hidden="true"></i>
+            <input id="leaderboard-q" name="q" type="search" value="<%= filters.q || '' %>" placeholder="Event or organizer name">
+            <% if (filters.type) { %><input type="hidden" name="type" value="<%= filters.type %>"><% } %>
+            <% if (filters.distance) { %><input type="hidden" name="distance" value="<%= filters.distance %>"><% } %>
+            <% if (filters.mode) { %><input type="hidden" name="mode" value="<%= filters.mode %>"><% } %>
+            <% if (filters.sort !== 'recommended') { %><input type="hidden" name="sort" value="<%= filters.sort %>"><% } %>
+            <% if (filters.limit !== 12) { %><input type="hidden" name="limit" value="<%= filters.limit %>"><% } %>
+            <button type="submit" class="leaderboard-button leaderboard-button-primary">Search</button>
+          </div>
+        </form>
       </header>
 
-      <form method="GET" action="/leaderboard" class="leaderboard-filters leaderboard-discovery-filters">
-        <div class="leaderboard-filter-field leaderboard-search-field">
-          <label for="q">
-            <i data-lucide="search" aria-hidden="true"></i>
-            <span>Search event or organiser</span>
-          </label>
-          <input id="q" name="q" type="search" value="<%= leaderboard.filters.q || '' %>" placeholder="Event or organiser name">
+      <section id="leaderboard-results" class="leaderboard-results" aria-labelledby="leaderboard-results-title">
+        <div class="leaderboard-results-toolbar">
+          <div>
+            <p class="leaderboard-kicker"><%= filterMeta?.hasActiveFilters ? 'Matching events' : 'Public leaderboards' %></p>
+            <h2 id="leaderboard-results-title"><%= pagination.total || 0 %> event leaderboard<%= pagination.total === 1 ? '' : 's' %></h2>
+            <% if (pagination.total) { %><p>Showing <strong><%= pagination.from %>–<%= pagination.to %></strong> of <strong><%= pagination.total %></strong></p><% } %>
+          </div>
+          <form method="GET" action="/leaderboard" class="leaderboard-sort-form">
+            <% if (filters.q) { %><input type="hidden" name="q" value="<%= filters.q %>"><% } %>
+            <% if (filters.type) { %><input type="hidden" name="type" value="<%= filters.type %>"><% } %>
+            <% if (filters.distance) { %><input type="hidden" name="distance" value="<%= filters.distance %>"><% } %>
+            <% if (filters.mode) { %><input type="hidden" name="mode" value="<%= filters.mode %>"><% } %>
+            <% if (filters.limit !== 12) { %><input type="hidden" name="limit" value="<%= filters.limit %>"><% } %>
+            <label for="leaderboard-sort">Sort by</label>
+            <select id="leaderboard-sort" name="sort">
+              <option value="recommended" <%= filters.sort === 'recommended' ? 'selected' : '' %>>Recommended</option>
+              <option value="recent" <%= filters.sort === 'recent' ? 'selected' : '' %>>Recently updated</option>
+              <option value="most-results" <%= filters.sort === 'most-results' ? 'selected' : '' %>>Most verified results</option>
+              <option value="event-date" <%= filters.sort === 'event-date' ? 'selected' : '' %>>Event date</option>
+            </select>
+            <button type="submit" class="leaderboard-button leaderboard-button-secondary">Sort</button>
+          </form>
         </div>
 
-        <div class="leaderboard-filter-field">
-          <label for="type">
-            <i data-lucide="trophy" aria-hidden="true"></i>
-            <span>Leaderboard type</span>
-          </label>
-          <select id="type" name="type">
-            <option value="" <%= !leaderboard.filters.type ? 'selected' : '' %>>All types</option>
-            <% (leaderboard.options.types || []).forEach((typeOption) => { %>
-              <option value="<%= typeOption.value %>" <%= leaderboard.filters.type === typeOption.value ? 'selected' : '' %>><%= typeOption.label %></option>
-            <% }) %>
-          </select>
-        </div>
-
-        <div class="leaderboard-filter-field">
-          <label for="distance">
-            <i data-lucide="ruler" aria-hidden="true"></i>
-            <span>Distance</span>
-          </label>
-          <select id="distance" name="distance">
-            <option value="" <%= !leaderboard.filters.distance ? 'selected' : '' %>>All distances</option>
-            <% (leaderboard.options.distances || []).forEach((distance) => { %>
-              <option value="<%= distance %>" <%= leaderboard.filters.distance === distance ? 'selected' : '' %>><%= distance %></option>
-            <% }) %>
-          </select>
-        </div>
-
-        <div class="leaderboard-filter-field">
-          <label for="mode">
-            <i data-lucide="monitor-smartphone" aria-hidden="true"></i>
-            <span>Mode</span>
-          </label>
-          <select id="mode" name="mode">
-            <option value="" <%= !leaderboard.filters.mode ? 'selected' : '' %>>All modes</option>
-            <option value="virtual" <%= leaderboard.filters.mode === 'virtual' ? 'selected' : '' %>>Virtual</option>
-            <option value="onsite" <%= leaderboard.filters.mode === 'onsite' ? 'selected' : '' %>>Onsite</option>
-          </select>
-        </div>
-
-        <div class="leaderboard-filter-actions">
-          <button type="submit" class="btn btn-primary leaderboard-action-btn">
-            <i data-lucide="filter" aria-hidden="true"></i>
-            <span>Apply</span>
-          </button>
-          <% if (filterMeta?.hasActiveFilters) { %>
-            <a href="/leaderboard" class="btn btn-secondary leaderboard-action-btn">
-              <i data-lucide="rotate-ccw" aria-hidden="true"></i>
-              <span>Clear filters</span>
-            </a>
-          <% } %>
-        </div>
-      </form>
-
-      <p class="leaderboard-results-meta">
-        Official ranks are event-specific. <strong><%= leaderboard.stats.totalVerifiedResults %></strong> verified result<%= leaderboard.stats.totalVerifiedResults === 1 ? '' : 's' %>
-        currently count toward these public leaderboards<%= filterMeta?.hasActiveFilters ? ` with ${filterMeta.activeFilterCount} active filter${filterMeta.activeFilterCount === 1 ? '' : 's'}` : '' %>.
-      </p>
-
-      <% if (leaderboard.cards && leaderboard.cards.length) { %>
-        <%- include('../partials/ad-unit', { group: 'leaderboard', placement: 'after_results_meta' }) %>
-      <% } %>
-
-      <% if (leaderboard.cards && leaderboard.cards.length) { %>
-        <section class="leaderboard-discovery-grid" aria-label="Event leaderboards">
-          <% let leaderboardFeedAdCount = 0; %>
-          <% leaderboard.cards.forEach((card, cardIndex) => { %>
-            <article class="leaderboard-discovery-card">
-              <a class="leaderboard-discovery-image-link" href="<%= card.href %>" aria-label="View rankings for <%= card.title %>">
-                <img src="<%= card.imageUrl %>" alt="" loading="lazy">
-              </a>
-              <div class="leaderboard-discovery-card-body">
-                <div class="leaderboard-discovery-card-top">
-                  <span class="leaderboard-status-badge leaderboard-status-verified"><%= card.leaderboardTypeLabel %></span>
-                  <span><%= card.modeLabel %></span>
-                </div>
-                <h2><a href="<%= card.href %>"><%= card.title %></a></h2>
-                <p class="leaderboard-discovery-organiser"><%= card.organiserName || 'HelloRun organiser' %></p>
-                <p class="leaderboard-discovery-rule"><%= card.rankingExplanation %> Official rankings include verified submissions only.</p>
-                <dl class="leaderboard-discovery-stats">
-                  <div><dt>Verified</dt><dd><%= card.verifiedCount %></dd></div>
-                  <div><dt>Pending</dt><dd><%= card.pendingCount %></dd></div>
-                  <div><dt>Distances</dt><dd><%= card.distanceLabel %></dd></div>
-                  <div><dt>Dates</dt><dd><%= card.dateLabel %></dd></div>
-                </dl>
-                <p class="leaderboard-discovery-updated">Last updated: <%= card.lastUpdatedLabel %></p>
-                <div class="leaderboard-discovery-actions">
-                  <a href="<%= card.href %>" class="btn btn-primary leaderboard-action-btn">View rankings</a>
-                  <a href="<%= card.eventHref %>" class="btn btn-secondary leaderboard-action-btn">View event details</a>
-                </div>
+        <div class="leaderboard-filter-row">
+          <details class="leaderboard-filter-panel" <%= filterMeta?.hasActiveFilters ? 'open' : '' %>>
+            <summary>
+              <span><i data-lucide="sliders-horizontal" aria-hidden="true"></i> Filters</span>
+              <% if (filterMeta?.activeFilterCount) { %><span class="leaderboard-filter-count"><%= filterMeta.activeFilterCount %></span><% } %>
+            </summary>
+            <form method="GET" action="/leaderboard" class="leaderboard-filter-form">
+              <% if (filters.q) { %><input type="hidden" name="q" value="<%= filters.q %>"><% } %>
+              <% if (filters.sort !== 'recommended') { %><input type="hidden" name="sort" value="<%= filters.sort %>"><% } %>
+              <% if (filters.limit !== 12) { %><input type="hidden" name="limit" value="<%= filters.limit %>"><% } %>
+              <div class="leaderboard-field">
+                <label for="leaderboard-type">Leaderboard type</label>
+                <select id="leaderboard-type" name="type">
+                  <option value="">All types</option>
+                  <% (leaderboard.options.types || []).forEach((option) => { %><option value="<%= option.value %>" <%= filters.type === option.value ? 'selected' : '' %>><%= option.label %></option><% }) %>
+                </select>
               </div>
-            </article>
-            <% if ((cardIndex + 1) % 6 === 0 && leaderboardFeedAdCount < 2) { leaderboardFeedAdCount += 1; %>
-              <%- include('../partials/ad-unit', { group: 'leaderboard', placement: 'in_feed', className: 'ad-unit-feed' }) %>
-            <% } %>
-          <% }) %>
-        </section>
-      <% } else { %>
-        <div class="empty-state leaderboard-discovery-empty">
-          <h2>No event leaderboards found</h2>
-          <p><%= filterMeta?.hasActiveFilters ? 'No leaderboard-enabled events matched your filters.' : 'Leaderboard-enabled public events will appear here once organisers publish them.' %></p>
-          <% if (filterMeta?.hasActiveFilters) { %>
-            <a href="/leaderboard" class="btn btn-secondary leaderboard-action-btn">
-              <i data-lucide="rotate-ccw" aria-hidden="true"></i>
-              <span>Clear filters</span>
-            </a>
-          <% } %>
+              <div class="leaderboard-field">
+                <label for="leaderboard-distance">Distance</label>
+                <select id="leaderboard-distance" name="distance">
+                  <option value="">All distances</option>
+                  <% (leaderboard.options.distances || []).forEach((distance) => { %><option value="<%= distance %>" <%= filters.distance === distance ? 'selected' : '' %>><%= distance %></option><% }) %>
+                </select>
+              </div>
+              <div class="leaderboard-field">
+                <label for="leaderboard-mode">Event mode</label>
+                <select id="leaderboard-mode" name="mode">
+                  <option value="">All modes</option>
+                  <option value="virtual" <%= filters.mode === 'virtual' ? 'selected' : '' %>>Virtual</option>
+                  <option value="onsite" <%= filters.mode === 'onsite' ? 'selected' : '' %>>Onsite</option>
+                </select>
+              </div>
+              <div class="leaderboard-filter-actions">
+                <button type="submit" class="leaderboard-button leaderboard-button-primary">Apply filters</button>
+                <% if (filterMeta?.hasActiveFilters) { %><a href="<%= filterMeta.clearFiltersUrl %>#leaderboard-results" class="leaderboard-button leaderboard-button-secondary">Clear all</a><% } %>
+              </div>
+            </form>
+          </details>
         </div>
-      <% } %>
-    </section>
+
+        <% if (filterMeta?.activeFilters?.length) { %>
+          <div class="leaderboard-filter-chips" aria-label="Active filters">
+            <% filterMeta.activeFilters.forEach((filter) => { %>
+              <a href="<%= filter.removeUrl %>#leaderboard-results" class="leaderboard-filter-chip" aria-label="Remove <%= filter.label %> filter: <%= filter.value %>">
+                <span><strong><%= filter.label %>:</strong> <%= filter.value %></span><i data-lucide="x" aria-hidden="true"></i>
+              </a>
+            <% }) %>
+          </div>
+        <% } %>
+
+        <% if (leaderboard.cards?.length) { %>
+          <section class="leaderboard-discovery-grid" aria-label="Event leaderboards">
+            <% let feedAdCount = 0; %>
+            <% leaderboard.cards.forEach((card, index) => { %>
+              <article class="leaderboard-discovery-card">
+                <a class="leaderboard-card-image" href="<%= card.href %>" aria-label="View <%= card.title %> standings">
+                  <img src="<%= card.imageUrl %>" alt="" loading="lazy" onerror="this.onerror=null;this.src='/images/helloRun-icon.webp';">
+                  <span class="leaderboard-card-type"><%= card.leaderboardTypeLabel %></span>
+                </a>
+                <div class="leaderboard-card-body">
+                  <div class="leaderboard-card-context"><span><i data-lucide="monitor-smartphone" aria-hidden="true"></i><%= card.modeLabel %></span><span><i data-lucide="ruler" aria-hidden="true"></i><%= card.distanceLabel %></span></div>
+                  <h3><a href="<%= card.href %>"><%= card.title %></a></h3>
+                  <p class="leaderboard-card-organizer">By <%= card.organiserName || 'HelloRun organizer' %></p>
+                  <p class="leaderboard-card-rule"><%= card.rankingExplanation %></p>
+                  <div class="leaderboard-card-signal">
+                    <span><strong><%= card.verifiedCount.toLocaleString('en-US') %></strong> verified result<%= card.verifiedCount === 1 ? '' : 's' %></span>
+                    <small><i data-lucide="refresh-cw" aria-hidden="true"></i><%= card.lastUpdatedLabel %></small>
+                  </div>
+                  <div class="leaderboard-card-actions">
+                    <a href="<%= card.href %>" class="leaderboard-button leaderboard-button-primary">View standings</a>
+                    <a href="<%= card.eventHref %>" class="leaderboard-text-link">Event details <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+                  </div>
+                </div>
+              </article>
+              <% if ((index + 1) % 6 === 0 && feedAdCount < 2) { feedAdCount += 1; %><%- include('../partials/ad-unit', { group: 'leaderboard', placement: 'in_feed', className: 'ad-unit-feed leaderboard-feed-ad' }) %><% } %>
+            <% }) %>
+          </section>
+
+          <% if (pagination.totalPages > 1) { %>
+            <nav class="leaderboard-pagination" aria-label="Leaderboard event pages">
+              <a href="<%= pagination.getPageUrl(Math.max(1, pagination.page - 1)) %>" class="leaderboard-page-link <%= pagination.page === 1 ? 'is-disabled' : '' %>" <%= pagination.page === 1 ? 'aria-disabled="true" tabindex="-1"' : '' %>><i data-lucide="chevron-left" aria-hidden="true"></i><span>Previous</span></a>
+              <span>Page <strong><%= pagination.page %></strong> of <strong><%= pagination.totalPages %></strong></span>
+              <a href="<%= pagination.getPageUrl(Math.min(pagination.totalPages, pagination.page + 1)) %>" class="leaderboard-page-link <%= pagination.page === pagination.totalPages ? 'is-disabled' : '' %>" <%= pagination.page === pagination.totalPages ? 'aria-disabled="true" tabindex="-1"' : '' %>><span>Next</span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+            </nav>
+          <% } %>
+        <% } else { %>
+          <div class="leaderboard-empty-state">
+            <i data-lucide="search-x" aria-hidden="true"></i>
+            <h2><%= filterMeta?.hasActiveFilters ? 'No event leaderboards match yet' : 'No public leaderboards yet' %></h2>
+            <p><%= filterMeta?.hasActiveFilters ? 'Clear your filters to see every event with public standings.' : 'Published event standings will appear here after organizers enable them.' %></p>
+            <a href="<%= filterMeta?.hasActiveFilters ? filterMeta.clearFiltersUrl : '/events' %>" class="leaderboard-button leaderboard-button-primary"><%= filterMeta?.hasActiveFilters ? 'See all leaderboards' : 'Browse events' %></a>
+          </div>
+        <% } %>
+      </section>
+    </div>
   </main>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>
-    if (window.lucide) lucide.createIcons();
-  </script>
+  <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

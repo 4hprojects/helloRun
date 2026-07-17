@@ -1,6 +1,7 @@
 # HelloRun — UX Improvement & Efficiency Plan
 
 **Created:** June 22, 2026
+**Last updated:** July 17, 2026
 **Based on:** Full codebase audit, user journey review, and session implementation history
 **See also:** `docs/ROADMAP.md` (priority list), `docs/STATUS.md` (current state)
 
@@ -23,6 +24,172 @@ shop (backend + UI), and admin governance.
 
 **What remains:** The backlog below is prioritized, estimated, and fully specified.
 Nothing is blocked by a missing dependency.
+
+---
+
+## 1A. Public Landing Page UI/UX Audit and Roadmap
+
+**Audit date:** July 17, 2026
+
+**Status:** Phase 1 implementation started July 17, 2026; first foundation tranche complete.
+
+**Audience strategy:** The approved hero is runner-first; organisers retain a
+clear, role-specific conversion path in the audience section.
+
+**Evidence reviewed:** Rendered homepage at 1440px and 390px widths, homepage EJS,
+global and homepage CSS, progressive-enhancement JavaScript, homepage controller,
+and existing homepage tests.
+
+### Audit Summary
+
+The homepage successfully exposes the core event, leaderboard, blog, and account
+paths, and its mobile layout remains usable. The approved direction now uses a
+runner-first hero while retaining an explicit organiser conversion path later in
+the page. Several sections still repeat similar benefits without showing the two
+workflows clearly. The page also has avoidable carousel, content-density, and
+performance issues that make it harder to scan than necessary.
+
+The findings below distinguish the **observed condition** from the **recommended
+change**. Priorities reflect expected conversion or usability impact; effort is a
+relative estimate for planning, not a delivery commitment.
+
+### Prioritised Findings and Recommendations
+
+| Area | Priority / effort | Observed condition | Recommended change | Expected outcome | Dependencies | Measurable acceptance criteria |
+|---|---|---|---|---|---|---|
+| Conversion and hierarchy | High / Medium | The approved hero prioritises runner event discovery; the organiser proposition becomes explicit in the audience section. | Keep the runner hero concise and ensure the organiser section has an equally unambiguous, role-specific destination. | Runners receive a direct first action while organisers can still identify their route without signup ambiguity. | Approved page messaging and role-prefilled signup. | The hero contains the approved `View Events` and `Sign Up Free` actions; the organiser audience card remains clearly labelled and links to organiser-prefilled signup. |
+| Hero effectiveness | High / Medium | The hero explains several capabilities in one paragraph, leaves substantial unused visual space, offers limited product proof, and does not explain what “no GPS lock-in” means. | Tighten the promise, explain accepted proof flexibility in plain language, and add a lightweight product or activity visual plus one credible trust signal. | Faster comprehension and a stronger first impression without changing the brand identity. | Suitable existing or newly approved visual asset; verified trust data. | A five-second review identifies what HelloRun is, who it serves, and both next actions; the visual has meaningful alternative text when informative and does not cause layout shift. |
+| Navigation | High / Medium | Desktop primary navigation is icon-only and depends on hover/focus tooltips, increasing recall effort and reducing first-visit clarity. | Use persistent text labels or a labelled icon-and-text hybrid for core public destinations; retain current active states, authenticated actions, and the mobile menu. | Faster navigation recognition for new and returning visitors. | Shared navigation affects all pages and roles, so changes require cross-page regression checks. | Home, Events, Blog, and Leaderboard are identifiable without hovering; current-page state remains visible; the menu works by mouse, touch, and keyboard at the 900px breakpoint. |
+| Content repetition | High / Medium | “What HelloRun does” and “Why HelloRun” repeat flexibility, progress, and platform-lightweight messaging. | Consolidate them into one concise value section supported by a separate workflow section. Remove copy that does not add a new decision-relevant benefit. | Shorter page length, clearer narrative, and less cognitive repetition. | Final content hierarchy. | Every retained section has a unique purpose; no core benefit is explained in substantially similar language twice; heading order remains logical. |
+| How-it-works clarity | High / Medium | The homepage does not show what happens after a runner joins or an organiser creates an event. Review, submission, payment, leaderboard, and certificate steps are only implied. | Add parallel, concise runner and organiser workflows with links to deeper guidance. | Visitors understand the service before committing to signup. | Existing `/how-it-works`, event, and organiser onboarding routes. | Both workflows show three to four ordered steps and an explicit next action; steps remain readable without JavaScript. |
+| CTA clarity | High / Low | “Start Running” and “Create Events” both link to the same generic `/signup` page, with no visible indication that signup supports role selection. | Use audience-specific labels and role-aware destinations. If role-prefill is introduced, define a validated query contract such as `/signup?role=runner|organiser` with a safe generic fallback. | Reduced uncertainty and fewer unnecessary signup decisions. | Signup route/form support for an optional role-prefill interface. | Each CTA’s destination preserves its stated intent; invalid role values fall back safely; analytics can distinguish runner and organiser CTA selections. |
+| Event carousel | High / Medium | Cards contain long descriptions and dense metadata; mobile controls overlay the card; page position is primarily visual; repeated links increase noise. | Shorten/clamp descriptions, establish a consistent metadata hierarchy, move mobile controls outside content, and announce carousel page/status changes accessibly. | Faster event comparison and more reliable touch/keyboard interaction. | Existing carousel settings and progressive-enhancement script. | Cards remain understandable with JavaScript disabled; controls are at least 44×44px; focus is visible; current page is exposed to assistive technology; long content does not create uneven or obscured controls. |
+| Trust and proof | High / Medium | The controller computes active-event, approved-finish, and approved-organiser statistics, but `home.ejs` does not render `stats`. Verified results appear only when a leaderboard candidate exists. | Display verified, accurately labelled statistics or remove the unused controller work. Pair quantitative proof with organiser credibility and participant outcomes; keep graceful fallbacks. | Stronger credibility and removal of unused data/query work. | Product approval for public metrics and definitions; current database counts. | Every displayed metric has a clear label and source definition; zero values are handled honestly; if metrics are not approved, the unused queries and view input are removed and covered by tests. |
+| Visual consistency and CSS ownership | High / Medium | Global `style.css` and homepage `helloRun.css` both define landing-page selectors. The global `.audience` rule sets a gradient via `background`, while the later homepage rule changes only `background-color`, leaving the gradient image active. | Give homepage styles explicit ownership, remove obsolete duplicate rules, and reset full background layers where needed. Prefer shared tokens for intentionally global primitives. | Predictable rendering and safer future maintenance. | Inventory of selectors shared by other public pages. | The audience section renders the intended background at all target widths; no homepage selector relies on accidental source order; visual regression checks show no unintended changes on other pages. |
+| Accessibility | High / Medium | There is no homepage skip link/main target; custom card links, carousel controls, and dots do not have complete local `:focus-visible` coverage; carousel changes are not announced. | Add a skip link and main landmark target, comprehensive focus treatment, semantic labels, live carousel status, contrast checks, and adequate touch targets. | WCAG-aligned keyboard and assistive-technology access. | Shared layout/navigation changes and carousel script updates. | Keyboard users can skip navigation and reach every control in a logical order; no focus indicator is hidden; interactive targets meet 44×44px where practical; normal text meets 4.5:1 contrast and large text 3:1; reduced-motion preference is respected. |
+| Mobile UX | High / Medium | Mobile is functional but produces a long first-session scroll, text-heavy event cards, tightly stacked sections, and overlaid carousel arrows. | Reduce above-the-fold copy, tighten repeated sections, simplify cards, improve spacing rhythm, and keep important CTAs full-width or comfortably tappable. | Better scanning and less fatigue on common phone widths. | Content consolidation and carousel changes. | At 390px there is no horizontal page overflow; controls do not cover text or images; body copy remains at least 16px where feasible; primary actions are reachable and visibly distinct. |
+| Performance and layout stability | Medium / Medium | Homepage event and blog images omit intrinsic `width`/`height` and responsive sources; Lucide loads from a third-party `latest` URL; lazy loading exists but resource priority is not explicit. | Add intrinsic dimensions/aspect-ratio protection, responsive image candidates where supported, explicit priority for only true above-the-fold media, and review pinning or self-hosting the icon script. | Lower layout shift and more predictable loading on slower connections. | Image transformation/source capabilities and asset hosting decision. | Images reserve space before loading; no below-the-fold image is eagerly prioritised; the icon dependency is version-pinned or self-hosted; performance checks record no new regression in LCP or CLS. |
+| Footer information architecture | Medium / Low | The required legal/resource links form a long, dense list, particularly on mobile. | Group links under clearer categories and use a mobile-friendly stacked or disclosure treatment while retaining all destinations in the HTML. | Faster scanning without reducing compliance visibility. | Confirmation of which links must remain globally visible. | Every current legal link remains present and keyboard accessible; groups have descriptive headings; the 390px layout does not create cramped two-column labels. |
+| Resilience and empty states | Medium / Low | Featured events and blog sections disappear when empty, while the leaderboard silently falls back to a text-only hero. The page does not explain these states or offer equivalent next steps. | Define purposeful server-rendered fallbacks for no events, no posts, and no leaderboard; do not render empty carousel controls. | The page remains coherent and actionable during new deployments, outages, or sparse content periods. | Existing controller fallbacks and content policy. | Each dynamic section has a tested populated and empty state; empty states include a relevant action where one exists; failure of optional content does not fail the homepage. |
+
+### Phased Landing-Page Roadmap
+
+#### Implementation Progress — July 17, 2026
+
+- Implemented the approved runner-focused hero copy and direct `View Events` and
+  `Sign Up Free` actions while preserving the optional homepage leaderboard.
+- Added allowlisted `runner`/`organiser` signup role-prefill URLs and matching
+  signup messaging; invalid values safely retain the generic signup state.
+- Replaced icon-only presentation for the four core desktop public navigation
+  destinations with persistent icon-and-text labels, retaining active and mobile
+  menu behaviour.
+- Added homepage skip navigation, an addressable main landmark, broader visible
+  focus coverage, 44px carousel pagination/control targets, and a polite carousel
+  page-status announcement.
+- Fixed the `.audience` cascade conflict by resetting the complete background in
+  homepage CSS rather than only its background colour.
+- Redesigned the audience section using the login page's unified split-panel
+  language: an immersive runner brand panel paired with a clean organiser panel,
+  vertical capability rows, and inverse full-width conversion actions.
+- Replaced the visually competing returning-runner button with a lower-emphasis,
+  accessible registration shortcut beneath the primary hero actions.
+- Balanced the closing signup and event-discovery actions with equal dimensions,
+  consistent typography, and complementary filled/outlined colour treatments.
+- Added focused source regression coverage and manually rendered the page at
+  390px and 1440px. Remaining Phase 1 work is wider cross-page regression and
+  accessibility verification before declaring the phase complete.
+
+#### Phase 1 — High-Impact Foundations
+
+- Finalise the approved runner-first hero and the distinct organiser CTA map.
+- Improve labelled desktop navigation while preserving role-aware navigation and
+  mobile behaviour.
+- Add the skip link, main target, baseline focus styles, touch-target rules, and
+  reduced-motion coverage.
+- Resolve homepage/global CSS ownership, including the `.audience` background
+  conflict.
+
+**Phase completion:** Runner and organiser journeys are clear and usable at
+390px, 768px, 1024px, and 1440px; keyboard navigation is complete; the intended visual style
+does not depend on cascade accidents; existing authenticated navigation remains
+unchanged in capability.
+
+#### Phase 2 — Content and Conversion
+
+- Replace repetitive benefits with a concise value narrative and parallel runner
+  and organiser workflows.
+- Clarify proof flexibility and what happens after registration or event creation.
+- Surface approved trust metrics and verified outcomes, or remove unused `stats`
+  controller work if public display is rejected.
+- Add role-aware signup intent and distinct conversion analytics events.
+
+**Phase completion:** Copy has no material repetition; both workflows are
+understandable without JavaScript; every CTA has one clear audience and expected
+destination; metric labels and definitions are approved and testable.
+
+#### Phase 3 — Discovery Components
+
+- Simplify event cards and redesign carousel controls/status for responsive,
+  keyboard, touch, and assistive-technology use.
+- Reduce blog-card density and ensure cards have a consistent reading hierarchy.
+- Add server-rendered empty states for events, posts, and leaderboard content.
+- Reorganise footer resources without removing required links.
+
+**Phase completion:** Dynamic sections work in populated, empty, error-fallback,
+and JavaScript-disabled states; mobile controls never obscure content; footer and
+cards remain scannable at all target widths.
+
+#### Phase 4 — Polish and Optimisation
+
+- Add intrinsic/responsive image handling and audit above-the-fold priorities.
+- Pin or self-host the icon dependency where feasible.
+- Refine motion and interaction feedback under normal and reduced-motion modes.
+- Measure audience-path CTA use and validate conversion changes after release.
+
+**Phase completion:** No material LCP or CLS regression; reduced-motion checks
+pass; event instrumentation distinguishes runner and organiser paths without
+collecting unnecessary personal data; post-release results can be compared with
+the pre-change baseline.
+
+### Interfaces and Compatibility Guardrails
+
+- Preserve server-rendered EJS and progressive enhancement. Core navigation,
+  content, and CTAs must remain useful without client-side JavaScript.
+- Preserve existing homepage inputs: `featuredEvents`, `carouselSettings`,
+  `homeLeaderboard`, `recentPosts`, authentication/role locals, and `stats` until
+  the trust-metric decision is implemented.
+- No database or public API change is required by the audit. A future optional
+  role-prefill contract must accept only `runner` or `organiser`, preserve posted
+  form data, and fall back to unselected signup for missing or invalid values.
+- Preserve all existing public, authenticated, organiser, and admin navigation
+  destinations when changing the shared navigation presentation.
+
+### Validation Plan for Future Implementation
+
+- Perform visual and interaction checks at approximately 390px, 768px, 1024px,
+  and 1440px, including long event titles/descriptions and slow or failed images.
+- Complete a keyboard-only pass covering skip navigation, menus, CTAs, carousel,
+  cards, footer links, and back-to-top behaviour.
+- Verify screen-reader names, heading order, landmark structure, carousel status,
+  contrast, touch-target sizing, and `prefers-reduced-motion` behaviour.
+- Exercise populated and empty variants for featured events, recent posts, and
+  homepage leaderboard, plus guest and authenticated navigation states.
+- Extend source/integration coverage for homepage rendering, role-prefilled
+  signup if introduced, carousel state, empty fallbacks, and removal or display
+  of `stats`. Supplement automated coverage with manual responsive and
+  accessibility checks.
+
+### Assumptions
+
+- This document remains the single source for the landing-page audit and roadmap;
+  no separate audit file is created.
+- The audit was recorded before implementation. Phase 1 work began on July 17,
+  2026; later roadmap phases remain unstarted.
+- Future changes continue the current HelloRun identity rather than introducing a
+  new brand system.
+- Runner event discovery is the primary hero conversion goal. Organiser
+  acquisition remains a required, explicit secondary journey with preserved
+  role intent.
 
 ---
 

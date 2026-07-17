@@ -1,5 +1,8 @@
 'use strict';
 
+const { buildPublicBlogListPage } = require('../../services/public-blog-list.service');
+const { getBlogArticlePresentation } = require('../../services/public-blog-presentation.service');
+
 const {
   crypto,
   Event,
@@ -114,117 +117,15 @@ exports.getBlogTagPage = async (req, res) => {
 
 exports.getBlogList = async (req, res) => {
   try {
-    const query = getPublicBlogQuery({
-      status: 'published',
-      isDeleted: { $ne: true }
+    const pageData = await buildPublicBlogListPage(req.query, {
+      listingKind: req.blogListingKind,
+      baseUrl: getAppBaseUrl()
     });
-    const searchQuery = typeof req.query.q === 'string' ? req.query.q.trim().slice(0, 80) : '';
-    const selectedCategory = normalizeBlogCategory(req.query.category);
-    const selectedAuthor = normalizeObjectIdString(req.query.author);
-    const selectedSort = normalizeBlogSort(req.query.sort);
-    const page = normalizePositiveInt(req.query.page, 1);
-    const limit = 12;
-
-    if (selectedCategory) {
-      query.category = selectedCategory;
-    }
-    if (selectedAuthor) {
-      query.authorId = selectedAuthor;
-    }
-    if (searchQuery) {
-      const safePattern = new RegExp(escapeRegex(searchQuery), 'i');
-      query.$or = [
-        { title: safePattern },
-        { excerpt: safePattern },
-        { contentText: safePattern },
-        { tags: safePattern },
-        { category: safePattern },
-        { customCategory: safePattern }
-      ];
-    }
-
-    const sortMap = {
-      latest: { publishedAt: -1, createdAt: -1 },
-      oldest: { publishedAt: 1, createdAt: 1 },
-      popular: { views: -1, publishedAt: -1 }
-    };
-    const shouldShowFeatured = page === 1;
-    const [featuredPostsRaw, availableCategoriesRaw] = await Promise.all([
-      shouldShowFeatured
-        ? Blog.find({ ...query, featured: true })
-        .populate('authorId', 'firstName lastName')
-        .sort({ views: -1, likesCount: -1, commentsCount: -1, publishedAt: -1 })
-        .limit(3)
-        .select('title slug excerpt category customCategory tags coverImageUrl readingTime views likesCount commentsCount featured publishedAt createdAt')
-        : Promise.resolve([]),
-      Blog.distinct('category', getPublicBlogQuery({
-        status: 'published',
-        isDeleted: { $ne: true }
-      }))
-    ]);
-    const featuredPosts = featuredPostsRaw;
-    const featuredIds = featuredPosts.map((post) => post._id);
-    const postsQuery = featuredIds.length ? { ...query, _id: { $nin: featuredIds } } : query;
-    const totalPosts = await Blog.countDocuments(postsQuery);
-    const totalPages = Math.max(1, Math.ceil(totalPosts / limit));
-    const currentPage = Math.min(page, totalPages);
-    const skip = (currentPage - 1) * limit;
-
-    const posts = await Blog.find(postsQuery)
-      .populate('authorId', 'firstName lastName')
-      .sort(sortMap[selectedSort])
-      .skip(skip)
-      .limit(limit)
-      .select('title slug excerpt category customCategory tags coverImageUrl readingTime views likesCount commentsCount featured publishedAt createdAt');
-
-    const baseUrl = getAppBaseUrl();
-    const canonicalQuery = new URLSearchParams();
-    if (searchQuery) canonicalQuery.set('q', searchQuery);
-    if (selectedCategory) canonicalQuery.set('category', selectedCategory);
-    if (selectedAuthor) canonicalQuery.set('author', selectedAuthor);
-    if (selectedSort !== 'latest') canonicalQuery.set('sort', selectedSort);
-    if (currentPage > 1) canonicalQuery.set('page', String(currentPage));
-    const canonicalPath = canonicalQuery.toString() ? `/blog?${canonicalQuery.toString()}` : '/blog';
-    const canonicalUrl = baseUrl ? `${baseUrl}${canonicalPath}` : '';
-
-    const selectedAuthorUser = selectedAuthor
-      ? await User.findById(selectedAuthor).select('firstName lastName').lean()
-      : null;
-    const hasActiveFilters = Boolean(searchQuery || selectedCategory || selectedAuthor || selectedSort !== 'latest' || currentPage > 1);
-    const isThinFilteredListing = Boolean(req.blogListingKind && totalPosts < 3);
-    if (isThinFilteredListing) {
+    if (pageData.isThinFilteredListing) {
       res.setHeader('X-Robots-Tag', 'noindex, follow');
       disableAdLocals(res);
     }
-
-    return res.render('pages/blog', {
-      title: 'Blog - HelloRun',
-      posts,
-      featuredPosts,
-      categories: BLOG_CATEGORIES.filter((category) => availableCategoriesRaw.includes(category)),
-      filters: {
-        q: searchQuery,
-        category: selectedCategory,
-        author: selectedAuthor,
-        sort: selectedSort
-      },
-      filterMeta: {
-        hasActiveFilters,
-        totalPosts,
-        adSafe: !isThinFilteredListing,
-        authorName: selectedAuthorUser ? `${selectedAuthorUser.firstName || ''} ${selectedAuthorUser.lastName || ''}`.trim() : ''
-      },
-      pagination: {
-        currentPage,
-        totalPages,
-        totalPosts
-      },
-      seo: {
-        description: 'Explore running tips, race recaps, and training stories from the HelloRun community.',
-        canonicalUrl,
-        robots: isThinFilteredListing ? 'noindex, follow' : ''
-      }
-    });
+    return res.render('pages/blog', pageData);
   } catch (error) {
     logger.error('Error loading blog list:', error);
     return res.status(500).render('error', {
@@ -262,7 +163,7 @@ exports.getBlogPost = async (req, res) => {
       status: 'published',
       isDeleted: { $ne: true }
     })
-      .populate('authorId', 'firstName lastName');
+      .populate('authorId', 'firstName lastName avatarUrl verifiedAuthor trustScore');
 
     if (!post) {
       return res.status(404).render('error', {
@@ -305,7 +206,7 @@ exports.getBlogPost = async (req, res) => {
     }))
       .sort({ publishedAt: -1 })
       .limit(4)
-      .select('title slug category customCategory coverImageUrl publishedAt');
+      .select('title slug excerpt category customCategory coverImageUrl readingTime views likesCount commentsCount publishedAt');
 
     const baseUrl = getAppBaseUrl();
     const canonicalUrl = baseUrl ? `${baseUrl}/blog/${post.slug}` : '';
@@ -337,6 +238,7 @@ exports.getBlogPost = async (req, res) => {
         currentUserId: currentUserId ? String(currentUserId) : '',
         reportReasons: ['spam', 'plagiarism', 'promotion', 'unsafe_medical', 'abuse', 'other']
       },
+      articlePresentation: getBlogArticlePresentation(post),
       seo: {
         ogType: 'article',
         description: metaDescription,

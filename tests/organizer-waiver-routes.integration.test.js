@@ -249,11 +249,8 @@ test('organizer preview renders actual event details page with multiple race dis
   const html = await response.text();
   assert.match(html, /Preview mode/i);
   assert.match(html, /How This Event Works/i);
-  assert.match(html, /<span>Registration Options<\/span>\s*<ul class="event-registration-option-bullets event-registration-option-bullets-stat">[\s\S]*<li>10K<\/li>[\s\S]*<li>25K<\/li>[\s\S]*<li>50K<\/li>[\s\S]*<li>100K<\/li>[\s\S]*<\/ul>/i);
-  assert.match(html, /Registration options:<\/strong>[\s\S]*<ul class="event-registration-option-bullets">[\s\S]*<li>10K<\/li>[\s\S]*<li>25K<\/li>[\s\S]*<li>50K<\/li>[\s\S]*<li>100K<\/li>[\s\S]*<\/ul>/i);
-  assert.match(html, /<strong>100 km<\/strong>\s*<span>Completion goal<\/span>/i);
-  assert.match(html, /<strong>Registration Options<\/strong>[\s\S]*<ul class="event-registration-option-bullets event-registration-option-bullets-side">[\s\S]*<li>10K<\/li>[\s\S]*<li>25K<\/li>[\s\S]*<li>50K<\/li>[\s\S]*<li>100K<\/li>[\s\S]*<\/ul>/i);
-  assert.match(html, /<strong>Completion Goal<\/strong><span>100 km<\/span>/i);
+  assert.match(html, /class="event-challenge-goal-grid"[\s\S]*<span>10K<\/span>[\s\S]*<strong>10 km<\/strong>[\s\S]*<span>25K<\/span>[\s\S]*<strong>25 km<\/strong>[\s\S]*<span>50K<\/span>[\s\S]*<strong>50 km<\/strong>[\s\S]*<span>100K<\/span>[\s\S]*<strong>100 km<\/strong>/i);
+  assert.doesNotMatch(html, /challenge options/i);
   assert.doesNotMatch(html, /organizer-event-preview-page/i);
 });
 

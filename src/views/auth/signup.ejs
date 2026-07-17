@@ -1,7 +1,8 @@
+<% const selectedSignupRole = locals.formData && (locals.formData.role === 'runner' || locals.formData.role === 'organiser') ? locals.formData.role : ''; %>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: 'Sign Up - HelloRun' }) %>
+  <%- include('../layouts/head', { title: selectedSignupRole === 'organiser' ? 'Organizer Sign Up - HelloRun' : 'Sign Up - HelloRun' }) %>
   <link rel="stylesheet" href="/css/signup.css">
 </head>
 <body>
@@ -19,27 +20,22 @@
             <span class="brand-name">HelloRun</span>
           </div>
 
-          <h1>Create Your Account</h1>
-          <p class="auth-subtitle">Join HelloRun and start your running journey</p>
+          <h1><%= selectedSignupRole === 'organiser' ? 'Create Your Organizer Account' : (selectedSignupRole === 'runner' ? 'Create Your Runner Account' : 'Create Your Account') %></h1>
+          <p class="auth-subtitle"><%= selectedSignupRole === 'organiser' ? 'Bring registrations, reviews, results, and finisher recognition into one workflow.' : 'Join HelloRun and start your running journey.' %></p>
 
           <!-- Feature bullets -->
           <ul class="brand-features">
-            <li>
-              <i data-lucide="trophy"></i>
-              <span>Join virtual races &amp; events</span>
-            </li>
-            <li>
-              <i data-lucide="activity"></i>
-              <span>Track your runs &amp; progress</span>
-            </li>
-            <li>
-              <i data-lucide="award"></i>
-              <span>Earn finisher certificates</span>
-            </li>
-            <li>
-              <i data-lucide="users"></i>
-              <span>Connect with a running community</span>
-            </li>
+            <% if (selectedSignupRole === 'organiser') { %>
+              <li><i data-lucide="calendar-plus"></i><span>Publish virtual and on-site events</span></li>
+              <li><i data-lucide="clipboard-check"></i><span>Review registrations, payments, and submissions</span></li>
+              <li><i data-lucide="trophy"></i><span>Manage results, leaderboards, and certificates</span></li>
+              <li><i data-lucide="users"></i><span>Support participants from one workspace</span></li>
+            <% } else { %>
+              <li><i data-lucide="trophy"></i><span>Join virtual races &amp; events</span></li>
+              <li><i data-lucide="activity"></i><span>Track your runs &amp; progress</span></li>
+              <li><i data-lucide="award"></i><span>Earn finisher certificates</span></li>
+              <li><i data-lucide="users"></i><span>Connect with a running community</span></li>
+            <% } %>
           </ul>
 
           <!-- Login link -->
@@ -167,8 +163,8 @@
             <div class="input-group compact-input-group">
               <select id="role" name="role" required>
                 <option value=""></option>
-                <option value="runner" <%= locals.formData && locals.formData.role === 'runner' ? 'selected' : '' %>>Runner</option>
-                <option value="organiser" <%= locals.formData && locals.formData.role === 'organiser' ? 'selected' : '' %>>Event Organizer</option>
+                <option value="runner" <%= selectedSignupRole === 'runner' ? 'selected' : '' %>>Runner</option>
+                <option value="organiser" <%= selectedSignupRole === 'organiser' ? 'selected' : '' %>>Event Organizer</option>
               </select>
               <label for="role">I am a: <span class="required">*</span></label>
               <small class="form-error" id="roleError"></small>

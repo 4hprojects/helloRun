@@ -283,6 +283,11 @@ test('accumulated event leaderboard sums approved activities by registration', a
   assert.equal(result.entries[0].userId, String(seed.runnerA._id));
   assert.equal(result.entries[0].totalDistanceKm, 15);
   assert.equal(result.entries[0].activityCount, 2);
+  assert.equal(result.entries[0].targetDistanceKm, 20);
+  assert.equal(result.entries[0].progressPercentage, 75);
+  assert.equal(result.entries[0].remainingDistanceKm, 5);
+  assert.equal(result.entries[0].isGoalComplete, false);
+  assert.equal(Object.prototype.hasOwnProperty.call(result.entries[0], 'proof'), false);
   const twentyKGroup = result.groups.find((group) => group.key === '20K');
   const thirtyKGroup = result.groups.find((group) => group.key === '30K');
   assert.ok(twentyKGroup);

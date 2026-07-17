@@ -2,110 +2,248 @@
 <html lang="en">
 <head>
   <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
-  <link rel="stylesheet" href="/css/static-pages.css">
+  <link rel="stylesheet" href="/css/how-it-works.css">
 </head>
-<body>
+<body class="how-body">
   <%- include('../layouts/nav') %>
 
-  <main class="static-page">
-    <div class="static-wrap">
-      <header class="static-hero">
-        <h1>How It Works</h1>
-        <p>From event discovery to reviewed results, HelloRun keeps virtual, on-site, and hybrid running events clear for runners and organizers.</p>
-      </header>
+  <main class="how-page">
+    <header class="how-hero">
+      <div class="how-wrap how-hero-inner">
+        <div class="how-hero-copy">
+          <span class="how-kicker"><i data-lucide="route" aria-hidden="true"></i> One event. Two connected journeys.</span>
+          <h1>How HelloRun events work</h1>
+          <p>See what runners and organizers do at every stage—from clear event rules and registration to reviewed results and recognition.</p>
+        </div>
+        <nav class="how-perspectives" aria-label="Choose your perspective">
+          <a class="how-perspective how-perspective-runner" href="#runner-path">
+            <i data-lucide="person-standing" aria-hidden="true"></i>
+            <span><small>Runner path</small>I’m joining an event</span>
+            <i data-lucide="arrow-down" aria-hidden="true"></i>
+          </a>
+          <a class="how-perspective how-perspective-organizer" href="#organizer-path">
+            <i data-lucide="clipboard-check" aria-hidden="true"></i>
+            <span><small>Organizer path</small>I’m organizing an event</span>
+            <i data-lucide="arrow-down" aria-hidden="true"></i>
+          </a>
+        </nav>
+      </div>
+    </header>
 
-      <section class="static-grid">
-        <article class="static-card">
-          <h2>What HelloRun Is</h2>
-          <p>HelloRun is a running event platform for runners, walkers, communities, and organizers. It helps people find events, register online, submit activity proof, track review status, and receive recognition when an event enables certificates, badges, or leaderboards.</p>
-          <p>The platform supports virtual runs, accumulated distance challenges, on-site events, and hybrid events. Each event may have its own rules, deadlines, pricing, proof requirements, and recognition settings.</p>
-        </article>
-        <article class="static-card">
-          <h2>How Virtual Runs Work</h2>
-          <p>A virtual run lets participants complete an event distance from a safe location they choose, within the official event window. Depending on the rules, a participant may run outdoors, walk, use a treadmill, or submit another accepted activity type.</p>
-          <p>Instead of checking in at one physical venue, participants submit clear activity proof. Organizers then review the submission before it counts toward completion, leaderboard records, or certificates.</p>
-        </article>
+    <section class="how-format-band" aria-labelledby="event-formats-title">
+      <div class="how-wrap how-formats">
+        <h2 id="event-formats-title">Built for the way your event works</h2>
+        <ul>
+          <li><i data-lucide="smartphone" aria-hidden="true"></i>Virtual</li>
+          <li><i data-lucide="map-pin" aria-hidden="true"></i>On-site</li>
+          <li><i data-lucide="shuffle" aria-hidden="true"></i>Hybrid</li>
+          <li><i data-lucide="timer" aria-hidden="true"></i>Single result</li>
+          <li><i data-lucide="bar-chart-3" aria-hidden="true"></i>Accumulated distance</li>
+        </ul>
+      </div>
+    </section>
+
+    <div class="how-wrap how-content">
+      <section class="how-section how-lifecycle-section" aria-labelledby="lifecycle-title">
+        <div class="how-section-heading">
+          <span class="how-heading-icon"><i data-lucide="git-merge" aria-hidden="true"></i></span>
+          <div>
+            <span class="how-eyebrow">The shared lifecycle</span>
+            <h2 id="lifecycle-title">What happens—and what comes next</h2>
+            <p>Each lane stays connected, so runners know what is expected and organizers know what they must confirm.</p>
+          </div>
+        </div>
+
+        <div class="how-lifecycle" role="list">
+          <div class="how-lifecycle-labels" aria-hidden="true">
+            <span>Stage</span><span>Runner</span><span>Organizer</span>
+          </div>
+
+          <article class="how-stage-row" role="listitem">
+            <div class="how-stage-marker"><span>01</span><strong>Publish</strong></div>
+            <div class="how-lane how-runner-lane" id="runner-path" tabindex="-1">
+              <span class="how-lane-label"><i data-lucide="person-standing" aria-hidden="true"></i>Runner</span>
+              <h3>Read the event rules</h3>
+              <p>Check the organizer, dates, category, pricing, accepted activity, proof, and deadline before committing.</p>
+            </div>
+            <div class="how-lane how-organizer-lane" id="organizer-path" tabindex="-1">
+              <span class="how-lane-label"><i data-lucide="clipboard-check" aria-hidden="true"></i>Organizer</span>
+              <h3>Publish complete, accurate rules</h3>
+              <p>Set the event window, categories, fees, proof requirements, review process, and recognition before opening registration.</p>
+            </div>
+          </article>
+
+          <article class="how-stage-row" role="listitem">
+            <div class="how-stage-marker"><span>02</span><strong>Register</strong></div>
+            <div class="how-lane how-runner-lane">
+              <span class="how-lane-label"><i data-lucide="person-standing" aria-hidden="true"></i>Runner</span>
+              <h3>Choose and register</h3>
+              <p>Use your correct account name, select the intended category or mode, and submit payment proof only when required.</p>
+            </div>
+            <div class="how-lane how-organizer-lane">
+              <span class="how-lane-label"><i data-lucide="clipboard-check" aria-hidden="true"></i>Organizer</span>
+              <h3>Confirm the registration</h3>
+              <p>Manage capacity and registration details. Review payment separately from the runner’s later activity evidence.</p>
+            </div>
+          </article>
+
+          <article class="how-stage-row" role="listitem">
+            <div class="how-stage-marker"><span>03</span><strong>Complete</strong></div>
+            <div class="how-lane how-runner-lane">
+              <span class="how-lane-label"><i data-lucide="person-standing" aria-hidden="true"></i>Runner</span>
+              <h3>Complete and submit</h3>
+              <p>Do the accepted activity during the official window, then submit readable proof with the required details.</p>
+            </div>
+            <div class="how-lane how-organizer-lane">
+              <span class="how-lane-label"><i data-lucide="clipboard-check" aria-hidden="true"></i>Organizer</span>
+              <h3>Keep requirements clear</h3>
+              <p>Make the submission window, supported activity sources, minimum evidence, and correction process easy to find.</p>
+            </div>
+          </article>
+
+          <article class="how-stage-row" role="listitem">
+            <div class="how-stage-marker"><span>04</span><strong>Review</strong></div>
+            <div class="how-lane how-runner-lane">
+              <span class="how-lane-label"><i data-lucide="person-standing" aria-hidden="true"></i>Runner</span>
+              <h3>Follow the review status</h3>
+              <p>Pending means wait. Approved means it counts. If rejected, read the reason and resubmit when the event allows it.</p>
+            </div>
+            <div class="how-lane how-organizer-lane">
+              <span class="how-lane-label"><i data-lucide="clipboard-check" aria-hidden="true"></i>Organizer</span>
+              <h3>Review evidence consistently</h3>
+              <p>Check activity proof against published rules, protect private files, and give a useful reason when correction is needed.</p>
+            </div>
+          </article>
+
+          <article class="how-stage-row" role="listitem">
+            <div class="how-stage-marker"><span>05</span><strong>Recognize</strong></div>
+            <div class="how-lane how-runner-lane">
+              <span class="how-lane-label"><i data-lucide="person-standing" aria-hidden="true"></i>Runner</span>
+              <h3>See the official outcome</h3>
+              <p>Approved results may enter standings or unlock a certificate or badge when the event has enabled them.</p>
+            </div>
+            <div class="how-lane how-organizer-lane">
+              <span class="how-lane-label"><i data-lucide="clipboard-check" aria-hidden="true"></i>Organizer</span>
+              <h3>Publish trusted recognition</h3>
+              <p>Keep official results based on approved evidence and expose only the public fields configured for the event.</p>
+            </div>
+          </article>
+        </div>
       </section>
 
-      <section class="static-card">
-        <h2>Runner Workflow</h2>
-        <ol>
-          <li>Create a HelloRun account with your correct name and email address.</li>
-          <li>Choose an event from the <a href="/events">Events</a> page and read the event rules before registering.</li>
-          <li>Register for your distance, category, or participation mode. For paid events, follow the payment instructions and upload a receipt if required.</li>
-          <li>Complete your activity within the event window. For accumulated challenges, you may need several approved activities to reach the target distance.</li>
-          <li>Prepare proof that clearly shows the date, distance, duration, and activity source. Screenshots from Strava, Garmin, Nike Run Club, Huawei Health, Samsung Health, Apple Fitness, or similar apps may be accepted when the event rules allow them.</li>
-          <li>Submit your result from your registration or runner dashboard. Blurry screenshots, wrong dates, missing distance, or mismatched names can delay review.</li>
-          <li>Wait for organizer review. Approved submissions may appear on the leaderboard or unlock a certificate when those features are enabled for the event.</li>
-        </ol>
+      <section class="how-section how-submit-section" aria-labelledby="submit-title">
+        <div class="how-section-heading how-section-heading-compact">
+          <span class="how-heading-icon"><i data-lucide="list-checks" aria-hidden="true"></i></span>
+          <div>
+            <span class="how-eyebrow">Fewer delays</span>
+            <h2 id="submit-title">Before you submit</h2>
+          </div>
+        </div>
+        <ul class="how-checklist">
+          <li><i data-lucide="check" aria-hidden="true"></i>Correct account name</li>
+          <li><i data-lucide="check" aria-hidden="true"></i>Inside the event window</li>
+          <li><i data-lucide="check" aria-hidden="true"></i>Right distance or category</li>
+          <li><i data-lucide="check" aria-hidden="true"></i>Activity date is visible</li>
+          <li><i data-lucide="check" aria-hidden="true"></i>Duration is visible</li>
+          <li><i data-lucide="check" aria-hidden="true"></i>Activity source is visible</li>
+          <li><i data-lucide="check" aria-hidden="true"></i>Proof is readable</li>
+        </ul>
+        <div class="how-review-note">
+          <i data-lucide="split" aria-hidden="true"></i>
+          <p><strong>Two separate checks:</strong> payment approval confirms a registration payment; activity-proof approval confirms the result. One does not automatically approve the other.</p>
+        </div>
       </section>
 
-      <section class="static-grid">
-        <article class="static-card">
-          <h2>Accumulated Distance Challenges</h2>
-          <p>In an accumulated challenge, your final result is built from multiple valid activities. For example, a 25K challenge may be completed as five 5K walks, several short runs, or a mix of accepted activities within the event period.</p>
-          <p>Only approved submissions count toward the official total. Check the event page for minimum distance per activity, deadline, accepted proof, and whether pending submissions appear publicly.</p>
-        </article>
-        <article class="static-card">
-          <h2>Single-Distance Events</h2>
-          <p>In a single-distance event, the goal is usually to finish one selected distance such as 3K, 5K, 10K, or another organizer-defined category. The submitted proof should match the selected event category and follow the event deadline.</p>
-          <p>If your distance, pace, duration, or screenshot details do not match the event rules, the organizer may reject the result or ask you to resubmit clearer proof.</p>
-        </article>
+      <section class="how-section" aria-labelledby="event-behavior-title">
+        <div class="how-section-heading">
+          <span class="how-heading-icon"><i data-lucide="waypoints" aria-hidden="true"></i></span>
+          <div>
+            <span class="how-eyebrow">Know your goal</span>
+            <h2 id="event-behavior-title">Single result or accumulated distance</h2>
+            <p>The event page is always authoritative for the target, accepted activities, dates, and proof.</p>
+          </div>
+        </div>
+        <div class="how-comparison">
+          <article>
+            <span class="how-card-icon"><i data-lucide="flag" aria-hidden="true"></i></span>
+            <div>
+              <h3>Single-result events</h3>
+              <p>Submit one activity for the selected distance or category. The approved record may use time, pace, or completion according to the ranking rule.</p>
+            </div>
+          </article>
+          <article>
+            <span class="how-card-icon"><i data-lucide="bar-chart-3" aria-hidden="true"></i></span>
+            <div>
+              <h3>Accumulated Distance Challenges</h3>
+              <p>Build progress from multiple approved activities during the challenge window. Pending activities do not count toward the official total yet.</p>
+            </div>
+          </article>
+        </div>
       </section>
 
-      <section class="static-card">
-        <h2>For Organizers</h2>
-        <p>Organizers can use HelloRun to create event pages, configure event windows, set distances and categories, manage registrations, review payment receipts, approve or reject submitted proof, and publish recognition records.</p>
-        <p>A strong event page should clearly explain who can join, how the activity works, accepted proof types, registration deadlines, final submission deadlines, fees, rewards, and the review process. Clear rules help runners submit correctly and help organizers avoid disputes.</p>
+      <section class="how-section" aria-labelledby="review-title">
+        <div class="how-section-heading how-section-heading-compact">
+          <span class="how-heading-icon"><i data-lucide="scan-search" aria-hidden="true"></i></span>
+          <div>
+            <span class="how-eyebrow">After submission</span>
+            <h2 id="review-title">Understand your review status</h2>
+          </div>
+        </div>
+        <div class="how-status-grid">
+          <article class="how-status-pending"><span><i data-lucide="clock-3" aria-hidden="true"></i>Pending</span><p>Your proof is waiting for review. No action is needed unless the organizer asks for more information.</p></article>
+          <article class="how-status-approved"><span><i data-lucide="badge-check" aria-hidden="true"></i>Approved</span><p>Your verified result counts toward the event’s configured progress, standings, or recognition.</p></article>
+          <article class="how-status-rejected"><span><i data-lucide="circle-x" aria-hidden="true"></i>Rejected</span><p>Read the review reason. A wrong date, missing detail, or unreadable image can prevent approval.</p></article>
+          <article class="how-status-resubmit"><span><i data-lucide="refresh-cw" aria-hidden="true"></i>Resubmission</span><p>Correct the issue and submit clearer evidence before the deadline when the event permits another attempt.</p></article>
+        </div>
       </section>
 
-      <section class="static-grid">
-        <article class="static-card">
-          <h2>Payment and Free Registration</h2>
-          <p>Some HelloRun events are free, while others may require manual payment proof or organizer-defined package choices. If payment is required, read the event instructions carefully before uploading a receipt.</p>
-          <p>Payment review is separate from run proof review. A registration may be waiting for payment approval even if the runner has already finished training, and an approved payment does not automatically approve a submitted run result.</p>
-        </article>
-        <article class="static-card">
-          <h2>What Happens if Proof Is Rejected</h2>
-          <p>A rejected submission does not always mean the runner did not complete the activity. It may mean the screenshot was blurry, the date was outside the event window, the distance did not match the selected category, or required details were missing.</p>
-          <p>When rejection guidance is available, use it to correct metadata or submit clearer proof. If the event deadline or organizer rule prevents resubmission, contact support or the organizer with the event name and submission context.</p>
-        </article>
-      </section>
-
-      <section class="static-grid">
-        <article class="static-card">
-          <h2>Leaderboards, Certificates, and Badges</h2>
-          <p>Leaderboards are based on event settings and approved submissions. Some events rank by time, some focus on completion, and accumulated challenges may track progress toward a distance target.</p>
-          <p>Certificates and badges are issued only when the event or platform rules allow them. Names, distances, completion dates, and verification details should match the reviewed record so shared recognition remains trustworthy.</p>
-        </article>
-        <article class="static-card">
-          <h2>Privacy and Data Handling</h2>
-          <p>HelloRun processes account details, registrations, payment receipts when used, proof screenshots, event records, and communication preferences to operate the platform. Public pages should show only information intended for discovery, rankings, verification, or recognition.</p>
-          <p>Read the <a href="/privacy">Privacy Policy</a> and <a href="/data-usage-policy">Data Usage Policy</a> for more detail, or use the <a href="/contact">Contact</a> page for privacy questions and correction requests.</p>
-        </article>
-      </section>
-
-      <section class="static-grid">
-        <article class="static-card">
-          <h2>Common Proof Mistakes</h2>
+      <section class="how-guidance" aria-label="Proof, recognition, and support guidance">
+        <article>
+          <span class="how-card-icon"><i data-lucide="image-off" aria-hidden="true"></i></span>
+          <h2>Avoid Common Proof Mistakes</h2>
           <ul>
-            <li>Uploading a screenshot that does not show date, distance, or duration.</li>
-            <li>Submitting an activity outside the event window.</li>
-            <li>Using miles when the event requires kilometers without explaining the conversion.</li>
-            <li>Submitting proof under a different name without context.</li>
-            <li>Uploading payment proof in place of activity proof.</li>
+            <li>Do not crop out the date, distance, duration, or source.</li>
+            <li>Do not use payment proof as activity proof.</li>
+            <li>Explain units or name differences before submitting.</li>
           </ul>
         </article>
-        <article class="static-card">
-          <h2>Safety and Honesty</h2>
-          <p>Run or walk in safe areas, follow local traffic rules, and avoid unsafe routes or weather conditions. HelloRun does not replace personal judgment, coaching, medical advice, or official race timing.</p>
-          <p>Submit honest activity records. Verified results help protect the credibility of every event and make leaderboards and certificates more meaningful.</p>
+        <article>
+          <span class="how-card-icon"><i data-lucide="trophy" aria-hidden="true"></i></span>
+          <h2>Recognition follows event settings</h2>
+          <p>Leaderboards use approved records. Certificates and badges appear only when configured, and are event recognition rather than external accreditation.</p>
+        </article>
+        <article>
+          <span class="how-card-icon"><i data-lucide="shield-check" aria-hidden="true"></i></span>
+          <h2>Privacy, safety, and support</h2>
+          <p>Proof is limited to authorized reviewers unless explicitly published. Run safely and submit honest records.</p>
+          <nav aria-label="Policies and support">
+            <a href="/privacy">Privacy</a>
+            <a href="/data-usage-policy">Data Usage</a>
+            <a href="/faq">FAQ</a>
+            <a href="/contact">Contact</a>
+          </nav>
         </article>
       </section>
 
-      <section class="static-card">
-        <h2>Next Steps</h2>
-        <p>Browse <a href="/events">current events</a>, read the <a href="/faq">FAQ</a>, visit the <a href="/blog">blog</a> for running guides, or <a href="/contact">contact HelloRun</a> if you need help with a registration, organizer inquiry, or proof submission question.</p>
+      <section class="how-next" aria-labelledby="next-title">
+        <div class="how-next-heading">
+          <span class="how-eyebrow">Your next move</span>
+          <h2 id="next-title">Continue from your side of the event</h2>
+        </div>
+        <div class="how-next-grid">
+          <article class="how-next-card how-next-runner">
+            <span class="how-next-role"><i data-lucide="person-standing" aria-hidden="true"></i>For runners</span>
+            <h3>Find your event or return to your entries.</h3>
+            <p>Read the event-specific rules before registering or submitting an activity.</p>
+            <a class="how-button" href="<%= howItWorksActions.runner.href %>"><i data-lucide="<%= howItWorksActions.runner.icon %>" aria-hidden="true"></i><%= howItWorksActions.runner.label %></a>
+          </article>
+          <article class="how-next-card how-next-organizer">
+            <span class="how-next-role"><i data-lucide="clipboard-check" aria-hidden="true"></i>For organizers</span>
+            <h3>Build clear rules and a trusted review flow.</h3>
+            <p>Set expectations before registration opens, then review every record consistently.</p>
+            <a class="how-button how-button-secondary" href="<%= howItWorksActions.organizer.href %>"><i data-lucide="<%= howItWorksActions.organizer.icon %>" aria-hidden="true"></i><%= howItWorksActions.organizer.label %></a>
+          </article>
+        </div>
       </section>
     </div>
   </main>

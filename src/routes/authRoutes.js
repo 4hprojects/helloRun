@@ -92,6 +92,10 @@ function resolveSafeReturnTo(value, fallback = null) {
   return fallback;
 }
 
+function resolveSignupRole(value) {
+  return value === 'runner' || value === 'organiser' ? value : '';
+}
+
 function getRequestIpAddress(req) {
   const forwardedFor = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   const directIp = String(req.ip || '').trim();
@@ -319,11 +323,12 @@ function renderSignupPage(req, res, options = {}) {
 
   const error = options.error || (queryType === 'error' ? queryMessage : null);
   const success = options.success || (queryType === 'success' ? queryMessage : null);
+  const requestedRole = resolveSignupRole(req.query.role);
 
   return res.render('auth/signup', {
     error,
     success,
-    formData: options.formData || null,
+    formData: options.formData || (requestedRole ? { role: requestedRole } : null),
     signupForm: createSignupFormToken(req),
     turnstile: {
       enabled: isTurnstileConfigured(),

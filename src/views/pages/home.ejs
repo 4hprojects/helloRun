@@ -6,16 +6,17 @@
 </head>
 <body>
 
+  <a class="home-skip-link" href="#main-content">Skip to main content</a>
   <%- include('../layouts/nav') %>
 
-  <main class="home">
+  <main class="home" id="main-content" tabindex="-1">
 
     <section class="hero">
       <div class="container hero-container<%= homeLeaderboard ? ' has-leaderboard' : '' %>">
         <div class="hero-text">
-          <h1 class="hero-title">Run anywhere. <span class="highlight">Show up with purpose.</span></h1>
+          <h1 class="hero-title">Run anywhere. <span class="highlight">Track every finish.</span></h1>
           <p class="hero-subtitle">
-            Find virtual and on-site running events, submit your finish online, and keep results, certificates, and progress in one place — no GPS lock-in required.
+            Join virtual and on-site running events, submit your activity from your preferred tracking app, and keep your progress, results, rankings, and certificates in one place.
           </p>
 
           <div class="hero-cta-row">
@@ -23,54 +24,55 @@
             <a href="/signup" class="btn btn-outline">Sign Up Free</a>
           </div>
 
-          <a class="hero-inline-action" href="/my-registrations">
-            <i data-lucide="clipboard-list" aria-hidden="true"></i>
-            <span>Already registered? Review your event entries.</span>
-          </a>
+          <div class="hero-returning-user">
+            <span class="hero-returning-icon" aria-hidden="true"><i data-lucide="clipboard-list"></i></span>
+            <span>Already registered?</span>
+            <a href="/my-registrations">Review your event entries <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+          </div>
         </div>
 
         <% if (homeLeaderboard) { %>
           <aside class="home-leaderboard" aria-labelledby="homeLeaderboardTitle">
             <header class="home-leaderboard-header">
-              <div>
-                <p class="home-leaderboard-kicker">
-                  <span class="home-leaderboard-live-dot" aria-hidden="true"></span>
-                  Verified results
-                </p>
-                <h2 id="homeLeaderboardTitle"><%= homeLeaderboard.eventTitle %></h2>
-                <p class="home-leaderboard-context">
-                  <span><%= homeLeaderboard.categoryLabel %></span>
-                  <span aria-hidden="true">·</span>
-                  <span><%= homeLeaderboard.leaderboardTypeLabel %></span>
-                </p>
+              <div class="home-leaderboard-utility">
+                <span class="home-leaderboard-verified"><i data-lucide="badge-check" aria-hidden="true"></i>Verified results</span>
+                <% if (homeLeaderboard.lastUpdatedAt) { %>
+                  <span class="home-leaderboard-updated">Updated <time datetime="<%= new Date(homeLeaderboard.lastUpdatedAt).toISOString() %>"><%= homeLeaderboard.lastUpdatedLabel %></time></span>
+                <% } %>
               </div>
-              <i class="home-leaderboard-trophy" data-lucide="trophy" aria-hidden="true"></i>
+              <h2 id="homeLeaderboardTitle"><%= homeLeaderboard.eventTitle %></h2>
+              <p class="home-leaderboard-context"><%= homeLeaderboard.rankingExplanation %></p>
             </header>
 
-            <ol class="home-leaderboard-list" aria-label="Top verified finishers">
-              <% homeLeaderboard.entries.forEach((entry) => { %>
-                <li class="home-leaderboard-entry">
-                  <span class="home-leaderboard-rank" aria-label="Rank <%= entry.rank %>"><%= entry.rank %></span>
-                  <span class="home-leaderboard-runner"><%= entry.runnerName %></span>
-                  <span class="home-leaderboard-metrics">
-                    <strong><%= entry.primaryMetric %></strong>
-                    <% if (entry.secondaryMetric) { %><small><%= entry.secondaryMetric %></small><% } %>
-                  </span>
-                </li>
-              <% }) %>
-            </ol>
+            <div class="home-leaderboard-table-wrap">
+              <table class="home-leaderboard-table">
+                <caption>Top verified standings for <%= homeLeaderboard.eventTitle %><% if (homeLeaderboard.categoryLabel) { %>, <%= homeLeaderboard.categoryLabel %><% } %></caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Rank</th>
+                    <th scope="col">Runner</th>
+                    <th scope="col">Verified result</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% homeLeaderboard.entries.forEach((entry) => { %>
+                    <tr>
+                      <td class="home-leaderboard-rank-cell"><span class="home-leaderboard-rank home-leaderboard-rank-<%= entry.rank %>" aria-label="Rank <%= entry.rank %>"><%= entry.rank %></span></td>
+                      <th scope="row" class="home-leaderboard-runner"><%= entry.runnerName %></th>
+                      <td class="home-leaderboard-metrics">
+                        <strong><%= entry.primaryMetric %></strong>
+                        <% if (entry.secondaryMetric) { %><small><%= entry.secondaryMetric %></small><% } %>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
 
             <footer class="home-leaderboard-footer">
-              <span class="home-leaderboard-updated">
-                <% if (homeLeaderboard.lastUpdatedAt) { %>
-                  Updated <time datetime="<%= new Date(homeLeaderboard.lastUpdatedAt).toISOString() %>"><%= homeLeaderboard.lastUpdatedLabel %></time>
-                <% } else { %>
-                  Current verified standings
-                <% } %>
-              </span>
               <a href="<%= homeLeaderboard.href %>" class="home-leaderboard-link">
-                <span>Full leaderboard</span>
-                <i data-lucide="arrow-up-right" aria-hidden="true"></i>
+                <span>View full standings</span>
+                <i data-lucide="arrow-right" aria-hidden="true"></i>
               </a>
             </footer>
           </aside>
@@ -137,7 +139,7 @@
             </a>
           </div>
 
-          <div class="featured-events-carousel" data-event-carousel data-carousel-loop="<%= carouselSettings?.loopEnabled === false ? '0' : '1' %>">
+          <div class="featured-events-carousel" data-event-carousel data-carousel-loop="<%= carouselSettings?.loopEnabled === false ? '0' : '1' %>" role="region" aria-roledescription="carousel" aria-labelledby="featuredEventsTitle">
             <button type="button" class="featured-events-nav featured-events-nav-prev" data-carousel-prev aria-label="Previous featured events">
               <i data-lucide="chevron-left" aria-hidden="true"></i>
             </button>
@@ -188,6 +190,7 @@
           </div>
 
           <div class="featured-events-dots" data-carousel-dots aria-label="Featured event pages"></div>
+          <p class="home-sr-only" data-carousel-status aria-live="polite" aria-atomic="true"></p>
         </div>
       </section>
     <% } %>
@@ -221,26 +224,44 @@
       </div>
     </section>
 
-    <section class="audience">
+    <section class="audience" aria-labelledby="audienceTitle">
       <div class="container">
-        <h2 class="section-title">Built for everyone in the <span class="highlight">running community</span></h2>
+        <header class="audience-header">
+          <p class="section-kicker">Choose your path</p>
+          <h2 id="audienceTitle" class="section-title">Built for everyone in the <span class="highlight">running community</span></h2>
+          <p class="audience-intro">Whether you are chasing your next finish or bringing a whole event to life, HelloRun keeps the journey organised.</p>
+        </header>
+
         <div class="audience-grid">
-          <div class="audience-card audience-card-runner">
-            <h3 class="audience-card-heading">
-              <span class="audience-icon"><i data-lucide="activity"></i></span>
-              <span>For Runners</span>
-            </h3>
+          <article class="audience-card audience-card-runner">
+            <div class="audience-card-topline">
+              <span class="audience-icon" aria-hidden="true"><i data-lucide="person-standing"></i></span>
+              <span class="audience-label">Runner journey</span>
+            </div>
+            <h3>For Runners</h3>
             <p class="audience-card-summary">Find events, finish on your terms, and keep your results visible in one place.</p>
-            <a href="/signup" class="btn btn-primary">Start Running</a>
-          </div>
-          <div class="audience-card audience-card-organizer">
-            <h3 class="audience-card-heading">
-              <span class="audience-icon"><i data-lucide="clipboard-check"></i></span>
-              <span>For Organizers</span>
-            </h3>
+            <ul class="audience-benefits" aria-label="Runner benefits">
+              <li><i data-lucide="search" aria-hidden="true"></i><span>Discover events</span></li>
+              <li><i data-lucide="upload" aria-hidden="true"></i><span>Submit activity</span></li>
+              <li><i data-lucide="award" aria-hidden="true"></i><span>Track achievements</span></li>
+            </ul>
+            <a href="/signup?role=runner" class="audience-action">Start Running <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+          </article>
+
+          <article class="audience-card audience-card-organizer">
+            <div class="audience-card-topline">
+              <span class="audience-icon" aria-hidden="true"><i data-lucide="clipboard-check"></i></span>
+              <span class="audience-label">Organizer journey</span>
+            </div>
+            <h3>For Organizers</h3>
             <p class="audience-card-summary">Publish events, review results and payments, and manage participant progress in one workflow.</p>
-            <a href="/signup" class="btn btn-primary">Create Events</a>
-          </div>
+            <ul class="audience-benefits" aria-label="Organizer benefits">
+              <li><i data-lucide="calendar-plus" aria-hidden="true"></i><span>Publish events</span></li>
+              <li><i data-lucide="badge-check" aria-hidden="true"></i><span>Review submissions</span></li>
+              <li><i data-lucide="users" aria-hidden="true"></i><span>Manage participants</span></li>
+            </ul>
+            <a href="/signup?role=organiser" class="audience-action">Create Events <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+          </article>
         </div>
       </div>
     </section>
@@ -299,8 +320,8 @@
         <div class="cta-tagline">Move. Log. Finish.</div>
         <p>Create your free HelloRun account to keep event entries, submissions, and finishes in one place.</p>
         <div class="cta-actions">
-          <a href="/signup" class="btn btn-primary btn-large">Start running today</a>
-          <a href="/events" class="btn btn-outline btn-large">View Events</a>
+          <a href="/signup" class="cta-action cta-action-primary">Start running today <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+          <a href="/events" class="cta-action cta-action-secondary">View Events <i data-lucide="calendar-days" aria-hidden="true"></i></a>
         </div>
       </div>
     </section>

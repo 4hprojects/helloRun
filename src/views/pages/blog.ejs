@@ -1,240 +1,275 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title: title || 'Blog - HelloRun', seo: seo }) %>
+  <%- include('../layouts/head', { title: title || 'Runner Stories & Guides - HelloRun', seo: seo }) %>
   <link rel="stylesheet" href="/css/blog.css">
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  <main class="blog-page-shell">
-    <!-- Run Hub Header -->
-    <section class="blog-header-compact">
+  <% const fallbackCover = '/images/helloRun-icon.webp'; %>
+
+  <main class="blog-community-page">
+    <section class="blog-community-header" aria-labelledby="blogPageTitle">
       <div class="container">
-        <div class="header-top-row">
-          <div class="header-titles">
-            <h1>Run Hub</h1>
-            <p>Guides for runners and organisers — proof, events, training, certificates, and more.</p>
+        <div class="blog-community-intro">
+          <div>
+            <p class="blog-kicker">HelloRun community</p>
+            <h1 id="blogPageTitle"><%= pageContent?.heading || 'Stories from the running community' %></h1>
+            <p class="blog-community-support"><%= pageContent?.supportCopy || 'Read real experiences, practical advice, and fresh perspectives—or share your own.' %></p>
           </div>
-          <div class="header-actions">
+          <div class="blog-community-actions">
             <% if (locals.isAuthenticated) { %>
-              <a href="/blogs/me/dashboard" class="btn btn-primary dashboard-btn">
-                <i data-lucide="layout-dashboard"></i>
-                <span class="btn-text">My Blogs</span>
+              <a href="/blogs/me/dashboard" class="btn btn-outline">
+                <i data-lucide="layout-dashboard" aria-hidden="true"></i>
+                My Blogs
               </a>
             <% } %>
-            <a href="/blogs/me/new" class="btn btn-primary write-btn">
-              <i data-lucide="pen-square"></i>
-              <span class="btn-text">Write</span>
+            <a href="<%= locals.isAuthenticated ? '/blogs/me/new' : '/login?redirect=/blogs/me/new' %>" class="btn btn-primary">
+              <i data-lucide="pen-square" aria-hidden="true"></i>
+              Write a post
             </a>
           </div>
         </div>
 
-        <div class="run-hub-tiles">
-          <a href="/blog?category=Virtual+Run+Guide" class="run-hub-tile">
-            <i data-lucide="play-circle" aria-hidden="true"></i>
-            <span class="run-hub-tile-label">Virtual Runs</span>
-          </a>
-          <a href="/blog?category=Training" class="run-hub-tile">
-            <i data-lucide="trending-up" aria-hidden="true"></i>
-            <span class="run-hub-tile-label">Training Tips</span>
-          </a>
-          <a href="/blog?category=Race+Tips" class="run-hub-tile">
-            <i data-lucide="flag" aria-hidden="true"></i>
-            <span class="run-hub-tile-label">Race Prep</span>
-          </a>
-          <a href="/blog?category=Organizer+Guide" class="run-hub-tile">
-            <i data-lucide="clipboard-list" aria-hidden="true"></i>
-            <span class="run-hub-tile-label">Organiser Guides</span>
-          </a>
-        </div>
+        <form method="GET" action="/blog#blog-results" class="blog-discovery-form" id="blogFilterForm">
+          <div class="blog-search-row">
+            <div class="blog-search-field">
+              <label for="blogSearch" class="sr-only">Search community stories</label>
+              <i data-lucide="search" aria-hidden="true"></i>
+              <input id="blogSearch" type="search" name="q" value="<%= filters?.q || '' %>" placeholder="Search stories, writers, or topics...">
+            </div>
+            <button type="submit" class="btn btn-primary">
+              Search stories
+              <i data-lucide="arrow-right" aria-hidden="true"></i>
+            </button>
+          </div>
 
-        <form method="GET" action="/blog" class="filter-form-compact" id="blogFilterForm">
-          <div class="filter-group">
-            <i data-lucide="search" class="filter-icon"></i>
-            <input type="search" name="q" placeholder="Search posts" value="<%= filters?.q || '' %>" aria-label="Search">
+          <nav class="blog-topic-paths" aria-label="Browse popular topics">
+            <span>Explore:</span>
+            <a href="/blog?category=Community">Community</a>
+            <a href="/blog?category=Training">Training</a>
+            <a href="/blog?category=Race+Tips">Race prep</a>
+            <a href="/blog?category=Virtual+Run+Guide">Virtual runs</a>
+            <a href="/blog?category=Organizer+Guide">Organiser stories</a>
+          </nav>
+
+          <div class="blog-control-row">
+            <details class="blog-filter-panel" <%= filters?.category || filters?.author ? 'open' : '' %>>
+              <summary>
+                <span>
+                  <i data-lucide="sliders-horizontal" aria-hidden="true"></i>
+                  Filters
+                  <% if (filterMeta?.activeFilterCount) { %>
+                    <span class="blog-filter-count" aria-label="<%= filterMeta.activeFilterCount %> active <%= filterMeta.activeFilterCount === 1 ? 'filter' : 'filters' %>"><%= filterMeta.activeFilterCount %></span>
+                  <% } %>
+                </span>
+                <small>Topic and writer</small>
+              </summary>
+              <div class="blog-filter-content">
+                <div class="blog-filter-grid">
+                  <div class="blog-field-group">
+                    <label for="blogCategory">Topic</label>
+                    <select id="blogCategory" name="category">
+                      <option value="">All topics</option>
+                      <% (categories || []).forEach((category) => { %>
+                        <option value="<%= category %>" <%= filters?.category === category ? 'selected' : '' %>><%= category %></option>
+                      <% }) %>
+                    </select>
+                  </div>
+                  <div class="blog-field-group">
+                    <label for="blogAuthor">Writer</label>
+                    <input id="blogAuthor" type="text" value="<%= filters?.authorName || 'All community writers' %>" disabled aria-describedby="blogAuthorHint">
+                    <input type="hidden" name="author" value="<%= filters?.author || '' %>">
+                    <small id="blogAuthorHint"><%= filters?.author ? 'Remove the writer chip below to browse everyone.' : 'Choose a writer from a story or Top Writers.' %></small>
+                  </div>
+                </div>
+                <div class="blog-filter-actions">
+                  <% if (filterMeta?.hasActiveFilters) { %>
+                    <a href="<%= filterMeta.clearFiltersUrl %>#blog-results" class="btn btn-outline">Clear filters</a>
+                  <% } %>
+                  <button type="submit" class="btn btn-primary">Apply filters</button>
+                </div>
+              </div>
+            </details>
+
+            <div class="blog-sort-control">
+              <label for="blogSort">Sort by</label>
+              <select id="blogSort" name="sort">
+                <option value="latest" <%= (filters?.sort || 'latest') === 'latest' ? 'selected' : '' %>>Latest</option>
+                <option value="popular" <%= filters?.sort === 'popular' ? 'selected' : '' %>>Popular</option>
+                <option value="oldest" <%= filters?.sort === 'oldest' ? 'selected' : '' %>>Oldest</option>
+              </select>
+              <button type="submit" class="btn btn-outline">Apply sort</button>
+            </div>
           </div>
-          <div class="filter-group">
-            <i data-lucide="folder" class="filter-icon"></i>
-            <select name="category" aria-label="Category">
-              <option value="">All Categories</option>
-              <% (categories || []).forEach((category) => { %>
-                <option value="<%= category %>" <%= filters?.category === category ? 'selected' : '' %>><%= category %></option>
-              <% }) %>
-            </select>
-          </div>
-          <div class="filter-group">
-            <i data-lucide="arrow-up-down" class="filter-icon"></i>
-            <select name="sort" aria-label="Sort by">
-              <option value="latest" <%= (filters?.sort || 'latest') === 'latest' ? 'selected' : '' %>>Latest</option>
-              <option value="oldest" <%= filters?.sort === 'oldest' ? 'selected' : '' %>>Oldest</option>
-              <option value="popular" <%= filters?.sort === 'popular' ? 'selected' : '' %>>Popular</option>
-            </select>
-          </div>
-          <button type="submit" class="btn btn-primary filter-submit">Apply</button>
         </form>
-        <% if (!locals.isAuthenticated) { %>
-          <small class="login-note-compact">Login required to write. <a href="/login?redirect=/blogs/me/new">Sign in</a></small>
-        <% } %>
       </div>
     </section>
 
-    <!-- Main Content -->
-    <section class="blog-content">
+    <section class="blog-results" aria-labelledby="blog-results">
       <div class="container">
-
-        <p class="blog-results-meta">
-          Showing <strong><%= filterMeta?.totalPosts || 0 %></strong> post<%= (filterMeta?.totalPosts || 0) === 1 ? '' : 's' %>.
-          <% if (filterMeta?.authorName) { %>
-            <span>Author: <strong><%= filterMeta.authorName %></strong></span>
+        <div class="blog-results-heading">
+          <div>
+            <p class="blog-kicker">Community feed</p>
+            <h2 id="blog-results" tabindex="-1"><%= filterMeta?.summary || 'Community stories' %></h2>
+          </div>
+          <% if ((filterMeta?.totalPosts || 0) > 0) { %>
+            <p>Showing <strong><%= pagination?.resultStart || 0 %>–<%= pagination?.resultEnd || 0 %></strong> of <strong><%= pagination?.totalPosts || 0 %></strong> feed stories</p>
+          <% } else { %>
+            <p>No matches yet</p>
           <% } %>
-          <% if (filterMeta?.hasActiveFilters) { %>
-            <a href="/blog" class="blog-clear-link">Clear filters</a>
-          <% } %>
-        </p>
-        <p class="blog-results-meta">
-          Start with guides about proof submission, choosing a distance, virtual race safety, certificates, and organizer review workflows. For platform-specific steps, pair these articles with <a href="/how-it-works">How It Works</a>, the <a href="/faq">FAQ</a>, and current <a href="/events">events</a>.
-        </p>
+        </div>
 
-        <% if (filterMeta?.adSafe !== false && ((featuredPosts && featuredPosts.length) || (posts && posts.length))) { %>
-          <%- include('../partials/ad-unit', { group: 'blogListing', placement: 'after_results_meta' }) %>
+        <% if (filterMeta?.activeFilters?.length) { %>
+          <div class="blog-active-filters" aria-label="Active filters">
+            <% filterMeta.activeFilters.forEach((activeFilter) => { %>
+              <a href="<%= activeFilter.removeUrl %>#blog-results" class="blog-filter-chip" aria-label="Remove <%= activeFilter.label %> filter: <%= activeFilter.value %>">
+                <span><strong><%= activeFilter.label %>:</strong> <%= activeFilter.value %></span>
+                <span aria-hidden="true">×</span>
+              </a>
+            <% }) %>
+            <a href="<%= filterMeta.clearFiltersUrl %>#blog-results" class="blog-filter-chip blog-filter-chip-clear">Clear filters</a>
+          </div>
         <% } %>
 
-        <% if (featuredPosts && featuredPosts.length) { %>
-          <section class="blog-featured">
-            <h2 class="blog-featured-heading">Featured Guides</h2>
-            <div class="blog-grid">
-              <% featuredPosts.forEach((post) => { %>
-                <article class="blog-card featured">
-                  <% if (post.coverImageUrl) { %>
-                    <a href="/blog/<%= post.slug %>" class="blog-image" aria-label="<%= post.title %>">
-                      <img src="<%= post.coverImageUrl %>" alt="" loading="lazy" data-blog-cover-image>
-                    </a>
-                  <% } %>
-                  <div class="blog-body">
-                    <div class="blog-meta">
-                      <span class="blog-date"><i data-lucide="calendar"></i><%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' %></span>
-                      <span class="blog-read-time"><i data-lucide="clock"></i><%= post.readingTime || 1 %> min read</span>
-                      <span class="blog-views"><i data-lucide="eye"></i><%= Number(post.views || 0).toLocaleString('en-US') %> views</span>
-                    </div>
-                    <div class="blog-title-row">
-                      <h3><a href="/blog/<%= post.slug %>"><%= post.title %></a></h3>
-                      <span class="blog-category"><%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %></span>
-                    </div>
-                    <p class="blog-excerpt"><%= post.excerpt || 'No excerpt provided.' %></p>
-                    <div class="blog-footer">
-                      <span class="blog-author">By <strong><%= post.authorId?.firstName || 'HelloRun' %> <%= post.authorId?.lastName || '' %></strong></span>
-                      <a href="/blog/<%= post.slug %>" class="read-more">Read more <i data-lucide="arrow-right"></i></a>
-                    </div>
+        <% if (spotlight) { %>
+          <section class="blog-spotlight" aria-labelledby="communitySpotlightTitle">
+            <div class="blog-section-heading">
+              <div>
+                <p class="blog-kicker">Editor’s pick</p>
+                <h2 id="communitySpotlightTitle">Community spotlight</h2>
+              </div>
+              <span>Selected from recent community voices</span>
+            </div>
+            <article class="blog-spotlight-card">
+              <a href="<%= spotlight.href %>" class="blog-spotlight-image" tabindex="-1" aria-hidden="true">
+                <img src="<%= spotlight.coverImageUrl || fallbackCover %>" alt="" loading="eager" data-blog-cover-image>
+              </a>
+              <div class="blog-spotlight-body">
+                <span class="blog-topic-label"><%= spotlight.categoryLabel %></span>
+                <h3><a href="<%= spotlight.href %>"><%= spotlight.title %></a></h3>
+                <p><%= spotlight.excerpt || 'Read this featured perspective from the HelloRun community.' %></p>
+                <div class="blog-writer-row">
+                  <span class="blog-writer-avatar" aria-hidden="true">
+                    <% if (spotlight.author.avatarUrl) { %><img src="<%= spotlight.author.avatarUrl %>" alt=""><% } else { %><%= spotlight.author.name.charAt(0) %><% } %>
+                  </span>
+                  <div>
+                    <a href="<%= spotlight.author.id ? `/blog?author=${spotlight.author.id}` : spotlight.href %>" class="blog-writer-name"><%= spotlight.author.name %></a>
+                    <% if (spotlight.author.verified) { %><i data-lucide="badge-check" class="blog-verified" aria-label="Verified writer"></i><% } %>
+                    <small><%= spotlight.publishedAt ? new Date(spotlight.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' %> · <%= spotlight.readingTimeLabel %></small>
                   </div>
-                </article>
+                </div>
+                <div class="blog-engagement-stats" aria-label="Story engagement">
+                  <span><i data-lucide="eye" aria-hidden="true"></i><%= spotlight.viewsLabel %><span class="sr-only"> views</span></span>
+                  <span><i data-lucide="heart" aria-hidden="true"></i><%= spotlight.likesLabel %><span class="sr-only"> likes</span></span>
+                  <span><i data-lucide="message-circle" aria-hidden="true"></i><%= spotlight.commentsLabel %><span class="sr-only"> comments</span></span>
+                  <a href="<%= spotlight.href %>" class="blog-read-link">Read story <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+                </div>
+              </div>
+            </article>
+          </section>
+        <% } %>
+
+        <% if (topWriters && topWriters.length) { %>
+          <section class="blog-top-writers" aria-labelledby="topWritersTitle">
+            <div class="blog-section-heading">
+              <div>
+                <p class="blog-kicker">People to follow</p>
+                <h2 id="topWritersTitle">Top writers</h2>
+              </div>
+              <span>Community members sharing consistently</span>
+            </div>
+            <div class="blog-writer-strip">
+              <% topWriters.forEach((writer) => { %>
+                <a href="<%= writer.href %>" class="blog-writer-card">
+                  <span class="blog-writer-avatar" aria-hidden="true">
+                    <% if (writer.avatarUrl) { %><img src="<%= writer.avatarUrl %>" alt=""><% } else { %><%= writer.name.charAt(0) %><% } %>
+                  </span>
+                  <span class="blog-writer-card-copy">
+                    <strong><%= writer.name %> <% if (writer.verified) { %><i data-lucide="badge-check" aria-label="Verified writer"></i><% } %></strong>
+                    <small><%= writer.publishedCount %> <%= writer.publishedCount === 1 ? 'story' : 'stories' %> · <%= writer.totalLikes.toLocaleString('en-US') %> likes</small>
+                  </span>
+                  <i data-lucide="chevron-right" aria-hidden="true"></i>
+                </a>
               <% }) %>
             </div>
           </section>
         <% } %>
 
-        <%
-          const intentLabelMap = {
-            'Training': 'Improve Your Run',
-            'Virtual Run Guide': 'Virtual Runs',
-            'Organizer Guide': 'Organiser Guide',
-            'Race Tips': 'Race Prep',
-            'Nutrition': 'Nutrition',
-            'Gear': 'Gear',
-            'Injury Prevention': 'Injury Prevention',
-            'Mental Health': 'Wellness',
-            'Community': 'Community',
-            'Motivation': 'Motivation',
-          };
-        %>
-        <!-- Posts Grid -->
         <% if (posts && posts.length) { %>
-          <div class="blog-grid">
-            <% let blogFeedAdCount = 0; %>
-            <% posts.forEach((post, postIndex) => { %>
-              <% const intentLabel = intentLabelMap[post.category]; %>
-              <article class="blog-card">
-                <% if (post.coverImageUrl) { %>
-                  <a href="/blog/<%= post.slug %>" class="blog-image" aria-label="<%= post.title %>">
-                    <img src="<%= post.coverImageUrl %>" alt="" loading="lazy" data-blog-cover-image>
+          <section class="blog-feed" aria-labelledby="communityFeedTitle">
+            <div class="blog-section-heading blog-feed-heading">
+              <div>
+                <p class="blog-kicker"><%= filterMeta?.hasActiveFilters ? 'Your results' : 'Latest voices' %></p>
+                <h2 id="communityFeedTitle"><%= filterMeta?.hasActiveFilters ? 'Matching stories' : 'More from the community' %></h2>
+              </div>
+            </div>
+            <div class="blog-card-grid">
+              <% let blogFeedAdCount = 0; %>
+              <% posts.forEach((post, postIndex) => { %>
+                <article class="blog-story-card">
+                  <a href="<%= post.href %>" class="blog-story-image" tabindex="-1" aria-hidden="true">
+                    <img src="<%= post.coverImageUrl || fallbackCover %>" alt="" loading="lazy" data-blog-cover-image>
                   </a>
-                <% } %>
-                <div class="blog-body">
-                  <div class="blog-meta">
-                    <span class="blog-date">
-                      <i data-lucide="calendar"></i>
-                      <%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' %>
-                    </span>
-                    <span class="blog-read-time">
-                      <i data-lucide="clock"></i>
-                      <%= post.readingTime || 1 %> min read
-                    </span>
-                  </div>
-                  <div class="blog-title-row">
-                    <h3><a href="/blog/<%= post.slug %>"><%= post.title %></a></h3>
-                    <% if (intentLabel) { %>
-                      <span class="blog-intent-label"><%= intentLabel %></span>
-                    <% } else { %>
-                      <span class="blog-category">
-                        <%= post.category === 'Other' && post.customCategory ? post.customCategory : post.category %>
+                  <div class="blog-story-body">
+                    <div class="blog-story-topline">
+                      <span class="blog-topic-label"><%= post.categoryLabel %></span>
+                      <span><%= post.readingTimeLabel %></span>
+                    </div>
+                    <h3><a href="<%= post.href %>"><%= post.title %></a></h3>
+                    <p class="blog-story-excerpt"><%= post.excerpt || 'Read this story from the HelloRun community.' %></p>
+                    <div class="blog-writer-row">
+                      <span class="blog-writer-avatar" aria-hidden="true">
+                        <% if (post.author.avatarUrl) { %><img src="<%= post.author.avatarUrl %>" alt=""><% } else { %><%= post.author.name.charAt(0) %><% } %>
                       </span>
-                    <% } %>
+                      <div>
+                        <a href="<%= post.author.id ? `/blog?author=${post.author.id}` : post.href %>" class="blog-writer-name"><%= post.author.name %></a>
+                        <% if (post.author.verified) { %><i data-lucide="badge-check" class="blog-verified" aria-label="Verified writer"></i><% } %>
+                        <small><%= post.publishedAt ? new Date(post.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '' %></small>
+                      </div>
+                    </div>
+                    <div class="blog-engagement-stats" aria-label="Story engagement">
+                      <span><i data-lucide="eye" aria-hidden="true"></i><%= post.viewsLabel %><span class="sr-only"> views</span></span>
+                      <span><i data-lucide="heart" aria-hidden="true"></i><%= post.likesLabel %><span class="sr-only"> likes</span></span>
+                      <span><i data-lucide="message-circle" aria-hidden="true"></i><%= post.commentsLabel %><span class="sr-only"> comments</span></span>
+                      <a href="<%= post.href %>" class="blog-read-link" aria-label="Read <%= post.title %>">Read <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+                    </div>
                   </div>
-                  <p class="blog-excerpt"><%= post.excerpt || 'No excerpt provided.' %></p>
-                  <div class="blog-footer">
-                    <span class="blog-author">
-                      By <strong><%= post.authorId?.firstName || 'HelloRun' %> <%= post.authorId?.lastName || '' %></strong>
-                    </span>
-                    <a href="/blog/<%= post.slug %>" class="read-more">
-                      Read more <i data-lucide="arrow-right"></i>
-                    </a>
-                  </div>
-                </div>
-              </article>
-              <% if (filterMeta?.adSafe !== false && (postIndex + 1) % 4 === 0 && blogFeedAdCount < 2) { blogFeedAdCount += 1; %>
-                <%- include('../partials/ad-unit', { group: 'blogListing', placement: 'in_feed', className: 'ad-unit-feed' }) %>
-              <% } %>
-            <% }) %>
-          </div>
+                </article>
+                <% if (filterMeta?.adSafe !== false && (postIndex + 1) % 4 === 0 && blogFeedAdCount < 2) { blogFeedAdCount += 1; %>
+                  <div class="blog-feed-ad"><%- include('../partials/ad-unit', { group: 'blogListing', placement: 'in_feed', className: 'ad-unit-feed' }) %></div>
+                <% } %>
+              <% }) %>
+            </div>
+          </section>
 
-          <!-- Pagination -->
+          <% if (filterMeta?.adSafe !== false) { %>
+            <%- include('../partials/ad-unit', { group: 'blogListing', placement: 'after_results_meta' }) %>
+          <% } %>
+
           <% if (pagination && pagination.totalPages > 1) { %>
-            <nav class="blog-pagination" aria-label="Pagination" data-page-label="Page <%= pagination.currentPage %> of <%= pagination.totalPages %>">
-              <% const prevPage = Math.max(1, pagination.currentPage - 1); %>
+            <nav class="blog-pagination" aria-label="Blog pagination" data-page-label="Page <%= pagination.currentPage %> of <%= pagination.totalPages %>">
+              <% const previousPage = Math.max(1, pagination.currentPage - 1); %>
               <% const nextPage = Math.min(pagination.totalPages, pagination.currentPage + 1); %>
-              <% const baseUrl = `/blog?${new URLSearchParams({ q: filters?.q || '', category: filters?.category || '', author: filters?.author || '', sort: filters?.sort || 'latest' }).toString()}`; %>
-
-              <a href="<%= baseUrl %>&page=<%= prevPage %>" class="pagination-btn <%= pagination.currentPage === 1 ? 'disabled' : '' %>" aria-label="Previous page" <%= pagination.currentPage === 1 ? 'aria-disabled="true" tabindex="-1"' : '' %>>
-                <i data-lucide="chevron-left"></i>
-                <span class="sr-only">Previous</span>
-              </a>
-
-              <div class="pagination-pages">
-                <% for (let i = 1; i <= pagination.totalPages; i++) { %>
-                  <% if (i === 1 || i === pagination.totalPages || (i >= pagination.currentPage - 2 && i <= pagination.currentPage + 2)) { %>
-                    <a href="<%= baseUrl %>&page=<%= i %>" class="pagination-page <%= i === pagination.currentPage ? 'active' : '' %>" aria-label="Page <%= i %>" <%= i === pagination.currentPage ? 'aria-current="page"' : '' %>>
-                      <%= i %>
-                    </a>
-                  <% } else if (i === pagination.currentPage - 3 || i === pagination.currentPage + 3) { %>
-                    <span class="pagination-ellipsis">…</span>
+              <a href="<%= pagination.getPageUrl(previousPage) %>" class="blog-page-button <%= pagination.currentPage === 1 ? 'is-disabled' : '' %>" aria-label="Previous page" <%= pagination.currentPage === 1 ? 'aria-disabled="true" tabindex="-1"' : '' %>><i data-lucide="chevron-left" aria-hidden="true"></i></a>
+              <div class="blog-page-numbers">
+                <% for (let pageNumber = 1; pageNumber <= pagination.totalPages; pageNumber += 1) { %>
+                  <% if (pageNumber === 1 || pageNumber === pagination.totalPages || Math.abs(pageNumber - pagination.currentPage) <= 2) { %>
+                    <a href="<%= pagination.getPageUrl(pageNumber) %>" class="blog-page-button <%= pageNumber === pagination.currentPage ? 'is-current' : '' %>" <%= pageNumber === pagination.currentPage ? 'aria-current="page"' : '' %>><%= pageNumber %></a>
+                  <% } else if (Math.abs(pageNumber - pagination.currentPage) === 3) { %>
+                    <span aria-hidden="true">…</span>
                   <% } %>
                 <% } %>
               </div>
-
-              <a href="<%= baseUrl %>&page=<%= nextPage %>" class="pagination-btn <%= pagination.currentPage === pagination.totalPages ? 'disabled' : '' %>" aria-label="Next page" <%= pagination.currentPage === pagination.totalPages ? 'aria-disabled="true" tabindex="-1"' : '' %>>
-                <i data-lucide="chevron-right"></i>
-                <span class="sr-only">Next</span>
-              </a>
+              <a href="<%= pagination.getPageUrl(nextPage) %>" class="blog-page-button <%= pagination.currentPage === pagination.totalPages ? 'is-disabled' : '' %>" aria-label="Next page" <%= pagination.currentPage === pagination.totalPages ? 'aria-disabled="true" tabindex="-1"' : '' %>><i data-lucide="chevron-right" aria-hidden="true"></i></a>
             </nav>
           <% } %>
         <% } else { %>
-          <div class="blog-empty">
-            <i data-lucide="file-text" class="empty-icon"></i>
-            <p><%= filterMeta?.hasActiveFilters ? 'No blog posts matched your filters. Clear the search or category filter to browse all running guides.' : 'No published blog posts yet. HelloRun guides will appear here once they are published, including articles about virtual runs, proof submission, leaderboards, certificates, and organizer workflows.' %></p>
-            <% if (locals.isAuthenticated) { %>
-              <a href="/blogs/me/new" class="btn btn-primary">Write the first post</a>
-            <% } else { %>
-              <a href="/how-it-works" class="btn btn-primary">Learn how HelloRun works</a>
-            <% } %>
+          <div class="blog-empty-state">
+            <i data-lucide="messages-square" aria-hidden="true"></i>
+            <h2><%= filterMeta?.hasActiveFilters ? 'No stories match yet' : 'The first story starts with you' %></h2>
+            <p><%= filterMeta?.hasActiveFilters ? 'Try a broader search or return to all community stories.' : 'Share a running experience, lesson, race recap, or idea with the HelloRun community.' %></p>
+            <a href="<%= filterMeta?.hasActiveFilters ? filterMeta.clearFiltersUrl : (locals.isAuthenticated ? '/blogs/me/new' : '/login?redirect=/blogs/me/new') %>" class="btn btn-primary"><%= filterMeta?.hasActiveFilters ? 'View all stories' : 'Write the first post' %></a>
           </div>
         <% } %>
       </div>
@@ -245,24 +280,14 @@
   <script src="/js/main.js"></script>
   <script>
     (function initBlogListing() {
-      // Lucide icons
       if (window.lucide) lucide.createIcons();
-
-      // Auto-submit filter form on select change
-      const filterForm = document.getElementById('blogFilterForm');
-      if (filterForm) {
-        filterForm.querySelectorAll('select').forEach((sel) => {
-          sel.addEventListener('change', () => filterForm.submit());
-        });
-      }
-
       const fallbackCover = '/images/helloRun-icon.webp';
       const applyCoverFallback = (image) => {
         if (image.dataset.fallbackApplied === '1') return;
         image.dataset.fallbackApplied = '1';
         image.src = fallbackCover;
-        image.alt = 'HelloRun logo';
-        image.closest('.blog-image')?.classList.add('is-fallback');
+        image.alt = 'HelloRun community story';
+        image.closest('.blog-story-image, .blog-spotlight-image')?.classList.add('is-fallback');
       };
       document.querySelectorAll('[data-blog-cover-image]').forEach((image) => {
         image.addEventListener('error', () => applyCoverFallback(image));

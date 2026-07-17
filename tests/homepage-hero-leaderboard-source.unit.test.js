@@ -13,8 +13,16 @@ test('homepage hero renders a scoped leaderboard and retains a card-free fallbac
   assert.match(view, /Verified results/);
   assert.match(view, /homeLeaderboard\.eventTitle/);
   assert.match(view, /homeLeaderboard\.categoryLabel/);
+  assert.match(view, /homeLeaderboard\.rankingExplanation/);
   assert.match(view, /homeLeaderboard\.entries\.forEach/);
-  assert.match(view, /Full leaderboard/);
+  assert.match(view, /<table class="home-leaderboard-table">/);
+  assert.match(view, /<caption>Top verified standings for/);
+  assert.match(view, /scope="col">Rank/);
+  assert.match(view, /scope="row" class="home-leaderboard-runner"/);
+  assert.match(view, /View full standings/);
+  assert.doesNotMatch(view, /home-leaderboard-trophy/);
+  assert.doesNotMatch(view, /home-leaderboard-live-dot/);
+  assert.doesNotMatch(view, /home-leaderboard-entry/);
   assert.doesNotMatch(view, /hero-result-card/);
   assert.doesNotMatch(view, /June Active Quest 5K/);
 });
@@ -35,10 +43,18 @@ test('homepage leaderboard is scoped to the 2026K event', () => {
   assert.match(service, /event\.virtualCompletionMode === 'accumulated_distance'[\s\S]*\? 'accumulated_challenge'/);
 });
 
-test('homepage leaderboard CSS provides desktop, stacked, and narrow-row layouts', () => {
+test('homepage leaderboard CSS provides a compact responsive sports table', () => {
   const css = fs.readFileSync(path.join(ROOT, 'src/public/css/helloRun.css'), 'utf8');
 
   assert.match(css, /\.hero-container\.has-leaderboard[\s\S]*grid-template-columns/);
   assert.match(css, /@media \(max-width: 1199px\)[\s\S]*\.hero-container\.has-leaderboard[\s\S]*display: block/);
-  assert.match(css, /@media \(max-width: 480px\)[\s\S]*\.home-leaderboard-entry[\s\S]*grid-template-columns/);
+  assert.match(css, /\.home-leaderboard\s*\{[\s\S]*max-width:\s*430px/);
+  assert.match(css, /\.home-leaderboard-table\s*\{[\s\S]*table-layout:\s*fixed/);
+  assert.match(css, /\.home-leaderboard-table tbody tr \+ tr th,[\s\S]*border-top:/);
+  assert.match(css, /\.home-leaderboard-rank-1[\s\S]*\.home-leaderboard-rank-2[\s\S]*\.home-leaderboard-rank-3/);
+  assert.match(css, /\.home-leaderboard h2\s*\{[\s\S]*padding:\s*0;[\s\S]*text-align:\s*left/);
+  assert.match(css, /\.home-leaderboard h2::after\s*\{[\s\S]*display:\s*none/);
+  assert.match(css, /\.hero \.home-leaderboard-context\s*\{[\s\S]*font-size:\s*0\.72rem/);
+  assert.match(css, /\.home-leaderboard-link\s*\{[\s\S]*min-height:\s*44px/);
+  assert.match(css, /@media \(max-width: 480px\)[\s\S]*\.home-leaderboard-table thead th:last-child[\s\S]*width:\s*45%/);
 });

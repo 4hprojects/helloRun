@@ -5,7 +5,7 @@ const path = require('node:path');
 require('dotenv').config();
 
 const ROOT = path.resolve(__dirname, '..');
-const TEST_PORT = 3114;
+const TEST_PORT = Number(process.env.TEST_PORT || 3114);
 const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
 
 let serverProc = null;
@@ -30,8 +30,8 @@ test.after(async () => {
 
 test('public static pages render successfully', async () => {
   const cases = [
-    { path: '/about', heading: /A running event platform for flexible participation and verified progress/i },
-    { path: '/how-it-works', heading: /How It Works/i },
+    { path: '/about', heading: /A clearer way to join, prove, and celebrate every run/i },
+    { path: '/how-it-works', heading: /How HelloRun events work/i },
     { path: '/contact', heading: /Contact/i },
     { path: '/faq', heading: /FAQ/i },
     { path: '/privacy', heading: /Privacy Policy/i },
@@ -81,7 +81,7 @@ test('about page includes required trust, privacy, and event-management guidance
   assert.equal(response.status, 200);
 
   const html = await response.text();
-  assert.match(html, /How virtual runs work/i);
+  assert.match(html, /How HelloRun works for runners/i);
   assert.match(html, /Why submissions and leaderboards are reviewed/i);
   assert.match(html, /Data privacy and proof handling/i);
   assert.match(html, /href="\/privacy"/i);
@@ -89,7 +89,7 @@ test('about page includes required trust, privacy, and event-management guidance
   assert.match(html, /Organiser-Managed Event/i);
   assert.match(html, /Henson M\. Sagorsor/i);
   assert.match(html, /Benguet, Philippines/i);
-  assert.match(html, /Current events/i);
+  assert.match(html, /Find your next event/i);
 });
 
 test('contact page renders organizer dashboard guidance when sourced from organizer dashboard', async () => {
@@ -108,9 +108,11 @@ test('how it works and faq are substantial public resources', async () => {
   const how = await fetch(`${BASE_URL}/how-it-works`);
   assert.equal(how.status, 200);
   const howHtml = await how.text();
-  assert.match(howHtml, /Runner Workflow/i);
+  assert.match(howHtml, /What happens—and what comes next/i);
   assert.match(howHtml, /Accumulated Distance Challenges/i);
-  assert.match(howHtml, /Common Proof Mistakes/i);
+  assert.match(howHtml, /Avoid Common Proof Mistakes/i);
+  assert.match(howHtml, /payment approval confirms a registration payment/i);
+  assert.match(howHtml, /Privacy/);
   assert.doesNotMatch(howHtml, /run-proof-modal-dialog/i);
 
   const faq = await fetch(`${BASE_URL}/faq`);

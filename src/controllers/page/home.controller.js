@@ -208,13 +208,15 @@ exports.getEvents = async (req, res) => {
 exports.getAbout = async (req, res) => {
   try {
     const currentEvents = await listHomepagePromotedEvents({ limit: 3 });
+    const aboutActions = buildAboutActions(res.locals);
 
     return res.render('pages/about', {
       title: 'About HelloRun | Running Event Platform for Virtual, On-Site, and Hybrid Events',
       seo: {
         description: 'Learn how HelloRun helps runners join events, submit results, track approvals, and keep achievements in one place while helping organisers manage registrations, proof review, leaderboards, and certificates.'
       },
-      currentEvents
+      currentEvents,
+      aboutActions
     });
   } catch (error) {
     logger.error('Error loading about page:', error);
@@ -225,3 +227,109 @@ exports.getAbout = async (req, res) => {
     });
   }
 };
+
+function buildAboutActions(locals = {}) {
+  const isAuthenticated = Boolean(locals.isAuthenticated);
+  const isOrganizer = Boolean(locals.isOrganizer || locals.isApprovedOrganizer);
+  const isAdmin = Boolean(locals.isAdmin);
+
+  let accountAction = {
+    label: 'How It Works',
+    href: '/how-it-works',
+    icon: 'route'
+  };
+
+  if (isOrganizer) {
+    accountAction = {
+      label: 'Organizer Dashboard',
+      href: '/organizer/dashboard',
+      icon: 'layout-dashboard'
+    };
+  } else if (isAdmin) {
+    accountAction = {
+      label: 'Admin Dashboard',
+      href: '/admin/dashboard',
+      icon: 'shield-check'
+    };
+  } else if (isAuthenticated) {
+    accountAction = {
+      label: 'My Registrations',
+      href: '/my-registrations',
+      icon: 'clipboard-list'
+    };
+  }
+
+  return {
+    primary: {
+      label: 'Browse Events',
+      href: '/events',
+      icon: 'calendar-search'
+    },
+    account: accountAction,
+    organizer: isOrganizer
+      ? {
+          label: 'Manage Your Events',
+          href: '/organizer/dashboard'
+        }
+      : {
+          label: 'Organize an Event',
+          href: '/signup'
+        }
+  };
+}
+
+exports.buildAboutActions = buildAboutActions;
+
+exports.getHowItWorks = (req, res) => {
+  const howItWorksActions = buildHowItWorksActions(res.locals);
+
+  return res.render('pages/how-it-works', {
+    title: 'How HelloRun Events Work for Runners and Organizers',
+    seo: {
+      description: 'Follow the connected HelloRun journey for virtual, on-site, and hybrid events—from runner registration and proof submission to organizer review, standings, and recognition.'
+    },
+    howItWorksActions
+  });
+};
+
+function buildHowItWorksActions(locals = {}) {
+  const isAuthenticated = Boolean(locals.isAuthenticated);
+  const isOrganizer = Boolean(locals.isOrganizer || locals.isApprovedOrganizer);
+  const isAdmin = Boolean(locals.isAdmin);
+
+  const runner = isAuthenticated
+    ? {
+        label: 'My Registrations',
+        href: '/my-registrations',
+        icon: 'clipboard-list'
+      }
+    : {
+        label: 'Browse Events',
+        href: '/events',
+        icon: 'calendar-search'
+      };
+
+  let organizer = {
+    label: 'Start Organizing',
+    href: '/signup?role=organiser',
+    icon: 'calendar-plus'
+  };
+
+  if (isOrganizer) {
+    organizer = {
+      label: 'Organizer Dashboard',
+      href: '/organizer/dashboard',
+      icon: 'layout-dashboard'
+    };
+  } else if (isAdmin) {
+    organizer = {
+      label: 'Admin Dashboard',
+      href: '/admin/dashboard',
+      icon: 'shield-check'
+    };
+  }
+
+  return { runner, organizer };
+}
+
+exports.buildHowItWorksActions = buildHowItWorksActions;

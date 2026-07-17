@@ -5,6 +5,7 @@ const Registration = require('../models/Registration');
 const User = require('../models/User');
 const AccumulatedActivitySubmission = require('../models/AccumulatedActivitySubmission');
 const { getAccumulatedLeaderboardRows } = require('./accumulated-activity.service');
+const { resolveAccumulatedTargetDistanceKm } = require('./accumulated-target.service');
 const { getPublicEventVisibilityQuery, isPublicEventVisible } = require('../utils/public-event-visibility');
 const { getRedisClient } = require('../config/redis');
 
@@ -58,7 +59,6 @@ async function getLeaderboardDiscoveryData(rawFilters = {}) {
   const events = await Event.find(query)
     .select('title slug description organiserName eventType eventTypesAllowed raceDistances eventStartAt eventEndAt bannerImageUrl leaderboardRecognitionEnabled leaderboardSettings virtualCompletionMode targetDistanceKm createdAt updatedAt')
     .sort({ eventStartAt: -1, updatedAt: -1, createdAt: -1 })
-    .limit(200)
     .lean();
 
   const filteredEvents = events
@@ -71,7 +71,7 @@ async function getLeaderboardDiscoveryData(rawFilters = {}) {
     getAccumulatedDiscoveryStats(eventIds)
   ]);
 
-  const cards = filteredEvents
+  const allCards = filteredEvents
     .map(({ event, settings }) => formatLeaderboardDiscoveryCard({
       event,
       settings,
@@ -79,11 +79,16 @@ async function getLeaderboardDiscoveryData(rawFilters = {}) {
       accumulatedStats: accumulatedStats.get(String(event._id)),
       now
     }))
-    .sort(compareLeaderboardDiscoveryCards)
-    .slice(0, filters.limit);
+    .sort((a, b) => compareLeaderboardDiscoveryCards(a, b, filters));
+  const totalPages = Math.max(1, Math.ceil(allCards.length / filters.limit));
+  const currentPage = Math.min(filters.page, totalPages);
+  const offset = (currentPage - 1) * filters.limit;
+  const cards = allCards.slice(offset, offset + filters.limit);
+  const normalizedFilters = { ...filters, page: currentPage };
+  const activeFilters = getLeaderboardDiscoveryActiveFilters(normalizedFilters);
 
   return {
-    filters,
+    filters: normalizedFilters,
     cards,
     options: {
       types: [
@@ -96,8 +101,26 @@ async function getLeaderboardDiscoveryData(rawFilters = {}) {
     stats: {
       totalEvents: filteredEvents.length,
       totalShown: cards.length,
-      totalVerifiedResults: cards.reduce((sum, card) => sum + card.verifiedCount, 0),
-      totalPendingResults: cards.reduce((sum, card) => sum + card.pendingCount, 0)
+      totalVerifiedResults: allCards.reduce((sum, card) => sum + card.verifiedCount, 0),
+      totalPendingResults: allCards.reduce((sum, card) => sum + card.pendingCount, 0)
+    },
+    filterMeta: {
+      activeFilters,
+      activeFilterCount: activeFilters.length,
+      hasActiveFilters: activeFilters.length > 0,
+      clearFiltersUrl: buildLeaderboardDiscoveryUrl(getClearedLeaderboardDiscoveryFilters(normalizedFilters))
+    },
+    pagination: {
+      page: currentPage,
+      limit: filters.limit,
+      total: allCards.length,
+      totalPages,
+      from: allCards.length ? offset + 1 : 0,
+      to: Math.min(offset + filters.limit, allCards.length),
+      getPageUrl: (page) => `${buildLeaderboardDiscoveryUrl(normalizedFilters, page)}#leaderboard-results`
+    },
+    seo: {
+      canonicalUrl: buildLeaderboardDiscoveryCanonicalUrl(normalizedFilters, currentPage, rawFilters.baseUrl)
     }
   };
 }
@@ -265,7 +288,7 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
   const options = normalizeEventLeaderboardOptions(rawOptions);
 
   // Use cached groups/entries when available; fall through on any Redis error.
-  const cacheKey = `leaderboard:${eventSlug}`;
+  const cacheKey = `leaderboard:v2:${eventSlug}`;
   const redis = getRedisClient();
   let cachedGroups = null;
   if (redis) {
@@ -275,9 +298,9 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
     } catch (_) { /* ignore cache errors */ }
   }
 
-  let groups;
+  let baseGroups;
   if (cachedGroups) {
-    groups = cachedGroups;
+    baseGroups = cachedGroups;
   } else {
     const officialEntries = settings.type === 'accumulated_challenge'
       ? await getAccumulatedEventEntries(event, settings)
@@ -286,16 +309,14 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
       ? await getPendingEventEntries(event, settings)
       : [];
 
-    const filteredEntries = applyEventLeaderboardFilters([...officialEntries, ...pendingEntries], {
-      ...options,
-      distance: ''
-    });
-    groups = buildEventLeaderboardGroups(filteredEntries, event, { includeConfiguredDistances: true });
+    baseGroups = buildEventLeaderboardGroups([...officialEntries, ...pendingEntries], event, { includeConfiguredDistances: true });
 
     if (redis) {
-      redis.set(cacheKey, JSON.stringify(groups), 'EX', LEADERBOARD_CACHE_TTL_SECONDS).catch(() => {});
+      redis.set(cacheKey, JSON.stringify(baseGroups), 'EX', LEADERBOARD_CACHE_TTL_SECONDS).catch(() => {});
     }
   }
+
+  const groups = filterEventLeaderboardGroups(baseGroups, event, options);
 
   const runnerDistance = options.distance
     ? ''
@@ -308,6 +329,12 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
   const activeGroup = groups.find((group) => group.key === activeDistance.key) || createEmptyLeaderboardGroup(activeDistance);
   const activeEntries = activeGroup.entries || [];
   const paged = activeEntries.slice((options.page - 1) * options.limit, options.page * options.limit);
+  const officialEntries = activeEntries.filter((entry) => entry.status === 'verified');
+  const pendingEntries = activeEntries.filter((entry) => entry.status === 'pending_review');
+  const primaryEntries = options.status === 'pending_review' ? pendingEntries : officialEntries;
+  const resultTotalPages = Math.max(1, Math.ceil(primaryEntries.length / options.limit));
+  const resultPage = Math.min(options.page, resultTotalPages);
+  const resultOffset = (resultPage - 1) * options.limit;
   const distanceOptions = groups.map((group) => ({
     key: group.key,
     label: group.label,
@@ -326,14 +353,16 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
     settings,
     filters,
     entries: paged,
+    officialEntries: options.status === 'pending_review' ? [] : officialEntries.slice(resultOffset, resultOffset + options.limit),
+    pendingEntries: options.status === 'verified' || resultPage > 1 ? [] : pendingEntries.slice(0, options.limit),
     groups,
     distanceOptions,
     activeDistance,
     pagination: {
-      page: options.page,
+      page: resultPage,
       limit: options.limit,
-      total: activeEntries.length,
-      totalPages: Math.max(1, Math.ceil(activeEntries.length / options.limit))
+      total: primaryEntries.length,
+      totalPages: resultTotalPages
     },
     stats: {
       totalEntries: activeGroup.stats.totalEntries,
@@ -350,7 +379,7 @@ async function getEventLeaderboard(eventSlug, rawOptions = {}) {
 function invalidateLeaderboardCache(eventSlug) {
   const redis = getRedisClient();
   if (!redis || !eventSlug) return;
-  redis.del(`leaderboard:${eventSlug}`).catch(() => {});
+  redis.del(`leaderboard:${eventSlug}`, `leaderboard:v2:${eventSlug}`).catch(() => {});
 }
 
 async function getMyStanding(eventSlug, userId, rawOptions = {}) {
@@ -364,20 +393,27 @@ async function getMyStanding(eventSlug, userId, rawOptions = {}) {
   });
   if (!data) return null;
   const entry = data.entries.find((item) => String(item.userId || '') === safeUserId) || null;
+  const pendingProgress = data.settings.type === 'accumulated_challenge'
+    ? await getRunnerPendingAccumulatedStanding(data.event, safeUserId, data.settings, data.activeDistance?.label)
+    : null;
   if (entry) {
     return {
       event: data.event,
       settings: data.settings,
+      stats: data.stats,
       standing: entry,
+      pendingProgress,
       nearby: await getNearbyRunners(eventSlug, userId, rawOptions)
     };
   }
 
-  const pending = await getRunnerPendingStanding(data.event.id, safeUserId, data.settings, data.activeDistance?.label);
+  const pending = pendingProgress || await getRunnerPendingStanding(data.event.id, safeUserId, data.settings, data.activeDistance?.label);
   return {
     event: data.event,
     settings: data.settings,
+    stats: data.stats,
     standing: pending,
+    pendingProgress,
     nearby: []
   };
 }
@@ -441,7 +477,7 @@ function buildEventLeaderboardGroups(entries = [], event = {}, options = {}) {
     const rankedEntries = bucket.entries.map((entry) => {
       if (entry.status === 'verified') {
         officialRank += 1;
-        return { ...entry, rank: officialRank };
+        return { ...entry, rank: options.preserveRanks && Number.isInteger(entry.rank) ? entry.rank : officialRank };
       }
       return { ...entry, rank: null };
     });
@@ -463,6 +499,17 @@ function buildEventLeaderboardGroups(entries = [], event = {}, options = {}) {
 
 function flattenEventLeaderboardGroups(groups = []) {
   return groups.flatMap((group) => group.entries || []);
+}
+
+function filterEventLeaderboardGroups(baseGroups = [], event = {}, options = {}) {
+  const filteredEntries = applyEventLeaderboardFilters(flattenEventLeaderboardGroups(baseGroups), {
+    ...normalizeEventLeaderboardOptions(options),
+    distance: ''
+  });
+  return buildEventLeaderboardGroups(filteredEntries, event, {
+    includeConfiguredDistances: true,
+    preserveRanks: true
+  });
 }
 
 function createEmptyLeaderboardGroup(distance = {}) {
@@ -565,7 +612,7 @@ async function getLeaderboardEventBySlug(eventSlug) {
   const slug = String(eventSlug || '').trim();
   if (!slug) return null;
   return Event.findOne({ slug, ...getPublicEventVisibilityQuery(new Date()) })
-    .select('title slug status eventStartAt eventEndAt virtualWindow virtualCompletionMode targetDistanceKm leaderboardRecognitionEnabled leaderboardSettings raceDistances raceCategories updatedAt')
+    .select('title slug status organiserName logoUrl bannerImageUrl eventType eventTypesAllowed eventStartAt eventEndAt virtualWindow virtualCompletionMode targetDistanceKm leaderboardRecognitionEnabled leaderboardSettings raceDistances raceCategories updatedAt')
     .lean();
 }
 
@@ -638,7 +685,7 @@ async function getAccumulatedEventEntries(event, settings) {
       .select('firstName lastName displayName email userId')
       .lean(),
     Registration.find({ _id: { $in: rows.map((item) => item._id).filter(Boolean) } })
-      .select('confirmationCode raceDistance participationMode participant registeredAt')
+      .select('confirmationCode raceDistance participationMode participant pricingSnapshot registeredAt')
       .lean()
   ]);
   const runnerById = new Map(runners.map((item) => [String(item._id), item]));
@@ -699,7 +746,7 @@ async function getPendingAccumulatedEventEntries(event, settings) {
   if (!rows.length) return [];
   const [runners, registrations] = await Promise.all([
     User.find({ _id: { $in: rows.map((item) => item.runnerId).filter(Boolean) } }).select('firstName lastName displayName email userId').lean(),
-    Registration.find({ _id: { $in: rows.map((item) => item._id).filter(Boolean) } }).select('confirmationCode raceDistance participationMode participant registeredAt').lean()
+    Registration.find({ _id: { $in: rows.map((item) => item._id).filter(Boolean) } }).select('confirmationCode raceDistance participationMode participant pricingSnapshot registeredAt').lean()
   ]);
   const runnerById = new Map(runners.map((item) => [String(item._id), item]));
   const registrationById = new Map(registrations.map((item) => [String(item._id), item]));
@@ -768,13 +815,67 @@ function normalizeLeaderboardFilters(rawFilters = {}) {
 
 function normalizeLeaderboardDiscoveryFilters(rawFilters = {}) {
   const type = String(rawFilters.type || '').trim().toLowerCase();
+  const sort = String(rawFilters.sort || '').trim().toLowerCase();
   return {
     q: String(rawFilters.q || rawFilters.search || '').trim().slice(0, 80),
     type: ['race_result', 'accumulated_challenge'].includes(type) ? type : '',
     distance: normalizeDistance(rawFilters.distance),
     mode: normalizeMode(rawFilters.mode),
-    limit: clampInt(rawFilters.limit, 1, 200, 100)
+    sort: ['recommended', 'recent', 'most-results', 'event-date'].includes(sort) ? sort : 'recommended',
+    page: clampInt(rawFilters.page, 1, 10000, 1),
+    limit: clampInt(rawFilters.limit, 1, 200, 12)
   };
+}
+
+function buildLeaderboardDiscoveryUrl(rawFilters = {}, requestedPage) {
+  const filters = normalizeLeaderboardDiscoveryFilters({
+    ...rawFilters,
+    ...(requestedPage === undefined ? {} : { page: requestedPage })
+  });
+  const params = new URLSearchParams();
+  if (filters.q) params.set('q', filters.q);
+  if (filters.type) params.set('type', filters.type);
+  if (filters.distance) params.set('distance', filters.distance);
+  if (filters.mode) params.set('mode', filters.mode);
+  if (filters.sort !== 'recommended') params.set('sort', filters.sort);
+  if (filters.page > 1) params.set('page', String(filters.page));
+  if (filters.limit !== 12) params.set('limit', String(filters.limit));
+  const query = params.toString();
+  return query ? `/leaderboard?${query}` : '/leaderboard';
+}
+
+function buildLeaderboardDiscoveryCanonicalUrl(rawFilters = {}, page = 1, baseUrl = '') {
+  const path = buildLeaderboardDiscoveryUrl({ ...rawFilters, sort: 'recommended', limit: 12 }, page);
+  const safeBase = String(baseUrl || '').replace(/\/$/, '');
+  return safeBase ? `${safeBase}${path}` : path;
+}
+
+function getClearedLeaderboardDiscoveryFilters(filters = {}) {
+  return {
+    q: '',
+    type: '',
+    distance: '',
+    mode: '',
+    sort: normalizeLeaderboardDiscoveryFilters(filters).sort,
+    limit: normalizeLeaderboardDiscoveryFilters(filters).limit,
+    page: 1
+  };
+}
+
+function getLeaderboardDiscoveryActiveFilters(filters = {}) {
+  const normalized = normalizeLeaderboardDiscoveryFilters(filters);
+  const values = [
+    ['q', 'Search', normalized.q],
+    ['type', 'Type', normalized.type === 'accumulated_challenge' ? 'Accumulated challenge' : (normalized.type ? 'Race result' : '')],
+    ['distance', 'Distance', normalized.distance],
+    ['mode', 'Mode', normalized.mode ? formatEventTypeLabel(normalized.mode) : '']
+  ];
+  return values.filter(([, , value]) => value).map(([key, label, value]) => ({
+    key,
+    label,
+    value,
+    removeUrl: buildLeaderboardDiscoveryUrl({ ...normalized, [key]: '', page: 1 })
+  }));
 }
 
 function buildLeaderboardQuery(filters) {
@@ -941,13 +1042,49 @@ function formatLeaderboardDiscoveryCard({ event, settings, submissionStats = {},
   };
 }
 
-function compareLeaderboardDiscoveryCards(a, b) {
-  const verifiedDiff = Number(b.verifiedCount || 0) - Number(a.verifiedCount || 0);
-  if (verifiedDiff !== 0) return verifiedDiff;
-  if (a.isActiveOrUpcoming !== b.isActiveOrUpcoming) return a.isActiveOrUpcoming ? -1 : 1;
-  const activityDiff = getTimeValue(b.lastUpdatedAt) - getTimeValue(a.lastUpdatedAt);
-  if (activityDiff !== 0) return activityDiff;
-  return getTimeValue(a.eventStartAt) - getTimeValue(b.eventStartAt);
+function compareLeaderboardDiscoveryCards(a, b, filters = {}) {
+  const sort = normalizeLeaderboardDiscoveryFilters(filters).sort;
+  if (sort === 'recent') {
+    return compareNumbers(getTimeValue(b.lastUpdatedAt), getTimeValue(a.lastUpdatedAt))
+      || compareStrings(a.id, b.id);
+  }
+  if (sort === 'most-results') {
+    return compareNumbers(Number(b.verifiedCount || 0), Number(a.verifiedCount || 0))
+      || compareNumbers(getTimeValue(b.lastUpdatedAt), getTimeValue(a.lastUpdatedAt))
+      || compareStrings(a.id, b.id);
+  }
+  if (sort === 'event-date') {
+    const aTime = getTimeValue(a.eventStartAt) || Number.MAX_SAFE_INTEGER;
+    const bTime = getTimeValue(b.eventStartAt) || Number.MAX_SAFE_INTEGER;
+    return compareNumbers(aTime, bTime) || compareStrings(a.id, b.id);
+  }
+
+  const query = String(filters.q || '').trim().toLowerCase();
+  return compareNumbers(getLeaderboardSearchScore(b, query), getLeaderboardSearchScore(a, query))
+    || compareNumbers(Number(Boolean(b.isActiveOrUpcoming)), Number(Boolean(a.isActiveOrUpcoming)))
+    || compareNumbers(Number(b.verifiedCount > 0), Number(a.verifiedCount > 0))
+    || compareNumbers(getTimeValue(b.lastUpdatedAt), getTimeValue(a.lastUpdatedAt))
+    || compareNumbers(Number(b.verifiedCount || 0), Number(a.verifiedCount || 0))
+    || compareNumbers(getTimeValue(a.eventStartAt), getTimeValue(b.eventStartAt))
+    || compareStrings(a.id, b.id);
+}
+
+function getLeaderboardSearchScore(card, query) {
+  if (!query) return 0;
+  const title = String(card.title || '').toLowerCase();
+  const organiser = String(card.organiserName || '').toLowerCase();
+  if (title === query) return 4;
+  if (title.startsWith(query)) return 3;
+  if (title.includes(query)) return 2;
+  return organiser.includes(query) ? 1 : 0;
+}
+
+function compareNumbers(a, b) {
+  return a === b ? 0 : (a < b ? -1 : 1);
+}
+
+function compareStrings(a, b) {
+  return String(a || '').localeCompare(String(b || ''));
 }
 
 function getUniqueEventDistances(events = []) {
@@ -1068,15 +1205,39 @@ function formatDistance(value) {
   return Number(numeric.toFixed(2)).toString();
 }
 
+function formatDistanceWithGrouping(value) {
+  const numeric = Number(value || 0);
+  if (!Number.isFinite(numeric)) return '0';
+  return Number(numeric.toFixed(2)).toLocaleString('en-US', { maximumFractionDigits: 2 });
+}
+
 function formatLeaderboardEvent(event = {}) {
+  const modes = Array.from(new Set(
+    [event.eventType].concat(Array.isArray(event.eventTypesAllowed) ? event.eventTypesAllowed : [])
+      .map((item) => String(item || '').trim().toLowerCase())
+      .filter((item) => item === 'virtual' || item === 'onsite')
+  ));
   return {
     id: String(event._id || ''),
     title: event.title || 'Event unavailable',
     slug: event.slug || '',
+    organiserName: event.organiserName || '',
+    logoUrl: event.logoUrl || '',
+    bannerImageUrl: event.bannerImageUrl || '',
+    modes,
+    modeLabel: modes.map(formatEventTypeLabel).join(', ') || 'Mode TBA',
     eventStartAt: event.eventStartAt || null,
     eventEndAt: event.eventEndAt || null,
+    dateLabel: formatDateRangeLabel(event.eventStartAt, event.eventEndAt),
     virtualWindow: event.virtualWindow || null,
     targetDistanceKm: Number(event.targetDistanceKm || 0) || null,
+    targetDistanceLabel: Number(event.targetDistanceKm || 0) > 0 ? `${formatDistanceWithGrouping(event.targetDistanceKm)} km` : 'Goal varies by category',
+    raceCategories: Array.isArray(event.raceCategories) ? event.raceCategories.map((category) => ({
+      categoryId: category.categoryId || '',
+      name: category.name || '',
+      distanceLabel: category.distanceLabel || '',
+      distanceKm: Number(category.distanceKm || 0) || null
+    })) : [],
     leaderboardType: event.virtualCompletionMode === 'accumulated_distance' ? 'accumulated_challenge' : 'race_result'
   };
 }
@@ -1091,6 +1252,93 @@ function normalizeEventLeaderboardOptions(rawOptions = {}) {
     search: String(rawOptions.search || '').trim().toLowerCase().slice(0, 80),
     page: clampInt(rawOptions.page, 1, 10000, 1),
     limit: clampInt(rawOptions.limit, 1, 500, 25)
+  };
+}
+
+function buildEventLeaderboardUrl(eventSlug, rawFilters = {}, requestedPage) {
+  const filters = normalizeEventLeaderboardOptions({
+    ...rawFilters,
+    ...(requestedPage === undefined ? {} : { page: requestedPage })
+  });
+  const params = new URLSearchParams();
+  if (filters.distance) params.set('distance', filters.distance);
+  if (filters.search) params.set('search', filters.search);
+  if (filters.mode) params.set('mode', filters.mode);
+  if (filters.status) params.set('status', filters.status);
+  if (filters.page > 1) params.set('page', String(filters.page));
+  if (filters.limit !== 25) params.set('limit', String(filters.limit));
+  const path = `/events/${encodeURIComponent(String(eventSlug || '').trim())}/leaderboard`;
+  const query = params.toString();
+  return query ? `${path}?${query}` : path;
+}
+
+function buildEventLeaderboardCanonicalUrl(eventSlug, rawFilters = {}, page = 1, baseUrl = '') {
+  const normalized = normalizeEventLeaderboardOptions(rawFilters);
+  const path = buildEventLeaderboardUrl(eventSlug, {
+    distance: normalized.distance,
+    page,
+    limit: 25
+  });
+  const safeBase = String(baseUrl || '').replace(/\/$/, '');
+  return safeBase ? `${safeBase}${path}` : path;
+}
+
+function buildEventLeaderboardPresentation(leaderboard = {}, options = {}) {
+  const event = leaderboard.event || {};
+  const settings = leaderboard.settings || {};
+  const filters = normalizeEventLeaderboardOptions(leaderboard.filters || {});
+  const activeFilters = [
+    ['search', 'Runner or bib', filters.search],
+    ['mode', 'Mode', filters.mode ? formatEventTypeLabel(filters.mode) : ''],
+    ['status', 'Status', filters.status === 'pending_review' ? 'Pending review' : (filters.status === 'verified' ? 'Verified' : (filters.status === 'rejected' ? 'Rejected' : ''))]
+  ].filter(([, , value]) => value).map(([key, label, value]) => ({
+    key,
+    label,
+    value,
+    removeUrl: buildEventLeaderboardUrl(event.slug, { ...filters, [key]: '', page: 1 })
+  }));
+  const page = leaderboard.pagination?.page || 1;
+  const totalPages = leaderboard.pagination?.totalPages || 1;
+  const currentUrl = buildEventLeaderboardUrl(event.slug, filters, page);
+  const standing = options.myStanding?.standing || null;
+  let standingState = 'none';
+  if (!options.isAuthenticated) standingState = 'guest';
+  else if (standing?.status === 'verified' && Number.isInteger(standing.rank)) standingState = 'verified';
+  else if (standing?.status === 'pending_review') standingState = 'pending';
+  else if (standing?.status === 'rejected') standingState = 'rejected';
+  const isAccumulated = settings.type === 'accumulated_challenge';
+  const showModeFilter = Array.isArray(event.modes) && event.modes.length > 1;
+  const showStatusFilter = Boolean(settings.showPending);
+  const pendingProgress = options.myStanding?.pendingProgress || null;
+
+  return {
+    isAccumulated,
+    showDistanceNavigation: (leaderboard.distanceOptions || []).length > 1,
+    showModeFilter,
+    showStatusFilter,
+    showAdvancedFilters: showModeFilter || showStatusFilter,
+    hasActiveAdvancedFilters: Boolean(filters.mode || filters.status),
+    showCategoryColumn: (leaderboard.distanceOptions || []).length > 1,
+    activeFilters,
+    hasActiveFilters: activeFilters.length > 0,
+    clearFiltersUrl: buildEventLeaderboardUrl(event.slug, { distance: filters.distance, limit: filters.limit }),
+    getDistanceUrl: (distance) => buildEventLeaderboardUrl(event.slug, { ...filters, distance, page: 1 }),
+    pagination: {
+      page,
+      totalPages,
+      getPageUrl: (requestedPage) => `${buildEventLeaderboardUrl(event.slug, filters, requestedPage)}#official-standings`
+    },
+    seo: {
+      canonicalUrl: buildEventLeaderboardCanonicalUrl(event.slug, filters, page, options.baseUrl)
+    },
+    standing: {
+      state: standingState,
+      entry: standing,
+      nearby: options.myStanding?.nearby || [],
+      pendingProgress,
+      verifiedEntries: Number(options.myStanding?.stats?.verifiedEntries || 0),
+      loginUrl: `/login?returnTo=${encodeURIComponent(currentUrl)}`
+    }
   };
 }
 
@@ -1133,7 +1381,8 @@ function formatRaceEntry(row, event, settings, rank) {
 
 function formatAccumulatedEntry({ row, event, settings, runner, registration, rank, status = 'approved' }) {
   const totalDistanceKm = Number(row.totalDistanceKm || 0);
-  const target = Number(event.targetDistanceKm || 0);
+  const targetDistanceKm = resolveAccumulatedTargetDistanceKm(registration || { raceDistance: row.raceDistance }, event);
+  const progress = buildAccumulatedProgressMetrics(totalDistanceKm, targetDistanceKm);
   return {
     rank: Number.isInteger(rank) ? rank : null,
     registrationId: String(registration?._id || row._id || ''),
@@ -1150,13 +1399,35 @@ function formatAccumulatedEntry({ row, event, settings, runner, registration, ra
     paceSecondsPerKm: 0,
     paceLabel: '',
     activityCount: Number(row.activityCount || 0),
-    completionPercentage: target > 0 ? Math.min(100, Math.round((totalDistanceKm / target) * 100)) : null,
+    activityCountLabel: `${Number(row.activityCount || 0).toLocaleString('en-US')} ${Number(row.activityCount || 0) === 1 ? 'activity' : 'activities'}`,
+    ...progress,
     status: mapPublicStatus(status),
     statusLabel: getPublicStatusLabel(mapPublicStatus(status)),
     submittedAt: row.submittedAt || null,
     verifiedAt: row.verifiedAt || null,
     updatedAt: row.updatedAt || row.verifiedAt || row.submittedAt || null,
+    latestVerificationLabel: formatDateTimeLabel(row.updatedAt || row.verifiedAt || row.submittedAt || null),
     searchableText: buildSearchableText({ runner, registration, row, event })
+  };
+}
+
+function buildAccumulatedProgressMetrics(totalDistanceValue, targetDistanceValue) {
+  const totalDistanceKm = Math.max(0, Number(totalDistanceValue || 0));
+  const targetDistanceKm = Math.max(0, Number(targetDistanceValue || 0));
+  const rawPercentage = targetDistanceKm > 0 ? (totalDistanceKm / targetDistanceKm) * 100 : null;
+  const progressPercentage = rawPercentage === null ? null : Number(rawPercentage.toFixed(1));
+  const progressBarPercentage = progressPercentage === null ? 0 : Math.min(100, Math.max(0, progressPercentage));
+  const remainingDistanceKm = targetDistanceKm > 0 ? Math.max(0, targetDistanceKm - totalDistanceKm) : null;
+  const isGoalComplete = targetDistanceKm > 0 && totalDistanceKm >= targetDistanceKm;
+  return {
+    targetDistanceKm,
+    targetDistanceLabel: targetDistanceKm > 0 ? `${formatDistanceWithGrouping(targetDistanceKm)} km` : 'Goal not set',
+    progressPercentage,
+    progressBarPercentage,
+    progressLabel: progressPercentage === null ? 'Goal progress unavailable' : `${formatDistance(progressPercentage)}% of ${formatDistanceWithGrouping(targetDistanceKm)} km`,
+    remainingDistanceKm,
+    remainingDistanceLabel: remainingDistanceKm === null ? 'Goal not set' : `${formatDistanceWithGrouping(remainingDistanceKm)} km`,
+    isGoalComplete
   };
 }
 
@@ -1231,6 +1502,51 @@ function getLastUpdatedAt(entries = []) {
   return new Date(Math.max(...timestamps));
 }
 
+async function getRunnerPendingAccumulatedStanding(event = {}, userId, settings = {}, distance = '') {
+  const eventId = normalizeObjectId(event.id || event._id);
+  const safeUserId = normalizeObjectId(userId);
+  if (!eventId || !safeUserId) return null;
+  const match = {
+    eventId: new mongoose.Types.ObjectId(eventId),
+    runnerId: new mongoose.Types.ObjectId(safeUserId),
+    status: 'submitted',
+    ...(distance ? { raceDistance: new RegExp(`^${escapeRegex(distance)}$`, 'i') } : {}),
+    ...(settings.hideFlagged ? { suspiciousFlag: { $ne: true } } : {})
+  };
+  const rows = await AccumulatedActivitySubmission.aggregate([
+    { $match: match },
+    {
+      $group: {
+        _id: '$registrationId',
+        runnerId: { $first: '$runnerId' },
+        raceDistance: { $first: '$raceDistance' },
+        participationMode: { $first: '$participationMode' },
+        totalDistanceKm: { $sum: '$distanceKm' },
+        activityCount: { $sum: 1 },
+        submittedAt: { $min: '$submittedAt' },
+        updatedAt: { $max: '$updatedAt' }
+      }
+    },
+    { $sort: { updatedAt: -1 } },
+    { $limit: 1 }
+  ]);
+  const row = rows[0];
+  if (!row) return null;
+  const [runner, registration] = await Promise.all([
+    User.findById(safeUserId).select('firstName lastName displayName email userId').lean(),
+    Registration.findById(row._id).select('confirmationCode raceDistance participationMode participant pricingSnapshot registeredAt').lean()
+  ]);
+  return formatAccumulatedEntry({
+    row,
+    event: { ...event, _id: eventId },
+    settings,
+    runner,
+    registration,
+    rank: null,
+    status: 'submitted'
+  });
+}
+
 async function getRunnerPendingStanding(eventId, userId, settings, distance = '') {
   const Model = settings.type === 'accumulated_challenge' ? AccumulatedActivitySubmission : Submission;
   const row = await Model.findOne({
@@ -1257,11 +1573,21 @@ function clampInt(value, min, max, fallback) {
 
 module.exports = {
   getLeaderboardDiscoveryData,
+  normalizeLeaderboardDiscoveryFilters,
+  buildLeaderboardDiscoveryUrl,
+  buildLeaderboardDiscoveryCanonicalUrl,
+  getClearedLeaderboardDiscoveryFilters,
+  compareLeaderboardDiscoveryCards,
   getHomepageLeaderboard,
   getLeaderboardData,
   getEventLeaderboard,
   getMyStanding,
   getNearbyRunners,
+  buildEventLeaderboardUrl,
+  buildEventLeaderboardCanonicalUrl,
+  buildEventLeaderboardPresentation,
+  filterEventLeaderboardGroups,
+  buildAccumulatedProgressMetrics,
   resolveEventLeaderboardSettings,
   invalidateLeaderboardCache
 };
