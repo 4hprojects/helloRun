@@ -51,3 +51,21 @@ test('modal submission uses structured JSON and revalidates targets', () => {
   assert.match(controller, /submittedEntries/);
   assert.match(controller, /Compensate in reverse order/);
 });
+
+test('mobile header gives dynamic submit labels a dedicated full-width row', () => {
+  const view = read('src/views/partials/run-proof-modal.ejs');
+  const css = read('src/public/css/run-proof-modal.css');
+  const script = read('src/public/js/run-proof-modal.js');
+
+  assert.match(view, /id="runProofSubmitBtn"[\s\S]*form="runProofForm"/);
+  assert.match(css, /@media \(max-width: 759px\)[\s\S]*\.run-proof-header-top \{[\s\S]*grid-template-columns: minmax\(0, 1fr\) 2\.75rem/);
+  assert.match(css, /\.run-proof-header-actions \{\s*display: contents;/);
+  assert.match(css, /\.run-proof-header-actions #runProofSubmitBtn \{[\s\S]*grid-column: 1 \/ -1;[\s\S]*min-height: 2\.75rem;[\s\S]*white-space: normal;/);
+  assert.match(css, /#runProofSubmitBtn\[hidden\] \{\s*display: none !important;/);
+  assert.doesNotMatch(css, /#runProofSubmitBtn[\s\S]{0,300}(?:width|min-width|max-width): 75px/);
+  for (const label of ['Submit Run Result', 'Resubmit Run', 'Loading...']) {
+    assert.match(script, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  }
+  assert.match(script, /'Submit ' \+ selectedCount \+ ' Entries'/);
+  assert.match(script, /setStepOneActionLabel/);
+});

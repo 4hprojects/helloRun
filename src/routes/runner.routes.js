@@ -67,7 +67,10 @@ router.post('/runner/security/password', requireAuth, profileUpdateLimiter, runn
 router.post('/runner/profile/notifications', requireAuth, profileUpdateLimiter, runnerController.updateNotificationSettings);
 router.post('/runner/auth/google/unlink', requireAuth, profileUpdateLimiter, runnerController.unlinkGoogleAuth);
 router.post('/runner/notifications/read-all', requireAuth, runnerController.markAllNotificationsRead);
+router.post('/runner/notifications/archive-read', requireAuth, runnerController.archiveReadRunnerNotifications);
 router.post('/runner/notifications/:notificationId/read', requireAuth, runnerController.markNotificationRead);
+router.post('/runner/notifications/:notificationId/archive', requireAuth, runnerController.archiveRunnerNotification);
+router.post('/runner/notifications/:notificationId/restore', requireAuth, runnerController.restoreRunnerNotification);
 router.post('/runner/groups/create', requireAuth, groupActionLimiter, runnerController.createRunningGroup);
 router.post('/runner/groups/join', requireAuth, groupActionLimiter, runnerController.joinRunningGroup);
 router.post('/runner/groups/leave', requireAuth, groupActionLimiter, runnerController.leaveRunningGroup);

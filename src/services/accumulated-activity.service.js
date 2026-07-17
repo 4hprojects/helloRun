@@ -3,7 +3,6 @@ const logger = require('../utils/logger');
 const Registration = require('../models/Registration');
 const Event = require('../models/Event');
 const User = require('../models/User');
-const { issueSubmissionCertificate } = require('./certificate.service');
 const communicationService = require('./communication.service');
 const { notifyWithRetry } = require('./reliable-communication.service');
 const { recordCriticalAuditEventInBackground } = require('./critical-audit.service');
@@ -134,9 +133,7 @@ async function reviewAccumulatedActivitySubmission({
     occurredAt: reviewedActivity.reviewedAt
   });
 
-  let certificateWasIssued = false;
   if (safeAction === 'approve') {
-    certificateWasIssued = await attachCompletionCertificateIfNeeded(reviewedActivity);
     refreshAccumulatedChallengeProgress(reviewedActivity.registrationId, {
       performedBy: organizerId
     }).catch((error) => {
@@ -155,7 +152,7 @@ async function reviewAccumulatedActivitySubmission({
     activity: reviewedActivity,
     eventTitle: event.title || 'Event',
     action: safeAction,
-    certificateWasIssued
+    certificateWasIssued: false
   });
 
   return reviewedActivity;
@@ -245,7 +242,15 @@ function buildAccumulatedProgress({ activities = [], targetDistanceKm }) {
   const pendingDistanceKm = sumDistance(pending);
   const rejectedDistanceKm = sumDistance(rejected);
   const completed = target > 0 && approvedDistanceKm >= target;
-  const certificateActivity = approved.find((item) => item.certificate?.url);
+  const progressPercent = target > 0 ? (approvedDistanceKm / target) * 100 : 0;
+  const potentialDistanceKm = approvedDistanceKm + pendingDistanceKm;
+  const potentialProgressPercent = target > 0 ? (potentialDistanceKm / target) * 100 : 0;
+  const overGoalDistanceKm = target > 0 ? Math.max(0, approvedDistanceKm - target) : 0;
+  const certificateActivity = approved.find((item) =>
+    item.certificate?.url &&
+    !['revoked', 'failed', 'pending'].includes(item.certificate?.status) &&
+    !item.certificate?.revokedAt
+  );
 
   let completionTimestamp = null;
   if (completed) {
@@ -272,6 +277,12 @@ function buildAccumulatedProgress({ activities = [], targetDistanceKm }) {
     rejectedActivityCount: rejected.length,
     totalActivityCount: activities.length,
     completed,
+    progressPercent,
+    progressBarPercent: Math.min(100, Math.max(0, progressPercent)),
+    potentialDistanceKm,
+    potentialProgressPercent,
+    overGoalDistanceKm,
+    remainingDistanceKm: target > 0 ? Math.max(0, target - approvedDistanceKm) : 0,
     completionTimestamp,
     certificateEligible: completed,
     certificateActivityId: certificateActivity ? String(certificateActivity._id) : '',
@@ -284,84 +295,6 @@ function buildAccumulatedProgress({ activities = [], targetDistanceKm }) {
 
 function buildEmptyProgress() {
   return buildAccumulatedProgress({ activities: [], targetDistanceKm: 0 });
-}
-
-async function attachCompletionCertificateIfNeeded(activity) {
-  // Atomically claim the certificate slot to prevent duplicate issuance under concurrent approvals.
-  const claimed = await AccumulatedActivitySubmission.findOneAndUpdate(
-    {
-      registrationId: activity.registrationId,
-      'certificate.url': '',
-      'certificate.status': { $nin: ['pending', 'generated', 'regenerated'] }
-    },
-    { $set: { 'certificate.status': 'pending' } },
-    { new: false }
-  ).lean();
-  if (!claimed) return false;
-
-  const releaseLock = () => AccumulatedActivitySubmission.updateOne(
-    { registrationId: activity.registrationId, 'certificate.status': 'pending' },
-    { $set: { 'certificate.status': '' } }
-  ).catch(() => {});
-
-  try {
-    const [registration, event, runner, activities] = await Promise.all([
-      Registration.findById(activity.registrationId).lean(),
-      Event.findById(activity.eventId).lean(),
-      User.findById(activity.runnerId).select('firstName lastName email').lean(),
-      AccumulatedActivitySubmission.find({ registrationId: activity.registrationId }).lean()
-    ]);
-    if (!registration || !event || !runner) {
-      await releaseLock();
-      return false;
-    }
-    if (event.digitalCertificateEnabled === false) {
-      await releaseLock();
-      return false;
-    }
-    const progress = buildAccumulatedProgress({
-      activities,
-      targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, event)
-    });
-    if (!progress.completed) {
-      await releaseLock();
-      return false;
-    }
-
-    const certificate = await issueSubmissionCertificate({
-      submission: activity,
-      registration,
-      event,
-      runner
-    });
-    activity.certificate = {
-      url: certificate.url || '',
-      key: certificate.key || '',
-      issuedAt: certificate.issuedAt || new Date(),
-      certificateNumber: certificate.certificateNumber || '',
-      verificationUrl: certificate.verificationUrl || '',
-      templateId: certificate.templateId || null,
-      status: certificate.status || 'generated',
-      revokedAt: null,
-      regeneratedAt: null,
-      generationError: ''
-    };
-    await activity.save();
-    recordCriticalAuditEventInBackground({
-      actorMongoUserId: activity.reviewedBy ? String(activity.reviewedBy) : '',
-      action: 'certificate.issued',
-      targetType: 'accumulated_activity_certificate',
-      targetId: String(activity._id),
-      statusFrom: '',
-      statusTo: 'issued',
-      notes: `Certificate issued for accumulated activity ${String(activity._id)}`,
-      occurredAt: activity.certificate?.issuedAt || new Date()
-    });
-    return Boolean(certificate?.url);
-  } catch (error) {
-    await releaseLock();
-    throw error;
-  }
 }
 
 async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
@@ -380,7 +313,6 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
     return activity;
   }
 
-  const hadCertificate = Boolean(activity.certificate?.url);
   const autoApprovalReviewNote = getAutoApprovalReviewNote(activity);
   activity.status = 'approved';
   activity.reviewedAt = new Date();
@@ -401,7 +333,6 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
     occurredAt: activity.reviewedAt
   });
 
-  const certificateWasIssued = !hadCertificate && await attachCompletionCertificateIfNeeded(activity);
   refreshAccumulatedChallengeProgress(activity.registrationId, {
     performedBy: ''
   }).catch((error) => {
@@ -419,7 +350,7 @@ async function applyAccumulatedAutoApprovalIfEligible(activity, event = null) {
     activity,
     eventTitle: eventDoc.title || 'Event',
     action: 'approve',
-    certificateWasIssued
+    certificateWasIssued: false
   });
 
   return activity;

@@ -19,12 +19,23 @@ async function regenerateCertificate(req, res, next) {
     if (context.record.certificate?.status === 'revoked') {
       return res.status(400).json({ success: false, error: 'Revoked certificates cannot be regenerated.' });
     }
+    const isAccumulated = context.event.virtualCompletionMode === 'accumulated_distance';
+    if (isAccumulated && !context.record.certificate?.finalizedAt) {
+      return res.status(400).json({ success: false, error: 'Accumulated challenge certificates are finalized automatically after the submission deadline and final reviews.' });
+    }
 
     const certificate = await issueSubmissionCertificate({
       submission: context.record,
       registration: context.registration,
       event: context.event,
-      runner: context.runner
+      runner: context.runner,
+      certificateNumber: context.record.certificate?.certificateNumber || '',
+      accumulatedSnapshot: isAccumulated ? {
+        goalDistanceKm: context.record.certificate.goalDistanceKm,
+        verifiedDistanceKm: context.record.certificate.verifiedDistanceKm,
+        approvedActivityCount: context.record.certificate.approvedActivityCount,
+        finalizedAt: context.record.certificate.finalizedAt
+      } : null
     });
 
     context.record.certificate = {
@@ -37,7 +48,11 @@ async function regenerateCertificate(req, res, next) {
       status: 'regenerated',
       revokedAt: null,
       regeneratedAt: new Date(),
-      generationError: ''
+      generationError: '',
+      goalDistanceKm: context.record.certificate?.goalDistanceKm ?? null,
+      verifiedDistanceKm: context.record.certificate?.verifiedDistanceKm ?? null,
+      approvedActivityCount: context.record.certificate?.approvedActivityCount ?? null,
+      finalizedAt: context.record.certificate?.finalizedAt || null
     };
     await context.record.save();
 

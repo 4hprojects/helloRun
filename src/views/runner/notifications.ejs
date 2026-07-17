@@ -8,89 +8,157 @@
   <%- include('../layouts/nav') %>
 
   <main class="notifications-page">
-    <section class="notifications-shell">
+    <div class="notifications-shell">
       <header class="notifications-header">
-        <h1>Notifications</h1>
-        <p>Track updates for your registrations, results, certificates, and group activity.</p>
+        <div>
+          <span class="notifications-eyebrow">Runner updates</span>
+          <h1>Notifications</h1>
+          <p>Review registration, activity, result, and recognition updates in one place.</p>
+        </div>
+        <a href="/runner/profile#notifications" class="btn btn-outline notifications-preferences-link">
+          <i data-lucide="settings-2" aria-hidden="true"></i>
+          Notification preferences
+        </a>
       </header>
 
       <% if (message) { %>
-        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+        <div class="page-message page-message-<%= message.type %>" role="<%= message.type === 'error' ? 'alert' : 'status' %>" aria-live="<%= message.type === 'error' ? 'assertive' : 'polite' %>"><%= message.text %></div>
       <% } %>
 
-      <section class="notifications-toolbar">
-        <p>
-          Unread: <strong><%= notifications.unreadCount || 0 %></strong>
-          <% if (notifications.unreadOnly) { %>
-            (showing unread only)
-          <% } %>
-        </p>
-        <div class="notifications-toolbar-actions">
-          <a href="/runner/notifications?<%= notifications.unreadOnly ? '' : 'unread=1' %>" class="btn btn-secondary">
-            <%= notifications.unreadOnly ? 'Show All' : 'Show Unread' %>
-          </a>
-          <% if ((notifications.unreadCount || 0) > 0) { %>
+      <nav class="notification-view-nav" aria-label="Notification views">
+        <a href="<%= notifications.urls.all %>" class="notification-view-link <%= notifications.view === 'all' ? 'is-current' : '' %>" <% if (notifications.view === 'all') { %>aria-current="page"<% } %>>
+          <span>Current</span><strong><%= notifications.counts.current %></strong>
+        </a>
+        <a href="<%= notifications.urls.unread %>" class="notification-view-link <%= notifications.view === 'unread' ? 'is-current' : '' %>" <% if (notifications.view === 'unread') { %>aria-current="page"<% } %>>
+          <span>Unread</span><strong data-notification-unread-count><%= notifications.counts.unread %></strong>
+        </a>
+        <a href="<%= notifications.urls.archived %>" class="notification-view-link <%= notifications.view === 'archived' ? 'is-current' : '' %>" <% if (notifications.view === 'archived') { %>aria-current="page"<% } %>>
+          <span>Archived</span><strong><%= notifications.counts.archived %></strong>
+        </a>
+      </nav>
+
+      <% const canMarkAllRead = notifications.view !== 'archived' && notifications.counts.unread > 0; %>
+      <% const canArchiveRead = notifications.view === 'all' && notifications.counts.read > 0; %>
+      <% const toolbarActionCount = Number(canMarkAllRead) + Number(canArchiveRead); %>
+      <section class="notifications-toolbar" aria-labelledby="notification-history-title">
+        <div>
+          <h2 id="notification-history-title"><%= notifications.view === 'archived' ? 'Archived updates' : notifications.view === 'unread' ? 'Unread updates' : 'Latest updates' %></h2>
+          <p><%= notifications.totalItems %> notification<%= notifications.totalItems === 1 ? '' : 's' %></p>
+        </div>
+        <div class="notifications-toolbar-actions <%= toolbarActionCount === 1 ? 'has-single-action' : '' %>">
+          <% if (canMarkAllRead) { %>
             <form method="POST" action="/runner/notifications/read-all">
               <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-              <input type="hidden" name="returnTo" value="/runner/notifications<%= notifications.unreadOnly ? '?unread=1' : '' %>">
-              <button type="submit" class="btn">Mark All Read</button>
+              <input type="hidden" name="returnTo" value="<%= notifications.returnTo %>">
+              <button type="submit" class="btn btn-outline">Mark all read</button>
+            </form>
+          <% } %>
+          <% if (canArchiveRead) { %>
+            <form method="POST" action="/runner/notifications/archive-read"
+              data-high-risk-confirm
+              data-confirm-title="Archive read notifications"
+              data-confirm-target="<%= notifications.counts.read %> read notification<%= notifications.counts.read === 1 ? '' : 's' %>"
+              data-confirm-impact="Moves every read notification out of the current feed and into Archived."
+              data-confirm-reversibility="Archived notifications can be restored individually."
+              data-confirm-privilege="Your runner account"
+              data-confirm-button="Archive read">
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <input type="hidden" name="returnTo" value="<%= notifications.returnTo %>">
+              <button type="submit" class="btn btn-secondary">Archive all read</button>
             </form>
           <% } %>
         </div>
       </section>
 
+      <div class="notification-live-region sr-only" aria-live="polite" aria-atomic="true" data-notification-live></div>
+
       <% if (notifications.items && notifications.items.length) { %>
-        <ul class="notification-list">
+        <ol class="notification-list">
           <% notifications.items.forEach((item) => { %>
-            <li class="notification-item <%= item.isRead ? 'is-read' : 'is-unread' %>">
-              <div class="notification-main">
-                <p class="notification-title"><%= item.title %></p>
-                <p class="notification-message"><%= item.message %></p>
-                <p class="notification-meta">
-                  <span>
-                    <%= item.createdAtLabel %>
-                    <% if (item.createdAtRelativeLabel) { %>
-                      (<%= item.createdAtRelativeLabel %>)
-                    <% } %>
+            <li>
+              <details class="notification-item <%= item.isRead ? 'is-read' : 'is-unread' %> <%= item.isArchived ? 'is-archived' : '' %>" data-notification-item data-notification-id="<%= item.id %>">
+                <summary class="notification-summary">
+                  <span class="notification-icon notification-tone-<%= item.tone %>" aria-hidden="true"><i data-lucide="<%= item.icon %>"></i></span>
+                  <span class="notification-main">
+                    <span class="notification-heading-line">
+                      <% if (!item.isRead) { %><span class="notification-unread-dot" aria-label="Unread notification"></span><% } %>
+                      <strong class="notification-title"><%= item.title %></strong>
+                      <span class="notification-category"><%= item.category %></span>
+                    </span>
+                    <span class="notification-preview"><%= item.preview %></span>
+                    <span class="notification-meta">
+                      <time datetime="<%= new Date(item.createdAt).toISOString() %>"><%= item.createdAtRelativeLabel || item.createdAtLabel %></time>
+                      <% if (item.createdAtRelativeLabel) { %><span aria-hidden="true">·</span><span><%= item.createdAtLabel %></span><% } %>
+                    </span>
                   </span>
-                  <span class="notification-type"><%= item.type %></span>
-                </p>
-                <% if (item.href) { %>
-                  <p><a href="<%= item.href %>">Open related page</a></p>
-                <% } %>
-              </div>
-              <% if (!item.isRead) { %>
-                <form method="POST" action="/runner/notifications/<%= item._id %>/read">
-                  <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                  <input type="hidden" name="returnTo" value="/runner/notifications<%= notifications.unreadOnly ? '?unread=1' : '' %>">
-                  <button type="submit" class="btn btn-secondary">Mark Read</button>
-                </form>
-              <% } %>
+                  <span class="notification-review-label"><%= item.isArchived ? 'Review' : item.actionLabel || 'Details' %><i data-lucide="chevron-right" aria-hidden="true"></i></span>
+                </summary>
+
+                <div class="notification-detail-fallback" data-notification-detail>
+                  <p data-notification-message><%= item.message %></p>
+                  <div class="notification-fallback-actions">
+                    <% if (item.href) { %><a href="<%= item.href %>" class="btn btn-primary" data-notification-destination><%= item.actionLabel %></a><% } %>
+                    <% if (!item.isRead && !item.isArchived) { %>
+                      <form method="POST" action="/runner/notifications/<%= item.id %>/read" data-notification-read-form>
+                        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                        <input type="hidden" name="returnTo" value="<%= notifications.returnTo %>">
+                        <button type="submit" class="btn btn-outline">Mark read</button>
+                      </form>
+                    <% } %>
+                    <form method="POST" action="/runner/notifications/<%= item.id %>/<%= item.isArchived ? 'restore' : 'archive' %>" data-notification-state-form>
+                      <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+                      <input type="hidden" name="returnTo" value="<%= notifications.returnTo %>">
+                      <button type="submit" class="btn btn-secondary"><%= item.isArchived ? 'Restore' : 'Archive' %></button>
+                    </form>
+                  </div>
+                </div>
+              </details>
             </li>
           <% }) %>
-        </ul>
+        </ol>
 
         <% if (notifications.totalPages > 1) { %>
           <nav class="notifications-pagination" aria-label="Notifications pagination">
-            <% const base = `/runner/notifications?${new URLSearchParams({ unread: notifications.unreadOnly ? '1' : '' }).toString()}`; %>
-            <% const prev = Math.max(1, notifications.page - 1); %>
-            <% const next = Math.min(notifications.totalPages, notifications.page + 1); %>
-            <a href="<%= base %>&page=<%= prev %>" class="btn btn-secondary <%= notifications.page === 1 ? 'disabled' : '' %>">Previous</a>
-            <span>Page <%= notifications.page %> of <%= notifications.totalPages %></span>
-            <a href="<%= base %>&page=<%= next %>" class="btn btn-secondary <%= notifications.page === notifications.totalPages ? 'disabled' : '' %>">Next</a>
+            <% if (notifications.page > 1) { %><a href="<%= notifications.urls.previous %>" class="btn btn-outline">Previous</a><% } else { %><span class="btn btn-outline is-disabled" aria-disabled="true">Previous</span><% } %>
+            <span>Page <strong><%= notifications.page %></strong> of <strong><%= notifications.totalPages %></strong></span>
+            <% if (notifications.page < notifications.totalPages) { %><a href="<%= notifications.urls.next %>" class="btn btn-outline">Next</a><% } else { %><span class="btn btn-outline is-disabled" aria-disabled="true">Next</span><% } %>
           </nav>
         <% } %>
       <% } else { %>
-        <div class="empty-state">
-          <h2>No notifications yet</h2>
-          <p>New updates will appear here.</p>
-        </div>
+        <section class="notifications-empty" aria-labelledby="notifications-empty-title">
+          <span class="notifications-empty-icon" aria-hidden="true"><i data-lucide="<%= notifications.view === 'archived' ? 'archive' : 'bell-check' %>"></i></span>
+          <h2 id="notifications-empty-title"><%= notifications.view === 'archived' ? 'No archived notifications' : notifications.view === 'unread' ? 'You’re all caught up' : 'No notifications yet' %></h2>
+          <p><%= notifications.view === 'archived' ? 'Updates you archive will remain available here.' : notifications.view === 'unread' ? 'There are no unread updates waiting for you.' : 'Registration and activity updates will appear here when they arrive.' %></p>
+          <a href="<%= notifications.view === 'all' ? '/my-registrations' : notifications.urls.all %>" class="btn btn-primary"><%= notifications.view === 'all' ? 'View my registrations' : 'Show current notifications' %></a>
+        </section>
       <% } %>
-    </section>
+    </div>
   </main>
+
+  <dialog class="notification-dialog" data-notification-dialog aria-labelledby="notificationDialogTitle" aria-describedby="notificationDialogMessage">
+    <div class="notification-dialog-inner">
+      <button type="button" class="notification-dialog-close" data-notification-dialog-close aria-label="Close notification details"><i data-lucide="x" aria-hidden="true"></i></button>
+      <div class="notification-dialog-heading">
+        <span class="notification-icon" data-notification-dialog-icon aria-hidden="true"><i data-lucide="bell"></i></span>
+        <div><span class="notification-category" data-notification-dialog-category></span><h2 id="notificationDialogTitle" data-notification-dialog-title></h2></div>
+      </div>
+      <p id="notificationDialogMessage" class="notification-dialog-message" data-notification-dialog-message></p>
+      <p class="notification-dialog-time" data-notification-dialog-time></p>
+      <div class="notification-dialog-feedback" role="status" aria-live="polite" data-notification-dialog-feedback></div>
+      <div class="notification-dialog-actions">
+        <a href="/runner/notifications" class="btn btn-primary" data-notification-dialog-destination hidden>View update</a>
+        <form method="POST" action="/runner/notifications" data-notification-dialog-state-form>
+          <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+          <input type="hidden" name="returnTo" value="<%= notifications.returnTo %>">
+          <button type="submit" class="btn btn-secondary" data-notification-dialog-state-button>Archive</button>
+        </form>
+      </div>
+    </div>
+  </dialog>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
+  <script src="/js/runner-notifications.js"></script>
   <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

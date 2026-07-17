@@ -1,59 +1,50 @@
-/* runner-submissions.js
- * Handles the tiles / table view toggle on /runner/submissions.
- * Preference is persisted in localStorage under the key 'submissionsView'.
- */
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'submissionsView';
-  var DEFAULT_VIEW = 'tiles';
+  document.addEventListener('DOMContentLoaded', function () {
+    var changedForms = new Set();
 
-  var entryList  = null; // <ul id="subEntryList">
-  var entryTable = null; // <div id="subTableWrap">
-  var toggleBtns = [];   // [data-view] buttons
+    document.querySelectorAll('[data-submission-edit-form]').forEach(function (form) {
+      form.querySelectorAll('input, select, textarea').forEach(function (field) {
+        field.addEventListener('change', function () { changedForms.add(form); });
+      });
 
-  function setView(mode) {
-    if (mode !== 'tiles' && mode !== 'table') mode = DEFAULT_VIEW;
-
-    var showList  = mode === 'tiles';
-    var showTable = mode === 'table';
-
-    if (entryList)  entryList.style.display  = showList  ? '' : 'none';
-    if (entryTable) entryTable.style.display = showTable ? 'block' : 'none';
-
-    toggleBtns.forEach(function (btn) {
-      var active = btn.getAttribute('data-view') === mode;
-      btn.classList.toggle('is-active', active);
-      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      form.addEventListener('submit', function () {
+        changedForms.delete(form);
+        form.setAttribute('aria-busy', 'true');
+        var button = form.querySelector('[type="submit"]');
+        if (button) {
+          button.disabled = true;
+          button.textContent = 'Updating\u2026';
+        }
+        var status = form.querySelector('.sub-form-status');
+        if (status) status.textContent = 'Updating your activity details\u2026';
+      });
     });
 
-    try { localStorage.setItem(STORAGE_KEY, mode); } catch (_) {}
+    window.addEventListener('beforeunload', function (event) {
+      if (!changedForms.size) return;
+      event.preventDefault();
+      event.returnValue = 'You have unsaved changes.';
+    });
 
-    // Re-init Lucide icons that were hidden on initial page load
-    if (showTable && window.lucide) {
-      window.lucide.createIcons();
-    }
-  }
-
-  document.addEventListener('DOMContentLoaded', function () {
-    entryList  = document.getElementById('subEntryList');
-    entryTable = document.getElementById('subTableWrap');
-    toggleBtns = Array.prototype.slice.call(
-      document.querySelectorAll('[data-view]')
-    );
-
-    // Nothing to toggle if there are no entries
-    if (!entryList && !entryTable) return;
-
-    var saved;
-    try { saved = localStorage.getItem(STORAGE_KEY); } catch (_) {}
-
-    setView(saved || DEFAULT_VIEW);
-
-    toggleBtns.forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        setView(btn.getAttribute('data-view'));
+    document.querySelectorAll('[data-copy-url]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var status = button.parentElement && button.parentElement.querySelector('.sub-copy-status');
+        var url = button.getAttribute('data-copy-url') || '';
+        if (!url || !navigator.clipboard) {
+          if (status) status.textContent = 'Copy is unavailable. Open the verification page and copy its address.';
+          return;
+        }
+        button.disabled = true;
+        navigator.clipboard.writeText(url).then(function () {
+          if (status) status.textContent = 'Verification link copied.';
+        }).catch(function () {
+          if (status) status.textContent = 'Could not copy the link. Please try again.';
+        }).finally(function () {
+          button.disabled = false;
+        });
       });
     });
   });
-})();
+}());

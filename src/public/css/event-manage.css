@@ -872,11 +872,3 @@
   color: #92400e;
   white-space: nowrap;
 }
-
-.admin-audit-signal {
-  border-left: 4px solid #f59e0b;
-}
-
-.admin-audit-signal-critical {
-  border-left-color: #dc2626;
-}

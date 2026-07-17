@@ -21,13 +21,13 @@ const LEGACY_DEFAULT_BODY_TEXTS = new Set([
   'This certifies that {{runnerName}} completed {{distance}} in {{eventTitle}}.'
 ]);
 
-async function issueSubmissionCertificate({ submission, registration, event, runner }) {
+async function issueSubmissionCertificate({ submission, registration, event, runner, certificateNumber: requestedCertificateNumber, accumulatedSnapshot = null }) {
   if (!submission || !registration || !event || !runner) {
     throw new Error('Missing certificate inputs.');
   }
 
   const template = await getActiveOrDefaultTemplate(event._id || submission.eventId, { event });
-  const certificateNumber = await generateCertificateNumber({ event });
+  const certificateNumber = String(requestedCertificateNumber || '').trim() || await generateCertificateNumber({ event });
   const verificationUrl = buildVerificationUrl(certificateNumber);
   const approvedAt = new Date();
 
@@ -39,7 +39,8 @@ async function issueSubmissionCertificate({ submission, registration, event, run
     template,
     certificateNumber,
     verificationUrl,
-    issuedAt: approvedAt
+    issuedAt: approvedAt,
+    accumulatedSnapshot
   });
 
   const certificateBuffer = await buildCertificatePdfBuffer(certificateData);
@@ -111,7 +112,8 @@ async function buildCertificateRenderData({
   template,
   certificateNumber,
   verificationUrl,
-  issuedAt
+  issuedAt,
+  accumulatedSnapshot = null
 }) {
   const renderTemplate = buildRenderTemplate(template);
   const runnerName = `${String(runner.firstName || '').trim()} ${String(runner.lastName || '').trim()}`.trim()
@@ -120,15 +122,29 @@ async function buildCertificateRenderData({
   const eventTitle = String(event.title || 'HelloRun Event').trim() || 'HelloRun Event';
   const organizerName = String(event.organiserName || '').trim() || 'HelloRun';
   const distance = String(registration.raceDistance || submission.raceDistance || formatDistance(submission.distanceKm) || '').trim();
-  const finishTime = formatElapsedMs(submission.elapsedMs);
+  const goalDistance = accumulatedSnapshot?.goalDistanceKm > 0
+    ? formatDistance(accumulatedSnapshot.goalDistanceKm)
+    : distance;
+  const verifiedDistance = accumulatedSnapshot?.verifiedDistanceKm >= 0
+    ? formatDistance(accumulatedSnapshot.verifiedDistanceKm)
+    : '';
+  const finishTime = accumulatedSnapshot ? '' : formatElapsedMs(submission.elapsedMs);
   const eventDate = formatCertificateDate(event.eventStartAt || event.eventEndAt || issuedAt || new Date());
+  const content = { ...(renderTemplate.content || {}) };
+  if (accumulatedSnapshot && isDefaultCertificateBody(content.bodyText)) {
+    content.bodyText = 'Completed the {{goalDistance}} goal at {{eventTitle}} with {{verifiedDistance}} verified.';
+  }
 
   return {
     runnerName,
     eventTitle,
     organizerName,
-    distance,
-    raceDistance: distance,
+    distance: goalDistance,
+    raceDistance: goalDistance,
+    goalDistance,
+    verifiedDistance,
+    approvedActivityCount: Number(accumulatedSnapshot?.approvedActivityCount || 0),
+    isAccumulatedChallenge: Boolean(accumulatedSnapshot),
     finishTime,
     elapsedLabel: finishTime,
     rank: '',
@@ -141,7 +157,7 @@ async function buildCertificateRenderData({
     verificationUrl,
     template: renderTemplate,
     assets: renderTemplate.assets || {},
-    content: renderTemplate.content || {},
+    content,
     displayOptions: renderTemplate.displayOptions || {},
     styleOptions: renderTemplate.styleOptions || {}
   };
@@ -201,6 +217,10 @@ async function normalizeCertificateInput(input) {
     organizerName: String(input.organizerName || '').trim() || 'HelloRun',
     raceDistance: normalizeMetricValue(input.raceDistance || input.distance),
     distance: normalizeMetricValue(input.distance || input.raceDistance),
+    goalDistance: normalizeMetricValue(input.goalDistance || input.raceDistance || input.distance),
+    verifiedDistance: normalizeMetricValue(input.verifiedDistance),
+    approvedActivityCount: Number(input.approvedActivityCount || 0),
+    isAccumulatedChallenge: Boolean(input.isAccumulatedChallenge || input.verifiedDistance),
     elapsedLabel: normalizeFinishTime(input.elapsedLabel || input.finishTime),
     finishTime: normalizeFinishTime(input.finishTime || input.elapsedLabel),
     rank: normalizeMetricValue(input.rank),
@@ -599,7 +619,13 @@ function drawSplitContentPanel(doc, data, box) {
 
 function buildVisibleStats(data) {
   const stats = [];
-  if (data.displayOptions.showDistance && data.raceDistance) stats.push(['Distance', data.raceDistance]);
+  if (data.isAccumulatedChallenge) {
+    if (data.goalDistance) stats.push(['Selected Goal', data.goalDistance]);
+    if (data.verifiedDistance) stats.push(['Final Verified', data.verifiedDistance]);
+    if (data.approvedActivityCount > 0) stats.push(['Verified Activities', String(data.approvedActivityCount)]);
+  } else if (data.displayOptions.showDistance && data.raceDistance) {
+    stats.push(['Distance', data.raceDistance]);
+  }
   if (data.displayOptions.showFinishTime && data.elapsedLabel) stats.push(['Finish Time', data.elapsedLabel]);
   if (data.displayOptions.showRank && data.rank) stats.push(['Rank', data.rank]);
   if (data.displayOptions.showEventDate && data.eventDate) stats.push(['Event Date', data.eventDate]);
@@ -633,6 +659,11 @@ function normalizeCertificateBodyText(value) {
   return bodyText;
 }
 
+function isDefaultCertificateBody(value) {
+  const bodyText = String(value || '').trim();
+  return !bodyText || bodyText === DEFAULT_ACHIEVEMENT_BODY || LEGACY_DEFAULT_BODY_TEXTS.has(bodyText);
+}
+
 function normalizeFinishTime(value) {
   const finishTime = String(value || '').trim();
   return /^(?:N\/?A|-|00:00:00)$/i.test(finishTime) ? '' : finishTime;
@@ -649,6 +680,8 @@ function renderTemplateText(templateText, data) {
     eventTitle: data.eventTitle,
     organizerName: data.organizerName,
     distance: data.raceDistance,
+    goalDistance: data.goalDistance,
+    verifiedDistance: data.verifiedDistance,
     finishTime: data.elapsedLabel,
     rank: data.rank,
     eventDate: data.eventDate,

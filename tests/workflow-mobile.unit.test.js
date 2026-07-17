@@ -7,7 +7,10 @@ const root = path.join(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('run proof is full-screen on phones and restores only non-file draft data', () => {
-  assert.match(read('src/public/css/run-proof-modal.css'), /width: 100vw;[\s\S]*height: 100dvh/);
+  const css = read('src/public/css/run-proof-modal.css');
+  assert.match(css, /width: 100vw;[\s\S]*height: 100dvh/);
+  assert.match(css, /\.run-proof-header-actions \.run-proof-back-btn \{[\s\S]*min-width: 2\.75rem !important;[\s\S]*min-height: 2\.75rem !important;/);
+  assert.match(css, /\.run-proof-modal-desc,[\s\S]*\.run-proof-step-indicator \{\s*overflow-wrap: anywhere;/);
   const js = read('src/public/js/run-proof-modal.js');
   assert.match(js, /runProofDraftKey/);
   assert.match(js, /Select the proof image again/);

@@ -7,7 +7,8 @@ const {
   buildDeadlineDisplay,
   buildChallengeTimingDisplay,
   buildSubmissionTimingDisplay,
-  buildCertificateShareUrls
+  buildCertificateShareUrls,
+  splitEventProgressCards
 } = require('../src/services/runner-data.service');
 
 const NOW = new Date('2026-07-15T00:00:00.000Z');
@@ -145,6 +146,7 @@ test('accumulated progress separates official, pending, rejected, and potential 
   assert.equal(card.progress.remainingDistanceKm, 60);
   assert.equal(card.progress.potentialDistanceKm, 50);
   assert.equal(card.progress.percent, 40);
+  assert.equal(card.progress.overGoalDistanceKm, 0);
   assert.equal(card.progress.suggestedDailyDistanceKm, 6);
 });
 
@@ -165,4 +167,61 @@ test('future paid registration is ready rather than incorrectly marked missed', 
   }], {}, { now: NOW });
   assert.equal(card.state, 'registration_ready');
   assert.equal(card.nextAction.label, 'View Event');
+});
+
+test('ended accumulated challenge cannot remain Challenge in Progress after its final deadline', () => {
+  const registration = {
+    _id: 'june-registration',
+    paymentStatus: 'paid',
+    status: 'confirmed',
+    participationMode: 'virtual',
+    raceDistance: '200K',
+    eventId: {
+      title: 'June Active Quest Virtual Run',
+      slug: 'june-active-quest-virtual-run',
+      status: 'published',
+      virtualCompletionMode: 'accumulated_distance',
+      targetDistanceKm: 200,
+      eventStartAt: '2026-06-01T00:00:00.000Z',
+      eventEndAt: '2026-06-30T23:59:00.000Z',
+      virtualWindow: { startAt: '2026-06-01T00:00:00.000Z', endAt: '2026-06-30T23:59:00.000Z' },
+      finalSubmissionDeadlineAt: '2026-07-14T23:59:00.000Z'
+    }
+  };
+  const [card] = buildRunnerEventProgressCards([registration], {
+    accumulatedActivities: [{ _id: 'june-approved', registrationId: 'june-registration', status: 'approved', distanceKm: 26.3 }]
+  }, { now: NOW });
+
+  assert.equal(card.challengeClosed, true);
+  assert.equal(card.submissionClosed, true);
+  assert.equal(card.state, 'ended');
+  assert.equal(card.stateLabel, 'Challenge Ended');
+  assert.notEqual(card.nextAction?.type, 'submit');
+  const { active, missed } = splitEventProgressCards([card]);
+  assert.equal(active.length, 0);
+  assert.equal(missed.length, 0);
+});
+
+test('ended challenge distinguishes final-submission grace from final review', () => {
+  const registration = {
+    _id: 'grace-accumulated-registration', paymentStatus: 'paid', status: 'confirmed', participationMode: 'virtual', raceDistance: '100K',
+    eventId: {
+      title: 'Grace Challenge', slug: 'grace-challenge', status: 'published', virtualCompletionMode: 'accumulated_distance', targetDistanceKm: 100,
+      eventStartAt: '2026-06-01T00:00:00.000Z', eventEndAt: '2026-06-30T23:59:00.000Z',
+      virtualWindow: { endAt: '2026-06-30T23:59:00.000Z' }, finalSubmissionDeadlineAt: '2026-07-20T23:59:00.000Z'
+    }
+  };
+  const [grace] = buildRunnerEventProgressCards([registration], {
+    accumulatedActivities: [{ _id: 'approved-grace', registrationId: registration._id, status: 'approved', distanceKm: 20 }]
+  }, { now: NOW });
+  assert.equal(grace.state, 'final_submission_open');
+  assert.equal(grace.stateLabel, 'Final Submissions Open');
+  assert.equal(grace.nextAction.type, 'submit');
+
+  const [review] = buildRunnerEventProgressCards([registration], {
+    accumulatedActivities: [{ _id: 'pending-grace', registrationId: registration._id, status: 'submitted', distanceKm: 20 }]
+  }, { now: NOW });
+  assert.equal(review.state, 'submitted');
+  assert.equal(review.stateLabel, 'Awaiting Final Review');
+  assert.equal(review.nextAction.label, 'View Review Status');
 });

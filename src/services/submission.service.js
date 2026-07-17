@@ -1229,7 +1229,9 @@ function getRecentCertificatesForModel(Model, runnerId, limit) {
   return Model.find({
     runnerId,
     status: 'approved',
-    'certificate.url': { $exists: true, $ne: '' }
+    'certificate.url': { $exists: true, $ne: '' },
+    'certificate.status': { $nin: ['revoked', 'failed', 'pending'] },
+    'certificate.revokedAt': null
   })
     .sort({ 'certificate.issuedAt': -1, reviewedAt: -1, submittedAt: -1 })
     .limit(limit)

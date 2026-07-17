@@ -2270,14 +2270,6 @@
   padding: 0.85rem 1rem;
 }
 
-.pce-modal-limitations {
-  border-left: 3px solid #f59e0b;
-}
-
-.pce-modal-requirements {
-  border-left: 3px solid #3b82f6;
-}
-
 .pce-modal-limitations-title,
 .pce-modal-requirements-title {
   display: flex;
@@ -2328,7 +2320,6 @@
   border-radius: 0.6rem;
   padding: 0.85rem 1rem;
   background: #f0fdf4;
-  border-left: 3px solid #16a34a;
 }
 
 .pce-modal-checkbox-label {

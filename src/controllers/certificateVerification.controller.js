@@ -65,13 +65,17 @@ function buildVerificationPagePresentation(result, canonicalUrl) {
 
   if (result.found && result.certificate.status === 'valid') {
     const cert = result.certificate;
-    const achievement = [cert.distance, cert.eventTitle].filter(Boolean).join(' at ');
+    const achievement = cert.verifiedDistance
+      ? `${cert.goalDistance} goal with ${cert.verifiedDistance} verified at ${cert.eventTitle}`
+      : [cert.distance, cert.eventTitle].filter(Boolean).join(' at ');
     const ogTitle = `${cert.runnerName} — Verified ${cert.eventTitle} Achievement`;
     const shareText = `${cert.runnerName} officially completed ${achievement || cert.eventTitle}. View the verified HelloRun achievement. 🏃 #HelloRun`;
     title = `${cert.runnerName} — Verified Achievement | HelloRun`;
     seo = {
       ogTitle,
-      description: `${cert.runnerName} completed ${cert.eventTitle}${cert.distance ? ` (${cert.distance})` : ''}${cert.finishTime ? ` in ${cert.finishTime}` : ''}. Verified by HelloRun.`,
+      description: cert.verifiedDistance
+        ? `${cert.runnerName} completed the ${cert.goalDistance} goal with ${cert.verifiedDistance} verified at ${cert.eventTitle}. Verified by HelloRun.`
+        : `${cert.runnerName} completed ${cert.eventTitle}${cert.distance ? ` (${cert.distance})` : ''}${cert.finishTime ? ` in ${cert.finishTime}` : ''}. Verified by HelloRun.`,
       canonicalUrl,
       ogType: 'profile',
       ogImage: cert.eventLogoUrl || '',

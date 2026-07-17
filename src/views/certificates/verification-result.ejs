@@ -32,8 +32,8 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4m0 4h.01M10.3 3.6 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z"/></svg>
           </div>
           <p class="certificate-state-kicker">Certificate verification</p>
-          <h1 id="certificate-state-title">This certificate is no longer valid</h1>
-          <p>HelloRun’s records show that this certificate has been revoked. It should not be presented as a current verified achievement.</p>
+          <h1 id="certificate-state-title"><%= result.certificate.isFinalizing ? 'This certificate is being finalized' : 'This certificate is no longer valid' %></h1>
+          <p><%= result.certificate.isFinalizing ? 'This accumulated challenge certificate is temporarily unavailable while final activity reviews and totals are completed.' : 'HelloRun’s records show that this certificate has been revoked. It should not be presented as a current verified achievement.' %></p>
           <dl class="certificate-state-details">
             <div><dt>Certificate number</dt><dd><%= result.certificate.certificateNumber %></dd></div>
             <div><dt>Runner</dt><dd><%= result.certificate.runnerName %></dd></div>
@@ -65,8 +65,12 @@
               <p class="certificate-overline">Official HelloRun certificate</p>
               <h1 id="certificate-runner-name"><%= cert.runnerName %></h1>
               <p class="certificate-achievement-copy">
-                Officially completed
-                <% if (cert.distance) { %><strong><%= cert.distance %></strong> at<% } %>
+                <% if (cert.verifiedDistance) { %>
+                  Completed the <strong><%= cert.goalDistance %></strong> goal with <strong><%= cert.verifiedDistance %></strong> verified at
+                <% } else { %>
+                  Officially completed
+                  <% if (cert.distance) { %><strong><%= cert.distance %></strong> at<% } %>
+                <% } %>
                 <% if (cert.eventSlug) { %>
                   <a href="/events/<%= cert.eventSlug %>"><%= cert.eventTitle %></a>.
                 <% } else { %>
@@ -78,7 +82,18 @@
 
           <% if (cert.distance || cert.finishTime || hasEventDate || hasIssuedDate) { %>
             <section class="certificate-metrics" aria-label="Achievement details">
-              <% if (cert.distance) { %>
+              <% if (cert.verifiedDistance) { %>
+                <div class="certificate-metric">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19c4-7 10-7 14-14M5 5h4v4M15 15h4v4"/></svg>
+                  <span>Selected goal</span>
+                  <strong><%= cert.goalDistance %></strong>
+                </div>
+                <div class="certificate-metric">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m4 12 5 5L20 6"/></svg>
+                  <span>Final verified</span>
+                  <strong><%= cert.verifiedDistance %></strong>
+                </div>
+              <% } else if (cert.distance) { %>
                 <div class="certificate-metric">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 19c4-7 10-7 14-14M5 5h4v4M15 15h4v4"/></svg>
                   <span>Distance</span>

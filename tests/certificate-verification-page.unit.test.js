@@ -144,6 +144,25 @@ test('valid page renders marketable achievement content, safe links, and accessi
   assert.doesNotMatch(html, /Maria <img src=x/);
 });
 
+test('accumulated certificate presents selected goal and immutable final verified total', async () => {
+  const certificate = baseCertificate({
+    distance: '21 km',
+    goalDistance: '21 km',
+    verifiedDistance: '30 km',
+    approvedActivityCount: 3,
+    finishTime: ''
+  });
+  const html = await renderPage({ found: true, certificate });
+  assert.match(html, /Completed the <strong>21 km<\/strong> goal with <strong>30 km<\/strong> verified/i);
+  assert.match(html, /Selected goal/i);
+  assert.match(html, /Final verified/i);
+  const presentation = buildVerificationPagePresentation(
+    { found: true, certificate },
+    'https://hellorun.test/certificates/verify/HR-CERT-2026-TEST-000001'
+  );
+  assert.match(decodeURIComponent(presentation.shareUrls.x), /21 km goal with 30 km verified/i);
+});
+
 test('valid page omits unavailable metric cards and does not create an empty event link', async () => {
   const certificate = baseCertificate({
     eventSlug: '',

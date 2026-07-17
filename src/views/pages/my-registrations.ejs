@@ -8,246 +8,95 @@
   <%- include('../layouts/nav') %>
   <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
 
-  <main class="my-reg-page">
-    <section class="my-reg-shell">
+  <main class="my-reg-page" id="main-content">
+    <div class="my-reg-shell">
       <header class="my-reg-header">
-        <h1>My Registrations</h1>
-        <p>Track your registered events and confirmation details.</p>
+        <div>
+          <span class="my-reg-eyebrow"><i data-lucide="clipboard-list" aria-hidden="true"></i>Your events</span>
+          <h1>My Registrations</h1>
+          <p>See what needs your attention, follow active progress, and keep every registration record in one place.</p>
+        </div>
+        <nav class="my-reg-header-actions" aria-label="Registration tools">
+          <a href="/events" class="btn btn-primary"><i data-lucide="calendar-search" aria-hidden="true"></i>Browse Events</a>
+          <a href="/runner/submissions" class="btn btn-secondary"><i data-lucide="file-check" aria-hidden="true"></i>Submission History</a>
+        </nav>
       </header>
 
       <% if (message) { %>
-        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+        <div class="page-message page-message-<%= message.type %>" role="<%= message.type === 'error' ? 'alert' : 'status' %>" aria-live="<%= message.type === 'error' ? 'assertive' : 'polite' %>"><%= message.text %></div>
       <% } %>
 
       <% if (registrations && registrations.length) { %>
-        <div class="my-reg-grid">
-              <% registrations.forEach((registration) => { %>
-                <% const registrationLifecycle = getLifecycleStatus('registration', registration.status); %>
-                <% const paymentLifecycle = getLifecycleStatus('payment', registration.paymentStatus); %>
-                <% const submissionLifecycle = registration.submission ? getLifecycleStatus('submission', registration.submission.status) : null; %>
-            <article class="my-reg-card" id="registration-<%= registration._id %>" tabindex="-1">
-              <%
-                const eventFeeMode = String(registration.eventId?.feeMode || 'free').toLowerCase();
-                const isPaidEvent = eventFeeMode === 'paid';
-                const needsPaymentVerification = isPaidEvent || ['unpaid', 'proof_submitted', 'proof_rejected', 'failed', 'refunded'].includes(String(registration.paymentStatus || ''));
-                const selectedRaceCategoryName = registration.pricingSnapshot?.raceCategoryName || '';
-                const selectedRaceCategoryType = registration.pricingSnapshot?.raceCategoryType || '';
-              %>
+        <section class="my-reg-summary" aria-label="Registration summary">
+          <div><span>Total</span><strong><%= registrationCounts.total %></strong></div>
+          <a href="#next-actions"><span>Next actions</span><strong><%= registrationCounts.nextActions %></strong></a>
+          <a href="#active-registrations"><span>Active</span><strong><%= registrationCounts.active %></strong></a>
+          <div><span>Under review</span><strong><%= registrationCounts.underReview %></strong></div>
+        </section>
 
-              <!-- Card Header -->
-              <div class="card-header">
-                <h3>
-                  <% if (registration.eventId && registration.eventId.slug) { %>
-                    <a href="/events/<%= registration.eventId.slug %>"><%= registration.eventId.title %></a>
-                  <% } else { %>
-                    Event unavailable
-                  <% } %>
-                </h3>
-                <span class="confirmation-code" title="Confirmation code">
-                  <i data-lucide="hash"></i> <%= registration.confirmationCode %>
-                </span>
+        <% if (registrationGroups.nextActions.length) { %>
+          <section class="my-reg-group my-reg-group-attention" id="next-actions" aria-labelledby="nextActionsTitle">
+            <header class="my-reg-group-header">
+              <div>
+                <span class="my-reg-group-icon my-reg-group-icon-attention"><i data-lucide="circle-alert" aria-hidden="true"></i></span>
+                <div><h2 id="nextActionsTitle">Next actions</h2><p>Complete these tasks to keep your registrations moving.</p></div>
               </div>
+              <span class="my-reg-count"><%= registrationGroups.nextActions.length %></span>
+            </header>
+            <div class="my-reg-list">
+              <% registrationGroups.nextActions.forEach((item) => { %>
+                <%- include('../partials/my-registration-card', { item, _csrfToken, countryName, genderLabel, ageLabel }) %>
+              <% }) %>
+            </div>
+          </section>
+        <% } %>
 
-              <!-- Status Badges -->
-              <div class="badge-row">
-                <span class="badge badge-status" title="<%= registrationLifecycle.description %>"><%= registrationLifecycle.label %></span>
-                <span class="badge badge-payment mode-<%= registration.paymentStatus %>">
-                  <i data-lucide="credit-card"></i> <%= paymentLifecycle.label %>
-                </span>
-                <% if (registration.submission) { %>
-                  <span class="badge badge-submission mode-<%= registration.submission.status %>">
-                    <i data-lucide="flag"></i> <%= submissionLifecycle.label %>
-                  </span>
-                <% } else if (registration.isAccumulatedChallenge && registration.accumulatedProgress) { %>
-                  <span class="badge badge-submission mode-submitted">
-                    <i data-lucide="flag"></i> Progress: <%= registration.accumulatedProgress.progressLabel %>
-                  </span>
-                <% } %>
+        <% if (registrationGroups.active.length) { %>
+          <section class="my-reg-group" id="active-registrations" aria-labelledby="activeRegistrationsTitle">
+            <header class="my-reg-group-header">
+              <div>
+                <span class="my-reg-group-icon"><i data-lucide="activity" aria-hidden="true"></i></span>
+                <div><h2 id="activeRegistrationsTitle">Active registrations</h2><p>Upcoming events, challenges in progress, and reviews in motion.</p></div>
               </div>
+              <span class="my-reg-count"><%= registrationGroups.active.length %></span>
+            </header>
+            <div class="my-reg-list">
+              <% registrationGroups.active.forEach((item) => { %>
+                <%- include('../partials/my-registration-card', { item, _csrfToken, countryName, genderLabel, ageLabel }) %>
+              <% }) %>
+            </div>
+          </section>
+        <% } %>
 
-              <!-- Key Details Grid -->
-              <div class="details-grid">
-                <div class="detail-item">
-                  <i data-lucide="ruler"></i>
-                  <span>
-                    <strong>Distance:</strong> <%= selectedRaceCategoryName || registration.raceDistance || 'N/A' %>
-                    <% if (selectedRaceCategoryName && registration.raceDistance && selectedRaceCategoryName !== registration.raceDistance) { %>
-                      <small>(<%= registration.raceDistance %>)</small>
-                    <% } %>
-                    <% if (selectedRaceCategoryType) { %>
-                      <small><%= selectedRaceCategoryType %></small>
-                    <% } %>
-                  </span>
-                </div>
-                <div class="detail-item">
-                  <i data-lucide="users"></i>
-                  <span><strong>Mode:</strong> <%= registration.participationMode %></span>
-                </div>
-                <div class="detail-item">
-                  <i data-lucide="calendar"></i>
-                  <span><strong>Registered:</strong> <%= registration.registeredAt ? new Date(registration.registeredAt).toLocaleDateString('en-US') : 'N/A' %></span>
-                </div>
-                <div class="detail-item">
-                  <i data-lucide="clock"></i>
-                  <span><strong>Event start:</strong> <%= registration.eventId?.eventStartAt ? new Date(registration.eventId.eventStartAt).toLocaleDateString('en-US') : 'Date not listed' %></span>
-                </div>
-                <div class="detail-item">
-                  <i data-lucide="map-pin"></i>
-                  <span><strong>Location:</strong> <%= [registration.eventId?.venueName, registration.eventId?.city, countryName(registration.eventId?.country)].filter(Boolean).join(', ') || 'Location not listed' %></span>
-                </div>
-              </div>
+        <% if (!registrationGroups.nextActions.length && !registrationGroups.active.length) { %>
+          <div class="my-reg-caught-up" role="status">
+            <i data-lucide="circle-check-big" aria-hidden="true"></i>
+            <div><strong>You’re all caught up.</strong><p>No registration needs an action right now. Your past records are available below.</p></div>
+          </div>
+        <% } %>
 
-              <!-- Participant Summary -->
-              <details class="participant-details">
-                <summary>
-                  <i data-lucide="user"></i> Participant details
-                </summary>
-                <div class="participant-grid">
-                  <div><strong>Age:</strong> <%= ageLabel(registration.participant?.dateOfBirth) %></div>
-                  <div><strong>Gender:</strong> <%= genderLabel(registration.participant?.gender) %></div>
-                  <div><strong>Emergency:</strong> <%= registration.participant?.emergencyContactName || 'N/A' %> <% if (registration.participant?.emergencyContactNumber) { %>(<%= registration.participant.emergencyContactNumber %>)<% } %></div>
-                  <div><strong>Running group:</strong> <%= registration.participant?.runningGroup || 'N/A' %></div>
-                </div>
-              </details>
-
-              <% if (needsPaymentVerification) { %>
-                <!-- Payment Verification Section -->
-                <section class="card-section payment-verification-section">
-                  <h4><i data-lucide="receipt"></i> Payment Verification</h4>
-                  <% if (isPaidEvent) { %>
-                    <% const amountDue = Number(registration.paymentAmountDue || registration.eventId?.feeAmount || 0); %>
-                    <% const currency = registration.paymentCurrency || registration.eventId?.feeCurrency || 'PHP'; %>
-                    <% if (registration.paymentStatus === 'unpaid') { %>
-                      <div class="payment-amount-callout">
-                        <strong>Amount Due: <%= currency %> <%= amountDue.toFixed(2) %></strong>
-                        <span>Upload your payment receipt below to complete your registration.</span>
-                      </div>
-                    <% } else if (amountDue > 0) { %>
-                      <p><strong>Registration fee:</strong> <%= currency %> <%= amountDue.toFixed(2) %></p>
-                    <% } %>
-                    <p>Submit a payment receipt that shows your payment confirmation or reference. Activity screenshots belong in Run Result, not here.</p>
-                    <% if (registration.pricingSnapshot?.optionDescription) { %>
-                      <p><strong>Signup option:</strong> <%= registration.pricingSnapshot.optionDescription %></p>
-                    <% } %>
-                    <% if (registration.pricingSnapshot?.raceCategoryName) { %>
-                      <p><strong>Race category:</strong> <%= registration.pricingSnapshot.raceCategoryName %></p>
-                    <% } %>
-                    <% if (registration.pricingSnapshot?.packageName) { %>
-                      <p><strong>Registration package:</strong> <%= registration.pricingSnapshot.packageName %></p>
-                    <% } %>
-                    <% if (registration.pricingSnapshot?.pricingPeriodLabel) { %>
-                      <p><strong>Pricing period:</strong> <%= registration.pricingSnapshot.pricingPeriodLabel %></p>
-                    <% } %>
-                    <% if (registration.eventId?.paymentAccountName) { %>
-                      <p><strong>Payee:</strong> <%= registration.eventId.paymentAccountName %></p>
-                    <% } %>
-                    <% if (registration.eventId?.paymentInstructions) { %>
-                      <p><strong>Payment instructions:</strong> <%= registration.eventId.paymentInstructions %></p>
-                    <% } %>
-                  <% } else { %>
-                    <p>This registration does not require payment. If a payment receipt was previously requested, review the status below.</p>
-                  <% } %>
-                  <% if (registration.paymentProof && registration.paymentProof.uploadedAt) { %>
-                    <p><strong>Payment receipt submitted:</strong> <%= new Date(registration.paymentProof.uploadedAt).toLocaleString('en-US') %></p>
-                  <% } %>
-                  <% if (registration.paymentReviewedAt) { %>
-                    <p><strong>Payment reviewed:</strong> <%= new Date(registration.paymentReviewedAt).toLocaleString('en-US') %></p>
-                  <% } %>
-                  <% if (registration.paymentRejectionReason) { %>
-                    <p class="rejection"><strong>Payment rejection reason:</strong> <%= registration.paymentRejectionReason %></p>
-                    <% const paymentGuidance = {
-                      unreadable_receipt: 'Upload a clear receipt showing the payment date, amount, recipient, and reference.',
-                      wrong_amount: 'Check the event fee and upload proof for the correct total.',
-                      wrong_recipient: 'Use the organizer payment account shown in these registration instructions.',
-                      missing_reference: 'Upload proof that clearly shows the transaction or reference number.',
-                      duplicate_receipt: 'Upload the unique receipt for this registration.',
-                      other: 'Review the organizer’s details and upload corrected proof.'
-                    }[registration.paymentRejectionCode]; %>
-                    <% if (paymentGuidance) { %><p class="form-hint"><strong>How to fix this:</strong> <%= paymentGuidance %></p><% } %>
-                  <% } %>
-                  <% if (registration.paymentReviewNotes) { %>
-                    <p><strong>Payment review notes:</strong> <%= registration.paymentReviewNotes %></p>
-                  <% } %>
-
-                  <% if (registration.paymentStatus === 'unpaid' || registration.paymentStatus === 'proof_rejected') { %>
-                    <form method="POST" action="/my-registrations/<%= registration._id %>/payment-proof" enctype="multipart/form-data" class="inline-form">
-                      <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
-                      <label for="paymentProofFile-<%= registration._id %>">Upload payment receipt (JPG, PNG, PDF up to 5MB)</label>
-                      <input type="file" id="paymentProofFile-<%= registration._id %>" name="paymentProofFile" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required>
-                      <p class="form-hint">I confirm that this payment proof is valid and related to my registration. I understand that HelloRun and the organiser may review the uploaded image, transaction reference, amount, date, and visible payment details for verification and dispute resolution.</p>
-                      <button type="submit" class="btn btn-secondary">Submit Payment Receipt</button>
-                    </form>
-                  <% } %>
-                </section>
-              <% } %>
-
-              <!-- Result Submission Section -->
-              <% const submission = registration.submission || null; %>
-              <% const isAccumulatedChallenge = Boolean(registration.isAccumulatedChallenge); %>
-              <% const canSubmitResult = registration.paymentStatus === 'paid' && registration.status !== 'cancelled' && registration.status !== 'refunded' && (isAccumulatedChallenge || !submission || submission.status === 'rejected'); %>
-              <% if (submission || canSubmitResult || isAccumulatedChallenge) { %>
-                <section class="card-section">
-                  <h4><i data-lucide="flag"></i> <%= isAccumulatedChallenge ? 'Activity Progress' : 'Run Result' %></h4>
-                  <% if (isAccumulatedChallenge && registration.accumulatedProgress) { %>
-                    <p><strong>Progress:</strong> <%= registration.accumulatedProgress.progressLabel %></p>
-                    <p>
-                      <strong>Activities:</strong>
-                      <%= registration.accumulatedProgress.approvedActivityCount %> approved,
-                      <%= registration.accumulatedProgress.pendingActivityCount %> pending,
-                      <%= registration.accumulatedProgress.rejectedActivityCount %> rejected
-                    </p>
-                    <% if (registration.accumulatedProgress.certificateActivityId) { %>
-                      <p><a href="/my-submissions/<%= registration.accumulatedProgress.certificateActivityId %>/certificate" target="_blank" rel="noopener noreferrer" class="btn btn-link">Download certificate <i data-lucide="download"></i></a></p>
-                    <% } %>
-                  <% } %>
-                  <% if (submission) { %>
-                    <div class="details-grid">
-                      <div class="detail-item"><strong>Distance:</strong> <%= Number(submission.distanceKm || 0).toFixed(2) %> km</div>
-                      <div class="detail-item"><strong>Time:</strong> <%= new Date(Number(submission.elapsedMs || 0)).toISOString().slice(11, 19) %></div>
-                      <div class="detail-item"><strong>Run date:</strong> <%= submission.runDate ? new Date(submission.runDate).toLocaleDateString('en-US') : 'N/A' %></div>
-                      <div class="detail-item"><strong>Run location:</strong> <%= submission.runLocation || 'N/A' %></div>
-                      <div class="detail-item"><strong>Proof type:</strong> <%= String(submission.proofType || 'manual').toUpperCase() %></div>
-                    </div>
-                    <% if (submission.proof?.url) { %>
-                      <p><a href="<%= submission.proof.url %>" target="_blank" rel="noopener noreferrer" class="btn btn-link">View Run Result Evidence</a></p>
-                    <% } %>
-                    <% if (submission.status === 'approved' && submission.certificate?.url) { %>
-                      <p><a href="/my-submissions/<%= submission._id %>/certificate" target="_blank" rel="noopener noreferrer" class="btn btn-link">Download certificate <i data-lucide="download"></i></a></p>
-                    <% } %>
-                    <% if (submission.rejectionReason) { %>
-                      <p class="rejection"><strong>Rejection reason:</strong> <%= submission.rejectionReason %></p>
-                    <% } %>
-                    <% if (submission.reviewNotes) { %>
-                      <p><strong>Review notes:</strong> <%= submission.reviewNotes %></p>
-                    <% } %>
-                  <% } %>
-
-                  <% if (canSubmitResult) { %>
-                    <div class="inline-form result-action-box">
-                      <p>Use the run result modal to submit your activity distance, time, date, location, and screenshot or Strava evidence.</p>
-                      <button
-                        type="button"
-                        class="btn btn-secondary"
-                        data-open-run-proof-modal
-                        data-registration-id="<%= registration._id %>">
-                        <%= isAccumulatedChallenge ? 'Submit Activity' : (submission && submission.status === 'rejected' ? 'Resubmit Run Result' : 'Submit Run Result') %>
-                      </button>
-                    </div>
-                  <% } %>
-                </section>
-              <% } %>
-            </article>
-          <% }) %>
-        </div>
+        <% if (registrationGroups.history.length) { %>
+          <details class="my-reg-history" id="registration-history">
+            <summary>
+              <span><i data-lucide="archive" aria-hidden="true"></i><strong>Registration history</strong><small>Completed, missed, cancelled, refunded, and unavailable events</small></span>
+              <span class="my-reg-count"><%= registrationGroups.history.length %></span>
+            </summary>
+            <div class="my-reg-list">
+              <% registrationGroups.history.forEach((item) => { %>
+                <%- include('../partials/my-registration-card', { item, _csrfToken, countryName, genderLabel, ageLabel }) %>
+              <% }) %>
+            </div>
+          </details>
+        <% } %>
       <% } else { %>
         <div class="no-events-message">
-          <i data-lucide="clipboard-list"></i>
-          <h3>No registrations yet</h3>
-          <p>Browse published events and register to see them here.</p>
-          <a href="/events" class="btn">Browse Events</a>
+          <span><i data-lucide="clipboard-list" aria-hidden="true"></i></span>
+          <h2>No registrations yet</h2>
+          <p>Choose an event that fits your schedule and goal. Your confirmation, payment, and activity progress will appear here.</p>
+          <a href="/events" class="btn btn-primary">Browse Events</a>
         </div>
       <% } %>
-    </section>
+    </div>
   </main>
 
   <%- include('../layouts/footer') %>

@@ -12,6 +12,7 @@ const {
   communicationService,
   registerBlogView,
   getRunnerRegistrations,
+  buildMyRegistrationsPresentation,
   listPolicyDocuments,
   uploadService,
   getCountries,
@@ -534,10 +535,16 @@ exports.getMyRegistrations = async (req, res) => {
         submission: submissionsByRegistrationId.get(String(registration._id)) || null
       };
     });
+    const registrationPresentation = buildMyRegistrationsPresentation(enrichedRegistrations, {
+      standardSubmissions: submissions,
+      accumulatedActivities
+    });
 
     return res.render('pages/my-registrations', {
       title: 'My Registrations - HelloRun',
       registrations: enrichedRegistrations,
+      registrationGroups: registrationPresentation.groups,
+      registrationCounts: registrationPresentation.counts,
       message: getPageMessage(req.query),
       countryName: getCountryName,
       genderLabel: formatGenderLabel,

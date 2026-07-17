@@ -1,0 +1,39 @@
+<section class="runner-active-journey runner-dashboard-zone" aria-labelledby="active-journey-title" data-dashboard-fragment="activeJourney">
+  <div class="runner-dashboard-zone-heading">
+    <div><span class="section-kicker">What needs you next</span><h2 id="active-journey-title">Active event journey</h2></div>
+  </div>
+  <% const journey = runnerDashboardPresentation.primaryJourney; %>
+  <% if (journey) { %>
+    <% const journeyPercentExact = Math.max(0, Number(journey.progress?.percent || 0)); %>
+    <% const journeyPercent = Math.min(100, journeyPercentExact); %>
+    <% const journeyPercentLabel = Number(journeyPercentExact.toFixed(1)); %>
+    <article class="card runner-canonical-journey">
+      <div class="runner-canonical-main">
+        <div class="runner-canonical-identity">
+          <span class="runner-canonical-logo"><img src="<%= journey.eventImageUrl || '/images/helloRun-icon.webp' %>" alt="" width="52" height="52" onerror="this.onerror=null;this.src='/images/helloRun-icon.webp';"></span>
+          <div><div class="runner-next-action-status-row"><span class="badge badge-<%= journey.stateTone %>"><%= journey.stateLabel %></span><span class="deadline-chip deadline-chip--<%= journey.deadlineTone %>"><i data-lucide="clock" aria-hidden="true"></i><%= journey.deadlineLabel %></span></div><h3><% if (journey.eventSlug) { %><a href="/events/<%= journey.eventSlug %>"><%= journey.eventTitle %></a><% } else { %><%= journey.eventTitle %><% } %></h3><p class="item-meta"><%= journey.raceDistance || 'Distance TBA' %> · <%= journey.eventType %> · <%= journey.participationMode || 'Mode TBA' %></p></div>
+        </div>
+        <p class="runner-canonical-help"><%= journey.helperText %></p>
+        <% if (journey.progress) { %>
+          <div class="runner-canonical-progress"><div class="next-action-progress-label"><strong><%= Number(journey.progress.approvedDistanceKm || 0).toFixed(2) %> / <%= Number(journey.progress.targetDistanceKm || 0).toFixed(2) %> km verified</strong><span><%= journeyPercentLabel %>% complete</span></div><div class="dashboard-event-progress-track" role="progressbar" aria-label="Verified progress for <%= journey.eventTitle %>" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= journeyPercent %>" aria-valuetext="<%= journeyPercentLabel %>% complete; <%= Number(journey.progress.approvedDistanceKm || 0).toFixed(2) %> of <%= Number(journey.progress.targetDistanceKm || 0).toFixed(2) %> kilometers verified"><span style="width:<%= journeyPercent %>%"></span><strong class="dashboard-event-progress-percent" aria-hidden="true"><%= journeyPercentLabel %>%</strong></div><dl><div><dt><%= Number(journey.progress.overGoalDistanceKm || 0) > 0 ? 'Over goal' : 'Remaining' %></dt><dd><%= Number(Number(journey.progress.overGoalDistanceKm || 0) > 0 ? journey.progress.overGoalDistanceKm : journey.progress.remainingDistanceKm || 0).toFixed(2) %> km</dd></div><div><dt>Awaiting review</dt><dd><%= Number(journey.progress.pendingDistanceKm || 0).toFixed(2) %> km</dd></div><% if (Number(journey.progress.pendingDistanceKm || 0) > 0) { %><div><dt>Potential total</dt><dd><%= Number(journey.progress.potentialDistanceKm || 0).toFixed(2) %> / <%= Number(journey.progress.targetDistanceKm || 0).toFixed(2) %> km</dd></div><% } %></dl></div>
+        <% } %>
+        <% if (journey.payment?.required) { %><p class="runner-canonical-payment"><strong><%= journey.payment.currency %> <%= Number(journey.payment.amount || 0).toFixed(2) %></strong> · <%= journey.payment.statusLabel %></p><% } %>
+      </div>
+      <div class="runner-canonical-action">
+        <dl><div><dt>Starts</dt><dd><%= journey.eventStartAtLabel %></dd></div><div><dt>Ends</dt><dd><%= journey.eventEndAtLabel %></dd></div><div><dt>Submit by</dt><dd><%= journey.submissionDeadlineLabel %></dd></div></dl>
+        <% if (journey.nextAction) { %>
+          <% if (journey.nextAction.type === 'submit' || journey.nextAction.type === 'resubmit') { %><button type="button" class="btn btn-primary" data-open-run-proof-modal data-run-proof-surface="runner-dashboard" data-run-proof-mode="<%= journey.nextAction.type %>" data-run-proof-registration-id="<%= journey.registrationId %>"><%= journey.nextAction.label %></button><% } else { %><a href="<%= journey.nextAction.href %>" class="btn btn-primary"<% if (journey.nextAction.type === 'download_certificate') { %> target="_blank" rel="noopener noreferrer"<% } %>><%= journey.nextAction.label %></a><% } %>
+        <% } %>
+      </div>
+    </article>
+  <% } else { %>
+    <% const setup = runnerDashboardPresentation.setup; %>
+    <article class="card runner-setup-journey"><span class="runner-setup-icon"><i data-lucide="<%= setup?.type === 'profile' ? 'user-round-check' : setup?.type === 'restricted' ? 'shield-alert' : 'flag' %>" aria-hidden="true"></i></span><div><h3><%= setup?.title || 'Find your first event' %></h3><p><%= setup?.description || 'Choose an event and distance to start your runner journey.' %></p></div><a href="<%= setup?.action?.href || '/events' %>" class="btn btn-primary"><%= setup?.action?.label || 'Browse Events' %></a></article>
+  <% } %>
+
+  <% if (runnerDashboardPresentation.secondaryJourneys.length) { %>
+    <div class="runner-secondary-journeys"><div class="runner-secondary-heading"><h3>Other active events</h3><a href="/my-registrations">Manage all</a></div><ul>
+      <% runnerDashboardPresentation.secondaryJourneys.forEach((item) => { %><li><span class="runner-secondary-logo"><img src="<%= item.eventImageUrl || '/images/helloRun-icon.webp' %>" alt="" width="40" height="40" loading="lazy" onerror="this.onerror=null;this.src='/images/helloRun-icon.webp';"></span><div><strong><%= item.eventTitle %></strong><span><%= item.raceDistance || 'Distance TBA' %> · <%= item.stateLabel %></span><% if (item.progress) { %><small><%= Math.round(Math.max(0, Math.min(100, Number(item.progress.percent || 0)))) %>% verified · <%= Number(item.progress.remainingDistanceKm || 0).toFixed(2) %> km remaining</small><% } else { %><small><%= item.deadlineLabel %></small><% } %></div><a href="<%= item.eventSlug ? '/events/' + item.eventSlug : '/my-registrations' %>" aria-label="View <%= item.eventTitle %>"><i data-lucide="chevron-right" aria-hidden="true"></i></a></li><% }) %>
+    </ul></div>
+  <% } %>
+</section>

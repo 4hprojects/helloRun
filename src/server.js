@@ -353,12 +353,14 @@ const PORT = process.env.PORT || 3000;
 
 const { startSyncRetryWorker, startBlogSchedulerWorker } = require('./workers/pg-sync-worker');
 const { startCommunicationRetryWorker } = require('./workers/communication-retry-worker');
+const { startAccumulatedCertificateWorker } = require('./workers/accumulated-certificate-worker');
 
 async function startServer() {
   await connectToDatabase();
   startSyncRetryWorker();
   startBlogSchedulerWorker();
   startCommunicationRetryWorker();
+  startAccumulatedCertificateWorker();
 
   app.listen(PORT, () => {
     logger.info(`Server running on http://localhost:${PORT}`);

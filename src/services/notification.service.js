@@ -2,6 +2,20 @@ const mongoose = require('mongoose');
 const Notification = require('../models/Notification');
 const logger = require('../utils/logger');
 
+const NOTIFICATION_VIEWS = new Set(['all', 'unread', 'archived']);
+
+const TYPE_PRESENTATION = [
+  { match: /payment_rejected/, category: 'Payment', icon: 'credit-card', tone: 'attention', actionLabel: 'Fix payment' },
+  { match: /result_rejected/, category: 'Activity review', icon: 'circle-alert', tone: 'attention', actionLabel: 'Fix entry' },
+  { match: /certificate/, category: 'Recognition', icon: 'award', tone: 'recognition', actionLabel: 'Download certificate' },
+  { match: /result_approved/, category: 'Activity review', icon: 'circle-check', tone: 'success', actionLabel: 'View result' },
+  { match: /payment_(approved|proof_submitted)/, category: 'Payment', icon: 'credit-card', tone: 'progress', actionLabel: 'View registration' },
+  { match: /registration/, category: 'Registration', icon: 'clipboard-check', tone: 'progress', actionLabel: 'View registration' },
+  { match: /profile/, category: 'Account', icon: 'user-round', tone: 'account', actionLabel: 'Complete profile' },
+  { match: /badge/, category: 'Achievement', icon: 'medal', tone: 'recognition', actionLabel: 'View achievements' },
+  { match: /group/, category: 'Community', icon: 'users', tone: 'community', actionLabel: 'View group' }
+];
+
 async function createNotification(payload = {}) {
   const userId = normalizeObjectId(payload.userId);
   if (!userId) {
@@ -50,21 +64,20 @@ async function getUserNotifications(userId, options = {}) {
 
   const page = clampInt(options.page, 1, 500, 1);
   const limit = clampInt(options.limit, 1, 100, 20);
-  const unreadOnly = options.unreadOnly === true;
+  const view = options.unreadOnly === true ? 'unread' : normalizeNotificationView(options.view);
 
   const query = {
-    userId: new mongoose.Types.ObjectId(normalizedUserId)
+    userId: new mongoose.Types.ObjectId(normalizedUserId),
+    archivedAt: view === 'archived' ? { $ne: null } : null
   };
-  if (unreadOnly) {
+  if (view === 'unread') {
     query.readAt = null;
   }
 
-  const [totalItems, unreadCount] = unreadOnly
-    ? await Notification.countDocuments(query).then((count) => [count, count])
-    : await Promise.all([
-      Notification.countDocuments(query),
-      Notification.countDocuments({ userId: query.userId, readAt: null })
-    ]);
+  const [totalItems, counts] = await Promise.all([
+    Notification.countDocuments(query),
+    getNotificationCounts(normalizedUserId)
+  ]);
 
   const totalPages = Math.max(1, Math.ceil(totalItems / limit));
   const currentPage = Math.min(page, totalPages);
@@ -78,7 +91,9 @@ async function getUserNotifications(userId, options = {}) {
 
   return {
     items,
-    unreadCount,
+    unreadCount: counts.unread,
+    counts,
+    view,
     page: currentPage,
     totalPages,
     totalItems
@@ -90,6 +105,7 @@ async function countUnreadNotifications(userId) {
   if (!normalizedUserId) return 0;
   return Notification.countDocuments({
     userId: new mongoose.Types.ObjectId(normalizedUserId),
+    archivedAt: null,
     readAt: null
   });
 }
@@ -103,14 +119,20 @@ async function markNotificationAsRead(userId, notificationId) {
     {
       _id: new mongoose.Types.ObjectId(normalizedNotificationId),
       userId: new mongoose.Types.ObjectId(normalizedUserId),
+      archivedAt: null,
       readAt: null
     },
     {
       $set: { readAt: new Date() }
     }
   );
-
-  return { matched: result.matchedCount > 0 };
+  if (result.matchedCount > 0) return { matched: true, modified: true };
+  const existing = await Notification.exists({
+    _id: new mongoose.Types.ObjectId(normalizedNotificationId),
+    userId: new mongoose.Types.ObjectId(normalizedUserId),
+    archivedAt: null
+  });
+  return { matched: Boolean(existing), modified: false };
 }
 
 async function markAllNotificationsAsRead(userId) {
@@ -120,6 +142,7 @@ async function markAllNotificationsAsRead(userId) {
   const result = await Notification.updateMany(
     {
       userId: new mongoose.Types.ObjectId(normalizedUserId),
+      archivedAt: null,
       readAt: null
     },
     {
@@ -128,6 +151,116 @@ async function markAllNotificationsAsRead(userId) {
   );
 
   return { modifiedCount: Number(result.modifiedCount || 0) };
+}
+
+async function archiveNotification(userId, notificationId) {
+  const normalizedUserId = normalizeObjectId(userId);
+  const normalizedNotificationId = normalizeObjectId(notificationId);
+  if (!normalizedUserId || !normalizedNotificationId) return { matched: false };
+  const now = new Date();
+  const result = await Notification.updateOne(
+    {
+      _id: new mongoose.Types.ObjectId(normalizedNotificationId),
+      userId: new mongoose.Types.ObjectId(normalizedUserId),
+      archivedAt: null
+    },
+    [{ $set: { archivedAt: now, readAt: { $ifNull: ['$readAt', now] } } }]
+  );
+  return { matched: result.matchedCount > 0 };
+}
+
+async function restoreNotification(userId, notificationId) {
+  const normalizedUserId = normalizeObjectId(userId);
+  const normalizedNotificationId = normalizeObjectId(notificationId);
+  if (!normalizedUserId || !normalizedNotificationId) return { matched: false };
+  const result = await Notification.updateOne(
+    {
+      _id: new mongoose.Types.ObjectId(normalizedNotificationId),
+      userId: new mongoose.Types.ObjectId(normalizedUserId),
+      archivedAt: { $ne: null }
+    },
+    { $set: { archivedAt: null } }
+  );
+  return { matched: result.matchedCount > 0 };
+}
+
+async function archiveAllReadNotifications(userId) {
+  const normalizedUserId = normalizeObjectId(userId);
+  if (!normalizedUserId) return { modifiedCount: 0 };
+  const result = await Notification.updateMany(
+    {
+      userId: new mongoose.Types.ObjectId(normalizedUserId),
+      archivedAt: null,
+      readAt: { $ne: null }
+    },
+    { $set: { archivedAt: new Date() } }
+  );
+  return { modifiedCount: Number(result.modifiedCount || 0) };
+}
+
+async function getNotificationCounts(userId) {
+  const normalizedUserId = normalizeObjectId(userId);
+  if (!normalizedUserId) return { current: 0, unread: 0, archived: 0, read: 0 };
+  const objectId = new mongoose.Types.ObjectId(normalizedUserId);
+  const [current, unread, archived, read] = await Promise.all([
+    Notification.countDocuments({ userId: objectId, archivedAt: null }),
+    Notification.countDocuments({ userId: objectId, archivedAt: null, readAt: null }),
+    Notification.countDocuments({ userId: objectId, archivedAt: { $ne: null } }),
+    Notification.countDocuments({ userId: objectId, archivedAt: null, readAt: { $ne: null } })
+  ]);
+  return { current, unread, archived, read };
+}
+
+function normalizeNotificationView(value, legacyUnread = false) {
+  if (legacyUnread === true || String(legacyUnread || '').trim() === '1') return 'unread';
+  const safe = String(value || '').trim().toLowerCase();
+  return NOTIFICATION_VIEWS.has(safe) ? safe : 'all';
+}
+
+function buildNotificationListUrl(view = 'all', page = 1) {
+  const params = new URLSearchParams();
+  const normalizedView = normalizeNotificationView(view);
+  const normalizedPage = clampInt(page, 1, 500, 1);
+  if (normalizedView !== 'all') params.set('view', normalizedView);
+  if (normalizedPage > 1) params.set('page', String(normalizedPage));
+  const query = params.toString();
+  return `/runner/notifications${query ? `?${query}` : ''}`;
+}
+
+function buildNotificationPresentation(item = {}) {
+  const type = String(item.type || '').trim().toLowerCase();
+  const definition = TYPE_PRESENTATION.find((entry) => entry.match.test(type)) || {
+    category: 'HelloRun update', icon: 'bell', tone: 'general', actionLabel: 'View update'
+  };
+  const message = String(item.message || '').trim();
+  const href = sanitizeNotificationHref(item.href);
+  return {
+    category: definition.category,
+    icon: definition.icon,
+    tone: definition.tone,
+    actionLabel: href ? definition.actionLabel : '',
+    href,
+    preview: buildMessagePreview(message),
+    isRead: Boolean(item.readAt),
+    isArchived: Boolean(item.archivedAt)
+  };
+}
+
+function sanitizeNotificationHref(value) {
+  const raw = String(value || '').trim();
+  if (!/^\/(?!\/)/.test(raw) || raw.includes('\\') || /[\r\n]/.test(raw)) return '';
+  try {
+    const parsed = new URL(raw, 'https://hellorun.local');
+    return parsed.origin === 'https://hellorun.local' ? `${parsed.pathname}${parsed.search}${parsed.hash}` : '';
+  } catch (error) {
+    return '';
+  }
+}
+
+function buildMessagePreview(value, maxLength = 150) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (text.length <= maxLength) return text;
+  return `${text.slice(0, Math.max(1, maxLength - 1)).trimEnd()}…`;
 }
 
 function normalizeObjectId(value) {
@@ -146,7 +279,15 @@ module.exports = {
   createNotification,
   createNotificationSafe,
   getUserNotifications,
+  getNotificationCounts,
   countUnreadNotifications,
   markNotificationAsRead,
-  markAllNotificationsAsRead
+  markAllNotificationsAsRead,
+  archiveNotification,
+  restoreNotification,
+  archiveAllReadNotifications,
+  normalizeNotificationView,
+  buildNotificationListUrl,
+  buildNotificationPresentation,
+  sanitizeNotificationHref
 };

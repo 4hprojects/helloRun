@@ -525,8 +525,8 @@ test('runner performance snapshot includes accumulated activities and completes 
   });
   assert.equal(completed.metrics.completedEvents, 1);
   assert.equal(completed.metrics.totalDistanceKm >= 10, true);
-  assert.equal(completed.counts.certificates >= 1, true);
-  assert.equal(completed.recentCertificates.some((item) => item.isAccumulatedActivity), true);
+  assert.equal(completed.counts.certificates, 0);
+  assert.equal(completed.recentCertificates.some((item) => item.isAccumulatedActivity), false);
 });
 
 test('getRunnerEligibleSubmissionRegistrations returns only paid confirmed active entries', async () => {
@@ -633,6 +633,7 @@ test('accumulated activities allow multiple proofs and count only approvals towa
       }
     }
   );
+  await Registration.updateOne({ _id: seed.registration._id }, { $set: { raceDistance: '10K' } });
 
   const first = await createAccumulatedActivitySubmission({
     registrationId: seed.registration._id,
@@ -678,8 +679,24 @@ test('accumulated activities allow multiple proofs and count only approvals towa
   progress = await getRegistrationAccumulatedProgress(seed.registration._id);
   assert.equal(progress.approvedDistanceKm, 11);
   assert.equal(progress.completed, true);
-  assert.ok(progress.certificateActivityId);
-  assert.ok(progress.certificateUrl);
+  assert.equal(progress.overGoalDistanceKm, 1);
+  assert.equal(progress.certificateActivityId, '');
+  assert.equal(progress.certificateUrl, '');
+
+  const extra = await createAccumulatedActivitySubmission({
+    registrationId: seed.registration._id,
+    runnerId: seed.runner._id,
+    distanceKm: 2,
+    elapsedMs: 15 * 60 * 1000,
+    proofType: 'gps',
+    proof: { url: 'https://example.com/proof/accumulated-over-goal.gpx', size: 1200 },
+    runType: 'run'
+  });
+  assert.equal(extra.status, 'submitted');
+  progress = await getRegistrationAccumulatedProgress(seed.registration._id);
+  assert.equal(progress.approvedDistanceKm, 11);
+  assert.equal(progress.pendingDistanceKm, 2);
+  assert.equal(progress.potentialDistanceKm, 13);
 });
 
 test('accumulated target resolver prefers selected category and distance before event fallback', () => {
@@ -710,7 +727,7 @@ test('accumulated target resolver prefers selected category and distance before 
   }, event), 200);
 });
 
-test('accumulated progress and certificate completion use selected registration distance', async () => {
+test('accumulated progress uses selected registration distance without issuing an early certificate', async () => {
   const seed = await seedSubmissionFixture('accumulated-selected-target');
   await Event.updateOne(
     { _id: seed.event._id },
@@ -780,8 +797,8 @@ test('accumulated progress and certificate completion use selected registration 
   assert.equal(progress.targetDistanceKm, 100);
   assert.equal(progress.approvedDistanceKm, 100);
   assert.equal(progress.completed, true);
-  assert.ok(progress.certificateActivityId);
-  assert.ok(progress.certificateUrl);
+  assert.equal(progress.certificateActivityId, '');
+  assert.equal(progress.certificateUrl, '');
 });
 
 test('accumulated activities enforce minimum distance and accepted activity types', async () => {
@@ -881,7 +898,7 @@ test('accumulated activities keep enforcing legacy minimum distance when configu
   );
 });
 
-test('accumulated activities auto-approve clean OCR and issue certificate only on completion', async () => {
+test('accumulated activities auto-approve clean OCR but defer certificates until finalization', async () => {
   const seed = await seedSubmissionFixture('accumulated-auto-approve');
   await Event.updateOne(
     { _id: seed.event._id },
@@ -946,13 +963,13 @@ test('accumulated activities auto-approve clean OCR and issue certificate only o
   });
 
   assert.equal(second.status, 'approved');
-  assert.ok(String(second.certificate?.url || '').length > 0);
+  assert.equal(second.certificate?.url || '', '');
 
   progress = await getRegistrationAccumulatedProgress(seed.registration._id);
   assert.equal(progress.approvedDistanceKm, 10);
   assert.equal(progress.completed, true);
   assert.equal(progress.pendingDistanceKm, 0);
-  assert.ok(progress.certificateUrl);
+  assert.equal(progress.certificateUrl, '');
 });
 
 test('accumulated activities keep suspicious OCR pending', async () => {

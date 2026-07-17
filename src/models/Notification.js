@@ -42,6 +42,11 @@ const notificationSchema = new mongoose.Schema(
       type: Date,
       default: null,
       index: true
+    },
+    archivedAt: {
+      type: Date,
+      default: null,
+      index: true
     }
   },
   {
@@ -51,6 +56,8 @@ const notificationSchema = new mongoose.Schema(
 
 notificationSchema.index({ userId: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, readAt: 1, createdAt: -1 });
+notificationSchema.index({ userId: 1, archivedAt: 1, createdAt: -1 });
+notificationSchema.index({ userId: 1, archivedAt: 1, readAt: 1, createdAt: -1 });
 notificationSchema.index(
   { userId: 1, createdAt: -1 },
   { partialFilterExpression: { readAt: null }, name: 'idx_notifications_user_unread_created' }

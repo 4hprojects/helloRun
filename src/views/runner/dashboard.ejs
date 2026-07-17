@@ -6,43 +6,21 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
-
   <main class="runner-dashboard-page">
     <div class="dashboard-container">
-      <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
-
-      <% if (isFirstLogin) { %>
-        <section class="onboarding-welcome-banner" id="js-welcome-banner" aria-labelledby="welcome-title">
-          <button type="button" class="onboarding-dismiss" id="js-welcome-dismiss" aria-label="Dismiss welcome message">×</button>
-          <h2 id="welcome-title">Welcome to HelloRun, <%= userName %>!</h2>
-          <p>Complete your profile, choose an event, then submit activity to track your progress and earn achievements.</p>
-          <div class="onboarding-actions"><a href="/runner/profile" class="btn btn-sm btn-outline">Complete Profile</a><a href="/events" class="btn btn-sm btn-primary">Browse Events</a></div>
-        </section>
-        <script>
-          (function () {
-            var banner = document.getElementById('js-welcome-banner');
-            var button = document.getElementById('js-welcome-dismiss');
-            if (localStorage.getItem('hr_welcome_dismissed') && banner) banner.hidden = true;
-            if (button) button.addEventListener('click', function () {
-              if (banner) banner.hidden = true;
-              localStorage.setItem('hr_welcome_dismissed', '1');
-            });
-          }());
-        </script>
-      <% } %>
-
-      <section class="dashboard-hero">
+      <section class="dashboard-hero" aria-labelledby="runner-dashboard-title">
         <div class="dashboard-header">
           <div class="header-content">
             <span class="dashboard-eyebrow">Runner Dashboard</span>
-            <h1><%= isFirstLogin ? 'Let’s get moving,' : 'Welcome back,' %> <%= userName %>!</h1>
-            <p class="header-subtitle"><%= runnerJourney.subtitle %></p>
+            <h1 id="runner-dashboard-title"><%= isFirstLogin ? 'Let’s get moving,' : 'Welcome back,' %> <%= userName %>!</h1>
+            <p class="header-subtitle"><%= runnerDashboardPresentation.subtitle %></p>
           </div>
           <div class="header-actions">
             <div class="header-buttons">
-              <% const heroAction = runnerJourney.primaryAction; %>
+              <% const heroJourney = runnerDashboardPresentation.primaryJourney; %>
+              <% const heroAction = heroJourney?.nextAction; %>
               <% if (heroAction && (heroAction.type === 'submit' || heroAction.type === 'resubmit')) { %>
-                <button type="button" class="btn btn-primary" data-open-run-proof-modal data-run-proof-surface="runner-dashboard" data-run-proof-mode="<%= heroAction.type %>" data-run-proof-registration-id="<%= heroAction.registrationId || '' %>" aria-label="<%= heroAction.label %>">
+                <button type="button" class="btn btn-primary" data-open-run-proof-modal data-run-proof-surface="runner-dashboard-header" data-run-proof-mode="<%= heroAction.type %>" data-run-proof-registration-id="<%= heroJourney.registrationId || '' %>" aria-label="<%= heroAction.label %>">
                   <i data-lucide="upload" class="btn-icon" aria-hidden="true"></i><span class="btn-label"><%= heroAction.label %></span>
                 </button>
               <% } else { %>
@@ -56,61 +34,30 @@
 
       <% if (message) { %><div class="alert alert-<%= message.type === 'error' ? 'danger' : message.type %>" role="<%= message.type === 'error' ? 'alert' : 'status' %>" aria-live="<%= message.type === 'error' ? 'assertive' : 'polite' %>"><%= message.text %></div><% } %>
       <% if (errors && Object.keys(errors).length) { %><div class="alert alert-danger" role="alert" aria-live="assertive"><%= Object.values(errors).join(' ') %></div><% } %>
+      <% if (runnerDashboardPresentation.accountAlert) { %><aside class="dashboard-account-alert alert alert-warning" role="alert"><span><i data-lucide="shield-alert" aria-hidden="true"></i><%= runnerDashboardPresentation.accountAlert.text %></span><a href="<%= runnerDashboardPresentation.accountAlert.href %>"><%= runnerDashboardPresentation.accountAlert.label %></a></aside><% } %>
 
-      <% if (runnerJourney.urgentAlerts.length) { %>
-        <section class="dashboard-urgent-alerts" aria-label="Items needing attention" data-dashboard-fragment="urgentAlerts">
-          <% runnerJourney.urgentAlerts.forEach((alert) => { %>
-            <div class="alert alert-<%= alert.tone %> dashboard-urgent-alert" role="alert"><span><i data-lucide="triangle-alert" aria-hidden="true"></i> <%= alert.text %></span><a href="<%= alert.href %>" class="alert-action"><%= alert.label %></a></div>
-          <% }) %>
-        </section>
-      <% } %>
-
-      <% if (profileCompleteness?.missingFields?.length) { %>
-        <aside class="dashboard-profile-nudge" aria-label="Profile completion reminder">
-          <div><strong>Complete your profile</strong><p class="nudge-missing">Your details are used for registrations and certificates. Missing: <%= profileCompleteness.missingFields.join(', ') %>.</p></div>
-          <a href="/runner/profile" class="btn btn-sm btn-outline">Complete Profile</a>
-        </aside>
-      <% } %>
-
-      <%- include('partials/dashboard-next-action') %>
-
-      <section class="runner-dashboard-zone" aria-labelledby="active-progress-title">
-        <div class="runner-dashboard-zone-heading"><div><span class="section-kicker">Your events</span><h2 id="active-progress-title">Active Event Progress</h2></div><a href="/my-registrations" class="btn btn-sm btn-outline">View Registrations</a></div>
-        <%- include('partials/dashboard-event-progress') %>
-      </section>
-
+      <%- include('partials/dashboard-active-journey') %>
       <%- include('partials/dashboard-summary') %>
 
-      <section class="runner-dashboard-zone" aria-labelledby="current-activity-title">
-        <div class="runner-dashboard-zone-heading"><div><span class="section-kicker">Latest updates</span><h2 id="current-activity-title">Recent Activity</h2></div><a href="/runner/submissions" class="btn btn-sm btn-outline">View All Activity</a></div>
-        <div class="runner-dashboard-main-grid">
-          <section class="card dashboard-recent-activity-card"><div class="card-content"><%- include('partials/dashboard-activity') %></div></section>
-          <%- include('partials/dashboard-upcoming') %>
-        </div>
+      <section class="dashboard-support-grid" aria-label="Recent runner updates">
+        <%- include('partials/dashboard-recent-activity') %>
+        <%- include('partials/dashboard-latest-achievement') %>
       </section>
 
-      <%- include('partials/dashboard-latest-achievement') %>
-
-      <section class="runner-dashboard-zone" aria-labelledby="discover-title">
-        <div class="runner-dashboard-zone-heading"><div><span class="section-kicker">Keep moving</span><h2 id="discover-title">Discover More Events</h2></div><a href="/events" class="btn btn-sm btn-outline">Browse All Events</a></div>
-        <% if (savedEvents?.length) { %><%- include('partials/dashboard-saved-events') %><% } else { %><div class="card dashboard-discover-empty"><div class="card-content empty-state"><p class="empty-message">Ready for another goal? Browse active events and choose your next distance.</p><a href="/events" class="btn btn-primary btn-sm">Browse Events</a></div></div><% } %>
+      <section class="runner-dashboard-zone dashboard-tools" aria-labelledby="runner-tools-title">
+        <div class="runner-dashboard-zone-heading"><div><span class="section-kicker">Your account</span><h2 id="runner-tools-title">Runner tools</h2></div></div>
+        <nav class="dashboard-secondary-links" aria-label="Runner tools">
+          <a href="/runner/submissions"><i data-lucide="file-check" aria-hidden="true"></i><span><strong>Submission History</strong><small><%= runnerDashboardPresentation.toolCounts.submissions %> recorded</small></span></a>
+          <a href="/runner/profile#badges"><i data-lucide="award" aria-hidden="true"></i><span><strong>Achievements</strong><small><%= runnerDashboardPresentation.toolCounts.achievements %> earned</small></span></a>
+          <a href="/runner/groups"><i data-lucide="users" aria-hidden="true"></i><span><strong>Running Groups</strong><small><%= runnerDashboardPresentation.toolCounts.groups %> joined</small></span></a>
+          <a href="/events"><i data-lucide="heart" aria-hidden="true"></i><span><strong>Saved &amp; New Events</strong><small><%= runnerDashboardPresentation.toolCounts.savedEvents %> saved</small></span></a>
+          <a href="/my-registrations"><i data-lucide="archive" aria-hidden="true"></i><span><strong>Registration History</strong><small><%= runnerDashboardPresentation.toolCounts.history %> historical</small></span></a>
+        </nav>
       </section>
-
-      <%- include('partials/dashboard-missed-submissions') %>
-
-      <nav class="dashboard-secondary-links" aria-label="More runner tools">
-        <a href="/runner/submissions"><i data-lucide="file-check" aria-hidden="true"></i><span><strong>Submission History</strong><small>Review all activity decisions</small></span></a>
-        <a href="/runner/profile#badges"><i data-lucide="award" aria-hidden="true"></i><span><strong>Badges &amp; Milestones</strong><small>See your full achievement collection</small></span></a>
-        <a href="/runner/groups"><i data-lucide="users" aria-hidden="true"></i><span><strong>Running Groups</strong><small>Manage your communities</small></span></a>
-      </nav>
     </div>
   </main>
-
   <%- include('../layouts/footer') %>
   <div class="modal-backdrop" id="logoutModal" hidden><div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="logoutModalTitle" aria-describedby="logoutModalDesc" tabindex="-1"><h3 id="logoutModalTitle">Log out?</h3><p id="logoutModalDesc">Are you sure you want to log out of your account?</p><div class="modal-actions"><button type="button" class="btn btn-outline" data-cancel-logout>Cancel</button><button type="button" class="btn btn-danger" data-confirm-logout>Yes, log out</button></div></div></div>
-  <script src="/js/main.js"></script>
-  <script src="/js/event-save.js"></script>
-  <script src="/js/runner-dashboard.js"></script>
-  <script>lucide.createIcons();</script>
+  <script src="/js/main.js"></script><script src="/js/event-save.js"></script><script src="/js/runner-dashboard.js"></script><script>lucide.createIcons();</script>
 </body>
 </html>

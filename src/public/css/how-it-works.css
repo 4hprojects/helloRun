@@ -390,7 +390,7 @@ html { scroll-behavior: smooth; }
   align-items: center;
   margin-top: 12px;
   padding: 12px 14px;
-  border-left: 3px solid var(--how-orange);
+  border: 1px solid var(--how-line);
   border-radius: 9px;
   background: var(--how-orange-soft);
 }

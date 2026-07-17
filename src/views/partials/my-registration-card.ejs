@@ -1,0 +1,152 @@
+<%
+  const registration = item.registration;
+  const card = item.card || {};
+  const submission = registration.submission || null;
+  const progress = card.progress || registration.accumulatedProgress || null;
+  const event = registration.eventId || null;
+  const isPaidEvent = String(event?.feeMode || 'free').toLowerCase() === 'paid';
+  const amountDue = Number(registration.paymentAmountDue || event?.feeAmount || 0);
+  const currency = registration.paymentCurrency || event?.feeCurrency || 'PHP';
+  const action = item.action || {};
+  const participant = registration.participant || {};
+%>
+<article class="my-reg-card my-reg-card-<%= item.stateTone %>" id="registration-<%= item.registrationId %>" tabindex="-1">
+  <div class="my-reg-card-main">
+    <a href="<%= item.eventHref || '/contact' %>" class="my-reg-event-image" aria-label="<%= item.eventHref ? 'View ' + item.eventTitle : 'Contact support about unavailable event' %>">
+      <img src="<%= item.imageUrl %>" alt="" loading="lazy" onerror="this.onerror=null;this.src='<%= item.fallbackImageUrl %>';">
+    </a>
+
+    <div class="my-reg-card-content">
+      <div class="my-reg-card-status-line">
+        <span class="my-reg-state my-reg-state-<%= item.stateTone %>"><%= item.stateLabel %></span>
+        <span class="my-reg-confirmation"><i data-lucide="hash" aria-hidden="true"></i><span>Confirmation</span> <strong><%= item.confirmationCode %></strong></span>
+      </div>
+      <h3><% if (item.eventHref) { %><a href="<%= item.eventHref %>"><%= item.eventTitle %></a><% } else { %><%= item.eventTitle %><% } %></h3>
+      <p class="my-reg-helper"><%= item.helperText %></p>
+
+      <dl class="my-reg-facts">
+        <div><dt><i data-lucide="flag" aria-hidden="true"></i>Category</dt><dd><%= item.selectedCategory %></dd></div>
+        <div><dt><i data-lucide="map-pin" aria-hidden="true"></i>Mode</dt><dd><%= item.modeLabel %></dd></div>
+        <div><dt><i data-lucide="calendar" aria-hidden="true"></i>Event date</dt><dd><%= item.eventDateLabel %></dd></div>
+        <div><dt><i data-lucide="clock-3" aria-hidden="true"></i>Submit by</dt><dd><%= item.submissionDeadlineLabel %></dd></div>
+      </dl>
+
+      <% if (progress && Number(progress.targetDistanceKm || 0) > 0) { %>
+        <% const progressPercent = Math.max(0, Number(progress.percent ?? (Number(progress.approvedDistanceKm || 0) / Number(progress.targetDistanceKm || 1) * 100))); %>
+        <% const progressBarPercent = Math.min(100, progressPercent); %>
+        <% const remainingDistance = Number(progress.remainingDistanceKm ?? Math.max(0, Number(progress.targetDistanceKm || 0) - Number(progress.approvedDistanceKm || 0))); %>
+        <section class="my-reg-progress" aria-label="Accumulated challenge progress">
+          <div class="my-reg-progress-heading"><strong><%= Number(progress.approvedDistanceKm || 0).toFixed(2) %> of <%= Number(progress.targetDistanceKm || 0).toFixed(2) %> km verified</strong><span><%= progressPercent.toFixed(1) %>%</span></div>
+          <div class="my-reg-progress-track" role="progressbar" aria-label="Verified distance progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= progressBarPercent.toFixed(1) %>" aria-valuetext="<%= progressPercent.toFixed(1) %>% complete; <%= Number(progress.approvedDistanceKm || 0).toFixed(2) %> of <%= Number(progress.targetDistanceKm || 0).toFixed(2) %> kilometers verified">
+            <span style="width: <%= progressBarPercent %>%"></span>
+          </div>
+          <div class="my-reg-progress-meta">
+            <span><strong><%= remainingDistance.toFixed(2) %> km</strong> remaining</span>
+            <span><strong><%= Number(progress.pendingDistanceKm || 0).toFixed(2) %> km</strong> pending</span>
+            <span><strong><%= Number(progress.approvedActivityCount || 0) %></strong> verified activities</span>
+            <% if (Number(progress.overGoalDistanceKm || 0) > 0) { %><span><strong><%= Number(progress.overGoalDistanceKm).toFixed(2) %> km</strong> over goal</span><% } %>
+            <% if (Number(progress.pendingDistanceKm || 0) > 0) { %><span><strong><%= Number(progress.potentialDistanceKm || 0).toFixed(2) %> / <%= Number(progress.targetDistanceKm || 0).toFixed(2) %> km</strong> potential total</span><% } %>
+          </div>
+        </section>
+      <% } %>
+    </div>
+
+    <aside class="my-reg-action-panel" aria-label="Registration status and next action">
+      <dl>
+        <div><dt>Payment</dt><dd class="my-reg-payment-<%= item.paymentStatus %>"><%= item.paymentStatusLabel %></dd></div>
+        <div><dt>Activity</dt><dd><%= item.activityStatusLabel %></dd></div>
+      </dl>
+      <% if (action.type === 'submit' || action.type === 'resubmit') { %>
+        <button type="button" class="btn btn-primary" data-open-run-proof-modal data-registration-id="<%= item.registrationId %>"><%= action.label %></button>
+      <% } else if (action.type === 'payment_disclosure' || action.type === 'details_disclosure') { %>
+        <a href="#<%= action.targetId %>" class="btn btn-primary" data-open-registration-details="<%= action.targetId %>"><%= action.label %></a>
+      <% } else { %>
+        <a href="<%= action.href || '/events' %>" class="btn <%= action.type === 'download_certificate' ? 'btn-primary' : 'btn-secondary' %>"<% if (action.type === 'download_certificate') { %> target="_blank" rel="noopener noreferrer"<% } %>><%= action.label || 'View Details' %></a>
+      <% } %>
+      <% if (item.eventHref && action.href !== item.eventHref) { %><a href="<%= item.eventHref %>" class="my-reg-secondary-link">View event details <i data-lucide="arrow-right" aria-hidden="true"></i></a><% } %>
+    </aside>
+  </div>
+
+  <div class="my-reg-disclosures">
+    <% if (item.paymentRequired) { %>
+      <details class="my-reg-disclosure my-reg-payment-disclosure" id="payment-<%= item.registrationId %>">
+        <summary><span><i data-lucide="receipt" aria-hidden="true"></i><strong>Payment and receipt</strong><small><%= item.paymentStatusLabel %><% if (amountDue > 0) { %> · <%= currency %> <%= amountDue.toFixed(2) %><% } %></small></span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+        <div class="my-reg-disclosure-content">
+          <% if (isPaidEvent) { %>
+            <div class="my-reg-record-grid">
+              <p><strong>Registration fee:</strong> <%= currency %> <%= amountDue.toFixed(2) %></p>
+              <% if (registration.pricingSnapshot?.optionDescription) { %><p><strong>Signup option:</strong> <%= registration.pricingSnapshot.optionDescription %></p><% } %>
+              <% if (registration.pricingSnapshot?.raceCategoryName) { %><p><strong>Race category:</strong> <%= registration.pricingSnapshot.raceCategoryName %></p><% } %>
+              <% if (registration.pricingSnapshot?.packageName) { %><p><strong>Registration package:</strong> <%= registration.pricingSnapshot.packageName %></p><% } %>
+              <% if (registration.pricingSnapshot?.pricingPeriodLabel) { %><p><strong>Pricing period:</strong> <%= registration.pricingSnapshot.pricingPeriodLabel %></p><% } %>
+              <% if (event?.paymentAccountName) { %><p><strong>Payee:</strong> <%= event.paymentAccountName %></p><% } %>
+            </div>
+            <% if (event?.paymentInstructions) { %><p><strong>Payment instructions:</strong> <%= event.paymentInstructions %></p><% } %>
+            <p class="my-reg-guidance"><i data-lucide="info" aria-hidden="true"></i>Payment receipts and activity proof are reviewed separately. Upload the payment transaction here; submit running evidence through the activity action.</p>
+          <% } else { %>
+            <p>This registration does not require payment. Any existing payment review record remains available here.</p>
+          <% } %>
+          <% if (registration.paymentProof?.uploadedAt) { %><p><strong>Payment receipt submitted:</strong> <%= new Date(registration.paymentProof.uploadedAt).toLocaleString('en-US') %></p><% } %>
+          <% if (registration.paymentReviewedAt) { %><p><strong>Payment reviewed:</strong> <%= new Date(registration.paymentReviewedAt).toLocaleString('en-US') %></p><% } %>
+          <% if (registration.paymentRejectionReason) { %>
+            <div class="my-reg-rejection" role="alert"><strong>Payment changes needed</strong><p><%= registration.paymentRejectionReason %></p></div>
+          <% } %>
+          <% if (registration.paymentReviewNotes) { %><p><strong>Payment review notes:</strong> <%= registration.paymentReviewNotes %></p><% } %>
+
+          <% if (registration.paymentStatus === 'unpaid' || registration.paymentStatus === 'proof_rejected') { %>
+            <form method="POST" action="/my-registrations/<%= registration._id %>/payment-proof" enctype="multipart/form-data" class="inline-form" data-registration-form>
+              <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+              <label for="paymentProofFile-<%= registration._id %>">Payment receipt <span>JPG, PNG, or PDF up to 5MB</span></label>
+              <input type="file" id="paymentProofFile-<%= registration._id %>" name="paymentProofFile" accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf" required>
+              <p class="form-hint">Upload a valid receipt related to this registration. Authorized reviewers may inspect the visible transaction reference, amount, date, recipient, and payment details.</p>
+              <button type="submit" class="btn btn-primary" data-submit-label="Submit Payment Receipt">Submit Payment Receipt</button>
+              <p class="my-reg-form-status" aria-live="polite"></p>
+            </form>
+          <% } %>
+        </div>
+      </details>
+    <% } %>
+
+    <% if (submission || progress) { %>
+      <details class="my-reg-disclosure" id="result-<%= item.registrationId %>">
+        <summary><span><i data-lucide="file-check" aria-hidden="true"></i><strong>Activity and result record</strong><small><%= item.stateLabel %></small></span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+        <div class="my-reg-disclosure-content">
+          <% if (progress) { %>
+            <div class="my-reg-record-grid">
+              <p><strong>Verified activities:</strong> <%= Number(progress.approvedActivityCount || 0) %></p>
+              <p><strong>Pending activities:</strong> <%= Number(progress.pendingActivityCount || 0) %></p>
+              <p><strong>Rejected activities:</strong> <%= Number(progress.rejectedActivityCount || 0) %></p>
+            </div>
+            <% if (progress.certificateActivityId) { %><p><a href="/my-submissions/<%= progress.certificateActivityId %>/certificate" target="_blank" rel="noopener noreferrer" class="my-reg-record-link">Download certificate <i data-lucide="download" aria-hidden="true"></i></a></p><% } %>
+          <% } %>
+          <% if (submission) { %>
+            <div class="my-reg-record-grid">
+              <p><strong>Distance:</strong> <%= Number(submission.distanceKm || 0).toFixed(2) %> km</p>
+              <p><strong>Time:</strong> <%= new Date(Number(submission.elapsedMs || 0)).toISOString().slice(11, 19) %></p>
+              <p><strong>Run date:</strong> <%= submission.runDate ? new Date(submission.runDate).toLocaleDateString('en-US') : 'N/A' %></p>
+              <p><strong>Run location:</strong> <%= submission.runLocation || 'N/A' %></p>
+              <p><strong>Proof type:</strong> <%= String(submission.proofType || 'manual').toUpperCase() %></p>
+            </div>
+            <% if (submission.proof?.url) { %><p><a href="<%= submission.proof.url %>" target="_blank" rel="noopener noreferrer" class="my-reg-record-link">View Run Result Evidence</a></p><% } %>
+            <% if (submission.status === 'approved' && submission.certificate?.url) { %><p><a href="/my-submissions/<%= submission._id %>/certificate" target="_blank" rel="noopener noreferrer" class="my-reg-record-link">Download certificate <i data-lucide="download" aria-hidden="true"></i></a></p><% } %>
+            <% if (submission.rejectionReason) { %><div class="my-reg-rejection" role="alert"><strong>Activity changes needed</strong><p><%= submission.rejectionReason %></p></div><% } %>
+            <% if (submission.reviewNotes) { %><p><strong>Review notes:</strong> <%= submission.reviewNotes %></p><% } %>
+          <% } %>
+        </div>
+      </details>
+    <% } %>
+
+    <details class="my-reg-disclosure" id="details-<%= item.registrationId %>">
+      <summary><span><i data-lucide="user-round" aria-hidden="true"></i><strong>Registration details</strong><small>Participant snapshot and registration record</small></span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+      <div class="my-reg-disclosure-content">
+        <div class="my-reg-record-grid">
+          <p><strong>Registered:</strong> <%= item.registeredAtLabel %></p>
+          <p><strong>Age:</strong> <%= ageLabel(participant.dateOfBirth) %></p>
+          <p><strong>Gender:</strong> <%= genderLabel(participant.gender) %></p>
+          <p><strong>Running group:</strong> <%= participant.runningGroup || 'N/A' %></p>
+          <p><strong>Emergency contact:</strong> <%= participant.emergencyContactName || 'N/A' %></p>
+        </div>
+      </div>
+    </details>
+  </div>
+</article>

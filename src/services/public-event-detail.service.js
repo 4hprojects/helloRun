@@ -18,22 +18,23 @@ async function getPublicEventRunnerState({ event, userId, now = new Date() }) {
     status: { $nin: ['cancelled', 'refunded'] }
   })
     .sort({ registeredAt: -1, _id: -1 })
-    .select('status paymentStatus paymentRejectionReason raceDistance participationMode pricingSnapshot confirmationCode registeredAt')
+    .select('status paymentStatus paymentRejectionReason raceDistance participationMode pricingSnapshot confirmationCode registeredAt accumulatedCertificateFinalization')
     .lean();
 
   if (!registration) return null;
 
-  const activities = event.virtualCompletionMode === 'accumulated_distance'
-    ? await AccumulatedActivitySubmission.find({ registrationId: registration._id })
+  const [activities, eventPendingActivityCount] = await Promise.all([
+    AccumulatedActivitySubmission.find({ registrationId: registration._id })
       .sort({ submittedAt: -1, createdAt: -1, _id: -1 })
-      .select('status distanceKm submittedAt reviewedAt certificate.url certificate.status')
-      .lean()
-    : [];
+      .select('status distanceKm submittedAt reviewedAt certificate.url certificate.status certificate.revokedAt certificate.finalizedAt')
+      .lean(),
+    AccumulatedActivitySubmission.countDocuments({ eventId: event._id, status: 'submitted' })
+  ]);
 
-  return buildPublicEventRunnerState({ event, registration, activities, now });
+  return buildPublicEventRunnerState({ event, registration, activities, eventPendingActivityCount, now });
 }
 
-function buildPublicEventRunnerState({ event = {}, registration = {}, activities = [], now = new Date() }) {
+function buildPublicEventRunnerState({ event = {}, registration = {}, activities = [], eventPendingActivityCount = 0, now = new Date() }) {
   const isAccumulated = event.virtualCompletionMode === 'accumulated_distance';
   if (!isAccumulated) return null;
   const targetDistanceKm = isAccumulated
@@ -49,9 +50,7 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
   const paymentReady = String(event.feeMode || 'free') !== 'paid' || String(registration.paymentStatus || '') === 'paid';
   const eventStartAt = parseDate(event.virtualWindow?.startAt || event.eventStartAt);
   const beforeActivityWindow = Boolean(eventStartAt && eventStartAt > now);
-  const progressPercentage = progress?.targetDistanceKm > 0
-    ? roundOne((Number(progress.approvedDistanceKm || 0) / progress.targetDistanceKm) * 100)
-    : null;
+  const progressPercentage = progress?.targetDistanceKm > 0 ? roundOne(progress.progressPercent) : null;
   const remainingDistanceKm = progress?.targetDistanceKm > 0
     ? Math.max(0, roundTwo(progress.targetDistanceKm - Number(progress.approvedDistanceKm || 0)))
     : null;
@@ -77,6 +76,13 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
     approvedDistanceLabel: formatDistance(progress?.approvedDistanceKm || 0),
     pendingDistanceKm: Number(progress?.pendingDistanceKm || 0),
     pendingDistanceLabel: formatDistance(progress?.pendingDistanceKm || 0),
+    potentialDistanceKm: Number(progress?.potentialDistanceKm || 0),
+    potentialDistanceLabel: formatDistance(progress?.potentialDistanceKm || 0),
+    potentialProgressLabel: progress?.targetDistanceKm > 0
+      ? `${formatDistance(progress?.potentialDistanceKm || 0)} / ${formatDistance(progress.targetDistanceKm)}`
+      : '',
+    overGoalDistanceKm: Number(progress?.overGoalDistanceKm || 0),
+    overGoalDistanceLabel: formatDistance(progress?.overGoalDistanceKm || 0),
     remainingDistanceKm,
     remainingDistanceLabel: remainingDistanceKm === null ? 'Goal not listed' : formatDistance(remainingDistanceKm),
     progressPercentage,
@@ -86,6 +92,7 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
     pendingActivityCount: Number(progress?.pendingActivityCount || 0),
     totalActivityCount: Number(progress?.totalActivityCount || 0),
     completed: Boolean(progress?.completed),
+    certificateState: String(registration.accumulatedCertificateFinalization?.state || ''),
     state: 'registered',
     stateLabel: 'Registration confirmed',
     helperText: 'Your registration is ready.',
@@ -107,12 +114,40 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
   }
 
   if (progress?.completed) {
-    const certificateActivity = activities.find((activity) => activity.certificate?.url);
+    const certificateActivity = activities.find((activity) =>
+      activity.certificate?.url &&
+      !['revoked', 'failed', 'pending'].includes(activity.certificate?.status) &&
+      !activity.certificate?.revokedAt
+    );
+    if (!submissionTiming.closed) {
+      return {
+        ...base,
+        state: 'goal_reached',
+        stateLabel: progress.overGoalDistanceKm > 0 ? 'Goal reached · extra distance verified' : 'Goal reached',
+        helperText: progress.pendingActivityCount > 0
+          ? 'Your badge is earned. Pending distance remains separate until approval, and you can keep adding eligible activities before the deadline.'
+          : 'Your badge is earned. You can keep adding eligible activities before the deadline; your certificate will use the final verified total.',
+        primaryAction: { type: 'submit', label: 'Add activity', registrationId: String(registration._id || '') },
+        secondaryAction: { type: 'link', label: 'View achievements', href: '/runner/achievements' }
+      };
+    }
+    if (eventPendingActivityCount > 0 || registration.accumulatedCertificateFinalization?.state === 'waiting_reviews') {
+      return {
+        ...base,
+        state: 'final_reviews',
+        stateLabel: 'Final reviews in progress',
+        helperText: 'The submission deadline has passed. Certificates will be finalized after every pending activity for this event is reviewed.',
+        primaryAction: { type: 'link', label: 'View submissions', href: '/runner/submissions' },
+        secondaryAction: { type: 'link', label: 'View achievements', href: '/runner/achievements' }
+      };
+    }
     return {
       ...base,
       state: 'completed',
-      stateLabel: 'Goal completed',
-      helperText: 'Your verified activities reached this challenge goal.',
+      stateLabel: certificateActivity ? 'Certificate ready' : 'Certificate finalizing',
+      helperText: certificateActivity
+        ? 'Your final verified total is recorded and your certificate is ready.'
+        : 'Final reviews are complete. Your certificate is being prepared.',
       primaryAction: certificateActivity
         ? { type: 'link', label: 'View achievement', href: `/runner/submissions/${String(certificateActivity._id)}` }
         : { type: 'link', label: 'View standings', href: `/events/${event.slug}/leaderboard` },
@@ -121,11 +156,21 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
   }
 
   if (submissionTiming.closed) {
+    if (progress?.pendingActivityCount > 0) {
+      return {
+        ...base,
+        state: 'pending',
+        stateLabel: 'Awaiting final review',
+        helperText: 'The challenge and submission windows have ended. Pending activities remain under organizer review.',
+        primaryAction: { type: 'link', label: 'View submissions', href: '/runner/submissions' },
+        secondaryAction: null
+      };
+    }
     return {
       ...base,
       state: 'submission_closed',
-      stateLabel: 'Submission closed',
-      helperText: 'Your verified challenge progress remains available as a record.',
+      stateLabel: 'Challenge ended',
+      helperText: 'The activity and final submission windows have ended. Your verified progress remains available as a record.',
       primaryAction: null,
       secondaryAction: { type: 'link', label: 'View submissions', href: '/runner/submissions' }
     };
@@ -157,10 +202,27 @@ function buildPublicEventRunnerState({ event = {}, registration = {}, activities
     return {
       ...base,
       state: 'pending',
-      stateLabel: 'Activity under review',
-      helperText: 'Pending distance is shown separately and does not count toward verified progress yet.',
+      stateLabel: challengeTiming.closed ? 'Awaiting final review' : 'Activity under review',
+      helperText: challengeTiming.closed
+        ? 'The activity window has ended. Pending activities are awaiting organizer review.'
+        : 'Pending distance is shown separately and does not count toward verified progress yet.',
       primaryAction: { type: 'link', label: 'View submissions', href: '/runner/submissions' },
-      secondaryAction: { type: 'submit', label: 'Add another activity', registrationId: String(registration._id || '') }
+      secondaryAction: challengeTiming.closed
+        ? null
+        : { type: 'submit', label: 'Add another activity', registrationId: String(registration._id || '') }
+    };
+  }
+
+  if (challengeTiming.closed) {
+    return {
+      ...base,
+      state: 'final_submission_open',
+      stateLabel: 'Final submissions open',
+      helperText: 'The activity window has ended. Submit eligible activity proof before the final deadline.',
+      primaryAction: { type: 'submit', label: progress?.totalActivityCount > 0 ? 'Add final activity' : 'Submit activity', registrationId: String(registration._id || '') },
+      secondaryAction: progress?.totalActivityCount > 0
+        ? { type: 'link', label: 'View submissions', href: '/runner/submissions' }
+        : { type: 'link', label: 'Registration details', href: '/my-registrations' }
     };
   }
 

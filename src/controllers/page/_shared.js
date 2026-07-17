@@ -23,7 +23,7 @@ const communicationService = require('../../services/communication.service');
 
 const { registerBlogView } = require('../../services/blog-view.service');
 
-const { getRunnerRegistrations } = require('../../services/runner-data.service');
+const { getRunnerRegistrations, buildMyRegistrationsPresentation } = require('../../services/runner-data.service');
 
 const { listPolicyDocuments } = require('../../services/policy-registry.service');
 
@@ -184,6 +184,7 @@ module.exports = {
   communicationService,
   registerBlogView,
   getRunnerRegistrations,
+  buildMyRegistrationsPresentation,
   listPolicyDocuments,
   uploadService,
   getCountries,

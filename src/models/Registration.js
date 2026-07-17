@@ -176,6 +176,23 @@ const registrationSchema = new mongoose.Schema(
     registeredAt: {
       type: Date,
       default: Date.now
+    },
+    accumulatedCertificateFinalization: {
+      state: {
+        type: String,
+        enum: ['', 'waiting_deadline', 'waiting_reviews', 'generating', 'generated', 'failed'],
+        default: ''
+      },
+      activityId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'AccumulatedActivitySubmission',
+        default: null
+      },
+      certificateNumber: { type: String, trim: true, default: '' },
+      lockedAt: { type: Date, default: null },
+      finalizedAt: { type: Date, default: null },
+      lastAttemptAt: { type: Date, default: null },
+      error: { type: String, trim: true, default: '', maxlength: 1000 }
     }
   },
   {
@@ -188,6 +205,7 @@ registrationSchema.index({ userId: 1, registeredAt: -1 });
 registrationSchema.index({ eventId: 1, registeredAt: -1 });
 registrationSchema.index({ eventId: 1, paymentStatus: 1, registeredAt: -1 });
 registrationSchema.index({ eventId: 1, participationMode: 1 });
+registrationSchema.index({ eventId: 1, 'accumulatedCertificateFinalization.state': 1 });
 applySmokeTestSchema(registrationSchema);
 
 function shouldSyncSupabase() {

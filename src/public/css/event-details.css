@@ -1143,6 +1143,127 @@ textarea.contact-organiser-input {
   margin: 0;
 }
 
+.contact-organiser-status {
+  margin: 0;
+  color: #475569;
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.contact-organiser-status:empty {
+  display: none;
+}
+
+.contact-organiser-status.is-cooldown {
+  padding: 9px 10px;
+  border: 1px solid #fed7aa;
+  border-radius: 7px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 700;
+}
+
+.event-contact-confirm-dialog {
+  width: min(600px, calc(100vw - 32px));
+  max-height: min(760px, calc(100vh - 32px));
+  padding: 0;
+  overflow: auto;
+  border: 0;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #172033;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+}
+
+.event-contact-confirm-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.66);
+}
+
+.event-contact-confirm-dialog-inner {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+}
+
+.event-contact-confirm-heading {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.event-contact-confirm-heading p,
+.event-contact-confirm-heading h3,
+.event-contact-confirm-dialog-inner > p {
+  margin: 0;
+}
+
+.event-contact-confirm-heading h3 {
+  margin-top: 2px;
+  color: #0f172a;
+  font-size: 1.25rem;
+}
+
+.event-contact-confirm-dialog-inner > p {
+  color: #56657a;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.event-contact-confirm-preview {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid #dce5ef;
+  border-radius: 9px;
+  background: #dce5ef;
+}
+
+.event-contact-confirm-preview > div {
+  min-width: 0;
+  padding: 11px 12px;
+  background: #f8fafc;
+}
+
+.event-contact-confirm-preview dt {
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.event-contact-confirm-preview dd {
+  margin: 4px 0 0;
+  color: #1e293b;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.event-contact-confirm-preview .event-contact-confirm-message {
+  grid-column: 1 / -1;
+  background: #ffffff;
+}
+
+.event-contact-confirm-message dd {
+  max-height: 190px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+.event-contact-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.event-contact-confirm-actions .btn {
+  min-height: 44px;
+}
+
 .btn-block {
   width: 100%;
   justify-content: center;
@@ -1799,6 +1920,17 @@ textarea.contact-organiser-input {
     gap: 12px;
   }
 
+  .event-contact-confirm-dialog {
+    width: min(100% - 20px, 600px);
+    max-height: calc(100vh - 20px);
+    border-radius: 11px;
+  }
+
+  .event-contact-confirm-dialog-inner {
+    gap: 14px;
+    padding: 16px;
+  }
+
   .contact-organiser-form {
     gap: 10px;
   }
@@ -2415,8 +2547,27 @@ textarea.contact-organiser-input {
 }
 
 .event-runner-progress-card {
+  padding: 16px 18px;
   border-color: #b9d8c7;
   background: linear-gradient(135deg, #ffffff 0%, #f3fbf6 100%);
+}
+
+.event-runner-progress-card .event-runner-progress-heading {
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.event-runner-progress-card .event-runner-progress-heading h2 {
+  margin: 2px 0 3px;
+  font-size: clamp(1.22rem, 2vw, 1.55rem);
+  line-height: 1.2;
+}
+
+.event-runner-progress-card .event-runner-progress-heading > div > p:last-child {
+  max-width: 760px;
+  font-size: 0.84rem;
+  line-height: 1.4;
 }
 
 .event-runner-state-completed {
@@ -2437,22 +2588,30 @@ textarea.contact-organiser-input {
 
 .event-runner-progress-summary {
   display: grid;
-  grid-template-columns: 160px minmax(180px, 1fr);
-  gap: 18px 24px;
+  grid-template-columns: minmax(175px, 0.34fr) minmax(220px, 1fr);
+  gap: 14px 20px;
   align-items: center;
 }
 
-.event-runner-progress-total span,
+.event-runner-progress-total > span,
 .event-runner-progress-total small {
   display: block;
   color: #64748b;
 }
 
+.event-runner-progress-total p {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 2px 0 0;
+}
+
 .event-runner-progress-total strong {
-  display: block;
-  margin: 3px 0;
+  display: inline;
+  margin: 0;
   color: #0f172a;
-  font-size: 1.8rem;
+  font-size: 1.55rem;
+  line-height: 1.1;
 }
 
 .event-runner-progress-track-wrap {
@@ -2460,13 +2619,27 @@ textarea.contact-organiser-input {
   gap: 7px;
 }
 
-.event-runner-progress-track-wrap > strong {
+.event-runner-progress-labels {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.event-runner-progress-labels > strong {
   color: #334155;
   font-size: 0.86rem;
 }
 
+.event-runner-progress-labels > span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: right;
+}
+
 .event-runner-progress-track {
-  height: 12px;
+  height: 9px;
   overflow: hidden;
   border-radius: 999px;
   background: #dce7e1;
@@ -2480,9 +2653,8 @@ textarea.contact-organiser-input {
 }
 
 .event-runner-progress-facts {
-  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
   margin: 0;
   overflow: hidden;
@@ -2493,7 +2665,7 @@ textarea.contact-organiser-input {
 
 .event-runner-progress-facts div {
   min-width: 0;
-  padding: 11px;
+  padding: 9px 10px;
   background: rgba(255, 255, 255, 0.94);
 }
 
@@ -2514,11 +2686,74 @@ textarea.contact-organiser-input {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .event-runner-actions .btn {
   min-height: 44px;
+}
+
+.event-runner-progress-details {
+  margin-top: 12px;
+  border-top: 1px solid #dce8e1;
+}
+
+.event-runner-progress-details summary {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: #334155;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.event-runner-progress-details summary span {
+  flex: 0 0 auto;
+}
+
+.event-runner-progress-details summary small {
+  min-width: 0;
+  margin-left: auto;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.event-runner-progress-details summary::marker {
+  color: #64748b;
+}
+
+.event-runner-progress-details-body {
+  display: grid;
+  gap: 10px;
+  padding-bottom: 2px;
+}
+
+.event-runner-secondary-action {
+  min-height: 44px;
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: #9a3412;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.event-runner-secondary-action:focus-visible {
+  border-radius: 4px;
+  outline: 3px solid rgba(234, 88, 12, 0.25);
+  outline-offset: 2px;
 }
 
 .event-organizer-details-summary {
@@ -2669,14 +2904,6 @@ textarea.contact-organiser-input {
   justify-content: center;
 }
 
-@media (min-width: 981px) {
-  .event-runner-progress-card {
-    position: sticky;
-    top: 84px;
-    z-index: 4;
-  }
-}
-
 @media (max-width: 980px) {
   .event-challenge-decision {
     grid-column: auto;
@@ -2763,7 +2990,7 @@ textarea.contact-organiser-input {
 
   .event-runner-progress-summary {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
 
   .event-runner-progress-facts {
@@ -2774,12 +3001,49 @@ textarea.contact-organiser-input {
     display: none;
   }
 
+  .event-runner-progress-card {
+    padding: 14px;
+  }
+
   .event-organizer-details-summary .event-section-icon {
     display: grid;
   }
 }
 
 @media (max-width: 420px) {
+  .event-contact-confirm-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .event-contact-confirm-preview .event-contact-confirm-message {
+    grid-column: auto;
+  }
+
+  .event-contact-confirm-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .event-contact-confirm-actions .btn-primary {
+    order: -1;
+  }
+
+  .event-runner-progress-labels,
+  .event-runner-progress-details summary {
+    align-items: flex-start;
+  }
+
+  .event-runner-progress-details summary {
+    display: grid;
+    gap: 2px;
+    padding: 7px 0;
+  }
+
+  .event-runner-progress-details summary small {
+    margin-left: 0;
+    text-align: left;
+  }
+
   .event-runner-progress-facts {
     grid-template-columns: 1fr;
   }

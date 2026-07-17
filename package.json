@@ -8,6 +8,7 @@
     "dev": "nodemon src/server.js",
     "setup": "node src/scripts/setup-uploads.js",
     "backfill:event-reference-codes": "node src/scripts/backfill-event-reference-codes.js",
+    "certificates:reconcile-accumulated": "node src/scripts/reconcile-accumulated-certificates.js",
     "mark-test-events": "node src/scripts/mark-test-events.js",
     "seed:policies": "node src/scripts/seed-policies.js",
     "adsense:blocker-cleanup": "node src/scripts/adsense-blocker-cleanup.js",

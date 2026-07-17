@@ -86,40 +86,6 @@
   flex-shrink: 0;
 }
 
-/* Tablet (≤759px): smaller, remove uppercase + letter-spacing bloat */
-@media (max-width: 759px) {
-  .run-proof-header-actions #runProofSubmitBtn {
-    width: 75px;
-    min-width: 75px;
-    min-height: 75px;
-    padding: 0.2rem;
-    font-family: var(--body-font);
-    font-size: 0.74rem;
-    font-weight: 600;
-    line-height: 1.15;
-    letter-spacing: 0;
-    text-transform: none;
-    border-radius: 0.7rem;
-    max-width: 75px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: normal;
-    text-align: center;
-  }
-}
-
-/* Small mobile (≤560px): tightest */
-@media (max-width: 560px) {
-  .run-proof-header-actions #runProofSubmitBtn {
-    width: 75px;
-    min-width: 75px;
-    min-height: 75px;
-    padding: 0.18rem;
-    font-size: 0.7rem;
-    max-width: 75px;
-  }
-}
-
 .run-proof-modal-header h2 {
   margin: 0;
   font-size: 1.06rem;
@@ -1022,11 +988,6 @@
     white-space: normal;
   }
 
-  .run-proof-header-actions .btn {
-    font-size: 0.83rem;
-    padding: 0.48rem 0.62rem;
-  }
-
   .run-proof-duration-grid {
     gap: 0.42rem;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1105,84 +1066,83 @@
   display: none;
 }
 
-/* Mobile + tablet (< 760px): icon-only with tooltip on hover/focus */
+/* Mobile + tablet (< 760px): copy and close share the first row; the changing
+   primary action receives a full-width row so long labels never collide. */
 @media (max-width: 759px) {
-  .run-proof-header-actions .btn {
-    width: 2.5rem;
-    height: 2.5rem;
-    padding: 0;
-    justify-content: center;
-    border-radius: 50%;
-    flex-shrink: 0;
-    position: relative;
+  .run-proof-header-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 2.75rem;
+    align-items: start;
+    gap: 0.65rem;
+  }
+
+  .run-proof-header-top > div:first-child {
+    min-width: 0;
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .run-proof-modal-header h2,
+  .run-proof-modal-desc,
+  .run-proof-step-indicator {
+    overflow-wrap: anywhere;
+  }
+
+  .run-proof-header-actions {
+    display: contents;
   }
 
   .run-proof-header-actions .run-proof-back-btn {
-    width: 2.2rem !important;
-    height: 2.2rem !important;
-    inline-size: 2.2rem !important;
-    block-size: 2.2rem !important;
-    min-width: 2.2rem !important;
-    min-height: 2.2rem !important;
-    max-width: 2.2rem !important;
-    max-height: 2.2rem !important;
+    grid-column: 2;
+    grid-row: 1;
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+    inline-size: 2.75rem !important;
+    block-size: 2.75rem !important;
+    min-width: 2.75rem !important;
+    min-height: 2.75rem !important;
+    max-width: 2.75rem !important;
+    max-height: 2.75rem !important;
     padding: 0 !important;
     border-radius: 50% !important;
+    align-self: start;
+    justify-self: end;
   }
 
-  .run-proof-header-actions .run-proof-btn-text {
-    display: none;
+  .run-proof-header-actions #runProofSubmitBtn {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: auto;
+    min-height: 2.75rem;
+    max-height: none;
+    padding: 0.65rem 0.9rem;
+    border-radius: 0.7rem;
+    font-family: var(--body-font);
+    font-size: 0.82rem;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: 0;
+    text-align: center;
+    text-overflow: clip;
+    text-transform: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
+  .run-proof-header-actions #runProofSubmitBtn[hidden] {
+    display: none !important;
+  }
+
+  .run-proof-header-actions .btn[data-tooltip]::before,
   .run-proof-header-actions .btn[data-tooltip]::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    top: calc(100% + 8px);
-    left: 50%;
-    transform: translateX(-50%) translateY(3px);
-    min-width: max-content;
-    max-width: 12rem;
-    padding: 0.38rem 0.62rem;
-    border-radius: 8px;
-    background: rgba(15, 23, 42, 0.92);
-    color: #fff;
-    font-size: 0.74rem;
-    font-weight: 500;
-    line-height: 1.3;
-    white-space: nowrap;
-    pointer-events: none;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s ease;
-    z-index: 200;
-  }
-
-  .run-proof-header-actions .btn[data-tooltip]::before {
-    content: '';
-    position: absolute;
-    top: calc(100% + 3px);
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-bottom-color: rgba(15, 23, 42, 0.92);
-    pointer-events: none;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.16s ease, visibility 0.16s ease;
-    z-index: 200;
-  }
-
-  .run-proof-header-actions .btn[data-tooltip]:hover::after,
-  .run-proof-header-actions .btn[data-tooltip]:focus-visible::after,
-  .run-proof-header-actions .btn[data-tooltip]:hover::before,
-  .run-proof-header-actions .btn[data-tooltip]:focus-visible::before {
-    opacity: 1;
-    visibility: visible;
-  }
-
-  .run-proof-header-actions .btn[data-tooltip]:hover::after,
-  .run-proof-header-actions .btn[data-tooltip]:focus-visible::after {
-    transform: translateX(-50%) translateY(0);
+    display: none;
   }
 }
 
@@ -1344,9 +1304,9 @@
   line-height: 1.5;
   margin: 0 0 1rem;
   padding: 0.55rem 0.8rem;
+  border: 1px solid #dbe3ea;
+  border-radius: 6px;
   background: #f0f9ff;
-  border-left: 3px solid #38bdf8;
-  border-radius: 0 6px 6px 0;
 }
 
 .run-proof-submit-review-actions {

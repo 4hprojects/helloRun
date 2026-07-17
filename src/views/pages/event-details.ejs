@@ -2,8 +2,22 @@
   const details = publicEvent || {};
   const isPreviewMode = Boolean(typeof previewMode !== 'undefined' && previewMode);
   const runnerState = typeof runnerEventState !== 'undefined' ? runnerEventState : null;
+  const eventContactCooldown = typeof contactCooldown !== 'undefined' ? contactCooldown : null;
+  const runnerProgressDetailSignals = runnerState
+    ? [
+        runnerState.pendingActivityCount > 0
+          ? `${runnerState.pendingActivityCount} pending activit${runnerState.pendingActivityCount === 1 ? 'y' : 'ies'}`
+          : '',
+        ['urgent', 'warning', 'approaching'].includes(runnerState.submissionTiming?.tone)
+          ? runnerState.submissionTiming.label
+          : ''
+      ].filter(Boolean)
+    : [];
+  const runnerCardPrimaryAction = runnerState
+    ? (runnerState.primaryAction || runnerState.secondaryAction)
+    : null;
   const pagePrimaryAction = runnerState
-    ? runnerState.primaryAction
+    ? runnerCardPrimaryAction
     : (details.primaryCta && !details.primaryCta.disabled ? { ...details.primaryCta, type: 'link' } : null);
   const showMobileStickyCta = Boolean(!isPreviewMode && pagePrimaryAction);
   const hasEventShopSidebar = Boolean(!isPreviewMode && typeof eventShop !== 'undefined' && eventShop && eventShop.count > 0);
@@ -182,7 +196,7 @@
           <% if (runnerState) { %>
             <div class="event-runner-progress-heading">
               <div>
-                <p class="event-section-kicker">Your July quest</p>
+                <p class="event-section-kicker">Your challenge</p>
                 <h2 id="eventGoalsTitle"><%= runnerState.selectedQuest %></h2>
                 <p><%= runnerState.helperText %></p>
               </div>
@@ -192,10 +206,13 @@
             <div class="event-runner-progress-summary">
               <div class="event-runner-progress-total">
                 <span>Verified distance</span>
-                <strong><%= runnerState.approvedDistanceLabel %></strong>
-                <small>of <%= runnerState.targetDistanceLabel %></small>
+                <p><strong><%= runnerState.approvedDistanceLabel %></strong><small>of <%= runnerState.targetDistanceLabel %></small></p>
               </div>
               <div class="event-runner-progress-track-wrap">
+                <div class="event-runner-progress-labels">
+                  <strong><%= runnerState.progressLabel %></strong>
+                  <span><%= runnerState.overGoalDistanceKm > 0 ? `${runnerState.overGoalDistanceLabel} over goal` : runnerState.completed ? 'Goal reached' : `${runnerState.remainingDistanceLabel} remaining` %></span>
+                </div>
                 <div
                   class="event-runner-progress-track"
                   role="progressbar"
@@ -207,34 +224,58 @@
                 >
                   <span style="width: <%= runnerState.progressBarPercentage %>%"></span>
                 </div>
-                <strong><%= runnerState.progressLabel %></strong>
               </div>
-              <dl class="event-runner-progress-facts">
-                <div><dt>Remaining</dt><dd><%= runnerState.completed ? 'Goal completed' : runnerState.remainingDistanceLabel %></dd></div>
-                <div><dt>Verified activities</dt><dd><%= runnerState.approvedActivityCount %></dd></div>
-                <div><dt>Pending</dt><dd><%= runnerState.pendingDistanceLabel %> · <%= runnerState.pendingActivityCount %> activit<%= runnerState.pendingActivityCount === 1 ? 'y' : 'ies' %></dd></div>
-                <div><dt>Submit by</dt><dd><%= runnerState.submissionTiming?.label || 'Deadline not listed' %></dd></div>
-              </dl>
             </div>
 
-            <% if (runnerState.primaryAction || runnerState.secondaryAction) { %>
+            <% if (runnerCardPrimaryAction) { %>
               <div class="event-runner-actions">
-                <% [runnerState.primaryAction, runnerState.secondaryAction].filter(Boolean).forEach((action, actionIndex) => { %>
+                <% [runnerCardPrimaryAction].forEach((action) => { %>
                   <% if (action.type === 'submit' || action.type === 'resubmit') { %>
                     <button
                       type="button"
-                      class="btn <%= actionIndex === 0 ? 'btn-primary' : 'btn-outline' %>"
+                      class="btn btn-primary"
                       data-open-run-proof-modal
                       data-run-proof-surface="event-detail"
                       data-run-proof-mode="<%= action.type %>"
                       data-run-proof-registration-id="<%= action.registrationId %>"
                     ><%= action.label %></button>
                   <% } else { %>
-                    <a href="<%= action.href %>" class="btn <%= actionIndex === 0 ? 'btn-primary' : 'btn-outline' %>"><%= action.label %></a>
+                    <a href="<%= action.href %>" class="btn btn-primary"><%= action.label %></a>
                   <% } %>
                 <% }) %>
               </div>
             <% } %>
+
+            <details class="event-runner-progress-details">
+              <summary>
+                <span>Activity and deadline details</span>
+                <small><%= runnerProgressDetailSignals.join(' · ') || 'Verified activities, pending progress, and timing' %></small>
+              </summary>
+              <div class="event-runner-progress-details-body">
+                <dl class="event-runner-progress-facts">
+                  <div><dt>Verified activities</dt><dd><%= runnerState.approvedActivityCount %></dd></div>
+                  <div><dt>Pending</dt><dd><%= runnerState.pendingDistanceLabel %> · <%= runnerState.pendingActivityCount %> activit<%= runnerState.pendingActivityCount === 1 ? 'y' : 'ies' %></dd></div>
+                  <% if (runnerState.pendingActivityCount > 0) { %><div><dt>Potential total</dt><dd><%= runnerState.potentialProgressLabel %></dd></div><% } %>
+                  <% if (runnerState.overGoalDistanceKm > 0) { %><div><dt>Over goal</dt><dd><%= runnerState.overGoalDistanceLabel %></dd></div><% } %>
+                  <div><dt>Submit by</dt><dd><%= runnerState.submissionTiming?.label || 'Deadline not listed' %></dd></div>
+                </dl>
+                <% if (runnerState.primaryAction && runnerState.secondaryAction) { %>
+                  <% const action = runnerState.secondaryAction; %>
+                  <% if (action.type === 'submit' || action.type === 'resubmit') { %>
+                    <button
+                      type="button"
+                      class="event-runner-secondary-action"
+                      data-open-run-proof-modal
+                      data-run-proof-surface="event-detail-details"
+                      data-run-proof-mode="<%= action.type %>"
+                      data-run-proof-registration-id="<%= action.registrationId %>"
+                    ><%= action.label %></button>
+                  <% } else { %>
+                    <a href="<%= action.href %>" class="event-runner-secondary-action"><%= action.label %></a>
+                  <% } %>
+                <% } %>
+              </div>
+            </details>
           <% } else { %>
             <div class="event-challenge-decision-heading">
               <div>
@@ -759,20 +800,52 @@
               <% if (locals.message?.type && req?.query?.msg && req?.query?.msg.toString().includes('organiser')) { %>
                 <div class="page-message page-message-<%= locals.message.type %>"><%= locals.message?.text || '' %></div>
               <% } %>
-              <form method="POST" action="/events/<%= event.slug %>/contact-organiser" class="contact-organiser-form">
+              <form
+                method="POST"
+                action="/events/<%= event.slug %>/contact-organiser"
+                class="contact-organiser-form"
+                data-contact-organiser-form
+                data-event-title="<%= event.title %>"
+                data-organiser-name="<%= details.organizerName || details.organiserName || event.organiserName || 'Event organiser' %>"
+                data-default-subject="Question about <%= event.title %>"
+                <% if (eventContactCooldown?.active) { %>data-contact-cooldown-until="<%= eventContactCooldown.retryAtIso %>"<% } %>
+              >
                 <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                 <div class="contact-organiser-field">
                   <label class="contact-organiser-label" for="contactSubject">Subject <span>Optional</span></label>
-                  <input type="text" id="contactSubject" name="subject" class="contact-organiser-input" maxlength="200" placeholder="e.g. Question about proof format">
+                  <input type="text" id="contactSubject" name="subject" class="contact-organiser-input" maxlength="200" placeholder="e.g. Question about proof format"<%= eventContactCooldown?.active ? ' disabled' : '' %>>
                 </div>
                 <div class="contact-organiser-field">
                   <label class="contact-organiser-label" for="contactMessage">Message</label>
-                  <textarea id="contactMessage" name="message" class="contact-organiser-input" rows="4" minlength="10" maxlength="1000" required aria-describedby="contactMessageHelp" placeholder="Write your event question..."></textarea>
+                  <textarea id="contactMessage" name="message" class="contact-organiser-input" rows="4" minlength="10" maxlength="1000" required aria-describedby="contactMessageHelp" placeholder="Write your event question..."<%= eventContactCooldown?.active ? ' disabled' : '' %>></textarea>
                   <div class="contact-organiser-help" id="contactMessageHelp"><span>Minimum 10 characters</span><span data-contact-message-count>0 / 1000</span></div>
                 </div>
-                <button type="submit" class="btn btn-outline btn-block btn-sm"><i data-lucide="send" aria-hidden="true"></i><span>Send message</span></button>
+                <button type="submit" class="btn btn-outline btn-block btn-sm" data-contact-submit<%= eventContactCooldown?.active ? ' disabled' : '' %>><i data-lucide="send" aria-hidden="true"></i><span>Send message</span></button>
+                <p class="contact-organiser-status<%= eventContactCooldown?.active ? ' is-cooldown' : '' %>" id="contactFormStatus" role="status" aria-live="polite" data-contact-form-status><%= eventContactCooldown?.active ? eventContactCooldown.label : '' %></p>
                 <p class="contact-organiser-note"><i data-lucide="shield-check" aria-hidden="true"></i><span>Your email is shared only so the organiser can reply directly.</span></p>
               </form>
+              <dialog class="event-contact-confirm-dialog" data-contact-confirm-dialog aria-labelledby="contactConfirmTitle" aria-describedby="contactConfirmDescription">
+                <form method="dialog" class="event-contact-confirm-dialog-inner">
+                  <div class="event-contact-confirm-heading">
+                    <span class="event-contact-icon"><i data-lucide="send" aria-hidden="true"></i></span>
+                    <div>
+                      <p class="event-section-kicker">Check before sending</p>
+                      <h3 id="contactConfirmTitle">Send this message?</h3>
+                    </div>
+                  </div>
+                  <p id="contactConfirmDescription">Confirm the event, organiser, subject, and message. You can send another message after 10 minutes.</p>
+                  <dl class="event-contact-confirm-preview">
+                    <div><dt>Event</dt><dd data-contact-preview-event></dd></div>
+                    <div><dt>Organiser</dt><dd data-contact-preview-organiser></dd></div>
+                    <div><dt>Subject</dt><dd data-contact-preview-subject></dd></div>
+                    <div class="event-contact-confirm-message"><dt>Message</dt><dd data-contact-preview-message></dd></div>
+                  </dl>
+                  <div class="event-contact-confirm-actions">
+                    <button type="button" class="btn btn-outline" data-contact-confirm-back>Go back</button>
+                    <button type="button" class="btn btn-primary" data-contact-confirm-send>Send message</button>
+                  </div>
+                </form>
+              </dialog>
             </section>
           <% } %>
 
@@ -895,15 +968,114 @@
       });
     })();
 
-    (function initContactMessageCount() {
+    (function initContactOrganiserForm() {
+      const form = document.querySelector('[data-contact-organiser-form]');
       const message = document.getElementById('contactMessage');
+      const subject = document.getElementById('contactSubject');
       const count = document.querySelector('[data-contact-message-count]');
-      if (!message || !count) return;
+      const submitButton = form?.querySelector('[data-contact-submit]');
+      const status = form?.querySelector('[data-contact-form-status]');
+      const dialog = document.querySelector('[data-contact-confirm-dialog]');
+      const backButton = dialog?.querySelector('[data-contact-confirm-back]');
+      const confirmButton = dialog?.querySelector('[data-contact-confirm-send]');
+      if (!form || !message || !subject || !count || !submitButton || !status) return;
+
       const updateCount = () => {
         count.textContent = `${message.value.length} / 1000`;
       };
       message.addEventListener('input', updateCount);
       updateCount();
+
+      const editableControls = [subject, message, submitButton];
+      const setCooldownState = () => {
+        const retryAtMs = Date.parse(form.dataset.contactCooldownUntil || '');
+        const remainingMs = retryAtMs - Date.now();
+        if (!Number.isFinite(retryAtMs) || remainingMs <= 0) {
+          editableControls.forEach((control) => { control.disabled = false; });
+          form.removeAttribute('data-contact-cooldown-until');
+          status.textContent = '';
+          status.classList.remove('is-cooldown');
+          return false;
+        }
+
+        editableControls.forEach((control) => { control.disabled = true; });
+        const minutes = Math.max(1, Math.ceil(remainingMs / 60000));
+        const localTime = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(new Date(retryAtMs));
+        status.textContent = `Message sent. You can contact this organiser again at ${localTime} (about ${minutes} minute${minutes === 1 ? '' : 's'}).`;
+        status.classList.add('is-cooldown');
+        return true;
+      };
+
+      if (setCooldownState()) {
+        const cooldownTimer = window.setInterval(() => {
+          if (!setCooldownState()) window.clearInterval(cooldownTimer);
+        }, 30000);
+      }
+
+      if (!dialog || typeof dialog.showModal !== 'function') return;
+
+      const preview = {
+        event: dialog.querySelector('[data-contact-preview-event]'),
+        organiser: dialog.querySelector('[data-contact-preview-organiser]'),
+        subject: dialog.querySelector('[data-contact-preview-subject]'),
+        message: dialog.querySelector('[data-contact-preview-message]')
+      };
+      let sending = false;
+
+      const closeConfirmation = () => {
+        if (dialog.open) dialog.close();
+      };
+
+      const setSendingState = () => {
+        if (sending) return;
+        sending = true;
+        form.setAttribute('aria-busy', 'true');
+        submitButton.disabled = true;
+        backButton.disabled = true;
+        confirmButton.disabled = true;
+        submitButton.querySelector('span').textContent = 'Sending…';
+        status.textContent = 'Sending your message to the organiser…';
+      };
+
+      form.addEventListener('submit', (event) => {
+        if (sending) {
+          event.preventDefault();
+          return;
+        }
+        if (form.dataset.contactConfirmed === 'true') {
+          setSendingState();
+          return;
+        }
+
+        event.preventDefault();
+        preview.event.textContent = form.dataset.eventTitle || 'This event';
+        preview.organiser.textContent = form.dataset.organiserName || 'Event organiser';
+        preview.subject.textContent = subject.value.trim() || form.dataset.defaultSubject || 'Event question';
+        preview.message.textContent = message.value.trim();
+        dialog.showModal();
+        backButton.focus();
+      });
+
+      backButton.addEventListener('click', () => {
+        closeConfirmation();
+        submitButton.focus();
+      });
+
+      confirmButton.addEventListener('click', () => {
+        if (sending) return;
+        form.dataset.contactConfirmed = 'true';
+        closeConfirmation();
+        if (typeof form.requestSubmit === 'function') {
+          form.requestSubmit();
+        } else {
+          setSendingState();
+          HTMLFormElement.prototype.submit.call(form);
+        }
+      });
+
+      dialog.addEventListener('close', () => {
+        if (!sending && form.dataset.contactConfirmed !== 'true') submitButton.focus();
+      });
     })();
 
     (function initGalleryLightbox() {

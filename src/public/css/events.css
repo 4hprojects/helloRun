@@ -39,7 +39,6 @@
   max-width: calc(100% - 2rem);
   padding: 0.8rem 1rem;
   border: 1px solid var(--events-border);
-  border-left: 4px solid #15803d;
   border-radius: var(--events-radius);
   background: var(--events-surface);
   box-shadow: var(--events-shadow);

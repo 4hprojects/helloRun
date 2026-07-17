@@ -201,6 +201,23 @@ test('contact organiser controls are compact, touch-friendly, and focus-visible'
   assert.match(cssSource, /@media \(max-width: 720px\)[\s\S]*\.event-contact-card[\s\S]*padding:\s*14px/);
 });
 
+test('contact organiser confirmation previews the message and protects repeated sends', () => {
+  assert.match(viewSource, /<dialog class="event-contact-confirm-dialog"/);
+  assert.match(viewSource, /data-contact-preview-event/);
+  assert.match(viewSource, /data-contact-preview-organiser/);
+  assert.match(viewSource, /data-contact-preview-subject/);
+  assert.match(viewSource, /data-contact-preview-message/);
+  assert.match(viewSource, /Go back/);
+  assert.match(viewSource, /data-contact-confirm-send>Send message/);
+  assert.match(viewSource, /form\.dataset\.contactConfirmed = 'true'/);
+  assert.match(viewSource, /form\.setAttribute\('aria-busy', 'true'\)/);
+  assert.match(viewSource, /dialog\.showModal\(\);[\s\S]*backButton\.focus\(\)/);
+  assert.match(viewSource, /data-contact-cooldown-until/);
+  assert.match(viewSource, /role="status" aria-live="polite"/);
+  assert.match(cssSource, /\.event-contact-confirm-actions \.btn[\s\S]*min-height:\s*44px/);
+  assert.match(cssSource, /\.event-contact-confirm-dialog::backdrop/);
+});
+
 test('event detail mobile resilience includes narrow tables, focus handling, and reduced motion', () => {
   assert.match(cssSource, /\.event-rich-details table[\s\S]*overflow-x:\s*auto/);
   assert.match(cssSource, /@media \(prefers-reduced-motion: reduce\)/);

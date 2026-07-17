@@ -10,9 +10,11 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 
 test('runner dashboard promotes one canonical stage-based event journey', () => {
   const dashboard = read('src/views/runner/dashboard.ejs');
-  assert.match(dashboard, /Active event journey/);
-  assert.equal((dashboard.match(/dashboard-event-progress/g) || []).length, 1);
-  assert.match(read('src/views/runner/partials/event-progress-row.ejs'), /Stage <%= stageNumbers\[item.state\]/);
+  const journey = read('src/views/runner/partials/dashboard-active-journey.ejs');
+  assert.match(journey, /Active event journey/);
+  assert.match(journey, /runnerDashboardPresentation\.primaryJourney/);
+  assert.equal((dashboard.match(/dashboard-active-journey/g) || []).length, 1);
+  assert.doesNotMatch(dashboard, /dashboard-next-action|dashboard-event-progress/);
 });
 
 test('organizer queue ranks events by pending workload and links direct review work', () => {
@@ -30,4 +32,3 @@ test('admin supports cross-domain search and user-centered case evidence', () =>
   ['User.find', 'Event.find', 'OrganiserApplication.find', 'Submission.find', 'Registration.find'].forEach((token) => assert.match(controller, new RegExp(token.replace('.', '\\.'))));
   assert.match(read('src/views/admin/user-case.ejs'), /Mutations remain on their governed source screens/);
 });
-

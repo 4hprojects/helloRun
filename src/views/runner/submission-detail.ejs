@@ -7,471 +7,93 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
-  <% const submissionLifecycle = getLifecycleStatus('submission', submission.status); %>
+  <% const view = submission.presentation; %>
+  <% const correction = view.correction; %>
+  <% const ms = Number(submission.elapsedMs || 0); const totalSec = Math.floor(ms / 1000); const elapsedPrefill = `${String(Math.floor(totalSec / 3600)).padStart(2, '0')}:${String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0')}:${String(totalSec % 60).padStart(2, '0')}`; %>
 
-  <main class="dashboard-container sub-page sub-detail-page">
-    <nav class="sub-breadcrumb" aria-label="Breadcrumb">
-      <a href="/runner/submissions" class="sub-breadcrumb-link"><i data-lucide="arrow-left" aria-hidden="true"></i> Submitted Entries</a>
-      <span class="sub-breadcrumb-sep" aria-hidden="true">/</span>
-      <span class="sub-breadcrumb-current" aria-current="page"><%= submission.eventTitle %></span>
-    </nav>
+  <main class="dashboard-container sub-page sub-detail-page" id="main-content">
+    <nav class="sub-breadcrumb" aria-label="Breadcrumb"><a href="/runner/submissions" class="sub-breadcrumb-link"><i data-lucide="arrow-left" aria-hidden="true"></i>Submission History</a><span class="sub-breadcrumb-sep" aria-hidden="true">/</span><span class="sub-breadcrumb-current" aria-current="page"><%= submission.eventTitle %></span></nav>
 
-    <header class="sub-detail-header">
+    <header class="sub-detail-header sub-detail-compact-header">
       <div class="sub-detail-heading">
-        <span class="section-kicker">Submission Detail</span>
-        <div class="sub-detail-title-row">
-          <h1><%= submission.eventTitle %></h1>
-          <span class="badge sub-type-badge <%= submission.isPersonalRecord ? 'sub-type-personal' : 'sub-type-event' %>">
-            <i data-lucide="<%= submission.isPersonalRecord ? 'star' : 'flag' %>" aria-hidden="true"></i>
-            <%= submission.isPersonalRecord ? 'Personal Record' : (submission.isAccumulatedActivity ? 'Challenge Activity' : 'Event Entry') %>
-          </span>
-          <span class="badge badge-<%= submission.status %>" title="<%= submissionLifecycle.description %>"><%= submissionLifecycle.label %></span>
-        </div>
-        <p>
-          Submitted <%= submission.submittedAtRelativeLabel || submission.submittedAtLabel %>
-          <% if (submission.raceDistance) { %> for <%= submission.raceDistance %><% } %>
-        </p>
+        <span class="section-kicker"><i data-lucide="<%= submission.isPersonalRecord ? 'star' : (submission.isAccumulatedActivity ? 'layers-3' : 'flag') %>" aria-hidden="true"></i><%= submission.typeLabel %></span>
+        <h1><%= submission.eventTitle %></h1>
+        <p><%= submission.runDateLabel !== '–' ? 'Activity on ' + submission.runDateLabel : 'Submitted activity' %> · Submitted <%= submission.submittedAtRelativeLabel || submission.submittedAtLabel %></p>
+      </div>
+      <div class="sub-detail-primary-action">
+        <span class="sub-review-state sub-review-state-<%= submission.status %>"><%= submission.statusLabel %></span>
+        <% if (view.primaryAction.type === 'resubmit') { %><button type="button" class="btn btn-warning" data-open-run-proof-modal data-registration-id="<%= view.primaryAction.registrationId %>"><i data-lucide="upload" aria-hidden="true"></i><%= view.primaryAction.label %></button>
+        <% } else { %><a href="<%= view.primaryAction.href %>" class="btn <%= view.primaryAction.type === 'certificate' ? 'btn-primary' : 'btn-outline' %>"<% if (view.primaryAction.type === 'certificate') { %> target="_blank" rel="noopener noreferrer"<% } %>><%= view.primaryAction.label %></a><% } %>
       </div>
     </header>
 
-    <div class="sub-status-banner sub-status-banner-<%= submission.status %>" role="status">
-      <% if (submission.status === 'submitted') { %>
-        <i data-lucide="clock" aria-hidden="true"></i>
-        <span><strong>Pending Review</strong> Your submission is awaiting review by the event organiser.</span>
-      <% } else if (submission.status === 'approved') { %>
-        <i data-lucide="check-circle" aria-hidden="true"></i>
-        <span><strong>Approved</strong> Your result was approved<% if (submission.reviewedAtLabel && submission.reviewedAtLabel !== '-') { %> on <%= submission.reviewedAtLabel %><% } %>.</span>
-      <% } else { %>
-        <i data-lucide="x-circle" aria-hidden="true"></i>
-        <span><strong>Rejected</strong> Your submission was not accepted. Review the feedback below and resubmit.</span>
-      <% } %>
-    </div>
+    <section class="sub-outcome sub-outcome-<%= submission.status %>" aria-labelledby="submissionOutcomeTitle">
+      <span class="sub-outcome-icon"><i data-lucide="<%= submission.status === 'approved' ? 'circle-check-big' : (submission.status === 'rejected' ? 'triangle-alert' : 'clock-3') %>" aria-hidden="true"></i></span>
+      <div><h2 id="submissionOutcomeTitle"><%= view.outcomeTitle %></h2><p><%= view.outcomeText %></p><% if (submission.reviewedAtLabel !== '–') { %><small>Decision recorded <%= submission.reviewedAtLabel %></small><% } %></div>
+    </section>
 
-    <div class="sub-detail-layout">
+    <% if (submission.status === 'rejected') { %>
+      <section class="sub-correction-panel" aria-labelledby="correctionTitle">
+        <div class="sub-correction-heading"><span><i data-lucide="wrench" aria-hidden="true"></i></span><div><h2 id="correctionTitle">What to fix</h2><p><%= correction.guidance %></p></div></div>
+        <% if (submission.rejectionReason) { %><div class="sub-organizer-feedback"><strong>Organizer feedback</strong><p><%= submission.rejectionReason %></p><% if (submission.reviewNotes) { %><blockquote><%= submission.reviewNotes %></blockquote><% } %></div><% } %>
+
+        <% if (correction.strategy === 'strava') { %><div class="sub-strava-locked-note"><i data-lucide="lock" aria-hidden="true"></i><p>Activity details are locked to Strava. Sync the corrected activity, then upload it through the submission flow.</p></div><% } %>
+
+        <% if (correction.canEditMetadata) { %>
+          <details class="sub-correction-disclosure"<%= correction.strategy === 'metadata' ? ' open' : '' %>>
+            <summary><span><i data-lucide="pencil" aria-hidden="true"></i><strong>Correct activity details</strong><small>Your existing proof stays on file.</small></span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+            <form method="POST" action="/runner/submissions/<%= submission.submissionId %>/edit-metadata" class="sub-metadata-edit-form" data-submission-edit-form>
+              <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <label><span>Distance (km)</span><input type="number" name="distanceKm" step="0.01" min="0.1" max="500" value="<%= submission.distanceKm || '' %>" required class="form-input"></label>
+              <label><span>Elapsed time (hh:mm:ss)</span><input type="text" name="elapsedTime" pattern="^\d{1,2}:\d{2}:\d{2}$" value="<%= elapsedPrefill %>" required class="form-input"></label>
+              <label><span>Activity date</span><input type="date" name="runDate" value="<%= submission.runDate ? new Date(submission.runDate).toISOString().slice(0, 10) : '' %>" required class="form-input"></label>
+              <label><span>Activity type</span><select name="runType" class="form-input"><% ['run','walk','hike','trail_run'].forEach((type) => { %><option value="<%= type %>"<%= submission.runType === type ? ' selected' : '' %>><%= type.replace('_', ' ') %></option><% }) %></select></label>
+              <label class="sub-metadata-edit-wide"><span>Location</span><input type="text" name="runLocation" maxlength="200" value="<%= submission.runLocation || '' %>" class="form-input"></label>
+              <button type="submit" class="btn btn-primary" data-submit-label="Update and Resubmit">Update and Resubmit</button><p class="sub-form-status" aria-live="polite"></p>
+            </form>
+          </details>
+        <% } %>
+        <% if (correction.canUploadProof) { %><button type="button" class="btn btn-warning sub-upload-proof-action" data-open-run-proof-modal data-registration-id="<%= submission.registrationObjectId %>"><i data-lucide="upload" aria-hidden="true"></i>Upload new proof</button><% } %>
+      </section>
+    <% } %>
+
+    <div class="sub-detail-layout sub-review-detail-layout">
       <div class="sub-detail-main">
-        <section class="sub-detail-section card" aria-labelledby="sectionOverviewTitle">
-          <div class="card-header">
-            <h2 id="sectionOverviewTitle"><i data-lucide="file-text" aria-hidden="true"></i> Entry Overview</h2>
-          </div>
-          <div class="card-content sub-detail-grid">
-            <div class="sub-detail-row">
-              <span class="sub-detail-label"><i data-lucide="calendar-days" aria-hidden="true"></i> Event</span>
-              <span class="sub-detail-value">
-                <% if (!submission.isPersonalRecord && submission.eventSlug) { %>
-                  <a href="/events/<%= submission.eventSlug %>"><%= submission.eventTitle %></a>
-                <% } else { %>
-                  <%= submission.eventTitle %>
-                <% } %>
-              </span>
-            </div>
-            <% if (submission.organiserName && !submission.isPersonalRecord) { %>
-              <div class="sub-detail-row">
-                <span class="sub-detail-label"><i data-lucide="building-2" aria-hidden="true"></i> Organiser</span>
-                <span class="sub-detail-value"><%= submission.organiserName %></span>
-              </div>
-            <% } %>
-            <% if (submission.eventReferenceCode && !submission.isPersonalRecord) { %>
-              <div class="sub-detail-row">
-                <span class="sub-detail-label"><i data-lucide="hash" aria-hidden="true"></i> Event Code</span>
-                <span class="sub-detail-value"><code><%= submission.eventReferenceCode %></code></span>
-              </div>
-            <% } %>
-            <% if (submission.confirmationCode) { %>
-              <div class="sub-detail-row">
-                <span class="sub-detail-label"><i data-lucide="ticket" aria-hidden="true"></i> Registration</span>
-                <span class="sub-detail-value"><code><%= submission.confirmationCode %></code></span>
-              </div>
-            <% } %>
-            <div class="sub-detail-row">
-              <span class="sub-detail-label"><i data-lucide="map-pin" aria-hidden="true"></i> Distance Category</span>
-              <span class="sub-detail-value"><%= submission.raceDistance || 'N/A' %></span>
-            </div>
-            <div class="sub-detail-row">
-              <span class="sub-detail-label"><i data-lucide="activity" aria-hidden="true"></i> Activity Type</span>
-              <span class="sub-detail-value"><%= (submission.activityType || 'run').replace(/_/g, ' ') %></span>
-            </div>
-            <div class="sub-detail-row">
-              <span class="sub-detail-label"><i data-lucide="monitor-smartphone" aria-hidden="true"></i> Participation</span>
-              <span class="sub-detail-value"><%= submission.participationMode || 'virtual' %></span>
-            </div>
-            <div class="sub-detail-row">
-              <span class="sub-detail-label"><i data-lucide="send" aria-hidden="true"></i> Submitted</span>
-              <span class="sub-detail-value"><%= submission.submittedAtLabel %> <span class="text-muted">(<%= submission.submittedAtRelativeLabel %>)</span></span>
-            </div>
-            <% if (submission.submissionCount > 1) { %>
-              <div class="sub-detail-row">
-                <span class="sub-detail-label"><i data-lucide="repeat" aria-hidden="true"></i> Submission #</span>
-                <span class="sub-detail-value"><%= submission.submissionCount %></span>
-              </div>
-            <% } %>
-          </div>
+        <section class="sub-result-summary" aria-labelledby="resultSummaryTitle">
+          <header><span><i data-lucide="gauge" aria-hidden="true"></i></span><div><h2 id="resultSummaryTitle">Activity result</h2><p>The activity information attached to this review record.</p></div></header>
+          <dl><% view.metrics.forEach((metric) => { %><div><dt><%= metric.label %></dt><dd><%= metric.value %></dd></div><% }) %></dl>
         </section>
 
-        <section class="sub-detail-section card" aria-labelledby="sectionActivityTitle">
-          <div class="card-header">
-            <h2 id="sectionActivityTitle"><i data-lucide="gauge" aria-hidden="true"></i> Activity Details</h2>
-          </div>
-          <div class="card-content sub-detail-grid">
-            <div class="sub-detail-row">
-              <span class="sub-detail-label"><i data-lucide="calendar" aria-hidden="true"></i> Run Date</span>
-              <span class="sub-detail-value"><%= submission.runDateLabel %></span>
-            </div>
-            <% if (submission.runLocation) { %>
-              <div class="sub-detail-row">
-                <span class="sub-detail-label"><i data-lucide="map" aria-hidden="true"></i> Location</span>
-                <span class="sub-detail-value"><%= submission.runLocation %></span>
-              </div>
-            <% } %>
-            <div class="sub-detail-row">
-              <span class="sub-detail-label"><i data-lucide="ruler" aria-hidden="true"></i> Distance</span>
-              <span class="sub-detail-value"><%= submission.distanceKm.toFixed(2) %> km</span>
-            </div>
-            <div class="sub-detail-row">
-              <span class="sub-detail-label"><i data-lucide="timer" aria-hidden="true"></i> Time</span>
-              <span class="sub-detail-value"><%= submission.elapsedLabel %></span>
-            </div>
-            <div class="sub-detail-row">
-              <span class="sub-detail-label"><i data-lucide="trending-up" aria-hidden="true"></i> Pace</span>
-              <span class="sub-detail-value"><%= submission.paceLabel %></span>
-            </div>
-            <% if (submission.elevationGain !== null && submission.elevationGain !== undefined) { %>
-              <div class="sub-detail-row">
-                <span class="sub-detail-label"><i data-lucide="mountain" aria-hidden="true"></i> Elevation Gain</span>
-                <span class="sub-detail-value"><%= submission.elevationGain %> m</span>
-              </div>
-            <% } %>
-            <% if (submission.steps !== null && submission.steps !== undefined) { %>
-              <div class="sub-detail-row">
-                <span class="sub-detail-label"><i data-lucide="footprints" aria-hidden="true"></i> Steps</span>
-                <span class="sub-detail-value"><%= submission.steps.toLocaleString() %></span>
-              </div>
-            <% } %>
-            <div class="sub-detail-row">
-              <span class="sub-detail-label"><i data-lucide="image" aria-hidden="true"></i> Proof Type</span>
-              <span class="sub-detail-value"><span class="badge badge-<%= submission.proofType %>"><%= submission.proofType.toUpperCase() %></span></span>
-            </div>
-          </div>
-        </section>
+        <details class="sub-record-disclosure">
+          <summary><span><i data-lucide="file-text" aria-hidden="true"></i><strong>Submission record</strong><small>Event, registration, proof, and review details</small></span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+          <dl class="sub-record-grid">
+            <div><dt>Event</dt><dd><% if (submission.eventSlug && !submission.isPersonalRecord) { %><a href="/events/<%= submission.eventSlug %>"><%= submission.eventTitle %></a><% } else { %><%= submission.eventTitle %><% } %></dd></div>
+            <% if (submission.organiserName) { %><div><dt>Organizer</dt><dd><%= submission.organiserName %></dd></div><% } %>
+            <% if (submission.eventReferenceCode) { %><div><dt>Event code</dt><dd><code><%= submission.eventReferenceCode %></code></dd></div><% } %>
+            <% if (submission.confirmationCode) { %><div><dt>Confirmation</dt><dd><code><%= submission.confirmationCode %></code></dd></div><% } %>
+            <div><dt>Participation</dt><dd><%= submission.participationMode || 'Not listed' %></dd></div><div><dt>Proof type</dt><dd><%= submission.proofType.toUpperCase() %></dd></div><div><dt>Submitted</dt><dd><%= submission.submittedAtLabel %></dd></div>
+            <% if (submission.reviewedAtLabel !== '–') { %><div><dt>Reviewed</dt><dd><%= submission.reviewedAtLabel %></dd></div><% } %>
+          </dl>
+        </details>
 
-        <section class="sub-detail-section card sub-review-section" aria-labelledby="sectionReviewTitle">
-          <div class="card-header">
-            <h2 id="sectionReviewTitle"><i data-lucide="clipboard-check" aria-hidden="true"></i> Review Result</h2>
-          </div>
-          <div class="card-content">
-            <% if (submission.status === 'submitted') { %>
-              <div class="sub-review-callout sub-review-waiting">
-                <i data-lucide="hourglass" class="sub-review-icon" aria-hidden="true"></i>
-                <p>Your submission is in the review queue. You will be notified once a decision has been made.</p>
-              </div>
-            <% } else if (submission.status === 'approved') { %>
-              <div class="sub-review-callout sub-review-approved">
-                <i data-lucide="check-circle" class="sub-review-icon" aria-hidden="true"></i>
-                <p>Your result was <strong>approved</strong> on <%= submission.reviewedAtLabel %>.</p>
-                <% if (submission.reviewNotes) { %>
-                  <blockquote class="sub-review-notes"><%= submission.reviewNotes %></blockquote>
-                <% } %>
-              </div>
-            <% } else { %>
-              <div class="sub-review-callout sub-review-rejected">
-                <i data-lucide="x-circle" class="sub-review-icon" aria-hidden="true"></i>
-                <p>Your submission was <strong>rejected</strong> on <%= submission.reviewedAtLabel %>.</p>
-                <% if (submission.rejectionReason) { %>
-                  <div class="sub-rejection-reason">
-                    <strong>Reason</strong>
-                    <p><%= submission.rejectionReason %></p>
-                  </div>
-                <% } %>
-                <% if (submission.reviewNotes) { %>
-                  <div class="sub-review-notes-wrap">
-                    <strong>Reviewer notes</strong>
-                    <blockquote class="sub-review-notes"><%= submission.reviewNotes %></blockquote>
-                  </div>
-                <% } %>
-                <% if (submission.reviewedByName) { %>
-                  <p class="text-muted sub-review-reviewer">Reviewed by <%= submission.reviewedByName %></p>
-                <% } %>
-              </div>
-
-              <%
-                const rejReason = String(submission.rejectionReason || submission.suspiciousFlagReason || '').toLowerCase();
-                const GUIDANCE_RULES = [
-                  { keywords: ['distance','pace','km','kilometer','mismatch','speed'], tip: 'The distance you entered may not match what\'s on your proof. Check the exact figure on your activity screenshot and update it using the form below.', action: 'edit' },
-                  { keywords: ['time','duration','elapsed','minute','hour','second'], tip: 'The elapsed time may be incorrect. Check the duration shown on your activity and update it using the form below.', action: 'edit' },
-                  { keywords: ['date','day','month','year'], tip: 'The run date may not match your proof. Update the date below to match exactly what\'s shown on your screenshot.', action: 'edit' },
-                  { keywords: ['screenshot','unclear','blurry','visible','image','photo','see','show','clear'], tip: 'Your proof image was unclear. Take a new, clear screenshot showing distance, time, and date — then upload a new proof below.', action: 'resubmit' },
-                  { keywords: ['name','account','identity','match'], tip: 'The name on your activity doesn\'t match your HelloRun account name. Make sure you\'re submitting your own activity.', action: 'resubmit' },
-                  { keywords: ['receipt','payment','wrong','document','not an activity','incorrect file'], tip: 'The uploaded file doesn\'t appear to be a run activity screenshot. Upload a screenshot from your running app showing your activity details.', action: 'resubmit' }
-                ];
-                const matchedRule = GUIDANCE_RULES.find(r => r.keywords.some(k => rejReason.includes(k)));
-                const guidanceTip = submission.rejectionGuidance || (matchedRule ? matchedRule.tip : 'Review the reason above and either correct your activity details below or upload a new proof.');
-                const resubmitOnlyCodes = ['unclear_proof', 'wrong_activity', 'identity_mismatch', 'date_outside_window', 'duplicate_activity'];
-                const guidanceAction = submission.rejectionCode
-                  ? (resubmitOnlyCodes.includes(submission.rejectionCode) ? 'resubmit' : 'both')
-                  : (matchedRule ? matchedRule.action : 'both');
-              %>
-              <details class="sub-rejection-guidance" open>
-                <summary><i data-lucide="lightbulb" aria-hidden="true"></i> How to fix this</summary>
-                <p><%= guidanceTip %></p>
-                <% if (guidanceAction === 'edit' || guidanceAction === 'both') { %>
-                  <p class="guidance-action-hint">↓ Correct your details using the form below.</p>
-                <% } %>
-                <% if (guidanceAction === 'resubmit' || guidanceAction === 'both') { %>
-                  <p class="guidance-action-hint">↓ Upload a new proof using "Upload New Proof" in the Actions panel.</p>
-                <% } %>
-              </details>
-
-              <% if (submission.source !== 'strava' && submission.actions && submission.actions.canResubmit) { %>
-                <%
-                  const ms = submission.elapsedMs || 0;
-                  const totalSec = Math.floor(ms / 1000);
-                  const hh = String(Math.floor(totalSec / 3600)).padStart(2, '0');
-                  const mm = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
-                  const ss = String(totalSec % 60).padStart(2, '0');
-                  const elapsedPrefill = `${hh}:${mm}:${ss}`;
-                  const datePrefill = submission.runDate ? new Date(submission.runDate).toISOString().slice(0, 10) : '';
-                %>
-                <form method="POST" action="/runner/submissions/<%= submission.submissionId %>/edit-metadata" class="sub-metadata-edit-form">
-                  <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-                  <h4 class="sub-metadata-edit-title"><i data-lucide="pencil" aria-hidden="true"></i> Correct activity details</h4>
-                  <p class="sub-metadata-edit-note">Your existing proof stays on file. Only the details below will be updated.</p>
-                  <div class="sub-metadata-edit-grid">
-                    <label>
-                      <span>Distance (km)</span>
-                      <input type="number" name="distanceKm" step="0.01" min="0.1" max="500" value="<%= submission.distanceKm || '' %>" required class="form-input">
-                    </label>
-                    <label>
-                      <span>Elapsed time (hh:mm:ss)</span>
-                      <input type="text" name="elapsedTime" pattern="^\d{1,2}:\d{2}:\d{2}$" placeholder="00:00:00" value="<%= elapsedPrefill %>" required class="form-input">
-                    </label>
-                    <label>
-                      <span>Run date</span>
-                      <input type="date" name="runDate" value="<%= datePrefill %>" required class="form-input">
-                    </label>
-                    <label>
-                      <span>Activity type</span>
-                      <select name="runType" class="form-input">
-                        <% ['run','walk','hike','trail_run'].forEach(t => { %>
-                          <option value="<%= t %>" <%= submission.runType === t ? 'selected' : '' %>><%= t.replace('_', ' ') %></option>
-                        <% }) %>
-                      </select>
-                    </label>
-                    <label class="sub-metadata-edit-wide">
-                      <span>Location</span>
-                      <input type="text" name="runLocation" maxlength="200" value="<%= submission.runLocation || '' %>" placeholder="City, Country" class="form-input">
-                    </label>
-                  </div>
-                  <button type="submit" class="btn btn-primary">Update &amp; Resubmit</button>
-                </form>
-              <% } else if (submission.source === 'strava') { %>
-                <div class="sub-strava-locked-note">
-                  <i data-lucide="lock" aria-hidden="true"></i>
-                  <p>This submission came from Strava — activity details are locked to your Strava data. To change them, sync a corrected Strava activity and resubmit.</p>
-                </div>
-              <% } %>
-            <% } %>
-          </div>
-        </section>
-
-        <% if (submission.hasOcrData && submission.ocrData) { %>
-          <section class="sub-detail-section card" aria-labelledby="sectionOcrTitle">
-            <div class="card-header">
-              <h2 id="sectionOcrTitle"><i data-lucide="scan-text" aria-hidden="true"></i> Proof Analysis</h2>
-            </div>
-            <div class="card-content sub-detail-grid">
-              <% if (submission.ocrData.detectedSource && submission.ocrData.detectedSource !== 'unknown' && submission.ocrData.detectedSource !== '') { %>
-                <div class="sub-detail-row">
-                  <span class="sub-detail-label"><i data-lucide="smartphone" aria-hidden="true"></i> Detected App</span>
-                  <span class="sub-detail-value"><span class="badge badge-ocr"><%= submission.ocrData.detectedSource %></span></span>
-                </div>
-              <% } %>
-              <div class="sub-detail-row">
-                <span class="sub-detail-label"><i data-lucide="percent" aria-hidden="true"></i> OCR Confidence</span>
-                <span class="sub-detail-value"><%= submission.ocrData.confidencePercent %>%</span>
-              </div>
-              <% if (submission.ocrData.extractedDistanceKm !== null && submission.ocrData.extractedDistanceKm !== undefined) { %>
-                <div class="sub-detail-row">
-                  <span class="sub-detail-label"><i data-lucide="ruler" aria-hidden="true"></i> Extracted Distance</span>
-                  <span class="sub-detail-value">
-                    <%= submission.ocrData.extractedDistanceKm %> km
-                    <% if (submission.ocrData.distanceMismatch) { %>
-                      <span class="badge badge-warning">Mismatch</span>
-                    <% } %>
-                  </span>
-                </div>
-              <% } %>
-              <% if (submission.ocrData.extractedTimeMs !== null && submission.ocrData.extractedTimeMs !== undefined) { %>
-                <div class="sub-detail-row">
-                  <span class="sub-detail-label"><i data-lucide="timer" aria-hidden="true"></i> Extracted Time</span>
-                  <span class="sub-detail-value">
-                    <%= submission.ocrData.extractedTimeMsLabel %>
-                    <% if (submission.ocrData.timeMismatch) { %>
-                      <span class="badge badge-warning">Mismatch</span>
-                    <% } %>
-                  </span>
-                </div>
-              <% } %>
-              <% if (submission.ocrData.nameMismatchAcknowledged) { %>
-                <div class="sub-detail-row">
-                  <span class="sub-detail-label"><i data-lucide="user-x" aria-hidden="true"></i> Name Match</span>
-                  <span class="sub-detail-value">
-                    <span class="badge badge-warning">Name mismatch acknowledged</span>
-                    <% if (submission.ocrData.extractedName) { %>
-                      <span class="text-muted">Image name: <%= submission.ocrData.extractedName %></span>
-                    <% } %>
-                  </span>
-                </div>
-              <% } else if (submission.ocrData.nameMatchStatus && submission.ocrData.nameMatchStatus !== 'not_checked') { %>
-                <div class="sub-detail-row">
-                  <span class="sub-detail-label"><i data-lucide="user-check" aria-hidden="true"></i> Name Analysis</span>
-                  <span class="sub-detail-value">
-                    <% if (submission.ocrData.nameMatchStatus === 'matched') { %>
-                      <span class="badge badge-approved">Name matches account</span>
-                    <% } else if (submission.ocrData.nameMatchStatus === 'mismatched') { %>
-                      <span class="badge badge-warning">Different name detected</span>
-                    <% } else if (submission.ocrData.nameMatchStatus === 'not_detected') { %>
-                      <span class="badge badge-ocr">Name not detected</span>
-                    <% } %>
-                    <% if (submission.ocrData.extractedName) { %>
-                      <span class="text-muted">Image name: <%= submission.ocrData.extractedName %></span>
-                    <% } %>
-                  </span>
-                </div>
-              <% } %>
-            </div>
-          </section>
+        <% if (view.showProofReadingDetails) { %>
+          <details class="sub-record-disclosure">
+            <summary><span><i data-lucide="scan-text" aria-hidden="true"></i><strong>Proof reading details</strong><small>Visible extracted metrics that may explain a mismatch</small></span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+            <dl class="sub-record-grid"><% if (submission.ocrData.detectedSource) { %><div><dt>Detected app</dt><dd><%= submission.ocrData.detectedSource %></dd></div><% } %><% if (submission.ocrData.extractedDistanceKm != null) { %><div><dt>Distance read from proof</dt><dd><%= submission.ocrData.extractedDistanceKm %> km<% if (submission.ocrData.distanceMismatch) { %> · Does not match<% } %></dd></div><% } %><% if (submission.ocrData.extractedTimeMs != null) { %><div><dt>Duration read from proof</dt><dd><%= submission.ocrData.extractedTimeMsLabel %><% if (submission.ocrData.timeMismatch) { %> · Does not match<% } %></dd></div><% } %></dl>
+          </details>
         <% } %>
       </div>
 
-      <aside class="sub-detail-sidebar">
-        <% if (submission.hasProof) { %>
-          <section class="sub-detail-section card sub-proof-card" aria-labelledby="sectionProofTitle">
-            <div class="card-header">
-              <h3 id="sectionProofTitle"><i data-lucide="image" aria-hidden="true"></i> Proof Screenshot</h3>
-            </div>
-            <div class="card-content sub-sidebar-content">
-              <p class="text-muted">Opens in a new tab.</p>
-              <a href="/runner/submissions/<%= submission.submissionId %>/proof" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">
-                <i data-lucide="external-link" aria-hidden="true"></i> View Proof
-              </a>
-            </div>
-          </section>
-        <% } %>
-
-        <% if (submission.hasCertificate) { %>
-          <section class="sub-detail-section card sub-cert-card" aria-labelledby="sectionCertTitle">
-            <div class="card-header">
-              <h3 id="sectionCertTitle"><i data-lucide="award" aria-hidden="true"></i> Certificate</h3>
-            </div>
-            <div class="card-content sub-sidebar-content sub-cert-content">
-              <div class="sub-cert-status">
-                <span class="sub-cert-icon"><i data-lucide="badge-check" aria-hidden="true"></i></span>
-                <div>
-                  <strong>Certificate ready</strong>
-                  <% if (submission.certificateIssuedAtLabel && submission.certificateIssuedAtLabel !== '-') { %>
-                    <span>Issued <%= submission.certificateIssuedAtLabel %></span>
-                  <% } %>
-                </div>
-              </div>
-              <dl class="sub-cert-summary" aria-label="Certificate summary">
-                <div>
-                  <dt>Event</dt>
-                  <dd><%= submission.eventTitle %></dd>
-                </div>
-                <div>
-                  <dt>Distance</dt>
-                  <dd><%= submission.raceDistance || (submission.distanceKm > 0 ? submission.distanceKm.toFixed(2) + ' km' : 'N/A') %></dd>
-                </div>
-                <div>
-                  <dt>Finish time</dt>
-                  <dd><%= submission.elapsedLabel %></dd>
-                </div>
-              </dl>
-              <div class="sub-cert-actions">
-                <a href="/my-submissions/<%= submission.submissionId %>/certificate" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
-                  <i data-lucide="download" aria-hidden="true"></i> Download Certificate
-                </a>
-                <% if (submission.certVerificationUrl) { %>
-                  <a href="<%= submission.certVerificationUrl %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm">
-                    <i data-lucide="shield-check" aria-hidden="true"></i> Verify
-                  </a>
-                <% } %>
-                <% if (!submission.isPersonalRecord && submission.eventSlug) { %>
-                  <a href="/events/<%= submission.eventSlug %>" class="btn btn-outline btn-sm">
-                    <i data-lucide="external-link" aria-hidden="true"></i> Event Page
-                  </a>
-                <% } %>
-              </div>
-              <% if (submission.certVerificationUrl) { %>
-                <div class="sub-cert-share">
-                  <p class="sub-cert-share-label">Share your achievement</p>
-                  <div class="sub-cert-share-btns">
-                    <%
-                      const _certUrl = submission.certVerificationUrl;
-                      const _shareText = encodeURIComponent('I completed ' + submission.eventTitle + ' and earned a verified certificate! 🏃 #HelloRun');
-                      const _certUrlEnc = encodeURIComponent(_certUrl);
-                    %>
-                    <a href="https://twitter.com/intent/tweet?text=<%= _shareText %>&url=<%= _certUrlEnc %>" target="_blank" rel="noopener noreferrer" class="sub-share-btn" aria-label="Share on X">
-                      <i data-lucide="twitter" aria-hidden="true"></i>
-                    </a>
-                    <a href="https://www.facebook.com/sharer/sharer.php?u=<%= _certUrlEnc %>" target="_blank" rel="noopener noreferrer" class="sub-share-btn" aria-label="Share on Facebook">
-                      <i data-lucide="facebook" aria-hidden="true"></i>
-                    </a>
-                    <a href="https://www.linkedin.com/sharing/share-offsite/?url=<%= _certUrlEnc %>" target="_blank" rel="noopener noreferrer" class="sub-share-btn" aria-label="Share on LinkedIn">
-                      <i data-lucide="linkedin" aria-hidden="true"></i>
-                    </a>
-                    <button type="button" class="sub-share-btn sub-share-copy" data-copy-url="<%= _certUrl %>" aria-label="Copy verification link">
-                      <i data-lucide="copy" aria-hidden="true"></i>
-                    </button>
-                  </div>
-                </div>
-              <% } %>
-            </div>
-          </section>
-        <% } %>
-
-        <section class="sub-detail-section card sub-actions-card" aria-labelledby="sectionActionsTitle">
-          <div class="card-header">
-            <h3 id="sectionActionsTitle"><i data-lucide="bolt" aria-hidden="true"></i> Actions</h3>
-          </div>
-          <div class="card-content sub-actions-list">
-            <% if (submission.actions && submission.actions.canResubmit) { %>
-              <div class="sub-resubmit-wrap">
-                <button
-                  type="button"
-                  class="btn btn-warning"
-                  data-open-run-proof-modal
-                  data-registration-id="<%= submission.registrationObjectId %>"
-                  aria-label="Upload new proof for <%= submission.eventTitle %>"
-                ><i data-lucide="upload" aria-hidden="true"></i> Upload New Proof</button>
-                <small class="sub-resubmit-hint">Use this if your proof image was wrong or unclear.</small>
-              </div>
-            <% } %>
-            <% if (submission.actions && submission.actions.canViewLeaderboard) { %>
-              <a href="/events/<%= submission.eventSlug %>#leaderboard" class="btn btn-outline">
-                <i data-lucide="trophy" aria-hidden="true"></i> View Leaderboard
-              </a>
-            <% } %>
-            <a href="/runner/submissions" class="btn btn-outline">
-              <i data-lucide="arrow-left" aria-hidden="true"></i> All Entries
-            </a>
-          </div>
-        </section>
+      <aside class="sub-detail-sidebar" aria-label="Submission actions">
+        <% if (submission.hasCertificate) { %><section class="sub-side-card sub-certificate-card"><span class="sub-side-icon"><i data-lucide="badge-check" aria-hidden="true"></i></span><h2>Certificate ready</h2><% if (submission.certificateVerifiedDistanceKm !== null) { %><p>Completed the <strong><%= Number(submission.certificateGoalDistanceKm || 0).toFixed(2) %> km</strong> goal with <strong><%= Number(submission.certificateVerifiedDistanceKm).toFixed(2) %> km</strong> finally verified.</p><% } else { %><p>Your approved event recognition is ready to download and verify.</p><% } %><a href="/my-submissions/<%= submission.submissionId %>/certificate" target="_blank" rel="noopener noreferrer" class="btn btn-primary"><i data-lucide="download" aria-hidden="true"></i>Download certificate</a><% if (submission.certVerificationUrl) { %><a href="<%= submission.certVerificationUrl %>" target="_blank" rel="noopener noreferrer" class="btn btn-outline">Verify certificate</a><div class="sub-share-controls" aria-label="Share certificate"><button type="button" class="btn btn-outline" data-copy-url="<%= submission.certVerificationUrl %>"><i data-lucide="copy" aria-hidden="true"></i><span>Copy verification link</span></button><p class="sub-copy-status" aria-live="polite"></p></div><% } %></section><% } %>
+        <section class="sub-side-card"><h2>Supporting actions</h2><% if (submission.hasProof) { %><a href="/runner/submissions/<%= submission.submissionId %>/proof" target="_blank" rel="noopener noreferrer" class="btn btn-outline"><i data-lucide="image" aria-hidden="true"></i>View submitted proof</a><% } %><% if (view.showLeaderboard) { %><a href="/events/<%= submission.eventSlug %>/leaderboard" class="btn btn-outline"><i data-lucide="trophy" aria-hidden="true"></i>View standings</a><% } %><a href="/runner/submissions" class="btn btn-outline"><i data-lucide="arrow-left" aria-hidden="true"></i>All submissions</a></section>
       </aside>
     </div>
   </main>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>
-    if (window.lucide) lucide.createIcons();
-    document.querySelector('.sub-share-copy')?.addEventListener('click', function() {
-      navigator.clipboard.writeText(this.dataset.copyUrl).then(() => {
-        const icon = this.querySelector('[data-lucide]');
-        if (icon) { icon.setAttribute('data-lucide', 'check'); lucide.createIcons(); }
-        setTimeout(() => { if (icon) { icon.setAttribute('data-lucide', 'copy'); lucide.createIcons(); } }, 2000);
-      });
-    });
-  </script>
+  <script src="/js/runner-submissions.js"></script>
+  <script>if (window.lucide) lucide.createIcons();</script>
 </body>
 </html>

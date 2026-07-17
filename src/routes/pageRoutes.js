@@ -22,7 +22,7 @@ const paymentProofUploadLimiter = createRateLimiter({
 const contactOrganiserLimiter = createRateLimiter({
   windowMs: 60 * 60 * 1000,
   maxRequests: 5,
-  message: 'Too many messages sent. Please wait before contacting this organiser again.',
+  message: 'You have reached the hourly message limit for this event. Please wait up to one hour before contacting this organiser again.',
   keyFn: (req) => `contact-organiser|${req.session?.userId || req.ip || 'anon'}|${req.params.slug || ''}`
 });
 const resultSubmissionLimiter = createRateLimiter({

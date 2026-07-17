@@ -160,23 +160,11 @@ a:hover {
 -------------------------------------------- */
 .status-card {
   background: var(--color-neutral-beige);
-  border-left: 6px solid transparent;
+  border: 1px solid rgba(15, 23, 42, 0.1);
   border-radius: var(--border-radius);
   padding: var(--spacing-lg);
   margin-bottom: var(--spacing-xl);
   box-shadow: var(--shadow-sm);
-}
-.status-card.status-card-pending {
-  border-left-color: var(--color-warning);
-}
-.status-card.status-card-under_review {
-  border-left-color: var(--color-primary-blue);
-}
-.status-card.status-card-approved {
-  border-left-color: var(--color-success);
-}
-.status-card.status-card-rejected {
-  border-left-color: var(--color-error);
 }
 
 .status-badge {

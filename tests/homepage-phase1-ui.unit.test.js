@@ -43,6 +43,15 @@ test('returning runners receive a low-emphasis registration shortcut', () => {
   assert.match(css, /\.hero-returning-user > a:focus-visible/);
 });
 
+test('mobile hero actions and returning-runner shortcut are centered', () => {
+  const css = read('src/public/css/helloRun.css');
+
+  assert.match(css, /@media \(max-width: 480px\)[\s\S]*\.hero-cta-row\s*\{[\s\S]*justify-content: center/);
+  assert.match(css, /@media \(max-width: 480px\)[\s\S]*\.hero-cta-row \.btn\s*\{[\s\S]*justify-content: center;[\s\S]*text-align: center/);
+  assert.match(css, /@media \(max-width: 480px\)[\s\S]*\.hero-returning-user,[\s\S]*justify-items: center;[\s\S]*text-align: center/);
+  assert.match(css, /@media \(max-width: 480px\)[\s\S]*\.hero-returning-user > a\s*\{[\s\S]*justify-content: center;[\s\S]*text-align: center/);
+});
+
 test('public desktop navigation exposes persistent labels and retains mobile rules', () => {
   const nav = read('src/views/layouts/nav.ejs');
   const css = read('src/public/css/style.css');

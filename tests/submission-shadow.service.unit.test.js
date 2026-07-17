@@ -80,7 +80,11 @@ test('normalizeMongoSubmissionCertificate maps certificate metadata', () => {
     certificate: {
       url: 'https://r2.example.com/cert.pdf',
       key: 'certificates/cert_123.pdf',
-      issuedAt: new Date('2026-05-12')
+      issuedAt: new Date('2026-05-12'),
+      goalDistanceKm: 21,
+      verifiedDistanceKm: 30,
+      approvedActivityCount: 3,
+      finalizedAt: new Date('2026-05-13')
     },
     reviewedBy: { toString: () => 'mongo_reviewer_111' }
   };
@@ -100,6 +104,10 @@ test('normalizeMongoSubmissionCertificate maps certificate metadata', () => {
   assert.equal(normalized.certificate_url, 'https://r2.example.com/cert.pdf');
   assert.equal(normalized.certificate_key, 'certificates/cert_123.pdf');
   assert.equal(normalized.certificate_type, 'finisher');
+  assert.equal(normalized.goal_distance_km, 21);
+  assert.equal(normalized.verified_distance_km, 30);
+  assert.equal(normalized.approved_activity_count, 3);
+  assert.equal(normalized.finalized_at.toISOString(), '2026-05-13T00:00:00.000Z');
 });
 
 test('normalizeMongoSubmissionCertificate returns null when no certificate', () => {

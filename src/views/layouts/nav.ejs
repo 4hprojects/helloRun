@@ -67,9 +67,9 @@
         </a>
 
         <% if (!locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer) { %>
-          <a href="/runner/submissions" class="<%= navClass('/runner/submissions') %>" aria-label="Submitted Entries" title="Submitted Entries" <% if (ariaCurrent('/runner/submissions')) { %>aria-current="page"<% } %>>
+          <a href="/runner/submissions" class="<%= navClass('/runner/submissions') %>" aria-label="Submission History" title="Submission History" <% if (ariaCurrent('/runner/submissions')) { %>aria-current="page"<% } %>>
             <i data-lucide="file-check"></i>
-            <span class="nav-tooltip">Submitted Entries</span>
+            <span class="nav-tooltip">Submission History</span>
           </a>
         <% } %>
 
@@ -151,7 +151,7 @@
     <span>Events</span>
   </a>
   <button type="button" class="mobile-nav-tab mobile-nav-tab-submit" data-open-run-proof-modal data-run-proof-surface="runner-mobile-nav" aria-label="Submit activity"><i data-lucide="circle-plus" aria-hidden="true"></i><span>Submit</span></button>
-  <a href="/runner/submissions" class="mobile-nav-tab<%= isCurrent('/runner/submissions') ? ' is-active' : '' %>" aria-label="Submitted Entries" <%= isCurrent('/runner/submissions') ? 'aria-current="page"' : '' %>>
+  <a href="/runner/submissions" class="mobile-nav-tab<%= isCurrent('/runner/submissions') ? ' is-active' : '' %>" aria-label="Submission History" <%= isCurrent('/runner/submissions') ? 'aria-current="page"' : '' %>>
     <i data-lucide="file-check" aria-hidden="true"></i>
     <span>Progress</span>
   </a>

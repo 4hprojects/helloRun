@@ -115,10 +115,10 @@
 
 .auth-info {
   background: var(--warm-beige);
+  border: 1px solid #e5e7eb;
   border-radius: var(--radius-md);
   padding: 20px;
   margin: 25px 0;
-  border-left: 4px solid var(--orange);
 }
 
 .auth-info p {
@@ -184,6 +184,7 @@
 
 .alert {
   padding: 15px;
+  border: 1px solid #e5e7eb;
   border-radius: var(--radius-md);
   margin-bottom: 20px;
   font-size: 14px;
@@ -207,25 +208,21 @@
 .alert-success {
   background: rgba(16, 185, 129, 0.1);
   color: #10b981;
-  border-left: 4px solid #10b981;
 }
 
 .alert-error {
   background: rgba(239, 68, 68, 0.1);
   color: #ef4444;
-  border-left: 4px solid #ef4444;
 }
 
 .alert-warning {
   background: rgba(250, 154, 75, 0.1);
   color: var(--orange);
-  border-left: 4px solid var(--orange);
 }
 
 .alert-info {
   background: rgba(120, 192, 233, 0.1);
   color: var(--sky-blue);
-  border-left: 4px solid var(--sky-blue);
 }
 
 .alert i {

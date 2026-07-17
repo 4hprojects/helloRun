@@ -127,6 +127,7 @@ function buildRunnerEventProgressCards(registrations = [], sources = {}, options
         submissionDeadlineTone: submissionTiming.tone,
         submissionDeadlineStatusLabel: submissionTiming.label,
         submissionClosed: submissionTiming.closed,
+        certificateFinalizationState: String(registration.accumulatedCertificateFinalization?.state || ''),
         // Compatibility aliases used by the existing cards now represent challenge time.
         daysRemaining: challengeTiming.daysRemaining,
         deadlineTone: challengeTiming.tone,
@@ -221,11 +222,305 @@ function buildRunnerEventProgressCards(registrations = [], sources = {}, options
     .sort((a, b) => sortProgressCards(a, b));
 }
 
+function buildMyRegistrationsPresentation(registrations = [], sources = {}, options = {}) {
+  const now = options.now || new Date();
+  const progressCards = buildRunnerEventProgressCards(registrations, sources, { now });
+  const progressByRegistrationId = new Map(progressCards.map((card) => [card.registrationId, card]));
+  const items = registrations.map((registration) => {
+    const registrationId = String(registration?._id || '');
+    const progressCard = progressByRegistrationId.get(registrationId) || buildUnavailableRegistrationCard(registration);
+    return buildMyRegistrationItem(registration, progressCard, now);
+  });
+  const groups = {
+    nextActions: items.filter((item) => item.group === 'next_actions').sort(compareNextActionItems),
+    active: items.filter((item) => item.group === 'active').sort(compareActiveItems),
+    history: items.filter((item) => item.group === 'history').sort(compareHistoryItems)
+  };
+
+  return {
+    groups,
+    counts: {
+      total: items.length,
+      nextActions: groups.nextActions.length,
+      active: groups.active.length,
+      history: groups.history.length,
+      underReview: items.filter((item) => item.isUnderReview).length
+    }
+  };
+}
+
+function buildMyRegistrationItem(registration = {}, card = {}, now = new Date()) {
+  const event = registration.eventId || null;
+  const registrationStatus = String(registration.status || 'confirmed');
+  const paymentStatus = String(registration.paymentStatus || 'unpaid');
+  const state = card.state || 'unavailable';
+  const group = resolveMyRegistrationGroup({ state, registrationStatus, paymentStatus, card, event });
+  const action = resolveMyRegistrationAction({ registration, card, event, paymentStatus, registrationStatus });
+  const eventDate = parseDateSafe(event?.eventStartAt);
+  const submissionDeadline = parseDateSafe(card.submissionDeadlineAt);
+  const eventFeeMode = String(event?.feeMode || 'free').toLowerCase();
+  const selectedCategory = registration.pricingSnapshot?.raceCategoryName || registration.raceDistance || 'Category not listed';
+  const imageUrl = String(card.eventImageUrl || event?.logoUrl || '').trim() || '/images/helloRun-icon.webp';
+  const fallbackImageUrl = '/images/helloRun-icon.webp';
+  const isUnderReview = paymentStatus === 'proof_submitted' || state === 'submitted' || Number(card.progress?.pendingActivityCount || 0) > 0;
+
+  return {
+    registration,
+    card,
+    registrationId: String(registration._id || ''),
+    group,
+    action,
+    actionPriority: getMyRegistrationActionPriority({ state, paymentStatus, card }),
+    eventTitle: event?.title || 'Event unavailable',
+    eventSlug: event?.slug || '',
+    eventHref: event?.slug ? `/events/${event.slug}` : '',
+    imageUrl,
+    fallbackImageUrl,
+    confirmationCode: registration.confirmationCode || 'Not available',
+    selectedCategory,
+    modeLabel: formatParticipationMode(registration.participationMode),
+    eventDate,
+    eventDateLabel: formatRegistrationDate(eventDate, 'Date not listed'),
+    submissionDeadline,
+    submissionDeadlineLabel: formatRegistrationDate(submissionDeadline, card.submissionDeadlineStatusLabel || 'Deadline not listed'),
+    registeredAtLabel: formatRegistrationDate(registration.registeredAt, 'Date not listed'),
+    state,
+    stateLabel: card.stateLabel || (event ? 'Registration received' : 'Event unavailable'),
+    stateTone: card.stateTone || (event ? 'neutral' : 'missed'),
+    helperText: card.helperText || (event ? 'Review this registration for current details.' : 'The event is no longer publicly available. Your registration record remains here.'),
+    paymentStatus,
+    paymentStatusLabel: card.payment?.statusLabel || getPaymentStatusLabel(paymentStatus),
+    activityStatusLabel: state === 'payment_required' ? 'Waiting for payment' : (card.stateLabel || 'Not submitted'),
+    paymentRequired: eventFeeMode === 'paid' || ['unpaid', 'proof_submitted', 'proof_rejected', 'failed', 'refunded'].includes(paymentStatus),
+    paymentDisclosureOpen: false,
+    isUnderReview,
+    isUnavailable: !event,
+    isHistorical: group === 'history',
+    sortAt: getMostRecentActivityTimestamp(card) || new Date(registration.registeredAt || 0).getTime(),
+    eventSortAt: eventDate?.getTime() || Number.MAX_SAFE_INTEGER,
+    deadlineSortAt: submissionDeadline?.getTime() || Number.MAX_SAFE_INTEGER,
+    now
+  };
+}
+
+function resolveMyRegistrationGroup({ state, registrationStatus, paymentStatus, card, event }) {
+  if (!event || ['cancelled', 'refunded'].includes(registrationStatus) || paymentStatus === 'refunded') return 'history';
+  if (['missed', 'approved', 'completed', 'ended'].includes(state)) return 'history';
+  if (card.submissionClosed && ['not_submitted', 'in_progress', 'registration_ready'].includes(state)) return 'history';
+  if (paymentStatus === 'proof_rejected' || state === 'rejected') return 'next_actions';
+  if (paymentStatus === 'unpaid' || ['not_submitted', 'final_submission_open', 'certificate_ready'].includes(state)) return 'next_actions';
+  if (['urgent', 'warning'].includes(card.submissionDeadlineTone) && card.nextAction?.type === 'submit') return 'next_actions';
+  return 'active';
+}
+
+function resolveMyRegistrationAction({ registration, card, event, paymentStatus, registrationStatus }) {
+  if (!event) return { type: 'link', label: 'Contact Support', href: '/contact' };
+  if (['cancelled', 'refunded'].includes(registrationStatus)) {
+    return { type: 'link', label: 'View Event', href: event.slug ? `/events/${event.slug}` : '/events' };
+  }
+  if (paymentStatus === 'unpaid' || paymentStatus === 'proof_rejected') {
+    return {
+      type: 'payment_disclosure',
+      label: paymentStatus === 'proof_rejected' ? 'Fix Payment Proof' : 'Pay or Upload Proof',
+      targetId: `payment-${String(registration._id || '')}`
+    };
+  }
+  if (paymentStatus === 'proof_submitted') {
+    return { type: 'details_disclosure', label: 'View Payment Status', targetId: `payment-${String(registration._id || '')}` };
+  }
+  if (card.submissionClosed && (card.nextAction?.type === 'submit' || card.nextAction?.type === 'resubmit')) {
+    return { type: 'link', label: 'Submission Closed', href: event.slug ? `/events/${event.slug}` : '/events' };
+  }
+  if (card.nextAction?.type === 'submit' || card.nextAction?.type === 'resubmit') {
+    return {
+      type: card.nextAction.type,
+      label: card.nextAction.label,
+      registrationId: String(registration._id || '')
+    };
+  }
+  if (card.nextAction?.href) {
+    return {
+      type: card.nextAction.type || 'link',
+      label: card.nextAction.label || 'View Details',
+      href: card.nextAction.href
+    };
+  }
+  return { type: 'link', label: 'View Event', href: event.slug ? `/events/${event.slug}` : '/events' };
+}
+
+function getMyRegistrationActionPriority({ state, paymentStatus, card }) {
+  if (paymentStatus === 'proof_rejected') return 0;
+  if (state === 'rejected') return 1;
+  if (paymentStatus === 'unpaid') return 2;
+  if (card.submissionDeadlineTone === 'urgent') return 3;
+  if (card.submissionDeadlineTone === 'warning') return 4;
+  if (state === 'not_submitted') return 5;
+  if (state === 'certificate_ready') return 6;
+  return 9;
+}
+
+function compareNextActionItems(a, b) {
+  if (a.actionPriority !== b.actionPriority) return a.actionPriority - b.actionPriority;
+  if (a.deadlineSortAt !== b.deadlineSortAt) return a.deadlineSortAt - b.deadlineSortAt;
+  if (a.eventSortAt !== b.eventSortAt) return a.eventSortAt - b.eventSortAt;
+  return a.registrationId.localeCompare(b.registrationId);
+}
+
+function compareActiveItems(a, b) {
+  const firstDate = Math.min(a.eventSortAt, a.deadlineSortAt);
+  const secondDate = Math.min(b.eventSortAt, b.deadlineSortAt);
+  if (firstDate !== secondDate) return firstDate - secondDate;
+  if (a.sortAt !== b.sortAt) return b.sortAt - a.sortAt;
+  return a.registrationId.localeCompare(b.registrationId);
+}
+
+function compareHistoryItems(a, b) {
+  if (a.sortAt !== b.sortAt) return b.sortAt - a.sortAt;
+  return a.registrationId.localeCompare(b.registrationId);
+}
+
+function buildUnavailableRegistrationCard(registration = {}) {
+  return {
+    registrationId: String(registration._id || ''),
+    eventTitle: 'Event unavailable',
+    state: 'unavailable',
+    stateLabel: 'Event unavailable',
+    stateTone: 'missed',
+    helperText: 'The event is no longer publicly available. Your registration record remains here.',
+    payment: { statusLabel: getPaymentStatusLabel(registration.paymentStatus) },
+    nextAction: null
+  };
+}
+
+function formatRegistrationDate(value, fallback) {
+  const date = parseDateSafe(value);
+  if (!date) return fallback;
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+function formatParticipationMode(value) {
+  const normalized = String(value || '').trim();
+  if (!normalized) return 'Mode not listed';
+  return normalized.replace(/[_-]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function splitEventProgressCards(cards = []) {
   return {
-    active: cards.filter((card) => card.state !== 'missed'),
+    active: cards.filter((card) => !['missed', 'ended'].includes(card.state)),
     missed: cards.filter((card) => card.state === 'missed')
   };
+}
+
+function buildRunnerDashboardPresentation(options = {}) {
+  const cards = Array.isArray(options.cards) ? options.cards.filter(Boolean) : [];
+  const activeCards = cards.filter((card) => !isDashboardHistoryCard(card));
+  const sortedActive = activeCards.slice().sort(compareDashboardJourneyCards);
+  const primaryJourney = sortedActive[0] || null;
+  const secondaryJourneys = primaryJourney
+    ? sortedActive.filter((card) => String(card.registrationId || '') !== String(primaryJourney.registrationId || ''))
+    : sortedActive;
+  const profileCompleteness = options.profileCompleteness || { missingFields: [] };
+  const isRestricted = options.user?.accountStatus === 'restricted';
+  const setup = primaryJourney || secondaryJourneys.length
+    ? null
+    : buildDashboardSetupState({ profileCompleteness });
+  const historyCount = cards.filter(isDashboardHistoryCard).length + Number(options.unavailableHistoryCount || 0);
+
+  return {
+    primaryJourney,
+    secondaryJourneys,
+    setup,
+    accountAlert: isRestricted
+      ? {
+          tone: 'warning',
+          text: 'Your account is restricted. Submissions and registrations are unavailable until support restores access.',
+          href: '/contact',
+          label: 'Contact Support'
+        }
+      : null,
+    subtitle: primaryJourney
+      ? `${primaryJourney.stateLabel} for ${primaryJourney.eventTitle}. ${primaryJourney.deadlineLabel || ''}`.trim()
+      : setup?.description || 'Your event tasks, verified progress, and recognition in one place.',
+    historyCount,
+    snapshot: options.snapshot || {},
+    recentActivity: Array.isArray(options.recentActivity) ? options.recentActivity : [],
+    latestAchievement: options.latestAchievement || null,
+    toolCounts: {
+      submissions: Number(options.toolCounts?.submissions || 0),
+      achievements: Number(options.toolCounts?.achievements || 0),
+      groups: Number(options.toolCounts?.groups || 0),
+      savedEvents: Number(options.toolCounts?.savedEvents || 0),
+      history: historyCount
+    }
+  };
+}
+
+function compareDashboardJourneyCards(a, b) {
+  const priorityDifference = getDashboardJourneyPriority(a) - getDashboardJourneyPriority(b);
+  if (priorityDifference) return priorityDifference;
+
+  const firstDeadline = getDashboardActionDate(a);
+  const secondDeadline = getDashboardActionDate(b);
+  if (firstDeadline !== secondDeadline) return firstDeadline - secondDeadline;
+
+  const firstActivity = getDashboardRecentActivityTimestamp(a);
+  const secondActivity = getDashboardRecentActivityTimestamp(b);
+  if (firstActivity !== secondActivity) return secondActivity - firstActivity;
+  return String(a.registrationId || '').localeCompare(String(b.registrationId || ''));
+}
+
+function getDashboardRecentActivityTimestamp(card = {}) {
+  const values = [card.submittedAt, card.reviewedAt, card.registeredAt, card.registrationUpdatedAt]
+    .map((value) => parseDateSafe(value)?.getTime())
+    .filter(Number.isFinite);
+  return values.length ? Math.max(...values) : 0;
+}
+
+function getDashboardJourneyPriority(card = {}) {
+  const paymentStatus = String(card.payment?.status || card.paymentStatus || '');
+  const state = String(card.state || '');
+  if (paymentStatus === 'proof_rejected') return 0;
+  if (state === 'rejected') return 1;
+  if (paymentStatus === 'unpaid' || (state === 'payment_required' && paymentStatus !== 'proof_submitted')) return 2;
+  if (isDashboardUrgentAction(card)) return 3;
+  if (state === 'not_submitted' || state === 'final_submission_open') return 4;
+  if (state === 'certificate_ready' || card.nextAction?.type === 'download_certificate') return 5;
+  if (['goal_reached', 'in_progress'].includes(state) && card.isAccumulated) return 6;
+  if (paymentStatus === 'proof_submitted' || ['submitted', 'final_reviews', 'certificate_finalizing', 'registration_not_ready', 'in_progress'].includes(state)) return 7;
+  if (state === 'registration_ready') return 8;
+  return 9;
+}
+
+function isDashboardUrgentAction(card = {}) {
+  const tone = String(card.submissionDeadlineTone || card.deadlineTone || '');
+  return tone === 'urgent' && ['not_submitted', 'in_progress', 'final_submission_open'].includes(String(card.state || ''));
+}
+
+function getDashboardActionDate(card = {}) {
+  const values = [card.submissionDeadlineAt, card.eventStartAt]
+    .map((value) => parseDateSafe(value)?.getTime())
+    .filter(Number.isFinite);
+  return values.length ? Math.min(...values) : Number.MAX_SAFE_INTEGER;
+}
+
+function isDashboardHistoryCard(card = {}) {
+  const state = String(card.state || '');
+  if (['certificate_ready', 'certificate_finalizing'].includes(state)) return false;
+  if (String(card.paymentStatus || card.payment?.status || '') === 'refunded') return true;
+  if (['cancelled', 'refunded'].includes(String(card.registrationStatus || ''))) return true;
+  return ['approved', 'completed', 'ended', 'missed', 'cancelled', 'refunded', 'unavailable'].includes(state);
+}
+
+function buildDashboardSetupState({ profileCompleteness }) {
+  if (profileCompleteness?.missingFields?.length) {
+    return {
+      type: 'profile',
+      title: 'Complete your runner profile',
+      description: `Add ${profileCompleteness.missingFields.slice(0, 3).join(', ')}${profileCompleteness.missingFields.length > 3 ? ', and the remaining details' : ''} before your first registration.`,
+      action: { type: 'link', label: 'Complete Profile', href: '/runner/profile' }
+    };
+  }
+  return { type: 'discover', title: 'Find your first event', description: 'Choose an event and distance to start your runner journey.', action: { type: 'link', label: 'Browse Events', href: '/events' } };
 }
 
 function buildStandardProgressCard(base, submission) {
@@ -293,9 +588,7 @@ function buildAccumulatedProgressCard(base, activities, registration, event) {
     activities,
     targetDistanceKm: resolveAccumulatedTargetDistanceKm(registration, event)
   });
-  const percent = progress.targetDistanceKm > 0
-    ? Math.min(100, Math.max(0, (Number(progress.approvedDistanceKm || 0) / Number(progress.targetDistanceKm || 1)) * 100))
-    : 0;
+  const percent = progress.targetDistanceKm > 0 ? progress.progressPercent : 0;
   const latestActivity = activities[0] || null;
   const remainingDistanceKm = Math.max(0, Number(progress.targetDistanceKm || 0) - Number(progress.approvedDistanceKm || 0));
   const potentialDistanceKm = Number(progress.approvedDistanceKm || 0) + Number(progress.pendingDistanceKm || 0);
@@ -310,20 +603,78 @@ function buildAccumulatedProgressCard(base, activities, registration, event) {
   };
 
   if (progress.completed) {
+    if (!base.submissionClosed) {
+      return {
+        ...base,
+        state: 'goal_reached',
+        stateLabel: progress.overGoalDistanceKm > 0 ? 'Goal Reached · Extra Distance Verified' : 'Goal Reached',
+        stateTone: 'approved',
+        helperText: progress.pendingActivityCount > 0
+          ? 'Your badge is earned. Pending distance remains separate until approval, and submissions stay open until the deadline.'
+          : 'Your badge is earned. Keep adding eligible activities until the submission deadline.',
+        progress: displayProgress,
+        submittedAt: latestActivity?.submittedAt || null,
+        reviewedAt: progress.completionTimestamp || latestActivity?.reviewedAt || null,
+        nextAction: { type: 'submit', label: 'Add Activity' }
+      };
+    }
+    if (base.certificateFinalizationState === 'waiting_reviews' || progress.pendingActivityCount > 0) {
+      return {
+        ...base,
+        state: 'final_reviews',
+        stateLabel: 'Final Reviews in Progress',
+        stateTone: 'submitted',
+        helperText: 'The deadline has passed. Certificates will be finalized after every pending activity for this event is reviewed.',
+        progress: displayProgress,
+        submittedAt: latestActivity?.submittedAt || null,
+        reviewedAt: progress.completionTimestamp || latestActivity?.reviewedAt || null,
+        nextAction: { href: '/runner/submissions', label: 'View Submissions' }
+      };
+    }
     return {
       ...base,
-      state: 'completed',
-      stateLabel: progress.certificateActivityId ? 'Completed' : 'Goal Reached',
+      state: progress.certificateActivityId ? 'certificate_ready' : 'certificate_finalizing',
+      stateLabel: progress.certificateActivityId ? 'Certificate Ready' : 'Certificate Finalizing',
       stateTone: 'approved',
       helperText: progress.certificateActivityId
-        ? 'Your approved distance reached the goal and your certificate is ready.'
-        : 'Your approved distance reached the goal.',
+        ? 'Your final approved distance is recorded and your certificate is ready.'
+        : 'Final reviews are complete and your certificate is being prepared.',
       progress: displayProgress,
       submittedAt: latestActivity?.submittedAt || null,
       reviewedAt: progress.completionTimestamp || latestActivity?.reviewedAt || null,
       nextAction: progress.certificateActivityId
         ? { type: 'download_certificate', href: `/my-submissions/${progress.certificateActivityId}/certificate`, label: 'Download Certificate' }
         : { href: base.eventSlug ? `/events/${base.eventSlug}` : '/my-registrations', label: 'View Achievement' }
+    };
+  }
+
+  if (base.submissionClosed) {
+    if (progress.pendingActivityCount > 0) {
+      return {
+        ...base,
+        state: 'submitted',
+        stateLabel: 'Awaiting Final Review',
+        stateTone: 'submitted',
+        helperText: 'The challenge and submission windows have ended. Pending activities remain under organizer review.',
+        progress: displayProgress,
+        submittedAt: latestActivity?.submittedAt || null,
+        reviewedAt: latestActivity?.reviewedAt || null,
+        latestSubmission: buildLatestSubmission(latestActivity),
+        nextAction: latestActivity?._id
+          ? { href: `/runner/submissions/${String(latestActivity._id)}`, label: 'View Review Status' }
+          : { href: '/runner/submissions', label: 'View Submissions' }
+      };
+    }
+    return {
+      ...base,
+      state: 'ended',
+      stateLabel: 'Challenge Ended',
+      stateTone: 'missed',
+      helperText: 'The activity and final submission windows have ended. Your verified progress remains in registration history.',
+      progress: displayProgress,
+      submittedAt: latestActivity?.submittedAt || null,
+      reviewedAt: latestActivity?.reviewedAt || null,
+      nextAction: { href: base.eventSlug ? `/events/${base.eventSlug}` : '/my-registrations', label: 'View Event' }
     };
   }
 
@@ -339,6 +690,27 @@ function buildAccumulatedProgressCard(base, activities, registration, event) {
       reviewedAt: latestActivity.reviewedAt || null,
       latestSubmission: buildLatestSubmission(latestActivity),
       nextAction: { type: 'resubmit', label: 'Fix Submission' }
+    };
+  }
+
+  if (base.challengeClosed) {
+    return {
+      ...base,
+      state: progress.pendingActivityCount > 0 ? 'submitted' : 'final_submission_open',
+      stateLabel: progress.pendingActivityCount > 0 ? 'Awaiting Final Review' : 'Final Submissions Open',
+      stateTone: progress.pendingActivityCount > 0 ? 'submitted' : 'warning',
+      helperText: progress.pendingActivityCount > 0
+        ? 'The activity window has ended. Pending activities are awaiting organizer review.'
+        : 'The activity window has ended. Submit eligible activity proof before the final deadline.',
+      progress: displayProgress,
+      submittedAt: latestActivity?.submittedAt || null,
+      reviewedAt: latestActivity?.reviewedAt || null,
+      latestSubmission: buildLatestSubmission(latestActivity),
+      nextAction: progress.pendingActivityCount > 0
+        ? (latestActivity?._id
+            ? { href: `/runner/submissions/${String(latestActivity._id)}`, label: 'View Review Status' }
+            : { href: '/runner/submissions', label: 'View Submissions' })
+        : { type: 'submit', label: progress.totalActivityCount > 0 ? 'Add Final Activity' : 'Submit Activity' }
     };
   }
 
@@ -436,7 +808,7 @@ function firstFiniteNumber(...values) {
 function groupFirstByRegistrationId(items = []) {
   const grouped = new Map();
   for (const item of items) {
-    const key = String(item.registrationId || '');
+    const key = String(item.registrationId?._id || item.registrationId || '');
     if (key && !grouped.has(key)) grouped.set(key, item);
   }
   return grouped;
@@ -445,7 +817,7 @@ function groupFirstByRegistrationId(items = []) {
 function groupManyByRegistrationId(items = []) {
   const grouped = new Map();
   for (const item of items) {
-    const key = String(item.registrationId || '');
+    const key = String(item.registrationId?._id || item.registrationId || '');
     if (!key) continue;
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key).push(item);
@@ -542,9 +914,13 @@ module.exports = {
   getRunnerEventProgressCards,
   buildRunnerDashboardData,
   buildRunnerEventProgressCards,
+  buildMyRegistrationsPresentation,
+  buildRunnerDashboardPresentation,
+  compareDashboardJourneyCards,
+  getDashboardJourneyPriority,
+  isDashboardHistoryCard,
   splitEventProgressCards,
-  sortEventProgressCardsByRecency
-  ,
+  sortEventProgressCardsByRecency,
   buildDeadlineDisplay,
   buildChallengeTimingDisplay,
   buildSubmissionTimingDisplay,

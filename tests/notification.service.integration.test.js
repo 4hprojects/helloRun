@@ -11,7 +11,10 @@ const {
   getUserNotifications,
   countUnreadNotifications,
   markNotificationAsRead,
-  markAllNotificationsAsRead
+  markAllNotificationsAsRead,
+  archiveNotification,
+  restoreNotification,
+  archiveAllReadNotifications
 } = require('../src/services/notification.service');
 
 test.before(async () => {
@@ -77,10 +80,31 @@ test('notification service creates, lists, and updates read state', async () => 
     const unreadOnly = await getUserNotifications(runner._id, { unreadOnly: true });
     assert.equal(unreadOnly.items.length, 2);
 
+    const foreignArchive = await archiveNotification(new mongoose.Types.ObjectId(), created[1]._id);
+    assert.equal(foreignArchive.matched, false);
+    assert.equal((await Notification.findById(created[1]._id).lean()).archivedAt, null);
+
+    const archivedSingle = await archiveNotification(runner._id, created[0]._id);
+    assert.equal(archivedSingle.matched, true);
+    const activeAfterArchive = await getUserNotifications(runner._id);
+    assert.equal(activeAfterArchive.totalItems, 2);
+    assert.equal(activeAfterArchive.counts.archived, 1);
+    const archivedView = await getUserNotifications(runner._id, { view: 'archived' });
+    assert.equal(archivedView.items.length, 1);
+
+    const restoredSingle = await restoreNotification(runner._id, created[0]._id);
+    assert.equal(restoredSingle.matched, true);
+    assert.equal((await getUserNotifications(runner._id)).totalItems, 3);
+
     const markAll = await markAllNotificationsAsRead(runner._id);
     assert.ok(markAll.modifiedCount >= 2);
     unreadCount = await countUnreadNotifications(runner._id);
     assert.equal(unreadCount, 0);
+
+    const archivedRead = await archiveAllReadNotifications(runner._id);
+    assert.equal(archivedRead.modifiedCount, 3);
+    assert.equal((await getUserNotifications(runner._id)).totalItems, 0);
+    assert.equal((await getUserNotifications(runner._id, { view: 'archived' })).totalItems, 3);
   } finally {
     await Notification.deleteMany({ userId: runner._id });
     await User.deleteOne({ _id: runner._id });

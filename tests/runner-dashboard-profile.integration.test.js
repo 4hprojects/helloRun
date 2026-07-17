@@ -429,11 +429,11 @@ test('runner dashboard refresh endpoint requires authentication and returns frag
   const payload = await response.json();
   assert.equal(payload.success, true);
   assert.ok(payload.refreshedAt);
-  for (const key of ['nextAction', 'summary', 'upcoming', 'badges', 'badgeProgress', 'eventProgress', 'missedSubmissions', 'resultSubmissions', 'past', 'activity', 'certificates', 'progressStats', 'runningGroups', 'latestAchievement']) {
+  for (const key of ['activeJourney', 'summary', 'recentActivity', 'latestAchievement']) {
     assert.equal(typeof payload.fragments[key], 'string');
   }
-  assert.match(payload.fragments.resultSubmissions, /aria-current=(?:&#34;|")page/i);
-  assert.match(payload.fragments.resultSubmissions, /Approved/i);
+  assert.match(payload.fragments.activeJourney, /Active event journey/i);
+  assert.match(payload.fragments.recentActivity, /Recent Activity/i);
 });
 
 test('runner dashboard gives a new runner an action-first empty state', async () => {
@@ -450,10 +450,10 @@ test('runner dashboard gives a new runner an action-first empty state', async ()
   });
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Your Next Action/i);
-  assert.match(html, /Browse Active Events/i);
-  assert.match(html, /Active Event Progress/i);
-  assert.match(html, /You have not joined an event yet/i);
+  assert.match(html, /Active event journey/i);
+  assert.match(html, /Browse Events/i);
+  assert.match(html, /Find your first event|Complete your runner profile/i);
+  assert.doesNotMatch(html, /Your Next Action|Active Event Progress/i);
 });
 
 test('runner change password requires valid current password', async () => {

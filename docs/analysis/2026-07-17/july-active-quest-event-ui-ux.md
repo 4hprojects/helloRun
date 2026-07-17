@@ -27,6 +27,8 @@ The page now resolves the runner’s active registration and category target, th
 | High | The description and organizer article said registration closed July 15 while structured settings said July 22. | Conflicting deadlines undermine trust and can cause missed registration. | Correct both stored text fields to July 22 and render structured dates as authoritative. Promotional artwork receives an explicit current-dates caveat. |
 | High | Pricing, registration state, timeline, categories, and CTAs were repeated across the hero, statistics, sidebar, mobile facts, and final CTA. | Repetition increased page length without improving the decision. | Give each decision fact one primary location and use one contextual mobile action bar. |
 | Medium | The long organizer article repeated most structured rules and remained fully expanded. | Decision-critical content was buried in a long reading flow. | Preserve the sanitized server-rendered content in an “Additional organizer details” disclosure after structured rules and rewards. |
+| Medium | The authenticated progress card gave equal visual weight to every metric and action. | Returning runners had to scan a tall dashboard to find verified progress, remaining distance, and the next task. | Keep quest status, verified progress, remaining distance, and one contextual action visible; place activity counts, pending totals, timing, and the secondary action in a native disclosure that surfaces pending or urgent signals. |
+| Medium | The organizer contact form sent immediately and allowed rapid repeats. | A runner could send an incomplete message accidentally or flood an organizer through repeated clicks. | Preview the resolved event, organizer, subject, and complete message in a native confirmation dialog; prevent concurrent sends and enforce a ten-minute per-runner/event cooldown after successful delivery. |
 | Medium | Accumulated registrations with descriptive labels such as “25K July Starter Quest” could fall back to the event-level 200 km target. | Personal progress could show the wrong goal. | Extend selected-distance parsing to resolve leading kilometre values before using the event fallback. |
 | Medium | The event detail linked to leaderboard discovery instead of the event’s standings. | Runners needed an unnecessary second event-selection step. | Link directly to `/events/:slug/leaderboard`. |
 | Medium | Mobile goal cards repeated the distance in the title, target, and per-card instructions. | Six tall cards slowed comparison and pushed the event dates out of view. | State the accumulation and registration model once, strip the repeated leading distance from the visible quest name, and use compact target/name rows on phones. |
@@ -46,6 +48,8 @@ The page now resolves the runner’s active registration and category target, th
 - [Completed runner mobile, 390 px](assets/july-active-quest-runner-mobile.png)
 
 The full-width desktop goal grid uses six compact columns so every option can be compared in one scan; desktop layouts with a substantive sidebar and tablet layouts use three columns. Mobile uses one compact comparison row per goal. The target stays in a stable left column, while the visible quest name omits its redundant leading distance; the complete category name remains available to assistive technology. Desktop places one registration action at the comparison point. On mobile that in-section action is suppressed in favor of the existing safe-area-aware sticky action bar, preventing duplicate actionable controls. Long category names wrap without forcing horizontal scrolling.
+
+For registered runners, the progress card remains in normal document flow at every breakpoint. Desktop aligns the verified total with a thin progress track and remaining-distance label; mobile stacks the same primary information without repeating the contextual action already available in the mobile action bar. Secondary activity and timing data remains server-rendered in a keyboard-accessible disclosure. The organizer contact confirmation uses a native modal dialog, 44 px actions, escaped text previews, and a responsive single-column layout at narrow widths.
 
 ## Presentation and data rationale
 
@@ -69,8 +73,14 @@ The full-width desktop goal grid uses six compact columns so every option can be
 - [x] The stored July registration deadline copy matches the July 22 structured setting.
 - [x] Registered runners never receive another registration CTA.
 - [x] Verified and pending distance are visually and semantically separate.
+- [x] The authenticated progress card keeps verified progress, remaining distance, status, and one next action visible while secondary facts remain available in a native disclosure.
+- [x] Pending activity and urgent deadline signals remain visible in the collapsed disclosure summary.
+- [x] The progress card remains in normal document flow and does not become sticky or fixed.
 - [x] Category-specific targets, remaining distance, activity counts, completion, and over-target progress are accurate.
 - [x] Mobile uses one 48 px contextual action and coordinates with the runner navigation safe area.
 - [x] Organizer details are collapsed by default but remain server-rendered and accessible.
 - [x] Event standings use the direct event leaderboard route.
+- [x] Organizer messages require a confirmation preview when JavaScript is available and still submit normally without JavaScript.
+- [x] Successful organizer messages enforce a ten-minute user/event cooldown with shared-cache, in-memory, and communication-log recovery paths.
+- [x] Contact controls expose busy, cooldown, failure, keyboard-focus, and live-region feedback without exposing the organizer email address.
 - [x] Keyboard focus, reduced motion, 200% zoom behavior, and narrow layouts retain usable controls without page-level horizontal scrolling.

@@ -197,7 +197,11 @@ const accumulatedActivitySubmissionSchema = new mongoose.Schema(
       },
       revokedAt: { type: Date, default: null },
       regeneratedAt: { type: Date, default: null },
-      generationError: { type: String, trim: true, default: '', maxlength: 1000 }
+      generationError: { type: String, trim: true, default: '', maxlength: 1000 },
+      goalDistanceKm: { type: Number, min: 0, default: null },
+      verifiedDistanceKm: { type: Number, min: 0, default: null },
+      approvedActivityCount: { type: Number, min: 0, default: null },
+      finalizedAt: { type: Date, default: null }
     },
     ocrData: {
       extractedDistanceKm: { type: Number, default: null },

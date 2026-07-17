@@ -267,6 +267,9 @@ function setupDashboardRefresh() {
       const currentRoot = document.querySelector(`[data-dashboard-fragment="${name}"]`);
       const nextRoot = parseFragment(html, name);
       if (!currentRoot || !nextRoot) return;
+      const focusedInside = currentRoot.contains(document.activeElement);
+      const interactionOpen = Boolean(currentRoot.querySelector('details[open], [data-certificate-share-menu]:not([hidden])'));
+      if (focusedInside || interactionOpen) return;
 
       if (currentRoot.id) {
         currentRoot.innerHTML = nextRoot.innerHTML;

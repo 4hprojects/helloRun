@@ -97,7 +97,11 @@ function normalizeMongoSubmissionCertificate(submission, submissionCoreRow) {
     generated_at: new Date(submission.certificate.issuedAt),
     regenerated_at: submission.certificate.regeneratedAt ? new Date(submission.certificate.regeneratedAt) : null,
     revoked_at: submission.certificate.revokedAt ? new Date(submission.certificate.revokedAt) : null,
-    generation_error: submission.certificate.generationError || null
+    generation_error: submission.certificate.generationError || null,
+    goal_distance_km: finiteOrNull(submission.certificate.goalDistanceKm),
+    verified_distance_km: finiteOrNull(submission.certificate.verifiedDistanceKm),
+    approved_activity_count: integerOrNull(submission.certificate.approvedActivityCount),
+    finalized_at: submission.certificate.finalizedAt ? new Date(submission.certificate.finalizedAt) : null
   };
 }
 
@@ -235,7 +239,8 @@ async function syncSubmissionShadow(submission, options = {}) {
           mongo_certificate_id, submission_id, runner_user_id, event_id,
           registration_id, certificate_url, certificate_key, issued_at, issued_by, certificate_type,
           certificate_template_id, certificate_number, verification_url, status, generated_at,
-          regenerated_at, revoked_at, generation_error, updated_at,
+          regenerated_at, revoked_at, generation_error, goal_distance_km,
+          verified_distance_km, approved_activity_count, finalized_at, updated_at,
           is_smoke_test, test_run_id, created_by_test, expires_at
         ) VALUES (
           ${normalizedCertificate.mongo_certificate_id},
@@ -256,6 +261,10 @@ async function syncSubmissionShadow(submission, options = {}) {
           ${normalizedCertificate.regenerated_at},
           ${normalizedCertificate.revoked_at},
           ${normalizedCertificate.generation_error},
+          ${normalizedCertificate.goal_distance_km},
+          ${normalizedCertificate.verified_distance_km},
+          ${normalizedCertificate.approved_activity_count},
+          ${normalizedCertificate.finalized_at},
           CURRENT_TIMESTAMP,
           ${normalizedSubmission.smokeMeta.is_smoke_test},
           ${normalizedSubmission.smokeMeta.test_run_id || null},
@@ -275,6 +284,10 @@ async function syncSubmissionShadow(submission, options = {}) {
           regenerated_at = EXCLUDED.regenerated_at,
           revoked_at = EXCLUDED.revoked_at,
           generation_error = EXCLUDED.generation_error,
+          goal_distance_km = EXCLUDED.goal_distance_km,
+          verified_distance_km = EXCLUDED.verified_distance_km,
+          approved_activity_count = EXCLUDED.approved_activity_count,
+          finalized_at = EXCLUDED.finalized_at,
           updated_at = CURRENT_TIMESTAMP,
           is_smoke_test = EXCLUDED.is_smoke_test,
           test_run_id = EXCLUDED.test_run_id,
@@ -327,6 +340,18 @@ async function syncSubmissionShadow(submission, options = {}) {
     logger.error('Submission shadow sync error:', error.message);
     throw error;
   }
+}
+
+function finiteOrNull(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function integerOrNull(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isInteger(number) && number >= 0 ? number : null;
 }
 
 function __setDisableSubmissionShadowSync(value) {

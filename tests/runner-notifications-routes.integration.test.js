@@ -49,18 +49,36 @@ test('runner notifications page renders and mark-read endpoints work', async () 
   });
   assert.equal(page.status, 200);
   const html = await page.text();
+  const csrfToken = extractCsrfToken(html);
   assert.match(html, /Notifications/i);
-  assert.match(html, /Unread:\s*<strong>2<\/strong>/i);
+  assert.match(html, /data-notification-unread-count[^>]*>2<\/strong>/i);
   assert.match(html, /nav-notification-badge[^>]*>2</i);
   assert.match(html, /Result Approved/i);
+  assert.match(html, /Notification preferences/i);
+  assert.match(html, /data-notification-dialog/i);
 
-  const markOne = await fetch(`${BASE_URL}/runner/notifications/${seed.notificationIds[0]}/read`, {
+  const markJson = await fetch(`${BASE_URL}/runner/notifications/${seed.notificationIds[0]}/read`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      Accept: 'application/json',
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({ _csrf: csrfToken, returnTo: '/runner/notifications' })
+  });
+  assert.equal(markJson.status, 200);
+  assert.equal((await markJson.json()).success, true);
+
+  const pageAfterJson = await fetch(`${BASE_URL}/runner/notifications`, { headers: { Cookie: cookie } });
+  assert.match(await pageAfterJson.text(), /data-notification-unread-count[^>]*>1<\/strong>/i);
+
+  const markOne = await fetch(`${BASE_URL}/runner/notifications/${seed.notificationIds[1]}/read`, {
     method: 'POST',
     headers: {
       Cookie: cookie,
       'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: new URLSearchParams({ returnTo: '/runner/notifications' }),
+    body: new URLSearchParams({ _csrf: csrfToken, returnTo: '/runner/notifications' }),
     redirect: 'manual'
   });
   assert.equal(markOne.status, 302);
@@ -70,7 +88,31 @@ test('runner notifications page renders and mark-read endpoints work', async () 
     headers: { Cookie: cookie }
   });
   const htmlAfterOne = await pageAfterOne.text();
-  assert.match(htmlAfterOne, /Unread:\s*<strong>1<\/strong>/i);
+  assert.match(htmlAfterOne, /data-notification-unread-count[^>]*>0<\/strong>/i);
+
+  const archiveOne = await fetch(`${BASE_URL}/runner/notifications/${seed.notificationIds[0]}/archive`, {
+    method: 'POST',
+    headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ _csrf: csrfToken, returnTo: '/runner/notifications' }),
+    redirect: 'manual'
+  });
+  assert.equal(archiveOne.status, 302);
+  assert.match(archiveOne.headers.get('location') || '', /Notification%20archived/i);
+
+  const archivedPage = await fetch(`${BASE_URL}/runner/notifications?view=archived`, { headers: { Cookie: cookie } });
+  const archivedHtml = await archivedPage.text();
+  assert.match(archivedHtml, /Archived updates/i);
+  assert.match(archivedHtml, /Result Approved/i);
+  assert.match(archivedHtml, />Restore</i);
+
+  const restoreOne = await fetch(`${BASE_URL}/runner/notifications/${seed.notificationIds[0]}/restore`, {
+    method: 'POST',
+    headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ _csrf: csrfToken, returnTo: '/runner/notifications?view=archived' }),
+    redirect: 'manual'
+  });
+  assert.equal(restoreOne.status, 302);
+  assert.match(restoreOne.headers.get('location') || '', /view=archived&type=success/i);
 
   const markAll = await fetch(`${BASE_URL}/runner/notifications/read-all`, {
     method: 'POST',
@@ -78,7 +120,7 @@ test('runner notifications page renders and mark-read endpoints work', async () 
       Cookie: cookie,
       'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: new URLSearchParams({ returnTo: '/runner/notifications' }),
+    body: new URLSearchParams({ _csrf: csrfToken, returnTo: '/runner/notifications' }),
     redirect: 'manual'
   });
   assert.equal(markAll.status, 302);
@@ -88,7 +130,20 @@ test('runner notifications page renders and mark-read endpoints work', async () 
     headers: { Cookie: cookie }
   });
   const htmlAfterAll = await pageAfterAll.text();
-  assert.match(htmlAfterAll, /Unread:\s*<strong>0<\/strong>/i);
+  assert.match(htmlAfterAll, /data-notification-unread-count[^>]*>0<\/strong>/i);
+
+  const archiveRead = await fetch(`${BASE_URL}/runner/notifications/archive-read`, {
+    method: 'POST',
+    headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ _csrf: csrfToken, returnTo: '/runner/notifications' }),
+    redirect: 'manual'
+  });
+  assert.equal(archiveRead.status, 302);
+  const currentAfterArchive = await fetch(`${BASE_URL}/runner/notifications`, { headers: { Cookie: cookie } });
+  assert.match(await currentAfterArchive.text(), /No notifications yet/i);
+
+  const legacyUnread = await fetch(`${BASE_URL}/runner/notifications?unread=1`, { headers: { Cookie: cookie } });
+  assert.match(await legacyUnread.text(), /Unread updates/i);
 });
 
 test('notification mark-read returnTo is sanitized against open redirect', async () => {
@@ -96,6 +151,8 @@ test('notification mark-read returnTo is sanitized against open redirect', async
   const cookie = await login(localSeed.runner.email, localSeed.password);
   const ready = await waitForSessionReady(cookie);
   assert.equal(ready, true);
+  const notificationPage = await fetch(`${BASE_URL}/runner/notifications`, { headers: { Cookie: cookie } });
+  const csrfToken = extractCsrfToken(await notificationPage.text());
 
   const markOne = await fetch(`${BASE_URL}/runner/notifications/${localSeed.notificationIds[0]}/read`, {
     method: 'POST',
@@ -103,7 +160,7 @@ test('notification mark-read returnTo is sanitized against open redirect', async
       Cookie: cookie,
       'Content-Type': 'application/x-www-form-urlencoded'
     },
-    body: new URLSearchParams({ returnTo: 'https://evil.example/phish' }),
+    body: new URLSearchParams({ _csrf: csrfToken, returnTo: 'https://evil.example/phish' }),
     redirect: 'manual'
   });
   assert.equal(markOne.status, 302);
@@ -142,6 +199,7 @@ async function seedNotificationsFixture() {
     lastName: 'Runner',
     mobile: '09170000000',
     country: 'PH',
+    timezone: 'Asia/Manila',
     dateOfBirth: new Date('1994-01-01T00:00:00.000Z'),
     gender: 'male',
     emergencyContactName: 'Route Emergency',
@@ -204,7 +262,7 @@ async function cleanupSeed(currentSeed) {
   if (!currentSeed || !currentSeed.runner) return;
   await ensureConnected();
   await Promise.all([
-    Notification.deleteMany({ _id: { $in: currentSeed.notificationIds || [] } }),
+    Notification.deleteMany({ userId: currentSeed.runner._id }),
     User.deleteOne({ _id: currentSeed.runner._id })
   ]);
 }
@@ -226,6 +284,12 @@ async function login(email, password) {
   const setCookie = response.headers.get('set-cookie');
   assert.ok(setCookie);
   return setCookie.split(';')[0];
+}
+
+function extractCsrfToken(html) {
+  const match = String(html || '').match(/name="_csrf" value="([^"]+)"/i);
+  assert.ok(match, 'Expected a CSRF token in the notifications page');
+  return match[1];
 }
 
 async function waitForSessionReady(cookie) {

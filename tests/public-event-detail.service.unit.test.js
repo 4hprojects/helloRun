@@ -79,7 +79,36 @@ test('runner presentation preserves over-target totals while clamping the visual
   assert.equal(state.progressPercentage, 126);
   assert.equal(state.progressBarPercentage, 100);
   assert.equal(state.remainingDistanceKm, 0);
-  assert.equal(state.state, 'completed');
+  assert.equal(state.overGoalDistanceKm, 6.5);
+  assert.equal(state.state, 'goal_reached');
+  assert.equal(state.primaryAction.type, 'submit');
+  assert.equal(state.primaryAction.label, 'Add activity');
+});
+
+test('completed challenge separates pending overage and waits for event-wide final reviews', () => {
+  const open = buildPublicEventRunnerState({
+    event: buildEvent(),
+    registration: buildRegistration(),
+    activities: [
+      { _id: 'approved', status: 'approved', distanceKm: 25 },
+      { _id: 'pending', status: 'submitted', distanceKm: 5 }
+    ],
+    now: NOW
+  });
+  assert.equal(open.approvedDistanceKm, 25);
+  assert.equal(open.pendingDistanceKm, 5);
+  assert.equal(open.potentialDistanceKm, 30);
+  assert.equal(open.primaryAction.label, 'Add activity');
+
+  const closed = buildPublicEventRunnerState({
+    event: buildEvent({ finalSubmissionDeadlineAt: '2026-07-16T00:00:00.000Z' }),
+    registration: buildRegistration(),
+    activities: [{ _id: 'approved', status: 'approved', distanceKm: 25 }],
+    eventPendingActivityCount: 1,
+    now: NOW
+  });
+  assert.equal(closed.state, 'final_reviews');
+  assert.equal(closed.primaryAction.href, '/runner/submissions');
 });
 
 test('runner presentation distinguishes rejected, pre-window, and closed states', () => {
@@ -112,7 +141,36 @@ test('runner presentation distinguishes rejected, pre-window, and closed states'
     now: NOW
   });
   assert.equal(closed.state, 'submission_closed');
+  assert.equal(closed.stateLabel, 'Challenge ended');
   assert.equal(closed.primaryAction, null);
+});
+
+test('event detail does not call an ended challenge in progress during its submission grace period', () => {
+  const event = buildEvent({
+    eventStartAt: '2026-06-01T00:00:00.000Z',
+    eventEndAt: '2026-06-30T23:59:00.000Z',
+    virtualWindow: { startAt: '2026-06-01T00:00:00.000Z', endAt: '2026-06-30T23:59:00.000Z' },
+    finalSubmissionDeadlineAt: '2026-07-20T23:59:00.000Z'
+  });
+  const grace = buildPublicEventRunnerState({
+    event,
+    registration: buildRegistration(),
+    activities: [{ _id: 'approved-1', status: 'approved', distanceKm: 10 }],
+    now: NOW
+  });
+  assert.equal(grace.state, 'final_submission_open');
+  assert.equal(grace.stateLabel, 'Final submissions open');
+  assert.equal(grace.primaryAction.type, 'submit');
+
+  const review = buildPublicEventRunnerState({
+    event,
+    registration: buildRegistration(),
+    activities: [{ _id: 'pending-1', status: 'submitted', distanceKm: 10 }],
+    now: NOW
+  });
+  assert.equal(review.state, 'pending');
+  assert.equal(review.stateLabel, 'Awaiting final review');
+  assert.equal(review.secondaryAction, null);
 });
 
 test('race-result events remain outside the accumulated runner presentation', () => {

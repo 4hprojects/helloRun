@@ -13,6 +13,7 @@ const {
   getRunnerRegistrations,
   getRunnerEventProgressCards,
   buildRunnerDashboardData,
+  buildRunnerDashboardPresentation,
   splitEventProgressCards,
   sortEventProgressCardsByRecency,
   buildCertificateShareUrls
@@ -23,6 +24,8 @@ const {
 } = require('../services/submission.service');
 const {
   listRunnerSubmissions,
+  normalizeListOptions,
+  buildRunnerSubmissionListPresentation,
   getRunnerSubmissionDetail,
   getRunnerSubmissionProof,
   getRunnerSubmissionCounts
@@ -43,7 +46,13 @@ const {
 const {
   getUserNotifications,
   markNotificationAsRead,
-  markAllNotificationsAsRead
+  markAllNotificationsAsRead,
+  archiveNotification,
+  restoreNotification,
+  archiveAllReadNotifications,
+  normalizeNotificationView,
+  buildNotificationListUrl,
+  buildNotificationPresentation
 } = require('../services/notification.service');
 const {
   getRunnerProfileCompleteness,
@@ -175,23 +184,7 @@ exports.getDashboardRefresh = async (req, res) => {
     }
 
     const viewData = await buildRunnerDashboardViewData(user, req);
-    const fragmentNames = [
-      'next-action',
-      'summary',
-      'hero-highlights',
-      'upcoming',
-      'badges',
-      'badge-progress',
-      'event-progress',
-      'missed-submissions',
-      'result-submissions',
-      'past',
-      'activity',
-      'certificates',
-      'progress-stats',
-      'running-groups',
-      'latest-achievement'
-    ];
+    const fragmentNames = ['active-journey', 'summary', 'recent-activity', 'latest-achievement'];
     const rendered = await Promise.all(fragmentNames.map(async (name) => [
       name.replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase()),
       await renderViewFragment(res, `runner/partials/dashboard-${name}`, viewData)
@@ -708,12 +701,13 @@ exports.getNotifications = async (req, res) => {
     const locale = getRequestLocale(req);
 
     const page = normalizePositiveInt(req.query.page, 1);
-    const unreadOnly = String(req.query.unread || '').trim() === '1';
+    const view = normalizeNotificationView(req.query.view, req.query.unread);
     const notifications = await getUserNotifications(user._id, {
       page,
       limit: 20,
-      unreadOnly
+      view
     });
+    const returnTo = buildNotificationListUrl(view, notifications.page);
 
     return res.render('runner/notifications', {
       title: 'Notifications - HelloRun',
@@ -721,12 +715,21 @@ exports.getNotifications = async (req, res) => {
       message: getRunnerProfileMessage(req.query),
       notifications: {
         ...notifications,
-        unreadOnly,
+        view,
+        returnTo,
+        urls: {
+          all: buildNotificationListUrl('all'),
+          unread: buildNotificationListUrl('unread'),
+          archived: buildNotificationListUrl('archived'),
+          previous: buildNotificationListUrl(view, Math.max(1, notifications.page - 1)),
+          next: buildNotificationListUrl(view, Math.min(notifications.totalPages, notifications.page + 1))
+        },
         items: notifications.items.map((item) => ({
           ...item,
+          ...buildNotificationPresentation(item),
+          id: String(item._id),
           createdAtLabel: formatDateTime(item.createdAt, locale),
-          createdAtRelativeLabel: formatRelativeTime(item.createdAt),
-          isRead: Boolean(item.readAt)
+          createdAtRelativeLabel: formatRelativeTime(item.createdAt)
         }))
       }
     });
@@ -776,11 +779,20 @@ exports.markNotificationRead = async (req, res) => {
     }
 
     const returnTo = getSafeRunnerReturnTo(req.body.returnTo || '/runner/notifications');
-    await markNotificationAsRead(user._id, req.params.notificationId);
+    const result = await markNotificationAsRead(user._id, req.params.notificationId);
+    if (wantsJsonResponse(req)) {
+      return res.status(result.matched ? 200 : 404).json({
+        success: result.matched,
+        message: result.matched ? 'Notification marked as read.' : 'Notification is unavailable.'
+      });
+    }
     return res.redirect(returnTo);
   } catch (error) {
+    if (wantsJsonResponse(req)) {
+      return res.status(500).json({ success: false, message: 'Unable to update notification state.' });
+    }
     const returnTo = getSafeRunnerReturnTo(req.body.returnTo || '/runner/notifications');
-    return res.redirect(`${returnTo}?type=error&msg=${encodeURIComponent('Unable to update notification state.')}`);
+    return res.redirect(withRunnerPageMessage(returnTo, 'error', 'Unable to update notification state.'));
   }
 };
 
@@ -793,10 +805,51 @@ exports.markAllNotificationsRead = async (req, res) => {
 
     const returnTo = getSafeRunnerReturnTo(req.body.returnTo || '/runner/notifications');
     await markAllNotificationsAsRead(user._id);
-    return res.redirect(`${returnTo}?type=success&msg=${encodeURIComponent('All notifications marked as read.')}`);
+    return res.redirect(withRunnerPageMessage(returnTo, 'success', 'All notifications marked as read.'));
   } catch (error) {
     const returnTo = getSafeRunnerReturnTo(req.body.returnTo || '/runner/notifications');
-    return res.redirect(`${returnTo}?type=error&msg=${encodeURIComponent('Unable to update notification state.')}`);
+    return res.redirect(withRunnerPageMessage(returnTo, 'error', 'Unable to update notification state.'));
+  }
+};
+
+exports.archiveRunnerNotification = async (req, res) => {
+  const returnTo = getSafeRunnerReturnTo(req.body.returnTo || '/runner/notifications');
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) return res.redirect('/login');
+    const result = await archiveNotification(user._id, req.params.notificationId);
+    const message = result.matched ? 'Notification archived.' : 'Notification is unavailable.';
+    return res.redirect(withRunnerPageMessage(returnTo, result.matched ? 'success' : 'error', message));
+  } catch (error) {
+    return res.redirect(withRunnerPageMessage(returnTo, 'error', 'Unable to archive notification.'));
+  }
+};
+
+exports.restoreRunnerNotification = async (req, res) => {
+  const returnTo = getSafeRunnerReturnTo(req.body.returnTo || '/runner/notifications?view=archived');
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) return res.redirect('/login');
+    const result = await restoreNotification(user._id, req.params.notificationId);
+    const message = result.matched ? 'Notification restored.' : 'Notification is unavailable.';
+    return res.redirect(withRunnerPageMessage(returnTo, result.matched ? 'success' : 'error', message));
+  } catch (error) {
+    return res.redirect(withRunnerPageMessage(returnTo, 'error', 'Unable to restore notification.'));
+  }
+};
+
+exports.archiveReadRunnerNotifications = async (req, res) => {
+  const returnTo = getSafeRunnerReturnTo(req.body.returnTo || '/runner/notifications');
+  try {
+    const user = await getRunnerFromSession(req);
+    if (!user) return res.redirect('/login');
+    const result = await archiveAllReadNotifications(user._id);
+    const message = result.modifiedCount
+      ? `${result.modifiedCount} read notification${result.modifiedCount === 1 ? '' : 's'} archived.`
+      : 'There are no read notifications to archive.';
+    return res.redirect(withRunnerPageMessage(returnTo, 'success', message));
+  } catch (error) {
+    return res.redirect(withRunnerPageMessage(returnTo, 'error', 'Unable to archive read notifications.'));
   }
 };
 
@@ -840,7 +893,7 @@ async function buildRunnerDashboardViewData(user, req) {
     performanceSnapshot.recentActivity
   );
   const formattedProgressCards = formatRunnerEventProgressCards(activeProgressCards, locale);
-  const nextActionCard = formattedProgressCards[0] || null;
+  const allFormattedProgressCards = formatRunnerEventProgressCards(eventProgressCards, locale);
 
   const now = new Date();
   let savedEvents = [];
@@ -868,6 +921,41 @@ async function buildRunnerDashboardViewData(user, req) {
     } catch (_) {}
   }
 
+  const formattedActivity = mergedActivity.slice(0, 3).map((item) => ({
+    ...item,
+    atLabel: formatDateTime(item.at, locale),
+    atRelativeLabel: formatRelativeTime(item.at)
+  }));
+  const latestAchievement = buildLatestAchievement({
+    certificates: performanceSnapshot.recentCertificates || [],
+    badges: recentBadges,
+    nextMilestones,
+    locale
+  });
+  const dashboardSnapshot = {
+    activeEvents: activeProgressCards.filter((card) => !['approved', 'completed'].includes(card.state)).length,
+    approvedDistanceKm: Number(performanceSnapshot.metrics?.totalDistanceKm || 0),
+    pendingReview: Number(performanceSnapshot.counts?.submitted || 0),
+    completedEvents: Number(performanceSnapshot.metrics?.completedEvents || 0),
+    certificates: Number(performanceSnapshot.counts?.certificates || 0),
+    achievementPoints: Number(badgePointsSummary?.totalPoints || 0)
+  };
+  const runnerDashboardPresentation = buildRunnerDashboardPresentation({
+    user,
+    cards: allFormattedProgressCards,
+    profileCompleteness: getRunnerProfileCompleteness(user),
+    snapshot: dashboardSnapshot,
+    recentActivity: formattedActivity,
+    latestAchievement,
+    unavailableHistoryCount: registrations.filter((registration) => !registration?.eventId).length,
+    toolCounts: {
+      submissions: performanceSnapshot.counts?.total,
+      achievements: badgePointsSummary?.badgeCount,
+      groups: currentRunningGroups.length,
+      savedEvents: savedEvents.length
+    }
+  });
+
   return {
     dashboardFilters,
     runningGroupFeature: {
@@ -875,20 +963,11 @@ async function buildRunnerDashboardViewData(user, req) {
       currentGroups: currentRunningGroups
     },
     savedEvents,
-    runnerJourney: buildRunnerJourney({
-      user,
-      nextActionCard,
-      activeCards: formattedProgressCards,
-      profileCompleteness: getRunnerProfileCompleteness(user)
-    }),
+    runnerDashboardPresentation,
     cards: {
       upcoming: dashboardData.upcoming.slice(0, 1).map(normalizeRegistrationCard),
       past: dashboardData.past.slice(0, 5).map(normalizeRegistrationCard),
-      activity: mergedActivity.slice(0, 3).map((item) => ({
-        ...item,
-        atLabel: formatDateTime(item.at, locale),
-        atRelativeLabel: formatRelativeTime(item.at)
-      })),
+      activity: formattedActivity,
       certificates: (performanceSnapshot.recentCertificates || []).map((item) => ({
         ...item,
         issuedAtLabel: formatDateTime(item.issuedAt, locale)
@@ -904,20 +983,8 @@ async function buildRunnerDashboardViewData(user, req) {
     },
     badgePointsSummary,
     nextMilestones,
-    latestAchievement: buildLatestAchievement({
-      certificates: performanceSnapshot.recentCertificates || [],
-      badges: recentBadges,
-      nextMilestones,
-      locale
-    }),
-    dashboardSnapshot: {
-      activeEvents: activeProgressCards.length,
-      approvedDistanceKm: Number(performanceSnapshot.metrics?.totalDistanceKm || 0),
-      pendingReview: Number(performanceSnapshot.counts?.submitted || 0),
-      completedEvents: Number(performanceSnapshot.metrics?.completedEvents || 0),
-      certificates: Number(performanceSnapshot.counts?.certificates || 0),
-      achievementPoints: Number(badgePointsSummary?.totalPoints || 0)
-    },
+    latestAchievement,
+    dashboardSnapshot,
     stats: dashboardData.stats,
     submissionStats: performanceSnapshot.counts || { total: 0, submitted: 0, approved: 0, rejected: 0, certificates: 0 },
     performanceStats: performanceSnapshot.metrics || {
@@ -927,39 +994,6 @@ async function buildRunnerDashboardViewData(user, req) {
       fastestElapsedLabel: ''
     },
     personalBest: performanceSnapshot.personalBest || null
-  };
-}
-
-function buildRunnerJourney({ user, nextActionCard, activeCards = [], profileCompleteness }) {
-  const fallbackAction = {
-    type: 'link',
-    label: 'Browse Events',
-    href: '/events'
-  };
-  const primaryAction = nextActionCard?.nextAction
-    ? { ...nextActionCard.nextAction, registrationId: nextActionCard.registrationId }
-    : fallbackAction;
-  const urgentAlerts = [];
-
-  if (user?.accountStatus === 'restricted') {
-    urgentAlerts.push({ tone: 'warning', text: 'Your account is restricted. Submissions and registrations are unavailable until support restores access.', href: '/contact', label: 'Contact Support' });
-  }
-  for (const card of activeCards) {
-    if (card.state === 'rejected') urgentAlerts.push({ tone: 'danger', text: `${card.eventTitle}: your activity needs a correction.`, href: `/runner/submissions/${card.latestSubmission?.id || ''}`, label: 'Review Submission' });
-    if (card.payment?.status === 'proof_rejected') urgentAlerts.push({ tone: 'danger', text: `${card.eventTitle}: your payment proof needs an update.`, href: '/my-registrations', label: 'Fix Payment' });
-    if (['warning', 'urgent'].includes(card.deadlineTone) && ['not_submitted', 'in_progress'].includes(card.state)) urgentAlerts.push({ tone: card.deadlineTone === 'urgent' ? 'danger' : 'warning', text: `${card.eventTitle}: ${card.deadlineLabel}.`, href: card.eventSlug ? `/events/${card.eventSlug}` : '/my-registrations', label: 'View Deadline' });
-  }
-  if (profileCompleteness?.missingFields?.length && activeCards.some((card) => ['approved', 'certificate_ready', 'completed'].includes(card.state))) {
-    urgentAlerts.push({ tone: 'warning', text: 'Complete your profile so your registration and certificate details are accurate.', href: '/runner/profile', label: 'Complete Profile' });
-  }
-
-  return {
-    nextActionCard,
-    primaryAction,
-    urgentAlerts: urgentAlerts.slice(0, 3),
-    subtitle: nextActionCard
-      ? `${nextActionCard.stateLabel} for ${nextActionCard.eventTitle}. ${nextActionCard.deadlineLabel || ''}`.trim()
-      : 'Choose an event, register for a distance, and start your next challenge.'
   };
 }
 
@@ -1358,30 +1392,17 @@ exports.getRunnerSubmissionsPage = async (req, res) => {
       return res.redirect('/login');
     }
 
-    const VALID_STATUSES = new Set(['submitted', 'approved', 'rejected']);
-    const VALID_ACTIVITY_TYPES = new Set(['run', 'walk', 'hike', 'trail_run']);
-    const VALID_SORTS = new Set(['newest', 'oldest', 'eventDate', 'fastest', 'distance']);
-
-    const rawStatus = String(req.query.status || '').trim().toLowerCase();
-    const rawActivity = String(req.query.activityType || '').trim().toLowerCase();
-    const rawSort = String(req.query.sort || '').trim().toLowerCase();
-    const rawPage = Number.parseInt(String(req.query.page || '1'), 10);
-
-    const filters = {
-      status: VALID_STATUSES.has(rawStatus) ? rawStatus : '',
-      activityType: VALID_ACTIVITY_TYPES.has(rawActivity) ? rawActivity : '',
-      q: String(req.query.q || '').trim().slice(0, 100),
-      sort: VALID_SORTS.has(rawSort) ? rawSort : 'newest',
-      page: Number.isInteger(rawPage) && rawPage >= 1 ? rawPage : 1
-    };
+    const filters = normalizeListOptions(req.query);
 
     const [result, counts] = await Promise.all([
       listRunnerSubmissions(user._id, filters),
       getRunnerSubmissionCounts(user._id)
     ]);
 
+    const presentation = buildRunnerSubmissionListPresentation(result, counts, filters);
+
     return res.render('runner/submissions', {
-      title: 'Submitted Entries - HelloRun',
+      title: 'Submission History - HelloRun',
       user,
       userName: user.firstName,
       message: getRunnerProfileMessage(req.query),
@@ -1392,14 +1413,15 @@ exports.getRunnerSubmissionsPage = async (req, res) => {
         total: result.total
       },
       counts,
-      filters
+      filters,
+      presentation
     });
   } catch (error) {
     logger.error('Runner submissions page load error:', error);
     return res.status(500).render('error', {
       title: 'Server Error',
       status: 500,
-      message: 'An error occurred while loading your submitted entries.'
+      message: 'An error occurred while loading your submission history.'
     });
   }
 };
@@ -1538,6 +1560,15 @@ function getSafeRunnerReturnTo(value) {
   if (!raw.startsWith('/runner/')) return '/runner/dashboard';
   if (raw.includes('://')) return '/runner/dashboard';
   return raw;
+}
+
+function wantsJsonResponse(req) {
+  return String(req.get('accept') || '').toLowerCase().includes('application/json');
+}
+
+function withRunnerPageMessage(returnTo, type, message) {
+  const separator = String(returnTo || '').includes('?') ? '&' : '?';
+  return `${returnTo}${separator}type=${encodeURIComponent(type)}&msg=${encodeURIComponent(message)}`;
 }
 
 async function getRunnerFromSession(req) {

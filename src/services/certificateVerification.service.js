@@ -43,16 +43,22 @@ function buildPublicCertificateData(record) {
   const runner = record.runnerId || {};
   const runnerName = buildRunnerName(runner, registration);
   const status = certificate.status === 'revoked' || certificate.revokedAt ? 'revoked' : 'valid';
+  const isFinalizing = status === 'revoked' && /awaiting accumulated challenge finalization/i.test(certificate.generationError || '');
 
   return {
     certificateNumber: certificate.certificateNumber || '',
     status,
+    isFinalizing,
     runnerName,
     eventTitle: event.title || 'Event unavailable',
     eventSlug: String(event.slug || '').trim(),
     eventDate: event.eventStartAt || null,
     organizerName: event.organiserName || '',
     distance: registration.raceDistance || record.raceDistance || formatDistance(record.distanceKm),
+    goalDistance: formatDistance(certificate.goalDistanceKm) || registration.raceDistance || record.raceDistance || '',
+    verifiedDistance: formatDistance(certificate.verifiedDistanceKm),
+    approvedActivityCount: Number(certificate.approvedActivityCount || 0),
+    finalizedAt: certificate.finalizedAt || null,
     finishTime: formatElapsedMs(record.elapsedMs),
     rank: '',
     generatedAt: certificate.issuedAt || record.reviewedAt || null,

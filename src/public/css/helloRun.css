@@ -1883,6 +1883,35 @@ h1, h2, h3 {
 }
 
 @media (max-width: 480px) {
+  .hero-container.has-leaderboard .hero-text,
+  .hero-text {
+    text-align: center;
+  }
+
+  .hero-cta-row {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .hero-cta-row .btn {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .hero-returning-user,
+  .hero-container.has-leaderboard .hero-returning-user {
+    display: grid;
+    justify-content: center;
+    justify-items: center;
+    gap: 0.2rem;
+    text-align: center;
+  }
+
+  .hero-returning-user > a {
+    justify-content: center;
+    text-align: center;
+  }
+
   .hero-subtitle {
     font-size: 0.96rem;
   }

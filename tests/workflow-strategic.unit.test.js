@@ -35,6 +35,7 @@ test('runner completion remains contextual instead of rendering a persistent das
   const dashboard = read('src/views/runner/dashboard.ejs');
   assert.doesNotMatch(dashboard, /Finish line reached/);
   assert.doesNotMatch(dashboard, /runner-completion-hero/);
-  assert.match(dashboard, /Certificates Earned/);
-  assert.match(dashboard, /Recent Badges/);
+  assert.match(read('src/views/runner/partials/dashboard-summary.ejs'), /Certificates/);
+  assert.match(read('src/views/runner/partials/dashboard-latest-achievement.ejs'), /Latest Achievement/);
+  assert.match(dashboard, /Registration History/);
 });

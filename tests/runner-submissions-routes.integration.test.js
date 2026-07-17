@@ -91,7 +91,7 @@ test('runner sees own submitted entries list page', async () => {
   });
   assert.equal(res.status, 200);
   const html = await res.text();
-  assert.match(html, /Submitted Entries/i);
+  assert.match(html, /Submission History/i);
   // Runner A's event title should appear
   assert.match(html, new RegExp(seed.eventTitleA));
 });
@@ -246,7 +246,7 @@ test('rejected submission detail shows rejection reason and resubmit action', as
   assert.equal(res.status, 200);
   const html = await res.text();
   assert.match(html, /Rejected/i);
-  assert.match(html, /Resubmit Proof/i);
+  assert.match(html, /Upload new proof/i);
   assert.match(html, new RegExp(seed.rejectionReason));
 });
 
@@ -266,8 +266,8 @@ test('pending submission detail does not show resubmit action', async () => {
   });
   assert.equal(res.status, 200);
   const html = await res.text();
-  assert.doesNotMatch(html, /Resubmit Proof/i);
-  assert.match(html, /Waiting for review|Pending Review/i);
+  assert.doesNotMatch(html, /Upload new proof/i);
+  assert.match(html, /Awaiting review/i);
 });
 
 test('runner A cannot access runner B submission detail (403 or 404)', async () => {
