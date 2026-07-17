@@ -44,7 +44,7 @@
               <p class="home-leaderboard-context"><%= homeLeaderboard.rankingExplanation %></p>
             </header>
 
-            <div class="home-leaderboard-table-wrap">
+            <div class="home-leaderboard-table-wrap" tabindex="0" aria-label="Top <%= homeLeaderboard.entries.length %> verified standings; scroll for more results">
               <table class="home-leaderboard-table">
                 <caption>Top verified standings for <%= homeLeaderboard.eventTitle %><% if (homeLeaderboard.categoryLabel) { %>, <%= homeLeaderboard.categoryLabel %><% } %></caption>
                 <thead>

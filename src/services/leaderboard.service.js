@@ -127,7 +127,7 @@ async function getLeaderboardDiscoveryData(rawFilters = {}) {
 
 async function getHomepageLeaderboard(options = {}) {
   const candidateLimit = clampInt(options.candidateLimit, 1, 50, 12);
-  const entryLimit = clampInt(options.entryLimit, 1, 5, 3);
+  const entryLimit = clampInt(options.entryLimit, 1, 10, 10);
   const discovery = Array.isArray(options.candidates)
     ? { cards: options.candidates }
     : await getLeaderboardDiscoveryData({

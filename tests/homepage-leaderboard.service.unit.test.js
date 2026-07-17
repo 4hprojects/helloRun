@@ -31,12 +31,20 @@ function buildLeaderboard(overrides = {}) {
       {
         key: '10K',
         label: '10K',
-        stats: { verifiedEntries: 4 },
+        stats: { verifiedEntries: 12 },
         entries: [
           raceEntry(1, 'Ari S.', '00:44:00', '4:24/km'),
           raceEntry(2, 'Bea T.', '00:46:00', '4:36/km'),
           raceEntry(3, 'Cal U.', '00:48:00', '4:48/km'),
           raceEntry(4, 'Dee V.', '00:50:00', '5:00/km'),
+          raceEntry(5, 'Eli W.', '00:51:00', '5:06/km'),
+          raceEntry(6, 'Fay X.', '00:52:00', '5:12/km'),
+          raceEntry(7, 'Gia Y.', '00:53:00', '5:18/km'),
+          raceEntry(8, 'Hal Z.', '00:54:00', '5:24/km'),
+          raceEntry(9, 'Ian A.', '00:55:00', '5:30/km'),
+          raceEntry(10, 'Joy B.', '00:56:00', '5:36/km'),
+          raceEntry(11, 'Kai C.', '00:57:00', '5:42/km'),
+          raceEntry(12, 'Lou D.', '00:58:00', '5:48/km'),
           { rank: null, runnerName: 'Pending Runner', status: 'pending_review' }
         ]
       }
@@ -45,11 +53,11 @@ function buildLeaderboard(overrides = {}) {
   };
 }
 
-test('homepage leaderboard selects the strongest public group and returns three verified race entries', async () => {
+test('homepage leaderboard selects the strongest public group and returns ten verified race entries', async () => {
   const result = await getHomepageLeaderboard({
     candidates: [
       { slug: 'private-event', leaderboardVisibility: 'registered_only', verifiedCount: 99 },
-      { slug: 'public-sunrise-10k', leaderboardVisibility: 'public', verifiedCount: 5 }
+      { slug: 'public-sunrise-10k', leaderboardVisibility: 'public', verifiedCount: 12 }
     ],
     loadLeaderboard: async (slug) => {
       assert.equal(slug, 'public-sunrise-10k');
@@ -59,9 +67,9 @@ test('homepage leaderboard selects the strongest public group and returns three 
 
   assert.equal(result.eventTitle, 'Public Sunrise 10K');
   assert.equal(result.categoryLabel, '10K');
-  assert.equal(result.entries.length, 3);
-  assert.deepEqual(result.entries.map((entry) => entry.runnerName), ['Ari S.', 'Bea T.', 'Cal U.']);
-  assert.deepEqual(result.entries.map((entry) => entry.primaryMetric), ['00:44:00', '00:46:00', '00:48:00']);
+  assert.equal(result.entries.length, 10);
+  assert.deepEqual(result.entries.map((entry) => entry.runnerName), ['Ari S.', 'Bea T.', 'Cal U.', 'Dee V.', 'Eli W.', 'Fay X.', 'Gia Y.', 'Hal Z.', 'Ian A.', 'Joy B.']);
+  assert.deepEqual(result.entries.slice(0, 3).map((entry) => entry.primaryMetric), ['00:44:00', '00:46:00', '00:48:00']);
   assert.match(result.href, /public-sunrise-10k\/leaderboard\?distance=10K/);
 });
 

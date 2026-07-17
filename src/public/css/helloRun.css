@@ -181,15 +181,47 @@ h1, h2, h3 {
 
 .hero-container.has-leaderboard {
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  grid-template-columns: minmax(0, 1fr) 430px;
   align-items: center;
-  gap: clamp(2.5rem, 5vw, 5rem);
+  gap: clamp(3rem, 5vw, 4.5rem);
 }
 
 .hero-text {
   max-width: 760px;
   position: relative;
   z-index: 2;
+}
+
+.hero-container.has-leaderboard .hero-text {
+  max-width: 680px;
+  text-align: left;
+}
+
+.hero-container.has-leaderboard .hero-title {
+  max-width: 680px;
+  margin-left: 0;
+  margin-right: 0;
+  font-size: clamp(2.8rem, 4.25vw, 3.65rem);
+  line-height: 1.06;
+}
+
+.hero-container.has-leaderboard .hero-title .highlight {
+  display: block;
+  white-space: nowrap;
+}
+
+.hero-container.has-leaderboard .hero-subtitle {
+  max-width: 650px;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.hero-container.has-leaderboard .hero-cta-row {
+  justify-content: flex-start;
+}
+
+.hero-container.has-leaderboard .hero-returning-user {
+  justify-content: flex-start;
 }
 
 .hero-container:not(.has-leaderboard) .hero-text {
@@ -377,9 +409,17 @@ h1, h2, h3 {
 }
 
 .home-leaderboard-table-wrap {
-  overflow: hidden;
+  max-height: 314px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
   border: 1px solid #e2e8f0;
   border-radius: 11px;
+}
+
+.home-leaderboard-table-wrap:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 2px;
 }
 
 .home-leaderboard-table {
@@ -402,6 +442,9 @@ h1, h2, h3 {
 }
 
 .home-leaderboard-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   color: #64748b;
   background: #f8fafc;
   font-size: 0.61rem;
@@ -447,6 +490,9 @@ h1, h2, h3 {
   height: 27px;
   border: 1px solid transparent;
   border-radius: 8px;
+  border-color: #dbe3ea;
+  color: #475569;
+  background: #f8fafc;
   font-family: 'Poppins', sans-serif;
   font-size: 0.72rem;
   font-weight: 800;
@@ -1569,6 +1615,35 @@ h1, h2, h3 {
 
   .hero-container.has-leaderboard {
     display: block;
+  }
+
+  .hero-container.has-leaderboard .hero-text {
+    max-width: 760px;
+    text-align: center;
+  }
+
+  .hero-container.has-leaderboard .hero-title {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+    font-size: clamp(2rem, 5vw, 3.25rem);
+    line-height: 1.2;
+  }
+
+  .hero-container.has-leaderboard .hero-title .highlight {
+    display: inline;
+    white-space: normal;
+  }
+
+  .hero-container.has-leaderboard .hero-subtitle {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .hero-container.has-leaderboard .hero-cta-row,
+  .hero-container.has-leaderboard .hero-returning-user {
+    justify-content: center;
   }
 
   .home-leaderboard {

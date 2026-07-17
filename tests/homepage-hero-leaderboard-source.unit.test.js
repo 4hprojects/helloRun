@@ -17,6 +17,7 @@ test('homepage hero renders a scoped leaderboard and retains a card-free fallbac
   assert.match(view, /homeLeaderboard\.entries\.forEach/);
   assert.match(view, /<table class="home-leaderboard-table">/);
   assert.match(view, /<caption>Top verified standings for/);
+  assert.match(view, /aria-label="Top <%= homeLeaderboard\.entries\.length %> verified standings; scroll for more results"/);
   assert.match(view, /scope="col">Rank/);
   assert.match(view, /scope="row" class="home-leaderboard-runner"/);
   assert.match(view, /View full standings/);
@@ -50,6 +51,8 @@ test('homepage leaderboard CSS provides a compact responsive sports table', () =
   assert.match(css, /@media \(max-width: 1199px\)[\s\S]*\.hero-container\.has-leaderboard[\s\S]*display: block/);
   assert.match(css, /\.home-leaderboard\s*\{[\s\S]*max-width:\s*430px/);
   assert.match(css, /\.home-leaderboard-table\s*\{[\s\S]*table-layout:\s*fixed/);
+  assert.match(css, /\.home-leaderboard-table-wrap\s*\{[\s\S]*max-height:\s*314px;[\s\S]*overflow-y:\s*auto/);
+  assert.match(css, /\.home-leaderboard-table thead\s*\{[\s\S]*position:\s*sticky/);
   assert.match(css, /\.home-leaderboard-table tbody tr \+ tr th,[\s\S]*border-top:/);
   assert.match(css, /\.home-leaderboard-rank-1[\s\S]*\.home-leaderboard-rank-2[\s\S]*\.home-leaderboard-rank-3/);
   assert.match(css, /\.home-leaderboard h2\s*\{[\s\S]*padding:\s*0;[\s\S]*text-align:\s*left/);
@@ -57,4 +60,15 @@ test('homepage leaderboard CSS provides a compact responsive sports table', () =
   assert.match(css, /\.hero \.home-leaderboard-context\s*\{[\s\S]*font-size:\s*0\.72rem/);
   assert.match(css, /\.home-leaderboard-link\s*\{[\s\S]*min-height:\s*44px/);
   assert.match(css, /@media \(max-width: 480px\)[\s\S]*\.home-leaderboard-table thead th:last-child[\s\S]*width:\s*45%/);
+});
+
+test('desktop hero balances two-line copy against the fixed-width standings card', () => {
+  const css = fs.readFileSync(path.join(ROOT, 'src/public/css/helloRun.css'), 'utf8');
+
+  assert.match(css, /\.hero-container\.has-leaderboard\s*\{[\s\S]*grid-template-columns:\s*minmax\(0, 1fr\) 430px/);
+  assert.match(css, /\.hero-container\.has-leaderboard \.hero-text\s*\{[\s\S]*text-align:\s*left/);
+  assert.match(css, /\.hero-container\.has-leaderboard \.hero-title \.highlight\s*\{[\s\S]*display:\s*block;[\s\S]*white-space:\s*nowrap/);
+  assert.match(css, /\.hero-container\.has-leaderboard \.hero-cta-row\s*\{[\s\S]*justify-content:\s*flex-start/);
+  assert.match(css, /@media \(max-width: 1199px\)[\s\S]*\.hero-container\.has-leaderboard \.hero-text[\s\S]*text-align:\s*center/);
+  assert.match(css, /@media \(max-width: 1199px\)[\s\S]*\.hero-container\.has-leaderboard \.hero-title \.highlight[\s\S]*white-space:\s*normal/);
 });
