@@ -159,6 +159,11 @@ if (!isProduction && process.env.DEBUG_HTTP_BODIES === '1') {
   });
 }
 
+// Local reusable component entry point. Keeping this explicit avoids exposing node_modules.
+app.get('/js/threaded-comments-component.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'packages', 'threaded-comments', 'web', 'threaded-comments.js'));
+});
+
 // Static files — 1-day cache; browsers revalidate with ETag/Last-Modified
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: isProduction ? '1d' : 0,

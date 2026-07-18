@@ -112,18 +112,18 @@
           <span class="nav-username">Hi, <%= locals.user ? locals.user.firstName : 'User' %></span>
           <form action="/logout" method="POST" class="logout-form">
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-            <button type="submit" class="nav-logout-btn nav-icon-link" aria-label="Logout" title="Logout">
-              <i data-lucide="log-out"></i>
-              <span class="nav-tooltip">Logout</span>
+            <button type="submit" class="nav-logout-btn nav-icon-link" aria-label="Log out of HelloRun" title="Log out">
+              <i data-lucide="log-out" aria-hidden="true"></i>
+              <span class="nav-tooltip">Log out</span>
             </button>
           </form>
         </div>
       <% } else { %>
         <!-- Guest buttons -->
         <div class="nav-auth-buttons">
-          <a href="/login" class="<%= navClass('/login', 'nav-login-btn') %>" aria-label="Login" title="Login" <% if (ariaCurrent('/login')) { %>aria-current="page"<% } %>>
-            <i data-lucide="log-in"></i>
-            <span class="nav-tooltip">Login</span>
+          <a href="/login" class="<%= navClass('/login', 'nav-login-btn') %>" aria-label="Log in to HelloRun" title="Log in" <% if (ariaCurrent('/login')) { %>aria-current="page"<% } %>>
+            <i data-lucide="log-in" aria-hidden="true"></i>
+            <span class="nav-tooltip">Log in</span>
           </a>
           <a href="/signup" class="<%= navClass('/signup', 'nav-signup-btn') %>" aria-label="Sign Up" title="Sign Up" <% if (ariaCurrent('/signup')) { %>aria-current="page"<% } %>>
             <i data-lucide="user-plus"></i>
@@ -142,33 +142,33 @@
 <% } %>
 <% if (locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer) { %>
 <nav class="mobile-bottom-nav" aria-label="Mobile navigation">
-  <a href="/runner/dashboard" class="mobile-nav-tab<%= isCurrent('/runner/dashboard') ? ' is-active' : '' %>" aria-label="Dashboard" <%= isCurrent('/runner/dashboard') ? 'aria-current="page"' : '' %>>
+  <a href="/runner/dashboard" class="mobile-nav-tab<%= isCurrent('/runner/dashboard') ? ' is-active' : '' %>" aria-label="Dashboard" <% if (isCurrent('/runner/dashboard')) { %>aria-current="page"<% } %>>
     <i data-lucide="layout-dashboard" aria-hidden="true"></i>
     <span>Home</span>
   </a>
-  <a href="/events" class="mobile-nav-tab<%= isCurrent('/events') ? ' is-active' : '' %>" aria-label="Events" <%= isCurrent('/events') ? 'aria-current="page"' : '' %>>
+  <a href="/events" class="mobile-nav-tab<%= isCurrent('/events') ? ' is-active' : '' %>" aria-label="Events" <% if (isCurrent('/events')) { %>aria-current="page"<% } %>>
     <i data-lucide="calendar-days" aria-hidden="true"></i>
     <span>Events</span>
   </a>
   <button type="button" class="mobile-nav-tab mobile-nav-tab-submit" data-open-run-proof-modal data-run-proof-surface="runner-mobile-nav" aria-label="Submit activity"><i data-lucide="circle-plus" aria-hidden="true"></i><span>Submit</span></button>
-  <a href="/runner/submissions" class="mobile-nav-tab<%= isCurrent('/runner/submissions') ? ' is-active' : '' %>" aria-label="Submission History" <%= isCurrent('/runner/submissions') ? 'aria-current="page"' : '' %>>
+  <a href="/runner/submissions" class="mobile-nav-tab<%= isCurrent('/runner/submissions') ? ' is-active' : '' %>" aria-label="Submission History" <% if (isCurrent('/runner/submissions')) { %>aria-current="page"<% } %>>
     <i data-lucide="file-check" aria-hidden="true"></i>
     <span>Progress</span>
   </a>
-  <a href="/runner/profile" class="mobile-nav-tab<%= isCurrent('/runner/profile') ? ' is-active' : '' %>" aria-label="Profile" <%= isCurrent('/runner/profile') ? 'aria-current="page"' : '' %>><i data-lucide="user" aria-hidden="true"></i><span>Profile</span></a>
+  <a href="/runner/profile" class="mobile-nav-tab<%= isCurrent('/runner/profile') ? ' is-active' : '' %>" aria-label="Profile" <% if (isCurrent('/runner/profile')) { %>aria-current="page"<% } %>><i data-lucide="user" aria-hidden="true"></i><span>Profile</span></a>
 </nav>
 <% } else if (locals.isAuthenticated && locals.isApprovedOrganizer) { %>
 <nav class="mobile-bottom-nav" aria-label="Organizer mobile navigation">
-  <a href="/organizer/dashboard" class="mobile-nav-tab<%= isCurrent('/organizer/dashboard') ? ' is-active' : '' %>"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
-  <a href="/organizer/events" class="mobile-nav-tab<%= isCurrent('/organizer/events') ? ' is-active' : '' %>"><i data-lucide="calendar-days"></i><span>Events</span></a>
-  <a href="/organizer/dashboard#queue-breakdown-heading" class="mobile-nav-tab"><i data-lucide="inbox"></i><span>Work</span></a>
-  <a href="/organizer/promote" class="mobile-nav-tab<%= isCurrent('/organizer/promote') ? ' is-active' : '' %>"><i data-lucide="more-horizontal"></i><span>More</span></a>
+  <a href="/organizer/dashboard" class="mobile-nav-tab<%= isCurrent('/organizer/dashboard') ? ' is-active' : '' %>" aria-label="Organizer Dashboard" <% if (isCurrent('/organizer/dashboard')) { %>aria-current="page"<% } %>><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a>
+  <a href="/organizer/events" class="mobile-nav-tab<%= isCurrent('/organizer/events') ? ' is-active' : '' %>" aria-label="Organizer Events" <% if (isCurrent('/organizer/events')) { %>aria-current="page"<% } %>><i data-lucide="calendar-days" aria-hidden="true"></i><span>Events</span></a>
+  <a href="/organizer/dashboard#queue-breakdown-heading" class="mobile-nav-tab" aria-label="Organizer Work Queue"><i data-lucide="inbox" aria-hidden="true"></i><span>Work</span></a>
+  <a href="/organizer/promote" class="mobile-nav-tab<%= isCurrent('/organizer/promote') ? ' is-active' : '' %>" aria-label="Organizer Promotion Tools" <% if (isCurrent('/organizer/promote')) { %>aria-current="page"<% } %>><i data-lucide="more-horizontal" aria-hidden="true"></i><span>More</span></a>
 </nav>
 <% } else if (locals.isAuthenticated && locals.isAdmin) { %>
 <nav class="mobile-bottom-nav" aria-label="Admin mobile navigation">
-  <a href="/admin/dashboard" class="mobile-nav-tab<%= isCurrent('/admin/dashboard') ? ' is-active' : '' %>"><i data-lucide="layout-dashboard"></i><span>Dashboard</span></a>
-  <a href="/admin/reviews" class="mobile-nav-tab<%= isCurrent('/admin/reviews') ? ' is-active' : '' %>"><i data-lucide="list-checks"></i><span>Reviews</span></a>
-  <a href="/admin/search" class="mobile-nav-tab<%= isCurrent('/admin/search') ? ' is-active' : '' %>"><i data-lucide="search"></i><span>Search</span></a>
-  <a href="/admin/communications" class="mobile-nav-tab<%= isCurrent('/admin/communications') ? ' is-active' : '' %>"><i data-lucide="more-horizontal"></i><span>More</span></a>
+  <a href="/admin/dashboard" class="mobile-nav-tab<%= isCurrent('/admin/dashboard') ? ' is-active' : '' %>" aria-label="Admin Dashboard" <% if (isCurrent('/admin/dashboard')) { %>aria-current="page"<% } %>><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a>
+  <a href="/admin/reviews" class="mobile-nav-tab<%= isCurrent('/admin/reviews') ? ' is-active' : '' %>" aria-label="Admin Reviews" <% if (isCurrent('/admin/reviews')) { %>aria-current="page"<% } %>><i data-lucide="list-checks" aria-hidden="true"></i><span>Reviews</span></a>
+  <a href="/admin/search" class="mobile-nav-tab<%= isCurrent('/admin/search') ? ' is-active' : '' %>" aria-label="Admin Search" <% if (isCurrent('/admin/search')) { %>aria-current="page"<% } %>><i data-lucide="search" aria-hidden="true"></i><span>Search</span></a>
+  <a href="/admin/communications" class="mobile-nav-tab<%= isCurrent('/admin/communications') ? ' is-active' : '' %>" aria-label="Admin Communications" <% if (isCurrent('/admin/communications')) { %>aria-current="page"<% } %>><i data-lucide="more-horizontal" aria-hidden="true"></i><span>More</span></a>
 </nav>
 <% } %>

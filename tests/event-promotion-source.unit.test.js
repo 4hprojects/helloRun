@@ -16,7 +16,7 @@ test('runner notification settings expose event promotion opt-out', () => {
   assert.match(controller, /'event\.promotion'/);
   assert.match(profilePresentation, /key:\s*'event\.promotion'/);
   assert.match(profilePresentation, /Event promotions/);
-  assert.match(profileMain, /p\.notificationOptions/);
+  assert.match(profileMain, /p\.notificationPreferences\.groups/);
   assert.match(profile, /partials\/profile-main/);
 });
 

@@ -6,10 +6,33 @@
 
   function init() {
     setupProfileEditors();
+    setupNotificationPreferences();
     setupLocationForm();
     setupAvatarUpload();
     setupSectionNavigation();
     setupUnlinkConfirmation();
+  }
+
+  function setupNotificationPreferences() {
+    const form = document.querySelector('[data-notification-preferences]');
+    if (!form) return;
+    const inputs = Array.from(form.querySelectorAll('input[name="emailEnabled"]'));
+    const count = form.querySelector('[data-preference-count]');
+    const status = form.querySelector('[data-preference-status]');
+    const saveButton = form.querySelector('[data-preference-save]');
+    const initialState = inputs.map((input) => input.checked);
+
+    const refresh = () => {
+      const enabledCount = inputs.filter((input) => input.checked).length;
+      const dirty = inputs.some((input, index) => input.checked !== initialState[index]);
+      if (count) count.textContent = `${enabledCount} of ${inputs.length} enabled`;
+      if (status) status.textContent = dirty ? 'You have unsaved preference changes.' : 'Preferences are saved.';
+      if (saveButton) saveButton.disabled = !dirty;
+      form.classList.toggle('is-dirty', dirty);
+    };
+
+    inputs.forEach((input) => input.addEventListener('change', refresh));
+    refresh();
   }
 
   function setupProfileEditors() {

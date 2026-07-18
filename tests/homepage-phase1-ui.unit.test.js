@@ -52,21 +52,32 @@ test('mobile hero actions and returning-runner shortcut are centered', () => {
   assert.match(css, /@media \(max-width: 480px\)[\s\S]*\.hero-returning-user > a\s*\{[\s\S]*justify-content: center;[\s\S]*text-align: center/);
 });
 
-test('public desktop navigation exposes persistent labels and retains mobile rules', () => {
+test('shared navigation collapses inactive desktop labels and expands active, hover, and focus states', () => {
   const nav = read('src/views/layouts/nav.ejs');
   const css = read('src/public/css/style.css');
+  const mobileCss = read('src/public/css/mobile-nav.css');
 
   for (const href of ['/', '/events', '/blog', '/leaderboard']) {
     assert.ok(nav.includes(`navClass('${href}', 'nav-primary-link')`));
   }
-  assert.match(css, /\.nav-primary-link \.nav-tooltip[\s\S]*position: static/);
-  assert.match(css, /\.nav-icon-link:not\(\.nav-primary-link\):hover \.nav-tooltip/);
-  assert.match(css, /@media \(min-width: 901px\)[\s\S]*\.nav-primary-link::after[\s\S]*height: 3px/);
-  assert.match(css, /\.nav-primary-link\[aria-current="page"\][\s\S]*background: transparent/);
-  assert.match(css, /\.nav-primary-link\[aria-current="page"\]::after[\s\S]*opacity: 1;[\s\S]*transform: scaleX\(1\)/);
-  assert.match(css, /@media \(min-width: 901px\) and \(hover: hover\) and \(pointer: fine\)[\s\S]*\.nav-primary-link:hover[\s\S]*background: transparent;[\s\S]*transform: translateY\(-1px\)/);
+  assert.match(css, /@media \(min-width: 901px\)[\s\S]*\.nav \.nav-icon-link\s*\{[\s\S]*width: 44px;[\s\S]*min-width: 44px;[\s\S]*max-width: none;[\s\S]*overflow: hidden/);
+  assert.match(css, /\.nav \.nav-icon-link > svg\s*\{[\s\S]*flex: 0 0 20px/);
+  assert.match(css, /\.nav \.nav-icon-link \.nav-tooltip\s*\{[\s\S]*display: none;[\s\S]*opacity: 0/);
+  assert.match(css, /\.nav \.nav-icon-link:hover,[\s\S]*\.nav \.nav-icon-link\[aria-current="page"\][\s\S]*width: auto;[\s\S]*min-width: max-content;[\s\S]*padding-right: 16px/);
+  assert.match(css, /\.nav \.nav-icon-link:hover \.nav-tooltip,[\s\S]*\.nav \.nav-icon-link\[aria-current="page"\] \.nav-tooltip[\s\S]*display: inline-block;[\s\S]*width: auto;[\s\S]*opacity: 1/);
+  assert.match(css, /animation: nav-label-reveal 0\.14s ease-out both/);
+  assert.match(css, /@keyframes nav-label-reveal[\s\S]*opacity: 0\.25;[\s\S]*translateX\(-2px\)[\s\S]*opacity: 1/);
+  assert.match(css, /\.nav \.nav-icon-link\[aria-current="page"\][\s\S]*background: #fff7ed;[\s\S]*border-color: #fed7aa/);
+  assert.match(css, /\.nav-notification-badge\s*\{[\s\S]*left: 27px/);
   assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.nav-links\.active[\s\S]*display: flex/);
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.nav-primary-link:hover[\s\S]*transform: none/);
+  assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.nav-tooltip\s*\{[\s\S]*opacity: 1;[\s\S]*visibility: visible/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.nav \.nav-icon-link,[\s\S]*transition: none/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)[\s\S]*animation: none !important/);
+  assert.match(mobileCss, /\.mobile-nav-tab > span\s*\{[\s\S]*display: none/);
+  assert.match(mobileCss, /\.mobile-nav-tab\.is-active > span,[\s\S]*\.mobile-nav-tab-submit > span\s*\{[\s\S]*display: inline/);
+  assert.match(mobileCss, /\.mobile-nav-tab\.is-active\s*\{[\s\S]*flex-grow: 1\.45;[\s\S]*flex-direction: row/);
+  assert.match(css, /@media \(min-width: 901px\) and \(max-width: 1280px\)[\s\S]*\.nav \.nav-user \.nav-username[\s\S]*clip-path: inset\(50%\)/);
+  assert.match(css, /@media \(min-width: 901px\) and \(max-width: 1050px\)[\s\S]*\.nav \.logo > span[\s\S]*clip-path: inset\(50%\)/);
 
   for (const currentPath of ['/', '/events', '/blog', '/leaderboard']) {
     const html = ejs.render(nav, {
@@ -80,6 +91,53 @@ test('public desktop navigation exposes persistent labels and retains mobile rul
     const selectedPrimaryLinks = html.match(/class="[^"]*nav-primary-link[^"]*"[^>]*aria-current="page"/g) || [];
     assert.equal(selectedPrimaryLinks.length, 1, `${currentPath} should select exactly one primary link`);
   }
+});
+
+test('runner, organizer, and admin mobile destinations retain accessible names and active-page semantics', () => {
+  const nav = read('src/views/layouts/nav.ejs');
+  const render = (locals) => ejs.render(nav, {
+    locals: {
+      currentPath: '/',
+      renderRunProofModal: false,
+      flash: null,
+      csrfToken: 'test',
+      runnerUnreadNotifications: 0,
+      isAuthenticated: true,
+      isAdmin: false,
+      isOrganizer: false,
+      isApprovedOrganizer: false,
+      isFullAdmin: false,
+      user: { firstName: 'Long Navigation Runner', avatarUrl: '' },
+      ...locals
+    }
+  });
+
+  const runner = render({ currentPath: '/runner/submissions' });
+  assert.match(runner, /aria-label="Submission History" aria-current="page"/);
+  assert.match(runner, /mobile-nav-tab is-active[^>]*aria-label="Submission History"[^>]*aria-current="page"/);
+
+  const organizer = render({ currentPath: '/organizer/events/active-event', isApprovedOrganizer: true });
+  assert.match(organizer, /aria-label="Organizer Events" aria-current="page"/);
+  assert.match(organizer, /aria-label="Organizer Work Queue"/);
+
+  const admin = render({ currentPath: '/admin/reviews', isAdmin: true, isFullAdmin: true });
+  assert.match(admin, /aria-label="Admin Reviews" aria-current="page"/);
+  assert.match(admin, /aria-label="Admin Communications"/);
+});
+
+test('login and logout controls use concise labels and distinct restrained interaction states', () => {
+  const nav = read('src/views/layouts/nav.ejs');
+  const css = read('src/public/css/style.css');
+
+  assert.match(nav, /aria-label="Log in to HelloRun" title="Log in"/);
+  assert.match(nav, /aria-label="Log out of HelloRun" title="Log out"/);
+  assert.match(nav, /<span class="nav-tooltip">Log in<\/span>/);
+  assert.match(nav, /<span class="nav-tooltip">Log out<\/span>/);
+  assert.match(css, /\.nav \.nav-login-btn,[\s\S]*\.nav \.nav-user \.nav-logout-btn\s*\{[\s\S]*color: #475569;[\s\S]*border-color: #e2e8f0/);
+  assert.match(css, /\.nav \.nav-user \.nav-logout-btn:hover,[\s\S]*color: #b42318;[\s\S]*background: #fff5f4;[\s\S]*border-color: #fecaca/);
+  assert.match(css, /\.nav \.nav-login-btn\[aria-current="page"\][\s\S]*font-weight: 750/);
+  assert.match(css, /\.nav \.nav-auth-buttons\s*\{[\s\S]*padding-left: 0\.6rem;[\s\S]*border-left-color: #edf1f5/);
+  assert.match(css, /@media \(max-width: 900px\)[\s\S]*\.nav \.nav-auth-buttons \.nav-login-btn,[\s\S]*min-height: 44px/);
 });
 
 test('signup role intent is allowlisted, preselected, and reflected in organizer messaging', () => {

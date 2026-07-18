@@ -86,6 +86,7 @@ Role definitions, data models, and access control.
 | `user-role-system.md` | Role definitions: runner, organiser, admin; organiser statuses |
 | `organiser_flow.md` | Organiser signup → profile → application → approval (brief) |
 | `security_route_matrix.md` | Auth protection posture: CSRF, rate limits, Turnstile, honeypot |
+| `threaded-comments-package.md` | Reusable threaded-comment package, adapters, lifecycle events, and HelloRun compatibility map |
 
 ---
 

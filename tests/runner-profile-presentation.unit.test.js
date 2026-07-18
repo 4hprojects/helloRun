@@ -6,7 +6,7 @@ const { NOTIFICATION_OPTIONS, buildRunnerProfilePresentation } = require('../src
 
 test('profile identity and first incomplete recovery target are deterministic', () => {
   const result = buildRunnerProfilePresentation({
-    user: { firstName: 'Henson', email: 'runner@example.com', avatarUrl: ' avatar.webp ' },
+    user: { firstName: 'Henson', email: 'Runner@Example.COM', avatarUrl: ' avatar.webp ' },
     profileData: {
       displayName: 'Trail Henz',
       firstName: 'Henson',
@@ -31,6 +31,10 @@ test('notification choices are unique and respect email opt-outs', () => {
   const result = buildRunnerProfilePresentation({ user: { notificationPreferences: { emailOptOut: ['badge.earned'] } } });
   assert.equal(result.notificationOptions.find((item) => item.key === 'badge.earned').enabled, false);
   assert.equal(result.notificationOptions.find((item) => item.key === 'result.approved').enabled, true);
+  assert.equal(result.notificationPreferences.enabledCount, 5);
+  assert.equal(result.notificationPreferences.totalCount, 6);
+  assert.deepEqual(result.notificationPreferences.groups.map((group) => group.label), ['Results & recognition', 'Event communication']);
+  assert.equal(result.notificationPreferences.groups.flatMap((group) => group.options).length, 6);
 });
 
 test('account and Strava states are normalized for presentation', () => {

@@ -94,7 +94,7 @@
           <div class="blog-post-community-stats" aria-label="Article engagement">
             <span><i data-lucide="eye" aria-hidden="true"></i><strong><%= Number(post.views || 0).toLocaleString('en-US') %></strong> views</span>
             <span><i data-lucide="heart" aria-hidden="true"></i><strong><%= Number(post.likesCount || 0).toLocaleString('en-US') %></strong> likes</span>
-            <a href="#blogComments"><i data-lucide="message-circle" aria-hidden="true"></i><strong><%= Number(post.commentsCount || 0).toLocaleString('en-US') %></strong> comments</a>
+            <a href="#blogComments"><i data-lucide="message-circle" aria-hidden="true"></i><strong id="blogCommentCount"><%= Number(post.commentsCount || 0).toLocaleString('en-US') %></strong> comments</a>
           </div>
         </div>
         <div class="toast hidden" id="copyToast" role="status" aria-live="polite">Link copied!</div>
@@ -123,16 +123,16 @@
               <span class="blog-like-count" id="blogLikeCount"><%= Number(post.likesCount || 0).toLocaleString('en-US') %></span>
             </button>
             <div class="blog-share-row" id="blogShareRow">
-              <button type="button" class="btn btn-icon share-mobile-toggle" id="shareMobileToggle" aria-label="Share options" aria-expanded="false" title="Share">
+              <button type="button" class="btn btn-icon share-mobile-toggle" id="shareMobileToggle" aria-label="Share this article" aria-haspopup="menu" aria-controls="blogShareOptions" aria-expanded="false" title="Share">
                 <i data-lucide="share-2" aria-hidden="true"></i><span>Share</span>
               </button>
-              <div class="share-options" role="group" aria-label="Share options">
-                <button type="button" class="btn btn-icon" id="copyBlogLinkBtn" aria-label="Copy link" title="Copy link"><i data-lucide="link" aria-hidden="true"></i></button>
-                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareFacebook" aria-label="Share on Facebook" title="Share on Facebook">f</a>
-                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareTwitter" aria-label="Share on X" title="Share on X">X</a>
-                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareLinkedIn" aria-label="Share on LinkedIn" title="Share on LinkedIn">in</a>
-                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareWhatsApp" aria-label="Share on WhatsApp" title="Share on WhatsApp"><i data-lucide="message-circle" aria-hidden="true"></i></a>
-                <a class="btn btn-icon" href="#" id="shareEmail" aria-label="Share via email" title="Share via email"><i data-lucide="mail" aria-hidden="true"></i></a>
+              <div class="share-options" id="blogShareOptions" role="menu" aria-label="Share this article">
+                <button type="button" class="btn btn-icon" id="copyBlogLinkBtn" role="menuitem"><i data-lucide="link" aria-hidden="true"></i><span>Copy link</span></button>
+                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareFacebook" role="menuitem"><span class="blog-share-brand" aria-hidden="true">f</span><span>Facebook</span></a>
+                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareTwitter" role="menuitem"><span class="blog-share-brand" aria-hidden="true">X</span><span>X</span></a>
+                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareLinkedIn" role="menuitem"><span class="blog-share-brand" aria-hidden="true">in</span><span>LinkedIn</span></a>
+                <a class="btn btn-icon" target="_blank" rel="noopener noreferrer" href="#" id="shareWhatsApp" role="menuitem"><i data-lucide="message-circle" aria-hidden="true"></i><span>WhatsApp</span></a>
+                <a class="btn btn-icon" href="#" id="shareEmail" role="menuitem"><i data-lucide="mail" aria-hidden="true"></i><span>Email</span></a>
               </div>
             </div>
             <a href="#blogComments" class="blog-comment-jump"><i data-lucide="message-circle" aria-hidden="true"></i><span>Discuss</span></a>
@@ -217,26 +217,14 @@
               <% } %>
             </div>
 
-            <div class="blog-comments-section" id="blogComments">
-              <div class="blog-comments-heading-row">
-                <div>
-                  <span class="blog-comments-kicker">Community discussion</span>
-                  <h3 class="blog-comments-heading">Comments</h3>
-                </div>
-                <span><%= Number(post.commentsCount || 0).toLocaleString('en-US') %> contributions</span>
-              </div>
-              <% if (interactionState?.isAuthenticated) { %>
-                <form id="blogCommentForm" class="blog-comment-form">
-                  <textarea name="content" rows="4" maxlength="1000" placeholder="Add your comment…"></textarea>
-                  <button type="submit" class="blog-comment-submit" id="postCommentBtn">
-                    <span class="btn-text"><i data-lucide="send"></i> Post Comment</span>
-                    <span class="btn-loader" style="display:none;"><i data-lucide="loader-2" class="spin"></i> Posting…</span>
-                  </button>
-                </form>
-              <% } else { %>
-                <p class="blog-comments-signin">Sign in to post a comment.</p>
-              <% } %>
-              <div id="blogCommentsList" class="blog-comments-list"></div>
+            <div class="blog-comments-section" id="blogComments"
+              data-blog-comments
+              data-post-slug="<%= post.slug %>"
+              data-csrf-token="<%= locals.csrfToken || '' %>"
+              data-current-user-id="<%= interactionState?.currentUserId || '' %>">
+              <span class="sr-only" aria-hidden="true"><strong id="blogContributionCount"><%= Number(post.commentsCount || 0).toLocaleString('en-US') %></strong></span>
+              <p data-comments-bootstrap-status role="status" aria-live="polite"></p>
+              <threaded-comments></threaded-comments>
             </div>
           </section>
 
@@ -301,6 +289,108 @@
     <% } %>
   </main>
 
+  <% if (interactionState?.isAuthenticated) { %>
+    <dialog class="blog-confirm-dialog" id="blogCommentConfirmDialog" aria-labelledby="blogCommentConfirmTitle" aria-describedby="blogCommentConfirmDescription">
+      <div class="blog-confirm-dialog-content">
+        <div class="blog-confirm-dialog-icon" aria-hidden="true"><i data-lucide="message-circle"></i></div>
+        <div class="blog-confirm-dialog-copy">
+          <span class="blog-confirm-dialog-kicker">Community comment</span>
+          <h2 id="blogCommentConfirmTitle">Post this comment?</h2>
+          <p id="blogCommentConfirmDescription">Review your message before it becomes visible in the discussion.</p>
+        </div>
+        <blockquote class="blog-confirm-preview" id="blogCommentConfirmPreview"></blockquote>
+        <p class="blog-confirm-status" id="blogCommentConfirmStatus" role="status" aria-live="polite"></p>
+        <div class="blog-confirm-actions">
+          <button type="button" class="btn btn-secondary" id="blogCommentConfirmCancel">Go back</button>
+          <button type="button" class="btn btn-primary" id="blogCommentConfirmSubmit"><i data-lucide="send" aria-hidden="true"></i><span>Post comment</span></button>
+        </div>
+      </div>
+    </dialog>
+    <dialog class="blog-confirm-dialog blog-confirm-dialog-danger" id="blogCommentDeleteDialog" aria-labelledby="blogCommentDeleteTitle" aria-describedby="blogCommentDeleteDescription">
+      <div class="blog-confirm-dialog-content">
+        <div class="blog-confirm-dialog-icon" aria-hidden="true"><i data-lucide="trash-2"></i></div>
+        <div class="blog-confirm-dialog-copy">
+          <span class="blog-confirm-dialog-kicker">Permanent action</span>
+          <h2 id="blogCommentDeleteTitle">Delete this comment?</h2>
+          <p id="blogCommentDeleteDescription">This removes your comment from the discussion and cannot be undone.</p>
+        </div>
+        <blockquote class="blog-confirm-preview" id="blogCommentDeletePreview"></blockquote>
+        <p class="blog-confirm-status" id="blogCommentDeleteStatus" role="status" aria-live="polite"></p>
+        <div class="blog-confirm-actions">
+          <button type="button" class="btn btn-secondary" id="blogCommentDeleteCancel">Cancel</button>
+          <button type="button" class="btn btn-danger" id="blogCommentDeleteConfirm"><i data-lucide="trash-2" aria-hidden="true"></i><span>Delete comment</span></button>
+        </div>
+      </div>
+    </dialog>
+    <dialog class="blog-confirm-dialog blog-comment-report-dialog" id="blogCommentReportDialog" aria-labelledby="blogCommentReportTitle" aria-describedby="blogCommentReportDescription">
+      <form class="blog-confirm-dialog-content" id="blogCommentReportForm">
+        <div class="blog-confirm-dialog-icon" aria-hidden="true"><i data-lucide="flag"></i></div>
+        <div class="blog-confirm-dialog-copy">
+          <span class="blog-confirm-dialog-kicker">Community safety</span>
+          <h2 id="blogCommentReportTitle">Report this comment?</h2>
+          <p id="blogCommentReportDescription">Tell the moderation team why this comment needs review. Your report is private.</p>
+        </div>
+        <div class="blog-comment-report-context">
+          <strong id="blogCommentReportAuthor"></strong>
+          <blockquote class="blog-confirm-preview" id="blogCommentReportPreview"></blockquote>
+        </div>
+        <label class="blog-comment-report-field" for="blogCommentReportReason">
+          <span>What is wrong with this comment?</span>
+          <select id="blogCommentReportReason" name="reason" required>
+            <option value="">Select why this comment should be reviewed</option>
+            <option value="spam">Spam or repeated messages</option>
+            <option value="plagiarism">Copied or impersonated comment</option>
+            <option value="promotion">Advertising or unwanted promotion</option>
+            <option value="unsafe_medical">Dangerous health or medical advice</option>
+            <option value="abuse">Harassment, hate, or abusive language</option>
+            <option value="other">Another concern about this comment</option>
+          </select>
+        </label>
+        <label class="blog-comment-report-field" for="blogCommentReportNote">
+          <span>Additional context <small>Optional</small></span>
+          <textarea id="blogCommentReportNote" name="note" rows="3" maxlength="500" placeholder="Add context that will help moderators review this comment."></textarea>
+        </label>
+        <p class="blog-confirm-status" id="blogCommentReportStatus" role="status" aria-live="polite"></p>
+        <div class="blog-confirm-actions">
+          <button type="button" class="btn btn-secondary" id="blogCommentReportCancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="blogCommentReportSubmit"><i data-lucide="flag" aria-hidden="true"></i><span>Submit report</span></button>
+        </div>
+      </form>
+    </dialog>
+    <dialog class="blog-confirm-dialog blog-confirm-dialog-danger" id="blogRevisionRedactDialog" aria-labelledby="blogRevisionRedactTitle" aria-describedby="blogRevisionRedactDescription">
+      <div class="blog-confirm-dialog-content">
+        <div class="blog-confirm-dialog-icon" aria-hidden="true"><i data-lucide="eye-off"></i></div>
+        <div class="blog-confirm-dialog-copy">
+          <span class="blog-confirm-dialog-kicker">Revision privacy</span>
+          <h2 id="blogRevisionRedactTitle">Remove this revision’s text?</h2>
+          <p id="blogRevisionRedactDescription">The wording will be permanently replaced by a redaction marker. Its timestamp and any private report snapshot remain.</p>
+        </div>
+        <blockquote class="blog-confirm-preview" id="blogRevisionRedactPreview"></blockquote>
+        <p class="blog-confirm-status" id="blogRevisionRedactStatus" role="status" aria-live="polite"></p>
+        <div class="blog-confirm-actions">
+          <button type="button" class="btn btn-secondary" id="blogRevisionRedactCancel">Cancel</button>
+          <button type="button" class="btn btn-danger" id="blogRevisionRedactConfirm"><i data-lucide="eye-off" aria-hidden="true"></i><span>Remove revision text</span></button>
+        </div>
+      </div>
+    </dialog>
+  <% } %>
+
+  <dialog class="blog-confirm-dialog blog-comment-history-dialog" id="blogCommentHistoryDialog" aria-labelledby="blogCommentHistoryTitle" aria-describedby="blogCommentHistoryDescription">
+    <div class="blog-confirm-dialog-content">
+      <div class="blog-confirm-dialog-icon" aria-hidden="true"><i data-lucide="history"></i></div>
+      <div class="blog-confirm-dialog-copy">
+        <span class="blog-confirm-dialog-kicker">Public edit history</span>
+        <h2 id="blogCommentHistoryTitle">Comment revisions</h2>
+        <p id="blogCommentHistoryDescription">Previous public versions are shown in chronological order.</p>
+      </div>
+      <div class="blog-comment-history-list" id="blogCommentHistoryList"></div>
+      <p class="blog-confirm-status" id="blogCommentHistoryStatus" role="status" aria-live="polite"></p>
+      <div class="blog-confirm-actions">
+        <button type="button" class="btn btn-secondary" id="blogCommentHistoryClose">Close</button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Gallery Modal -->
   <div class="blog-gallery-modal hidden" id="blogGalleryModal" aria-hidden="true">
     <div class="blog-gallery-backdrop" data-gallery-close="1"></div>
@@ -341,8 +431,6 @@
       const likeBtn = document.getElementById('blogLikeBtn');
       const likeLabel = document.getElementById('blogLikeLabel');
       const likeCountEl = document.getElementById('blogLikeCount');
-      const commentForm = document.getElementById('blogCommentForm');
-      const commentsList = document.getElementById('blogCommentsList');
       const reportForm = document.getElementById('blogReportForm');
       
       // ---- Data from EJS ----
@@ -350,7 +438,6 @@
       const canonicalUrl = <%- safeJson(seo?.canonicalUrl || '') %>;
       const postSlug = <%- safeJson(post.slug || '') %>;
       const csrfToken = <%- safeJson(locals.csrfToken || '') %>;
-      const currentUserId = <%- safeJson(interactionState?.currentUserId || '') %>;
       const galleryButtons = Array.from(document.querySelectorAll('[data-gallery-index][data-gallery-url]'));
       let activeGalleryIndex = 0;
       let galleryUrls = [];
@@ -362,15 +449,6 @@
         copyToast.textContent = message;
         copyToast.classList.remove('hidden');
         setTimeout(() => copyToast.classList.add('hidden'), duration);
-      }
-
-      function escapeHtml(value) {
-        return String(value || '')
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
       }
 
       async function jsonRequest(url, options = {}) {
@@ -387,46 +465,6 @@
           throw new Error(body.message || 'Request failed.');
         }
         return body;
-      }
-
-      function renderComment(comment) {
-        const item = document.createElement('article');
-        item.style.border = '1px solid #e2e8f0';
-        item.style.borderRadius = '10px';
-        item.style.padding = '.8rem';
-        item.style.background = '#f8fafc';
-        const authorName = [comment.authorId?.firstName || '', comment.authorId?.lastName || ''].join(' ').trim() || 'HelloRun user';
-        const createdAt = comment.createdAt ? new Date(comment.createdAt).toLocaleString('en-US') : '';
-        const isOwner = currentUserId && String(comment.authorId?._id || comment.authorId || '') === String(currentUserId);
-        item.innerHTML = `
-          <div style="display:flex;justify-content:space-between;gap:.75rem;flex-wrap:wrap;">
-            <strong>${escapeHtml(authorName)}</strong>
-            <small style="color:#64748b;">${escapeHtml(createdAt)}</small>
-          </div>
-          <p style="margin:.55rem 0 0; white-space:pre-wrap;">${escapeHtml(comment.content)}</p>
-          <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.65rem;">
-            ${isOwner ? `<button type="button" class="btn btn-secondary" data-comment-delete="${comment._id}">Delete</button>` : ''}
-            ${currentUserId ? `<button type="button" class="btn btn-secondary" data-comment-report="${comment._id}">Report</button>` : ''}
-          </div>
-        `;
-        return item;
-      }
-
-      async function loadComments() {
-        if (!commentsList) return;
-        commentsList.innerHTML = '<p style="color:#64748b;">Loading comments...</p>';
-        try {
-          const response = await fetch(`/blog/${postSlug}/comments`);
-          const body = await response.json();
-          commentsList.innerHTML = '';
-          if (!body.comments || !body.comments.length) {
-            commentsList.innerHTML = '<p style="color:#64748b;">No comments yet.</p>';
-            return;
-          }
-          body.comments.forEach((comment) => commentsList.appendChild(renderComment(comment)));
-        } catch (error) {
-          commentsList.innerHTML = '<p style="color:#991b1b;">Failed to load comments.</p>';
-        }
       }
 
       // ---- Cover image fallback ----
@@ -550,21 +588,28 @@
       // ---- Mobile share dropdown toggle ----
       const shareMobileToggle = document.getElementById('shareMobileToggle');
       if (shareMobileToggle && shareRow) {
+        const shareItems = Array.from(shareRow.querySelectorAll('[role="menuitem"]'));
+        const closeShareMenu = (restoreFocus = false) => {
+          shareRow.classList.remove('is-open');
+          shareMobileToggle.setAttribute('aria-expanded', 'false');
+          if (restoreFocus) shareMobileToggle.focus();
+        };
         shareMobileToggle.addEventListener('click', (e) => {
           e.stopPropagation();
           const isOpen = shareRow.classList.toggle('is-open');
           shareMobileToggle.setAttribute('aria-expanded', String(isOpen));
+          if (isOpen) shareItems[0]?.focus();
         });
+        shareItems.forEach((item) => item.addEventListener('click', () => closeShareMenu()));
         document.addEventListener('click', (e) => {
           if (!shareRow.contains(e.target)) {
-            shareRow.classList.remove('is-open');
-            shareMobileToggle.setAttribute('aria-expanded', 'false');
+            closeShareMenu();
           }
         });
         document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape') {
-            shareRow.classList.remove('is-open');
-            shareMobileToggle.setAttribute('aria-expanded', 'false');
+          if (e.key === 'Escape' && shareRow.classList.contains('is-open')) {
+            e.preventDefault();
+            closeShareMenu(true);
           }
         });
       }
@@ -740,60 +785,6 @@
         }
       });
 
-      commentForm?.addEventListener('submit', async (event) => {
-        event.preventDefault();
-        const content = String(commentForm.querySelector('textarea[name="content"]')?.value || '').trim();
-        if (!content) return;
-        const submitBtn = document.getElementById('postCommentBtn');
-        const btnText = submitBtn?.querySelector('.btn-text');
-        const btnLoader = submitBtn?.querySelector('.btn-loader');
-        if (submitBtn) {
-          submitBtn.disabled = true;
-          submitBtn.setAttribute('aria-busy', 'true');
-          if (btnText) btnText.style.display = 'none';
-          if (btnLoader) btnLoader.style.display = '';
-        }
-        try {
-          await jsonRequest(`/blog/${postSlug}/comments`, {
-            method: 'POST',
-            body: JSON.stringify({ content })
-          });
-          commentForm.reset();
-          await loadComments();
-        } catch (error) {
-          showToast(error.message || 'Failed to post comment');
-        } finally {
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.removeAttribute('aria-busy');
-            if (btnText) btnText.style.display = '';
-            if (btnLoader) btnLoader.style.display = 'none';
-          }
-        }
-      });
-
-      commentsList?.addEventListener('click', async (event) => {
-        const deleteBtn = event.target.closest('[data-comment-delete]');
-        const reportBtn = event.target.closest('[data-comment-report]');
-        try {
-          if (deleteBtn) {
-            await jsonRequest(`/blog/${postSlug}/comments/${deleteBtn.getAttribute('data-comment-delete')}`, {
-              method: 'DELETE'
-            });
-            await loadComments();
-          }
-          if (reportBtn) {
-            await jsonRequest(`/blog/${postSlug}/comments/${reportBtn.getAttribute('data-comment-report')}/report`, {
-              method: 'POST',
-              body: JSON.stringify({ reason: 'abuse', note: '' })
-            });
-            showToast('Comment reported.');
-          }
-        } catch (error) {
-          showToast(error.message || 'Action failed');
-        }
-      });
-
       reportForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
         const formData = new FormData(reportForm);
@@ -822,8 +813,8 @@
         }
       });
 
-      loadComments();
     })();
   </script>
+  <script src="/js/blog-comments.js" defer></script>
 </body>
 </html>

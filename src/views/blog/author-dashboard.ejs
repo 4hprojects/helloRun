@@ -27,6 +27,16 @@
     .dash-metrics { display:flex; gap:.75rem; flex-wrap:wrap; margin:.55rem 0 0; color:#475569; font-size:.86rem; }
     .dash-metric strong { color:#0f172a; }
     .dash-note { margin:.45rem 0 0; color:#92400e; font-size:.86rem; }
+    .blog-delete-dialog { width:min(480px,calc(100vw - 2rem)); margin:auto; padding:0; border:0; border-radius:16px; color:#1e293b; background:#fff; box-shadow:0 24px 70px rgba(15,23,42,.3); }
+    .blog-delete-dialog::backdrop { background:rgba(15,23,42,.58); backdrop-filter:blur(2px); }
+    .blog-delete-dialog-inner { padding:1.25rem; }
+    .blog-delete-dialog-kicker { color:#9f1239; font-size:.72rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+    .blog-delete-dialog h2 { margin:.25rem 0 .45rem; color:#0f172a; font-size:1.3rem; text-align:left; }
+    .blog-delete-dialog p { margin:.35rem 0; color:#64748b; line-height:1.55; }
+    .blog-delete-post-title { display:block; margin:.85rem 0; padding:.75rem; border:1px solid #e2e8f0; border-radius:10px; color:#0f172a; background:#f8fafc; overflow-wrap:anywhere; }
+    .blog-delete-dialog-actions { display:flex; justify-content:flex-end; gap:.65rem; margin-top:1rem; }
+    .blog-delete-dialog-actions .dash-btn { min-height:44px; }
+    @media(max-width:480px){.blog-delete-dialog-inner{padding:1rem}.blog-delete-dialog-actions{display:grid;grid-template-columns:1fr}.blog-delete-dialog-actions .dash-btn{width:100%}}
   </style>
 </head>
 <body>
@@ -102,7 +112,7 @@
                   <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                   <button type="submit" class="dash-btn dash-btn-primary dash-btn-sm">Submit for Review</button>
                 </form>
-                <form method="POST" action="/blogs/me/<%= post._id %>/delete-form" style="display: inline;" onsubmit="return confirm('Delete this post?');">
+                <form method="POST" action="/blogs/me/<%= post._id %>/delete-form" style="display: inline;" data-delete-post-form data-post-title="<%= post.title %>" onsubmit="return confirm('Delete this post permanently?');">
                   <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
                   <button type="submit" class="dash-btn dash-btn-danger dash-btn-sm">Delete</button>
                 </form>
@@ -127,8 +137,58 @@
       </div>
     <% } %>
   </main>
+  <dialog class="blog-delete-dialog" id="blogDeleteDialog" aria-labelledby="blogDeleteDialogTitle" aria-describedby="blogDeleteDialogDescription">
+    <div class="blog-delete-dialog-inner">
+      <span class="blog-delete-dialog-kicker">Permanent action</span>
+      <h2 id="blogDeleteDialogTitle">Delete this post?</h2>
+      <p id="blogDeleteDialogDescription">This removes the draft and cannot be undone.</p>
+      <strong class="blog-delete-post-title" id="blogDeletePostTitle"></strong>
+      <p id="blogDeleteDialogStatus" role="status" aria-live="polite"></p>
+      <div class="blog-delete-dialog-actions">
+        <button type="button" class="dash-btn dash-btn-secondary" id="blogDeleteCancel">Cancel</button>
+        <button type="button" class="dash-btn dash-btn-danger" id="blogDeleteConfirm">Delete post</button>
+      </div>
+    </div>
+  </dialog>
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if(window.lucide) lucide.createIcons();</script>
+  <script>
+    (function setupBlogDeleteConfirmation() {
+      if (window.lucide) lucide.createIcons();
+      const dialog = document.getElementById('blogDeleteDialog');
+      const title = document.getElementById('blogDeletePostTitle');
+      const cancel = document.getElementById('blogDeleteCancel');
+      const confirmButton = document.getElementById('blogDeleteConfirm');
+      let activeForm = null;
+      let activeTrigger = null;
+      document.querySelectorAll('[data-delete-post-form]').forEach((form) => {
+        form.removeAttribute('onsubmit');
+        form.addEventListener('submit', (event) => {
+          event.preventDefault();
+          activeForm = form;
+          activeTrigger = form.querySelector('button[type="submit"]');
+          if (!dialog?.showModal) {
+            if (window.confirm('Delete this post permanently?')) form.submit();
+            return;
+          }
+          if (title) title.textContent = form.dataset.postTitle || 'Untitled post';
+          dialog.showModal();
+          cancel?.focus();
+        });
+      });
+      cancel?.addEventListener('click', () => dialog.close('cancelled'));
+      confirmButton?.addEventListener('click', () => {
+        if (!activeForm) return;
+        confirmButton.disabled = true;
+        confirmButton.setAttribute('aria-busy', 'true');
+        confirmButton.textContent = 'Deleting…';
+        activeForm.submit();
+      });
+      dialog?.addEventListener('close', () => {
+        activeTrigger?.focus();
+        activeForm = null;
+      });
+    })();
+  </script>
 </body>
 </html>

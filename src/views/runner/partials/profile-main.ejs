@@ -58,7 +58,7 @@
         <div class="profile-personal-grid">
           <article class="runner-profile-card" id="identity" data-profile-section>
             <div class="runner-profile-panel-header"><div><h3>Identity</h3><p>Your official and public-facing runner names.</p></div><span class="profile-section-state"><%= ['First Name','Last Name','Date of Birth','Gender'].some((field) => p.completion.missingFields.includes(field)) ? 'Needs details' : 'Complete' %></span></div>
-            <dl class="profile-readonly-grid"><div><dt>Full name</dt><dd><%= [profileData.firstName, profileData.lastName].filter(Boolean).join(' ') || 'Not set' %></dd></div><div><dt>Display name</dt><dd><%= profileData.displayName || 'Not set' %></dd></div><div><dt>Date of birth</dt><dd><%= p.dateOfBirthMasked %></dd></div><div><dt>Gender</dt><dd><%= profileData.gender ? profileData.gender.replace(/_/g, ' ') : 'Not set' %></dd></div></dl>
+            <dl class="profile-readonly-grid"><div><dt>Full name</dt><dd><%= [profileData.firstName, profileData.lastName].filter(Boolean).join(' ') || 'Not set' %></dd></div><div><dt>Display name</dt><dd><%= profileData.displayName || 'Not set' %></dd></div><div><dt>Date of birth</dt><dd><%= p.dateOfBirthMasked %></dd></div><div><dt>Gender</dt><dd class="profile-value-humanized"><%= profileData.gender ? profileData.gender.replace(/_/g, ' ') : 'Not set' %></dd></div></dl>
             <details class="profile-edit-disclosure" data-profile-editor><summary class="btn btn-secondary"><i data-lucide="pencil" aria-hidden="true"></i>Edit identity</summary>
               <form method="POST" action="/runner/profile/identity" class="runner-profile-form" data-profile-edit-form><input type="hidden" name="_csrf" value="<%= _csrfToken %>"><div class="profile-form-grid">
                 <label class="profile-form-field"><span>First name</span><input type="text" name="firstName" maxlength="60" value="<%= profileData.firstName || '' %>" required></label>
@@ -72,7 +72,7 @@
 
           <article class="runner-profile-card" id="contact" data-profile-section>
             <div class="runner-profile-panel-header"><div><h3>Contact</h3><p>How HelloRun identifies and contacts your account.</p></div><span class="profile-section-state"><%= p.completion.missingFields.includes('Mobile') ? 'Needs mobile' : 'Complete' %></span></div>
-            <dl class="profile-readonly-grid"><div><dt>Email</dt><dd><%= user.email || 'Not set' %></dd></div><div><dt>Mobile</dt><dd><%= p.mobileMasked %></dd></div><div><dt>Running groups</dt><dd><%= profileData.runningGroups?.length ? profileData.runningGroups.join(', ') : 'None joined' %></dd></div></dl>
+            <dl class="profile-readonly-grid"><div><dt>Email</dt><dd class="profile-value-email"><%= p.identity.email || 'Not set' %></dd></div><div><dt>Mobile</dt><dd><%= p.mobileMasked %></dd></div><div><dt>Running groups</dt><dd><%= profileData.runningGroups?.length ? profileData.runningGroups.join(', ') : 'None joined' %></dd></div></dl>
             <details class="profile-edit-disclosure" data-profile-editor><summary class="btn btn-secondary"><i data-lucide="pencil" aria-hidden="true"></i>Edit contact</summary><form method="POST" action="/runner/profile/contact" class="runner-profile-form" data-profile-edit-form><input type="hidden" name="_csrf" value="<%= _csrfToken %>"><div class="profile-form-grid"><label class="profile-form-field"><span>Mobile</span><input type="tel" name="mobile" value="<%= profileData.mobile || '' %>" autocomplete="tel"></label></div><p class="profile-field-help">Email and running-group membership are managed through their own account workflows.</p><div class="runner-profile-form-actions"><button type="button" class="btn btn-outline" data-cancel-profile-edit>Cancel</button><button type="submit" class="btn btn-primary" data-save-btn>Save contact</button></div></form></details>
           </article>
 
@@ -93,7 +93,38 @@
         </div>
       </section>
 
-      <section class="runner-profile-group" id="notifications" data-profile-section aria-labelledby="profile-preferences-title"><div class="runner-profile-group-heading"><span class="profile-kicker">Communication</span><h2 id="profile-preferences-title">Preferences</h2><p>Choose optional emails. Important in-app account notifications remain available.</p></div><article class="runner-profile-card"><form method="POST" action="/runner/profile/notifications" class="runner-profile-form notif-form" data-profile-edit-form><input type="hidden" name="_csrf" value="<%= _csrfToken %>"><div class="notif-list"><% p.notificationOptions.forEach((item) => { %><label class="notif-row"><span class="notif-row-copy"><strong><%= item.label %></strong><small><%= item.description %></small></span><input type="checkbox" name="emailEnabled" value="<%= item.key %>" class="notif-checkbox" <%= item.enabled ? 'checked' : '' %>></label><% }) %></div><div class="runner-profile-form-actions"><button type="submit" class="btn btn-primary" data-save-btn>Save preferences</button></div></form></article></section>
+      <section class="runner-profile-group" id="notifications" data-profile-section aria-labelledby="profile-preferences-title">
+        <div class="runner-profile-group-heading"><span class="profile-kicker">Communication</span><h2 id="profile-preferences-title">Preferences</h2><p>Choose optional emails. Important in-app account notifications remain available.</p></div>
+        <article class="runner-profile-card profile-preferences-card">
+          <form method="POST" action="/runner/profile/notifications" class="runner-profile-form notif-form" data-profile-edit-form data-notification-preferences>
+            <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+            <div class="profile-preferences-summary">
+              <div><strong>Email updates</strong><p>Turn off any email you do not want to receive.</p></div>
+              <span data-preference-count><%= p.notificationPreferences.enabledCount %> of <%= p.notificationPreferences.totalCount %> enabled</span>
+            </div>
+            <div class="notif-groups">
+              <% p.notificationPreferences.groups.forEach((group) => { %>
+                <fieldset class="notif-group">
+                  <legend><%= group.label %></legend>
+                  <p><%= group.description %></p>
+                  <div class="notif-list">
+                    <% group.options.forEach((item) => { const descriptionId = `notification-${item.key.replace(/[^a-z0-9]+/gi, '-')}-description`; %>
+                      <label class="notif-row">
+                        <span class="notif-row-copy"><strong><%= item.label %></strong><small id="<%= descriptionId %>"><%= item.description %></small></span>
+                        <span class="notif-switch"><input type="checkbox" role="switch" name="emailEnabled" value="<%= item.key %>" class="notif-checkbox" aria-describedby="<%= descriptionId %>" <%= item.enabled ? 'checked' : '' %>><span aria-hidden="true"></span></span>
+                      </label>
+                    <% }) %>
+                  </div>
+                </fieldset>
+              <% }) %>
+            </div>
+            <div class="profile-preferences-footer">
+              <button type="submit" class="btn btn-primary" data-save-btn data-preference-save>Save preferences</button>
+              <span data-preference-status role="status" aria-live="polite">Preferences are saved.</span>
+            </div>
+          </form>
+        </article>
+      </section>
 
       <div class="profile-account-grid">
         <section class="runner-profile-group" id="integrations" data-profile-section aria-labelledby="connections-title"><div class="runner-profile-group-heading"><span class="profile-kicker">Activity sources</span><h2 id="connections-title">Connections</h2></div><article class="runner-profile-card"><div class="profile-connection-status"><span><i data-lucide="activity" aria-hidden="true"></i></span><div><strong>Strava</strong><p><%= p.connection.connected ? `Connected${p.connection.athleteName ? ` as ${p.connection.athleteName}` : ''}` : 'Not connected' %></p></div><span class="profile-section-state"><%= p.connection.connected ? 'Connected' : 'Optional' %></span></div><p class="profile-section-helper">Import only the activities you choose to submit to HelloRun.</p><div class="runner-profile-actions"><% if (p.connection.connected) { %><form method="POST" action="/integrations/strava/disconnect" class="inline-form"><input type="hidden" name="_csrf" value="<%= _csrfToken %>"><input type="hidden" name="returnTo" value="/runner/profile#integrations"><button type="submit" class="btn btn-outline-danger"><i data-lucide="unlink" aria-hidden="true"></i>Disconnect Strava</button></form><% } else { %><a href="/integrations/strava/connect?returnTo=/runner/profile%23integrations" class="btn btn-primary"><i data-lucide="plug" aria-hidden="true"></i>Connect Strava</a><% } %></div></article></section>

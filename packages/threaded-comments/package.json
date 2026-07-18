@@ -1,0 +1,32 @@
+{
+  "name": "@hellorun/threaded-comments",
+  "version": "0.1.0",
+  "description": "Storage-neutral threaded comments workflow, Express integration, and Shadow DOM widget",
+  "private": true,
+  "type": "commonjs",
+  "main": "src/index.js",
+  "types": "types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "require": "./src/index.js"
+    },
+    "./widget": "./web/threaded-comments.js",
+    "./mongoose": "./src/adapters/mongoose.js",
+    "./express": "./src/express.js",
+    "./testing": "./src/testing.js"
+  },
+  "files": ["src", "types", "web", "docs", "examples", "README.md", "CHANGELOG.md"],
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "peerDependencies": {
+    "express": ">=4",
+    "mongoose": ">=7"
+  },
+  "peerDependenciesMeta": {
+    "express": { "optional": true },
+    "mongoose": { "optional": true }
+  },
+  "license": "UNLICENSED"
+}

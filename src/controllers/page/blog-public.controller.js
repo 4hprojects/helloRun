@@ -175,6 +175,10 @@ exports.getBlogPost = async (req, res) => {
 
     const currentUser = res.locals.user || null;
     const currentUserId = currentUser?._id || null;
+    if (currentUserId) {
+      res.set('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+      res.set('Pragma', 'no-cache');
+    }
     const shouldTrackView = shouldTrackBlogView({
       currentUser,
       postAuthorId: post.authorId?._id || post.authorId

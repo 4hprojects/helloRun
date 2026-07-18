@@ -31,6 +31,29 @@ const blogReportSchema = new mongoose.Schema(
       default: null,
       index: true
     },
+    commentContentSnapshot: {
+      type: String,
+      maxlength: 1000,
+      default: '',
+      immutable: true
+    },
+    commentAuthorIdSnapshot: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+      immutable: true
+    },
+    commentRevisionAtSnapshot: {
+      type: Date,
+      default: null,
+      immutable: true
+    },
+    commentEditCountSnapshot: {
+      type: Number,
+      min: 0,
+      default: 0,
+      immutable: true
+    },
     reporterId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

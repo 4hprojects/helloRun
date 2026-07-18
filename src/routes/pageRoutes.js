@@ -126,6 +126,18 @@ const commentLimiter = createRateLimiter({
   maxRequests: 10,
   message: 'Too many comments. Please wait a few minutes and try again.'
 });
+const commentEditLimiter = createRateLimiter({
+  windowMs: 5 * 60 * 1000,
+  maxRequests: 15,
+  message: 'Too many comment edits. Please wait a few minutes and try again.',
+  keyFn: (req) => `blog-comment-edit|${req.session?.userId || req.ip || 'anon'}`
+});
+const commentRevisionRedactionLimiter = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  maxRequests: 10,
+  message: 'Too many revision redactions. Please wait before trying again.',
+  keyFn: (req) => `blog-comment-redaction|${req.session?.userId || req.ip || 'anon'}`
+});
 const likeLimiter = createRateLimiter({
   windowMs: 60 * 1000,
   maxRequests: 30,
@@ -133,8 +145,12 @@ const likeLimiter = createRateLimiter({
 });
 
 router.get('/blog/:slug/comments', blogInteractionController.listComments);
+router.get('/blog/:slug/comments/:commentId/replies', blogInteractionController.listCommentReplies);
+router.get('/blog/:slug/comments/:commentId/history', blogInteractionController.getCommentHistory);
 router.post('/blog/:slug/comments', requireAuth, commentLimiter, requireCsrfProtection, blogInteractionController.createComment);
+router.patch('/blog/:slug/comments/:commentId', requireAuth, commentEditLimiter, requireCsrfProtection, blogInteractionController.editComment);
 router.delete('/blog/:slug/comments/:commentId', requireAuth, requireCsrfProtection, blogInteractionController.deleteComment);
+router.post('/blog/:slug/comments/:commentId/history/:revisionId/redact', requireAuth, commentRevisionRedactionLimiter, requireCsrfProtection, blogInteractionController.redactCommentRevision);
 router.post('/blog/:slug/like', requireAuth, likeLimiter, requireCsrfProtection, blogInteractionController.toggleLike);
 router.post('/blog/:slug/report', requireAuth, requireCsrfProtection, blogInteractionController.reportPost);
 router.post('/blog/:slug/comments/:commentId/report', requireAuth, requireCsrfProtection, blogInteractionController.reportComment);

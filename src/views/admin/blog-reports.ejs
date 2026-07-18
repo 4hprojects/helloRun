@@ -37,7 +37,20 @@
             </div>
             <p style="margin:.65rem 0 0;"><strong>Reporter:</strong> <%= report.reporterId?.firstName || '' %> <%= report.reporterId?.lastName || '' %> (<%= report.reporterId?.email || 'unknown' %>)</p>
             <% if (report.blogId?.title) { %><p style="margin:.45rem 0 0;"><strong>Post:</strong> <%= report.blogId.title %></p><% } %>
-            <% if (report.commentId?.content) { %><p style="margin:.45rem 0 0;"><strong>Comment:</strong> <%= report.commentId.content %></p><% } %>
+            <% if (report.targetType === 'comment') { %>
+              <% const reportedCommentText = report.commentContentSnapshot || report.commentId?.content || ''; %>
+              <% const currentCommentText = report.commentId?.content || ''; %>
+              <% if (reportedCommentText) { %>
+                <p style="margin:.45rem 0 0;"><strong>Reported version:</strong> <%= reportedCommentText %></p>
+              <% } %>
+              <% if (report.commentRevisionAtSnapshot) { %>
+                <p style="margin:.3rem 0 0;color:#64748b;font-size:.9rem;">Captured <%= new Date(report.commentRevisionAtSnapshot).toLocaleString('en-US') %> after <%= Number(report.commentEditCountSnapshot || 0) %> edit(s).</p>
+              <% } %>
+              <% if (currentCommentText && reportedCommentText && currentCommentText !== reportedCommentText) { %>
+                <p style="margin:.45rem 0 0;"><strong>Current version:</strong> <%= currentCommentText %></p>
+                <p style="margin:.3rem 0 0;color:#9a3412;font-size:.9rem;">The comment changed after the reported version was captured.</p>
+              <% } %>
+            <% } %>
             <% if (report.note) { %><p style="margin:.45rem 0 0;"><strong>Note:</strong> <%= report.note %></p><% } %>
             <% if (selectedStatus === 'open') { %>
               <div style="display:flex;gap:.65rem;flex-wrap:wrap;margin-top:.85rem;">

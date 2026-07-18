@@ -9,6 +9,21 @@ const NOTIFICATION_OPTIONS = Object.freeze([
   { key: 'event.promotion', label: 'Event promotions', description: 'Email invitations and promotions for upcoming events.' }
 ]);
 
+const NOTIFICATION_GROUPS = Object.freeze([
+  {
+    key: 'results',
+    label: 'Results & recognition',
+    description: 'Reviews, corrections, certificates, and achievement updates.',
+    optionKeys: ['result.approved', 'result.rejected', 'certificate.issued', 'badge.earned']
+  },
+  {
+    key: 'events',
+    label: 'Event communication',
+    description: 'Payment reminders and optional event recommendations.',
+    optionKeys: ['organiser.payment_reminder', 'event.promotion']
+  }
+]);
+
 const BADGE_TYPE_ICONS = Object.freeze({
   participant: 'user-check',
   finisher: 'trophy',
@@ -51,13 +66,15 @@ function buildRunnerProfilePresentation(options = {}) {
   const progress = Array.isArray(options.badgeProgress) ? options.badgeProgress.map(normalizeProgress) : [];
   const featuredBadge = badges.find((badge) => badge.isFeatured) || null;
   const unfeaturedBadges = badges.filter((badge) => !badge.isFeatured);
+  const notificationOptions = NOTIFICATION_OPTIONS.map((item) => ({ ...item, enabled: !optOut.has(item.key) }));
+  const notificationOptionMap = new Map(notificationOptions.map((item) => [item.key, item]));
 
   return {
     identity: {
       displayName,
       initials,
       avatarUrl: String(user.avatarUrl || '').trim(),
-      email: String(user.email || '').trim()
+      email: String(user.email || '').trim().toLowerCase()
     },
     dateOfBirthMasked: maskDateOfBirth(profileData.dateOfBirth),
     mobileMasked: maskContactNumber(profileData.mobile),
@@ -78,7 +95,17 @@ function buildRunnerProfilePresentation(options = {}) {
       { href: '#account', label: 'Security', icon: 'shield-check' },
       { href: '#badges', label: 'Achievements', icon: 'award' }
     ],
-    notificationOptions: NOTIFICATION_OPTIONS.map((item) => ({ ...item, enabled: !optOut.has(item.key) })),
+    notificationOptions,
+    notificationPreferences: {
+      enabledCount: notificationOptions.filter((item) => item.enabled).length,
+      totalCount: notificationOptions.length,
+      groups: NOTIFICATION_GROUPS.map((group) => ({
+        key: group.key,
+        label: group.label,
+        description: group.description,
+        options: group.optionKeys.map((key) => notificationOptionMap.get(key)).filter(Boolean)
+      }))
+    },
     connection: {
       connected: Boolean(options.stravaConnection?.connected),
       athleteName: String(options.stravaConnection?.athleteName || '').trim(),

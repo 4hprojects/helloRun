@@ -5,6 +5,7 @@ const logger = require('../utils/logger');
 const NOTIFICATION_VIEWS = new Set(['all', 'unread', 'archived']);
 
 const TYPE_PRESENTATION = [
+  { match: /blog_comment_reply/, category: 'Community', icon: 'message-circle-reply', tone: 'community', actionLabel: 'View reply' },
   { match: /payment_rejected/, category: 'Payment', icon: 'credit-card', tone: 'attention', actionLabel: 'Fix payment' },
   { match: /result_rejected/, category: 'Activity review', icon: 'circle-alert', tone: 'attention', actionLabel: 'Fix entry' },
   { match: /certificate/, category: 'Recognition', icon: 'award', tone: 'recognition', actionLabel: 'Download certificate' },

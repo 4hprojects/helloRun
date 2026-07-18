@@ -4,25 +4,23 @@ const Blog = require('../models/Blog');
 const BlogComment = require('../models/BlogComment');
 const BlogLike = require('../models/BlogLike');
 const BlogReport = require('../models/BlogReport');
-const { sanitizeHtml } = require('../utils/sanitize');
-const { analyzeCommentSafety } = require('../utils/blog-safety');
+const {
+  COMMENTS_PAGE_SIZE,
+  BlogCommentError,
+  getPublishedBlogBySlug,
+  listCommentThreads,
+  listThreadReplies,
+  listCommentHistory,
+  createComment,
+  editComment,
+  redactCommentRevision,
+  removeComment
+} = require('../services/blog-comment.service');
 
-function sanitizeText(input) {
-  return sanitizeHtml(String(input || ''), { allowedTags: [], allowedAttributes: {} });
-}
-
-const MAX_COMMENT_LENGTH = BlogComment.MAX_COMMENT_LENGTH;
-const COMMENTS_PAGE_SIZE = 20;
 const REPORT_REASONS = BlogReport.REPORT_REASONS;
 
 function getSessionUserId(req) {
   return req.session?.userId || null;
-}
-
-async function getPublishedBlogBySlug(slug) {
-  return Blog.findOne({ slug, status: 'published', isDeleted: { $ne: true } })
-    .select('_id slug likesCount commentsCount')
-    .lean();
 }
 
 function normalizeReportReason(value) {
@@ -34,33 +32,30 @@ exports.listComments = async (req, res) => {
   try {
     const post = await getPublishedBlogBySlug(req.params.slug);
     if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
-
-    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const skip = (page - 1) * COMMENTS_PAGE_SIZE;
-
-    const [comments, total] = await Promise.all([
-      BlogComment.find({ blogId: post._id, isDeleted: { $ne: true }, status: 'active' })
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(COMMENTS_PAGE_SIZE)
-        .populate({ path: 'authorId', select: 'firstName lastName' })
-        .lean(),
-      BlogComment.countDocuments({ blogId: post._id, isDeleted: { $ne: true }, status: 'active' })
-    ]);
-
-    return res.json({
-      success: true,
-      comments,
-      pagination: {
-        page,
-        pageSize: COMMENTS_PAGE_SIZE,
-        total,
-        totalPages: Math.ceil(total / COMMENTS_PAGE_SIZE)
-      }
+    const result = await listCommentThreads(post, {
+      page: req.query.page,
+      focusThreadId: req.query.thread,
+      focusReplyId: req.query.reply
     });
+    return res.json({ success: true, ...result });
   } catch (error) {
     logger.error('listComments error:', error);
     return res.status(500).json({ success: false, message: 'Failed to load comments.' });
+  }
+};
+
+exports.listCommentReplies = async (req, res) => {
+  try {
+    const post = await getPublishedBlogBySlug(req.params.slug);
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
+    const result = await listThreadReplies(post, req.params.commentId, { page: req.query.page });
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    if (error instanceof BlogCommentError) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
+    logger.error('listCommentReplies error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to load replies.' });
   }
 };
 
@@ -72,34 +67,79 @@ exports.createComment = async (req, res) => {
     const post = await getPublishedBlogBySlug(req.params.slug);
     if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
 
-    const rawContent = String(req.body.content || '').trim();
-    if (!rawContent) {
-      return res.status(400).json({ success: false, message: 'Comment content is required.' });
-    }
-    if (rawContent.length > MAX_COMMENT_LENGTH) {
-      return res.status(400).json({
-        success: false,
-        message: `Comment must not exceed ${MAX_COMMENT_LENGTH} characters.`
-      });
-    }
-
-    const content = sanitizeText(rawContent);
-    const safety = analyzeCommentSafety(content);
-
-    const comment = await BlogComment.create({
-      blogId: post._id,
-      authorId: userId,
-      content,
-      moderationFlags: safety.flags,
-      moderationFlagSummary: safety.summary
+    const comment = await createComment({
+      post,
+      userId,
+      content: req.body.content,
+      replyToCommentId: req.body.replyToCommentId
     });
-
-    await Blog.updateOne({ _id: post._id }, { $inc: { commentsCount: 1 } });
-
     return res.status(201).json({ success: true, comment });
   } catch (error) {
+    if (error instanceof BlogCommentError) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
     logger.error('createComment error:', error);
     return res.status(500).json({ success: false, message: 'Failed to post comment.' });
+  }
+};
+
+exports.editComment = async (req, res) => {
+  try {
+    const userId = getSessionUserId(req);
+    if (!userId) return res.status(401).json({ success: false, message: 'Authentication required.' });
+    const post = await getPublishedBlogBySlug(req.params.slug);
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
+    const comment = await editComment({
+      post,
+      commentId: req.params.commentId,
+      userId,
+      content: req.body.content,
+      expectedUpdatedAt: req.body.expectedUpdatedAt
+    });
+    return res.json({ success: true, comment });
+  } catch (error) {
+    if (error instanceof BlogCommentError) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
+    logger.error('editComment error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to edit comment.' });
+  }
+};
+
+exports.getCommentHistory = async (req, res) => {
+  try {
+    const post = await getPublishedBlogBySlug(req.params.slug);
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
+    const history = await listCommentHistory(post, req.params.commentId);
+    return res.json({ success: true, ...history });
+  } catch (error) {
+    if (error instanceof BlogCommentError) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
+    logger.error('getCommentHistory error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to load comment history.' });
+  }
+};
+
+exports.redactCommentRevision = async (req, res) => {
+  try {
+    const userId = getSessionUserId(req);
+    if (!userId) return res.status(401).json({ success: false, message: 'Authentication required.' });
+    const post = await getPublishedBlogBySlug(req.params.slug);
+    if (!post) return res.status(404).json({ success: false, message: 'Post not found.' });
+    const history = await redactCommentRevision({
+      post,
+      commentId: req.params.commentId,
+      revisionId: req.params.revisionId,
+      userId
+    });
+    return res.json({ success: true, ...history });
+  } catch (error) {
+    if (error instanceof BlogCommentError) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
+    logger.error('redactCommentRevision error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to redact revision.' });
   }
 };
 
@@ -108,35 +148,16 @@ exports.deleteComment = async (req, res) => {
     const userId = getSessionUserId(req);
     if (!userId) return res.status(401).json({ success: false, message: 'Authentication required.' });
 
-    if (!mongoose.Types.ObjectId.isValid(req.params.commentId)) {
-      return res.status(400).json({ success: false, message: 'Invalid comment id.' });
-    }
-
-    const comment = await BlogComment.findOne({
-      _id: req.params.commentId,
-      isDeleted: { $ne: true }
-    }).lean();
-
-    if (!comment) return res.status(404).json({ success: false, message: 'Comment not found.' });
-
-    const isOwner = String(comment.authorId) === String(userId);
-    const isAdmin = req.session?.role === 'admin';
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({ success: false, message: 'Not authorised to delete this comment.' });
-    }
-
-    await BlogComment.updateOne(
-      { _id: comment._id },
-      { $set: { isDeleted: true, deletedAt: new Date(), deletedBy: userId, status: 'removed' } }
-    );
-
-    await Blog.updateOne(
-      { _id: comment.blogId, commentsCount: { $gt: 0 } },
-      { $inc: { commentsCount: -1 } }
-    );
-
-    return res.json({ success: true });
+    const result = await removeComment({
+      commentId: req.params.commentId,
+      userId,
+      isAdmin: req.session?.role === 'admin'
+    });
+    return res.json({ success: true, ...result });
   } catch (error) {
+    if (error instanceof BlogCommentError) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
     logger.error('deleteComment error:', error);
     return res.status(500).json({ success: false, message: 'Failed to delete comment.' });
   }
@@ -225,6 +246,9 @@ exports.reportComment = async (req, res) => {
     if (!comment) {
       return res.status(404).json({ success: false, message: 'Comment not found.' });
     }
+    if (String(comment.authorId) === String(userId)) {
+      return res.status(403).json({ success: false, message: 'You cannot report your own comment.' });
+    }
 
     const reason = normalizeReportReason(req.body.reason);
     if (!reason) {
@@ -236,6 +260,10 @@ exports.reportComment = async (req, res) => {
       targetType: 'comment',
       blogId: post._id,
       commentId: comment._id,
+      commentContentSnapshot: String(comment.content || ''),
+      commentAuthorIdSnapshot: comment.authorId,
+      commentRevisionAtSnapshot: comment.lastEditedAt || comment.createdAt,
+      commentEditCountSnapshot: Number(comment.editCount || 0),
       reporterId: userId,
       reason,
       note
@@ -289,35 +317,17 @@ exports.adminListComments = async (req, res) => {
 exports.adminRemoveComment = async (req, res) => {
   try {
     const userId = getSessionUserId(req);
-    if (!mongoose.Types.ObjectId.isValid(req.params.commentId)) {
-      return res.status(400).json({ success: false, message: 'Invalid comment id.' });
-    }
-
-    const comment = await BlogComment.findOne({
-      _id: req.params.commentId,
-      isDeleted: { $ne: true }
+    const result = await removeComment({
+      commentId: req.params.commentId,
+      userId,
+      isAdmin: true,
+      moderationNote: req.body.moderationNote
     });
-    if (!comment) return res.status(404).json({ success: false, message: 'Comment not found.' });
-
-    const note = String(req.body.moderationNote || '').trim().slice(0, 500);
-
-    await comment.updateOne({
-      $set: {
-        status: 'removed',
-        isDeleted: true,
-        deletedAt: new Date(),
-        deletedBy: userId,
-        moderationNote: note
-      }
-    });
-
-    await Blog.updateOne(
-      { _id: comment.blogId, commentsCount: { $gt: 0 } },
-      { $inc: { commentsCount: -1 } }
-    );
-
-    return res.json({ success: true });
+    return res.json({ success: true, ...result });
   } catch (error) {
+    if (error instanceof BlogCommentError) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
     logger.error('adminRemoveComment error:', error);
     return res.status(500).json({ success: false, message: 'Failed to remove comment.' });
   }
@@ -364,6 +374,7 @@ exports.adminListReports = async (req, res) => {
       .populate('reporterId', 'firstName lastName email')
       .populate('blogId', 'title slug')
       .populate('commentId', 'content')
+      .populate('commentAuthorIdSnapshot', 'firstName lastName email')
       .populate('resolvedBy', 'firstName lastName email')
       .lean();
 

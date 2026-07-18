@@ -48,6 +48,7 @@ test('personal details use native edit disclosures with ordinary form submission
   assert.match(main, /<dt>Contact number<\/dt><dd><%= p\.emergencyContactNumberMasked %><\/dd>/);
   assert.match(main, /<dt>Mobile<\/dt><dd><%= p\.mobileMasked %><\/dd>/);
   assert.match(main, /<dt>Date of birth<\/dt><dd><%= p\.dateOfBirthMasked %><\/dd>/);
+  assert.match(main, /<dt>Email<\/dt><dd class="profile-value-email"><%= p\.identity\.email \|\| 'Not set' %><\/dd>/);
   assert.match(main, /name="emergencyContactNumber" value="<%= profileData\.emergencyContactNumber \|\| '' %>"/);
   assert.match(main, /official event deadlines remain based on Asia\/Manila/);
 });
@@ -63,6 +64,22 @@ test('avatar and form enhancements provide validation, live feedback, and unsave
   assert.match(script, /aria-busy/);
   assert.match(script, /event\.key === 'Escape'/);
   assert.match(script, /event\.key !== 'Tab'/);
+});
+
+test('preferences use grouped switches, enabled counts, and explicit dirty-state saving', () => {
+  const main = read('src/views/runner/partials/profile-main.ejs');
+  const script = read('src/public/js/runner-profile.js');
+  const css = read('src/public/css/runner-profile.css');
+  assert.match(main, /Results &amp; recognition|group\.label/);
+  assert.match(main, /data-preference-count/);
+  assert.match(main, /role="switch"/);
+  assert.match(main, /data-preference-save/);
+  assert.match(main, /data-preference-status role="status" aria-live="polite"/);
+  assert.match(script, /setupNotificationPreferences/);
+  assert.match(script, /unsaved preference changes/);
+  assert.match(script, /saveButton\.disabled = !dirty/);
+  assert.match(css, /\.notif-groups[\s\S]*?repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.notif-checkbox:checked \+ span/);
 });
 
 test('achievements are compact by default while all management remains available', () => {
@@ -83,5 +100,7 @@ test('profile CSS supports compact desktop, disclosed mobile navigation, zoom, a
   assert.match(css, /\.runner-profile-menu-mobile\s*\{ display: none; \}/);
   assert.match(css, /min-height: 2\.75rem/);
   assert.match(css, /focus-visible/);
+  assert.match(css, /\.profile-readonly-grid dd[^}]*text-transform: none/);
+  assert.match(css, /\.profile-edit-disclosure > summary[^}]*margin-inline: 0 auto/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
