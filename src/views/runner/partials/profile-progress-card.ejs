@@ -1,0 +1,6 @@
+<article class="profile-badge-progress-card">
+  <div class="profile-badge-progress-card-top"><span class="profile-badge-icon"><i data-lucide="trending-up" aria-hidden="true"></i></span><strong><%= item.percentLabel %>%</strong></div>
+  <h4><%= item.name %></h4>
+  <div class="profile-badge-progress-track" role="progressbar" aria-label="<%= item.name %> progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= item.barPercent %>" aria-valuetext="<%= item.percentLabel %>% complete"><span style="width:<%= item.barPercent %>%"></span></div>
+  <p><%= Number(item.currentValue || 0).toFixed(2) %> km / <%= Number(item.targetValue || 0).toFixed(2) %> km</p>
+</article>

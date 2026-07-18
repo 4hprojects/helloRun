@@ -1,234 +1,181 @@
-// runner-profile.js – enhanced interactions
-(function() {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+'use strict';
+
+(function () {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
+  else init();
 
   function init() {
-    setupEditablePanels();
-    setupDobToggle();
-    highlightActiveMenu();
-    setupUnlinkConfirmation();
+    setupProfileEditors();
     setupLocationForm();
+    setupAvatarUpload();
+    setupSectionNavigation();
+    setupUnlinkConfirmation();
+  }
+
+  function setupProfileEditors() {
+    const forms = Array.from(document.querySelectorAll('[data-profile-edit-form]'));
+    const dirtyForms = new Set();
+    forms.forEach((form) => {
+      const editor = form.closest('[data-profile-editor]');
+      form.addEventListener('input', () => dirtyForms.add(form));
+      form.addEventListener('change', () => dirtyForms.add(form));
+      form.addEventListener('submit', () => {
+        dirtyForms.delete(form);
+        const saveButton = form.querySelector('[data-save-btn]');
+        if (saveButton) {
+          saveButton.disabled = true;
+          saveButton.setAttribute('aria-busy', 'true');
+          saveButton.textContent = 'Saving…';
+        }
+      });
+      form.querySelector('[data-cancel-profile-edit]')?.addEventListener('click', () => {
+        form.reset();
+        dirtyForms.delete(form);
+        if (editor) editor.open = false;
+        editor?.querySelector('summary')?.focus();
+      });
+    });
+    window.addEventListener('beforeunload', (event) => {
+      if (!dirtyForms.size) return;
+      event.preventDefault();
+      event.returnValue = '';
+    });
   }
 
   function setupLocationForm() {
     const form = document.getElementById('locationForm');
-    const countrySelect = document.getElementById('profileCountry');
-    const timezoneSelect = document.getElementById('profileTimezone');
+    const country = document.getElementById('profileCountry');
+    const timezone = document.getElementById('profileTimezone');
     const source = document.getElementById('profileTimezoneSource');
     const status = document.getElementById('profileLocationStatus');
-    if (!form || !countrySelect || !timezoneSelect || !source || !status) return;
-
+    if (!form || !country || !timezone || !source || !status) return;
     let detected = '';
-    try {
-      detected = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-    } catch (_) {}
+    try { detected = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (_) {}
+    const supported = detected && Array.from(timezone.options).some((option) => option.value === detected);
     const savedCountry = form.dataset.savedCountry || '';
-    const suggestedCountry = form.dataset.suggestedCountry || '';
     const savedTimezone = form.dataset.savedTimezone || '';
-    const timezoneIsSupported = detected && Array.from(timezoneSelect.options).some((option) => option.value === detected);
-
-    if (!savedTimezone && timezoneIsSupported) {
-      timezoneSelect.value = detected;
+    const suggestedCountry = form.dataset.suggestedCountry || '';
+    if (!savedTimezone && supported) {
+      timezone.value = detected;
       source.value = 'browser';
     }
+    const suggestions = savedCountry || savedTimezone ? ['Your saved location is selected.'] : ['Review the available suggestions before saving.'];
+    if (!savedCountry && suggestedCountry) suggestions.push('Country was suggested from your network.');
+    if (!savedTimezone && supported) suggestions.push('Timezone was suggested as ' + detected + '.');
+    status.textContent = suggestions.join(' ');
+    timezone.addEventListener('change', () => { source.value = timezone.value === detected ? 'browser' : 'user'; });
+  }
 
-    const messages = [];
-    if (savedCountry || savedTimezone) {
-      messages.push('Your saved location is selected.');
-    } else if (suggestedCountry || timezoneIsSupported) {
-      messages.push('We preselected available suggestions. Review them before saving.');
-    } else {
-      messages.push('Select your country and timezone.');
-    }
-    if (suggestedCountry && !savedCountry) messages.push('Country suggested from your network.');
-    if (timezoneIsSupported && !savedTimezone) messages.push(`Timezone suggested as ${detected}.`);
-    status.textContent = messages.join(' ');
-
-    timezoneSelect.addEventListener('change', () => {
-      source.value = timezoneSelect.value === detected ? 'browser' : 'user';
-    });
-
-    form.addEventListener('submit', () => {
-      const saveButton = form.querySelector('[data-save-btn]');
-      if (saveButton) {
-        saveButton.disabled = true;
-        saveButton.setAttribute('aria-busy', 'true');
+  function setupAvatarUpload() {
+    const input = document.getElementById('js-avatar-input');
+    const status = document.getElementById('js-avatar-status');
+    const wrap = document.getElementById('js-avatar-wrap');
+    if (!input || !status || !wrap) return;
+    const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+    input.addEventListener('change', async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      if (!allowedTypes.has(file.type)) {
+        status.textContent = 'Choose a JPG, PNG, or WebP image.';
+        input.value = '';
+        return;
       }
-      status.textContent = 'Saving location and timezone…';
+      if (file.size > 5 * 1024 * 1024) {
+        status.textContent = 'Choose an image smaller than 5 MB.';
+        input.value = '';
+        return;
+      }
+      const data = new FormData();
+      data.append('avatarImageFile', file);
+      data.append('_csrf', document.querySelector('[name="_csrf"]')?.value || '');
+      input.disabled = true;
+      wrap.setAttribute('aria-busy', 'true');
+      status.textContent = 'Uploading profile photo…';
+      try {
+        const response = await fetch('/runner/profile/avatar', { method: 'POST', body: data });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok || !result.success) throw new Error(result.message || 'Upload failed.');
+        let image = document.getElementById('js-avatar-img');
+        if (!image) {
+          image = document.createElement('img');
+          image.id = 'js-avatar-img';
+          image.className = 'profile-avatar-img';
+          image.alt = '';
+          image.addEventListener('error', () => { image.hidden = true; });
+          wrap.insertBefore(image, wrap.querySelector('.profile-avatar-upload-btn'));
+        }
+        image.hidden = false;
+        image.src = result.avatarUrl;
+        status.textContent = 'Profile photo updated.';
+      } catch (error) {
+        status.textContent = error.message || 'Unable to upload the photo. Try again.';
+      } finally {
+        input.disabled = false;
+        input.value = '';
+        wrap.removeAttribute('aria-busy');
+      }
     });
   }
 
-  function setupEditablePanels() {
-    const editButtons = document.querySelectorAll('[data-panel-edit]');
-
-    editButtons.forEach(button => {
-      const formId = button.dataset.formId;
-      const form = document.getElementById(formId);
-      if (!form) return;
-
-      const editableInputs = form.querySelectorAll('[data-editable]');
-      const actions = form.querySelector('.runner-profile-form-actions');
-      const cancelBtn = form.querySelector('[data-cancel-edit]');
-      const defaultLabel = button.textContent.trim();
-
-      let originalValues = [];
-
-      // helper to toggle edit/view mode
-      const setMode = (editing) => {
-        editableInputs.forEach(input => {
-          if (editing) {
-            input.removeAttribute('readonly');
-            input.removeAttribute('disabled');
-          } else {
-            if (input.tagName === 'SELECT') {
-              input.setAttribute('disabled', '');
-            } else {
-              input.setAttribute('readonly', '');
-            }
-          }
-        });
-        if (actions) actions.hidden = !editing;
-        // change button appearance but keep it enabled so user can cancel editing by clicking again?
-        // Instead we disable the edit button while editing – prevents confusion.
-        button.disabled = editing;
-        button.textContent = editing ? 'Editing…' : defaultLabel;
-        if (editing && editableInputs.length) {
-          editableInputs[0].focus();
-        }
-      };
-
-      // start editing
-      button.addEventListener('click', () => {
-        if (button.disabled) return; // already editing
-        // snapshot current values
-        originalValues = Array.from(editableInputs).map(input => input.value);
-        setMode(true);
+  function setupSectionNavigation() {
+    const sections = Array.from(document.querySelectorAll('[data-profile-section][id]'));
+    const links = Array.from(document.querySelectorAll('.runner-profile-menu a[href^="#"], .runner-profile-menu-mobile a[href^="#"]'));
+    const mobileMenu = document.querySelector('.runner-profile-menu-mobile');
+    links.forEach((link) => link.addEventListener('click', () => { if (mobileMenu?.contains(link)) mobileMenu.open = false; }));
+    if (!('IntersectionObserver' in window)) return;
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries.filter((entry) => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+      if (!visible) return;
+      links.forEach((link) => {
+        const active = link.getAttribute('href') === '#' + visible.target.id;
+        link.classList.toggle('active', active);
+        if (active) link.setAttribute('aria-current', 'location');
+        else link.removeAttribute('aria-current');
       });
-
-      // cancel editing
-      if (cancelBtn) {
-        cancelBtn.addEventListener('click', () => {
-          // restore original values
-          editableInputs.forEach((input, idx) => {
-            input.value = originalValues[idx] || '';
-          });
-          setMode(false);
-        });
-      }
-
-      // on submit, disable save button to prevent double submission
-      form.addEventListener('submit', () => {
-        const saveBtn = form.querySelector('[data-save-btn]');
-        if (saveBtn && !saveBtn.disabled) {
-          saveBtn.disabled = true;
-          saveBtn.setAttribute('aria-busy', 'true');
-        }
-      });
-
-      // Force initial state: view mode with hidden actions.
-      setMode(false);
-    });
-  }
-
-  function setupDobToggle() {
-    const toggleBtn = document.querySelector('[data-dob-toggle]');
-    const valueSpan = document.querySelector('[data-dob-value]');
-    if (!toggleBtn || !valueSpan) return;
-
-    const masked = valueSpan.dataset.masked || '****-**-**';
-    const unmasked = valueSpan.dataset.unmasked || 'Not set';
-    let isMasked = true;
-
-    const updateButton = () => {
-      const iconName = isMasked ? 'eye' : 'eye-off';
-      toggleBtn.innerHTML = `<i data-lucide="${iconName}"></i>`;
-      toggleBtn.setAttribute('aria-pressed', (!isMasked).toString());
-      toggleBtn.setAttribute('aria-label', isMasked ? 'Show date of birth' : 'Hide date of birth');
-      if (window.lucide && typeof window.lucide.createIcons === 'function') {
-        window.lucide.createIcons();
-      }
-    };
-
-    toggleBtn.addEventListener('click', () => {
-      isMasked = !isMasked;
-      valueSpan.textContent = isMasked ? masked : unmasked;
-      updateButton();
-    });
-
-    // initial state
-    updateButton();
-  }
-
-  function highlightActiveMenu() {
-    // highlight the menu link corresponding to the currently visible section
-    const sections = document.querySelectorAll('.runner-profile-card[id]');
-    const menuLinks = document.querySelectorAll('.runner-profile-menu a[href^="#"]');
-
-    if (!sections.length || !menuLinks.length) return;
-
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          // remove active class from all links
-          menuLinks.forEach(link => link.classList.remove('active'));
-          // add active class to link with matching href
-          const activeLink = document.querySelector(`.runner-profile-menu a[href="#${entry.target.id}"]`);
-          if (activeLink) activeLink.classList.add('active');
-        }
-      });
-    }, { threshold: 0.3, rootMargin: '-20px 0px -20px 0px' });
-
-    sections.forEach(section => observer.observe(section));
+    }, { threshold: [0.2, 0.5], rootMargin: '-15% 0px -60% 0px' });
+    sections.forEach((section) => observer.observe(section));
   }
 
   function setupUnlinkConfirmation() {
     const modal = document.getElementById('unlinkGoogleModal');
-    const openButtons = document.querySelectorAll('[data-open-unlink-modal]');
-    if (!modal || !openButtons.length) return;
-
-    const cancelBtn = modal.querySelector('[data-cancel-unlink]');
-    const confirmBtn = modal.querySelector('[data-confirm-unlink]');
+    const triggers = Array.from(document.querySelectorAll('[data-open-unlink-modal]:not([disabled])'));
+    if (!modal || !triggers.length) return;
+    const dialog = modal.querySelector('.modal-dialog');
+    const cancel = modal.querySelector('[data-cancel-unlink]');
+    const confirm = modal.querySelector('[data-confirm-unlink]');
     let activeForm = null;
     let lastTrigger = null;
-
-    const closeModal = () => {
-      modal.setAttribute('hidden', '');
+    const focusables = () => Array.from(dialog.querySelectorAll('button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])'));
+    const close = () => {
+      modal.hidden = true;
       modal.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
+      lastTrigger?.focus();
       activeForm = null;
-      if (lastTrigger && typeof lastTrigger.focus === 'function') lastTrigger.focus();
-      lastTrigger = null;
     };
-
-    openButtons.forEach((button) => {
-      if (button.disabled) return;
-      button.addEventListener('click', () => {
-        activeForm = button.closest('form');
-        lastTrigger = button;
-        modal.removeAttribute('hidden');
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.style.overflow = 'hidden';
-        const focusables = modal.querySelectorAll('button, [href], input, [tabindex]:not([tabindex="-1"])');
-        if (focusables.length) focusables[0].focus();
-      });
+    triggers.forEach((trigger) => trigger.addEventListener('click', () => {
+      activeForm = trigger.closest('form');
+      lastTrigger = trigger;
+      modal.hidden = false;
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      cancel?.focus();
+    }));
+    cancel?.addEventListener('click', close);
+    confirm?.addEventListener('click', () => {
+      if (!activeForm) return;
+      confirm.disabled = true;
+      confirm.setAttribute('aria-busy', 'true');
+      activeForm.submit();
     });
-
-    cancelBtn && cancelBtn.addEventListener('click', closeModal);
-    confirmBtn && confirmBtn.addEventListener('click', () => {
-      if (activeForm) activeForm.submit();
-      closeModal();
-    });
-
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) closeModal();
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !modal.hasAttribute('hidden')) closeModal();
+    modal.addEventListener('click', (event) => { if (event.target === modal) close(); });
+    modal.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); close(); return; }
+      if (event.key !== 'Tab') return;
+      const items = focusables();
+      if (!items.length) return;
+      if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items.at(-1).focus(); }
+      else if (!event.shiftKey && document.activeElement === items.at(-1)) { event.preventDefault(); items[0].focus(); }
     });
   }
 })();

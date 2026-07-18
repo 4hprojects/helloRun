@@ -1,0 +1,23 @@
+<article class="profile-badge-card<%= badge.isFeatured ? ' is-featured' : '' %>">
+  <div class="profile-badge-card-top">
+    <span class="profile-badge-icon badge-placeholder" data-badge-type="<%= badge.badgeType %>" aria-hidden="true">
+      <i data-lucide="<%= badge.icon %>"></i>
+      <% if (badge.imageUrl) { %><img src="<%= badge.imageUrl %>" alt="" loading="lazy" onerror="this.hidden=true;"><% } %>
+    </span>
+    <% if (badge.isFeatured) { %><span class="profile-badge-state">Featured</span><% } %>
+  </div>
+  <h4><%= badge.name %></h4>
+  <p><%= badge.description || 'Verified HelloRun achievement.' %></p>
+  <small><%= badge.typeLabel %></small>
+  <div class="profile-badge-card-actions">
+    <% if (badge.shareUrl) { %><a href="<%= badge.shareUrl %>" class="profile-badge-share-link" target="_blank" rel="noopener noreferrer"><i data-lucide="external-link" aria-hidden="true"></i><span>Share</span></a><% } %>
+    <% if (badge.certificateUrl) { %><a href="<%= badge.certificateUrl %>" class="profile-badge-share-link"><i data-lucide="file-check" aria-hidden="true"></i><span>Certificate</span></a><% } %>
+  </div>
+  <% if (!badge.isFeatured) { %>
+    <form method="POST" action="/runner/profile/badges/featured" class="inline-form profile-badge-action">
+      <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+      <input type="hidden" name="userBadgeId" value="<%= badge.userBadgeId %>">
+      <button type="submit" class="btn btn-outline btn-sm">Feature badge</button>
+    </form>
+  <% } %>
+</article>

@@ -425,8 +425,10 @@ function buildRunnerDashboardPresentation(options = {}) {
     ? null
     : buildDashboardSetupState({ profileCompleteness });
   const historyCount = cards.filter(isDashboardHistoryCard).length + Number(options.unavailableHistoryCount || 0);
+  const identity = buildDashboardIdentity(options.user);
 
   return {
+    identity,
     primaryJourney,
     secondaryJourneys,
     setup,
@@ -452,6 +454,23 @@ function buildRunnerDashboardPresentation(options = {}) {
       savedEvents: Number(options.toolCounts?.savedEvents || 0),
       history: historyCount
     }
+  };
+}
+
+function buildDashboardIdentity(user = {}) {
+  const displayName = String(user?.displayName || '').trim()
+    || String(user?.firstName || '').trim()
+    || 'Runner';
+  const nameParts = displayName.split(/\s+/).filter(Boolean);
+  const initials = nameParts.length > 1
+    ? `${nameParts[0][0]}${nameParts[nameParts.length - 1][0]}`.toUpperCase()
+    : displayName.slice(0, 1).toUpperCase();
+
+  return {
+    displayName,
+    initials: initials || 'R',
+    avatarUrl: String(user?.avatarUrl || '').trim(),
+    profileUrl: '/runner/profile'
   };
 }
 

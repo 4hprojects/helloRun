@@ -72,6 +72,59 @@ body {
   align-items: flex-start;
 }
 
+.header-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.dashboard-welcome-identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.dashboard-profile-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 3.75rem;
+  height: 3.75rem;
+  overflow: hidden;
+  flex: 0 0 auto;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  color: #075985;
+  background: #e0f2fe;
+  box-shadow: 0 5px 16px rgba(7, 89, 133, 0.2);
+}
+
+.dashboard-profile-avatar img,
+.dashboard-profile-initials {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.dashboard-profile-avatar img {
+  z-index: 1;
+  object-fit: cover;
+  background: #e0f2fe;
+}
+
+.dashboard-profile-initials {
+  display: grid;
+  place-items: center;
+  font: 800 1.05rem/1 var(--font-heading);
+  letter-spacing: 0.03em;
+}
+
+.dashboard-welcome-copy {
+  min-width: 0;
+}
+
 .dashboard-eyebrow,
 .section-kicker {
   display: inline-flex;
@@ -94,10 +147,30 @@ body {
   font-size: clamp(2rem, 3.2vw, 3rem);
   line-height: 1.05;
   letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+
+.dashboard-profile-name {
+  color: inherit;
+  text-decoration-color: rgba(255, 255, 255, 0.55);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.12em;
+}
+
+.dashboard-profile-name:hover {
+  text-decoration-color: #fff;
+}
+
+.dashboard-profile-name:focus-visible {
+  border-radius: 0.18em;
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+  text-decoration: none;
 }
 
 .header-subtitle {
   max-width: 720px;
+  margin-left: 4.65rem;
   font-size: 1rem;
   color: rgba(255, 255, 255, 0.92);
 }
@@ -112,13 +185,13 @@ body {
 
 .header-buttons {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
   gap: 0.65rem;
 }
 
 .header-subtitle {
-  margin: 0;
+  margin: 0 0 0 4.65rem;
   flex: 1;
   min-width: 0;
 }
@@ -1855,11 +1928,11 @@ code {
   }
 
   .header-buttons .btn {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.75rem;
+    height: 2.75rem;
     min-width: 0;
-    min-height: 0;
-    max-width: 2.5rem;
+    min-height: 2.75rem;
+    max-width: 2.75rem;
     padding: 0 !important;
     justify-content: center;
     border-radius: 50%;
@@ -1895,11 +1968,11 @@ code {
   }
 
   .header-buttons .btn {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.75rem;
+    height: 2.75rem;
     min-width: 0;
-    min-height: 0;
-    max-width: 2.5rem;
+    min-height: 2.75rem;
+    max-width: 2.75rem;
     padding: 0 !important;
     justify-content: center;
     border-radius: 50%;
@@ -1968,7 +2041,18 @@ code {
     font-size: 1.8rem;
   }
 
+  .dashboard-welcome-identity {
+    align-items: start;
+    gap: 0.75rem;
+  }
+
+  .dashboard-profile-avatar {
+    width: 3rem;
+    height: 3rem;
+  }
+
   .header-subtitle {
+    margin-left: 0;
     font-size: 0.9rem;
   }
 

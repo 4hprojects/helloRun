@@ -18,6 +18,13 @@ test('dashboard renders one canonical journey before compact supporting content'
   assert.match(dashboard, /data-run-proof-surface="runner-dashboard-header"/);
   assert.match(dashboard, /heroJourney\?\.nextAction/);
   assert.match(dashboard, /heroAction\?\.label \|\| 'Browse Events'/);
+  assert.match(dashboard, /href="\/my-registrations"[^>]*aria-label="My Registrations"/);
+  assert.match(dashboard, /dashboard-profile-avatar/);
+  assert.match(dashboard, /dashboard-profile-initials/);
+  assert.match(dashboard, /onerror="this\.hidden=true;"/);
+  assert.match(dashboard, /class="dashboard-profile-name" href="<%= dashboardIdentity\.profileUrl %>"/);
+  assert.doesNotMatch(dashboard, /aria-label="My Profile" title="My Profile"/);
+  assert.equal((dashboard.match(/<h1\b/g) || []).length, 1);
   assert.match(journey, /Active event journey/);
   assert.match(journey, /runnerDashboardPresentation\.primaryJourney/);
   assert.match(journey, /runnerDashboardPresentation\.secondaryJourneys/);
@@ -92,8 +99,13 @@ test('dashboard has visible focus, reduced motion, and 44px compact controls', (
   const css = read('src/public/css/runner-dashboard.css');
   assert.match(css, /focus-visible/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(css, /width: 2\.75rem; height: 2\.75rem/);
+  assert.match(css, /\.header-buttons\s*\{[\s\S]*?flex-wrap: nowrap/);
+  assert.match(css, /@media \(min-width: 981px\) and \(max-width: 1366px\)[\s\S]*?width: 2\.75rem;[\s\S]*?min-height: 2\.75rem/);
+  assert.match(css, /@media \(max-width: 980px\)[\s\S]*?width: 2\.75rem;[\s\S]*?min-height: 2\.75rem/);
   assert.match(css, /overflow: hidden/);
+  assert.match(css, /\.dashboard-profile-name:focus-visible/);
+  assert.match(css, /\.header-content h1\s*\{[\s\S]*?overflow-wrap: anywhere/);
+  assert.match(css, /@media \(max-width: 768px\)[\s\S]*?\.dashboard-profile-avatar\s*\{[\s\S]*?width: 3rem;[\s\S]*?height: 3rem/);
 });
 
 test('dashboard refresh protects focused and expanded canonical interactions', () => {

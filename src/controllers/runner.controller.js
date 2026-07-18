@@ -65,6 +65,7 @@ const {
 } = require('../services/achievement.service');
 const { getRunnerBadgeProgress, getRunnerNextMilestones } = require('../services/badge-progress.service');
 const stravaService = require('../services/strava.service');
+const { buildRunnerProfilePresentation } = require('../services/runner-profile-presentation.service');
 
 const countries = getCountries();
 const timezones = getTimeZoneOptions();
@@ -1073,9 +1074,21 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
     ).lean().catch(() => []);
     return new Set(docs.map((d) => String(d._id)));
   })();
+  const profilePresentation = buildRunnerProfilePresentation({
+    user,
+    profileData,
+    profileCompleteness,
+    selectedCountryName: selectedCountry?.name || 'Not set',
+    stravaConnection,
+    badges,
+    badgeProgress,
+    badgePointsSummary,
+    certifiedSubmissionIds,
+    publicBadgeCollectionPath: user.userId ? `/runners/${encodeURIComponent(user.userId)}/badges` : ''
+  });
 
   return {
-    title: 'Personal Information - HelloRun',
+    title: 'My Profile - HelloRun',
     user,
     userName: user.firstName,
     message: getRunnerProfileMessage(req.query),
@@ -1091,6 +1104,7 @@ async function buildRunnerProfileViewData(user, req, overrides = {}) {
     badgePointsSummary,
     certifiedSubmissionIds,
     publicBadgeCollectionPath: user.userId ? `/runners/${encodeURIComponent(user.userId)}/badges` : '',
+    profilePresentation,
     passwordErrors: {},
     passwordMessage: null,
     openPasswordModal: req.query.modal === 'password',

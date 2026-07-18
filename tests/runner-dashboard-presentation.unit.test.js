@@ -104,3 +104,19 @@ test('snapshot, support content, and tool counts are normalized in one presentat
   assert.equal(presentation.latestAchievement.title, '10K finisher');
   assert.deepEqual(presentation.toolCounts, { submissions: 3, achievements: 2, groups: 1, savedEvents: 4, history: 3 });
 });
+
+test('dashboard identity prefers display name and provides safe avatar presentation', () => {
+  const displayIdentity = buildRunnerDashboardPresentation({
+    user: { displayName: 'Trail Henz', firstName: 'Henson', avatarUrl: ' https://images.example/runner.webp ' }
+  }).identity;
+  assert.deepEqual(displayIdentity, {
+    displayName: 'Trail Henz',
+    initials: 'TH',
+    avatarUrl: 'https://images.example/runner.webp',
+    profileUrl: '/runner/profile'
+  });
+
+  assert.equal(buildRunnerDashboardPresentation({ user: { firstName: 'Henson' } }).identity.displayName, 'Henson');
+  assert.equal(buildRunnerDashboardPresentation({ user: {} }).identity.displayName, 'Runner');
+  assert.equal(buildRunnerDashboardPresentation({ user: {} }).identity.initials, 'R');
+});

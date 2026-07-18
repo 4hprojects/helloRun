@@ -1,0 +1,113 @@
+<main class="runner-profile-page">
+  <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
+  <% const p = profilePresentation; %>
+  <header class="runner-profile-hero" id="overview">
+    <div class="runner-profile-identity">
+      <div class="profile-avatar-section">
+        <div class="profile-avatar-wrap" id="js-avatar-wrap">
+          <span class="profile-avatar-placeholder" id="js-avatar-placeholder" aria-hidden="true"><%= p.identity.initials %></span>
+          <% if (p.identity.avatarUrl) { %><img src="<%= p.identity.avatarUrl %>" alt="" class="profile-avatar-img" id="js-avatar-img" onerror="this.hidden=true;"><% } %>
+          <label class="profile-avatar-upload-btn" title="Change profile photo">
+            <span class="sr-only">Change profile photo</span>
+            <input type="file" id="js-avatar-input" name="avatarImageFile" accept="image/jpeg,image/png,image/webp">
+            <i data-lucide="camera" aria-hidden="true"></i>
+          </label>
+        </div>
+        <span class="profile-avatar-hint">JPG, PNG or WebP · 5 MB maximum</span>
+        <span class="profile-avatar-status" id="js-avatar-status" role="status" aria-live="polite"></span>
+      </div>
+      <div class="runner-profile-identity-copy">
+        <span class="profile-kicker">Runner account</span>
+        <h1>My Profile</h1>
+        <strong><%= p.identity.displayName %></strong>
+        <span><%= p.identity.email %></span>
+      </div>
+    </div>
+    <div class="runner-profile-completion-summary">
+      <div><span>Profile completion</span><strong><%= p.completion.percent %>%</strong></div>
+      <div class="progress-track" role="progressbar" aria-label="Profile completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= p.completion.percent %>"><span class="progress-fill" style="width:<%= p.completion.percent %>%"></span></div>
+      <small><%= p.completion.completedCount %> of <%= p.completion.requiredCount %> recommended details complete</small>
+    </div>
+    <a href="/runner/dashboard" class="btn btn-secondary"><i data-lucide="arrow-left" aria-hidden="true"></i>Back to Dashboard</a>
+  </header>
+
+  <% if (!p.completion.isComplete) { %>
+    <aside class="profile-completion-callout" aria-labelledby="profile-completion-title">
+      <span><i data-lucide="circle-alert" aria-hidden="true"></i></span>
+      <div><h2 id="profile-completion-title">Finish your runner details</h2><p>Missing: <%= p.completion.missingFields.join(', ') %>. Accurate details support registrations, results, and emergencies.</p></div>
+      <a href="<%= p.completion.recoveryHref %>" class="btn btn-primary"><%= p.completion.recoveryLabel %></a>
+    </aside>
+  <% } %>
+
+  <% if (message) { %><div class="page-message page-message-<%= message.type %>" role="<%= message.type === 'error' ? 'alert' : 'status' %>" aria-live="<%= message.type === 'error' ? 'assertive' : 'polite' %>"><%= message.text %></div><% } %>
+
+  <details class="runner-profile-menu-mobile">
+    <summary><i data-lucide="list" aria-hidden="true"></i>Jump to profile section</summary>
+    <nav aria-label="Profile sections"><% p.navigation.forEach((item) => { %><a href="<%= item.href %>"><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><%= item.label %></a><% }) %></nav>
+  </details>
+
+  <div class="runner-profile-layout">
+    <aside class="runner-profile-menu" aria-label="Profile sections">
+      <span>Manage account</span>
+      <nav><% p.navigation.forEach((item) => { %><a href="<%= item.href %>"><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><%= item.label %></a><% }) %></nav>
+    </aside>
+
+    <div class="runner-profile-content">
+      <section class="runner-profile-group" aria-labelledby="personal-details-title">
+        <div class="runner-profile-group-heading"><span class="profile-kicker">Your information</span><h2 id="personal-details-title">Personal details</h2><p>Keep the information used for registrations and runner records accurate.</p></div>
+        <div class="profile-personal-grid">
+          <article class="runner-profile-card" id="identity" data-profile-section>
+            <div class="runner-profile-panel-header"><div><h3>Identity</h3><p>Your official and public-facing runner names.</p></div><span class="profile-section-state"><%= ['First Name','Last Name','Date of Birth','Gender'].some((field) => p.completion.missingFields.includes(field)) ? 'Needs details' : 'Complete' %></span></div>
+            <dl class="profile-readonly-grid"><div><dt>Full name</dt><dd><%= [profileData.firstName, profileData.lastName].filter(Boolean).join(' ') || 'Not set' %></dd></div><div><dt>Display name</dt><dd><%= profileData.displayName || 'Not set' %></dd></div><div><dt>Date of birth</dt><dd><%= p.dateOfBirthMasked %></dd></div><div><dt>Gender</dt><dd><%= profileData.gender ? profileData.gender.replace(/_/g, ' ') : 'Not set' %></dd></div></dl>
+            <details class="profile-edit-disclosure" data-profile-editor><summary class="btn btn-secondary"><i data-lucide="pencil" aria-hidden="true"></i>Edit identity</summary>
+              <form method="POST" action="/runner/profile/identity" class="runner-profile-form" data-profile-edit-form><input type="hidden" name="_csrf" value="<%= _csrfToken %>"><div class="profile-form-grid">
+                <label class="profile-form-field"><span>First name</span><input type="text" name="firstName" maxlength="60" value="<%= profileData.firstName || '' %>" required></label>
+                <label class="profile-form-field"><span>Last name</span><input type="text" name="lastName" maxlength="60" value="<%= profileData.lastName || '' %>" required></label>
+                <label class="profile-form-field"><span>Display name <small>Optional. If set, HelloRun can show this instead of your full name where event privacy settings allow it.</small></span><input type="text" name="displayName" maxlength="60" value="<%= profileData.displayName || '' %>"></label>
+                <label class="profile-form-field"><span>Date of birth</span><input type="date" name="dateOfBirth" value="<%= profileData.dateOfBirth || '' %>"></label>
+                <label class="profile-form-field"><span>Gender</span><select name="gender"><option value="">Not set</option><% [['male','Male'],['female','Female'],['non_binary','Non-binary'],['prefer_not_to_say','Prefer not to say']].forEach(([value,label]) => { %><option value="<%= value %>" <%= profileData.gender === value ? 'selected' : '' %>><%= label %></option><% }) %></select></label>
+              </div><div class="runner-profile-form-actions"><button type="button" class="btn btn-outline" data-cancel-profile-edit>Cancel</button><button type="submit" class="btn btn-primary" data-save-btn>Save identity</button></div></form>
+            </details>
+          </article>
+
+          <article class="runner-profile-card" id="contact" data-profile-section>
+            <div class="runner-profile-panel-header"><div><h3>Contact</h3><p>How HelloRun identifies and contacts your account.</p></div><span class="profile-section-state"><%= p.completion.missingFields.includes('Mobile') ? 'Needs mobile' : 'Complete' %></span></div>
+            <dl class="profile-readonly-grid"><div><dt>Email</dt><dd><%= user.email || 'Not set' %></dd></div><div><dt>Mobile</dt><dd><%= p.mobileMasked %></dd></div><div><dt>Running groups</dt><dd><%= profileData.runningGroups?.length ? profileData.runningGroups.join(', ') : 'None joined' %></dd></div></dl>
+            <details class="profile-edit-disclosure" data-profile-editor><summary class="btn btn-secondary"><i data-lucide="pencil" aria-hidden="true"></i>Edit contact</summary><form method="POST" action="/runner/profile/contact" class="runner-profile-form" data-profile-edit-form><input type="hidden" name="_csrf" value="<%= _csrfToken %>"><div class="profile-form-grid"><label class="profile-form-field"><span>Mobile</span><input type="tel" name="mobile" value="<%= profileData.mobile || '' %>" autocomplete="tel"></label></div><p class="profile-field-help">Email and running-group membership are managed through their own account workflows.</p><div class="runner-profile-form-actions"><button type="button" class="btn btn-outline" data-cancel-profile-edit>Cancel</button><button type="submit" class="btn btn-primary" data-save-btn>Save contact</button></div></form></details>
+          </article>
+
+          <article class="runner-profile-card" id="location" data-profile-section>
+            <div class="runner-profile-panel-header"><div><h3>Location &amp; timezone</h3><p>Localize event timing without tracking your precise location.</p></div><span class="profile-section-state"><%= ['Country','Timezone'].some((field) => p.completion.missingFields.includes(field)) ? 'Needs details' : 'Complete' %></span></div>
+            <dl class="profile-readonly-grid"><div><dt>Country</dt><dd><%= selectedCountryName %></dd></div><div><dt>Timezone</dt><dd><%= profileData.timezone || 'Not set' %></dd></div></dl>
+            <details class="profile-edit-disclosure" data-profile-editor><summary class="btn btn-secondary"><i data-lucide="pencil" aria-hidden="true"></i>Edit location</summary><form id="locationForm" method="POST" action="/runner/profile/location" class="runner-profile-form" data-profile-edit-form data-saved-country="<%= profileData.country || '' %>" data-suggested-country="<%= suggestedCountry || '' %>" data-saved-timezone="<%= profileData.timezone || '' %>"><input type="hidden" name="_csrf" value="<%= _csrfToken %>"><div class="profile-form-grid">
+              <label class="profile-form-field"><span>Country</span><select name="country" id="profileCountry" required><option value="">Select country</option><% const initialCountry = profileData.country || suggestedCountry || ''; (countries || []).forEach((country) => { %><option value="<%= country.code %>" <%= initialCountry === country.code ? 'selected' : '' %>><%= country.name %></option><% }) %></select></label>
+              <label class="profile-form-field"><span>Timezone</span><select name="timezone" id="profileTimezone" required><option value="">Select timezone</option><% (timezones || []).forEach((timezone) => { %><option value="<%= timezone.value %>" <%= profileData.timezone === timezone.value ? 'selected' : '' %>><%= timezone.label %></option><% }) %></select></label>
+            </div><input type="hidden" name="timezoneSource" id="profileTimezoneSource" value="<%= profileData.timezone ? 'user' : 'browser' %>"><p class="location-suggestion-status" id="profileLocationStatus" role="status" aria-live="polite">Review your saved location before updating.</p><p class="profile-field-help">Your timezone displays deadlines locally; official event deadlines remain based on Asia/Manila.</p><div class="runner-profile-form-actions"><button type="button" class="btn btn-outline" data-cancel-profile-edit>Cancel</button><button type="submit" class="btn btn-primary" data-save-btn>Save location</button></div></form></details>
+          </article>
+
+          <article class="runner-profile-card" id="emergency" data-profile-section>
+            <div class="runner-profile-panel-header"><div><h3>Emergency contact</h3><p>Visible only to you and authorized event operations.</p></div><span class="profile-section-state"><%= ['Emergency Contact Name','Emergency Contact Number'].some((field) => p.completion.missingFields.includes(field)) ? 'Needs details' : 'Complete' %></span></div>
+            <dl class="profile-readonly-grid"><div><dt>Contact name</dt><dd><%= profileData.emergencyContactName || 'Not set' %></dd></div><div><dt>Contact number</dt><dd><%= p.emergencyContactNumberMasked %></dd></div></dl>
+            <details class="profile-edit-disclosure" data-profile-editor><summary class="btn btn-secondary"><i data-lucide="pencil" aria-hidden="true"></i>Edit emergency contact</summary><form method="POST" action="/runner/profile/emergency" class="runner-profile-form" data-profile-edit-form><input type="hidden" name="_csrf" value="<%= _csrfToken %>"><div class="profile-form-grid"><label class="profile-form-field"><span>Contact name</span><input type="text" name="emergencyContactName" maxlength="120" value="<%= profileData.emergencyContactName || '' %>"></label><label class="profile-form-field"><span>Contact number</span><input type="tel" name="emergencyContactNumber" value="<%= profileData.emergencyContactNumber || '' %>"></label></div><div class="runner-profile-form-actions"><button type="button" class="btn btn-outline" data-cancel-profile-edit>Cancel</button><button type="submit" class="btn btn-primary" data-save-btn>Save emergency contact</button></div></form></details>
+          </article>
+        </div>
+      </section>
+
+      <section class="runner-profile-group" id="notifications" data-profile-section aria-labelledby="profile-preferences-title"><div class="runner-profile-group-heading"><span class="profile-kicker">Communication</span><h2 id="profile-preferences-title">Preferences</h2><p>Choose optional emails. Important in-app account notifications remain available.</p></div><article class="runner-profile-card"><form method="POST" action="/runner/profile/notifications" class="runner-profile-form notif-form" data-profile-edit-form><input type="hidden" name="_csrf" value="<%= _csrfToken %>"><div class="notif-list"><% p.notificationOptions.forEach((item) => { %><label class="notif-row"><span class="notif-row-copy"><strong><%= item.label %></strong><small><%= item.description %></small></span><input type="checkbox" name="emailEnabled" value="<%= item.key %>" class="notif-checkbox" <%= item.enabled ? 'checked' : '' %>></label><% }) %></div><div class="runner-profile-form-actions"><button type="submit" class="btn btn-primary" data-save-btn>Save preferences</button></div></form></article></section>
+
+      <div class="profile-account-grid">
+        <section class="runner-profile-group" id="integrations" data-profile-section aria-labelledby="connections-title"><div class="runner-profile-group-heading"><span class="profile-kicker">Activity sources</span><h2 id="connections-title">Connections</h2></div><article class="runner-profile-card"><div class="profile-connection-status"><span><i data-lucide="activity" aria-hidden="true"></i></span><div><strong>Strava</strong><p><%= p.connection.connected ? `Connected${p.connection.athleteName ? ` as ${p.connection.athleteName}` : ''}` : 'Not connected' %></p></div><span class="profile-section-state"><%= p.connection.connected ? 'Connected' : 'Optional' %></span></div><p class="profile-section-helper">Import only the activities you choose to submit to HelloRun.</p><div class="runner-profile-actions"><% if (p.connection.connected) { %><form method="POST" action="/integrations/strava/disconnect" class="inline-form"><input type="hidden" name="_csrf" value="<%= _csrfToken %>"><input type="hidden" name="returnTo" value="/runner/profile#integrations"><button type="submit" class="btn btn-outline-danger"><i data-lucide="unlink" aria-hidden="true"></i>Disconnect Strava</button></form><% } else { %><a href="/integrations/strava/connect?returnTo=/runner/profile%23integrations" class="btn btn-primary"><i data-lucide="plug" aria-hidden="true"></i>Connect Strava</a><% } %></div></article></section>
+
+        <section class="runner-profile-group" id="account" data-profile-section aria-labelledby="security-title"><div class="runner-profile-group-heading"><span class="profile-kicker">Sign-in protection</span><h2 id="security-title">Security</h2></div><article class="runner-profile-card"><dl class="profile-readonly-grid"><div><dt>Sign-in method</dt><dd><%= p.account.authProviderLabel %></dd></div><div><dt>Google</dt><dd><%= p.account.googleLinked ? 'Linked' : 'Not linked' %></dd></div><div><dt>Local password</dt><dd><%= p.account.localPasswordSet ? 'Set' : 'Not set' %></dd></div></dl><div class="runner-profile-actions"><button type="button" class="btn btn-primary" data-open-password-modal><%= p.account.passwordActionLabel %></button><% if (p.account.googleLinked) { %><form method="POST" action="/runner/auth/google/unlink" class="inline-form"><input type="hidden" name="_csrf" value="<%= _csrfToken %>"><input type="hidden" name="returnTo" value="/runner/profile"><button type="button" class="btn btn-outline-danger<%= !p.account.localPasswordSet ? ' disabled' : '' %>" data-open-unlink-modal aria-label="Unlink Google" <%= !p.account.localPasswordSet ? 'disabled aria-disabled="true"' : '' %>><i data-lucide="unlink" aria-hidden="true"></i>Unlink Google</button></form><% } %></div><% if (p.account.googleLinked && !p.account.localPasswordSet) { %><p class="profile-section-helper">Set a password before unlinking Google to avoid losing account access.</p><% } %></article></section>
+      </div>
+
+      <section class="runner-profile-group" id="badges" data-profile-section aria-labelledby="achievements-title"><div class="runner-profile-group-heading profile-achievement-heading"><div><span class="profile-kicker">Runner recognition</span><h2 id="achievements-title">Achievements</h2><p>A compact view of current goals and verified recognition.</p></div><div class="profile-achievement-totals"><span><strong><%= p.achievements.earnedCount %></strong> badges</span><span><strong><%= p.achievements.points %></strong> points</span></div></div><article class="runner-profile-card">
+        <div class="profile-achievement-actions"><% if (p.achievements.publicCollectionPath) { %><a href="<%= p.achievements.publicCollectionPath %>" class="btn btn-outline" target="_blank" rel="noopener noreferrer"><i data-lucide="external-link" aria-hidden="true"></i>Public collection</a><% } %></div>
+        <% if (p.achievements.featuredBadge) { %><div class="profile-featured-badge"><%- include('profile-badge-card', { badge: p.achievements.featuredBadge, _csrfToken }) %></div><% } %>
+        <section class="profile-badge-progress-section" aria-labelledby="challenge-progress-title"><h3 id="challenge-progress-title">Current challenge goals</h3><% if (p.achievements.previewProgress.length) { %><div class="profile-badge-progress-grid"><% p.achievements.previewProgress.forEach((item) => { %><%- include('profile-progress-card', { item }) %><% }) %></div><% } else { %><p class="profile-empty-copy">No active challenge progress yet.</p><% } %></section>
+        <section aria-labelledby="recent-badges-title"><h3 id="recent-badges-title">Recent earned badges</h3><% if (p.achievements.previewBadges.length) { %><div class="profile-badge-grid"><% p.achievements.previewBadges.forEach((badge) => { %><%- include('profile-badge-card', { badge, _csrfToken }) %><% }) %></div><% } else if (!p.achievements.featuredBadge) { %><div class="profile-empty-state"><i data-lucide="award" aria-hidden="true"></i><strong>No badges yet</strong><p>Verified event badges will appear here after eligible registrations or approved results.</p></div><% } %></section>
+        <% if (p.achievements.hasMore) { %><details class="profile-all-achievements"><summary>View all achievements</summary><% if (p.achievements.remainingProgress.length) { %><h3>More challenge goals</h3><div class="profile-badge-progress-grid"><% p.achievements.remainingProgress.forEach((item) => { %><%- include('profile-progress-card', { item }) %><% }) %></div><% } %><% if (p.achievements.remainingBadges.length) { %><h3>More earned badges</h3><div class="profile-badge-grid"><% p.achievements.remainingBadges.forEach((badge) => { %><%- include('profile-badge-card', { badge, _csrfToken }) %><% }) %></div><% } %></details><% } %>
+      </article></section>
+    </div>
+  </div>
+</main>

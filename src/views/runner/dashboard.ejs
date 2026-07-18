@@ -11,8 +11,17 @@
       <section class="dashboard-hero" aria-labelledby="runner-dashboard-title">
         <div class="dashboard-header">
           <div class="header-content">
-            <span class="dashboard-eyebrow">Runner Dashboard</span>
-            <h1 id="runner-dashboard-title"><%= isFirstLogin ? 'Let’s get moving,' : 'Welcome back,' %> <%= userName %>!</h1>
+            <% const dashboardIdentity = runnerDashboardPresentation.identity; %>
+            <div class="dashboard-welcome-identity">
+              <span class="dashboard-profile-avatar" aria-hidden="true">
+                <span class="dashboard-profile-initials"><%= dashboardIdentity.initials %></span>
+                <% if (dashboardIdentity.avatarUrl) { %><img src="<%= dashboardIdentity.avatarUrl %>" alt="" width="60" height="60" onerror="this.hidden=true;"><% } %>
+              </span>
+              <div class="dashboard-welcome-copy">
+                <span class="dashboard-eyebrow">Runner Dashboard</span>
+                <h1 id="runner-dashboard-title"><%= isFirstLogin ? 'Let’s get moving,' : 'Welcome back,' %> <a class="dashboard-profile-name" href="<%= dashboardIdentity.profileUrl %>" aria-label="View <%= dashboardIdentity.displayName %>’s profile"><%= dashboardIdentity.displayName %></a>!</h1>
+              </div>
+            </div>
             <p class="header-subtitle"><%= runnerDashboardPresentation.subtitle %></p>
           </div>
           <div class="header-actions">
@@ -20,13 +29,13 @@
               <% const heroJourney = runnerDashboardPresentation.primaryJourney; %>
               <% const heroAction = heroJourney?.nextAction; %>
               <% if (heroAction && (heroAction.type === 'submit' || heroAction.type === 'resubmit')) { %>
-                <button type="button" class="btn btn-primary" data-open-run-proof-modal data-run-proof-surface="runner-dashboard-header" data-run-proof-mode="<%= heroAction.type %>" data-run-proof-registration-id="<%= heroJourney.registrationId || '' %>" aria-label="<%= heroAction.label %>">
+                <button type="button" class="btn btn-primary" data-open-run-proof-modal data-run-proof-surface="runner-dashboard-header" data-run-proof-mode="<%= heroAction.type %>" data-run-proof-registration-id="<%= heroJourney.registrationId || '' %>" aria-label="<%= heroAction.label %>" title="<%= heroAction.label %>">
                   <i data-lucide="upload" class="btn-icon" aria-hidden="true"></i><span class="btn-label"><%= heroAction.label %></span>
                 </button>
               <% } else { %>
-                <a href="<%= heroAction?.href || '/events' %>" class="btn btn-primary"><i data-lucide="arrow-right" class="btn-icon" aria-hidden="true"></i><span class="btn-label"><%= heroAction?.label || 'Browse Events' %></span></a>
+                <a href="<%= heroAction?.href || '/events' %>" class="btn btn-primary" aria-label="<%= heroAction?.label || 'Browse Events' %>" title="<%= heroAction?.label || 'Browse Events' %>"><i data-lucide="arrow-right" class="btn-icon" aria-hidden="true"></i><span class="btn-label"><%= heroAction?.label || 'Browse Events' %></span></a>
               <% } %>
-              <a href="/my-registrations" class="btn btn-outline-light"><i data-lucide="clipboard-list" class="btn-icon" aria-hidden="true"></i><span class="btn-label">My Registrations</span></a>
+              <a href="/my-registrations" class="btn btn-outline-light" aria-label="My Registrations" title="My Registrations"><i data-lucide="clipboard-list" class="btn-icon" aria-hidden="true"></i><span class="btn-label">My Registrations</span></a>
             </div>
           </div>
         </div>

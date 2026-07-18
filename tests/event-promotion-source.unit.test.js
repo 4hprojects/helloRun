@@ -10,10 +10,14 @@ function read(relativePath) {
 test('runner notification settings expose event promotion opt-out', () => {
   const controller = read('src/controllers/runner.controller.js');
   const profile = read('src/views/runner/profile.ejs');
+  const profilePresentation = read('src/services/runner-profile-presentation.service.js');
+  const profileMain = read('src/views/runner/partials/profile-main.ejs');
 
   assert.match(controller, /'event\.promotion'/);
-  assert.match(profile, /key:\s*'event\.promotion'/);
-  assert.match(profile, /Event promotions/);
+  assert.match(profilePresentation, /key:\s*'event\.promotion'/);
+  assert.match(profilePresentation, /Event promotions/);
+  assert.match(profileMain, /p\.notificationOptions/);
+  assert.match(profile, /partials\/profile-main/);
 });
 
 test('email unsubscribe route handles event promotion preference', () => {
