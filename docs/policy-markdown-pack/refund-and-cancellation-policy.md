@@ -1,130 +1,125 @@
 # HelloRun Refund and Cancellation Policy
 
-**Last Updated:** May 23, 2026  
-**Platform:** HelloRun  
-**Website:** https://hellorun.online  
-**Contact:** hellorunonline@gmail.com, 4hprojects@proton.me
+HelloRun is operated by **Henson M. Sagorsor, operating as 4HProjects**. This policy explains how registration and event-shop cancellations, refund requests, duplicate or incorrect payments, event changes, and available remedies are handled through HelloRun-supported workflows.
 
-## 1. Purpose
+This policy supplements the [Terms and Conditions](/terms), [Organiser Terms](/organiser-terms), [Privacy Policy](/privacy), and [Data Usage Policy](/data-usage-policy). Event-specific rules remain relevant only when they were clearly disclosed and are consistent with applicable law and platform policy.
 
-This Refund and Cancellation Policy explains how refunds, cancellations, failed payments, duplicate payments, and event changes may be handled on HelloRun.
+## 1. Important distinction: cancellation is not automatically a refund
 
-This policy should be read together with the Terms and Conditions, Privacy Policy, Data Usage Policy, Organiser Terms, and event-specific rules.
+HelloRun records registration, payment-review, order, fulfilment, cancellation, and refund-related statuses. It does not currently provide an automated endpoint that sends refunded money to a runner.
 
-## 2. Event-Specific Refund Rules
+These actions are distinct:
 
-Refund rules may vary per event.
+- cancelling an eligible unpaid or unfulfilled shop order stops that order from progressing;
+- cancelling a registration changes participation status under the event workflow;
+- requesting a refund asks the responsible organizer or merchant to review a remedy;
+- recording a refunded status documents a reported or confirmed outcome; and
+- returning money requires action by the responsible organizer, merchant, bank, wallet, or payment provider.
 
-Each organiser is responsible for clearly stating the refund policy for their event.
+Cancelling a registration does not automatically cancel an event-shop order. Cancelling an event-shop order does not automatically cancel a registration or return money already paid.
 
-Unless the event page states otherwise:
+## 2. Who is responsible
 
-- registration fees are generally non-refundable
-- refund requests must be sent to the organiser first
-- refunds may be denied if the event has already started
-- refunds may be denied if race kits, merchandise, certificates, or entitlements have already been processed
-- refunds may be subject to payment gateway fees or administrative deductions
-- event-specific rules will apply when clearly disclosed before registration
+For an organizer-managed event, the organizer controls event fees, packages, products, inventory, fulfilment, event-specific cancellation decisions, and the practical processing of approved remedies. Organizers must keep their prices, inclusions, deadlines, refund terms, delivery promises, and contact information accurate.
 
-## 3. Platform Fees
+HelloRun provides platform records, payment-proof review tools, communication, order and registration states, and policy enforcement. HelloRun may help review platform records or repeated organizer-conduct concerns, but does not take over an organizer’s commercial obligations merely because the transaction used HelloRun.
 
-HelloRun may charge platform fees, service fees, convenience fees, or processing fees depending on the event or service.
+Banks, card issuers, wallets, and other payment services control their own settlement, reversal, dispute, conversion, and fee processes. Do not assume every provider charge can be recovered.
 
-Platform fees may be separate from organiser event fees.
+## 3. Changed mind before payment or fulfilment
 
-Unless stated otherwise, platform fees may be non-refundable once platform services have been used, including registration processing, payment verification, submission handling, or certificate generation.
+An eligible event-shop order may be cancelled through the displayed order control only while fulfilment has not started and the payment remains unpaid or under review. The interface will stop offering cancellation when the order is no longer eligible.
 
-## 4. Payment Gateway Fees
+Registration cancellation or transfer depends on the event rules and event stage. HelloRun does not currently provide a general runner-facing registration-cancellation button or guaranteed transfer right. Contact the organizer through the event page.
 
-Payments may be processed through third-party payment providers.
+A change of mind does not automatically require a refund for a correctly supplied, non-defective product or service. This does not remove remedies that apply to a defect, imperfect service, undisclosed charge, non-delivery, or another legally protected issue.
 
-Payment gateway fees, bank fees, card fees, wallet fees, currency conversion fees, and other third-party charges may be non-refundable depending on the provider’s rules.
+## 4. Duplicate, incorrect, or unrecognized payment
 
-HelloRun does not control third-party payment provider policies.
+Contact the organizer promptly with the event or product, confirmation or order number, amount, payment date, payment method, and transaction reference. Do not publish a receipt or payment details in a comment, profile, or event discussion.
 
-## 5. Duplicate or Incorrect Payments
+A duplicate or incorrect payment may require matching against organizer records and payment-provider records. An apparent duplicate receipt does not by itself prove that two payments settled. Likewise, one receipt reused across workflows may trigger an integrity review.
 
-If a user believes they made a duplicate or incorrect payment, the user should contact the organiser or HelloRun support with:
+For an unrecognized charge or suspected account compromise, also contact the relevant payment provider or financial institution using its official support channel.
 
-- name
-- email address
-- event name
-- registration reference
-- transaction reference
-- payment amount
-- payment date
-- payment proof
+## 5. Rejected or unverified payment proof
 
-Duplicate payment claims may require manual verification.
+Payment-proof rejection means the submitted evidence could not be matched or accepted. It does not necessarily mean that no money moved, that money was returned, or that a refund is due.
 
-Refunds for duplicate payments may be approved only after confirmation by the organiser, payment provider, or HelloRun administrator.
+Follow the correction guidance when clearer evidence, an accurate reference, or another permitted payment submission can resolve the mismatch. If money appears to have settled but the organizer cannot verify it, provide the minimum requested transaction context through the authorized review channel.
 
-## 6. Failed or Pending Payments
+Payment approval and activity-proof approval remain separate. A refund or cancellation decision does not approve an activity result, and an activity decision does not determine payment status.
 
-A registration may remain pending if payment is incomplete, unverified, mismatched, unclear, or not received.
+## 6. Rejected or cancelled registration
 
-Users may be asked to submit clearer proof or additional payment confirmation.
+A registration may be rejected or cancelled because payment is unverified, required information is incomplete, the participant is ineligible, capacity is reached, event rules were not met, or an integrity or safety concern requires review.
 
-HelloRun and organisers are not required to approve registrations where payment cannot be verified.
+The remedy depends on whether money actually settled, the reason and timing of the decision, disclosed event terms, supplied entitlements, provider constraints, and applicable obligations. Rejection alone is not proof that money was returned.
 
-## 7. Event Cancellation
+The organizer should provide a runner-safe explanation and the available correction, transfer, credit, or refund path. Serious fraud or account misuse may be handled under the [Acceptable Use Policy](/acceptable-use-policy).
 
-If an organiser cancels an event, the organiser is responsible for communicating available options to participants.
+## 7. Organizer-cancelled event
 
-Depending on the event policy, options may include:
+When an organizer cancels an event, the organizer must communicate the cancellation and available remedy or alternative. Depending on the circumstances, disclosed terms, work already delivered, and applicable obligations, an outcome may involve a refund, partial refund, credit, transfer, rescheduling, conversion, replacement entitlement, or another lawful remedy.
 
-- full refund
-- partial refund
-- event credit
-- transfer to a new date
-- transfer to another event
-- conversion to virtual participation
-- no refund, where clearly disclosed and legally allowed
+An event page cannot use a blanket “no refund” statement to remove remedies required for defective goods, imperfect services, undisclosed charges, non-delivery, or other applicable consumer protections.
 
-HelloRun may assist with communication and platform processing but does not automatically guarantee refunds for organiser-managed events.
+HelloRun may assist with participant communication and platform records. It does not guarantee a particular remedy or automatically fund organizer obligations.
 
-## 8. Event Postponement or Change
+## 8. Postponement or material event change
 
-If an event is postponed or materially changed, the organiser should inform participants of available options.
+Organizers must communicate material changes promptly. These may include a changed date, venue, route, distance, category, format, activity window, major inclusion, fulfilment promise, or recognition arrangement.
 
-Options may vary depending on the organiser’s policy and the stage of event preparation.
+The organizer should explain whether a runner may continue, transfer, receive credit, cancel, or request another remedy. The available outcome depends on the significance and timing of the change, event terms, participant impact, and applicable obligations.
 
-Material changes may include:
+Continuing after a minor operational update does not automatically waive rights concerning a separate material failure. Conversely, every minor schedule or administrative adjustment does not automatically create a refund entitlement.
 
-- date change
-- venue change
-- distance change
-- event format change
-- major entitlement change
-- cancellation of a category
+## 9. Event-shop cancellation, defects, and fulfilment
 
-## 9. Rejected Registrations
+Event-shop products and registration packages are separate commercial scopes even when the same organizer manages both.
 
-A registration may be rejected if:
+For a missing, damaged, defective, materially misdescribed, cancelled, or unfulfilled product, contact the organizer with the order number and a concise description. The organizer owns product accuracy, stock, payment review, pickup or delivery, fulfilment, and applicable repair, replacement, refund, or other remedy.
 
-- payment cannot be verified
-- payment proof is invalid
-- registration information is false or incomplete
-- the user violates event rules
-- the event has reached capacity
-- the user is ineligible for the selected category
-- suspicious or fraudulent activity is detected
+Do not mark an order completed, claimed, shipped, or refunded unless that status reflects the actual outcome. A cancelled fulfilment status does not by itself prove a paid order was refunded.
 
-Refund treatment for rejected registrations will depend on the event rules, payment status, platform fees, payment provider rules, and the reason for rejection.
+## 10. How to request review
 
-## 10. Disputes
+Start with the event organizer or merchant through the event page. Include:
 
-Participants should first contact the organiser for event-related refund concerns.
+- the event or product name;
+- registration confirmation or shop order number;
+- amount and currency;
+- payment date and method;
+- transaction reference where available;
+- the requested correction, cancellation, refund, replacement, transfer, or credit; and
+- a concise account of what happened.
 
-If the issue cannot be resolved, participants may contact HelloRun support.
+Do not publish or email receipts, identity documents, account credentials, full card or wallet details, or other sensitive evidence unless an authorized reviewer requests it through an appropriate channel.
 
-HelloRun may review available records, payment proof, event rules, organiser communications, and platform logs.
+## 11. Review and outcome process
 
-HelloRun may restrict organiser features if repeated unresolved payment or refund issues create risk to participants or the platform.
+The normal process is:
 
-## 11. Contact
+1. identify the registration, order, and payment concerned;
+2. contact the responsible organizer or merchant;
+3. review payment records, disclosed terms, fulfilment, event status, and relevant evidence;
+4. communicate the decision, remedy, responsible party, and any next step; and
+5. escalate unresolved platform, safety, policy, or repeated organizer-conduct concerns through [Contact](/contact).
 
-Refund and cancellation concerns may be sent to:
+Processing time depends on the organizer, payment channel, evidence, event stage, provider response, and applicable obligations. HelloRun does not guarantee approval, a fixed response time, recovery of provider fees, or a particular remedy.
 
-**Email:** hellorunonline@gmail.com  
-**Alternative Email:** 4hprojects@proton.me
+## 12. Provider disputes and reversals
+
+A bank, wallet, card issuer, or payment provider may offer its own dispute or reversal process. Using that process does not automatically update the HelloRun registration or order record, and a HelloRun status update does not control the provider’s ledger.
+
+Give truthful information to both the organizer and provider. Duplicate recovery, dishonest disputes, altered evidence, or chargeback misuse may lead to correction, restriction, or further review.
+
+## 13. Escalation and applicable rights
+
+Contact the organizer first for event-specific prices, packages, refunds, payment decisions, schedules, products, delivery, and fulfilment. Use [Contact](/contact) for unresolved platform issues, repeated organizer non-response, privacy or safety concerns, or conduct that may violate HelloRun policy.
+
+Nothing in this policy removes rights or remedies that apply under Philippine consumer, e-commerce, contract, or other applicable law. Official guidance may be available from the appropriate government or consumer authority.
+
+## 14. Policy changes
+
+The current published version and effective date appear on this page. Material updates may be announced through a non-blocking in-app notification. Previous consent or transaction records are not rewritten when this policy changes.

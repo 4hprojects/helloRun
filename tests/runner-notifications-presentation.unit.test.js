@@ -36,6 +36,38 @@ test('runner-facing notification presentation maps actions without exposing raw 
   assert.equal(certificate.category, 'Recognition');
   assert.equal(certificate.actionLabel, 'Download certificate');
 
+  const terms = buildNotificationPresentation({ type: 'terms_policy_updated', message: 'Version 1.2 is effective.', href: '/terms#terms-changes' });
+  assert.equal(terms.category, 'Account and policy');
+  assert.equal(terms.actionLabel, 'Review terms');
+
+  const privacy = buildNotificationPresentation({ type: 'privacy_policy_updated', message: 'Version 1.5 is effective.', href: '/privacy#policy-changes' });
+  assert.equal(privacy.category, 'Account and policy');
+  assert.equal(privacy.actionLabel, 'Review privacy policy');
+
+  const dataUsage = buildNotificationPresentation({ type: 'data_usage_policy_updated', message: 'Version 1.2 is effective.', href: '/data-usage-policy#policy-changes' });
+  assert.equal(dataUsage.category, 'Account and policy');
+  assert.equal(dataUsage.actionLabel, 'Review data use');
+
+  const acceptableUse = buildNotificationPresentation({ type: 'acceptable_use_policy_updated', message: 'Version 1.1 is effective.', href: '/acceptable-use-policy#policy-changes' });
+  assert.equal(acceptableUse.category, 'Account and policy');
+  assert.equal(acceptableUse.actionLabel, 'Review acceptable use');
+
+  const organiserTerms = buildNotificationPresentation({ type: 'organiser_terms_updated', message: 'Version 1.1 is effective.', href: '/organiser-terms#policy-changes' });
+  assert.equal(organiserTerms.category, 'Account and policy');
+  assert.equal(organiserTerms.actionLabel, 'Review organiser terms');
+
+  const communityGuidelines = buildNotificationPresentation({ type: 'community_guidelines_updated', message: 'Version 1.1 is effective.', href: '/community-guidelines#policy-changes' });
+  assert.equal(communityGuidelines.category, 'Account and policy');
+  assert.equal(communityGuidelines.actionLabel, 'Review community guidelines');
+
+  const refundPolicy = buildNotificationPresentation({ type: 'refund_policy_updated', message: 'Version 1.1 is effective.', href: '/refund-and-cancellation-policy#policy-changes' });
+  assert.equal(refundPolicy.category, 'Account and policy');
+  assert.equal(refundPolicy.actionLabel, 'Review refund policy');
+
+  const cookiePolicy = buildNotificationPresentation({ type: 'cookie_policy_updated', message: 'Version 1.1 is effective.', href: '/cookie-policy#policy-changes' });
+  assert.equal(cookiePolicy.category, 'Account and policy');
+  assert.equal(cookiePolicy.actionLabel, 'Review cookie policy');
+
   const unknown = buildNotificationPresentation({
     type: 'future_notification_type',
     message: `${'A'.repeat(170)}   with spacing`,

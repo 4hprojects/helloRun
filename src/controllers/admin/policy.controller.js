@@ -467,6 +467,12 @@ async function publishPolicyDocumentDraft(req, res) {
       : buildPolicyHtmlFromMarkdown(policy.contentMarkdown || '');
     policy.publishedBy = getAdminActor(req);
     policy.updatedBy = getAdminActor(req);
+    if (policyDocument.key === 'privacy' || policyDocument.key === 'terms' || policyDocument.key === 'dataUsage' || policyDocument.key === 'acceptableUse' || policyDocument.key === 'organiserTerms' || policyDocument.key === 'communityGuidelines' || policyDocument.key === 'refund' || policyDocument.key === 'cookie') {
+      policy.noticeDispatch = {
+        status: 'pending', audienceBeforeAt: now, lastUserId: null, processedCount: 0,
+        attemptCount: 0, lockedAt: null, completedAt: null, lastError: ''
+      };
+    }
 
     await policy.save({ session });
     await session.commitTransaction();

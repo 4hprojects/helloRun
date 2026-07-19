@@ -1,167 +1,136 @@
 # HelloRun Cookie Policy
 
-**Last Updated:** May 23, 2026  
-**Platform:** HelloRun  
-**Website:** https://hellorun.online  
-**Contact:** hellorunonline@gmail.com, 4hprojects@proton.me
+## 1. Purpose and scope
 
-## 1. Purpose
+This Cookie Policy explains how Henson M. Sagorsor, operating as 4HProjects, uses cookies and similar browser technologies for HelloRun.
 
-This Cookie Policy explains how HelloRun uses cookies and similar technologies when users visit or use the platform.
+It covers the HelloRun website, authenticated dashboards, event workflows, community pages, and browser storage created by HelloRun. It should be read with the [Privacy Policy](/privacy), [Data Usage Policy](/data-usage-policy), and [Terms and Conditions](/terms).
 
-This policy should be read together with the Privacy Policy, Terms and Conditions, and Data Usage Policy.
+The preference center controls optional technology requested by HelloRun. It does not control cookies already placed by another website or provider.
 
-## 2. What Cookies Are
+## 2. Cookies and similar technologies
 
-Cookies are small files stored on a browser or device. They help websites remember information, support login sessions, improve security, understand usage, and provide platform features.
+A cookie is a small value a website or service asks a browser to retain and send with later requests. HelloRun also uses local storage and session storage.
 
-HelloRun may also use similar technologies such as local storage, session storage, analytics tags, security tokens, device identifiers, and server logs.
+- Local storage can remain after the browser closes until it expires or is removed.
+- Session storage normally remains only for the current browser tab or session.
+- Server-side sessions retain protected state while the browser holds a session identifier.
+- Provider tags may use cookies, pixels, identifiers, or similar technology under the provider's policies.
 
-## 3. Cookie Categories and User Choices
+The inventory shown above this complete policy describes the current implementation. Names and durations controlled by third parties may change.
 
-HelloRun may use the following categories of cookies and similar technologies:
+## 3. Your choice comes first
 
-| Cookie Type | Purpose | Required? |
-|---|---|---|
-| Essential cookies | Login, account security, session management, CSRF protection, platform operation | Yes |
-| Functional cookies | Remember preferences and selected settings | Optional where applicable |
-| Analytics cookies | Understand traffic, feature usage, and platform performance | Optional where applicable |
-| Advertising cookies | Support Google AdSense or other ad serving, ad measurement, frequency limits, and fraud prevention | Optional where applicable or required by law |
-| Third-party cookies | Support payment tools, analytics tools, embedded services, or external integrations | Depends on feature |
+HelloRun separates browser technology into Essential, Functional, Analytics, and Advertising categories.
 
-Essential cookies are required for the platform to work.
+Functional, Analytics, and Advertising are off unless you allow them through the preference center. You can change those choices at any time using the Cookie preferences link in the footer.
 
-Optional cookies may be used only where allowed by applicable law and user settings.
+Your choices apply to the current browser for up to twelve months. A different browser, browser profile, or device requires its own choice.
 
-Users may change browser settings or platform cookie preferences where available.
+Publishing an ordinary policy wording update does not automatically reset your choices. HelloRun may ask again when the categories, purposes, or preference mechanism materially change.
 
-Disabling cookies may prevent login, registration, organiser dashboards, payment verification, or submission forms from working correctly.
+## 4. Essential storage
 
-## 4. Essential Cookies
+Essential storage supports security and workflows that cannot operate reliably without request state.
 
-Essential cookies support basic platform operation.
+### 4.1 HelloRun session
 
-They may be used for:
+HelloRun uses the `hr.sid` cookie for server-side session state, including authentication, CSRF protection, secure forms, and short-lived workflow messages.
 
-- login sessions
-- authentication
-- account security
-- CSRF protection
-- form submissions
-- organiser dashboard access
-- payment proof upload
-- run proof submission
-- fraud prevention
-- error handling
+The cookie is configured as `HttpOnly` and `SameSite=Lax`. It is sent only over secure connections in production and may remain for up to seven days. The cookie contains a session identifier, not the complete session record.
 
-These cookies are necessary for HelloRun to function properly.
+Clearing or blocking it can sign you out and prevent protected forms, registration, payment review, activity submission, dashboards, or account settings from working.
 
-## 5. Functional Cookies
+### 4.2 Preference record
 
-Functional cookies may remember user preferences, such as:
+The `hr.cookie_preferences` cookie remembers whether this browser allowed Functional, Analytics, or Advertising technology. It contains the category choices, preference-schema version, and save time.
 
-- selected settings
-- display preferences
-- cookie choices
-- form state
-- previously selected options
+It is `HttpOnly`, `SameSite=Lax`, secure in production, and retained for up to twelve months. It is essential because optional scripts must know whether they are permitted before loading.
 
-These cookies improve user experience but may not always be required.
+Clearing it returns all optional categories to off and shows the choice prompt again.
 
-## 6. Analytics Cookies
+## 5. Functional storage
 
-HelloRun may use analytics cookies or similar tools to understand platform usage.
+Functional storage is optional and remains on the browser. When allowed, HelloRun may save:
 
-Analytics may help HelloRun measure:
+- registration form drafts for up to seven days;
+- run-proof form values for up to seven days, excluding uploaded proof files;
+- organizer event and policy workspace drafts for up to seven days;
+- saved operational filters, selected columns, collapsed panels, and similar display preferences until removed; and
+- short-lived queue or scroll position in session storage.
 
-- page visits
-- feature usage
-- event page performance
-- registration flow issues
-- upload errors
-- device or browser trends
-- system performance
-- general user engagement
+Browser drafts can contain values entered into eligible form fields. HelloRun excludes password fields, CSRF tokens, and file uploads from its draft helpers. Users should still avoid entering unnecessary sensitive information.
 
-Where possible, analytics should use aggregated or anonymised data.
+Turning Functional storage off removes known HelloRun-owned local and session-storage keys from that browser. Core forms remain usable, but unfinished values and persistent interface choices will not be restored.
 
-## 7. Third-Party Cookies
+## 6. Analytics
 
-Some third-party tools may set cookies or similar technologies when users interact with supported features.
+When Analytics is allowed and a measurement ID is configured, HelloRun loads Google Analytics to understand aggregate visits, page use, device or browser trends, and workflow reliability.
 
-These may include:
+HelloRun uses Google Consent Mode defaults that deny Analytics storage before the visitor's choice. Under the selected basic implementation, the Analytics tag is not loaded while Analytics is declined.
 
-- payment tools
-- analytics tools
-- embedded services
-- cloud or security tools
-- third-party login or activity import tools, where available
-- advertising partners, including Google AdSense, where ads are shown
+Google Analytics may use identifiers such as `_ga` and related values. Google controls its provider processing and may change cookie details. HelloRun does not intentionally send payment proof, run proof, passwords, contact details, or precise activity evidence as Analytics event data.
 
-Third-party services may have their own cookie and privacy policies.
+Turning Analytics off prevents future Analytics tag loading. HelloRun also attempts to remove Analytics cookies accessible on its own domain. Provider-controlled or previously synchronized data remains governed by Google's controls and retention practices.
 
-## 8. Advertising Cookies and Google AdSense
+## 7. Advertising and Google AdSense
 
-HelloRun may use Google AdSense or other advertising partners to display ads.
+Some public content pages may contain configured Google AdSense placements. Advertising is not loaded while the Advertising category is declined.
 
-Advertising partners may use cookies, web beacons, pixel tags, IP addresses, browser or device identifiers, ad request data, and similar technologies to:
+When allowed, Google and participating advertising providers may use first-party or third-party cookies, IP addresses, browser or device identifiers, web beacons, ad-request data, and similar technology to:
 
-- serve ads
-- measure ad performance
-- personalize or limit ads where allowed
-- prevent invalid traffic and fraud
-- understand aggregate ad interactions
-- comply with advertising policies
+- deliver and measure advertisements;
+- limit repetitive advertising;
+- prevent invalid traffic and abuse;
+- apply the visitor's advertising settings; and
+- meet provider and legal requirements.
 
-Third parties, including Google, may place or read cookies on a user's browser or use web beacons, IP addresses, or other identifiers as a result of ad serving on HelloRun.
+HelloRun does not intentionally provide passwords, payment proof, activity proof, private contact details, or precise activity evidence to advertising providers as identifiable advertising data.
 
-Users can learn how Google uses data from partner sites at https://policies.google.com/technologies/partner-sites and manage Google advertising preferences at https://adssettings.google.com where available.
+Google may use data from partner sites according to [How Google uses information from sites or apps that use its services](https://policies.google.com/technologies/partner-sites). Visitors can use [Google Ads Settings](https://adssettings.google.com) where available.
 
-## 9. Similar Technologies
+HelloRun's preference center is not a Google-certified consent management platform. Serving Google advertising to visitors in regions where Google requires a certified platform remains subject to a separately configured certified consent solution and Google's requirements.
 
-HelloRun may also use technologies similar to cookies, including:
+## 8. Security and explicitly requested providers
 
-- local storage
-- session storage
-- analytics tags
-- security tokens
-- device or browser identifiers
-- server logs
+Some features contact another provider only when the feature is configured or requested.
 
-These technologies may support authentication, fraud prevention, performance monitoring, advertising, and user experience improvements.
+- Cloudflare Turnstile may support login or signup abuse prevention.
+- Google may process authorization state when a user chooses Google sign-in or account linking.
+- Strava may process authorization and activity requests when a runner connects or uses the integration.
+- Font, icon, or editor resources may be requested from configured content-delivery providers.
 
-## 10. Cookie Consent Records
+Those providers may receive ordinary request information such as IP address, browser details, requested resource, and timestamp. They may use their own cookies or storage under their notices. Disconnecting an integration does not automatically clear storage on the provider's own domain.
 
-Where required, HelloRun may store records of cookie consent choices, including:
+## 9. Signup policy agreement is separate
 
-- consent status
-- date and time of consent
-- selected cookie preferences
-- browser or device information
-- version of the cookie notice shown
+Agreeing to the Cookie Policy during account creation records the policy version presented during signup. It does not enable optional browser storage.
 
-This helps HelloRun honour user preferences and maintain compliance records.
+Changing browser preferences does not rewrite historical policy-consent records, and signing into an account does not copy preferences between devices.
 
-## 11. Managing Cookies
+## 10. Managing and clearing storage
 
-Users may manage cookies through:
+Visitors can:
 
-- browser settings
-- device settings
-- HelloRun cookie preference tools, where available
-- third-party service settings, where applicable
+- use HelloRun's Cookie preferences control;
+- clear site cookies and browser storage through browser settings;
+- use private-browsing or browser-profile controls;
+- disconnect supported integrations;
+- manage Google advertising preferences; and
+- contact HelloRun for privacy guidance.
 
-Blocking or deleting cookies may affect some platform features.
+Clearing all HelloRun site data removes the preference record, session, and local drafts. It may sign the user out and discard unsaved work.
 
-## 12. Updates to This Cookie Policy
+Third-party cookies may not be removable by HelloRun. Use the browser or provider's controls for those values.
 
-HelloRun may update this Cookie Policy from time to time.
+## 11. Privacy rights and contact
 
-Material updates may be announced through the platform, email, dashboard notice, or other reasonable means.
+The Privacy Policy remains authoritative for lawful processing criteria, retention, international processing, advertising disclosures, security, and complete data-subject rights.
 
-## 13. Contact
+For a privacy or cookie question, use [Contact](/contact) or email `4hprojects@proton.me`. Do not email activity proof, payment proof, identity documents, credentials, or other sensitive records unless an authorized reviewer specifically requests them through an appropriate channel.
 
-For questions about this Cookie Policy, contact:
+## 12. Policy changes
 
-**Email:** hellorunonline@gmail.com  
-**Alternative Email:** 4hprojects@proton.me
+HelloRun may revise this policy when browser storage, provider configuration, legal requirements, or platform features change.
+
+Material updates may be announced through a non-blocking in-app notification. A new policy version does not require existing users to re-accept unless HelloRun introduces a separate lawful and clearly communicated requirement.

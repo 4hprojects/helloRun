@@ -727,7 +727,7 @@
                 <input type="checkbox" name="agreedCheckbox" id="pceAgreeCheckbox" value="1">
                 <span>
                   I understand the limitations of pending organizer access and agree to the
-                  <a href="/terms#pending-organizer-terms" target="_blank" rel="noopener noreferrer">Pending Organizer Terms</a>.
+                  <a href="/organiser-terms#event-creation-access" target="_blank" rel="noopener noreferrer">event-creation access and Organiser Terms</a>.
                   I will complete all required account documentation.
                 </span>
               </label>
@@ -776,7 +776,7 @@
 
       const toggle = card.querySelector('.checklist-toggle');
       const checklist = card.querySelector('#gettingStartedChecklist');
-      const storageKey = 'helloRun.organizerDashboard.gettingStartedCollapsed';
+      const storageKey = 'helloRun:organizerDashboard:gettingStartedCollapsed';
       if (!toggle || !checklist) return;
 
       const setCollapsed = function(isCollapsed, options) {
@@ -797,7 +797,7 @@
 
         if (!options || options.persist !== false) {
           try {
-            window.localStorage.setItem(storageKey, isCollapsed ? '1' : '0');
+            if (window.HelloRunPrivacy?.functional) window.localStorage.setItem(storageKey, isCollapsed ? '1' : '0');
           } catch (error) {
             // Ignore storage failures; the toggle remains functional for this page view.
           }
@@ -805,7 +805,7 @@
       };
 
       try {
-        setCollapsed(window.localStorage.getItem(storageKey) === '1', { persist: false });
+        setCollapsed(window.HelloRunPrivacy?.functional && window.localStorage.getItem(storageKey) === '1', { persist: false });
       } catch (error) {
         setCollapsed(false, { persist: false });
       }

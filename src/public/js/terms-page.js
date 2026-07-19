@@ -1,0 +1,1 @@
+(function(){'use strict';document.addEventListener('DOMContentLoaded',function(){const button=document.querySelector('[data-print-policy]');if(button)button.addEventListener('click',()=>window.print());if(window.lucide)window.lucide.createIcons();});})();

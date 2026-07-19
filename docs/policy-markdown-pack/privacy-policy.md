@@ -1,458 +1,179 @@
 # HelloRun Privacy Policy
 
-**Last Updated:** May 23, 2026  
-**Platform:** HelloRun  
-**Website:** https://hellorun.online  
-**Contact:** hellorunonline@gmail.com, 4hprojects@proton.me
-
-## 1. Purpose
-
-HelloRun respects your privacy and is committed to protecting personal data handled through the platform.
+HelloRun is operated by Henson M. Sagorsor, operating as 4HProjects, from Benguet, Philippines. In this policy, “HelloRun,” “we,” “our,” and “us” refer to the operator and the HelloRun platform.
 
-This Privacy Policy explains how HelloRun collects, uses, stores, shares, protects, and retains personal data when you use the platform as a runner, participant, organiser, visitor, group member, administrator, or other platform user.
-
-This policy applies to:
-
-- account registration and login
-- event discovery and registration
-- payment proof submission and review
-- activity proof submission and review
-- OCR-assisted screenshot reading
-- Strava or third-party activity imports, where available
-- organiser dashboards
-- rankings, leaderboards, and certificates
-- support requests
-- platform analytics and security
-- other services provided through HelloRun
-
-This Privacy Policy should be read together with the HelloRun Terms and Conditions, Cookie Policy, Data Usage Policy, Refund and Cancellation Policy, Organiser Terms, Community Guidelines, and Acceptable Use Policy.
-
-## 2. Personal Data We Collect
-
-HelloRun may collect personal data that you provide directly, data generated through platform use, and data received from organisers, service providers, or authorised third-party integrations.
-
-### 2.1 Account Data
-
-When you create or use an account, HelloRun may collect:
-
-- full name
-- email address
-- username or display name
-- password or authentication credentials
-- profile photo, if uploaded
-- contact details, if provided
-- account role, such as runner, organiser, or administrator
-- account status
-- consent records
-- login and security records
-
-### 2.2 Event Registration Data
-
-When you register for an event, HelloRun may collect:
-
-- selected event
-- selected distance, category, or registration option
-- registration date and time
-- registration status
-- payment status
-- order or reference number
-- team, group, club, company, school, or organisation name, if applicable
-- shirt size, medal option, merchandise option, or other event entitlements, if applicable
-- emergency contact or additional event-specific information, if required by the organiser
-- communications related to the event
-
-### 2.3 Payment Proof Data
-
-HelloRun may allow users to upload payment proof images or transaction details.
-
-Payment proof may contain:
-
-- transaction reference number
-- payment amount
-- payment date and time
-- sender name
-- recipient name
-- account name
-- payment channel
-- partial wallet, bank, or payment account information
-- other visible transaction details
-
-Users should avoid uploading images that show unnecessary sensitive information, such as full account numbers, account balances, passwords, OTPs, PINs, private messages, or unrelated transactions.
-
-### 2.4 Activity Proof and Run Submission Data
-
-HelloRun may collect activity proof submitted for virtual, onsite, or hybrid events.
-
-This may include:
-
-- activity screenshots
-- distance
-- duration
-- pace
-- activity date
-- activity type
-- route or location information
-- elevation
-- step count
-- fitness app name
-- app username
-- GPS map or route preview
-- manually entered activity details
-- supporting notes or explanations
-- organiser review status
-- approval, rejection, or flagging records
-
-### 2.5 OCR and Extracted Data
-
-HelloRun may use optical character recognition, image analysis, or similar tools to assist in reading uploaded screenshots or payment proof images.
-
-OCR-assisted analysis may extract visible information such as:
-
-- activity distance
-- duration
-- pace
-- date
-- location text
-- app username
-- detected name
-- transaction reference
-- payment amount
-- sender or account name
-- payment date
-- other readable text shown in the uploaded image
-
-OCR results may be inaccurate or incomplete. Users, organisers, and administrators may manually review, correct, approve, reject, or request clarification where needed.
-
-### 2.6 Third-Party Activity Data
-
-Where supported, HelloRun may allow users to connect or import data from third-party fitness services such as Strava.
-
-Imported data may include:
-
-- activity title
-- distance
-- duration
-- pace
-- activity date
-- activity type
-- elevation
-- route or location information, if made available by the third-party service
-- activity identifier from the third-party platform
-
-HelloRun only accesses data authorised by the user and needed for the selected platform feature.
+This policy explains what personal data HelloRun processes, why it is needed, who may receive it, what may become public, how records are protected and retained, and how you may exercise applicable privacy rights. It should be read with the [Data Usage Policy](/data-usage-policy), [Cookie Policy](/cookie-policy), [Terms and Conditions](/terms), [Organiser Terms](/organiser-terms), [Community Guidelines](/community-guidelines), [Acceptable Use Policy](/acceptable-use-policy), and [Refund and Cancellation Policy](/refund-and-cancellation-policy).
 
-### 2.7 Technical and Usage Data
+## 1. Scope and privacy principles
 
-When you access HelloRun, the platform may collect technical and usage data, including:
+This policy applies to visitors, runners, organizers, authors, commenters, group members, administrators, and other people whose information is processed through HelloRun.
 
-- IP address
-- browser type
-- device type
-- operating system
-- pages visited
-- time and date of access
-- referring URLs
-- session activity
-- login activity
-- error logs
-- security logs
-- cookie and consent preferences
-- approximate location derived from technical data, where applicable
+HelloRun aims to process personal data transparently, for declared and legitimate purposes, and in a manner proportionate to the service or obligation involved. We seek to collect only information reasonably needed for account, event, commerce, activity-review, community, communication, recognition, security, and support workflows.
 
-### 2.8 Support and Communication Data
+Event organizers make event-specific decisions and may receive participant information needed to operate their event. HelloRun remains responsible for its platform processing and access controls. Organizers remain responsible for protecting participant information they access or export and for using it only for authorized event purposes.
 
-When you contact HelloRun or an organiser through the platform, HelloRun may process:
+## 2. Information HelloRun receives
 
-- messages
-- support requests
-- attachments
-- screenshots
-- complaint details
-- dispute records
-- email communications
-- response history
+### 2.1 Account, identity, and profile information
 
-## 3. Lawful Basis for Processing Personal Data
+This may include name, display name, email address, authentication provider, password hash or authentication credentials, avatar, contact information, birth date, gender where provided, location, timezone, emergency-contact name and number, account role, organizer status, notification preferences, consent records, and account-security history.
 
-HelloRun processes personal data only when there is a valid basis under applicable privacy laws.
+Passwords are not stored as readable text. Information supplied through Google sign-in or another requested authentication provider is limited by the provider permissions and the feature used.
 
-Depending on how you use the platform, HelloRun may process personal data based on one or more of the following:
+### 2.2 Registration and participant information
 
-- your consent
-- the need to provide platform services you requested
-- the need to create and manage your account
-- the need to process event registration and participation
-- the need to verify run submissions and payment proof
-- the need to prevent fraud, abuse, or platform misuse
-- the need to comply with legal, tax, accounting, or regulatory obligations
-- the need to protect the rights, safety, and legitimate interests of HelloRun, event organisers, participants, and platform users
+Event registration may include the event, category, selected goal or distance, participation mode, package, price snapshot, confirmation code, registration status, payment status, participant snapshot, emergency details, group or organization, shirt or reward choices, add-ons, deadlines, and related communications.
 
-Where processing relies on consent, you may withdraw your consent where allowed by law. Withdrawal of consent may affect your ability to use certain platform features, especially if the data is necessary for account management, event registration, payment verification, result validation, or platform security.
+Emergency and contact information is not a public leaderboard field. It is restricted to the participant, authorized event operations, safety needs, and authorized support.
 
-Where processing is necessary for legal, financial, dispute resolution, audit, fraud prevention, or event integrity purposes, HelloRun may continue to retain and process limited data even after a deletion or withdrawal request.
+### 2.3 Payment, order, and fulfilment information
 
-## 4. How We Use Personal Data
+HelloRun may process payment-proof images, amount, channel, date, transaction reference, sender or recipient name visible on proof, review status, reviewer-facing reason, order details, inventory selection, delivery or pickup details, and fulfilment history.
 
-HelloRun may use personal data to:
+Do not upload passwords, PINs, OTPs, full account credentials, unrelated transactions, account balances, or other unnecessary sensitive information. A rejected proof record means the evidence was not verified; it does not by itself mean money was returned.
 
-- create and manage user accounts
-- authenticate users
-- process event registrations
-- verify payment proof
-- review activity proof
-- assist organisers in managing events
-- generate leaderboards, rankings, and certificates
-- provide event updates and platform notifications
-- support customer service and dispute resolution
-- detect suspicious submissions or platform abuse
-- improve platform features and user experience
-- maintain security and prevent unauthorised access
-- comply with legal, accounting, audit, and regulatory obligations
-- enforce HelloRun policies and event rules
+### 2.4 Activities, results, and proof
 
-## 5. Activity Screenshot and Run Proof Data
+For single-result and accumulated-distance events, HelloRun may process activity type, date, distance, duration, pace, route or location information, elevation, submitted notes, proof files, source application, app username, activity identifiers, selected goal, verified and pending totals, review status, correction history, and official result information.
 
-HelloRun may allow users to upload activity screenshots or other proof of run completion.
+Pending activity does not become an official result until approved. Approved accumulated distance may exceed a selected goal and may affect official standings. Recognition records may snapshot a selected goal and final verified total.
 
-Uploaded activity proof may contain:
+### 2.5 OCR and assisted review information
 
-- runner name or app username
-- distance
-- time
-- pace
-- activity date
-- route or location information
-- elevation
-- step count
-- activity type
-- fitness app name
-- GPS map or route preview
-- device or app-generated metadata
-- other visible text or details included in the screenshot
+Optical character recognition and structured checks may extract or compare visible distance, duration, date, name, username, payment reference, amount, or other relevant fields. Name matching, duplicate detection, mismatch signals, and similar checks assist review; they do not independently establish fraud or guarantee approval.
 
-Users are responsible for reviewing screenshots before uploading them. Users should avoid uploading screenshots that contain unnecessary personal information, private messages, unrelated images, or sensitive details that are not needed for event verification.
+Raw OCR text, confidence information, suspicious signals, private proof, and internal review reasoning are restricted to authorized workflows. Runners should review extracted values before submission, and authorized reviewers remain responsible for the final decision where review is configured.
 
-HelloRun may store uploaded activity proof to verify submissions, support organiser review, resolve disputes, detect suspicious entries, maintain event records, and protect the integrity of rankings and leaderboards.
+### 2.6 Third-party fitness and account integrations
 
-## 6. OCR-Assisted Screenshot Analysis
+When a runner connects Strava or another supported provider, HelloRun receives only the information authorized for the requested feature, such as connection identity, activity identifier, activity metrics, date, type, elevation, or route information made available by that provider.
 
-HelloRun may use OCR-assisted tools to read visible text from uploaded activity screenshots or payment proof images.
+Disconnecting an integration stops future access through HelloRun, subject to technical completion of the disconnection. Records already used for an event, audit, dispute, or recognition may remain as described in this policy. The provider controls its own copies, permissions, and retention.
 
-OCR-assisted analysis is used to support faster review and data entry. It is not always final or fully accurate.
+### 2.7 Community, publishing, and moderation information
 
-Users must review auto-filled details before submission. Event organisers or platform administrators may manually review, correct, reject, or approve submitted information depending on event rules and platform policies.
+HelloRun may process blog posts, images, comments, replies, running-group contributions, edits, public revision history, deletion state, reports, moderation outcomes, and safety-analysis results.
 
-If the system detects a possible mismatch, such as a different name appearing in a screenshot, the submission may be flagged for manual review.
+Active edited comments may expose public revision history. Authors may redact eligible historical revisions. A report preserves a private snapshot of the version reported so later editing, redaction, or deletion does not remove moderation evidence. Deleted root comments may remain as neutral tombstones when needed to preserve active replies.
 
-## 7. Strava and Third-Party Activity Imports
+### 2.8 Communications and support
 
-HelloRun may allow users to connect or import activity data from third-party fitness platforms such as Strava.
+This may include in-app notifications, archive and read state, organizer messages, contact messages, delivery status, retry records, message subject and body, event context, reference codes, and support history. Contact-page drafts remain in the visitor’s email application unless the visitor sends them.
 
-When this feature is available, HelloRun will only access activity data authorised by the user and needed for the selected platform feature.
+### 2.9 Technical, cookie, security, and audit information
 
-HelloRun does not control how third-party fitness platforms collect, store, or process user data. Users should review the privacy settings and policies of the connected fitness platform.
+HelloRun may process IP address, browser and device information, operating system, requested pages, timestamps, referring page, session activity, authentication events, rate-limit state, errors, audit records, administrative actions, cookie choices, security incidents, and related diagnostic records.
 
-Users may disconnect third-party integrations where the platform provides that option. Disconnecting an integration may not automatically delete activity data already imported into HelloRun if the data is needed for event records, result verification, fraud prevention, audit, dispute resolution, or legal compliance.
+The [Cookie Policy](/cookie-policy) explains essential storage and optional Functional, Analytics, and Advertising choices. Runtime browser choices are separate from signup policy agreement.
 
-## 8. Payment Proof and Transaction Verification
+## 3. Why personal data is processed
 
-HelloRun may use payment proof to:
+Depending on the workflow and applicable law, processing may be necessary to:
 
-- verify event registration
-- assist organiser review
-- resolve payment disputes
-- prevent fraudulent registrations
-- maintain financial and event records
-- comply with legal, accounting, or audit requirements
+- provide an account, event registration, order, activity-review, leaderboard, certificate, community, or support service requested by the user;
+- perform or administer an agreement, event entry, organizer responsibility, or requested transaction;
+- comply with accounting, legal, regulatory, audit, or safety obligations;
+- protect legitimate interests in platform security, event integrity, abuse prevention, dispute handling, reliable communication, and accurate public records, where those interests are not overridden by applicable rights;
+- respond to emergencies or protect a person’s vital interests where appropriate; or
+- act on consent where consent is the appropriate processing criterion, including optional browser Analytics or Advertising choices.
 
-Sensitive financial data such as full card numbers, full bank credentials, passwords, OTPs, or PINs should never be submitted to HelloRun.
+Not every workflow depends on consent. Withdrawing consent does not require deletion of information that remains necessary under another lawful criterion. Where a requested feature cannot operate without required information, withdrawing or withholding that information may make the feature unavailable.
 
-## 9. Public Results, Rankings, and Leaderboards
+## 4. How information is used
 
-HelloRun may publish event-related results and rankings depending on the event setup.
+HelloRun uses information to authenticate accounts, manage roles, register participants, review payment, operate orders, review activities, calculate accumulated progress, maintain official standings, award badges, finalize certificates, publish configured results, send communications, support community participation, prevent flooding and abuse, investigate incidents, provide support, maintain auditability, and improve reliability.
 
-Public or semi-public event information may include:
+Information collected for one purpose is not repurposed incompatibly without an appropriate basis, notice, and safeguards.
 
-- runner name or display name
-- event name
-- race category
-- distance
-- submitted or approved result
-- rank
-- completion status
-- certificate eligibility
-- event participation history
-- team, group, or organisation name, if applicable
+## 5. Access, disclosure, and organizers
 
-Some events require public display of results as part of participation, ranking, verification, transparency, or recognition.
+Access is limited according to the task and role involved. Information may be disclosed to:
 
-Users may request correction of inaccurate result data. Requests to remove or hide event results may be reviewed based on event rules, organiser obligations, dispute records, fraud prevention needs, historical records, and legal requirements.
+- the person the record concerns;
+- the organizer and authorized staff of the relevant event;
+- authorized HelloRun administrators, reviewers, support, security, or technical personnel;
+- service providers supporting hosting, database, storage, email delivery, authentication, security checks, connected activities, Analytics, or Advertising;
+- authorities, advisers, or other recipients where required or permitted by law, safety, dispute, or enforcement needs; and
+- the public for fields intentionally published through results, recognition, profiles, community content, or public verification.
 
-## 10. Sharing of Personal Data
+Organizer exports remain limited to the relevant event purpose. Organizers must secure exported records, limit staff access, avoid unrelated reuse, and delete or restrict local copies when the purpose and applicable obligations end. Report suspected misuse through [Contact](/contact?topic=privacy_data).
 
-HelloRun may share relevant personal data with:
+## 6. Public information and privacy settings
 
-- event organisers
-- authorised organiser staff
-- service providers
-- cloud infrastructure providers
-- email service providers
-- analytics and security providers
-- payment processors or payment verification partners, where applicable
-- professional advisers, where necessary
-- law enforcement, regulators, or government authorities when required by law
-- other parties with user consent or legal basis
+Depending on event and user settings, public information may include display name or privacy-safe runner name, avatar, category, approved distance, time, pace, rank, completion state, badge, certificate number, selected goal, final verified total, blog post, comment, reply, revision history, or running-group contribution.
 
-HelloRun does not sell personal data.
+Payment proof, activity-proof files, emergency contacts, contact details, precise routes, raw OCR, pending-review evidence, internal mismatch signals, report snapshots, security records, and organizer-only review information are not intentionally published as public result data.
 
-## 11. Organiser Access to Participant Data
+Public certificates and results can form part of event history and integrity. Correction, visibility, blocking, or removal requests are reviewed against accuracy, safety, event-history, recognition, dispute, fraud-prevention, and legal needs.
 
-When a user registers for an event, HelloRun may share relevant participant data with the organiser of that event.
+## 7. Service providers and international processing
 
-Organisers may access data needed to:
+HelloRun uses configured infrastructure and providers that may include MongoDB or database services, Supabase data services, hosting and file storage, Resend email delivery, Cloudflare Turnstile, Google sign-in, Google Analytics, Google AdSense, Google-hosted resources, and Strava when those services are enabled or requested.
 
-- manage event registration
-- verify payment status
-- review run submissions
-- validate results
-- contact participants
-- issue certificates
-- prepare event reports
-- resolve disputes
-- comply with event-related obligations
+Providers process information under their own terms, locations, and security practices. Where processing or storage occurs outside the Philippines, HelloRun will use reasonable contractual, technical, and organizational measures appropriate to the information and applicable requirements. HelloRun remains accountable for selecting and governing processors used for its platform responsibilities.
 
-Organisers must use participant data only for legitimate event-related purposes.
+## 8. Cookies, Analytics, and Advertising
 
-Organisers must not sell, rent, publish, transfer, or reuse participant data for unrelated purposes without a valid legal basis or proper consent.
+Essential session and security storage supports authentication and protected forms. Functional browser storage, Google Analytics, and Google AdSense remain off until the visitor enables the corresponding optional category through Cookie Preferences.
 
-If organisers download or export participant data, they become responsible for protecting that data outside the HelloRun platform.
+Where ads are shown, Google and other configured advertising providers may place or read first- or third-party cookies, or use web beacons, IP addresses, browser or device identifiers, and similar technologies as a result of ad serving. Google may use data from partner sites under its policies. Learn [how Google uses partner data](https://policies.google.com/technologies/partner-sites) and manage eligible choices through [Google Ads Settings](https://adssettings.google.com).
 
-HelloRun may restrict organiser access, suspend organiser features, or remove organiser privileges if participant data is misused.
+HelloRun does not intentionally send passwords, account contact details, payment proof, activity-proof files, emergency details, precise activity routes, or information that Google could recognize as personally identifiable information for advertising. Optional advertising choices do not make private event evidence public.
 
-## 12. Cookies and Similar Technologies
+## 9. Retention, restriction, and deletion
 
-HelloRun may use cookies and similar technologies to support:
+HelloRun retains information only for the time reasonably necessary for its declared purpose, event or account operations, payment and accounting needs, public recognition, dispute resolution, fraud prevention, security, auditability, and applicable legal obligations.
 
-- login sessions
-- account security
-- CSRF protection
-- user preferences
-- analytics
-- platform performance
-- fraud prevention
-- feature improvement
+Retention is applied by record purpose rather than one universal deadline:
 
-For more details, read the HelloRun Cookie Policy.
+- account and profile information is generally retained while the account is active, then deleted, anonymized, or restricted subject to security, consent, dispute, and legal records;
+- registration, payment, order, and fulfilment records remain through event or commerce operations and the necessary accounting, audit, refund, fraud, and dispute period;
+- activity proof, OCR, and review information remains through review, event-integrity, correction, dispute, and recognition needs, after which access may be restricted and files deleted or anonymized where appropriate;
+- official results, certificate snapshots, and public recognition may remain as event history, subject to justified correction or privacy requests;
+- community content remains while published, while private report snapshots or tombstones may remain for moderation, safety, thread, or dispute integrity;
+- communication, support, security, and audit records remain only as long as needed for delivery, support, abuse prevention, incident response, accountability, or legal needs; and
+- short-lived verification, reset, idempotency, and similar technical records expire automatically where configured.
 
-## 13. Advertising and Google AdSense
+Deletion from one active interface does not necessarily erase every authorized backup, audit, shadow, dispute, report, or provider record immediately. Access may first be restricted, with residual copies removed or overwritten through the relevant lifecycle. HelloRun will not claim an automated deletion period that is not supported by the operational workflow.
 
-HelloRun may display advertising through Google AdSense or other advertising partners.
+## 10. Data-subject rights and requests
 
-Advertising partners may use cookies, web beacons, pixel tags, IP addresses, browser or device identifiers, ad request data, and similar technologies to serve ads, measure ad performance, prevent fraud, limit repetitive ads, and comply with advertising policies.
+Subject to applicable law and lawful limitations, a person may request information, access, correction, objection, consent withdrawal, deletion or blocking, portability, or assistance with a complaint. Legal heirs or authorized representatives may exercise rights where applicable and with appropriate authority.
 
-Third parties, including Google, may place or read cookies on a user's browser or use web beacons, IP addresses, or other identifiers as a result of ad serving on HelloRun. Google may use data from HelloRun and other partner sites or apps to provide, personalize, measure, and improve advertising, subject to Google's policies and user settings.
+Use [Contact](/contact?topic=privacy_data) or email `4hprojects@proton.me`. Describe the request first and identify the relevant account, event, or record. Do not email proof or identity documents unless an authorized reviewer requests them through an appropriate channel.
 
-Advertising may be personalized or non-personalized depending on user settings, consent requirements, region, and Google or browser controls. HelloRun does not provide Google with passwords, payment proof images, run proof images, or knowingly pass information that Google could recognize as personally identifiable information for advertising.
+HelloRun may require proportionate identity verification before disclosing, changing, exporting, or deleting information. A request may be limited where processing remains necessary for legal obligations, payment or accounting records, dispute resolution, public-event integrity, fraud prevention, security, the rights of others, or another lawful purpose. HelloRun will explain an applicable limitation where appropriate.
 
-Users can learn how Google uses data from partner sites at https://policies.google.com/technologies/partner-sites and manage Google advertising preferences at https://adssettings.google.com where available.
+Individuals may also file an eligible complaint with the Philippine National Privacy Commission.
 
-## 14. Data Retention
+## 11. Security and account responsibility
 
-HelloRun retains personal data only for as long as necessary for platform operations, legal compliance, event management, payment verification, dispute resolution, fraud prevention, security, and legitimate business purposes.
+HelloRun uses reasonable organizational, technical, and operational safeguards such as access controls, password hashing, authentication controls, CSRF protection, secure production cookies, role restrictions, audit records, upload validation, rate limits, restricted proof access, monitoring, and incident-response procedures.
 
-| Data Type | Recommended Retention |
-|---|---:|
-| Account profile data | While the account is active |
-| Deleted account records | 30 to 90 days, unless retention is legally required |
-| Login and security logs | 6 to 12 months |
-| Event registration records | 3 to 5 years |
-| Payment proof and transaction references | 3 to 5 years, or as required for accounting or disputes |
-| Run proof screenshots | Until event audit/review period ends, then delete, archive, or anonymise |
-| OCR-extracted text | Same or shorter period than the source image |
-| Public results and leaderboards | As needed for event history, recognition, and organiser records |
-| Support messages | 1 to 3 years |
-| Legal, audit, or dispute records | As long as needed to resolve the issue or comply with law |
+No online service can guarantee absolute security. Protect account credentials, use a secure device, review uploads for unnecessary information, and report suspected unauthorized access promptly.
 
-HelloRun may delete, anonymise, archive, or restrict access to data that is no longer needed.
+## 12. Personal-data incidents and breach notification
 
-## 15. Data Subject Rights
+HelloRun investigates suspected personal-data incidents, works to contain exposure, assesses affected information and risk, preserves necessary evidence, and takes appropriate remediation.
 
-Users may exercise rights available under applicable privacy laws, including:
+Where the legal notification conditions are met, HelloRun will notify the National Privacy Commission and affected data subjects within the period and manner required by applicable rules. Not every technical or security event is a legally notifiable personal-data breach.
 
-- right to be informed
-- right to access personal data
-- right to correct inaccurate or incomplete data
-- right to object to certain processing
-- right to request deletion, blocking, or removal of data
-- right to data portability, where applicable
-- right to withdraw consent, where processing is based on consent
-- right to file a complaint with the National Privacy Commission or other applicable authority
+## 13. Children and minors
 
-Requests may be subject to identity verification.
+HelloRun is primarily intended for people who can manage their own accounts and event participation. Where a minor participates, a parent, guardian, school, organization, or authorized event organizer should provide the appropriate consent, supervision, and safety arrangements.
 
-HelloRun may deny or limit a request when retention or processing is required for legal obligations, payment records, dispute resolution, fraud prevention, event integrity, security, or other lawful grounds.
+Organizers handling minors must minimize information, restrict access, communicate safeguarding rules, and obtain required authority. HelloRun may restrict an account, registration, publication, or event workflow where age, consent, privacy, or safety requirements are not adequately addressed.
 
-## 16. Security
+Google advertising must not be personalized using known activity of users under the applicable child-directed threshold or sensitive health information. Pages or audiences requiring stricter treatment should not receive incompatible personalized advertising.
 
-HelloRun implements reasonable technical, organisational, and operational safeguards to protect personal data.
+## 14. Changes to this policy
 
-These may include:
+HelloRun may update this policy as services, providers, laws, or practices change. A new published version may generate a non-blocking in-app notice describing the update. Historical signup consent records remain unchanged, and future signups record the version current at agreement time.
 
-- access controls
-- authentication controls
-- secure password handling
-- restricted admin access
-- audit logs
-- secure cloud storage
-- data minimisation
-- review workflows
-- system monitoring
-- incident response procedures
+A policy update does not by itself enable optional browser storage or overwrite Cookie Preferences. Where a future processing activity requires separate consent, HelloRun will request it through the relevant workflow.
 
-No online platform can guarantee absolute security. Users are responsible for protecting their account credentials and reporting suspected unauthorised access.
+## 15. Contact and related guidance
 
-## 17. Security Incident and Breach Notification
+For privacy questions, requests, or complaints, use [Contact](/contact?topic=privacy_data) or email `4hprojects@proton.me`.
 
-If a personal data breach occurs, HelloRun will investigate, contain, and assess the incident.
-
-Where notification is required by applicable law, HelloRun will notify the National Privacy Commission and affected data subjects within the required period, including the 72-hour period where applicable.
-
-Notifications may include:
-
-- nature of the incident
-- type of data affected
-- possible risks
-- steps taken by HelloRun
-- recommended actions for affected users
-- contact details for further assistance
-
-## 18. Children and Minors
-
-HelloRun is designed mainly for users who can legally manage their own online accounts and event participation.
-
-If a minor uses HelloRun, participation should be under the guidance, consent, and supervision of a parent, guardian, school, organisation, or authorised event organiser.
-
-For events involving minors, organisers are responsible for ensuring that required consent, safety measures, and participation rules are properly obtained and communicated.
-
-HelloRun may remove or restrict accounts, registrations, or submissions involving minors where required by law, platform policy, or safety concerns.
-
-## 19. International Transfers and Cloud Services
-
-HelloRun may use cloud infrastructure, storage, email, analytics, or other service providers located in or outside the Philippines.
-
-When data is processed outside the Philippines, HelloRun will use reasonable measures to protect personal data according to applicable privacy requirements.
-
-## 20. Policy Updates
-
-HelloRun may update this Privacy Policy from time to time.
-
-Material updates may be announced through the platform, email, dashboard notice, or other reasonable means.
-
-Continued use of HelloRun after an update means users acknowledge the updated policy, where allowed by law.
-
-## 21. Contact
-
-For privacy questions, data subject requests, or complaints, contact:
-
-**Email:** hellorunonline@gmail.com  
-**Alternative Email:** 4hprojects@proton.me
+The [Data Usage Policy](/data-usage-policy) explains practical data flows. The [Cookie Policy](/cookie-policy) explains browser storage and optional controls. Event-specific operational questions should normally go to the relevant organizer first, while platform, privacy, security, or repeated organizer-conduct concerns may be directed to HelloRun.

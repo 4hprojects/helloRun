@@ -1,0 +1,67 @@
+<main class="aup-page" id="main-content">
+  <div class="aup-wrap">
+    <header class="aup-hero">
+      <div class="aup-hero-copy">
+        <span class="aup-kicker"><i data-lucide="shield-check" aria-hidden="true"></i>Platform integrity</span>
+        <h1><%= policyDocument.title %></h1>
+        <p>Practical expectations for using HelloRun fairly, safely, and honestly across events, evidence, community activity, data, and technical access.</p>
+        <div class="aup-meta" aria-label="Policy information">
+          <% if (policyPresentation.versionLabel) { %><span><i data-lucide="file-text" aria-hidden="true"></i><%= policyPresentation.versionLabel %></span><% } %>
+          <% if (policyPresentation.effectiveLabel) { %><span><i data-lucide="calendar-check" aria-hidden="true"></i>Effective <%= policyPresentation.effectiveLabel %></span><% } %>
+          <% if (policyPresentation.updatedLabel) { %><span><i data-lucide="history" aria-hidden="true"></i>Updated <%= policyPresentation.updatedLabel %></span><% } %>
+          <span><i data-lucide="clock-3" aria-hidden="true"></i>About <%= policyPresentation.readingMinutes %> min read</span>
+        </div>
+      </div>
+      <button class="aup-print" type="button" data-print-policy><i data-lucide="printer" aria-hidden="true"></i>Print policy</button>
+    </header>
+
+    <section class="aup-rules" aria-labelledby="aup-rules-title">
+      <div class="aup-section-heading"><p class="aup-eyebrow">Plain-language guide</p><h2 id="aup-rules-title">Use HelloRun fairly, safely, and honestly</h2><p>Start with the task you are doing. The complete policy below remains authoritative.</p></div>
+      <div class="aup-table-wrap">
+        <table>
+          <caption>Expected use, prohibited use, and likely response across HelloRun tasks</caption>
+          <thead><tr><th scope="col">Area</th><th scope="col">Expected use</th><th scope="col">Not allowed</th><th scope="col">Likely response or recovery</th></tr></thead>
+          <tbody>
+            <% policyPresentation.acceptableUseRules.forEach((rule) => { %>
+              <tr><th scope="row"><span><i data-lucide="<%= rule.icon %>" aria-hidden="true"></i><%= rule.area %></span></th><td data-label="Expected use"><%= rule.expected %></td><td data-label="Not allowed"><%= rule.prohibited %></td><td data-label="Likely response or recovery"><%= rule.response %></td></tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <aside class="aup-safety" aria-labelledby="aup-safety-title">
+      <span><i data-lucide="triangle-alert" aria-hidden="true"></i></span>
+      <div><p class="aup-eyebrow">Immediate safety risks</p><h2 id="aup-safety-title">Some concerns require immediate restriction</h2><p>Threats, exposed personal data, phishing, malware, credential compromise, illegal content, and serious payment or activity fraud may justify immediate restriction or suspension while review continues.</p></div>
+    </aside>
+
+    <section class="aup-enforcement" aria-labelledby="aup-enforcement-title">
+      <div class="aup-section-heading"><p class="aup-eyebrow">Accountable review</p><h2 id="aup-enforcement-title">How a concern is handled</h2><p>Responses consider severity, context, repetition, event authority, and immediate risk—not a mechanical strike count.</p></div>
+      <ol>
+        <% policyPresentation.acceptableUseEnforcement.forEach((stage) => { %><li><div class="aup-stage-icon"><i data-lucide="<%= stage.icon %>" aria-hidden="true"></i><span><%= stage.number %></span></div><h3><%= stage.title %></h3><p><%= stage.text %></p></li><% }) %>
+      </ol>
+    </section>
+
+    <section class="aup-reporting" aria-labelledby="aup-reporting-title">
+      <div class="aup-section-heading"><p class="aup-eyebrow">Use the right channel</p><h2 id="aup-reporting-title">Report a concern without exposing more data</h2><p>Describe the issue first. Do not send proof, identity documents, exploit code, or sensitive records unless an authorized reviewer requests them.</p></div>
+      <div class="aup-reporting-grid">
+        <% policyPresentation.acceptableUseReporting.forEach((item) => { %><article><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><div><h3><%= item.title %></h3><p><%= item.text %></p><% if (item.href) { %><a href="<%= item.href %>"><%= item.label %><i data-lucide="arrow-right" aria-hidden="true"></i></a><% } %></div></article><% }) %>
+      </div>
+    </section>
+
+    <details class="aup-mobile-contents">
+      <summary><span><i data-lucide="list" aria-hidden="true"></i>Complete policy contents</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+      <nav aria-label="Acceptable Use Policy contents"><% policyPresentation.contents.forEach((item) => { %><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a><% }) %></nav>
+    </details>
+
+    <div class="aup-policy-layout">
+      <aside class="aup-policy-rail"><nav aria-label="Acceptable Use Policy contents"><p class="aup-eyebrow">Complete policy</p><ul><% policyPresentation.contents.forEach((item) => { %><li><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a></li><% }) %></ul></nav></aside>
+      <section class="aup-policy-document" aria-label="Complete Acceptable Use Policy">
+        <% if (policyPresentation.summaryOfChanges) { %><aside class="aup-policy-changes" id="policy-changes"><i data-lucide="sparkles" aria-hidden="true"></i><div><h2>What changed in this version</h2><p><%= policyPresentation.summaryOfChanges %></p></div></aside><% } else { %><span id="policy-changes" class="aup-policy-anchor" aria-hidden="true"></span><% } %>
+        <% if (policyHtml) { %><article class="legal-markdown"><%- policyHtml %></article><% } else { %><article class="aup-policy-fallback"><h2>Policy temporarily unavailable</h2><p>Please use <a href="/contact">Contact</a> if you need guidance before continuing a HelloRun activity.</p></article><% } %>
+      </section>
+    </div>
+
+    <section class="aup-related" aria-labelledby="aup-related-title"><div><p class="aup-eyebrow">Related rules and support</p><h2 id="aup-related-title">Continue with the authoritative detail</h2></div><nav aria-label="Related policies and help"><% policyPresentation.relatedPolicies.forEach((item) => { %><a href="<%= item.href %>"><%= item.label %><i data-lucide="arrow-up-right" aria-hidden="true"></i></a><% }) %></nav></section>
+  </div>
+</main>

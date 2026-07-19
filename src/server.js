@@ -241,6 +241,7 @@ app.get('/healthz/sync', async (req, res) => {
 logger.info('Loading routes...');
 const { populateAuthLocals } = require('./middleware/auth.middleware');
 const { populateAdLocals } = require('./middleware/ad.middleware');
+const { populateCookiePreferenceLocals } = require('./middleware/cookie-preference.middleware');
 const authRoutes = require('./routes/authRoutes');
 const pageRoutes = require('./routes/pageRoutes');
 const runnerRoutes = require('./routes/runner.routes');
@@ -258,6 +259,7 @@ const timingSystemWebhooks = require('./routes/webhooks/timing-system');
 
 // Auth locals for all views (BEFORE routes)
 app.use(populateAuthLocals);
+app.use(populateCookiePreferenceLocals);
 app.use(populateAdLocals);
 app.use(populatePublicPageLocals);
 
@@ -359,6 +361,7 @@ const PORT = process.env.PORT || 3000;
 const { startSyncRetryWorker, startBlogSchedulerWorker } = require('./workers/pg-sync-worker');
 const { startCommunicationRetryWorker } = require('./workers/communication-retry-worker');
 const { startAccumulatedCertificateWorker } = require('./workers/accumulated-certificate-worker');
+const { startPolicyNoticeWorker } = require('./workers/policy-notice-worker');
 
 async function startServer() {
   await connectToDatabase();
@@ -366,6 +369,7 @@ async function startServer() {
   startBlogSchedulerWorker();
   startCommunicationRetryWorker();
   startAccumulatedCertificateWorker();
+  startPolicyNoticeWorker();
 
   app.listen(PORT, () => {
     logger.info(`Server running on http://localhost:${PORT}`);

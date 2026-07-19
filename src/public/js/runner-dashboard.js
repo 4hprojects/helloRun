@@ -188,6 +188,7 @@ function getFocusableInDialog(modal) {
 function setupCollapsiblePanels() {
   const toggleButtons = document.querySelectorAll('[data-toggle-target]');
   if (!toggleButtons.length) return;
+  const canStorePreferences = Boolean(window.HelloRunPrivacy?.functional && window.localStorage);
 
   toggleButtons.forEach((button) => {
     if (button.dataset.toggleBound === 'true') return;
@@ -199,12 +200,12 @@ function setupCollapsiblePanels() {
 
     const showLabel = button.getAttribute('data-toggle-show-label') || 'Show';
     const hideLabel = button.getAttribute('data-toggle-hide-label') || 'Hide';
-    const storageKey = `dashboard-toggle:${targetId}`;
+    const storageKey = `helloRun:dashboard-toggle:${targetId}`;
     const labelNode = button.querySelector('[data-toggle-label]');
 
     // Restore state from localStorage if available
     try {
-      const saved = localStorage.getItem(storageKey);
+      const saved = canStorePreferences ? localStorage.getItem(storageKey) : null;
       if (saved === 'open') {
         panel.removeAttribute('hidden');
       } else if (saved === 'closed') {
@@ -232,7 +233,7 @@ function setupCollapsiblePanels() {
       }
       updateButton();
       try {
-        localStorage.setItem(storageKey, panel.hasAttribute('hidden') ? 'closed' : 'open');
+        if (canStorePreferences) localStorage.setItem(storageKey, panel.hasAttribute('hidden') ? 'closed' : 'open');
       } catch (e) {}
     });
 

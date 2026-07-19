@@ -57,6 +57,9 @@ test('operational guidance distinguishes evidence, review states, and event type
   for (const state of ['Pending', 'Approved', 'Rejected', 'Resubmission']) {
     assert.match(viewSource, new RegExp(`>${state}<`));
   }
+  assert.match(cssSource, /\.how-status-grid article\s*\{[\s\S]*border:\s*1px solid var\(--how-line\)/);
+  assert.doesNotMatch(cssSource, /\.how-status-(?:pending|approved|rejected|resubmit)\s*\{[^}]*border-top-color/);
+  assert.doesNotMatch(cssSource, /\.how-status-grid article\s*\{[^}]*border-top-width/);
   assert.match(viewSource, /Avoid Common Proof Mistakes/);
 });
 

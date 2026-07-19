@@ -19,6 +19,8 @@ const ALLOWED_RAW_OUTPUT = [
   // cannot terminate the tag
   /\.replace\(\/<\/g, '\\\\u003c'\)$/,
   /^safeJson\(/,
+  // Built only by faq-page-presentation.service after neutralizing <, >, and &.
+  /^faqPresentation\.structuredDataJson$/,
   // layouts/main.ejs template composition
   /^body$/,
   // Server-sanitized HTML (all pass through utils/sanitize.js before render):

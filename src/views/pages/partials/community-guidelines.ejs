@@ -1,0 +1,75 @@
+<main class="community-guidelines-page" id="main-content">
+  <div class="cg-wrap">
+    <header class="cg-hero">
+      <div class="cg-hero-copy">
+        <span class="cg-kicker"><i data-lucide="users-round" aria-hidden="true"></i>Respectful participation</span>
+        <h1><%= policyDocument.title %></h1>
+        <p>Practical guidance for contributing honestly, protecting other people, disagreeing constructively, and reporting concerns across HelloRun.</p>
+        <div class="cg-meta" aria-label="Policy information">
+          <% if (policyPresentation.versionLabel) { %><span><i data-lucide="file-text" aria-hidden="true"></i><%= policyPresentation.versionLabel %></span><% } %>
+          <% if (policyPresentation.effectiveLabel) { %><span><i data-lucide="calendar-check" aria-hidden="true"></i>Effective <%= policyPresentation.effectiveLabel %></span><% } %>
+          <% if (policyPresentation.updatedLabel) { %><span><i data-lucide="history" aria-hidden="true"></i>Updated <%= policyPresentation.updatedLabel %></span><% } %>
+          <span><i data-lucide="clock-3" aria-hidden="true"></i>About <%= policyPresentation.readingMinutes %> min read</span>
+        </div>
+      </div>
+      <div class="cg-hero-actions">
+        <% if (typeof user !== 'undefined' && user && user.role === 'admin') { %><a class="cg-community-action" href="/admin/dashboard"><i data-lucide="shield" aria-hidden="true"></i>Admin Dashboard</a>
+        <% } else if (typeof user !== 'undefined' && user && user.role === 'organiser') { %><a class="cg-community-action" href="/organizer/dashboard"><i data-lucide="layout-dashboard" aria-hidden="true"></i>Organizer Dashboard</a>
+        <% } else if (typeof user !== 'undefined' && user) { %><a class="cg-community-action" href="/runner/groups"><i data-lucide="users" aria-hidden="true"></i>Running Groups</a>
+        <% } else { %><a class="cg-community-action" href="/blog"><i data-lucide="notebook-pen" aria-hidden="true"></i>Explore Community</a><% } %>
+        <button class="cg-print" type="button" data-print-policy><i data-lucide="printer" aria-hidden="true"></i>Print guidelines</button>
+      </div>
+    </header>
+
+    <section class="cg-applies" aria-labelledby="cg-applies-title">
+      <div class="cg-section-heading"><p class="cg-eyebrow">Where this applies</p><h2 id="cg-applies-title">One standard across community spaces</h2><p>Public and semi-public contributions carry the same expectations, even when their controls differ.</p></div>
+      <ul><% policyPresentation.communityApplicability.forEach((item) => { %><li><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><span><%= item.label %></span></li><% }) %></ul>
+    </section>
+
+    <section class="cg-principles" aria-labelledby="cg-principles-title">
+      <div class="cg-section-heading"><p class="cg-eyebrow">Start here</p><h2 id="cg-principles-title">Five principles for participating well</h2><p>Use these before posting, replying, messaging, or sharing media. The complete guidelines below remain authoritative.</p></div>
+      <ol><% policyPresentation.communityPrinciples.forEach((item) => { %><li><div class="cg-principle-icon"><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><span><%= item.number %></span></div><h3><%= item.title %></h3><p><%= item.text %></p></li><% }) %></ol>
+    </section>
+
+    <section class="cg-situations" aria-labelledby="cg-situations-title">
+      <div class="cg-section-heading"><p class="cg-eyebrow">Practical situations</p><h2 id="cg-situations-title">What constructive participation looks like</h2><p>Criticism and disagreement are allowed. The behavior, context, privacy risk, and chosen channel determine whether a contribution is appropriate.</p></div>
+      <div class="cg-table-wrap">
+        <table>
+          <caption>Community situations, constructive behavior, conduct to avoid, and the appropriate channel</caption>
+          <thead><tr><th scope="col">Situation</th><th scope="col">Constructive approach</th><th scope="col">Avoid</th><th scope="col">Best channel</th></tr></thead>
+          <tbody><% policyPresentation.communitySituations.forEach((item) => { %><tr><th scope="row"><%= item.situation %></th><td data-label="Constructive approach"><%= item.encouraged %></td><td data-label="Avoid"><%= item.avoid %></td><td data-label="Best channel"><%= item.route %></td></tr><% }) %></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="cg-support-row">
+      <section class="cg-checklist" aria-labelledby="cg-checklist-title">
+        <div class="cg-section-heading"><p class="cg-eyebrow">Pause before publishing</p><h2 id="cg-checklist-title">Before you publish</h2></div>
+        <ul><% policyPresentation.communityChecklist.forEach((item) => { %><li><i data-lucide="check" aria-hidden="true"></i><%= item %></li><% }) %></ul>
+      </section>
+      <aside class="cg-health" aria-labelledby="cg-health-title"><span><i data-lucide="heart-pulse" aria-hidden="true"></i></span><div><p class="cg-eyebrow">Experience, not diagnosis</p><h2 id="cg-health-title">Share what helped you without prescribing it to others</h2><p>Personal running, nutrition, injury, and recovery experiences are welcome. Do not diagnose, guarantee outcomes, promote dangerous practices, or tell someone to ignore serious symptoms or qualified advice.</p><p>HelloRun is not an emergency or medical service.</p></div></aside>
+    </div>
+
+    <section class="cg-moderation" aria-labelledby="cg-moderation-title">
+      <div class="cg-section-heading"><p class="cg-eyebrow">Accountable moderation</p><h2 id="cg-moderation-title">How a community concern is handled</h2><p>Editing or deleting content does not automatically close a report or erase report-time evidence preserved for authorized review.</p></div>
+      <ol><% policyPresentation.communityModeration.forEach((stage) => { %><li><div class="cg-stage-icon"><i data-lucide="<%= stage.icon %>" aria-hidden="true"></i><span><%= stage.number %></span></div><h3><%= stage.title %></h3><p><%= stage.text %></p></li><% }) %></ol>
+    </section>
+
+    <section class="cg-reporting" aria-labelledby="cg-reporting-title">
+      <div class="cg-section-heading"><p class="cg-eyebrow">Use the right channel</p><h2 id="cg-reporting-title">Report concerns without exposing more information</h2><p>Reason-based reporting remains available for eligible blog content. Other community and safety concerns use Contact.</p></div>
+      <div class="cg-reporting-grid"><% policyPresentation.communityReporting.forEach((item) => { %><article><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><div><h3><%= item.title %></h3><p><%= item.text %></p><% if (item.href) { %><a href="<%= item.href %>"><%= item.label %><i data-lucide="arrow-right" aria-hidden="true"></i></a><% } %></div></article><% }) %></div>
+    </section>
+
+    <details class="cg-mobile-contents"><summary><span><i data-lucide="list" aria-hidden="true"></i>Complete guidelines contents</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary><nav aria-label="Community Guidelines contents"><% policyPresentation.contents.forEach((item) => { %><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a><% }) %></nav></details>
+
+    <div class="cg-policy-layout">
+      <aside class="cg-policy-rail"><nav aria-label="Community Guidelines contents"><p class="cg-eyebrow">Complete guidelines</p><ul><% policyPresentation.contents.forEach((item) => { %><li><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a></li><% }) %></ul></nav></aside>
+      <section class="cg-policy-document" aria-label="Complete Community Guidelines">
+        <% if (policyPresentation.summaryOfChanges) { %><aside class="cg-policy-changes" id="policy-changes"><i data-lucide="sparkles" aria-hidden="true"></i><div><h2>What changed in this version</h2><p><%= policyPresentation.summaryOfChanges %></p></div></aside><% } else { %><span id="policy-changes" class="cg-policy-anchor" aria-hidden="true"></span><% } %>
+        <% if (policyHtml) { %><article class="legal-markdown"><%- policyHtml %></article><% } else { %><article class="cg-policy-fallback"><h2>Guidelines temporarily unavailable</h2><p>Please use <a href="/contact">Contact</a> if you need help with a community or safety concern.</p></article><% } %>
+      </section>
+    </div>
+
+    <section class="cg-related" aria-labelledby="cg-related-title"><div><p class="cg-eyebrow">Related rules and support</p><h2 id="cg-related-title">Continue with the authoritative detail</h2></div><nav aria-label="Related policies and help"><% policyPresentation.relatedPolicies.forEach((item) => { %><a href="<%= item.href %>"><%= item.label %><i data-lucide="arrow-up-right" aria-hidden="true"></i></a><% }) %></nav></section>
+  </div>
+</main>

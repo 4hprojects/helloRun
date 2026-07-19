@@ -1,278 +1,133 @@
 # HelloRun Terms and Conditions
 
-**Last Updated:** May 23, 2026  
-**Platform:** HelloRun  
-**Website:** https://hellorun.online  
-**Contact:** hellorunonline@gmail.com, 4hprojects@proton.me
+## 1. Acceptance of these Terms
 
-## 1. Acceptance of Terms
+These Terms and Conditions form an agreement between you and HelloRun, operated by **Henson M. Sagorsor, operating as 4HProjects**. They apply when you visit HelloRun, create or use an account, register for or manage an event, submit content or evidence, or use another HelloRun feature.
 
-By accessing or using HelloRun, you agree to these Terms and Conditions.
+If you do not agree, do not create an account or continue using protected platform features. These Terms should be read with the [Privacy Policy](https://hellorun.online/privacy), [Cookie Policy](https://hellorun.online/cookie-policy), [Data Usage Policy](https://hellorun.online/data-usage-policy), [Refund and Cancellation Policy](https://hellorun.online/refund-and-cancellation-policy), [Organiser Terms](https://hellorun.online/organiser-terms), [Community Guidelines](https://hellorun.online/community-guidelines), and [Acceptable Use Policy](https://hellorun.online/acceptable-use-policy).
 
-If you do not agree, you should not use the platform.
+## 2. What HelloRun provides
 
-These Terms apply to runners, participants, organisers, visitors, groups, administrators, and other users of HelloRun.
+HelloRun provides digital tools for discovering and managing virtual, on-site, and hybrid running events. Features may include registration, payment-evidence workflows, single-result and accumulated activity submissions, assisted review, standings, badges, certificates, groups, notifications, blogs, comments, and organizer tools.
 
-These Terms should be read together with the Privacy Policy, Cookie Policy, Data Usage Policy, Refund and Cancellation Policy, Organiser Terms, Community Guidelines, and Acceptable Use Policy.
+HelloRun is a platform provider. It does not replace an event organizer, official race timer, payment provider, emergency service, medical professional, route marshal, permit authority, or other third party responsible for an event or service.
 
-## 2. Platform Role
+## 3. Accounts and access
 
-HelloRun provides digital tools for running event management, registration, submission review, rankings, certificates, reporting, and related workflows.
+You must provide accurate account information, keep sign-in credentials secure, and promptly report suspected unauthorized access. You must not impersonate another person or organization, share access without authority, evade restrictions, or create accounts to manipulate events, results, recognition, discussions, or platform limits.
 
-HelloRun does not replace official timing systems, medical support, safety marshalls, payment providers, or organiser responsibilities.
+Some features require a verified email, completed profile, approved organizer status, confirmed registration, or another eligibility state. Access to one feature does not guarantee access to every event or workflow.
 
-For onsite events, official timing and race-day operations may be handled by the organiser or third-party timing providers.
+## 4. Runners and participants
 
-For virtual events, HelloRun supports proof submission and review, but final approval may depend on organiser rules and manual review.
+Runners are responsible for reviewing the event page before registering, selecting the intended category, distance, goal, package, and participation mode, and completing activities safely within the published window.
 
-## 3. User Accounts
+Event pages are authoritative for their dates, pricing, capacity, accepted activities, evidence, submission deadline, ranking method, recognition, delivery limits, and other event-specific requirements.
 
-Users are responsible for maintaining accurate account information and protecting their login credentials.
+## 5. Organizers and event ownership
 
-Users must not:
+Organizer-managed events remain the responsibility of the organizer identified on the event page. Organizers must publish accurate rules, communicate material changes, review payment and activity evidence fairly, protect participant data, honor advertised commitments, and comply with applicable laws, permits, safety obligations, and the separate Organiser Terms.
 
-- create accounts using false information
-- impersonate another person or organisation
-- share accounts without permission
-- use another person’s account
-- bypass account restrictions
-- create multiple accounts to manipulate results or platform features
+HelloRun may review, restrict, unpublish, or remove an event or organizer account when information is misleading, required verification is incomplete, participant data is misused, or platform integrity or safety is at risk.
 
-HelloRun may suspend, restrict, or terminate accounts that violate these Terms or other platform policies.
+### Pending organizer access
 
-## 4. Event Registration
+Pending organizer accounts may have restricted publication, payment, or event-management capabilities until required account review is complete. Creating a draft event does not guarantee public approval. The [Organiser Terms](https://hellorun.online/organiser-terms) control the detailed organizer workflow.
 
-Users are responsible for reviewing event details before registering.
+## 6. Registration, prices, and payment review
 
-Event details may include:
+Before registering, review the organizer, price, inclusions, transaction instructions, and refund rules. Payment approval confirms the payment evidence for a registration; it does not approve a later activity result.
 
-- event type
-- date and time
-- registration period
-- distance or category
-- fees
-- inclusions
-- submission rules
-- refund policy
-- result publication rules
-- organiser contact details
-- safety information
+Payment services may be supplied by configured third-party providers with their own terms and privacy practices. HelloRun may store transaction references and evidence needed for registration management, reconciliation, support, fraud prevention, and disputes, but users should avoid uploading unnecessary financial information.
 
-By registering for an event, users agree to follow the event-specific rules set by the organiser and the applicable HelloRun policies.
+## 7. Refunds, cancellations, and event changes
 
-## 5. Health, Safety, and Participation Responsibility
+Refund eligibility depends on the Refund and Cancellation Policy, the event rules, the responsible organizer, the payment flow, and applicable law. Registration is not automatically refundable or transferable.
 
-Running, walking, hiking, trail running, and related activities involve physical risk.
+Organizers may need to change dates, routes, categories, inclusions, participation modes, or submission requirements. They are responsible for communicating material changes. HelloRun may provide platform notices but cannot guarantee that an organizer will perform every obligation.
 
-By joining an event or submitting activity records through HelloRun, users acknowledge that they are responsible for assessing their own fitness, health condition, route safety, equipment, weather conditions, and ability to participate.
+## 8. Physical activity and safety
 
-HelloRun does not provide medical, health, or fitness advice.
+Running, walking, hiking, trail activity, and event participation involve physical and environmental risks. You are responsible for assessing your fitness, health, route, weather, equipment, surroundings, and ability to participate.
 
-Users should stop participating and seek appropriate assistance if they experience pain, dizziness, shortness of breath, injury, or other concerning symptoms.
+HelloRun does not provide medical or emergency advice. Stop and seek appropriate professional or emergency assistance when symptoms, injury, unsafe conditions, or another concern requires it. Organizers remain responsible for event-specific safety instructions and on-site operations where applicable.
 
-Event organisers are responsible for providing event-specific safety instructions, route guidance, emergency procedures, cut-off rules, and participant requirements where applicable.
+## 9. Activity evidence and fair participation
 
-HelloRun is a platform provider and does not guarantee the safety, quality, legality, or suitability of any event organised by third-party organisers.
+Submitted activities must belong to the runner and accurately state the date, distance, duration when relevant, activity type, and other required facts. Evidence must not be falsified, manipulated, misleadingly edited, or dishonestly reused.
 
-## 6. Event Organiser Responsibilities
+An activity must satisfy the relevant event window and rules. One activity may be submitted to multiple registrations only where each event and the platform allow it. Evidence showing another identity, unclear values, duplication, or a rule mismatch may require clarification or rejection.
 
-Organisers using HelloRun agree to:
+## 10. Review states and assisted processing
 
-- provide accurate event information
-- clearly state event dates, registration periods, distances, categories, fees, inclusions, and rules
-- disclose whether the event is virtual, onsite, or hybrid
-- disclose refund and cancellation rules
-- review payment and run submissions fairly
-- protect participant data
-- avoid misleading promotions
-- communicate material event changes promptly
-- comply with applicable laws, permits, safety requirements, and privacy obligations
-- honour advertised inclusions, certificates, merchandise, awards, and event commitments
+Payment and activity evidence are reviewed separately. A submitted activity is pending and not official until approved. A rejected activity may require corrected metadata or new evidence, depending on the runner-facing decision.
 
-HelloRun may suspend, unpublish, restrict, or remove organiser events if the organiser provides misleading information, fails to complete verification, misuses participant data, violates platform rules, or creates risk to users or the platform.
+HelloRun may use OCR-assisted reading, duplicate checks, mismatch signals, and other automated or assisted tools to support review. These tools may make mistakes and do not replace the runner's responsibility to verify entered information or the authorized review decision.
 
-## 7. Run Submission Rules
+## 11. Single-result and accumulated challenges
 
-Users submitting run results agree that:
+A single-result event normally evaluates one qualifying performance. An accumulated challenge combines approved eligible activities toward the goal resolved for the registration.
 
-- the submitted activity must be their own
-- the submitted distance, time, date, and activity details must be accurate
-- screenshots must not be edited, manipulated, falsified, or reused dishonestly
-- activities must comply with the event period and event rules
-- one activity may only be counted across events where the platform and organiser allow it
-- screenshots showing another person’s name may be held for manual review
-- unclear or incomplete proof may be rejected or returned for clarification
+Pending accumulated distance remains separate from verified official progress. Approved distance may exceed the selected goal and continue affecting official accumulated standings while submissions remain open. Badges may be awarded when approved progress reaches a configured target. An accumulated certificate may be finalized only after the submission deadline and required event-wide reviews are complete.
 
-HelloRun and organisers may review submissions using manual checks, OCR-assisted reading, duplicate detection, mismatch detection, and other fraud-prevention measures.
+## 12. Standings, badges, and certificates
 
-HelloRun may reject, flag, hide, correct, or remove submissions that appear inaccurate, fraudulent, duplicated, manipulated, or non-compliant with event rules.
+Only eligible approved records may enter official standings or recognition. The organizer controls whether a leaderboard is public, its ranking method, visible fields, and event-specific recognition settings.
 
-## 8. Payment Proof Rules
+HelloRun may correct, hide, invalidate, or remove results, ranks, badges, or certificates when errors, fraud, duplicated evidence, policy violations, or authorized organizer decisions require it. Event certificates are configured event recognition and are not external professional or academic accreditation.
 
-Users submitting payment proof agree that:
+## 13. User content and community participation
 
-- payment proof must relate to the correct event and registration
-- transaction details must be accurate
-- proof must not be reused dishonestly
-- proof must not be edited to misrepresent payment
-- uploaded images should not contain unnecessary sensitive financial information
-- HelloRun or the organiser may request additional confirmation when payment proof is unclear or inconsistent
+Users may submit profile information, evidence, event materials, blog posts, comments, replies, messages, reports, and other content. You retain applicable ownership rights but grant HelloRun a non-exclusive permission to store, process, reproduce, display, and moderate the content as reasonably needed to operate the platform and the feature in which it was submitted.
 
-Submitting payment proof does not automatically guarantee registration approval.
+Community contributions must follow the Community Guidelines and Acceptable Use Policy. Comment editing may retain public revision history while the comment is active, and reports may preserve the reported version for moderation integrity. Do not use comments, replies, reports, or organizer messages for harassment, spam, flooding, or unnecessary disclosure of private information.
 
-Registration may remain pending until verified by the organiser, payment provider, or HelloRun administrator.
+## 14. Intellectual property
 
-## 9. Automated and Assisted Review
+HelloRun branding, software, interface design, platform structure, and original materials belong to HelloRun or their respective licensors. You may not copy, sell, reverse engineer, misuse branding, or exploit protected platform materials except where law or written permission allows.
 
-HelloRun may use automated or assisted tools to help process submissions, detect suspicious entries, analyse screenshots, auto-fill fields, or prioritise manual review.
+You must have the rights needed for content you upload. HelloRun may remove material that allegedly infringes another person's rights while a report is reviewed.
 
-These tools may make mistakes.
+## 15. Privacy and evidence handling
 
-Users, organisers, and administrators may review and correct information before final approval, where the platform allows.
+HelloRun processes account, registration, payment, activity, communication, security, and recognition information as described in the Privacy Policy and Data Usage Policy. Evidence is intended for authorized operational review unless a separate feature explicitly states that information will be published.
 
-HelloRun may update review methods to improve platform integrity and prevent abuse.
+Do not publish passwords, identity documents, contact information, payment records, or private activity evidence in public areas. Account deletion may not remove records that must be retained for completed events, certificates, accounting, disputes, fraud prevention, security, or legal obligations.
 
-## 10. Rankings, Leaderboards, and Certificates
+## 16. Third-party services and advertising
 
-HelloRun may generate rankings, leaderboards, completion records, and certificates based on submitted and approved data.
+HelloRun may rely on storage, email, analytics, advertising, payment, fitness, hosting, or other third-party services. Their availability and independent practices are outside HelloRun's direct control and may be governed by separate terms.
 
-Results may be public, semi-public, or limited to participants depending on the event setup.
+Advertising and cookie use are described in the Privacy Policy and Cookie Policy. Advertising does not change event eligibility, review decisions, rankings, or recognition.
 
-HelloRun may correct, remove, hide, or invalidate results if errors, fraud, duplicate submissions, policy violations, or organiser decisions require it.
+## 17. Prohibited use and enforcement
 
-Certificates may be generated only when event requirements are met.
+You must not submit fraudulent evidence, manipulate results, access systems without authority, scrape protected data, upload malware, abuse platform limits, harass others, misuse participant information, publish illegal or harmful material, or use HelloRun for unlawful or deceptive activity.
 
-## 11. Payments, Refunds, and Cancellations
+HelloRun may remove content, limit communications, reject evidence, hide results, suspend events, restrict features, or suspend or close accounts when reasonably necessary to enforce policies, protect users, investigate abuse, maintain security, or preserve event integrity.
 
-Event fees, platform fees, and payment gateway fees may be treated differently.
+## 18. Platform availability and changes
 
-Refunds and cancellations are governed by the Refund and Cancellation Policy and any event-specific rules published by the organiser.
+HelloRun aims to provide reliable service but does not guarantee uninterrupted or error-free access. Maintenance, security work, provider outages, technical faults, or events outside reasonable control may interrupt features or cause delays.
 
-Users should review the event refund policy before registering.
+Features may be changed, suspended, or discontinued. Where practical, material changes affecting active event workflows will be communicated through appropriate platform or organizer channels.
 
-HelloRun may assist with payment tracking and dispute review, but organiser-managed events remain subject to organiser rules unless HelloRun directly controls the payment flow for a specific event.
+## 19. Disclaimers and limitation of liability
 
-## 12. Changes to Events
+HelloRun is provided on an "as is" and "as available" basis to the extent permitted by law. HelloRun does not guarantee organizer performance, participant safety, user-submitted accuracy, uninterrupted third-party services, event completion, or a particular result or recognition.
 
-Organisers may update event details when necessary.
+To the extent allowed by law, HelloRun is not liable for organizer-managed event issues, participant injury, incorrect user data, third-party failures, payment-provider errors, user-negligent account access, organizer cancellation or postponement, or indirect, incidental, or consequential losses. Nothing in these Terms excludes liability that cannot lawfully be excluded.
 
-Material changes may include:
+## 20. Governing law
 
-- date changes
-- distance or category changes
-- route changes
-- fee changes
-- entitlement changes
-- event cancellation
-- conversion from onsite to virtual or hybrid
-- change in result submission rules
+These Terms are governed by the laws of the Republic of the Philippines. Disputes arising from HelloRun are subject to the appropriate courts in the Philippines, except where applicable law requires otherwise.
 
-Organisers are responsible for notifying affected participants of material changes.
+## 21. Changes to these Terms
 
-HelloRun may assist with platform notices but is not responsible for organiser failure to communicate unless required by law or platform policy.
+HelloRun may publish a new Terms version to reflect platform, operational, security, or legal changes. The page will identify the current version and effective date. Existing users may receive a non-blocking platform notice for a published update; prior consent records remain historical records unless a separate acknowledgement is explicitly requested.
 
-## 13. User Content
+Continued use after an update may be treated as acknowledgement where permitted by law. New accounts agree to the version current when signup is completed.
 
-Users may upload or submit content such as screenshots, profile information, comments, messages, event details, and other materials.
+## 22. Contact
 
-Users remain responsible for the content they submit.
-
-Users must not upload content that:
-
-- violates law
-- violates another person’s rights
-- contains malware
-- contains false or misleading information
-- contains unnecessary sensitive personal or financial information
-- is abusive, threatening, or harmful
-- is sexually explicit or inappropriate for the platform
-- infringes intellectual property rights
-
-By submitting content, users allow HelloRun to use the content as needed to operate the platform, process event participation, verify submissions, generate results, provide support, enforce policies, and comply with legal obligations.
-
-## 14. Account Deletion and Effect on Event Records
-
-Users may request account deletion by contacting HelloRun.
-
-Account deletion may remove or anonymise profile information where allowed.
-
-Some records may remain retained when necessary for:
-
-- completed event records
-- payment records
-- certificates
-- leaderboard integrity
-- fraud prevention
-- dispute handling
-- organiser reports
-- legal or accounting obligations
-- security investigations
-
-Deletion of an account may affect access to registrations, certificates, event history, groups, submissions, and organiser features.
-
-## 15. Prohibited Activities
-
-Users must not:
-
-- submit fake run proof
-- submit manipulated screenshots
-- submit false payment proof
-- impersonate another person or organisation
-- harass other users
-- scrape platform data without permission
-- misuse participant data
-- attempt unauthorised access
-- upload malware
-- abuse platform forms or APIs
-- manipulate rankings, certificates, or event records
-- use HelloRun for illegal, fraudulent, or harmful activity
-
-## 16. Platform Availability
-
-HelloRun aims to keep the platform available and functional, but access may be interrupted due to maintenance, updates, technical issues, service provider outages, security incidents, or events beyond HelloRun’s control.
-
-HelloRun does not guarantee uninterrupted or error-free service.
-
-## 17. Third-Party Services
-
-HelloRun may integrate with third-party services, such as cloud providers, email providers, analytics tools, payment providers, storage services, or fitness platforms.
-
-Third-party services may have their own terms and privacy policies.
-
-HelloRun is not responsible for third-party services outside its control.
-
-## 18. Limitation of Liability
-
-To the extent allowed by law, HelloRun is not liable for:
-
-- organiser-managed event issues
-- participant injury or health concerns
-- incorrect user-submitted data
-- third-party service failures
-- payment provider errors
-- unauthorised account access caused by user negligence
-- event cancellation or postponement by organisers
-- indirect, incidental, or consequential losses
-
-Nothing in these Terms limits liability that cannot be excluded under applicable law.
-
-## 19. Suspension and Termination
-
-HelloRun may suspend, restrict, or terminate accounts, organiser access, events, submissions, results, or platform features if a user or organiser violates these Terms or other policies.
-
-Actions may be taken to protect users, organisers, platform security, event integrity, legal compliance, or HelloRun’s legitimate interests.
-
-## 20. Changes to These Terms
-
-HelloRun may update these Terms from time to time.
-
-Material changes may be announced through the platform, email, dashboard notice, or other reasonable means.
-
-Continued use of HelloRun after an update means users acknowledge the updated Terms, where allowed by law.
-
-## 21. Contact
-
-For questions about these Terms, contact:
-
-**Email:** hellorunonline@gmail.com  
-**Alternative Email:** 4hprojects@proton.me
+For questions about these Terms, use the [Contact page](https://hellorun.online/contact). HelloRun operates from Benguet, Philippines. Privacy or data requests should use the privacy contact identified in the Privacy Policy.

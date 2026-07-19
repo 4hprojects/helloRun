@@ -9,6 +9,10 @@ const logger = require('../utils/logger');
 async function populateAdLocals(req, res, next) {
   res.locals.ads = createEmptyAdLocals();
 
+  if (!req.cookiePreferences?.advertising) {
+    return next();
+  }
+
   if (!shouldEvaluateAds(req)) {
     return next();
   }

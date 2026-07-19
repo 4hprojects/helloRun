@@ -587,11 +587,11 @@
         runResultReview: false,
         registeredAt: true
       };
-      const storageKey = 'organizerRegistrantsVisibleColumns';
+      const storageKey = 'helloRun:organizerRegistrantsVisibleColumns';
 
       function getStoredState() {
         try {
-          const stored = JSON.parse(window.localStorage.getItem(storageKey) || '{}');
+          const stored = window.HelloRunPrivacy?.functional ? JSON.parse(window.localStorage.getItem(storageKey) || '{}') : {};
           return { ...defaultColumns, ...stored };
         } catch (_) {
           return { ...defaultColumns };
@@ -600,7 +600,7 @@
 
       function saveState(state) {
         try {
-          window.localStorage.setItem(storageKey, JSON.stringify(state));
+          if (window.HelloRunPrivacy?.functional) window.localStorage.setItem(storageKey, JSON.stringify(state));
         } catch (_) {
           // Controls still work for this page load when storage is unavailable.
         }

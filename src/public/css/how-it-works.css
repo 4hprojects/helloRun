@@ -441,7 +441,6 @@ html { scroll-behavior: smooth; }
 .how-status-grid article {
   padding: 14px;
   border: 1px solid var(--how-line);
-  border-top-width: 3px;
   border-radius: 12px;
   background: #fff;
 }
@@ -459,11 +458,6 @@ html { scroll-behavior: smooth; }
 .how-status-grid span svg { width: 17px; height: 17px; }
 
 .how-status-grid p { margin: 0; color: var(--how-muted); font-size: .77rem; line-height: 1.48; }
-
-.how-status-pending { border-top-color: #d5971b !important; }
-.how-status-approved { border-top-color: #258153 !important; }
-.how-status-rejected { border-top-color: #c64545 !important; }
-.how-status-resubmit { border-top-color: #3876b9 !important; }
 
 .how-guidance {
   display: grid;

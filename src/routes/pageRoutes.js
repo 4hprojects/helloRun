@@ -13,6 +13,13 @@ const uploadService = require('../services/upload.service');
 const { listPolicyDocuments } = require('../services/policy-registry.service');
 const { markdownToHtml } = require('../utils/markdown');
 const { sanitizeHtml } = require('../utils/sanitize');
+const { buildPublicPolicyPresentation } = require('../services/public-policy-presentation.service');
+const {
+  COOKIE_NAME,
+  cookieOptions,
+  normalizePreferences,
+  serializePreferences
+} = require('../services/cookie-preference.service');
 
 const paymentProofUploadLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
@@ -38,6 +45,20 @@ const quickProfileUpdateLimiter = createRateLimiter({
 });
 
 router.get('/', pageController.getHome);
+router.post('/cookie-preferences', requireCsrfProtection, (req, res) => {
+  const preferences = normalizePreferences(req.body || {});
+  const serialized = serializePreferences(preferences, process.env.SESSION_SECRET);
+  res.cookie(COOKIE_NAME, serialized, cookieOptions(process.env.NODE_ENV === 'production'));
+
+  const acceptsJson = req.get('accept')?.includes('application/json') || req.xhr;
+  if (acceptsJson) return res.json({ ok: true, preferences, reload: true });
+
+  const requestedReturn = String(req.body?.returnTo || '').trim();
+  const returnTo = requestedReturn.startsWith('/') && !requestedReturn.startsWith('//') && !/[\r\n]/.test(requestedReturn)
+    ? requestedReturn
+    : '/cookie-policy#cookie-choices';
+  return res.redirect(returnTo);
+});
 router.get('/unsubscribe', requireAuth, async (req, res) => {
   try {
     const key = String(req.query.key || '').trim();
@@ -159,24 +180,9 @@ router.get('/about', pageController.getAbout);
 
 router.get('/how-it-works', pageController.getHowItWorks);
 
-router.get('/contact', (req, res) => {
-  res.render('pages/contact', {
-    title: 'Contact HelloRun Support - HelloRun',
-    seo: {
-      description: 'Contact HelloRun for runner support, organizer inquiries, payment or registration concerns, data requests, and event partnership questions.'
-    },
-    source: req.query.source || ''
-  });
-});
+router.get('/contact', pageController.getContact);
 
-router.get('/faq', (req, res) => {
-  res.render('pages/faq', {
-    title: 'Runner and Organizer FAQ - HelloRun',
-    seo: {
-      description: 'Answers to common HelloRun questions about virtual runs, proof submission, leaderboards, certificates, organizer tools, accounts, and privacy.'
-    }
-  });
-});
+router.get('/faq', pageController.getFaq);
 
 const PUBLIC_POLICY_ALLOWED_TAGS = ['h1', 'h2', 'h3', 'h4', 'p', 'br', 'strong', 'em', 'ul', 'ol', 'li', 'blockquote', 'a', 'code', 'pre', 'hr'];
 const PUBLIC_POLICY_ALLOWED_ATTRIBUTES = {
@@ -202,7 +208,7 @@ function createPolicyPageRenderer(policyDocument) {
         status: 'published',
         isCurrent: true
       })
-        .select('contentHtml contentMarkdown versionNumber effectiveDate updatedAt')
+        .select('contentHtml contentMarkdown versionNumber effectiveDate updatedAt summaryOfChanges')
         .lean();
 
       if (currentPolicy) {
@@ -210,7 +216,8 @@ function createPolicyPageRenderer(policyDocument) {
         policyMeta = {
           versionNumber: currentPolicy.versionNumber || '',
           effectiveDate: currentPolicy.effectiveDate || null,
-          updatedAt: currentPolicy.updatedAt || null
+          updatedAt: currentPolicy.updatedAt || null,
+          summaryOfChanges: currentPolicy.summaryOfChanges || ''
         };
       }
     } catch (error) {
@@ -223,9 +230,9 @@ function createPolicyPageRenderer(policyDocument) {
         policyHtml = buildPublicPolicyHtml(fallbackMarkdown);
         policyLoadedFromFile = true;
         policyMeta = {
-          versionNumber: '',
-          effectiveDate: null,
-          updatedAt: null
+          versionNumber: policyDocument.fallbackVersion || '',
+          effectiveDate: policyDocument.fallbackEffectiveDate || null,
+          updatedAt: policyDocument.fallbackEffectiveDate || null
         };
       } catch (error) {
         if (error.code !== 'ENOENT') {
@@ -234,12 +241,34 @@ function createPolicyPageRenderer(policyDocument) {
       }
     }
 
+    const policyPresentation = buildPublicPolicyPresentation({ policyDocument, policyHtml, policyMeta });
+    policyHtml = policyPresentation.contentHtml;
+    const appBaseUrl = String(process.env.APP_BASE_URL || process.env.BASE_URL || 'https://hellorun.online').replace(/\/$/, '');
     return res.render('pages/policy', {
       title: `${policyDocument.title} - HelloRun`,
+      seo: {
+        description: policyDocument.key === 'terms'
+          ? 'Read the HelloRun Terms and Conditions covering accounts, event participation, activity review, payments, community conduct, safety, and platform responsibilities.'
+          : policyDocument.key === 'dataUsage'
+            ? 'Understand how HelloRun uses account, registration, payment, activity, community, security, result, and recognition data across runner and organizer workflows.'
+            : policyDocument.key === 'acceptableUse'
+              ? 'Learn the HelloRun rules for fair accounts, events, payments, activity proof, community participation, participant data, automation, and platform security.'
+            : policyDocument.key === 'organiserTerms'
+              ? 'Review HelloRun organizer responsibilities for event publication, participant operations, payment and result review, safety, commerce, data handling, recognition, and closure.'
+            : policyDocument.key === 'communityGuidelines'
+              ? 'Learn how to participate respectfully in HelloRun blogs, comments, running groups, event discussions, profiles, messages, and community reporting.'
+            : policyDocument.key === 'refund'
+              ? 'Understand HelloRun registration and shop cancellations, refund requests, duplicate payments, event changes, organizer responsibilities, and available remedies.'
+            : policyDocument.key === 'cookie'
+              ? 'Learn which cookies and browser storage HelloRun uses, what is essential, how optional Analytics and Advertising work, and how to manage your choices.'
+            : `Read the current HelloRun ${policyDocument.title}.`,
+        canonicalUrl: `${appBaseUrl}${policyDocument.publicPath}`
+      },
       policyDocument,
       policyHtml,
       policyLoadedFromFile,
-      policyMeta
+      policyMeta,
+      policyPresentation
     });
   };
 }

@@ -32,8 +32,8 @@ test('public static pages render successfully', async () => {
   const cases = [
     { path: '/about', heading: /A clearer way to join, prove, and celebrate every run/i },
     { path: '/how-it-works', heading: /How HelloRun events work/i },
-    { path: '/contact', heading: /Contact/i },
-    { path: '/faq', heading: /FAQ/i },
+    { path: '/contact', heading: /How can we help\?/i },
+    { path: '/faq', heading: /How can we help\?/i },
     { path: '/privacy', heading: /Privacy Policy/i },
     { path: '/terms', heading: /Terms (of Service|and Conditions)/i },
     { path: '/cookie-policy', heading: /Cookie Policy/i },
@@ -70,10 +70,13 @@ test('public policy pages include complete AdSense and data usage disclosures', 
   const cookie = await fetch(`${BASE_URL}/cookie-policy`);
   assert.equal(cookie.status, 200);
   const cookieHtml = await cookie.text();
-  assert.match(cookieHtml, /Advertising Cookies and Google AdSense/i);
+  assert.match(cookieHtml, /Advertising(?: Cookies)? and Google AdSense/i);
   assert.match(cookieHtml, /web beacons/i);
-  assert.match(cookieHtml, /IP addresses/i);
-  assert.match(cookieHtml, /Google advertising preferences/i);
+  assert.match(cookieHtml, /IP address/i);
+  assert.match(cookieHtml, /Google Ads Settings/i);
+  assert.match(cookieHtml, /hr\.sid/i);
+  assert.match(cookieHtml, /Manage preferences/i);
+  assert.doesNotMatch(cookieHtml, /pagead2\.googlesyndication\.com\/pagead\/js\/adsbygoogle/i);
 });
 
 test('about page includes required trust, privacy, and event-management guidance', async () => {
@@ -100,8 +103,9 @@ test('contact page renders organizer dashboard guidance when sourced from organi
   assert.match(html, /Organizer Support/i);
   assert.match(html, /include your application ID, event name, or event reference code/i);
   assert.match(html, /mailto:hellorunonline@gmail\.com/i);
+  assert.match(html, /mailto:4hprojects@proton\.me/i);
   assert.match(html, /Benguet, Philippines/i);
-  assert.match(html, /Data and Privacy Requests/i);
+  assert.match(html, /Privacy and data/i);
 });
 
 test('how it works and faq are substantial public resources', async () => {
@@ -118,10 +122,12 @@ test('how it works and faq are substantial public resources', async () => {
   const faq = await fetch(`${BASE_URL}/faq`);
   assert.equal(faq.status, 200);
   const faqHtml = await faq.text();
-  assert.match(faqHtml, /Runner Questions/i);
-  assert.match(faqHtml, /Proof Submission Questions/i);
-  assert.match(faqHtml, /Leaderboard and Certificate Questions/i);
-  assert.match(faqHtml, /Organizer Questions/i);
+  assert.match(faqHtml, /Getting started and event formats/i);
+  assert.match(faqHtml, /Activities, proof, and submission rules/i);
+  assert.match(faqHtml, /Accumulated challenges and over-goal progress/i);
+  assert.match(faqHtml, /Leaderboards, badges, and certificates/i);
+  assert.match(faqHtml, /Organizers, community, and support/i);
+  assert.match(faqHtml, /application\/ld\+json/i);
 });
 
 test('public static pages do not render run proof modal content', async () => {

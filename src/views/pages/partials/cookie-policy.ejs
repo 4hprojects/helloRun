@@ -1,0 +1,50 @@
+<main class="cookie-policy-page" id="main-content">
+  <div class="cookie-policy-wrap">
+    <header class="cookie-policy-hero">
+      <div>
+        <span class="cookie-policy-kicker"><i data-lucide="cookie" aria-hidden="true"></i>Browser storage and privacy choices</span>
+        <h1><%= policyDocument.title %></h1>
+        <p>See what HelloRun stores on this browser, why each technology is used, and which optional categories you control.</p>
+        <div class="cookie-policy-meta" aria-label="Policy information">
+          <% if (policyPresentation.versionLabel) { %><span><i data-lucide="file-text" aria-hidden="true"></i><%= policyPresentation.versionLabel %></span><% } %>
+          <% if (policyPresentation.effectiveLabel) { %><span><i data-lucide="calendar-check" aria-hidden="true"></i>Effective <%= policyPresentation.effectiveLabel %></span><% } %>
+          <% if (policyPresentation.updatedLabel) { %><span><i data-lucide="history" aria-hidden="true"></i>Updated <%= policyPresentation.updatedLabel %></span><% } %>
+          <span><i data-lucide="clock-3" aria-hidden="true"></i>About <%= policyPresentation.readingMinutes %> min read</span>
+        </div>
+      </div>
+      <div class="cookie-policy-actions"><a class="cookie-policy-primary" href="#cookie-choices" data-open-cookie-preferences><i data-lucide="sliders-horizontal" aria-hidden="true"></i>Manage preferences</a><button type="button" data-print-policy><i data-lucide="printer" aria-hidden="true"></i>Print policy</button></div>
+    </header>
+
+    <section class="cookie-category-section" aria-labelledby="cookie-categories-title">
+      <div class="cookie-policy-heading"><p class="cookie-policy-eyebrow">Four clear categories</p><h2 id="cookie-categories-title">Choose what this browser may use</h2><p>Optional categories are off until you allow them. Essential storage supports security and remembers the choice itself.</p></div>
+      <div class="cookie-category-grid"><% policyPresentation.cookieCategories.forEach((item) => { %><article><span><i data-lucide="<%= item.icon %>" aria-hidden="true"></i></span><div><div class="cookie-category-title"><h3><%= item.title %></h3><small><%= item.state %></small></div><p><%= item.text %></p></div></article><% }) %></div>
+    </section>
+
+    <section class="cookie-storage-section" aria-labelledby="cookie-storage-title">
+      <div class="cookie-policy-heading"><p class="cookie-policy-eyebrow">Current implementation inventory</p><h2 id="cookie-storage-title">What HelloRun and configured providers store</h2><p>Provider-controlled names and durations may change. Their own notices and browser controls remain authoritative for provider storage.</p></div>
+      <div class="cookie-storage-table"><table><caption>Cookie and browser-storage inventory</caption><thead><tr><th scope="col">Provider and storage</th><th scope="col">Purpose</th><th scope="col">Technology</th><th scope="col">Typical duration</th><th scope="col">Category</th><th scope="col">How to remove or stop it</th></tr></thead><tbody><% policyPresentation.cookieStorageMatrix.forEach((item) => { %><tr><th scope="row"><strong><%= item.provider %></strong><span><%= item.name %></span></th><td data-label="Purpose"><%= item.purpose %></td><td data-label="Technology"><%= item.technology %></td><td data-label="Typical duration"><%= item.duration %></td><td data-label="Category"><span class="cookie-category-badge"><%= item.category %></span></td><td data-label="How to remove"><%= item.removal %></td></tr><% }) %></tbody></table></div>
+    </section>
+
+    <section class="cookie-decline-section" aria-labelledby="cookie-decline-title"><div class="cookie-policy-heading"><p class="cookie-policy-eyebrow">Declining does not block core access</p><h2 id="cookie-decline-title">What happens when optional storage is off</h2></div><div><% policyPresentation.cookieChoiceGuidance.forEach((item) => { %><article><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><div><h3><%= item.title %></h3><p><%= item.text %></p></div></article><% }) %></div></section>
+
+    <section class="cookie-choice-panel" id="cookie-choices" aria-labelledby="cookie-choice-title">
+      <div><p class="cookie-policy-eyebrow">Browser-specific controls</p><h2 id="cookie-choice-title">Your current choices</h2><p>These controls apply for up to 12 months on this browser. Signup policy agreement and browser-storage preferences are separate records.</p></div>
+      <form method="POST" action="/cookie-preferences" data-cookie-preference-form data-cookie-custom-form>
+        <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><input type="hidden" name="returnTo" value="/cookie-policy#cookie-choices">
+        <div class="cookie-choice-form-grid">
+          <div class="cookie-choice-static"><span><strong>Essential</strong><small>Security and preference record</small></span><b>Always on</b></div>
+          <% [['functional','Functional'],['analytics','Analytics'],['advertising','Advertising']].forEach(([key,label]) => { %><label><span><strong><%= label %></strong><small><%= locals.cookiePreferences?.[key] ? 'Currently enabled' : 'Currently disabled' %></small></span><input type="checkbox" name="<%= key %>" value="1" <%= locals.cookiePreferences?.[key] ? 'checked' : '' %>></label><% }) %>
+        </div>
+        <div class="cookie-choice-form-actions"><button class="btn btn-secondary" type="submit" name="action" value="reject_optional">Reject optional</button><button class="btn btn-primary" type="submit">Save preferences</button></div>
+      </form>
+      <noscript><p class="cookie-noscript-note">JavaScript is off. The form still saves your choices and returns to this section.</p></noscript>
+    </section>
+
+    <details class="cookie-mobile-contents"><summary><span><i data-lucide="list" aria-hidden="true"></i>Complete policy contents</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary><nav aria-label="Cookie Policy contents"><% policyPresentation.contents.forEach((item) => { %><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a><% }) %></nav></details>
+    <div class="cookie-policy-layout">
+      <aside class="cookie-policy-rail"><nav aria-label="Cookie Policy contents"><p class="cookie-policy-eyebrow">Complete policy</p><ul><% policyPresentation.contents.forEach((item) => { %><li><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a></li><% }) %></ul></nav></aside>
+      <section class="cookie-policy-document" aria-label="Complete Cookie Policy"><% if (policyPresentation.summaryOfChanges) { %><aside class="cookie-policy-changes" id="policy-changes"><i data-lucide="sparkles" aria-hidden="true"></i><div><h2>What changed in this version</h2><p><%= policyPresentation.summaryOfChanges %></p></div></aside><% } else { %><span id="policy-changes" class="cookie-policy-anchor" aria-hidden="true"></span><% } %><% if (policyHtml) { %><article class="legal-markdown"><%- policyHtml %></article><% } else { %><article><h2>Policy temporarily unavailable</h2><p>Optional categories remain off. Contact HelloRun for privacy assistance.</p></article><% } %></section>
+    </div>
+    <section class="cookie-policy-related" aria-labelledby="cookie-related-title"><div><p class="cookie-policy-eyebrow">Related privacy detail</p><h2 id="cookie-related-title">Continue with authoritative controls</h2></div><nav aria-label="Related policies and provider controls"><% policyPresentation.relatedPolicies.forEach((item) => { %><a href="<%= item.href %>" <% if (item.href.startsWith('http')) { %>target="_blank" rel="noopener noreferrer"<% } %>><%= item.label %><i data-lucide="arrow-up-right" aria-hidden="true"></i></a><% }) %></nav></section>
+  </div>
+</main>

@@ -5,6 +5,14 @@ const logger = require('../utils/logger');
 const NOTIFICATION_VIEWS = new Set(['all', 'unread', 'archived']);
 
 const TYPE_PRESENTATION = [
+  { match: /privacy_policy_updated/, category: 'Account and policy', icon: 'shield-user', tone: 'account', actionLabel: 'Review privacy policy' },
+  { match: /cookie_policy_updated/, category: 'Account and policy', icon: 'cookie', tone: 'account', actionLabel: 'Review cookie policy' },
+  { match: /refund_policy_updated/, category: 'Account and policy', icon: 'receipt-text', tone: 'account', actionLabel: 'Review refund policy' },
+  { match: /community_guidelines_updated/, category: 'Account and policy', icon: 'users-round', tone: 'account', actionLabel: 'Review community guidelines' },
+  { match: /organiser_terms_updated/, category: 'Account and policy', icon: 'clipboard-check', tone: 'account', actionLabel: 'Review organiser terms' },
+  { match: /acceptable_use_policy_updated/, category: 'Account and policy', icon: 'shield-check', tone: 'account', actionLabel: 'Review acceptable use' },
+  { match: /data_usage_policy_updated/, category: 'Account and policy', icon: 'database-zap', tone: 'account', actionLabel: 'Review data use' },
+  { match: /terms_policy_updated/, category: 'Account and policy', icon: 'file-check-2', tone: 'account', actionLabel: 'Review terms' },
   { match: /blog_comment_reply/, category: 'Community', icon: 'message-circle-reply', tone: 'community', actionLabel: 'View reply' },
   { match: /payment_rejected/, category: 'Payment', icon: 'credit-card', tone: 'attention', actionLabel: 'Fix payment' },
   { match: /result_rejected/, category: 'Activity review', icon: 'circle-alert', tone: 'attention', actionLabel: 'Fix entry' },
@@ -27,6 +35,7 @@ async function createNotification(payload = {}) {
   const title = String(payload.title || '').trim().slice(0, 160);
   const message = String(payload.message || '').trim().slice(0, 600);
   const href = String(payload.href || '').trim().slice(0, 300);
+  const dedupeKey = String(payload.dedupeKey || '').trim().slice(0, 180);
 
   if (!type) throw new Error('Notification type is required.');
   if (!title) throw new Error('Notification title is required.');
@@ -38,6 +47,7 @@ async function createNotification(payload = {}) {
     title,
     message,
     href,
+    dedupeKey,
     metadata: payload.metadata && typeof payload.metadata === 'object' ? payload.metadata : {}
   });
 }

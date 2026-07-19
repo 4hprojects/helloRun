@@ -1,0 +1,72 @@
+<main class="data-usage-page" id="main-content">
+  <div class="data-usage-wrap">
+    <header class="data-usage-hero">
+      <div class="data-usage-hero-copy">
+        <span class="data-usage-kicker"><i data-lucide="database-zap" aria-hidden="true"></i>Data transparency</span>
+        <h1><%= policyDocument.title %></h1>
+        <p>See what information enters HelloRun, why it is used, who may review it, what can become public, and where to exercise your choices.</p>
+        <div class="data-usage-meta" aria-label="Policy information">
+          <% if (policyPresentation.versionLabel) { %><span><i data-lucide="file-text" aria-hidden="true"></i><%= policyPresentation.versionLabel %></span><% } %>
+          <% if (policyPresentation.effectiveLabel) { %><span><i data-lucide="calendar-check" aria-hidden="true"></i>Effective <%= policyPresentation.effectiveLabel %></span><% } %>
+          <% if (policyPresentation.updatedLabel) { %><span><i data-lucide="history" aria-hidden="true"></i>Updated <%= policyPresentation.updatedLabel %></span><% } %>
+          <span><i data-lucide="clock-3" aria-hidden="true"></i>About <%= policyPresentation.readingMinutes %> min read</span>
+        </div>
+      </div>
+      <button class="data-usage-print" type="button" data-print-policy><i data-lucide="printer" aria-hidden="true"></i>Print policy</button>
+    </header>
+
+    <section class="data-journey" aria-labelledby="data-journey-title">
+      <div class="data-section-heading"><p class="data-eyebrow">From input to outcome</p><h2 id="data-journey-title">How your data moves through HelloRun</h2><p>Each step serves a specific platform or event task. Assisted checks support accountable review rather than replacing it.</p></div>
+      <ol>
+        <% policyPresentation.dataJourney.forEach((stage) => { %>
+          <li><div class="data-journey-icon"><i data-lucide="<%= stage.icon %>" aria-hidden="true"></i><span><%= stage.number %></span></div><div><h3><%= stage.title %></h3><p><%= stage.text %></p></div></li>
+        <% }) %>
+      </ol>
+    </section>
+
+    <section class="data-matrix" aria-labelledby="data-matrix-title">
+      <div class="data-section-heading"><p class="data-eyebrow">Purpose and access</p><h2 id="data-matrix-title">What is used where</h2><p>The same record is not visible everywhere. Public result fields are separated from private evidence and internal review information.</p></div>
+      <div class="data-table-wrap">
+        <table>
+          <caption>Data categories, purposes, authorized access, public visibility, and retention guidance</caption>
+          <thead><tr><th scope="col">Data category</th><th scope="col">Why it is used</th><th scope="col">Who can access it</th><th scope="col">Public visibility</th><th scope="col">Retention guidance</th></tr></thead>
+          <tbody>
+            <% policyPresentation.dataCategories.forEach((category) => { %>
+              <tr>
+                <th scope="row"><span class="data-category-name"><i data-lucide="<%= category.icon %>" aria-hidden="true"></i><%= category.label %></span><small><%= category.data %></small></th>
+                <td data-label="Why it is used"><%= category.purpose %></td>
+                <td data-label="Who can access it"><%= category.access %></td>
+                <td data-label="Public visibility"><%= category.visibility %></td>
+                <td data-label="Retention guidance"><%= category.retention %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="data-boundaries" aria-label="Privacy and control summary">
+      <% policyPresentation.dataSummaries.forEach((item) => { %>
+        <article><span><i data-lucide="<%= item.icon %>" aria-hidden="true"></i></span><div><h2><%= item.title %></h2><p><%= item.text %></p></div></article>
+      <% }) %>
+    </section>
+
+    <details class="data-mobile-contents">
+      <summary><span><i data-lucide="list" aria-hidden="true"></i>Complete policy contents</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+      <nav aria-label="Data Usage Policy contents"><% policyPresentation.contents.forEach((item) => { %><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a><% }) %></nav>
+    </details>
+
+    <div class="data-policy-layout">
+      <aside class="data-policy-rail">
+        <nav aria-label="Data Usage Policy contents"><p class="data-eyebrow">Complete policy</p><ul><% policyPresentation.contents.forEach((item) => { %><li><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a></li><% }) %></ul></nav>
+      </aside>
+      <section class="data-policy-document" aria-label="Complete Data Usage Policy">
+        <% if (policyPresentation.summaryOfChanges) { %><aside class="data-policy-changes" id="policy-changes"><i data-lucide="sparkles" aria-hidden="true"></i><div><h2>What changed in this version</h2><p><%= policyPresentation.summaryOfChanges %></p></div></aside><% } else { %><span id="policy-changes" class="data-policy-anchor" aria-hidden="true"></span><% } %>
+        <% if (policyHtml) { %><article class="legal-markdown"><%- policyHtml %></article><% } else { %><article class="data-policy-fallback"><h2>Policy temporarily unavailable</h2><p>Please contact HelloRun before sharing proof or event information if you need clarification.</p></article><% } %>
+        <aside class="data-request-note"><i data-lucide="mail-question" aria-hidden="true"></i><div><h2>Questions or data requests</h2><p>Use <a href="/contact">Contact</a> or email <a href="mailto:4hprojects@proton.me">4hprojects@proton.me</a>. Describe the request first; do not email proof, identity documents, or sensitive records unless requested.</p></div></aside>
+      </section>
+    </div>
+
+    <section class="data-related" aria-labelledby="data-related-title"><div><p class="data-eyebrow">Authoritative detail</p><h2 id="data-related-title">Related privacy and support guidance</h2></div><nav aria-label="Related policies and help"><% policyPresentation.relatedPolicies.forEach((item) => { %><a href="<%= item.href %>"><%= item.label %><i data-lucide="arrow-up-right" aria-hidden="true"></i></a><% }) %></nav></section>
+  </div>
+</main>

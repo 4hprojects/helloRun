@@ -1,95 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <%- include('../layouts/head', { title }) %>
+  <%- include('../layouts/head', { title, seo: typeof seo !== 'undefined' ? seo : null }) %>
   <link rel="stylesheet" href="/css/static-pages.css">
-  <link rel="stylesheet" href="/css/privacy-policy.css">
+  <% if (policyPresentation.isPrivacy) { %><link rel="stylesheet" href="/css/privacy-policy.css"><% } %>
+  <% if (policyPresentation.isTerms) { %><link rel="stylesheet" href="/css/terms-page.css"><% } %>
+  <% if (policyPresentation.isDataUsage) { %><link rel="stylesheet" href="/css/data-usage-policy.css"><% } %>
+  <% if (policyPresentation.isAcceptableUse) { %><link rel="stylesheet" href="/css/acceptable-use-policy.css"><% } %>
+  <% if (policyPresentation.isOrganiserTerms) { %><link rel="stylesheet" href="/css/organiser-terms.css"><% } %>
+  <% if (policyPresentation.isCommunityGuidelines) { %><link rel="stylesheet" href="/css/community-guidelines.css"><% } %>
+  <% if (policyPresentation.isRefundPolicy) { %><link rel="stylesheet" href="/css/refund-policy.css"><% } %>
+  <% if (policyPresentation.isCookiePolicy) { %><link rel="stylesheet" href="/css/cookie-policy.css"><% } %>
 </head>
-<body>
+<body class="<%= policyPresentation.isPrivacy ? 'privacy-policy-body' : (policyPresentation.isTerms ? 'terms-body' : (policyPresentation.isDataUsage ? 'data-usage-body' : (policyPresentation.isAcceptableUse ? 'aup-body' : (policyPresentation.isOrganiserTerms ? 'org-terms-body' : (policyPresentation.isCommunityGuidelines ? 'community-guidelines-body' : (policyPresentation.isRefundPolicy ? 'refund-policy-body' : (policyPresentation.isCookiePolicy ? 'cookie-policy-body' : ''))))))) %>">
   <%- include('../layouts/nav') %>
-  <main class="static-page privacy-page">
-    <div class="static-wrap privacy-wrap">
-      <header class="static-hero privacy-hero">
-        <span class="privacy-kicker">Legal</span>
-        <h1><%= policyDocument.title %></h1>
-        <% if (policyMeta && (policyMeta.versionNumber || policyMeta.effectiveDate || policyMeta.updatedAt)) { %>
-          <div class="privacy-meta-pills">
-            <% if (policyMeta.versionNumber) { %>
-              <span class="privacy-meta-pill">Version <%= policyMeta.versionNumber %></span>
-            <% } %>
-            <% if (policyMeta.effectiveDate) { %>
-              <span class="privacy-meta-pill">Effective <%= new Date(policyMeta.effectiveDate).toLocaleDateString('en-US') %></span>
-            <% } %>
-            <% if (policyMeta.updatedAt) { %>
-              <span class="privacy-meta-pill">Updated <%= new Date(policyMeta.updatedAt).toLocaleDateString('en-US') %></span>
-            <% } %>
-          </div>
-        <% } %>
-      </header>
 
-      <div class="privacy-layout">
-        <section class="static-card privacy-content-card">
-          <% if (policyHtml) { %>
-            <article class="legal-markdown"><%- policyHtml %></article>
-          <% } else { %>
-            <article class="privacy-fallback">
-              <h2><%= policyDocument.title %></h2>
-              <p>This policy is being prepared. Please contact HelloRun support for policy questions.</p>
-            </article>
-          <% } %>
+  <% if (policyPresentation.isPrivacy) { %>
+    <%- include('partials/privacy-policy', { policyDocument, policyHtml, policyPresentation }) %>
+  <% } else if (policyPresentation.isTerms) { %>
+    <main class="terms-page" id="main-content">
+      <div class="terms-wrap">
+        <header class="terms-hero">
+          <div class="terms-hero-copy">
+            <span class="terms-kicker"><i data-lucide="scale" aria-hidden="true"></i>Legal agreement</span>
+            <h1><%= policyDocument.title %></h1>
+            <p>Rules and responsibilities for using HelloRun, joining or managing events, submitting evidence, and participating in the community.</p>
+            <div class="terms-meta" aria-label="Policy information">
+              <% if (policyPresentation.versionLabel) { %><span><i data-lucide="file-text" aria-hidden="true"></i><%= policyPresentation.versionLabel %></span><% } %>
+              <% if (policyPresentation.effectiveLabel) { %><span><i data-lucide="calendar-check" aria-hidden="true"></i>Effective <%= policyPresentation.effectiveLabel %></span><% } %>
+              <% if (policyPresentation.updatedLabel) { %><span><i data-lucide="history" aria-hidden="true"></i>Updated <%= policyPresentation.updatedLabel %></span><% } %>
+              <span><i data-lucide="clock-3" aria-hidden="true"></i>About <%= policyPresentation.readingMinutes %> min read</span>
+            </div>
+          </div>
+          <button class="terms-print" type="button" data-print-policy><i data-lucide="printer" aria-hidden="true"></i>Print Terms</button>
+        </header>
+
+        <section class="terms-glance" aria-labelledby="terms-glance-title">
+          <div class="terms-glance-heading">
+            <span><i data-lucide="list-checks" aria-hidden="true"></i></span>
+            <div><p class="terms-eyebrow">Plain-language orientation</p><h2 id="terms-glance-title">Terms at a glance</h2><p>This summary helps you navigate. The complete Terms below control if the summary and agreement differ.</p></div>
+          </div>
+          <ul>
+            <% policyPresentation.summary.forEach((item) => { %><li><i data-lucide="check" aria-hidden="true"></i><%= item %></li><% }) %>
+          </ul>
         </section>
 
-        <aside class="privacy-side-stack">
-          <section class="static-card privacy-side-card">
-            <h2>Policy Support</h2>
-            <div class="privacy-side-body">
-              <p class="privacy-side-note">Questions about this policy:</p>
-              <a class="privacy-contact-link" href="mailto:4hprojects@proton.me">4hprojects@proton.me</a>
-            </div>
+        <details class="terms-mobile-contents">
+          <summary><span><i data-lucide="list" aria-hidden="true"></i>On this page</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+          <nav aria-label="Terms contents">
+            <% policyPresentation.contents.forEach((item) => { %><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a><% }) %>
+          </nav>
+        </details>
+
+        <div class="terms-layout">
+          <aside class="terms-rail">
+            <nav class="terms-contents" aria-label="Terms contents">
+              <p class="terms-eyebrow">On this page</p>
+              <ul><% policyPresentation.contents.forEach((item) => { %><li><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a></li><% }) %></ul>
+            </nav>
+          </aside>
+
+          <section class="terms-document" aria-label="Complete Terms and Conditions">
+            <% if (policyPresentation.summaryOfChanges) { %>
+              <aside class="terms-changes" id="terms-changes"><i data-lucide="sparkles" aria-hidden="true"></i><div><h2>What changed in this version</h2><p><%= policyPresentation.summaryOfChanges %></p></div></aside>
+            <% } else { %><span id="terms-changes" class="terms-anchor" aria-hidden="true"></span><% } %>
+            <span id="pending-organizer-terms" class="terms-compat-anchor" aria-hidden="true"></span>
+            <% if (policyHtml) { %><article class="legal-markdown"><%- policyHtml %></article><% } else { %><article class="terms-fallback"><h2>Terms are temporarily unavailable</h2><p>Please contact HelloRun support before creating an account or using an event workflow.</p></article><% } %>
+            <aside class="terms-organizer-note"><i data-lucide="clipboard-check" aria-hidden="true"></i><p>Creating or managing events? Review the separate <a href="/organiser-terms">Organiser Terms</a> for organizer verification, event publication, payment, participant-data, and operational responsibilities.</p></aside>
           </section>
-          <section class="static-card privacy-toc-card" id="policyTocCard" hidden>
-            <h2>On this page</h2>
-            <ul class="privacy-toc-list" id="policyTocList"></ul>
-          </section>
-        </aside>
+        </div>
+
+        <section class="terms-related" aria-labelledby="terms-related-title">
+          <div><p class="terms-eyebrow">Related policies and help</p><h2 id="terms-related-title">Continue with the authoritative detail</h2></div>
+          <nav aria-label="Related policies"><% policyPresentation.relatedPolicies.forEach((item) => { %><a href="<%= item.href %>"><%= item.label %><i data-lucide="arrow-up-right" aria-hidden="true"></i></a><% }) %></nav>
+        </section>
       </div>
-    </div>
-  </main>
+    </main>
+  <% } else if (policyPresentation.isDataUsage) { %>
+    <%- include('partials/data-usage-policy', { policyDocument, policyHtml, policyPresentation }) %>
+  <% } else if (policyPresentation.isAcceptableUse) { %>
+    <%- include('partials/acceptable-use-policy', { policyDocument, policyHtml, policyPresentation }) %>
+  <% } else if (policyPresentation.isOrganiserTerms) { %>
+    <%- include('partials/organiser-terms', { policyDocument, policyHtml, policyPresentation }) %>
+  <% } else if (policyPresentation.isCommunityGuidelines) { %>
+    <%- include('partials/community-guidelines', { policyDocument, policyHtml, policyPresentation }) %>
+  <% } else if (policyPresentation.isRefundPolicy) { %>
+    <%- include('partials/refund-policy', { policyDocument, policyHtml, policyPresentation }) %>
+  <% } else if (policyPresentation.isCookiePolicy) { %>
+    <%- include('partials/cookie-policy', { policyDocument, policyHtml, policyPresentation }) %>
+  <% } else { %>
+    <main class="static-page privacy-page">
+      <div class="static-wrap privacy-wrap">
+        <header class="static-hero privacy-hero"><span class="privacy-kicker">Legal</span><h1><%= policyDocument.title %></h1><% if (policyPresentation.versionLabel || policyPresentation.effectiveLabel || policyPresentation.updatedLabel) { %><div class="privacy-meta-pills"><% if (policyPresentation.versionLabel) { %><span class="privacy-meta-pill"><%= policyPresentation.versionLabel %></span><% } %><% if (policyPresentation.effectiveLabel) { %><span class="privacy-meta-pill">Effective <%= policyPresentation.effectiveLabel %></span><% } %><% if (policyPresentation.updatedLabel) { %><span class="privacy-meta-pill">Updated <%= policyPresentation.updatedLabel %></span><% } %></div><% } %></header>
+        <div class="privacy-layout"><section class="static-card privacy-content-card"><% if (policyHtml) { %><article class="legal-markdown"><%- policyHtml %></article><% } else { %><article class="privacy-fallback"><h2><%= policyDocument.title %></h2><p>This policy is being prepared. Please contact HelloRun support for policy questions.</p></article><% } %></section><aside class="privacy-side-stack"><section class="static-card privacy-side-card"><h2>Policy Support</h2><div class="privacy-side-body"><p class="privacy-side-note">Questions about this policy:</p><a class="privacy-contact-link" href="mailto:4hprojects@proton.me">4hprojects@proton.me</a></div></section><section class="static-card privacy-toc-card"><h2>On this page</h2><ul class="privacy-toc-list"><% policyPresentation.contents.forEach((item) => { %><li><a class="privacy-toc-link level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a></li><% }) %></ul></section></aside></div>
+      </div>
+    </main>
+  <% } %>
+
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const tocCard = document.getElementById('policyTocCard');
-      const tocList = document.getElementById('policyTocList');
-      const contentRoot = document.querySelector('.privacy-content-card .legal-markdown, .privacy-content-card .privacy-fallback');
-      if (!tocCard || !tocList || !contentRoot) return;
-
-      const headings = Array.from(contentRoot.querySelectorAll('h2, h3')).filter(function (heading) {
-        return heading.textContent.trim().length > 0;
-      });
-      if (!headings.length) return;
-
-      headings.forEach(function (heading, index) {
-        const text = heading.textContent.trim();
-        const slug = text
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-+|-+$/g, '') || `section-${index + 1}`;
-        const id = heading.id || `${slug}-${index + 1}`;
-        heading.id = id;
-        heading.classList.add('privacy-anchor-target');
-
-        const item = document.createElement('li');
-        const link = document.createElement('a');
-        link.href = `#${id}`;
-        link.className = `privacy-toc-link level-${heading.tagName.toLowerCase() === 'h3' ? '3' : '2'}`;
-        link.textContent = text;
-        item.appendChild(link);
-        tocList.appendChild(item);
-      });
-
-      tocCard.hidden = false;
-    });
-  </script>
+  <% if (policyPresentation.isPrivacy || policyPresentation.isTerms || policyPresentation.isDataUsage || policyPresentation.isAcceptableUse || policyPresentation.isOrganiserTerms || policyPresentation.isCommunityGuidelines || policyPresentation.isRefundPolicy || policyPresentation.isCookiePolicy) { %><script src="/js/terms-page.js"></script><% } %>
 </body>
 </html>

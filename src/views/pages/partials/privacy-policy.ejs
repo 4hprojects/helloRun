@@ -1,0 +1,50 @@
+<main class="privacy-center" id="main-content">
+  <div class="privacy-center-wrap">
+    <header class="privacy-center-hero">
+      <div>
+        <span class="privacy-center-kicker"><i data-lucide="shield-user" aria-hidden="true"></i>Your information and choices</span>
+        <h1><%= policyDocument.title %></h1>
+        <p>Understand what HelloRun receives, what remains private, what may become public, and how to exercise your privacy rights.</p>
+        <div class="privacy-center-meta" aria-label="Policy information">
+          <% if (policyPresentation.versionLabel) { %><span><i data-lucide="file-text" aria-hidden="true"></i><%= policyPresentation.versionLabel %></span><% } %>
+          <% if (policyPresentation.effectiveLabel) { %><span><i data-lucide="calendar-check" aria-hidden="true"></i>Effective <%= policyPresentation.effectiveLabel %></span><% } %>
+          <% if (policyPresentation.updatedLabel) { %><span><i data-lucide="history" aria-hidden="true"></i>Updated <%= policyPresentation.updatedLabel %></span><% } %>
+          <span><i data-lucide="clock-3" aria-hidden="true"></i>About <%= policyPresentation.readingMinutes %> min read</span>
+        </div>
+      </div>
+      <div class="privacy-center-actions">
+        <a class="privacy-center-primary" href="/contact?topic=privacy_data"><i data-lucide="mail-question" aria-hidden="true"></i>Make a privacy request</a>
+        <button type="button" data-print-policy><i data-lucide="printer" aria-hidden="true"></i>Print policy</button>
+      </div>
+    </header>
+
+    <section class="privacy-boundaries" aria-labelledby="privacy-boundaries-title">
+      <div class="privacy-section-heading"><p class="privacy-eyebrow">Privacy at a glance</p><h2 id="privacy-boundaries-title">Know the boundary before you share</h2><p>Public recognition and community participation use selected fields. Private evidence and operational records are handled separately.</p></div>
+      <div class="privacy-boundary-grid"><% policyPresentation.privacyBoundaries.forEach((item) => { %><article><span><i data-lucide="<%= item.icon %>" aria-hidden="true"></i></span><div><h3><%= item.title %></h3><p><%= item.text %></p></div></article><% }) %></div>
+    </section>
+
+    <section class="privacy-rights" aria-labelledby="privacy-rights-title">
+      <div class="privacy-section-heading"><p class="privacy-eyebrow">Rights and controls</p><h2 id="privacy-rights-title">Choose the right next step</h2><p>Some information can be changed directly. Formal requests may require proportionate identity verification and can be limited by lawful recordkeeping needs.</p></div>
+      <div class="privacy-rights-grid"><% policyPresentation.privacyRights.forEach((item) => { %><article><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><div><h3><%= item.title %></h3><p><%= item.text %></p><a href="<%= item.href %>"><%= item.action %><i data-lucide="arrow-up-right" aria-hidden="true"></i></a></div></article><% }) %></div>
+      <aside class="privacy-request-safety"><i data-lucide="file-lock-2" aria-hidden="true"></i><p>Describe your request first. Do not email identity documents, payment proof, activity proof, passwords, or other sensitive records unless an authorized reviewer asks for them through an appropriate channel.</p></aside>
+    </section>
+
+    <section class="privacy-processing" aria-labelledby="privacy-processing-title">
+      <div class="privacy-section-heading"><p class="privacy-eyebrow">Purpose, access, and retention</p><h2 id="privacy-processing-title">How each information category is handled</h2><p>Retention is purpose-based and may include restriction, anonymization, deletion, or continued public event history. The complete policy below controls.</p></div>
+      <div class="privacy-processing-table"><table><caption>Personal-data categories, sources, purposes, access, visibility, retention, and controls</caption><thead><tr><th scope="col">Category and source</th><th scope="col">Purpose</th><th scope="col">Authorized access</th><th scope="col">Public visibility</th><th scope="col">Retention guidance</th><th scope="col">Your control</th></tr></thead><tbody><% policyPresentation.privacyProcessing.forEach((item) => { %><tr><th scope="row"><span><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><%= item.category %></span><small><%= item.source %></small></th><td data-label="Purpose"><%= item.purpose %></td><td data-label="Authorized access"><%= item.access %></td><td data-label="Public visibility"><%= item.visibility %></td><td data-label="Retention guidance"><%= item.retention %></td><td data-label="Your control"><%= item.control %></td></tr><% }) %></tbody></table></div>
+    </section>
+
+    <details class="privacy-mobile-contents"><summary><span><i data-lucide="list" aria-hidden="true"></i>Complete policy contents</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary><nav aria-label="Privacy Policy contents"><% policyPresentation.contents.forEach((item) => { %><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a><% }) %></nav></details>
+
+    <div class="privacy-policy-layout">
+      <aside class="privacy-policy-rail"><nav aria-label="Privacy Policy contents"><p class="privacy-eyebrow">Complete policy</p><ul><% policyPresentation.contents.forEach((item) => { %><li><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a></li><% }) %></ul></nav></aside>
+      <section class="privacy-policy-document" aria-label="Complete Privacy Policy">
+        <% if (policyPresentation.summaryOfChanges) { %><aside class="privacy-policy-changes" id="policy-changes"><i data-lucide="sparkles" aria-hidden="true"></i><div><h2>What changed in this version</h2><p><%= policyPresentation.summaryOfChanges %></p></div></aside><% } else { %><span id="policy-changes" class="privacy-policy-anchor" aria-hidden="true"></span><% } %>
+        <% if (policyHtml) { %><article class="legal-markdown"><%- policyHtml %></article><% } else { %><article><h2>Policy temporarily unavailable</h2><p>Contact privacy support before sharing sensitive records if you need clarification.</p></article><% } %>
+        <aside class="privacy-request-note"><i data-lucide="mail-question" aria-hidden="true"></i><div><h2>Exercise a privacy right</h2><p>Use <a href="/contact?topic=privacy_data">Contact</a> or email <a href="mailto:4hprojects@proton.me">4hprojects@proton.me</a>. A request is reviewed rather than automatically fulfilled, and proportionate identity verification may be required.</p></div></aside>
+      </section>
+    </div>
+
+    <section class="privacy-related" aria-labelledby="privacy-related-title"><div><p class="privacy-eyebrow">Related policies and help</p><h2 id="privacy-related-title">Continue with the authoritative detail</h2></div><nav aria-label="Related privacy policies and help"><% policyPresentation.relatedPolicies.forEach((item) => { %><a href="<%= item.href %>"><%= item.label %><i data-lucide="arrow-up-right" aria-hidden="true"></i></a><% }) %></nav></section>
+  </div>
+</main>

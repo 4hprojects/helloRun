@@ -30,6 +30,7 @@
           <li><a href="/organiser-terms">Organiser Terms</a></li>
           <li><a href="/community-guidelines">Community Guidelines</a></li>
           <li><a href="/acceptable-use-policy">Acceptable Use Policy</a></li>
+          <li><a href="/cookie-policy#cookie-choices" data-open-cookie-preferences>Cookie preferences</a></li>
         </ul>
       </div>
     </div>
@@ -42,6 +43,8 @@
 <button type="button" class="global-back-to-top<%= (locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer) ? ' global-back-to-top--with-mobile-nav' : '' %>" id="globalBackToTopBtn" aria-label="Back to top">
   <i data-lucide="arrow-up"></i>
 </button>
+<%- include('../partials/cookie-preferences') %>
+<script src="/js/cookie-preferences.js"></script>
 <% if (locals.renderRunProofModal) { %>
   <%- include('../partials/run-proof-modal') %>
   <script src="/js/vendor/tesseract/tesseract.min.js"></script>

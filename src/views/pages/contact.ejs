@@ -2,87 +2,147 @@
 <html lang="en">
 <head>
   <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
-  <link rel="stylesheet" href="/css/static-pages.css">
+  <link rel="stylesheet" href="/css/contact-page.css">
 </head>
-<body>
+<body class="contact-body">
   <%- include('../layouts/nav') %>
 
-  <main class="static-page">
-    <div class="static-wrap">
-      <header class="static-hero">
-        <h1>Contact HelloRun</h1>
-        <p>Reach the HelloRun team for runner support, organizer inquiries, payment concerns, data requests, and community event questions.</p>
+  <main class="contact-page" id="main-content">
+    <div class="contact-wrap">
+      <header class="contact-hero" aria-labelledby="contactHeroTitle">
+        <div class="contact-hero-copy">
+          <span class="contact-kicker"><i data-lucide="life-buoy" aria-hidden="true"></i>HelloRun support</span>
+          <h1 id="contactHeroTitle">How can we help?</h1>
+          <p>Prepare the details support needs, then continue in your email app. Your draft stays on this device until you choose to send it.</p>
+          <a class="contact-hero-action" href="#contactComposer"><i data-lucide="mail-plus" aria-hidden="true"></i>Prepare a support email</a>
+        </div>
+        <dl class="contact-service-facts" aria-label="Support availability">
+          <div><dt><i data-lucide="clock-3" aria-hidden="true"></i>Typical reply</dt><dd>24–48 hours</dd></div>
+          <div><dt><i data-lucide="wifi" aria-hidden="true"></i>Support</dt><dd>Handled online</dd></div>
+          <div><dt><i data-lucide="map-pin" aria-hidden="true"></i>Operated from</dt><dd>Benguet, Philippines</dd></div>
+        </dl>
       </header>
 
-      <% if (source === 'organizer-dashboard') { %>
-        <section class="static-card">
-          <h2>Organizer Support</h2>
-          <p>For organizer support, include your application ID, event name, or event reference code.</p>
-        </section>
+      <% if (contactPresentation.sourceContext) { %>
+        <aside class="contact-context" aria-labelledby="contactContextTitle">
+          <i data-lucide="layout-dashboard" aria-hidden="true"></i>
+          <div><h2 id="contactContextTitle"><%= contactPresentation.sourceContext.title %></h2><p><%= contactPresentation.sourceContext.message %></p></div>
+        </aside>
       <% } %>
 
-      <section class="static-grid">
-        <article class="static-card">
-          <h2>General Support</h2>
-          <p>Email: <a href="mailto:4hprojects@proton.me">4hprojects@proton.me</a></p>
-          <p>HelloRun is operated from Benguet, Philippines, with support handled online for runners and organizers joining from different locations.</p>
-          <p>Typical response time: 24-48 hours. Complex registration, payment, or proof review concerns may take longer if they require organizer confirmation.</p>
-        </article>
-        <article class="static-card">
-          <h2>Runner Support</h2>
-          <p>Contact us if you cannot access your account, need help finding an event, have questions about registration status, or need guidance on submitting run proof.</p>
-          <p>When writing about a registration, include your event name, confirmation code, and the email address used on your HelloRun account.</p>
-        </article>
-      </section>
+      <div class="contact-layout">
+        <section class="contact-composer-card" id="contactComposer" aria-labelledby="contactComposerTitle">
+          <div class="contact-section-heading">
+            <span class="contact-heading-icon"><i data-lucide="mail" aria-hidden="true"></i></span>
+            <div>
+              <span class="contact-eyebrow">Guided email</span>
+              <h2 id="contactComposerTitle">Prepare your support request</h2>
+              <p>Complete the useful details once. HelloRun does not receive this information until you send the email from your email application.</p>
+            </div>
+          </div>
 
-      <section class="static-grid">
-        <article class="static-card">
-          <h2>Organizer Inquiries</h2>
-          <p>Organizers can contact HelloRun about event setup, application status, participant management, proof review, payment receipt review, leaderboards, and certificates.</p>
-          <p>Include your application ID, event name, or event reference code when available so the support team can find the correct record.</p>
-        </article>
-        <article class="static-card">
-          <h2>Payment or Registration Concerns</h2>
-          <p>For paid events, payment receipts are reviewed based on the event configuration and organizer workflow. Send only the information needed to identify the registration and explain the concern.</p>
-          <p>HelloRun support can help route platform issues, while event-specific refund, package, or approval decisions may still depend on the event organizer's published rules.</p>
-        </article>
-      </section>
+          <form
+            class="contact-composer"
+            action="mailto:<%= contactPresentation.supportEmail %>"
+            method="post"
+            enctype="text/plain"
+            data-contact-composer
+            data-support-email="<%= contactPresentation.supportEmail %>"
+            data-privacy-email="<%= contactPresentation.privacyEmail %>"
+            data-actor-role="<%= contactPresentation.actor.role %>"
+            data-source="<%= contactPresentation.source %>">
+            <div class="contact-field contact-field-wide">
+              <label for="contactTopic">What do you need help with? <span aria-hidden="true">*</span></label>
+              <select id="contactTopic" name="topic" required aria-describedby="contactTopicHint" data-contact-topic>
+                <option value=""<%= contactPresentation.selectedTopic ? '' : ' selected' %> disabled>Select a support topic</option>
+                <% contactPresentation.topics.forEach((topic) => { %>
+                  <option value="<%= topic.value %>" data-inbox="<%= topic.inbox %>" data-subject="<%= topic.subject %>" data-hint="<%= topic.hint %>"<%= topic.selected ? ' selected' : '' %>><%= topic.label %></option>
+                <% }) %>
+              </select>
+              <p class="contact-field-help" id="contactTopicHint" data-contact-topic-hint>Select a topic so the draft reaches the right inbox.</p>
+            </div>
 
-      <section class="static-grid">
-        <article class="static-card">
-          <h2>Data and Privacy Requests</h2>
-          <p>Use the support email for privacy questions, correction requests, account data concerns, or questions about uploaded proof handling.</p>
-          <p>Before sending screenshots or personal records by email, describe the issue first so the team can confirm what information is actually needed.</p>
-        </article>
-        <article class="static-card">
-          <h2>Event Partnerships</h2>
-          <p>Schools, running groups, local communities, and event organizers can contact HelloRun about using the platform for virtual, on-site, or hybrid running events.</p>
-          <p>Helpful details include your organization name, event type, expected dates, distances, payment setup, and whether you need proof review, leaderboard, or certificate support.</p>
-        </article>
-      </section>
+            <div class="contact-field">
+              <label for="contactAccountEmail">HelloRun account email <span>Optional</span></label>
+              <input id="contactAccountEmail" name="accountEmail" type="email" maxlength="254" autocomplete="email" value="<%= contactPresentation.actor.email %>" placeholder="runner@example.com">
+            </div>
 
-      <section class="static-grid">
-        <article class="static-card">
-          <h2>Abuse, Safety, or Content Reports</h2>
-          <p>Contact HelloRun if you see suspicious event activity, misleading organizer information, abusive comments, inappropriate blog content, or proof-related concerns that may affect fair results.</p>
-          <p>Include the public page link, event name, blog title, or account context when available. Do not send sensitive documents unless support asks for them.</p>
-        </article>
-        <article class="static-card">
-          <h2>What to Include</h2>
-          <p>Clear requests are easier to resolve. Share your HelloRun account email, event name, confirmation code if you have one, the page URL involved, and a short description of what happened.</p>
-          <p>If your issue involves a rejected result, include the rejection reason shown in your dashboard and explain what you believe needs correction.</p>
-        </article>
-      </section>
+            <div class="contact-field">
+              <label for="contactReference">Confirmation or reference code <span>Optional</span></label>
+              <input id="contactReference" name="reference" type="text" maxlength="120" autocomplete="off" placeholder="e.g. REG-123 or event reference">
+            </div>
 
-      <section class="static-card">
-        <h2>Before You Contact Us</h2>
-        <p>Check the <a href="/faq">FAQ</a> and <a href="/how-it-works">How It Works</a> pages first for common account, registration, payment receipt, and run result review questions.</p>
-        <p>Important policy links: <a href="/privacy">Privacy Policy</a>, <a href="/terms">Terms and Conditions</a>, <a href="/data-usage-policy">Data Usage Policy</a>, and <a href="/refund-and-cancellation-policy">Refund and Cancellation Policy</a>.</p>
-      </section>
+            <div class="contact-field contact-field-wide">
+              <label for="contactContext">Related event, page, or URL <span>Optional</span></label>
+              <input id="contactContext" name="context" type="text" maxlength="300" autocomplete="off" placeholder="Event name or https://hellorun.online/…">
+            </div>
+
+            <div class="contact-field contact-field-wide">
+              <label for="contactDescription">What happened, and what outcome do you need? <span aria-hidden="true">*</span></label>
+              <textarea id="contactDescription" name="description" rows="6" maxlength="1000" required aria-describedby="contactDescriptionHelp contactDescriptionCount" placeholder="Describe the issue, what you already tried, and the result you expected." data-contact-description></textarea>
+              <div class="contact-field-meta" id="contactDescriptionHelp"><span>Do not paste passwords or attach sensitive files.</span><span id="contactDescriptionCount" data-contact-count>0 / 1000</span></div>
+            </div>
+
+            <div class="contact-composer-footer contact-field-wide">
+              <div class="contact-recipient-preview" aria-live="polite">
+                <span>Draft destination</span>
+                <strong data-contact-recipient><%= contactPresentation.selectedTopic === 'privacy_data' ? contactPresentation.privacyEmail : contactPresentation.supportEmail %></strong>
+              </div>
+              <button class="btn btn-primary contact-open-draft" type="submit" data-contact-open-draft><i data-lucide="external-link" aria-hidden="true"></i>Open email draft</button>
+            </div>
+            <p class="contact-live-status contact-field-wide" role="status" aria-live="polite" data-contact-status></p>
+          </form>
+
+          <div class="contact-direct-email" aria-labelledby="contactDirectTitle">
+            <div><h3 id="contactDirectTitle">Prefer to write directly?</h3><p>Use these links if the guided draft does not open in your email application.</p></div>
+            <div class="contact-email-links">
+              <a href="mailto:<%= contactPresentation.supportEmail %>"><i data-lucide="mail" aria-hidden="true"></i><span>General support<strong><%= contactPresentation.supportEmail %></strong></span></a>
+              <a href="mailto:<%= contactPresentation.privacyEmail %>"><i data-lucide="shield-check" aria-hidden="true"></i><span>Privacy and data<strong><%= contactPresentation.privacyEmail %></strong></span></a>
+            </div>
+          </div>
+        </section>
+
+        <aside class="contact-support-rail" aria-label="Support guidance">
+          <section class="contact-side-card" aria-labelledby="contactIncludeTitle">
+            <span class="contact-side-icon"><i data-lucide="list-checks" aria-hidden="true"></i></span>
+            <h2 id="contactIncludeTitle">What to include</h2>
+            <ul class="contact-checklist">
+              <li><i data-lucide="check" aria-hidden="true"></i>Your HelloRun account email</li>
+              <li><i data-lucide="check" aria-hidden="true"></i>The event or page involved</li>
+              <li><i data-lucide="check" aria-hidden="true"></i>A confirmation or reference code</li>
+              <li><i data-lucide="check" aria-hidden="true"></i>What happened and the outcome needed</li>
+            </ul>
+          </section>
+
+          <section class="contact-side-card contact-privacy-card" aria-labelledby="contactPrivacyTitle">
+            <span class="contact-side-icon"><i data-lucide="lock-keyhole" aria-hidden="true"></i></span>
+            <h2 id="contactPrivacyTitle">Protect your information</h2>
+            <p>Describe the issue first. Do not email passwords, identity documents, payment records, or activity proof unless support confirms they are required.</p>
+          </section>
+
+          <section class="contact-side-card" aria-labelledby="contactQuickTitle">
+            <span class="contact-side-icon"><i data-lucide="zap" aria-hidden="true"></i></span>
+            <h2 id="contactQuickTitle">Find a faster answer</h2>
+            <div class="contact-quick-links">
+              <% contactPresentation.actions.forEach((action) => { %>
+                <a href="<%= action.href %>"><i data-lucide="<%= action.icon %>" aria-hidden="true"></i><span><strong><%= action.label %></strong><small><%= action.help %></small></span><i data-lucide="chevron-right" aria-hidden="true"></i></a>
+              <% }) %>
+            </div>
+          </section>
+
+          <section class="contact-side-card contact-event-note" aria-labelledby="contactEventTitle">
+            <span class="contact-side-icon"><i data-lucide="calendar-cog" aria-hidden="true"></i></span>
+            <h2 id="contactEventTitle">Event-specific decisions</h2>
+            <p>Approval, package, refund, and event-rule decisions may require the event organizer. Open the event page and use its organizer contact option when available.</p>
+            <a href="/events">Browse event pages <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+          </section>
+        </aside>
+      </div>
     </div>
   </main>
 
   <%- include('../layouts/footer') %>
+  <script src="/js/contact-page.js"></script>
   <script src="/js/main.js"></script>
   <script>if (window.lucide) lucide.createIcons();</script>
 </body>

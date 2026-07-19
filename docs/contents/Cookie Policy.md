@@ -1,8 +1,8 @@
 # HelloRun Cookie Policy
 
-**Last Updated:** May 23, 2026  
-**Platform:** HelloRun  
-**Website:** https://hellorun.online  
+**Last Updated:** May 23, 2026
+**Platform:** HelloRun
+**Website:** https://hellorun.online
 **Contact:** hellorunonline@gmail.com, 4hprojects@proton.me
 
 ## 1. Purpose
@@ -144,5 +144,5 @@ Material updates may be announced through the platform, email, dashboard notice,
 
 For questions about this Cookie Policy, contact:
 
-**Email:** hellorunonline@gmail.com  
+**Email:** hellorunonline@gmail.com
 **Alternative Email:** 4hprojects@proton.me

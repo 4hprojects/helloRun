@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/design-system.css">
   <link rel="stylesheet" href="/css/ads.css">
+  <link rel="stylesheet" href="/css/cookie-preferences.css">
   <% if (locals.additionalCSS) { %>
     <% additionalCSS.forEach(css => { %>
       <link rel="stylesheet" href="<%= css %>">
@@ -17,16 +18,15 @@
   <% } %>
   <link rel="stylesheet" href="/css/project-buttons.css">
   <script src="https://unpkg.com/lucide@latest"></script>
+  <%- include('../partials/privacy-head') %>
   <% if (locals.ads && locals.ads.renderScript && locals.ads.publisherId) { %>
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<%= locals.ads.publisherId %>" crossorigin="anonymous"></script>
   <% } %>
   
   <!-- Google Analytics -->
-  <% if (process.env.GA_MEASUREMENT_ID) { %>
+  <% if (locals.canUseAnalytics && process.env.GA_MEASUREMENT_ID) { %>
   <script async src="https://www.googletagmanager.com/gtag/js?id=<%= process.env.GA_MEASUREMENT_ID %>"></script>
   <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
     gtag('config', '<%= process.env.GA_MEASUREMENT_ID %>');
   </script>

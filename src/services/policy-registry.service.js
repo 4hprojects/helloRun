@@ -10,6 +10,8 @@ const POLICY_DOCUMENTS = Object.freeze([
     adminPath: '/admin/privacy-policy',
     sourceFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/privacy-policy.md'),
     fallbackFile: path.resolve(__dirname, '../../docs/contents/Privacy Policy.md'),
+    fallbackVersion: '1.0',
+    fallbackEffectiveDate: new Date('2026-05-23T00:00:00+08:00'),
     summaryOfChanges: 'Updated Privacy Policy'
   },
   {
@@ -33,7 +35,9 @@ const POLICY_DOCUMENTS = Object.freeze([
     adminPath: '/admin/cookie-policy',
     sourceFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/cookie-policy.md'),
     fallbackFile: path.resolve(__dirname, '../../docs/contents/Cookie Policy.md'),
-    summaryOfChanges: 'Updated Cookie Policy'
+    fallbackVersion: '1.0',
+    fallbackEffectiveDate: new Date('2026-05-23T00:00:00+08:00'),
+    summaryOfChanges: 'Initial Cookie Policy'
   },
   {
     key: 'dataUsage',
@@ -54,7 +58,9 @@ const POLICY_DOCUMENTS = Object.freeze([
     publicPath: '/refund-and-cancellation-policy',
     adminPath: '/admin/refund-and-cancellation-policy',
     sourceFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/refund-and-cancellation-policy.md'),
-    fallbackFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/refund-and-cancellation-policy.md'),
+    fallbackFile: path.resolve(__dirname, '../../docs/contents/Refund and Cancellation Policy.md'),
+    fallbackVersion: '1.0',
+    fallbackEffectiveDate: new Date('2026-05-23T00:00:00+08:00'),
     summaryOfChanges: 'Initial Refund and Cancellation Policy'
   },
   {
@@ -65,7 +71,9 @@ const POLICY_DOCUMENTS = Object.freeze([
     publicPath: '/organiser-terms',
     adminPath: '/admin/organiser-terms',
     sourceFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/organiser-terms.md'),
-    fallbackFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/organiser-terms.md'),
+    fallbackFile: path.resolve(__dirname, '../../docs/contents/Organiser Terms.md'),
+    fallbackVersion: '1.0',
+    fallbackEffectiveDate: new Date('2026-05-23T00:00:00+08:00'),
     summaryOfChanges: 'Initial Organiser Terms'
   },
   {
@@ -76,7 +84,9 @@ const POLICY_DOCUMENTS = Object.freeze([
     publicPath: '/community-guidelines',
     adminPath: '/admin/community-guidelines',
     sourceFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/community-guidelines.md'),
-    fallbackFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/community-guidelines.md'),
+    fallbackFile: path.resolve(__dirname, '../../docs/contents/Community Guidelines.md'),
+    fallbackVersion: '1.0',
+    fallbackEffectiveDate: new Date('2026-05-23T00:00:00+08:00'),
     summaryOfChanges: 'Initial Community Guidelines'
   },
   {
@@ -87,7 +97,9 @@ const POLICY_DOCUMENTS = Object.freeze([
     publicPath: '/acceptable-use-policy',
     adminPath: '/admin/acceptable-use-policy',
     sourceFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/acceptable-use-policy.md'),
-    fallbackFile: path.resolve(__dirname, '../../docs/policy-markdown-pack/acceptable-use-policy.md'),
+    fallbackFile: path.resolve(__dirname, '../../docs/contents/Acceptable Use Policy.md'),
+    fallbackVersion: '1.0',
+    fallbackEffectiveDate: new Date('2026-05-23T00:00:00+08:00'),
     summaryOfChanges: 'Initial Acceptable Use Policy'
   }
 ]);

@@ -1,178 +1,114 @@
 # HelloRun Organiser Terms
 
-**Last Updated:** May 23, 2026  
-**Platform:** HelloRun  
-**Website:** https://hellorun.online  
-**Contact:** hellorunonline@gmail.com, 4hprojects@proton.me
+HelloRun is operated by **Henson M. Sagorsor, operating as 4HProjects**. These Organiser Terms apply to individuals, groups, clubs, schools, charities, companies, and other organizations that create, publish, or manage events through HelloRun.
 
-## 1. Purpose
+These terms supplement the [Terms and Conditions](/terms), [Privacy Policy](/privacy), [Data Usage Policy](/data-usage-policy), [Refund and Cancellation Policy](/refund-and-cancellation-policy), [Community Guidelines](/community-guidelines), and [Acceptable Use Policy](/acceptable-use-policy). Event-specific rules remain binding only when they are lawful, accurately disclosed, and consistent with these platform policies.
 
-These Organiser Terms apply to individuals, groups, schools, companies, running clubs, charities, and organisations that create or manage events through HelloRun.
+## 1. Organizer authority and event-creation access
 
-By creating or managing an event, organisers agree to follow these Organiser Terms, the HelloRun Terms and Conditions, Privacy Policy, Data Usage Policy, Refund and Cancellation Policy, Community Guidelines, Acceptable Use Policy, and applicable laws.
+You must have authority to act for the organizer identity, organization, event, sponsor, beneficiary, or institution shown on an event page. Keep your account identity, contact information, and organization details accurate and protect access to organizer tools.
 
-## 2. Organiser Account Verification
+A verified email and the existing event-creation acknowledgement may permit an organizer to create free virtual events. Identity approval is required before configuring paid fees, physical rewards, delivery, onsite logistics, or hybrid events. HelloRun may request identification, organization records, authority documents, payment details, or other proportionate evidence before enabling higher-risk capabilities.
 
-HelloRun may require organiser verification before allowing full access to event creation, payment collection, participant data, or public event publishing.
+Creating or submitting an event does not guarantee publication. Free virtual events may qualify for automated readiness review. A proven approved organizer may qualify for conditional auto-publication of a compatible paid virtual event. Onsite, hybrid, incomplete, or higher-risk events may require manual review. HelloRun may restrict capabilities when identity, readiness, safety, complaint, or policy concerns arise.
 
-Verification may include:
+The event-creation acknowledgement records capability limits and an organizer's signature. It is separate from versioned policy consent and does not remove any responsibility in these Organiser Terms.
 
-- organiser name
-- organisation name
-- contact details
-- valid identification or business information
-- event history
-- payment account details
-- authorisation documents
-- other documents reasonably required by HelloRun
+## 2. Accurate event design and publication
 
-HelloRun may approve, reject, restrict, or suspend organiser accounts based on verification status, platform risk, user complaints, or policy compliance.
+Publish complete, current, and supportable information about:
 
-## 3. Event Accuracy
+- organizer identity and event ownership;
+- event format, activity and submission windows, location, route, categories, and participation modes;
+- registration dates, prices, payment instructions, packages, inclusions, add-ons, and delivery or pickup arrangements;
+- activity, proof, ranking, leaderboard, badge, certificate, and recognition rules;
+- cancellation, postponement, transfer, refund, and correction processes;
+- safety requirements, participant eligibility, waivers, minor participation, and emergency guidance; and
+- sponsors, partners, beneficiaries, prizes, merchandise, accreditation, and other public claims.
 
-Organisers must provide accurate and complete event information, including:
+Do not publish an event you are not authorized or reasonably prepared to deliver. Correct material inaccuracies promptly and communicate changes before they disadvantage participants. Do not describe HelloRun review, organizer verification, badges, certificates, or publication as external accreditation or a guarantee of event quality or safety.
 
-- event name
-- organiser name
-- event type
-- event date
-- registration period
-- distance or category
-- participation rules
-- fees
-- inclusions
-- refund policy
-- certificate rules
-- submission requirements
-- contact details
-- safety information, where applicable
+HelloRun may return a draft for correction, require supporting information, unpublish an event, or limit promotion while readiness or risk concerns remain unresolved.
 
-Organisers must promptly correct inaccurate or misleading event information.
+## 3. Registrations and payment review
 
-## 4. Participant Data Handling
+Organizers control event-specific registration and payment decisions unless the event page identifies a HelloRun-operated flow. Disclose the recipient account, amount, currency, reference requirements, review timing, and consequences of incomplete or rejected evidence.
 
-Organisers may access participant data only for legitimate event-related purposes.
+Payment approval confirms payment evidence for that registration. It does not approve activity proof, results, standings, or recognition. Review receipts consistently, protect the original evidence, provide runner-safe reasons for rejection, and allow a correction where the configured workflow permits it.
 
-Organisers must:
+Do not approve your own payment evidence, bypass self-approval controls, coordinate a nominal reviewer to avoid an actual conflict, or knowingly approve fraudulent or unrelated proof. Keep event-registration payment decisions separate from event-shop payment decisions.
 
-- protect participant data from unauthorised access
-- limit access to authorised personnel
-- use data only for the event
-- avoid downloading data unless necessary
-- store exported data securely
-- delete exported data when no longer needed
-- avoid sharing data with unauthorised third parties
-- comply with applicable privacy laws
+Refund, cancellation, postponement, defective fulfilment, tax, accounting, invoicing, and consumer obligations remain with the responsible organizer or merchant. A published event rule does not override rights or remedies that apply under law. The [Refund and Cancellation Policy](/refund-and-cancellation-policy) provides the platform-level framework.
 
-Organisers must not sell, rent, reuse, or transfer participant data for unrelated marketing or external purposes without valid legal basis or consent.
+## 4. Activity evidence, results, and recognition
 
-## 5. Payment and Refund Responsibility
+Apply the published event rules consistently when reviewing single-result and accumulated activities. OCR, name matching, duplicate checks, structured mismatch signals, imported activity data, and possible auto-approval assist review; they do not independently establish fraud or remove organizer accountability.
 
-Organisers are responsible for:
+Keep pending activity separate from approved official progress. Pending distance does not affect rank, badges, certificates, or verified totals. Approved accumulated totals may exceed a selected goal and continue affecting official standings until the submission deadline.
 
-- setting accurate event fees
-- disclosing payment instructions
-- reviewing payment proof fairly
-- resolving payment disputes
-- honouring stated refund rules
-- communicating cancellation or postponement options
-- complying with tax, accounting, and financial obligations
+Use clear runner-facing correction or rejection reasons. Do not manipulate standings, conceal approved results, knowingly approve invalid evidence, disclose private proof, or bypass conflicts of interest. Organizer-controlled name display, visible columns, pending visibility, and leaderboard settings must remain consistent with event rules and privacy requirements.
 
-HelloRun may provide platform tools for payment tracking, but organisers remain responsible for event-specific payment decisions unless HelloRun directly controls the payment flow for a specific event.
+For accumulated challenges, reaching a goal may unlock a badge before certificate release. Final certificates are prepared after the final submission deadline and after the event-wide submitted activity queue is cleared. The immutable certificate snapshot may record the selected goal, final approved distance, approved activity count, and finalization time.
 
-## 6. Event Review and Result Approval
+## 5. Participant data and authorized access
 
-Organisers are responsible for reviewing participant submissions according to event rules.
+Access participant, payment, proof, communication, order, and export data only when needed to operate the relevant event. Limit access to trained and authorized personnel, use individual accounts where available, and prevent casual sharing of screenshots or exported files.
 
-Organisers should apply review standards consistently.
+Participant exports remain under the organizer's responsibility after download. Store them securely, use them only for the stated event purpose, do not sell or repurpose them for unrelated marketing, and securely delete them when no longer needed. Do not publish contact details, emergency information, payment proof, activity proof, identity documents, private messages, internal review signals, or other restricted records.
 
-Organisers may approve, reject, or request clarification for submissions that are:
+Notify HelloRun promptly through [Contact](/contact?source=organizer-dashboard) if participant data is lost, exposed, accessed by the wrong person, or used outside its intended purpose. Do not conceal an incident or contact affected participants with unsupported legal conclusions.
 
-- incomplete
-- unclear
-- outside the event period
-- inconsistent with event rules
-- suspected to be manipulated
-- suspected to belong to another person
-- duplicated
-- unsupported by valid proof
+The [Privacy Policy](/privacy) and [Data Usage Policy](/data-usage-policy) remain authoritative for access, retention, public results, assisted review, and data-subject requests.
 
-HelloRun may assist with OCR-assisted reading, flagging, and dashboard tools, but organisers remain responsible for fair event-level review decisions.
+## 6. Onsite, hybrid, and participant safety
 
-## 7. Safety and Legal Compliance
+Organizers are responsible for determining and meeting the permits, venue permissions, route controls, traffic coordination, staffing, hydration, medical support, emergency planning, insurance, waiver, accessibility, safeguarding, and minor-participation requirements applicable to their event.
 
-For onsite and hybrid events, organisers are responsible for event safety and compliance.
+Publish realistic safety instructions and a working event contact. Communicate route, venue, schedule, weather, cancellation, and emergency changes promptly. Do not make unsupported medical claims or represent a waiver as removing responsibilities that cannot lawfully be excluded.
 
-This may include:
+HelloRun provides event-management tools and may request readiness evidence, but does not automatically inspect a venue, validate every permit, supervise event-day operations, or guarantee that an event is safe.
 
-- permits
-- venue coordination
-- route planning
-- safety marshalls
-- medical support
-- hydration stations
-- emergency response
-- traffic coordination
-- participant waivers
-- insurance, where applicable
-- local government requirements
-- child or minor participation requirements
+## 7. Communication and participant support
 
-HelloRun does not automatically verify that an organiser has obtained every permit or safety clearance.
+Use participant contact information and HelloRun messaging only for legitimate event operations. Respond within a reasonable time to registration, payment, rules, changes, refunds, proof review, results, certificates, products, pickup, delivery, and safety concerns.
 
-HelloRun may request proof of compliance where necessary.
+Do not flood participants, send unrelated promotions without an appropriate basis, retaliate against a complaint, make deceptive urgency claims, or direct runners to send sensitive evidence through unsecured channels. Preserve relevant platform communications when a dispute or review remains open.
 
-## 8. Prohibited Organiser Conduct
+Event-specific decisions should be explained through the event page or organizer channel. Direct platform, account, privacy, and security concerns to [Contact](/contact?source=organizer-dashboard).
 
-Organisers must not:
+## 8. Event-shop products, orders, and fulfilment
 
-- create fake or misleading events
-- collect payments for events they do not intend to conduct
-- misuse participant data
-- falsely claim affiliation with sponsors or institutions
-- misrepresent prizes, medals, shirts, or entitlements
-- manipulate results
-- approve fraudulent submissions knowingly
-- harass participants
-- ignore valid payment or refund concerns
-- use HelloRun to conduct illegal activities
+An event shop is operationally separate from event registration. Organizers are responsible for accurate product names, images, variants, prices, stock, eligibility, pickup or delivery choices, fees, timelines, and fulfilment promises.
 
-HelloRun may suspend or remove organisers who violate these rules.
+Organizer-owned products may require platform approval before public sale. Approval does not transfer merchant, tax, inventory, warranty, refund, delivery, or fulfilment responsibility to HelloRun.
 
-## 9. Event Suspension or Removal
+Review shop payment evidence only within the relevant order workflow. Keep order payment, registration payment, and activity review decisions separate. Update fulfilment status truthfully, preserve material order notes, protect delivery information, and resolve missing, defective, incorrect, or undelivered items under the disclosed terms and applicable law.
 
-HelloRun may suspend, unpublish, restrict, or remove an event when:
+## 9. Event changes, closure, and continuing duties
 
-- organiser verification is incomplete
-- event information is misleading
-- participant complaints indicate risk
-- payment or refund issues remain unresolved
-- participant data is misused
-- the event appears fraudulent
-- legal or safety concerns arise
-- the organiser violates HelloRun policies
+Communicate material cancellation, postponement, route, date, price, inclusion, eligibility, submission, or recognition changes promptly. Do not silently replace terms after registrations or use an event edit to avoid an existing obligation.
 
-## 10. Organiser Communications
+At event closure, organizers must:
 
-Organisers must communicate clearly and professionally with participants.
+- finish outstanding payment and activity reviews fairly;
+- resolve participant questions, refunds, products, delivery, and entitlements;
+- allow accumulated certificate finalization to wait for the event-wide submitted queue;
+- correct material result or leaderboard errors through authorized workflows;
+- retain records only as required for an event, dispute, audit, or legal obligation; and
+- restrict or securely delete local participant exports when their purpose ends.
 
-Organisers should respond to participant concerns about:
+Event suspension, organizer restriction, or account closure does not erase unresolved participant, privacy, safety, payment, refund, delivery, or legal responsibilities.
 
-- registration
-- payment verification
-- event rules
-- event changes
-- refund requests
-- run proof review
-- result disputes
-- certificates
-- race kits or entitlements
+## 10. Monitoring, restrictions, and review
 
-Repeated failure to respond to valid participant concerns may result in organiser restrictions.
+HelloRun may preserve relevant evidence, review event and account context, request clarification, restrict features, return content for correction, reject promotion, unpublish or suspend an event, remove misleading content, correct public platform records, restrict organizer access, or suspend or close an account.
 
-## 11. Contact
+Serious fraud, participant danger, exposed personal data, credential abuse, unlawful activity, or deceptive payment collection may justify immediate restriction while review continues. Lower-risk correctable issues may receive guidance or a remediation opportunity. Repeated failure to respond or fulfil advertised commitments may lead to stronger restrictions.
 
-Organiser concerns may be sent to:
+Where the workflow and risk permit it, an organizer may provide context or request review through [Contact](/contact?source=organizer-dashboard). This does not guarantee publication, reinstatement, or a particular outcome.
 
-**Email:** hellorunonline@gmail.com  
-**Alternative Email:** 4hprojects@proton.me
+## 11. Policy changes and contact
+
+HelloRun may update these terms as organizer capabilities, operational risks, or legal requirements change. The current version and effective date appear on this page. Material updates may be announced through a non-blocking in-app notification to organizer accounts.
+
+Use [Contact](/contact?source=organizer-dashboard) for event, account, policy, privacy, or platform support. Describe the event and concern first; do not email identity documents, payment proof, activity proof, participant exports, or other sensitive files unless an authorized reviewer requests them.

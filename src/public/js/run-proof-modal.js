@@ -1528,11 +1528,13 @@
     };
 
     const runProofDraftKey = 'helloRun:runProofDraft:v1';
+    const canStoreRunProofDraft = Boolean(window.HelloRunPrivacy?.functional && window.localStorage);
     const createSubmissionAttemptId = () => {
       if (window.crypto && typeof window.crypto.randomUUID === 'function') return window.crypto.randomUUID();
       return 'attempt-' + Date.now() + '-' + Math.random().toString(16).slice(2);
     };
     const saveRunProofDraft = () => {
+      if (!canStoreRunProofDraft) return;
       try {
         const values = {};
         [runDateInput, distanceInput, hoursInput, minutesInput, secondsInput, locationInput, elevationInput, stepsInput, runTypeInput].filter(Boolean).forEach((field) => { values[field.id] = field.value; });
@@ -1560,6 +1562,7 @@
       setMessage('Your saved run details were restored. Select the proof image again for privacy and browser security.', 'info');
     };
     const offerRunProofDraft = () => {
+      if (!canStoreRunProofDraft) return;
       try {
         const draft = JSON.parse(window.localStorage.getItem(runProofDraftKey) || 'null');
         if (!draft) return;
@@ -1576,7 +1579,7 @@
     }
     if (draftStartOver) {
       draftStartOver.addEventListener('click', () => {
-        window.localStorage.removeItem(runProofDraftKey);
+        if (canStoreRunProofDraft) window.localStorage.removeItem(runProofDraftKey);
         state.pendingDraft = null;
         if (draftPrompt) draftPrompt.hidden = true;
         resetFormState();
@@ -1701,7 +1704,7 @@
 
         if (resultMessage.type === 'success' || isDuplicate) {
           setFlowPhase(FLOW_PHASES.SUCCESS);
-          if (resultMessage.type === 'success') window.localStorage.removeItem(runProofDraftKey);
+          if (resultMessage.type === 'success' && canStoreRunProofDraft) window.localStorage.removeItem(runProofDraftKey);
           // Dashboard-specific: refresh the result card on success
           if (resultMessage.type === 'success' && state.currentSurface === 'runner-dashboard') {
             if (typeof window.refreshRunnerDashboard === 'function') {
@@ -2572,7 +2575,7 @@
           window.location.reload();
           return;
         }
-        window.localStorage.removeItem(runProofDraftKey);
+        if (canStoreRunProofDraft) window.localStorage.removeItem(runProofDraftKey);
         state.pendingDraft = null;
         closeModal();
       });

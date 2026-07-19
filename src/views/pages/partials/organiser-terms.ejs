@@ -1,0 +1,70 @@
+<main class="org-terms-page" id="main-content">
+  <div class="org-terms-wrap">
+    <header class="org-terms-hero">
+      <div class="org-terms-hero-copy">
+        <span class="org-terms-kicker"><i data-lucide="clipboard-check" aria-hidden="true"></i>Accountable event operations</span>
+        <h1><%= policyDocument.title %></h1>
+        <p>Understand what organizers own at every stage—from account capability and accurate publication to participant review, safety, commerce, recognition, data handling, and closure.</p>
+        <div class="org-terms-meta" aria-label="Policy information">
+          <% if (policyPresentation.versionLabel) { %><span><i data-lucide="file-text" aria-hidden="true"></i><%= policyPresentation.versionLabel %></span><% } %>
+          <% if (policyPresentation.effectiveLabel) { %><span><i data-lucide="calendar-check" aria-hidden="true"></i>Effective <%= policyPresentation.effectiveLabel %></span><% } %>
+          <% if (policyPresentation.updatedLabel) { %><span><i data-lucide="history" aria-hidden="true"></i>Updated <%= policyPresentation.updatedLabel %></span><% } %>
+          <span><i data-lucide="clock-3" aria-hidden="true"></i>About <%= policyPresentation.readingMinutes %> min read</span>
+        </div>
+      </div>
+      <div class="org-terms-hero-actions">
+        <% if (user && user.role === 'organiser') { %><a href="/organizer/dashboard" class="org-terms-dashboard"><i data-lucide="layout-dashboard" aria-hidden="true"></i>Organizer Dashboard</a><% } %>
+        <button class="org-terms-print" type="button" data-print-policy><i data-lucide="printer" aria-hidden="true"></i>Print terms</button>
+      </div>
+    </header>
+
+    <span id="event-creation-access" class="org-terms-anchor" aria-hidden="true"></span>
+    <section class="org-capabilities" aria-labelledby="org-capabilities-title">
+      <div class="org-section-heading"><p class="org-eyebrow">Know what your account can do</p><h2 id="org-capabilities-title">Capability grows with verified responsibility</h2><p>The acknowledgement opens a bounded free-event path. Identity, readiness, event type, and operating history determine access to higher-risk capabilities.</p></div>
+      <div class="org-capability-grid">
+        <% policyPresentation.organiserCapabilities.forEach((item) => { %><article><span><i data-lucide="<%= item.icon %>" aria-hidden="true"></i></span><div><h3><%= item.title %></h3><p><%= item.text %></p></div></article><% }) %>
+      </div>
+    </section>
+
+    <section class="org-lifecycle" aria-labelledby="org-lifecycle-title">
+      <div class="org-section-heading"><p class="org-eyebrow">One connected operating journey</p><h2 id="org-lifecycle-title">Your responsibility continues through event closure</h2><p>Platform tools support each stage, but they do not transfer event ownership or operational accountability to HelloRun.</p></div>
+      <div class="org-lifecycle-table" role="table" aria-label="Organizer event lifecycle responsibilities">
+        <div class="org-lifecycle-head" role="row"><span role="columnheader">Stage</span><span role="columnheader">Organizer responsibility</span><span role="columnheader">HelloRun’s role</span><span role="columnheader">Record or recovery</span></div>
+        <% policyPresentation.organiserLifecycle.forEach((stage) => { %>
+          <article class="org-lifecycle-row" role="row">
+            <div class="org-stage" role="cell"><span><i data-lucide="<%= stage.icon %>" aria-hidden="true"></i><%= stage.number %></span><h3><%= stage.title %></h3></div>
+            <div role="cell" data-label="Organizer responsibility"><p><%= stage.organizer %></p></div>
+            <div role="cell" data-label="HelloRun’s role"><p><%= stage.platform %></p></div>
+            <div role="cell" data-label="Record or recovery"><p><%= stage.record %></p></div>
+          </article>
+        <% }) %>
+      </div>
+    </section>
+
+    <section class="org-duties" aria-labelledby="org-duties-title">
+      <div class="org-section-heading"><p class="org-eyebrow">Critical duties</p><h2 id="org-duties-title">Six areas that need deliberate ownership</h2><p>These duties apply alongside the structured event settings and the complete terms below.</p></div>
+      <div class="org-duty-grid"><% policyPresentation.organiserDuties.forEach((item) => { %><article><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><div><h3><%= item.title %></h3><p><%= item.text %></p></div></article><% }) %></div>
+    </section>
+
+    <aside class="org-commerce-note" aria-labelledby="org-commerce-title">
+      <span><i data-lucide="shopping-bag" aria-hidden="true"></i></span>
+      <div><p class="org-eyebrow">Keep payment scopes separate</p><h2 id="org-commerce-title">Registration is not the event shop</h2><p>Registration payment, shop-order payment, and activity review are independent workflows. Organizers remain responsible for product accuracy, inventory, order review, pickup or delivery, fulfilment, and applicable remedies.</p></div>
+    </aside>
+
+    <details class="org-mobile-contents">
+      <summary><span><i data-lucide="list" aria-hidden="true"></i>Complete terms contents</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+      <nav aria-label="Organiser Terms contents"><% policyPresentation.contents.forEach((item) => { %><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a><% }) %></nav>
+    </details>
+
+    <div class="org-policy-layout">
+      <aside class="org-policy-rail"><nav aria-label="Organiser Terms contents"><p class="org-eyebrow">Complete terms</p><ul><% policyPresentation.contents.forEach((item) => { %><li><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a></li><% }) %></ul></nav></aside>
+      <section class="org-policy-document" aria-label="Complete Organiser Terms">
+        <% if (policyPresentation.summaryOfChanges) { %><aside class="org-policy-changes" id="policy-changes"><i data-lucide="sparkles" aria-hidden="true"></i><div><h2>What changed in this version</h2><p><%= policyPresentation.summaryOfChanges %></p></div></aside><% } else { %><span id="policy-changes" class="org-terms-anchor" aria-hidden="true"></span><% } %>
+        <% if (policyHtml) { %><article class="legal-markdown"><%- policyHtml %></article><% } else { %><article class="org-policy-fallback"><h2>Terms temporarily unavailable</h2><p>Use <a href="/contact?source=organizer-dashboard">Organizer support</a> before publishing or changing an event if you need clarification.</p></article><% } %>
+        <aside class="org-support-note"><i data-lucide="life-buoy" aria-hidden="true"></i><div><h2>Need operational guidance?</h2><p>Use <a href="/contact?source=organizer-dashboard">Contact</a> with the event name or reference. Describe the concern first and do not send participant exports, identity documents, payment proof, or activity proof unless requested.</p></div></aside>
+      </section>
+    </div>
+
+    <section class="org-related" aria-labelledby="org-related-title"><div><p class="org-eyebrow">Related rules and support</p><h2 id="org-related-title">Continue with the authoritative detail</h2></div><nav aria-label="Related policies and organizer support"><% policyPresentation.relatedPolicies.forEach((item) => { %><a href="<%= item.href %>"><%= item.label %><i data-lucide="arrow-up-right" aria-hidden="true"></i></a><% }) %></nav></section>
+  </div>
+</main>

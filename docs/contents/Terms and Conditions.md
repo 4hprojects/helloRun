@@ -1,8 +1,8 @@
 # HelloRun Terms and Conditions
 
-**Last Updated:** May 23, 2026  
-**Platform:** HelloRun  
-**Website:** https://hellorun.online  
+**Last Updated:** May 23, 2026
+**Platform:** HelloRun
+**Website:** https://hellorun.online
 **Contact:** hellorunonline@gmail.com, 4hprojects@proton.me
 
 ## 1. Acceptance of Terms
@@ -274,5 +274,5 @@ Continued use of HelloRun after an update means users acknowledge the updated Te
 
 For questions about these Terms, contact:
 
-**Email:** hellorunonline@gmail.com  
+**Email:** hellorunonline@gmail.com
 **Alternative Email:** 4hprojects@proton.me

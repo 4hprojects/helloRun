@@ -162,7 +162,7 @@ function initMainUi() {
 
 function initRegistrationDrafts() {
   const form = document.getElementById('eventRegisterForm');
-  if (!form || !window.localStorage) return;
+  if (!form || !window.localStorage || !window.HelloRunPrivacy?.functional) return;
   const key = `helloRun:registrationDraft:${window.location.pathname}`;
   const maxAge = 7 * 24 * 60 * 60 * 1000;
   const safeFields = () => Array.from(form.elements).filter((field) => field.name && field.name !== '_csrf' && field.type !== 'file' && field.type !== 'password' && !field.disabled);
@@ -224,7 +224,7 @@ function initOnsiteFieldMode() {
 
 function initWorkspaceDrafts() {
   const form = document.querySelector('form.create-event-form, form.policy-editor-form');
-  if (!form || !window.localStorage) return;
+  if (!form || !window.localStorage || !window.HelloRunPrivacy?.functional) return;
   const kind = form.classList.contains('policy-editor-form') ? 'policy' : 'event';
   const key = `helloRun:${kind}WorkspaceDraft:${window.location.pathname}`;
   const fields = () => Array.from(form.elements).filter((field) => field.name && field.name !== '_csrf' && field.type !== 'file' && field.type !== 'password' && !field.disabled);
@@ -307,30 +307,33 @@ function initOperationalFilterTools() {
   tools.appendChild(chips);
 
   const storageKey = `helloRun:operationalView:${window.location.pathname}`;
+  const canStorePreferences = Boolean(window.HelloRunPrivacy?.functional && window.localStorage && window.sessionStorage);
   const actions = document.createElement('div');
   actions.className = 'operational-filter-actions';
-  const save = document.createElement('button');
-  save.type = 'button';
-  save.className = 'btn btn-sm btn-secondary';
-  save.textContent = 'Save This View';
-  save.addEventListener('click', () => {
-    window.localStorage.setItem(storageKey, params.toString());
-    save.textContent = 'View Saved';
-  });
-  actions.appendChild(save);
-  const saved = window.localStorage.getItem(storageKey);
-  if (saved !== null) {
-    const open = document.createElement('a');
-    open.className = 'btn btn-sm btn-secondary';
-    open.href = window.location.pathname + (saved ? '?' + saved : '');
-    open.textContent = 'Open Saved View';
-    actions.appendChild(open);
+  if (canStorePreferences) {
+    const save = document.createElement('button');
+    save.type = 'button';
+    save.className = 'btn btn-sm btn-secondary';
+    save.textContent = 'Save This View';
+    save.addEventListener('click', () => {
+      window.localStorage.setItem(storageKey, params.toString());
+      save.textContent = 'View Saved';
+    });
+    actions.appendChild(save);
+    const saved = window.localStorage.getItem(storageKey);
+    if (saved !== null) {
+      const open = document.createElement('a');
+      open.className = 'btn btn-sm btn-secondary';
+      open.href = window.location.pathname + (saved ? '?' + saved : '');
+      open.textContent = 'Open Saved View';
+      actions.appendChild(open);
+    }
   }
   tools.appendChild(actions);
   form.insertAdjacentElement('afterend', tools);
 
   const scrollKey = `helloRun:queueScroll:${window.location.pathname}${window.location.search}`;
-  const savedScroll = Number(window.sessionStorage.getItem(scrollKey) || 0);
+  const savedScroll = canStorePreferences ? Number(window.sessionStorage.getItem(scrollKey) || 0) : 0;
   if (savedScroll > 0) window.requestAnimationFrame(() => window.scrollTo({ top: savedScroll, behavior: 'auto' }));
   document.querySelectorAll('a[href]').forEach((link) => {
     if (!link.closest('table, .payment-proof-review-list, .review-queue-list, .admin-list')) return;
@@ -339,7 +342,7 @@ function initOperationalFilterTools() {
       url.searchParams.set('returnTo', window.location.pathname + window.location.search);
       link.href = url.pathname + url.search + url.hash;
     }
-    link.addEventListener('click', () => window.sessionStorage.setItem(scrollKey, String(window.scrollY)));
+    if (canStorePreferences) link.addEventListener('click', () => window.sessionStorage.setItem(scrollKey, String(window.scrollY)));
   });
 }
 

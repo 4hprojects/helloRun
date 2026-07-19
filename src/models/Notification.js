@@ -38,6 +38,12 @@ const notificationSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {}
     },
+    dedupeKey: {
+      type: String,
+      trim: true,
+      maxlength: 180,
+      default: ''
+    },
     readAt: {
       type: Date,
       default: null,
@@ -58,6 +64,10 @@ notificationSchema.index({ userId: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, readAt: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, archivedAt: 1, createdAt: -1 });
 notificationSchema.index({ userId: 1, archivedAt: 1, readAt: 1, createdAt: -1 });
+notificationSchema.index(
+  { userId: 1, dedupeKey: 1 },
+  { unique: true, partialFilterExpression: { dedupeKey: { $type: 'string', $gt: '' } }, name: 'idx_notifications_user_dedupe' }
+);
 notificationSchema.index(
   { userId: 1, createdAt: -1 },
   { partialFilterExpression: { readAt: null }, name: 'idx_notifications_user_unread_created' }

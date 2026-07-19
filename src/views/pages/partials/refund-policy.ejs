@@ -1,0 +1,67 @@
+<main class="refund-policy-page" id="main-content">
+  <div class="refund-wrap">
+    <header class="refund-hero">
+      <div class="refund-hero-copy">
+        <span class="refund-kicker"><i data-lucide="receipt-text" aria-hidden="true"></i>Clear outcomes and remedies</span>
+        <h1><%= policyDocument.title %></h1>
+        <p>Understand the difference between cancelling, requesting a refund, recording an outcome, and the responsible organizer or provider actually returning money.</p>
+        <div class="refund-meta" aria-label="Policy information">
+          <% if (policyPresentation.versionLabel) { %><span><i data-lucide="file-text" aria-hidden="true"></i><%= policyPresentation.versionLabel %></span><% } %>
+          <% if (policyPresentation.effectiveLabel) { %><span><i data-lucide="calendar-check" aria-hidden="true"></i>Effective <%= policyPresentation.effectiveLabel %></span><% } %>
+          <% if (policyPresentation.updatedLabel) { %><span><i data-lucide="history" aria-hidden="true"></i>Updated <%= policyPresentation.updatedLabel %></span><% } %>
+          <span><i data-lucide="clock-3" aria-hidden="true"></i>About <%= policyPresentation.readingMinutes %> min read</span>
+        </div>
+      </div>
+      <div class="refund-hero-actions">
+        <% if (typeof user !== 'undefined' && user && user.role === 'admin') { %><a class="refund-primary-action" href="/admin/dashboard"><i data-lucide="shield" aria-hidden="true"></i>Admin Dashboard</a>
+        <% } else if (typeof user !== 'undefined' && user && user.role === 'organiser') { %><a class="refund-primary-action" href="/organizer/dashboard"><i data-lucide="layout-dashboard" aria-hidden="true"></i>Organizer Dashboard</a>
+        <% } else if (typeof user !== 'undefined' && user) { %><a class="refund-primary-action" href="/my-registrations"><i data-lucide="clipboard-list" aria-hidden="true"></i>My Registrations</a><a class="refund-secondary-action" href="/orders"><i data-lucide="package" aria-hidden="true"></i>My Orders</a>
+        <% } else { %><a class="refund-primary-action" href="/contact"><i data-lucide="life-buoy" aria-hidden="true"></i>Contact Support</a><% } %>
+        <button class="refund-print" type="button" data-print-policy><i data-lucide="printer" aria-hidden="true"></i>Print policy</button>
+      </div>
+    </header>
+
+    <section class="refund-outcomes" aria-labelledby="refund-outcomes-title">
+      <div class="refund-section-heading"><p class="refund-eyebrow">Start with what happened</p><h2 id="refund-outcomes-title">Find the right next step</h2><p>This guide identifies the responsible party and preparation needed. It does not promise that a particular remedy will be approved.</p></div>
+      <div class="refund-table-wrap">
+        <table>
+          <caption>Refund and cancellation situations, decision owners, next actions, information needed, and cautions</caption>
+          <thead><tr><th scope="col">What happened</th><th scope="col">Who handles it</th><th scope="col">What to do</th><th scope="col">What to include</th><th scope="col">Do not assume</th></tr></thead>
+          <tbody><% policyPresentation.refundOutcomes.forEach((item) => { %><tr><th scope="row"><span><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><%= item.situation %></span></th><td data-label="Who handles it"><%= item.owner %></td><td data-label="What to do"><%= item.action %></td><td data-label="What to include"><%= item.include %></td><td data-label="Do not assume"><%= item.caution %></td></tr><% }) %></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="refund-boundaries" aria-labelledby="refund-boundaries-title">
+      <div class="refund-section-heading"><p class="refund-eyebrow">Five different actions</p><h2 id="refund-boundaries-title">Cancellation and refund are not interchangeable</h2><p>HelloRun status labels describe workflow state. They do not move money by themselves.</p></div>
+      <ol><% policyPresentation.refundBoundaries.forEach((item) => { %><li><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><div><h3><%= item.title %></h3><p><%= item.text %></p></div></li><% }) %></ol>
+    </section>
+
+    <section class="refund-responsibilities" aria-labelledby="refund-responsibilities-title">
+      <div class="refund-section-heading"><p class="refund-eyebrow">Responsibility follows the transaction</p><h2 id="refund-responsibilities-title">Know who controls each part</h2></div>
+      <div><% policyPresentation.refundResponsibilities.forEach((item) => { %><article><i data-lucide="<%= item.icon %>" aria-hidden="true"></i><div><h3><%= item.title %></h3><p><%= item.text %></p></div></article><% }) %></div>
+    </section>
+
+    <section class="refund-journey" aria-labelledby="refund-journey-title">
+      <div class="refund-section-heading"><p class="refund-eyebrow">Resolution journey</p><h2 id="refund-journey-title">How a concern moves toward an outcome</h2><p>Response time depends on the organizer, provider, evidence, event stage, and applicable obligations. No fixed approval or processing time is guaranteed.</p></div>
+      <ol><% policyPresentation.refundJourney.forEach((stage) => { %><li><div class="refund-stage-icon"><i data-lucide="<%= stage.icon %>" aria-hidden="true"></i><span><%= stage.number %></span></div><h3><%= stage.title %></h3><p><%= stage.text %></p></li><% }) %></ol>
+    </section>
+
+    <div class="refund-support-row">
+      <section class="refund-checklist" aria-labelledby="refund-checklist-title"><div class="refund-section-heading"><p class="refund-eyebrow">Prepare a complete request</p><h2 id="refund-checklist-title">What to include</h2></div><ul><% policyPresentation.refundChecklist.forEach((item) => { %><li><i data-lucide="check" aria-hidden="true"></i><%= item %></li><% }) %></ul></section>
+      <aside class="refund-privacy" aria-labelledby="refund-privacy-title"><span><i data-lucide="shield-alert" aria-hidden="true"></i></span><div><p class="refund-eyebrow">Protect payment information</p><h2 id="refund-privacy-title">Do not publish sensitive evidence</h2><p>Do not place receipts, identity documents, credentials, full card or wallet details, private messages, or payment proof in comments or public discussions.</p><p>Send sensitive evidence only when an authorized reviewer requests it through an appropriate channel.</p></div></aside>
+    </div>
+
+    <details class="refund-mobile-contents"><summary><span><i data-lucide="list" aria-hidden="true"></i>Complete policy contents</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary><nav aria-label="Refund and Cancellation Policy contents"><% policyPresentation.contents.forEach((item) => { %><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a><% }) %></nav></details>
+
+    <div class="refund-policy-layout">
+      <aside class="refund-policy-rail"><nav aria-label="Refund and Cancellation Policy contents"><p class="refund-eyebrow">Complete policy</p><ul><% policyPresentation.contents.forEach((item) => { %><li><a class="level-<%= item.level %>" href="#<%= item.id %>"><%= item.label %></a></li><% }) %></ul></nav></aside>
+      <section class="refund-policy-document" aria-label="Complete Refund and Cancellation Policy">
+        <% if (policyPresentation.summaryOfChanges) { %><aside class="refund-policy-changes" id="policy-changes"><i data-lucide="sparkles" aria-hidden="true"></i><div><h2>What changed in this version</h2><p><%= policyPresentation.summaryOfChanges %></p></div></aside><% } else { %><span id="policy-changes" class="refund-policy-anchor" aria-hidden="true"></span><% } %>
+        <% if (policyHtml) { %><article class="legal-markdown"><%- policyHtml %></article><% } else { %><article class="refund-policy-fallback"><h2>Policy temporarily unavailable</h2><p>Please use <a href="/contact">Contact</a> for help identifying the right event, organizer, or payment workflow.</p></article><% } %>
+      </section>
+    </div>
+
+    <section class="refund-related" aria-labelledby="refund-related-title"><div><p class="refund-eyebrow">Related rules and support</p><h2 id="refund-related-title">Continue with the authoritative detail</h2></div><nav aria-label="Related policies and help"><% policyPresentation.relatedPolicies.forEach((item) => { %><a href="<%= item.href %>"><%= item.label %><i data-lucide="arrow-up-right" aria-hidden="true"></i></a><% }) %></nav></section>
+  </div>
+</main>

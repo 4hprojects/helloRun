@@ -578,12 +578,12 @@
         activity: true,
         created: true
       };
-      const columnStorageKey = 'adminUsersVisibleColumns';
+      const columnStorageKey = 'helloRun:adminUsersVisibleColumns';
       let lastModalTrigger = null;
 
       function getStoredColumnState() {
         try {
-          const parsed = JSON.parse(window.localStorage.getItem(columnStorageKey) || '{}');
+          const parsed = window.HelloRunPrivacy?.functional ? JSON.parse(window.localStorage.getItem(columnStorageKey) || '{}') : {};
           return { ...defaultColumns, ...parsed };
         } catch (_) {
           return { ...defaultColumns };
@@ -592,7 +592,7 @@
 
       function saveColumnState(state) {
         try {
-          window.localStorage.setItem(columnStorageKey, JSON.stringify(state));
+          if (window.HelloRunPrivacy?.functional) window.localStorage.setItem(columnStorageKey, JSON.stringify(state));
         } catch (_) {
           // Ignore storage failures; controls still work for this page load.
         }

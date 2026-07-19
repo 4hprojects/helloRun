@@ -1,5 +1,8 @@
 'use strict';
 
+const { buildContactPresentation } = require('../../services/contact-page-presentation.service');
+const { buildFaqPresentation } = require('../../services/faq-page-presentation.service');
+
 const {
   crypto,
   Event,
@@ -333,3 +336,34 @@ function buildHowItWorksActions(locals = {}) {
 }
 
 exports.buildHowItWorksActions = buildHowItWorksActions;
+
+exports.getContact = (req, res) => {
+  const contactPresentation = buildContactPresentation({
+    locals: res.locals,
+    source: req.query.source,
+    topic: req.query.topic,
+    supportEmail: process.env.ADMIN_EMAIL
+  });
+
+  return res.render('pages/contact', {
+    title: 'Contact HelloRun Support | Runner and Organizer Help',
+    seo: {
+      description: 'Prepare a complete HelloRun support request for account, registration, payment, activity review, organizer, privacy, safety, or partnership questions.'
+    },
+    contactPresentation
+  });
+};
+
+exports.getFaq = (req, res) => {
+  const faqPresentation = buildFaqPresentation({ locals: res.locals });
+  const baseUrl = getAppBaseUrl();
+
+  return res.render('pages/faq', {
+    title: 'HelloRun FAQ | Events, Activity Review, Progress and Support',
+    seo: {
+      description: 'Find practical HelloRun answers about event registration, payment and activity review, accumulated challenges, leaderboards, certificates, privacy, organizers, and runner support.',
+      canonicalUrl: baseUrl ? `${baseUrl}/faq` : ''
+    },
+    faqPresentation
+  });
+};

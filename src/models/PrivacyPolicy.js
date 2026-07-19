@@ -99,6 +99,16 @@ const privacyPolicySchema = new mongoose.Schema(
     publishedAt: {
       type: Date,
       default: null
+    },
+    noticeDispatch: {
+      status: { type: String, enum: ['none', 'pending', 'processing', 'completed', 'failed'], default: 'none' },
+      audienceBeforeAt: { type: Date, default: null },
+      lastUserId: { type: mongoose.Schema.Types.ObjectId, default: null },
+      processedCount: { type: Number, default: 0, min: 0 },
+      attemptCount: { type: Number, default: 0, min: 0 },
+      lockedAt: { type: Date, default: null },
+      completedAt: { type: Date, default: null },
+      lastError: { type: String, default: '', maxlength: 500 }
     }
   },
   {

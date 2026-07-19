@@ -1,0 +1,56 @@
+<%
+  const cookieChoices = locals.cookiePreferences || { functional: false, analytics: false, advertising: false, hasChoice: false };
+  const preferenceReturnTo = locals.currentPath || '/';
+%>
+<% if (!cookieChoices.hasChoice) { %>
+  <aside class="cookie-consent-banner" data-cookie-banner aria-labelledby="cookie-banner-title">
+    <div class="cookie-consent-copy">
+      <span class="cookie-consent-icon"><i data-lucide="cookie" aria-hidden="true"></i></span>
+      <div>
+        <h2 id="cookie-banner-title">Choose how HelloRun uses this browser</h2>
+        <p>Essential security storage is always active. Functional drafts, Analytics, and Advertising stay off unless you allow them.</p>
+      </div>
+    </div>
+    <form method="POST" action="/cookie-preferences" class="cookie-consent-actions" data-cookie-preference-form>
+      <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+      <input type="hidden" name="returnTo" value="<%= preferenceReturnTo %>">
+      <button class="btn btn-secondary" type="submit" name="action" value="reject_optional">Reject optional</button>
+      <a class="btn btn-secondary" href="/cookie-policy#cookie-choices" data-open-cookie-preferences>Customize</a>
+      <button class="btn btn-primary" type="submit" name="action" value="accept_all">Accept all</button>
+    </form>
+  </aside>
+<% } %>
+
+<dialog class="cookie-preferences-dialog" id="cookiePreferencesDialog" aria-labelledby="cookie-preferences-title" aria-describedby="cookie-preferences-description">
+  <form method="POST" action="/cookie-preferences" data-cookie-preference-form data-cookie-custom-form>
+    <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+    <input type="hidden" name="returnTo" value="<%= preferenceReturnTo %>">
+    <header class="cookie-dialog-header">
+      <div><span class="cookie-dialog-kicker">Privacy choices</span><h2 id="cookie-preferences-title">Cookie preferences</h2></div>
+      <button class="cookie-dialog-close" type="button" data-close-cookie-preferences aria-label="Close cookie preferences"><i data-lucide="x" aria-hidden="true"></i></button>
+    </header>
+    <p id="cookie-preferences-description">Optional categories are browser-specific. You can change them at any time.</p>
+    <div class="cookie-choice-list">
+      <div class="cookie-choice-row is-required">
+        <div><strong>Essential</strong><p>Secure sessions, CSRF protection, authentication, and your preference record.</p></div>
+        <span class="cookie-required-state"><i data-lucide="lock" aria-hidden="true"></i>Always on</span>
+      </div>
+      <% [
+        ['functional', 'Functional', 'Local form drafts and interface preferences on this browser.'],
+        ['analytics', 'Analytics', 'Google Analytics measurement used to understand and improve HelloRun.'],
+        ['advertising', 'Advertising', 'Configured Google AdSense delivery, measurement, and fraud prevention.']
+      ].forEach(([key, label, description]) => { %>
+        <label class="cookie-choice-row" for="cookie-choice-<%= key %>">
+          <span><strong><%= label %></strong><small><%= description %></small></span>
+          <span class="cookie-switch"><input id="cookie-choice-<%= key %>" type="checkbox" name="<%= key %>" value="1" <%= cookieChoices[key] ? 'checked' : '' %>><span aria-hidden="true"></span></span>
+        </label>
+      <% }) %>
+    </div>
+    <p class="cookie-dialog-note">Turning off Functional storage removes HelloRun-owned local drafts and saved interface choices from this browser. Third-party cookies may require browser or provider controls.</p>
+    <div class="cookie-dialog-actions">
+      <button class="btn btn-secondary" type="button" data-reject-cookie-preferences>Reject optional</button>
+      <button class="btn btn-primary" type="submit">Save preferences</button>
+    </div>
+    <p class="cookie-preference-status" data-cookie-preference-status role="status" aria-live="polite"></p>
+  </form>
+</dialog>

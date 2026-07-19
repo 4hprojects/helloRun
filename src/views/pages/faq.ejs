@@ -2,158 +2,149 @@
 <html lang="en">
 <head>
   <%- include('../layouts/head', { title: title, seo: typeof seo !== 'undefined' ? seo : null }) %>
-  <link rel="stylesheet" href="/css/static-pages.css">
-  <script type="application/ld+json">{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    { "@type": "Question", "name": "What is HelloRun?", "acceptedAnswer": { "@type": "Answer", "text": "HelloRun is a running event platform for virtual, on-site, and hybrid events. Runners can register, submit proof, track review status, and access event recognition when enabled." } },
-    { "@type": "Question", "name": "What is a virtual run?", "acceptedAnswer": { "@type": "Answer", "text": "A virtual run is an event where you complete your activity from your own safe location within the event period, then submit activity proof for review." } },
-    { "@type": "Question", "name": "Do I need a GPS watch?", "acceptedAnswer": { "@type": "Answer", "text": "No. Use the tracking method accepted by the event. Many events accept screenshots from running apps, GPS watches, treadmill records, or manual entries when the rules allow them." } },
-    { "@type": "Question", "name": "Can I use Strava, Garmin, Nike Run Club, Huawei Health, Samsung Health, or other apps?", "acceptedAnswer": { "@type": "Answer", "text": "Usually yes if the event accepts app screenshots and your proof clearly shows the required details. Always check the event page before submitting." } },
-    { "@type": "Question", "name": "Can I walk instead of run?", "acceptedAnswer": { "@type": "Answer", "text": "Some events accept walking, hiking, or mixed activities. The event page lists accepted activity types and completion rules." } },
-    { "@type": "Question", "name": "Can I join from anywhere?", "acceptedAnswer": { "@type": "Answer", "text": "Virtual events are generally open from anywhere unless the organizer lists location, delivery, eligibility, or country restrictions." } },
-    { "@type": "Question", "name": "Can one activity count for multiple eligible events?", "acceptedAnswer": { "@type": "Answer", "text": "HelloRun may allow one activity to be submitted to multiple eligible registrations when the activity falls within each event window and matches the rules. Organizers still review each submission separately." } },
-    { "@type": "Question", "name": "What proof is accepted?", "acceptedAnswer": { "@type": "Answer", "text": "Accepted proof depends on the event. Common proof includes app screenshots, GPS activity records, treadmill screenshots, or manual entries with clear supporting details." } },
-    { "@type": "Question", "name": "What should my screenshot show?", "acceptedAnswer": { "@type": "Answer", "text": "Your screenshot should show the activity date, distance, duration, and source app or device. If possible, include the activity type and name shown by the app." } },
-    { "@type": "Question", "name": "Why does my result need review?", "acceptedAnswer": { "@type": "Answer", "text": "Review helps protect event credibility. Organizers may check dates, distance, names, duplicate submissions, proof clarity, and eligibility before approving results." } },
-    { "@type": "Question", "name": "Why was my result rejected?", "acceptedAnswer": { "@type": "Answer", "text": "Common reasons include missing details, wrong event date, distance below the requirement, blurry proof, duplicate submission, or proof that does not match the account or event rules." } },
-    { "@type": "Question", "name": "What if my app shows miles instead of kilometers?", "acceptedAnswer": { "@type": "Answer", "text": "Submit the clearest proof available and explain the unit if the event allows it. Organizers may convert the distance or ask for clearer evidence." } },
-    { "@type": "Question", "name": "When will my result appear?", "acceptedAnswer": { "@type": "Answer", "text": "Approved results may appear after organizer review, depending on leaderboard settings. Pending or rejected results may not be shown publicly." } },
-    { "@type": "Question", "name": "How are rankings calculated?", "acceptedAnswer": { "@type": "Answer", "text": "Rankings depend on the event setup. Some leaderboards rank fastest finishers, while accumulated challenges may rank verified total distance." } },
-    { "@type": "Question", "name": "How do certificates work?", "acceptedAnswer": { "@type": "Answer", "text": "Certificates become available only when the event enables certificates and your registration or result meets the event requirements." } },
-    { "@type": "Question", "name": "What if my certificate has the wrong name?", "acceptedAnswer": { "@type": "Answer", "text": "Check your profile name and contact support or the organizer with the event name, confirmation code, and the correction needed." } },
-    { "@type": "Question", "name": "Can I create an event?", "acceptedAnswer": { "@type": "Answer", "text": "Organizer access depends on account status and platform review. Approved organizers can create and manage events through their dashboard." } },
-    { "@type": "Question", "name": "What event types are supported?", "acceptedAnswer": { "@type": "Answer", "text": "HelloRun supports virtual runs, on-site races, hybrid events, single-distance events, and accumulated distance challenges." } },
-    { "@type": "Question", "name": "Can schools or communities use HelloRun?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Schools, clubs, local groups, and community organizations can use HelloRun for wellness events, fundraising runs, and participation challenges when their setup fits the platform workflow." } },
-    { "@type": "Question", "name": "Can events be free or paid?", "acceptedAnswer": { "@type": "Answer", "text": "Events may be free or paid depending on the organizer configuration. Paid events can require payment receipt review before result submission unlocks." } },
-    { "@type": "Question", "name": "Is HelloRun free?", "acceptedAnswer": { "@type": "Answer", "text": "Creating an account may be free, but individual event fees depend on the organizer and event setup." } },
-    { "@type": "Question", "name": "How is my data handled?", "acceptedAnswer": { "@type": "Answer", "text": "HelloRun uses account, registration, payment, and activity proof data to operate event workflows. Read the Privacy Policy and Data Usage Policy at hellorun.online/privacy for details." } },
-    { "@type": "Question", "name": "How do I contact support?", "acceptedAnswer": { "@type": "Answer", "text": "Use the Contact page at hellorun.online/contact and include your event name, confirmation code, account email, and a clear description of the concern." } }
-  ]
-}</script>
+  <link rel="stylesheet" href="/css/faq-page.css">
+  <script type="application/ld+json"><%- faqPresentation.structuredDataJson %></script>
 </head>
-<body>
+<body class="faq-body<%= locals.isAuthenticated && !locals.isAdmin && !locals.isApprovedOrganizer && !locals.isOrganizer ? ' has-runner-mobile-nav' : '' %>">
   <%- include('../layouts/nav') %>
-  <main class="static-page">
-    <div class="static-wrap">
-      <header class="static-hero">
-        <h1>FAQ</h1>
-        <p>Answers to common questions from runners, walkers, event organizers, and community groups using HelloRun.</p>
+
+  <main class="faq-page" id="main-content">
+    <div class="faq-wrap">
+      <header class="faq-hero" aria-labelledby="faq-title">
+        <div class="faq-hero-copy">
+          <span class="faq-kicker"><i data-lucide="circle-help" aria-hidden="true"></i>HelloRun support library</span>
+          <h1 id="faq-title">How can we help?</h1>
+          <p>Find clear answers about joining events, submitting activities, following reviews, earning recognition, managing an account, and organizing with HelloRun.</p>
+
+          <div class="faq-search" role="search" aria-labelledby="faq-search-label">
+            <label id="faq-search-label" for="faq-search-input">Search <%= faqPresentation.entryCount %> answers</label>
+            <div class="faq-search-control">
+              <i data-lucide="search" aria-hidden="true"></i>
+              <input id="faq-search-input" type="search" inputmode="search" autocomplete="off" placeholder="Try “pending distance” or “payment review”" aria-describedby="faq-search-help faq-search-status" data-faq-search>
+              <button type="button" class="faq-search-clear" data-faq-clear hidden>Clear <span class="sr-only">FAQ search</span></button>
+            </div>
+            <div class="faq-search-meta">
+              <p id="faq-search-help">Search questions, answers, and related terms. All answers remain available without JavaScript.</p>
+              <p id="faq-search-status" role="status" aria-live="polite" data-faq-status><%= faqPresentation.entryCount %> answers across <%= faqPresentation.categoryCount %> topics</p>
+            </div>
+          </div>
+
+          <div class="faq-hero-links" aria-label="Other support resources">
+            <a href="/how-it-works"><i data-lucide="route" aria-hidden="true"></i>See how events work</a>
+            <a href="/contact"><i data-lucide="life-buoy" aria-hidden="true"></i>Contact support</a>
+          </div>
+        </div>
+
+        <aside class="faq-start-card" aria-labelledby="faq-start-title">
+          <span class="faq-start-icon"><i data-lucide="list-checks" aria-hidden="true"></i></span>
+          <div>
+            <span class="faq-eyebrow">Before you contact support</span>
+            <h2 id="faq-start-title">Start with the event record</h2>
+            <p>For an event question, have the event name, confirmation code, visible status, and the outcome you need. Do not post payment receipts or activity proof publicly.</p>
+          </div>
+          <a href="<%= faqPresentation.startAction.href %>"><%= faqPresentation.startAction.label %> <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+        </aside>
       </header>
 
-      <section class="faq-list">
-        <h2>Runner Questions</h2>
-        <article class="faq-item">
-          <h3>What is HelloRun?</h3>
-          <p>HelloRun is a running event platform for virtual, on-site, and hybrid events. Runners can register, submit proof, track review status, and access event recognition when enabled.</p>
-        </article>
-        <article class="faq-item">
-          <h3>What is a virtual run?</h3>
-          <p>A virtual run is an event where you complete your activity from your own safe location within the event period, then submit activity proof for review.</p>
-        </article>
-        <article class="faq-item">
-          <h3>Do I need a GPS watch?</h3>
-          <p>No. Use the tracking method accepted by the event. Many events accept screenshots from running apps, GPS watches, treadmill records, or manual entries when the rules allow them.</p>
-        </article>
-        <article class="faq-item">
-          <h3>Can I use Strava, Garmin, Nike Run Club, Huawei Health, Samsung Health, or other apps?</h3>
-          <p>Usually yes if the event accepts app screenshots and your proof clearly shows the required details. Always check the event page before submitting.</p>
-        </article>
-        <article class="faq-item">
-          <h3>Can I walk instead of run?</h3>
-          <p>Some events accept walking, hiking, or mixed activities. The event page lists accepted activity types and completion rules.</p>
-        </article>
-        <article class="faq-item">
-          <h3>Can I join from anywhere?</h3>
-          <p>Virtual events are generally open from anywhere unless the organizer lists location, delivery, eligibility, or country restrictions.</p>
-        </article>
-        <article class="faq-item">
-          <h3>Can one activity count for multiple eligible events?</h3>
-          <p>HelloRun may allow one activity to be submitted to multiple eligible registrations when the activity falls within each event window and matches the rules. Organizers still review each submission separately.</p>
-        </article>
+      <nav class="faq-topic-strip" aria-label="FAQ topics">
+        <% faqPresentation.categories.forEach((category) => { %>
+          <a href="#<%= category.anchor %>" data-faq-category-link="<%= category.id %>">
+            <i data-lucide="<%= category.icon %>" aria-hidden="true"></i>
+            <span><%= category.shortLabel %></span>
+            <small><%= category.count %></small>
+          </a>
+        <% }) %>
+      </nav>
 
-        <h2>Proof Submission Questions</h2>
-        <article class="faq-item">
-          <h3>What proof is accepted?</h3>
-          <p>Accepted proof depends on the event. Common proof includes app screenshots, GPS activity records, treadmill screenshots, or manual entries with clear supporting details.</p>
-        </article>
-        <article class="faq-item">
-          <h3>What should my screenshot show?</h3>
-          <p>Your screenshot should show the activity date, distance, duration, and source app or device. If possible, include the activity type and name shown by the app.</p>
-        </article>
-        <article class="faq-item">
-          <h3>Why does my result need review?</h3>
-          <p>Review helps protect event credibility. Organizers may check dates, distance, names, duplicate submissions, proof clarity, and eligibility before approving results.</p>
-        </article>
-        <article class="faq-item">
-          <h3>Why was my result rejected?</h3>
-          <p>Common reasons include missing details, wrong event date, distance below the requirement, blurry proof, duplicate submission, or proof that does not match the account or event rules.</p>
-        </article>
-        <article class="faq-item">
-          <h3>What if my app shows miles instead of kilometers?</h3>
-          <p>Submit the clearest proof available and explain the unit if the event allows it. Organizers may convert the distance or ask for clearer evidence.</p>
-        </article>
+      <div class="faq-directory" id="faq-directory">
+        <aside class="faq-directory-nav" aria-label="Browse FAQ topics">
+          <div class="faq-directory-nav-inner">
+            <span class="faq-eyebrow">Browse by topic</span>
+            <ul>
+              <% faqPresentation.categories.forEach((category) => { %>
+                <li>
+                  <a href="#<%= category.anchor %>" data-faq-category-link="<%= category.id %>">
+                    <i data-lucide="<%= category.icon %>" aria-hidden="true"></i>
+                    <span><%= category.shortLabel %></span>
+                    <small><%= category.count %></small>
+                  </a>
+                </li>
+              <% }) %>
+            </ul>
+            <p>Event pages remain authoritative for dates, prices, accepted activities, proof rules, and recognition.</p>
+          </div>
+        </aside>
 
-        <h2>Leaderboard and Certificate Questions</h2>
-        <article class="faq-item">
-          <h3>When will my result appear?</h3>
-          <p>Approved results may appear after organizer review, depending on leaderboard settings. Pending or rejected results may not be shown publicly.</p>
-        </article>
-        <article class="faq-item">
-          <h3>How are rankings calculated?</h3>
-          <p>Rankings depend on the event setup. Some leaderboards rank fastest finishers, while accumulated challenges may rank verified total distance.</p>
-        </article>
-        <article class="faq-item">
-          <h3>How do certificates work?</h3>
-          <p>Certificates become available only when the event enables certificates and your registration or result meets the event requirements.</p>
-        </article>
-        <article class="faq-item">
-          <h3>What if my certificate has the wrong name?</h3>
-          <p>Check your profile name and contact support or the organizer with the event name, confirmation code, and the correction needed.</p>
-        </article>
+        <div class="faq-content" data-faq-content>
+          <% faqPresentation.categories.forEach((category) => { %>
+            <section class="faq-category" id="<%= category.anchor %>" aria-labelledby="<%= category.anchor %>-title" data-faq-category="<%= category.id %>">
+              <header class="faq-category-heading">
+                <span class="faq-category-icon"><i data-lucide="<%= category.icon %>" aria-hidden="true"></i></span>
+                <div>
+                  <span class="faq-eyebrow"><%= category.count %> practical answers</span>
+                  <h2 id="<%= category.anchor %>-title"><%= category.label %></h2>
+                  <p><%= category.description %></p>
+                </div>
+              </header>
 
-        <h2>Organizer Questions</h2>
-        <article class="faq-item">
-          <h3>Can I create an event?</h3>
-          <p>Organizer access depends on account status and platform review. Approved organizers can create and manage events through their dashboard.</p>
-        </article>
-        <article class="faq-item">
-          <h3>What event types are supported?</h3>
-          <p>HelloRun supports virtual runs, on-site races, hybrid events, single-distance events, and accumulated distance challenges.</p>
-        </article>
-        <article class="faq-item">
-          <h3>Can schools or communities use HelloRun?</h3>
-          <p>Yes. Schools, clubs, local groups, and community organizations can use HelloRun for wellness events, fundraising runs, and participation challenges when their setup fits the platform workflow.</p>
-        </article>
-        <article class="faq-item">
-          <h3>Can events be free or paid?</h3>
-          <p>Events may be free or paid depending on the organizer configuration. Paid events can require payment receipt review before result submission unlocks.</p>
-        </article>
+              <div class="faq-questions">
+                <% category.questions.forEach((entry, entryIndex) => { %>
+                  <details class="faq-question" id="<%= entry.anchor %>" data-faq-entry data-faq-keywords="<%= entry.keywords.join(' ') %>">
+                    <summary>
+                      <span class="faq-question-number"><%= String(entryIndex + 1).padStart(2, '0') %></span>
+                      <span class="faq-question-title"><%= entry.question %></span>
+                      <span class="faq-question-toggle" aria-hidden="true"><i data-lucide="plus"></i></span>
+                    </summary>
+                    <div class="faq-answer">
+                      <p><%= entry.answer %></p>
+                      <% if (entry.links && entry.links.length) { %>
+                        <div class="faq-answer-links" aria-label="Related resources">
+                          <% entry.links.forEach((link) => { %>
+                            <a href="<%= link.href %>"><%= link.label %><i data-lucide="arrow-up-right" aria-hidden="true"></i></a>
+                          <% }) %>
+                        </div>
+                      <% } %>
+                      <a class="faq-answer-anchor" href="#<%= entry.anchor %>" aria-label="Link to: <%= entry.question %>"><i data-lucide="link-2" aria-hidden="true"></i>Link to this answer</a>
+                    </div>
+                  </details>
+                <% }) %>
+              </div>
+            </section>
+          <% }) %>
 
-        <h2>Account and Privacy Questions</h2>
-        <article class="faq-item">
-          <h3>Is HelloRun free?</h3>
-          <p>Creating an account may be free, but individual event fees depend on the organizer and event setup.</p>
-        </article>
-        <article class="faq-item">
-          <h3>How is my data handled?</h3>
-          <p>HelloRun uses account, registration, payment, and activity proof data to operate event workflows. Read the <a href="/privacy">Privacy Policy</a> and <a href="/data-usage-policy">Data Usage Policy</a> for details.</p>
-        </article>
-        <article class="faq-item">
-          <h3>How do I contact support?</h3>
-          <p>Use the <a href="/contact">Contact</a> page and include your event name, confirmation code, account email, and a clear description of the concern.</p>
-        </article>
+          <section class="faq-no-results" data-faq-empty hidden aria-labelledby="faq-no-results-title">
+            <span><i data-lucide="search-x" aria-hidden="true"></i></span>
+            <h2 id="faq-no-results-title">No matching answer yet</h2>
+            <p>Try a shorter phrase, browse the topics above, or prepare a support request with the event and reference details.</p>
+            <button type="button" class="btn btn-secondary" data-faq-empty-clear>Clear search</button>
+          </section>
+        </div>
+      </div>
+
+      <section class="faq-next-steps" aria-labelledby="faq-next-title">
+        <div class="faq-next-copy">
+          <span class="faq-next-icon"><i data-lucide="move-right" aria-hidden="true"></i></span>
+          <div>
+            <span class="faq-eyebrow">Your next step</span>
+            <h2 id="faq-next-title">Move from an answer to the right action</h2>
+            <p>Use the relevant account area when possible. Support can help faster when your message includes the event, reference code, visible status, and expected outcome.</p>
+          </div>
+        </div>
+        <div class="faq-next-actions">
+          <% faqPresentation.actions.forEach((action, index) => { %>
+            <a class="<%= index === 0 ? 'faq-action-primary' : 'faq-action-secondary' %>" href="<%= action.href %>">
+              <i data-lucide="<%= action.icon %>" aria-hidden="true"></i><%= action.label %>
+            </a>
+          <% }) %>
+        </div>
       </section>
+
+      <p class="faq-boundary-note"><i data-lucide="info" aria-hidden="true"></i>FAQ guidance is general. The published event page and applicable HelloRun policies control event-specific requirements.</p>
     </div>
   </main>
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>
-    (function initFaqPage() {
-      if (window.lucide) lucide.createIcons();
-    })();
-  </script>
+  <script src="/js/faq-page.js"></script>
 </body>
 </html>
