@@ -90,12 +90,18 @@ test('dynamic sitemap includes live public content and excludes auth and placeho
 });
 
 test('duplicate blog slugs redirect to canonical posts', async () => {
-  const response = await fetch(`${BASE_URL}/blog/best-running-apps-for-virtual-runs`, {
-    redirect: 'manual'
-  });
+  const redirects = [
+    ['best-running-apps-for-virtual-runs', 'best-apps-to-track-your-virtual-run'],
+    ['how-to-organize-community-virtual-run', 'how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'],
+    ['virtual-run-vs-traditional-race', 'virtual-run-vs-traditional-race-which-one-should-you-join'],
+    ['what-is-virtual-run-philippines', 'what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers']
+  ];
 
-  assert.equal(response.status, 301);
-  assert.equal(response.headers.get('location'), '/blog/best-apps-to-track-your-virtual-run');
+  for (const [legacySlug, canonicalSlug] of redirects) {
+    const response = await fetch(`${BASE_URL}/blog/${legacySlug}`, { redirect: 'manual' });
+    assert.equal(response.status, 301, `${legacySlug} should redirect`);
+    assert.equal(response.headers.get('location'), `/blog/${canonicalSlug}`, `${legacySlug} should use its canonical target`);
+  }
 });
 
 test('public blog page does not render unfinished newsletter copy', async () => {

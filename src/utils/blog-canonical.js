@@ -1,7 +1,8 @@
 const CANONICAL_BLOG_REDIRECTS = Object.freeze({
   'virtual-run-vs-traditional-race': 'virtual-run-vs-traditional-race-which-one-should-you-join',
   'best-running-apps-for-virtual-runs': 'best-apps-to-track-your-virtual-run',
-  'how-to-organize-community-virtual-run': 'how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'
+  'how-to-organize-community-virtual-run': 'how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers',
+  'what-is-virtual-run-philippines': 'what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers'
 });
 
 const DUPLICATE_BLOG_SLUGS = Object.freeze(Object.keys(CANONICAL_BLOG_REDIRECTS));
