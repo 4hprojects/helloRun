@@ -9,9 +9,11 @@ const {
   removeRunningGroupMember,
   transferRunningGroupCreator,
   reconcileRunningGroupMemberCount,
+  deleteRunningGroups,
   moderateRunningGroupContent,
   resolveRunningGroupCommunityReport
 } = require('../../services/admin-running-group.service');
+const { acceptsJson, verifyAdminDeletionPassword } = require('./_shared');
 const { recordCriticalAuditEventInBackground } = require('../../services/critical-audit.service');
 const logger = require('../../utils/logger');
 
@@ -142,6 +144,28 @@ exports.reconcileRunningGroupCount = async (req, res) => {
   }
 };
 
+exports.bulkDeleteRunningGroups = async (req, res) => {
+  try {
+    const reason = requireReason(req.body?.reason);
+    const passwordResult = await verifyAdminDeletionPassword(req);
+    if (!passwordResult.ok) return mutationResponse(req, res, passwordResult.status, 'error', passwordResult.message);
+    const results = await deleteRunningGroups(req.body?.groupIds);
+    results.forEach((result) => audit(req, {
+      action: 'admin.running_group.deleted',
+      targetId: result.id,
+      statusFrom: result.previousStatus,
+      statusTo: 'deleted',
+      notes: `${reason} Group: ${result.name}; slug: ${result.slug}; removed memberships: ${result.removedMembers}; announcements: ${result.announcementCount}; comments: ${result.commentCount}; reports: ${result.reportCount}; activity records: ${result.activityCount}.`
+    }));
+    const message = `${results.length} running group${results.length === 1 ? '' : 's'} permanently deleted.`;
+    return mutationResponse(req, res, 200, 'success', message, { deletedCount: results.length, deletedIds: results.map((item) => item.id) });
+  } catch (error) {
+    const status = Number(error.status) || (/moderation reason/i.test(error.message) ? 400 : 500);
+    if (status >= 500) logger.error('Unable to delete running groups.', error);
+    return mutationResponse(req, res, status, 'error', error.message || 'Unable to delete the selected running groups.');
+  }
+};
+
 exports.moderateRunningGroupCommunityContent = async (req, res) => {
   try {
     const targetType = req.params.targetType === 'comment' ? 'comment' : 'announcement';
@@ -204,6 +228,16 @@ function audit(req, input) {
 function redirect(req, res, type, message) {
   const params = new URLSearchParams({ type, msg: String(message || '').slice(0, 240) });
   return res.redirect(`/admin/running-groups/${encodeURIComponent(req.params.id)}?${params}`);
+}
+
+function mutationResponse(req, res, status, type, message, data = {}) {
+  if (acceptsJson(req)) return res.status(status).json({ success: type === 'success', message, ...data });
+  const rawReturnTo = String(req.body?.returnTo || '').trim();
+  const returnTo = rawReturnTo.startsWith('/admin/running-groups') && !rawReturnTo.startsWith('//')
+    ? rawReturnTo
+    : '/admin/running-groups';
+  const separator = returnTo.includes('?') ? '&' : '?';
+  return res.redirect(`${returnTo}${separator}${new URLSearchParams({ type, msg: String(message || '').slice(0, 240) })}`);
 }
 
 function getMessage(query = {}) {

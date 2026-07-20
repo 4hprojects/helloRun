@@ -3,6 +3,13 @@
 <head>
   <%- include('../layouts/head', { title: title || 'Blog Form - HelloRun' }) %>
   <style>
+    .author-form-main {
+      width: 100%;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: clamp(1rem, 2.2vw, 2rem);
+    }
+
     .editor-field {
       margin-bottom: 0.85rem;
     }
@@ -10,6 +17,22 @@
     .author-form {
       display: grid;
       gap: 1rem;
+    }
+
+    .author-form-setup-grid,
+    .author-form-media-stack,
+    .post-basics-grid {
+      display: grid;
+      gap: 1rem;
+      min-width: 0;
+    }
+
+    .author-form-media-stack {
+      align-content: start;
+    }
+
+    .post-basics-grid {
+      gap: 0.85rem;
     }
 
     .form-note {
@@ -182,6 +205,10 @@
       grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.8fr);
       gap: 0.9rem;
       align-items: start;
+    }
+
+    .composer-editor-column {
+      min-width: 0;
     }
 
     .composer-toolbar,
@@ -726,12 +753,17 @@
 
     .cover-preview-wrap {
       position: relative;
-      display: inline-block;
+      display: block;
+      width: 100%;
       margin-top: 0.5rem;
     }
 
     .cover-preview-wrap img {
-      max-width: 280px;
+      width: 100%;
+      max-width: 100%;
+      max-height: 320px;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
       border: 1px solid #e2e8f0;
       border-radius: 8px;
       display: block;
@@ -923,18 +955,83 @@
       box-shadow: none;
     }
 
-    /* Tablet: stack composer editor above preview */
-    @media (max-width: 960px) {
+    @media (min-width: 1100px) {
+      .author-form-setup-grid {
+        grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.85fr);
+        align-items: start;
+      }
+
+      .post-basics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .post-basics-field-wide {
+        grid-column: 1 / -1;
+      }
+
+      .composer-shell {
+        grid-template-columns: minmax(0, 2fr) minmax(360px, 1fr);
+        gap: 1rem;
+      }
+
+      .composer-toolbar {
+        grid-template-columns: minmax(280px, 1fr) minmax(300px, 0.9fr);
+        align-items: end;
+      }
+
+      .composer-actions-row {
+        justify-content: flex-end;
+      }
+
+      .composer-preview {
+        position: sticky;
+        top: 5.5rem;
+        max-height: calc(100vh - 7rem);
+        overflow: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+      }
+
+      .form-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 30;
+        margin-top: 0.75rem;
+        padding: 0.75rem;
+        border: 1px solid #dbe3ef;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.97);
+        box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.08);
+      }
+
+      .author-form .form-field,
+      .author-form .composer-block,
+      .author-form .legacy-editor,
+      .author-form details {
+        scroll-margin-bottom: 6rem;
+      }
+    }
+
+    /* Tablet and smaller: return the workspace to document flow. */
+    @media (max-width: 1099px) {
+      .author-form-setup-grid,
       .composer-shell {
         grid-template-columns: 1fr;
       }
 
       .composer-preview {
         position: static;
+        max-height: none;
+        overflow: visible;
+        scrollbar-gutter: auto;
       }
 
       .template-custom-select {
         max-width: 100%;
+      }
+
+      .form-actions {
+        position: static;
       }
     }
 
@@ -1012,7 +1109,7 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  <main class="author-form-main" style="padding: 2rem; max-width: 900px; margin: 0 auto;">
+  <main class="author-form-main">
     <header class="form-header">
       <div>
         <h1 style="margin-bottom: 0.25rem;"><%= mode === 'edit' ? 'Edit Blog Draft' : 'Create Blog Draft' %></h1>
@@ -1060,27 +1157,87 @@
         Save a draft with a title, category, and at least 50 characters of main content. Submitting for review also requires a cover image.
       </div>
 
-      <section class="form-section" aria-labelledby="postBasicsHeading">
-        <div class="form-field">
-          <div class="field-label-row">
-            <label for="status">Post Status</label>
-            <span class="field-badge field-badge-required" title="Required" aria-label="Required" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required</span></span>
+      <div class="author-form-setup-grid">
+        <section class="form-section post-basics-section" aria-labelledby="postBasicsHeading">
+          <div class="form-section-header">
+            <h2 class="form-section-title" id="postBasicsHeading">Post Basics</h2>
+            <p class="form-section-description">Set the title, summary, category, and discovery keywords for this post.</p>
           </div>
-          <select id="status" name="status" required>
-            <option value="draft" <%= (!formData?.status || formData?.status === 'draft') ? 'selected' : '' %>>Draft</option>
-            <option value="review" <%= formData?.status === 'review' ? 'selected' : '' %>>Ready for Review</option>
-            <option value="scheduled" <%= formData?.status === 'scheduled' ? 'selected' : '' %>>Scheduled</option>
-          </select>
-          <small class="field-help">Draft: Save privately. Review: Submit for admin review. Scheduled: Set a future publish date.</small>
-        </div>
-        <div class="form-field" id="publishDateField" style="display: none;">
-          <div class="field-label-row">
-            <label for="publishedAt">Publish Date & Time</label>
-            <span class="field-badge field-badge-required" title="Required when Scheduled" aria-label="Required when Scheduled" tabindex="0"><i data-lucide="calendar"></i><span class="field-badge-label">Required if Scheduled</span></span>
+
+          <div class="post-basics-grid">
+            <div class="form-field post-basics-field-wide">
+              <div class="field-label-row">
+                <label for="title">Title</label>
+                <span class="field-badge field-badge-required" title="Required" aria-label="Required" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required</span></span>
+              </div>
+              <input id="title" name="title" type="text" required maxlength="150" value="<%= formData?.title || '' %>" placeholder="Example: 6 Easy Tips for Your First 10K Run">
+              <small class="field-help">Keep it specific and clear. 5 to 150 characters.</small>
+            </div>
+
+            <div class="form-field post-basics-field-wide">
+              <div class="field-label-row">
+                <label for="excerpt">Short Summary (Excerpt)</label>
+                <span class="field-badge field-badge-optional" title="Optional" aria-label="Optional" tabindex="0"><i data-lucide="circle-help"></i><span class="field-badge-label">Optional</span></span>
+              </div>
+              <textarea id="excerpt" name="excerpt" rows="2" maxlength="320" placeholder="Example: A beginner-friendly guide to training, pacing, and recovery for your first 10K event."><%= formData?.excerpt || '' %></textarea>
+              <small class="field-help">Shown in the blog list preview. 320 characters max.</small>
+            </div>
+
+            <div class="form-field">
+              <div class="field-label-row">
+                <label for="status">Post Status</label>
+                <span class="field-badge field-badge-required" title="Required" aria-label="Required" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required</span></span>
+              </div>
+              <select id="status" name="status" required>
+                <option value="draft" <%= (!formData?.status || formData?.status === 'draft') ? 'selected' : '' %>>Draft</option>
+                <option value="review" <%= formData?.status === 'review' ? 'selected' : '' %>>Ready for Review</option>
+                <option value="scheduled" <%= formData?.status === 'scheduled' ? 'selected' : '' %>>Scheduled</option>
+              </select>
+              <small class="field-help">Draft: Save privately. Review: Submit for admin review. Scheduled: Set a future publish date.</small>
+            </div>
+
+            <div class="form-field">
+              <div class="field-label-row">
+                <label for="category">Category</label>
+                <span class="field-badge field-badge-required" title="Required" aria-label="Required" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required</span></span>
+              </div>
+              <select id="category" name="category" required>
+                <option value="" disabled <%= !formData?.category ? 'selected' : '' %>>Select category</option>
+                <% (categories || []).forEach((category) => { %>
+                  <option value="<%= category %>" <%= formData?.category === category ? 'selected' : '' %>><%= category %></option>
+                <% }) %>
+              </select>
+              <small class="field-help">Choose the closest match for easier discovery.</small>
+            </div>
+
+            <div class="form-field" id="publishDateField" style="display: none;">
+              <div class="field-label-row">
+                <label for="publishedAt">Publish Date & Time</label>
+                <span class="field-badge field-badge-required" title="Required when Scheduled" aria-label="Required when Scheduled" tabindex="0"><i data-lucide="calendar"></i><span class="field-badge-label">Required if Scheduled</span></span>
+              </div>
+              <input id="publishedAt" name="publishedAt" type="datetime-local" value="<%= formData?.publishedAt ? (new Date(formData.publishedAt).toISOString().slice(0,16)) : '' %>" min="<%= (new Date()).toISOString().slice(0,16) %>">
+              <small class="field-help">Choose a future date/time to schedule this post. It will be published automatically.</small>
+            </div>
+
+            <div class="form-field" id="customCategoryWrap" style="display: none;">
+              <div class="field-label-row">
+                <label for="customCategory">Custom Category</label>
+                <span class="field-badge field-badge-required" title="Required when Category is Other" aria-label="Required when Category is Other" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required when Other</span></span>
+              </div>
+              <input id="customCategory" name="customCategory" type="text" maxlength="80" value="<%= formData?.customCategory || '' %>" placeholder="Example: Trail Safety">
+              <small class="field-help">Required when Category is set to Other.</small>
+            </div>
+
+            <div class="form-field post-basics-field-wide">
+              <div class="field-label-row">
+                <label for="tags">Tags (comma-separated)</label>
+                <span class="field-badge field-badge-optional" title="Optional" aria-label="Optional" tabindex="0"><i data-lucide="circle-help"></i><span class="field-badge-label">Optional</span></span>
+              </div>
+              <input id="tags" name="tags" type="text" value="<%= formData?.tags || '' %>" placeholder="Example: 10k training, beginner runner, hydration">
+              <small class="field-help">Use short keywords. Example format: tag1, tag2, tag3.</small>
+            </div>
           </div>
-          <input id="publishedAt" name="publishedAt" type="datetime-local" value="<%= formData?.publishedAt ? (new Date(formData.publishedAt).toISOString().slice(0,16)) : '' %>" min="<%= (new Date()).toISOString().slice(0,16) %>">
-          <small class="field-help">Choose a future date/time to schedule this post. It will be published automatically.</small>
-        </div>
+
           <script>
             // Scheduling controls: show/hide publish date picker
             (function initSchedulingFields() {
@@ -1096,63 +1253,10 @@
               sync();
             })();
           </script>
-        <div class="form-section-header">
-          <h2 class="form-section-title" id="postBasicsHeading">Post Basics</h2>
-          <p class="form-section-description">Set the title, summary, category, and discovery keywords for this post.</p>
-        </div>
+        </section>
 
-        <div class="form-field">
-          <div class="field-label-row">
-            <label for="title">Title</label>
-            <span class="field-badge field-badge-required" title="Required" aria-label="Required" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required</span></span>
-          </div>
-          <input id="title" name="title" type="text" required maxlength="150" value="<%= formData?.title || '' %>" placeholder="Example: 6 Easy Tips for Your First 10K Run">
-          <small class="field-help">Keep it specific and clear. 5 to 150 characters.</small>
-        </div>
-
-        <div class="form-field">
-          <div class="field-label-row">
-            <label for="excerpt">Short Summary (Excerpt)</label>
-            <span class="field-badge field-badge-optional" title="Optional" aria-label="Optional" tabindex="0"><i data-lucide="circle-help"></i><span class="field-badge-label">Optional</span></span>
-          </div>
-          <textarea id="excerpt" name="excerpt" rows="2" maxlength="320" placeholder="Example: A beginner-friendly guide to training, pacing, and recovery for your first 10K event."><%= formData?.excerpt || '' %></textarea>
-          <small class="field-help">Shown in the blog list preview. 320 characters max.</small>
-        </div>
-
-        <div class="form-field">
-          <div class="field-label-row">
-            <label for="category">Category</label>
-            <span class="field-badge field-badge-required" title="Required" aria-label="Required" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required</span></span>
-          </div>
-          <select id="category" name="category" required>
-            <option value="" disabled <%= !formData?.category ? 'selected' : '' %>>Select category</option>
-            <% (categories || []).forEach((category) => { %>
-              <option value="<%= category %>" <%= formData?.category === category ? 'selected' : '' %>><%= category %></option>
-            <% }) %>
-          </select>
-          <small class="field-help">Choose the closest match for easier discovery.</small>
-        </div>
-
-        <div class="form-field" id="customCategoryWrap" style="display: none;">
-          <div class="field-label-row">
-            <label for="customCategory">Custom Category</label>
-            <span class="field-badge field-badge-required" title="Required when Category is Other" aria-label="Required when Category is Other" tabindex="0"><i data-lucide="circle-alert"></i><span class="field-badge-label">Required when Other</span></span>
-          </div>
-          <input id="customCategory" name="customCategory" type="text" maxlength="80" value="<%= formData?.customCategory || '' %>" placeholder="Example: Trail Safety">
-          <small class="field-help">Required when Category is set to Other.</small>
-        </div>
-
-        <div class="form-field">
-          <div class="field-label-row">
-            <label for="tags">Tags (comma-separated)</label>
-            <span class="field-badge field-badge-optional" title="Optional" aria-label="Optional" tabindex="0"><i data-lucide="circle-help"></i><span class="field-badge-label">Optional</span></span>
-          </div>
-          <input id="tags" name="tags" type="text" value="<%= formData?.tags || '' %>" placeholder="Example: 10k training, beginner runner, hydration">
-          <small class="field-help">Use short keywords. Example format: tag1, tag2, tag3.</small>
-        </div>
-      </section>
-
-      <section class="form-section" aria-labelledby="coverImageHeading">
+        <div class="author-form-media-stack">
+          <section class="form-section" aria-labelledby="coverImageHeading">
         <div class="form-section-header">
           <h2 class="form-section-title" id="coverImageHeading">Cover Image</h2>
           <p class="form-section-description">Add a cover image by URL or upload. It is required before submitting for review.</p>
@@ -1198,9 +1302,9 @@
           <input id="coverImageAlt" name="coverImageAlt" type="text" maxlength="180" value="<%= formData?.coverImageAlt || '' %>" placeholder="Example: Runners crossing the finish line at sunrise">
           <small class="field-help">Describe the image briefly for accessibility and SEO.</small>
         </div>
-      </section>
+          </section>
 
-      <section class="form-section" aria-labelledby="galleryHeading">
+          <section class="form-section" aria-labelledby="galleryHeading">
         <div class="form-section-header">
           <h2 class="form-section-title" id="galleryHeading">Gallery Images</h2>
           <p class="form-section-description">Optional. Upload up to 3 extra images, then reorder or remove them before saving.</p>
@@ -1217,7 +1321,9 @@
         <div class="form-field">
           <div id="galleryPreviewList" style="display:grid; gap:.65rem;"></div>
         </div>
-      </section>
+          </section>
+        </div>
+      </div>
 
       <section class="form-section editor-field" aria-labelledby="mainContentHeading">
         <div class="form-section-header">
@@ -1232,7 +1338,7 @@
         <input type="hidden" name="contentHtml" id="contentHtml" value="<%= formData?.contentHtml || '' %>">
         <% if (!isLegacyPost) { %>
           <div class="composer-shell" id="structuredComposer">
-            <div>
+            <div class="composer-editor-column">
               <div class="composer-toolbar">
                 <div>
                   <label for="templateDropdownBtn" style="font-weight: 600; display: block; margin-bottom: 0.35rem;">Template</label>
@@ -1310,7 +1416,7 @@
                 </div>
               </div>
             </div>
-            <aside class="composer-preview" aria-live="polite">
+            <aside class="composer-preview" role="region" aria-label="Live article preview" aria-live="polite" tabindex="0">
               <h3>Preview</h3>
               <div class="composer-preview-body" id="composerPreview"></div>
             </aside>

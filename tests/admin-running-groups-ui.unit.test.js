@@ -16,6 +16,9 @@ test('admin running group templates compile and expose management routes', () =>
   ejs.compile(list, { filename: 'src/views/admin/running-groups-list.ejs' });
   ejs.compile(detail, { filename: 'src/views/admin/running-group-detail.ejs' });
   assert.match(list, /action="\/admin\/running-groups"/);
+  assert.match(list, /action="\/admin\/running-groups\/bulk-delete"/);
+  assert.match(list, /data-admin-group-select-all/);
+  assert.match(list, /data-admin-group-bulk-modal/);
   assert.match(detail, /\/update/);
   assert.match(detail, /\/archive/);
   assert.match(detail, /\/reactivate/);
@@ -25,13 +28,16 @@ test('admin running group templates compile and expose management routes', () =>
   assert.match(detail, /name="reason" required minlength="8"/);
 });
 
-test('all running group mutations require admin access and moderation rate limits', () => {
+test('running group mutations use moderation limits and deletion requires full admin access', () => {
   const routes = read('src/routes/admin.routes.js');
   for (const action of ['update', 'archive', 'reactivate', 'reconcile', 'creator']) {
     assert.match(routes, new RegExp(`running-groups/:id/${action.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[^\n]+requireAdmin[^\n]+adminModerationLimiter`));
   }
   assert.match(routes, /running-groups\/:id\/members\/:userId\/remove[^\n]+requireAdmin[^\n]+adminModerationLimiter/);
-  assert.doesNotMatch(routes, /running-groups[^\n]+requireFullAdmin/);
+  assert.match(routes, /running-groups\/bulk-delete[^\n]+requireAdmin[^\n]+requireFullAdmin[^\n]+adminModerationLimiter/);
+  for (const line of routes.split('\n').filter((value) => /running-groups\/:id/.test(value))) {
+    assert.doesNotMatch(line, /requireFullAdmin/);
+  }
 });
 
 test('confirmation dialog cancels, restores focus, and submits once', () => {
@@ -60,6 +66,46 @@ test('confirmation dialog cancels, restores focus, and submits once', () => {
   assert.equal(submits, 1);
 });
 
+test('bulk delete selection opens a centered modal and validates destructive confirmation', async () => {
+  const window = new Window({ url: 'https://hellorun.test/admin/running-groups' });
+  window.document.body.innerHTML = `
+    <form id="adminRunningGroupsBulkDeleteForm" action="/admin/running-groups/bulk-delete">
+      <input name="_csrf" value="token"><label><input type="checkbox" data-admin-group-select-all></label>
+      <input type="checkbox" name="groupIds" value="507f1f77bcf86cd799439011" data-admin-group-checkbox data-group-name="First group">
+      <input type="checkbox" name="groupIds" value="507f1f77bcf86cd799439012" data-admin-group-checkbox data-group-name="Second group">
+      <button type="button" data-admin-group-bulk-trigger disabled><span>Delete selected</span></button><span data-admin-group-selected-count></span>
+    </form>
+    <div data-admin-group-bulk-modal hidden aria-hidden="true"><div role="dialog" tabindex="-1"><p data-admin-group-delete-summary></p><ul data-admin-group-delete-names></ul>
+      <textarea data-admin-group-delete-reason></textarea><span data-admin-group-delete-reason-error hidden></span>
+      <input data-admin-group-delete-password><span data-admin-group-delete-password-error hidden></span><p data-admin-group-delete-status></p>
+      <button data-admin-group-delete-cancel>Cancel</button><button data-admin-group-delete-confirm><span>Delete permanently</span></button>
+    </div></div>`;
+  window.lucide = { createIcons() {} };
+  let requests = 0;
+  window.fetch = async () => { requests += 1; return new window.Response(JSON.stringify({ success: true }), { status: 200, headers: { 'content-type': 'application/json' } }); };
+  window.eval(read('src/public/js/admin-running-groups.js'));
+  const boxes = [...window.document.querySelectorAll('[data-admin-group-checkbox]')];
+  boxes[0].checked = true;
+  boxes[0].dispatchEvent(new window.Event('change', { bubbles: true }));
+  const trigger = window.document.querySelector('[data-admin-group-bulk-trigger]');
+  assert.equal(trigger.disabled, false);
+  assert.equal(window.document.querySelector('[data-admin-group-selected-count]').textContent, '1 selected');
+  trigger.click();
+  const modal = window.document.querySelector('[data-admin-group-bulk-modal]');
+  assert.equal(modal.hidden, false);
+  assert.match(modal.querySelector('[data-admin-group-delete-summary]').textContent, /1 running group selected/);
+  assert.equal(modal.querySelector('[data-admin-group-delete-names]').textContent.trim(), 'First group');
+  modal.querySelector('[data-admin-group-delete-confirm]').click();
+  assert.equal(requests, 0);
+  assert.equal(window.document.activeElement, modal.querySelector('[data-admin-group-delete-reason]'));
+  modal.querySelector('[data-admin-group-delete-reason]').value = 'Valid permanent deletion reason';
+  modal.querySelector('[data-admin-group-delete-password]').value = 'Pass1234';
+  modal.querySelector('[data-admin-group-delete-confirm]').click();
+  modal.querySelector('[data-admin-group-delete-confirm]').click();
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(requests, 1);
+});
+
 test('responsive stylesheet provides card conversion and 44 pixel actions', () => {
   const css = read('src/public/css/admin-running-groups.css');
   assert.match(css, /@media \(max-width: 860px\)/);
@@ -73,6 +119,8 @@ test('responsive stylesheet provides card conversion and 44 pixel actions', () =
   assert.match(css, /\.admin-group-table td \{ width: 100% !important; grid-template-columns: 68px minmax\(0, 1fr\) !important;/);
   assert.match(css, /\.admin-group-status-label-compact \{ display: inline; \}/);
   assert.match(css, /prefers-reduced-motion/);
+  assert.match(css, /\.admin-group-checkbox-target \{ width: 44px; min-height: 44px;/);
+  assert.match(css, /\.admin-group-confirm-backdrop \{ position: fixed; inset: 0;[^}]+place-items: center;/);
 });
 
 test('list renders compact status filters, persistent GET controls, and expandable metadata', async () => {
@@ -88,6 +136,18 @@ test('list renders compact status filters, persistent GET controls, and expandab
   assert.equal(defaultWindow.document.querySelector('.admin-group-discovery-form').method.toLowerCase(), 'get');
   assert.ok(defaultWindow.document.querySelector('.admin-group-metadata'));
   assert.ok(defaultWindow.document.querySelector('.admin-group-description-preview[aria-hidden="true"]'));
+  assert.equal(defaultWindow.document.querySelector('[data-admin-group-checkbox]'), null);
+
+  const fullAdminHtml = await renderList({
+    isFullAdmin: true,
+    filters: { q: '', status: 'all', sort: 'members', page: 1, perPage: 25 }
+  });
+  const fullAdminWindow = new Window();
+  fullAdminWindow.document.documentElement.innerHTML = fullAdminHtml;
+  assert.ok(fullAdminWindow.document.querySelector('[data-admin-group-checkbox]'));
+  assert.ok(fullAdminWindow.document.querySelector('[data-admin-group-select-all]'));
+  assert.ok(fullAdminWindow.document.querySelector('[data-admin-group-bulk-trigger][disabled]'));
+  assert.ok(fullAdminWindow.document.querySelector('[data-admin-group-bulk-modal][hidden]'));
 
   const filteredHtml = await renderList({
     filters: { q: 'long group', status: 'archived', sort: 'name', page: 1, perPage: 50 }
@@ -117,6 +177,7 @@ test('dashboard, universal search, and audit filters include running groups', ()
   assert.match(read('src/controllers/admin/events.controller.js'), /results\.runningGroups/);
   const audit = read('src/services/critical-audit-query.service.js');
   assert.match(audit, /admin\.running_group\.archived/);
+  assert.match(audit, /admin\.running_group\.deleted/);
   assert.match(audit, /value: 'running_group'/);
 });
 
@@ -137,7 +198,7 @@ async function renderList(overrides = {}) {
     currentPath: '/admin/running-groups',
     isAuthenticated: true,
     isAdmin: true,
-    isFullAdmin: false,
+    isFullAdmin: Boolean(overrides.isFullAdmin),
     isOrganizer: false,
     isApprovedOrganizer: false,
     runnerUnreadNotifications: 0,

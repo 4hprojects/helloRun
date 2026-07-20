@@ -16,6 +16,7 @@ const TYPE_PRESENTATION = [
   { match: /blog_comment_reply/, category: 'Community', icon: 'message-circle-reply', tone: 'community', actionLabel: 'View reply' },
   { match: /running_group_reply/, category: 'Community', icon: 'message-circle-reply', tone: 'community', actionLabel: 'View reply' },
   { match: /running_group_announcement/, category: 'Community', icon: 'megaphone', tone: 'community', actionLabel: 'View announcement' },
+  { match: /running_group_deleted/, category: 'Community', icon: 'users', tone: 'attention', actionLabel: 'Browse groups' },
   { match: /payment_rejected/, category: 'Payment', icon: 'credit-card', tone: 'attention', actionLabel: 'Fix payment' },
   { match: /result_rejected/, category: 'Activity review', icon: 'circle-alert', tone: 'attention', actionLabel: 'Fix entry' },
   { match: /certificate/, category: 'Recognition', icon: 'award', tone: 'recognition', actionLabel: 'Download certificate' },

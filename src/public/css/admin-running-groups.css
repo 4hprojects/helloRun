@@ -39,6 +39,18 @@ a.admin-group-status-item:hover { background: #f8fafc; }
 .admin-group-results-heading { min-height: 32px; display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin: .65rem 0; color: #526078; }
 .admin-group-results-heading p { margin: 0; }
 .admin-group-results-heading > span { max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .85rem; }
+.admin-group-bulk-form { margin: 0; }
+.admin-group-bulk-toolbar { min-height: 52px; display: flex; align-items: center; gap: .75rem; padding: .45rem .65rem; border: 1px solid #d8dee9; border-bottom: 0; border-radius: .75rem .75rem 0 0; background: #fff; }
+.admin-group-bulk-toolbar .btn { min-height: 44px; }
+.admin-group-bulk-toolbar [data-admin-group-selected-count] { color: #64748b; font-size: .86rem; font-weight: 700; }
+.admin-group-bulk-form .admin-group-table-wrap { margin-top: 0; border-radius: 0 0 .75rem .75rem; }
+.admin-group-select-cell { width: 54px; text-align: center; }
+.admin-group-checkbox-target { width: 44px; min-height: 44px; display: inline-grid; place-items: center; cursor: pointer; }
+.admin-group-select-cell input[type="checkbox"] { width: 22px; height: 22px; min-width: 22px; accent-color: #b42318; cursor: pointer; }
+.admin-group-noscript-delete { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto; gap: .65rem; align-items: end; padding: .75rem; border: 1px solid #fecaca; background: #fff7f7; }
+.admin-group-noscript-delete > p { grid-column: 1 / -1; margin: 0; color: #7f1d1d; }
+.admin-group-noscript-delete label, .admin-group-delete-field { display: grid; gap: .3rem; color: #253149; font-size: .84rem; font-weight: 700; text-align: left; }
+.admin-group-noscript-delete :is(input, textarea), .admin-group-delete-field :is(input, textarea) { width: 100%; min-height: 44px; box-sizing: border-box; border: 1px solid #b8c2d1; border-radius: .5rem; padding: .6rem .7rem; font: inherit; resize: vertical; }
 
 .admin-group-table td > small, .admin-group-member-link small { display: block; color: #64748b; margin-top: .2rem; max-width: 34rem; }
 .admin-group-identity-cell { min-width: 250px; }
@@ -109,6 +121,14 @@ a.admin-group-status-item:hover { background: #f8fafc; }
 .admin-group-confirm-backdrop[hidden] { display: none; }
 .admin-group-confirm-dialog { width: min(460px, 100%); max-height: calc(100vh - 2rem); overflow: auto; padding: 1.35rem; border-radius: 1rem; background: #fff; color: #172033; box-shadow: 0 22px 60px rgba(0,0,0,.28); text-align: center; }
 .admin-group-confirm-dialog > svg { width: 42px; height: 42px; color: #b45309; }
+.admin-group-delete-dialog { width: min(560px, 100%); }
+.admin-group-delete-dialog > h3 { margin-bottom: .35rem; }
+.admin-group-delete-selection { margin: .85rem 0 .35rem; font-weight: 800; }
+.admin-group-delete-names { max-height: 150px; overflow: auto; margin: 0 0 .8rem; padding: .65rem .65rem .65rem 1.8rem; border-radius: .55rem; background: #f8fafc; text-align: left; overflow-wrap: anywhere; }
+.admin-group-delete-field { margin-top: .7rem; }
+.admin-group-delete-field small { color: #64748b; font-weight: 500; }
+.admin-group-delete-error { color: #b42318; font-weight: 700; }
+.admin-group-delete-status { min-height: 1.5rem; margin: .6rem 0 0; color: #475569; }
 .admin-group-confirm-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 1rem; }
 .admin-group-confirm-actions .btn { width: 100%; min-height: 44px; }
 .admin-group-modal-open { overflow: hidden; }
@@ -165,6 +185,10 @@ a.admin-group-status-item:hover { background: #f8fafc; }
   .admin-group-member-search .btn { min-width: 44px; padding-inline: .6rem; }
   .admin-group-management-grid { grid-template-columns: 1fr; }
   .admin-group-management-card { padding: .8rem; }
+  .admin-group-bulk-toolbar { justify-content: space-between; }
+  .admin-group-bulk-toolbar .btn { min-width: 0; flex: 1 1 auto; }
+  .admin-group-noscript-delete { grid-template-columns: 1fr; }
+  .admin-group-noscript-delete > p { grid-column: auto; }
 }
 
 @media (max-width: 430px) {

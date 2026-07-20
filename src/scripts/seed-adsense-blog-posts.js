@@ -52,8 +52,13 @@ const {
   ARTICLE: HELLORUN_PLATFORM_ARTICLE,
   buildArticlePayload: buildHellorunPlatformArticlePayload
 } = require('../content/hellorun-platform-guide');
+const {
+  ARTICLE: FIRST_VIRTUAL_RUN_ARTICLE,
+  buildArticlePayload: buildFirstVirtualRunArticlePayload
+} = require('../content/prepare-first-virtual-run');
 
 const AUTHOR_EMAIL = 'hellorunonline+guides@gmail.com';
+const EXISTING_GUIDE_AUTHOR_EMAIL = 'hensonsagorsor@gmail.com';
 const COVER_IMAGE_URL = '/images/helloRun-icon.webp';
 const BEST_APPS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/69941482ab1333984de6c96c/1780845345476-349094234-chatgpt_image_jun_7__2026__11_15_14_pm.png';
 const BEST_APPS_PAYLOAD = buildBestAppsArticlePayload({ coverImageUrl: BEST_APPS_COVER_IMAGE_URL });
@@ -79,6 +84,8 @@ const JOIN_PHILIPPINES_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/cover
 const JOIN_PHILIPPINES_PAYLOAD = buildJoinPhilippinesArticlePayload({ coverImageUrl: JOIN_PHILIPPINES_COVER_IMAGE_URL });
 const HELLORUN_PLATFORM_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/698f1cb67748262281092639/1784201019285-302671518-chatgpt_image_jul_16__2026__07_23_15_pm.webp';
 const HELLORUN_PLATFORM_PAYLOAD = buildHellorunPlatformArticlePayload({ coverImageUrl: HELLORUN_PLATFORM_COVER_IMAGE_URL });
+const FIRST_VIRTUAL_RUN_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/6994299f568d52730107dc23/1784555622021-237177645-how-to-prepare-for-your-first-virtual-run.webp';
+const FIRST_VIRTUAL_RUN_PAYLOAD = buildFirstVirtualRunArticlePayload({ coverImageUrl: FIRST_VIRTUAL_RUN_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -347,6 +354,33 @@ const POSTS = [
     ]
   },
   {
+    ...FIRST_VIRTUAL_RUN_ARTICLE,
+    contentHtml: FIRST_VIRTUAL_RUN_PAYLOAD.contentHtml,
+    coverImageUrl: FIRST_VIRTUAL_RUN_COVER_IMAGE_URL,
+    coverImageAlt: FIRST_VIRTUAL_RUN_ARTICLE.coverImageAlt,
+    ogImageUrl: FIRST_VIRTUAL_RUN_COVER_IMAGE_URL,
+    publishedAt: '2026-07-20T14:00:53.532Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/how-it-works',
+      '/faq',
+      '/contact',
+      '/privacy',
+      '/refund-and-cancellation-policy',
+      '/blog/what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers',
+      '/blog/virtual-run-vs-traditional-race-which-one-should-you-join',
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/running-safety-tips-early-morning-night-runs',
+      '/blog/best-apps-to-track-your-virtual-run',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/how-leaderboards-work-virtual-running-events'
+    ]
+  },
+  {
     title: '5K vs 10K vs 21K: Which Distance Should You Choose?',
     slug: '5k-vs-10k-vs-21k-which-distance-should-you-choose',
     category: 'Training',
@@ -441,7 +475,10 @@ async function main() {
     const results = [];
 
     for (const [index, post] of POSTS.entries()) {
-      const payload = buildPostPayload(post, author, index);
+      const postAuthor = post.authorEmail
+        ? await findExistingAuthor(post.authorEmail)
+        : author;
+      const payload = buildPostPayload(post, postAuthor, index);
       const existing = await Blog.findOne({ slug: post.slug }).select('_id title').lean();
       results.push({
         slug: post.slug,
@@ -473,6 +510,12 @@ async function main() {
   } finally {
     await mongoose.disconnect();
   }
+}
+
+async function findExistingAuthor(email) {
+  const author = await User.findOne({ email: String(email || '').trim().toLowerCase(), emailVerified: true });
+  if (!author) throw new Error(`Existing verified guide author not found: ${email}`);
+  return author;
 }
 
 async function ensureAuthor(dryRun) {
@@ -533,7 +576,7 @@ function buildPostPayload(post, author, index) {
     customCategory: '',
     tags: post.tags,
     status: 'published',
-    featured: index < 3,
+    featured: typeof post.featured === 'boolean' ? post.featured : index < 3,
     readingTime: Math.max(4, Math.ceil(contentText.split(/\s+/).filter(Boolean).length / 180)),
     seoTitle: post.seoTitle || `${post.title} - HelloRun Guide`,
     seoDescription: post.seoDescription || post.excerpt,

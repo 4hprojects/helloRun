@@ -6,6 +6,7 @@ const RunningGroupActivity = require('../models/RunningGroupActivity');
 const RunningGroupAnnouncement = require('../models/RunningGroupAnnouncement');
 const RunningGroupComment = require('../models/RunningGroupComment');
 const RunningGroupCommunityReport = require('../models/RunningGroupCommunityReport');
+const Notification = require('../models/Notification');
 const {
   cleanRunningGroupName,
   normalizeRunningGroupKey,
@@ -17,6 +18,7 @@ const { createNotificationSafe } = require('./notification.service');
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
 const SORTS = new Set(['members', 'newest', 'oldest', 'name']);
 const STATUSES = new Set(['all', 'active', 'archived']);
+const MAX_BULK_DELETE_GROUPS = 100;
 
 function normalizeAdminRunningGroupFilters(query = {}) {
   const perPage = PAGE_SIZE_OPTIONS.includes(Number(query.perPage)) ? Number(query.perPage) : 25;
@@ -317,6 +319,92 @@ async function reconcileRunningGroupMemberCount(groupId) {
   return { group, previousCount, actualCount };
 }
 
+function normalizeRunningGroupDeleteIds(values) {
+  const raw = [].concat(values || []).flatMap((value) => String(value || '').split(','))
+    .map((value) => value.trim()).filter(Boolean);
+  if (!raw.length) throw deleteValidationError('Select at least one running group to delete.');
+  if (raw.length > MAX_BULK_DELETE_GROUPS) throw deleteValidationError(`Select no more than ${MAX_BULK_DELETE_GROUPS} running groups at once.`);
+  if (raw.some((value) => !mongoose.Types.ObjectId.isValid(value))) throw deleteValidationError('One or more selected running groups are invalid.');
+  const unique = [...new Set(raw)];
+  if (unique.length !== raw.length) throw deleteValidationError('Duplicate running-group selections are not allowed.');
+  return unique;
+}
+
+async function deleteRunningGroups(groupIds) {
+  const ids = normalizeRunningGroupDeleteIds(groupIds);
+  const groups = await RunningGroup.find({ _id: { $in: ids } }).sort({ _id: 1 }).lean();
+  if (groups.length !== ids.length) throw deleteValidationError('One or more selected running groups no longer exist. Refresh and try again.', 404);
+
+  // Stop new joins before removing memberships and dependent records. Each
+  // group record is removed last, making an interrupted deletion safe to retry.
+  await RunningGroup.updateMany({ _id: { $in: ids } }, { $set: { isActive: false } });
+  const results = [];
+  for (const group of groups) {
+    // eslint-disable-next-line no-await-in-loop
+    const members = await findMemberDocuments(group.name);
+    // eslint-disable-next-line no-await-in-loop
+    await applyMembershipTransforms(members, (names) => names.filter(
+      (item) => normalizeName(item) !== normalizeName(group.name)
+    ));
+    // eslint-disable-next-line no-await-in-loop
+    const announcementIds = await RunningGroupAnnouncement.distinct('_id', { groupId: group._id });
+    // eslint-disable-next-line no-await-in-loop
+    const [announcementCount, commentCount, reportCount, activityCount] = await Promise.all([
+      RunningGroupAnnouncement.countDocuments({ groupId: group._id }),
+      RunningGroupComment.countDocuments({ announcementId: { $in: announcementIds } }),
+      RunningGroupCommunityReport.countDocuments({ groupId: group._id }),
+      RunningGroupActivity.countDocuments({ groupId: group._id })
+    ]);
+    const groupId = String(group._id);
+    const groupNotificationPattern = new RegExp(`^running-group-(?:archived|member-removed|creator):${escapeRegex(groupId)}:`);
+    // eslint-disable-next-line no-await-in-loop
+    await Promise.all([
+      RunningGroupComment.deleteMany({ announcementId: { $in: announcementIds } }),
+      RunningGroupCommunityReport.deleteMany({ groupId: group._id }),
+      RunningGroupAnnouncement.deleteMany({ groupId: group._id }),
+      RunningGroupActivity.deleteMany({ groupId: group._id }),
+      Notification.deleteMany({
+        $or: [
+          { 'metadata.groupId': groupId },
+          { dedupeKey: groupNotificationPattern }
+        ]
+      })
+    ]);
+    // eslint-disable-next-line no-await-in-loop
+    await RunningGroup.deleteOne({ _id: group._id });
+    for (let index = 0; index < members.length; index += 100) {
+      // eslint-disable-next-line no-await-in-loop
+      await Promise.all(members.slice(index, index + 100).map((member) => createNotificationSafe({
+        userId: member._id,
+        type: 'running_group_deleted',
+        title: 'Running group removed',
+        message: `${group.name} was permanently removed by HelloRun and is no longer in your joined groups.`,
+        href: '/runner/groups',
+        dedupeKey: `running-group-deleted:${groupId}:${member._id}`,
+        metadata: { deletedGroupId: groupId }
+      }, 'running group deletion notification')));
+    }
+    results.push({
+      id: groupId,
+      name: group.name,
+      slug: group.slug,
+      previousStatus: group.isActive ? 'active' : 'archived',
+      removedMembers: members.length,
+      announcementCount,
+      commentCount,
+      reportCount,
+      activityCount
+    });
+  }
+  return results;
+}
+
+function deleteValidationError(message, status = 400) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
 function buildMembershipQuery(groupName) {
   const exact = new RegExp(`^${escapeRegex(String(groupName || '').trim())}$`, 'i');
   return { $or: [{ runningGroups: exact }, { runningGroup: exact }] };
@@ -403,6 +491,8 @@ module.exports = {
   removeRunningGroupMember,
   transferRunningGroupCreator,
   reconcileRunningGroupMemberCount,
+  normalizeRunningGroupDeleteIds,
+  deleteRunningGroups,
   buildMembershipQuery,
   getUserGroupNames,
   moderateRunningGroupContent,

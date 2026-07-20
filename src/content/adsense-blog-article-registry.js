@@ -12,8 +12,9 @@ const beginner5kGuide = require('./beginner-5k-training-plan');
 const proofSubmissionGuide = require('./how-to-submit-run-proof');
 const joinPhilippinesGuide = require('./join-virtual-run-philippines');
 const hellorunPlatformGuide = require('./hellorun-platform-guide');
+const firstVirtualRunGuide = require('./prepare-first-virtual-run');
 
-const ARTICLE_MODULES = Object.freeze([bestApps, runningSafety, organizerGuide, raceComparison, virtualRunGuide, leaderboardGuide, validRunProofGuide, accumulatedDistanceGuide, beginner5kGuide, proofSubmissionGuide, joinPhilippinesGuide, hellorunPlatformGuide]);
+const ARTICLE_MODULES = Object.freeze([bestApps, runningSafety, organizerGuide, raceComparison, virtualRunGuide, leaderboardGuide, validRunProofGuide, accumulatedDistanceGuide, beginner5kGuide, proofSubmissionGuide, joinPhilippinesGuide, hellorunPlatformGuide, firstVirtualRunGuide]);
 const ARTICLE_REGISTRY = Object.freeze(Object.fromEntries(
   ARTICLE_MODULES.map((articleModule) => [articleModule.ARTICLE.slug, articleModule])
 ));

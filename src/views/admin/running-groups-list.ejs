@@ -58,11 +58,13 @@
 
       <div class="admin-group-results-heading"><p>Showing <strong><%= groups.length %></strong> of <strong><%= pagination.total %></strong> matching groups.</p><% if (filters.q) { %><span>Search: “<%= filters.q %>”</span><% } %></div>
       <% if (groups.length) { %>
+        <% if (isFullAdmin) { %><form method="POST" action="/admin/running-groups/bulk-delete" id="adminRunningGroupsBulkDeleteForm" class="admin-group-bulk-form"><input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>"><input type="hidden" name="returnTo" value="<%= buildListHref({ page: pagination.page }) %>"><div class="admin-group-bulk-toolbar"><button type="button" class="btn btn-danger" data-admin-group-bulk-trigger disabled><i data-lucide="trash-2" aria-hidden="true"></i><span>Delete selected</span></button><span data-admin-group-selected-count aria-live="polite">0 selected</span></div><noscript><div class="admin-group-noscript-delete"><p>Select groups below, provide your password and reason, then submit.</p><label>Moderation reason<textarea name="reason" required minlength="8" maxlength="500" rows="2"></textarea></label><label>Current password<input type="password" name="adminPassword" required autocomplete="current-password"></label><button class="btn btn-danger" type="submit">Permanently delete selected</button></div></noscript><% } %>
         <div class="admin-users-table-wrap admin-group-table-wrap">
           <table class="admin-table admin-group-table admin-group-list-table">
-            <thead><tr><th>Group</th><th>Creator</th><th>Status</th><th>Members</th><th>Updated</th><th>Action</th></tr></thead>
+            <thead><tr><% if (isFullAdmin) { %><th class="admin-group-select-cell"><label class="admin-group-checkbox-target"><input type="checkbox" data-admin-group-select-all><span class="sr-only">Select all running groups on this page</span></label></th><% } %><th>Group</th><th>Creator</th><th>Status</th><th>Members</th><th>Updated</th><th>Action</th></tr></thead>
             <tbody><% groups.forEach((group) => { const creatorName = [group.createdBy?.firstName, group.createdBy?.lastName].filter(Boolean).join(' ').trim() || group.createdBy?.email || 'Unavailable'; %>
               <tr>
+                <% if (isFullAdmin) { %><td data-label="Select" class="admin-group-select-cell"><label class="admin-group-checkbox-target"><input type="checkbox" name="groupIds" value="<%= group._id %>" data-admin-group-checkbox data-group-name="<%= group.name %>"><span class="sr-only">Select <%= group.name %> for permanent deletion</span></label></td><% } %>
                 <td data-label="Group" class="admin-group-identity-cell"><strong><%= group.name %></strong><% if (group.description) { %><p class="admin-group-description-preview" aria-hidden="true"><%= group.description %></p><% } %><details class="admin-group-metadata"><summary>Metadata</summary><dl><div><dt>Slug</dt><dd><code><%= group.slug %></code></dd></div><div><dt>Description</dt><dd><%= group.description || 'No description provided.' %></dd></div></dl></details></td>
                 <td data-label="Creator"><strong><%= creatorName %></strong><small><%= group.createdBy?.userId || group.createdBy?.email || 'Unknown account' %></small></td>
                 <td data-label="Status"><span class="status-badge <%= group.isActive ? 'status-badge-approved' : 'status-badge-archived' %>"><%= group.isActive ? 'Active' : 'Archived' %></span></td>
@@ -73,13 +75,15 @@
             <% }) %></tbody>
           </table>
         </div>
+        <% if (isFullAdmin) { %></form><% } %>
         <% if (pagination.totalPages > 1) { %><nav class="pagination" aria-label="Running group pages"><% if (pagination.page > 1) { %><a class="btn btn-secondary" href="<%= buildListHref({ page: pagination.page - 1 }) %>">Previous</a><% } %><span>Page <%= pagination.page %> of <%= pagination.totalPages %></span><% if (pagination.page < pagination.totalPages) { %><a class="btn btn-secondary" href="<%= buildListHref({ page: pagination.page + 1 }) %>">Next</a><% } %></nav><% } %>
       <% } else { %>
         <div class="empty-state"><h3>No running groups found</h3><p>Adjust the search or filters to view another group set.</p><a class="btn btn-secondary" href="/admin/running-groups">Reset filters</a></div>
       <% } %>
     </section>
   </main>
+  <% if (isFullAdmin && groups.length) { %><div class="admin-group-confirm-backdrop" data-admin-group-bulk-modal hidden aria-hidden="true"><div class="admin-group-confirm-dialog admin-group-delete-dialog" role="dialog" aria-modal="true" aria-labelledby="adminGroupDeleteTitle" aria-describedby="adminGroupDeleteCopy" tabindex="-1"><i data-lucide="triangle-alert" aria-hidden="true"></i><h3 id="adminGroupDeleteTitle">Permanently delete running groups?</h3><p id="adminGroupDeleteCopy">Memberships, announcements, comments, reports, activity, and linked notifications will be permanently removed.</p><p class="admin-group-delete-selection" data-admin-group-delete-summary></p><ul class="admin-group-delete-names" data-admin-group-delete-names></ul><label class="admin-group-delete-field">Moderation reason<textarea data-admin-group-delete-reason minlength="8" maxlength="500" rows="3" required></textarea><small>Enter 8–500 characters.</small><span class="admin-group-delete-error" data-admin-group-delete-reason-error role="alert" hidden></span></label><label class="admin-group-delete-field">Current password<input type="password" data-admin-group-delete-password autocomplete="current-password" required><span class="admin-group-delete-error" data-admin-group-delete-password-error role="alert" hidden></span></label><p class="admin-group-delete-status" data-admin-group-delete-status role="status" aria-live="polite"></p><div class="admin-group-confirm-actions"><button type="button" class="btn btn-secondary" data-admin-group-delete-cancel>Cancel</button><button type="button" class="btn btn-danger" data-admin-group-delete-confirm><i data-lucide="trash-2" aria-hidden="true"></i><span>Delete permanently</span></button></div></div></div><% } %>
   <%- include('../layouts/footer') %>
-  <script src="/js/main.js"></script><script>if (window.lucide) window.lucide.createIcons();</script>
+  <script src="/js/main.js"></script><script src="/js/admin-running-groups.js"></script>
 </body>
 </html>

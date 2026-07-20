@@ -68,6 +68,15 @@ test('runner-facing notification presentation maps actions without exposing raw 
   assert.equal(cookiePolicy.category, 'Account and policy');
   assert.equal(cookiePolicy.actionLabel, 'Review cookie policy');
 
+  const deletedGroup = buildNotificationPresentation({
+    type: 'running_group_deleted',
+    message: 'A running group was permanently removed.',
+    href: '/runner/groups'
+  });
+  assert.equal(deletedGroup.category, 'Community');
+  assert.equal(deletedGroup.tone, 'attention');
+  assert.equal(deletedGroup.actionLabel, 'Browse groups');
+
   const unknown = buildNotificationPresentation({
     type: 'future_notification_type',
     message: `${'A'.repeat(170)}   with spacing`,

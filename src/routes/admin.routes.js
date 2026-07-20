@@ -97,6 +97,7 @@ router.post('/users/:id/account-status', requireAdmin, adminAccountActionLimiter
 
 // Running group management
 router.get('/running-groups', requireAdmin, adminController.listRunningGroups);
+router.post('/running-groups/bulk-delete', requireAdmin, requireFullAdmin, adminModerationLimiter, adminController.bulkDeleteRunningGroups);
 router.get('/running-groups/:id', requireAdmin, adminController.viewRunningGroup);
 router.post('/running-groups/:id/update', requireAdmin, adminModerationLimiter, adminController.updateRunningGroup);
 router.post('/running-groups/:id/archive', requireAdmin, adminModerationLimiter, adminController.archiveRunningGroup);

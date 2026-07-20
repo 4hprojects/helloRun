@@ -44,7 +44,8 @@ const AUDIT_ACTION_GROUPS = Object.freeze({
     'admin.running_group.reactivated',
     'admin.running_group.member_removed',
     'admin.running_group.creator_transferred',
-    'admin.running_group.member_count_reconciled'
+    'admin.running_group.member_count_reconciled',
+    'admin.running_group.deleted'
   ],
   events: [
     'event.published',

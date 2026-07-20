@@ -23,6 +23,8 @@ const {
   removeRunningGroupMember,
   transferRunningGroupCreator,
   reconcileRunningGroupMemberCount,
+  normalizeRunningGroupDeleteIds,
+  deleteRunningGroups,
   moderateRunningGroupContent,
   resolveRunningGroupCommunityReport
 } = require('../src/services/admin-running-group.service');
@@ -166,6 +168,51 @@ test('creator transfer is attribution-only and reconciliation repairs stale coun
   const reconciledCreator = await User.findById(creator._id).lean();
   assert.deepEqual(reconciledCreator.runningGroups, [group.name, ...otherNames]);
   assert.equal(reconciledCreator.runningGroups.length, 12);
+});
+
+test('bulk deletion validates selections and purges only selected group data', async () => {
+  const creator = await runner('delete-creator');
+  const member = await runner('delete-member');
+  const target = await groupFor(creator, 'Delete target');
+  const preserved = await groupFor(creator, 'Delete preserved');
+  await joinRunningGroup({ user: member, groupId: String(target._id) });
+  await joinRunningGroup({ user: member, groupId: String(preserved._id) });
+  const announcement = await RunningGroupAnnouncement.create({ groupId: target._id, authorId: creator._id, content: 'Delete this announcement', commentsCount: 1 });
+  const comment = await RunningGroupComment.create({ announcementId: announcement._id, authorId: member._id, content: 'Delete this comment' });
+  await RunningGroupCommunityReport.create({
+    targetType: 'comment', groupId: target._id, announcementId: announcement._id, commentId: comment._id,
+    reporterId: creator._id, reason: 'other', contentSnapshot: comment.content, authorIdSnapshot: member._id
+  });
+  await Notification.create({
+    userId: member._id, type: 'running_group_reply', title: 'Linked notice', message: 'Group-linked notice', href: `/runner/groups/${target.slug}`,
+    dedupeKey: `group-reply:${comment._id}`, metadata: { groupId: String(target._id), announcementId: String(announcement._id) }
+  });
+  await Notification.create({ userId: member._id, type: 'profile', title: 'Keep notice', message: 'Unrelated notice', href: '/runner/profile', dedupeKey: `keep:${target._id}` });
+
+  assert.throws(() => normalizeRunningGroupDeleteIds([]), /Select at least one/);
+  assert.throws(() => normalizeRunningGroupDeleteIds(['invalid']), /invalid/);
+  assert.throws(() => normalizeRunningGroupDeleteIds([String(target._id), String(target._id)]), /Duplicate/);
+  assert.throws(() => normalizeRunningGroupDeleteIds(Array.from({ length: 101 }, () => new mongoose.Types.ObjectId().toString())), /no more than 100/);
+  await assert.rejects(deleteRunningGroups([String(target._id), new mongoose.Types.ObjectId().toString()]), /no longer exist/);
+  assert.ok(await RunningGroup.findById(target._id));
+
+  const results = await deleteRunningGroups([String(target._id)]);
+  assert.equal(results.length, 1);
+  assert.equal(results[0].removedMembers, 2);
+  const [freshCreator, freshMember] = await Promise.all([User.findById(creator._id).lean(), User.findById(member._id).lean()]);
+  assert.deepEqual(freshCreator.runningGroups, [preserved.name]);
+  assert.equal(freshCreator.runningGroup, preserved.name);
+  assert.deepEqual(freshMember.runningGroups, [preserved.name]);
+  assert.equal(freshMember.runningGroup, preserved.name);
+  assert.equal(await RunningGroup.countDocuments({ _id: target._id }), 0);
+  assert.equal(await RunningGroup.countDocuments({ _id: preserved._id }), 1);
+  assert.equal(await RunningGroupAnnouncement.countDocuments({ groupId: target._id }), 0);
+  assert.equal(await RunningGroupComment.countDocuments({ announcementId: announcement._id }), 0);
+  assert.equal(await RunningGroupCommunityReport.countDocuments({ groupId: target._id }), 0);
+  assert.equal(await RunningGroupActivity.countDocuments({ groupId: target._id }), 0);
+  assert.equal(await Notification.countDocuments({ userId: member._id, type: 'running_group_reply' }), 0);
+  assert.equal(await Notification.countDocuments({ userId: member._id, type: 'profile' }), 1);
+  assert.equal(await Notification.countDocuments({ userId: { $in: [creator._id, member._id] }, type: 'running_group_deleted' }), 2);
 });
 
 async function runner(tag) {

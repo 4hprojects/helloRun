@@ -61,6 +61,8 @@ test('group community UI keeps leave in settings and configures threaded discuss
   assert.match(threadedComponent, /dialog\{position:fixed;inset:0;/);
   assert.match(threadedComponent, /title==='Post this reply\?'\?'Post reply'/);
   assert.match(threadedComponent, /title==='Review changes'\?'Save changes'/);
+  assert.match(threadedComponent, /form\.reset\(\);form\.hidden=true/);
+  assert.match(threadedComponent, /data-show-composer hidden>Add another comment/);
   assert.match(routes, /announcements\/:announcementId\/comments/);
   assert.match(routes, /requireCsrfProtection, groupCommunityController\.deleteComment/);
 });
