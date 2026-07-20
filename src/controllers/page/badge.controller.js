@@ -246,16 +246,23 @@ exports.getPublicRunnerBadgeCollection = async (req, res) => {
     const runnerName = [runner.firstName, runner.lastName].filter(Boolean).join(' ') || 'HelloRun Runner';
     const featuredBadge = badges.find((badge) => badge.isFeatured) || badges[0] || null;
     const badgesByScope = buildBadgeCollectionScopeSummary(badges);
+    const hasBadges = badges.length > 0;
+    const collectionDescription = hasBadges
+      ? `${runnerName}'s public collection of verified HelloRun badges.`
+      : `${runnerName}'s public HelloRun badge collection.`;
+    const collectionSeoTitle = hasBadges
+      ? `${runnerName} - Verified HelloRun Badge Collection`
+      : `${runnerName} - Public HelloRun Badge Collection`;
 
     return res.render('pages/runner-badge-collection', {
       title: `${runnerName} - Badge Collection - HelloRun`,
       additionalCSS: ['/css/badge-verification.css'],
       seo: {
-        description: `${runnerName}'s verified HelloRun badge collection.`,
+        description: collectionDescription,
         canonicalUrl: collectionUrl,
         ogType: 'profile',
-        ogTitle: `${runnerName} - Verified HelloRun Badge Collection`,
-        twitterTitle: `${runnerName} - Verified HelloRun Badge Collection`,
+        ogTitle: collectionSeoTitle,
+        twitterTitle: collectionSeoTitle,
         ogImage: collectionShareImageUrl
       },
       runner: {
@@ -268,11 +275,11 @@ exports.getPublicRunnerBadgeCollection = async (req, res) => {
       featuredBadge,
       badgesByScope,
       collectionUrl,
-      shareText: `${runnerName}'s verified HelloRun badge collection.`,
+      shareText: collectionDescription,
       facebookShareUrl: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(collectionUrl)}`,
-      xShareUrl: `https://twitter.com/intent/tweet?text=${encodeURIComponent(`${runnerName}'s verified HelloRun badge collection.`)}&url=${encodeURIComponent(collectionUrl)}`,
+      xShareUrl: `https://twitter.com/intent/tweet?text=${encodeURIComponent(collectionDescription)}&url=${encodeURIComponent(collectionUrl)}`,
       linkedInShareUrl: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(collectionUrl)}`,
-      mailShareUrl: `mailto:?subject=${encodeURIComponent(`${runnerName} - HelloRun Badge Collection`)}&body=${encodeURIComponent(`${runnerName}'s verified HelloRun badge collection.\n\n${collectionUrl}`)}`,
+      mailShareUrl: `mailto:?subject=${encodeURIComponent(`${runnerName} - HelloRun Badge Collection`)}&body=${encodeURIComponent(`${collectionDescription}\n\n${collectionUrl}`)}`,
       formatDateOnly
     });
   } catch (error) {
@@ -377,8 +384,8 @@ exports.getPublicRunnerBadgeCollectionShareImage = async (req, res) => {
       title: runnerName,
       subtitle: featuredBadge
         ? `Featured badge: ${featuredBadge.name}`
-        : 'Verified HelloRun badge collection.',
-      kicker: 'Verified Collection',
+        : 'Public HelloRun badge collection.',
+      kicker: featuredBadge ? 'Verified Collection' : 'Public Collection',
       statLabel: 'Badges',
       statValue: String(badges.length),
       footer: `Runner ID ${runner.userId}`

@@ -95,6 +95,16 @@ router.post('/users/:id/resend-verification', requireAdmin, adminAccountActionLi
 router.post('/users/:id/verify-email', requireAdmin, adminAccountActionLimiter, adminController.overrideEmailVerification);
 router.post('/users/:id/account-status', requireAdmin, adminAccountActionLimiter, adminController.updateAccountStatus);
 
+// Running group management
+router.get('/running-groups', requireAdmin, adminController.listRunningGroups);
+router.get('/running-groups/:id', requireAdmin, adminController.viewRunningGroup);
+router.post('/running-groups/:id/update', requireAdmin, adminModerationLimiter, adminController.updateRunningGroup);
+router.post('/running-groups/:id/archive', requireAdmin, adminModerationLimiter, adminController.archiveRunningGroup);
+router.post('/running-groups/:id/reactivate', requireAdmin, adminModerationLimiter, adminController.reactivateRunningGroup);
+router.post('/running-groups/:id/reconcile', requireAdmin, adminModerationLimiter, adminController.reconcileRunningGroupCount);
+router.post('/running-groups/:id/members/:userId/remove', requireAdmin, adminModerationLimiter, adminController.removeRunningGroupMember);
+router.post('/running-groups/:id/creator', requireAdmin, adminModerationLimiter, adminController.transferRunningGroupCreator);
+
 // Event management
 router.get('/events', requireAdmin, adminController.listEvents);
 router.post('/events/bulk-delete', requireAdmin, requireFullAdmin, adminModerationLimiter, adminController.bulkDeleteEvents);

@@ -66,6 +66,7 @@ const {
 const { getRunnerBadgeProgress, getRunnerNextMilestones } = require('../services/badge-progress.service');
 const stravaService = require('../services/strava.service');
 const { buildRunnerProfilePresentation } = require('../services/runner-profile-presentation.service');
+const { buildRunnerGroupsPresentation } = require('../services/runner-groups-presentation.service');
 
 const countries = getCountries();
 const timezones = getTimeZoneOptions();
@@ -594,7 +595,8 @@ exports.getRunningGroupsPage = async (req, res) => {
         currentGroups,
         topGroups,
         searchResults
-      }
+      },
+      groupsPresentation: buildRunnerGroupsPresentation({ currentGroups, topGroups, searchResults, query })
     });
   } catch (error) {
     logger.error('Running groups page load error:', error);

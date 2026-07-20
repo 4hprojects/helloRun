@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('../layouts/head', { title }) %>
+  <link rel="stylesheet" href="/css/admin.css">
+  <link rel="stylesheet" href="/css/admin-running-groups.css">
+</head>
+<body>
+  <%- include('../layouts/nav') %>
+  <main class="admin-page admin-running-groups-page admin-running-groups-list-page">
+    <section class="section admin-shell">
+      <%
+        const advancedFilterCount = (filters.status !== 'active' ? 1 : 0)
+          + (filters.sort !== 'members' ? 1 : 0)
+          + (filters.perPage !== 25 ? 1 : 0);
+        const buildListHref = (overrides = {}) => {
+          const next = { q: filters.q, status: filters.status, sort: filters.sort, perPage: filters.perPage, ...overrides };
+          const params = new URLSearchParams();
+          if (next.q) params.set('q', next.q);
+          if (next.status && next.status !== 'active') params.set('status', next.status);
+          if (next.sort && next.sort !== 'members') params.set('sort', next.sort);
+          if (Number(next.perPage || 25) !== 25) params.set('perPage', String(next.perPage));
+          if (Number(next.page || 1) > 1) params.set('page', String(next.page));
+          return `/admin/running-groups${params.toString() ? `?${params}` : ''}`;
+        };
+      %>
+      <div class="admin-header-row admin-group-list-header">
+        <div><p class="dashboard-kicker">Community operations</p><h2>Running Group Management</h2><p>Scan group status and membership, then open a record for moderation.</p></div>
+        <a href="/admin/dashboard" class="btn btn-secondary admin-group-dashboard-action"><i data-lucide="layout-dashboard" aria-hidden="true"></i><span>Dashboard</span></a>
+      </div>
+
+      <% if (message) { %><div class="admin-alert admin-alert-<%= message.type %>" role="<%= message.type === 'error' ? 'alert' : 'status' %>"><%= message.text %></div><% } %>
+
+      <nav class="admin-group-status-strip" aria-label="Running group status filters">
+        <a href="<%= buildListHref({ status: 'active', page: 1 }) %>" class="admin-group-status-item <%= filters.status === 'active' ? 'is-selected' : '' %>" <% if (filters.status === 'active') { %>aria-current="page"<% } %>><span>Active</span><strong><%= counts.active %></strong></a>
+        <a href="<%= buildListHref({ status: 'archived', page: 1 }) %>" class="admin-group-status-item <%= filters.status === 'archived' ? 'is-selected' : '' %>" <% if (filters.status === 'archived') { %>aria-current="page"<% } %>><span>Archived</span><strong><%= counts.archived %></strong></a>
+        <a href="<%= buildListHref({ status: 'all', page: 1 }) %>" class="admin-group-status-item <%= filters.status === 'all' ? 'is-selected' : '' %>" <% if (filters.status === 'all') { %>aria-current="page"<% } %>><span>Total</span><strong><%= counts.total %></strong></a>
+        <div class="admin-group-status-item admin-group-status-static"><span><span class="admin-group-status-label-full">Cached memberships</span><span class="admin-group-status-label-compact">Members</span></span><strong><%= counts.cachedMemberships %></strong></div>
+      </nav>
+
+      <form method="GET" action="/admin/running-groups" class="admin-group-discovery-form">
+        <div class="admin-group-search-row">
+          <label class="sr-only" for="groupSearch">Search running groups</label>
+          <div class="admin-group-search-control"><i data-lucide="search" aria-hidden="true"></i><input id="groupSearch" type="search" name="q" value="<%= filters.q %>" placeholder="Name, slug, description, or creator" autocomplete="off"></div>
+          <button class="btn" type="submit"><i data-lucide="search" aria-hidden="true"></i><span>Search</span></button>
+          <% if (filters.q || advancedFilterCount) { %><a class="btn btn-secondary" href="/admin/running-groups">Clear</a><% } %>
+        </div>
+        <details class="admin-group-filter-disclosure" <%= advancedFilterCount ? 'open' : '' %>>
+          <summary><span><i data-lucide="sliders-horizontal" aria-hidden="true"></i>Filters &amp; sort</span><% if (advancedFilterCount) { %><span class="admin-group-filter-count"><%= advancedFilterCount %></span><% } %><i data-lucide="chevron-down" class="admin-group-filter-chevron" aria-hidden="true"></i></summary>
+          <div class="admin-group-filter-fields">
+            <label>Status<select name="status"><option value="active" <%= filters.status === 'active' ? 'selected' : '' %>>Active</option><option value="archived" <%= filters.status === 'archived' ? 'selected' : '' %>>Archived</option><option value="all" <%= filters.status === 'all' ? 'selected' : '' %>>All groups</option></select></label>
+            <label>Sort<select name="sort"><option value="members" <%= filters.sort === 'members' ? 'selected' : '' %>>Most members</option><option value="newest" <%= filters.sort === 'newest' ? 'selected' : '' %>>Newest</option><option value="oldest" <%= filters.sort === 'oldest' ? 'selected' : '' %>>Oldest</option><option value="name" <%= filters.sort === 'name' ? 'selected' : '' %>>Name</option></select></label>
+            <label>Show<select name="perPage"><% [25, 50, 100].forEach((value) => { %><option value="<%= value %>" <%= filters.perPage === value ? 'selected' : '' %>><%= value %> per page</option><% }) %></select></label>
+            <button class="btn btn-secondary" type="submit">Apply filters</button>
+          </div>
+        </details>
+      </form>
+
+      <div class="admin-group-results-heading"><p>Showing <strong><%= groups.length %></strong> of <strong><%= pagination.total %></strong> matching groups.</p><% if (filters.q) { %><span>Search: “<%= filters.q %>”</span><% } %></div>
+      <% if (groups.length) { %>
+        <div class="admin-users-table-wrap admin-group-table-wrap">
+          <table class="admin-table admin-group-table admin-group-list-table">
+            <thead><tr><th>Group</th><th>Creator</th><th>Status</th><th>Members</th><th>Updated</th><th>Action</th></tr></thead>
+            <tbody><% groups.forEach((group) => { const creatorName = [group.createdBy?.firstName, group.createdBy?.lastName].filter(Boolean).join(' ').trim() || group.createdBy?.email || 'Unavailable'; %>
+              <tr>
+                <td data-label="Group" class="admin-group-identity-cell"><strong><%= group.name %></strong><% if (group.description) { %><p class="admin-group-description-preview" aria-hidden="true"><%= group.description %></p><% } %><details class="admin-group-metadata"><summary>Metadata</summary><dl><div><dt>Slug</dt><dd><code><%= group.slug %></code></dd></div><div><dt>Description</dt><dd><%= group.description || 'No description provided.' %></dd></div></dl></details></td>
+                <td data-label="Creator"><strong><%= creatorName %></strong><small><%= group.createdBy?.userId || group.createdBy?.email || 'Unknown account' %></small></td>
+                <td data-label="Status"><span class="status-badge <%= group.isActive ? 'status-badge-approved' : 'status-badge-archived' %>"><%= group.isActive ? 'Active' : 'Archived' %></span></td>
+                <td data-label="Members"><strong class="admin-group-member-total"><%= Number(group.memberCount || 0) %></strong></td>
+                <td data-label="Updated"><%= group.updatedAt ? new Date(group.updatedAt).toLocaleDateString('en-US') : 'N/A' %></td>
+                <td data-label="Action"><a class="btn btn-sm admin-group-manage-action" href="/admin/running-groups/<%= group._id %>">Manage</a></td>
+              </tr>
+            <% }) %></tbody>
+          </table>
+        </div>
+        <% if (pagination.totalPages > 1) { %><nav class="pagination" aria-label="Running group pages"><% if (pagination.page > 1) { %><a class="btn btn-secondary" href="<%= buildListHref({ page: pagination.page - 1 }) %>">Previous</a><% } %><span>Page <%= pagination.page %> of <%= pagination.totalPages %></span><% if (pagination.page < pagination.totalPages) { %><a class="btn btn-secondary" href="<%= buildListHref({ page: pagination.page + 1 }) %>">Next</a><% } %></nav><% } %>
+      <% } else { %>
+        <div class="empty-state"><h3>No running groups found</h3><p>Adjust the search or filters to view another group set.</p><a class="btn btn-secondary" href="/admin/running-groups">Reset filters</a></div>
+      <% } %>
+    </section>
+  </main>
+  <%- include('../layouts/footer') %>
+  <script src="/js/main.js"></script><script>if (window.lucide) window.lucide.createIcons();</script>
+</body>
+</html>

@@ -16,8 +16,9 @@
         <p>Follow organizer decisions, correct entries that need attention, and collect approved results and certificates.</p>
       </div>
       <nav class="sub-page-actions" aria-label="Submission tools">
-        <a href="/my-registrations" class="btn btn-outline"><i data-lucide="clipboard-list" aria-hidden="true"></i>My Registrations</a>
-        <button type="button" class="btn btn-primary" data-open-run-proof-modal aria-label="Submit activity"><i data-lucide="upload-cloud" aria-hidden="true"></i>Submit Activity</button>
+        <a href="/runner/dashboard" class="btn btn-outline sub-dashboard-action"><i data-lucide="arrow-left" aria-hidden="true"></i>Back to Dashboard</a>
+        <a href="/my-registrations" class="btn btn-outline"><i data-lucide="clipboard-list" aria-hidden="true"></i><span class="sub-action-label-desktop">My Registrations</span><span class="sub-action-label-mobile">My Events</span></a>
+        <button type="button" class="btn btn-primary" data-open-run-proof-modal aria-label="Submit activity"><i data-lucide="upload-cloud" aria-hidden="true"></i><span class="sub-action-label-desktop">Submit Activity</span><span class="sub-action-label-mobile">Submit</span></button>
       </nav>
     </header>
 
@@ -26,8 +27,8 @@
     <% } %>
 
     <nav class="sub-summary-strip" aria-label="Submission summary">
-      <a href="<%= presentation.summaryUrls.rejected %>" class="sub-summary-item sub-summary-rejected"><span>Needs correction</span><strong><%= counts.rejected %></strong></a>
-      <a href="<%= presentation.summaryUrls.submitted %>" class="sub-summary-item sub-summary-submitted"><span>Awaiting review</span><strong><%= counts.submitted %></strong></a>
+      <a href="<%= presentation.summaryUrls.rejected %>" class="sub-summary-item sub-summary-rejected"><span class="sub-summary-label-desktop">Needs correction</span><span class="sub-summary-label-mobile">Corrections</span><strong><%= counts.rejected %></strong></a>
+      <a href="<%= presentation.summaryUrls.submitted %>" class="sub-summary-item sub-summary-submitted"><span class="sub-summary-label-desktop">Awaiting review</span><span class="sub-summary-label-mobile">Pending</span><strong><%= counts.submitted %></strong></a>
       <a href="<%= presentation.summaryUrls.approved %>" class="sub-summary-item sub-summary-approved"><span>Approved</span><strong><%= counts.approved %></strong></a>
       <a href="<%= presentation.summaryUrls.approved %>" class="sub-summary-item sub-summary-certificate" title="Show approved entries, including certificates"><span>Certificates</span><strong><%= counts.certificatesIssued %></strong></a>
     </nav>
@@ -35,19 +36,19 @@
     <section class="sub-discovery" aria-labelledby="submissionSearchTitle">
       <h2 id="submissionSearchTitle" class="sr-only">Find a submission</h2>
       <form method="GET" action="/runner/submissions" class="sub-filter-form">
-        <% if (filters.sort !== 'newest') { %><input type="hidden" name="sort" value="<%= filters.sort %>"><% } %>
         <label class="sub-search-wrap" for="submissionSearch">
           <span class="sr-only">Search submissions</span>
           <i data-lucide="search" class="sub-search-icon" aria-hidden="true"></i>
           <input id="submissionSearch" type="search" name="q" value="<%= filters.q %>" placeholder="Search events, organizers, or confirmation codes" maxlength="100" class="sub-search-input">
         </label>
-        <button type="submit" class="btn btn-primary sub-search-button">Search</button>
+        <button type="submit" class="btn btn-primary sub-search-button" aria-label="Search submissions"><i data-lucide="search" aria-hidden="true"></i><span>Search</span></button>
 
         <details class="sub-filter-details"<%= presentation.filtersOpen ? ' open' : '' %>>
-          <summary><span><i data-lucide="sliders-horizontal" aria-hidden="true"></i>Filters<% if (presentation.chips.length) { %> <strong><%= presentation.chips.length %></strong><% } %></span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+          <summary><span><i data-lucide="sliders-horizontal" aria-hidden="true"></i>Filters &amp; sort<% if (presentation.chips.length) { %> <strong><%= presentation.chips.length %></strong><% } %></span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
           <div class="sub-filter-fields">
             <label><span>Status</span><select name="status" class="sub-select"><% presentation.statusOptions.forEach((option) => { %><option value="<%= option.value %>"<%= option.value === filters.status ? ' selected' : '' %>><%= option.label %></option><% }) %></select></label>
             <label><span>Activity type</span><select name="activityType" class="sub-select"><% presentation.activityOptions.forEach((option) => { %><option value="<%= option.value %>"<%= option.value === filters.activityType ? ' selected' : '' %>><%= option.label %></option><% }) %></select></label>
+            <label class="sub-filter-sort-field"><span>Sort by</span><select name="sort" class="sub-select"><% presentation.sortOptions.forEach((option) => { %><option value="<%= option.value %>"<%= option.value === filters.sort ? ' selected' : '' %>><%= option.label %></option><% }) %></select></label>
             <button type="submit" class="btn btn-primary">Apply filters</button>
             <% if (presentation.hasActiveFilters) { %><a href="<%= presentation.clearFiltersUrl %>" class="btn btn-outline">Clear filters</a><% } %>
           </div>
@@ -66,7 +67,7 @@
       <aside class="sub-attention-callout" aria-label="Submissions needing correction">
         <span class="sub-attention-icon"><i data-lucide="triangle-alert" aria-hidden="true"></i></span>
         <div><strong><%= counts.rejected %> <%= counts.rejected === 1 ? 'entry needs' : 'entries need' %> correction</strong><p>Review the organizer feedback and fix these before their submission windows close.</p></div>
-        <a href="<%= presentation.attentionUrl %>" class="btn btn-warning">Review corrections</a>
+        <a href="<%= presentation.attentionUrl %>" class="btn btn-warning"><span class="sub-action-label-desktop">Review corrections</span><span class="sub-action-label-mobile">Review</span></a>
       </aside>
     <% } %>
 

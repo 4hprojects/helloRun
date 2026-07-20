@@ -10,6 +10,7 @@
     setupLocationForm();
     setupAvatarUpload();
     setupSectionNavigation();
+    setupStravaConfirmations();
     setupUnlinkConfirmation();
   }
 
@@ -17,7 +18,8 @@
     const form = document.querySelector('[data-notification-preferences]');
     if (!form) return;
     const inputs = Array.from(form.querySelectorAll('input[name="emailEnabled"]'));
-    const count = form.querySelector('[data-preference-count]');
+    const disclosure = form.closest('[data-preferences-disclosure]');
+    const count = disclosure?.querySelector('[data-preference-count]') || form.querySelector('[data-preference-count]');
     const status = form.querySelector('[data-preference-status]');
     const saveButton = form.querySelector('[data-preference-save]');
     const initialState = inputs.map((input) => input.checked);
@@ -191,6 +193,71 @@
       confirm.setAttribute('aria-busy', 'true');
       activeForm.submit();
     });
+    modal.addEventListener('click', (event) => { if (event.target === modal) close(); });
+    modal.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') { event.preventDefault(); close(); return; }
+      if (event.key !== 'Tab') return;
+      const items = focusables();
+      if (!items.length) return;
+      if (event.shiftKey && document.activeElement === items[0]) { event.preventDefault(); items.at(-1).focus(); }
+      else if (!event.shiftKey && document.activeElement === items.at(-1)) { event.preventDefault(); items[0].focus(); }
+    });
+  }
+
+  function setupStravaConfirmations() {
+    const connectModal = document.getElementById('stravaConnectConfirmModal');
+    const connectTrigger = document.querySelector('[data-open-strava-connect-confirm]');
+    if (connectModal && connectTrigger) {
+      const confirm = connectModal.querySelector('[data-confirm-strava-connect]');
+      if (confirm) confirm.href = connectTrigger.href;
+      bindStravaConfirmation({
+        modal: connectModal,
+        triggers: [connectTrigger],
+        cancel: connectModal.querySelector('[data-cancel-strava-connect]'),
+        confirm
+      });
+    }
+
+    const disconnectModal = document.getElementById('stravaDisconnectConfirmModal');
+    const disconnectTrigger = document.querySelector('[data-open-strava-disconnect-confirm]');
+    if (disconnectModal && disconnectTrigger) {
+      const form = disconnectTrigger.closest('[data-strava-disconnect-form]');
+      const confirm = disconnectModal.querySelector('[data-confirm-strava-disconnect]');
+      bindStravaConfirmation({
+        modal: disconnectModal,
+        triggers: [disconnectTrigger],
+        cancel: disconnectModal.querySelector('[data-cancel-strava-disconnect]'),
+        confirm,
+        onConfirm: () => {
+          if (!form || !confirm) return;
+          confirm.disabled = true;
+          confirm.setAttribute('aria-busy', 'true');
+          form.submit();
+        }
+      });
+    }
+  }
+
+  function bindStravaConfirmation({ modal, triggers, cancel, confirm, onConfirm }) {
+    const dialog = modal.querySelector('.modal-dialog');
+    let lastTrigger = null;
+    const focusables = () => Array.from(dialog.querySelectorAll('button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])'));
+    const close = () => {
+      modal.hidden = true;
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      lastTrigger?.focus();
+    };
+    triggers.forEach((trigger) => trigger.addEventListener('click', (event) => {
+      event.preventDefault();
+      lastTrigger = trigger;
+      modal.hidden = false;
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      cancel?.focus();
+    }));
+    cancel?.addEventListener('click', close);
+    if (onConfirm) confirm?.addEventListener('click', onConfirm);
     modal.addEventListener('click', (event) => { if (event.target === modal) close(); });
     modal.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') { event.preventDefault(); close(); return; }

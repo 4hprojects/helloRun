@@ -38,7 +38,13 @@ const AUDIT_ACTION_GROUPS = Object.freeze({
     'admin.user.verification_resent',
     'admin.user.email_verified_override',
     'admin.user.account_status_changed',
-    'admin.user.admin_tier_changed'
+    'admin.user.admin_tier_changed',
+    'admin.running_group.updated',
+    'admin.running_group.archived',
+    'admin.running_group.reactivated',
+    'admin.running_group.member_removed',
+    'admin.running_group.creator_transferred',
+    'admin.running_group.member_count_reconciled'
   ],
   events: [
     'event.published',
@@ -73,6 +79,7 @@ const AUDIT_TARGET_TYPE_OPTIONS = Object.freeze([
   { value: 'accumulated_activity_submission', label: 'Accumulated submissions' },
   { value: 'shop_order', label: 'Shop orders' },
   { value: 'user', label: 'Users' },
+  { value: 'running_group', label: 'Running groups' },
   { value: 'certificate', label: 'Certificates' }
 ]);
 

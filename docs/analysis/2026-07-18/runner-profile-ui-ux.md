@@ -42,6 +42,10 @@ The overview listed every missing field but did not take the runner to the first
 - Preferences, Connections, Security, and Achievements have distinct headings and task language.
 - The desktop section menu remains sticky; mobile uses one collapsed native “Jump to profile section” control.
 - Achievements show a featured badge, totals, three goals, and three recent badges by default. Remaining items stay available in a native disclosure.
+- On mobile, Public collection is paired with the Achievements heading, while badge actions use balanced 44 px controls: Share and Certificate share an equal row and Feature badge spans the card width.
+- The mobile Security card gives password management and Google unlink equal space in one row; a sole password action expands to the full card width.
+- Preferences uses a native disclosure that starts collapsed, keeps its enabled count visible, and preserves unsaved switch selections when opened or closed.
+- Strava connection changes use focused confirmation dialogs before OAuth navigation or the CSRF-protected disconnect request; no-JavaScript fallbacks retain the original link and form behavior.
 - Avatar upload, password, Google unlink, Strava, badge feature/share, CSRF, and legacy fragment routes remain compatible.
 
 ## Responsive captures
@@ -52,6 +56,13 @@ The captures use a deterministic privacy-safe fixture rendered from the producti
 - [Tablet, 768 px](assets/runner-profile-tablet.png)
 - [Mobile, 390 px](assets/runner-profile-mobile.png)
 - [Mobile, 320 px](assets/runner-profile-mobile-320.png)
+- [Achievements fragment, 390 px](assets/runner-profile-badges-mobile.png)
+- [Achievements fragment, 320 px](assets/runner-profile-badges-mobile-320.png)
+- [Security fragment, 390 px](assets/runner-profile-security-mobile.png)
+- [Security fragment, 320 px](assets/runner-profile-security-mobile-320.png)
+- [Preferences open and collapsed, 390 px](assets/runner-profile-preferences-mobile.png)
+- [Preferences open and collapsed, 320 px](assets/runner-profile-preferences-mobile-320.png)
+- [Strava confirmations, 390 px](assets/runner-profile-strava-confirmations-mobile.png)
 
 ## Acceptance criteria
 
@@ -63,5 +74,9 @@ The captures use a deterministic privacy-safe fixture rendered from the producti
 - Every existing profile fragment and mutation endpoint remains valid.
 - Notification choices are unique and preserve current opt-outs.
 - Achievements are compact initially while all badge management remains reachable.
+- Achievement actions remain aligned, wrap safely, and have no page-level overflow at 390 px, 320 px, or 200% zoom.
+- Security actions retain 44 px targets, equal columns when both are available, and a full-width single-action fallback.
+- Preferences is collapsed on every server render, remains keyboard-operable without JavaScript, and does not discard edits when opened or closed.
+- Strava confirmation dialogs trap focus, support Escape and outside-click cancellation, restore the initiating control, and prevent repeated disconnect confirmation.
 - Password and unlink dialogs trap and restore focus, support Escape, and prevent repeated submission.
 - Layouts at 1440, 768, 390, and 320 px have no page-level horizontal overflow and remain usable at 200% zoom and reduced motion.

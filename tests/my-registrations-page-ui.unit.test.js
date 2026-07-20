@@ -17,8 +17,12 @@ test('registration page uses task-first hierarchy with collapsed history', () =>
   assert.match(view, /Active registrations/);
   assert.match(view, /<details class="my-reg-history"/);
   assert.doesNotMatch(view, /<details class="my-reg-history"[^>]*\sopen/);
+  assert.match(view, /href="\/runner\/dashboard" class="btn btn-secondary" aria-label="Back to Dashboard"/);
   assert.match(view, /Browse Events/);
   assert.match(view, /Submission History/);
+  for (const label of ['Dashboard', 'Events', 'Submissions']) {
+    assert.match(view, new RegExp(`class="my-reg-mobile-label">${label}<`));
+  }
   assert.match(view, /registrationCounts\.underReview/);
   assert.match(view, /role="<%= message\.type === 'error' \? 'alert' : 'status' %>"/);
 });
@@ -50,8 +54,15 @@ test('page styling provides horizontal desktop cards and safe responsive stackin
   assert.match(css, /\.my-reg-card-main\s*\{[^}]*grid-template-columns:\s*148px minmax\(0, 1fr\) 190px/s);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /:focus-visible/);
+  assert.match(css, /@media \(max-width: 900px\)[\s\S]*?\.my-reg-header-actions \{[^}]*grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(css, /@media \(max-width: 900px\)[\s\S]*?\.my-reg-header-actions \.btn \{[^}]*min-width: 0[^}]*overflow-wrap: anywhere/);
   assert.match(css, /@media \(max-width: 760px\)/);
+  assert.match(css, /\.my-reg-header-actions \.btn \{ flex: 1 1 0; \}/);
   assert.match(css, /@media \(max-width: 520px\)/);
+  assert.match(css, /\.my-reg-header-actions \{ display: grid; grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.my-reg-header-actions \.btn \{[^}]*min-height: 64px[^}]*flex-direction: column[^}]*font-size: \.65rem[^}]*white-space: nowrap/);
+  assert.match(css, /\.my-reg-desktop-label \{ display: none; \}/);
+  assert.match(css, /\.my-reg-mobile-label \{ display: inline;[^}]*white-space: nowrap; \}/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(css, /overflow:\s*clip/);
   assert.doesNotMatch(css, /\.my-reg-card-(?:warning|rejected|submitted|approved|missed)\s*\{[^}]*border-left-color/);

@@ -7,31 +7,53 @@
 <body>
   <%- include('../layouts/nav') %>
 
+  <%
+    const hasBadges = badges.length > 0;
+    const BADGE_ICONS_COL = {
+      participant: 'user-check', finisher: 'trophy',
+      distance_finisher: 'medal', mode_finisher: 'zap',
+      challenge_progress: 'trending-up', challenge_finisher: 'award',
+      category_winner: 'crown', top_rank: 'star',
+      distance_winner: 'flag', mode_winner: 'shield-check'
+    };
+    const getBadgeIconCol = (type) => BADGE_ICONS_COL[type] || 'award';
+  %>
+
   <main class="badge-verification-page public-badge-collection-page">
     <section class="badge-collection-hero" aria-labelledby="collection-title">
-      <div class="badge-collection-wrap">
+      <div class="badge-collection-wrap badge-collection-hero-grid<%= featuredBadge ? ' has-featured' : '' %>">
         <div class="badge-collection-intro">
-          <span class="badge-verify-status"><i data-lucide="badge-check"></i> Verified Collection</span>
+          <span class="badge-verify-status">
+            <i data-lucide="<%= hasBadges ? 'badge-check' : 'user-round' %>" aria-hidden="true"></i>
+            <%= hasBadges ? 'Verified badge collection' : 'Public badge collection' %>
+          </span>
           <h1 id="collection-title"><%= runner.name %></h1>
-          <p>Public HelloRun badge collection for verified event, challenge, and global achievements.</p>
-          <div class="badge-collection-meta">
-            <span><i data-lucide="hash"></i> <%= runner.userId %></span>
-            <span><i data-lucide="award"></i> <%= badges.length %> verified badge<%= badges.length === 1 ? '' : 's' %></span>
-            <% if (totalPoints > 0) { %><span><i data-lucide="star"></i> <%= totalPoints %> pts</span><% } %>
-            <span><i data-lucide="calendar"></i> Joined <%= formatDateOnly(runner.joinedAt) %></span>
-          </div>
+          <p><%= hasBadges
+            ? 'A public showcase of verified HelloRun event, challenge, and platform achievements.'
+            : 'This runner has not added any verified HelloRun badges to their public collection yet.' %></p>
+
+          <dl class="badge-collection-stats" aria-label="Runner collection details">
+            <div>
+              <dt>Runner ID</dt>
+              <dd><%= runner.userId %></dd>
+            </div>
+            <div>
+              <dt>Badges</dt>
+              <dd><%= badges.length %></dd>
+            </div>
+            <% if (totalPoints > 0) { %>
+              <div>
+                <dt>Points</dt>
+                <dd><%= totalPoints %></dd>
+              </div>
+            <% } %>
+            <div>
+              <dt>Joined</dt>
+              <dd><%= formatDateOnly(runner.joinedAt) %></dd>
+            </div>
+          </dl>
         </div>
 
-        <%
-          const BADGE_ICONS_COL = {
-            participant: 'user-check', finisher: 'trophy',
-            distance_finisher: 'medal', mode_finisher: 'zap',
-            challenge_progress: 'trending-up', challenge_finisher: 'award',
-            category_winner: 'crown', top_rank: 'star',
-            distance_winner: 'flag', mode_winner: 'shield-check'
-          };
-          const getBadgeIconCol = (type) => BADGE_ICONS_COL[type] || 'award';
-        %>
         <% if (featuredBadge) { %>
           <aside class="badge-collection-featured" aria-label="Featured badge">
             <div class="badge-verify-mark badge-placeholder" data-badge-type="<%= featuredBadge.badgeType %>" aria-hidden="true">
@@ -41,71 +63,51 @@
                 <i data-lucide="<%= getBadgeIconCol(featuredBadge.badgeType) %>"></i>
               <% } %>
             </div>
-            <div>
-              <span>Featured Badge</span>
+            <div class="badge-collection-featured-copy">
+              <span>Featured badge</span>
               <strong><%= featuredBadge.name %></strong>
               <p><%= featuredBadge.description || 'Verified HelloRun achievement.' %></p>
-              <a href="/badges/<%= featuredBadge.userBadgeId %>">Open verification</a>
+              <a href="/badges/<%= featuredBadge.userBadgeId %>">Verify featured badge</a>
             </div>
           </aside>
         <% } %>
       </div>
     </section>
 
-    <section class="badge-share-section" aria-label="Share collection">
-      <div class="badge-share-wrap">
-        <div>
-          <h2>Share Collection</h2>
-          <p>This page lists currently verified HelloRun badges for this runner.</p>
-        </div>
-        <div class="badge-share-actions">
-          <a href="<%= facebookShareUrl %>" target="_blank" rel="noopener noreferrer" class="badge-share-btn" aria-label="Share on Facebook" title="Share on Facebook"><i data-lucide="share-2"></i></a>
-          <a href="<%= xShareUrl %>" target="_blank" rel="noopener noreferrer" class="badge-share-btn" aria-label="Share on X" title="Share on X"><i data-lucide="at-sign"></i></a>
-          <a href="<%= linkedInShareUrl %>" target="_blank" rel="noopener noreferrer" class="badge-share-btn" aria-label="Share on LinkedIn" title="Share on LinkedIn"><i data-lucide="link"></i></a>
-          <a href="<%= mailShareUrl %>" class="badge-share-btn" aria-label="Share by email" title="Share by email"><i data-lucide="mail"></i></a>
-          <a href="<%= collectionUrl %>" class="badge-share-link"><%= collectionUrl %></a>
-        </div>
-      </div>
-    </section>
-
-    <section class="badge-collection-section" aria-labelledby="collection-summary-heading">
-      <div class="badge-collection-wrap badge-collection-summary-wrap">
+    <section class="badge-collection-section badge-collection-main" aria-labelledby="collection-badges-heading">
+      <div class="badge-collection-wrap">
         <div class="badge-collection-section-head">
-          <h2 id="collection-summary-heading">Collection Summary</h2>
+          <div>
+            <h2 id="collection-badges-heading"><%= hasBadges ? 'Verified badges' : 'Badge collection' %></h2>
+            <% if (hasBadges) { %>
+              <p data-badge-filter-status role="status" aria-live="polite">
+                Showing all <%= badges.length %> verified badge<%= badges.length === 1 ? '' : 's' %>.
+              </p>
+            <% } %>
+          </div>
+          <% if (badgesByScope.length) { %>
+            <dl class="badge-collection-scope-summary" aria-label="Badge totals by scope">
+              <% badgesByScope.forEach((item) => { %>
+                <div>
+                  <dt><%= item.label %></dt>
+                  <dd><%= item.count %></dd>
+                </div>
+              <% }) %>
+            </dl>
+          <% } %>
         </div>
-        <% if (badgesByScope.length) { %>
-          <div class="badge-collection-summary-grid">
+
+        <% if (badgesByScope.length > 1) { %>
+          <div class="badge-filter-row" role="group" aria-label="Filter badges by scope" data-badge-filters>
+            <button type="button" class="badge-filter-btn is-active" data-scope="all" aria-pressed="true">All <span><%= badges.length %></span></button>
             <% badgesByScope.forEach((item) => { %>
-              <article class="badge-collection-summary-card">
-                <span><%= item.label %></span>
-                <strong><%= item.count %></strong>
-              </article>
+              <button type="button" class="badge-filter-btn" data-scope="<%= item.scope %>" aria-pressed="false"><%= item.label %> <span><%= item.count %></span></button>
             <% }) %>
           </div>
-        <% } else { %>
-          <div class="badge-collection-empty">
-            <i data-lucide="award"></i>
-            <strong>No public badges yet</strong>
-            <p>Verified HelloRun badges will appear here after eligible achievements are awarded.</p>
-          </div>
         <% } %>
-      </div>
-    </section>
 
-    <% if (badges.length) { %>
-      <section class="badge-collection-section" aria-labelledby="collection-badges-heading">
-        <div class="badge-collection-wrap">
-          <div class="badge-collection-section-head">
-            <h2 id="collection-badges-heading">Verified Badges</h2>
-          </div>
-          <div class="badge-filter-row" role="toolbar" aria-label="Filter badges by scope">
-            <button type="button" class="badge-filter-btn active" data-scope="all">All</button>
-            <button type="button" class="badge-filter-btn" data-scope="event">Event</button>
-            <button type="button" class="badge-filter-btn" data-scope="challenge">Challenge</button>
-            <button type="button" class="badge-filter-btn" data-scope="global">Global</button>
-            <button type="button" class="badge-filter-btn" data-scope="organiser">Organiser</button>
-          </div>
-          <div class="badge-collection-grid">
+        <% if (hasBadges) { %>
+          <div class="badge-collection-grid" data-badge-grid>
             <% badges.forEach((badge) => { %>
               <article class="badge-collection-card" data-badge-scope="<%= badge.badgeScope || 'event' %>">
                 <div class="badge-collection-card-top">
@@ -118,20 +120,48 @@
                   </span>
                   <span class="badge-collection-scope badge-collection-scope-<%= badge.badgeScope || 'event' %>"><%= badge.badgeScope || 'event' %></span>
                 </div>
-                <h3><%= badge.name %></h3>
-                <p><%= badge.description || 'Verified HelloRun achievement.' %></p>
-                <% if (badge.eventTitle) { %>
-                  <small><%= badge.eventTitle %></small>
-                <% } else { %>
-                  <small><%= badge.badgeType ? badge.badgeType.replace(/_/g, ' ') : 'achievement' %></small>
-                <% } %>
+                <div class="badge-collection-card-copy">
+                  <h3><%= badge.name %></h3>
+                  <p><%= badge.description || 'Verified HelloRun achievement.' %></p>
+                  <small><%= badge.eventTitle || (badge.badgeType ? badge.badgeType.replace(/_/g, ' ') : 'achievement') %></small>
+                </div>
                 <div class="badge-collection-card-foot">
-                  <span>Earned <%= formatDateOnly(badge.earnedAt) %></span>
-                  <% if (badge.points > 0) { %><span class="badge-collection-points"><%= badge.points %> pts</span><% } %>
-                  <a href="/badges/<%= badge.userBadgeId %>">Verify</a>
+                  <div class="badge-collection-card-meta">
+                    <span>Earned <%= formatDateOnly(badge.earnedAt) %></span>
+                    <% if (badge.points > 0) { %><span class="badge-collection-points"><%= badge.points %> points</span><% } %>
+                  </div>
+                  <a href="/badges/<%= badge.userBadgeId %>">Verify badge</a>
                 </div>
               </article>
             <% }) %>
+          </div>
+        <% } else { %>
+          <div class="badge-collection-empty">
+            <i data-lucide="award" aria-hidden="true"></i>
+            <strong>No public badges yet</strong>
+            <p>Verified HelloRun badges will appear here after eligible achievements are awarded.</p>
+          </div>
+        <% } %>
+      </div>
+    </section>
+
+    <% if (hasBadges) { %>
+      <section class="badge-share-section badge-collection-share" aria-labelledby="share-collection-heading">
+        <div class="badge-share-wrap">
+          <div>
+            <h2 id="share-collection-heading">Share this collection</h2>
+            <p>Share a link to this runner’s public verified badges.</p>
+          </div>
+          <div class="badge-share-actions">
+            <a href="<%= facebookShareUrl %>" target="_blank" rel="noopener noreferrer" class="badge-share-btn" aria-label="Share on Facebook" title="Share on Facebook"><i data-lucide="share-2" aria-hidden="true"></i></a>
+            <a href="<%= xShareUrl %>" target="_blank" rel="noopener noreferrer" class="badge-share-btn" aria-label="Share on X" title="Share on X"><i data-lucide="at-sign" aria-hidden="true"></i></a>
+            <a href="<%= linkedInShareUrl %>" target="_blank" rel="noopener noreferrer" class="badge-share-btn" aria-label="Share on LinkedIn" title="Share on LinkedIn"><i data-lucide="linkedin" aria-hidden="true"></i></a>
+            <a href="<%= mailShareUrl %>" class="badge-share-btn" aria-label="Share by email" title="Share by email"><i data-lucide="mail" aria-hidden="true"></i></a>
+            <button type="button" class="badge-share-copy" data-copy-collection-link data-collection-url="<%= collectionUrl %>">
+              <i data-lucide="copy" aria-hidden="true"></i><span>Copy link</span>
+            </button>
+            <a href="<%= collectionUrl %>" class="badge-share-link"><%= collectionUrl %></a>
+            <span class="badge-share-feedback" data-copy-feedback role="status" aria-live="polite"></span>
           </div>
         </div>
       </section>
@@ -140,22 +170,6 @@
 
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script>if (window.lucide) lucide.createIcons();</script>
-  <script>
-    (function () {
-      var btns = document.querySelectorAll('.badge-filter-btn');
-      var cards = document.querySelectorAll('.badge-collection-card');
-      btns.forEach(function (btn) {
-        btn.addEventListener('click', function () {
-          var scope = btn.dataset.scope;
-          btns.forEach(function (b) { b.classList.remove('active'); });
-          btn.classList.add('active');
-          cards.forEach(function (card) {
-            card.style.display = (scope === 'all' || card.dataset.badgeScope === scope) ? '' : 'none';
-          });
-        });
-      });
-    })();
-  </script>
+  <script src="/js/runner-badge-collection.js"></script>
 </body>
 </html>

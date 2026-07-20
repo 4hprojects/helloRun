@@ -254,10 +254,11 @@ test('runner badge endpoints return own badges and featured badge update is owne
   const publicCollectionPage = await fetch(`${BASE_URL}/runners/${seed.runner.userId}/badges`);
   assert.equal(publicCollectionPage.status, 200);
   const publicCollectionHtml = await publicCollectionPage.text();
-  assert.match(publicCollectionHtml, /Verified Collection/);
-  assert.match(publicCollectionHtml, /Collection Summary/);
-  assert.match(publicCollectionHtml, /Verified Badges/);
-  assert.match(publicCollectionHtml, /Share Collection/);
+  assert.match(publicCollectionHtml, /Verified badge collection/);
+  assert.match(publicCollectionHtml, /Verified badges/);
+  assert.match(publicCollectionHtml, /Share this collection/);
+  assert.match(publicCollectionHtml, /data-copy-collection-link/);
+  assert.doesNotMatch(publicCollectionHtml, /Collection Summary/);
   assert.match(publicCollectionHtml, new RegExp(`/runners/${seed.runner.userId}/badges/share-image\\.svg`));
   assert.match(publicCollectionHtml, new RegExp(targetBadge.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.doesNotMatch(publicCollectionHtml, new RegExp(seed.runner.email.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));

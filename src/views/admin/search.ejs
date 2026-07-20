@@ -3,11 +3,12 @@
 <head><%- include('../layouts/head', { title }) %><link rel="stylesheet" href="/css/admin.css"></head>
 <body><%- include('../layouts/nav') %>
 <main class="admin-page"><section class="section admin-shell">
-  <div class="admin-header-row"><div><p class="dashboard-kicker">Cross-domain lookup</p><h2>Admin Search</h2><p>Find authorized users, events, organizer applications, and run submissions from one query.</p></div><a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a></div>
+  <div class="admin-header-row"><div><p class="dashboard-kicker">Cross-domain lookup</p><h2>Admin Search</h2><p>Find authorized users, events, running groups, organizer applications, and run submissions from one query.</p></div><a href="/admin/dashboard" class="btn btn-secondary">Back to Dashboard</a></div>
   <form class="admin-filters" method="GET" action="/admin/search"><div class="filter-field filter-grow"><label for="adminSearch">Name, email, title, slug, application ID, status, or object ID</label><input id="adminSearch" type="search" name="q" value="<%= q %>" minlength="2" required autofocus></div><div class="filter-actions"><button class="btn" type="submit">Search</button></div></form>
   <% const sections = [
     ['Users', results.users, (x) => `${x.firstName || ''} ${x.lastName || ''}`.trim() || x.email, (x) => `${x.role} · ${x.accountStatus || 'active'} · ${x.email}`, (x) => `/admin/cases/user/${x._id}`],
     ['Events', results.events, (x) => x.title, (x) => `${x.status} · ${x.organizerId?.email || 'No organizer email'}`, (x) => `/admin/events/${x._id}`],
+    ['Running groups', results.runningGroups || [], (x) => x.name, (x) => `${x.isActive ? 'Active' : 'Archived'} · ${x.memberCount || 0} members · ${x.createdBy?.email || 'Unknown creator'}`, (x) => `/admin/running-groups/${x._id}`],
     ['Organizer applications', results.applications, (x) => x.businessName || x.applicationId, (x) => `${x.status} · ${x.userId?.email || x.applicationId}`, (x) => `/admin/applications/${x._id}`],
     ['Run submissions', results.submissions, (x) => x.eventId?.title || `Submission ${x._id}`, (x) => `${x.status} · ${x.runnerId?.email || 'Unknown runner'}`, (x) => `/admin/submissions?search=${x._id}`]
   ]; %>

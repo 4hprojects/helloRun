@@ -1,3 +1,4 @@
+<% const secondaryActionCount = Number(Boolean(badge.shareUrl)) + Number(Boolean(badge.certificateUrl)); %>
 <article class="profile-badge-card<%= badge.isFeatured ? ' is-featured' : '' %>">
   <div class="profile-badge-card-top">
     <span class="profile-badge-icon badge-placeholder" data-badge-type="<%= badge.badgeType %>" aria-hidden="true">
@@ -6,18 +7,22 @@
     </span>
     <% if (badge.isFeatured) { %><span class="profile-badge-state">Featured</span><% } %>
   </div>
-  <h4><%= badge.name %></h4>
-  <p><%= badge.description || 'Verified HelloRun achievement.' %></p>
-  <small><%= badge.typeLabel %></small>
-  <div class="profile-badge-card-actions">
-    <% if (badge.shareUrl) { %><a href="<%= badge.shareUrl %>" class="profile-badge-share-link" target="_blank" rel="noopener noreferrer"><i data-lucide="external-link" aria-hidden="true"></i><span>Share</span></a><% } %>
-    <% if (badge.certificateUrl) { %><a href="<%= badge.certificateUrl %>" class="profile-badge-share-link"><i data-lucide="file-check" aria-hidden="true"></i><span>Certificate</span></a><% } %>
+  <div class="profile-badge-card-details">
+    <h4><%= badge.name %></h4>
+    <p><%= badge.description || 'Verified HelloRun achievement.' %></p>
+    <small><%= badge.typeLabel %></small>
   </div>
-  <% if (!badge.isFeatured) { %>
-    <form method="POST" action="/runner/profile/badges/featured" class="inline-form profile-badge-action">
-      <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
-      <input type="hidden" name="userBadgeId" value="<%= badge.userBadgeId %>">
-      <button type="submit" class="btn btn-outline btn-sm">Feature badge</button>
-    </form>
+  <% if (secondaryActionCount || !badge.isFeatured) { %>
+    <div class="profile-badge-card-actions<%= secondaryActionCount === 1 ? ' has-one-secondary' : '' %>">
+      <% if (badge.shareUrl) { %><a href="<%= badge.shareUrl %>" class="btn btn-outline btn-sm profile-badge-card-button" target="_blank" rel="noopener noreferrer"><i data-lucide="external-link" aria-hidden="true"></i><span>Share</span></a><% } %>
+      <% if (badge.certificateUrl) { %><a href="<%= badge.certificateUrl %>" class="btn btn-outline btn-sm profile-badge-card-button"><i data-lucide="file-check" aria-hidden="true"></i><span>Certificate</span></a><% } %>
+      <% if (!badge.isFeatured) { %>
+        <form method="POST" action="/runner/profile/badges/featured" class="inline-form profile-badge-action">
+          <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+          <input type="hidden" name="userBadgeId" value="<%= badge.userBadgeId %>">
+          <button type="submit" class="btn btn-outline btn-sm"><i data-lucide="star" aria-hidden="true"></i><span>Feature badge</span></button>
+        </form>
+      <% } %>
+    </div>
   <% } %>
 </article>

@@ -22,6 +22,8 @@ The redesigned page answers that question before exposing record detail. Correct
 | Medium | Participant, package, review, and proof metadata competed with decision-critical facts. | Cards became tall forms instead of scannable task objects. | Keep category, mode, event timing, submission deadline, confirmation code, payment state, and activity state visible; disclose supporting records on demand. |
 | Medium | Upload forms lacked a clear in-progress state. | Slow uploads could encourage duplicate submission. | Disable the submit control, set `aria-busy`, and announce upload progress in a polite live region. |
 | Low | The page hierarchy and card geometry were uneven between desktop and mobile. | Desktop wasted width while narrow screens required excessive scanning. | Use one-column horizontal desktop cards and retain the same identity, facts, status, and action order when stacked at tablet and mobile widths. |
+| Low | Header actions stacked into three full-width rows on phones. | Navigation consumed too much vertical space before registration status appeared. | Present Dashboard, Events, and Submissions as three equal mobile controls with compact labels and stacked icons. |
+| Low | The desktop header persisted at tablet widths and compact labels could clip on narrow phones. | Actions could overflow around 768 px or lose label text around 320 px. | Stack the header before tablet width, use three equal columns, and reserve smaller single-line labels for phones. |
 
 ## Responsive evidence
 
@@ -29,6 +31,9 @@ The redesigned page answers that question before exposing record detail. Correct
 - [Task-first tablet, 768 px](assets/my-registrations-tablet.png)
 - [Task-first mobile, 390 px](assets/my-registrations-mobile.png)
 - [Task-first narrow mobile, 320 px](assets/my-registrations-mobile-320.png)
+- [Balanced mobile header, 390 px](assets/my-registrations-header-mobile.png)
+- [Balanced narrow header, 320 px](assets/my-registrations-header-mobile-320.png)
+- [Balanced tablet header, 768 px](assets/my-registrations-header-tablet.png)
 
 Desktop uses a compact image, decision content, and action column within one horizontal card. Tablet moves the action area below the event context while retaining aligned status fields. Mobile preserves identity first, decision facts second, and the primary action third; details remain closed and there is no page-level horizontal scrolling.
 
@@ -46,6 +51,8 @@ The screenshots use a deterministic privacy-safe fixture because the development
 ## Acceptance criteria
 
 - [x] Header copy and counts answer what needs attention and provide Browse Events and Submission History actions.
+- [x] Mobile header actions use three equal columns with compact labels, 64 px targets, and no horizontal overflow.
+- [x] Tablet header actions remain inside the card, while 320 px labels fit on one line without clipping.
 - [x] Registrations are grouped into Next actions, Active registrations, and collapsed Registration history.
 - [x] Next actions prioritize corrections, payment, deadlines, ready submissions, and certificate collection deterministically.
 - [x] Active and History use deterministic date and activity ordering.

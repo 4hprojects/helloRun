@@ -563,6 +563,31 @@
   font-size: 0.8rem;
 }
 
+.strava-confirm-dialog {
+  width: min(430px, 100%);
+  padding: 1.15rem;
+  border-radius: 18px;
+  text-align: left;
+}
+
+.strava-confirm-icon {
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  margin-bottom: .75rem;
+  border-radius: .75rem;
+  color: #075985;
+  background: #e0f2fe;
+}
+
+.strava-confirm-icon-danger { color: #991b1b; background: #fee2e2; }
+.strava-confirm-icon svg { width: 1.25rem; height: 1.25rem; }
+.strava-confirm-dialog h3 { margin-bottom: .35rem; font-size: 1.1rem; }
+.strava-confirm-dialog p { margin-bottom: 1rem; font-size: .84rem; line-height: 1.55; }
+.strava-confirm-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
+.strava-confirm-actions .btn { min-width: 0; min-height: 2.75rem; width: 100%; padding-inline: .6rem; text-align: center; white-space: normal; }
+
 .profile-featured-badge {
   display: grid;
   grid-template-columns: 52px minmax(0, 1fr);
@@ -682,7 +707,7 @@
 .profile-badge-card {
   min-height: 190px;
   display: grid;
-  grid-template-rows: auto auto 1fr auto auto;
+  grid-template-rows: auto 1fr auto;
   gap: 8px;
   padding: 14px;
   border: 1px solid var(--border-color, #e2e8f0);
@@ -731,33 +756,24 @@
   line-height: 1.3;
 }
 
+.profile-badge-card-details {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.profile-badge-card-details :where(h4, p, small) {
+  overflow-wrap: anywhere;
+}
+
 .profile-badge-card small {
   text-transform: capitalize;
   font-weight: 700;
 }
 
-.profile-badge-share-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #0369a1;
-  font-size: 0.86rem;
-  font-weight: 800;
-  text-decoration: none;
-}
-
-.profile-badge-share-link svg {
-  width: 16px;
-  height: 16px;
-}
-
-.profile-badge-share-link:hover {
-  color: #075985;
-  text-decoration: underline;
-}
-
 .profile-badge-action {
-  align-self: end;
+  min-width: 0;
 }
 
 .profile-empty-state {
@@ -1381,11 +1397,16 @@
 .runner-profile-form-actions { flex-wrap: nowrap; }
 
 .profile-preferences-card { padding: 1rem; }
-.profile-preferences-summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-bottom: .85rem; border-bottom: 1px solid #e2e8f0; }
-.profile-preferences-summary strong,
-.profile-preferences-summary p { margin: 0; }
-.profile-preferences-summary p { margin-top: .18rem; color: #64748b; font-size: .78rem; }
-.profile-preferences-summary > span { flex: 0 0 auto; padding: .35rem .6rem; border-radius: 999px; color: #475569; background: #f1f5f9; font-size: .72rem; font-weight: 750; }
+.profile-preferences-summary { min-height: 2.75rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: #0f172a; cursor: pointer; list-style: none; }
+.profile-preferences-summary::-webkit-details-marker { display: none; }
+.profile-preferences-card[open] > .profile-preferences-summary { padding-bottom: .85rem; border-bottom: 1px solid #e2e8f0; }
+.profile-preferences-summary-copy { min-width: 0; display: grid; gap: .18rem; }
+.profile-preferences-summary-copy strong { margin: 0; }
+.profile-preferences-summary-copy > span { color: #64748b; font-size: .78rem; overflow-wrap: anywhere; }
+.profile-preferences-summary-state { flex: 0 0 auto; display: flex; align-items: center; gap: .55rem; }
+.profile-preferences-summary-state > span { padding: .35rem .6rem; border-radius: 999px; color: #475569; background: #f1f5f9; font-size: .72rem; font-weight: 750; text-align: center; }
+.profile-preferences-summary-state svg { flex: 0 0 auto; width: 1.1rem; height: 1.1rem; transition: transform .15s ease; }
+.profile-preferences-card[open] .profile-preferences-summary-state svg { transform: rotate(180deg); }
 .notif-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1rem; }
 .notif-group { min-width: 0; margin: 0; padding: .85rem; border: 1px solid #dbe5ed; border-radius: .75rem; }
 .notif-group legend { padding: 0 .3rem; color: #0f172a; font-size: .86rem; font-weight: 800; }
@@ -1418,10 +1439,13 @@
 .runner-profile-actions { align-items: center; margin-top: .85rem; }
 
 .profile-achievement-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; }
+.profile-achievement-copy { min-width: 0; }
+.profile-achievement-title-row { display: flex; align-items: center; gap: .7rem; }
+.profile-achievement-title-row h2 { min-width: 0; }
+.profile-public-collection-link { flex: 0 0 auto; min-height: 2.75rem; white-space: normal; text-align: center; }
 .profile-achievement-totals { display: flex; gap: .5rem; }
 .profile-achievement-totals span { min-width: 5rem; padding: .45rem .6rem; border: 1px solid #dbe5ed; border-radius: .65rem; color: #64748b; background: #fff; font-size: .72rem; text-align: center; }
 .profile-achievement-totals strong { display: block; color: #0f172a; font-size: 1rem; }
-.profile-achievement-actions { display: flex; justify-content: flex-end; margin-bottom: .75rem; }
 .profile-featured-badge { display: block; margin-bottom: 1rem; padding: 0; border: 0; background: transparent; }
 .profile-featured-badge .profile-badge-card { border-color: #7dd3fc; background: #f0f9ff; }
 .profile-badge-progress-section { margin-bottom: 1rem; padding-bottom: 1rem; }
@@ -1435,8 +1459,16 @@
 .profile-badge-progress-card h4,
 .profile-badge-card h4 { margin: 0; color: #0f172a; font-size: .88rem; }
 .profile-badge-card p { font-size: .76rem; }
-.profile-badge-card-actions { display: flex; flex-wrap: wrap; gap: .65rem; }
-.profile-badge-action .btn { width: 100%; }
+.profile-badge-card-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; align-self: end; }
+.profile-badge-card-actions.has-one-secondary > .profile-badge-card-button { grid-column: 1 / -1; }
+.profile-badge-card-button,
+.profile-badge-action,
+.profile-badge-action .btn { width: 100%; min-width: 0; }
+.profile-badge-card-button,
+.profile-badge-action .btn { min-height: 2.75rem; justify-content: center; padding-inline: .55rem; text-align: center; white-space: normal; overflow-wrap: anywhere; }
+.profile-badge-card-button svg,
+.profile-badge-action .btn svg { flex: 0 0 auto; width: 1rem; height: 1rem; }
+.profile-badge-action { grid-column: 1 / -1; }
 .profile-empty-copy { color: #64748b; font-size: .82rem; }
 .profile-all-achievements { margin-top: 1rem; border-top: 1px solid #e2e8f0; padding-top: .8rem; }
 .profile-all-achievements > summary { display: flex; align-items: center; justify-content: center; min-height: 2.75rem; border: 1px solid #cbd5e1; border-radius: .7rem; color: #334155; font-weight: 750; cursor: pointer; list-style: none; }
@@ -1482,16 +1514,23 @@
   .profile-badge-progress-grid,
   .profile-badge-grid { grid-template-columns: 1fr; }
   .notif-groups { grid-template-columns: 1fr; }
-  .profile-preferences-summary { align-items: flex-start; flex-direction: column; gap: .55rem; }
+  .profile-preferences-summary { align-items: center; gap: .55rem; }
+  .profile-preferences-summary-state { gap: .35rem; }
+  .profile-preferences-summary-state > span { max-width: 7.5rem; }
   .notif-group > p { min-height: 0; }
   .profile-preferences-footer { align-items: flex-start; flex-direction: column; }
   .profile-readonly-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .profile-achievement-heading { align-items: stretch; flex-direction: column; }
+  .profile-achievement-title-row { justify-content: space-between; }
+  .profile-public-collection-link { max-width: 10.5rem; padding-inline: .65rem; font-size: .76rem; }
   .profile-achievement-totals { width: 100%; }
   .profile-achievement-totals span { flex: 1; }
-  .profile-achievement-actions .btn,
   .runner-profile-actions .btn,
   .runner-profile-actions form { width: 100%; }
+  .profile-security-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; gap: .5rem; }
+  .profile-security-actions > :only-child { grid-column: 1 / -1; }
+  .profile-security-actions > form { min-width: 0; }
+  .profile-security-actions .btn { min-width: 0; min-height: 2.75rem; justify-content: center; padding-inline: .55rem; text-align: center; white-space: normal; overflow-wrap: anywhere; }
   .runner-profile-form-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .runner-profile-form-actions .btn { width: 100%; }
   .runner-profile-panel-header { flex-direction: row; align-items: flex-start; }

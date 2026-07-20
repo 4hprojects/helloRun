@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
   <link rel="stylesheet" href="/css/runner-dashboard.css">
+  <link rel="stylesheet" href="/css/runner-groups.css">
   <%- include('../layouts/head', { title: `${group.name} - Running Group - HelloRun` }) %>
 </head>
-<body>
+<body class="runner-groups-shell">
   <%- include('../layouts/nav') %>
 
   <main class="dashboard-container">
@@ -16,17 +17,17 @@
       <div class="runner-group-detail-actions">
         <a href="/runner/dashboard" class="btn-secondary">Back to Dashboard</a>
         <% if (membership.isMember) { %>
-          <form method="POST" action="/runner/groups/leave">
+          <form method="POST" action="/runner/groups/leave" data-group-action-form data-group-action="leave" data-group-name="<%= group.name %>">
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
             <input type="hidden" name="returnTo" value="/runner/groups/<%= group.slug %>">
             <button type="submit" class="btn btn-warning">Leave Group</button>
           </form>
         <% } else { %>
-          <form method="POST" action="/runner/groups/join">
+          <form method="POST" action="/runner/groups/join" data-group-action-form data-group-action="<%= membership.currentGroupNames && membership.currentGroupNames.length ? 'switch' : 'join' %>" data-group-name="<%= group.name %>" data-current-groups="<%= (membership.currentGroupNames || []).join(', ') %>">
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
             <input type="hidden" name="groupId" value="<%= group._id %>">
             <input type="hidden" name="returnTo" value="/runner/groups/<%= group.slug %>">
-            <button type="submit" class="btn-secondary">Join Group</button>
+            <button type="submit" class="btn-secondary"><%= membership.currentGroupNames && membership.currentGroupNames.length ? 'Switch Group' : 'Join Group' %></button>
           </form>
         <% } %>
       </div>
@@ -51,7 +52,7 @@
             <p>No group description yet.</p>
           <% } %>
           <% if (!membership.isMember && membership.currentGroupNames && membership.currentGroupNames.length) { %>
-            <p class="runner-group-note">You are currently in <strong><%= membership.currentGroupNames.join(', ') %></strong>.</p>
+            <p class="runner-group-note">You are currently in <strong><%= membership.currentGroupNames.join(', ') %></strong>. Switching replaces that membership.</p>
           <% } %>
         </div>
       </section>
@@ -83,11 +84,10 @@
     </div>
   </main>
 
+  <%- include('partials/group-membership-confirmation') %>
   <%- include('../layouts/footer') %>
 
   <script src="/js/main.js"></script>
-  <script>
-    lucide.createIcons();
-  </script>
+  <script src="/js/runner-groups.js"></script>
 </body>
 </html>

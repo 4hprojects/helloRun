@@ -12,6 +12,7 @@ const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
 test('history template uses compact discovery and one responsive semantic table', () => {
   const view = read('src/views/runner/submissions.ejs');
   assert.match(view, /<h1>Submission History<\/h1>/);
+  assert.match(view, /href="\/runner\/dashboard" class="btn btn-outline sub-dashboard-action"[^>]*>[\s\S]*?Back to Dashboard<\/a>/);
   assert.match(view, /Needs correction/);
   assert.match(view, /Awaiting review/);
   assert.match(view, /<details class="sub-filter-details"/);
@@ -20,6 +21,33 @@ test('history template uses compact discovery and one responsive semantic table'
   assert.match(view, /<table class="sub-history-table">/);
   assert.match(view, /<caption>Your submitted activities and organizer review status<\/caption>/);
   assert.doesNotMatch(view, /data-view=|subEntryList|subTableWrap|onchange=/);
+});
+
+test('mobile history prioritizes two header actions and one compact discovery toolbar', () => {
+  const view = read('src/views/runner/submissions.ejs');
+  const css = read('src/public/css/runner-submissions.css');
+  assert.match(view, /sub-action-label-mobile">My Events/);
+  assert.match(view, /sub-action-label-mobile">Submit/);
+  assert.match(view, /sub-summary-label-mobile">Corrections/);
+  assert.match(view, /sub-summary-label-mobile">Pending/);
+  assert.match(view, /Filters &amp; sort/);
+  assert.match(view, /class="sub-filter-sort-field"[\s\S]*?<select name="sort"/);
+  assert.match(view, /sub-search-button" aria-label="Search submissions"/);
+  assert.doesNotMatch(view, /<input type="hidden" name="sort"/);
+  assert.match(css, /@media \(max-width: 700px\)[\s\S]*?\.sub-history-header \.sub-page-actions \.sub-dashboard-action,[\s\S]*?display: none/);
+  assert.match(css, /\.sub-history-header \.sub-page-actions \{ display: grid; grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.sub-summary-strip \{ grid-template-columns: repeat\(4, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.sub-results-toolbar \.sub-sort-form \{ display: none; \}/);
+});
+
+test('tablet history compacts the header into one title and action row', () => {
+  const css = read('src/public/css/runner-submissions.css');
+  assert.match(css, /@media \(min-width: 701px\) and \(max-width: 900px\)/);
+  assert.match(css, /\.sub-history-header \{ display: grid; grid-template-columns: minmax\(0, 1fr\) minmax\(280px, 320px\)/);
+  assert.match(css, /\.sub-history-header \.section-kicker,[\s\S]*?\.sub-dashboard-action \{ display: none; \}/);
+  assert.match(css, /\.sub-history-header \.sub-page-heading h1 \{ margin: 0; font-size: 1\.6rem/);
+  assert.match(css, /\.sub-history-header \.sub-page-actions \{ display: grid; grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.sub-history-header \.sub-page-actions \.btn \{[^}]*min-width: 0[^}]*white-space: normal/);
 });
 
 test('detail template preserves correction and recognition workflows with disclosures', () => {
@@ -67,6 +95,16 @@ test('accumulated activity rows use a compact type-aware mobile layout', () => {
   assert.match(css, /grid-template-areas: "entry entry" "review review" "result date" "timeline timeline" "actions actions"/);
   assert.match(css, /\.sub-history-row--accumulated \.sub-status-helper--approved-challenge,[\s\S]*\.sub-history-row--accumulated \.sub-accumulated-result-label \{ display: none; \}/);
   assert.doesNotMatch(view, /<small>Accumulated activity<\/small>/);
+});
+
+test('all mobile submission rows use the compact core-facts card layout', () => {
+  const view = read('src/views/runner/submissions.ejs');
+  const css = read('src/public/css/runner-submissions.css');
+  assert.match(css, /grid-template-areas: "entry entry" "review review" "result date" "timeline timeline" "actions actions"/);
+  assert.match(css, /\.sub-history-table \.sub-status-helper \{ display: none; \}/);
+  for (const cellClass of ['sub-entry-cell', 'sub-review-cell', 'sub-result-cell', 'sub-activity-date-cell', 'sub-timeline-cell', 'sub-row-actions']) {
+    assert.match(view, new RegExp(`class="${cellClass}`));
+  }
 });
 
 test('progressive enhancement provides busy, copy, and unsaved feedback', () => {

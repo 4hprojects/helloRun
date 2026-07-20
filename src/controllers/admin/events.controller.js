@@ -28,6 +28,7 @@ const {
   normalizeAdminEventsReturnTo,
   appendAdminEditMessage
 } = require('../../utils/admin-event-return');
+const RunningGroup = require('../../models/RunningGroup');
 
 function getAdminEditReturnContext(req, eventId) {
   const returnTo = normalizeAdminEventsReturnTo(req.body?.returnTo || req.query?.returnTo);
@@ -854,15 +855,20 @@ exports.dashboard = async (req, res) => {
 exports.universalSearch = async (req, res) => {
   try {
     const q = String(req.query.q || '').trim().slice(0, 120);
-    const results = { users: [], events: [], applications: [], submissions: [] };
+    const results = { users: [], events: [], applications: [], submissions: [], runningGroups: [] };
     if (q.length >= 2) {
       const pattern = new RegExp(escapeRegex(q), 'i');
       const objectIdQuery = require('mongoose').Types.ObjectId.isValid(q) ? [{ _id: q }] : [];
-      [results.users, results.events, results.applications, results.submissions] = await Promise.all([
+      [results.users, results.events, results.applications, results.submissions, results.runningGroups] = await Promise.all([
         User.find({ $or: [...objectIdQuery, { email: pattern }, { firstName: pattern }, { lastName: pattern }] }).select('firstName lastName email role accountStatus').limit(12).lean(),
         Event.find({ $or: [...objectIdQuery, { title: pattern }, { slug: pattern }] }).select('title slug status organizerId updatedAt').populate('organizerId', 'email firstName lastName').limit(12).lean(),
         OrganiserApplication.find({ $or: [...objectIdQuery, { applicationId: pattern }, { businessName: pattern }, { contactEmail: pattern }] }).select('applicationId businessName status userId submittedAt').populate('userId', 'email firstName lastName').limit(12).lean(),
-        Submission.find({ $or: [...objectIdQuery, { status: pattern }] }).select('status runnerId eventId registrationId submittedAt').populate('runnerId', 'email firstName lastName').populate('eventId', 'title').limit(12).lean()
+        Submission.find({ $or: [...objectIdQuery, { status: pattern }] }).select('status runnerId eventId registrationId submittedAt').populate('runnerId', 'email firstName lastName').populate('eventId', 'title').limit(12).lean(),
+        RunningGroup.find({ $or: [...objectIdQuery, { name: pattern }, { slug: pattern }, { description: pattern }] })
+          .select('name slug memberCount isActive createdBy updatedAt')
+          .populate('createdBy', 'email firstName lastName')
+          .limit(12)
+          .lean()
       ]);
     }
     return res.render('admin/search', { title: 'Admin Search - HelloRun', q, results });

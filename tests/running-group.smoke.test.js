@@ -58,9 +58,15 @@ test('running-group strict smoke script', async () => {
   const dashboard = await fetchWithCookie('/runner/dashboard', runnerACookie);
   const dashboardHtml = await dashboard.text();
   assert.match(dashboardHtml, new RegExp(escapeRegex(groupName), 'i'));
-  assert.match(dashboardHtml, /activity-pill activity-group/);
 
-  const slug = extractGroupSlug(dashboardHtml);
+  const groupsPageA = await fetchWithCookie('/runner/groups', runnerACookie);
+  const groupsPageAHtml = await groupsPageA.text();
+  assert.equal(groupsPageA.status, 200);
+  assert.match(groupsPageAHtml, /Your groups/);
+  assert.match(groupsPageAHtml, /Discover groups/);
+  assert.match(groupsPageAHtml, /href="\/runner\/groups\/create"/);
+  assert.doesNotMatch(groupsPageAHtml, /action="\/runner\/groups\/create"/);
+  const slug = extractGroupSlug(groupsPageAHtml);
   assert.ok(slug);
 
   const detailA = await fetchWithCookie(`/runner/groups/${slug}`, runnerACookie);
@@ -184,8 +190,8 @@ function escapeRegex(value) {
 }
 
 function extractGroupSlug(html) {
-  const match = String(html || '').match(/\/runner\/groups\/([a-z0-9-]+)/i);
-  return match ? match[1] : '';
+  const matches = Array.from(String(html || '').matchAll(/\/runner\/groups\/([a-z0-9-]+)/gi));
+  return matches.map((match) => match[1]).find((slug) => slug !== 'create') || '';
 }
 
 function extractGroupId(html) {

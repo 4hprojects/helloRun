@@ -26,6 +26,7 @@ function setupCertificateActions() {
       closeCertificateShareMenus({ except: willOpen ? menu : null });
       if (willOpen) {
         menu.removeAttribute('hidden');
+        setCertificateShareZoneOpen(menu, true);
         shareToggle.setAttribute('aria-expanded', 'true');
         menu.querySelector('[role="menuitem"]')?.focus();
       } else {
@@ -106,9 +107,15 @@ function closeCertificateShareMenus({ except = null, restoreFocus = false } = {}
 function closeCertificateShareMenu(menu, { restoreFocus = false } = {}) {
   if (!menu) return;
   menu.setAttribute('hidden', '');
+  setCertificateShareZoneOpen(menu, false);
   const toggle = menu.closest('[data-certificate-share]')?.querySelector('[data-certificate-share-toggle]');
   toggle?.setAttribute('aria-expanded', 'false');
   if (restoreFocus) toggle?.focus();
+}
+
+function setCertificateShareZoneOpen(menu, isOpen) {
+  const zone = menu?.closest?.('[data-dashboard-fragment="latestAchievement"]');
+  zone?.classList?.toggle('is-share-open', isOpen);
 }
 
 async function copyCertificateUrl(url, button) {

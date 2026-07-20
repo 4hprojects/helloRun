@@ -164,8 +164,9 @@ test('certificate More uses the copy prompt when native share and clipboard are 
 });
 
 test('certificate social menu toggles and Escape closes it with focus restored', async () => {
-  const { click, keydown, document } = createCertificateActionContext();
+  const { click, keydown, document } = createCertificateActionContext({ writeText: async () => {} });
   const menuAttributes = new Map([['hidden', '']]);
+  const zoneClasses = new Set();
   let firstItemFocused = false;
   let secondItemFocused = false;
   let toggleFocused = false;
@@ -177,7 +178,19 @@ test('certificate social menu toggles and Escape closes it with focus restored',
     setAttribute: (name, value = '') => menuAttributes.set(name, value),
     querySelector: (selector) => selector === '[role="menuitem"]' ? firstItem : null,
     querySelectorAll: () => [firstItem, secondItem],
-    closest: () => wrapper
+    closest(selector) {
+      if (selector === '[data-certificate-share]') return wrapper;
+      if (selector === '[data-dashboard-fragment="latestAchievement"]') return zone;
+      return null;
+    }
+  };
+  const zone = {
+    classList: {
+      toggle(name, force) {
+        if (force) zoneClasses.add(name);
+        else zoneClasses.delete(name);
+      }
+    }
   };
   const toggleAttributes = new Map([['aria-expanded', 'false']]);
   const toggle = {
@@ -199,6 +212,7 @@ test('certificate social menu toggles and Escape closes it with focus restored',
   assert.equal(menuAttributes.has('hidden'), false);
   assert.equal(toggleAttributes.get('aria-expanded'), 'true');
   assert.equal(firstItemFocused, true);
+  assert.equal(zoneClasses.has('is-share-open'), true);
 
   let arrowPrevented = false;
   await keydown({ key: 'ArrowDown', target: firstItem, preventDefault: () => { arrowPrevented = true; } });
@@ -210,13 +224,54 @@ test('certificate social menu toggles and Escape closes it with focus restored',
   assert.equal(menuAttributes.has('hidden'), true);
   assert.equal(toggleAttributes.get('aria-expanded'), 'false');
   assert.equal(toggleFocused, true);
+  assert.equal(zoneClasses.has('is-share-open'), false);
   assert.equal(prevented, true);
 
   toggleFocused = false;
   await click({ target: { closest: (selector) => selector === '[data-certificate-share-toggle]' ? toggle : null } });
+  const socialLink = { closest: (selector) => selector === '[data-certificate-share-menu]' ? menu : null };
+  await click({ target: { closest: (selector) => selector === '[data-certificate-social-link]' ? socialLink : null } });
+  assert.equal(menuAttributes.has('hidden'), true);
+  assert.equal(zoneClasses.has('is-share-open'), false);
+
+  await click({ target: { closest: (selector) => selector === '[data-certificate-share-toggle]' ? toggle : null } });
+  const copyAttributes = new Map([['data-copy-cert-url', 'https://example.test/verify/abc']]);
+  const copyButton = {
+    getAttribute: (name) => copyAttributes.get(name) || null,
+    setAttribute: (name, value) => copyAttributes.set(name, value),
+    closest(selector) {
+      if (selector === '[data-certificate-share-menu]') return menu;
+      if (selector === '[data-certificate-share]') return wrapper;
+      return null;
+    }
+  };
+  await click({ target: { closest: (selector) => selector === '[data-copy-cert-url]' ? copyButton : null } });
+  assert.equal(menuAttributes.has('hidden'), true);
+  assert.equal(zoneClasses.has('is-share-open'), false);
+
+  await click({ target: { closest: (selector) => selector === '[data-certificate-share-toggle]' ? toggle : null } });
+  const nativeAttributes = new Map([
+    ['data-native-cert-share-url', 'https://example.test/verify/abc'],
+    ['data-share-cert-title', 'July Quest']
+  ]);
+  const nativeButton = {
+    getAttribute: (name) => nativeAttributes.get(name) || null,
+    setAttribute: (name, value) => nativeAttributes.set(name, value),
+    closest(selector) {
+      if (selector === '[data-certificate-share-menu]') return menu;
+      if (selector === '[data-certificate-share]') return wrapper;
+      return null;
+    }
+  };
+  await click({ target: { closest: (selector) => selector === '[data-native-cert-share-url]' ? nativeButton : null } });
+  assert.equal(menuAttributes.has('hidden'), true);
+  assert.equal(zoneClasses.has('is-share-open'), false);
+
+  await click({ target: { closest: (selector) => selector === '[data-certificate-share-toggle]' ? toggle : null } });
   await click({ target: { closest: () => null } });
   assert.equal(menuAttributes.has('hidden'), true);
   assert.equal(toggleFocused, true);
+  assert.equal(zoneClasses.has('is-share-open'), false);
 });
 
 test('runner dashboard exposes a full refresh hook', async () => {

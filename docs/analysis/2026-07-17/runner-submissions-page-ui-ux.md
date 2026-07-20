@@ -10,6 +10,12 @@ Primary audience: runners tracking organizer decisions, correcting rejected evid
 
 The redesigned history makes corrections and review state visible before supporting metadata. The detail page resolves one next action from the organizer decision, shows the submitted result, and progressively discloses the registration and proof-reading record.
 
+### Mobile compaction update — July 20, 2026
+
+The mobile history now keeps My Events and Submit in one header row, presents all four status totals in one compact strip, and combines filtering and sorting in one disclosure. Standard and accumulated entries share the same core-facts card layout, with result and date side by side and status explanations available from the detail page. Desktop navigation, table columns, and sorting remain unchanged.
+
+At tablet widths, the history header uses one compact title-and-actions row. Supporting copy and the redundant Dashboard action are removed between 701 and 900 px, while My Registrations and Submit Activity remain equally available.
+
 ## Severity-ranked findings and resolution
 
 | Severity | Finding | Runner impact | Implemented resolution |
@@ -29,6 +35,7 @@ The redesigned history makes corrections and review state visible before support
 
 - [Desktop, 1440 px](assets/runner-submissions-desktop.png)
 - [Tablet, 768 px](assets/runner-submissions-tablet.png)
+- [Compact tablet header, 768 px](assets/runner-submissions-header-tablet.png)
 - [Mobile, 390 px](assets/runner-submissions-mobile.png)
 - [Narrow mobile, 320 px](assets/runner-submissions-mobile-320.png)
 
@@ -68,3 +75,6 @@ The captures use deterministic runner-safe fixtures because MongoDB Atlas was no
 - [x] Submission and proof-reading records use native disclosures.
 - [x] Forms expose busy and live feedback; changed forms retain unload protection.
 - [x] Controls meet 44px targets, focus is visible, reduced motion is respected, and 320px has no horizontal scrolling.
+- [x] Mobile keeps two primary header actions, four linked totals in one row, and one compact search/filter/sort toolbar.
+- [x] Mobile cards retain event, status, result, date, timeline, and the contextual next action without repeating status-helper prose.
+- [x] Tablet keeps the title and two primary tools in one compact row without header overflow.

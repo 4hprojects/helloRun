@@ -6,5 +6,6 @@ module.exports = {
   ...require('./admin/events.controller'),
   ...require('./admin/badges.controller'),
   ...require('./admin/submissions.controller'),
+  ...require('./admin/running-groups.controller'),
   ...require('./admin/policy.controller'),
 };

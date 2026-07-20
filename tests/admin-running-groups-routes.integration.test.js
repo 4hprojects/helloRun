@@ -1,0 +1,106 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { spawn } = require('node:child_process');
+const { once } = require('node:events');
+const path = require('node:path');
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+require('dotenv').config();
+
+const User = require('../src/models/User');
+const RunningGroup = require('../src/models/RunningGroup');
+const RunningGroupActivity = require('../src/models/RunningGroupActivity');
+const Notification = require('../src/models/Notification');
+const { createRunningGroup } = require('../src/services/running-group.service');
+
+const ROOT = path.resolve(__dirname, '..');
+const PORT = 3194;
+const BASE_URL = `http://127.0.0.1:${PORT}`;
+const password = 'Pass1234';
+let server;
+let fixture;
+
+test.before(async () => {
+  await mongoose.connect(process.env.MONGODB_URI);
+  fixture = await seedFixture();
+  await mongoose.disconnect();
+  server = spawn(process.execPath, ['src/server.js'], {
+    cwd: ROOT,
+    env: { ...process.env, PORT: String(PORT), CSRF_PROTECTION: '0', DATABASE_URL: '' },
+    stdio: ['ignore', 'ignore', 'ignore']
+  });
+  await waitForServer();
+});
+
+test.after(async () => {
+  if (server && server.exitCode === null) {
+    server.kill('SIGTERM');
+    await Promise.race([once(server, 'exit'), new Promise((resolve) => setTimeout(resolve, 2000))]);
+    if (server.exitCode === null) server.kill('SIGKILL');
+    server.unref();
+  }
+  if (mongoose.connection.readyState !== 1) await mongoose.connect(process.env.MONGODB_URI);
+  await Notification.deleteMany({ userId: { $in: [fixture.admin._id, fixture.runner._id] } });
+  await RunningGroupActivity.deleteMany({ groupId: fixture.group._id });
+  await RunningGroup.deleteOne({ _id: fixture.group._id });
+  await User.deleteMany({ _id: { $in: [fixture.admin._id, fixture.runner._id] } });
+  await mongoose.disconnect();
+});
+
+test('running group management denies runners and renders for support admins', async () => {
+  const runnerCookie = await login(fixture.runner.email);
+  const denied = await get('/admin/running-groups', runnerCookie);
+  assert.equal(denied.status, 403);
+
+  const adminCookie = await login(fixture.admin.email);
+  const list = await get('/admin/running-groups?status=all', adminCookie);
+  assert.equal(list.status, 200);
+  assert.match(await list.text(), /Running Group Management/);
+  const detail = await get(`/admin/running-groups/${fixture.group._id}`, adminCookie);
+  assert.equal(detail.status, 200);
+  const html = await detail.text();
+  assert.match(html, new RegExp(escapeRegex(fixture.group.name)));
+  assert.match(html, /Creator attribution/);
+  assert.match(html, /Critical audit/);
+});
+
+test('support admins can mutate metadata and invalid reasons do not archive', async () => {
+  const cookie = await login(fixture.admin.email);
+  const invalidArchive = await post(`/admin/running-groups/${fixture.group._id}/archive`, cookie, { reason: 'short' });
+  assert.equal(invalidArchive.status, 302);
+  await connect();
+  assert.equal((await RunningGroup.findById(fixture.group._id).lean()).isActive, true);
+  await mongoose.disconnect();
+
+  const updatedName = `${fixture.group.name} Updated`;
+  const update = await post(`/admin/running-groups/${fixture.group._id}/update`, cookie, { name: updatedName, description: 'Updated by support admin' });
+  assert.equal(update.status, 302);
+  assert.match(update.headers.get('location') || '', /type=success/);
+  await connect();
+  const fresh = await RunningGroup.findById(fixture.group._id).lean();
+  assert.equal(fresh.name, updatedName);
+  assert.equal(fresh.slug, fixture.group.slug);
+  await mongoose.disconnect();
+});
+
+async function seedFixture() {
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const passwordHash = await bcrypt.hash(password, 4);
+  const admin = await User.create({ userId: `ARGA${stamp}`.slice(0, 22), email: `admin.rg.route.${stamp}@example.com`, passwordHash, role: 'admin', adminTier: 'support', firstName: 'Support', lastName: 'Admin', emailVerified: true, accountStatus: 'active' });
+  const runner = await User.create({ userId: `ARGR${stamp}`.slice(0, 22), email: `runner.rg.route.${stamp}@example.com`, passwordHash, role: 'runner', firstName: 'Route', lastName: 'Runner', emailVerified: true, accountStatus: 'active' });
+  const group = await createRunningGroup({ user: runner, name: `Route Group ${stamp}`, description: 'Route test group' });
+  return { admin, runner, group };
+}
+
+async function login(email) {
+  const response = await fetch(`${BASE_URL}/login`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ email, password }), redirect: 'manual' });
+  assert.equal(response.status, 302);
+  return response.headers.get('set-cookie').split(';')[0];
+}
+async function get(url, cookie) { return fetch(`${BASE_URL}${url}`, { headers: { Cookie: cookie }, redirect: 'manual' }); }
+async function post(url, cookie, body) { return fetch(`${BASE_URL}${url}`, { method: 'POST', headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body), redirect: 'manual' }); }
+async function connect() { if (mongoose.connection.readyState !== 1) await mongoose.connect(process.env.MONGODB_URI); }
+async function waitForServer() { for (let i = 0; i < 50; i += 1) { try { const response = await fetch(`${BASE_URL}/`); if (response.status < 500) return; } catch {} await new Promise((resolve) => setTimeout(resolve, 200)); } throw new Error('Admin running group test server did not start.'); }
+function escapeRegex(value) { return String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
