@@ -74,7 +74,8 @@ test('joining guidance remains grounded in current registration, pricing, paymen
   assert.match(FORM_SOURCE, /name="participationMode"/);
   assert.match(FORM_SOURCE, /name="raceDistance"/);
   assert.match(FORM_SOURCE, /name="registrationPackageId"/);
-  assert.match(FORM_SOURCE, /Review your profile snapshot/);
+  assert.doesNotMatch(FORM_SOURCE, /registrationProfile|Update profile/);
+  assert.match(REGISTRATION_SOURCE, /getRegistrationProfileSnapshot\(user\)/);
   assert.match(FORM_SOURCE, /Digital Signature \(full account name\)/);
   assert.match(REGISTRATION_SOURCE, /Signature must exactly match your account full name/);
   assert.match(PRICE_SOURCE, /customized_options/);

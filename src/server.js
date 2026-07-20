@@ -108,7 +108,7 @@ app.use((req, res, next) => {
 
 // Body parser BEFORE routes
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: false, limit: '256kb', parameterLimit: 1000 }));
 
 app.get('/healthz', (req, res) => {
   res.status(200).json({ ok: true });

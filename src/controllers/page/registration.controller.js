@@ -75,12 +75,15 @@ const {
   renderEventNotFound
 } = require('./_shared');
 
+const { buildRegistrationPagePresentation } = require('../../services/registration-page-presentation.service');
+const { getRunnerProfileCompleteness } = require('../../services/profile-completion.service');
+
 exports.getEventRegistrationForm = async (req, res) => {
   try {
     const [event, user] = await Promise.all([
       getPublishedEventBySlug(req.params.slug),
       User.findById(req.session.userId).select(
-        'firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified'
+        'firstName lastName email mobile country timezone dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified'
       )
     ]);
 
@@ -113,7 +116,31 @@ exports.getEventRegistrationForm = async (req, res) => {
     const registrationPackageOptions = buildRegistrationPackageDisplayOptions(event, getRegistrationPackageOptions(event));
     const defaultRegistrationPackage = registrationPackageOptions.find((packageOption) => packageOption.isAvailableNow) || registrationPackageOptions[0] || null;
     const existing = await Registration.findOne({ eventId: event._id, userId: user._id })
-      .select('confirmationCode participationMode raceDistance status paymentStatus pricingSnapshot paymentAmountDue paymentCurrency registeredAt');
+      .select('confirmationCode participationMode raceDistance status paymentStatus pricingSnapshot paymentAmountDue paymentCurrency addOns addOnsSubtotal addOnsCurrency registeredAt');
+
+    const formData = getRegistrationFormData({
+      ...profileSnapshot,
+      participationMode: defaultParticipationMode,
+      raceDistance: '',
+      customizedOptionId: customizedRegistrationOptions[0]?.id || '',
+      registrationPackageId: defaultRegistrationPackage?.id || '',
+      waiverAccepted: false,
+      waiverSignature: ''
+    });
+    const registrationPresentation = buildRegistrationPagePresentation({
+      event,
+      formData,
+      profileSnapshot,
+      allowedModes,
+      allowedRaceDistances,
+      raceCategoryOptions,
+      raceDistancePricingPreview,
+      customizedRegistrationOptions,
+      registrationPackageOptions,
+      registrationAddOns,
+      profileCompleteness: getRunnerProfileCompleteness(user),
+      existingRegistration: existing
+    });
 
     return res.render('pages/event-register', {
       title: `Register - ${event.title}`,
@@ -123,15 +150,7 @@ exports.getEventRegistrationForm = async (req, res) => {
       countries,
       errors: {},
       message: getPageMessage(req.query),
-      formData: getRegistrationFormData({
-        ...profileSnapshot,
-        participationMode: defaultParticipationMode,
-      raceDistance: allowedRaceDistances[0] || '',
-      customizedOptionId: customizedRegistrationOptions[0]?.id || '',
-      registrationPackageId: defaultRegistrationPackage?.id || '',
-        waiverAccepted: false,
-        waiverSignature: ''
-      }),
+      formData,
       requiresEmergencyContact,
       collectEmergencyContact,
       waiverHtml: renderWaiverTemplate(event.waiverTemplate, {
@@ -147,6 +166,7 @@ exports.getEventRegistrationForm = async (req, res) => {
       showRaceDistancePricePreview: isDistancePricingMode(event),
       customizedRegistrationOptions,
       registrationPackageOptions,
+      registrationPresentation,
       justRegistered: req.query.registered === '1'
     });
   } catch (error) {
@@ -164,7 +184,7 @@ exports.postEventRegistration = async (req, res) => {
     const [event, user] = await Promise.all([
       getPublishedEventBySlug(req.params.slug),
       User.findById(req.session.userId).select(
-        'firstName lastName email mobile country dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified'
+        'firstName lastName email mobile country timezone dateOfBirth gender emergencyContactName emergencyContactNumber runningGroup runningGroups role organizerStatus emailVerified'
       )
     ]);
 
@@ -211,7 +231,7 @@ exports.postEventRegistration = async (req, res) => {
     });
 
     const existingRegistration = await Registration.findOne({ eventId: event._id, userId: user._id })
-      .select('confirmationCode participationMode raceDistance status paymentStatus pricingSnapshot paymentAmountDue paymentCurrency registeredAt');
+      .select('confirmationCode participationMode raceDistance status paymentStatus pricingSnapshot paymentAmountDue paymentCurrency addOns addOnsSubtotal addOnsCurrency registeredAt');
     if (existingRegistration) {
       const query = new URLSearchParams({
         type: 'error',
@@ -267,6 +287,20 @@ exports.postEventRegistration = async (req, res) => {
     }
 
     if (Object.keys(validationErrors).length > 0) {
+      const registrationPresentation = buildRegistrationPagePresentation({
+        event,
+        formData,
+        profileSnapshot: formData,
+        allowedModes,
+        allowedRaceDistances,
+        raceCategoryOptions,
+        raceDistancePricingPreview,
+        customizedRegistrationOptions,
+        registrationPackageOptions,
+        registrationAddOns,
+        profileCompleteness: getRunnerProfileCompleteness(user),
+        existingRegistration: null
+      });
       return res.status(400).render('pages/event-register', {
         title: `Register - ${event.title}`,
         event,
@@ -291,6 +325,7 @@ exports.postEventRegistration = async (req, res) => {
         showRaceDistancePricePreview: isDistancePricingMode(event),
         customizedRegistrationOptions,
         registrationPackageOptions,
+        registrationPresentation,
         justRegistered: false
       });
     }
@@ -391,6 +426,8 @@ exports.postEventRegistration = async (req, res) => {
         participationMode: formData.participationMode,
         eventStartAt: event.eventStartAt,
         raceDistance: formData.raceDistance,
+        waiverVersion: Number(event.waiverVersion || 1),
+        renderedWaiver,
         recipientUserId: user._id,
         metadata: {
           registrationId: String(registration._id),

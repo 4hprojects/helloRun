@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const logger = require('../utils/logger');
 const { Resend } = require('resend');
 const { getResetTokenTtlMs } = require('./password.service');
+const { renderWaiverTemplate } = require('../utils/waiver');
 
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
@@ -1206,38 +1207,25 @@ exports.sendEventRegistrationConfirmationEmail = async (
   confirmationCode,
   participationMode,
   eventStartAt,
-  raceDistance
+  raceDistance,
+  waiverVersion,
+  renderedWaiver
 ) => {
   try {
-    const eventDateText = eventStartAt
-      ? new Date(eventStartAt).toLocaleString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit'
-        })
-      : 'TBA';
-
     const { data, error } = await resend.emails.send({
       from: process.env.EMAIL_FROM,
       to: email,
       subject: `Registration Confirmed: ${eventTitle}`,
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
-          <h2 style="margin:0 0 12px;color:#0f172a;">You're Registered!</h2>
-          <p>Hi ${firstName || 'Runner'},</p>
-          <p>Your registration for <strong>${eventTitle}</strong> is confirmed.</p>
-          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin:16px 0;">
-              <p style="margin:0 0 6px;"><strong>Confirmation Code:</strong> ${confirmationCode}</p>
-              <p style="margin:0 0 6px;"><strong>Race Distance:</strong> ${raceDistance || 'N/A'}</p>
-              <p style="margin:0 0 6px;"><strong>Participation Mode:</strong> ${participationMode}</p>
-            <p style="margin:0;"><strong>Event Start:</strong> ${eventDateText}</p>
-          </div>
-          <p>You can sign in to your HelloRun account anytime for updates.</p>
-          <p style="margin-top:20px;color:#64748b;font-size:13px;">This is an automated email. Please do not reply.</p>
-        </div>
-      `
+      html: buildEventRegistrationConfirmationEmailHtml({
+        firstName,
+        eventTitle,
+        confirmationCode,
+        participationMode,
+        eventStartAt,
+        raceDistance,
+        waiverVersion,
+        renderedWaiver
+      })
     });
 
     if (error) {
@@ -1816,3 +1804,50 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+function buildEventRegistrationConfirmationEmailHtml({
+  firstName,
+  eventTitle,
+  confirmationCode,
+  participationMode,
+  eventStartAt,
+  raceDistance,
+  waiverVersion,
+  renderedWaiver
+} = {}) {
+  const safeWaiverHtml = renderedWaiver
+    ? renderWaiverTemplate(String(renderedWaiver))
+    : '<p>Waiver copy unavailable.</p>';
+  const eventDateText = eventStartAt
+    ? new Date(eventStartAt).toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      })
+    : 'TBA';
+
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1f2937;line-height:1.5;">
+      <h2 style="margin:0 0 12px;color:#0f172a;">You're Registered!</h2>
+      <p>Hi ${escapeHtml(firstName || 'Runner')},</p>
+      <p>Your registration for <strong>${escapeHtml(eventTitle)}</strong> is confirmed.</p>
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin:16px 0;">
+        <p style="margin:0 0 6px;"><strong>Confirmation Code:</strong> ${escapeHtml(confirmationCode)}</p>
+        <p style="margin:0 0 6px;"><strong>Race Distance:</strong> ${escapeHtml(raceDistance || 'N/A')}</p>
+        <p style="margin:0 0 6px;"><strong>Participation Mode:</strong> ${escapeHtml(participationMode || 'N/A')}</p>
+        <p style="margin:0;"><strong>Event Start:</strong> ${escapeHtml(eventDateText)}</p>
+      </div>
+      <div style="margin:20px 0;padding-top:16px;border-top:1px solid #e2e8f0;">
+        <h3 style="margin:0 0 8px;color:#0f172a;font-size:16px;">Accepted event waiver</h3>
+        <p style="margin:0 0 12px;color:#475569;font-size:13px;">This is the waiver copy accepted with your registration (version ${escapeHtml(waiverVersion || 1)}).</p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-size:13px;">${safeWaiverHtml}</div>
+      </div>
+      <p>You can sign in to your HelloRun account anytime for updates.</p>
+      <p style="margin-top:20px;color:#64748b;font-size:13px;">This is an automated email. Please do not reply.</p>
+    </div>
+  `;
+}
+
+exports.buildEventRegistrationConfirmationEmailHtml = buildEventRegistrationConfirmationEmailHtml;

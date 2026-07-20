@@ -697,7 +697,9 @@ async function sendEventEmail(eventKey, payload = {}) {
       email.confirmationCode,
       email.participationMode,
       email.eventStartAt,
-      email.raceDistance
+      email.raceDistance,
+      email.waiverVersion,
+      email.renderedWaiver
     );
   }
   if (eventKey === 'payment.receipt_submitted') {

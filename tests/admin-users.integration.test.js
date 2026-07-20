@@ -21,13 +21,16 @@ const BASE_URL = `http://127.0.0.1:${TEST_PORT}`;
 
 let serverProc = null;
 let seed = null;
+const originalDatabaseUrl = process.env.DATABASE_URL;
 
 test.before(async () => {
+  process.env.DATABASE_URL = '';
   serverProc = spawn(process.execPath, ['src/server.js'], {
     cwd: ROOT,
     env: {
       ...process.env,
-      PORT: String(TEST_PORT)
+      PORT: String(TEST_PORT),
+      DATABASE_URL: ''
     },
     stdio: ['ignore', 'ignore', 'ignore']
   });
@@ -42,6 +45,8 @@ test.after(async () => {
   }
   await cleanupSeed(seed);
   await mongoose.disconnect();
+  if (originalDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+  else process.env.DATABASE_URL = originalDatabaseUrl;
 });
 
 test('admin users page enforces admin access', async () => {
@@ -93,6 +98,9 @@ test('admin can list and search users', async () => {
   assert.match(listHtml, new RegExp(escapeRegex(seed.runner.email)));
   assert.match(listHtml, new RegExp(escapeRegex(seed.organizer.email)));
   assert.match(listHtml, /id="adminUsersSelectAll"/i);
+  assert.match(listHtml, /id="adminUsersBulkUserIds"/i);
+  assert.match(listHtml, /selected\.map\(\(checkbox\) => checkbox\.value\)\.join\(','\)/i);
+  assert.doesNotMatch(listHtml, /const BULK_DELETE_CAP = 50/i);
   assert.match(listHtml, /Delete Selected/i);
   assert.match(listHtml, /data-open-user-modal/i);
   assert.match(listHtml, /id="adminUserModal"/i);
@@ -243,6 +251,78 @@ test('admin user detail returns 404 for missing user', async () => {
   assert.match(html, /User Not Found/i);
 });
 
+test('admin bulk deletion accepts 51 selected accounts in one compact field', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForSessionReady('/admin/dashboard', cookie);
+  const listResponse = await fetch(`${BASE_URL}/admin/users`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  const csrfToken = extractCsrfToken(await listResponse.text());
+  const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+  const users = await User.insertMany(Array.from({ length: 51 }, (_, index) => ({
+    userId: `AUB${stamp}${index}`.replace(/\D/g, '').slice(0, 22).padEnd(8, String(index % 10)),
+    email: `admin.bulk.${stamp}.${index}@example.com`,
+    passwordHash: '$2a$10$7EqJtq98hPqEX7fNZaFWoO5F9hM.KLQZ4pN0eQ0.Kx7v7Q8nK6r5u',
+    role: 'runner',
+    firstName: 'Bulk',
+    lastName: `User ${index}`,
+    emailVerified: true
+  })));
+  const ids = users.map((user) => String(user._id));
+
+  try {
+    const response = await fetch(`${BASE_URL}/admin/users/delete`, {
+      method: 'POST',
+      headers: {
+        Cookie: cookie,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: new URLSearchParams({
+        _csrf: csrfToken,
+        userIds: ids.join(','),
+        reason: 'Remove bulk deletion integration fixtures',
+        adminPassword: seed.password
+      }),
+      redirect: 'manual'
+    });
+    assert.equal(response.status, 302);
+    assert.match(response.headers.get('location') || '', /type=warning/i);
+    assert.equal(await User.countDocuments({ _id: { $in: ids } }), 0);
+  } finally {
+    await User.deleteMany({ _id: { $in: ids } });
+  }
+});
+
+test('admin bulk deletion rejects more than 5,000 selected account IDs', async () => {
+  const cookie = await login(seed.admin.email, seed.password);
+  await waitForSessionReady('/admin/dashboard', cookie);
+  const listResponse = await fetch(`${BASE_URL}/admin/users`, {
+    headers: { Cookie: cookie },
+    redirect: 'manual'
+  });
+  const csrfToken = extractCsrfToken(await listResponse.text());
+  const ids = Array.from({ length: 5001 }, () => String(new mongoose.Types.ObjectId()));
+  const response = await fetch(`${BASE_URL}/admin/users/delete`, {
+    method: 'POST',
+    headers: {
+      Cookie: cookie,
+      'Content-Type': 'application/x-www-form-urlencoded'
+    },
+    body: new URLSearchParams({
+      _csrf: csrfToken,
+      userIds: ids.join(','),
+      reason: 'Verify maximum bulk deletion protection',
+      adminPassword: seed.password
+    }),
+    redirect: 'manual'
+  });
+  assert.equal(response.status, 302);
+  assert.match(response.headers.get('location') || '', /type=error/i);
+  assert.match(response.headers.get('location') || '', /5%2C000/i);
+  assert.ok(await User.findById(seed.admin.id));
+});
+
 test('admin can delete any other account after password confirmation and cannot delete self', async () => {
   const cookie = await login(seed.admin.email, seed.password);
   await waitForSessionReady('/admin/dashboard', cookie);
@@ -300,7 +380,7 @@ test('admin can delete any other account after password confirmation and cannot 
     redirect: 'manual'
   });
   assert.equal(deleteResponse.status, 302);
-  assert.match(deleteResponse.headers.get('location') || '', /type=success/i);
+  assert.match(deleteResponse.headers.get('location') || '', /type=warning/i);
 
   const deletedActiveUser = await User.findById(seed.runner.id);
   assert.equal(deletedActiveUser, null);

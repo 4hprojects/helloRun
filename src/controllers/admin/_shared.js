@@ -20,7 +20,10 @@ const {
 } = require('../../services/reliable-communication.service');
 const homepageCarouselSettingService = require('../../services/homepage-carousel-setting.service');
 const adSettingService = require('../../services/ad-setting.service');
-const { recordCriticalAuditEventInBackground } = require('../../services/critical-audit.service');
+const {
+  recordCriticalAuditEventInBackground,
+  recordCriticalAuditEvents
+} = require('../../services/critical-audit.service');
 const { getTestDataCounts, purgeTestData } = require('../../services/test-data-cleanup.service');
 const { getTestUserCounts, purgeTestUsers, TEST_USER_EMAIL_PATTERN } = require('../../services/test-user-cleanup.service');
 const { reviewSubmission } = require('../../services/submission.service');
@@ -91,6 +94,7 @@ const ADMIN_USER_AUTH_PROVIDERS = ['local', 'google'];
 const ADMIN_USER_ACCOUNT_STATUSES = ['active', 'restricted', 'suspended', 'closed'];
 const ADMIN_USER_SORTS = ['newest', 'oldest', 'updated', 'role'];
 const ADMIN_USERS_PER_PAGE = 25;
+const ADMIN_USERS_ALL_CAP = 5000;
 const ADMIN_USER_PER_PAGE_OPTIONS = [25, 50, 100];
 const ADMIN_BADGE_STATUSES = ['verified', 'revoked', 'pending_review', 'all'];
 const ADMIN_BADGE_SCOPES = ['all', 'event', 'challenge', 'global', 'organiser'];
@@ -734,8 +738,6 @@ function normalizeUserIdsForDeletion(req) {
   ));
 }
 
-const BULK_DELETE_CAP = 50;
-
 async function getUserDeleteBlockers(userIds, currentAdminId) {
   const blockers = new Map();
 
@@ -1345,7 +1347,8 @@ module.exports = {
   mongoose, logger, OrganiserApplication, User, passwordService, Blog, BlogComment, BlogReport,
   Event, Registration, Submission, AccumulatedActivitySubmission, PrivacyPolicy, communicationService,
   getCommunicationRetryHealth, listCommunicationRetryAudit, listCommunicationRetries, retryCommunicationNow,
-  homepageCarouselSettingService, adSettingService, recordCriticalAuditEventInBackground, reviewSubmission,
+  homepageCarouselSettingService, adSettingService, recordCriticalAuditEventInBackground,
+  recordCriticalAuditEvents, reviewSubmission,
   reviewAccumulatedActivitySubmission, getPostgresClient, crypto, listRecentBadgeAuditLogs, publishEvent,
   getPolicyByAdminPath, listBadgeDefinitions, listAdminUserBadges, getAdminBadgeAnalytics, revokeUserBadge,
   updateBadgeDefinitionStatusSvc, updateBadgeDefinitionEmailLevelSvc,
@@ -1361,9 +1364,9 @@ module.exports = {
   PRIVACY_POLICY_MANAGE_PATH, TERMS_POLICY_MANAGE_PATH, COOKIE_POLICY_MANAGE_PATH,
   ADMIN_REVIEW_TYPES, ADMIN_REVIEW_SORTS, ADMIN_EVENT_STATUSES, ADMIN_USER_ROLES,
   ADMIN_USER_ORGANIZER_STATUSES, ADMIN_USER_AUTH_PROVIDERS, ADMIN_USER_ACCOUNT_STATUSES,
-  ADMIN_USER_SORTS, ADMIN_USERS_PER_PAGE, ADMIN_USER_PER_PAGE_OPTIONS, ADMIN_BADGE_STATUSES,
+  ADMIN_USER_SORTS, ADMIN_USERS_PER_PAGE, ADMIN_USERS_ALL_CAP, ADMIN_USER_PER_PAGE_OPTIONS, ADMIN_BADGE_STATUSES,
   ADMIN_BADGE_SCOPES, adminUserProfileCountries, POLICY_HEADING_PATTERNS, POLICY_LABEL_ALLOWLIST,
-  POLICY_LABEL_BLOCKLIST, BULK_DELETE_CAP, ADMIN_TIER_OPTIONS, isFullAdminTier,
+  POLICY_LABEL_BLOCKLIST, ADMIN_TIER_OPTIONS, isFullAdminTier,
   escapeRegex, getMessageFromQuery, canPublishFromMessage, buildDetailRedirect, normalizeApplicationQueueReturn, canTransitionStatus,
   getRequestIpAddress, getRequestUserAgent, purgeApplicationDocuments, renderApplicationNotFound,
   renderServerError, buildAdminRedirect, appendAdminPageMessage, buildCommunicationLogHref,

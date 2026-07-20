@@ -1,9 +1,9 @@
 'use strict';
 
 const {
-  mongoose, User, OrganiserApplication, Registration, Submission, Event, Blog, BlogComment,
+  mongoose, logger, User, OrganiserApplication, Registration, Submission, Event, Blog, BlogComment,
   passwordService, communicationService, crypto, getPostgresClient, recordCriticalAuditEventInBackground,
-  getRunnerEarnedBadges, BULK_DELETE_CAP, ADMIN_USERS_PER_PAGE,
+  recordCriticalAuditEvents, getRunnerEarnedBadges, ADMIN_USERS_PER_PAGE, ADMIN_USERS_ALL_CAP,
   normalizeAdminUserFilters, buildAdminUserQuery, getAdminUserSort, getAdminUserActivityCounts,
   mapAdminUserListItem, buildAdminUserListPath, buildAdminUsersRedirect, getAdminPageMessage,
   renderServerError, buildAdminRedirect, normalizeUserIdsForDeletion, getUserDeleteBlockers,
@@ -64,7 +64,6 @@ exports.listUsers = async (req, res) => {
   try {
     const filters = normalizeAdminUserFilters(req.query);
     const query = buildAdminUserQuery(filters);
-    const ADMIN_USERS_ALL_CAP = 5000;
     const isAll = filters.perPage === 'all';
     const limit = isAll ? ADMIN_USERS_ALL_CAP : Number(filters.perPage || ADMIN_USERS_PER_PAGE);
     const total = await User.countDocuments(query);
@@ -198,10 +197,10 @@ exports.deleteUsers = async (req, res) => {
     if (!userIds.length) {
       return res.redirect(buildAdminUsersRedirect('error', 'Select at least one user to delete.'));
     }
-    if (userIds.length > BULK_DELETE_CAP) {
+    if (userIds.length > ADMIN_USERS_ALL_CAP) {
       return res.redirect(buildAdminUsersRedirect(
         'error',
-        `You can delete at most ${BULK_DELETE_CAP} users at a time. Narrow your selection and try again.`
+        `You can delete at most ${ADMIN_USERS_ALL_CAP.toLocaleString()} users at a time. Narrow your selection and try again.`
       ));
     }
 
@@ -231,8 +230,29 @@ exports.deleteUsers = async (req, res) => {
       ? `${deletedCount} user(s) deleted. ${blockedCount} user(s) skipped because you cannot delete your own admin account.`
       : `${deletedCount} user(s) deleted.`;
 
-    for (const u of deletableUsers) {
-      recordCriticalAuditEventInBackground({ action: 'admin.user.deleted', targetType: 'user', targetId: String(u._id), notes: `Deleted user ${u.email}. Reason: ${reason}`, actorMongoUserId: req.session.userId, ipAddress: String(req.ip || ''), userAgent: String(req.get('user-agent') || '') });
+    const occurredAt = new Date();
+    try {
+      await recordCriticalAuditEvents(deletableUsers.map((user) => ({
+        action: 'admin.user.deleted',
+        targetType: 'user',
+        targetId: String(user._id),
+        notes: `Deleted user ${user.email}. Reason: ${reason}`,
+        actorMongoUserId: req.session.userId,
+        ipAddress: String(req.ip || ''),
+        userAgent: String(req.get('user-agent') || ''),
+        occurredAt
+      })));
+    } catch (auditError) {
+      logger.error('Supabase bulk user deletion audit write failed:', {
+        action: 'admin.user.deleted',
+        targetType: 'user',
+        deletedCount,
+        error: auditError.message
+      });
+      return res.redirect(buildAdminUsersRedirect(
+        'warning',
+        `${message} The critical audit trail could not be synchronized; check the Supabase database connection.`
+      ));
     }
 
     return res.redirect(buildAdminUsersRedirect('success', message));

@@ -162,6 +162,7 @@
         <div class="admin-users-toolbar">
           <form method="POST" action="/admin/users/delete" class="admin-users-bulk-form" id="adminUsersBulkForm">
             <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+            <input type="hidden" name="userIds" id="adminUsersBulkUserIds" value="">
             <div class="admin-users-bulk-actions">
               <button type="submit" class="btn btn-danger" id="adminUsersBulkDeleteBtn" disabled>
                 Delete Selected
@@ -258,7 +259,6 @@
                   <td>
                     <input
                       type="checkbox"
-                      name="userIds"
                       value="<%= item.id %>"
                       form="adminUsersBulkForm"
                       class="admin-user-row-checkbox"
@@ -556,6 +556,7 @@
       const bulkButton = document.getElementById('adminUsersBulkDeleteBtn');
       const selectedCount = document.getElementById('adminUsersSelectedCount');
       const bulkForm = document.getElementById('adminUsersBulkForm');
+      const bulkUserIds = document.getElementById('adminUsersBulkUserIds');
       const deleteForms = Array.from(document.querySelectorAll('.admin-user-delete-form'));
       const modal = document.getElementById('adminUserModal');
       const modalDialog = modal ? modal.querySelector('.admin-user-modal-dialog') : null;
@@ -798,24 +799,15 @@
         form.submit();
       }
 
-      const BULK_DELETE_CAP = 50;
-
       if (bulkForm) {
         bulkForm.addEventListener('submit', async (event) => {
           event.preventDefault();
           const selected = checkboxes.filter((checkbox) => checkbox.checked && !checkbox.disabled);
           if (!selected.length) return;
-          if (selected.length > BULK_DELETE_CAP) {
-            if (deleteConfirmPwError) {
-              deleteConfirmPwError.textContent = `You can delete at most ${BULK_DELETE_CAP} users at a time. Deselect some and try again.`;
-            }
-            const capDesc = `You have selected ${selected.length} users, which exceeds the limit of ${BULK_DELETE_CAP} per operation. Please narrow your selection.`;
-            await openDeleteConfirmModal(capDesc, bulkButton);
-            return;
-          }
           const desc = `You are about to permanently delete ${selected.length} user account${selected.length === 1 ? '' : 's'}. This cannot be undone.`;
           const confirmation = await openDeleteConfirmModal(desc, bulkButton);
           if (!confirmation) return;
+          if (bulkUserIds) bulkUserIds.value = selected.map((checkbox) => checkbox.value).join(',');
           injectDeleteConfirmationAndSubmit(bulkForm, confirmation);
         });
       }

@@ -25,8 +25,23 @@ function buildAuditIdempotencyKey(input = {}) {
 }
 
 async function recordCriticalAuditEvent(input = {}, options = {}) {
+  const rows = await recordCriticalAuditEvents([input], options);
+  return rows[0];
+}
+
+async function recordCriticalAuditEvents(inputs = [], options = {}) {
+  const events = Array.isArray(inputs) ? inputs.filter(Boolean) : [];
+  if (!events.length) return [];
+
   const sql = options.sql || getPostgresClient();
-  const actorMongoUserId = String(input.actorMongoUserId || '').trim();
+  const actorMongoUserIds = Array.from(new Set(
+    events.map((input) => String(input.actorMongoUserId || '').trim())
+  ));
+  if (actorMongoUserIds.length > 1) {
+    throw new Error('A critical audit batch must have one common actor.');
+  }
+
+  const actorMongoUserId = actorMongoUserIds[0];
   let actorAppUserId = null;
 
   if (actorMongoUserId) {
@@ -37,11 +52,29 @@ async function recordCriticalAuditEvent(input = {}, options = {}) {
     }
   }
 
-  const occurredAt = input.occurredAt ? new Date(input.occurredAt) : new Date();
-  const idempotencyKey = input.idempotencyKey || buildAuditIdempotencyKey({
-    ...input,
-    actorMongoUserId,
-    occurredAt
+  const auditRows = events.map((input) => {
+    const occurredAt = input.occurredAt ? new Date(input.occurredAt) : new Date();
+    const inputActorMongoUserId = String(input.actorMongoUserId || '').trim();
+    const idempotencyKey = input.idempotencyKey || buildAuditIdempotencyKey({
+      ...input,
+      actorMongoUserId: inputActorMongoUserId,
+      occurredAt
+    });
+
+    return {
+      actor_user_id: actorAppUserId,
+      actor_mongo_user_id: inputActorMongoUserId || null,
+      action: String(input.action || '').trim(),
+      target_type: String(input.targetType || '').trim(),
+      target_id: String(input.targetId || '').trim(),
+      status_from: stringOrNull(input.statusFrom),
+      status_to: stringOrNull(input.statusTo),
+      notes: stringOrNull(input.notes),
+      ip_address: stringOrNull(input.ipAddress),
+      user_agent: stringOrNull(input.userAgent),
+      idempotency_key: idempotencyKey,
+      created_at: occurredAt
+    };
   });
 
   const rows = await sql`
@@ -59,20 +92,19 @@ async function recordCriticalAuditEvent(input = {}, options = {}) {
       idempotency_key,
       created_at
     )
-    values (
-      ${actorAppUserId},
-      ${actorMongoUserId || null},
-      ${String(input.action || '').trim()},
-      ${String(input.targetType || '').trim()},
-      ${String(input.targetId || '').trim()},
-      ${stringOrNull(input.statusFrom)},
-      ${stringOrNull(input.statusTo)},
-      ${stringOrNull(input.notes)},
-      ${stringOrNull(input.ipAddress)},
-      ${stringOrNull(input.userAgent)},
-      ${idempotencyKey},
-      ${occurredAt}
-    )
+    ${sql(auditRows,
+      'actor_user_id',
+      'actor_mongo_user_id',
+      'action',
+      'target_type',
+      'target_id',
+      'status_from',
+      'status_to',
+      'notes',
+      'ip_address',
+      'user_agent',
+      'idempotency_key',
+      'created_at')}
     on conflict (idempotency_key)
     do update set
       actor_user_id = excluded.actor_user_id,
@@ -83,7 +115,7 @@ async function recordCriticalAuditEvent(input = {}, options = {}) {
     returning *
   `;
 
-  return rows[0];
+  return rows;
 }
 
 function recordCriticalAuditEventInBackground(input = {}) {
@@ -119,5 +151,6 @@ module.exports = {
   __setDisableCriticalAuditBackgroundWrites,
   buildAuditIdempotencyKey,
   recordCriticalAuditEvent,
+  recordCriticalAuditEvents,
   recordCriticalAuditEventInBackground
 };

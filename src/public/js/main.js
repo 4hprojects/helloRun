@@ -165,7 +165,20 @@ function initRegistrationDrafts() {
   if (!form || !window.localStorage || !window.HelloRunPrivacy?.functional) return;
   const key = `helloRun:registrationDraft:${window.location.pathname}`;
   const maxAge = 7 * 24 * 60 * 60 * 1000;
-  const safeFields = () => Array.from(form.elements).filter((field) => field.name && field.name !== '_csrf' && field.type !== 'file' && field.type !== 'password' && !field.disabled);
+  const allowedDraftFields = new Set([
+    'participationMode',
+    'raceDistance',
+    'customizedOptionId',
+    'registrationPackageId',
+    'addOnProductIds'
+  ]);
+  const safeFields = () => Array.from(form.elements).filter((field) => (
+    field.name
+    && allowedDraftFields.has(field.name)
+    && field.type !== 'file'
+    && field.type !== 'password'
+    && !field.disabled
+  ));
   try {
     const draft = JSON.parse(window.localStorage.getItem(key) || 'null');
     if (draft && Date.now() - Number(draft.savedAt || 0) <= maxAge) {
@@ -193,7 +206,7 @@ function initRegistrationDrafts() {
       window.localStorage.setItem(key, JSON.stringify({ savedAt: Date.now(), values }));
     }, 350);
   });
-  form.addEventListener('submit', () => window.localStorage.removeItem(key));
+  form.addEventListener('registration:confirmed-submit', () => window.localStorage.removeItem(key));
 }
 
 function initMobileOperationalTables() {

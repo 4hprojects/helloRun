@@ -107,6 +107,13 @@
       return String(age);
     };
 
+    const formatGender = (value) => ({
+      male: 'Male',
+      female: 'Female',
+      non_binary: 'Non-binary',
+      prefer_not_to_say: 'Prefer not to say'
+    }[String(value || '')] || 'Not set');
+
     const updateSnapshotField = (name, value) => {
       const target = document.querySelector('[data-profile-field="' + name + '"]');
       if (target) target.textContent = value;
@@ -191,17 +198,28 @@
         updateSnapshotField('mobile', profile.mobile || 'Not set');
         updateSnapshotField('country', profile.countryName || profile.country || 'Not set');
         updateSnapshotField('age', computeAge(profile.dateOfBirth));
-        updateSnapshotField('gender', profile.gender || 'Not set');
+        updateSnapshotField('gender', formatGender(profile.gender));
 
         const emergencyLabel = profile.emergencyContactName && profile.emergencyContactNumber
           ? profile.emergencyContactName + ' (' + profile.emergencyContactNumber + ')'
           : 'Not set';
         updateSnapshotField('emergencyContact', emergencyLabel);
+        updateSnapshotField('runningGroups', Array.isArray(profile.runningGroups) && profile.runningGroups.length
+          ? profile.runningGroups.join(', ')
+          : 'Not set');
 
         const quickMobile = document.getElementById('quickMobile');
+        const quickCountry = document.getElementById('quickCountry');
+        const quickDateOfBirth = document.getElementById('quickDateOfBirth');
+        const quickGender = document.getElementById('quickGender');
+        const quickRunningGroups = document.getElementById('quickRunningGroups');
         const quickEmergencyName = document.getElementById('quickEmergencyName');
         const quickEmergencyNumber = document.getElementById('quickEmergencyNumber');
         if (quickMobile) quickMobile.value = profile.mobile || '';
+        if (quickCountry) quickCountry.value = profile.country || '';
+        if (quickDateOfBirth) quickDateOfBirth.value = profile.dateOfBirth || '';
+        if (quickGender) quickGender.value = profile.gender || '';
+        if (quickRunningGroups) quickRunningGroups.value = Array.isArray(profile.runningGroups) ? profile.runningGroups.join(', ') : '';
         if (quickEmergencyName) quickEmergencyName.value = profile.emergencyContactName || '';
         if (quickEmergencyNumber) quickEmergencyNumber.value = profile.emergencyContactNumber || '';
 

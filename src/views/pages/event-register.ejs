@@ -7,440 +7,338 @@
 </head>
 <body>
   <%- include('../layouts/nav') %>
-  <% const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : ''; %>
-  <% const visibleRegistrationAddOns = Array.isArray(registrationAddOns) ? registrationAddOns : []; %>
-  <% const visibleCustomizedOptions = Array.isArray(customizedRegistrationOptions) ? customizedRegistrationOptions : []; %>
-  <% const visibleRegistrationPackages = event.pricingMode === 'package_period' && Array.isArray(registrationPackageOptions) ? registrationPackageOptions : []; %>
-  <% const raceDistancePricePreviewData = (typeof raceDistancePricingPreview === 'object' && raceDistancePricingPreview) ? raceDistancePricingPreview : {}; %>
-  <% const shouldCollectEmergencyContact = typeof collectEmergencyContact !== 'undefined' ? collectEmergencyContact : requiresEmergencyContact; %>
+  <%
+    const _csrfToken = typeof csrfToken !== 'undefined' ? csrfToken : '';
+    const presentation = registrationPresentation || {};
+    const eventSummary = presentation.event || {};
+    const modeControl = presentation.modes || { kind: 'select', items: [] };
+    const distanceControl = presentation.distances || { kind: 'select', items: [] };
+    const profilePresentation = presentation.profile || { fields: [], fullName: '', completion: { percent: 0, completedCount: 0, requiredCount: 9, missingFields: [] } };
+    const visibleRegistrationAddOns = Array.isArray(registrationAddOns) ? registrationAddOns : [];
+    const visibleCustomizedOptions = Array.isArray(customizedRegistrationOptions) ? customizedRegistrationOptions : [];
+    const visibleRegistrationPackages = event.pricingMode === 'package_period' && Array.isArray(registrationPackageOptions) ? registrationPackageOptions : [];
+    const shouldCollectEmergencyContact = typeof collectEmergencyContact !== 'undefined' ? collectEmergencyContact : requiresEmergencyContact;
+  %>
 
   <main class="event-register-page">
     <section class="event-register-shell">
       <header class="event-register-header">
-        <a href="/events/<%= event.slug %>" class="btn btn-outline">Back to Event</a>
+        <a href="/events/<%= event.slug %>" class="event-register-back">
+          <i data-lucide="arrow-left" aria-hidden="true"></i>
+          Back to event
+        </a>
         <div class="event-register-header-copy">
-          <h1>Event Registration</h1>
-          <p>Complete your registration details for <strong><%= event.title %></strong>.</p>
+          <span class="event-register-eyebrow"><%= eventSummary.formatLabel || 'Event registration' %></span>
+          <h1>Join <%= event.title %></h1>
+          <p>Choose your event preferences, accept the waiver, and review everything before registering.</p>
+          <ul class="event-register-key-facts" aria-label="Registration timing">
+            <li><i data-lucide="calendar-x" aria-hidden="true"></i><span>Register by <strong><%= eventSummary.registrationCloseLabel %></strong></span></li>
+            <li><i data-lucide="activity" aria-hidden="true"></i><span>Activity <strong><%= eventSummary.activityWindowLabel %></strong></span></li>
+            <li><i data-lucide="upload-cloud" aria-hidden="true"></i><span>Submit by <strong><%= eventSummary.submissionDeadlineLabel %></strong></span></li>
+          </ul>
+          <small class="event-register-timezone">Dates follow <%= eventSummary.timeZoneLabel || 'Asia/Manila' %>.</small>
         </div>
       </header>
 
       <% if (message) { %>
-        <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+        <div class="page-message page-message-<%= message.type %>" role="status"><%= message.text %></div>
       <% } %>
 
       <% if (errors && errors.base) { %>
-        <div class="page-message page-message-error"><%= errors.base %></div>
+        <div class="page-message page-message-error" role="alert"><%= errors.base %></div>
       <% } %>
 
       <% if (registrationWindowError) { %>
-        <div class="page-message page-message-error"><%= registrationWindowError %></div>
+        <div class="page-message page-message-error" role="alert"><%= registrationWindowError %></div>
       <% } %>
 
       <% if (existingRegistration) { %>
-        <section class="registration-state-card registration-state-success">
-          <h2><%= justRegistered ? 'Registration Confirmed' : 'Already Registered' %></h2>
-          <p>Your account is already registered for this event.</p>
-          <div class="registration-state-grid">
-            <p><strong>Confirmation Code</strong><span><code><%= existingRegistration.confirmationCode %></code></span></p>
-            <p><strong>Race Distance</strong><span><%= existingRegistration.raceDistance || 'N/A' %></span></p>
-            <p><strong>Participation Mode</strong><span><%= existingRegistration.participationMode || 'N/A' %></span></p>
-            <p><strong>Status</strong><span><%= existingRegistration.status || 'N/A' %></span></p>
-            <p><strong>Payment Status</strong><span><%= existingRegistration.paymentStatus || 'N/A' %></span></p>
-            <% if (Number(existingRegistration.paymentAmountDue || 0) > 0) { %>
-              <p><strong>Registration Fee</strong><span><%= existingRegistration.paymentCurrency || event.feeCurrency || 'PHP' %> <%= Number(existingRegistration.paymentAmountDue || 0).toFixed(2) %></span></p>
-            <% } else { %>
-              <p><strong>Registration Fee</strong><span>Free — no payment required</span></p>
-            <% } %>
+        <% const existingSummary = presentation.existing || {}; %>
+        <section class="registration-state-card registration-state-success" aria-labelledby="registrationStateTitle">
+          <div class="registration-state-heading">
+            <span class="registration-state-icon"><i data-lucide="circle-check" aria-hidden="true"></i></span>
+            <div>
+              <span class="event-register-eyebrow"><%= justRegistered ? 'You are in' : 'Registration found' %></span>
+              <h2 id="registrationStateTitle"><%= justRegistered ? 'Registration confirmed' : 'Already registered' %></h2>
+              <p>Your event place and selected preferences are saved.</p>
+            </div>
+          </div>
+
+          <div class="registration-confirmation-code">
+            <span>Confirmation code</span>
+            <code><%= existingRegistration.confirmationCode %></code>
+          </div>
+
+          <dl class="registration-state-grid">
+            <div><dt>Goal or category</dt><dd><%= existingRegistration.raceDistance || 'Not listed' %></dd></div>
+            <div><dt>Participation mode</dt><dd><%= existingRegistration.participationMode || 'Not listed' %></dd></div>
             <% if (existingRegistration.pricingSnapshot?.optionDescription) { %>
-              <p><strong>Signup Option</strong><span><%= existingRegistration.pricingSnapshot.optionDescription %></span></p>
+              <div><dt>Signup option</dt><dd><%= existingRegistration.pricingSnapshot.optionDescription %></dd></div>
             <% } %>
             <% if (existingRegistration.pricingSnapshot?.packageName) { %>
-              <p><strong>Registration Package</strong><span><%= existingRegistration.pricingSnapshot.packageName %></span></p>
+              <div><dt>Registration package</dt><dd><%= existingRegistration.pricingSnapshot.packageName %></dd></div>
             <% } %>
             <% if (existingRegistration.pricingSnapshot?.pricingPeriodLabel) { %>
-              <p><strong>Pricing Period</strong><span><%= existingRegistration.pricingSnapshot.pricingPeriodLabel %></span></p>
+              <div><dt>Pricing period</dt><dd><%= existingRegistration.pricingSnapshot.pricingPeriodLabel %></dd></div>
             <% } %>
-            <p><strong>Registered At</strong><span><%= existingRegistration.registeredAt ? new Date(existingRegistration.registeredAt).toLocaleString('en-US') : 'N/A' %></span></p>
-          </div>
-          <div class="register-actions">
-            <a href="/events/<%= event.slug %>" class="btn btn-outline">Back to Event</a>
+            <div><dt>Registration status</dt><dd><%= existingSummary.statusLabel || existingRegistration.status || 'Confirmed' %></dd></div>
+            <div><dt>Payment status</dt><dd><%= existingSummary.paymentStatusLabel || existingRegistration.paymentStatus || 'Not listed' %></dd></div>
+          </dl>
+
+          <section class="registration-cost-summary" aria-labelledby="existingCostTitle">
+            <h3 id="existingCostTitle">Registration total</h3>
+            <dl>
+              <div><dt>Registration</dt><dd><%= existingSummary.registrationAmount > 0 ? existingSummary.registrationAmountLabel : 'Free' %></dd></div>
+              <% if (existingSummary.addOnsAmount > 0) { %>
+                <div><dt>Add-ons</dt><dd><%= existingSummary.addOnsAmountLabel %></dd></div>
+              <% } %>
+              <div class="registration-cost-total"><dt>Total</dt><dd><%= existingSummary.totalAmountLabel || 'Free' %></dd></div>
+            </dl>
+          </section>
+
+          <div class="register-actions registration-state-actions">
+            <a href="<%= existingSummary.nextAction?.href || `/events/${event.slug}` %>" class="btn btn-primary"><%= existingSummary.nextAction?.label || 'View event' %></a>
+            <a href="/my-registrations" class="btn btn-outline">My registrations</a>
           </div>
         </section>
       <% } else { %>
-      <div class="event-register-layout">
-        <form method="POST" action="/events/<%= event.slug %>/register" class="event-register-form" id="eventRegisterForm" novalidate>
-          <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
-          <%
-            const sortedRaceDistances = (Array.isArray(allowedRaceDistances) ? allowedRaceDistances.slice() : [])
-              .sort((a, b) => String(b || '').localeCompare(String(a || ''), undefined, { numeric: true, sensitivity: 'base' }));
-          %>
-          <section class="register-card">
-            <h2>Registration Preferences</h2>
-            <div class="register-field-grid">
-              <div class="form-group <%= errors.participationMode ? 'has-error' : '' %>">
-                <label for="participationMode">Participation Mode *</label>
-                <select id="participationMode" name="participationMode" <%= registrationWindowError ? 'disabled' : '' %>>
-                  <% allowedModes.forEach((mode) => { %>
-                    <option value="<%= mode %>" <%= formData.participationMode === mode ? 'selected' : '' %>><%= mode %></option>
-                  <% }) %>
-                </select>
-                <% if (errors.participationMode) { %><small class="error-text"><%= errors.participationMode %></small><% } %>
+        <nav class="registration-step-nav" aria-label="Registration steps">
+          <ol>
+            <li><a href="#registrationChoices"><span>1</span>Event choices</a></li>
+            <li><a href="#registrationWaiver"><span>2</span>Waiver</a></li>
+          </ol>
+        </nav>
+
+        <div class="event-register-layout">
+          <form method="POST" action="/events/<%= event.slug %>/register" class="event-register-form" id="eventRegisterForm" data-registration-form novalidate>
+            <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
+
+            <section class="register-card registration-step-card" id="registrationChoices" aria-labelledby="registrationChoicesTitle">
+              <div class="registration-step-heading">
+                <span class="registration-step-number">1</span>
+                <div>
+                  <span class="event-register-eyebrow">Event choices</span>
+                  <h2 id="registrationChoicesTitle">Choose how you will participate</h2>
+                  <p>Select the mode, goal, and any available registration options.</p>
+                </div>
               </div>
 
-              <div class="form-group <%= errors.raceDistance ? 'has-error' : '' %>">
-                <label for="raceDistance">Race Distance *</label>
-                <select id="raceDistance" name="raceDistance" <%= registrationWindowError ? 'disabled' : '' %>>
-                  <% sortedRaceDistances.forEach((distance) => { %>
-                    <%
-                      const matchingCategories = (raceCategoryOptions || []).filter(function(category) {
-                        return String(category.distanceLabel || category.name || '').toUpperCase() === String(distance || '').toUpperCase();
-                      });
-                      const categoryNames = matchingCategories
-                        .map(function(category) { return String(category.name || '').trim(); })
-                        .filter(Boolean);
-                      const uniqueCategoryNames = Array.from(new Set(categoryNames));
-                      const optionLabel = uniqueCategoryNames.length
-                        ? uniqueCategoryNames.join(' / ') + ' (' + distance + ')'
-                        : distance;
-                    %>
-                    <option value="<%= distance %>" <%= formData.raceDistance === distance ? 'selected' : '' %>><%= optionLabel %></option>
-                  <% }) %>
-                </select>
-                <% if (errors.raceDistance) { %><small class="error-text"><%= errors.raceDistance %></small><% } %>
-                <% if (showRaceDistancePricePreview) { %>
-                  <div class="race-distance-price-preview" id="raceDistancePricePreview" aria-live="polite">
-                    <strong id="raceDistancePriceValue">-</strong>
-                    <small id="raceDistancePricePeriod"></small>
+              <fieldset class="registration-choice-group <%= errors.participationMode ? 'has-error' : '' %>" id="participationModeGroup">
+                <legend>Participation mode <span aria-hidden="true">*</span></legend>
+                <% if (modeControl.kind === 'fixed') { const mode = modeControl.items[0]; %>
+                  <input type="hidden" id="participationMode" name="participationMode" value="<%= mode?.value || '' %>">
+                  <div class="registration-fixed-choice">
+                    <i data-lucide="<%= String(mode?.value || '').toLowerCase() === 'onsite' ? 'map-pin' : 'smartphone' %>" aria-hidden="true"></i>
+                    <span><strong><%= mode?.label || 'Event mode' %></strong><small><%= mode?.helper || '' %></small></span>
                   </div>
-                <% } %>
-              </div>
-            </div>
-
-            <% if (visibleCustomizedOptions.length) { %>
-              <div class="form-group form-group-full <%= errors.customizedOptionId ? 'has-error' : '' %>">
-                <label>Signup Option *</label>
-                <div class="registration-option-list">
-                  <% visibleCustomizedOptions.forEach((option) => { %>
-                    <label class="registration-option-card" for="customizedOption-<%= option.id %>">
-                      <input
-                        type="radio"
-                        id="customizedOption-<%= option.id %>"
-                        name="customizedOptionId"
-                        value="<%= option.id %>"
-                        <%= formData.customizedOptionId === option.id ? 'checked' : '' %>
-                        <%= registrationWindowError ? 'disabled' : '' %>
-                      >
-                      <span>
-                        <strong><%= option.shortDescription %></strong>
-                        <small><%= option.currency %> <%= Number(option.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></small>
-                      </span>
-                    </label>
-                  <% }) %>
-                </div>
-                <% if (errors.customizedOptionId) { %><small class="error-text"><%= errors.customizedOptionId %></small><% } %>
-              </div>
-            <% } %>
-
-            <% if (visibleRegistrationPackages.length) { %>
-              <div class="form-group form-group-full <%= errors.registrationPackageId ? 'has-error' : '' %>">
-                <label>Registration Package *</label>
-                <div class="registration-option-list">
-                  <% visibleRegistrationPackages.forEach((packageOption) => { %>
-                    <label class="registration-option-card <%= packageOption.isAvailableNow ? '' : 'is-unavailable' %>" for="registrationPackage-<%= packageOption.id %>">
-                      <input
-                        type="radio"
-                        id="registrationPackage-<%= packageOption.id %>"
-                        name="registrationPackageId"
-                        value="<%= packageOption.id %>"
-                        <%= formData.registrationPackageId === packageOption.id ? 'checked' : '' %>
-                        <%= registrationWindowError || !packageOption.isAvailableNow ? 'disabled' : '' %>
-                      >
-                      <span>
-                        <strong><%= packageOption.name %></strong>
-                        <% if (packageOption.currentAmountLabel) { %>
-                          <small class="registration-option-price"><%= packageOption.currentAmountLabel %><%= packageOption.currentPricingPeriodLabel ? ` - ${packageOption.currentPricingPeriodLabel}` : '' %></small>
-                        <% } %>
-                        <% if ((packageOption.includedItems || []).length) { %>
-                          <small><%= packageOption.includedItems.join(', ') %></small>
-                        <% } else { %>
-                          <small>Package registration</small>
-                        <% } %>
-                        <% if (packageOption.availabilityMessage) { %>
-                          <small class="registration-option-warning"><%= packageOption.availabilityMessage %></small>
-                        <% } %>
-                      </span>
-                    </label>
-                  <% }) %>
-                </div>
-                <% if (errors.registrationPackageId) { %><small class="error-text"><%= errors.registrationPackageId %></small><% } %>
-              </div>
-            <% } %>
-
-            <% if (shouldCollectEmergencyContact) { %>
-              <div
-                class="register-field-grid"
-                id="emergencyContactFields"
-                data-emergency-contact-fields
-                <%= requiresEmergencyContact ? '' : 'hidden' %>
-              >
-                <div class="form-group <%= errors.emergencyContactName ? 'has-error' : '' %>">
-                  <label for="emergencyContactName">Emergency Contact Name *</label>
-                  <input
-                    id="emergencyContactName"
-                    name="emergencyContactName"
-                    type="text"
-                    value="<%= formData.emergencyContactName || '' %>"
-                    <%= registrationWindowError ? 'disabled' : '' %>
-                  >
-                  <% if (errors.emergencyContactName) { %><small class="error-text"><%= errors.emergencyContactName %></small><% } %>
-                </div>
-
-                <div class="form-group <%= errors.emergencyContactNumber ? 'has-error' : '' %>">
-                  <label for="emergencyContactNumber">Emergency Contact Number *</label>
-                  <input
-                    id="emergencyContactNumber"
-                    name="emergencyContactNumber"
-                    type="text"
-                    value="<%= formData.emergencyContactNumber || '' %>"
-                    <%= registrationWindowError ? 'disabled' : '' %>
-                  >
-                  <% if (errors.emergencyContactNumber) { %><small class="error-text"><%= errors.emergencyContactNumber %></small><% } %>
-                </div>
-              </div>
-            <% } %>
-          </section>
-
-          <% if (visibleRegistrationAddOns.length) { %>
-            <section class="register-card">
-              <h2>Optional Add-ons</h2>
-              <p class="card-helper">Select optional add-ons to include in this registration. Charges and checkout linking will be finalized in the next phase.</p>
-              <% if (errors.addOnProductIds) { %><small class="error-text"><%= errors.addOnProductIds %></small><% } %>
-              <ul class="registration-addon-list">
-                <% visibleRegistrationAddOns.forEach((addOn) => { %>
-                  <li>
-                    <p>
-                      <label class="registration-addon-label" for="addon-<%= addOn.id %>">
-                        <input
-                          type="checkbox"
-                          id="addon-<%= addOn.id %>"
-                          name="addOnProductIds"
-                          value="<%= addOn.id %>"
-                          <%= (formData.addOnProductIds || []).includes(addOn.id) ? 'checked' : '' %>
-                          <%= registrationWindowError ? 'disabled' : '' %>
-                        >
-                        <strong><%= addOn.name %></strong>
+                <% } else if (modeControl.kind === 'cards') { %>
+                  <div class="registration-choice-cards registration-mode-cards">
+                    <% modeControl.items.forEach((mode, index) => { %>
+                      <label class="registration-choice-card" for="participationMode-<%= index %>">
+                        <input type="radio" id="participationMode-<%= index %>" name="participationMode" value="<%= mode.value %>" <%= mode.selected ? 'checked' : '' %> <%= registrationWindowError ? 'disabled' : '' %> required aria-invalid="<%= errors.participationMode ? 'true' : 'false' %>" aria-describedby="<%= errors.participationMode ? 'participationModeError' : '' %>">
+                        <span><strong><%= mode.label %></strong><small><%= mode.helper %></small></span>
                       </label>
-                      <% if (addOn.productType && addOn.productType !== 'event_shop_item') { %>
-                        <small><%= addOn.productType.replace(/_/g, ' ') %></small>
-                      <% } %>
-                    </p>
-                    <span><%= addOn.currency %> <%= Number(addOn.basePrice || 0).toLocaleString('en-US') %></span>
-                  </li>
-                <% }) %>
-              </ul>
-            </section>
-          <% } %>
+                    <% }) %>
+                  </div>
+                <% } else { %>
+                  <label class="form-group" for="participationMode">
+                    <span class="sr-only">Participation mode</span>
+                    <select id="participationMode" name="participationMode" <%= registrationWindowError ? 'disabled' : '' %> required aria-invalid="<%= errors.participationMode ? 'true' : 'false' %>" aria-describedby="<%= errors.participationMode ? 'participationModeError' : '' %>">
+                      <% modeControl.items.forEach((mode) => { %><option value="<%= mode.value %>" <%= mode.selected ? 'selected' : '' %>><%= mode.label %></option><% }) %>
+                    </select>
+                  </label>
+                <% } %>
+                <% if (errors.participationMode) { %><small class="error-text" id="participationModeError"><%= errors.participationMode %></small><% } %>
+              </fieldset>
 
-          <section class="register-card">
-            <div class="register-card-head">
-              <h2>Runner Profile Snapshot</h2>
-              <button type="button" class="inline-link link-btn" id="openQuickProfileModalBtn">Update Profile</button>
-            </div>
-            <p class="card-helper">These details are pulled from your runner profile and saved for this registration.</p>
-            <%
-              const rawDob = String(formData.dateOfBirth || '').trim();
-              let ageLabel = 'Not set';
-              if (rawDob) {
-                const dob = new Date(rawDob);
-                if (!Number.isNaN(dob.getTime())) {
-                  const now = new Date();
-                  let age = now.getFullYear() - dob.getFullYear();
-                  const monthDiff = now.getMonth() - dob.getMonth();
-                  const dayDiff = now.getDate() - dob.getDate();
-                  if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) age -= 1;
-                  if (age >= 0 && age <= 130) ageLabel = String(age);
-                }
-              }
-            %>
-            <div class="snapshot-grid">
-              <p><strong>Name</strong><span data-profile-field="name"><%= [formData.firstName, formData.lastName].filter(Boolean).join(' ') || 'Not set' %></span></p>
-              <p><strong>Email</strong><span data-profile-field="email"><%= formData.email || 'Not set' %></span></p>
-              <p><strong>Mobile</strong><span data-profile-field="mobile"><%= formData.mobile || 'Not set' %></span></p>
-              <p><strong>Country</strong><span data-profile-field="country"><%= formData.country || 'Not set' %></span></p>
-              <p><strong>Age</strong><span data-profile-field="age"><%= ageLabel %></span></p>
-              <p><strong>Gender</strong><span data-profile-field="gender"><%= formData.gender || 'Not set' %></span></p>
-              <p class="snapshot-full"><strong>Emergency Contact</strong><span data-profile-field="emergencyContact"><%= formData.emergencyContactName && formData.emergencyContactNumber ? `${formData.emergencyContactName} (${formData.emergencyContactNumber})` : 'Not set' %></span></p>
-              <p class="snapshot-full"><strong>Running Groups</strong><span data-profile-field="runningGroups"><%= (formData.runningGroups && formData.runningGroups.length) ? formData.runningGroups.join(', ') : (formData.runningGroup || 'Not set') %></span></p>
-            </div>
-          </section>
-
-          <section class="register-card <%= (errors.waiverAccepted || errors.waiverSignature) ? 'card-error' : '' %>">
-            <h2>Waiver & Signature</h2>
-            <div class="waiver-section">
-              <div class="waiver-content">
-                <%- waiverHtml %>
-              </div>
-
-              <div class="waiver-actions">
-                <label class="waiver-checkbox-row" for="waiverAccepted">
-                  <input
-                    type="checkbox"
-                    id="waiverAccepted"
-                    name="waiverAccepted"
-                    value="1"
-                    <%= formData.waiverAccepted ? 'checked' : '' %>
-                    <%= registrationWindowError ? 'disabled' : '' %>
-                  >
-                  <span>I agree to the waiver (version <%= waiverVersion %>).</span>
+              <fieldset class="registration-choice-group <%= errors.raceDistance ? 'has-error' : '' %>" id="raceDistanceGroup">
+                <legend>Goal or category <span aria-hidden="true">*</span></legend>
+                <p class="choice-helper">Choose the category that will determine your event goal and result grouping.</p>
+                <label class="form-group" for="raceDistance">
+                  <span class="sr-only">Goal or category</span>
+                  <select id="raceDistance" name="raceDistance" <%= registrationWindowError ? 'disabled' : '' %> required aria-invalid="<%= errors.raceDistance ? 'true' : 'false' %>" aria-describedby="raceDistanceHelp <%= errors.raceDistance ? 'raceDistanceError' : '' %>">
+                    <option value="" disabled <%= formData.raceDistance ? '' : 'selected' %>>Select goal or category</option>
+                    <% distanceControl.items.forEach((distance) => { %>
+                      <option value="<%= distance.value %>" <%= distance.selected ? 'selected' : '' %> <%= distance.available ? '' : 'disabled' %>><%= [distance.title, distance.helper, distance.priceLabel, distance.priceHelper, distance.available ? '' : 'Unavailable'].filter(Boolean).join(' — ') %></option>
+                    <% }) %>
+                  </select>
+                  <small id="raceDistanceHelp">Goals are listed from longest distance to shortest.</small>
                 </label>
-                <% if (errors.waiverAccepted) { %><small class="error-text"><%= errors.waiverAccepted %></small><% } %>
+                <% if (errors.raceDistance) { %><small class="error-text" id="raceDistanceError"><%= errors.raceDistance %></small><% } %>
+                <% if (errors.pricing) { %><small class="error-text" id="registrationPricingError"><%= errors.pricing %></small><% } %>
+              </fieldset>
 
-                <label for="waiverSignature" class="signature-label">Digital Signature (full account name) *</label>
-                <input
-                  id="waiverSignature"
-                  name="waiverSignature"
-                  type="text"
-                  value="<%= formData.waiverSignature || '' %>"
-                  placeholder="Type your full name"
-                  <%= registrationWindowError ? 'disabled' : '' %>
-                >
-                <% if (errors.waiverSignature) { %><small class="error-text"><%= errors.waiverSignature %></small><% } %>
+              <% if (visibleCustomizedOptions.length) { %>
+                <fieldset class="registration-choice-group <%= errors.customizedOptionId ? 'has-error' : '' %>" id="customizedOptionGroup">
+                  <legend>Signup option <span aria-hidden="true">*</span></legend>
+                  <div class="registration-choice-cards">
+                    <% visibleCustomizedOptions.forEach((option, index) => { %>
+                      <label class="registration-choice-card" for="customizedOption-<%= index %>">
+                        <input type="radio" id="customizedOption-<%= index %>" name="customizedOptionId" value="<%= option.id %>" <%= formData.customizedOptionId === option.id ? 'checked' : '' %> <%= registrationWindowError ? 'disabled' : '' %> required>
+                        <span><strong><%= option.shortDescription %></strong><small class="registration-choice-price"><%= option.currency %> <%= Number(option.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></small></span>
+                      </label>
+                    <% }) %>
+                  </div>
+                  <% if (errors.customizedOptionId) { %><small class="error-text"><%= errors.customizedOptionId %></small><% } %>
+                </fieldset>
+              <% } %>
+
+              <% if (visibleRegistrationPackages.length) { %>
+                <fieldset class="registration-choice-group <%= errors.registrationPackageId ? 'has-error' : '' %>" id="registrationPackageGroup">
+                  <legend>Registration package <span aria-hidden="true">*</span></legend>
+                  <div class="registration-choice-cards">
+                    <% visibleRegistrationPackages.forEach((packageOption, index) => { %>
+                      <label class="registration-choice-card <%= packageOption.isAvailableNow ? '' : 'is-unavailable' %>" for="registrationPackage-<%= index %>">
+                        <input type="radio" id="registrationPackage-<%= index %>" name="registrationPackageId" value="<%= packageOption.id %>" <%= formData.registrationPackageId === packageOption.id ? 'checked' : '' %> <%= registrationWindowError || !packageOption.isAvailableNow ? 'disabled' : '' %> required>
+                        <span>
+                          <strong><%= packageOption.name %></strong>
+                          <% if (packageOption.currentAmountLabel) { %><small class="registration-choice-price"><%= packageOption.currentAmountLabel %><%= packageOption.currentPricingPeriodLabel ? ` · ${packageOption.currentPricingPeriodLabel}` : '' %></small><% } %>
+                          <small><%= (packageOption.includedItems || []).length ? packageOption.includedItems.join(', ') : 'Package registration' %></small>
+                          <% if (packageOption.availabilityMessage) { %><small class="registration-option-warning"><%= packageOption.availabilityMessage %></small><% } %>
+                        </span>
+                      </label>
+                    <% }) %>
+                  </div>
+                  <% if (errors.registrationPackageId) { %><small class="error-text"><%= errors.registrationPackageId %></small><% } %>
+                </fieldset>
+              <% } %>
+
+              <% if (visibleRegistrationAddOns.length) { %>
+                <fieldset class="registration-choice-group" id="registrationAddOnGroup">
+                  <legend>Optional add-ons</legend>
+                  <p class="choice-helper">Selected items are added to your registration checkout and included in the total below.</p>
+                  <div class="registration-addon-list">
+                    <% visibleRegistrationAddOns.forEach((addOn, index) => { %>
+                      <label class="registration-addon-card" for="addon-<%= index %>">
+                        <input type="checkbox" id="addon-<%= index %>" name="addOnProductIds" value="<%= addOn.id %>" <%= (formData.addOnProductIds || []).includes(addOn.id) ? 'checked' : '' %> <%= registrationWindowError ? 'disabled' : '' %>>
+                        <span><strong><%= addOn.name %></strong><small><%= addOn.productType && addOn.productType !== 'event_shop_item' ? addOn.productType.replace(/_/g, ' ') : 'Event add-on' %></small></span>
+                        <b><%= addOn.currency %> <%= Number(addOn.basePrice || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></b>
+                      </label>
+                    <% }) %>
+                  </div>
+                  <% if (errors.addOnProductIds) { %><small class="error-text"><%= errors.addOnProductIds %></small><% } %>
+                </fieldset>
+              <% } %>
+
+              <% if (shouldCollectEmergencyContact) { %>
+                <div class="register-field-grid" id="emergencyContactFields" data-emergency-contact-fields <%= requiresEmergencyContact ? '' : 'hidden' %>>
+                  <div class="form-group <%= errors.emergencyContactName ? 'has-error' : '' %>">
+                    <label for="emergencyContactName">Emergency contact name <span aria-hidden="true">*</span></label>
+                    <input id="emergencyContactName" name="emergencyContactName" type="text" value="<%= formData.emergencyContactName || '' %>" maxlength="120" <%= registrationWindowError ? 'disabled' : '' %> aria-describedby="<%= errors.emergencyContactName ? 'emergencyContactNameError' : '' %>">
+                    <% if (errors.emergencyContactName) { %><small class="error-text" id="emergencyContactNameError"><%= errors.emergencyContactName %></small><% } %>
+                  </div>
+                  <div class="form-group <%= errors.emergencyContactNumber ? 'has-error' : '' %>">
+                    <label for="emergencyContactNumber">Emergency contact number <span aria-hidden="true">*</span></label>
+                    <input id="emergencyContactNumber" name="emergencyContactNumber" type="tel" value="<%= formData.emergencyContactNumber || '' %>" maxlength="25" <%= registrationWindowError ? 'disabled' : '' %> aria-describedby="<%= errors.emergencyContactNumber ? 'emergencyContactNumberError' : '' %>">
+                    <% if (errors.emergencyContactNumber) { %><small class="error-text" id="emergencyContactNumberError"><%= errors.emergencyContactNumber %></small><% } %>
+                  </div>
+                </div>
+              <% } %>
+            </section>
+
+            <section class="register-card registration-step-card <%= (errors.waiverAccepted || errors.waiverSignature) ? 'card-error' : '' %>" id="registrationWaiver" aria-labelledby="registrationWaiverTitle">
+              <div class="registration-step-heading">
+                <span class="registration-step-number">2</span>
+                <div>
+                  <span class="event-register-eyebrow">Waiver and signature</span>
+                  <h2 id="registrationWaiverTitle">Read and acknowledge the event waiver</h2>
+                  <p>Your typed signature must match the full name on your HelloRun account.</p>
+                </div>
               </div>
+              <div class="waiver-section">
+                <details class="waiver-details" id="waiverDetails" data-validation-locked-open="<%= errors.waiverAccepted ? 'true' : 'false' %>" <%= (errors.waiverAccepted || errors.waiverSignature) ? 'open' : '' %>>
+                  <summary>Read the event waiver (version <%= waiverVersion %>)</summary>
+                  <div class="waiver-content" tabindex="0" aria-label="Event waiver text"><%- waiverHtml %></div>
+                </details>
+                <div class="waiver-actions">
+                  <label class="waiver-checkbox-row" for="waiverAccepted">
+                    <input type="checkbox" id="waiverAccepted" name="waiverAccepted" value="1" <%= formData.waiverAccepted ? 'checked' : '' %> <%= registrationWindowError ? 'disabled' : '' %> required aria-describedby="<%= errors.waiverAccepted ? 'waiverAcceptedError' : '' %>">
+                    <span>I have read and agree to the event waiver (version <%= waiverVersion %>).</span>
+                  </label>
+                  <% if (errors.waiverAccepted) { %><small class="error-text" id="waiverAcceptedError"><%= errors.waiverAccepted %></small><% } %>
+                  <div class="form-group <%= errors.waiverSignature ? 'has-error' : '' %>">
+                    <label for="waiverSignature">Digital Signature (full account name) <span aria-hidden="true">*</span></label>
+                    <input id="waiverSignature" name="waiverSignature" type="text" value="<%= formData.waiverSignature || '' %>" placeholder="Type <%= profilePresentation.fullName || 'your full account name' %>" autocomplete="off" <%= registrationWindowError ? 'disabled' : '' %> required data-expected-name="<%= profilePresentation.fullName || '' %>" aria-describedby="signatureHelp <%= errors.waiverSignature ? 'waiverSignatureError' : '' %>">
+                    <small id="signatureHelp">Enter your full account name exactly as shown in the profile snapshot.</small>
+                    <% if (errors.waiverSignature) { %><small class="error-text" id="waiverSignatureError"><%= errors.waiverSignature %></small><% } %>
+                  </div>
+                  <% if (!registrationWindowError) { %>
+                    <div class="register-actions waiver-register-actions">
+                      <button type="submit" class="btn btn-primary" id="reviewRegistrationBtn">Register</button>
+                    </div>
+                  <% } %>
+                </div>
+              </div>
+            </section>
+          </form>
+
+          <aside class="event-register-side" aria-label="Registration review">
+            <section class="register-card registration-review-card" data-registration-summary>
+              <div class="registration-review-heading">
+                <span class="event-register-eyebrow">Your registration</span>
+                <h2><%= event.title %></h2>
+              </div>
+              <dl class="registration-review-list">
+                <div><dt>Mode</dt><dd data-review-mode>—</dd></div>
+                <div><dt>Goal or category</dt><dd data-review-distance>—</dd></div>
+                <div data-review-option-row hidden><dt>Signup option</dt><dd data-review-option>—</dd></div>
+                <div data-review-package-row hidden><dt>Package</dt><dd data-review-package>—</dd></div>
+                <div><dt>Location</dt><dd><%= eventSummary.locationLabel %></dd></div>
+              </dl>
+              <section class="registration-cost-summary" aria-labelledby="liveCostTitle">
+                <h3 id="liveCostTitle">Cost summary</h3>
+                <dl>
+                  <div><dt>Registration</dt><dd data-review-registration-cost>—</dd></div>
+                  <div data-review-addons-row hidden><dt>Add-ons</dt><dd data-review-addons-cost>—</dd></div>
+                  <div class="registration-cost-total"><dt>Total</dt><dd data-review-total>—</dd></div>
+                </dl>
+                <p data-review-pricing-note>Final pricing is validated when you submit.</p>
+              </section>
+              <div class="registration-review-deadline">
+                <i data-lucide="clock-3" aria-hidden="true"></i>
+                <span>Registration closes <strong><%= eventSummary.registrationCloseLabel %></strong>.</span>
+              </div>
+            </section>
+            <section class="register-card registration-privacy-note">
+              <i data-lucide="shield-check" aria-hidden="true"></i>
+              <div><h3>Before you register</h3><p>Your registration snapshot and relevant evidence may be shared with this event’s organiser for registration, review, communication, reporting, and published results. See the <a href="/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</p></div>
+            </section>
+          </aside>
+        </div>
+
+        <dialog class="registration-review-dialog" id="registrationReviewDialog" aria-labelledby="registrationDialogTitle">
+          <form method="dialog" class="registration-review-dialog-shell">
+            <header>
+              <div><span class="event-register-eyebrow">Final check</span><h2 id="registrationDialogTitle">Confirm your registration</h2><p>Make sure these details match the event option you intend to join.</p></div>
+              <button type="submit" class="dialog-icon-button" value="cancel" aria-label="Close review"><i data-lucide="x" aria-hidden="true"></i></button>
+            </header>
+            <dl class="registration-dialog-summary">
+              <div><dt>Event</dt><dd><%= event.title %></dd></div>
+              <div><dt>Participant</dt><dd data-dialog-profile><%= profilePresentation.fullName || 'Not set' %></dd></div>
+              <div><dt>Mode</dt><dd data-dialog-mode>—</dd></div>
+              <div><dt>Goal or category</dt><dd data-dialog-distance>—</dd></div>
+              <div data-dialog-option-row hidden><dt>Signup option</dt><dd data-dialog-option>—</dd></div>
+              <div data-dialog-package-row hidden><dt>Package</dt><dd data-dialog-package>—</dd></div>
+              <div data-dialog-addons-row hidden><dt>Add-ons</dt><dd data-dialog-addons>—</dd></div>
+              <div class="registration-dialog-total"><dt>Total</dt><dd data-dialog-total>—</dd></div>
+              <div><dt>Waiver</dt><dd data-dialog-waiver>Not confirmed</dd></div>
+            </dl>
+            <p class="registration-dialog-note">Submitting creates the registration using the server-validated price and current event rules.</p>
+            <div class="register-actions">
+              <button type="submit" class="btn btn-outline" value="cancel" id="cancelRegistrationReviewBtn">Go back</button>
+              <button type="button" class="btn btn-primary" id="confirmRegistrationBtn">Confirm registration</button>
             </div>
-          </section>
-
-          <div class="register-actions">
-            <% if (!registrationWindowError) { %>
-              <button type="submit" class="btn btn-primary" id="confirmRegistrationBtn">Confirm Registration</button>
-            <% } %>
-            <a href="/events/<%= event.slug %>" class="btn btn-outline">Cancel</a>
-          </div>
-        </form>
-
-        <aside class="event-register-side">
-          <section class="register-card side-card">
-            <h3>Event Snapshot</h3>
-            <ul class="event-side-list">
-              <li><strong>Event</strong><span><%= event.title %></span></li>
-              <li><strong>Registration Window</strong><span><%= event.registrationOpenAt ? new Date(event.registrationOpenAt).toLocaleDateString('en-US') : 'Date not listed' %> - <%= event.registrationCloseAt ? new Date(event.registrationCloseAt).toLocaleDateString('en-US') : 'Date not listed' %></span></li>
-              <li><strong>Event Date</strong><span><%= event.eventStartAt ? new Date(event.eventStartAt).toLocaleDateString('en-US') : 'Date not listed' %> - <%= event.eventEndAt ? new Date(event.eventEndAt).toLocaleDateString('en-US') : 'Date not listed' %></span></li>
-              <li><strong>Location</strong><span><%= [event.venueName, event.city, event.country].filter(Boolean).join(', ') || 'Location not listed' %></span></li>
-            </ul>
-          </section>
-
-          <section class="register-card side-card side-note">
-            <h3>Before You Submit</h3>
-            <p>Review your profile snapshot, confirm your preferred mode and distance, then sign the waiver with your full account name.</p>
-            <p>I confirm that the information I provided is accurate. I understand that my registration details, payment proof, submitted run proof, results, and event participation data may be shared with the organiser of this event for event management, verification, communication, reporting, and result publication.</p>
-          </section>
-        </aside>
-      </div>
+          </form>
+        </dialog>
       <% } %>
     </section>
   </main>
 
-  <%- include('../partials/quick-profile-modal', { formData, countries, csrfToken: _csrfToken, requiresEmergencyContact, collectEmergencyContact: shouldCollectEmergencyContact }) %>
-
+  <% if (!existingRegistration) { %>
+    <script type="application/json" id="registrationReviewData"><%- JSON.stringify(presentation.reviewData || {}).replace(/</g, '\\u003c') %></script>
+  <% } %>
   <%- include('../layouts/footer') %>
   <script src="/js/main.js"></script>
-  <script src="/js/quick-profile-modal.js"></script>
-  <% if (showRaceDistancePricePreview) { %>
-    <script type="application/json" id="raceDistancePricingPreviewData"><%- JSON.stringify(raceDistancePricePreviewData).replace(/</g, '\\u003c') %></script>
-    <script>
-      (function initRaceDistancePricingPreview() {
-        const raceDistanceSelect = document.getElementById('raceDistance');
-        const previewValue = document.getElementById('raceDistancePriceValue');
-        const previewPeriod = document.getElementById('raceDistancePricePeriod');
-        const previewDataEl = document.getElementById('raceDistancePricingPreviewData');
-        if (!raceDistanceSelect || !previewValue || !previewPeriod || !previewDataEl) return;
-
-        let previewData = {};
-        try {
-          previewData = JSON.parse(previewDataEl.textContent || '{}');
-        } catch (_) {
-          previewData = {};
-        }
-
-        function updatePreview() {
-          const key = String(raceDistanceSelect.value || '').trim().toUpperCase();
-          const detail = previewData[key];
-          if (!detail) {
-            previewValue.textContent = 'Pricing unavailable';
-            previewPeriod.textContent = 'No pricing data available for this distance right now.';
-            return;
-          }
-          if (!detail.ok) {
-            previewValue.textContent = 'Pricing unavailable';
-            previewPeriod.textContent = detail.helper || 'Pricing data unavailable right now.';
-            return;
-          }
-          previewValue.textContent = detail.amountLabel || 'Pricing unavailable';
-          previewPeriod.textContent = detail.pricingPeriodLabel
-            ? 'Period: ' + detail.pricingPeriodLabel
-            : (detail.helper || 'Current registration amount');
-        }
-
-        raceDistanceSelect.addEventListener('change', updatePreview);
-        updatePreview();
-      })();
-    </script>
-  <% } %>
-  <% if (shouldCollectEmergencyContact) { %>
-    <script>
-      (function initEmergencyContactModeToggle() {
-        const participationModeSelect = document.getElementById('participationMode');
-        const emergencyFields = document.querySelector('[data-emergency-contact-fields]');
-        const quickEmergencyFields = Array.from(document.querySelectorAll('[data-quick-emergency-contact-field]'));
-        const quickRequiresEmergencyContact = document.getElementById('quickRequiresEmergencyContact');
-        if (!participationModeSelect) return;
-
-        function updateEmergencyContactVisibility() {
-          const isVirtual = String(participationModeSelect.value || '').trim().toLowerCase() === 'virtual';
-          if (emergencyFields) {
-            emergencyFields.hidden = isVirtual;
-          }
-          quickEmergencyFields.forEach((field) => {
-            field.hidden = isVirtual;
-            field.querySelectorAll('input').forEach((input) => {
-              input.disabled = isVirtual;
-              input.required = !isVirtual;
-            });
-          });
-          if (quickRequiresEmergencyContact) {
-            quickRequiresEmergencyContact.value = isVirtual ? '0' : '1';
-          }
-        }
-
-        participationModeSelect.addEventListener('change', updateEmergencyContactVisibility);
-        updateEmergencyContactVisibility();
-      })();
-    </script>
-  <% } %>
-  <% if (showRaceDistancePricePreview && Object.keys(raceDistancePricePreviewData).length) { %>
-    <script>
-      (function() {
-        var priceData = <%- JSON.stringify(raceDistancePricePreviewData).replace(/</g, '\\u003c') %>;
-        var distanceSelect = document.getElementById('raceDistance');
-        var priceValue = document.getElementById('raceDistancePriceValue');
-        var pricePeriod = document.getElementById('raceDistancePricePeriod');
-        if (!distanceSelect || !priceValue) return;
-
-        function updatePrice() {
-          var distance = distanceSelect.value;
-          var entry = priceData[distance];
-          if (entry && entry.amountLabel) {
-            priceValue.textContent = entry.amountLabel;
-            if (pricePeriod) pricePeriod.textContent = entry.periodLabel || '';
-          } else {
-            priceValue.textContent = 'Price varies — see event details';
-            if (pricePeriod) pricePeriod.textContent = '';
-          }
-        }
-
-        distanceSelect.addEventListener('change', updatePrice);
-        updatePrice();
-      })();
-    </script>
-  <% } %>
+  <script src="/js/event-register.js"></script>
 </body>
 </html>
