@@ -78,8 +78,8 @@
         <% } %>
         <label class="form-group quick-profile-full">
           <span>Running groups</span>
-          <input type="text" id="quickRunningGroups" name="runningGroupsText" value="<%= (formData.runningGroups || []).join(', ') %>" maxlength="1200" placeholder="Separate multiple groups with commas">
-          <small>Optional. Add up to 10 groups.</small>
+          <input type="text" id="quickRunningGroups" name="runningGroupsText" value="<%= (formData.runningGroups || []).join(', ') %>" placeholder="Separate multiple groups with commas">
+          <small>Optional. Separate multiple groups with commas.</small>
           <small class="error-text" data-error-for="runningGroups"></small>
         </label>
       </div>

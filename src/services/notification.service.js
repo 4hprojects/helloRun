@@ -14,6 +14,8 @@ const TYPE_PRESENTATION = [
   { match: /data_usage_policy_updated/, category: 'Account and policy', icon: 'database-zap', tone: 'account', actionLabel: 'Review data use' },
   { match: /terms_policy_updated/, category: 'Account and policy', icon: 'file-check-2', tone: 'account', actionLabel: 'Review terms' },
   { match: /blog_comment_reply/, category: 'Community', icon: 'message-circle-reply', tone: 'community', actionLabel: 'View reply' },
+  { match: /running_group_reply/, category: 'Community', icon: 'message-circle-reply', tone: 'community', actionLabel: 'View reply' },
+  { match: /running_group_announcement/, category: 'Community', icon: 'megaphone', tone: 'community', actionLabel: 'View announcement' },
   { match: /payment_rejected/, category: 'Payment', icon: 'credit-card', tone: 'attention', actionLabel: 'Fix payment' },
   { match: /result_rejected/, category: 'Activity review', icon: 'circle-alert', tone: 'attention', actionLabel: 'Fix entry' },
   { match: /certificate/, category: 'Recognition', icon: 'award', tone: 'recognition', actionLabel: 'Download certificate' },

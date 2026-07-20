@@ -26,14 +26,15 @@
       ><%= message.text %></div>
     <% } %>
 
-    <% if (currentGroup) { %>
+    <% if (currentGroups && currentGroups.length) { %>
       <section class="dashboard-card profile-card runner-group-current-card">
         <div class="card-header">
-          <h2><i data-lucide="users"></i> Current Group</h2>
+          <h2><i data-lucide="users"></i> Your Groups</h2>
         </div>
         <div class="card-content card-content-list">
-          <p>You are currently in <strong><a href="/runner/groups/<%= currentGroup.slug %>"><%= currentGroup.name %></a></strong>.</p>
-          <p class="text-muted">Creating a group adds it to your profile and joins you as its first member.</p>
+          <p>You currently belong to <strong><%= currentGroups.length %> running group<%= currentGroups.length === 1 ? '' : 's' %></strong>.</p>
+          <p class="text-muted">Creating a group adds another membership to your profile and joins you as its first member.</p>
+          <a href="/runner/groups" class="runner-group-membership-link">Review your groups</a>
         </div>
       </section>
     <% } %>

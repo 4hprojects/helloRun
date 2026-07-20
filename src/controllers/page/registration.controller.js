@@ -77,6 +77,10 @@ const {
 
 const { buildRegistrationPagePresentation } = require('../../services/registration-page-presentation.service');
 const { getRunnerProfileCompleteness } = require('../../services/profile-completion.service');
+const {
+  MAX_RUNNING_GROUP_NAME_LENGTH,
+  normalizeRunningGroupMemberships
+} = require('../../utils/running-group-memberships');
 
 exports.getEventRegistrationForm = async (req, res) => {
   try {
@@ -600,6 +604,8 @@ exports.getMyRegistrations = async (req, res) => {
 exports.__testCreateRegistrationAddOnOrderIfNeeded = createRegistrationCheckoutOrderIfNeeded;
 
 exports.__testCreateRegistrationCheckoutOrderIfNeeded = createRegistrationCheckoutOrderIfNeeded;
+exports.__testNormalizeRunnerGroups = normalizeRunnerGroups;
+exports.__testValidateQuickProfileUpdatePayload = validateQuickProfileUpdatePayload;
 
 function getPageMessage(query) {
   const msg = typeof query.msg === 'string' ? query.msg.trim() : '';
@@ -711,10 +717,8 @@ function validateQuickProfileUpdatePayload(payload) {
     errors.emergencyContactNumber = 'Enter a valid emergency contact number.';
   }
 
-  if (payload.runningGroups.length > 10) {
-    errors.runningGroups = 'You can add up to 10 running groups.';
-  } else if (payload.runningGroups.some((item) => item.length > 120)) {
-    errors.runningGroups = 'Each running group must be 120 characters or less.';
+  if (payload.runningGroups.some((item) => item.length > MAX_RUNNING_GROUP_NAME_LENGTH)) {
+    errors.runningGroups = `Each running group must be ${MAX_RUNNING_GROUP_NAME_LENGTH} characters or less.`;
   }
 
   return errors;
@@ -1250,14 +1254,7 @@ function shouldCollectEmergencyContactForRegistration(profileSnapshot, allowedMo
 }
 
 function normalizeRunnerGroups(value) {
-  const values = Array.isArray(value) ? value : String(value || '').split(',');
-  return Array.from(
-    new Set(
-      values
-        .map((item) => String(item || '').trim())
-        .filter(Boolean)
-    )
-  ).slice(0, 10);
+  return normalizeRunningGroupMemberships(value);
 }
 
 function normalizePersonName(value) {

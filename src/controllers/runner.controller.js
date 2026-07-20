@@ -34,7 +34,6 @@ const uploadService = require('../services/upload.service');
 const {
   searchRunningGroups,
   getTopRunningGroups,
-  getCurrentRunnerGroup,
   getCurrentRunnerGroups,
   getRunningGroupBySlug,
   getRunningGroupActivity,
@@ -67,6 +66,14 @@ const { getRunnerBadgeProgress, getRunnerNextMilestones } = require('../services
 const stravaService = require('../services/strava.service');
 const { buildRunnerProfilePresentation } = require('../services/runner-profile-presentation.service');
 const { buildRunnerGroupsPresentation } = require('../services/runner-groups-presentation.service');
+const {
+  listAnnouncements: listRunningGroupAnnouncements,
+  REPORT_REASONS: runningGroupReportReasons
+} = require('../services/running-group-community.service');
+const {
+  MAX_RUNNING_GROUP_NAME_LENGTH,
+  normalizeRunningGroupMemberships
+} = require('../utils/running-group-memberships');
 
 const countries = getCountries();
 const timezones = getTimeZoneOptions();
@@ -657,7 +664,7 @@ exports.getRunningGroupDetail = async (req, res) => {
     const locale = getRequestLocale(req);
 
     const slug = String(req.params.slug || '').trim().toLowerCase();
-    const [group, currentRunningGroup] = await Promise.all([getRunningGroupBySlug(slug), getCurrentRunnerGroup(user)]);
+    const group = await getRunningGroupBySlug(slug);
     if (!group) {
       return res.status(404).render('error', {
         title: 'Group Not Found',
@@ -666,13 +673,19 @@ exports.getRunningGroupDetail = async (req, res) => {
       });
     }
 
-    const activity = await getRunningGroupActivity(group._id, 20);
+    const [activity, announcements] = await Promise.all([
+      getRunningGroupActivity(group._id, 20),
+      listRunningGroupAnnouncements(group, { page: req.query.page, currentUserId: user._id })
+    ]);
 
     return res.render('runner/group-detail', {
       user,
       userName: user.firstName,
       message: getRunnerProfileMessage(req.query),
       group,
+      announcements,
+      focusAnnouncementId: String(req.query.announcement || ''),
+      reportReasons: runningGroupReportReasons,
       activity: activity.map((item) => ({
         ...item,
         atLabel: formatDateTime(item.createdAt, locale)
@@ -680,9 +693,7 @@ exports.getRunningGroupDetail = async (req, res) => {
       membership: {
         isMember: normalizeRunnerGroupValues(user.runningGroups || user.runningGroup).some(
           (name) => normalizeGroupName(name) === normalizeGroupName(group.name)
-        ),
-        currentGroupName: currentRunningGroup?.name || '',
-        currentGroupNames: normalizeRunnerGroupValues(user.runningGroups || user.runningGroup)
+        )
       }
     });
   } catch (error) {
@@ -1282,11 +1293,8 @@ function validateRunnerProfileForm(formData) {
   if (!Array.isArray(formData.runningGroups)) {
     errors.runningGroups = 'Running groups are invalid.';
   } else {
-    if (formData.runningGroups.length > 10) {
-      errors.runningGroups = 'You can add up to 10 running groups.';
-    }
-    if (formData.runningGroups.some((item) => String(item || '').trim().length > 120)) {
-      errors.runningGroups = 'Each running group must be 120 characters or less.';
+    if (formData.runningGroups.some((item) => String(item || '').trim().length > MAX_RUNNING_GROUP_NAME_LENGTH)) {
+      errors.runningGroups = `Each running group must be ${MAX_RUNNING_GROUP_NAME_LENGTH} characters or less.`;
     }
   }
 
@@ -1346,15 +1354,11 @@ function normalizeGroupName(value) {
 }
 
 function normalizeRunnerGroupValues(value) {
-  const asArray = Array.isArray(value) ? value : String(value || '').split(',');
-  return Array.from(
-    new Set(
-      asArray
-        .map((item) => String(item || '').trim())
-        .filter(Boolean)
-    )
-  ).slice(0, 10);
+  return normalizeRunningGroupMemberships(value);
 }
+
+exports.__testNormalizeRunnerGroupValues = normalizeRunnerGroupValues;
+exports.__testValidateRunnerProfileForm = validateRunnerProfileForm;
 
 function mergeRunnerActivity(registrationActivity = [], groupActivity = [], submissionActivity = []) {
   const normalizedRegistration = (registrationActivity || []).map((item) => ({

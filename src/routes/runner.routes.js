@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const runnerController = require('../controllers/runner.controller');
+const groupCommunityController = require('../controllers/running-group-community.controller');
 const { requireAuth } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
@@ -18,6 +19,12 @@ const groupActionLimiter = createRateLimiter({
   windowMs: 10 * 60 * 1000,
   maxRequests: 10,
   message: 'Too many group actions. Please wait a few minutes and try again.'
+});
+
+const groupCommunityLimiter = createRateLimiter({
+  windowMs: 5 * 60 * 1000,
+  maxRequests: 20,
+  message: 'Too many community actions. Please wait a few minutes and try again.'
 });
 
 const submissionEligibilityLimiter = createRateLimiter({
@@ -55,6 +62,20 @@ router.get('/runner/groups/create', requireAuth, runnerController.getCreateRunni
 router.get('/runner/submissions', requireAuth, runnerController.getRunnerSubmissionsPage);
 router.get('/runner/submissions/:submissionId/proof', requireAuth, runnerController.getRunnerSubmissionProof);
 router.get('/runner/submissions/:submissionId', requireAuth, runnerController.getRunnerSubmissionDetailPage);
+router.get('/runner/groups/:slug/announcements/:announcementId/comments', requireAuth, groupCommunityController.listComments);
+router.get('/runner/groups/:slug/announcements/:announcementId/comments/:commentId/replies', requireAuth, groupCommunityController.listReplies);
+router.get('/runner/groups/:slug/announcements/:announcementId/comments/:commentId/history', requireAuth, groupCommunityController.commentHistory);
+router.post('/runner/groups/:slug/announcements', requireAuth, groupCommunityLimiter, groupCommunityController.createAnnouncement);
+router.get('/runner/groups/:slug/announcements/:announcementId/history', requireAuth, groupCommunityController.announcementHistory);
+router.patch('/runner/groups/:slug/announcements/:announcementId', requireAuth, groupCommunityLimiter, requireCsrfProtection, groupCommunityController.editAnnouncement);
+router.delete('/runner/groups/:slug/announcements/:announcementId', requireAuth, groupCommunityLimiter, requireCsrfProtection, groupCommunityController.deleteAnnouncement);
+router.post('/runner/groups/:slug/announcements/:announcementId/history/:revisionId/redact', requireAuth, groupCommunityLimiter, groupCommunityController.redactAnnouncementRevision);
+router.post('/runner/groups/:slug/announcements/:announcementId/report', requireAuth, groupCommunityLimiter, groupCommunityController.reportAnnouncement);
+router.post('/runner/groups/:slug/announcements/:announcementId/comments', requireAuth, groupCommunityLimiter, groupCommunityController.createComment);
+router.patch('/runner/groups/:slug/announcements/:announcementId/comments/:commentId', requireAuth, groupCommunityLimiter, requireCsrfProtection, groupCommunityController.editComment);
+router.delete('/runner/groups/:slug/announcements/:announcementId/comments/:commentId', requireAuth, groupCommunityLimiter, requireCsrfProtection, groupCommunityController.deleteComment);
+router.post('/runner/groups/:slug/announcements/:announcementId/comments/:commentId/report', requireAuth, groupCommunityLimiter, groupCommunityController.reportComment);
+router.post('/runner/groups/:slug/announcements/:announcementId/comments/:commentId/history/:revisionId/redact', requireAuth, groupCommunityLimiter, groupCommunityController.redactCommentRevision);
 router.get('/runner/groups/:slug', requireAuth, runnerController.getRunningGroupDetail);
 router.get('/runner/security/password', requireAuth, runnerController.getPasswordSettings);
 router.post('/runner/profile', requireAuth, profileUpdateLimiter, runnerController.updateProfile);

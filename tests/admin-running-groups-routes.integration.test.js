@@ -50,11 +50,11 @@ test.after(async () => {
 });
 
 test('running group management denies runners and renders for support admins', async () => {
-  const runnerCookie = await login(fixture.runner.email);
+  const runnerCookie = await login(fixture.runner.email, '/runner/dashboard');
   const denied = await get('/admin/running-groups', runnerCookie);
   assert.equal(denied.status, 403);
 
-  const adminCookie = await login(fixture.admin.email);
+  const adminCookie = await login(fixture.admin.email, '/admin/running-groups');
   const list = await get('/admin/running-groups?status=all', adminCookie);
   assert.equal(list.status, 200);
   assert.match(await list.text(), /Running Group Management/);
@@ -67,7 +67,7 @@ test('running group management denies runners and renders for support admins', a
 });
 
 test('support admins can mutate metadata and invalid reasons do not archive', async () => {
-  const cookie = await login(fixture.admin.email);
+  const cookie = await login(fixture.admin.email, '/admin/running-groups');
   const invalidArchive = await post(`/admin/running-groups/${fixture.group._id}/archive`, cookie, { reason: 'short' });
   assert.equal(invalidArchive.status, 302);
   await connect();
@@ -94,10 +94,18 @@ async function seedFixture() {
   return { admin, runner, group };
 }
 
-async function login(email) {
+async function login(email, readinessPath) {
   const response = await fetch(`${BASE_URL}/login`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ email, password }), redirect: 'manual' });
   assert.equal(response.status, 302);
-  return response.headers.get('set-cookie').split(';')[0];
+  const cookie = response.headers.get('set-cookie').split(';')[0];
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    const ready = await get(readinessPath, cookie);
+    if (ready.status !== 302 || ready.headers.get('location') !== '/login') return cookie;
+    // eslint-disable-next-line no-await-in-loop
+    await new Promise((resolve) => setTimeout(resolve, 60));
+  }
+  return cookie;
 }
 async function get(url, cookie) { return fetch(`${BASE_URL}${url}`, { headers: { Cookie: cookie }, redirect: 'manual' }); }
 async function post(url, cookie, body) { return fetch(`${BASE_URL}${url}`, { method: 'POST', headers: { Cookie: cookie, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(body), redirect: 'manual' }); }

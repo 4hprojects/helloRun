@@ -8,7 +8,9 @@ const {
   reactivateRunningGroup,
   removeRunningGroupMember,
   transferRunningGroupCreator,
-  reconcileRunningGroupMemberCount
+  reconcileRunningGroupMemberCount,
+  moderateRunningGroupContent,
+  resolveRunningGroupCommunityReport
 } = require('../../services/admin-running-group.service');
 const { recordCriticalAuditEventInBackground } = require('../../services/critical-audit.service');
 const logger = require('../../utils/logger');
@@ -137,6 +139,43 @@ exports.reconcileRunningGroupCount = async (req, res) => {
     return redirect(req, res, 'success', `Member count reconciled to ${result.actualCount}.`);
   } catch (error) {
     return redirect(req, res, 'error', error.message || 'Unable to reconcile the member count.');
+  }
+};
+
+exports.moderateRunningGroupCommunityContent = async (req, res) => {
+  try {
+    const targetType = req.params.targetType === 'comment' ? 'comment' : 'announcement';
+    const action = req.body?.action === 'restore' ? 'restore' : 'remove';
+    const note = action === 'remove' ? requireReason(req.body?.reason) : '';
+    const result = await moderateRunningGroupContent({
+      groupId: req.params.id, targetType, targetId: req.params.targetId,
+      action, adminId: req.session.userId, moderationNote: note
+    });
+    audit(req, {
+      action: `admin.running_group.${targetType}_${action}d`, targetId: result.group._id,
+      statusFrom: action === 'remove' ? 'active' : 'removed', statusTo: action === 'remove' ? 'removed' : 'active',
+      notes: note || `${targetType} restored.`
+    });
+    return redirect(req, res, 'success', `${targetType === 'comment' ? 'Comment' : 'Announcement'} ${action}d.`);
+  } catch (error) {
+    return redirect(req, res, 'error', error.message || 'Unable to moderate community content.');
+  }
+};
+
+exports.resolveRunningGroupCommunityReport = async (req, res) => {
+  try {
+    const status = req.body?.status === 'dismissed' ? 'dismissed' : 'resolved';
+    await resolveRunningGroupCommunityReport({
+      groupId: req.params.id, reportId: req.params.reportId, status,
+      adminId: req.session.userId, resolutionNote: req.body?.resolutionNote
+    });
+    audit(req, {
+      action: `admin.running_group.community_report_${status}`, targetId: req.params.id,
+      statusFrom: 'open', statusTo: status, notes: String(req.body?.resolutionNote || '').trim() || `Report ${status}.`
+    });
+    return redirect(req, res, 'success', `Community report ${status}.`);
+  } catch (error) {
+    return redirect(req, res, 'error', error.message || 'Unable to update the community report.');
   }
 };
 

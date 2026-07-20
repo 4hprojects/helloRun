@@ -270,27 +270,6 @@ body.runner-groups-modal-open {
   font-weight: 700;
 }
 
-.runner-groups-switch-note {
-  align-items: flex-start;
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  border-radius: 10px;
-  color: #9a3412;
-  display: flex;
-  font-size: 0.82rem;
-  gap: 0.5rem;
-  line-height: 1.4;
-  margin: 0 0 0.8rem;
-  padding: 0.65rem 0.75rem;
-}
-
-.runner-groups-switch-note svg {
-  flex: 0 0 17px;
-  height: 17px;
-  margin-top: 1px;
-  width: 17px;
-}
-
 .runner-groups-empty {
   align-items: center;
   background: #f8fafc;
@@ -515,4 +494,87 @@ body.runner-groups-modal-open {
     scroll-behavior: auto;
     transition: none;
   }
+}
+
+/* Dedicated group community */
+.runner-group-card-actions.is-single-action { grid-template-columns: 1fr; }
+.runner-group-card-actions.is-single-action .btn { width: 100%; }
+.runner-group-community-page { display: grid; gap: 1rem; min-width: 0; }
+.runner-group-community-hero { display: flex; justify-content: space-between; align-items: center; gap: 1.25rem; padding: 1.25rem; border: 1px solid #e4e7ec; border-radius: 18px; background: #fff; }
+.runner-group-community-hero h1 { margin: .2rem 0; font-size: clamp(1.6rem, 3vw, 2.25rem); overflow-wrap: anywhere; }
+.runner-group-community-hero p { margin: .35rem 0 .65rem; max-width: 70ch; color: #667085; }
+.runner-group-back-link { display: inline-flex; align-items: center; gap: .35rem; color: #475467; font-weight: 700; text-decoration: none; }
+.runner-group-back-link svg, .runner-group-members svg { width: 18px; height: 18px; }
+.runner-group-title-line, .runner-group-members { display: flex; flex-wrap: wrap; align-items: center; gap: .55rem; }
+.runner-group-community-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 320px); gap: 1rem; align-items: start; min-width: 0; }
+.runner-group-feed, .runner-group-community-sidebar > *, .runner-group-settings { min-width: 0; border: 1px solid #e4e7ec; border-radius: 18px; background: #fff; }
+.runner-group-feed { padding: 1.1rem; }
+.runner-group-announcement-composer { display: grid; gap: .7rem; margin: 1rem 0; padding: 1rem; border: 1px solid #fed7aa; border-radius: 14px; background: #fffaf5; }
+.runner-group-announcement-composer label { display: grid; gap: .15rem; }
+.runner-group-announcement-composer label span { color: #667085; font-size: .86rem; }
+.runner-group-announcement-composer textarea { width: 100%; min-height: 100px; padding: .75rem; resize: vertical; border: 1px solid #d0d5dd; border-radius: 10px; font: inherit; }
+.runner-group-announcement-composer > div { display: flex; justify-content: space-between; align-items: center; gap: .75rem; }
+.runner-group-announcement-list { display: grid; gap: 1rem; }
+.runner-group-announcement { min-width: 0; border: 1px solid #e4e7ec; border-radius: 14px; padding: 1rem; background: #fff; }
+.runner-group-announcement > header { display: grid; grid-template-columns: 40px minmax(0,1fr) auto; gap: .7rem; align-items: center; }
+.runner-group-announcement > header > div { display: grid; }
+.runner-group-announcement time, .runner-group-edited-label { color: #667085; font-size: .8rem; }
+.runner-group-edited-label { min-height: 32px; padding: .25rem .4rem; border: 0; background: transparent; text-decoration: underline; cursor: pointer; }
+.runner-group-announcement-avatar { width: 40px; height: 40px; display: grid; place-items: center; overflow: hidden; border-radius: 50%; background: #f2f4f7; }
+.runner-group-announcement-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.runner-group-announcement-avatar svg { width: 20px; }
+.runner-group-announcement-content, .runner-group-dialog-preview { white-space: pre-wrap; overflow-wrap: anywhere; }
+.runner-group-announcement-content { margin: .9rem 0 .35rem; }
+.runner-group-announcement.is-removed { background: #f9fafb; color: #667085; }
+.runner-group-announcement-menu { position: relative; }
+.runner-group-announcement-menu summary { width: 44px; height: 44px; display: grid; place-items: center; cursor: pointer; list-style: none; border-radius: 10px; }
+.runner-group-announcement-menu summary::-webkit-details-marker { display: none; }
+.runner-group-announcement-menu > div { position: absolute; z-index: 4; right: 0; top: calc(100% + .25rem); min-width: 120px; padding: .3rem; border: 1px solid #e4e7ec; border-radius: 10px; background: #fff; box-shadow: 0 10px 30px #1018281f; }
+.runner-group-announcement-menu button { width: 100%; min-height: 40px; border: 0; background: transparent; text-align: left; border-radius: 8px; cursor: pointer; }
+.runner-group-announcement-menu button:hover { background: #f2f4f7; }
+.runner-group-announcement-menu .is-danger { color: #b42318; }
+.runner-group-discussion { margin-top: .8rem; border-top: 1px solid #eaecf0; }
+.runner-group-discussion > summary, .runner-group-activity-disclosure > summary, .runner-group-settings > summary { min-height: 44px; display: flex; justify-content: space-between; align-items: center; gap: .5rem; cursor: pointer; font-weight: 750; list-style: none; }
+.runner-group-discussion > summary { justify-content: flex-start; padding-top: .55rem; color: #475467; }
+.runner-group-discussion > summary svg, .runner-group-activity-disclosure summary svg, .runner-group-settings summary svg { width: 18px; }
+.runner-group-discussion > div { padding-top: .75rem; }
+.runner-group-member-prompt { display: grid; grid-template-columns: auto minmax(0,1fr); gap: .7rem; padding: .9rem; margin: 1rem 0; border-radius: 12px; background: #f2f4f7; }
+.runner-group-member-prompt p { margin: .15rem 0 0; color: #667085; }
+.runner-group-activity-disclosure > summary, .runner-group-settings > summary { padding: .9rem 1rem; }
+.runner-group-activity-disclosure > summary span, .runner-group-settings > summary span { display: flex; align-items: center; gap: .45rem; }
+.runner-group-activity-disclosure > div { padding: 0 1rem 1rem; }
+.runner-group-activity-disclosure ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+.runner-group-activity-disclosure li { display: grid; gap: .15rem; padding-bottom: .7rem; border-bottom: 1px solid #eaecf0; }
+.runner-group-activity-disclosure small { color: #667085; }
+.runner-group-settings { margin-top: .25rem; }
+.runner-group-settings-content { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0 1rem 1rem; border-top: 1px solid #f2f4f7; }
+.runner-group-settings-content p { margin: .2rem 0 0; color: #667085; }
+.runner-group-feed-pagination { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: .6rem; margin-top: 1rem; }
+.runner-group-feed-pagination a:last-child { justify-self: end; }
+.runner-group-community-dialog { position: fixed; inset: 0; width: min(94vw, 560px); max-height: min(88dvh, 720px); margin: auto; border: 0; border-radius: 16px; padding: 0; overflow: auto; box-shadow: 0 20px 60px #1018284d; }
+.runner-group-community-dialog::backdrop { background: #10182899; }
+.runner-group-community-dialog form { display: grid; gap: .9rem; padding: 1.2rem; }
+.runner-group-community-dialog h2 { margin: 0; }
+.runner-group-community-dialog form > div:last-child { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.runner-group-dialog-field { display: grid; gap: .35rem; font-weight: 700; }
+.runner-group-dialog-field :is(textarea, select) { width: 100%; padding: .7rem; border: 1px solid #d0d5dd; border-radius: 10px; font: inherit; }
+.runner-group-community-dialog [data-dialog-status] { color: #b42318; }
+.runner-group-history { display: grid; gap: .65rem; max-height: 55vh; overflow: auto; }
+.runner-group-history article { padding: .7rem; border-radius: 10px; background: #f9fafb; }
+.runner-group-history p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.runner-group-history time { display: block; color: #667085; font-size: .8rem; }
+
+@media (max-width: 900px) {
+  .runner-group-community-layout { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .runner-group-community-hero { align-items: stretch; padding: .9rem; flex-direction: column; }
+  .runner-group-community-hero form .btn { width: 100%; }
+  .runner-group-feed { padding: .8rem; }
+  .runner-group-announcement { padding: .8rem; }
+  .runner-group-settings-content { align-items: stretch; flex-direction: column; }
+  .runner-group-settings-content form, .runner-group-settings-content .btn { width: 100%; }
+  .runner-group-feed-pagination { grid-template-columns: 1fr 1fr; }
+  .runner-group-feed-pagination span { grid-row: 1; grid-column: 1 / -1; text-align: center; }
+  .runner-group-feed-pagination a { grid-row: 2; width: 100%; }
 }

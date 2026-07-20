@@ -1,6 +1,10 @@
 const RunningGroup = require('../models/RunningGroup');
 const RunningGroupActivity = require('../models/RunningGroupActivity');
 const User = require('../models/User');
+const {
+  normalizeRunningGroupKey,
+  normalizeRunningGroupMemberships
+} = require('../utils/running-group-memberships');
 
 async function searchRunningGroups(query, options = {}) {
   const limit = clampInt(options.limit, 1, 20, 8);
@@ -157,15 +161,7 @@ async function joinRunningGroup({ user, groupId }) {
   if (currentGroupNames.some((name) => normalizeGroupName(name) === normalizeGroupName(nextGroupName))) {
     return { group, alreadyMember: true };
   }
-  const previousGroupNames = currentGroupNames.filter(
-    (name) => normalizeGroupName(name) !== normalizeGroupName(nextGroupName)
-  );
-  await setUserGroupMemberships(currentUser, [nextGroupName]);
-  for (const previousName of previousGroupNames) {
-    // Keep member counts accurate when switching groups.
-    // eslint-disable-next-line no-await-in-loop
-    await recalculateMemberCountByName(previousName);
-  }
+  await setUserGroupMemberships(currentUser, [...currentGroupNames, nextGroupName]);
   await recalculateMemberCountByName(nextGroupName);
   await logRunningGroupActivity({
     groupId: group._id,
@@ -246,10 +242,11 @@ async function recalculateMemberCountByName(groupName) {
   const group = await RunningGroup.findOne({ normalizedName, isActive: true });
   if (!group) return;
 
+  const exactName = new RegExp(`^${escapeRegex(group.name)}$`, 'i');
   const memberCount = await User.countDocuments({
     $or: [
-      { runningGroups: group.name },
-      { runningGroup: new RegExp(`^${escapeRegex(group.name)}$`, 'i') }
+      { runningGroups: exactName },
+      { runningGroup: exactName }
     ]
   });
   group.memberCount = memberCount;
@@ -265,13 +262,7 @@ function getUserGroupNames(user) {
 }
 
 function sanitizeGroupNames(values = []) {
-  return Array.from(
-    new Set(
-      (values || [])
-        .map((item) => sanitizeGroupName(item))
-        .filter(Boolean)
-    )
-  ).slice(0, 10);
+  return normalizeRunningGroupMemberships(values);
 }
 
 async function setUserGroupMemberships(userDoc, groupNames = []) {
@@ -339,11 +330,7 @@ function validateGroupName(value) {
 }
 
 function normalizeGroupName(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, ' ')
-    .slice(0, 120);
+  return normalizeRunningGroupKey(value).slice(0, 120);
 }
 
 function escapeRegex(value) {

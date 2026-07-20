@@ -3,6 +3,14 @@
 const mongoose = require('mongoose');
 const RunningGroup = require('../models/RunningGroup');
 const RunningGroupActivity = require('../models/RunningGroupActivity');
+const RunningGroupAnnouncement = require('../models/RunningGroupAnnouncement');
+const RunningGroupComment = require('../models/RunningGroupComment');
+const RunningGroupCommunityReport = require('../models/RunningGroupCommunityReport');
+const {
+  cleanRunningGroupName,
+  normalizeRunningGroupKey,
+  normalizeRunningGroupMemberships
+} = require('../utils/running-group-memberships');
 const User = require('../models/User');
 const { createNotificationSafe } = require('./notification.service');
 
@@ -95,7 +103,7 @@ async function getAdminRunningGroupDetail(groupId, memberQuery = {}) {
   const totalMembers = await User.countDocuments(query);
   const totalPages = Math.max(1, Math.ceil(totalMembers / memberFilters.perPage));
   memberFilters.page = Math.min(memberFilters.page, totalPages);
-  const [members, activity] = await Promise.all([
+  const [members, activity, communityAnnouncements, communityComments, communityReports] = await Promise.all([
     User.find(query)
       .select('userId firstName lastName email role accountStatus runningGroup runningGroups createdAt')
       .sort({ firstName: 1, lastName: 1, email: 1 })
@@ -106,6 +114,21 @@ async function getAdminRunningGroupDetail(groupId, memberQuery = {}) {
       .sort({ createdAt: -1, _id: -1 })
       .limit(50)
       .select('type actorName message createdAt')
+      .lean(),
+    RunningGroupAnnouncement.find({ groupId: group._id })
+      .sort({ createdAt: -1, _id: -1 }).limit(20)
+      .populate('authorId', 'userId firstName lastName email')
+      .select('authorId content commentsCount status isDeleted moderationNote createdAt updatedAt')
+      .lean(),
+    RunningGroupComment.find({ announcementId: { $in: await RunningGroupAnnouncement.distinct('_id', { groupId: group._id }) } })
+      .sort({ createdAt: -1, _id: -1 }).limit(30)
+      .populate('authorId', 'userId firstName lastName email')
+      .select('announcementId authorId content status isDeleted moderationNote createdAt updatedAt')
+      .lean(),
+    RunningGroupCommunityReport.find({ groupId: group._id, status: 'open' })
+      .sort({ createdAt: -1, _id: -1 }).limit(30)
+      .populate('reporterId', 'userId firstName lastName email')
+      .select('targetType announcementId commentId reporterId reason note contentSnapshot createdAt')
       .lean()
   ]);
 
@@ -113,10 +136,50 @@ async function getAdminRunningGroupDetail(groupId, memberQuery = {}) {
     group,
     members,
     activity,
+    communityAnnouncements,
+    communityComments,
+    communityReports,
     memberFilters,
     memberPagination: { page: memberFilters.page, total: totalMembers, totalPages },
     actualMemberCount: await countMembersByName(group.name)
   };
+}
+
+async function moderateRunningGroupContent({ groupId, targetType, targetId, action, adminId, moderationNote = '' }) {
+  const group = await requireGroup(groupId);
+  assertObjectId(targetId, 'Community content not found.');
+  const Model = targetType === 'comment' ? RunningGroupComment : RunningGroupAnnouncement;
+  const record = await Model.findById(targetId);
+  if (!record) throw new Error('Community content not found.');
+  const announcement = targetType === 'comment'
+    ? await RunningGroupAnnouncement.findOne({ _id: record.announcementId, groupId: group._id })
+    : record;
+  if (!announcement || String(announcement.groupId) !== String(group._id)) throw new Error('Community content not found.');
+  if (action === 'remove') {
+    if (record.isDeleted) throw new Error('Community content is already removed.');
+    record.status = 'removed'; record.isDeleted = true; record.deletedAt = new Date(); record.deletedBy = adminId;
+    record.moderationNote = String(moderationNote || '').trim().slice(0, 500);
+    await record.save();
+    if (targetType === 'comment') await RunningGroupAnnouncement.updateOne({ _id: announcement._id, commentsCount: { $gt: 0 } }, { $inc: { commentsCount: -1 } });
+  } else {
+    if (!record.isDeleted) throw new Error('Community content is already active.');
+    record.status = 'active'; record.isDeleted = false; record.deletedAt = null; record.deletedBy = null; record.moderationNote = '';
+    await record.save();
+    if (targetType === 'comment') await RunningGroupAnnouncement.updateOne({ _id: announcement._id }, { $inc: { commentsCount: 1 } });
+  }
+  return { group, record };
+}
+
+async function resolveRunningGroupCommunityReport({ groupId, reportId, status, adminId, resolutionNote = '' }) {
+  await requireGroup(groupId);
+  assertObjectId(reportId, 'Community report not found.');
+  if (!['resolved', 'dismissed'].includes(status)) throw new Error('Invalid report status.');
+  const report = await RunningGroupCommunityReport.findOne({ _id: reportId, groupId, status: 'open' });
+  if (!report) throw new Error('Community report not found.');
+  report.status = status; report.resolvedAt = new Date(); report.resolvedBy = adminId;
+  report.resolutionNote = String(resolutionNote || '').trim().slice(0, 500);
+  await report.save();
+  return report;
 }
 
 async function updateRunningGroupMetadata(groupId, input = {}) {
@@ -293,14 +356,7 @@ function getUserGroupNames(user) {
 }
 
 function dedupeNames(values) {
-  const seen = new Set();
-  return (values || []).map(sanitizeName).filter((name) => {
-    if (!name) return false;
-    const key = normalizeName(name);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).slice(0, 10);
+  return normalizeRunningGroupMemberships(values);
 }
 
 async function requireGroup(groupId) {
@@ -315,11 +371,11 @@ function assertObjectId(value, message) {
 }
 
 function sanitizeName(value) {
-  return String(value || '').replace(/\s+/g, ' ').trim().slice(0, 120);
+  return cleanRunningGroupName(value).slice(0, 120);
 }
 
 function normalizeName(value) {
-  return sanitizeName(value).toLowerCase();
+  return normalizeRunningGroupKey(value).slice(0, 120);
 }
 
 function displayName(user) {
@@ -348,5 +404,7 @@ module.exports = {
   transferRunningGroupCreator,
   reconcileRunningGroupMemberCount,
   buildMembershipQuery,
-  getUserGroupNames
+  getUserGroupNames,
+  moderateRunningGroupContent,
+  resolveRunningGroupCommunityReport
 };

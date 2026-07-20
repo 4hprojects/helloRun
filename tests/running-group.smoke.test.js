@@ -66,6 +66,7 @@ test('running-group strict smoke script', async () => {
   assert.match(groupsPageAHtml, /Discover groups/);
   assert.match(groupsPageAHtml, /href="\/runner\/groups\/create"/);
   assert.doesNotMatch(groupsPageAHtml, /action="\/runner\/groups\/create"/);
+  assert.doesNotMatch(groupsPageAHtml, /action="\/runner\/groups\/leave"/);
   const slug = extractGroupSlug(groupsPageAHtml);
   assert.ok(slug);
 
@@ -73,7 +74,18 @@ test('running-group strict smoke script', async () => {
   const detailAHtml = await detailA.text();
   assert.equal(detailA.status, 200);
   assert.match(detailAHtml, new RegExp(escapeRegex(groupName), 'i'));
-  assert.match(detailAHtml, /Recent Activity/);
+  assert.match(detailAHtml, /Recent membership activity/);
+  assert.match(detailAHtml, /<details class="runner-group-settings">/);
+
+  const announcementResponse = await postForm(`/runner/groups/${slug}/announcements`, runnerACookie, {
+    content: 'Saturday smoke test announcement'
+  });
+  assert.equal(announcementResponse.status, 302);
+  const refreshedDetail = await fetchWithCookie(`/runner/groups/${slug}`, runnerACookie);
+  const refreshedHtml = await refreshedDetail.text();
+  assert.match(refreshedHtml, /Saturday smoke test announcement/);
+  const announcementId = extractAnnouncementId(refreshedHtml);
+  assert.ok(announcementId);
 
   const runnerBCookie = await login(runnerB.email, password);
   const step7 = await waitForSessionReady('/runner/dashboard', runnerBCookie);
@@ -83,6 +95,11 @@ test('running-group strict smoke script', async () => {
   const detailForRunnerBHtml = await detailForRunnerB.text();
   const groupId = extractGroupId(detailForRunnerBHtml);
   assert.ok(groupId);
+
+  const blockedComment = await postJson(`/runner/groups/${slug}/announcements/${announcementId}/comments`, runnerBCookie, {
+    content: 'Not joined yet'
+  });
+  assert.equal(blockedComment.status, 403);
 
   const joinResponse = await postForm('/runner/groups/join', runnerBCookie, {
     groupId,
@@ -95,6 +112,13 @@ test('running-group strict smoke script', async () => {
   const detailBHtml = await detailB.text();
   assert.equal(detailB.status, 200);
   assert.match(detailBHtml, /joined/i);
+
+  const comment = await postJson(`/runner/groups/${slug}/announcements/${announcementId}/comments`, runnerBCookie, {
+    content: 'Joined and ready.'
+  });
+  assert.equal(comment.status, 201);
+  const commentBody = await comment.json();
+  assert.equal(commentBody.comment.content, 'Joined and ready.');
 });
 
 async function createRunner(emailLocal, password, suffix) {
@@ -152,6 +176,15 @@ async function fetchWithCookie(routePath, cookie) {
   });
 }
 
+async function postJson(routePath, cookie, payload) {
+  return fetch(`${BASE_URL}${routePath}`, {
+    method: 'POST',
+    headers: { Cookie: cookie, 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(payload),
+    redirect: 'manual'
+  });
+}
+
 async function waitForSessionReady(pathname, cookie) {
   const maxAttempts = 8;
   for (let i = 0; i < maxAttempts; i += 1) {
@@ -196,5 +229,10 @@ function extractGroupSlug(html) {
 
 function extractGroupId(html) {
   const match = String(html || '').match(/name="groupId"\s+value="([a-f0-9]{24})"/i);
+  return match ? match[1] : '';
+}
+
+function extractAnnouncementId(html) {
+  const match = String(html || '').match(/data-announcement-id="([a-f0-9]{24})"/i);
   return match ? match[1] : '';
 }

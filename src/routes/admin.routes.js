@@ -104,6 +104,8 @@ router.post('/running-groups/:id/reactivate', requireAdmin, adminModerationLimit
 router.post('/running-groups/:id/reconcile', requireAdmin, adminModerationLimiter, adminController.reconcileRunningGroupCount);
 router.post('/running-groups/:id/members/:userId/remove', requireAdmin, adminModerationLimiter, adminController.removeRunningGroupMember);
 router.post('/running-groups/:id/creator', requireAdmin, adminModerationLimiter, adminController.transferRunningGroupCreator);
+router.post('/running-groups/:id/community/:targetType/:targetId', requireAdmin, adminModerationLimiter, adminController.moderateRunningGroupCommunityContent);
+router.post('/running-groups/:id/community-reports/:reportId', requireAdmin, adminModerationLimiter, adminController.resolveRunningGroupCommunityReport);
 
 // Event management
 router.get('/events', requireAdmin, adminController.listEvents);

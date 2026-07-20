@@ -10,6 +10,9 @@ const User = require('../src/models/User');
 const RunningGroup = require('../src/models/RunningGroup');
 const RunningGroupActivity = require('../src/models/RunningGroupActivity');
 const Notification = require('../src/models/Notification');
+const RunningGroupAnnouncement = require('../src/models/RunningGroupAnnouncement');
+const RunningGroupComment = require('../src/models/RunningGroupComment');
+const RunningGroupCommunityReport = require('../src/models/RunningGroupCommunityReport');
 const { createRunningGroup, joinRunningGroup } = require('../src/services/running-group.service');
 const {
   listAdminRunningGroups,
@@ -19,7 +22,9 @@ const {
   reactivateRunningGroup,
   removeRunningGroupMember,
   transferRunningGroupCreator,
-  reconcileRunningGroupMemberCount
+  reconcileRunningGroupMemberCount,
+  moderateRunningGroupContent,
+  resolveRunningGroupCommunityReport
 } = require('../src/services/admin-running-group.service');
 
 const stamp = `${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -28,11 +33,40 @@ const createdGroups = [];
 
 test.before(async () => { await mongoose.connect(process.env.MONGODB_URI); });
 test.after(async () => {
+  const announcementIds = await RunningGroupAnnouncement.find({ groupId: { $in: createdGroups } }).distinct('_id');
+  await RunningGroupCommunityReport.deleteMany({ groupId: { $in: createdGroups } });
+  await RunningGroupComment.deleteMany({ announcementId: { $in: announcementIds } });
+  await RunningGroupAnnouncement.deleteMany({ groupId: { $in: createdGroups } });
   await Notification.deleteMany({ userId: { $in: createdUsers } });
   await RunningGroupActivity.deleteMany({ groupId: { $in: createdGroups } });
   await RunningGroup.deleteMany({ _id: { $in: createdGroups } });
   await User.deleteMany({ _id: { $in: createdUsers } });
   await mongoose.disconnect();
+});
+
+test('community moderation lists, removes, restores, and resolves group reports', async () => {
+  const creator = await runner('community-admin');
+  const group = await groupFor(creator, 'Community moderation');
+  const announcement = await RunningGroupAnnouncement.create({ groupId: group._id, authorId: creator._id, content: 'Moderated announcement', commentsCount: 1 });
+  const comment = await RunningGroupComment.create({ announcementId: announcement._id, authorId: creator._id, content: 'Moderated comment' });
+  const report = await RunningGroupCommunityReport.create({
+    targetType: 'comment', groupId: group._id, announcementId: announcement._id, commentId: comment._id,
+    reporterId: creator._id, reason: 'other', contentSnapshot: comment.content, authorIdSnapshot: creator._id
+  });
+  const detail = await getAdminRunningGroupDetail(group._id);
+  assert.ok(detail.communityAnnouncements.some((item) => String(item._id) === String(announcement._id)));
+  assert.ok(detail.communityComments.some((item) => String(item._id) === String(comment._id)));
+  assert.ok(detail.communityReports.some((item) => String(item._id) === String(report._id)));
+
+  await moderateRunningGroupContent({ groupId: group._id, targetType: 'comment', targetId: comment._id, action: 'remove', adminId: creator._id, moderationNote: 'Test moderation reason' });
+  assert.equal((await RunningGroupComment.findById(comment._id).lean()).isDeleted, true);
+  assert.equal((await RunningGroupAnnouncement.findById(announcement._id).lean()).commentsCount, 0);
+  await moderateRunningGroupContent({ groupId: group._id, targetType: 'comment', targetId: comment._id, action: 'restore', adminId: creator._id });
+  assert.equal((await RunningGroupComment.findById(comment._id).lean()).isDeleted, false);
+  assert.equal((await RunningGroupAnnouncement.findById(announcement._id).lean()).commentsCount, 1);
+
+  await resolveRunningGroupCommunityReport({ groupId: group._id, reportId: report._id, status: 'resolved', adminId: creator._id, resolutionNote: 'Reviewed in test.' });
+  assert.equal((await RunningGroupCommunityReport.findById(report._id).lean()).status, 'resolved');
 });
 
 test('admin list and detail support search, status, creator data, and actual counts', async () => {
@@ -51,10 +85,10 @@ test('admin list and detail support search, status, creator data, and actual cou
 test('rename keeps slug stable and synchronizes current and legacy membership fields', async () => {
   const creator = await runner('rename-creator');
   const legacy = await runner('rename-legacy');
-  const otherName = `Other ${stamp}`;
+  const otherNames = Array.from({ length: 11 }, (_, index) => `Other ${index + 1} ${stamp}`);
   const group = await groupFor(creator, 'Rename');
-  legacy.runningGroups = [otherName, group.name];
-  legacy.runningGroup = otherName;
+  legacy.runningGroups = [...otherNames, group.name];
+  legacy.runningGroup = otherNames[0];
   await legacy.save();
   const originalSlug = group.slug;
   const nextName = `Renamed ${stamp}`;
@@ -64,8 +98,9 @@ test('rename keeps slug stable and synchronizes current and legacy membership fi
   ]);
   assert.equal(freshGroup.slug, originalSlug);
   assert.equal(freshGroup.name, nextName);
-  assert.deepEqual(freshLegacy.runningGroups, [otherName, nextName]);
-  assert.equal(freshLegacy.runningGroup, otherName);
+  assert.deepEqual(freshLegacy.runningGroups, [...otherNames, nextName]);
+  assert.equal(freshLegacy.runningGroups.length, 12);
+  assert.equal(freshLegacy.runningGroup, otherNames[0]);
   assert.equal(freshCreator.runningGroup, nextName);
 });
 
@@ -73,16 +108,17 @@ test('member removal preserves unrelated memberships, logs a leave, and notifies
   const creator = await runner('remove-creator');
   const member = await runner('remove-member');
   const group = await groupFor(creator, 'Remove');
-  const otherName = `Legacy Other ${stamp}`;
-  member.runningGroups = [group.name, otherName]; member.runningGroup = group.name; await member.save();
+  const otherNames = Array.from({ length: 11 }, (_, index) => `Legacy Other ${index + 1} ${stamp}`);
+  member.runningGroups = [group.name, ...otherNames]; member.runningGroup = group.name; await member.save();
   await removeRunningGroupMember(group._id, member._id);
   const [fresh, activity, notice] = await Promise.all([
     User.findById(member._id).lean(),
     RunningGroupActivity.findOne({ groupId: group._id, actorUserId: member._id, type: 'left_group' }).lean(),
     Notification.findOne({ userId: member._id, type: 'running_group_member_removed' }).lean()
   ]);
-  assert.deepEqual(fresh.runningGroups, [otherName]);
-  assert.equal(fresh.runningGroup, otherName);
+  assert.deepEqual(fresh.runningGroups, otherNames);
+  assert.equal(fresh.runningGroups.length, 11);
+  assert.equal(fresh.runningGroup, otherNames[0]);
   assert.ok(activity);
   assert.ok(notice);
 });
@@ -91,13 +127,18 @@ test('archive removes memberships and notifications while reactivation stays emp
   const creator = await runner('archive-creator');
   const member = await runner('archive-member');
   const group = await groupFor(creator, 'Archive');
-  await joinRunningGroup({ user: member, groupId: String(group._id) });
+  const otherNames = Array.from({ length: 11 }, (_, index) => `Archive Other ${index + 1} ${stamp}`);
+  member.runningGroups = [...otherNames, group.name];
+  member.runningGroup = otherNames[0];
+  await member.save();
   const result = await archiveRunningGroup(group._id);
   assert.equal(result.removedMembers, 2);
   const archived = await RunningGroup.findById(group._id).lean();
   assert.equal(archived.isActive, false);
   assert.equal(archived.memberCount, 0);
-  assert.equal((await User.findById(member._id).lean()).runningGroup, '');
+  const archivedMember = await User.findById(member._id).lean();
+  assert.deepEqual(archivedMember.runningGroups, otherNames);
+  assert.equal(archivedMember.runningGroup, otherNames[0]);
   assert.equal(await Notification.countDocuments({ userId: { $in: [creator._id, member._id] }, type: 'running_group_archived' }), 2);
   await reactivateRunningGroup(group._id);
   const reactivated = await RunningGroup.findById(group._id).lean();
@@ -109,6 +150,11 @@ test('creator transfer is attribution-only and reconciliation repairs stale coun
   const creator = await runner('transfer-creator');
   const nextCreator = await runner('transfer-next');
   const group = await groupFor(creator, 'Transfer');
+  const otherNames = Array.from({ length: 11 }, (_, index) => `Reconcile Other ${index + 1} ${stamp}`);
+  const creatorWithMembership = await User.findById(creator._id);
+  creatorWithMembership.runningGroups = [group.name, ...otherNames];
+  creatorWithMembership.runningGroup = group.name;
+  await creatorWithMembership.save();
   await transferRunningGroupCreator(group._id, nextCreator.email);
   const fresh = await RunningGroup.findById(group._id).lean();
   assert.equal(String(fresh.createdBy), String(nextCreator._id));
@@ -117,6 +163,9 @@ test('creator transfer is attribution-only and reconciliation repairs stale coun
   const reconciled = await reconcileRunningGroupMemberCount(group._id);
   assert.equal(reconciled.previousCount, 99);
   assert.equal(reconciled.actualCount, 1);
+  const reconciledCreator = await User.findById(creator._id).lean();
+  assert.deepEqual(reconciledCreator.runningGroups, [group.name, ...otherNames]);
+  assert.equal(reconciledCreator.runningGroups.length, 12);
 });
 
 async function runner(tag) {

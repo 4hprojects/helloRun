@@ -70,7 +70,7 @@ test('createRunningGroup blocks duplicate names case-insensitively', async () =>
   );
 });
 
-test('joinRunningGroup changes membership and updates member counts', async () => {
+test('joinRunningGroup adds memberships and updates only joined member counts', async () => {
   const creatorA = await createRunner('join-a');
   const creatorB = await createRunner('join-b');
   const joiner = await createRunner('join-c');
@@ -95,9 +95,52 @@ test('joinRunningGroup changes membership and updates member counts', async () =
   const freshGroupB = await RunningGroup.findById(groupB._id).lean();
   const freshJoiner = await User.findById(joiner._id).lean();
 
-  assert.equal(freshJoiner.runningGroup, groupB.name);
-  assert.equal(freshGroupA.memberCount, 1);
+  assert.deepEqual(freshJoiner.runningGroups, [groupA.name, groupB.name]);
+  assert.equal(freshJoiner.runningGroup, groupA.name);
+  assert.equal(freshGroupA.memberCount, 2);
   assert.equal(freshGroupB.memberCount, 2);
+});
+
+test('joinRunningGroup is idempotent and preserves more than ten ordered memberships', async () => {
+  const creator = await createRunner('unlimited-creator');
+  const member = await createRunner('unlimited-member');
+  const group = await createRunningGroup({
+    user: creator,
+    name: uniqueGroupName('unlimited-group'),
+    description: ''
+  });
+  const existing = Array.from({ length: 11 }, (_, index) => `Existing Group ${index + 1}`);
+  member.runningGroups = existing;
+  member.runningGroup = existing[0];
+  await member.save();
+
+  const joined = await joinRunningGroup({ user: member, groupId: String(group._id) });
+  const duplicate = await joinRunningGroup({ user: member, groupId: String(group._id) });
+  const freshMember = await User.findById(member._id).lean();
+  const freshGroup = await RunningGroup.findById(group._id).lean();
+  const activity = await getRunningGroupActivity(group._id, 10);
+
+  assert.equal(joined.alreadyMember, false);
+  assert.equal(duplicate.alreadyMember, true);
+  assert.deepEqual(freshMember.runningGroups, [...existing, group.name]);
+  assert.equal(freshMember.runningGroups.length, 12);
+  assert.equal(freshMember.runningGroup, existing[0]);
+  assert.equal(freshGroup.memberCount, 2);
+  assert.equal(activity.filter((item) => item.type === 'joined_group').length, 1);
+});
+
+test('joining upgrades a legacy scalar membership without replacing it', async () => {
+  const creator = await createRunner('legacy-creator');
+  const member = await createRunner('legacy-member');
+  const group = await createRunningGroup({ user: creator, name: uniqueGroupName('legacy-next'), description: '' });
+  member.runningGroups = [];
+  member.runningGroup = 'Legacy First Group';
+  await member.save();
+
+  await joinRunningGroup({ user: member, groupId: String(group._id) });
+  const freshMember = await User.findById(member._id).lean();
+  assert.deepEqual(freshMember.runningGroups, ['Legacy First Group', group.name]);
+  assert.equal(freshMember.runningGroup, 'Legacy First Group');
 });
 
 test('leaveRunningGroup clears runner group and updates member count', async () => {
@@ -117,6 +160,44 @@ test('leaveRunningGroup clears runner group and updates member count', async () 
   const freshGroup = await RunningGroup.findById(group._id).lean();
   assert.equal(freshMember.runningGroup, '');
   assert.equal(freshGroup.memberCount, 1);
+});
+
+test('leaveRunningGroup preserves unrelated memberships and promotes the next primary', async () => {
+  const creatorA = await createRunner('leave-selected-a');
+  const creatorB = await createRunner('leave-selected-b');
+  const member = await createRunner('leave-selected-member');
+  const groupA = await createRunningGroup({ user: creatorA, name: uniqueGroupName('leave-selected-a'), description: '' });
+  const groupB = await createRunningGroup({ user: creatorB, name: uniqueGroupName('leave-selected-b'), description: '' });
+  await joinRunningGroup({ user: member, groupId: String(groupA._id) });
+  await joinRunningGroup({ user: member, groupId: String(groupB._id) });
+
+  await leaveRunningGroup({ user: member, groupId: String(groupB._id) });
+  let freshMember = await User.findById(member._id).lean();
+  assert.deepEqual(freshMember.runningGroups, [groupA.name]);
+  assert.equal(freshMember.runningGroup, groupA.name);
+
+  await joinRunningGroup({ user: member, groupId: String(groupB._id) });
+  await leaveRunningGroup({ user: member, groupId: String(groupA._id) });
+  const [promotedMember, freshGroupA, freshGroupB] = await Promise.all([
+    User.findById(member._id).lean(),
+    RunningGroup.findById(groupA._id).lean(),
+    RunningGroup.findById(groupB._id).lean()
+  ]);
+  assert.deepEqual(promotedMember.runningGroups, [groupB.name]);
+  assert.equal(promotedMember.runningGroup, groupB.name);
+  assert.equal(freshGroupA.memberCount, 1);
+  assert.equal(freshGroupB.memberCount, 2);
+});
+
+test('createRunningGroup appends the created group to existing memberships', async () => {
+  const creator = await createRunner('create-additive');
+  creator.runningGroups = ['Existing Primary'];
+  creator.runningGroup = 'Existing Primary';
+  await creator.save();
+  const group = await createRunningGroup({ user: creator, name: uniqueGroupName('create-additive'), description: '' });
+  const freshCreator = await User.findById(creator._id).lean();
+  assert.deepEqual(freshCreator.runningGroups, ['Existing Primary', group.name]);
+  assert.equal(freshCreator.runningGroup, 'Existing Primary');
 });
 
 test('search/top/current running group queries return expected data', async () => {

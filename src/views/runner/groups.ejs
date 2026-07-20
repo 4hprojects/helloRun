@@ -48,15 +48,7 @@
                 <p class="runner-group-members"><%= group.memberCount %> member<%= group.memberCount === 1 ? '' : 's' %></p>
                 <p class="runner-group-description"><%= group.description || 'No group description yet.' %></p>
               </div>
-              <div class="runner-group-card-actions">
-                <a href="/runner/groups/<%= group.slug %>" class="btn btn-outline">View</a>
-                <form method="POST" action="/runner/groups/leave" data-group-action-form data-group-action="leave" data-group-name="<%= group.name %>">
-                  <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
-                  <input type="hidden" name="groupId" value="<%= group.id %>">
-                  <input type="hidden" name="returnTo" value="/runner/groups">
-                  <button type="submit" class="btn btn-outline-danger">Leave</button>
-                </form>
-              </div>
+              <div class="runner-group-card-actions is-single-action"><a href="/runner/groups/<%= group.slug %>" class="btn btn-outline">View Group</a></div>
             </article>
           <% }) %>
         </div>
@@ -91,9 +83,6 @@
       </div>
 
       <% if (groupsPresentation.discovery.groups.length) { %>
-        <% if (groupsPresentation.hasMembership) { %>
-          <p class="runner-groups-switch-note"><i data-lucide="info" aria-hidden="true"></i>Joining a different group replaces your current joined-group membership.</p>
-        <% } %>
         <div class="runner-groups-grid">
           <% groupsPresentation.discovery.groups.forEach((group) => { %>
             <article class="runner-group-card<%= group.isMember ? ' is-member' : '' %>">
@@ -111,7 +100,7 @@
                 <% if (group.isMember) { %>
                   <span class="runner-group-joined-action" aria-label="Already joined">Joined</span>
                 <% } else { %>
-                  <form method="POST" action="/runner/groups/join" data-group-action-form data-group-action="<%= group.actionType %>" data-group-name="<%= group.name %>" data-current-groups="<%= groupsPresentation.currentGroupNames.join(', ') %>">
+                  <form method="POST" action="/runner/groups/join" data-group-action-form data-group-action="join" data-group-name="<%= group.name %>">
                     <input type="hidden" name="_csrf" value="<%= _csrfToken %>">
                     <input type="hidden" name="groupId" value="<%= group.id %>">
                     <input type="hidden" name="returnTo" value="/runner/groups">

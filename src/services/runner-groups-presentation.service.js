@@ -20,8 +20,8 @@ function buildRunnerGroupsPresentation(input = {}) {
       description: String(group?.description || '').trim(),
       memberCount: Math.max(0, Number.parseInt(group?.memberCount, 10) || 0),
       isMember,
-      actionType: isMember ? 'joined' : (hasMembership ? 'switch' : 'join'),
-      actionLabel: isMember ? 'Joined' : (hasMembership ? 'Switch group' : 'Join group')
+      actionType: isMember ? 'joined' : 'join',
+      actionLabel: isMember ? 'Joined' : 'Join group'
     };
   };
 

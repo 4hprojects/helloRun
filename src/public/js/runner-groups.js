@@ -33,27 +33,17 @@
   }
 
   function openModal(form, submitter) {
-    var action = form.dataset.groupAction;
     var groupName = form.dataset.groupName || 'this group';
-    var currentGroups = form.dataset.currentGroups || 'your current group';
-
     activeForm = form;
     activeTrigger = submitter;
     submitting = false;
     confirmButton.disabled = false;
     confirmButton.removeAttribute('aria-busy');
 
-    if (action === 'leave') {
-      title.textContent = 'Leave ' + groupName + '?';
-      description.textContent = 'This removes the group from your runner profile. You can join it again later if it remains available.';
-      confirmButton.textContent = 'Leave group';
-      confirmButton.className = 'btn btn-outline-danger';
-    } else {
-      title.textContent = 'Switch to ' + groupName + '?';
-      description.textContent = 'Joining this group replaces your current membership in ' + currentGroups + '.';
-      confirmButton.textContent = 'Switch group';
-      confirmButton.className = 'btn btn-primary';
-    }
+    title.textContent = 'Leave ' + groupName + '?';
+    description.textContent = 'This removes only this group from your runner profile. Your other group memberships stay unchanged.';
+    confirmButton.textContent = 'Leave group';
+    confirmButton.className = 'btn btn-outline-danger';
 
     modal.hidden = false;
     modal.setAttribute('aria-hidden', 'false');
@@ -63,7 +53,7 @@
 
   document.querySelectorAll('[data-group-action-form]').forEach(function (form) {
     form.addEventListener('submit', function (event) {
-      if (submitting || form.dataset.groupAction === 'join') return;
+      if (submitting || form.dataset.groupAction !== 'leave') return;
       event.preventDefault();
       openModal(form, event.submitter || form.querySelector('[type="submit"]'));
     });

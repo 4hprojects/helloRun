@@ -7,6 +7,7 @@ const path = require('node:path');
 const ejs = require('ejs');
 const { Window } = require('happy-dom');
 const { buildRunnerGroupsPresentation } = require('../src/services/runner-groups-presentation.service');
+const { normalizeRunningGroupMemberships } = require('../src/utils/running-group-memberships');
 
 const root = path.join(__dirname, '..');
 const read = (file) => fs.readFileSync(path.join(root, file), 'utf8');
@@ -20,8 +21,8 @@ test('group presentation selects one discovery source and marks membership actio
   assert.equal(popularView.discovery.title, 'Popular groups');
   assert.equal(popularView.discovery.groups[0].isMember, true);
   assert.equal(popularView.discovery.groups[0].actionType, 'joined');
-  assert.equal(popularView.discovery.groups[1].actionType, 'switch');
-  assert.equal(popularView.discovery.groups[1].actionLabel, 'Switch group');
+  assert.equal(popularView.discovery.groups[1].actionType, 'join');
+  assert.equal(popularView.discovery.groups[1].actionLabel, 'Join group');
 
   const searchView = buildRunnerGroupsPresentation({
     currentGroups: [current],
@@ -64,21 +65,23 @@ test('group templates compile and preserve routes, CSRF, and dedicated creation'
   assert.match(groups, /method="GET" action="\/runner\/groups"/);
   assert.match(groups, /name="q" value="<%= groupsPresentation\.query %>"/);
   assert.match(groups, /action="\/runner\/groups\/join"/);
-  assert.match(groups, /action="\/runner\/groups\/leave"/);
-  assert.ok((groups.match(/name="_csrf"/g) || []).length >= 2);
+  assert.doesNotMatch(groups, /action="\/runner\/groups\/leave"/);
+  assert.match(groups, />View Group</);
+  assert.ok((groups.match(/name="_csrf"/g) || []).length >= 1);
   assert.match(detail, /data-group-action-form/);
-  assert.match(detail, /Switch Group/);
+  assert.match(detail, />Join Group</);
+  assert.match(detail, /<details class="runner-group-settings">/);
+  assert.match(detail, /action="\/runner\/groups\/leave"/);
+  assert.doesNotMatch(detail, /Switch Group|replaces that membership/);
+  assert.doesNotMatch(groups, /Switch group|replaces your current joined-group membership/);
   assert.match(create, /Back to Groups/);
-  assert.match(create, /Creating a group adds it to your profile/);
+  assert.match(create, /Creating a group adds another membership to your profile/);
   assert.match(create, /href="\/runner\/groups" class="btn btn-outline">Cancel/);
 });
 
-test('switch and leave confirmations cancel, restore focus, and submit once', () => {
+test('leave confirmation cancels, restores focus, and submits once', () => {
   const window = new Window({ url: 'https://hellorun.test/runner/groups' });
   window.document.body.innerHTML = `
-    <form data-group-action-form data-group-action="switch" data-group-name="Night Pacers" data-current-groups="Sunrise Runners">
-      <button type="submit">Switch group</button>
-    </form>
     <form data-group-action-form data-group-action="leave" data-group-name="Sunrise Runners">
       <button type="submit">Leave</button>
     </form>
@@ -95,24 +98,29 @@ test('switch and leave confirmations cancel, restore focus, and submit once', ()
   window.eval(read('src/public/js/runner-groups.js'));
 
   const modal = window.document.querySelector('[data-group-confirm-modal]');
-  const switchTrigger = forms[0].querySelector('button');
-  switchTrigger.focus();
-  switchTrigger.click();
-  assert.equal(modal.hidden, false);
-  assert.equal(window.document.querySelector('[data-group-confirm-title]').textContent, 'Switch to Night Pacers?');
-  assert.match(window.document.querySelector('[data-group-confirm-description]').textContent, /replaces your current membership in Sunrise Runners/);
+  const leaveTrigger = forms[0].querySelector('button');
+  leaveTrigger.focus();
+  leaveTrigger.click();
+  assert.equal(window.document.querySelector('[data-group-confirm-title]').textContent, 'Leave Sunrise Runners?');
+  assert.match(window.document.querySelector('[data-group-confirm-description]').textContent, /other group memberships stay unchanged/);
   window.document.querySelector('[data-cancel-group-action]').click();
   assert.equal(modal.hidden, true);
-  assert.equal(window.document.activeElement, switchTrigger);
+  assert.equal(window.document.activeElement, leaveTrigger);
 
-  forms[1].querySelector('button').click();
-  assert.equal(window.document.querySelector('[data-group-confirm-title]').textContent, 'Leave Sunrise Runners?');
+  leaveTrigger.click();
   const confirm = window.document.querySelector('[data-confirm-group-action]');
   confirm.click();
   confirm.click();
   assert.equal(submitCount, 1);
   assert.equal(confirm.disabled, true);
   assert.equal(confirm.getAttribute('aria-busy'), 'true');
+});
+
+test('membership normalization preserves ordered memberships beyond ten and deduplicates case-insensitively', () => {
+  const values = Array.from({ length: 12 }, (_, index) => `Group ${index + 1}`);
+  const normalized = normalizeRunningGroupMemberships([...values, ' group   1 ', 'GROUP 2']);
+  assert.deepEqual(normalized, values);
+  assert.equal(normalized.length, 12);
 });
 
 test('ordinary join remains a direct no-confirmation form submission', () => {

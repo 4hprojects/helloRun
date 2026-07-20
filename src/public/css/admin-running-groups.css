@@ -186,3 +186,20 @@ a.admin-group-status-item:hover { background: #f8fafc; }
   .admin-group-filter-chevron { transition: none; }
   .admin-group-confirm-backdrop, .admin-group-confirm-dialog { scroll-behavior: auto; }
 }
+/* Running-group community moderation */
+.admin-group-community-card { display: grid; gap: 1rem; }
+.admin-group-community-list { display: grid; gap: .65rem; }
+.admin-group-community-list > h4 { margin: 0; }
+.admin-group-community-list article { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: .8rem; border: 1px solid #e4e7ec; border-radius: 12px; }
+.admin-group-community-list article > div:first-child { min-width: 0; }
+.admin-group-community-list p { margin: .2rem 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.admin-group-community-list small { color: #667085; }
+.admin-group-community-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
+.admin-group-community-disclosure { border: 1px solid #e4e7ec; border-radius: 12px; }
+.admin-group-community-disclosure > summary { min-height: 44px; display: flex; align-items: center; padding: .65rem .8rem; cursor: pointer; font-weight: 750; }
+.admin-group-community-disclosure > div { padding: 0 .8rem .8rem; }
+@media (max-width: 700px) {
+  .admin-group-community-list article { align-items: stretch; flex-direction: column; }
+  .admin-group-community-list article form, .admin-group-community-list article button { width: 100%; }
+  .admin-group-community-actions { display: grid; grid-template-columns: 1fr 1fr; width: 100%; }
+}

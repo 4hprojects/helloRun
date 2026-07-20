@@ -51,6 +51,10 @@ const {
   listSubmissionHubEvents
 } = require('../../services/submission-hub.service');
 const uploadService = require('../../services/upload.service');
+const {
+  MAX_RUNNING_GROUP_NAME_LENGTH,
+  normalizeRunningGroupMemberships
+} = require('../../utils/running-group-memberships');
 const { markdownToHtml } = require('../../utils/markdown');
 const { sanitizeHtml } = require('../../utils/sanitize');
 const {
@@ -497,14 +501,7 @@ function formatDateForAdminInput(value) {
 }
 
 function normalizeAdminRunningGroups(value) {
-  const asArray = Array.isArray(value) ? value : String(value || '').split(/[\n,]/);
-  return Array.from(
-    new Set(
-      asArray
-        .map((item) => String(item || '').trim())
-        .filter(Boolean)
-    )
-  ).slice(0, 10);
+  return normalizeRunningGroupMemberships(value);
 }
 
 function getAdminUserEditFormData(source = {}) {
@@ -559,11 +556,8 @@ function validateAdminUserEditForm(formData) {
   if (formData.emergencyContactNumber && !/^[\d\s\-()+]{7,25}$/.test(formData.emergencyContactNumber)) {
     errors.emergencyContactNumber = 'Enter a valid emergency contact number.';
   }
-  if (formData.runningGroups.length > 10) {
-    errors.runningGroups = 'You can add up to 10 running groups.';
-  }
-  if (formData.runningGroups.some((item) => item.length > 120)) {
-    errors.runningGroups = 'Each running group must be 120 characters or less.';
+  if (formData.runningGroups.some((item) => item.length > MAX_RUNNING_GROUP_NAME_LENGTH)) {
+    errors.runningGroups = `Each running group must be ${MAX_RUNNING_GROUP_NAME_LENGTH} characters or less.`;
   }
   if (!ADMIN_USER_ROLES.includes(formData.role)) {
     errors.role = 'Select a valid role.';

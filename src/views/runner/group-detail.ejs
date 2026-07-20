@@ -1,93 +1,101 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <%- include('../layouts/head', { title: `${group.name} - Running Group - HelloRun` }) %>
   <link rel="stylesheet" href="/css/runner-dashboard.css">
   <link rel="stylesheet" href="/css/runner-groups.css">
-  <%- include('../layouts/head', { title: `${group.name} - Running Group - HelloRun` }) %>
 </head>
 <body class="runner-groups-shell">
   <%- include('../layouts/nav') %>
+  <% const csrf = locals.csrfToken || ''; %>
 
-  <main class="dashboard-container">
-    <div class="dashboard-header">
-      <div class="header-content">
-        <h1><%= group.name %></h1>
-        <p class="header-subtitle"><%= group.memberCount || 0 %> members</p>
+  <main class="dashboard-container runner-group-community-page" data-group-community data-group-slug="<%= group.slug %>" data-csrf-token="<%= csrf %>" data-current-user-id="<%= user._id %>" data-is-member="<%= membership.isMember ? 'true' : 'false' %>">
+    <header class="runner-group-community-hero">
+      <div>
+        <a href="/runner/groups" class="runner-group-back-link"><i data-lucide="arrow-left" aria-hidden="true"></i>All groups</a>
+        <div class="runner-group-title-line"><h1><%= group.name %></h1><span class="runner-group-state"><%= membership.isMember ? 'Joined' : 'Community preview' %></span></div>
+        <p><%= group.description || 'A HelloRun community for runners to connect and share updates.' %></p>
+        <span class="runner-group-members"><i data-lucide="users" aria-hidden="true"></i><%= Number(group.memberCount || 0) %> member<%= Number(group.memberCount || 0) === 1 ? '' : 's' %></span>
       </div>
-      <div class="runner-group-detail-actions">
-        <a href="/runner/dashboard" class="btn-secondary">Back to Dashboard</a>
+      <% if (!membership.isMember) { %>
+        <form method="POST" action="/runner/groups/join">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <input type="hidden" name="groupId" value="<%= group._id %>">
+          <input type="hidden" name="returnTo" value="/runner/groups/<%= group.slug %>">
+          <button type="submit" class="btn btn-primary">Join Group</button>
+        </form>
+      <% } %>
+    </header>
+
+    <% if (message) { %><div class="page-message page-message-<%= message.type %>" role="<%= message.type === 'error' ? 'alert' : 'status' %>"><%= message.text %></div><% } %>
+
+    <div class="runner-group-community-layout">
+      <section class="runner-group-feed" aria-labelledby="groupAnnouncementsTitle">
+        <div class="runner-groups-section-heading">
+          <div><span class="runner-groups-kicker">Community board</span><h2 id="groupAnnouncementsTitle">Announcements</h2><p>Updates and conversations shared by group members.</p></div>
+          <span class="runner-groups-count"><%= announcements.pagination.total %> post<%= announcements.pagination.total === 1 ? '' : 's' %></span>
+        </div>
+
         <% if (membership.isMember) { %>
-          <form method="POST" action="/runner/groups/leave" data-group-action-form data-group-action="leave" data-group-name="<%= group.name %>">
-            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-            <input type="hidden" name="returnTo" value="/runner/groups/<%= group.slug %>">
-            <button type="submit" class="btn btn-warning">Leave Group</button>
+          <form method="POST" action="/runner/groups/<%= group.slug %>/announcements" class="runner-group-announcement-composer" data-announcement-create>
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <label for="groupAnnouncementContent"><strong>Share an announcement</strong><span>Visible to signed-in runners who visit this group.</span></label>
+            <textarea id="groupAnnouncementContent" name="content" rows="4" maxlength="2000" required placeholder="Share a meetup, training update, reminder, or encouragement…"></textarea>
+            <div><small><span data-announcement-count>0</span>/2,000</small><button type="submit" class="btn btn-primary">Review announcement</button></div>
           </form>
         <% } else { %>
-          <form method="POST" action="/runner/groups/join" data-group-action-form data-group-action="<%= membership.currentGroupNames && membership.currentGroupNames.length ? 'switch' : 'join' %>" data-group-name="<%= group.name %>" data-current-groups="<%= (membership.currentGroupNames || []).join(', ') %>">
-            <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
-            <input type="hidden" name="groupId" value="<%= group._id %>">
-            <input type="hidden" name="returnTo" value="/runner/groups/<%= group.slug %>">
-            <button type="submit" class="btn-secondary"><%= membership.currentGroupNames && membership.currentGroupNames.length ? 'Switch Group' : 'Join Group' %></button>
-          </form>
+          <div class="runner-group-member-prompt"><i data-lucide="message-circle" aria-hidden="true"></i><div><strong>Join to participate</strong><p>You can read this community board now. Join the group to post announcements, comment, or reply.</p></div></div>
         <% } %>
-      </div>
+
+        <div class="runner-group-announcement-list">
+          <% if (announcements.items.length) { announcements.items.forEach((item) => { %>
+            <article class="runner-group-announcement<%= item.isDeleted ? ' is-removed' : '' %>" id="announcement-<%= item.id %>" data-announcement-id="<%= item.id %>" data-announcement-version="<%= item.updatedAt ? new Date(item.updatedAt).toISOString() : '' %>">
+              <header>
+                <span class="runner-group-announcement-avatar"><% if (item.avatarUrl) { %><img src="<%= item.avatarUrl %>" alt=""><% } else { %><i data-lucide="user" aria-hidden="true"></i><% } %></span>
+                <div><strong><%= item.authorName %></strong><time datetime="<%= item.createdAt ? new Date(item.createdAt).toISOString() : '' %>"><%= item.createdAt ? new Date(item.createdAt).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }) : '' %></time></div>
+                <% if (!item.isDeleted) { %><details class="runner-group-announcement-menu"><summary aria-label="Announcement actions"><i data-lucide="ellipsis" aria-hidden="true"></i></summary><div>
+                  <% if (item.canEdit) { %><button type="button" data-announcement-edit>Edit</button><% } %>
+                  <% if (item.canDelete) { %><button type="button" class="is-danger" data-announcement-delete>Delete</button><% } else { %><button type="button" data-announcement-report>Report</button><% } %>
+                </div></details><% } %>
+              </header>
+              <p class="runner-group-announcement-content"><%= item.content %></p>
+              <% if (item.lastEditedAt && !item.isDeleted) { %><button type="button" class="runner-group-edited-label" data-announcement-history>Edited</button><% } %>
+              <% if (!item.isDeleted) { %>
+                <details class="runner-group-discussion"<%= focusAnnouncementId === item.id ? ' open' : '' %>>
+                  <summary><i data-lucide="messages-square" aria-hidden="true"></i>Discussion <span><%= item.commentsCount %></span></summary>
+                  <div data-group-comments data-announcement-id="<%= item.id %>"><p role="status" data-comments-bootstrap-status></p><threaded-comments></threaded-comments></div>
+                </details>
+              <% } %>
+            </article>
+          <% }); } else { %>
+            <div class="runner-groups-empty"><i data-lucide="megaphone" aria-hidden="true"></i><div><strong>No announcements yet.</strong><p><%= membership.isMember ? 'Share the first update with your running group.' : 'Join the group if you would like to start the conversation.' %></p></div></div>
+          <% } %>
+        </div>
+
+        <% if (announcements.pagination.totalPages > 1) { %><nav class="runner-group-feed-pagination" aria-label="Announcement pages"><% if (announcements.pagination.page > 1) { %><a class="btn btn-outline" href="?page=<%= announcements.pagination.page - 1 %>">Previous</a><% } %><span>Page <%= announcements.pagination.page %> of <%= announcements.pagination.totalPages %></span><% if (announcements.pagination.page < announcements.pagination.totalPages) { %><a class="btn btn-outline" href="?page=<%= announcements.pagination.page + 1 %>">Next</a><% } %></nav><% } %>
+      </section>
+
+      <aside class="runner-group-community-sidebar">
+        <details class="runner-group-activity-disclosure">
+          <summary><span><i data-lucide="activity" aria-hidden="true"></i>Recent membership activity</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+          <div><% if (activity && activity.length) { %><ul><% activity.forEach((item) => { %><li><strong><%= item.message %></strong><small><%= item.atLabel %></small></li><% }) %></ul><% } else { %><p>No membership activity yet.</p><% } %></div>
+        </details>
+      </aside>
     </div>
 
-    <% if (message) { %>
-      <div class="page-message page-message-<%= message.type %>"><%= message.text %></div>
+    <% if (membership.isMember) { %>
+      <details class="runner-group-settings">
+        <summary><span><i data-lucide="settings" aria-hidden="true"></i>Group settings</span><i data-lucide="chevron-down" aria-hidden="true"></i></summary>
+        <div class="runner-group-settings-content"><div><strong>Membership</strong><p>Leaving removes only this group from your profile. Your previous announcements and comments remain part of the community record.</p></div><form method="POST" action="/runner/groups/leave" data-group-action-form data-group-action="leave" data-group-name="<%= group.name %>"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="groupId" value="<%= group._id %>"><input type="hidden" name="returnTo" value="/runner/groups"><button type="submit" class="btn btn-outline-danger">Leave this group</button></form></div>
+      </details>
     <% } %>
-
-    <div class="dashboard-grid">
-      <section class="dashboard-card">
-        <div class="card-header">
-          <h2>
-            <i data-lucide="users"></i>
-            Group Overview
-          </h2>
-        </div>
-        <div class="card-content card-content-list">
-          <% if (group.description) { %>
-            <p><%= group.description %></p>
-          <% } else { %>
-            <p>No group description yet.</p>
-          <% } %>
-          <% if (!membership.isMember && membership.currentGroupNames && membership.currentGroupNames.length) { %>
-            <p class="runner-group-note">You are currently in <strong><%= membership.currentGroupNames.join(', ') %></strong>. Switching replaces that membership.</p>
-          <% } %>
-        </div>
-      </section>
-
-      <section class="dashboard-card">
-        <div class="card-header">
-          <h2>
-            <i data-lucide="activity"></i>
-            Recent Activity
-          </h2>
-        </div>
-        <div class="card-content card-content-list">
-          <% if (activity && activity.length) { %>
-            <ul class="item-list">
-              <% activity.forEach((item) => { %>
-                <li class="item-row">
-                  <div>
-                    <strong><%= item.message %></strong>
-                    <small><%= item.atLabel %></small>
-                  </div>
-                </li>
-              <% }) %>
-            </ul>
-          <% } else { %>
-            <p>No activity yet for this running group.</p>
-          <% } %>
-        </div>
-      </section>
-    </div>
   </main>
 
+  <dialog class="runner-group-community-dialog" data-group-community-dialog><form method="dialog"><h2 data-dialog-title>Confirm action</h2><div data-dialog-body></div><p role="status" data-dialog-status></p><div><button value="cancel" class="btn btn-outline">Cancel</button><button type="button" class="btn btn-primary" data-dialog-confirm>Continue</button></div></form></dialog>
   <%- include('partials/group-membership-confirmation') %>
   <%- include('../layouts/footer') %>
-
   <script src="/js/main.js"></script>
   <script src="/js/runner-groups.js"></script>
+  <script src="/js/runner-group-community.js" defer></script>
 </body>
 </html>
