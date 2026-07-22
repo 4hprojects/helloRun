@@ -5,6 +5,19 @@ const uploadService = require('../services/upload.service');
 const { createRateLimiter } = require('../middleware/rate-limit.middleware');
 const { requireAuth } = require('../middleware/auth.middleware');
 const { requireCsrfProtection } = require('../middleware/csrf.middleware');
+
+function suppressPrivateBlogIndexingAndAds(req, res, next) {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  res.locals.seo = { ...(res.locals.seo || {}), robots: 'noindex, nofollow' };
+  res.locals.ads = {
+    ...(res.locals.ads || {}),
+    loadConsentScript: false,
+    renderScript: false,
+    canRender: () => false,
+    getSlot: () => ''
+  };
+  next();
+}
 // Public guides/resources and feed endpoints
 router.get('/blog/guides', blogController.getGuidesAndResources);
 router.get('/feed.xml', blogController.getBlogFeed);
@@ -23,6 +36,8 @@ const blogSubmitLimiter = createRateLimiter({
   maxRequests: 15,
   message: 'Too many submit actions. Please try again later.'
 });
+
+router.use('/blogs/me', suppressPrivateBlogIndexingAndAds);
 
 router.get('/blogs/me/dashboard', requireAuth, blogController.renderAuthorDashboard);
 router.get('/blogs/me/new', requireAuth, blogController.renderCreatePage);

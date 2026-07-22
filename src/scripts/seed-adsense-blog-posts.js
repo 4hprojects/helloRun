@@ -4,6 +4,8 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const Blog = require('../models/Blog');
 const User = require('../models/User');
+const { EDITORIAL_TEAM_EMAIL, EDITORIAL_TEAM_NAME } = require('../utils/blog-author');
+const { buildTrustedEditorialReview } = require('../utils/blog-content-eligibility');
 const {
   ARTICLE: BEST_APPS_ARTICLE,
   buildArticlePayload: buildBestAppsArticlePayload
@@ -56,9 +58,13 @@ const {
   ARTICLE: FIRST_VIRTUAL_RUN_ARTICLE,
   buildArticlePayload: buildFirstVirtualRunArticlePayload
 } = require('../content/prepare-first-virtual-run');
+const {
+  ARTICLE: DISTANCE_CHOICE_ARTICLE,
+  buildArticlePayload: buildDistanceChoiceArticlePayload
+} = require('../content/choose-running-distance-guide');
 
-const AUTHOR_EMAIL = 'hellorunonline+guides@gmail.com';
-const EXISTING_GUIDE_AUTHOR_EMAIL = 'hensonsagorsor@gmail.com';
+const AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
+const EXISTING_GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 const COVER_IMAGE_URL = '/images/helloRun-icon.webp';
 const BEST_APPS_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/69941482ab1333984de6c96c/1780845345476-349094234-chatgpt_image_jun_7__2026__11_15_14_pm.png';
 const BEST_APPS_PAYLOAD = buildBestAppsArticlePayload({ coverImageUrl: BEST_APPS_COVER_IMAGE_URL });
@@ -86,6 +92,8 @@ const HELLORUN_PLATFORM_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/cove
 const HELLORUN_PLATFORM_PAYLOAD = buildHellorunPlatformArticlePayload({ coverImageUrl: HELLORUN_PLATFORM_COVER_IMAGE_URL });
 const FIRST_VIRTUAL_RUN_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/6994299f568d52730107dc23/1784555622021-237177645-how-to-prepare-for-your-first-virtual-run.webp';
 const FIRST_VIRTUAL_RUN_PAYLOAD = buildFirstVirtualRunArticlePayload({ coverImageUrl: FIRST_VIRTUAL_RUN_COVER_IMAGE_URL });
+const DISTANCE_CHOICE_COVER_IMAGE_URL = 'https://cdn.hellorun.online/blog/covers/6994299f568d52730107dc23/1784690449454-621961560-how-to-choose-between-running-distances.webp';
+const DISTANCE_CHOICE_PAYLOAD = buildDistanceChoiceArticlePayload({ coverImageUrl: DISTANCE_CHOICE_COVER_IMAGE_URL });
 
 const POSTS = [
   {
@@ -381,84 +389,31 @@ const POSTS = [
     ]
   },
   {
-    title: '5K vs 10K vs 21K: Which Distance Should You Choose?',
-    slug: '5k-vs-10k-vs-21k-which-distance-should-you-choose',
-    category: 'Training',
-    tags: ['5k', '10k', 'half marathon'],
-    excerpt: 'Compare common running distances and choose a HelloRun event that fits your current fitness, schedule, and goal.',
-    sections: [
-      ['Start with your current base', 'The best event distance is the one you can prepare for consistently and safely. A 5K is approachable for beginners, a 10K suits runners with a few weeks of regular activity, and a 21K requires a longer build with attention to recovery.'],
-      ['When a 5K makes sense', 'Choose a 5K if you are new to running, returning from a break, walking with friends, or joining your first virtual event. It is long enough to feel meaningful but short enough to train for without a complex plan.'],
-      ['When a 10K makes sense', 'A 10K is a useful next step when you already finish 5K comfortably and want a stronger endurance goal. You may need longer weekend runs, easier recovery days, and clearer pacing so the distance does not become a weekly stressor.'],
-      ['When a 21K makes sense', 'A 21K or half-marathon distance should be chosen with more planning. Consider your recent mileage, available training time, hydration habits, route safety, and whether the event allows accumulated submissions or requires one continuous activity.'],
-      ['Example', 'A beginner who can walk-run for 30 minutes may start with 5K. A runner who already completes 6K to 8K comfortably may choose 10K. A runner preparing for a long-term milestone may choose 21K only after several weeks of steady training.'],
-      ['What to do next', 'Browse HelloRun events, read the event distance rules, and choose a category you can complete honestly within the activity window.']
-    ],
-    links: ['/events', '/how-it-works', '/faq']
-  },
-  {
-    title: 'Common Virtual Run Mistakes and How to Avoid Them',
-    slug: 'common-virtual-run-mistakes-and-how-to-avoid-them',
-    category: 'Virtual Run Guide',
-    tags: ['virtual run', 'mistakes', 'proof'],
-    excerpt: 'Avoid common virtual run mistakes around registration, proof screenshots, deadlines, and event rules.',
-    sections: [
-      ['Mistake one: registering without reading rules', 'A virtual run is flexible, but it still has official rules. Read the event window, final submission deadline, accepted proof, distance options, payment requirements, and reward details before joining.'],
-      ['Mistake two: recording proof too late', 'Do not wait until the final day to test your app, GPS, treadmill display, or screenshot process. If the app fails, the activity stops early, or the screenshot lacks a date, you may have little time to correct it.'],
-      ['Mistake three: uploading the wrong file', 'Payment receipts and run proof are different records. Uploading a receipt as activity proof or a running screenshot as payment proof can delay review and create confusion for organizers.'],
-      ['Mistake four: ignoring units and dates', 'If your app shows miles but the event uses kilometers, explain the conversion or use a screenshot with the expected unit when possible. Always make sure the activity date falls within the event period.'],
-      ['Mistake five: assuming pending means approved', 'Pending submissions still need organizer review. Do not rely on pending proof for final leaderboard position, certificate release, or accumulated challenge completion until the submission is approved.'],
-      ['What to do next', 'Check your registration dashboard after submitting and follow any rejection guidance carefully. If the issue is unclear, contact support with the event name and confirmation code.']
-    ],
-    links: ['/how-it-works', '/faq', '/contact']
-  },
-  {
-    title: 'How Digital Certificates Help Runners Track Progress',
-    slug: 'how-digital-certificates-help-runners-track-progress',
-    category: 'Race Tips',
-    tags: ['certificates', 'runner progress', 'recognition'],
-    excerpt: 'Learn how digital certificates can document event completion and motivate consistent running progress.',
-    sections: [
-      ['Certificates are more than decoration', 'A digital certificate can mark a completed goal, document participation, and remind a runner that consistent effort led to a reviewed finish. It is especially useful for virtual events where participants may run alone.'],
-      ['What certificate details should match', 'A trustworthy certificate should align with the event record. Names, event title, distance, completion date, and verification details should reflect the approved submission or completion rule.'],
-      ['Why review matters first', 'Certificates should not be issued before proof is checked when the event requires proof review. Organizer review protects the value of the certificate and helps avoid recognition based on unclear or invalid submissions.'],
-      ['Example', 'A runner who completes a 10K virtual event and submits clear proof may receive a certificate after approval. For an accumulated 50K challenge, the certificate may depend on reaching the total approved distance before the deadline.'],
-      ['How runners can use certificates', 'Certificates can support personal progress tracking, social sharing, team wellness programs, school activities, and motivation for the next event. They should be shared responsibly and not edited in a way that misrepresents the result.'],
-      ['What to do next', 'Check each event page to see whether certificates are enabled, then keep your profile details accurate before submitting proof.']
-    ],
-    links: ['/events', '/how-it-works', '/faq']
-  },
-  {
-    title: 'Free Virtual Runs: What Runners Should Know',
-    slug: 'free-virtual-runs-what-runners-should-know',
-    category: 'Virtual Run Guide',
-    tags: ['free virtual run', 'runner guide', 'registration'],
-    excerpt: 'Understand what to check before joining a free virtual run, from event rules to proof review and recognition.',
-    sections: [
-      ['Free does not mean rule-free', 'A free virtual run can be a great way to start, but participants should still read the event page carefully. Deadlines, accepted proof, distance categories, leaderboard rules, and certificate availability may still apply.'],
-      ['Check what is included', 'Some free events focus only on participation. Others may include leaderboards, digital certificates, badges, or community recognition. If physical rewards or shipping are involved, confirm whether any fee applies before registering.'],
-      ['Know the proof requirements', 'Even free events may require clear proof before results count. Screenshots should show date, distance, duration, and activity source when the event asks for proof review.'],
-      ['Example', 'A community group may host a free 5K wellness run where participants upload app screenshots. The organizer may approve valid submissions and publish a finisher list, but there may be no physical medal or package.'],
-      ['Common assumptions to avoid', 'Do not assume all free runs include certificates. Do not assume late proof will be accepted. Do not create multiple accounts to submit duplicate results. Honest participation keeps free events sustainable.'],
-      ['What to do next', 'Browse free and paid events on HelloRun, read the event details, and contact support if the registration or proof process is unclear.']
-    ],
-    links: ['/events', '/faq', '/contact']
-  },
-  {
-    title: 'How to Review Run Proof Fairly as an Organizer',
-    slug: 'how-to-review-run-proof-fairly-as-an-organizer',
-    category: 'Organizer Guide',
-    tags: ['organizer', 'proof review', 'fair review'],
-    excerpt: 'A practical organizer guide for reviewing virtual run proof consistently and explaining decisions clearly.',
-    sections: [
-      ['Fair review starts before submissions arrive', 'Organizers should publish proof rules before registration opens. Participants need to know accepted apps, event dates, minimum distances, unit expectations, deadline rules, and whether treadmill or manual entries are allowed.'],
-      ['Use consistent checks', 'Reviewers should check the same core details for every participant: event registration, date, distance, duration, activity type, duplicate proof, and whether the screenshot is readable. Consistency helps avoid disputes.'],
-      ['Separate unclear from invalid', 'Some submissions are clearly invalid, while others are only unclear. A blurry screenshot may need resubmission. A wrong date outside the event window may need rejection. Clear rejection reasons help runners understand the difference.'],
-      ['Document decisions', 'When possible, keep notes for rejected or corrected submissions. Notes make support easier if a participant asks why a result did not count, and they help multiple reviewers apply the same event rules.'],
-      ['Example', 'If a 5K event requires at least 5.00 km, a 4.92 km screenshot should be handled according to the published tolerance rule. If no tolerance was published, the organizer should avoid making one-off exceptions that are unfair to other runners.'],
-      ['What to do next', 'Before publishing your next HelloRun event, review your proof rules, payment flow, leaderboard settings, and certificate criteria from the participant point of view.']
-    ],
-    links: ['/contact', '/how-it-works', '/faq']
+    ...DISTANCE_CHOICE_ARTICLE,
+    contentHtml: DISTANCE_CHOICE_PAYLOAD.contentHtml,
+    coverImageUrl: DISTANCE_CHOICE_COVER_IMAGE_URL,
+    coverImageAlt: DISTANCE_CHOICE_ARTICLE.coverImageAlt,
+    ogImageUrl: DISTANCE_CHOICE_COVER_IMAGE_URL,
+    publishedAt: '2026-07-22T03:27:02.320Z',
+    featured: false,
+    authorEmail: EXISTING_GUIDE_AUTHOR_EMAIL,
+    links: [
+      '/events',
+      '/how-it-works',
+      '/faq',
+      '/contact',
+      '/privacy',
+      '/blog/what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers',
+      '/blog/how-to-prepare-for-your-first-virtual-run',
+      '/blog/beginner-5k-training-plan-new-runners',
+      '/blog/virtual-run-vs-traditional-race-which-one-should-you-join',
+      '/blog/how-accumulated-distance-challenges-work',
+      '/blog/best-apps-to-track-your-virtual-run',
+      '/blog/what-counts-as-valid-run-proof',
+      '/blog/how-to-submit-run-proof-correctly-hellorun',
+      '/blog/running-safety-tips-early-morning-night-runs',
+      '/blog/how-leaderboards-work-virtual-running-events'
+    ]
   }
 ];
 
@@ -513,18 +468,17 @@ async function main() {
 }
 
 async function findExistingAuthor(email) {
-  const author = await User.findOne({ email: String(email || '').trim().toLowerCase(), emailVerified: true });
-  if (!author) throw new Error(`Existing verified guide author not found: ${email}`);
+  const author = await User.findOne({ email: String(email || '').trim().toLowerCase(), emailVerified: true, role: 'admin' });
+  if (!author) throw new Error(`Existing verified admin guide author not found: ${email}`);
   return author;
 }
 
 async function ensureAuthor(dryRun) {
   const existing = await User.findOne({ email: AUTHOR_EMAIL });
   if (existing) {
+    if (existing.role !== 'admin') throw new Error(`Configured guide author must be an admin: ${AUTHOR_EMAIL}`);
     if (!dryRun) {
-      existing.firstName = 'Henz';
-      existing.lastName = 'Sagorsor';
-      existing.role = 'admin';
+      existing.displayName = EDITORIAL_TEAM_NAME;
       existing.emailVerified = true;
       existing.verifiedAuthor = true;
       existing.trustScore = 90;
@@ -538,8 +492,9 @@ async function ensureAuthor(dryRun) {
     email: AUTHOR_EMAIL,
     passwordHash,
     role: 'admin',
-    firstName: 'Henz',
-    lastName: 'Sagorsor',
+    firstName: 'HelloRun',
+    lastName: 'Admin',
+    displayName: EDITORIAL_TEAM_NAME,
     emailVerified: true,
     verifiedAuthor: true,
     trustScore: 90
@@ -560,7 +515,7 @@ function buildPostPayload(post, author, index) {
   const contentText = htmlToText(contentHtml);
   const coverImageUrl = post.coverImageUrl || COVER_IMAGE_URL;
 
-  return {
+  const payload = {
     authorId: author._id,
     title: post.title,
     slug: post.slug,
@@ -589,6 +544,8 @@ function buildPostPayload(post, author, index) {
     moderationFlags: [],
     moderationFlagSummary: ''
   };
+  Object.assign(payload, buildTrustedEditorialReview(payload, author._id, publishedAt));
+  return payload;
 }
 
 function buildContentHtml(post) {

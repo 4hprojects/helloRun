@@ -65,7 +65,7 @@ const {
   getHomepageCarouselSettings,
   getPostgresClient,
   getPublicEventVisibilityQuery,
-  getPublicBlogQuery,
+  getEligiblePublicBlogQuery,
   logger,
   recordSyncFailureInBackground,
   recordCriticalAuditEventInBackground,
@@ -78,6 +78,7 @@ const {
   getPublishedEventBySlug,
   renderEventNotFound
 } = require('./_shared');
+const { formatBlogAuthorName } = require('../../utils/blog-author');
 
 exports.getHome = async (req, res) => {
   try {
@@ -100,11 +101,11 @@ exports.getHome = async (req, res) => {
         role: 'organiser',
         organizerStatus: 'approved'
       }),
-      Blog.find(getPublicBlogQuery({
+      Blog.find(getEligiblePublicBlogQuery({
         status: 'published',
         isDeleted: { $ne: true }
       }))
-        .populate('authorId', 'firstName lastName')
+        .populate('authorId', 'displayName firstName lastName')
         .sort({ publishedAt: -1, createdAt: -1 })
         .limit(3)
         .select('title slug excerpt category customCategory coverImageUrl readingTime publishedAt createdAt')
@@ -146,7 +147,7 @@ exports.getHome = async (req, res) => {
       ...post,
       categoryLabel: post.category === 'Other' && post.customCategory ? post.customCategory : post.category,
       publishedLabel: formatDateOnly(post.publishedAt || post.createdAt),
-      authorName: [post.authorId?.firstName, post.authorId?.lastName].filter(Boolean).join(' ').trim() || 'HelloRun'
+      authorName: formatBlogAuthorName(post.authorId || {}, 'HelloRun')
     }));
 
     return res.render('pages/home', {

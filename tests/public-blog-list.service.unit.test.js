@@ -92,6 +92,22 @@ test('card normalization exposes writer identity and engagement labels', () => {
   assert.equal(card.viewsLabel, '1,200');
 });
 
+test('editorial display names override account first and last names', () => {
+  const card = normalizeBlogCard({
+    slug: 'editorial-guide',
+    category: 'Race Tips',
+    authorId: {
+      _id: 'admin-1',
+      displayName: 'HelloRun Editorial Team',
+      firstName: 'HelloRun',
+      lastName: 'Admin',
+      verifiedAuthor: true
+    }
+  });
+  assert.equal(card.author.name, 'HelloRun Editorial Team');
+  assert.equal(card.author.verified, true);
+});
+
 test('page content and summaries reflect runner searches, topics, and writers', () => {
   assert.match(getBlogPageContent({ q: 'nutrition' }, { currentPage: 1 }).heading, /nutrition/);
   assert.match(getBlogPageContent({ author: 'id', authorName: 'Mia Runner' }, { currentPage: 2 }).documentTitle, /Page 2/);

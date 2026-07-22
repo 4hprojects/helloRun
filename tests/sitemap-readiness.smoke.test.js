@@ -10,6 +10,14 @@ const User = require('../src/models/User');
 const Event = require('../src/models/Event');
 const Blog = require('../src/models/Blog');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
+const { buildTrustedEditorialReview } = require('../src/utils/blog-content-eligibility');
+
+function eligibleSitemapBlogRecord(fields, actorId) {
+  const words = Array.from({ length: 510 }, (_, index) => `sitemaprunner${index}`);
+  const contentHtml = [0, 170, 340].map((start) => `<p>${words.slice(start, start + 170).join(' ')}</p>`).join('');
+  const record = { ...fields, contentHtml, contentText: words.join(' '), status: 'published', isDeleted: false };
+  return { ...record, ...buildTrustedEditorialReview(record, actorId, new Date()) };
+}
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3125;
@@ -87,6 +95,7 @@ test('dynamic sitemap includes live public content and excludes auth and placeho
   assert.doesNotMatch(xml, /virtual-run-vs-traditional-race<\/loc>/i);
   assert.doesNotMatch(xml, /best-running-apps-for-virtual-runs<\/loc>/i);
   assert.doesNotMatch(xml, /how-to-organize-community-virtual-run<\/loc>/i);
+  assert.doesNotMatch(xml, /5k-vs-10k-vs-21k-which-distance-should-you-choose/i);
 });
 
 test('duplicate blog slugs redirect to canonical posts', async () => {
@@ -94,7 +103,8 @@ test('duplicate blog slugs redirect to canonical posts', async () => {
     ['best-running-apps-for-virtual-runs', 'best-apps-to-track-your-virtual-run'],
     ['how-to-organize-community-virtual-run', 'how-to-organize-a-virtual-run-a-practical-guide-for-event-organizers'],
     ['virtual-run-vs-traditional-race', 'virtual-run-vs-traditional-race-which-one-should-you-join'],
-    ['what-is-virtual-run-philippines', 'what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers']
+    ['what-is-virtual-run-philippines', 'what-is-virtual-run-a-simple-guide-for-runners-and-event-organizers'],
+    ['5k-vs-10k-vs-21k-which-distance-should-you-choose', 'how-to-choose-between-a-5k-10k-21k-or-distance-challenge']
   ];
 
   for (const [legacySlug, canonicalSlug] of redirects) {
@@ -223,19 +233,16 @@ async function seedFixtures() {
     waiverVersion: 1
   });
 
-  const blog = await Blog.create({
+  const blog = await Blog.create(eligibleSitemapBlogRecord({
     authorId: author._id,
     title: `Sitemap Blog ${stamp}`,
     slug: `sitemap-blog-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 160),
     excerpt: 'Sitemap blog excerpt for testing.',
-    contentHtml: '<p>This is enough content for a published sitemap blog post test.</p>',
-    contentText: 'This is enough content for a published sitemap blog post test.',
     coverImageUrl: 'https://example.com/cover.png',
     category: 'General',
-    status: 'published',
     publishedAt: new Date(),
     approvedAt: new Date()
-  });
+  }, author._id));
 
   return { author, organizer, event, placeholderEvent, blog };
 }

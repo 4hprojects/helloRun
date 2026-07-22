@@ -2,7 +2,7 @@
 // Service to fetch grouped guides and organizer resources
 
 const Blog = require('../models/Blog');
-const { getPublicBlogQuery } = require('../utils/blog-canonical');
+const { getEligiblePublicBlogQuery } = require('../utils/blog-canonical');
 
 /**
  * Returns grouped guides and organizer resources.
@@ -20,7 +20,7 @@ async function getGuidesAndResources({ limitPerGroup = 12 } = {}) {
     'Motivation',
     'Personal Stories'
   ];
-  const guides = await Blog.find(getPublicBlogQuery({
+  const guides = await Blog.find(getEligiblePublicBlogQuery({
     status: 'published',
     isDeleted: { $ne: true },
     publishedAt: { $lte: new Date() },
@@ -29,10 +29,10 @@ async function getGuidesAndResources({ limitPerGroup = 12 } = {}) {
     .sort({ publishedAt: -1 })
     .limit(limitPerGroup * guideCategories.length)
     .select('title slug excerpt category coverImageUrl publishedAt authorId')
-    .populate('authorId', 'firstName lastName verifiedAuthor trustScore');
+    .populate('authorId', 'displayName firstName lastName verifiedAuthor trustScore');
 
   // Organizer resources: category = 'Organizer Guide'
-  const organizerResources = await Blog.find(getPublicBlogQuery({
+  const organizerResources = await Blog.find(getEligiblePublicBlogQuery({
     status: 'published',
     isDeleted: { $ne: true },
     publishedAt: { $lte: new Date() },
@@ -41,7 +41,7 @@ async function getGuidesAndResources({ limitPerGroup = 12 } = {}) {
     .sort({ publishedAt: -1 })
     .limit(limitPerGroup)
     .select('title slug excerpt category coverImageUrl publishedAt authorId')
-    .populate('authorId', 'firstName lastName verifiedAuthor trustScore');
+    .populate('authorId', 'displayName firstName lastName verifiedAuthor trustScore');
 
   return { guides, organizerResources };
 }

@@ -109,7 +109,7 @@ test('HelloRun platform guide is registered and stored once as canonical rich se
 
   assert.equal(articleModule.ARTICLE, ARTICLE);
   assert.ok(listArticleSlugs().includes(CANONICAL_SLUG));
-  assert.equal(listArticleSlugs().length, 13);
+  assert.equal(listArticleSlugs().length, 14);
   assert.equal(seededPosts.length, 1);
   assert.equal(buildContentHtml(seededPost), seededPost.contentHtml);
   assert.equal(htmlToText(seededPost.contentHtml), buildArticlePayload({ coverImageUrl: seededPost.coverImageUrl }).contentText);

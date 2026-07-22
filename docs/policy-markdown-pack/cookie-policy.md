@@ -87,9 +87,11 @@ When allowed, Google and participating advertising providers may use first-party
 
 HelloRun does not intentionally provide passwords, payment proof, activity proof, private contact details, or precise activity evidence to advertising providers as identifiable advertising data.
 
-Google may use data from partner sites according to [How Google uses information from sites or apps that use its services](https://policies.google.com/technologies/partner-sites). Visitors can use [Google Ads Settings](https://adssettings.google.com) where available.
+Third-party vendors, including Google, may use cookies to serve advertisements based on a visitor's previous visits to HelloRun or other websites. Google's use of advertising cookies enables Google and its partners to serve personalized advertisements based on visits to HelloRun and/or other sites on the Internet where consent and applicable law permit. Third parties may also place or read cookies, or use web beacons, pixel tags, IP addresses, browser or device identifiers, and similar identifiers as a result of ad serving.
 
-HelloRun's preference center is not a Google-certified consent management platform. Serving Google advertising to visitors in regions where Google requires a certified platform remains subject to a separately configured certified consent solution and Google's requirements.
+Visitors can manage or opt out of personalized Google advertising through [Google Ads Settings](https://adssettings.google.com), control optional advertising technology through HelloRun's Cookie Preferences, and learn [how Google uses information from sites or apps that use its services](https://policies.google.com/technologies/partner-sites).
+
+For visitors in the EEA, the United Kingdom, and Switzerland, Google advertising consent is managed through a Google-certified consent management platform integrated with the IAB Transparency and Consent Framework where required. The Google-certified decision remains authoritative for Google advertising; HelloRun's separate preference center continues to control HelloRun-owned optional browser features and whether configured ad placements are requested by the application.
 
 ## 8. Security and explicitly requested providers
 

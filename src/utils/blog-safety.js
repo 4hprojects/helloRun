@@ -15,13 +15,23 @@ function tokenize(value) {
 }
 
 function getRepeatedTokenRatio(tokens) {
-  if (!tokens.length) return 0;
+  const stopWords = new Set([
+    'and', 'are', 'but', 'for', 'from', 'has', 'have', 'into', 'not', 'that', 'the', 'their',
+    'then', 'there', 'these', 'they', 'this', 'was', 'were', 'when', 'where', 'which', 'with',
+    'you', 'your'
+  ]);
+  const meaningful = tokens.filter((token) => token.length > 2 && !stopWords.has(token));
+  if (!meaningful.length) return 0;
   const counts = new Map();
-  for (const token of tokens) {
+  for (const token of meaningful) {
     counts.set(token, (counts.get(token) || 0) + 1);
   }
-  const repeated = Array.from(counts.values()).reduce((total, count) => total + Math.max(0, count - 1), 0);
-  return repeated / tokens.length;
+  const naturalAllowance = Math.max(2, Math.ceil(meaningful.length * 0.04));
+  const repeated = Array.from(counts.values()).reduce(
+    (total, count) => total + Math.max(0, count - naturalAllowance),
+    0
+  );
+  return repeated / meaningful.length;
 }
 
 function hasRepeatedCharacters(value) {

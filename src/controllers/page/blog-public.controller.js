@@ -2,6 +2,8 @@
 
 const { buildPublicBlogListPage } = require('../../services/public-blog-list.service');
 const { getBlogArticlePresentation } = require('../../services/public-blog-presentation.service');
+const { EDITORIAL_TEAM_NAME, formatBlogAuthorName } = require('../../utils/blog-author');
+const { isCurrentEligibleBlog } = require('../../utils/blog-content-eligibility');
 
 const {
   crypto,
@@ -65,6 +67,7 @@ const {
   getPostgresClient,
   getPublicEventVisibilityQuery,
   getCanonicalBlogSlug,
+  getEligiblePublicBlogQuery,
   getPublicBlogQuery,
   logger,
   recordSyncFailureInBackground,
@@ -140,6 +143,7 @@ function disableAdLocals(res) {
   const ads = res.locals.ads || {};
   res.locals.ads = {
     ...ads,
+    loadConsentScript: false,
     renderScript: false,
     canRender: () => false
   };
@@ -161,9 +165,10 @@ exports.getBlogPost = async (req, res) => {
     const post = await Blog.findOne({
       slug,
       status: 'published',
-      isDeleted: { $ne: true }
+      isDeleted: { $ne: true },
+      publishedAt: { $lte: new Date() }
     })
-      .populate('authorId', 'firstName lastName avatarUrl verifiedAuthor trustScore');
+      .populate('authorId', 'displayName firstName lastName avatarUrl verifiedAuthor trustScore');
 
     if (!post) {
       return res.status(404).render('error', {
@@ -171,6 +176,11 @@ exports.getBlogPost = async (req, res) => {
         status: 404,
         message: 'This blog post is not available.'
       });
+    }
+    const adsenseEligible = isCurrentEligibleBlog(post);
+    if (!adsenseEligible) {
+      res.setHeader('X-Robots-Tag', 'noindex, follow');
+      disableAdLocals(res);
     }
 
     const currentUser = res.locals.user || null;
@@ -199,7 +209,7 @@ exports.getBlogPost = async (req, res) => {
       }
     }
 
-    const relatedPosts = await Blog.find(getPublicBlogQuery({
+    const relatedPosts = await Blog.find(getEligiblePublicBlogQuery({
       _id: { $ne: post._id },
       status: 'published',
       isDeleted: { $ne: true },
@@ -222,9 +232,10 @@ exports.getBlogPost = async (req, res) => {
     const likedByCurrentUser = currentUserId
       ? Boolean(await BlogLike.exists({ blogId: post._id, userId: currentUserId }))
       : false;
-    const authorName = [post.authorId?.firstName, post.authorId?.lastName].filter(Boolean).join(' ').trim() || 'HelloRun';
-    const authorBio = authorName.toLowerCase().includes('henz')
-      ? 'Henz writes HelloRun guides for runners and event organizers, focusing on virtual race setup, proof submission, beginner-friendly running, and community fitness events in the Philippines.'
+    const authorName = formatBlogAuthorName(post.authorId || {}, 'HelloRun');
+    const isEditorialTeam = authorName === EDITORIAL_TEAM_NAME;
+    const authorBio = isEditorialTeam
+      ? 'The HelloRun Editorial Team publishes researched, practical guidance for runners and event organisers, with transparent sourcing and event-specific limitations.'
       : 'HelloRun publishes practical guides for runners and event organizers, with a focus on virtual runs, proof submission, leaderboards, and community fitness events.';
 
     return res.render('pages/blog-post', {
@@ -232,7 +243,8 @@ exports.getBlogPost = async (req, res) => {
       post,
       authorDisplay: {
         name: authorName,
-        bio: authorBio
+        bio: authorBio,
+        schemaType: isEditorialTeam ? 'Organization' : 'Person'
       },
       blogContentParts: splitBlogContentForAd(post.contentHtml || ''),
       relatedPosts,
@@ -249,7 +261,8 @@ exports.getBlogPost = async (req, res) => {
         canonicalUrl,
         ogTitle: seoTitle || `${post.title} - HelloRun Blog`,
         twitterTitle: seoTitle || `${post.title} - HelloRun Blog`,
-        ogImage: ogImage || ''
+        ogImage: ogImage || '',
+        robots: adsenseEligible ? '' : 'noindex, follow'
       }
     });
   } catch (error) {

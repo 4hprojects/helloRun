@@ -47,7 +47,7 @@
 <link rel="stylesheet" href="/css/cookie-preferences.css">
 <script src="https://unpkg.com/lucide@latest"></script>
 <%- include('../partials/privacy-head') %>
-<% if (locals.ads && locals.ads.renderScript && locals.ads.publisherId) { %>
+<% if (locals.ads && locals.ads.loadConsentScript && locals.ads.publisherId) { %>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=<%= locals.ads.publisherId %>" crossorigin="anonymous"></script>
 <% } %>
 

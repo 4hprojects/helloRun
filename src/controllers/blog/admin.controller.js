@@ -60,6 +60,7 @@ const {
   uploadBlogAssetsForPayload,
   collectRemovedGalleryKeys,
   buildPostModerationSignals,
+  evaluateBlogContentEligibility,
   applyPayloadToPost,
   createRevisionSnapshot,
   getRevisionChangedFields,
@@ -70,6 +71,7 @@ const {
   getActivePendingRevision,
   resolveReviewTarget,
   approveReviewTarget,
+  getBlockingModerationFlags,
   rejectReviewTarget,
   validateBlogPayload,
   validateReadyForReview,
@@ -79,6 +81,22 @@ const {
   getAuthorFromSession,
   getBlogPageMessage
 } = require('./_shared');
+const { recordCriticalAuditEventInBackground } = require('../../services/critical-audit.service');
+
+function recordBlogModerationAudit(req, input = {}) {
+  recordCriticalAuditEventInBackground({
+    action: input.action,
+    targetType: 'blog',
+    targetId: String(input.postId || ''),
+    statusFrom: input.statusFrom || '',
+    statusTo: input.statusTo || '',
+    actorMongoUserId: req.session?.userId || '',
+    notes: JSON.stringify(input.details || {}).slice(0, 4000),
+    ipAddress: req.ip,
+    userAgent: req.get?.('user-agent') || '',
+    occurredAt: new Date()
+  });
+}
 
 exports.listPendingBlogs = async (req, res) => {
   try {
@@ -164,7 +182,23 @@ exports.approveBlogPost = async (req, res) => {
 
     const result = await approveReviewTarget({
       post,
-      actorId: req.session.userId || null
+      actorId: req.session.userId || null,
+      reviewInput: req.body
+    });
+
+    recordBlogModerationAudit(req, {
+      action: result.post.publicationReview?.overrideReason
+        ? 'admin.blog.approved_with_override'
+        : 'admin.blog.approved',
+      postId: post._id,
+      statusFrom: 'pending',
+      statusTo: 'published',
+      details: {
+        revisionApplied: result.revisionApplied,
+        policyVersion: result.post.contentEligibility?.policyVersion,
+        sourceHash: result.post.contentEligibility?.sourceHash,
+        review: result.post.publicationReview
+      }
     });
 
     return res.json({
@@ -174,7 +208,11 @@ exports.approveBlogPost = async (req, res) => {
     });
   } catch (error) {
     logger.error('approveBlogPost error:', error);
-    return res.status(500).json({ success: false, message: 'Failed to approve post.' });
+    return res.status(error.status || 500).json({
+      success: false,
+      message: error.status ? error.message : 'Failed to approve post.',
+      errors: error.validationErrors || []
+    });
   }
 };
 
@@ -216,6 +254,14 @@ exports.rejectBlogPost = async (req, res) => {
       post,
       actorId: req.session.userId || null,
       rejectionReason
+    });
+
+    recordBlogModerationAudit(req, {
+      action: 'admin.blog.rejected',
+      postId: post._id,
+      statusFrom: 'pending',
+      statusTo: 'rejected',
+      details: { revisionRejected: result.revisionRejected, rejectionReason }
     });
 
     return res.json({
@@ -350,6 +396,9 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
     const validationErrors = validateBlogPayload(nextPayload, {
       requireCover: ['pending', 'published', 'scheduled'].includes(nextPayload.status)
     });
+    if (['pending', 'published', 'scheduled'].includes(nextPayload.status)) {
+      validationErrors.push(...validateReadyForReview(nextPayload));
+    }
     if (validationErrors.length) {
       if (uploadedKeys.length) await uploadService.deleteObjects(uploadedKeys);
       return res.status(400).json({
@@ -376,6 +425,8 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
       pendingRevision.editedAt = new Date();
       pendingRevision.moderationFlags = moderation.flags;
       pendingRevision.moderationFlagSummary = moderation.summary;
+      pendingRevision.eligibilitySnapshot = evaluateBlogContentEligibility(nextSnapshot);
+      pendingRevision.publicationReview = null;
       await pendingRevision.save();
       assetsPersisted = true;
 
@@ -393,8 +444,17 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
       const moderation = await buildPostModerationSignals({ payload: nextPayload, excludePostId: post._id });
       post.moderationFlags = moderation.flags;
       post.moderationFlagSummary = moderation.summary;
+      const nextEligibility = evaluateBlogContentEligibility(nextPayload);
+      const contentChangedSinceReview = post.contentEligibility?.sourceHash !== nextEligibility.sourceHash;
+      post.contentEligibility = nextEligibility;
+      if (contentChangedSinceReview) post.publicationReview = null;
 
       if (nextPayload.status !== post.status) {
+        if (['published', 'scheduled'].includes(nextPayload.status)) {
+          const error = new Error('Use the pending review decision and required moderation checklist before publishing or scheduling this post.');
+          error.status = 400;
+          throw error;
+        }
         applyAdminAutosaveStatusTransition(post, nextPayload.status, req.session?.userId || null);
       }
 
@@ -479,7 +539,10 @@ exports.autosaveBlogPostAdmin = async (req, res) => {
     if (!assetsPersisted && uploadedKeys.length) {
       await uploadService.deleteObjects(uploadedKeys);
     }
-    return res.status(500).json({ success: false, message: 'Failed to auto-save blog post.' });
+    return res.status(error.status || 500).json({
+      success: false,
+      message: error.status ? error.message : 'Failed to auto-save blog post.'
+    });
   }
 };
 
@@ -574,6 +637,8 @@ exports.renderAdminReviewPage = async (req, res) => {
       .sort({ editedAt: -1 })
       .limit(25)
       .lean();
+    const publicationEligibility = evaluateBlogContentEligibility(reviewTarget.reviewData);
+    const publicationOverrideFlags = getBlockingModerationFlags(reviewTarget.reviewData.moderationFlags || []);
 
     return res.render('admin/blog-review', {
       title: `Review Blog - ${post.title}`,
@@ -587,7 +652,9 @@ exports.renderAdminReviewPage = async (req, res) => {
       templateBlocksByKey: getComposerTemplateBlocksByKey(),
       revisions,
       reviewTarget,
-      openReportCounts
+      openReportCounts,
+      publicationEligibility,
+      publicationOverrideFlags
     });
   } catch (error) {
     logger.error('renderAdminReviewPage error:', error);
@@ -653,7 +720,23 @@ exports.approveBlogPostPage = async (req, res) => {
     }
     const result = await approveReviewTarget({
       post,
-      actorId: req.session.userId || null
+      actorId: req.session.userId || null,
+      reviewInput: req.body
+    });
+
+    recordBlogModerationAudit(req, {
+      action: result.post.publicationReview?.overrideReason
+        ? 'admin.blog.approved_with_override'
+        : 'admin.blog.approved',
+      postId: post._id,
+      statusFrom: 'pending',
+      statusTo: 'published',
+      details: {
+        revisionApplied: result.revisionApplied,
+        policyVersion: result.post.contentEligibility?.policyVersion,
+        sourceHash: result.post.contentEligibility?.sourceHash,
+        review: result.post.publicationReview
+      }
     });
 
     return res.redirect(
@@ -661,7 +744,8 @@ exports.approveBlogPostPage = async (req, res) => {
     );
   } catch (error) {
     logger.error('approveBlogPostPage error:', error);
-    return res.redirect(`/admin/blog/posts/${req.params.id}/review?type=error&msg=Failed%20to%20approve%20post.`);
+    const message = error.status ? error.message : 'Failed to approve post.';
+    return res.redirect(`/admin/blog/posts/${req.params.id}/review?type=error&msg=${encodeURIComponent(message)}`);
   }
 };
 
@@ -698,6 +782,14 @@ exports.rejectBlogPostPage = async (req, res) => {
       post,
       actorId: req.session.userId || null,
       rejectionReason
+    });
+
+    recordBlogModerationAudit(req, {
+      action: 'admin.blog.rejected',
+      postId: post._id,
+      statusFrom: 'pending',
+      statusTo: 'rejected',
+      details: { revisionRejected: result.revisionRejected, rejectionReason }
     });
 
     return res.redirect(

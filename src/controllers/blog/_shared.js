@@ -32,11 +32,18 @@ const uploadService = require('../../services/upload.service');
 const { BLOG_CATEGORIES, BLOG_STATUSES, slugifyBlogTitle, normalizeTags } = require('../../utils/blog');
 
 const { sanitizeHtml, htmlToPlainText } = require('../../utils/sanitize');
-const { getCanonicalBlogSlug, getPublicBlogQuery } = require('../../utils/blog-canonical');
+const { getCanonicalBlogSlug, getEligiblePublicBlogQuery, getPublicBlogQuery } = require('../../utils/blog-canonical');
 
 const BlogReport = require('../../models/BlogReport');
 
 const { analyzePostSpamSignals, detectSimilarityFlags } = require('../../utils/blog-safety');
+const {
+  BLOG_CONTENT_POLICY_VERSION,
+  HEALTH_REVIEW_CONFIRMATIONS,
+  evaluateBlogContentEligibility,
+  inspectBlogLinks,
+  sanitizeUserBlogHtml
+} = require('../../utils/blog-content-eligibility');
 
 const {
   normalizeTemplateKey,
@@ -119,9 +126,11 @@ function escapeRegex(value) {
 function normalizeBlogPayload(body = {}) {
   const contentBlocks = normalizeContentBlocks(body.contentBlocksJson || body.contentBlocks);
   const hasStructuredBlocks = contentBlocks.length > 0;
-  const contentHtml = hasStructuredBlocks
+  const unsanitizedContentHtml = hasStructuredBlocks
     ? renderContentBlocksToHtml(contentBlocks)
-    : sanitizeHtml(String(body.contentHtml || ''));
+    : String(body.contentHtml || '');
+  const linkInspection = inspectBlogLinks(unsanitizedContentHtml);
+  const contentHtml = sanitizeUserBlogHtml(unsanitizedContentHtml);
   const contentText = hasStructuredBlocks ? getStructuredContentText(contentBlocks) : htmlToPlainText(contentHtml);
   const category = String(body.category || '').trim();
   const customCategoryInput = String(body.customCategory || '').trim();
@@ -143,7 +152,8 @@ function normalizeBlogPayload(body = {}) {
     tags: normalizeTags(Array.isArray(body.tags) ? body.tags : splitTags(body.tags)),
     seoTitle: String(body.seoTitle || '').trim().slice(0, 160),
     seoDescription: String(body.seoDescription || '').trim().slice(0, 320),
-    ogImageUrl: String(body.ogImageUrl || '').trim().slice(0, 2000)
+    ogImageUrl: String(body.ogImageUrl || '').trim().slice(0, 2000),
+    linkValidationErrors: linkInspection.issues
   };
 }
 
@@ -155,7 +165,9 @@ function normalizeAdminAutosavePayload(body = {}, post) {
     : (Array.isArray(post.contentBlocks) ? normalizeContentBlocks(post.contentBlocks) : []);
   const hasStructuredBlocks = contentBlocks.length > 0;
   const rawContentHtml = hasOwn('contentHtml') ? String(body.contentHtml || '') : String(post.contentHtml || '');
-  const contentHtml = hasStructuredBlocks ? renderContentBlocksToHtml(contentBlocks) : sanitizeHtml(rawContentHtml);
+  const unsanitizedContentHtml = hasStructuredBlocks ? renderContentBlocksToHtml(contentBlocks) : rawContentHtml;
+  const linkInspection = inspectBlogLinks(unsanitizedContentHtml);
+  const contentHtml = sanitizeUserBlogHtml(unsanitizedContentHtml);
   const contentRaw = hasOwn('contentRaw') ? String(body.contentRaw || '').trim() : String(post.contentRaw || '');
   const contentText = hasStructuredBlocks ? getStructuredContentText(contentBlocks) : htmlToPlainText(contentHtml);
   const customCategoryInput = hasOwn('customCategory')
@@ -191,7 +203,8 @@ function normalizeAdminAutosavePayload(body = {}, post) {
     seoTitle: hasOwn('seoTitle') ? String(body.seoTitle || '').trim().slice(0, 160) : String(post.seoTitle || '').trim(),
     seoDescription: hasOwn('seoDescription') ? String(body.seoDescription || '').trim().slice(0, 320) : String(post.seoDescription || '').trim(),
     ogImageUrl: hasOwn('ogImageUrl') ? String(body.ogImageUrl || '').trim().slice(0, 2000) : String(post.ogImageUrl || '').trim(),
-    moderationNotes: hasOwn('moderationNotes') ? String(body.moderationNotes || '').trim().slice(0, 1000) : String(post.moderationNotes || '').trim()
+    moderationNotes: hasOwn('moderationNotes') ? String(body.moderationNotes || '').trim().slice(0, 1000) : String(post.moderationNotes || '').trim(),
+    linkValidationErrors: linkInspection.issues
   };
 }
 
@@ -575,6 +588,8 @@ async function saveAuthorRevision({ post, payload, actorId, shouldSubmit }) {
   revision.rejectionReason = '';
   revision.moderationFlags = moderation.flags;
   revision.moderationFlagSummary = moderation.summary;
+  revision.eligibilitySnapshot = evaluateBlogContentEligibility(nextSnapshot);
+  revision.publicationReview = null;
   await revision.save();
 
   syncBlogRevisionState(post, revision);
@@ -616,12 +631,81 @@ async function resolveReviewTarget(post) {
   };
 }
 
-async function approveReviewTarget({ post, actorId }) {
+function isAffirmative(value) {
+  return value === true || ['1', 'true', 'yes', 'on'].includes(String(value || '').trim().toLowerCase());
+}
+
+function getBlockingModerationFlags(flags = []) {
+  return Array.from(new Set((Array.isArray(flags) ? flags : []).filter((flag) => (
+    String(flag).startsWith('possible_plagiarism_')
+    || String(flag).startsWith('post_')
+  ))));
+}
+
+function buildPublicationReview({ reviewData, moderationFlags = [], reviewInput = {}, actorId = null, reviewedAt = new Date() }) {
+  const eligibility = evaluateBlogContentEligibility(reviewData, { evaluatedAt: reviewedAt });
+  const errors = [];
+  if (!eligibility.eligible) {
+    errors.push(`Content is not publication eligible: ${eligibility.blockingReasons.join(', ')}.`);
+  }
+  if (!isAffirmative(reviewInput.originalityConfirmed)) {
+    errors.push('Confirm originality and publishing rights before approval.');
+  }
+  if (eligibility.externalLinkCount > 0 && !isAffirmative(reviewInput.externalLinksConfirmed)) {
+    errors.push('Confirm that every external link is relevant and safe before approval.');
+  }
+
+  const healthChecks = HEALTH_REVIEW_CONFIRMATIONS;
+  if (eligibility.healthReviewRequired && healthChecks.some((key) => !isAffirmative(reviewInput[key]))) {
+    errors.push('Complete every health-content safety confirmation before approval.');
+  }
+
+  const overrideFlags = getBlockingModerationFlags(moderationFlags);
+  const overrideReason = String(reviewInput.overrideReason || '').trim();
+  if (overrideFlags.length && (overrideReason.length < 20 || overrideReason.length > 500)) {
+    errors.push('A 20–500 character moderation override reason is required for unresolved spam, promotional, repetitive, or similarity flags.');
+  }
+  if (errors.length) {
+    const error = new Error(errors.join(' '));
+    error.name = 'BlogPublicationReviewError';
+    error.status = 400;
+    error.validationErrors = errors;
+    throw error;
+  }
+
+  return {
+    eligibility,
+    review: {
+      policyVersion: BLOG_CONTENT_POLICY_VERSION,
+      sourceHash: eligibility.sourceHash,
+      originalityConfirmed: true,
+      externalLinksConfirmed: eligibility.externalLinkCount > 0,
+      healthSafetyConfirmed: eligibility.healthReviewRequired,
+      healthChecks: eligibility.healthReviewRequired
+        ? Object.fromEntries(healthChecks.map((key) => [key, true]))
+        : {},
+      overrideFlags,
+      overrideReason: overrideFlags.length ? overrideReason : '',
+      reviewSource: 'admin_moderation',
+      reviewedBy: actorId || null,
+      reviewedAt: new Date(reviewedAt)
+    }
+  };
+}
+
+async function approveReviewTarget({ post, actorId, reviewInput = {} }) {
   const revision = await getActivePendingRevision(post._id);
   const now = new Date();
 
   if (revision) {
     const snapshot = revision.after || {};
+    const publication = buildPublicationReview({
+      reviewData: { ...post.toObject(), ...snapshot },
+      moderationFlags: revision.moderationFlags || [],
+      reviewInput,
+      actorId,
+      reviewedAt: now
+    });
     if (snapshot.title && snapshot.title !== post.title) {
       post.title = snapshot.title;
       post.slug = await generateUniqueBlogSlug(snapshot.title, post._id);
@@ -653,6 +737,8 @@ async function approveReviewTarget({ post, actorId }) {
     });
     post.moderationFlags = moderation.flags;
     post.moderationFlagSummary = moderation.summary;
+    post.contentEligibility = publication.eligibility;
+    post.publicationReview = publication.review;
     post.status = 'published';
     post.publishedAt = now;
     post.reviewedAt = now;
@@ -668,6 +754,8 @@ async function approveReviewTarget({ post, actorId }) {
     revision.reviewedAt = now;
     revision.appliedAt = now;
     revision.editedAt = now;
+    revision.eligibilitySnapshot = publication.eligibility;
+    revision.publicationReview = publication.review;
     await revision.save();
     return { revisionApplied: true, revision, post };
   }
@@ -675,6 +763,15 @@ async function approveReviewTarget({ post, actorId }) {
   if (post.status !== 'pending') {
     throw new Error(`Cannot approve a post from "${post.status}" status.`);
   }
+  const publication = buildPublicationReview({
+    reviewData: post.toObject ? post.toObject() : post,
+    moderationFlags: post.moderationFlags || [],
+    reviewInput,
+    actorId,
+    reviewedAt: now
+  });
+  post.contentEligibility = publication.eligibility;
+  post.publicationReview = publication.review;
   post.status = 'published';
   post.publishedAt = now;
   post.reviewedAt = now;
@@ -785,6 +882,9 @@ function validateBlogPayload(payload, options = {}) {
   if (payload.ogImageUrl && !isValidBlogImageUrl(payload.ogImageUrl)) {
     errors.push('OG image URL must be a valid http/https URL or site-relative path.');
   }
+  for (const issue of payload.linkValidationErrors || inspectBlogLinks(payload.contentHtml).issues) {
+    errors.push(`Unsafe link rejected (${issue.code}): ${String(issue.href || '').slice(0, 180)}`);
+  }
 
   return errors;
 }
@@ -808,7 +908,20 @@ function validateReadyForReview(post) {
     seoDescription: post.seoDescription || '',
     ogImageUrl: post.ogImageUrl || ''
   };
-  return validateBlogPayload(payload, { requireCover: true });
+  const errors = validateBlogPayload(payload, { requireCover: true });
+  const eligibility = evaluateBlogContentEligibility(payload);
+  if (!eligibility.eligible) {
+    const labels = {
+      minimum_500_words: 'Content must contain at least 500 substantive words.',
+      minimum_3_semantic_units: 'Content must contain at least three meaningful paragraphs, lists, sections, or blockquotes.',
+      insufficient_substantive_vocabulary: 'Content contains too much repeated filler to qualify as substantive.',
+      repetitive_filler: 'Content contains too much repeated filler to qualify as substantive.'
+    };
+    for (const reason of eligibility.blockingReasons) {
+      errors.push(labels[reason] || `Content is not publication eligible: ${reason}.`);
+    }
+  }
+  return Array.from(new Set(errors));
 }
 
 function estimateReadingTime(contentHtml) {
@@ -884,10 +997,14 @@ module.exports = {
   sanitizeHtml,
   htmlToPlainText,
   getCanonicalBlogSlug,
+  getEligiblePublicBlogQuery,
   getPublicBlogQuery,
   BlogReport,
   analyzePostSpamSignals,
   detectSimilarityFlags,
+  evaluateBlogContentEligibility,
+  inspectBlogLinks,
+  sanitizeUserBlogHtml,
   normalizeTemplateKey,
   normalizeContentBlocks,
   validateContentBlocks,
@@ -938,6 +1055,8 @@ module.exports = {
   getActivePendingRevision,
   resolveReviewTarget,
   approveReviewTarget,
+  buildPublicationReview,
+  getBlockingModerationFlags,
   rejectReviewTarget,
   validateBlogPayload,
   validateReadyForReview,

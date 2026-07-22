@@ -77,6 +77,14 @@ const blogRevisionSchema = new mongoose.Schema(
       trim: true,
       maxlength: 500,
       default: ''
+    },
+    eligibilitySnapshot: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null
+    },
+    publicationReview: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null
     }
   },
   {

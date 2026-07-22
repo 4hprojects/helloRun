@@ -4,6 +4,10 @@
 const mongoose = require('mongoose');
 const Blog = require('../models/Blog');
 const User = require('../models/User');
+const {
+  hasCurrentEligibleContent,
+  hasCurrentPublicationReview,
+} = require('../utils/blog-content-eligibility');
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost/hellorun';
 
 async function main() {
@@ -20,6 +24,10 @@ async function main() {
     return;
   }
   for (const post of scheduledPosts) {
+    if (!hasCurrentEligibleContent(post) || !hasCurrentPublicationReview(post)) {
+      console.error(`Skipped ineligible scheduled post: ${post.title} (${post._id})`);
+      continue;
+    }
     post.status = 'published';
     post.approvedAt = now;
     post.approvedBy = post.approvedBy || null; // Optionally set to system user

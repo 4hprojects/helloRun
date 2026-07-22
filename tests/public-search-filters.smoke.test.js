@@ -10,6 +10,14 @@ const User = require('../src/models/User');
 const Event = require('../src/models/Event');
 const Blog = require('../src/models/Blog');
 const { DEFAULT_WAIVER_TEMPLATE } = require('../src/utils/waiver');
+const { buildTrustedEditorialReview } = require('../src/utils/blog-content-eligibility');
+
+function eligibleBlogRecord(fields, label, actorId) {
+  const words = Array.from({ length: 510 }, (_, index) => `${label.toLowerCase().replace(/\s+/g, '')}${index}`);
+  const contentHtml = [0, 170, 340].map((start) => `<p>${words.slice(start, start + 170).join(' ')}</p>`).join('');
+  const record = { ...fields, contentHtml, contentText: words.join(' '), status: 'published', isDeleted: false };
+  return { ...record, ...buildTrustedEditorialReview(record, actorId, new Date()) };
+}
 
 const ROOT = path.resolve(__dirname, '..');
 const TEST_PORT = 3115;
@@ -634,31 +642,25 @@ async function seedPublicFilterFixture() {
     waiverVersion: 1
   });
 
-  const nutritionBlog = await Blog.create({
+  const nutritionBlog = await Blog.create(eligibleBlogRecord({
     authorId: author._id,
     title: 'Nutrition for New Runners',
     slug: `nutrition-runners-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 150),
     excerpt: 'Nutrition basics for race preparation.',
-    contentHtml: '<p>Nutrition planning for runners.</p>',
-    contentText: 'Nutrition planning for runners',
     coverImageUrl: `https://example.com/nutrition-${stamp}.jpg`,
     category: 'Nutrition',
-    status: 'published',
     publishedAt: new Date(now - 2 * 24 * 60 * 60 * 1000)
-  });
+  }, 'Nutrition planning for runners', author._id));
 
-  const trainingBlog = await Blog.create({
+  const trainingBlog = await Blog.create(eligibleBlogRecord({
     authorId: author._id,
     title: 'Trail Training Basics',
     slug: `trail-training-${stamp}`.toLowerCase().replace(/[^a-z0-9-]/g, '-').slice(0, 150),
     excerpt: 'How to train for trail races.',
-    contentHtml: '<p>Trail training plans.</p>',
-    contentText: 'Trail training plans',
     coverImageUrl: `https://example.com/training-${stamp}.jpg`,
     category: 'Training',
-    status: 'published',
     publishedAt: new Date(now - 1 * 24 * 60 * 60 * 1000)
-  });
+  }, 'Trail training plans', author._id));
 
   const draftBlog = await Blog.create({
     authorId: author._id,

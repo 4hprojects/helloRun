@@ -116,7 +116,11 @@ Providers process information under their own terms, locations, and security pra
 
 Essential session and security storage supports authentication and protected forms. Functional browser storage, Google Analytics, and Google AdSense remain off until the visitor enables the corresponding optional category through Cookie Preferences.
 
-Where ads are shown, Google and other configured advertising providers may place or read first- or third-party cookies, or use web beacons, IP addresses, browser or device identifiers, and similar technologies as a result of ad serving. Google may use data from partner sites under its policies. Learn [how Google uses partner data](https://policies.google.com/technologies/partner-sites) and manage eligible choices through [Google Ads Settings](https://adssettings.google.com).
+Third-party vendors, including Google, may use first- or third-party cookies to serve advertisements based on a visitor's previous visits to HelloRun or other websites. Google's use of advertising cookies enables Google and its partners to serve personalized advertisements based on visits to HelloRun and/or other sites on the Internet where consent and applicable law permit.
+
+Google and other configured advertising providers may also place or read cookies, or use web beacons, pixel tags, IP addresses, browser or device identifiers, ad-request data, and similar technologies as a result of ad serving. Visitors can manage or opt out of personalized Google advertising through [Google Ads Settings](https://adssettings.google.com), control optional advertising technology through HelloRun's Cookie Preferences, and learn [how Google uses partner data](https://policies.google.com/technologies/partner-sites).
+
+For visitors in the EEA, the United Kingdom, and Switzerland, Google advertising consent is managed through a Google-certified consent management platform integrated with the IAB Transparency and Consent Framework where required. That certified consent decision remains authoritative for Google advertising even if a separate HelloRun browser preference is enabled.
 
 HelloRun does not intentionally send passwords, account contact details, payment proof, activity-proof files, emergency details, precise activity routes, or information that Google could recognize as personally identifiable information for advertising. Optional advertising choices do not make private event evidence public.
 

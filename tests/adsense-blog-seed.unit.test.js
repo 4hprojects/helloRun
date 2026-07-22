@@ -7,8 +7,8 @@ const {
   htmlToText
 } = require('../src/scripts/seed-adsense-blog-posts');
 
-test('AdSense blog seed includes at least 15 substantial published guide topics', () => {
-  assert.ok(POSTS.length >= 15);
+test('AdSense blog seed contains only the 14 publication-eligible registered guides', () => {
+  assert.equal(POSTS.length, 14);
 
   const slugs = new Set();
   for (const post of POSTS) {
@@ -26,7 +26,7 @@ test('AdSense blog seed includes at least 15 substantial published guide topics'
 
     const html = buildContentHtml(post);
     const text = htmlToText(html);
-    assert.ok(text.split(/\s+/).filter(Boolean).length >= 250, `${post.slug} should have substantial seeded content`);
+    assert.ok(text.split(/\s+/).filter(Boolean).length >= 500, `${post.slug} should meet the publication word floor`);
     if (post.contentHtml) {
       assert.match(html, /Official(?: and platform)? sources/);
     } else {

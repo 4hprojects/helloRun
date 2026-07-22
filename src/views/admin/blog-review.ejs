@@ -881,9 +881,39 @@
         <% if (post.status === 'pending') { %>
           <section class="mod-card js-pending-actions">
             <h4>Primary Decision</h4>
-            <p>Publishes this post immediately to the public blog.</p>
+            <p>Publishes this post immediately after completing the required quality review.</p>
             <form method="POST" action="/admin/blog/posts/<%= post._id %>/approve-form" class="moderation-approve-form">
               <input type="hidden" name="_csrf" value="<%= locals.csrfToken || '' %>">
+              <div class="moderation-review-summary" aria-label="Content eligibility summary">
+                <p><strong><%= publicationEligibility.wordCount %></strong> words · <strong><%= publicationEligibility.semanticUnitCount %></strong> semantic units · <strong><%= publicationEligibility.externalLinkCount %></strong> external links</p>
+                <% if (!publicationEligibility.eligible) { %>
+                  <p class="moderation-hint-invalid">Publication blocked: <%= publicationEligibility.blockingReasons.join(', ') %></p>
+                <% } %>
+              </div>
+              <label class="admin-inline">
+                <input type="checkbox" name="originalityConfirmed" value="true" required>
+                I confirmed this post is original or the author has the necessary publishing rights.
+              </label>
+              <% if (publicationEligibility.externalLinkCount > 0) { %>
+                <label class="admin-inline">
+                  <input type="checkbox" name="externalLinksConfirmed" value="true" required>
+                  I reviewed every external link for relevance and safety.
+                </label>
+              <% } %>
+              <% if (publicationEligibility.healthReviewRequired) { %>
+                <fieldset class="moderation-health-checks">
+                  <legend>Required health-content review</legend>
+                  <label class="admin-inline"><input type="checkbox" name="healthExperienceConfirmed" value="true" required> Personal experience is distinguished from professional advice.</label>
+                  <label class="admin-inline"><input type="checkbox" name="healthSourcesConfirmed" value="true" required> Factual health claims use appropriate authoritative sources where applicable.</label>
+                  <label class="admin-inline"><input type="checkbox" name="healthSafetyConfirmed" value="true" required> The post avoids diagnosis, individual treatment, guarantees, dangerous restriction, and advice to ignore serious symptoms.</label>
+                  <label class="admin-inline"><input type="checkbox" name="healthCredentialsConfirmed" value="true" required> Credentials and emergency guidance are represented responsibly.</label>
+                </fieldset>
+              <% } %>
+              <% if (publicationOverrideFlags.length) { %>
+                <label class="moderation-reject-label" for="moderationOverrideReason">Required moderation override</label>
+                <p class="admin-field-help">Active flags: <%= publicationOverrideFlags.join(', ') %>. Reject confirmed violations. Approve only when these signals are false positives or the use is demonstrably authorized.</p>
+                <textarea id="moderationOverrideReason" name="overrideReason" required minlength="20" maxlength="500" rows="4" placeholder="Explain why approval is appropriate despite these signals."></textarea>
+              <% } %>
               <button type="submit" class="mod-btn mod-btn-approve" data-loading-text="Publishing..." onclick="return confirm('Approve and publish this post?');">Approve & Publish</button>
             </form>
           </section>

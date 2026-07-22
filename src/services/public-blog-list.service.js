@@ -1,19 +1,20 @@
 const Blog = require('../models/Blog');
 const User = require('../models/User');
 const { BLOG_CATEGORIES } = require('../utils/blog');
-const { getPublicBlogQuery } = require('../utils/blog-canonical');
+const { getEligiblePublicBlogQuery } = require('../utils/blog-canonical');
 const { getTopWriters } = require('./blog-top-writers.service');
+const { formatBlogAuthorName } = require('../utils/blog-author');
 
 const BLOG_PAGE_SIZE = 12;
 const BLOG_SORTS = new Set(['latest', 'oldest', 'popular']);
-const BLOG_AUTHOR_FIELDS = 'firstName lastName avatarUrl verifiedAuthor trustScore';
+const BLOG_AUTHOR_FIELDS = 'displayName firstName lastName avatarUrl verifiedAuthor trustScore';
 const BLOG_CARD_FIELDS = 'title slug excerpt category customCategory tags coverImageUrl readingTime views trendingScore likesCount commentsCount featured publishedAt createdAt';
 
 async function buildPublicBlogListPage(queryParams = {}, options = {}) {
   const filters = getBlogFilterValues(queryParams);
   const listingKind = String(options.listingKind || '').trim();
   const baseUrl = String(options.baseUrl || '').trim().replace(/\/+$/, '');
-  const query = getPublicBlogQuery({ status: 'published', isDeleted: { $ne: true } });
+  const query = getEligiblePublicBlogQuery({ status: 'published', isDeleted: { $ne: true } });
 
   if (filters.category) query.category = filters.category;
   if (filters.author) query.authorId = filters.author;
@@ -41,7 +42,7 @@ async function buildPublicBlogListPage(queryParams = {}, options = {}) {
 
   const [spotlightCandidate, availableCategoriesRaw, selectedAuthorUser] = await Promise.all([
     spotlightQuery || Promise.resolve(null),
-    Blog.distinct('category', getPublicBlogQuery({ status: 'published', isDeleted: { $ne: true } })),
+    Blog.distinct('category', getEligiblePublicBlogQuery({ status: 'published', isDeleted: { $ne: true } })),
     filters.author
       ? User.findById(filters.author).select(BLOG_AUTHOR_FIELDS).lean()
       : Promise.resolve(null)
@@ -76,7 +77,7 @@ async function buildPublicBlogListPage(queryParams = {}, options = {}) {
   const normalizedFilters = { ...filters, authorName };
   const activeFilters = getBlogActiveFilters(normalizedFilters);
   const hasActiveFilters = activeFilters.length > 0;
-  const isThinFilteredListing = Boolean(listingKind && totalMatchingPosts < 3);
+  const isThinFilteredListing = totalMatchingPosts < 3;
   const spotlight = showCommunityModules && spotlightCandidate
     ? normalizeBlogCard(spotlightCandidate)
     : null;
@@ -270,7 +271,7 @@ function buildBlogResultsSummary(filters = {}, total = 0) {
 }
 
 function formatAuthorName(author = {}) {
-  return [author.firstName, author.lastName].filter(Boolean).join(' ').trim() || 'HelloRun Community';
+  return formatBlogAuthorName(author);
 }
 
 function formatCount(value) {

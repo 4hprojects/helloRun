@@ -38,7 +38,7 @@
       <% [
         ['functional', 'Functional', 'Local form drafts and interface preferences on this browser.'],
         ['analytics', 'Analytics', 'Google Analytics measurement used to understand and improve HelloRun.'],
-        ['advertising', 'Advertising', 'Configured Google AdSense delivery, measurement, and fraud prevention.']
+        ['advertising', 'Advertising', 'Configured Google AdSense delivery, measurement, and fraud prevention. Google-certified regional consent remains authoritative where it applies.']
       ].forEach(([key, label, description]) => { %>
         <label class="cookie-choice-row" for="cookie-choice-<%= key %>">
           <span><strong><%= label %></strong><small><%= description %></small></span>
@@ -46,7 +46,7 @@
         </label>
       <% }) %>
     </div>
-    <p class="cookie-dialog-note">Turning off Functional storage removes HelloRun-owned local drafts and saved interface choices from this browser. Third-party cookies may require browser or provider controls.</p>
+    <p class="cookie-dialog-note">Turning off Functional storage removes HelloRun-owned local drafts and saved interface choices from this browser. Google’s certified consent message separately controls applicable EEA, UK, and Swiss advertising consent; third-party cookies may also require browser or provider controls.</p>
     <div class="cookie-dialog-actions">
       <button class="btn btn-secondary" type="button" data-reject-cookie-preferences>Reject optional</button>
       <button class="btn btn-primary" type="submit">Save preferences</button>

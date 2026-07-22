@@ -47,6 +47,11 @@ const AUDIT_ACTION_GROUPS = Object.freeze({
     'admin.running_group.member_count_reconciled',
     'admin.running_group.deleted'
   ],
+  blogs: [
+    'admin.blog.approved',
+    'admin.blog.approved_with_override',
+    'admin.blog.rejected'
+  ],
   events: [
     'event.published',
     'event.archived',
@@ -68,6 +73,7 @@ const AUDIT_GROUP_OPTIONS = Object.freeze([
   { value: 'exports', label: 'Exports' },
   { value: 'reminders', label: 'Reminders' },
   { value: 'admin', label: 'Admin actions' },
+  { value: 'blogs', label: 'Blog moderation' },
   { value: 'events', label: 'Events and organiser applications' },
   { value: 'certificates', label: 'Certificates' }
 ]);
@@ -81,6 +87,7 @@ const AUDIT_TARGET_TYPE_OPTIONS = Object.freeze([
   { value: 'shop_order', label: 'Shop orders' },
   { value: 'user', label: 'Users' },
   { value: 'running_group', label: 'Running groups' },
+  { value: 'blog', label: 'Blog posts' },
   { value: 'certificate', label: 'Certificates' }
 ]);
 

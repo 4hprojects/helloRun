@@ -55,7 +55,7 @@ test('Privacy template provides server contents, practical controls, and respons
 });
 
 test('corrected draft covers current privacy workflows without unsupported promises', () => {
-  for (const phrase of ['Henson M. Sagorsor, operating as 4HProjects', 'accumulated distance may exceed', 'Recognition records may snapshot', 'report preserves a private snapshot', 'Google Ads Settings', 'web beacons', 'IP addresses', 'Not every technical or security event']) assert.match(source, new RegExp(phrase, 'i'));
+  for (const phrase of ['Henson M. Sagorsor, operating as 4HProjects', 'accumulated distance may exceed', 'Recognition records may snapshot', 'report preserves a private snapshot', 'Google Ads Settings', 'web beacons', 'IP addresses', 'previous visits', 'Google-certified consent management platform', 'Not every technical or security event']) assert.match(source, new RegExp(phrase, 'i'));
   assert.match(source, /transparently[\s\S]*legitimate purposes[\s\S]*proportionate/i);
   assert.match(source, /\/contact\?topic=privacy_data/);
   assert.doesNotMatch(source, /Last Updated:|Recommended Retention|4HProjects Inc|guarantee.*AdSense/i);

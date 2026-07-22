@@ -62,7 +62,10 @@ test('Google tags and ad placements are gated by independent choices', () => {
   assert.match(headPartial, /ad_personalization: 'denied'/);
   assert.match(head, /locals\.canUseAnalytics && process\.env\.GA_MEASUREMENT_ID/);
   assert.match(mainLayout, /locals\.canUseAnalytics && process\.env\.GA_MEASUREMENT_ID/);
-  assert.match(adMiddleware, /!req\.cookiePreferences\?\.advertising/);
+  assert.match(adMiddleware, /loadConsentScript = shouldLoadAdScript/);
+  assert.match(adMiddleware, /advertisingAllowed = req\.cookiePreferences\?\.advertising === true/);
+  assert.match(adMiddleware, /advertisingAllowed && canRenderAdPlacement/);
+  assert.match(head, /locals\.ads\.loadConsentScript/);
   assert.ok(head.indexOf("include('../partials/privacy-head')") < head.indexOf('pagead2.googlesyndication.com'));
 });
 
@@ -75,7 +78,7 @@ test('Functional withdrawal clears only HelloRun-owned keys and browser features
 });
 
 test('corrected draft accurately separates policy agreement, choices, and provider boundaries', () => {
-  for (const phrase of ['Henson M. Sagorsor, operating as 4HProjects', '`hr.sid`', '`hr.cookie_preferences`', 'Functional, Analytics, and Advertising are off', 'Google Consent Mode', 'not a Google-certified consent management platform', 'does not enable optional browser storage']) assert.match(source, new RegExp(phrase, 'i'));
+  for (const phrase of ['Henson M. Sagorsor, operating as 4HProjects', '`hr.sid`', '`hr.cookie_preferences`', 'Functional, Analytics, and Advertising are off', 'Google Consent Mode', 'Google-certified consent management platform', 'previous visits', 'does not enable optional browser storage']) assert.match(source, new RegExp(phrase, 'i'));
   assert.doesNotMatch(source, /Last Updated:|4HProjects Inc|guarantee.*AdSense approval/i);
   assert.match(legacy, /Last Updated:\*\* May 23, 2026/);
 });

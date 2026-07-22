@@ -222,6 +222,14 @@ const blogSchema = new mongoose.Schema(
       maxlength: 500,
       default: ''
     },
+    contentEligibility: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null
+    },
+    publicationReview: {
+      type: mongoose.Schema.Types.Mixed,
+      default: null
+    },
     views: {
       type: Number,
       default: 0,

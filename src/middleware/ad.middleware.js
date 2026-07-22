@@ -9,10 +9,6 @@ const logger = require('../utils/logger');
 async function populateAdLocals(req, res, next) {
   res.locals.ads = createEmptyAdLocals();
 
-  if (!req.cookiePreferences?.advertising) {
-    return next();
-  }
-
   if (!shouldEvaluateAds(req)) {
     return next();
   }
@@ -24,14 +20,17 @@ async function populateAdLocals(req, res, next) {
 
   try {
     const settings = await getAdSettings();
-    const renderScript = shouldLoadAdScript(settings, pageGroup);
+    const loadConsentScript = shouldLoadAdScript(settings, pageGroup);
+    const advertisingAllowed = req.cookiePreferences?.advertising === true;
+    const renderScript = loadConsentScript && advertisingAllowed;
     res.locals.ads = {
       settings,
       pageGroup,
       publisherId: settings.publisherId,
+      loadConsentScript,
       renderScript,
       canRender(groupKey, placementKey) {
-        return canRenderAdPlacement(settings, groupKey, placementKey);
+        return advertisingAllowed && canRenderAdPlacement(settings, groupKey, placementKey);
       },
       getSlot(groupKey, placementKey) {
         return settings.pageGroups?.[groupKey]?.placements?.[placementKey]?.slotId || '';
@@ -57,6 +56,7 @@ function createEmptyAdLocals() {
     settings: null,
     pageGroup: '',
     publisherId: '',
+    loadConsentScript: false,
     renderScript: false,
     canRender: () => false,
     getSlot: () => ''

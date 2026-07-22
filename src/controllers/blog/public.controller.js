@@ -18,6 +18,7 @@ const {
   sanitizeHtml,
   htmlToPlainText,
   getCanonicalBlogSlug,
+  getEligiblePublicBlogQuery,
   getPublicBlogQuery,
   BlogReport,
   analyzePostSpamSignals,
@@ -81,6 +82,7 @@ const {
   getAuthorFromSession,
   getBlogPageMessage
 } = require('./_shared');
+const { formatBlogAuthorName } = require('../../utils/blog-author');
 
 // --- PUBLIC BLOG PAGES (Phase A/E) ---
 // Render public blog index with growth features
@@ -133,12 +135,12 @@ exports.renderPublicBlogPost = async (req, res) => {
       isDeleted: { $ne: true },
       publishedAt: { $lte: new Date() }
     })
-      .populate('authorId', 'firstName lastName verifiedAuthor trustScore')
+      .populate('authorId', 'displayName firstName lastName verifiedAuthor trustScore')
       .lean();
     if (!post) return res.status(404).render('error', { title: 'Not Found', status: 404, message: 'Post not found.' });
 
     // Author info
-    post.authorName = post.authorId ? `${post.authorId.firstName} ${post.authorId.lastName}` : 'Unknown';
+    post.authorName = formatBlogAuthorName(post.authorId || {}, 'Unknown');
     post.verifiedAuthor = post.authorId && post.authorId.verifiedAuthor;
     post.trustScore = post.authorId && post.authorId.trustScore;
 
@@ -175,7 +177,7 @@ exports.getGuidesAndResources = async (req, res) => {
 exports.getBlogFeed = async (req, res) => {
   try {
     const Feed = await loadFeedCtor();
-    const posts = await Blog.find(getPublicBlogQuery({
+    const posts = await Blog.find(getEligiblePublicBlogQuery({
       status: 'published',
       isDeleted: { $ne: true },
       publishedAt: { $lte: new Date() }
@@ -183,7 +185,7 @@ exports.getBlogFeed = async (req, res) => {
       .sort({ publishedAt: -1 })
       .limit(30)
       .select('title slug excerpt contentHtml publishedAt authorId')
-      .populate('authorId', 'firstName lastName');
+      .populate('authorId', 'displayName firstName lastName');
 
     const siteUrl = req.protocol + '://' + req.get('host');
     const feed = new Feed({
@@ -207,7 +209,7 @@ exports.getBlogFeed = async (req, res) => {
         link: siteUrl + '/blog/' + post.slug,
         description: post.excerpt,
         content: post.contentHtml,
-        author: post.authorId ? [{ name: post.authorId.firstName + ' ' + post.authorId.lastName }] : [],
+        author: post.authorId ? [{ name: formatBlogAuthorName(post.authorId) }] : [],
         date: post.publishedAt
       });
     });
@@ -234,14 +236,14 @@ exports.getTopWritersLeaderboard = async (req, res) => {
 exports.getTrendingBlogs = async (req, res) => {
   try {
     const limit = Math.max(1, Math.min(Number(req.query.limit) || 10, 50));
-    const posts = await Blog.find(getPublicBlogQuery({
+    const posts = await Blog.find(getEligiblePublicBlogQuery({
       status: 'published',
       isDeleted: { $ne: true },
       publishedAt: { $lte: new Date() }
     }))
       .sort({ trendingScore: -1, publishedAt: -1 })
       .limit(limit)
-      .populate('authorId', 'firstName lastName verifiedAuthor trustScore')
+      .populate('authorId', 'displayName firstName lastName verifiedAuthor trustScore')
       .select('title slug excerpt category coverImageUrl publishedAt trendingScore views likesCount commentsCount authorId');
 
     return res.json({

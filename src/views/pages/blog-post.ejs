@@ -22,7 +22,7 @@
     "url": _postCanonical,
     "datePublished": _postPublished,
     "dateModified": _postModified,
-    "author": { "@type": "Person", "name": authorDisplay.name },
+    "author": { "@type": authorDisplay.schemaType || "Person", "name": authorDisplay.name },
     "publisher": {
       "@type": "Organization",
       "name": "HelloRun",
@@ -76,7 +76,7 @@
             <% if (post.authorId?.avatarUrl) { %>
               <img src="<%= post.authorId.avatarUrl %>" alt="">
             <% } else { %>
-              <%= (post.authorId?.firstName || 'H').charAt(0) %>
+              <%= (authorDisplay?.name || 'H').charAt(0) %>
             <% } %>
           </span>
           <div class="blog-post-author-copy">
@@ -231,9 +231,9 @@
           <section class="blog-author-box">
             <div class="author-avatar">
               <% if (post.authorId?.avatarUrl) { %>
-                <img src="<%= post.authorId.avatarUrl %>" alt="<%= post.authorId?.firstName %>" loading="lazy">
+                <img src="<%= post.authorId.avatarUrl %>" alt="<%= authorDisplay?.name || 'Author' %>" loading="lazy">
               <% } else { %>
-                <div class="author-avatar-placeholder"><%= (post.authorId?.firstName || 'U')[0] %></div>
+                <div class="author-avatar-placeholder"><%= (authorDisplay?.name || 'U')[0] %></div>
               <% } %>
             </div>
             <div class="author-details">

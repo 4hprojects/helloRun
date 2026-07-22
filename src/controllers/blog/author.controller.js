@@ -60,6 +60,7 @@ const {
   uploadBlogAssetsForPayload,
   collectRemovedGalleryKeys,
   buildPostModerationSignals,
+  evaluateBlogContentEligibility,
   applyPayloadToPost,
   createRevisionSnapshot,
   getRevisionChangedFields,
@@ -203,7 +204,9 @@ exports.createDraft = async (req, res) => {
       seoDescription: payload.seoDescription,
       ogImageUrl: payload.ogImageUrl,
       moderationFlags: moderation.flags,
-      moderationFlagSummary: moderation.summary
+      moderationFlagSummary: moderation.summary,
+      contentEligibility: evaluateBlogContentEligibility(payload),
+      publicationReview: null
     });
 
     return res.status(201).json({
@@ -318,6 +321,8 @@ exports.updateDraft = async (req, res) => {
     const moderation = await buildPostModerationSignals({ payload, excludePostId: post._id });
     post.moderationFlags = moderation.flags;
     post.moderationFlagSummary = moderation.summary;
+    post.contentEligibility = evaluateBlogContentEligibility(payload);
+    post.publicationReview = null;
 
     if (shouldSubmit) {
       const readyErrors = validateReadyForReview({
@@ -415,6 +420,8 @@ exports.submitForReview = async (req, res) => {
     }
 
     post.status = 'pending';
+    post.contentEligibility = evaluateBlogContentEligibility(post);
+    post.publicationReview = null;
     post.submittedAt = new Date();
     post.reviewedAt = null;
     post.rejectionReason = '';
@@ -722,7 +729,9 @@ exports.createDraftPage = async (req, res) => {
       seoDescription: payload.seoDescription,
       ogImageUrl: payload.ogImageUrl,
       moderationFlags: moderation.flags,
-      moderationFlagSummary: moderation.summary
+      moderationFlagSummary: moderation.summary,
+      contentEligibility: evaluateBlogContentEligibility(payload),
+      publicationReview: null
     });
 
     if (shouldSubmit) {
@@ -954,6 +963,8 @@ exports.updateDraftPage = async (req, res) => {
     const moderation = await buildPostModerationSignals({ payload, excludePostId: post._id });
     post.moderationFlags = moderation.flags;
     post.moderationFlagSummary = moderation.summary;
+    post.contentEligibility = evaluateBlogContentEligibility(payload);
+    post.publicationReview = null;
 
     if (shouldSubmit) {
       const readyErrors = validateReadyForReview({
@@ -1050,6 +1061,8 @@ exports.submitForReviewPage = async (req, res) => {
     }
 
     post.status = 'pending';
+    post.contentEligibility = evaluateBlogContentEligibility(post);
+    post.publicationReview = null;
     post.submittedAt = new Date();
     post.reviewedAt = null;
     post.rejectionReason = '';

@@ -7,8 +7,10 @@ const Blog = require('../models/Blog');
 const User = require('../models/User');
 const { POSTS } = require('./seed-adsense-blog-posts');
 const { getArticleModule, listArticleSlugs } = require('../content/adsense-blog-article-registry');
+const { EDITORIAL_TEAM_EMAIL } = require('../utils/blog-author');
+const { buildTrustedEditorialReview } = require('../utils/blog-content-eligibility');
 
-const GUIDE_AUTHOR_EMAIL = String(process.env.ADSENSE_GUIDE_AUTHOR_EMAIL || 'hensonsagorsor@gmail.com').trim().toLowerCase();
+const GUIDE_AUTHOR_EMAIL = EDITORIAL_TEAM_EMAIL;
 
 function parseArguments(argv = process.argv.slice(2)) {
   let slug = '';
@@ -79,6 +81,7 @@ function buildCreatePayload({ slug, authorId, now = new Date() }) {
     moderationFlags: [],
     moderationFlagSummary: ''
   };
+  Object.assign(payload, buildTrustedEditorialReview(payload, authorId, publishedAt));
 
   const validationError = new Blog(payload).validateSync();
   if (validationError) throw validationError;
@@ -97,8 +100,8 @@ async function createAdsenseBlog({ slug, mode = 'dry-run', now = new Date() } = 
       throw new Error(`Canonical blog record for ${slug} must be absent before creation; found ${matchCount}.`);
     }
 
-    const author = await User.findOne({ email: GUIDE_AUTHOR_EMAIL, emailVerified: true }).select('_id email').lean();
-    if (!author) throw new Error(`Existing verified guide author not found: ${GUIDE_AUTHOR_EMAIL}`);
+    const author = await User.findOne({ email: GUIDE_AUTHOR_EMAIL, emailVerified: true, role: 'admin' }).select('_id email role').lean();
+    if (!author) throw new Error(`Existing verified admin guide author not found: ${GUIDE_AUTHOR_EMAIL}`);
 
     const payload = buildCreatePayload({ slug, authorId: author._id, now });
     let createdId = null;
